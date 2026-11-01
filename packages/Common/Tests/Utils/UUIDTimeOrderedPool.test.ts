@@ -3,7 +3,11 @@ import UUID, {
   TIME_ORDERED_IDS_PER_RANDOM_DRAW,
 } from "../../Utils/UUID";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
-import { FastestRun, fastestRun } from "../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../Helpers/FastestRun";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -423,27 +427,25 @@ describe("UUID.generateTimeOrdered: speed", () => {
   test("100,000 ids take a small fraction of a second, and well under a third of master's time", () => {
     const count: number = 100000;
 
-    const branch: FastestRun<string> = fastestRun({
-      run: (): string => {
+    // Timed in turns (fastestRunsCompared): one stall cannot slow one side alone.
+    const runs: ComparedRuns<string, string> = fastestRunsCompared({
+      first: (): string => {
         let last: string = "";
         for (let i: number = 0; i < count; i++) {
           last = UUID.generateTimeOrdered();
         }
         return last;
       },
-      limitInMs: 0,
-    });
-
-    const master: FastestRun<string> = fastestRun({
-      run: (): string => {
+      second: (): string => {
         let last: string = "";
         for (let i: number = 0; i < count; i++) {
           last = masterGenerateTimeOrdered();
         }
         return last;
       },
-      limitInMs: 0,
     });
+    const branch: FastestRun<string> = runs.first;
+    const master: FastestRun<string> = runs.second;
 
     expect(branch.result).toMatch(UUID_V7_PATTERN);
     expect(master.result).toMatch(UUID_V7_PATTERN);

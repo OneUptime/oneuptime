@@ -549,6 +549,26 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
   { file: "Common/Server/API/IncidentAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/IncidentEpisodeAPI.ts", delivery: "throw" },
   { file: "Common/Server/API/AlertAPI.ts", delivery: "throw" },
+  /*
+   * Explain on a Data Security issue: the person waits on the request
+   * (POST /data-security-issue/:id/explain), and a refusal is the message
+   * the issue page shows above its fix.
+   */
+  { file: "Common/Server/API/DataSecurityAPI.ts", delivery: "throw" },
+  /*
+   * An exception's explanation (#5419) and What's new on Exceptions (#5427):
+   * the person waits on the request, read as them, and a refusal is the
+   * message the exception's page or the Exceptions page shows in place of
+   * the AI's words.
+   */
+  {
+    file: "Common/Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts",
+    delivery: "throw",
+  },
+  {
+    file: "Common/Server/Utils/AI/TelemetryAi/ExceptionDigest.ts",
+    delivery: "throw",
+  },
   { file: "Common/Server/API/ScheduledMaintenanceAPI.ts", delivery: "throw" },
   { file: "Common/Server/Services/IncidentService.ts", delivery: "throw" },
 ];

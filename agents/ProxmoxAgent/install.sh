@@ -156,6 +156,26 @@ download_agent_file() {
     fi
 }
 
+# The cluster's nodes, comma-separated, as the Proxmox VE API at PVE_HOST lists
+# them (cluster/status: the address each node's name resolves to), or nothing
+# when the API cannot be asked. The token reaches curl on stdin, never on its
+# command line, where any local user could read it; the certificate is checked
+# only when PVE_VERIFY_SSL=true, as the exporter does.
+discover_pve_nodes() {
+    local host="$PVE_HOST" insecure="-k" status=""
+    case "$host" in
+        *:*) ;;
+        *) host="$host:${PVE_PORT:-8006}" ;;
+    esac
+    if [ "$(printf '%s' "$PVE_VERIFY_SSL" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+        insecure=""
+    fi
+    status="$(printf 'Authorization: PVEAPIToken=%s=%s\n' "$PVE_API_TOKEN_ID" "$PVE_API_TOKEN_SECRET" \
+        | curl -fsS ${insecure:+"$insecure"} --max-time 10 -H @- "https://$host/api2/json/cluster/status" 2>/dev/null)" || return 0
+    printf '%s' "$status" | tr '{' '\n' | grep -E '"type": ?"node"' \
+        | sed -n 's/.*"ip": *"\([^"]*\)".*/\1/p' | paste -sd, - || true
+}
+
 # Installation directory (decided first so an existing .env can be reused)
 INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-proxmox-agent}"
 ENV_FILE="$INSTALL_DIR/.env"
@@ -166,7 +186,7 @@ AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 # value set by hand (PVE_VERIFY_SSL, PVE_CA_FILE, what OneUptime AI may do
 # here) survives a re-run.
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY PROXMOX_CLUSTER_NAME \
-PVE_HOST PVE_PORT PVE_EXPORTER_URL PVE_API_TOKEN_ID PVE_API_TOKEN_SECRET \
+PVE_HOST PVE_NODES PVE_PORT PVE_EXPORTER_URL PVE_API_TOKEN_ID PVE_API_TOKEN_SECRET \
 PVE_VERIFY_SSL PVE_CA_FILE COMPOSE_PROFILES \
 ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES ONEUPTIME_AI_ALLOW_WRITES \
 ONEUPTIME_AI_PVE_API_TOKEN_ID ONEUPTIME_AI_PVE_API_TOKEN_SECRET \
@@ -206,7 +226,7 @@ if [ -z "$PROXMOX_CLUSTER_NAME" ]; then
 fi
 
 if [ -z "$PVE_HOST" ]; then
-    read -rp "Proxmox VE API host (any node; the exporter and the AI agent query it, e.g., 192.168.1.10): " PVE_HOST
+    read -rp "Proxmox VE API host (any node or a virtual IP; the exporter and the AI agent query it, e.g., 192.168.1.10): " PVE_HOST
 fi
 
 # Decide whether to run the bundled prometheus-pve-exporter. An .env that
@@ -249,6 +269,38 @@ if [ "$PVE_EXPORTER_URL" = "pve-exporter:9221" ]; then
         echo ""
     fi
 fi
+
+# Every node's own address (PVE_NODES). pve-exporter reads start-on-boot (what
+# Guest Down needs), replication and the subscription only for the node it
+# queries, so the collector queries each node in turn: PVE_HOST alone leaves
+# the guests and replication jobs of every other node unseen. With a token the
+# script lists the cluster's nodes itself and offers them. A re-run asks
+# nothing: an .env from before PVE_NODES keeps reading PVE_HOST alone, as it
+# did, and is told how to add the others.
+if [ -z "$PVE_NODES" ]; then
+    DISCOVERED_NODES=""
+    if [ -n "$PVE_API_TOKEN_ID" ] && [ -n "$PVE_API_TOKEN_SECRET" ]; then
+        DISCOVERED_NODES="$(discover_pve_nodes)"
+    fi
+    if [ "$REUSED_ENV" = 1 ]; then
+        PVE_NODES="$PVE_HOST"
+        NODES_NOTE="$DISCOVERED_NODES"
+        [ -n "$NODES_NOTE" ] || NODES_NOTE="<node1>,<node2>,..."
+    else
+        echo ""
+        echo "The exporter reads start-on-boot, replication and the subscription only for the"
+        echo "node it asks, so the agent asks every node at its own address (not a virtual IP)."
+        read -rp "Every node's API address, comma-separated [${DISCOVERED_NODES:-$PVE_HOST}]: " PVE_NODES
+        PVE_NODES="${PVE_NODES:-${DISCOVERED_NODES:-$PVE_HOST}}"
+    fi
+fi
+
+# The collector parses the node list as YAML — wrap it in square brackets if
+# it is a bare comma-separated list.
+case "$PVE_NODES" in
+    \[*) ;;
+    *) PVE_NODES="[$PVE_NODES]" ;;
+esac
 
 # ----------------------------------------------------------------------------
 # OneUptime AI agent (the oneuptime-proxmox-ai-agent service)
@@ -337,6 +389,7 @@ ONEUPTIME_URL=$(compose_env_quote "$ONEUPTIME_URL")
 ONEUPTIME_TELEMETRY_INGESTION_KEY=$(compose_env_quote "$ONEUPTIME_TELEMETRY_INGESTION_KEY")
 PROXMOX_CLUSTER_NAME=$(compose_env_quote "$PROXMOX_CLUSTER_NAME")
 PVE_HOST=$(compose_env_quote "$PVE_HOST")
+PVE_NODES=$(compose_env_quote "$PVE_NODES")
 PVE_PORT=$(compose_env_quote "$PVE_PORT")
 PVE_EXPORTER_URL=$(compose_env_quote "$PVE_EXPORTER_URL")
 PVE_API_TOKEN_ID=$(compose_env_quote "$PVE_API_TOKEN_ID")
@@ -406,6 +459,14 @@ echo "AI agent status:  docker exec oneuptime-proxmox-ai-agent wget -qO- http://
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
 echo "To upgrade:       run this installer again; it reuses $ENV_FILE"
+
+if [ -n "${NODES_NOTE:-}" ]; then
+    echo ""
+    echo "NOTE: $ENV_FILE had no PVE_NODES, so the agent reads start-on-boot (Guest Down),"
+    echo "replication and the subscription from $PVE_HOST alone. On a cluster, list every"
+    echo "node's own address there, e.g. PVE_NODES=[$NODES_NOTE], then:"
+    echo "cd $INSTALL_DIR && docker compose up -d"
+fi
 
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
     echo ""

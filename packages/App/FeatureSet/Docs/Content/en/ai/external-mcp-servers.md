@@ -72,10 +72,10 @@ flowchart TB
 
 **In a fix**, when a server it may use offers a tool that may change something, OneUptime AI works out a fix through it, after the root cause analysis when there is one:
 
-- **Ask before fixing** — each change it would make is recorded and sent nowhere. The incident's **Remediation** card lists them in order, each with its server, its tool and what it would send. **Approve & Run** makes exactly those changes, in that order, under your name; approving takes the same permission as starting a runbook. A change that fails stops the ones after it.
+- **Ask before fixing** — each change it would make is recorded and sent nowhere. The **Remediation** step of the incident's **OneUptime AI** card lists them in order, each with its server, its tool and what it would send. **Approve & Run** makes exactly those changes, in that order, under your name; approving takes the same permission as starting a runbook. A change that fails stops the ones after it.
 - **Fix without asking** — OneUptime AI makes the changes itself, each recorded before it is sent. It does so only for a rule that names its MCP servers, when no other matching rule asks first, nothing else is already fixing the incident on its own (an AI agent on a cluster or host, or a runbook), and the rule has not made the most fixes it may make on its own in an hour; otherwise the changes are proposed. With no rule set up, or a rule that names no MCP server, every change is proposed.
 
-A fix makes at most 5 changes. OneUptime then watches the incident's monitors, as it does for every fix. Nothing is undone automatically: an MCP tool has no undo OneUptime can know of, so a fix that did not work is left for a person, and the **Remediation** card shows what each server answered.
+A fix makes at most 5 changes. OneUptime then watches the incident's monitors, as it does for every fix. Nothing is undone automatically: an MCP tool has no undo OneUptime can know of, so a fix that did not work is left for a person, and the **Remediation** step shows what each server answered.
 
 To stop OneUptime AI using a server, turn off **Let OneUptime AI use this server** on its page. It asks first: the server is no longer used in any investigation or fix, and a proposed fix through it can no longer be approved.
 
@@ -93,7 +93,7 @@ When several rules that investigate match, OneUptime AI may use every server any
 - **What a server sends back is data, never instructions.** OneUptime AI reads its tools' descriptions and answers as text from outside OneUptime: they never change a rule, an approval or what OneUptime AI may do.
 - **The address is checked on every connection.** OneUptime never connects to its own or a link-local address. On OneUptime Cloud it also refuses private network addresses: use the server's public address. A self-hosted OneUptime reaches private addresses unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` is set. Redirects are not followed.
 - **Limits.** A project has at most 20 servers, and OneUptime reads at most 200 tools of each. Connecting times out after 20 seconds, listing the tools after 30 and a tool call after 60. An answer larger than 2 MB is refused, and a run makes at most 40 calls to MCP servers.
-- **Every call is recorded.** Each call is a step of the run, shown in its activity, and each change a fix makes is on the **Remediation** card with what the server answered. The model calls behind them are in **Project Settings → AI → AI Logs**.
+- **Every call is recorded.** Each call is a step of the run, shown in its activity, and each change a fix makes is in the **Remediation** step with what the server answered. The model calls behind them are in **Project Settings → AI → AI Logs**.
 
 ## Troubleshooting
 

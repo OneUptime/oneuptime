@@ -70,12 +70,43 @@ interface TemplateExpectation {
   severity: string;
   rollingTime: RollingTime;
   query: QueryExpectation;
-  groupBy: string;
+  // Undefined for the one whole-cluster template, the heartbeat.
+  groupBy: string | undefined;
   fire: ThresholdExpectation;
   recover: ThresholdExpectation;
 }
 
+// The heartbeat: ungrouped on purpose, see the template.
+const STOPPED_REPORTING_ID: string = "docker-swarm-cluster-stopped-reporting";
+
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
+  {
+    /*
+     * Counted, ungrouped: the agent's own container reports on every node it
+     * runs on, so the window is only ever empty when the whole cluster has
+     * gone silent, which is the only way the `< 0` criteria can fire.
+     */
+    id: STOPPED_REPORTING_ID,
+    name: "Cluster Stopped Reporting",
+    category: "Availability",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    query: {
+      metricName: "container.memory.percent",
+      aggregation: MetricsAggregationType.Count,
+    },
+    groupBy: undefined,
+    fire: {
+      alias: "samples_received",
+      filterType: FilterType.LessThan,
+      value: 0,
+    },
+    recover: {
+      alias: "samples_received",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 0,
+    },
+  },
   {
     /*
      * Min per task over Past1Minute, compared as a DURATION: container.uptime
@@ -155,7 +186,11 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     },
   },
   {
-    // Max per task — any scrape over the threshold trips it (fork bomb/leak).
+    /*
+     * Max per task — any scrape over the threshold trips it (fork bomb/leak).
+     * 2000, as Docker's: the cgroup pids controller counts threads too, so
+     * 500 was ordinary for a JVM or a Go service.
+     */
     id: "docker-swarm-high-pids",
     name: "High Task Process Count",
     category: "Container",
@@ -169,12 +204,12 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     fire: {
       alias: "container_pids",
       filterType: FilterType.GreaterThan,
-      value: 500,
+      value: 2000,
     },
     recover: {
       alias: "container_pids",
       filterType: FilterType.LessThanOrEqualTo,
-      value: 500,
+      value: 2000,
     },
   },
 ];
@@ -291,7 +326,7 @@ describe("DockerSwarmAlertTemplates - registry", () => {
       availability.map((t: DockerSwarmAlertTemplate) => {
         return t.id;
       }),
-    ).toEqual(["docker-swarm-task-down"]);
+    ).toEqual([STOPPED_REPORTING_ID, "docker-swarm-task-down"]);
     expect(
       container.map((t: DockerSwarmAlertTemplate) => {
         return t.id;
@@ -500,10 +535,20 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
    * an Avg taken across every container in the swarm, so one hot task beside a
    * dozen idle sidecars was invisible.
    */
-  test("every template groups by the resource-prefixed container name", () => {
+  test("every per-task template groups by the resource-prefixed container name", () => {
     expect(ALL_TEMPLATES.length).toBeGreaterThan(0);
 
     for (const template of ALL_TEMPLATES) {
+      if (template.id === STOPPED_REPORTING_ID) {
+        // The whole-cluster heartbeat: grouped, a silent cluster has no series.
+        expect(
+          MonitorStep.getGroupByAttributeKeys(
+            template.getMonitorStep(buildArgs()),
+          ),
+        ).toEqual([]);
+        continue;
+      }
+
       const keys: Array<string> = MonitorStep.getGroupByAttributeKeys(
         template.getMonitorStep(buildArgs()),
       );
@@ -642,7 +687,7 @@ describe("DockerSwarmAlertTemplates - spec table expectations", () => {
 
       const groupBys: Array<string> =
         queryConfigs[0].metricQueryData.groupByAttributeKeys || [];
-      expect(groupBys).toEqual([tc.groupBy]);
+      expect(groupBys).toEqual(tc.groupBy ? [tc.groupBy] : []);
 
       const instances: Array<MonitorCriteriaInstance> =
         getCriteriaInstances(step);

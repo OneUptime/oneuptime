@@ -856,6 +856,13 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         stateId: createdItem.incidentStateId,
         previousStateId:
           onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
+        /*
+         * Who changed it: a person paged about the incident by a page a
+         * person asked for who acknowledges it answers their page
+         * (OnCallPersonPageAnswer).
+         */
+        changedByUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
       });
     }
 

@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+누군가 Slack 이나 Microsoft Teams 에서 당신을 호출하면 SMS가 `OneUptime:` 다음에 누가 누구를 호출했는지 알려 줍니다. 이 말도 절대 잘리지 않으며, 다음과 같이 보입니다.
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 SMS의 기본 문자 집합에 없는 문자가 하나라도 있으면 메시지 전체가 70자 단위의 부분으로 발송됩니다. 그래서 둥근 따옴표와 대시는 `"` , `'` , `-` 로, `…` 는 `...` 로 쓰이고, `ç` , `ł` 같은 글자는 악센트가 빠지며, 이모지는 생략됩니다. 일본어나 러시아어처럼 다른 문자로 된 제목은 쓰인 그대로 발송되며 두 부분 이상을 차지합니다.
 
 OneUptime이 보내는 다른 SMS(내가 소유한 인시던트의 변경이나 온콜 근무 시작 등)도 `OneUptime:` 로 시작해 `Turn off in User Settings > Notification Settings.` 로 끝납니다. 이 문장을 빼야 한 부분에 들어가는 경우에는 이 문장이 빠집니다.

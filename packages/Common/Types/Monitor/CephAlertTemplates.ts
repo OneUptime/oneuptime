@@ -4,7 +4,9 @@ import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
   AdditionalCriteriaFilterSpec,
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import FilterCondition from "../Filter/FilterCondition";
@@ -14,6 +16,7 @@ import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type CephAlertTemplateCategory =
+  | "Availability"
   | "Cluster Health"
   | "OSD"
   | "PG"
@@ -414,6 +417,52 @@ export function buildCephMultiQueryMonitorConfig(args: {
 }
 
 // --- Template Definitions ---
+
+const clusterStoppedReportingTemplate: CephAlertTemplate = {
+  id: "ceph-cluster-stopped-reporting",
+  name: "Cluster Stopped Reporting",
+  summary: "The cluster sends no data for 10 minutes.",
+  description:
+    "Alert when the Ceph cluster sends no data for ten minutes: the Ceph Agent stopped, lost its route to OneUptime or had its token revoked, or no ceph-mgr is serving its prometheus module (every manager is down, or the module was disabled). Reads ceph_health_status, which the active manager exports on every scrape whatever the cluster's health. One incident for the whole cluster.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: CephAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildCephMonitorStep({
+      cephMonitor: buildCephMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * The heartbeat. The mgr prometheus module exports exactly one
+         * ceph_health_status on every scrape - 0, 1 or 2 - so the series is
+         * never empty while the agent can scrape an active manager. The
+         * health checks' own series (ceph_health_detail) exist only while
+         * a check fires, which is why the other templates cannot tell a
+         * silent cluster from a healthy one. Ungrouped and counted: only a
+         * window with no row at all is the breach.
+         */
+        metricName: "ceph_health_status",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Ceph cluster",
+        incidentTitle: `[Ceph] Cluster Stopped Reporting - ${args.monitorName}`,
+        incidentDescription: `OneUptime has received no data from this Ceph cluster for ten minutes, so its other monitors have nothing to evaluate either - including the health-check templates, which read a silent cluster as a healthy one. Check, in order: whether a ceph-mgr is active and serving the prometheus module (\`ceph mgr stat\`, \`ceph mgr module ls\`), whether the Ceph Agent's collector is running and what its log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.`,
+        criteriaName: "Cluster Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the cluster sends no ceph_health_status data for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 const healthErrorTemplate: CephAlertTemplate = {
   id: "ceph-health-error",
@@ -1613,6 +1662,7 @@ const daemonSlowOpsTemplate: CephAlertTemplate = {
 
 export function getAllCephAlertTemplates(): Array<CephAlertTemplate> {
   return [
+    clusterStoppedReportingTemplate,
     healthErrorTemplate,
     healthWarnTemplate,
     osdDownTemplate,
@@ -1654,4 +1704,13 @@ export function getCephAlertTemplateById(
   return getAllCephAlertTemplates().find((template: CephAlertTemplate) => {
     return template.id === id;
   });
+}
+
+/*
+ * The template a NEW Ceph monitor starts on: the cluster going silent. It is
+ * the one template that still speaks when every other one has stopped being
+ * evaluated, and it has no threshold to tune.
+ */
+export function getCephDefaultAlertTemplateId(): string {
+  return clusterStoppedReportingTemplate.id;
 }

@@ -60,6 +60,11 @@ import {
   SecurityEntityActivityTool,
 } from "./SecurityCaseTools";
 import { RecentChangesTool } from "./RecentChangesTools";
+import {
+  QueryDataSecurityIssuesTool,
+  QueryDataStoreAccessTool,
+  QueryDataStoresTool,
+} from "./DataSecurityTools";
 import { GetChangeDetailsTool } from "./ChangeTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
@@ -165,6 +170,14 @@ export default class AIToolbox {
      */
     GetAIInvestigationTool,
     QueryAIInsightsTool,
+    /*
+     * Data Security: which stores hold what sensitive data and how exposed
+     * they are, what to fix first, and who can reach what - never a
+     * finding's samples (DataSecurityTools).
+     */
+    QueryDataStoresTool,
+    QueryDataSecurityIssuesTool,
+    QueryDataStoreAccessTool,
     TopExceptionsTool,
     SearchLogsTool,
     SearchSecurityEventsTool,

@@ -17,6 +17,7 @@ import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { describe, expect, test } from "@jest/globals";
@@ -75,7 +76,24 @@ const MIGRATION_PATH: string = path.join(
 
 type ModelType = { new (): unknown; name: string };
 
-const RESOURCE_MODELS: Record<AiResourceType, ModelType> = {
+/*
+ * The resource types this migration covered: cloud accounts got their AI
+ * columns later, in AddCloudAccountAiAccess.
+ */
+type MigratedType = Exclude<
+  AiResourceType,
+  | AiResourceType.AwsAccount
+  | AiResourceType.AzureSubscription
+  | AiResourceType.GoogleCloudProject
+>;
+
+const MIGRATED_TYPES: Array<MigratedType> = ALL_AI_RESOURCE_TYPES.filter(
+  (type: AiResourceType): type is MigratedType => {
+    return !isCloudAiResourceType(type);
+  },
+);
+
+const RESOURCE_MODELS: Record<MigratedType, ModelType> = {
   [AiResourceType.DockerHost]: DockerHost,
   [AiResourceType.PodmanHost]: PodmanHost,
   [AiResourceType.DockerSwarmCluster]: DockerSwarmCluster,
@@ -524,8 +542,8 @@ describe("AddResourceAiAgents migration - AutoRemediationSuggestion", () => {
 
 describe("AddResourceAiAgents migration - the resource models' AI access columns", () => {
   const cases: Array<[string, ModelType, string, string]> =
-    ALL_AI_RESOURCE_TYPES.flatMap(
-      (type: AiResourceType): Array<[string, ModelType, string, string]> => {
+    MIGRATED_TYPES.flatMap(
+      (type: MigratedType): Array<[string, ModelType, string, string]> => {
         return RESOURCE_AI_COLUMN_DDL.map(
           ([column, ddl]: [string, string]): [
             string,
@@ -573,8 +591,8 @@ describe("AddResourceAiAgents migration - the resource models' AI access columns
   );
 
   const movedCases: Array<[string, ModelType, MovedDefault]> =
-    ALL_AI_RESOURCE_TYPES.flatMap(
-      (type: AiResourceType): Array<[string, ModelType, MovedDefault]> => {
+    MIGRATED_TYPES.flatMap(
+      (type: MigratedType): Array<[string, ModelType, MovedDefault]> => {
         return DEFAULTS_MOVED_LATER.map(
           (moved: MovedDefault): [string, ModelType, MovedDefault] => {
             return [type, RESOURCE_MODELS[type], moved];
@@ -616,7 +634,7 @@ describe("AddResourceAiAgents migration - the resource models' AI access columns
   test("every resource starts with investigation off and remediation Disabled", async () => {
     const up: Array<string> = await recordQueries("up");
 
-    for (const type of ALL_AI_RESOURCE_TYPES) {
+    for (const type of MIGRATED_TYPES) {
       expect(up).toContain(
         `ALTER TABLE "${type}" ADD "isAiInvestigationEnabled" boolean NOT NULL DEFAULT false`,
       );
@@ -629,7 +647,7 @@ describe("AddResourceAiAgents migration - the resource models' AI access columns
   test("adds nothing else to the resource tables", async () => {
     const up: Array<string> = await recordQueries("up");
 
-    for (const type of ALL_AI_RESOURCE_TYPES) {
+    for (const type of MIGRATED_TYPES) {
       const touching: Array<string> = up.filter(
         (statement: string): boolean => {
           return statement.includes(`"${type}"`);
@@ -685,7 +703,7 @@ describe("AddResourceAiAgents migration - scope", () => {
         "ResourceAiAgent",
         "RunnerJob",
         "AutoRemediationSuggestion",
-        ...ALL_AI_RESOURCE_TYPES,
+        ...MIGRATED_TYPES,
       ].sort(),
     );
   });

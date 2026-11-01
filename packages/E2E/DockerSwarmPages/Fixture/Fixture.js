@@ -12,7 +12,7 @@
  * Scenarios are picked with query parameters, parsed once at load:
  *
  *   ?agent=   old (default: 0.161.0, the files before #5076's CPU fix) |
- *             current (0.161.1, the files this release ships) | none (an
+ *             current (0.161.2, the files this release ships) | none (an
  *             agent that reports no version)
  *   ?lang=    de reads the German locale file
  *   ?theme=   dark adds html.dark (handled by server.js)
@@ -105,7 +105,7 @@ const LOADED_AT = Date.now();
 const CLUSTER_ID = uuid("62000000", 1);
 const CLUSTER_NAME = "swarm-prod";
 
-const AGENT_VERSIONS = { old: "0.161.0", current: "0.161.1", none: "" };
+const AGENT_VERSIONS = { old: "0.161.0", current: "0.161.2", none: "" };
 
 const project = Object.assign(new Project(), {
   _id: PROJECT_ID,

@@ -8,7 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import ReadinessDot, { ReadinessUnknownDot } from "../Readiness/ReadinessDot";
-import StatTile from "../Readiness/StatTile";
+import StatTile, { StatTileGrid } from "../Readiness/StatTile";
 import {
   NO_ONE_NEXT_LABEL,
   NO_ONE_NEXT_TOOLTIP,
@@ -445,7 +445,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
 
       <div className="p-6">
         {/* Stat tiles */}
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTileGrid>
           <StatTile
             icon={IconProp.List}
             label={
@@ -476,7 +476,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                 : translator.translateText("None") || "None"
             }
           />
-        </div>
+        </StatTileGrid>
 
         {/* Condensed escalation timeline */}
         <div>

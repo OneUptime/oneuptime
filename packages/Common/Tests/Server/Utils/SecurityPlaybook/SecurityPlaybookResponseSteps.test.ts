@@ -281,6 +281,32 @@ describe("a runbook's inputs: the case, and what it is about", () => {
     ).toEqual(["break-glass-admin", "dc-01.corp.example.com"]);
   });
 
+  test("a Data Security case hands over the store it is about, and every store it names", () => {
+    const store: string =
+      "data-store:cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders-exports";
+    const other: string = "data-store:database:5f0c2a4e";
+    const { inputs: values, withheld }: RunbookCaseInputs = inputs({
+      entities: [
+        ...ENTITIES,
+        { type: SecurityEntityType.DataStore, value: store },
+        { type: SecurityEntityType.DataStore, value: other },
+      ],
+      targets: [...targets, target(SecurityEntityType.DataStore, store)],
+    });
+
+    expect(values["data_store"]).toBe(store);
+    expect(values["data_stores"]).toEqual([store, other]);
+    // A data store is never protected: nothing contains one.
+    expect(
+      withheld.some((entity: SecurityEntity): boolean => {
+        return entity.type === SecurityEntityType.DataStore;
+      }),
+    ).toBe(false);
+    // A case about no store hands an empty one.
+    expect(inputs().inputs["data_store"]).toBe("");
+    expect(inputs().inputs["data_stores"]).toEqual([]);
+  });
+
   test("a target the protected list matches is never handed over, even if the target rule missed it", () => {
     const { inputs: values }: RunbookCaseInputs = inputs({
       targets: [target(SecurityEntityType.User, "break-glass-admin")],

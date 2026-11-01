@@ -580,6 +580,9 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY]: `accounts/${RouteParams.ModelID}/topology`,
   [PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]: `accounts/${RouteParams.ModelID}/settings`,
   [PageMap.CLOUD_ACCOUNT_VIEW_DELETE]: `accounts/${RouteParams.ModelID}/delete`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]: `accounts/${RouteParams.ModelID}/ai/agent`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: `accounts/${RouteParams.ModelID}/feed`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -853,6 +856,49 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
     "settings/response-targets",
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: "settings/risk-scoring",
+};
+
+/*
+ * Data Security product routes. The product's own address opens its
+ * Overview. A store's pages and an issue's pages are one level under the
+ * store or the issue, as an incident's are under incidents/:id; the
+ * archived stores' page is a word, which react-router ranks above a
+ * store's id.
+ */
+export const DataSecurityRoutePath: Dictionary<string> = {
+  [PageMap.DATA_SECURITY]: "",
+  [PageMap.DATA_SECURITY_OVERVIEW]: "overview",
+  [PageMap.DATA_SECURITY_STORES]: "stores",
+  [PageMap.DATA_SECURITY_STORES_ARCHIVED]: "stores/archived",
+  [PageMap.DATA_SECURITY_STORE_VIEW]: `stores/${RouteParams.ModelID}`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_INSIDE]: `stores/${RouteParams.ModelID}/inside`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_ACCESS]: `stores/${RouteParams.ModelID}/access`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_ISSUES]: `stores/${RouteParams.ModelID}/issues`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_FLOWS]: `stores/${RouteParams.ModelID}/flows`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_SCANS]: `stores/${RouteParams.ModelID}/scans`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]: `stores/${RouteParams.ModelID}/timeline`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_OWNERS]: `stores/${RouteParams.ModelID}/owners`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS]: `stores/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_DELETE]: `stores/${RouteParams.ModelID}/delete`,
+  [PageMap.DATA_SECURITY_ISSUES]: "issues",
+  [PageMap.DATA_SECURITY_ISSUE_VIEW]: `issues/${RouteParams.ModelID}`,
+  [PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]: `issues/${RouteParams.ModelID}/timeline`,
+  [PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE]: `issues/${RouteParams.ModelID}/delete`,
+  [PageMap.DATA_SECURITY_SENSITIVE_DATA]: "sensitive-data",
+  [PageMap.DATA_SECURITY_TELEMETRY]: "telemetry",
+  [PageMap.DATA_SECURITY_FLOWS]: "flows",
+  [PageMap.DATA_SECURITY_ACCESS]: "access",
+  [PageMap.DATA_SECURITY_COMPLIANCE]: "compliance",
+  [PageMap.DATA_SECURITY_SCANS]: "scans",
+  [PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES]: "settings/data-types",
+  [PageMap.DATA_SECURITY_SETTINGS_CHECKS]: "settings/checks",
+  [PageMap.DATA_SECURITY_SETTINGS_RESIDENCY]: "settings/residency",
+  [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: "settings/scanning",
+  [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.DATA_SECURITY_DOCUMENTATION]: "documentation",
 };
 
 // Metrics product routes
@@ -5730,6 +5776,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_FEED]
+    }`,
+  ),
+
   // Databases
   [PageMap.DATABASE_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/*`,
@@ -7217,6 +7281,207 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]
+    }`,
+  ),
+
+  // Data Security Product Routes
+  [PageMap.DATA_SECURITY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/*`,
+  ),
+
+  [PageMap.DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security`,
+  ),
+
+  [PageMap.DATA_SECURITY_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_OVERVIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORES]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORES_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORES_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_INSIDE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_INSIDE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_ACCESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_ACCESS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_ISSUES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_ISSUES]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_FLOWS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_FLOWS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_SCANS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_SCANS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_ISSUES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_ISSUES]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_ISSUE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_ISSUE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SENSITIVE_DATA]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SENSITIVE_DATA]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_TELEMETRY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_TELEMETRY]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_FLOWS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_FLOWS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_ACCESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_ACCESS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SCANS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SCANS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_CHECKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_CHECKS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_RESIDENCY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_RESIDENCY]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_SCANNING]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_DOCUMENTATION]
     }`,
   ),
 

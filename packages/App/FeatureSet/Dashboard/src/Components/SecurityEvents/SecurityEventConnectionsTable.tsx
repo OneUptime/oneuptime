@@ -216,8 +216,13 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         sortOrder={SortOrder.Ascending}
         cardProps={{
           title: "Your security tools",
+          /*
+           * Every kind of product the catalog connects, with a well-known
+           * one of each: ten names ran past a card description's two lines,
+           * and Add connection lists every product.
+           */
           description:
-            "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",
+            "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.",
           buttons: [
             {
               title: "Add connection",

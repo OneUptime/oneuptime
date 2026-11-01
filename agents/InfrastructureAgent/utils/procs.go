@@ -6,8 +6,49 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/process"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/process"
 )
+
+// runningProcess is what the agent reads of a running process. gopsutil's
+// *process.Process is one (gopsutilProcess); tests stand in for processes the
+// agent cannot read all of, as Windows' protected ones.
+type runningProcess interface {
+	PID() int32
+	Name() (string, error)
+	Cmdline() (string, error)
+	CreateTime() (int64, error)
+	Times() (*cpu.TimesStat, error)
+	MemoryInfo() (*process.MemoryInfoStat, error)
+	MemoryPercent() (float32, error)
+	Status() ([]string, error)
+	NumThreads() (int32, error)
+	Username() (string, error)
+}
+
+// gopsutilProcess is a process as gopsutil reads it.
+type gopsutilProcess struct {
+	*process.Process
+}
+
+func (p gopsutilProcess) PID() int32 {
+	return p.Pid
+}
+
+// listProcesses lists the processes running now. It is a variable so tests can
+// list processes of their own.
+var listProcesses = func() ([]runningProcess, error) {
+	processes, err := process.Processes()
+	if err != nil {
+		return nil, err
+	}
+
+	listed := make([]runningProcess, 0, len(processes))
+	for _, p := range processes {
+		listed = append(listed, gopsutilProcess{p})
+	}
+	return listed, nil
+}
 
 // processCPUReading is a process's CPU time at one collection: the seconds it
 // had spent on a CPU (user plus system) since it started, and when that was
@@ -54,10 +95,13 @@ func cpuPercentSince(previous processCPUReading, hasPrevious bool, current proce
 // A process's CPU% is the CPU it used since the previous collection, as a
 // percent of one core. Its first collection (and every process's first, after
 // the agent starts) has nothing to compare with and reports no CPU%.
+//
+// It returns nil - and the report then has no process list - when no process
+// could be read: the processes could not be listed, or none of them named. A
+// server always runs some, so an empty list would only say that every process
+// had stopped, and every "Is Not Executing" criteria would fire.
 func GetServerProcesses() []*model.ServerProcess {
-	var serverProcesses []*model.ServerProcess
-
-	processList, err := process.Processes()
+	processList, err := listProcesses()
 	if err != nil {
 		slog.Error("Failed to fetch process list", "error", err)
 		return nil
@@ -66,19 +110,24 @@ func GetServerProcesses() []*model.ServerProcess {
 	processCPUReadingsMu.Lock()
 	defer processCPUReadingsMu.Unlock()
 	readings := make(map[int32]processCPUReading, len(processList))
+	serverProcesses := make([]*model.ServerProcess, 0, len(processList))
 
 	for _, p := range processList {
 		name, err := p.Name()
 		if err != nil {
 			continue
 		}
+		// The command line of a protected process - lsass.exe, csrss.exe and
+		// the like on Windows - cannot be read even by an administrator. The
+		// process is reported by its name with no command: leaving it out
+		// made it read as not executing.
 		cmdline, err := p.Cmdline()
 		if err != nil {
-			continue
+			cmdline = ""
 		}
 
 		proc := &model.ServerProcess{
-			Pid:     p.Pid,
+			Pid:     p.PID(),
 			Name:    name,
 			Command: cmdline,
 		}
@@ -94,8 +143,8 @@ func GetServerProcesses() []*model.ServerProcess {
 				cpuSeconds:   times.User + times.System,
 				at:           time.Now(),
 			}
-			readings[p.Pid] = reading
-			previous, hasPrevious := processCPUReadings[p.Pid]
+			readings[p.PID()] = reading
+			previous, hasPrevious := processCPUReadings[p.PID()]
 			if cpu, ok := cpuPercentSince(previous, hasPrevious, reading); ok {
 				proc.CPUPercent = cpu
 			}
@@ -121,6 +170,11 @@ func GetServerProcesses() []*model.ServerProcess {
 
 	// Only this collection's processes are kept: an exited one is let go.
 	processCPUReadings = readings
+
+	if len(serverProcesses) == 0 {
+		slog.Error("No process could be read; the report will have no process list", "processesListed", len(processList))
+		return nil
+	}
 
 	return serverProcesses
 }

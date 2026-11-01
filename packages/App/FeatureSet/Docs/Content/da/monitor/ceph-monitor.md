@@ -4,7 +4,7 @@ En Ceph-monitor holder øje med én Ceph-klynge — dens tilstand, health checks
 
 :::cards
 - [Opret monitoren](#opret-en-ceph-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-alarmskabeloner): 23 færdige alarmer for tilstand, OSD'er, placement groups og kapacitet.
+- [Skabeloner](#færdige-alarmskabeloner): 24 færdige alarmer for en tavs klynge, tilstand, OSD'er, placement groups og kapacitet.
 - [Health checks](#serier-for-health-checks): Få alarm på ethvert Ceph-health check efter navn.
 - [Metrikker](#indsamlede-metrikker): Hver `ceph_*`-serie, monitoren kan alarmere på.
 :::
@@ -99,9 +99,17 @@ Pools dataserier har kun labelen `pool_id`: Poolens navn findes kun på `ceph_po
 
 ## Færdige alarmskabeloner
 
-**Quick Setup** tilbyder 23 skabeloner, der dækker klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+**Quick Setup** tilbyder 24 skabeloner, der dækker en tavs klynge, klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og et tærskelkriterium genopretter først 10 % forbi sin tærskel, så en værdi, der svinger omkring grænsen, ikke blafrer. **Alvorlighed** er den label, vælgeren viser; hændelsen og advarslen, en skabelon opretter, starter med projektets højeste hændelses- og advarselsalvorlighed.
+
+### Tilgængelighedsskabeloner
+
+| Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `ceph_health_status`, Count, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
+
+**Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngen i ti minutter: Ceph Agent er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt, eller ingen mgr betjener `prometheus`-modulet. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, og skabelonerne for health checks læser en tavs klynge som en sund klynge, så det er denne skabelon, der giver dig besked.
 
 ### Skabeloner for klyngens tilstand
 
@@ -219,7 +227,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | --- | --- |
 | **Metrik** | Forespørgslen eller formlen, der tjekkes, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. |
 | **Tærskel** | Værdien, der sammenlignes med. Ved siden af står en enhedsliste, når metrikken har en enhed. Vises ikke ved anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Middel** (3σ, standard) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
@@ -235,13 +243,11 @@ En monitor, du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Matcher, når | Derefter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornavn_ is offline | En værdi i den første forespørgsel er `0` | Sætter monitoren til **Offline** og erklærer hændelsen "_monitornavn_ is offline", som løser sig selv, når monitoren kommer sig. |
-| 2 | Check if _monitornavn_ is online | En værdi er over `0` | Sætter monitoren til **I drift**. |
-
-Disse standarder passer til få Ceph-metrikker: `ceph_health_status` er 0, når klyngen er sund. Vælg en skabelon, eller sæt dine egne kriterier.
+| 1 | Check if _monitornavn_ is offline | Den første forespørgsel har ingen data i hele vinduet | Sætter monitoren til **Offline** og erklærer hændelsen "_monitornavn_ is offline", som løser sig selv, når monitoren kommer sig. |
+| 2 | Check if _monitornavn_ is online | Den første forespørgsel har data | Sætter monitoren til **I drift**. |
 
 > [!IMPORTANT]
-> Stilhed matcher ingen af de to kriterier: En klynge, der holder op med at sende data, efterlader monitoren, som den var. For at få besked, når data stopper, skal du sætte **Hvis ingen data** til **Trigger** på et kriterium. Tid, hvor OneUptime selv ikke modtog data, er aldrig manglende data: en kontrol, hvis vindue indeholder sådan tid, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En værdi på `0` er data, så en metrik, der ofte er nul, som genstarter eller fejl, gør ikke monitoren offline. For at få en advarsel om en værdi skal du starte fra en skabelon eller tilføje et kriterium med en tærskel. Når der slet ikke kommer data, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: stilhed er ikke en bedring. Tid, hvor OneUptime selv ikke modtog data, tæller aldrig som manglende data: en kontrol, hvis vindue indeholder den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Fejlfinding
 

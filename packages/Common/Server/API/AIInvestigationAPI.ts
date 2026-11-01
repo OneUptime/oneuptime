@@ -46,6 +46,10 @@ import {
   ProfileFixSuggestion,
   profileFixSuggestionToJSON,
 } from "../../Utils/Suggestions/ProfileFixSuggestion";
+import {
+  InvestigationCodeFixSuggestion,
+  investigationCodeFixSuggestionToJSON,
+} from "../../Utils/Suggestions/InvestigationCodeFixSuggestion";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
 import KubernetesClusterAiAccessService, {
   AI_BALANCE_INSUFFICIENT_NEXT_STEP,
@@ -1448,6 +1452,80 @@ router.post(
       Response.sendJsonObjectResponse(req, res, {
         aiRunId: run.id!.toString(),
       });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * What the Remediation step of an incident's or alert's AI card says about
+ * the fix in the code its investigation recommends
+ * (Utils/Suggestions/InvestigationCodeFixSuggestion): the pull request being
+ * written or done, the one setup step in the way, or ready to open - and
+ * why OneUptime AI did not open it on its own
+ * (FixFromIncidentTaskTrigger.getSuggestionForSubject). For whoever may read
+ * the record, inside the tenant they asked in.
+ * Body: { subjectType: "incident" | "alert", subjectId }. Response: the
+ * InvestigationCodeFixSuggestion JSON (offer, fixOutcome, blocker, aiRunId,
+ * isAutomatic, automaticBlocker).
+ */
+router.post(
+  "/ai-investigation/code-fix-suggestion",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+      const viewerProps: DatabaseCommonInteractionProps =
+        pinPropsToTenant(props);
+
+      const subjectType: unknown = req.body["subjectType"];
+
+      if (subjectType !== "incident" && subjectType !== "alert") {
+        throw new BadDataException(
+          'subjectType must be "incident" or "alert".',
+        );
+      }
+
+      const subjectIdRaw: unknown = req.body["subjectId"];
+
+      if (
+        typeof subjectIdRaw !== "string" ||
+        !ObjectID.isValidUUID(subjectIdRaw.trim())
+      ) {
+        throw new BadDataException("subjectId must be a valid ID.");
+      }
+
+      const subjectId: ObjectID = new ObjectID(subjectIdRaw.trim());
+
+      // Access check under the USER's permissions, inside the tenant.
+      await assertSubjectReadableInTenant({
+        subjectType,
+        subjectId,
+        tenantId,
+        viewerProps,
+      });
+
+      const suggestion: InvestigationCodeFixSuggestion =
+        await FixFromIncidentTaskTrigger.getSuggestionForSubject({
+          projectId: tenantId,
+          ...(subjectType === "incident"
+            ? { incidentId: subjectId }
+            : { alertId: subjectId }),
+        });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        investigationCodeFixSuggestionToJSON(suggestion),
+      );
       return;
     } catch (err) {
       next(err);

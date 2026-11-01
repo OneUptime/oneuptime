@@ -178,7 +178,22 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 
 ### ログからセキュリティイベントを見つける
 
-**接続** の上部にある **ログ** は、すでに OneUptime に送っているログをソースにします。**ログからセキュリティイベントを見つける** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH サインイン、sudo コマンド、Kubernetes の監査レコード、AWS CloudTrail の変更、Web 攻撃がそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
+**接続** の上部にある **ログ** は、すでに OneUptime に送っているログをソースにします。**ログからセキュリティイベントを見つける** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH や Windows のサインイン、sudo コマンド、クラウドの監査レコード、セキュリティ製品の CEF や LEEF のレコード、Kubernetes の監査レコード、Web 攻撃がそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
+
+どの種類も、通常のログとして OneUptime に届きます。
+
+| 種類 | 送信元 |
+| --- | --- |
+| SSH サインイン、sudo | Linux マシンの journal または認証ログを [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) で送信 |
+| Windows イベント | マシン上のコレクターの `windowseventlog` レシーバー、または NXLog や Winlogbeat のように各イベントを JSON で書き出すフォワーダー |
+| AWS CloudTrail | CloudWatch Logs に配信される証跡を、コレクターの `awscloudwatch` レシーバーで読み取り |
+| Google Cloud 監査ログ | Pub/Sub へのログシンクを、コレクターの `googlecloudpubsub` レシーバーで `encoding: raw_text` を指定して読み取り |
+| Azure アクティビティと Entra ID のログ | Event Hub にストリーミングする診断設定を、コレクターの `azureeventhub` レシーバーで `format: raw` を指定して読み取り |
+| CEF、LEEF | 製品の syslog を [rsyslog](/docs/telemetry/syslog) で中継 |
+| Kubernetes 監査ログ | API サーバーの監査ログファイルを、コレクターの `filelog` レシーバーで読み取り |
+| Web 攻撃 | Web サーバーのアクセスログを、コレクターの `filelog` レシーバーで読み取り |
+
+**ログ** では、種類ごとに最後に見つかった時刻が表示され、**ログ行を確認** では、まだ何も届いていなくても、貼り付けた行が何になるかを確認できます。
 
 ### セキュリティ製品を接続する
 
@@ -194,6 +209,8 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | Elastic Security | 検出アラートを Detection Finding として | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding を Detection Finding と Compliance Finding として | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | サインイン、MFA、アカウント、ポリシーのイベント | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | サインインとディレクトリの変更、および Microsoft 365 監査ログのメール転送、共有、フィッシングの判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | サインイン、Google 自身による検出、管理者による変更とアプリへのアクセス許可、ドライブでの共有 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 製品自身のアラートのうち **Open Cases From** (別のレベルを選ばない限り **高以上**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
 - 接続は、レコードが表すアクティビティの時刻ではなく、製品がレコードを作成した時刻で読み取ります。1 時間ごとに実行される SIEM ルールは一致したイベントよりずっと後に検出を作成しますが、それも取り込まれます。

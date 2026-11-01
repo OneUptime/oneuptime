@@ -32,7 +32,7 @@ Jeder Host führt eine Konfiguration aus, gewählt in dieser Reihenfolge:
 | Die erste der **Collector-Konfigurationen**, die für ihn gilt | Eine Konfiguration gilt, wenn sie für das System des Hosts ist und, falls sie Beschriftungen nennt, der Host eine davon hat. |
 | Den OneUptime-Standard für sein System | Keine Konfiguration gilt. |
 
-Der OneUptime-Standard liest auf jedem System CPU, Arbeitsspeicher, Datenträger, Dateisysteme, Netzwerk und Prozesse; unter Linux das Journal und systemd-Units, wo der Host sie hat; unter Windows die Ereignisprotokolle System, Application und Security sowie die Windows-Dienste; und unter macOS die Install- und WLAN-Logs in `/var/log`. Er folgt den Releases von OneUptime, sodass ein Host mit dem Standard die Verbesserungen von OneUptime daran erhält.
+Der OneUptime-Standard liest auf jedem System CPU, Arbeitsspeicher, Datenträger, Dateisysteme, Netzwerk und Prozesse; unter Linux das Journal und systemd-Units, wo der Host sie hat; unter Windows die Ereignisprotokolle System, Application und Security sowie die Windows-Dienste; und unter macOS die Install- und WLAN-Logs in `/var/log`. Er lässt die Dateisysteme aus, die konstruktionsbedingt voll sind, etwa snap-Pakete und `/dev` unter macOS, sodass sie die Vorlage High Filesystem Usage nie dauerhaft auslösen. Er folgt den Releases von OneUptime, sodass ein Host mit dem Standard die Verbesserungen von OneUptime daran erhält.
 
 ## Bevor Sie beginnen
 

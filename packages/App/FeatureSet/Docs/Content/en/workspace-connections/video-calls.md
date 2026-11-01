@@ -113,7 +113,7 @@ On the incident's **Video Call** card, **Get from Zoom**, **Get from Google Meet
 
 ### OneUptime AI reads it
 
-Within a minute or two, the incident's **AI Investigation** card shows the **Suggested root cause**, marked **Not confirmed**, with the transcript lines it rests on, quoted with their time and speaker. Under it, folded, is the rest of what the call said: the findings, split into **Confirmed on the call** and **Hypotheses**, then what was tried, decisions, follow-ups and open questions. What it read is posted to the incident's feed too, and from there to the incident's Slack and Microsoft Teams channels.
+Within a minute or two, the incident's **OneUptime AI** card shows the **Suggested root cause**, marked **Not confirmed**, with the transcript lines it rests on, quoted with their time and speaker. Under it, folded, is the rest of what the call said: the findings, split into **Confirmed on the call** and **Hypotheses**, then what was tried, decisions, follow-ups and open questions. What it read is posted to the incident's feed too, and from there to the incident's Slack and Microsoft Teams channels.
 
 ### Use it, or dismiss it
 

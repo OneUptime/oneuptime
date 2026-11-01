@@ -23,11 +23,13 @@ import {
 } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 
 /*
- * The project's Entity Criticality list: how much each user, host and
- * address matters. An entry is a value or a `*` pattern, for one kind of
- * entity or any, with its criticality; the same value for the same kind is
- * listed once, whatever its case. A change weighs the project's entity risk
- * anew, in the background.
+ * The project's Entity Criticality list: how much each user, host, address
+ * and data store matters. An entry is a value or a `*` pattern, for one
+ * kind of entity or any, with its criticality; the same value for the same
+ * kind is listed once, whatever its case. A change weighs the project's
+ * entity risk anew, in the background. Data Security keeps entries of its
+ * own for the stores it finds sensitive, through these same rules
+ * (Utils/DataSecurity/DataSecurityCriticalitySync).
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -39,7 +41,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!text) {
       throw new BadDataException(
-        "Enter the user's sign-in name, the host's name or the address the entry is for.",
+        "Enter the user's sign-in name, the host's name, the address or the data store the entry is for.",
       );
     }
 
@@ -60,7 +62,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!isRiskEntityType(value)) {
       throw new BadDataException(
-        "An entry is for a User, a Host or an IP Address, or for any of them.",
+        "An entry is for a User, a Host, an IP Address or a Data Store, or for any of them.",
       );
     }
 

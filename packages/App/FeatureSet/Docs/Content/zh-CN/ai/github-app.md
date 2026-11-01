@@ -150,7 +150,7 @@ GitHub 命令是事件和警报之外的 AI 工作，因此不适用每日修复
 | **Pull request review** | 已提交审查正文中的提及 |
 | **Pull request review comment** | diff 行内评论中的提及 |
 
-在 **Repository permissions** 下，**Issues** 必须为 **Read & write**：GitHub 通过 issues API 发送拉取请求的对话评论，因此正是这一权限让应用也能在拉取请求上发表评论。
+在 **Repository permissions** 下，**Issues** 必须为 **Read & write**：GitHub 通过 issues API 发送拉取请求的对话评论，因此正是这一权限让应用也能在拉取请求上发表评论。 **Checks** 为 **Read & write** 时，每次生产审查都可以在拉取请求的最新提交上添加一个检查；没有它，审查只发布评论。
 
 ## 提示注入：哪些受到保护，哪些没有
 

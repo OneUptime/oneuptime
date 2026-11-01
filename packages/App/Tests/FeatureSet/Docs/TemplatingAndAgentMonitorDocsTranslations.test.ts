@@ -136,7 +136,8 @@ const CRITERIA_NAMES: Array<string> = [
  * locale has no key for them, by page.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [STORAGE]: [...FORM_NAMES, ...CRITERIA_NAMES],
+  // A template's name, as the Quick Setup picker shows it.
+  [STORAGE]: [...FORM_NAMES, "Array Stopped Reporting", ...CRITERIA_NAMES],
   [IOT]: [
     ...FORM_NAMES,
     // A template's name, and the one check the criteria offer.
@@ -144,7 +145,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Metric Value",
     ...CRITERIA_NAMES,
   ],
-  [VMWARE]: [...FORM_NAMES, ...CRITERIA_NAMES],
+  // A template's name, as the Quick Setup picker shows it.
+  [VMWARE]: [...FORM_NAMES, "vCenter Stopped Reporting", ...CRITERIA_NAMES],
 };
 
 /*
@@ -277,6 +279,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Check the vCenter is registered.",
     "and",
     "resource attributes",
+    "past 10 minutes",
     "past 15 minutes",
     "Utilization templates use Avg:",
     "Latency templates use Max:",

@@ -263,6 +263,7 @@ import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIAgent/VerifyFixesInProduction";
 import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
 import "./Jobs/AIAgent/ReviewPullRequestsInProduction";
+import "./Jobs/AIAgent/FindPullRequestsToReviewInProduction";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 import "./Jobs/AIChat/InvestigateAfterDailyLimitReset";
@@ -352,6 +353,7 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
+import "./Jobs/DataSecurity/DataSecurityJobs";
 // Network controller connections (Meraki): traffic read on a schedule.
 import "./Jobs/Network/ReadNetworkControllerConnections";
 

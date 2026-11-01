@@ -15,7 +15,28 @@ export interface DockerMetricDefinition {
   category: DockerMetricCategory;
   defaultAggregation: MetricsAggregationType;
   unit?: string;
+  /*
+   * Datapoint attributes a query must filter on for the entry to mean what
+   * its name says. The receiver reports block I/O as ONE metric split by an
+   * `operation` attribute, so "Block I/O Read" is that metric filtered to
+   * `operation = read`. Unset: the metric as it is.
+   */
+  attributes?: Record<string, string> | undefined;
 }
+
+/*
+ * Only what the shipped Docker Agent sends
+ * (agents/DockerAgent/otel-collector-config.yaml). The docker_stats
+ * receiver's optional metrics stay off there - per-core CPU
+ * (container.cpu.usage.percpu), container.memory.rss and
+ * container.memory.cache (cgroup v1 only, too) and the network packet
+ * counters - and there is no `container.blockio.io_service_bytes_recursive
+ * .read` / `.write`: the receiver emits one
+ * container.blockio.io_service_bytes_recursive, with an `operation`
+ * attribute (lower-cased: `read`, `write`) and the device's major/minor
+ * numbers. An entry for a metric that never arrives is a monitor that
+ * never fires.
+ */
 
 const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // CPU Metrics
@@ -37,15 +58,6 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "%",
-  },
-  {
-    id: "container-cpu-usage-percpu",
-    friendlyName: "Container CPU Usage (Per Core)",
-    description: "Per-core CPU usage of the container",
-    metricName: "container.cpu.usage.percpu",
-    category: "CPU",
-    defaultAggregation: MetricsAggregationType.Avg,
-    unit: "ns",
   },
   {
     id: "container-cpu-throttled-time",
@@ -86,24 +98,6 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "%",
   },
-  {
-    id: "container-memory-rss",
-    friendlyName: "Container Memory RSS",
-    description: "Resident set size (non-swapped physical memory) used",
-    metricName: "container.memory.rss",
-    category: "Memory",
-    defaultAggregation: MetricsAggregationType.Avg,
-    unit: "bytes",
-  },
-  {
-    id: "container-memory-cache",
-    friendlyName: "Container Memory Cache",
-    description: "Amount of memory used as page cache",
-    metricName: "container.memory.cache",
-    category: "Memory",
-    defaultAggregation: MetricsAggregationType.Avg,
-    unit: "bytes",
-  },
 
   // Network Metrics
   {
@@ -124,42 +118,32 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Sum,
     unit: "bytes",
   },
-  {
-    id: "container-network-rx-packets",
-    friendlyName: "Container Network Packets Received",
-    description: "Packets received over the network by the container",
-    metricName: "container.network.io.usage.rx_packets",
-    category: "Network",
-    defaultAggregation: MetricsAggregationType.Sum,
-    unit: "count",
-  },
-  {
-    id: "container-network-tx-packets",
-    friendlyName: "Container Network Packets Transmitted",
-    description: "Packets transmitted over the network by the container",
-    metricName: "container.network.io.usage.tx_packets",
-    category: "Network",
-    defaultAggregation: MetricsAggregationType.Sum,
-    unit: "count",
-  },
 
   // Block I/O Metrics
   {
     id: "container-blockio-read",
     friendlyName: "Container Block I/O Read",
-    description: "Bytes read from block devices by the container",
-    metricName: "container.blockio.io_service_bytes_recursive.read",
+    description:
+      "Bytes the container has read from each block device since it started. A lifetime counter, per device: chart it as a rate.",
+    metricName: "container.blockio.io_service_bytes_recursive",
+    attributes: { operation: "read" },
     category: "BlockIO",
-    defaultAggregation: MetricsAggregationType.Sum,
+    /*
+     * Max, not Sum: a minute's rows are the same lifetime total sampled
+     * twice (and once per device), so a Sum doubles it.
+     */
+    defaultAggregation: MetricsAggregationType.Max,
     unit: "bytes",
   },
   {
     id: "container-blockio-write",
     friendlyName: "Container Block I/O Write",
-    description: "Bytes written to block devices by the container",
-    metricName: "container.blockio.io_service_bytes_recursive.write",
+    description:
+      "Bytes the container has written to each block device since it started. A lifetime counter, per device: chart it as a rate.",
+    metricName: "container.blockio.io_service_bytes_recursive",
+    attributes: { operation: "write" },
     category: "BlockIO",
-    defaultAggregation: MetricsAggregationType.Sum,
+    defaultAggregation: MetricsAggregationType.Max,
     unit: "bytes",
   },
 
@@ -185,7 +169,8 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   {
     id: "container-pids-count",
     friendlyName: "Container Process Count",
-    description: "Number of processes running inside the container",
+    description:
+      "Tasks in the container: processes and their threads, as the cgroup pids controller counts them.",
     metricName: "container.pids.count",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,

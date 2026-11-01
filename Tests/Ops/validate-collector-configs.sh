@@ -82,11 +82,13 @@ ENV_ARGS=(
   -e "DOCKER_HOST_NAME=validate-only"
   -e "DOCKER_SWARM_CLUSTER_NAME=validate-only"
   -e "PODMAN_HOST_NAME=validate-only"
-  # The docker_stats receiver's api_version. An unset variable resolves to an
-  # empty string, which validate accepts and the receiver takes as "negotiate
-  # with the daemon" (see ContainerAgentDockerApiVersion.test.js) — so validate
-  # the value the images and compose files actually ship.
-  -e "DOCKER_API_VERSION=1.44"
+  # The docker_stats receiver's api_version: empty, the value the images and
+  # compose files ship, which the receiver takes as "negotiate with the
+  # daemon" (see ContainerAgentDockerApiVersion.test.js).
+  -e "DOCKER_API_VERSION="
+  # The Swarm node's name, which transform/swarm-node-name puts in an OTTL
+  # string: validate the statements with a name in them.
+  -e "DOCKER_SWARM_NODE_NAME=validate-only"
   -e "APP_VERSION=validate-only"
   -e "HOSTNAME=validate-only"
   -e "NODE_IP=127.0.0.1"
@@ -112,10 +114,11 @@ ENV_ARGS=(
   -e "VCENTER_COLLECTION_INTERVAL=2m"
   # The Proxmox and Ceph agents (prometheus receivers scraping an exporter
   # and the mgr prometheus module). A scrape target has to parse as
-  # host:port, and the Ceph targets are one YAML list, so give them the
-  # shapes their compose files and install scripts write.
+  # host:port, and the Proxmox nodes and the Ceph targets are YAML lists,
+  # so give them the shapes their compose files and install scripts write.
   -e "PROXMOX_CLUSTER_NAME=validate-only"
   -e "PVE_HOST=pve.example.com"
+  -e "PVE_NODES=[pve1.example.com,pve2.example.com]"
   -e "PVE_EXPORTER_URL=pve-exporter:9221"
   -e "CEPH_CLUSTER_NAME=validate-only"
   -e "CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283]"

@@ -58,6 +58,8 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | [Elastic Security](/docs/integrations/elastic-security) | Beide | Bringt Erkennungsalarme von Elastic Security in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Eingehend | Bringt Befunde von AWS Security Hub in die Sicherheitsereignisse. |
 | [Okta System Log](/docs/integrations/okta) | Eingehend | Bringt Okta-Anmeldungen, Kontoänderungen und Bedrohungserkennungen in die Sicherheitsereignisse. |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Eingehend | Bringt Anmeldungen und Verzeichnisänderungen aus Microsoft Entra ID sowie das Microsoft 365-Audit-Protokoll in die Sicherheitsereignisse. |
+| [Google Workspace](/docs/integrations/google-workspace) | Eingehend | Bringt Google Workspace-Anmeldungen, Admin-Änderungen und Googles eigene Erkennungen in die Sicherheitsereignisse. |
 
 ### Ticket- und IT-Service-Management-Werkzeuge
 

@@ -39,6 +39,7 @@ import WorkspaceReactionNote, {
   WorkspaceNoteResource,
 } from "./WorkspaceReactionNote";
 import SlackReactionNoteActions from "./Slack/Actions/ReactionNote";
+import OnCallPersonPageAnswer from "../OnCall/OnCallPersonPageAnswer";
 import MicrosoftTeamsReactionNoteSync from "./MicrosoftTeams/ReactionNoteSync";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
@@ -237,6 +238,26 @@ export default class WorkspaceConnectCompletion {
             press:
               LATE_PRESSES[pendingAction.kind] ||
               WorkspaceLatePress.Acknowledge,
+            /*
+             * Acknowledge on an incident or an alert somebody else is on
+             * answers the presser's own person's pages about it, as the
+             * button does once they are connected (OnCallPersonPageAnswer).
+             */
+            answeredPageCount:
+              pendingAction.kind === WorkspacePendingActionKind.Acknowledge &&
+              (event.type === WorkspaceEventType.Incident ||
+                event.type === WorkspaceEventType.Alert)
+                ? await OnCallPersonPageAnswer.onAcknowledgePressed({
+                    kind:
+                      event.type === WorkspaceEventType.Incident
+                        ? "incident"
+                        : "alert",
+                    recordId: event.id,
+                    projectId: event.projectId,
+                    pressedByUserId: data.userId,
+                    isResolved: standing.isResolved,
+                  })
+                : 0,
           }),
           isDone: false,
         };

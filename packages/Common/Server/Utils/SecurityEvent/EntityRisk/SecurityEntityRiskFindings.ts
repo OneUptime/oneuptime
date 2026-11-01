@@ -17,9 +17,11 @@ import {
   SecurityEntity,
   SecurityEntityType,
   entitiesFromObservables,
+  getDataStoreEntityValue,
   inferSecurityEntityType,
   securityEntityTypeForField,
 } from "../../../../Types/SecurityCase/SecurityEntity";
+import SecuritySeverity from "../../../../Types/SecuritySeverity";
 import {
   getRiskEntities,
   getRiskPointsForSeverity,
@@ -28,9 +30,9 @@ import {
 
 /*
  * One finding, as risk reads it: who it is about, from which source, at what
- * severity and for how many points. The three detection sources turn what
- * they found into these (the builders below), and the recorder adds each to
- * the risk of the entities it names (SecurityEntityRiskRecorder).
+ * severity and for how many points. The detection sources turn what they
+ * found into these (the builders below), and the recorder adds each to the
+ * risk of the entities it names (SecurityEntityRiskRecorder).
  */
 export interface SecurityRiskFinding {
   projectId: ObjectID;
@@ -299,6 +301,77 @@ export function riskFindingsForImportedAlerts(data: {
       mitreTechniques: event.mitreTechniques,
       seenAt: event.time,
       securityEventConnectionId: connectionId,
+    });
+  }
+
+  return findings;
+}
+
+// One issue Data Security opened, as its risk reads it.
+export interface DataSecurityRiskIssue {
+  // The check that failed: each check is a source of its own.
+  checkId: string;
+  title: string;
+  severity: SecuritySeverity;
+  // The store's key (DataStore.storeKey), which its entity is named by.
+  dataStoreKey: string;
+  seenAt: Date;
+}
+
+const DATA_SECURITY_OCSF_SEVERITY: Readonly<
+  Record<SecuritySeverity, OcsfSeverity>
+> = {
+  [SecuritySeverity.Critical]: OcsfSeverity.Critical,
+  [SecuritySeverity.High]: OcsfSeverity.High,
+  [SecuritySeverity.Medium]: OcsfSeverity.Medium,
+  [SecuritySeverity.Low]: OcsfSeverity.Low,
+};
+
+/*
+ * The issues Data Security opened, each about the store it was found on -
+ * the store's Data Store entity, as the issue's case names it - at the
+ * points of its severity. Each check is a source of its own, as each rule
+ * is: the same check failing on a store again in the week adds nothing
+ * more, a second check failing on it adds its own. Called with the issues
+ * an evaluation opened (DataSecurityIntegrations), after their cases.
+ */
+export function riskFindingsForDataSecurityIssues(data: {
+  projectId: ObjectID;
+  issues: Array<DataSecurityRiskIssue>;
+}): Array<SecurityRiskFinding> {
+  const findings: Array<SecurityRiskFinding> = [];
+
+  for (const issue of data.issues) {
+    const checkId: string = (issue.checkId || "").trim();
+    const severity: OcsfSeverity =
+      DATA_SECURITY_OCSF_SEVERITY[issue.severity] || OcsfSeverity.Medium;
+    const points: number = getRiskPointsForSeverity(severity);
+    const entities: Array<SecurityEntity> = getRiskEntities(
+      (issue.dataStoreKey || "").trim()
+        ? [
+            {
+              type: SecurityEntityType.DataStore,
+              value: getDataStoreEntityValue(issue.dataStoreKey),
+            },
+          ]
+        : [],
+    );
+
+    if (!checkId || points <= 0 || entities.length === 0) {
+      continue;
+    }
+
+    findings.push({
+      projectId: data.projectId,
+      source: SecurityDetectionSource.DataSecurity,
+      sourceKey: `data-security:${checkId.toLowerCase()}`,
+      sourceName: (issue.title || "").trim() || checkId,
+      severity,
+      points,
+      entities,
+      mitreTactics: [],
+      mitreTechniques: [],
+      seenAt: issue.seenAt,
     });
   }
 

@@ -1417,6 +1417,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           primaryEntityId: spanContext.primaryEntityId,
           primaryEntityType: spanContext.serviceMetadata.primaryEntityType,
           unhandled: rawException.escaped === true,
+          // The span event's own time: the group's first and last seen.
+          occurredAt: rawException.time.date,
           ...(exceptionType
             ? {
                 exceptionType: exceptionType,

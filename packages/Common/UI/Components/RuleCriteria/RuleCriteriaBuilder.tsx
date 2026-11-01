@@ -47,6 +47,15 @@ import {
 } from "./RuleCriteriaFields";
 import RuleAppliesToChoice from "./RuleAppliesToChoice";
 import {
+  RULE_CRITERIA_CONNECTOR_CELL_CLASS_NAME,
+  RULE_CRITERIA_FIELD_CELL_CLASS_NAME,
+  RULE_CRITERIA_LIST_CLASS_NAME,
+  RULE_CRITERIA_OPERATOR_CELL_CLASS_NAME,
+  RULE_CRITERIA_REMOVE_CELL_CLASS_NAME,
+  RULE_CRITERIA_ROW_CLASS_NAME,
+  RULE_CRITERIA_VALUE_CELL_CLASS_NAME,
+} from "./RuleCriteriaRowLayout";
+import {
   getRuleCriteriaSubjectCopy,
   RuleCriteriaSubjectCopy,
 } from "./RuleCriteriaSubjectCopy";
@@ -113,8 +122,10 @@ export interface ComponentProps<TEntity> {
  *   the rule every form asking for a filter condition follows); every later
  *   row then starts with the word it picked ("And" / "Or").
  * - "Add condition" starts the next row on a field no row uses yet.
- * - A row is one line on a wide screen and stacks on a narrow one, and its
- *   remove button is a quiet icon at the end rather than a red button below.
+ * - A row is one line where the conditions have room for it, and stacks
+ *   where they do not - by their own width, not the window's: most rule
+ *   forms are dialogs (RuleCriteriaRowLayout). Its remove button is a quiet
+ *   icon at the end rather than a red button below.
  * - A value's placeholder says what to put there for the operator chosen.
  * - Problems are said in plain words next to the row they are about, once the
  *   form has asked for the conditions (props.error is set).
@@ -463,12 +474,14 @@ const RuleCriteriaBuilder: <TEntity>(
     return (
       <li
         key={`${filter.field}-${index}`}
-        className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-start gap-x-2 gap-y-2 lg:grid-cols-[3.5rem_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_auto]"
+        className={RULE_CRITERIA_ROW_CLASS_NAME}
         data-testid={`rule-criteria-row-${index}`}
       >
-        <div className="flex h-10 items-center">{renderConnector(index)}</div>
+        <div className={RULE_CRITERIA_CONNECTOR_CELL_CLASS_NAME}>
+          {renderConnector(index)}
+        </div>
 
-        <div className="min-w-0">
+        <div className={RULE_CRITERIA_FIELD_CELL_CLASS_NAME}>
           <Dropdown
             id={`rule-criteria-field-${index}`}
             ariaLabel={translator.translateTemplate(
@@ -505,7 +518,7 @@ const RuleCriteriaBuilder: <TEntity>(
           />
         </div>
 
-        <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-2">
+        <div className={RULE_CRITERIA_OPERATOR_CELL_CLASS_NAME}>
           <Dropdown
             id={`rule-criteria-operator-${index}`}
             ariaLabel={translator.translateTemplate(
@@ -539,7 +552,7 @@ const RuleCriteriaBuilder: <TEntity>(
           />
         </div>
 
-        <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-3">
+        <div className={RULE_CRITERIA_VALUE_CELL_CLASS_NAME}>
           {field ? (
             renderValue(filter, field, index, problem)
           ) : (
@@ -553,7 +566,7 @@ const RuleCriteriaBuilder: <TEntity>(
           )}
         </div>
 
-        <div className="flex h-10 items-center max-lg:col-start-3 max-lg:row-start-1">
+        <div className={RULE_CRITERIA_REMOVE_CELL_CLASS_NAME}>
           <Button
             title={RuleCriteriaCopy.removeCondition}
             tooltip={RuleCriteriaCopy.removeCondition}
@@ -682,7 +695,12 @@ const RuleCriteriaBuilder: <TEntity>(
           </fieldset>
         )}
 
-        <ol className="space-y-3">{criteria.filters.map(renderRow)}</ol>
+        <ol
+          className={RULE_CRITERIA_LIST_CLASS_NAME}
+          data-testid="rule-criteria-rows"
+        >
+          {criteria.filters.map(renderRow)}
+        </ol>
 
         <div>{addButton}</div>
       </div>

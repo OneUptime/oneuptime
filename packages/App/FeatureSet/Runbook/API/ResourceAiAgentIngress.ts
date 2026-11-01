@@ -6,6 +6,7 @@ import ResourceAiAgentService, {
 } from "Common/Server/Services/ResourceAiAgentService";
 import ResourceAiAgentJobService from "Common/Server/Services/ResourceAiAgentJobService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import AiCommandKillSwitch from "Common/Server/Utils/AI/AiCommandKillSwitch";
 import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
@@ -300,10 +301,19 @@ export default class ResourceAiAgentIngressAPI {
         return Response.sendJsonObjectResponse(req, res, { job: null });
       }
 
-      const refusal: string | null = ResourceAiAgentIngressAPI.getClaimRefusal({
-        job,
-        agent,
-      });
+      /*
+       * Enable AI, read as the job leaves OneUptime: a job enqueued before
+       * the project turned AI off is failed, never run (AiCommandKillSwitch).
+       */
+      const refusal: string | null =
+        ResourceAiAgentIngressAPI.getClaimRefusal({
+          job,
+          agent,
+        }) ||
+        (await AiCommandKillSwitch.getClaimRefusal({
+          job,
+          projectId: agent.projectId,
+        }));
 
       if (refusal) {
         /*

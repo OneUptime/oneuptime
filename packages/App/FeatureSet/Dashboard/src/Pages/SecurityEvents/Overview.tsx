@@ -47,6 +47,7 @@ import {
   Indigo500,
   Orange,
   Red,
+  Teal500,
 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -84,6 +85,8 @@ export const DETECTION_SOURCE_COLORS: Record<SecurityDetectionSource, string> =
     [SecurityDetectionSource.Manual]: Gray500.toString(),
     // An entity's risk reaching the threshold (Security Events > Entity Risk).
     [SecurityDetectionSource.EntityRisk]: Orange.toString(),
+    // A Critical issue on a data store (Data Security).
+    [SecurityDetectionSource.DataSecurity]: Teal500.toString(),
   };
 
 // The rows of cards under the figures, by what each row answers.

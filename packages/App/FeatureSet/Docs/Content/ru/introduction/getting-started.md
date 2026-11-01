@@ -64,6 +64,7 @@ flowchart TB
 - [Облако](/docs/telemetry/cloud-environments): Наблюдать за ECS, Cloud Run, Azure Container Apps и другими управляемыми платформами.
 - [Наблюдаемость ИИ](/docs/telemetry/ai-llm-observability): Следить за разговорами вашего ИИ и узнавать, когда он отвечает плохо.
 - [Безопасность](/docs/telemetry/security-events): Собирать события безопасности и данные об угрозах.
+- [Безопасность данных](/docs/data-security/index): Находить конфиденциальные данные в ваших бакетах, базах данных и телеметрии и исправлять то, как они хранятся.
 - [Real User Monitoring](/docs/rum/index): Измерять то, что видят реальные пользователи, с Core Web Vitals и воспроизведением сеансов.
 - [Дашборды](/docs/dashboards/index): Строить дашборды из ваших метрик, логов и мониторов.
 - [Инвентарь](/docs/inventory/overview): Видеть каждый сервис, хост и устройство, о которых знает OneUptime.

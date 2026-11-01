@@ -64,6 +64,7 @@ flowchart TB
 - [क्लाउड](/docs/telemetry/cloud-environments): ECS, Cloud Run, Azure Container Apps और अन्य मैनेज्ड प्लेटफ़ॉर्म देखें।
 - [AI ऑब्ज़र्वेबिलिटी](/docs/telemetry/ai-llm-observability): अपने AI की बातचीत पर नज़र रखें, और जब वह खराब जवाब दे तो सूचना पाएँ।
 - [सुरक्षा](/docs/telemetry/security-events): सुरक्षा इवेंट और थ्रेट इंटेलिजेंस इकट्ठा करें।
+- [डेटा सुरक्षा](/docs/data-security/index): अपने बकेट, डेटाबेस और टेलीमेट्री में संवेदनशील डेटा ढूँढें, और उसे रखने का तरीका ठीक करें।
 - [रियल यूज़र मॉनिटरिंग](/docs/rum/index): Core Web Vitals और सेशन रीप्ले के साथ मापें कि असली उपयोगकर्ता क्या अनुभव करते हैं।
 - [डैशबोर्ड](/docs/dashboards/index): अपने मेट्रिक्स, लॉग और मॉनिटर से डैशबोर्ड बनाएँ।
 - [इन्वेंटरी](/docs/inventory/overview): हर सेवा, होस्ट और डिवाइस देखें जिसके बारे में OneUptime जानता है।

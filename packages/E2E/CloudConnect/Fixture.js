@@ -21,6 +21,9 @@ import CloudAccountTopologyPage from "../../App/FeatureSet/Dashboard/src/Pages/C
 import CloudAccountChangesPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Changes";
 import CloudAccountSettingsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Settings";
 import CloudAccountDeletePage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Delete";
+import CloudAccountAiAgentPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/AI/Agent";
+import CloudAccountAiLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/AI/Logs";
+import CloudAccountFeedPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import CloudResourceViewLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Layout";
 import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview";
 import CloudResourceIncidentsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Incidents";
@@ -36,12 +39,15 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import CloudAccountFeed from "Common/Models/DatabaseModels/CloudAccountFeed";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
+import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Color from "Common/Types/Color";
@@ -54,6 +60,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
 
 /*
  * The fixture page: the real Cloud > Connect page in the real Cloud layout
@@ -90,12 +97,53 @@ import UserUtil from "Common/UI/Utils/User";
  * what its inventory lists, the incident and the alert linked to it, and
  * what the account's activity log and AWS Health recorded
  * (AnalyticsModelAPI, ChangeEvent).
+ *
+ * What OneUptime AI may do on an account: the AI agent card on its
+ * Overview, Let AI fix problems (its one question, the command for the
+ * cloud's own shell and More fields), and the account's AI pages
+ * (/dashboard/<project>/cloud/accounts/<account>/ai/agent|logs), answered
+ * from POST /resource-ai-access/status, /test, /reset-agent and /logs as
+ * the server answers them:
+ *
+ *   ?ai=        none (default: OneUptime AI reads the account, no Cloud AI
+ *               agent connected)
+ *               | connected (the AWS account's agent is online and asks
+ *               for approval)
+ *               | offline (it connected once and stopped reporting)
+ *               | fail (every status read fails)
+ *   ?agentsettings=custom  the connected agent reports three changes, the
+ *               tag it requires and two protected resources (Change opens
+ *               the dialog on them)
+ *
+ * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
+ * it does a few minutes after the setup command finished. The page says
+ * which language it is in and which way it reads, as production's
+ * followLanguageForPage does: Persian is laid out right to left.
  */
 
 const params = new URLSearchParams(window.location.search);
 const role = params.get("role") || "owner";
 const dataState = params.get("state") || "empty";
 const awsWay = params.get("aws") || "role";
+const aiState = ["connected", "offline", "fail"].includes(params.get("ai"))
+  ? params.get("ai")
+  : "none";
+/*
+ * The project's "Fix new incidents automatically" and "Fix new alerts
+ * automatically" (?fixing=on turns both on; off by default, as for a new
+ * project): the status carries them, and the AI agent page and the setup
+ * dialog say so while one is off.
+ */
+const fixingState = params.get("fixing") === "on" ? "on" : "off";
+/*
+ * What the connected agent reports it runs with (?agentsettings=custom):
+ * three changes of the AWS catalog, the tag it requires, and two resources
+ * a person protected, beside the agent's own stack, roles and task - so
+ * Change opens the dialog on them. Every change, no tag and nothing
+ * protected otherwise, as the setup command's defaults start it.
+ */
+const agentSettingsState =
+  params.get("agentsettings") === "custom" ? "custom" : "default";
 const language = ["ja", "de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -117,6 +165,7 @@ await i18next.use(initReactI18next).init({
   keySeparator: false,
   nsSeparator: false,
 });
+setPageLanguage(language);
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 
@@ -309,6 +358,11 @@ function account(id, fields) {
     projectId: new ObjectID(PROJECT_ID),
     createdAt: new Date("2026-10-20T08:00:00.000Z"),
     labels: [],
+    isAiInvestigationEnabled: true,
+    isAiLogReadEnabled: false,
+    // The agent's setup command sets the mode once it connects.
+    aiRemediationMode: aiState === "none" ? "Disabled" : "RequireApproval",
+    aiCommandAllowlist: [],
     ...fields,
   });
   return item;
@@ -1037,8 +1091,299 @@ function answer(name, provider) {
   return new HTTPResponse(200, verdict(name, provider), {});
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI on an account: its access status, Test connection, Reset
+ * agent and AI Logs, as ResourceAiAccessService and ResourceAiAccessAPI
+ * answer them for a cloud account - read live through its read-only
+ * connection without an agent, so an agent's gaps block only its fixes.
+ * ---------------------------------------------------------------------------
+ */
+const AI_RESOURCE_TYPES = {
+  aws: "AwsAccount",
+  azure: "AzureSubscription",
+  gcp: "GoogleCloudProject",
+};
+const AI_NOUNS = {
+  AwsAccount: "AWS account",
+  AzureSubscription: "Azure subscription",
+  GoogleCloudProject: "Google Cloud project",
+};
+const AI_AGENT_ID = "50000000-0000-4000-8000-000000000001";
+// The changes the AWS agent's setup command turned on (every one of them).
+const AWS_OPERATIONS = [
+  "restart-service",
+  "start-instance",
+  "scale-out",
+  "scale-in",
+  "reboot-instance",
+  "roll-back-service",
+  "set-concurrency",
+  "fail-over-database",
+  "stop-instance",
+  "redrive-queue",
+];
+
+state.ai = aiState;
+state.aiPosts = [];
+
+function accountOf(resourceId) {
+  return accounts.find((item) => {
+    return item._id === String(resourceId);
+  });
+}
+
+function aiAgentSummary(found, type, isOnline) {
+  return {
+    agentId: AI_AGENT_ID,
+    connectionStatus: "connected",
+    isOnline: isOnline,
+    agentVersion: "1.0.0",
+    lastAliveAt: new Date(
+      isOnline ? NOW - 20 * 1000 : NOW - 3 * 60 * MINUTE,
+    ).toISOString(),
+    lastRegisteredAt: new Date(NOW - 2 * 24 * 60 * MINUTE).toISOString(),
+    posture: {
+      resourceType: type,
+      resourceIdentifier: found.accountId,
+      agentVersion: "1.0.0",
+      allowWrites: true,
+      writeTargets: [],
+      protectedTargets:
+        agentSettingsState === "custom"
+          ? [
+              "*prod-db*",
+              `arn:aws:rds:us-east-1:${found.accountId}:db:orders`,
+              `arn:aws*:ecs:*:${found.accountId}:service/oneuptime-ai-agent/*`,
+              `arn:aws*:ecs:*:${found.accountId}:cluster/oneuptime-ai-agent`,
+              `arn:aws*:iam::${found.accountId}:role/OneUptimeAiAgentTask`,
+              `arn:aws*:iam::${found.accountId}:role/OneUptimeAiAgentWrite`,
+              `arn:aws*:cloudformation:*:${found.accountId}:stack/oneuptime-ai-agent/*`,
+              `arn:aws:ecs:us-east-1:${found.accountId}:task/oneuptime-ai-agent/0f3c9a2b`,
+            ]
+          : [],
+      toolVersion: "AWS",
+      reachable: true,
+      details: {
+        cloudProvider: found.provider,
+        cloudAccountId: found.accountId,
+        enabledOperations:
+          agentSettingsState === "custom"
+            ? "restart-service,scale-out,start-instance"
+            : AWS_OPERATIONS.join(","),
+        requiredTag:
+          agentSettingsState === "custom" ? "oneuptime-ai=allow" : null,
+        awsWriteRoleArn: `arn:aws:iam::${found.accountId}:role/OneUptimeCloudAiAgentWrite`,
+        awsPrincipalArn: `arn:aws:sts::${found.accountId}:assumed-role/OneUptimeCloudAiAgent/agent`,
+        awsRegion: "us-east-1",
+      },
+      aiSettings: {
+        investigation: true,
+        fixes: "RequireApproval",
+        isConfigured: true,
+      },
+    },
+  };
+}
+
+function aiStatus(resourceId) {
+  const found = accountOf(resourceId) || accounts[0];
+  const type = AI_RESOURCE_TYPES[found ? found.provider : "aws"];
+  const noun = AI_NOUNS[type];
+  const page = `the ${noun}'s AI agent page (AI → AI agent)`;
+  const status = {
+    resourceType: type,
+    resourceId: String(resourceId),
+    resourceName: found ? found.name : "",
+    isAiInvestigationEnabled: true,
+    aiRemediationMode: "Disabled",
+    aiSettingsSource: "oneuptime",
+    aiCommandAllowlist: [],
+    agent: null,
+    gaps: [],
+    isInvestigationReady: true,
+    isRemediationReady: false,
+    automaticRemediation: {
+      incidents: fixingState === "on",
+      alerts: fixingState === "on",
+    },
+  };
+
+  if (state.ai === "connected" && found) {
+    return {
+      ...status,
+      aiRemediationMode: "RequireApproval",
+      aiSettingsSource: "agent_configuration",
+      aiAccessConfiguredAt: new Date(NOW - 2 * 24 * 60 * MINUTE).toISOString(),
+      aiAccessLastVerifiedAt: new Date(NOW - 5 * MINUTE).toISOString(),
+      agent: aiAgentSummary(found, type, true),
+      isRemediationReady: true,
+    };
+  }
+
+  if (state.ai === "offline" && found) {
+    return {
+      ...status,
+      aiRemediationMode: "RequireApproval",
+      aiSettingsSource: "agent_configuration",
+      agent: aiAgentSummary(found, type, false),
+      gaps: [
+        {
+          code: "ai_agent_offline",
+          title: "The Cloud AI agent is offline",
+          nextStep:
+            "It last reported in 3 hours ago. Check that its container is running and can reach your OneUptime URL (its logs say why it cannot).",
+          blocksInvestigation: false,
+          blocksRemediation: true,
+        },
+      ],
+    };
+  }
+
+  return {
+    ...status,
+    gaps: [
+      {
+        code: "ai_agent_not_connected",
+        title: "No Cloud AI agent is connected",
+        nextStep: `To let OneUptime AI fix problems in this ${noun}, use "Let AI fix problems" on the account's Overview (or ${page}) and run the command it shows in the cloud's own shell: it creates the Cloud AI agent's role and starts the agent, which connects on its own.`,
+        blocksInvestigation: false,
+        blocksRemediation: true,
+      },
+      {
+        code: "remediation_disabled",
+        title: `AI fixes are turned off for this ${noun}`,
+        nextStep: `Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on ${page}.`,
+        blocksInvestigation: false,
+        blocksRemediation: true,
+      },
+    ],
+  };
+}
+
+// What AI did on the AWS account: one investigation, and one fix approved.
+function aiLogs(resourceId) {
+  const found = accountOf(resourceId);
+  if (!found || found.provider !== "aws") {
+    return { investigations: [], fixes: [] };
+  }
+  return {
+    investigations: [
+      {
+        aiRunId: "60000000-0000-4000-8000-000000000001",
+        status: "Completed",
+        analysisTldr:
+          "The checkout service ran out of capacity after the 14:00 deploy doubled its traffic; two more tasks would carry it.",
+        createdAt: new Date(NOW - 50 * MINUTE).toISOString(),
+        completedAt: new Date(NOW - 46 * MINUTE).toISOString(),
+        incident: {
+          id: "70000000-0000-4000-8000-000000000001",
+          title: "Checkout is slow for every customer",
+          number: 18,
+        },
+        alert: null,
+      },
+    ],
+    fixes: [
+      {
+        id: "80000000-0000-4000-8000-000000000001",
+        status: "Approved",
+        executionMode: "RequireApproval",
+        suggestionType: "CommandPlan",
+        rationale:
+          "Scale the checkout service out from 4 to 6 tasks: every task is above 90% CPU since the deploy.",
+        createdAt: new Date(NOW - 45 * MINUTE).toISOString(),
+        incidentId: "70000000-0000-4000-8000-000000000001",
+        alertId: null,
+        approvedAt: new Date(NOW - 41 * MINUTE).toISOString(),
+        approvedByName: "Maya Chen",
+      },
+    ],
+  };
+}
+
+// The commands AI ran on the account through its agent, newest first.
+/*
+ * The account's feed (Activity -> Feed), newest last here: how it came to
+ * OneUptime, its Cloud AI agent connecting, a person letting AI read its
+ * logs, and the agent being reset - as the server writes them.
+ */
+const ACCOUNT_LINK = `[AWS account Production](/dashboard/${PROJECT_ID}/cloud/accounts/${AWS_ACCOUNT_ID})`;
+const ACCOUNT_FEED = [
+  {
+    _id: "91000000-0000-4000-8000-000000000001",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountCreated",
+    feedInfoInMarkdown: `☁️ OneUptime found ${ACCOUNT_LINK} when the cloud connection **AWS 123456789012** first read it.`,
+    displayColor: new Color("#3b82f6"),
+    postedAt: new Date(NOW - 9 * 24 * 60 * MINUTE),
+  },
+  {
+    _id: "91000000-0000-4000-8000-000000000002",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown:
+      "🤖 The Cloud AI agent connected (can make changes to anything but its protected targets). What AI may do here follows the agent's configuration: investigation on, fixes Ask for approval. To change it, run the agent's setup command again with other choices: Change on the AWS account's AI agent page shows it.",
+    moreInformationInMarkdown:
+      "**Agent**: Cloud AI agent (b0000000-0000-4000-8000-000000000001)\n\n**Identity**: `123456789012`",
+    displayColor: new Color("#10b981"),
+    postedAt: new Date(NOW - 3 * 24 * 60 * MINUTE),
+  },
+  {
+    _id: "91000000-0000-4000-8000-000000000003",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown: `🤖 **Maya Chen** changed what OneUptime AI may do on ${ACCOUNT_LINK}:\n\n- Reading the account's log lines during investigations turned **on**`,
+    moreInformationInMarkdown:
+      "Investigations may now read this account's recent log lines (CloudWatch Logs, Log Analytics or Cloud Logging) through its read-only connection. Log lines can hold customer data.",
+    displayColor: new Color("#eab308"),
+    user: { name: "Maya Chen", email: "maya@acme.example" },
+    postedAt: new Date(NOW - 2 * 24 * 60 * MINUTE),
+  },
+  {
+    _id: "91000000-0000-4000-8000-000000000004",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown:
+      "🔄 The Cloud AI agent was reset by **Maya Chen**. It reconnects on its own within a few minutes.",
+    displayColor: new Color("#3b82f6"),
+    user: { name: "Maya Chen", email: "maya@acme.example" },
+    postedAt: new Date(NOW - 30 * MINUTE),
+  },
+];
+
+const RUNNER_JOBS = [
+  {
+    _id: "90000000-0000-4000-8000-000000000002",
+    createdAt: new Date(NOW - 5 * MINUTE),
+    origin: "AiInvestigation",
+    status: "Succeeded",
+    exitCode: 0,
+    payload: { displayCommand: "cloud whoami" },
+  },
+  {
+    _id: "90000000-0000-4000-8000-000000000001",
+    createdAt: new Date(NOW - 40 * MINUTE),
+    origin: "AiRemediation",
+    status: "Succeeded",
+    exitCode: 0,
+    payload: {
+      displayCommand:
+        "cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/checkout --count 6",
+    },
+  },
+];
+
 window.__cloudConnectFixture = {
   state: state,
+  // The Cloud AI agent connects, as it does once its command finished.
+  connectAgent: () => {
+    state.ai = "connected";
+    const found = accountOf(AWS_ACCOUNT_ID);
+    if (found) {
+      found.aiRemediationMode = "RequireApproval";
+    }
+  },
   setVerdict: (name) => {
     state.verdict = name;
   },
@@ -1118,6 +1463,53 @@ ModelAPI.getList = async (args) => {
     }).map((item) => {
       return Object.assign(new CloudResource(), item);
     });
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
+  }
+
+  // The project's Server key, which the Cloud AI agent connects with.
+  if (args.modelType === TelemetryIngestionKey) {
+    state.listRequests.push({ model: "TelemetryIngestionKey" });
+    const key = Object.assign(new TelemetryIngestionKey(), {
+      _id: "a0000000-0000-4000-8000-000000000001",
+      name: "Cloud AI agent key",
+      secretKey: new ObjectID("a1000000-0000-4000-8000-000000000001"),
+      keyType: "Server",
+      allowedOrigins: [],
+    });
+    return { data: [key], count: 1, skip: 0, limit: args.limit };
+  }
+
+  // The commands OneUptime AI ran on an account through its agent.
+  if (args.modelType === RunnerJob) {
+    state.listRequests.push({ model: "RunnerJob" });
+    const data = (state.ai === "connected" ? RUNNER_JOBS : []).map((row) => {
+      return Object.assign(new RunnerJob(), row);
+    });
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
+  }
+
+  // The account's feed, newest first unless the reader asked otherwise.
+  if (args.modelType === CloudAccountFeed) {
+    const query = args.query || {};
+    const accountId = String(query.cloudAccountId || "");
+    state.listRequests.push({
+      model: "CloudAccountFeed",
+      cloudAccountId: accountId,
+    });
+    const ascending = Boolean(
+      args.sort && String(args.sort.postedAt || "") === "ASC",
+    );
+    const data = ACCOUNT_FEED.filter((row) => {
+      return row.cloudAccountId === accountId;
+    })
+      .sort((left, right) => {
+        return ascending
+          ? left.postedAt.getTime() - right.postedAt.getTime()
+          : right.postedAt.getTime() - left.postedAt.getTime();
+      })
+      .map((row) => {
+        return Object.assign(new CloudAccountFeed(), row);
+      });
     return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
 
@@ -1296,6 +1688,44 @@ API.get = async (options) => {
 API.post = async (options) => {
   const url = options.url.toString();
 
+  if (url.includes("/resource-ai-access/")) {
+    const route = url.slice(url.indexOf("/resource-ai-access/"));
+    const body = options.data || {};
+    state.aiPosts.push({ route: route, body: body });
+
+    if (state.ai === "fail") {
+      throw new Error("Network Error");
+    }
+    if (route === "/resource-ai-access/status") {
+      return new HTTPResponse(200, aiStatus(body.resourceId), {});
+    }
+    if (route === "/resource-ai-access/logs") {
+      return new HTTPResponse(200, aiLogs(body.resourceId), {});
+    }
+    if (route === "/resource-ai-access/test") {
+      const found = accountOf(body.resourceId) || accounts[0];
+      return new HTTPResponse(
+        200,
+        {
+          ok: true,
+          message: "The Cloud AI agent answered.",
+          results: [
+            {
+              command: "cloud whoami",
+              succeeded: true,
+              exitCode: 0,
+              output: `AWS account ${found.accountId}, us-east-1. Changes: ${AWS_OPERATIONS.join(", ")}.`,
+              errorMessage: null,
+            },
+          ],
+          status: aiStatus(body.resourceId),
+        },
+        {},
+      );
+    }
+    return new HTTPResponse(200, { ok: true }, {});
+  }
+
   if (url.endsWith("/cloud-connection/test")) {
     state.tests.push({ body: options.data });
 
@@ -1389,6 +1819,9 @@ const ACCOUNT_TOPOLOGY_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY];
 const ACCOUNT_CHANGES_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_CHANGES];
 const ACCOUNT_SETTINGS_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS];
 const ACCOUNT_DELETE_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_DELETE];
+const ACCOUNT_AI_AGENT_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT];
+const ACCOUNT_AI_LOGS_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS];
+const ACCOUNT_FEED_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_FEED];
 const RESOURCE_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW];
 const RESOURCE_INCIDENTS_ROUTE =
   RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS];
@@ -1410,6 +1843,18 @@ const FixtureAccountSettings = withNavigation(
 const FixtureAccountDelete = withNavigation(
   CloudAccountDeletePage,
   ACCOUNT_DELETE_ROUTE,
+);
+const FixtureAccountAiAgent = withNavigation(
+  CloudAccountAiAgentPage,
+  ACCOUNT_AI_AGENT_ROUTE,
+);
+const FixtureAccountAiLogs = withNavigation(
+  CloudAccountAiLogsPage,
+  ACCOUNT_AI_LOGS_ROUTE,
+);
+const FixtureAccountFeed = withNavigation(
+  CloudAccountFeedPage,
+  ACCOUNT_FEED_ROUTE,
 );
 const FixtureResourceLayout = withNavigation(
   CloudResourceViewLayout,
@@ -1494,6 +1939,18 @@ function FixtureApp() {
           <Route
             path={ACCOUNT_DELETE_ROUTE.toString()}
             element={<FixtureAccountDelete />}
+          />
+          <Route
+            path={ACCOUNT_AI_AGENT_ROUTE.toString()}
+            element={<FixtureAccountAiAgent />}
+          />
+          <Route
+            path={ACCOUNT_AI_LOGS_ROUTE.toString()}
+            element={<FixtureAccountAiLogs />}
+          />
+          <Route
+            path={ACCOUNT_FEED_ROUTE.toString()}
+            element={<FixtureAccountFeed />}
           />
         </Route>
         <Route element={<FixtureResourceLayout />}>

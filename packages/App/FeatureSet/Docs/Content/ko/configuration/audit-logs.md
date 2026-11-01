@@ -106,6 +106,7 @@ flowchart TB
 | 관심 목록 값 | `Watchlist Value` |
 | 헌트 | `Hunt` |
 | 보안 케이스의 작업과 증거 | `Security Case Task`, `Security Case Evidence` |
+| 데이터 저장소와 그 발견 사항, 그리고 데이터 보안의 이슈, 설정, 검사 설정, 사용자 지정 데이터 유형, 데이터 상주 규칙 | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | 감사 로그 내보내기 | `Audit Log Export` |
 
 관리자가 다른 사람의 계정에서 알림 방법이나 개인 온콜 규칙을 추가하거나 제거한 경우에도 기록되며, 주소나 번호 자체는 기록되지 않습니다.

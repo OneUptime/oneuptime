@@ -52,10 +52,12 @@ export const KUBERNETES_SERVICE_MESH_DOCS_ROUTE: string = `${KUBERNETES_AGENT_DO
 export const KUBERNETES_NOT_COLLECTED_DOCS_ROUTE: string = `${KUBERNETES_AGENT_DOCS_ROUTE}#metrics-the-agent-does-not-collect`;
 
 /*
- * Where the API server answers from inside any cluster. The agent's pod has
- * no host network, so the chart's default (localhost:6443) is the pod
- * itself; this address reaches the API server, with the service account
- * token and the /metrics grant the chart already gives the agent.
+ * Where the API server answers from inside any cluster, with the service
+ * account token and the /metrics grant the chart gives the agent. The
+ * chart's default for controlPlane.apiServer.endpoints since its old one,
+ * localhost:6443, was the agent's own pod (it has no host network); the
+ * command still sets it, so a release that kept the old default through
+ * --reuse-values moves too.
  */
 export const IN_CLUSTER_API_SERVER_METRICS_URL: string =
   "https://kubernetes.default.svc:443/metrics";
@@ -101,17 +103,18 @@ const KUBERNETES_METRICS_SETUPS: Record<
     source: KubernetesMetricsSource.Etcd,
     title: translationKey("No etcd metrics from this cluster"),
     /*
-     * The chart's etcd job is HTTPS only (an http:// endpoint is scraped as
-     * https) and sends no client certificate, so etcd's usual metrics
-     * ports - plain HTTP on 2381, or 2379 behind client certificates - are
-     * out of its reach.
+     * etcd's two metrics ports: plain HTTP on kubeadm's
+     * --listen-metrics-urls (2381), which an http:// endpoint is scraped
+     * in, and the HTTPS client port (2379), which asks for the client
+     * certificate the Secret in controlPlane.etcd.clientCertSecret holds.
      */
     description: translationKey(
-      "Turn on {{enabled}} and point {{endpoints}} at an HTTPS etcd metrics address the agent's pod can reach without a client certificate. Managed clusters such as EKS, GKE and AKS don't expose etcd.",
+      "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.",
     ),
     code: {
       enabled: CONTROL_PLANE_ENABLED,
       endpoints: "controlPlane.etcd.endpoints",
+      secret: "controlPlane.etcd.clientCertSecret",
     },
     helmFlags: [CONTROL_PLANE_FLAG],
     docsRoute: KUBERNETES_CONTROL_PLANE_DOCS_ROUTE,

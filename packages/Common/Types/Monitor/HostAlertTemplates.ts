@@ -3,7 +3,9 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
@@ -11,7 +13,7 @@ import MonitorStepHostMonitor from "./MonitorStepHostMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
-export type HostAlertTemplateCategory = "Resource" | "Host";
+export type HostAlertTemplateCategory = "Availability" | "Resource" | "Host";
 
 export type HostAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -311,6 +313,51 @@ export function buildHostFormulaMonitorConfig(args: {
 }
 
 // --- Template Definitions ---
+
+const hostStoppedReportingTemplate: HostAlertTemplate = {
+  id: "host-stopped-reporting",
+  name: "Host Stopped Reporting",
+  summary: "The host sends no metrics for 10 minutes.",
+  description:
+    "Alert when the host sends no metrics for ten minutes: the machine is down or unreachable, or its OpenTelemetry Collector stopped, lost its route to OneUptime or had its token revoked. Reads system.memory.usage, which the collector's memory scraper reports on every collection on Linux, macOS and Windows.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        /*
+         * The heartbeat. The hostmetrics memory scraper reports
+         * system.memory.usage (once per memory `state`) on every
+         * collection, with no optional metric to enable and on every
+         * platform the receiver supports, so it is never missing while
+         * the collector runs. Ungrouped and counted: only a window with no
+         * row at all is the breach.
+         */
+        metricName: "system.memory.usage",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "host",
+        incidentTitle: `[Host] Host Stopped Reporting${hostTitleSuffix(args)}`,
+        incidentDescription: `OneUptime has received no metrics from this host for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the machine is up and reachable, whether its OpenTelemetry Collector is running and what its log says, and whether the collector can still reach OneUptime with its token. The incident resolves on its own once metrics arrive again.`,
+        criteriaName: "Host Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the host sends no memory metrics for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 const highCpuTemplate: HostAlertTemplate = {
   id: "host-high-cpu",
@@ -643,6 +690,7 @@ const highProcessCountTemplate: HostAlertTemplate = {
 
 export function getAllHostAlertTemplates(): Array<HostAlertTemplate> {
   return [
+    hostStoppedReportingTemplate,
     highCpuTemplate,
     highMemoryTemplate,
     highFilesystemUsageTemplate,
@@ -665,4 +713,13 @@ export function getHostAlertTemplateById(
   return getAllHostAlertTemplates().find((template: HostAlertTemplate) => {
     return template.id === id;
   });
+}
+
+/*
+ * The template a NEW Host monitor starts on: the host going silent. It is
+ * the one template that still speaks when every other one has stopped being
+ * evaluated, and it has no threshold to tune.
+ */
+export function getHostDefaultAlertTemplateId(): string {
+  return hostStoppedReportingTemplate.id;
 }

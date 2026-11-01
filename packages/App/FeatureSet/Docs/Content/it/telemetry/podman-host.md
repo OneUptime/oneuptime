@@ -4,18 +4,18 @@ L'agent Podman di OneUptime è un container che esegui su un host Podman. Legge 
 
 :::cards
 - [Installa l'agent](#installa-lagent): Due container, con `podman run` o Podman Compose.
-- [Cosa raccoglie l'agent](#cosa-raccoglie-lagent): Metriche, log e un inventario di ogni container.
+- [Cosa raccoglie l'agent](#cosa-raccoglie-lagent): Le metriche e i log di ogni container.
 - [I log dei container richiedono k8s-file](#i-log-dei-container-richiedono-il-driver-k8s-file): Podman scrive i log in journald a meno che tu non cambi driver.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Riavvii in loop, metriche mancanti, log mancanti.
 :::
 
 ## Come funziona
 
-L'agent è un OpenTelemetry Collector con la configurazione di OneUptime integrata. Tramite il socket dell'API compatibile con Docker di Podman legge le statistiche di ogni container ogni 30 secondi ed elenca ogni container, immagine, rete e volume ogni 5 minuti. Segue i file di log dei container e invia tutto al tuo URL di OneUptime tramite OTLP, con la chiave di acquisizione che gli fornisci.
+L'agent è un OpenTelemetry Collector con la configurazione di OneUptime integrata. Tramite il socket dell'API compatibile con Docker di Podman legge le statistiche di ogni container ogni 30 secondi. Segue i file di log dei container e invia tutto al tuo URL di OneUptime tramite OTLP, con la chiave di acquisizione che gli fornisci.
 
 ```mermaid title="Due container sul tuo host Podman"
 flowchart TB
-    containers["I tuoi container"] -->|"statistiche, file di log,<br/>inventario"| agent["Agent Podman"]
+    containers["I tuoi container"] -->|"statistiche e<br/>file di log"| agent["Agent Podman"]
     agent -->|"OTLP su HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"indaga su un incidente<br/>o un avviso"| ai["Agente IA Podman"]
     ai -->|"comandi docker<br/>in sola lettura"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Trova l'host in OneUptime
 
-Apri **Prodotti → Infrastruttura → Podman → Tutti gli host**. L'host compare con il suo `PODMAN_HOST_NAME` entro un minuto circa, con i suoi container, le metriche e i log. L'agente IA risulta connesso nella pagina **Agente IA** dell'host e in fondo alla sua **Panoramica**. La pagina **Topologia** dell'host disegna i suoi progetti Compose, container, immagini, reti e volumi su un'unica mappa: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
+Apri **Prodotti → Infrastruttura → Podman → Tutti gli host**. L'host compare con il suo `PODMAN_HOST_NAME` entro un minuto circa, con i suoi container, le metriche e i log. L'agente IA risulta connesso nella pagina **Agente IA** dell'host e in fondo alla sua **Panoramica**. La pagina **Topologia** dell'host disegna i suoi progetti Compose e i suoi container su un'unica mappa: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
 :::
 
 ## Variabili d'ambiente
@@ -139,7 +139,7 @@ Apri **Prodotti → Infrastruttura → Podman → Tutti gli host**. L'host compa
 | `ONEUPTIME_URL` | Sì | Il tuo URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. Usa `http://` e la sua porta se l'istanza usa solo HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Sì | La chiave di acquisizione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
 | `PODMAN_HOST_NAME` | No | Il nome dell'host in OneUptime. Il valore predefinito è `podman-host`, quindi dai a ogni host il suo. |
-| `DOCKER_API_VERSION` | No | La versione dell'API di Docker che l'agent usa con il socket di Podman. Il valore predefinito è `1.44`. Abbassala se il socket riporta un massimo più vecchio, oppure impostala su un valore vuoto per negoziarla (vedi [Risoluzione dei problemi](#risoluzione-dei-problemi)). |
+| `DOCKER_API_VERSION` | No | La versione dell'API di Docker che l'agent usa con il socket di Podman. Vuota per impostazione predefinita: l'agent la negozia con il socket. Impostala solo per fissare una versione (vedi [Risoluzione dei problemi](#risoluzione-dei-problemi)). |
 
 Per cambiare un valore, rimuovi l'agent ed esegui di nuovo il suo comando (Podman CLI), oppure modifica `docker-compose.yml` ed esegui `podman compose up -d` (Podman Compose).
 
@@ -149,7 +149,6 @@ Per cambiare un valore, rimuovi l'agent ed esegui di nuovo il suo comando (Podma
 | --- | --- |
 | Metriche dei container | CPU (utilizzo, percentuale, limitazione), memoria (utilizzo, limite, percentuale), I/O di rete e di blocco, uptime, riavvii e numero di processi, per container, ogni 30 secondi. |
 | Log dei container | stdout e stderr di ogni container, dal file `ctr.log` che scrive il driver di log `k8s-file`. |
-| Inventario | Ogni container in qualsiasi stato, e ogni immagine, rete e volume, ogni 5 minuti. |
 
 Le metriche e i log di ogni container vengono archiviati sotto un servizio con il nome del container. Ogni riga di log riceve una severità in base al livello che indica, come `[ERROR]`, `level=warn` o `{"level":"info"}`; una riga che non ne indica nessuno prende quella del suo flusso: stderr è `ERROR`, stdout è `INFO`. Le righe che iniziano con uno spazio o una parentesi di chiusura vengono unite alla riga precedente, quindi uno stack trace arriva come un unico record. I log dell'agent stesso vengono esclusi.
 
@@ -253,23 +252,19 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-Un server dell'API di Docker che impone una versione massima del client ne rifiuta una più recente, quindi il receiver non parte mai e il collector termina con esso. Controlla la versione dell'API che riporta il socket di Podman:
+Un server dell'API di Docker che impone una versione massima del client ne rifiuta una più recente, quindi il receiver non parte mai e il collector termina con esso. L'agent negozia la versione con il socket (un `HEAD /_ping`, poi il massimo che riporta il socket) a meno che `DOCKER_API_VERSION` non ne indichi una, e un'immagine più vecchia dell'agent fissava `1.44`. [Aggiorna l'agent](#aggiornare-lagent) e avvialo senza `-e DOCKER_API_VERSION` (oppure togli `DOCKER_API_VERSION` da Compose).
+
+Per fissare comunque una versione, non superare la versione dell'API che riporta il socket di Podman:
 
 ```bash
 curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
 ```
 
 Poi aggiungi `-e DOCKER_API_VERSION=1.41` (o il valore che hai ottenuto) a `podman run`, oppure imposta `DOCKER_API_VERSION` in Compose. I server più recenti servono ancora le versioni più vecchie dell'API, quindi l'impostazione resta valida dopo un aggiornamento.
-
-Preferisci non cercare il numero? Imposta `DOCKER_API_VERSION` sulla stringa vuota. L'agent negozia allora la versione con il socket (un `HEAD /_ping`, poi il massimo che riporta il socket) invece di fissarne una:
-
-```bash
-podman run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Permesso negato sul socket di Podman, oppure nessun socket
-L'agent deve essere eseguito come root per leggere `/run/podman/podman.sock`. Verifica che `--user 0:0` sia nel tuo comando `podman run`, oppure `user: "0:0"` in Compose, e che il socket sia attivo: `sudo systemctl enable --now podman.socket`. Podman in modalità rootless ha invece il socket in `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`): monta quel percorso al posto di `/run/podman/podman.sock`.
+L'agent deve essere eseguito come root per leggere `/run/podman/podman.sock`. Verifica che `--user 0:0` sia nel tuo comando `podman run`, oppure `user: "0:0"` in Compose, e che il socket sia attivo: `sudo systemctl enable --now podman.socket`. Podman in modalità rootless ha invece il socket in `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`) e lo storage in `~/.local/share/containers/storage`: montali al posto di `/run/podman/podman.sock` e `/var/lib/containers/storage`. L'`install.sh` dell'agent fa entrambe le cose quando lo esegui come quell'utente, e si ferma indicando il comando da eseguire quando il socket non è attivo.
 :::
 
 :::details L'host risulta disconnesso

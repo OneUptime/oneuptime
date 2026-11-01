@@ -32,7 +32,7 @@ flowchart TB
 | **コレクター設定** のうち、そのホストに当てはまる最初の設定 | 設定がホストのシステム向けで、ラベルを指定している場合はホストがそのいずれかを持つときに当てはまります。 |
 | そのシステム向けの OneUptime の既定 | 当てはまる設定がない場合。 |
 
-OneUptime の既定は、どのシステムでも CPU、メモリ、ディスク、ファイルシステム、ネットワーク、プロセスを読み取ります。Linux ではホストにあればジャーナルと systemd ユニット、Windows では System、Application、Security のイベントログと Windows サービス、macOS では `/var/log` のインストールと Wi-Fi のログを読み取ります。既定は OneUptime のリリースに合わせて更新されるため、既定を使うホストには OneUptime による改善が届きます。
+OneUptime の既定は、どのシステムでも CPU、メモリ、ディスク、ファイルシステム、ネットワーク、プロセスを読み取ります。Linux ではホストにあればジャーナルと systemd ユニット、Windows では System、Application、Security のイベントログと Windows サービス、macOS では `/var/log` のインストールと Wi-Fi のログを読み取ります。設計上いっぱいのファイルシステム (snap パッケージや macOS の `/dev` など) は除外されるため、High Filesystem Usage テンプレートが発火し続けることはありません。既定は OneUptime のリリースに合わせて更新されるため、既定を使うホストには OneUptime による改善が届きます。
 
 ## 始める前に
 

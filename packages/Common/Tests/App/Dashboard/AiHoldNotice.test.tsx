@@ -45,6 +45,8 @@ jest.mock("react-i18next", () => {
 import AiHoldNotice, {
   AI_HOLD_NOTICE_REFRESH_MS,
   AI_HOLD_NOTICE_TEST_ID,
+  PAGE_NOW_LOCKED_SENTENCE,
+  PAGE_NOW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiHoldNotice";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -66,6 +68,9 @@ const INCIDENT_ID: ObjectID = new ObjectID(
   "a1a00000-0000-4000-8000-000000000001",
 );
 const ALERT_ID: ObjectID = new ObjectID("a1a00000-0000-4000-8000-000000000002");
+
+// A class that draws a box: a wash, a frame, a shadow or a ring.
+const BOX_CLASS: RegExp = /^(?:bg-(?!transparent)|border(?:-|$)|shadow|ring-)/;
 const COMMON_HEADERS: Record<string, string> = {
   tenantid: "a1a00000-0000-4000-8000-0000000000aa",
 };
@@ -396,5 +401,315 @@ describe("Page now", () => {
     );
     expect(screen.getByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeInTheDocument();
     expect(screen.getByTestId("ai-hold-page-now")).not.toBeDisabled();
+  });
+});
+
+/*
+ * One flat card: the notice is said the way the card says everything that
+ * is not the report (InvestigationNotice) - a mark, a sentence and a
+ * quieter line, Page now under them - never a tinted, bordered box inside
+ * the card (#5351's notice was one; the browser half is the EventOverview
+ * suite's "one flat AI investigation card", which reads it with ?hold=1).
+ */
+describe("drawn as the card draws a notice", () => {
+  test("a mark, then what is happening, then when paging starts, then Page now", async () => {
+    const pagingStartsAt: Date = new Date(Date.now() + 8 * 60 * 1000);
+    lastHold = heldUntil(pagingStartsAt);
+
+    render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+
+    const notice: HTMLElement = await screen.findByTestId(
+      AI_HOLD_NOTICE_TEST_ID,
+    );
+    const words: Array<string> = Array.from(notice.querySelectorAll("p")).map(
+      (paragraph: HTMLParagraphElement): string => {
+        return paragraph.textContent || "";
+      },
+    );
+
+    expect(words).toEqual([
+      "OneUptime AI is on it",
+      `On-call paging starts at ${shownTime(pagingStartsAt)} unless OneUptime AI resolves this incident first.`,
+    ]);
+    // The mark comes first, Page now last.
+    expect(notice.querySelector("svg")).not.toBeNull();
+    expect(
+      screen
+        .getByTestId("ai-hold-notice-actions")
+        .contains(screen.getByTestId(PAGE_NOW_TEST_ID)),
+    ).toBe(true);
+  });
+
+  test("nothing in it is a box: no wash, frame or shadow outside Page now", async () => {
+    lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+    render(<AiHoldNotice subjectType="alert" subjectId={ALERT_ID} />);
+
+    const notice: HTMLElement = await screen.findByTestId(
+      AI_HOLD_NOTICE_TEST_ID,
+    );
+    const boxClasses: Array<string> = [notice, ...notice.querySelectorAll("*")]
+      .filter((element: Element): boolean => {
+        return !element.closest("button");
+      })
+      .flatMap((element: Element): Array<string> => {
+        return Array.from(element.classList).filter(
+          (className: string): boolean => {
+            return BOX_CLASS.test(className);
+          },
+        );
+      });
+
+    expect(boxClasses).toEqual([]);
+  });
+});
+
+/*
+ * Page now takes the permission to page an on-call policy by hand, as the
+ * server asks it (AiFirstResponderAPI). A Viewer or an On-Call Viewer may
+ * read the hold - they are told AI is on it - but pressing Page now was
+ * only ever refused: it is locked for them, saying why, as every locked
+ * action is.
+ */
+describe("Page now for who may not page", () => {
+  function signInWith(permissions: Array<Permission>): void {
+    jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue(permissions);
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+  }
+
+  test.each([
+    ["a Viewer", Permission.Viewer],
+    ["an On-Call Viewer", Permission.OnCallViewer],
+  ] as Array<[string, Permission]>)(
+    "%s is told AI is on it, with Page now locked, saying why - and pressing it sends nothing",
+    async (_name: string, permission: Permission) => {
+      signInWith([permission]);
+      lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+      render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+
+      await screen.findByTestId(AI_HOLD_NOTICE_TEST_ID);
+      const pageNow: HTMLElement = screen.getByTestId(PAGE_NOW_TEST_ID);
+
+      expect(pageNow).toBeDisabled();
+      expect(pageNow).toHaveAttribute("aria-disabled", "true");
+
+      // Why, where every locked action says it: on the wrapper's tooltip.
+      fireEvent.mouseEnter(
+        screen.getByTestId(`${PAGE_NOW_TEST_ID}-disabled-wrapper`),
+      );
+      await waitFor(() => {
+        expect(screen.getByRole("tooltip")).toHaveTextContent(
+          "You do not have permission to page on-call policies.",
+        );
+      });
+      expect(screen.getByRole("tooltip")).toHaveTextContent(
+        "Create On-Call Duty Policy Execution Log",
+      );
+
+      fireEvent.click(pageNow);
+      await settle();
+
+      expect(posts).toHaveLength(0);
+    },
+  );
+
+  test.each([
+    ["a Project Member", Permission.ProjectMember],
+    ["an On-Call Member", Permission.OnCallMember],
+    [
+      "someone given Create On-Call Duty Policy Execution Log",
+      Permission.CreateProjectOnCallDutyPolicyExecutionLog,
+    ],
+  ] as Array<[string, Permission]>)(
+    "%s may press it",
+    async (_name: string, permission: Permission) => {
+      signInWith([permission, Permission.OnCallViewer]);
+      lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+      render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+
+      await screen.findByTestId(AI_HOLD_NOTICE_TEST_ID);
+
+      expect(screen.getByTestId(PAGE_NOW_TEST_ID)).not.toBeDisabled();
+      expect(
+        screen.queryByTestId(`${PAGE_NOW_TEST_ID}-disabled-wrapper`),
+      ).toBeNull();
+    },
+  );
+
+  test("while the reader's permissions are still on their way it may be pressed: the server decides", async () => {
+    signInWith([]);
+    lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+    render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+
+    fireEvent.click(await screen.findByTestId(PAGE_NOW_TEST_ID));
+
+    await waitFor(() => {
+      expect(posts).toHaveLength(1);
+    });
+  });
+
+  test("the words of the lock are a whole sentence of their own, to translate", () => {
+    expect(PAGE_NOW_LOCKED_SENTENCE).toBe(
+      "You do not have permission to page on-call policies.",
+    );
+  });
+});
+
+/*
+ * Only the newest read's answer lands. The read every 15 seconds could be
+ * on its way when Page now was pressed, answer after the read Page now made
+ * once the pages had started, and bring the notice back - with Page now -
+ * until the next read 15 seconds later.
+ */
+describe("a read that answers late", () => {
+  interface PendingRead {
+    resolve: (moments: Array<Date>) => void;
+  }
+
+  let pending: Array<PendingRead> = [];
+
+  // Every read waits until the test answers it, in the order it chooses.
+  function holdReadsOpen(): void {
+    pending = [];
+    jest.spyOn(ModelAPI, "getList").mockImplementation(((args: ListArgs) => {
+      reads.push(args);
+
+      return new Promise((resolve: (value: unknown) => void) => {
+        pending.push({
+          resolve: (moments: Array<Date>): void => {
+            resolve({
+              data: moments.map((pagingStartsAt: Date) => {
+                const run: OnCallDutyPolicyExecutionLog =
+                  new OnCallDutyPolicyExecutionLog();
+                run.id = ObjectID.generate();
+                run.pagingStartsAt = pagingStartsAt;
+                return run;
+              }),
+              count: moments.length,
+              skip: 0,
+              limit: 1,
+            });
+          },
+        });
+      });
+    }) as never);
+  }
+
+  async function answer(index: number, moments: Array<Date>): Promise<void> {
+    await act(async () => {
+      pending[index]!.resolve(moments);
+      await Promise.resolve();
+    });
+    await settle();
+  }
+
+  test("a refresh on its way when Page now is pressed never brings the notice back", async () => {
+    jest.useFakeTimers();
+    holdReadsOpen();
+    const held: Array<Date> = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+    render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+    await answer(0, held);
+    expect(screen.getByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeInTheDocument();
+
+    // The refresh every 15 seconds goes out, and has not answered yet.
+    await act(async () => {
+      jest.advanceTimersByTime(AI_HOLD_NOTICE_REFRESH_MS);
+    });
+    expect(reads).toHaveLength(2);
+
+    // Page now: the pages start, and the notice reads again - nothing held.
+    fireEvent.click(screen.getByTestId(PAGE_NOW_TEST_ID));
+    await settle();
+    expect(posts).toHaveLength(1);
+    expect(reads).toHaveLength(3);
+    await answer(2, []);
+    expect(screen.queryByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+
+    // The refresh from before Page now answers last: still held, it said.
+    await answer(1, held);
+
+    expect(screen.queryByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+  });
+
+  test("a refresh that answers while Page now is on its way is not the news either", async () => {
+    jest.useFakeTimers();
+    holdReadsOpen();
+    const held: Array<Date> = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+    let finishPageNow: (() => void) | null = null;
+
+    jest.spyOn(API, "post").mockImplementation(((args: PostArgs) => {
+      posts.push(args);
+      return new Promise((resolve: (value: unknown) => void) => {
+        finishPageNow = (): void => {
+          resolve(new HTTPResponse<JSONObject>(200, { startedRuns: 1 }, {}));
+        };
+      });
+    }) as never);
+
+    render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+    await answer(0, held);
+
+    await act(async () => {
+      jest.advanceTimersByTime(AI_HOLD_NOTICE_REFRESH_MS);
+    });
+    fireEvent.click(screen.getByTestId(PAGE_NOW_TEST_ID));
+    await settle();
+
+    // The refresh answers before Page now does: it is dropped.
+    await answer(1, held);
+    expect(screen.getByTestId(PAGE_NOW_TEST_ID)).toBeDisabled();
+
+    // While Page now is on its way, the refresh every 15 seconds waits.
+    await act(async () => {
+      jest.advanceTimersByTime(AI_HOLD_NOTICE_REFRESH_MS * 2);
+    });
+    expect(reads).toHaveLength(2);
+
+    await act(async () => {
+      finishPageNow!();
+      await Promise.resolve();
+    });
+    await settle();
+    expect(reads).toHaveLength(3);
+    await answer(2, []);
+
+    expect(screen.queryByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+  });
+
+  test("moved on to another incident, the last one's hold is not said there, nor its late answer", async () => {
+    holdReadsOpen();
+    const held: Array<Date> = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+    const otherIncident: ObjectID = new ObjectID(
+      "a1a00000-0000-4000-8000-000000000009",
+    );
+
+    const { rerender } = render(
+      <AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />,
+    );
+    await answer(0, held);
+    expect(screen.getByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeInTheDocument();
+
+    rerender(<AiHoldNotice subjectType="incident" subjectId={otherIncident} />);
+    await settle();
+
+    // Its own read is on its way: nothing is said meanwhile.
+    expect(reads).toHaveLength(2);
+    expect(reads[1]!.query).toEqual({
+      triggeredByIncidentId: otherIncident,
+      status: OnCallDutyPolicyStatus.Waiting,
+      aiHoldOutcome: OnCallPolicyAiHoldOutcome.Holding,
+    });
+    expect(screen.queryByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+
+    await answer(1, []);
+
+    expect(screen.queryByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeNull();
   });
 });

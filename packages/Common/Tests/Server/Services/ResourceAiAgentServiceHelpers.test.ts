@@ -1,5 +1,8 @@
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import CephClusterFeedService from "../../../Server/Services/CephClusterFeedService";
+import CloudAccountService from "../../../Server/Services/CloudAccountService";
+import CloudAccountFeedService from "../../../Server/Services/CloudAccountFeedService";
+import { CloudAccountFeedEventType } from "../../../Models/DatabaseModels/CloudAccountFeed";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
@@ -32,6 +35,8 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   MAX_POSTURE_STRING_LENGTH,
@@ -803,11 +808,16 @@ describe("ResourceAiAgentService.findAgentsForResources", () => {
 
 describe("the per-type resource bindings", () => {
   test("every resource type has one, bound to its own type", () => {
+    // The cloud accounts share one table and one feed: see below.
     expect(
       TYPE_FIXTURES.map((f: TypeFixture) => {
         return f.resourceType;
       }),
-    ).toEqual([...ALL_AI_RESOURCE_TYPES]);
+    ).toEqual(
+      ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+        return !isCloudAiResourceType(type);
+      }),
+    );
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
       const binding: ResourceAiAgentResourceBinding =
@@ -818,6 +828,72 @@ describe("the per-type resource bindings", () => {
         ResourceAiAgentServiceClass.getResourceBinding(type).resourceType,
       ).toBe(type);
     }
+  });
+
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s reads its cloud's account, never creates one, and posts to the account's feed as an update",
+    async (type: AiResourceType) => {
+      const binding: ResourceAiAgentResourceBinding =
+        getResourceAiAgentResourceBinding(type);
+
+      expect(binding.getService()).toBe(
+        CloudAccountService as unknown as AnyObject,
+      );
+      // Resolved by the account its cloud names (resolveCloudAccountId).
+      expect(binding.findOrCreateByIdentity).toBeNull();
+
+      /*
+       * What the agent did to the account's standing - connected, reset,
+       * its configuration changing what AI may do - is recorded where a
+       * person reads it, as for every other resource.
+       */
+      const spy: SpyCalls = jest
+        .spyOn(CloudAccountFeedService, "createCloudAccountFeedItem")
+        .mockResolvedValue(undefined as never) as unknown as SpyCalls;
+
+      await binding.writeFeedItem({
+        resourceId: RESOURCE_A,
+        projectId: PROJECT_ID,
+        feedInfoInMarkdown: "connected",
+        moreInformationInMarkdown: "more",
+        displayColor: Blue500,
+        userId: USER_ID,
+      });
+
+      expect(spy.mock.calls).toHaveLength(1);
+      expect(spy.mock.calls[0]![0]).toEqual({
+        cloudAccountId: RESOURCE_A,
+        projectId: PROJECT_ID,
+        cloudAccountFeedEventType:
+          CloudAccountFeedEventType.CloudAccountUpdated,
+        feedInfoInMarkdown: "connected",
+        moreInformationInMarkdown: "more",
+        displayColor: Blue500,
+        userId: USER_ID,
+      });
+    },
+  );
+
+  test("a cloud account's feed entry never fails what it describes", async () => {
+    /*
+     * The feed service swallows its own errors (a feed entry is a side
+     * effect of a registration or a reset that already happened); the
+     * binding adds nothing that could throw.
+     */
+    jest
+      .spyOn(CloudAccountFeedService, "create")
+      .mockRejectedValue(new Error("database down"));
+
+    await expect(
+      getResourceAiAgentResourceBinding(
+        AiResourceType.AwsAccount,
+      ).writeFeedItem({
+        resourceId: RESOURCE_A,
+        projectId: PROJECT_ID,
+        feedInfoInMarkdown: "reset",
+        displayColor: Blue500,
+      }),
+    ).resolves.toBeUndefined();
   });
 
   test.each(TYPE_FIXTURES)(
@@ -1110,5 +1186,65 @@ describe("identity helpers", () => {
         identifier: "postgresql|db:5432",
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * A feed item about what AI may do on a resource ends with how to change
+ * it. An agent a person runs is changed where it runs (its .env); a Cloud
+ * AI agent is started by its setup command, which the account's AI agent
+ * page writes again under Change - so its items send the reader there,
+ * never to variables on a container nobody edits by hand.
+ */
+describe("how a feed item says the agent's AI settings change", () => {
+  test("an agent a person runs: the two variables, where it runs", () => {
+    for (const type of ALL_AI_RESOURCE_TYPES.filter(
+      (candidate: AiResourceType): boolean => {
+        return !isCloudAiResourceType(candidate);
+      },
+    )) {
+      const noun: string = describeResourceInSentence(type);
+      const change: string =
+        ResourceAiAgentServiceClass.describeHowAgentAiSettingsChange({
+          resourceType: type,
+          noun,
+        });
+
+      expect(change).toBe(
+        `Change it with ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where the agent runs; the ${noun}'s AI agent page shows how.`,
+      );
+      expect(
+        ResourceAiAgentServiceClass.describeWhereAgentAiSettingsAreSet({
+          resourceType: type,
+          noun,
+        }),
+      ).toBe(
+        `Set with **ONEUPTIME_AI_INVESTIGATION** and **ONEUPTIME_AI_FIXES** where the agent runs. The ${noun}'s AI agent page shows them, with how to change them.`,
+      );
+    }
+  });
+
+  test("a Cloud AI agent: its setup command again, from Change on the account's AI agent page", () => {
+    for (const type of CLOUD_AI_RESOURCE_TYPES) {
+      const noun: string = describeResourceInSentence(type);
+      const change: string =
+        ResourceAiAgentServiceClass.describeHowAgentAiSettingsChange({
+          resourceType: type,
+          noun,
+        });
+      const where: string =
+        ResourceAiAgentServiceClass.describeWhereAgentAiSettingsAreSet({
+          resourceType: type,
+          noun,
+        });
+
+      expect(change).toBe(
+        `To change it, run the agent's setup command again with other choices: Change on the ${noun}'s AI agent page shows it.`,
+      );
+      expect(change).not.toContain("where the agent runs");
+      expect(where).toBe(
+        `Set by the agent's setup command, with **ONEUPTIME_AI_INVESTIGATION** and **ONEUPTIME_AI_FIXES**. To change them, run it again with other choices: Change on the ${noun}'s AI agent page shows it.`,
+      );
+    }
   });
 });

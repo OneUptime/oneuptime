@@ -65,7 +65,7 @@ flowchart TB
 
 設定を変えない限り、次の 4 つの接続が行われます。
 
-- アプリは 1 日に 1 回、新しいリリースが出ているかを GitHub の API (`api.github.com`) に問い合わせます。これを止めるには、Helm チャートでは `updateCheck.disabled: true` を、Docker Compose では `config.env` に `DISABLE_UPDATE_CHECK=true` を設定します。
+- アプリは 1 日に 1 回、新しいリリースが出ているかを GitHub の API (`api.github.com`) に問い合わせます。また、OneUptime が公開したセキュリティアドバイザリも読み取り、実行中のバージョンに影響するものがあればマスター管理者に知らせます ([アップデートとセキュリティの確認](/docs/self-hosted/update-checks))。これを止めるには、Helm チャートでは `updateCheck.disabled: true` を、Docker Compose では `config.env` に `DISABLE_UPDATE_CHECK=true` を設定します。
 - アプリは 1 日に 1 回、インストールのアドレスと実行中のバージョンを `oneuptime.com` に伝えます。セキュリティ上の問題があるリリースをまだ実行しているインストールを、OneUptime が把握するためです。ユーザー、プロジェクト、監視データについては何も送信されません。これを止めるには、Helm チャートでは `instanceCheckIn.disabled: true` を、Docker Compose では `config.env` に `DISABLE_INSTANCE_CHECK_IN=true` を設定します。
 - 「セキュリティパッチと新リリースについて通知する」にチェックを入れたまま (最初はチェックが入っています) サインアップすると、その人の名前とメールアドレス、入力した会社名と電話番号、そしてインストールのアドレスとバージョンが `oneuptime.com` に送られます。インターネットに接続できないネットワークでは、チェックを外してください。
 - Kubernetes では、プローブはクラスター自身の DNS の次に、公開リゾルバーの `8.8.8.8` と `1.1.1.1` を使います。すべての名前解決を自分の DNS にとどめるには、`dnsConfig.nameservers` を `[]` に設定します。

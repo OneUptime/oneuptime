@@ -12,6 +12,8 @@ import DatabaseServerService from "../../../Server/Services/DatabaseServerServic
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
 import HostService from "../../../Server/Services/HostService";
+import CloudAccountService from "../../../Server/Services/CloudAccountService";
+import { getCloudCatalogProvider } from "../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
@@ -296,6 +298,31 @@ const KINDS: Array<Kind> = [
     editPermission: Permission.EditHost,
     subjectRelation: "hosts",
     sentenceName: "host",
+  },
+  // The three clouds read one table, each its own cloud's rows.
+  {
+    resourceType: AiResourceType.AwsAccount,
+    service: CloudAccountService,
+    readPermission: Permission.ReadCloudResource,
+    editPermission: Permission.EditCloudResource,
+    subjectRelation: "cloudResources",
+    sentenceName: "AWS account",
+  },
+  {
+    resourceType: AiResourceType.AzureSubscription,
+    service: CloudAccountService,
+    readPermission: Permission.ReadCloudResource,
+    editPermission: Permission.EditCloudResource,
+    subjectRelation: "cloudResources",
+    sentenceName: "Azure subscription",
+  },
+  {
+    resourceType: AiResourceType.GoogleCloudProject,
+    service: CloudAccountService,
+    readPermission: Permission.ReadCloudResource,
+    editPermission: Permission.EditCloudResource,
+    subjectRelation: "cloudResources",
+    sentenceName: "Google Cloud project",
   },
 ];
 
@@ -788,9 +815,16 @@ describe("ResourceAiAccessAPI", () => {
 
         // No other type's table was read.
         for (const other of KINDS) {
-          if (other.resourceType !== kind.resourceType) {
+          if (other.service !== kind.service) {
             expect(findSpies.get(other.resourceType)).not.toHaveBeenCalled();
           }
+        }
+
+        // A cloud's account is read among its own cloud's rows only.
+        if (kind.service === CloudAccountService) {
+          expect(args.query["provider"]).toBe(
+            getCloudCatalogProvider(kind.resourceType),
+          );
         }
 
         const statusCall: Record<string, unknown> = statusSpy.mock
@@ -939,7 +973,7 @@ describe("ResourceAiAccessAPI", () => {
       );
 
       expect((result.thrownToNext as Error).message).toBe(
-        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host.",
+        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, AwsAccount, AzureSubscription, GoogleCloudProject.",
       );
     });
   });
@@ -2559,6 +2593,65 @@ describe("ResourceAiAccessAPI", () => {
       }
     });
 
+    test("fixes: names who approved one, by name or by email without one, and nobody for the rest", async () => {
+      // A Name or an Email column value, as the model holds it.
+      const textOf: (text: string) => { toString: () => string } = (
+        text: string,
+      ): { toString: () => string } => {
+        return {
+          toString: (): string => {
+            return text;
+          },
+        };
+      };
+      const named: ObjectID = ObjectID.generate();
+      const emailOnly: ObjectID = ObjectID.generate();
+      const unapproved: ObjectID = ObjectID.generate();
+
+      suggestionFind.mockImplementation(async () => {
+        return [
+          suggestion(named, 3, {
+            status: "Approved",
+            approvedAt: new Date("2026-09-01T00:00:00.000Z"),
+            approvedByUser: {
+              name: textOf("Maya Chen"),
+              email: textOf("maya@example.com"),
+            },
+          }),
+          suggestion(emailOnly, 2, {
+            status: "Approved",
+            approvedByUser: { email: textOf("sam@example.com") },
+          }),
+          suggestion(unapproved, 1),
+        ];
+      });
+
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
+
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
+      const nameOf: (id: ObjectID) => string | undefined = (
+        id: ObjectID,
+      ): string | undefined => {
+        return logs.fixes.find((fix: { id: string }) => {
+          return fix.id === id.toString();
+        })?.approvedByName;
+      };
+
+      expect(nameOf(named)).toBe("Maya Chen");
+      expect(nameOf(emailOnly)).toBe("sam@example.com");
+      expect(nameOf(unapproved)).toBeUndefined();
+
+      // The root read names the approver, and reads nothing else of theirs.
+      const rootSelect: Record<string, unknown> = (
+        suggestionFind.mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(rootSelect["approvedByUser"]).toEqual({
+        _id: true,
+        name: true,
+        email: true,
+      });
+    });
+
     test("counts commands of the last 30 days by kind, leaving the connection tests out", async () => {
       countSpy.mockImplementation(async (args: unknown) => {
         const query: Record<string, unknown> = (
@@ -3063,6 +3156,9 @@ describe("ResourceAiAccessAPI", () => {
       [AiResourceType.CephCluster]: "ceph.cluster.name",
       [AiResourceType.DatabaseServer]: "oneuptime.database.server.id",
       [AiResourceType.Host]: "host.name",
+      [AiResourceType.AwsAccount]: "cloud.account.id",
+      [AiResourceType.AzureSubscription]: "cloud.account.id",
+      [AiResourceType.GoogleCloudProject]: "cloud.account.id",
     };
 
     const INSIGHTS: AiActivityInsights = {
@@ -3176,7 +3272,7 @@ describe("ResourceAiAccessAPI", () => {
       expect(String(lookup.query["projectId"])).toBe(PROJECT_ID.toString());
       expect(lookup.props.isRoot).toBeFalsy();
       for (const other of KINDS) {
-        if (other.resourceType !== kind.resourceType) {
+        if (other.service !== kind.service) {
           expect(findSpies.get(other.resourceType)).not.toHaveBeenCalled();
         }
       }

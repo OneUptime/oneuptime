@@ -181,6 +181,12 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "Cloud Asset Viewer",
     "Logs Viewer",
     "Service Health Viewer",
+    /*
+     * The Azure role the content level of the connection's Data security
+     * field grants. The field and its levels are Dashboard labels, drawn as
+     * each language's Dashboard draws them.
+     */
+    "Storage Blob Data Reader",
   ],
   [CLOUD_RESOURCES]: [
     "Monitoring Reader",

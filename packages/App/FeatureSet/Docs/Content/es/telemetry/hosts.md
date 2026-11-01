@@ -32,7 +32,7 @@ Cada host ejecuta una configuración, elegida en este orden:
 | La primera de las **Configuraciones del recolector** que se le aplica | Una configuración se aplica cuando es para el sistema del host y, si nombra etiquetas, el host tiene alguna de ellas. |
 | La predeterminada de OneUptime para su sistema | No se aplica ninguna configuración. |
 
-La predeterminada de OneUptime lee CPU, memoria, discos, sistemas de archivos, red y procesos en cualquier sistema; el journal y las unidades de systemd en Linux, donde el host los tiene; los registros de eventos System, Application y Security y los servicios de Windows en Windows; y los logs de instalación y de Wi-Fi de `/var/log` en macOS. Sigue las versiones de OneUptime, así que un host con la predeterminada recibe las mejoras que OneUptime le haga.
+La predeterminada de OneUptime lee CPU, memoria, discos, sistemas de archivos, red y procesos en cualquier sistema; el journal y las unidades de systemd en Linux, donde el host los tiene; los registros de eventos System, Application y Security y los servicios de Windows en Windows; y los logs de instalación y de Wi-Fi de `/var/log` en macOS. Deja fuera los sistemas de archivos que están llenos por diseño, como los paquetes snap y el `/dev` de macOS, para que nunca mantengan disparada la plantilla High Filesystem Usage. Sigue las versiones de OneUptime, así que un host con la predeterminada recibe las mejoras que OneUptime le haga.
 
 ## Antes de empezar
 

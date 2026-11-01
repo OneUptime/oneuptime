@@ -4,14 +4,14 @@ Un monitor de Proxmox vigila un clúster de Proxmox VE – sus nodos, VM y conte
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-proxmox): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Once alertas listas para usar, un incidente por nodo, invitado o volumen.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Doce alertas listas para usar, un incidente por nodo, invitado o volumen.
 - [Identidad de los recursos](#identidad-de-los-recursos): Cómo apuntar a un solo nodo, invitado o volumen de almacenamiento.
 - [Métricas](#métricas-recopiladas): Cada serie `pve_*` sobre la que el monitor puede alertar.
 :::
 
 ## Cómo funciona
 
-El agente de Proxmox de OneUptime se ejecuta en una máquina que puede llegar a la API de Proxmox VE. Cada 30 segundos consulta prometheus-pve-exporter con los recopiladores de clúster y de nodo, etiqueta cada serie con el recurso que describe y envía las métricas a OneUptime por OTLP, marcadas con el nombre del clúster, `proxmox.cluster.name`. Los primeros datos registran el clúster. Proxmox VE 9 y posteriores pueden, en cambio, enviar las métricas de forma nativa, sin instalar nada; consulte [el envío nativo](#el-envío-nativo-de-proxmox-ve).
+El agente de Proxmox de OneUptime se ejecuta en una máquina que puede llegar a la API de Proxmox VE. Cada 30 segundos consulta los recopiladores de clúster de prometheus-pve-exporter una vez y sus recopiladores de nodo una vez por cada nodo, etiqueta cada serie con el recurso que describe y envía las métricas a OneUptime por OTLP, marcadas con el nombre del clúster, `proxmox.cluster.name`. Los primeros datos registran el clúster. Proxmox VE 9 y posteriores pueden, en cambio, enviar las métricas de forma nativa, sin instalar nada; consulte [el envío nativo](#el-envío-nativo-de-proxmox-ve).
 
 Un monitor de Proxmox está vinculado a un clúster. Cada minuto ejecuta su consulta sobre las métricas de ese clúster y compara el resultado con sus criterios.
 
@@ -109,12 +109,13 @@ Filtre por `pve.scope` o `pve.type` para un tipo de recurso, por `pve.id` o `id`
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece 11 plantillas. Cada una crea un monitor completo: consultas, filtros de atributos, una agrupación, un criterio que se dispara y otro que se recupera. La mayoría agrupan por `id`, así que cada nodo, invitado, volumen o trabajo recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
+**Quick Setup** ofrece 12 plantillas. Cada una crea un monitor completo: consultas, filtros de atributos, una agrupación, un criterio que se dispara y otro que se recupera. La mayoría agrupan por `id`, así que cada nodo, invitado, volumen o trabajo recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga lo contrario. Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y un criterio de umbral se recupera un 10 % más allá de su umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `pve_up`, Count sobre todo el clúster, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | Node Offline | Crítico | `pve_up` para `pve.scope = node`, Min por `id` | Por debajo de 1 | En 1 |
 | Guest Down | Advertencia | `pve_up` y `pve_onboot_status` para `pve.scope = guest`, Min por `id` | `pve_up` está por debajo de 1 mientras `pve_onboot_status` es 1 | `pve_up` vuelve a 1, o se desactiva el inicio al arrancar |
 | Cluster Quorum at Risk | Crítico | `pve_up` ÷ `pve_node_info` × 100 para `pve.scope = node` (ambos Suma): la proporción de nodos en línea | 50 % o menos | Por encima del 55 % |
@@ -129,6 +130,7 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga lo contrario.
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
 
+- **Cluster Stopped Reporting** se dispara cuando no llega nada del clúster durante diez minutos: el agente de Proxmox o su pve-exporter se detuvo, perdió su conexión con OneUptime o le revocaron el token, la API de Proxmox dejó de responderle, o todos los nodos de un envío nativo se quedaron en silencio. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **Las plantillas de caída usan Mínimo**, así que una sola consulta en la que el recurso estaba caído las dispara en lugar de quedar oculta por las consultas en las que funcionaba.
 - **Guest Down** solo mira los invitados configurados para iniciarse al arrancar, así que un invitado que detuvo a propósito nunca avisa a nadie.
 - **Cluster Quorum at Risk** es una aproximación: pve-exporter no tiene ninguna métrica de corosync, así que cuenta los nodos en línea.
@@ -146,7 +148,7 @@ Proxmox VE 9 y posteriores pueden enviar métricas mediante su servidor de métr
 
 ## Métricas recopiladas
 
-El agente consulta prometheus-pve-exporter cada 30 segundos con los recopiladores de clúster y de nodo, lo que también cubre los recopiladores `backup-info` y `replication` del exportador (ambos activados de forma predeterminada).
+El agente consulta prometheus-pve-exporter cada 30 segundos: sus recopiladores de clúster una vez, en `PVE_HOST`, y sus recopiladores de nodo una vez por cada nodo de `PVE_NODES`, porque solo leen el nodo al que pregunta el exportador. Los recopiladores de nodo son `config` (inicio en el arranque) y `replication`; los recopiladores `backup-info` (clúster) y `replication` del exportador están ambos activados de forma predeterminada.
 
 ### Disponibilidad
 
@@ -204,7 +206,7 @@ Proceden del recopilador `backup-info` del exportador, a nivel de clúster. Solo
 
 ### Replicación
 
-Proceden del recopilador `replication` del exportador, a nivel de nodo. Las series solo existen cuando el clúster tiene trabajos de replicación, y llevan el id del trabajo en `id`:
+Proceden del recopilador `replication` del exportador, a nivel de nodo, leído de cada nodo de `PVE_NODES`. Las series solo existen cuando el clúster tiene trabajos de replicación, y llevan el id del trabajo en `id`:
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
@@ -223,7 +225,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (cada valor debe coincidir, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. |
 | **Umbral** | El valor con el que comparar. Junto a él hay una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
@@ -239,11 +241,11 @@ Un monitor que no crea a partir de una plantilla empieza con dos criterios:
 
 | Orden | Criterio | Coincide cuando | Entonces |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Cualquier valor de la primera consulta es `0` | Marca el monitor como **Sin conexión** y declara el incidente «_monitor name_ is offline», que se resuelve solo cuando el monitor se recupera. |
-| 2 | Check if _monitor name_ is online | Cualquier valor está por encima de `0` | Marca el monitor como **Operativo**. |
+| 1 | Check if _monitor name_ is offline | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente «_monitor name_ is offline», que se resuelve solo cuando el monitor se recupera. |
+| 2 | Check if _monitor name_ is online | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
 
 > [!IMPORTANT]
-> El silencio no coincide con ninguno de los dos criterios: un clúster que deja de enviar datos deja el monitor como estaba. Para que se le avise cuando dejen de llegar datos, ponga **Si no hay datos** en **Disparador** en un criterio. El tiempo en que el propio OneUptime no estaba recibiendo nunca cuenta como falta de datos: una comprobación cuya ventana lo contiene espera en su lugar, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
+> Un valor de `0` son datos, así que una métrica que suele valer cero, como los reinicios o los errores, no deja el monitor fuera de línea. Para recibir alertas sobre un valor, empiece con una plantilla o añada un criterio con un umbral. Cuando no llega ningún dato y no se cumple ningún criterio, el monitor conserva su estado y los incidentes abiertos siguen abiertos: el silencio no es una recuperación. El tiempo en que OneUptime no recibía datos nunca cuenta como falta de datos: una comprobación cuya ventana lo incluye espera, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solución de problemas
 
@@ -264,7 +266,7 @@ Con el envío nativo de Proxmox VE, un nodo retirado del clúster parece igual q
 :::
 
 :::details Faltan las métricas de copia de seguridad o de replicación
-`pve_not_backed_up_*` procede del recopilador `backup-info` del exportador y `pve_replication_*` de su recopilador `replication`. Ambos están activados de forma predeterminada y cubiertos por los parámetros de consulta `cluster=1` y `node=1` de la configuración que se distribuye. Si ejecuta su propio exportador, compruebe que no los haya desactivado. `pve_replication_*` solo existe cuando el clúster tiene trabajos de replicación del almacenamiento.
+`pve_not_backed_up_*` procede del recopilador `backup-info` del exportador y `pve_replication_*` de su recopilador `replication`. Ambos están activados de forma predeterminada y cubiertos por la configuración que se distribuye: `cluster=1` una vez y `node=1` por cada nodo de `PVE_NODES`. Un nodo que falte en `PVE_NODES` no envía trabajos de replicación, ni sus invitados indicadores de inicio en el arranque, así que **Guest Down** nunca se activa para ellos. Si ejecuta su propio exportador, compruebe que no los haya desactivado. `pve_replication_*` solo existe cuando el clúster tiene trabajos de replicación del almacenamiento.
 :::
 
 :::details Los contadores como pve_network_receive_bytes solo crecen

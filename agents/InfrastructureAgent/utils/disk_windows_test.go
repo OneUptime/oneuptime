@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 )
 
 // disk_test.go stubs gopsutil so Windows' behaviour can be reproduced on Linux

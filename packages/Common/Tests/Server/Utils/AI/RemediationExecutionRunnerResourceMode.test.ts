@@ -61,6 +61,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../../Types/Date";
+import CloudChangeDryRun from "../../../../Server/Utils/AutoRemediation/CloudChangeDryRun";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -565,8 +566,15 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
   let suggestionFindBy: jest.SpyInstance;
   let enqueue: jest.SpyInstance;
   let project: jest.SpyInstance;
+  let startDryRun: jest.SpyInstance;
 
   beforeEach(() => {
+    // A proposal's cloud changes are dry-run in the background (CloudChangeDryRun).
+    startDryRun = jest
+      .spyOn(CloudChangeDryRun, "startForProposedPlan")
+      .mockImplementation((): void => {
+        return undefined;
+      });
     jest
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1 as never);
@@ -1064,6 +1072,18 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
     expect(markdowns[markdowns.length - 1]).toContain(
       "AI needs your approval for 1 change(s) it did not run on its own",
     );
+
+    // Once proposed, its changes are handed to the dry run, with the plan as stored.
+    expect(startDryRun).toHaveBeenCalledTimes(1);
+    const handed: {
+      suggestionId: ObjectID;
+      plan: AiRemediationCommandPlan;
+    } = startDryRun.mock.calls[0]![0] as {
+      suggestionId: ObjectID;
+      plan: AiRemediationCommandPlan;
+    };
+    expect(handed.suggestionId.toString()).toBe(SUGGESTION_ID.toString());
+    expect(handed.plan.commands[0]!.command).toBe("docker stop web");
   });
 
   it.each([

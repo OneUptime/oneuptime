@@ -4,18 +4,18 @@ OneUptime の Docker エージェントは、Docker ホスト上で実行する 
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): `docker run` または Docker Compose で 2 つのコンテナ。
-- [エージェントが収集するもの](#エージェントが収集するもの): すべてのコンテナのメトリクス、ログ、インベントリ。
+- [エージェントが収集するもの](#エージェントが収集するもの): すべてのコンテナのメトリクスとログ。
 - [コンテナのログには json-file が必要](#コンテナのログには-json-file-ログドライバーが必要): コンテナのログドライバーを確認して切り替えます。
 - [トラブルシューティング](#トラブルシューティング): 再起動の繰り返し、メトリクスやログが届かない場合。
 :::
 
 ## 仕組み
 
-エージェントは、OneUptime の設定を組み込んだ OpenTelemetry Collector です。Docker ソケットを通じて、30 秒ごとに各コンテナの統計を読み取り、5 分ごとにすべてのコンテナ、イメージ、ネットワーク、ボリュームを一覧します。コンテナのログファイルを追跡し、渡した取り込みキーを使って、すべてを OTLP で OneUptime の URL に送信します。
+エージェントは、OneUptime の設定を組み込んだ OpenTelemetry Collector です。Docker ソケットを通じて、30 秒ごとに各コンテナの統計を読み取ります。コンテナのログファイルを追跡し、渡した取り込みキーを使って、すべてを OTLP で OneUptime の URL に送信します。
 
 ```mermaid title="Docker ホスト上の 2 つのコンテナ"
 flowchart TB
-    containers["お使いのコンテナ"] -->|"統計、ログファイル、<br/>インベントリ"| agent["Docker エージェント"]
+    containers["お使いのコンテナ"] -->|"統計と<br/>ログファイル"| agent["Docker エージェント"]
     agent -->|"HTTPS 経由の OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"インシデントや<br/>アラートを調査"| ai["Docker AI エージェント"]
     ai -->|"読み取り専用の<br/>docker コマンド"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime でホストを見つける
 
-**製品 → インフラストラクチャ → Docker → すべてのホスト** を開きます。1 分ほどでホストが `DOCKER_HOST_NAME` の名前で、そのコンテナ、メトリクス、ログとともに表示されます。AI エージェントは、ホストの **AI エージェント** ページと、その **概要** の下部に接続済みとして表示されます。ホストの **トポロジー** ページは、Compose プロジェクト、コンテナー、イメージ、ネットワーク、ボリュームを 1 つのマップに描きます。[トポロジー](/docs/telemetry/topology#リソースごとのマップを開く) を参照してください。
+**製品 → インフラストラクチャ → Docker → すべてのホスト** を開きます。1 分ほどでホストが `DOCKER_HOST_NAME` の名前で、そのコンテナ、メトリクス、ログとともに表示されます。AI エージェントは、ホストの **AI エージェント** ページと、その **概要** の下部に接続済みとして表示されます。ホストの **トポロジー** ページは、Compose プロジェクトとコンテナーを 1 つのマップに描きます。[トポロジー](/docs/telemetry/topology#リソースごとのマップを開く) を参照してください。
 :::
 
 ## 環境変数
@@ -139,7 +139,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | はい | OneUptime の URL。`https://oneuptime.com` やセルフホストのインスタンスなど。インスタンスが HTTP のみの場合は、`http://` とそのポートを使います。 |
 | `ONEUPTIME_SERVICE_TOKEN` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
 | `DOCKER_HOST_NAME` | いいえ | OneUptime でのホストの名前。既定は `docker-host` なので、ホストごとに固有の名前を付けてください。 |
-| `DOCKER_API_VERSION` | いいえ | エージェントが使う Docker Engine API のバージョン。既定は `1.44` です。古いデーモンでは下げるか、空の値にしてデーモンとネゴシエートさせます ([トラブルシューティング](#トラブルシューティング) を参照)。 |
+| `DOCKER_API_VERSION` | いいえ | エージェントが使う Docker Engine API のバージョン。既定は空で、エージェントがデーモンとネゴシエートするため、20.10 以降のすべての Docker Engine で動作します。バージョンを固定する場合にのみ設定します ([トラブルシューティング](#トラブルシューティング) を参照)。 |
 
 値を変更するには、エージェントを削除してコマンドを再実行する (Docker CLI) か、`docker-compose.yml` を編集して `docker compose up -d` を実行します (Docker Compose)。
 
@@ -149,7 +149,6 @@ Everything is ready. Begin running and processing data.
 | --- | --- |
 | コンテナのメトリクス | コンテナごとに 30 秒ごと: CPU (使用量、割合、スロットリング)、メモリ (使用量、上限、割合)、ネットワークとブロック I/O、稼働時間、再起動回数、プロセス数。 |
 | コンテナのログ | すべてのコンテナの stdout と stderr。その `json-file` ログファイルから読み取ります。 |
-| インベントリ | あらゆる状態のすべてのコンテナと、すべてのイメージ、ネットワーク、ボリューム。5 分ごと。 |
 
 各コンテナのメトリクスとログは、そのコンテナの名前を付けたサービスの下に記録されます。各ログ行の重大度は、`[ERROR]`、`level=warn`、`{"level":"info"}` のように行に書かれたレベルから決まります。レベルのない行はストリームの重大度になり、stderr は `ERROR`、stdout は `INFO` です。空白や閉じ括弧で始まる行は前の行に連結されるため、スタックトレースは 1 つのレコードとして届きます。エージェント自身のログは除外されます。
 
@@ -254,19 +253,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-デーモンは自身の上限より新しいクライアントを拒否するため、レシーバーが起動せず、Collector もそれとともに終了します。デーモンの上限を確認します:
+デーモンは自身の上限より新しいクライアントを拒否するため、レシーバーが起動せず、Collector もそれとともに終了します。`DOCKER_API_VERSION` でバージョンを指定しない限り、エージェントはデーモンとバージョンをネゴシエートします (`HEAD /_ping` を 1 回送り、デーモン自身の上限を使います)。ただし、古いエージェントイメージは `1.44` に固定しており、Docker Engine 20.10 から 24 はこれを拒否します。[エージェントをアップグレード](#エージェントのアップグレード)して、`-e DOCKER_API_VERSION` なしで起動してください (または Compose から `DOCKER_API_VERSION` を外します)。
+
+それでもバージョンを固定する場合は、デーモンの上限を超えない値を使います:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
 その後、`docker run` に `-e DOCKER_API_VERSION=1.41` (または確認した値) を追加するか、Compose で `DOCKER_API_VERSION` を設定します。新しいデーモンも古い API バージョンに応答するため、この設定はアップグレード後も有効です。
-
-番号を調べたくない場合は、`DOCKER_API_VERSION` を空文字列に設定します。するとエージェントがデーモンとバージョンをネゴシエートする (`HEAD /_ping` を 1 回送り、デーモン自身の上限を使う) ため、古いデーモンでも新しいデーモンでも動作します:
-
-```bash
-docker run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Docker ソケットへのアクセスが拒否される

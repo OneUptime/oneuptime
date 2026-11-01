@@ -153,6 +153,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
     all: translationKey("All storage arrays"),
     matching: translationKey("Only storage arrays that match conditions"),
   },
+  [RuleCriteriaSubject.DataStores]: {
+    all: translationKey("All data stores"),
+    matching: translationKey("Only data stores that match conditions"),
+  },
 };
 
 /*

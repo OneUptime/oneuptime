@@ -1,8 +1,11 @@
 import {
+  COMPARED_RUN_ROUNDS,
+  ComparedRuns,
   FASTEST_RUN_ATTEMPTS,
   FastestRun,
   fastestRun,
   fastestRunAsync,
+  fastestRunsCompared,
   MAX_SLOWDOWN,
   measureSlowdown,
   REFERENCE_WORK_USUAL_MS,
@@ -412,5 +415,206 @@ describe("fastestRunAsync", () => {
       }),
     ).rejects.toThrow("rejected");
     expect(runs).toBe(1);
+  });
+});
+
+/*
+ * fastestRunsCompared, two versions of the same work timed against each
+ * other: one untimed run of each, then rounds of one attempt each, the order
+ * switched every round, so a stall slows both sides of the rounds it lands
+ * in and the rounds it misses decide.
+ */
+describe("fastestRunsCompared", () => {
+  test("one untimed run of each, then the two take turns, the order switched every round", () => {
+    const order: Array<string> = [];
+    let clockReads: number = 0;
+
+    fastestRunsCompared({
+      first: (): string => {
+        order.push("first");
+        return "first";
+      },
+      second: (): string => {
+        order.push("second");
+        return "second";
+      },
+      rounds: 3,
+      now: (): number => {
+        clockReads++;
+        return clockReads;
+      },
+    });
+
+    expect(order).toEqual([
+      "first",
+      "second",
+      "first",
+      "second",
+      "second",
+      "first",
+      "first",
+      "second",
+    ]);
+    // Two readings a timed attempt; the untimed runs read no clock.
+    expect(clockReads).toBe(12);
+  });
+
+  test("each side's fastest attempt counts, with what it returned, out of one attempt a round", () => {
+    let firstRuns: number = 0;
+    let secondRuns: number = 0;
+
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
+        firstRuns++;
+        return firstRuns;
+      },
+      second: (): number => {
+        secondRuns++;
+        return secondRuns * 10;
+      },
+      rounds: 3,
+      // Round 1: first 50, second 20; round 2: second 5, first 40; round 3: first 30, second 20.
+      now: scriptedClock([0, 50, 50, 70, 70, 75, 75, 115, 115, 145, 145, 165]),
+    });
+
+    // The first side's fastest is round 3's: its fourth run, the untimed one included.
+    expect(runs.first.inMs).toBe(30);
+    expect(runs.first.measuredInMs).toBe(30);
+    expect(runs.first.result).toBe(4);
+    expect(runs.first.attempts).toBe(3);
+    expect(runs.first.slowdown).toBe(1);
+    // The second side's is round 2's: its third run.
+    expect(runs.second.inMs).toBe(5);
+    expect(runs.second.result).toBe(30);
+    expect(runs.second.attempts).toBe(3);
+  });
+
+  test("the number of rounds can be given: at least one, a whole number", () => {
+    const runsOf: (rounds: number | undefined) => number = (
+      rounds: number | undefined,
+    ): number => {
+      let runs: number = 0;
+
+      fastestRunsCompared({
+        first: (): null => {
+          runs++;
+          return null;
+        },
+        second: (): null => {
+          return null;
+        },
+        rounds: rounds,
+      });
+
+      return runs;
+    };
+
+    // Every count includes the untimed run.
+    expect(runsOf(0)).toBe(2);
+    expect(runsOf(2.7)).toBe(3);
+    expect(runsOf(undefined)).toBe(COMPARED_RUN_ROUNDS + 1);
+  });
+
+  test("a side that throws stops the timing", () => {
+    expect(() => {
+      fastestRunsCompared({
+        first: (): null => {
+          return null;
+        },
+        second: (): null => {
+          throw new Error("broken");
+        },
+      });
+    }).toThrow("broken");
+  });
+
+  test("REGRESSION: a stall that outlasts one side's attempts hides a ratio when the sides are timed one after the other, never when they take turns", () => {
+    /*
+     * 14.0.99's gate (#5429): QueryPropertyNames' patched read is four times
+     * faster than TypeORM's, but its attempts, all timed after TypeORM's,
+     * ran 5.5 times slower than usual, and it read 1.56 times faster. A
+     * virtual clock: TypeORM's read takes 13 ms and the patched one 3, and
+     * a run that starts within the stall takes 5.5 times as long.
+     */
+    const timeline: (
+      stallFromMs: number,
+      stallUntilMs: number,
+    ) => {
+      now: () => number;
+      typeOrm: () => number;
+      patched: () => number;
+    } = (
+      stallFromMs: number,
+      stallUntilMs: number,
+    ): {
+      now: () => number;
+      typeOrm: () => number;
+      patched: () => number;
+    } => {
+      let time: number = 0;
+      const work: (usualMs: number) => () => number = (
+        usualMs: number,
+      ): (() => number) => {
+        return (): number => {
+          const stalled: boolean = time >= stallFromMs && time < stallUntilMs;
+          time += stalled ? usualMs * 5.5 : usualMs;
+          return usualMs;
+        };
+      };
+
+      return {
+        now: (): number => {
+          return time;
+        },
+        typeOrm: work(13),
+        patched: work(3),
+      };
+    };
+
+    // One after the other, as two fastestRun calls time them: the stall starts with the patched read's attempts.
+    const sequential: ReturnType<typeof timeline> = timeline(39, 100);
+    const typeOrmAlone: FastestRun<number> = fastestRun({
+      run: sequential.typeOrm,
+      limitInMs: 0,
+      now: sequential.now,
+    });
+    const patchedAlone: FastestRun<number> = fastestRun({
+      run: sequential.patched,
+      limitInMs: 0,
+      now: sequential.now,
+    });
+    expect(typeOrmAlone.inMs).toBe(13);
+    expect(patchedAlone.inMs).toBe(16.5);
+    expect(patchedAlone.inMs * 2).toBeGreaterThan(typeOrmAlone.inMs);
+
+    // Taking turns, through the same stall: the rounds it misses decide.
+    const turns: ReturnType<typeof timeline> = timeline(39, 100);
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: turns.typeOrm,
+      second: turns.patched,
+      now: turns.now,
+    });
+    expect(runs.first.inMs).toBe(13);
+    expect(runs.second.inMs).toBe(3);
+    expect(runs.second.inMs * 2).toBeLessThan(runs.first.inMs);
+  });
+
+  test("without a clock, real work is timed with performance.now, each side returning its own result", () => {
+    const runs: ComparedRuns<number, string> = fastestRunsCompared({
+      first: (): number => {
+        return referenceWork();
+      },
+      second: (): string => {
+        return "done";
+      },
+      rounds: 2,
+    });
+
+    expect(runs.first.result).toBe(referenceWork());
+    expect(runs.second.result).toBe("done");
+    expect(runs.first.inMs).toBeGreaterThan(0);
+    expect(runs.second.inMs).toBeGreaterThanOrEqual(0);
+    expect(runs.first.attempts).toBe(2);
+    expect(runs.second.attempts).toBe(2);
   });
 });

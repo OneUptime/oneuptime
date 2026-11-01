@@ -178,7 +178,22 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日誌中尋找安全性事件
 
-**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 登入、sudo 命令、Kubernetes 稽核記錄、AWS CloudTrail 變更和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
+**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 或 Windows 登入、sudo 命令、雲端稽核記錄、安全性產品的 CEF 或 LEEF 記錄、Kubernetes 稽核記錄和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
+
+每一類都以一般日誌的形式到達 OneUptime：
+
+| 類型 | 從哪裡傳送 |
+| --- | --- |
+| SSH 登入、sudo | Linux 機器的 journal 或驗證日誌，使用 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 傳送 |
+| Windows 事件 | 機器上收集器的 `windowseventlog` 接收器，或把每個事件寫成 JSON 的轉送程式，例如 NXLog 或 Winlogbeat |
+| AWS CloudTrail | 傳遞到 CloudWatch Logs 的追蹤，由收集器的 `awscloudwatch` 接收器讀取 |
+| Google Cloud 稽核日誌 | 指向 Pub/Sub 的日誌接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 讀取 |
+| Azure 活動與 Entra ID 日誌 | 串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取 |
+| CEF、LEEF | 產品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
+| Kubernetes 稽核日誌 | API 伺服器的稽核日誌檔案，由收集器的 `filelog` 接收器讀取 |
+| Web 攻擊 | Web 伺服器的存取日誌，由收集器的 `filelog` 接收器讀取 |
+
+在 **你的日誌** 上，每一類都會顯示上次找到它的時間，**檢查一行日誌** 則會在任何日誌到達之前，顯示你貼上的一行會變成什麼。
 
 ### 連線安全性產品
 
@@ -194,6 +209,8 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Elastic Security | 偵測警示，作為 Detection Finding | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding，作為 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登入、MFA、帳戶和原則事件 | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | 登入和目錄變更，以及 Microsoft 365 稽核日誌中的郵件轉寄、共用和網路釣魚判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | 登入、Google 自身的偵測、管理員變更和應用程式授權，以及雲端硬碟中的共用 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 產品本身的警示，只要等級達到或高於 **Open Cases From**（預設為 **高及以上**，你也可以選擇其他等級或 **從未**），就會開啟 [案件](/docs/telemetry/security-cases)，並依它們涉及的使用者、主機或位址分組。
 - 連線依產品建立記錄的時間讀取記錄，而不是依記錄所描述活動的時間。每小時執行一次的 SIEM 規則會在它符合的事件之後很久才建立偵測，這些偵測仍然會被匯入。

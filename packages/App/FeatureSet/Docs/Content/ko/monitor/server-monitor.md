@@ -99,7 +99,7 @@ winget 없이 설치하려면 에이전트를 직접 내려받습니다.
 Intune, Configuration Manager 또는 그룹 정책으로 에이전트를 배포하려면 같은 릴리스의 `oneuptime-infrastructure-agent-amd64.msi`(또는 `oneuptime-infrastructure-agent-arm64.msi`)를 사용합니다. 에이전트는 `C:\Program Files\OneUptimeInfrastructureAgent`에 설치되며, 새 MSI는 그 자리에서 업그레이드하고 에이전트를 다시 시작합니다. 이전 릴리스의 MSI는 업그레이드할 수 없으므로 먼저 한 번 제거하세요.
 :::
 
-어느 방법이든 사용 중인 운영 체제와 프로세서(x86-64 또는 ARM64)에 맞는 최신 릴리스를 설치합니다. apt와 yum 저장소에는 각 GitHub 릴리스에 첨부된 `.deb`와 `.rpm` 패키지가 `https://packages.oneuptime.com/gpg.key`의 키로 서명되어 있고, 패키지는 바이너리를 `/usr/bin`에 둡니다. 설치 스크립트는 `oneuptime-infrastructure-agent` 바이너리를 `$HOME/bin`에 둡니다. 자체 호스팅에서는 스크립트가 사용자의 OneUptime URL에서 제공됩니다.
+어느 방법이든 사용 중인 운영 체제와 프로세서(x86-64 또는 ARM64)에 맞는 최신 릴리스를 설치합니다. apt와 yum 저장소에는 각 GitHub 릴리스에 첨부된 `.deb`와 `.rpm` 패키지가 `https://packages.oneuptime.com/gpg.key`의 키로 서명되어 있고, 패키지는 바이너리를 `/usr/bin`에 둡니다. `sudo`로 실행하면 설치 스크립트는 `oneuptime-infrastructure-agent` 바이너리를 `/usr/local/bin`에 두고(`sudo` 없이 실행하면 `$HOME/bin`), `curl` 또는 `wget`으로 내려받습니다. 자체 호스팅에서는 스크립트가 사용자의 OneUptime URL에서 제공됩니다.
 
 ### 모니터에 연결
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-에이전트는 시작할 때 OneUptime에서 비밀 키를 확인하고 바로 첫 보고서를 보냅니다.
+에이전트는 시작할 때 OneUptime에서 비밀 키를 확인하고 바로 첫 보고서를 보냅니다. OneUptime에 연결할 수 없는 동안에는 계속 다시 시도합니다. 5초 뒤에 다시 시도하고, 그다음부터는 매번 두 배씩 간격을 늘려 최대 5분마다 시도합니다.
 
 ### 보고되는지 확인
 
@@ -165,7 +165,7 @@ oneuptime-infrastructure-agent start
 | `uninstall` | 서비스를 제거하고 에이전트의 구성 파일을 삭제합니다. |
 | `help` | 명령 목록을 보여 줍니다. |
 
-Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령 프롬프트** 에서 실행합니다. 구성된 에이전트의 비밀 키, URL, 프록시를 바꾸려면 `stop`과 `uninstall`을 실행한 뒤 `configure`와 `start`를 다시 실행합니다.
+Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령 프롬프트** 에서 실행합니다. 구성된 에이전트의 비밀 키, URL, 프록시를 바꾸려면 `stop`과 `uninstall`을 실행한 뒤 `configure`와 `start`를 다시 실행합니다. 각 명령은 무엇을 했는지, 또는 왜 실패했는지 출력하고 같은 내용을 에이전트 로그에도 기록합니다. 장애로 서비스가 멈추면 서비스 관리자가 서비스를 다시 시작하며, Linux와 Windows에서는 2분 뒤에 다시 시작합니다. 이전 에이전트의 `configure`로 설정한 Windows 서비스는 `uninstall`과 `configure`를 다시 실행해야 다시 시작됩니다.
 
 ### 파일
 
@@ -199,15 +199,15 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 
 | 영역 | 보고되는 내용 |
 | --- | --- |
-| CPU | 사용률(%), 코어 수, 코어별 사용률, user, system, idle, I/O 대기, steal, nice, IRQ, soft IRQ에 쓴 시간 |
+| CPU | 사용률(%), 코어 수, 코어별 사용률, user, system, idle, I/O 대기, steal, nice, IRQ, soft IRQ에 쓴 시간(이전 보고서 이후) |
 | 메모리 | 전체, 사용 중, 여유, 사용 가능 메모리, 버퍼와 캐시, 사용률(%), 그리고 스왑의 전체, 사용 중, 여유, 사용률(%) |
-| 디스크 | 마운트된 각 디스크의 마운트 경로, 장치, 파일 시스템, 전체·사용 중·여유 공간, 사용률(%), 읽고 쓴 바이트와 작업 수, I/O 시간 |
+| 디스크 | 읽기 전용 이미지(snap, ISO)와 `/dev`를 제외한 마운트된 각 디스크의 마운트 경로, 장치, 파일 시스템, 전체·사용 중·여유 공간, `df`와 같은 방식으로 센 사용률(%), 읽고 쓴 바이트와 작업 수, I/O 시간 |
 | 부하 | 1분, 5분, 15분 부하 평균 |
 | 네트워크 | 각 인터페이스의 송수신 바이트와 패킷, 들어오고 나가는 오류와 드롭, 그리고 연결된 연결과 대기 중인 연결 |
 | 호스트 | 운영 체제, 플랫폼과 버전, 커널 버전과 아키텍처, 가동 시간, 부팅 시각, 가상화, 프로세스 수 |
-| 프로세스 | 실행 중인 각 프로세스의 이름, PID, 명령, CPU(%), 메모리, 상태, 스레드, 사용자, 시작 시각 |
+| 프로세스 | 실행 중인 각 프로세스의 이름, PID, 명령, CPU(%), 메모리, 상태, 스레드, 사용자, 시작 시각. 보호된 Windows 프로세스처럼 명령줄을 읽을 수 없는 프로세스는 명령 없이 보고됩니다 |
 
-운영 체제가 제공하지 않는 값은 생략됩니다. 모니터의 **메트릭** 탭은 가용성, CPU, 메모리, 디스크 사용량과 디스크 I/O, 부하 평균, 스왑, 네트워크 트래픽과 오류, 연결, 가동 시간, 프로세스 수를 차트로 보여 줍니다.
+운영 체제가 제공하지 않는 값은 생략되며, 보고서에 없는 값에 대한 조건은 충족되지 않습니다. 빠진 값은 0이 아닙니다. 모니터의 **메트릭** 탭은 가용성, CPU, 메모리, 디스크 사용량과 디스크 I/O, 부하 평균, 스왑, 네트워크 트래픽과 오류, 연결, 가동 시간, 프로세스 수를 차트로 보여 줍니다.
 
 ## 모니터링 기준
 
@@ -228,7 +228,7 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 | Server Process Command | 정확히 이 명령줄의 프로세스가 실행 중인지(대소문자 구분 없음) | Is Executing, Is Not Executing |
 | Server Process PID | 이 PID의 프로세스가 실행 중인지 | Is Executing, Is Not Executing |
 
-**디스크 경로** 에는 `/`, `/mnt/data`, `C:\`, `/dev/sda1` 같은 마운트 지점이나 장치를 넣습니다. 비워 두면 `/`입니다. `*`를 입력하면 에이전트가 보고하는 모든 디스크를 확인합니다. 임계값을 넘는 디스크마다 따로 알림이 생기므로, 두 번째 디스크가 차더라도 첫 번째 디스크의 열린 알림 뒤에 가려지지 않습니다.
+**디스크 경로** 에는 `/`, `/mnt/data`, `C:\`, `/dev/sda1` 같은 마운트 지점이나 장치를 넣습니다. 비워 두면 `/`입니다. `*`를 입력하면 에이전트가 보고하는 모든 디스크를 확인합니다. 임계값을 넘는 디스크마다 따로 알림이 생기므로, 두 번째 디스크가 차더라도 첫 번째 디스크의 열린 알림 뒤에 가려지지 않습니다. 대소문자와 끝에 붙은 `/` 또는 `\`는 상관없으며, 장치는 그 장치에서 마운트된 디스크를 뜻합니다. 에이전트가 보고하는 어떤 디스크도 가리키지 않는 경로는 일치하지 않습니다. 에이전트가 서버의 프로세스를 읽지 못하면 보고서에 프로세스 목록이 없으며, 프로세스가 실행 중인지 확인하는 필터든 실행 중이 아닌지 확인하는 필터든 어떤 프로세스 필터도 일치하지 않습니다.
 
 ### 일정 기간에 걸쳐 평가
 
@@ -262,16 +262,16 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 
 :::details 에이전트가 보고하지 않음
 - 서비스가 실행 중인지 확인합니다: `sudo oneuptime-infrastructure-agent status`.
-- 로그를 읽습니다: `sudo oneuptime-infrastructure-agent logs -n 50`. `Metrics successfully pushed to OneUptime server` 줄이 있으면 보고서가 전달되고 있는 것입니다.
-- 에이전트는 시작할 때 비밀 키를 확인하고, OneUptime이 거부하면 `Secret key is invalid`를 로그에 남기고 종료합니다. 키를 모니터의 **설정** 페이지에 있는 **서버 모니터 비밀 키 재설정** 의 키와 비교하세요.
+- 로그를 읽습니다: `sudo oneuptime-infrastructure-agent logs -n 50`. `Metrics successfully pushed to OneUptime server` 줄은 OneUptime이 보고서를 받았다는 뜻일 뿐, 받아들였다는 뜻은 아닙니다. OneUptime은 비밀 키를 확인하기 전에 응답하기 때문입니다. 보고서가 받아들여졌는지는 모니터의 **메트릭** 탭에 서버 차트가 그려지는지로 알 수 있습니다.
+- 에이전트는 시작할 때 비밀 키를 확인하고, OneUptime이 거부하면 `Secret key is invalid`를 로그에 남기고 종료합니다. 키를 모니터의 **설정** 페이지에 있는 **서버 모니터 비밀 키 재설정** 의 키와 비교하세요. OneUptime에 연결할 수 없는 동안에는 에이전트가 `The secret key could not be verified with OneUptime yet`를 로그에 남기고 다시 시도합니다.
 - 서버가 HTTPS로 OneUptime URL에 닿을 수 있는지, 방화벽이 나가는 연결을 막지 않는지 확인합니다.
 :::
 
 :::details `sudo`가 명령을 찾을 수 없다고 함
-패키지는 에이전트를 시스템 경로에 두므로, 이 문제는 설치 스크립트를 사용한 경우에만 생깁니다. 설치 스크립트는 실행한 사용자의 `$HOME/bin`에 바이너리를 두고, 사용한 디렉터리를 출력합니다. `sudo /root/bin/oneuptime-infrastructure-agent configure ...`처럼 전체 경로로 에이전트를 실행하세요. 대신 시스템 경로에 있는 디렉터리에 설치하려면 스크립트에 `-b`를 넘깁니다.
+패키지는 에이전트를 모든 경로에 있는 `/usr/bin`에 둡니다. `sudo`로 실행하면 설치 스크립트는 에이전트를 `/usr/local/bin`에 두는데, RHEL 같은 일부 시스템은 이 디렉터리를 sudo 경로에 넣지 않습니다. 이런 시스템에서는 스크립트가 `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`처럼 에이전트의 전체 경로로 명령을 출력합니다. 예전 스크립트는 에이전트를 `$HOME/bin`, 즉 `sudo`에서는 `/root/bin`에 두었습니다. 그때 설치한 에이전트는 이 전체 경로로 실행하거나 다시 설치하세요. 대신 시스템 경로에 있는 디렉터리에 설치하려면 스크립트에 `-b`를 넘깁니다.
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 

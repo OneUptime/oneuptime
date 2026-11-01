@@ -34,6 +34,11 @@ export const DOCKER_SWARM_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
 // Kubernetes.
 export const KUBERNETES_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
+    category: "Availability",
+    label: "Availability",
+    icon: IconProp.Heartbeat,
+  },
+  {
     category: "Workload",
     label: "Workload",
     icon: IconProp.Cube,
@@ -118,6 +123,11 @@ export const PROXMOX_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
 // VMware.
 export const VMWARE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
+    category: "Availability",
+    label: "Availability",
+    icon: IconProp.Heartbeat,
+  },
+  {
     category: "Host",
     label: "ESXi Host",
     icon: IconProp.ServerStack,
@@ -152,6 +162,11 @@ export const VMWARE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
 // Ceph.
 export const CEPH_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
+    category: "Availability",
+    label: "Availability",
+    icon: IconProp.Heartbeat,
+  },
+  {
     category: "Cluster Health",
     label: "Cluster Health",
     icon: IconProp.Activity,
@@ -175,6 +190,11 @@ export const CEPH_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
 
 // Storage Array.
 export const STORAGE_ARRAY_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
+  {
+    category: "Availability",
+    label: "Availability",
+    icon: IconProp.Heartbeat,
+  },
   {
     category: "Array Health",
     label: "Array Health",

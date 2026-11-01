@@ -27,6 +27,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -171,6 +172,62 @@ describe("ResourceAiAccessService.buildStatus", () => {
     expect(status.agent?.agentId).toBe(AGENT_ID.toString());
     expect(status.agent?.isOnline).toBe(true);
     expect(status.agent?.posture?.allowWrites).toBe(true);
+  });
+
+  /*
+   * The project's "Fix new incidents automatically" and "Fix new alerts
+   * automatically": a resource whose fixes are on fixes nothing new while
+   * both are off - the default - so the status carries them for its page,
+   * as a cluster's does. Never a gap: a fix started by hand still runs.
+   */
+  it("carries the project's automatic fixing switches, never as a gap", () => {
+    for (const [incidents, alerts] of [
+      [false, false],
+      [true, false],
+      [false, true],
+      [true, true],
+    ] as Array<[boolean, boolean]>) {
+      const status: ResourceAiAccessStatus = build(row(), agentRow(), {
+        ...READY_GATES,
+        automaticRemediation: { incidents, alerts },
+      });
+
+      expect(status.automaticRemediation).toEqual({ incidents, alerts });
+      expect(status.gaps).toEqual([]);
+      expect(status.isRemediationReady).toBe(true);
+    }
+  });
+
+  it("carries the switches for a cloud account too, whose fixes are its Cloud AI agent's", () => {
+    const status: ResourceAiAccessStatus = build(
+      row({
+        resourceType: AiResourceType.AwsAccount,
+        identifier: "123456789012",
+        hasCloudConnection: true,
+      }),
+      agentRow(
+        { resourceType: AiResourceType.AwsAccount },
+        {
+          resourceType: AiResourceType.AwsAccount,
+          resourceIdentifier: "123456789012",
+        },
+      ),
+      {
+        ...READY_GATES,
+        automaticRemediation: { incidents: false, alerts: false },
+      },
+    );
+
+    expect(status.automaticRemediation).toEqual({
+      incidents: false,
+      alerts: false,
+    });
+  });
+
+  it("leaves the switches out when the project's settings were not read", () => {
+    const status: ResourceAiAccessStatus = build(row(), agentRow());
+
+    expect(status).not.toHaveProperty("automaticRemediation");
   });
 
   it("never exposes the agent's key hash", () => {
@@ -435,6 +492,14 @@ describe("ResourceAiAccessService helpers", () => {
       const step: string = getResourceAiAgentInstallNextStep({
         resourceType: type,
       });
+
+      if (isCloudAiResourceType(type)) {
+        // A cloud agent is set up from the account's page, with one command.
+        expect(step).toContain('"Let AI fix problems"');
+        expect(step).toContain("Cloud AI agent");
+        expect(step).not.toContain("collector");
+        continue;
+      }
 
       expect(step).toContain("oneuptime/resource-ai-agent");
       expect(step).toContain("ONEUPTIME_AI_AGENT_RESOURCE_TYPE=");
@@ -932,6 +997,7 @@ describe("ResourceAiAccessService.getResourcesForSubject", () => {
     expect(relations.sort()).toEqual(
       [
         "cephClusters",
+        "cloudResources",
         "databaseServers",
         "dockerHosts",
         "dockerSwarmClusters",

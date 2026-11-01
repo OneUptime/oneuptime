@@ -10,8 +10,9 @@ import { SecurityEntityType } from "./SecurityEntity";
  * a host and an Okta sign-in from a new country are each worth a glance; the
  * same account in all three in a week is worth a case. So every finding -
  * a detection rule's match, a threat intel match, an alert a connected
- * security product raised - adds risk points to the entity it is about, and
- * the entity's risk score is what those points add up to over the last
+ * security product raised, an issue Data Security opened on a store - adds
+ * risk points to the entity it is about, and the entity's risk score is
+ * what those points add up to over the last
  * ENTITY_RISK_WINDOW_IN_DAYS days. When it reaches the project's threshold,
  * a case opens about the entity (or the open one about it takes the risk
  * in), naming everything that added to it. This is how the leading SIEMs
@@ -65,7 +66,10 @@ export const ENTITY_RISK_CASE_THRESHOLD_MIN: number = 10;
 export const ENTITY_RISK_CASE_THRESHOLD_MAX: number = 10000;
 
 /*
- * The kinds of entity that carry risk: who acted and where. A domain, a URL
+ * The kinds of entity that carry risk: who acted and where - and the data
+ * it was done to. A bucket made public, a snapshot shared and a Critical
+ * Data Security issue on the same store within a week are worth a case
+ * about the store, as three findings about one account are. A domain, a URL
  * or a file hash is what threat intel already says is bad; a process name is
  * the same on every machine. Neither is somebody to investigate.
  */
@@ -73,6 +77,7 @@ export const RISK_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
   SecurityEntityType.User,
   SecurityEntityType.Host,
   SecurityEntityType.IpAddress,
+  SecurityEntityType.DataStore,
 ];
 
 /*
@@ -159,14 +164,17 @@ export const SECURITY_ENTITY_CRITICALITY_WEIGHTS: Readonly<
 export const SECURITY_ENTITY_CRITICALITY_VALUE_MAX_LENGTH: number = 500;
 
 /*
- * What can add risk: the three detection sources. A person opening a case
- * judged it already, and a case risk opened adds nothing back to the risk
- * that opened it.
+ * What can add risk: the detection sources - the project's rules, threat
+ * intel, connected products, and Data Security, whose issue on a store is a
+ * finding about the store (each check a source of its own). A person
+ * opening a case judged it already, and a case risk opened adds nothing
+ * back to the risk that opened it.
  */
 export const RISK_DETECTION_SOURCES: ReadonlyArray<SecurityDetectionSource> = [
   SecurityDetectionSource.DetectionRule,
   SecurityDetectionSource.ThreatIntel,
   SecurityDetectionSource.ConnectedProduct,
+  SecurityDetectionSource.DataSecurity,
 ];
 
 /*
@@ -175,7 +183,10 @@ export const RISK_DETECTION_SOURCES: ReadonlyArray<SecurityDetectionSource> = [
  * Stored in a JSON column of the entity's risk row, so times are ISO text.
  */
 export interface SecurityEntityRiskContribution {
-  // rule:<id>, intel:<feed id> or connection:<id>:<the product's rule>.
+  /*
+   * rule:<id>, intel:<feed id>, connection:<id>:<the product's rule> or
+   * data-security:<the check>.
+   */
   sourceKey: string;
   source: SecurityDetectionSource;
   // The rule, the feed, or the product's rule (and product), as named when it fired.

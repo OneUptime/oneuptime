@@ -53,6 +53,8 @@ export enum RuleRunType {
   CloudResourceOwnerRule = "CloudResourceOwnerRule",
   DashboardLabelRule = "DashboardLabelRule",
   DashboardOwnerRule = "DashboardOwnerRule",
+  DataStoreLabelRule = "DataStoreLabelRule",
+  DataStoreOwnerRule = "DataStoreOwnerRule",
   DatabaseServerLabelRule = "DatabaseServerLabelRule",
   DatabaseServerOwnerRule = "DatabaseServerOwnerRule",
   DockerHostLabelRule = "DockerHostLabelRule",
@@ -177,6 +179,16 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
   ),
   [RuleRunType.DashboardLabelRule]: metadata(Labels, "dashboard", "dashboards"),
   [RuleRunType.DashboardOwnerRule]: metadata(Owners, "dashboard", "dashboards"),
+  [RuleRunType.DataStoreLabelRule]: metadata(
+    Labels,
+    "data store",
+    "data stores",
+  ),
+  [RuleRunType.DataStoreOwnerRule]: metadata(
+    Owners,
+    "data store",
+    "data stores",
+  ),
   [RuleRunType.DatabaseServerLabelRule]: metadata(
     Labels,
     "database",

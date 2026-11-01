@@ -181,9 +181,10 @@ describe("the conditions builder in every dashboard language", () => {
     expect(BUILDER_STRINGS).toContain("Match all");
     expect(BUILDER_STRINGS).toContain("Is in");
     expect(BUILDER_STRINGS).toContain("Applies to");
-    expect(APPLIES_TO_STRINGS).toHaveLength(64);
+    expect(APPLIES_TO_STRINGS).toHaveLength(66);
     expect(BUILDER_STRINGS).toContain("All incidents");
     expect(BUILDER_STRINGS).toContain("Only incidents that match conditions");
+    expect(BUILDER_STRINGS).toContain("Only data stores that match conditions");
     expect(WRITTEN_CRITERIA_NAMES.length).toBeGreaterThan(80);
     expect(WRITTEN_CRITERIA_NAMES).toContain("Incident Title");
     expect(WRITTEN_CRITERIA_NAMES).toContain("Kubernetes Cluster Name");

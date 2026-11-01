@@ -12,8 +12,12 @@ import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
-import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../../Types/ObjectID";
+import { evaluateTemplateCriteria } from "./Utils/TemplateCriteriaEvaluation";
 
 /*
  * Podman containers emit the same OTel container.* metrics as Docker, so the
@@ -35,9 +39,29 @@ interface PodmanTemplateCase {
   offlineFilterType: FilterType;
   onlineFilterType: FilterType;
   threshold: number;
+  /*
+   * Query/formula shape. A single-metric threshold template has exactly one
+   * query and no formula, which is the default; the restart loop
+   * differences a lifetime counter and pins its own counts.
+   */
+  queryCount?: number;
+  formulaCount?: number;
 }
 
 const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
+  {
+    id: "podman-host-stopped-reporting",
+    category: "Availability",
+    severity: "Critical",
+    // The agent's own container reports it every 30s; see the template.
+    metricName: "container.memory.percent",
+    metricAlias: "samples_received",
+    aggregation: MetricsAggregationType.Count,
+    rollingTime: RollingTime.Past10Minutes,
+    offlineFilterType: FilterType.LessThan,
+    onlineFilterType: FilterType.GreaterThanOrEqualTo,
+    threshold: 0,
+  },
   {
     id: "podman-high-cpu",
     category: "Resource",
@@ -66,13 +90,17 @@ const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
     id: "podman-restart-loop",
     category: "Container",
     severity: "Critical",
+    // queryConfigs[0] is the Max half of the per-minute delta pair.
     metricName: "container.restarts",
+    // The criteria compare the FORMULA: the restart count's growth.
     metricAlias: "container_restarts",
     aggregation: MetricsAggregationType.Max,
-    rollingTime: RollingTime.Past5Minutes,
+    rollingTime: RollingTime.Past15Minutes,
+    queryCount: 2,
+    formulaCount: 1,
     offlineFilterType: FilterType.GreaterThan,
     onlineFilterType: FilterType.LessThanOrEqualTo,
-    threshold: 5,
+    threshold: 3,
   },
   {
     id: "podman-high-pids",
@@ -84,7 +112,11 @@ const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
     rollingTime: RollingTime.Past5Minutes,
     offlineFilterType: FilterType.GreaterThan,
     onlineFilterType: FilterType.LessThanOrEqualTo,
-    threshold: 500,
+    /*
+     * 2000, as Docker's: the cgroup pids controller counts threads too, so
+     * 500 was ordinary for a JVM or a Go binary.
+     */
+    threshold: 2000,
   },
   {
     id: "podman-container-down",
@@ -159,6 +191,7 @@ describe("PodmanAlertTemplates", () => {
   test("getPodmanAlertTemplatesByCategory partitions the catalog by category", () => {
     const all: Array<PodmanAlertTemplate> = getAllPodmanAlertTemplates();
     const categories: Array<PodmanAlertTemplateCategory> = [
+      "Availability",
       "Container",
       "Resource",
       "Host",
@@ -200,8 +233,10 @@ describe("PodmanAlertTemplates", () => {
 
       const queryConfigs: Array<any> = monitor.metricViewConfig
         .queryConfigs as Array<any>;
-      expect(queryConfigs).toHaveLength(1);
-      expect(monitor.metricViewConfig.formulaConfigs).toHaveLength(0);
+      expect(queryConfigs).toHaveLength(tc.queryCount ?? 1);
+      expect(monitor.metricViewConfig.formulaConfigs).toHaveLength(
+        tc.formulaCount ?? 0,
+      );
 
       const filterData: any = queryConfigs[0].metricQueryData.filterData;
       expect(filterData.metricName).toBe(tc.metricName);
@@ -346,31 +381,70 @@ describe("PodmanAlertTemplates", () => {
     );
   });
 
-  test("cumulative-counter templates do not claim windowed semantics", () => {
+  test("the restart loop counts restarts in the window, not the lifetime total", async () => {
     /*
-     * container.restarts is a running total kept by the container engine and
-     * nothing in the alerting path converts it to a delta, so copy promising
-     * a per-window count describes behaviour the query does not implement.
-     * The criteria description is what the on-call engineer reads in the
-     * Evaluation Logs, so the correction has to live there, not just in the
-     * template's own name.
+     * Regression: container.restarts is the engine's lifetime RestartCount,
+     * and this template thresholded it ("> 5"): any container with six
+     * restarts in its history fired at once, and could never recover - a
+     * counter that only grows never comes back under its threshold. It now
+     * sums the counter's per-minute growth, the house delta Docker uses.
      */
     const step: MonitorStep = getPodmanAlertTemplateById(
       "podman-restart-loop",
     )!.getMonitorStep(buildArgs());
+    const monitor: MonitorStepPodmanMonitor = getPodmanMonitor(step);
     const offline: any = (
       step.data?.monitorCriteria.data
         ?.monitorCriteriaInstanceArray as Array<any>
     )[0];
 
-    expect(offline.data.description).toMatch(/running total|cumulative/i);
-    expect(offline.data.description).not.toMatch(/in the monitoring window/i);
-    expect(offline.data.incidents[0].description).toMatch(
-      /running total|cumulative/i,
-    );
     expect(
-      getPodmanAlertTemplateById("podman-restart-loop")!.description,
-    ).not.toMatch(/crash loop/i);
+      (monitor.metricViewConfig.queryConfigs as Array<any>).map((q: any) => {
+        return q.metricQueryData.filterData.aggegationType;
+      }),
+    ).toEqual([MetricsAggregationType.Max, MetricsAggregationType.Min]);
+    expect(
+      (monitor.metricViewConfig.formulaConfigs as Array<any>)[0]
+        .metricFormulaData.metricFormula,
+    ).toBe("container_restarts_max - container_restarts_min");
+    expect(
+      offline.data.filters[0].metricMonitorOptions.metricAggregationType,
+    ).toBe(EvaluateOverTimeType.Sum);
+
+    // A long-lived container with 40 restarts in its history, all old.
+    expect(
+      await evaluateTemplateCriteria({
+        step,
+        viewConfig: monitor.metricViewConfig,
+        samplesByAlias: {
+          container_restarts_max: Array(15).fill(40),
+          container_restarts_min: Array(15).fill(40),
+        },
+        windowMinutes: 15,
+      }),
+    ).toEqual({ breached: false, healthy: true });
+
+    // A container crash-looping now: four restarts seen in the window.
+    expect(
+      await evaluateTemplateCriteria({
+        step,
+        viewConfig: monitor.metricViewConfig,
+        samplesByAlias: {
+          container_restarts_max: [2, 3, 3, 4, 5, 5, 6],
+          container_restarts_min: [2, 2, 3, 3, 4, 5, 5],
+        },
+        windowMinutes: 15,
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("the process-count template counts threads too, and says so", () => {
+    const template: PodmanAlertTemplate =
+      getPodmanAlertTemplateById("podman-high-pids")!;
+    const copy: string = `${template.summary} ${template.description}`;
+
+    expect(copy).toContain("threads");
+    expect(copy).toContain("2000");
   });
 
   test("percentage gauges use the aggregation their catalog entry declares", () => {

@@ -30,6 +30,11 @@ export interface ComponentProps {
   // English, translated here like a Pill's text.
   text: string;
   indicator: InvestigationStatusIndicator;
+  /*
+   * English, the pill's name for screen readers. The AI card's two steps
+   * each have one ("Investigation status", "Remediation status").
+   */
+  ariaLabel?: string | undefined;
 }
 
 const ICON_CLASS_NAME: string = "h-3.5 w-3.5 flex-shrink-0";
@@ -93,17 +98,17 @@ export function renderInvestigationStatusIndicator(
 }
 
 /*
- * The neutral pill itself, shared with the Remediation card's status
- * (AutoRemediation/RemediationDecisionStatusBadge), which sits on the same
- * page and should read the same way.
+ * The neutral pill itself: each step of the AI card draws one
+ * (AiCardStep), so the investigation's and the remediation's read the same
+ * way.
  */
 export const STATUS_BADGE_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
 
 /*
- * The AI Investigation card's status, in the card header in every state.
- * Every state gets the same neutral pill; only the small mark in front of
- * the words carries colour. The card used to change the whole pill's colour
+ * A step's status on the AI card, beside the step's title in every state
+ * (AiCardStep). Every state gets the same neutral pill; only the small mark
+ * in front of the words carries colour. The card used to change the whole pill's colour
  * with the state (green, indigo, red, amber), which added one more tinted
  * shape to a card that already had several.
  *
@@ -116,7 +121,9 @@ const InvestigationStatusBadge: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      aria-label={translator.translateText("Investigation status")}
+      aria-label={translator.translateText(
+        props.ariaLabel || "Investigation status",
+      )}
       data-indicator={props.indicator}
       className={STATUS_BADGE_CLASS_NAME}
     >

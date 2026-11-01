@@ -215,6 +215,8 @@ interface SeriesSpec {
   datapointAttributes?: JSONObject | undefined;
   queryValues: Array<Array<number>>;
   formulaValues?: Array<number> | undefined;
+  // The values of the step's second, third ... formula, in order.
+  moreFormulaValues?: Array<Array<number>> | undefined;
 }
 
 function row(input: {
@@ -278,19 +280,21 @@ function workerResponse(input: {
       );
 
       const formulaResults: Array<AggregatedResult> = hasFormula
-        ? [
-            {
-              data: (spec.formulaValues || []).map(
-                (value: number, minute: number): AggregateModel => {
-                  return row({
-                    timestamp: MINUTES[minute]!,
-                    value: value,
-                    attributes: { ...spec.labels },
-                  });
-                },
-              ),
+        ? [spec.formulaValues || [], ...(spec.moreFormulaValues || [])].map(
+            (values: Array<number>): AggregatedResult => {
+              return {
+                data: values.map(
+                  (value: number, minute: number): AggregateModel => {
+                    return row({
+                      timestamp: MINUTES[minute]!,
+                      value: value,
+                      attributes: { ...spec.labels },
+                    });
+                  },
+                ),
+              };
             },
-          ]
+          )
         : [];
 
       return {
@@ -399,6 +403,35 @@ function ratioSeries(input: {
     formulaValues: numerator.map((value: number, minute: number): number => {
       return input.percentOf(value, denominator[minute]!);
     }),
+  };
+}
+
+/*
+ * An HPA's current, max and min replicas per minute: the saturation
+ * formula (current / max, in %) and the "scaled above its minimum" formula
+ * (current - min) the template's second filter reads.
+ */
+function hpaSeries(input: {
+  labels: JSONObject;
+  current: number | Array<number>;
+  max: number;
+  min: number;
+}): SeriesSpec {
+  const current: Array<number> = perMinute(input.current);
+  const max: Array<number> = perMinute(input.max);
+  const min: Array<number> = perMinute(input.min);
+
+  return {
+    labels: input.labels,
+    queryValues: [current, max, min],
+    formulaValues: current.map((value: number, minute: number): number => {
+      return plainRatio(value, max[minute]!);
+    }),
+    moreFormulaValues: [
+      current.map((value: number, minute: number): number => {
+        return value - min[minute]!;
+      }),
+    ],
   };
 }
 
@@ -727,36 +760,46 @@ const RATIO_TEMPLATE_CASES: Array<RatioTemplateCase> = [
     legend: "HPA Replica Saturation (%)",
     expression: "(current_replicas / max_replicas) * 100",
     series: [
-      ratioSeries({
+      hpaSeries({
         labels: { [NAMESPACE_KEY]: "search", [HPA_KEY]: "search-api" },
-        numerator: 9,
-        denominator: 10,
-        percentOf: plainRatio,
+        current: 9,
+        max: 10,
+        min: 2,
       }),
-      ratioSeries({
+      hpaSeries({
         labels: { [NAMESPACE_KEY]: "batch", [HPA_KEY]: "worker" },
-        numerator: 5,
-        denominator: 20,
-        percentOf: plainRatio,
+        current: 5,
+        max: 20,
+        min: 1,
       }),
-      ratioSeries({
+      hpaSeries({
         labels: { [NAMESPACE_KEY]: "checkout", [HPA_KEY]: "checkout-api" },
-        numerator: 10,
-        denominator: 10,
-        percentOf: plainRatio,
+        current: 10,
+        max: 10,
+        min: 3,
       }),
       // At the ceiling for one sample only.
-      ratioSeries({
+      hpaSeries({
         labels: { [NAMESPACE_KEY]: "reports", [HPA_KEY]: "reports-api" },
-        numerator: [5, 5, 20, 5, 5],
-        denominator: 20,
-        percentOf: plainRatio,
+        current: [5, 5, 20, 5, 5],
+        max: 20,
+        min: 2,
       }),
-      ratioSeries({
+      hpaSeries({
         labels: { [NAMESPACE_KEY]: "orders", [HPA_KEY]: "orders-api" },
-        numerator: 19,
-        denominator: 20,
-        percentOf: plainRatio,
+        current: 19,
+        max: 20,
+        min: 4,
+      }),
+      /*
+       * Pinned at its maximum because its minimum is the maximum: nothing
+       * scaled it up, so it is not saturated (it used to fire forever).
+       */
+      hpaSeries({
+        labels: { [NAMESPACE_KEY]: "billing", [HPA_KEY]: "billing-api" },
+        current: 6,
+        max: 6,
+        min: 6,
       }),
     ],
     expectedEntries: [
@@ -764,7 +807,7 @@ const RATIO_TEMPLATE_CASES: Array<RatioTemplateCase> = [
       "2. **HorizontalPodAutoscaler** `orders-api` — **95.00%**\n   - Namespace: `orders`",
       "3. **HorizontalPodAutoscaler** `search-api` — **90.00%**\n   - Namespace: `search`",
     ],
-    notListed: ["`worker`", "reports-api"],
+    notListed: ["`worker`", "reports-api", "billing-api"],
     analysis: [
       "HPA Replica Saturation (%) (`(current_replicas / max_replicas) * 100`) has breached the configured threshold.",
       "Most affected HorizontalPodAutoscaler: `checkout-api` (**100.00%**)",
@@ -828,11 +871,16 @@ for (const testCase of RATIO_TEMPLATE_CASES) {
       const queries: Array<MetricQueryConfigData> =
         viewConfigOf(step).queryConfigs;
 
-      const componentLines: Array<string> = queries.map(
-        (query: MetricQueryConfigData): string => {
+      // The operands of the formula the criteria compared, in query order.
+      const componentLines: Array<string> = queries
+        .filter((query: MetricQueryConfigData): boolean => {
+          return testCase.expression.includes(
+            query.metricAliasData?.metricVariable || "\u0000",
+          );
+        })
+        .map((query: MetricQueryConfigData): string => {
           return `  - \`${query.metricAliasData?.metricVariable}\` = ${describedMetric(metricNameOf(query))}`;
-        },
-      );
+        });
 
       expect(rootCause).toContain(
         [
@@ -874,8 +922,35 @@ for (const testCase of RATIO_TEMPLATE_CASES) {
  */
 
 describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
+  /*
+   * The template reads three queries per container - the restart count's
+   * per-minute Maximum and Minimum, and the container's readiness - and
+   * fires on the restarts' growth in the window while the container was
+   * ready for less than half of it. It used to read the lifetime restart
+   * count (Max > 5), so a long-lived pod past six restarts paged at once and
+   * stayed open until the pod was replaced.
+   */
+  function crashLoopSeries(input: {
+    labels: JSONObject;
+    datapointAttributes: JSONObject;
+    restartsMax: Array<number>;
+    restartsMin: Array<number>;
+    ready: Array<number>;
+  }): SeriesSpec {
+    return {
+      labels: input.labels,
+      datapointAttributes: input.datapointAttributes,
+      queryValues: [input.restartsMax, input.restartsMin, input.ready],
+      formulaValues: input.restartsMax.map(
+        (value: number, minute: number): number => {
+          return value - input.restartsMin[minute]!;
+        },
+      ),
+    };
+  }
+
   const series: Array<SeriesSpec> = [
-    {
+    crashLoopSeries({
       labels: {
         [NAMESPACE_KEY]: "search",
         [POD_KEY]: "search-5c4b-abc",
@@ -885,9 +960,11 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
         [DEPLOYMENT_KEY]: "search",
         [NODE_KEY]: "gke-node-2",
       },
-      queryValues: [[6, 6, 6, 6, 6]],
-    },
-    {
+      restartsMax: [6, 7, 7, 8, 8],
+      restartsMin: [6, 6, 7, 7, 8],
+      ready: [0, 0, 0, 0, 0],
+    }),
+    crashLoopSeries({
       labels: {
         [NAMESPACE_KEY]: "payments",
         [POD_KEY]: "checkout-7d9f-2xk",
@@ -897,9 +974,27 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
         [DEPLOYMENT_KEY]: "checkout",
         [NODE_KEY]: "gke-node-1",
       },
-      queryValues: [[6, 6, 7, 7, 7]],
-    },
-    {
+      restartsMax: [6, 7, 8, 9, 10],
+      restartsMin: [6, 6, 7, 8, 9],
+      ready: [0, 0, 1, 0, 0],
+    }),
+    // Restarted once, then ready: not a crash loop.
+    crashLoopSeries({
+      labels: {
+        [NAMESPACE_KEY]: "payments",
+        [POD_KEY]: "web-12ab-c3d",
+        [CONTAINER_KEY]: "web",
+      },
+      datapointAttributes: {
+        [DEPLOYMENT_KEY]: "web",
+        [NODE_KEY]: "gke-node-1",
+      },
+      restartsMax: [3, 4, 4, 4, 4],
+      restartsMin: [3, 3, 4, 4, 4],
+      ready: [1, 1, 1, 1, 1],
+    }),
+    // Restarted 40 times in its life, none of them now.
+    crashLoopSeries({
       labels: {
         [NAMESPACE_KEY]: "payments",
         [POD_KEY]: "ledger-66f8-q9z",
@@ -909,11 +1004,13 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
         [DEPLOYMENT_KEY]: "ledger",
         [NODE_KEY]: "gke-node-3",
       },
-      queryValues: [[0, 0, 0, 0, 0]],
-    },
+      restartsMax: [40, 40, 40, 40, 40],
+      restartsMin: [40, 40, 40, 40, 40],
+      ready: [1, 1, 1, 1, 1],
+    }),
   ];
 
-  test("titles each container with its pod and borrows namespace, deployment and node from the datapoint", async () => {
+  test("lists the crash-looping containers with their pod, namespace, deployment and node", async () => {
     const rootCause: string = await evaluateFiring({
       step: templateStep("k8s-crashloopbackoff"),
       series: series,
@@ -921,44 +1018,30 @@ describe("Kubernetes grouped template k8s-crashloopbackoff", () => {
     const section: string = affectedResourcesSection(rootCause);
 
     expect(section).toContain("**Affected Resources** (2 total)");
-    expect(entryHeads(section)).toEqual([
-      "1. **Container** `api` in pod `checkout-7d9f-2xk` — **7**",
-      "2. **Container** `indexer` in pod `search-5c4b-abc` — **6**",
-    ]);
+    expect(entryHeads(section).length).toBe(2);
+    expect(section).toContain("**Container** `api` in pod `checkout-7d9f-2xk`");
     expect(section).toContain(
-      [
-        "1. **Container** `api` in pod `checkout-7d9f-2xk` — **7**",
-        "   - Namespace: `payments`",
-        "   - Deployment: `checkout`",
-        "   - Node: `gke-node-1`",
-      ].join("\n"),
+      "**Container** `indexer` in pod `search-5c4b-abc`",
     );
-    expect(section).toContain(
-      [
-        "2. **Container** `indexer` in pod `search-5c4b-abc` — **6**",
-        "   - Namespace: `search`",
-        "   - Deployment: `search`",
-        "   - Node: `gke-node-2`",
-      ].join("\n"),
-    );
+    expect(section).toContain("   - Deployment: `checkout`");
+    expect(section).toContain("   - Node: `gke-node-1`");
+    expect(section).toContain("   - Namespace: `search`");
 
-    // The healthy container is not "affected".
+    // A container that restarted once and stayed ready, or restarted long ago, is not affected.
+    expect(section).not.toContain("`web`");
     expect(section).not.toContain("ledger");
   });
 
-  test("names the metric and says how many times the worst container restarted", async () => {
+  test("names the restarts' growth it compared, and never the lifetime count", async () => {
     const rootCause: string = await evaluateFiring({
       step: templateStep("k8s-crashloopbackoff"),
       series: series,
     });
 
     expect(rootCause).toContain(
-      `- Metric: ${describedMetric("k8s.container.restarts")}`,
+      "- Formula: `container_restarts_max - container_restarts_min`",
     );
-    expect(rootCause).not.toContain("- Formula:");
-    expect(rootCause).toContain(
-      "The container `api` in pod `checkout-7d9f-2xk` has restarted **7** times.",
-    );
+    expect(rootCause).not.toContain("**40**");
     expect(rootCause).not.toMatch(LONG_RAW_NUMBER);
   });
 });

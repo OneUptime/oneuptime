@@ -31,11 +31,16 @@ import IncidentService from "../../../Services/IncidentService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import OnCallDutyPolicyExecutionLogService from "../../../Services/OnCallDutyPolicyExecutionLogService";
-import ProjectService from "../../../Services/ProjectService";
+import ProjectService, { CurrentPlan } from "../../../Services/ProjectService";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../../Logger";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
+import { getAllEnvVars, IsBillingEnabled } from "../../../EnvironmentConfig";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../../Types/Billing/SubscriptionPlan";
+import { canReadPlanGatedTableBelowPlan } from "../../../../Types/Billing/PlanGatedTable";
 
 /*
  * MAY ONEUPTIME AI RESPOND FIRST TO THIS RECORD?
@@ -52,6 +57,11 @@ import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
  *   - other alerts and incidents opened in the project just before it, enough
  *     to look like an outage (AI_HOLD_OUTAGE_RECORD_COUNT within
  *     AI_HOLD_OUTAGE_WINDOW_IN_MINUTES) - every page AI holds starts then too;
+ *   - the project's plan is below the one its on-call runs need: a held page
+ *     is a run (OnCallDutyPolicyExecutionLog, a Growth table), and below its
+ *     plan nobody could read it - no "OneUptime AI is on it", no Page now,
+ *     no execution log - so the page would wait where nobody can see it or
+ *     end it (getAiHoldPlanShortfall; never so where billing is off);
  *   - OneUptime AI may not investigate it: AI is off, automatic investigation
  *     of the record's kind is off, no LLM provider, no AI credits, or the
  *     project's daily AI limit (AIInvestigationEngine.getDisabledReason);
@@ -76,6 +86,12 @@ export interface AiHoldFacts {
   isHighestSeverity: boolean;
   // Other alerts and incidents opened in the project within the outage window.
   otherRecordsOpenedRecently: number;
+  /*
+   * The plan the project needs for a held page to be seen (the on-call
+   * runs' read plan), when its own plan is below it; null when it is not
+   * (or billing is off).
+   */
+  planNeededToHold: PlanType | null;
   investigationNotStartedCode: InvestigationNotStartedCode | null;
   isAutomaticFixingOn: boolean;
   hasMonitor: boolean;
@@ -94,6 +110,11 @@ export interface AiHoldDecision {
 
 export const AI_HOLD_CHECK_FAILED_REASON: string =
   "OneUptime AI could not check whether it may respond first.";
+
+// Why a project below the runs' plan pages right away, in the feed's words.
+export function getAiHoldPlanReason(plan: PlanType): string {
+  return `OneUptime AI responds first on the ${plan} plan and above.`;
+}
 
 // Why the investigation would not start, in the words the feed says.
 export function getInvestigationNotStartedWords(
@@ -145,6 +166,13 @@ export function decideAiHold(facts: AiHoldFacts): AiHoldDecision {
       canHold: false,
       reason: `${facts.otherRecordsOpenedRecently} other alerts and incidents opened within ${AI_HOLD_OUTAGE_WINDOW_IN_MINUTES} minutes, which looks like an outage.`,
       isOutage: true,
+    };
+  }
+
+  if (facts.planNeededToHold) {
+    return {
+      canHold: false,
+      reason: getAiHoldPlanReason(facts.planNeededToHold),
     };
   }
 
@@ -288,6 +316,7 @@ export default class AiFirstResponderEligibility {
         projectId: data.projectId,
         incidentId: data.incidentId,
       }),
+      planNeededToHold: await this.getAiHoldPlanShortfall(data.projectId),
       investigationNotStartedCode:
         await AIInvestigationEngine.getDisabledReason(
           data.projectId,
@@ -351,6 +380,7 @@ export default class AiFirstResponderEligibility {
         projectId: data.projectId,
         alertId: data.alertId,
       }),
+      planNeededToHold: await this.getAiHoldPlanShortfall(data.projectId),
       investigationNotStartedCode:
         await AIInvestigationEngine.getDisabledReason(data.projectId, "Alert"),
       isAutomaticFixingOn: await this.isAutomaticFixingOn({
@@ -370,6 +400,46 @@ export default class AiFirstResponderEligibility {
           })
         : false,
     };
+  }
+
+  /*
+   * The plan a held page needs, when the project's is below it: a held page
+   * is an on-call run, read by the AI card's notice and Page now, and below
+   * the runs' read plan nobody can read one (unless the table is readable
+   * below its plan, readableBelowPlan). Null with billing off, a plan that
+   * reaches it, or a table with no plan of its own. A project with no plan
+   * yet throws (ProjectService.getCurrentPlan): the check fails toward
+   * paging.
+   */
+  public static async getAiHoldPlanShortfall(
+    projectId: ObjectID,
+  ): Promise<PlanType | null> {
+    if (!IsBillingEnabled) {
+      return null;
+    }
+
+    const runs: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
+    const readPlan: PlanType | null = runs.getReadBillingPlan();
+
+    if (!readPlan || canReadPlanGatedTableBelowPlan(runs)) {
+      return null;
+    }
+
+    const current: CurrentPlan = await ProjectService.getCurrentPlan(projectId);
+
+    if (
+      !current.plan ||
+      SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        readPlan,
+        current.plan,
+        getAllEnvVars(),
+      )
+    ) {
+      return null;
+    }
+
+    return readPlan;
   }
 
   /*

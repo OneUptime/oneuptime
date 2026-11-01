@@ -20,6 +20,8 @@ export interface ExceptionDetailDataPlan {
   // The latest occurrence's attributes, for the Context page's Attributes card.
   loadOccurrenceAttributes: boolean;
   loadAIAssistance: boolean;
+  // OneUptime AI's explanation kept on the exception (the Overview's card).
+  loadAiExplanation: boolean;
   loadOccurrenceTrend: boolean;
   // Who resolved / archived the group, for the Settings status history.
   loadTriageHistory: boolean;
@@ -42,6 +44,7 @@ export function getExceptionDetailDataPlan(
     loadTraceBreadcrumbs: section === ExceptionDetailSection.Context,
     loadOccurrenceAttributes: section === ExceptionDetailSection.Context,
     loadAIAssistance: section === ExceptionDetailSection.AIAssistance,
+    loadAiExplanation: section === ExceptionDetailSection.Overview,
     loadOccurrenceTrend: section === ExceptionDetailSection.Overview,
     loadTriageHistory: section === ExceptionDetailSection.Settings,
     showHeaderActions: section !== ExceptionDetailSection.Settings,

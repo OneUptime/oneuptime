@@ -11,6 +11,7 @@ import {
   getVerifiedMethods,
 } from "../../../../Components/OnCallPolicy/Readiness/ReadinessTypes";
 import StatTile, {
+  StatTileGrid,
   StatTileTone,
 } from "../../../../Components/OnCallPolicy/Readiness/StatTile";
 import PageMap from "../../../../Utils/PageMap";
@@ -139,7 +140,7 @@ const UserViewOnCallReadiness: FunctionComponent<
   const getReadinessHeader: () => ReactElement = (): ReactElement => {
     if (isLoadingReadiness && !readinessSummary) {
       return (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTileGrid className="">
           {[0, 1, 2, 3].map((index: number): ReactElement => {
             return (
               <div
@@ -148,7 +149,7 @@ const UserViewOnCallReadiness: FunctionComponent<
               />
             );
           })}
-        </div>
+        </StatTileGrid>
       );
     }
 
@@ -176,7 +177,12 @@ const UserViewOnCallReadiness: FunctionComponent<
 
     return (
       <div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/*
+         * Four tiles a row only where the card has room for four, as on the
+         * project's Readiness page (StatTileGrid): beside the side menu at
+         * 1024 pixels four a row left each name a few letters a line.
+         */}
+        <StatTileGrid className="">
           <StatTile
             icon={STATUS_ICONS[readiness.status]}
             label="Status"
@@ -220,7 +226,7 @@ const UserViewOnCallReadiness: FunctionComponent<
             value={`${gaps.length}`}
             tone={gaps.length > 0 ? "warning" : "neutral"}
           />
-        </div>
+        </StatTileGrid>
 
         {/*
          * Stated once, above everything, because it changes what every gap

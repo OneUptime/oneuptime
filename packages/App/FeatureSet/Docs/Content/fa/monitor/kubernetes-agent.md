@@ -60,8 +60,8 @@ helm repo update
 URL را با URL در OneUptime خودتان، و دو جای‌نگهدار را با کلید دریافت داده و نام خوشه جایگزین کنید:
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -73,7 +73,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ### بررسی اجرای پادها
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
+kubectl get pods -n oneuptime-agent
 ```
 
 هر پاد باید در یکی دو دقیقه به `Running` برسد.
@@ -100,16 +100,16 @@ GKE Autopilot و EKS Fargate پادهای privileged را هم رد می‌کن�
 :::tabs
 @tab Standard
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod
 ```
 @tab GKE Autopilot
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
@@ -117,8 +117,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ```
 @tab EKS Fargate
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
@@ -131,8 +131,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 برچسب‌هایی که هنگام نصب می‌دهید به خوشه، و به سرویس‌ها و میزبان‌هایی که این عامل گزارش می‌کند، وصل می‌شوند. `--set oneuptime.labels.<key>=<value>` به یک برچسب پروژه با نام `<key>:<value>` تبدیل می‌شود:
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -156,8 +156,8 @@ clusterName: prod
 ```
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   -f values.yaml
 ```
 
@@ -182,8 +182,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 برای جمع کردن لاگ‌های پادهای روی گره‌های Windows هم، حالت ترکیبی را روشن کنید:
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -240,8 +240,8 @@ OBI همچنین ترِیس را از یک فراخوانی عبور می‌ده
 - **هر خط لاگ دیگر** بی‌تغییر، بدون پیوند، جمع می‌شود، مگر اینکه `ebpf.logEnricher.plainText=true` را هم تنظیم کنید. در آن صورت OBI ` trace_id=… span_id=…` را به آن اضافه می‌کند و گردآورنده گره شناسه‌ها را به رکورد لاگ منتقل می‌کند و از خط حذف می‌کند، پس OneUptime آن را همان‌طور که برنامه شما نوشته نشان می‌دهد. خط داخل فایل لاگ کانتینر، که `kubectl logs` چاپ می‌کند، بخش افزوده‌شده را نگه می‌دارد.
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=true
 ```
 
@@ -310,8 +310,8 @@ ebpf:
 برای بررسی اینکه OBI اجرا می‌شود و ترافیک را می‌بیند:
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl get pods -n oneuptime-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 ## پروفایل‌گیری پیوسته CPU
@@ -338,14 +338,14 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | گزینه | پیش‌فرض | چه اضافه می‌کند |
 | --- | --- | --- |
 | `hostMetrics.enabled` | روشن | متریک‌های سیستم‌عامل هر گره از `/proc` و `/sys`: صف‌های I/O دیسک، inodeهای سیستم فایل، خطاهای رابط شبکه، صفحه‌بندی و میانگین بار. در گردآورنده گره اجرا می‌شود، بدون پاد اضافه. |
-| `kubeletstats.utilizationMetrics.enabled` | روشن | CPU و حافظه کانتینر و پاد به‌صورت درصدی از request و limit آن‌ها، که مانیتورهای اشباع CPU و حافظه می‌خوانند. برای پادی بدون request یا limit همیشه ۰ است. |
-| `kubeletstats.volumeMetrics.enabled` | روشن | فضای آزاد و کل هر PVC (`k8s.volume.available`، `k8s.volume.capacity`)، که مانیتور PVC Low Disk Space می‌خواند. یک سری به ازای هر PVC در هر پاد. |
+| `kubeletstats.utilizationMetrics.enabled` | روشن | CPU و حافظه کانتینر و پاد به‌صورت درصدی از request و limit آن‌ها، که قالب‌های Pod CPU Saturating Container Limit و Pod Memory Saturating Container Limit می‌خوانند. کانتینری بدون limit (یا request) هیچ‌یک از این سری‌ها را ندارد، و پاد فقط وقتی دارد که همه کانتینرهایش داشته باشند. |
+| `kubeletstats.volumeMetrics.enabled` | روشن | فضای آزاد و کل هر PVC (`k8s.volume.available`، `k8s.volume.capacity`)، برای نمودارها و مانیتورهای متریک خودتان: هیچ قالب داخلی آن‌ها را نمی‌خواند. یک سری به ازای هر PVC در هر پاد. |
 | `cadvisor.enabled` | روشن | throttling در CPU و کشته شدن‌های OOM از `/metrics/cadvisor` هر kubelet: `container_cpu_cfs_throttled_seconds_total`، `container_cpu_cfs_periods_total` و `container_oom_events_total`، و هیچ چیز دیگر. |
 | `kubeStateMetrics.enabled` | خاموش | فازهای پاد (Pending، Terminating)، پادهایی که زمان‌بندی نمی‌شوند، دلیل‌های انتظار کانتینر (CrashLoopBackOff، ImagePullBackOff) و مصرف سهمیه منابع، از kube-state-metrics. `kubeStateMetrics.mode: bundled` (پیش‌فرض) یک kube-state-metrics کوچک برایتان اجرا می‌کند؛ `external` نمونه‌ای را که خودتان اجرا می‌کنید، در `kubeStateMetrics.endpoint`، می‌خواند. |
 | `auditLogs.enabled` | خاموش | لاگ ممیزی Kubernetes، `/var/log/kubernetes/audit.log`: هر درخواست به API، از سوی چه کسی، روی چه چیزی. فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده (EKS، GKE، AKS، DOKS) آن را به ارائه‌دهنده ابر می‌فرستند. |
 | `csi.enabled` | خاموش | متریک‌های درایورهای ذخیره‌سازی CSI، از پادهایی با برچسب `app=csi-driver` یا `app.kubernetes.io/component=csi-driver`: زمان‌های attach و detach حجم، شکست‌های تأمین، IOPS. |
 | `coreDns.enabled` | خاموش | متریک‌های CoreDNS روی `:9153/metrics`: نرخ پرس‌وجو، تأخیر، برخوردهای حافظه نهان و خطاها. |
-| `controlPlane.enabled` | خاموش | etcd، سرور API، زمان‌بند و controller manager. فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده آن‌ها را در دسترس نمی‌گذارند. |
+| `controlPlane.enabled` | خاموش | سرور API در نشانی‌اش درون خوشه، و etcd، زمان‌بند و controller manager در نقطه‌های پایانی‌ای که فهرست می‌کنید ([روشن کردن پایش Control Plane](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-control-plane)). فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده آن‌ها را در دسترس نمی‌گذارند. |
 | `cost.enabled` | خاموش | هزینه هر بار کاری. [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) را ببینید. |
 
 ## گزینه‌های رایج
@@ -376,8 +376,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values
 ```
 
@@ -385,9 +385,9 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm repo update
-helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
-  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent -f values.yaml
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
 ```
 
 با `--reuse-values` ارتقا ندهید: پیش‌فرض‌های چارتی را هم که از آن ارتقا می‌دهید نگه می‌دارد، پس پیش‌فرض‌های چارت تازه‌تر، از جمله ایمیج eBPF آن، هرگز اعمال نمی‌شوند. وقتی یک release با پیش‌فرض‌های یک چارت قدیمی‌تر اجرا می‌شود، یادداشت‌هایی که Helm پس از نصب یا ارتقا چاپ می‌کند با یک هشدار و دستوری که آن را درست می‌کند پایان می‌یابند.
@@ -398,8 +398,8 @@ helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml >
 ## حذف نصب
 
 ```bash
-helm uninstall oneuptime-agent --namespace oneuptime-kubernetes-agent
-kubectl delete namespace oneuptime-kubernetes-agent
+helm uninstall kubernetes-agent --namespace oneuptime-agent
+kubectl delete namespace oneuptime-agent
 ```
 
 ## رفع اشکال
@@ -409,7 +409,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
-  | bash -s -- -n oneuptime-kubernetes-agent
+  | bash -s -- -n oneuptime-agent
 ```
 
 علت معمول، به‌ویژه پس از نصب دوباره، یک کلید دریافت داده نادرست یا باطل‌شده است: OneUptime آن را رد می‌کند، و گردآورنده هر دسته را کنار می‌گذارد در حالی که پادهایش `Running` می‌مانند.
@@ -420,8 +420,8 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set preset=gke-autopilot
 ```
@@ -437,8 +437,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 پادهای عامل و لاگ‌هایشان را بررسی کنید:
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
-kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
+kubectl get pods -n oneuptime-agent
+kubectl logs -n oneuptime-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
 در حالت `api`، دنبال‌کننده لاگ روی `/healthz`، پورت ۱۳۱۳۳، با وضعیت صادرات خود پاسخ می‌دهد: با `kubectl port-forward` به آن برسید.
@@ -448,7 +448,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptim
 لاگ OBI را بخوانید:
 
 ```bash
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 - **هسته خیلی قدیمی است، یا BTF ندارد.** OBI به Linux 5.8 یا بالاتر با BTF نیاز دارد؛ با `uname -r` روی یک گره بررسی کنید. اگر نمی‌توانید آن را ارتقا دهید، eBPF را با `--set ebpf.enabled=false` خاموش کنید.
@@ -468,7 +468,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 namespaceها را میان چند release تقسیم کنید، که هر کدام با قاعده‌های namespace خودش نصب شده باشد:
 
 ```bash
-helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
+helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
   --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...

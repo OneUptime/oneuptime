@@ -117,6 +117,17 @@ jest.mock("Common/Server/Utils/Express", () => {
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import KubernetesAiAgentIngressAPI from "../../FeatureSet/Runbook/API/KubernetesAiAgentIngress";
 import KubernetesAiAgentAuthorization from "../../FeatureSet/Runbook/Middleware/KubernetesAiAgentAuthorization";
+import AiCommandKillSwitch, {
+  AI_COMMANDS_OFF_CLAIM_MESSAGE,
+} from "Common/Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -834,6 +845,92 @@ describe("POST /claim-next-job", () => {
   function claim(): Promise<WireResponse> {
     return call("/claim-next-job", authenticated());
   }
+
+  /*
+   * Enable AI, read as the job leaves OneUptime (AiCommandKillSwitch): a
+   * job enqueued before the project turned AI off is failed with the
+   * reason, never served - unless it is Test connection, which a person
+   * runs before turning AI on.
+   */
+  describe("with Enable AI turned off since the job was enqueued", () => {
+    const RUN_ID: ObjectID = new ObjectID(
+      "12341234-1234-4234-8234-123412341234",
+    );
+    const SUGGESTION_ID: ObjectID = new ObjectID(
+      "43214321-4321-4321-8321-432143214321",
+    );
+    let isAiOff: jest.SpyInstance;
+
+    beforeEach(() => {
+      isAiOff = jest
+        .spyOn(AiCommandKillSwitch, "isAiOff")
+        .mockResolvedValue(true);
+    });
+
+    async function expectHeld(job: RunnerJob): Promise<void> {
+      claimNextJob.mockResolvedValue(job);
+
+      const wire: WireResponse = await claim();
+
+      expect(wire.statusCode).toBe(200);
+      expect(wire.body).toEqual({ job: null });
+      expect(submitResult).toHaveBeenCalledTimes(1);
+      expect(submitResult).toHaveBeenCalledWith({
+        jobId: JOB_ID,
+        agentId: AGENT_ID,
+        success: false,
+        errorMessage: AI_COMMANDS_OFF_CLAIM_MESSAGE,
+      });
+      // The claim's project: the authenticated agent's.
+      expect((isAiOff.mock.calls[0]![0] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+    }
+
+    test("an investigation's read is failed, never served", async () => {
+      await expectHeld(makeJob({ aiRunId: RUN_ID }));
+    });
+
+    test("a fix's change is failed, never served", async () => {
+      await expectHeld(
+        makeJob(
+          {
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+          },
+          {
+            args: ["rollout", "restart", "deployment/web", "-n", "web"],
+            displayCommand: "kubectl rollout restart deployment/web -n web",
+            tier: "SafeWrite",
+          },
+        ),
+      );
+    });
+
+    test("Test connection is still served: a person checks the cluster's access with it before turning AI on", async () => {
+      claimNextJob.mockResolvedValue(makeJob());
+
+      const wire: WireResponse = await claim();
+
+      expect((wire.body!["job"] as JSONObject)["jobId"]).toBe(
+        JOB_ID.toString(),
+      );
+      expect(submitResult).not.toHaveBeenCalled();
+      expect(isAiOff).not.toHaveBeenCalled();
+    });
+
+    test("the same job is served once Enable AI is on again", async () => {
+      isAiOff.mockResolvedValue(false);
+      claimNextJob.mockResolvedValue(makeJob({ aiRunId: RUN_ID }));
+
+      const wire: WireResponse = await claim();
+
+      expect((wire.body!["job"] as JSONObject)["jobId"]).toBe(
+        JOB_ID.toString(),
+      );
+      expect(submitResult).not.toHaveBeenCalled();
+    });
+  });
 
   test("no work: 200 { job: null }", async () => {
     const wire: WireResponse = await claim();

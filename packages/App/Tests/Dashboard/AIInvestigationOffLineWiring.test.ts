@@ -13,9 +13,11 @@ import path from "path";
  * (AiOffSummaryData, AiOffSummary, InvestigationPanelAiOff,
  * RemediationSuggestionCardAiFold, AiCardFoldHooks) and in the browser suite
  * in packages/E2E/EventOverview. These read the sources and hold the wiring
- * that makes it work on the real pages: a page that forgot one prop would
- * never fold its card, or would leave the Remediation card saying "nothing
- * was fixed" under a line that says it already.
+ * that makes it work on the real pages: the card's Remediation step (block
+ * 43) says what fixing did, and the card that holds it decides whether it
+ * is one line - a step that forgot to say would never let the card fold,
+ * and one that drew itself under the line would say "nothing was fixed"
+ * twice.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -79,26 +81,28 @@ const CONVERSATION: string = readSource(
   "InvestigationConversation",
   "InvestigationConversation.tsx",
 );
-const REMEDIATION_CARD: string = readSource(
+const REMEDIATION_STEP: string = readSource(
   "Components",
   "AutoRemediation",
-  "RemediationSuggestionCard.tsx",
+  "RemediationStep.tsx",
 );
 
 describe.each(PAGES)(
-  "the %s page joins its AI card and its Remediation card",
+  "the %s page draws one AI card that holds both steps",
   (subjectType: string, _folder: string, page: string) => {
-    test("keeps what each card says for this record only", () => {
-      expect(page).toContain(
-        'import useAiCardFold, { AiCardFoldWiring, } from "../../../Components/AI/useAiCardFold";',
-      );
-      expect(count(page, "useAiCardFold(")).toBe(1);
-      expect(page).toContain(
-        "const aiCardFold: AiCardFoldWiring = useAiCardFold(modelIdString);",
-      );
+    /*
+     * Block 43: remediation is the AI card's second step, up top. The page
+     * drew it as a card of its own far down, under the telemetry, and
+     * joined the two with useAiCardFold; the card holds both now.
+     */
+    test("draws no Remediation card of its own, and joins nothing", () => {
+      expect(page).not.toContain("RemediationSuggestionCard");
+      expect(page).not.toContain("<RemediationStep");
+      expect(page).not.toContain("useAiCardFold");
+      expect(count(page, "<InvestigationPanel ")).toBe(1);
     });
 
-    test("the AI card hears what fixing did, and says how it is drawn", () => {
+    test("the AI card is told the record, and whether it is resolved", () => {
       const panel: string = page.slice(
         page.indexOf("<InvestigationPanel "),
         page.indexOf(
@@ -108,8 +112,11 @@ describe.each(PAGES)(
       );
 
       expect(panel).toContain(`subjectType="${subjectType}"`);
-      expect(panel).toContain("remediationState={aiCardFold.remediationState}");
-      expect(panel).toContain("onCardFoldChange={aiCardFold.onFoldChange}");
+      expect(panel).toContain(
+        "isRecordResolved={standing === EventStanding.Resolved}",
+      );
+      expect(panel).not.toContain("remediationState=");
+      expect(panel).not.toContain("onCardFoldChange=");
     });
 
     test("the conversation it closes with is handed the card's fold", () => {
@@ -120,37 +127,57 @@ describe.each(PAGES)(
       );
       expect(conversation).toContain("fold={slot.fold}");
     });
-
-    test("the one Remediation card says what fixing did, and leaves it to the line", () => {
-      expect(count(page, "<RemediationSuggestionCard ")).toBe(1);
-
-      const card: string = elementOf(page, "RemediationSuggestionCard");
-
-      expect(card).toContain(`${subjectType}Id={modelId}`);
-      expect(card).toContain(
-        "onFoldStateChange={aiCardFold.onRemediationStateChange}",
-      );
-      expect(card).toContain("aiCardFold={aiCardFold.fold}");
-    });
   },
 );
 
+describe("the AI card holds its Remediation step", () => {
+  test("keeps what the step says for this record only", () => {
+    expect(PANEL).toContain(
+      'import useAiCardFold, { AiCardFoldWiring } from "./useAiCardFold";',
+    );
+    expect(count(PANEL, "useAiCardFold(")).toBe(1);
+    expect(PANEL).toContain(
+      "const aiCardFold: AiCardFoldWiring = useAiCardFold(subjectKey);",
+    );
+    expect(PANEL).toContain(
+      "const remediationState: RemediationFoldState = aiCardFold.remediationState;",
+    );
+  });
+
+  test("the step says what fixing did, and is told how the card is drawn", () => {
+    expect(count(PANEL, "<RemediationStep ")).toBe(1);
+
+    const step: string = elementOf(PANEL, "RemediationStep");
+
+    expect(step).toContain(
+      '{...(subjectType === "incident" ? { incidentId: props.subjectId } : { alertId: props.subjectId })}',
+    );
+    expect(step).toContain(
+      "onFoldStateChange={aiCardFold.onRemediationStateChange}",
+    );
+    expect(step).toContain("aiCardFold={cardFold}");
+    expect(step).toContain("investigationStage={investigationStage}");
+    expect(step).toContain("isRecordResolved={props.isRecordResolved}");
+  });
+});
+
 describe("the AI card draws the line inside its one card", () => {
-  test("the line is the card's body, ahead of every other state", () => {
+  test("the line is the card's body, in place of its two steps", () => {
     expect(PANEL).toContain('import AiOffSummary from "./AiOffSummary";');
     expect(count(PANEL, "<AiOffSummary ")).toBe(1);
 
     const region: number = PANEL.indexOf("id={AI_INVESTIGATION_PANEL_ID}");
     const line: number = PANEL.indexOf("<AiOffSummary ");
-    const waiting: number = PANEL.indexOf("<InvestigationWaiting");
-    const notStarted: number = PANEL.indexOf("<InvestigationNotStarted ");
+    const steps: number = PANEL.indexOf('<div data-testid="ai-card-steps"');
 
-    // Inside the region, in the body's slot: before the other states.
+    // Inside the region, ahead of the steps, which it stands in for.
     expect(line).toBeGreaterThan(region);
-    expect(line).toBeLessThan(waiting);
-    expect(waiting).toBeLessThan(notStarted);
+    expect(steps).toBeGreaterThan(line);
     expect(PANEL).toContain(
       "{offSummary ? ( <AiOffSummary summary={offSummary}",
+    );
+    expect(PANEL).toContain(
+      '<div data-testid="ai-card-steps" hidden={isFolded}> {!isFolded ? ( <AiCardStep number={1}',
     );
   });
 
@@ -161,18 +188,17 @@ describe("the AI card draws the line inside its one card", () => {
     );
     // Still the one card, titled once.
     expect(count(PANEL, "<Card ")).toBe(1);
-    expect(count(PANEL, 'title="AI Investigation"')).toBe(1);
+    expect(count(PANEL, "title={AI_CARD_TITLE}")).toBe(1);
   });
 
-  test("decides from what it read and what the page says fixing did, and tells the page", () => {
+  test("decides from what it read and what its step says fixing did", () => {
     expect(PANEL).toContain(
       "isAiOffInvestigationReason(notInvestigatedReason)",
     );
     expect(PANEL).toContain(
-      "const cardFold: AiCardFold = getAiCardFold({ isInvestigationLoaded, offReason, remediation: props.remediationState, areSwitchesRead: laneSwitches.isRead, });",
+      "const cardFold: AiCardFold = getAiCardFold({ isInvestigationLoaded, offReason, remediation: remediationState, areSwitchesRead: laneSwitches.isRead, });",
     );
-    expect(PANEL).toContain("onCardFoldChangeRef.current?.(cardFold);");
-    // Until the Remediation card has read, the card checks.
+    // Until the Remediation step has read, the card checks.
     expect(PANEL).toContain(
       'const isCheckingStatus: boolean = cardFold === "checking";',
     );
@@ -190,13 +216,13 @@ describe("the AI card draws the line inside its one card", () => {
   });
 
   /*
-   * Read as soon as the card may fold, beside the Remediation card's own
+   * Read as soon as the card may fold, beside the Remediation step's own
    * read, and the card folds only once they are read: the line is drawn
    * once, in its final words ("was off", "is on now").
    */
   test("reads the record's switches once the card may fold, and folds once they are read", () => {
     expect(PANEL).toContain(
-      "const laneSwitches: AiLaneSwitchRead = useAiLaneSwitchStates({ subjectType, isEnabled: canAiCardFold({ offReason, remediation: props.remediationState, }), });",
+      "const laneSwitches: AiLaneSwitchRead = useAiLaneSwitchStates({ subjectType, isEnabled: canAiCardFold({ offReason, remediation: remediationState, }), });",
     );
     expect(PANEL.indexOf("useAiLaneSwitchStates({")).toBeLessThan(
       PANEL.indexOf("getAiCardFold({"),
@@ -267,22 +293,26 @@ describe("the conversation, folded into the line", () => {
   });
 });
 
-describe("the Remediation card leaves 'nothing was fixed' to the line", () => {
+describe("the Remediation step leaves 'nothing was fixed' to the line", () => {
   test("says what it read before it decides what to draw", () => {
-    const report: number = REMEDIATION_CARD.indexOf(
+    const report: number = REMEDIATION_STEP.indexOf(
       "onFoldStateChangeRef.current?.(foldState);",
     );
-    const firstReturn: number = REMEDIATION_CARD.indexOf(
-      "if (!isLoaded && props.hideIfEmpty) { return <Fragment />; }",
+    const firstReturn: number = REMEDIATION_STEP.indexOf(
+      'if ( props.aiCardFold === "folded" || props.aiCardFold === "checking" || isRemediationFoldedIntoAiCard({ state: foldState, aiCardFold: props.aiCardFold, }) ) { return <Fragment />; }',
     );
 
     expect(report).toBeGreaterThan(-1);
     expect(firstReturn).toBeGreaterThan(report);
-    expect(REMEDIATION_CARD).toContain(
-      "isRemediationFoldedIntoAiCard({ state: foldState, aiCardFold: props.aiCardFold, })",
-    );
+    // Every hook comes before it: the step reads, whatever it draws.
+    for (const hook of ["useEffect(", "useState<", "useRef<", "useCallback("]) {
+      expect({
+        hook,
+        before: REMEDIATION_STEP.lastIndexOf(hook) < firstReturn,
+      }).toEqual({ hook, before: true });
+    }
     // What it read is only ever about the record on the page.
-    expect(REMEDIATION_CARD).toContain(
+    expect(REMEDIATION_STEP).toContain(
       "isLoaded: isLoaded && loadedSubjectId === subjectIdString",
     );
   });

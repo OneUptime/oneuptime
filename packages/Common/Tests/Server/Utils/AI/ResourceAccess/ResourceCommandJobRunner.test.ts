@@ -253,6 +253,36 @@ describe("ResourceCommandJobRunner.isAccessFailure", () => {
         output: stderr("connect ECONNREFUSED 10.0.0.5:8006"),
       },
     ],
+    [
+      "a Cloud AI agent whose role may not make the call",
+      {
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        program: "cloud",
+        errorMessage:
+          "Exit code 1: AWS refused ecs:UpdateService (HTTP 403 AccessDenied): User is not allowed. Add ecs:UpdateService to the agent's write role.",
+      },
+    ],
+    [
+      "a Cloud AI agent whose token Azure did not accept",
+      {
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        program: "cloud",
+        errorMessage:
+          "Exit code 1: Azure refused Microsoft.Web/sites/restart/action (HTTP 401). Azure did not accept the token of the agent's managed identity.",
+      },
+    ],
+    [
+      "a Cloud AI agent refused by Google Cloud's IAM",
+      {
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        program: "cloud",
+        errorMessage:
+          "Exit code 1: Google Cloud refused run.services.update (HTTP 403 PERMISSION_DENIED)",
+      },
+    ],
   ])(
     "is an access failure: %s",
     (_label: string, facts: ResourceCommandTerminalJobFacts) => {
@@ -287,6 +317,16 @@ describe("ResourceCommandJobRunner.isAccessFailure", () => {
         exitCode: 1,
         program: "docker",
         output: "[stdout]\nupstream: connection refused\n[stderr]\nexit 1",
+      },
+    ],
+    [
+      "a cloud resource in a state the change does not fit",
+      {
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        program: "cloud",
+        errorMessage:
+          "Exit code 1: AWS refused ec2:StartInstances (HTTP 400 IncorrectInstanceState): The instance is not in a state from which it can be started.",
       },
     ],
   ])(

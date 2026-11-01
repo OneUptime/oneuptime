@@ -106,6 +106,7 @@ flowchart TB
 | 監看清單值 | `Watchlist Value` |
 | 獵捕 | `Hunt` |
 | 安全案件的任務和證據 | `Security Case Task`、`Security Case Evidence` |
+| 資料儲存區及其發現，以及資料安全的問題、設定、檢查設定、自訂資料類型和資料落地規則 | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
 | 稽核日誌匯出 | `Audit Log Export` |
 
 當管理員在他人的帳戶上新增或移除通知方式或個人待命規則時，也會記錄，但不包含地址或號碼本身。

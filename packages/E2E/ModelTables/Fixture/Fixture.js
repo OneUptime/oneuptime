@@ -119,6 +119,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ExplainedPill from "Common/UI/Components/Pill/ExplainedPill";
+import { Yellow } from "Common/Types/BrandColors";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import UserElement from "../../../App/FeatureSet/Dashboard/src/Components/User/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -1640,6 +1642,28 @@ function GalleryWide() {
           field: { declaredAt: true },
           title: "Declared At",
           type: FieldType.DateTime,
+        },
+        /*
+         * A column in the middle holds a pill that says why when it is
+         * focused (ExplainedPill, as the reminder rules' "Never reminds"):
+         * Tab scrolls a row only as far as the box's edge, under the stuck
+         * Actions column, and the keyboard must find it clear of it.
+         */
+        {
+          field: { isPrivate: true },
+          title: "Reminders",
+          type: FieldType.Element,
+          disableSort: true,
+          getElement: (item) => {
+            return (
+              <ExplainedPill
+                color={Yellow}
+                text="Never reminds"
+                explanation="This rule never sends a reminder: it waits for the event to start and stops when it starts. Pick when to remind."
+                dataTestId={`never-reminds-${item.incidentNumber}`}
+              />
+            );
+          },
         },
         {
           field: { createdAt: true },

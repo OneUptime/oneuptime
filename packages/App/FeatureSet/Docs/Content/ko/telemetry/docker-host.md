@@ -4,18 +4,18 @@ OneUptime Docker 에이전트는 Docker 호스트에서 실행하는 컨테이�
 
 :::cards
 - [에이전트 설치](#에이전트-설치): `docker run` 또는 Docker Compose로 컨테이너 두 개.
-- [에이전트가 수집하는 것](#에이전트가-수집하는-것): 모든 컨테이너의 메트릭, 로그, 인벤토리.
+- [에이전트가 수집하는 것](#에이전트가-수집하는-것): 모든 컨테이너의 메트릭과 로그.
 - [컨테이너 로그에는 json-file이 필요](#컨테이너-로그에는-json-file-로그-드라이버가-필요): 컨테이너의 로그 드라이버 확인 및 전환.
 - [문제 해결](#문제-해결): 재시작 루프, 누락된 메트릭, 누락된 로그.
 :::
 
 ## 작동 방식
 
-에이전트는 OneUptime 구성이 내장된 OpenTelemetry Collector입니다. Docker 소켓을 통해 30초마다 각 컨테이너의 통계를 읽고, 5분마다 모든 컨테이너, 이미지, 네트워크, 볼륨을 나열합니다. 컨테이너의 로그 파일을 추적하고 제공한 수집 키로 모든 것을 OTLP를 통해 OneUptime URL에 보냅니다.
+에이전트는 OneUptime 구성이 내장된 OpenTelemetry Collector입니다. Docker 소켓을 통해 30초마다 각 컨테이너의 통계를 읽습니다. 컨테이너의 로그 파일을 추적하고 제공한 수집 키로 모든 것을 OTLP를 통해 OneUptime URL에 보냅니다.
 
 ```mermaid title="Docker 호스트의 두 컨테이너"
 flowchart TB
-    containers["내 컨테이너"] -->|"통계, 로그 파일,<br/>인벤토리"| agent["Docker 에이전트"]
+    containers["내 컨테이너"] -->|"통계와<br/>로그 파일"| agent["Docker 에이전트"]
     agent -->|"HTTPS를 통한 OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"인시던트나 알림을<br/>조사"| ai["Docker AI 에이전트"]
     ai -->|"읽기 전용<br/>docker 명령"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime에서 호스트 찾기
 
-**제품 → 인프라 → Docker → 모든 호스트**를 엽니다. 1분 정도 안에 호스트가 `DOCKER_HOST_NAME`으로 컨테이너, 메트릭, 로그와 함께 나타납니다. AI 에이전트는 호스트의 **AI 에이전트** 페이지와 **개요** 하단에 연결됨으로 표시됩니다. 호스트의 **토폴로지** 페이지는 Compose 프로젝트, 컨테이너, 이미지, 네트워크, 볼륨을 하나의 지도로 그립니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
+**제품 → 인프라 → Docker → 모든 호스트**를 엽니다. 1분 정도 안에 호스트가 `DOCKER_HOST_NAME`으로 컨테이너, 메트릭, 로그와 함께 나타납니다. AI 에이전트는 호스트의 **AI 에이전트** 페이지와 **개요** 하단에 연결됨으로 표시됩니다. 호스트의 **토폴로지** 페이지는 Compose 프로젝트와 컨테이너를 하나의 지도로 그립니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
 :::
 
 ## 환경 변수
@@ -139,7 +139,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 예 | OneUptime URL(예: `https://oneuptime.com` 또는 자체 호스팅 인스턴스). 인스턴스가 HTTP 전용이면 `http://`와 해당 포트를 사용하세요. |
 | `ONEUPTIME_SERVICE_TOKEN` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
 | `DOCKER_HOST_NAME` | 아니요 | OneUptime에서의 호스트 이름. 기본값은 `docker-host`이므로 호스트마다 고유한 이름을 주세요. |
-| `DOCKER_API_VERSION` | 아니요 | 에이전트가 사용하는 Docker Engine API 버전. 기본값은 `1.44`입니다. 이전 데몬에서는 낮추거나, 빈 값으로 설정해 데몬과 협상하게 하세요([문제 해결](#문제-해결) 참조). |
+| `DOCKER_API_VERSION` | 아니요 | 에이전트가 사용하는 Docker Engine API 버전. 기본값은 비어 있으며, 이때 에이전트가 데몬과 버전을 협상하므로 Docker Engine 20.10 이상이면 모두 작동합니다. 버전을 고정할 때만 설정하세요([문제 해결](#문제-해결) 참조). |
 
 값을 바꾸려면 에이전트를 제거하고 명령을 다시 실행하거나(Docker CLI), `docker-compose.yml`을 편집하고 `docker compose up -d`를 실행하세요(Docker Compose).
 
@@ -149,7 +149,6 @@ Everything is ready. Begin running and processing data.
 | --- | --- |
 | 컨테이너 메트릭 | 컨테이너별, 30초마다: CPU(사용량, 백분율, 스로틀링), 메모리(사용량, 한도, 백분율), 네트워크 및 블록 I/O, 가동 시간, 재시작 및 프로세스 수. |
 | 컨테이너 로그 | 모든 컨테이너의 stdout과 stderr. `json-file` 로그 파일에서 읽습니다. |
-| 인벤토리 | 모든 상태의 모든 컨테이너와 모든 이미지, 네트워크, 볼륨. 5분마다. |
 
 각 컨테이너의 메트릭과 로그는 컨테이너 이름을 딴 서비스 아래에 기록됩니다. 각 로그 줄은 `[ERROR]`, `level=warn`, `{"level":"info"}`처럼 줄에 적힌 레벨에서 심각도를 얻으며, 레벨이 없는 줄은 스트림의 심각도를 따릅니다. stderr는 `ERROR`, stdout은 `INFO`입니다. 공백이나 닫는 괄호로 시작하는 줄은 앞 줄에 합쳐지므로 스택 트레이스는 레코드 하나로 도착합니다. 에이전트 자체의 로그는 제외됩니다.
 
@@ -254,19 +253,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-데몬은 자체 최대 버전보다 새로운 클라이언트를 거부하므로, 리시버가 시작되지 않고 Collector도 함께 종료됩니다. 데몬의 최대 버전을 확인하세요:
+데몬은 자체 최대 버전보다 새로운 클라이언트를 거부하므로, 리시버가 시작되지 않고 Collector도 함께 종료됩니다. 에이전트는 `DOCKER_API_VERSION`이 버전을 지정하지 않는 한 데몬과 버전을 협상하지만(`HEAD /_ping` 한 번, 그다음 데몬 자체의 최대 버전), 이전 에이전트 이미지는 `1.44`로 고정되어 있었고 Docker Engine 20.10부터 24까지는 이를 거부합니다. [에이전트를 업그레이드하고](#에이전트-업그레이드) `-e DOCKER_API_VERSION` 없이 시작하세요(또는 Compose에서 `DOCKER_API_VERSION`을 빼세요).
+
+그래도 버전을 고정하려면 데몬의 최대 버전을 넘지 않는 값을 사용하세요:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
 그런 다음 `docker run`에 `-e DOCKER_API_VERSION=1.41`(또는 확인한 값)을 추가하거나 Compose에서 `DOCKER_API_VERSION`을 설정하세요. 새 데몬도 이전 API 버전을 계속 제공하므로 이 설정은 업그레이드 후에도 유효합니다.
-
-번호를 찾아보고 싶지 않나요? `DOCKER_API_VERSION`을 빈 문자열로 설정하세요. 그러면 에이전트가 데몬과 버전을 협상하므로(`HEAD /_ping` 한 번, 그다음 데몬 자체의 최대 버전) 이전 데몬과 새 데몬 모두에서 작동합니다:
-
-```bash
-docker run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Docker 소켓 권한 거부

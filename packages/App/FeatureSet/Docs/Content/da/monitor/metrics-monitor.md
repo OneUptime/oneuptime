@@ -128,6 +128,8 @@ Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den 
 | **Anomalously High** | over det forventede interval for denne time på ugen |
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
+| **Har ingen data** | fraværende: forespørgslen sendte intet i vinduet |
+| **Har data** | til stede: forespørgslen sendte noget i vinduet |
 
 Anomalibetingelserne har ingen tærskel. **Hvornår der advares** viser i stedet **Følsomhed** (Lav, Middel, som er standard, eller Høj), og de egne kriterier også et **Baseline-vindue** (14 dage, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med baselinen for samme time på ugen, bygget ud fra det vindue. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og giver ingen advarsler.
 

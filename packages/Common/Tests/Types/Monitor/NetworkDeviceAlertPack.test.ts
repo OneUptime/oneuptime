@@ -4,6 +4,7 @@ import NetworkDeviceAlertPackUtil, {
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import { TRANSCEIVER_RX_DROP_ALERT_DB } from "../../../Utils/NetworkDevice/TransceiverHealthUtil";
 
 function packItem(name: string): NetworkDeviceAlertPackItem {
@@ -238,5 +239,76 @@ describe("NetworkDeviceAlertPackUtil.buildCriteriaInstances", () => {
         items[i]!.createIncidents,
       );
     }
+  });
+  /*
+   * Regression: every item was built with `incidents: []` and `alerts: []`.
+   * The incident form gave an empty list no row to fill in and saving
+   * checked nothing in it, so "Device unreachable" and "Interface down"
+   * changed the monitor's status and paged nobody.
+   */
+  test("an incident-creating item declares one incident, an alert-raising item one alert, both titled after the item", () => {
+    const items: Array<NetworkDeviceAlertPackItem> =
+      NetworkDeviceAlertPackUtil.getPackItems();
+    const instances: Array<MonitorCriteriaInstance> =
+      NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+        downMonitorStatusId: ObjectID.generate(),
+      });
+
+    expect(
+      items.some((item: NetworkDeviceAlertPackItem) => {
+        return item.createIncidents;
+      }),
+    ).toBe(true);
+
+    for (let i: number = 0; i < items.length; i++) {
+      const data: MonitorCriteriaInstance["data"] = instances[i]!.data!;
+
+      expect(data.incidents).toHaveLength(items[i]!.createIncidents ? 1 : 0);
+      expect(data.alerts).toHaveLength(items[i]!.createAlerts ? 1 : 0);
+
+      for (const incident of data.incidents) {
+        expect(incident.title).toBe(items[i]!.name);
+        expect(incident.autoResolveIncident).toBe(true);
+      }
+
+      for (const alert of data.alerts) {
+        expect(alert.title).toBe(items[i]!.name);
+        expect(alert.autoResolveAlert).toBe(true);
+      }
+    }
+  });
+
+  test("the severities the caller names are the ones the incidents and alerts start on; none named, the form asks for them", () => {
+    const incidentSeverityId: ObjectID = ObjectID.generate();
+    const alertSeverityId: ObjectID = ObjectID.generate();
+
+    const withSeverities: Array<MonitorCriteriaInstance> =
+      NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+        incidentSeverityId: incidentSeverityId,
+        alertSeverityId: alertSeverityId,
+      });
+
+    for (const instance of withSeverities) {
+      for (const incident of instance.data!.incidents) {
+        expect(incident.incidentSeverityId).toBe(incidentSeverityId);
+      }
+      for (const alert of instance.data!.alerts) {
+        expect(alert.alertSeverityId).toBe(alertSeverityId);
+      }
+    }
+
+    const unreachable: MonitorCriteriaInstance =
+      NetworkDeviceAlertPackUtil.buildCriteriaInstances().find(
+        (instance: MonitorCriteriaInstance) => {
+          return instance.data?.name === "Device unreachable";
+        },
+      )!;
+
+    expect(
+      MonitorCriteriaInstance.getValidationError(
+        unreachable,
+        MonitorType.NetworkDevice,
+      ),
+    ).toBe('Incident severity is required for criteria "Device unreachable"');
   });
 });

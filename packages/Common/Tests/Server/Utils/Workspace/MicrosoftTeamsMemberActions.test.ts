@@ -38,6 +38,7 @@ import IncidentEpisodeStateTimelineService from "../../../../Server/Services/Inc
 import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import OnCallPersonPageAnswer from "../../../../Server/Utils/OnCall/OnCallPersonPageAnswer";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -990,6 +991,73 @@ describe.each(TEAMS_KINDS)(
       ).toBe(true);
       expect(answers[0]!.toLowerCase()).not.toContain("unfortunately");
     });
+
+    /*
+     * The press a person's page makes natural (UI review of block 31):
+     * paged into a record Simon acknowledged, the member presses its
+     * Acknowledge. That answers their page - it would page them again
+     * otherwise - and the answer says so first. Episodes have no person's
+     * pages.
+     */
+    if (kind.name === "incident" || kind.name === "alert") {
+      test(`an ${kind.noun} acknowledged already, pressed by somebody a person's page paged into it: their page is answered, and said first`, async (): Promise<void> => {
+        const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
+        const states: ProjectStates = kind.stubStates();
+        const recordId: ObjectID = ObjectID.generate();
+        stubRecord({
+          service: kind.recordService,
+          makeRecord: kind.makeRecord,
+          stateColumn: kind.recordStateColumn,
+          currentStateId: states.acknowledged,
+        });
+        const createSpy: AnySpy = stubCreate(kind.timelineService);
+        stubLateAnswerReads({
+          timelineService: kind.timelineService,
+          rows: [
+            {
+              [kind.timelineStateColumn]: states.acknowledged,
+              startsAt: new Date(ACKNOWLEDGED_AT),
+              createdByUserId: SIMON,
+            },
+          ],
+        });
+        const answerSpy: AnySpy = jest
+          .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+          .mockResolvedValue(1) as AnySpy;
+        const turn: FakeTurn = createTurn();
+
+        await kind.handle({
+          actionType: kind.ack.actionType,
+          actionValue: recordId.toString(),
+          value: {},
+          props: props,
+          turnContext: turn.turnContext,
+        });
+
+        expect(createSpy).not.toHaveBeenCalled();
+        expect(answerSpy.mock.calls[0]![0]).toEqual({
+          kind: kind.name,
+          recordId: recordId,
+          projectId: projectId,
+          pressedByUserId: userId,
+          isResolved: false,
+        });
+
+        const answers: Array<string> = answerTexts(turn);
+
+        expect(answers).toHaveLength(1);
+        expect(
+          answers[0]!.startsWith(
+            `✅ You acknowledged the page for **[${titleOf(kind.noun)}](${DASHBOARD_URL}/${projectId.toString()}/`,
+          ),
+        ).toBe(true);
+        expect(
+          answers[0]!.endsWith(
+            `)**, so paging stopped. **Simon Lee** acknowledged the ${kind.noun} at {{TIME(${ACKNOWLEDGED_AT})}}.`,
+          ),
+        ).toBe(true);
+      });
+    }
 
     describe("Change State", (): void => {
       test("a member who holds the permission moves it into the state they picked, as themselves", async (): Promise<void> => {

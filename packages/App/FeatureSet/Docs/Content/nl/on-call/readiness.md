@@ -42,10 +42,9 @@ Boven de lijst tellen de tegels **Ontvangers**, **Gereed**, **Moet worden ingest
 | --- | --- |
 | **Ontvanger** | De persoon, met het e-mailadres. |
 | **Status** | **Gereed**, **Onbereikbaar**, of hoeveel gaten de persoon heeft. |
-| **Teams** | De teams die de persoon via een escalatieregel oproepen. |
 | **Kanalen** | Een segment per kanaal: gevuld voor een geverifieerde methode, hol voor een die nog niet is geverifieerd. |
 | **Coverage** | Voor hoeveel ernstniveaus er een regel is, op elk tabblad, van allemaal. |
-| **Reached via** | Hoe het beleid de persoon bereikt: `Direct`, `Team`, `Schedule` of `Override`. |
+| **Reached via** | Hoe het beleid de persoon bereikt: elk team dat de persoon via een escalatieregel oproept, met zijn naam, of **Direct**, **Schema** of **Overschrijving**. |
 
 **Coverage** in een rij toont de meldingsmethoden van de persoon, waarom die deze status heeft, en een raster van elke ernst met of zonder regel. De trechter filtert de lijst op **Ontvanger**, **Status**, **Team** of **Reached via**. Het antwoord kan een minuut oud zijn: **Vernieuwen** bepaalt het opnieuw.
 

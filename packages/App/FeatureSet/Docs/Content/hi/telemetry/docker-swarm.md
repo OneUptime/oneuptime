@@ -13,7 +13,7 @@ OneUptime Docker Swarm एजेंट एक Docker Swarm क्लस्टर
 
 एजेंट तीन कंटेनर हैं, सभी एक ही `docker-compose.yml` में परिभाषित:
 
-1. **कलेक्टर**: एक OpenTelemetry Collector, जो हर कंटेनर के मेट्रिक्स के लिए `docker_stats` पढ़ता है, कंटेनरों की लॉग फ़ाइलों को फ़ॉलो करता है, और इन्वेंटरी स्नैपशॉट फ़ाइल को भी फ़ॉलो करता है। यह हर चीज़ पर आपके क्लस्टर का नाम (`docker.swarm.cluster.name`) लगाता है और उसे OTLP पर OneUptime को भेजता है।
+1. **कलेक्टर**: एक OpenTelemetry Collector, जो हर कंटेनर के मेट्रिक्स के लिए `docker_stats` पढ़ता है, कंटेनरों की लॉग फ़ाइलों को फ़ॉलो करता है, और इन्वेंटरी स्नैपशॉट फ़ाइल को भी फ़ॉलो करता है। यह हर चीज़ पर आपके क्लस्टर का नाम (`docker.swarm.cluster.name`) और हर टास्क के मेट्रिक्स पर उसकी सेवा और उसका नोड लगाता है, और सब कुछ OTLP पर OneUptime को भेजता है।
 2. **इन्वेंटरी पोलर**: `curl` और `jq` वाला एक छोटा साइडकार, जो हर 5 मिनट में swarm मैनेजर के API (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) को खंगालता है और सेवा लेबल `com.docker.stack.namespace` से स्टैक निकालता है। यह हर ऑब्जेक्ट के लिए एक JSON पंक्ति लिखता है, जिसे कलेक्टर आगे भेजता है।
 3. **AI एजेंट**: `oneuptime-docker-swarm-ai-agent`, जो OneUptime AI के माँगे `docker` कमांड चलाता है, जब वह इस क्लस्टर पर किसी घटना या अलर्ट की जाँच करता है। जब तक आप सुधारों की अनुमति न दें, यह केवल-पढ़ने वाला है ([AI एजेंट](#ai-एजेंट) देखें)।
 
@@ -56,7 +56,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-स्क्रिप्ट आपका OneUptime URL, इंजेशन कुंजी और क्लस्टर का नाम पूछती है। यह `/opt/oneuptime-docker-swarm-agent` में इंस्टॉल करती है, एक ऐसी `.env` फ़ाइल लिखती है जिसे सिर्फ़ उसका मालिक पढ़ सकता है, और तीनों कंटेनर शुरू करती है। AI एजेंट को छोड़ने के लिए `--no-ai-agent` जोड़ें।
+स्क्रिप्ट आपका OneUptime URL, इंजेशन कुंजी और क्लस्टर का नाम पूछती है। यह `/opt/oneuptime-docker-swarm-agent` में इंस्टॉल करती है, एक ऐसी `.env` फ़ाइल लिखती है जिसे सिर्फ़ उसका मालिक पढ़ सकता है और जिसमें नोड का होस्ट नाम `DOCKER_SWARM_NODE_NAME` के रूप में होता है, और तीनों कंटेनर शुरू करती है। AI एजेंट को छोड़ने के लिए `--no-ai-agent` जोड़ें।
 @tab Docker Compose
 [DockerSwarmAgent डायरेक्टरी](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) से `docker-compose.yml`, `otel-collector-config.yaml` और `inventory-snapshot.sh` किसी मैनेजर नोड के एक नए फ़ोल्डर में डाउनलोड करें:
 
@@ -73,6 +73,12 @@ chmod +x inventory-snapshot.sh
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+इसमें नोड का नाम जोड़ें। कलेक्टर इसे नोड के कंटेनर मेट्रिक्स पर लगाता है:
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 एजेंट शुरू करें:
@@ -98,15 +104,16 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ## एनवायरनमेंट वेरिएबल
 
-इंस्टॉल स्क्रिप्ट पहले तीन को `/opt/oneuptime-docker-swarm-agent/.env` में लिखती है; Docker Compose इंस्टॉल इन्हें `docker-compose.yml` के बगल की `.env` से पढ़ता है। वहाँ इनमें से कोई भी जोड़ें या बदलें, फिर उस फ़ोल्डर में `docker compose up -d` चलाएँ।
+इंस्टॉल स्क्रिप्ट पहले चार को `/opt/oneuptime-docker-swarm-agent/.env` में लिखती है; Docker Compose इंस्टॉल इन्हें `docker-compose.yml` के बगल की `.env` से पढ़ता है। वहाँ इनमें से कोई भी जोड़ें या बदलें, फिर उस फ़ोल्डर में `docker compose up -d` चलाएँ।
 
 | वेरिएबल | ज़रूरी | विवरण |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | हाँ | आपका OneUptime URL, जैसे `https://oneuptime.com` या आपका सेल्फ़-होस्टेड इंस्टेंस। अगर इंस्टेंस सिर्फ़ HTTP पर है तो `http://` और उसका पोर्ट उपयोग करें। |
 | `ONEUPTIME_SERVICE_TOKEN` | हाँ | **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से इंजेशन कुंजी। |
 | `DOCKER_SWARM_CLUSTER_NAME` | नहीं | OneUptime में क्लस्टर का नाम, और वह कुंजी जिससे हर नोड का डेटा जुड़ता है: हर चीज़ पर `docker.swarm.cluster.name` रिसोर्स एट्रिब्यूट के रूप में लगाया गया। इसे स्थिर रखें: बाद में बदलने से एक दूसरा क्लस्टर रजिस्टर होता है। डिफ़ॉल्ट `docker-swarm` है। |
+| `DOCKER_SWARM_NODE_NAME` | नहीं | नोड का नाम, जो उसके कंटेनरों के मेट्रिक्स और लॉग पर `docker.swarm.node.name` रिसोर्स एट्रिब्यूट के रूप में लगाया जाता है, और जिससे [Docker Swarm मॉनिटर](/docs/monitor/docker-swarm-monitor#मॉनिटर-सेटिंग्स) फ़िल्टर करता है। इंस्टॉल स्क्रिप्ट इसे नोड के होस्ट नाम पर सेट करती है, जैसा `docker node ls` दिखाता है। खाली होने पर कोई नोड नाम नहीं लगाया जाता। |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | नहीं | इन्वेंटरी पोलर कितनी बार स्नैपशॉट लेता है, सेकंड में। डिफ़ॉल्ट `300` है। |
-| `DOCKER_API_VERSION` | नहीं | Docker Engine API का वह वर्शन जिसे कलेक्टर और इन्वेंटरी पोलर बोलते हैं। डिफ़ॉल्ट `1.44` है; खाली रखने पर डेमन के साथ तय होता है ([समस्या निवारण](#समस्या-निवारण) देखें)। जब तक आप कोई वर्शन तय न करें, AI एजेंट इसे खुद तय करता है। |
+| `DOCKER_API_VERSION` | नहीं | Docker Engine API का वह वर्शन जिसे कलेक्टर और इन्वेंटरी पोलर बोलते हैं। डिफ़ॉल्ट रूप से खाली: वे डेमन का अपना वर्शन उपयोग करते हैं, इसलिए 20.10 और उसके बाद का हर Docker Engine काम करता है। इसे केवल कोई वर्शन पिन करने के लिए सेट करें ([समस्या निवारण](#समस्या-निवारण) देखें)। जब तक आप कोई वर्शन तय न करें, AI एजेंट इसे खुद तय करता है। |
 
 AI एजेंट की अपनी सेटिंग्स [AI एजेंट](#ai-एजेंट) के अंतर्गत हैं।
 
@@ -119,9 +126,11 @@ AI एजेंट की अपनी सेटिंग्स [AI एजें
 | कंटेनर CPU, मेमोरी, प्रोसेस की संख्या और अपटाइम | `docker_stats` रिसीवर | **मेट्रिक्स** पेज |
 | कंटेनर के stdout और stderr लॉग | `filelog` रिसीवर | **लॉग** पेज |
 
+हर टास्क के मेट्रिक्स में उसके कंटेनर की पहचान होती है, जिसे `docker_stats` रिसीवर जोड़ता है (`container.name`, `container.image.name`, `container.id` और `container.runtime=docker`), उसकी सेवा और उसके नोड की ID, जिन्हें कलेक्टर उन लेबलों से कॉपी करता है जो Swarm टास्क पर लगाता है (`docker.swarm.service.name` और `docker.swarm.node.id`), और उसके नोड का नाम, जो `DOCKER_SWARM_NODE_NAME` से आता है (`docker.swarm.node.name`)। [Docker Swarm मॉनिटर](/docs/monitor/docker-swarm-monitor#मॉनिटर-सेटिंग्स) इन्हीं से फ़िल्टर करते हैं।
+
 ### यह Docker एजेंट से कैसे अलग है
 
-[Docker एजेंट](/docs/telemetry/docker-host) एक होस्ट को मॉडल करता है, और `host.name` और `container.runtime=docker` लगाता है। Docker Swarm एजेंट जानबूझकर सिर्फ़ `docker.swarm.cluster.name` लगाता है: तब OneUptime हर नोड को अलग होस्ट के रूप में रजिस्टर करने के बजाय डेटा को swarm क्लस्टर के अंतर्गत रखता है।
+[Docker एजेंट](/docs/telemetry/docker-host) एक होस्ट को मॉडल करता है, और हर चीज़ पर `host.name` लगाता है। Docker Swarm एजेंट जानबूझकर `docker.swarm.cluster.name` लगाता है और `host.name` कभी नहीं: तब OneUptime हर नोड को अलग होस्ट के रूप में रजिस्टर करने के बजाय डेटा को swarm क्लस्टर के अंतर्गत रखता है।
 
 ## क्लस्टर पर प्रोजेक्ट लेबल लगाएँ
 
@@ -225,13 +234,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-डेमन का सबसे ऊँचा API वर्शन डिफ़ॉल्ट `1.44` से नीचे है (Docker Engine 20.10 `1.41` पर रुकता है), इसलिए `docker_stats` रिसीवर शुरू नहीं हो पाता और कंटेनर बार-बार रीस्टार्ट होता है। डेमन का सबसे ऊँचा वर्शन पता करें:
+डेमन का सबसे ऊँचा API वर्शन उस वर्शन से नीचे है जो कलेक्टर ने माँगा (Docker Engine 20.10 `1.41` पर रुकता है), इसलिए `docker_stats` रिसीवर शुरू नहीं हो पाता और कंटेनर बार-बार रीस्टार्ट होता है। जब तक `DOCKER_API_VERSION` कोई वर्शन न बताए, कलेक्टर डेमन के साथ वर्शन तय करता है, और वर्शन 0.161.2 से पुरानी एजेंट फ़ाइलें `1.44` पिन करती थीं। [एजेंट अपग्रेड करें](#एजेंट-अपग्रेड-करना), और हर उस नोड पर जिस पर एजेंट चलता है, `.env` से वर्शन वाला कोई भी `DOCKER_API_VERSION` हटा दें (या उसे खाली सेट करें, `DOCKER_API_VERSION=`)।
+
+फिर भी कोई वर्शन पिन करना हो, तो डेमन के सबसे ऊँचे वर्शन से ऊपर न जाएँ:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-`.env` में `DOCKER_API_VERSION` को उस मान पर सेट करें, और हर उस नोड पर `docker compose up -d` चलाएँ जिस पर एजेंट चलता है। नए डेमन अब भी पुराने API वर्शन देते हैं, इसलिए Docker अपग्रेड करने के बाद भी यह सेटिंग काम करती रहती है। या `DOCKER_API_VERSION=` (खाली) सेट करें, ताकि कलेक्टर कोई वर्शन पिन करने के बजाय डेमन के साथ वर्शन तय करे।
+`.env` में `DOCKER_API_VERSION` को उस मान पर सेट करें, और हर उस नोड पर `docker compose up -d` चलाएँ जिस पर एजेंट चलता है। नए डेमन अब भी पुराने API वर्शन देते हैं, इसलिए Docker अपग्रेड करने के बाद भी यह सेटिंग काम करती रहती है।
 :::
 
 :::details क्लस्टर गलत नाम से दिखाई देता है

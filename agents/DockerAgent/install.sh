@@ -67,6 +67,14 @@ if docker ps -a --format '{{.Names}}' | grep -q '^oneuptime-docker-agent$'; then
     docker rm -f oneuptime-docker-agent
 fi
 
+# The image negotiates the Docker Engine API version with the daemon. Set
+# DOCKER_API_VERSION when you run this script to pin one instead, and the
+# collector gets it too.
+COLLECTOR_EXTRA_ENV=()
+if [ -n "${DOCKER_API_VERSION:-}" ]; then
+    COLLECTOR_EXTRA_ENV+=(-e "DOCKER_API_VERSION=$DOCKER_API_VERSION")
+fi
+
 echo ""
 echo "Starting OneUptime Docker Agent..."
 docker run -d \
@@ -78,6 +86,7 @@ docker run -d \
     -e ONEUPTIME_URL="$ONEUPTIME_URL" \
     -e ONEUPTIME_SERVICE_TOKEN="$ONEUPTIME_SERVICE_TOKEN" \
     -e DOCKER_HOST_NAME="$DOCKER_HOST_NAME" \
+    "${COLLECTOR_EXTRA_ENV[@]}" \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \

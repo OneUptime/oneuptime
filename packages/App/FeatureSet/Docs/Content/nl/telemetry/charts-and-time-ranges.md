@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Hints bij de grafieken
 
-De meeste grafieken die zoomen, noemen het gebaar boven het tekengebied, **Sleep om in te zoomen** of **Klik of sleep om in te zoomen**, en voegen zolang een zoom actief is de herinnering **double-click to reset** toe. Metriekkaarten, de metriekverkenner en de volumegrafieken van de verkenners tonen de hint altijd. Op de grafiekkaarten van resource-overzichten en SLO's, en op sommige dashboardwidgets, verschijnt hij alleen zolang u naar de kaart wijst of er met Tab in komt.
+De meeste grafieken die zoomen, noemen het gebaar boven het tekengebied, **Sleep om in te zoomen** of **Klik of sleep om in te zoomen**, en voegen zolang een zoom actief is de herinnering **dubbelklik om te herstellen** toe. Metriekkaarten, de metriekverkenner en de volumegrafieken van de verkenners tonen de hint altijd. Op de grafiekkaarten van resource-overzichten en SLO's, en op sommige dashboardwidgets, verschijnt hij alleen zolang u naar de kaart wijst of er met Tab in komt.
 
 ## Waar het werkt
 

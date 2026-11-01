@@ -257,6 +257,17 @@ export default class CriteriaNameUtil {
     const value: string = CriteriaNameUtil.formatValue(criteriaFilter, options);
     const valueOrEllipsis: string = value || CriteriaNameUtil.ELLIPSIS;
 
+    // A metric is not "empty": it sent data in the window, or it did not.
+    if (criteriaFilter.checkOn === CheckOn.MetricValue) {
+      if (criteriaFilter.filterType === FilterType.IsEmpty) {
+        return `${subject} has no data`;
+      }
+
+      if (criteriaFilter.filterType === FilterType.IsNotEmpty) {
+        return `${subject} has data`;
+      }
+    }
+
     switch (criteriaFilter.filterType) {
       case FilterType.EqualTo:
         return `${subject} is ${valueOrEllipsis}`;

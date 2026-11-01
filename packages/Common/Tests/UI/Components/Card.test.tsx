@@ -9,8 +9,10 @@ import Card, {
   CARD_PADDING_CLASS_NAME,
   CardButtonSchema,
   ComponentProps,
+  isCardDescriptionDrawnAsBlock,
 } from "../../../UI/Components/Card/Card";
 import CardSections from "../../../UI/Components/Card/CardSections";
+import Icon from "../../../UI/Components/Icon/Icon";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -869,6 +871,147 @@ describe("Card description", () => {
         }),
       ).toBe("hidden");
     }
+  });
+});
+
+/*
+ * A description in words is a paragraph; one that is an element is drawn
+ * in a block, so whatever it holds - a paragraph, a list, an icon (which
+ * draws a div) - is valid where it sits. Reset Runner Key handed the card a
+ * paragraph, which sat inside the card's paragraph: React warned of it on
+ * every Runner's page (validateDOMNesting), and pages had taken to
+ * wrapping their sentences in a span to get by.
+ */
+describe("Card description: words or an element", () => {
+  function nestingWarnings(calls: Array<Array<unknown>>): Array<string> {
+    return calls
+      .map((args: Array<unknown>): string => {
+        return args
+          .map((value: unknown): string => {
+            return String(value);
+          })
+          .join(" ");
+      })
+      .filter((line: string): boolean => {
+        return line.includes("validateDOMNesting");
+      });
+  }
+
+  test("words are a paragraph, as every card's description always was", () => {
+    render(
+      <Card title="Title" description="Words alone.">
+        <div>body</div>
+      </Card>,
+    );
+
+    const description: HTMLElement = screen.getByTestId("card-description");
+
+    expect(description.tagName).toBe("P");
+    expect(description).toHaveTextContent("Words alone.");
+  });
+
+  test.each([
+    ["a paragraph", <p key="p">A paragraph of its own.</p>],
+    [
+      "an icon beside its words",
+      <span key="icon">
+        <Icon icon={IconProp.Info} className="h-4 w-4" />
+        Beside an icon.
+      </span>,
+    ],
+    [
+      "a list",
+      <ul key="list">
+        <li>One</li>
+        <li>Two</li>
+      </ul>,
+    ],
+  ] as Array<[string, ReactElement]>)(
+    "an element holding %s is drawn in a block, with no nesting warning",
+    (_label: string, element: ReactElement) => {
+      const consoleError: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(console, "error")
+        .mockImplementation((): void => {
+          // Read below.
+        });
+
+      try {
+        render(
+          <Card title="Title" description={element}>
+            <div>body</div>
+          </Card>,
+        );
+
+        const description: HTMLElement = screen.getByTestId("card-description");
+
+        expect(description.tagName).toBe("DIV");
+        expect(
+          nestingWarnings(consoleError.mock.calls as Array<Array<unknown>>),
+        ).toEqual([]);
+      } finally {
+        consoleError.mockRestore();
+      }
+    },
+  );
+
+  test("the block is styled as the paragraph is, in every header and on a card with no body", () => {
+    const element: ReactElement = <span>Element</span>;
+
+    for (const headerLayout of ["default", "stacked", "toolbar"] as Array<
+      "default" | "stacked" | "toolbar"
+    >) {
+      for (const hasBody of [true, false]) {
+        for (const hasButton of [true, false]) {
+          const buttons: Array<CardButtonSchema> = hasButton
+            ? [
+                {
+                  title: "Act",
+                  buttonStyle: ButtonStyleType.NORMAL,
+                  icon: IconProp.Add,
+                  onClick: () => {},
+                },
+              ]
+            : [];
+          const { unmount: unmountWords } = render(
+            <Card
+              title="Title"
+              description="Words"
+              headerLayout={headerLayout}
+              buttons={buttons}
+            >
+              {hasBody ? <div>body</div> : undefined}
+            </Card>,
+          );
+          const wordsClassName: string =
+            screen.getByTestId("card-description").className;
+          unmountWords();
+
+          const { unmount: unmountElement } = render(
+            <Card
+              title="Title"
+              description={element}
+              headerLayout={headerLayout}
+              buttons={buttons}
+            >
+              {hasBody ? <div>body</div> : undefined}
+            </Card>,
+          );
+          const block: HTMLElement = screen.getByTestId("card-description");
+
+          expect(block.tagName).toBe("DIV");
+          expect(block.className).toBe(wordsClassName);
+          unmountElement();
+        }
+      }
+    }
+  });
+
+  test("isCardDescriptionDrawnAsBlock: an element is, words and nothing are not", () => {
+    expect(isCardDescriptionDrawnAsBlock(<p>Paragraph</p>)).toBe(true);
+    expect(isCardDescriptionDrawnAsBlock(<span>Span</span>)).toBe(true);
+    expect(isCardDescriptionDrawnAsBlock("Words")).toBe(false);
+    expect(isCardDescriptionDrawnAsBlock("")).toBe(false);
+    expect(isCardDescriptionDrawnAsBlock(undefined)).toBe(false);
   });
 });
 

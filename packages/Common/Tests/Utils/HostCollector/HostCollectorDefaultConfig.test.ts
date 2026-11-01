@@ -1,5 +1,7 @@
 import {
   ALL_HOST_FEATURES,
+  HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES,
+  HOST_COLLECTOR_FILESYSTEM_EXCLUSION,
   HostCollectorHostFeatures,
   UNKNOWN_HOST_FEATURES,
   getHostCollectorDefaultConfig,
@@ -118,6 +120,104 @@ describe("every default config", () => {
         "host_metrics",
       );
     }
+  });
+
+  /*
+   * Read-only images (snap packages on Ubuntu, CDs, DVDs and ISO images) and
+   * macOS's /dev are 100% used for as long as they are mounted. The default
+   * used to measure them, so High Filesystem Usage fired on every Ubuntu host
+   * with a snap and on every Mac, and never recovered.
+   */
+  test.each(everyDefault())(
+    "%s leaves the file systems that are full by design out of the filesystem scraper",
+    (_label: string, text: string) => {
+      const config: ParsedConfig = parse(text);
+      const filesystem: Record<string, unknown> = (
+        (config.receivers["host_metrics"] as Record<string, unknown>)[
+          "scrapers"
+        ] as Record<string, Record<string, unknown>>
+      )["filesystem"]!;
+
+      expect(filesystem["exclude_fs_types"]).toEqual({
+        fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+        match_type: "strict",
+      });
+      /*
+       * An exclusion, not an allowlist: every other file system the scraper
+       * reports (ext4, XFS, APFS, NTFS, ReFS, ...) is still measured.
+       */
+      expect(Object.keys(filesystem).sort()).toEqual([
+        "exclude_fs_types",
+        "metrics",
+      ]);
+      // The template still reads the utilization of every other mount.
+      expect(filesystem["metrics"]).toEqual({
+        "system.filesystem.utilization": { enabled: true },
+      });
+    },
+  );
+});
+
+describe("the file systems every default leaves out", () => {
+  test.each([
+    ["snap packages on Linux", "squashfs"],
+    ["CDs and ISO images on Linux, cloud-init config drives", "iso9660"],
+    ["DVDs on Linux and macOS", "udf"],
+    ["read-only EROFS images", "erofs"],
+    ["/dev on macOS", "devfs"],
+    ["the automounter's maps, which macOS lists", "autofs"],
+    ["CDs and ISO images on macOS", "cd9660"],
+    ["CDs on Windows", "CDFS"],
+    ["DVDs on Windows", "UDF"],
+  ])("%s (%s)", (_what: string, fsType: string) => {
+    expect(HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES).toContain(fsType);
+  });
+
+  test("are only those: a file system that holds data is always measured", () => {
+    expect([...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES].sort()).toEqual(
+      [
+        "autofs",
+        "cd9660",
+        "CDFS",
+        "devfs",
+        "erofs",
+        "iso9660",
+        "squashfs",
+        "udf",
+        "UDF",
+      ].sort(),
+    );
+    for (const holdsData of [
+      "ext4",
+      "xfs",
+      "btrfs",
+      "zfs",
+      "vfat",
+      "apfs",
+      "hfs",
+      "NTFS",
+      "ReFS",
+      "FAT32",
+      "nfs",
+    ]) {
+      expect(HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES).not.toContain(holdsData);
+    }
+  });
+
+  test("the block every config carries is valid YAML with the exclusion, comments aside", () => {
+    const parsed: Record<string, unknown> = yaml.load(
+      `filesystem:\n${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}`,
+      { schema: yaml.CORE_SCHEMA },
+    ) as Record<string, unknown>;
+
+    expect(parsed).toEqual({
+      filesystem: {
+        exclude_fs_types: {
+          fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+          match_type: "strict",
+        },
+      },
+    });
   });
 });
 

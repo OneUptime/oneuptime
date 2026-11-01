@@ -174,14 +174,16 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       isFixedByOneUptimeAi: true,
     },
     /*
-     * Linked for its changes, its metrics and its page's Incidents tab: no
-     * AI agent acts on a cloud account yet.
+     * Linked for its changes, its metrics and its page's Incidents tab, and
+     * fixed through its account's Cloud AI agent (the AwsAccount,
+     * AzureSubscription and GoogleCloudProject resource types), which a
+     * linked cloud resource names.
      */
     {
       kind: AiAffectedResourceKind.CloudResource,
       relation: "cloudResources",
       noun: "cloud resource",
-      isFixedByOneUptimeAi: false,
+      isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.Service,

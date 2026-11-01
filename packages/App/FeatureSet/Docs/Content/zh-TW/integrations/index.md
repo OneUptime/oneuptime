@@ -58,6 +58,8 @@ flowchart TB
 | [Elastic Security](/docs/integrations/elastic-security) | 雙向 | 把 Elastic Security 偵測警示匯入安全性事件，並把 OneUptime 的發現傳送給 Elastic Security。 |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 傳入 | 把 AWS Security Hub 發現結果匯入安全性事件。 |
 | [Okta System Log](/docs/integrations/okta) | 傳入 | 把 Okta 登入、帳戶變更和威脅偵測匯入安全性事件。 |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | 傳入 | 把 Microsoft Entra ID 登入和目錄變更以及 Microsoft 365 稽核日誌匯入安全性事件。 |
+| [Google Workspace](/docs/integrations/google-workspace) | 傳入 | 把 Google Workspace 登入、管理員變更和 Google 自身的偵測匯入安全性事件。 |
 
 ### 工單與 IT 服務管理
 

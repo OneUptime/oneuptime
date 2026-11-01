@@ -4,14 +4,14 @@ Docker Swarm 监视器监控 Swarm 集群中服务任务背后的容器，在任
 
 :::cards
 - [创建监视器](#创建-docker-swarm-监视器): 在仪表板中完成六个步骤。
-- [模板](#现成的警报模板): 四个现成的警报，每个任务一个事件。
+- [模板](#现成的警报模板): 五个现成的警报，每个任务一个事件。
 - [指标](#收集的指标): 可用于警报的容器指标。
 - [过滤器](#监视器设置): 把监视器限定到某个服务、任务或镜像。
 :::
 
 ## 工作原理
 
-OneUptime Docker Swarm 代理运行在一个管理节点上。它的 Collector 每 30 秒从该节点的 Docker 守护进程读取容器统计信息，并给每批数据打上集群名称 `docker.swarm.cluster.name`。旁边一个小型清单轮询器每 5 分钟从 Swarm API 读取集群的节点、服务和任务。第一批数据会把集群注册到 OneUptime 中。
+OneUptime Docker Swarm 代理运行在一个管理节点上。它的 Collector 每 30 秒从该节点的 Docker 守护进程读取容器统计信息，给每批数据打上集群名称 `docker.swarm.cluster.name`，并给每个任务的指标打上其服务和节点。旁边一个小型清单轮询器每 5 分钟从 Swarm API 读取集群的节点、服务和任务。第一批数据会把集群注册到 OneUptime 中。
 
 Collector 只能看到它所在节点上的容器。要获取每个节点的指标，请在每个节点上以相同的 `DOCKER_SWARM_CLUSTER_NAME` 运行 Collector。
 
@@ -77,33 +77,37 @@ flowchart TB
 
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。这是代理打上的唯一资源属性，所以监视器不会添加 `container.runtime` 或 `host.name` 过滤器。 |
-| **服务名称** | Custom Metric、高级 | 可选。与 `docker.swarm.service.name` 完全匹配，例如 `web`。 |
-| **节点名称** | Custom Metric、高级 | 可选。与 `docker.swarm.node.name` 完全匹配，例如 `swarm-node-1`。 |
+| **Docker Swarm Cluster** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。任务的指标和 Docker 主机的指标一样带有 `container.runtime=docker`，而代理从不打上 `host.name`，所以监视器对这两者都不过滤。 |
+| **服务名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.service.name` 完全匹配，即 `docker service ls` 显示的服务名称，例如 `web`（在栈中为 `<stack>_web`）。 |
+| **节点名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.node.name` 完全匹配，即 `docker node ls` 显示的节点主机名，例如 `swarm-node-1`。该节点上的代理根据 `DOCKER_SWARM_NODE_NAME` 打上它。 |
 | **容器名称** | Custom Metric、高级 | 可选。与 `resource.container.name` 完全匹配。任务的容器命名为 `<service>.<slot>.<taskid>`，例如 `web.1.abc123`。 |
-| **容器镜像** | Custom Metric、高级 | 可选。与 `resource.container.image.name` 完全匹配，例如 `nginx:latest`。 |
+| **容器镜像** | Custom Metric、高级 | 可选。匹配 `resource.container.image.name`，无论是否带有 Swarm 为镜像固定的摘要：`nginx:latest` 也会匹配 `nginx:latest@sha256:…`，你输入的摘要会被忽略，不带标签的名称表示 `:latest`。 |
 | **Docker Swarm Metric** | Custom Metric | [目录](#收集的指标) 中的一个指标。 |
 | **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**、**最小值**、**总和** 或 **计数**。初始值为该指标通常的聚合方式。 |
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 1 Minute** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于组合查询的 **添加指标** 和 **添加公式**。 |
 
-> [!WARNING]
-> 随附的代理目前还不会设置 `docker.swarm.service.name` 或 `docker.swarm.node.name`，所以填写了 **服务名称** 或 **节点名称** 的监视器找不到数据。请改为按 **容器镜像** 缩小范围，或按 `resource.container.name` 分组。
+> [!NOTE]
+> **服务名称** 和 **节点名称** 需要 0.161.2 及以后版本的代理文件：更旧的版本既不发送服务，也不发送节点。请在运行代理的每个节点上 [升级代理](/docs/telemetry/docker-swarm#升级代理)。
 
 ## 现成的警报模板
 
-**Quick Setup** 提供四个模板。每个模板都会构建一个完整的监视器：一个按 `resource.container.name` 分组的查询、一个触发的条件和一个恢复的条件。每个任务都单独评判，并有自己的事件和警报，其根本原因会列出受影响的任务及其值。阈值只是起点，你可以编辑。
+**Quick Setup** 提供五个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。除 **Cluster Stopped Reporting** 外，每个模板都按 `resource.container.name` 对查询分组，因此每个任务都单独评判，并有自己的事件和警报，其根本原因会列出受影响的任务及其值。阈值只是起点，你可以编辑。
 
 除非表中另有说明，条件只有在其窗口的每一分钟都成立时才会触发，并在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | 严重 | `container.memory.percent`，对集群中所有容器取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
 | Task Down (Low Uptime) | 严重 | `container.uptime`，按任务取 Min，最近 1 分钟 | 任意值低于 60 秒 | 每个值都不低于 66 秒 |
 | High Task CPU Usage | Warning | `container.cpu.utilization`，按任务取 Avg，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`，按任务取 Avg，最近 5 分钟 | 高于 85% | 不高于 76.5% |
-| High Task Process Count | Warning | `container.pids.count`，按任务取 Max，最近 5 分钟 | 高于 500 | 不高于 450 |
+| High Task Process Count | Warning | `container.pids.count`，按任务取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
+
+> [!NOTE]
+> **Cluster Stopped Reporting** 会在集群 10 分钟内没有任何数据到达时触发：运行代理的节点宕机，或者代理已停止、失去了通往 OneUptime 的路由或令牌被撤销。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。没有任务的节点仍会报告数据，因为代理本身就作为容器运行，并会报告它自己的容器。
 
 > [!NOTE]
 > **Task Down (Low Uptime)** 模板只要有一个“年轻”的样本就会触发，因为重启是一个事件，而不是一个水平。Swarm 会给替代任务一个新容器，也就是一个新序列，所以模板查找的是运行时间不足一分钟，而不是 0。部署或扩容也会触发它，当新任务的运行时间超过一分钟后就会清除。终止后没有被替换的任务不发送任何数据，因此无法被捕捉。
@@ -136,10 +140,10 @@ flowchart TB
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `container.pids.count` | 计数 | 任务容器内的进程。突然上升可能意味着 fork 炸弹或泄漏。 |
+| `container.pids.count` | 计数 | 任务容器内的任务数：cgroup pids 控制器既统计进程也统计线程。突然上升可能意味着 fork 炸弹或线程泄漏。 |
 | `container.uptime` | 秒 | 任务容器已运行的时间。被重新调度或重启的任务会从 0 开始一个新容器。 |
 
-每个序列都把容器的身份作为资源属性携带：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name` 和 `resource.docker.swarm.cluster.name`。
+每个序列都把容器的身份作为资源属性携带：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name`、`resource.docker.swarm.service.name`、`resource.docker.swarm.node.id`、`resource.docker.swarm.node.name`（当代理知道节点名称时）和 `resource.docker.swarm.cluster.name`。
 
 ## 监控条件
 
@@ -149,7 +153,7 @@ flowchart TB
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名指定。 |
 | **聚合** | 窗口中的值如何变成一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（整个窗口内每个值都必须匹配）或 **Any Value**（一个就够）。 |
-| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**无数据** 在查询于窗口内没有返回任何数据时匹配，**有数据** 在返回了数据时匹配。 |
 | **阈值** | 用于比较的值。如果指标有单位，旁边会有单位列表。异常条件下不显示。 |
 | **灵敏度** | 仅限异常条件。**低**（4σ）、**中**（3σ，默认）或 **高**（2σ）。 |
 | **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |
@@ -165,11 +169,11 @@ flowchart TB
 
 | 顺序 | 条件 | 匹配时机 | 结果 |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | 第一个查询的任意值为 `0` | 将监视器标记为 **离线**，并宣布事件“_monitor name_ is offline”，监视器恢复后该事件会自动解决。 |
-| 2 | Check if _monitor name_ is online | 任意值大于 `0` | 将监视器标记为 **运行正常**。 |
+| 1 | Check if _monitor name_ is offline | 第一个查询在整个窗口内没有数据 | 将监视器标记为 **离线**，并宣布事件“_monitor name_ is offline”，监视器恢复后该事件会自动解决。 |
+| 2 | Check if _monitor name_ is online | 第一个查询有数据 | 将监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 静默不匹配任何一个条件：停止发送数据的集群会让监视器保持原样。要在数据停止时收到通知，请在某个条件上把 **如果无数据** 设为 **触发器**。OneUptime 自身未接收数据的时间永远不算作无数据：窗口中包含这类时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监控器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监控器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 故障排除
 
@@ -182,7 +186,7 @@ Collector 读取的是它所在节点的 Docker 守护进程，所以只能看�
 :::
 
 :::details 按服务或节点过滤的监视器找不到数据
-**服务名称** 和 **节点名称** 匹配的是 `docker.swarm.service.name` 和 `docker.swarm.node.name`，而随附的代理不会设置它们。清空这两项并按 **容器镜像** 缩小范围，或按 `resource.container.name` 分组。
+**服务名称** 和 **节点名称** 匹配的是 `resource.docker.swarm.service.name` 和 `resource.docker.swarm.node.name`，代理从其文件的 0.161.2 版本起才会发送它们：请 [升级代理](/docs/telemetry/docker-swarm#升级代理)。节点名称来自每个节点 `.env` 中的 `DOCKER_SWARM_NODE_NAME`，由安装脚本写入；在以其他方式设置的节点上，请把它添加到那里。
 :::
 
 :::details 所有任务都显示为一个序列

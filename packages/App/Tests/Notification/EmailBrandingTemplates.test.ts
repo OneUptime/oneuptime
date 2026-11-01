@@ -68,6 +68,7 @@ const TEMPLATES_THAT_NAME_THE_PRODUCT: ReadonlyArray<string> = [
   "PostgresHealthWarning",
   "ProbeOffline",
   "RedisHealthWarning",
+  "SecurityAdvisoryAffectsInstallation",
   "SignupWelcomeEmail",
   "TwoFactorBackupCodeUsed",
   "TwoFactorBackupCodesCreated",

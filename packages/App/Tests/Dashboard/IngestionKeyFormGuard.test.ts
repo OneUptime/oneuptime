@@ -263,6 +263,7 @@ describe("Telemetry ingestion key create form", () => {
       ).toEqual(
         [
           "Components/AI/Connect/LlmAppsPath.tsx",
+          "Components/Cloud/CloudAiAgentSetupModal.tsx",
           "Components/SecurityEvents/SecurityEventsSetupGuide.tsx",
           "Components/SetupGuide/SetupGuideCard.tsx",
           "Components/Telemetry/Documentation.tsx",
@@ -289,6 +290,10 @@ describe("Telemetry ingestion key create form", () => {
       ).toContain("keyTypeFilter={TelemetryIngestionKeyType.Server}");
       // An app's AI calls are sent by its server SDK or a gateway.
       expect(read("Components/AI/Connect/LlmAppsPath.tsx")).toContain(
+        "keyTypeFilter={TelemetryIngestionKeyType.Server}",
+      );
+      // The Cloud AI agent registers with its key from the customer's cloud.
+      expect(read("Components/Cloud/CloudAiAgentSetupModal.tsx")).toContain(
         "keyTypeFilter={TelemetryIngestionKeyType.Server}",
       );
       expect(read("Components/Telemetry/Documentation.tsx")).toMatch(

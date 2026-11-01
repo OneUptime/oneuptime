@@ -207,6 +207,7 @@ import WorkspaceConnectRequest, {
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
 import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
 import UserService from "../../../../Server/Services/UserService";
+import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
 import User from "../../../../Models/DatabaseModels/User";
 import Name from "../../../../Types/Name";
 import Redis from "../../../../Server/Infrastructure/Redis";
@@ -5130,6 +5131,13 @@ describe("a card's button, pressed in a channel (customer feedback #1)", () => {
       },
     ] as never);
     jest.spyOn(UserService, "findOneBy").mockResolvedValue(simon);
+    /*
+     * Nobody paged them into it: no person's page of theirs about it for
+     * the press to answer (OnCallPersonPageAnswer).
+     */
+    const pagesRead: SpyInstance<typeof UserOnCallLogService.findBy> = jest
+      .spyOn(UserOnCallLogService, "findBy")
+      .mockResolvedValue([]);
     const acknowledge: SpyInstance<typeof WorkspaceMemberActions.acknowledge> =
       jest.spyOn(WorkspaceMemberActions, "acknowledge");
     const incidentId: string = ObjectID.generate().toString();
@@ -5145,6 +5153,8 @@ describe("a card's button, pressed in a channel (customer feedback #1)", () => {
         ),
       ),
     );
+
+    expect(pagesRead).toHaveBeenCalledTimes(1);
 
     expect(view.httpStatuses).toEqual([200]);
     expect(view.bubbles).toHaveLength(1);

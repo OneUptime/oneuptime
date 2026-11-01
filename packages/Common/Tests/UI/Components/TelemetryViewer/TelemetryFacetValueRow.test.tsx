@@ -1,10 +1,12 @@
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   RenderResult,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import userEvent, { UserEvent } from "@testing-library/user-event";
@@ -540,4 +542,150 @@ describe("the keyboard", () => {
 
     expect(calls.onClear.mock.calls).toEqual([["h-1"]]);
   });
+});
+
+/*
+ * A described value (FacetConfig.valueDescriptionMap) - the Span Type's
+ * Root spans, "Where a trace starts." - says what it is beside the row on
+ * hover and keyboard focus, and to a screen reader as the row's
+ * description. Rows without a sentence are exactly as before.
+ */
+describe("a value that says what it is", () => {
+  const SENTENCE: string = "Where a trace starts.";
+
+  // Lets Tippy's deferred work run, then says which tooltips are shown.
+  async function tooltipsShown(): Promise<Array<string>> {
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 50);
+      });
+    });
+
+    return screen.queryAllByRole("tooltip").map((tooltip: HTMLElement) => {
+      return tooltip.textContent || "";
+    });
+  }
+
+  test("a screen reader hears its sentence with its name, with no tooltip showing", () => {
+    mount({ description: SENTENCE });
+
+    expect(rowCheckbox()).toHaveAccessibleName("web-1");
+    expect(rowCheckbox()).toHaveAccessibleDescription(SENTENCE);
+    expect(screen.queryAllByRole("tooltip")).toEqual([]);
+
+    const description: HTMLElement = document.getElementById(
+      rowCheckbox().getAttribute("aria-describedby") || "",
+    ) as HTMLElement;
+
+    // Inside the row, never drawn on its own.
+    expect(row()).toContainElement(description);
+    expect(description).toHaveAttribute("hidden");
+    expect(description).not.toBeVisible();
+  });
+
+  test("hovering it says its sentence, in place of the row's own hover text", async () => {
+    mount({ description: SENTENCE });
+
+    expect(rowCheckbox()).not.toHaveAttribute("title");
+
+    fireEvent.mouseEnter(rowCheckbox());
+    expect(await tooltipsShown()).toEqual([SENTENCE]);
+
+    fireEvent.mouseLeave(rowCheckbox());
+    await waitFor(() => {
+      expect(screen.queryAllByRole("tooltip")).toEqual([]);
+    });
+  });
+
+  test("the keyboard's focus says it; a focus a click moved there adds nothing", async () => {
+    mount({ description: SENTENCE });
+
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    act(() => {
+      rowCheckbox().focus();
+    });
+    expect(await tooltipsShown()).toEqual([SENTENCE]);
+
+    act(() => {
+      rowCheckbox().blur();
+    });
+    await waitFor(() => {
+      expect(screen.queryAllByRole("tooltip")).toEqual([]);
+    });
+
+    fireEvent.pointerDown(rowCheckbox());
+    fireEvent.mouseDown(rowCheckbox());
+    act(() => {
+      rowCheckbox().focus();
+    });
+    expect(await tooltipsShown()).toEqual([]);
+  });
+
+  test("Tippy adds no description of its own: the sentence is read once", async () => {
+    mount({ description: SENTENCE });
+    const describedBy: string | null =
+      rowCheckbox().getAttribute("aria-describedby");
+
+    fireEvent.mouseEnter(rowCheckbox());
+    await tooltipsShown();
+
+    expect(rowCheckbox().getAttribute("aria-describedby")).toBe(describedBy);
+  });
+
+  test("a click still does what the row does", () => {
+    const calls: Handlers = handlers();
+    mount({ description: SENTENCE }, calls);
+
+    fireEvent.click(rowCheckbox());
+
+    expect(calls.onInclude.mock.calls).toEqual([["h-1"]]);
+  });
+
+  test("a radio option says it too, and still chooses on a click", async () => {
+    const calls: Handlers = handlers();
+    mount(
+      {
+        value: "root",
+        displayValue: "Root spans",
+        isRadio: true,
+        description: SENTENCE,
+      },
+      calls,
+    );
+
+    const radio: HTMLElement = screen.getByRole("radio", {
+      name: "Root spans",
+    });
+
+    expect(radio).toHaveAccessibleDescription(SENTENCE);
+
+    fireEvent.mouseEnter(radio);
+    expect(await tooltipsShown()).toEqual([SENTENCE]);
+
+    fireEvent.click(radio);
+    expect(calls.onInclude.mock.calls).toEqual([["root"]]);
+  });
+
+  test("its exclude button and count are where they were", () => {
+    mount({ description: SENTENCE });
+
+    expect(excludeButton()).toBeInTheDocument();
+    expect(count()).toHaveTextContent("12");
+    expect(row().firstElementChild).toBe(rowCheckbox());
+  });
+
+  test.each([
+    ["no sentence", undefined],
+    ["an empty one", ""],
+    ["a blank one", "  \n "],
+  ])(
+    "a row with %s is the row it always was",
+    (_name: string, description: string | undefined) => {
+      mount({ description: description });
+
+      expect(rowCheckbox()).not.toHaveAttribute("aria-describedby");
+      expect(rowCheckbox()).toHaveAttribute("title", "Filter to web-1");
+      expect(row().querySelector("[hidden]")).toBeNull();
+    },
+  );
 });

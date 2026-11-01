@@ -78,7 +78,7 @@ Under **Permissions & events**, set these **Repository permissions**:
 | Contents | Read and write | Read repository files, and push the branches of AI fix pull requests |
 | Pull requests | Read and write | Open and update pull requests, and post reviews |
 | Issues | Read and write | Post the app's comments — **including on pull requests**, whose conversation GitHub routes through the issues API |
-| Checks | Read-only | Optional. Read the CI result of fix pull requests. Without it, their CI status stays unverified |
+| Checks | Read and write | Optional. Read the CI result of fix pull requests, and add a check with each production review. Read-only reads the CI result and adds no check; without it, fix pull requests' CI status stays unverified |
 | Metadata | Read-only | Basic repository metadata (GitHub requires it) |
 
 **Issues: Read and write is what makes the app interactive.** Without it, mentions are received and then fail silently when the app tries to answer — GitHub serves pull request conversation comments from the issues API, so this single permission gates every reply the app writes. See [Working with OneUptime from GitHub](/docs/ai/github-app).

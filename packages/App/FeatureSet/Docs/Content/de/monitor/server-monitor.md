@@ -99,7 +99,7 @@ Ohne winget laden Sie den Agent selbst herunter:
 Um den Agent mit Intune, Configuration Manager oder Gruppenrichtlinien zu verteilen, verwenden Sie `oneuptime-infrastructure-agent-amd64.msi` (oder `oneuptime-infrastructure-agent-arm64.msi`) aus demselben Release. Sie installiert den Agent in `C:\Program Files\OneUptimeInfrastructureAgent`, und eine neuere MSI aktualisiert ihn an Ort und Stelle und startet ihn erneut. Eine MSI aus einem früheren Release lässt sich nicht aktualisieren: Deinstallieren Sie sie zuvor einmal.
 :::
 
-Jeder Weg installiert das neueste Release für Ihr Betriebssystem und Ihren Prozessor (x86-64 oder ARM64). Die apt- und yum-Repositorys enthalten die `.deb`- und `.rpm`-Pakete, die jedem GitHub-Release beiliegen, signiert mit dem Schlüssel unter `https://packages.oneuptime.com/gpg.key`, und die Pakete legen die Binärdatei in `/usr/bin` ab. Das Installationsskript legt die Binärdatei `oneuptime-infrastructure-agent` in `$HOME/bin` ab. Bei einer selbst gehosteten Installation wird das Skript von Ihrer eigenen OneUptime-URL ausgeliefert.
+Jeder Weg installiert das neueste Release für Ihr Betriebssystem und Ihren Prozessor (x86-64 oder ARM64). Die apt- und yum-Repositorys enthalten die `.deb`- und `.rpm`-Pakete, die jedem GitHub-Release beiliegen, signiert mit dem Schlüssel unter `https://packages.oneuptime.com/gpg.key`, und die Pakete legen die Binärdatei in `/usr/bin` ab. Mit `sudo` ausgeführt, legt das Installationsskript die Binärdatei `oneuptime-infrastructure-agent` in `/usr/local/bin` ab (ohne `sudo` in `$HOME/bin`) und lädt sie mit `curl` oder `wget` herunter. Bei einer selbst gehosteten Installation wird das Skript von Ihrer eigenen OneUptime-URL ausgeliefert.
 
 ### Ihn mit dem Monitor verbinden
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-Beim Start prüft der Agent den geheimen Schlüssel bei OneUptime und sendet sofort seinen ersten Bericht.
+Beim Start prüft der Agent den geheimen Schlüssel bei OneUptime und sendet sofort seinen ersten Bericht. Solange er OneUptime nicht erreicht, versucht er es weiter: nach 5 Sekunden erneut, dann jeweils doppelt so lange, bis zu alle 5 Minuten.
 
 ### Prüfen, ob er meldet
 
@@ -165,7 +165,7 @@ Führen Sie `sudo oneuptime-infrastructure-agent status` aus (unter Windows ohne
 | `uninstall` | Entfernt den Dienst und löscht die Konfigurationsdatei des Agents. |
 | `help` | Listet die Befehle auf. |
 
-Führen Sie sie unter Linux und macOS mit `sudo` aus und unter Windows in einer **Eingabeaufforderung** mit Administratorrechten. Um den geheimen Schlüssel, die URL oder den Proxy eines konfigurierten Agents zu ändern, führen Sie `stop` und `uninstall` aus, dann erneut `configure` und `start`.
+Führen Sie sie unter Linux und macOS mit `sudo` aus und unter Windows in einer **Eingabeaufforderung** mit Administratorrechten. Um den geheimen Schlüssel, die URL oder den Proxy eines konfigurierten Agents zu ändern, führen Sie `stop` und `uninstall` aus, dann erneut `configure` und `start`. Jeder Befehl gibt aus, was er getan hat oder warum er fehlgeschlagen ist, und schreibt dasselbe ins Protokoll des Agents. Stoppt der Dienst wegen eines Fehlers, startet ihn die Dienstverwaltung erneut, unter Linux und Windows nach zwei Minuten. Ein Windows-Dienst, den das `configure` eines älteren Agents eingerichtet hat, wird erst neu gestartet, nachdem Sie `uninstall` und `configure` erneut ausgeführt haben.
 
 ### Dateien
 
@@ -199,15 +199,15 @@ Jeder Bericht enthält den Hostnamen des Servers und:
 
 | Bereich | Was gemeldet wird |
 | --- | --- |
-| CPU | Auslastung in %, Anzahl der Kerne, Auslastung pro Kern sowie die Zeit in user, system, idle, I/O-Wartezeit, steal, nice, IRQ und Soft-IRQ |
+| CPU | Auslastung in %, Anzahl der Kerne, Auslastung pro Kern sowie die Zeit in user, system, idle, I/O-Wartezeit, steal, nice, IRQ und Soft-IRQ seit dem vorherigen Bericht |
 | Arbeitsspeicher | Gesamter, belegter, freier und verfügbarer Arbeitsspeicher, Puffer und Cache, Auslastung in % sowie Swap gesamt, belegt, frei und Auslastung in % |
-| Festplatten | Für jede eingehängte Festplatte: Einhängepfad, Gerät, Dateisystem, gesamter, belegter und freier Speicher, Auslastung in %, gelesene und geschriebene Bytes und Vorgänge sowie I/O-Zeit |
+| Festplatten | Für jede eingehängte Festplatte außer schreibgeschützten Abbildern (Snaps, ISOs) und `/dev`: Einhängepfad, Gerät, Dateisystem, gesamter, belegter und freier Speicher, Auslastung in %, wie `df` sie zählt, gelesene und geschriebene Bytes und Vorgänge sowie I/O-Zeit |
 | Last | Lastdurchschnitte über 1, 5 und 15 Minuten |
 | Netzwerk | Für jede Schnittstelle: gesendete und empfangene Bytes und Pakete, Fehler und verworfene Pakete ein- und ausgehend; dazu bestehende und lauschende Verbindungen |
 | Host | Betriebssystem, Plattform und Version, Kernelversion und Architektur, Betriebszeit, Startzeit, Virtualisierung und Anzahl der Prozesse |
-| Prozesse | Jeder laufende Prozess: Name, PID, Befehl, CPU in %, Arbeitsspeicher, Status, Threads, Benutzer und Startzeit |
+| Prozesse | Jeder laufende Prozess: Name, PID, Befehl, CPU in %, Arbeitsspeicher, Status, Threads, Benutzer und Startzeit; ein Prozess, dessen Befehlszeile sich nicht lesen lässt, etwa ein geschützter Windows-Prozess, ohne seinen Befehl |
 
-Werte, die das Betriebssystem nicht liefert, werden weggelassen. Der Tab **Metriken** des Monitors stellt Verfügbarkeit, CPU, Arbeitsspeicher, Festplattenauslastung und I/O, Lastdurchschnitte, Swap, Netzwerkverkehr und -fehler, Verbindungen, Betriebszeit und die Anzahl der Prozesse in Diagrammen dar.
+Werte, die das Betriebssystem nicht liefert, werden weggelassen, und ein Kriterium für einen Wert, den der Bericht nicht enthält, ist nicht erfüllt: Ein fehlender Wert ist nicht 0. Der Tab **Metriken** des Monitors stellt Verfügbarkeit, CPU, Arbeitsspeicher, Festplattenauslastung und I/O, Lastdurchschnitte, Swap, Netzwerkverkehr und -fehler, Verbindungen, Betriebszeit und die Anzahl der Prozesse in Diagrammen dar.
 
 ## Überwachungskriterien
 
@@ -228,7 +228,7 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 | Server Process Command | Ob ein Prozess mit genau dieser Befehlszeile läuft (ohne Beachtung der Groß-/Kleinschreibung) | Is Executing, Is Not Executing |
 | Server Process PID | Ob ein Prozess mit dieser PID läuft | Is Executing, Is Not Executing |
 
-**Festplattenpfad** nimmt einen Einhängepunkt oder ein Gerät an, etwa `/`, `/mnt/data`, `C:\` oder `/dev/sda1`; leer gelassen ist er `/`. Geben Sie `*` ein, um jede Festplatte zu prüfen, die der Agent meldet: Jede Festplatte, die den Schwellenwert überschreitet, erhält eine eigene Warnung, sodass eine zweite volllaufende Festplatte nicht hinter der offenen Warnung der ersten verborgen bleibt.
+**Festplattenpfad** nimmt einen Einhängepunkt oder ein Gerät an, etwa `/`, `/mnt/data`, `C:\` oder `/dev/sda1`; leer gelassen ist er `/`. Geben Sie `*` ein, um jede Festplatte zu prüfen, die der Agent meldet: Jede Festplatte, die den Schwellenwert überschreitet, erhält eine eigene Warnung, sodass eine zweite volllaufende Festplatte nicht hinter der offenen Warnung der ersten verborgen bleibt. Groß-/Kleinschreibung und ein abschließendes `/` oder `\` spielen keine Rolle, und ein Gerät steht für die Festplatte, die von ihm eingehängt ist. Ein Pfad, der keine vom Agent gemeldete Festplatte bezeichnet, trifft nicht zu. Kann der Agent die Prozesse des Servers nicht lesen, enthält sein Bericht keine Prozessliste, und kein Prozessfilter trifft zu, ob er prüft, dass ein Prozess läuft oder dass er nicht läuft.
 
 ### Über einen Zeitraum auswerten
 
@@ -262,16 +262,16 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 
 :::details Der Agent meldet nichts
 - Prüfen Sie, ob der Dienst läuft: `sudo oneuptime-infrastructure-agent status`.
-- Lesen Sie sein Protokoll: `sudo oneuptime-infrastructure-agent logs -n 50`. Eine Zeile `Metrics successfully pushed to OneUptime server` bedeutet, dass Berichte ankommen.
-- Der Agent prüft den geheimen Schlüssel beim Start und beendet sich, wenn OneUptime ihn ablehnt; er protokolliert dann `Secret key is invalid`. Vergleichen Sie den Schlüssel mit dem auf der Seite **Einstellungen** des Monitors unter **Geheimen Schlüssel für Server-Überwachung zurücksetzen**.
+- Lesen Sie sein Protokoll: `sudo oneuptime-infrastructure-agent logs -n 50`. Eine Zeile `Metrics successfully pushed to OneUptime server` bedeutet, dass OneUptime einen Bericht empfangen hat, nicht, dass es ihn angenommen hat: OneUptime antwortet, bevor es den geheimen Schlüssel prüft. Dass der Tab **Metriken** des Monitors den Server in Diagrammen darstellt, zeigt, dass es die Berichte angenommen hat.
+- Der Agent prüft den geheimen Schlüssel beim Start und beendet sich, wenn OneUptime ihn ablehnt; er protokolliert dann `Secret key is invalid`. Vergleichen Sie den Schlüssel mit dem auf der Seite **Einstellungen** des Monitors unter **Geheimen Schlüssel für Server-Überwachung zurücksetzen**. Solange OneUptime nicht erreichbar ist, protokolliert der Agent `The secret key could not be verified with OneUptime yet` und versucht es erneut.
 - Stellen Sie sicher, dass der Server Ihre OneUptime-URL über HTTPS erreicht und keine Firewall ausgehende Verbindungen blockiert.
 :::
 
 :::details `sudo` meldet, dass der Befehl nicht gefunden wird
-Die Pakete legen den Agent in den Systempfad, daher tritt dies nur beim Installationsskript auf. Das Installationsskript legt die Binärdatei in `$HOME/bin` des Benutzers ab, unter dem es lief, und gibt das verwendete Verzeichnis aus. Rufen Sie den Agent über seinen vollständigen Pfad auf, zum Beispiel `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. Um ihn stattdessen in ein Verzeichnis im Systempfad zu installieren, übergeben Sie dem Skript `-b`:
+Die Pakete legen den Agent in `/usr/bin`, das in jedem Pfad liegt. Mit `sudo` ausgeführt, legt das Installationsskript ihn in `/usr/local/bin` ab, das manche Systeme wie RHEL nicht in den Pfad von sudo aufnehmen: Dort gibt das Skript die Befehle mit dem vollständigen Pfad des Agents aus, `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`. Früher legte das Skript den Agent in `$HOME/bin` ab, unter `sudo` also in `/root/bin`: Rufen Sie einen damals installierten Agent über diesen vollständigen Pfad auf oder installieren Sie ihn erneut. Um den Agent stattdessen in ein Verzeichnis im Systempfad zu installieren, übergeben Sie dem Skript `-b`:
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 

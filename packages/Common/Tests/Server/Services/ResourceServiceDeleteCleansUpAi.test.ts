@@ -19,6 +19,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { getJestSpyOn } from "../../Spy";
 import { meetsCondition } from "../TestingUtils/QueryConditions";
@@ -167,11 +168,16 @@ interface Transition {
 
 describe("resource services' delete hooks clean up OneUptime AI state", () => {
   it("covers every resource type exactly once", () => {
+    // The cloud accounts' one service: CloudAccountServiceAiAccess.test.ts.
     expect(
       WIRING.map((wiring: ServiceWiring): AiResourceType => {
         return wiring.resourceType;
       }).sort(),
-    ).toEqual([...ALL_AI_RESOURCE_TYPES].sort());
+    ).toEqual(
+      ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+        return !isCloudAiResourceType(type);
+      }).sort(),
+    );
   });
 
   describe.each(WIRING)("$resourceType", (wiring: ServiceWiring) => {

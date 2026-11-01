@@ -1272,8 +1272,21 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(
         (inputOf(view, "incidentPageTargets")["hint"] as JSONObject)["text"],
       ).toBe(
-        "They are paged about this incident until somebody acknowledges it. A schedule pages whoever is on call in it now; a policy pages through its escalation rules.",
+        "They are paged about this incident until one of them answers. A schedule pages whoever is on call in it now; a policy pages through its escalation rules.",
       );
+
+      // The page's own message, optional: the incident says what it is about.
+      const message: JSONObject = inputOf(view, "incidentPageMessage");
+      expect(message["optional"]).toBe(true);
+      expect((message["label"] as JSONObject)["text"]).toBe("Message");
+      expect((message["hint"] as JSONObject)["text"]).toBe(
+        "The people you page see it with the incident.",
+      );
+      expect(elementOf(view, "incidentPageMessage")).toMatchObject({
+        type: "plain_text_input",
+        multiline: true,
+        max_length: 500,
+      });
     });
 
     test("Edit Custom Fields: each field as the input its type asks for, filled in with what the incident holds, all optional", async () => {
@@ -1513,6 +1526,56 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(textOf(said.data["blocks"])).toBe(
         `📟 Paged *Nawaz Dhandala* about ${RECORD_MRKDWN}\n`,
       );
+    });
+
+    test("Page Someone with a message: the page carries it as its own, and the answer quotes it", async () => {
+      const answer: RouteAnswer = await submit({
+        callbackId: "SubmitPageAboutIncident",
+        privateMetadata: severityMetadata(),
+        state: {
+          incidentPageTargets: multiSelect([
+            `${WorkspacePageTargetKind.Schedule}:${PRIMARY_SCHEDULE.toString()}`,
+          ]),
+          incidentPageMessage: textInput("  Can you check the\ndatabase?  "),
+        },
+      });
+
+      expect(answer.body).toEqual({ response_action: "clear" });
+      const said: SlackCall = await onlyAnswer();
+
+      // About the incident - no alert - with the message on one line.
+      expect(pages).toEqual([
+        {
+          targets: expect.objectContaining({
+            onCallScheduleIds: [PRIMARY_SCHEDULE],
+          }),
+          about: {
+            incidentId: INCIDENT_ID,
+            message: "Can you check the database?",
+          },
+          props: PROPS,
+        },
+      ]);
+      expect(textOf(said.data["blocks"])).toBe(
+        `📟 Paged *Nawaz Dhandala* about ${RECORD_MRKDWN}: “Can you check the database?”\n`,
+      );
+    });
+
+    test("Page Someone with a message of only spaces: no message at all", async () => {
+      await submit({
+        callbackId: "SubmitPageAboutIncident",
+        privateMetadata: severityMetadata(),
+        state: {
+          incidentPageTargets: multiSelect([
+            `${WorkspacePageTargetKind.Schedule}:${PRIMARY_SCHEDULE.toString()}`,
+          ]),
+          incidentPageMessage: textInput("   "),
+        },
+      });
+      await onlyAnswer();
+
+      expect(pages).toHaveLength(1);
+      expect(pages[0]!.about).toEqual({ incidentId: INCIDENT_ID });
     });
 
     test("Page Someone with nobody picked: said under the field, nobody paged", async () => {

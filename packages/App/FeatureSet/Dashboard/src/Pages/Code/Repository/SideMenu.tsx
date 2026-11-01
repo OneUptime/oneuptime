@@ -31,9 +31,9 @@ export interface ComponentProps {
  * and where its work is read - then its pull requests' production reviews,
  * its settings, its Developer pages and, apart, removing it.
  *
- * Production reviews are GitHub's (its App reviews each pull request): a
- * repository on GitLab, Forgejo, Gitea or a Git server has none, so its
- * menu does not offer them once it is known where it is hosted.
+ * Production reviews are every host's with pull requests - GitHub's,
+ * GitLab's, Forgejo's and Gitea's: a repository on a Git server has none,
+ * so its menu does not offer them once it is known where it is hosted.
  */
 const CodeRepositorySideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

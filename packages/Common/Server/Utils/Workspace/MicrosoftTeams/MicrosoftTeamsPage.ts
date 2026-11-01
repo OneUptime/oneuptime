@@ -30,6 +30,10 @@ import WorkspacePage, {
   WorkspacePagePlace,
   WorkspacePageTargetKind,
 } from "../WorkspacePage";
+import WorkspacePageAbout, {
+  WorkspacePageRecord,
+  WorkspacePageSubject,
+} from "../WorkspacePageAbout";
 import WorkspacePageTextReader, {
   WorkspacePagePerson,
   WorkspacePageText,
@@ -51,14 +55,21 @@ import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
  *
  *   @OneUptime page @Nawaz Dhandala The checkout API is throwing 500s
  *
+ * What the page is about is the channel's, as in Slack (WorkspacePageAbout):
+ * in an incident's or an alert's own channel, that incident or alert - the
+ * message is optional there - and anywhere else a new alert, whose title is
+ * the message.
+ *
  * The people the message @mentions, besides the bot, are paged at once when
- * OneUptime can tell them all and there is a message: the bot shows it is
- * working, then the page's card follows in the conversation, edited as it
- * goes. A tag @mentioned that follows on-call schedules pages them -
- * whoever is on call in them now - the same way. Anything else gets the Page someone card - who to page, picked from
- * the project's on-call schedules, people, teams and on-call policies, and
- * the message - with what was typed filled in. Submitted, it pages the same
- * way, as whoever submits it, and the card goes, so it is not sent twice.
+ * OneUptime can tell them all and there is a message where one is needed:
+ * the bot shows it is working, then the page's card follows in the
+ * conversation, edited as it goes. A tag @mentioned that follows on-call
+ * schedules pages them - whoever is on call in them now - the same way.
+ * Anything else gets the Page someone card - who to page, picked from the
+ * project's on-call schedules, people, teams and on-call policies, and the
+ * message - with what was typed filled in, opening with the incident it is
+ * about. Submitted, it pages the same way, as whoever submits it, and the
+ * card goes, so it is not sent twice.
  *
  * A person is told apart by their Microsoft Teams account: the OneUptime
  * account it is connected to, or else the member with its email address,
@@ -68,6 +79,11 @@ import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 // The fields of the Page someone card.
 export const MICROSOFT_TEAMS_PAGE_WHO_FIELD: string = "pageTargets";
 export const MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD: string = "pageMessage";
+/*
+ * What the card's page is about, in its Page button's data: the incident or
+ * the alert of the channel it was sent in (WorkspacePageAbout.toValue).
+ */
+export const MICROSOFT_TEAMS_PAGE_ABOUT_FIELD: string = "pageAbout";
 
 // A choice's kind, as a card with one list says it before its name.
 const CHOICE_PREFIXES: Record<WorkspacePageTargetKind, string> = {
@@ -119,7 +135,37 @@ export default class MicrosoftTeamsPage {
         },
       });
 
-    if (!props || !(await MicrosoftTeamsPage.mayPage(turnContext, props))) {
+    if (
+      !props ||
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayStartPage(props);
+      }))
+    ) {
+      return;
+    }
+
+    /*
+     * What the page is about: in an incident's or an alert's own channel,
+     * that record; anywhere else, something new (WorkspacePageAbout).
+     */
+    const about: WorkspacePageSubject | null =
+      await MicrosoftTeamsPage.readAbout({
+        turnContext: turnContext,
+        read: (): Promise<WorkspacePageSubject> => {
+          return WorkspacePageAbout.read({
+            projectId: projectId,
+            channelId: MicrosoftTeamsPage.getChannelId(activity),
+            props: props,
+          });
+        },
+      });
+
+    if (
+      !about ||
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayPage(props, about);
+      }))
+    ) {
       return;
     }
 
@@ -153,6 +199,7 @@ export default class MicrosoftTeamsPage {
         text: text,
         people: people,
         groups: groups,
+        about: about,
       })
     ) {
       await MicrosoftTeamsPage.sendForm({
@@ -162,6 +209,7 @@ export default class MicrosoftTeamsPage {
         text: text,
         people: people,
         groups: groups,
+        about: about,
       });
       return;
     }
@@ -173,7 +221,43 @@ export default class MicrosoftTeamsPage {
       props: props,
       targets: WorkspacePage.getTargets({ people: people, groups: groups }),
       message: text.message,
+      about: about,
     });
+  }
+
+  /*
+   * What a page is about, read as the member (`read`); null - and they are
+   * told why, in the conversation - when the channel is a record's own that
+   * they may not read: the page there would be about it, and nothing is
+   * paged.
+   */
+  private static async readAbout(data: {
+    turnContext: TurnContext;
+    read: () => Promise<WorkspacePageSubject>;
+  }): Promise<WorkspacePageSubject | null> {
+    try {
+      return await data.read();
+    } catch (err) {
+      if (
+        !(err instanceof NotAuthorizedException) &&
+        !(err instanceof PaymentRequiredException)
+      ) {
+        throw err;
+      }
+
+      await MicrosoftTeamsPage.replyText(data.turnContext, err.message);
+
+      return null;
+    }
+  }
+
+  // The Teams channel a message was sent in; empty in a chat.
+  public static getChannelId(activity: JSONObject): string {
+    const channel: JSONObject | undefined = (
+      activity["channelData"] as JSONObject | undefined
+    )?.["channel"] as JSONObject | undefined;
+
+    return typeof channel?.["id"] === "string" ? (channel["id"] as string) : "";
   }
 
   /*
@@ -190,7 +274,11 @@ export default class MicrosoftTeamsPage {
   }): Promise<void> {
     const { turnContext, value, projectId, databaseProps } = data;
 
-    if (!(await MicrosoftTeamsPage.mayPage(turnContext, databaseProps))) {
+    if (
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayStartPage(databaseProps);
+      }))
+    ) {
       return;
     }
 
@@ -202,12 +290,26 @@ export default class MicrosoftTeamsPage {
         ? (value[MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD] as string)
         : "";
 
+    /*
+     * A card about an incident or an alert carries it, and its message is
+     * optional. Whoever submits it - anyone in the conversation can - must
+     * read the record themselves: it is read again, as them, below.
+     */
+    const aboutValue: string =
+      typeof value[MICROSOFT_TEAMS_PAGE_ABOUT_FIELD] === "string"
+        ? (value[MICROSOFT_TEAMS_PAGE_ABOUT_FIELD] as string)
+        : "";
+    const isAboutRecord: boolean = Boolean(
+      WorkspacePageAbout.parseValue(aboutValue),
+    );
+
     const problems: {
       who?: string | undefined;
       message?: string | undefined;
     } | null = WorkspacePage.getFormProblems({
       values: picked,
       message: message,
+      isMessageRequired: !isAboutRecord,
     });
 
     if (problems) {
@@ -224,6 +326,38 @@ export default class MicrosoftTeamsPage {
       return;
     }
 
+    const about: WorkspacePageSubject | null =
+      await MicrosoftTeamsPage.readAbout({
+        turnContext: turnContext,
+        read: (): Promise<WorkspacePageSubject> => {
+          return WorkspacePageAbout.readValue({
+            value: aboutValue,
+            props: databaseProps,
+          });
+        },
+      });
+
+    if (!about) {
+      return;
+    }
+
+    // Resolved since the card was sent: nothing is left to page about.
+    if (isAboutRecord && !about.record) {
+      await MicrosoftTeamsPage.replyText(
+        turnContext,
+        WorkspacePage.getResolvedSinceMessage(about),
+      );
+      return;
+    }
+
+    if (
+      !(await MicrosoftTeamsPage.mayPage(turnContext, () => {
+        return WorkspacePage.assertMayPage(databaseProps, about);
+      }))
+    ) {
+      return;
+    }
+
     const isPaged: boolean = await MicrosoftTeamsPage.pageAndAnswer({
       turnContext: turnContext,
       activity: turnContext.activity as unknown as JSONObject,
@@ -231,6 +365,7 @@ export default class MicrosoftTeamsPage {
       props: databaseProps,
       targets: WorkspacePage.readTargets(picked),
       message: message,
+      about: about,
     });
 
     // The card that paged goes, so nobody pages with it twice.
@@ -368,9 +503,12 @@ export default class MicrosoftTeamsPage {
     choices: Array<WorkspacePageChoiceGroup>;
     prefill: WorkspacePageFormPrefill;
     budgetInBytes: number;
+    // What the page is about: something new when left out.
+    about?: WorkspacePageSubject | undefined;
   }): JSONObject {
     const lists: Record<string, MicrosoftTeamsCardChoiceList> = {};
     const keys: Array<string> = [];
+    const record: WorkspacePageRecord | null = data.about?.record || null;
 
     for (const group of data.choices) {
       keys.push(group.kind);
@@ -415,6 +553,20 @@ export default class MicrosoftTeamsPage {
             weight: "Bolder",
           },
         ];
+
+        /*
+         * The incident or the alert it pages about, the way an incident's
+         * own cards name it: "🚨 **INC-42** Checkout is down". Its title is
+         * text, placed with mdText.
+         */
+        if (record) {
+          body.push({
+            type: "TextBlock",
+            text: WorkspacePageAbout.getHeading(record).toString(),
+            wrap: true,
+            spacing: "Small",
+          });
+        }
 
         /*
          * In the card's own text colour: Teams draws "Warning" text as
@@ -475,14 +627,22 @@ export default class MicrosoftTeamsPage {
           );
         }
 
+        /*
+         * About an incident or an alert, the record says what the page is
+         * about: the message is optional, the page's own.
+         */
         body.push({
           type: "Input.Text",
           id: MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD,
           label: WORKSPACE_PAGE_FORM_TEXT.messageLabel,
           placeholder: WORKSPACE_PAGE_FORM_TEXT.messagePlaceholder,
           isMultiline: true,
-          isRequired: true,
-          errorMessage: WORKSPACE_PAGE_FORM_TEXT.writeMessage,
+          ...(record
+            ? {}
+            : {
+                isRequired: true,
+                errorMessage: WORKSPACE_PAGE_FORM_TEXT.writeMessage,
+              }),
           maxLength: MAX_MESSAGE_LENGTH,
           ...(data.prefill.message
             ? { value: data.prefill.message.substring(0, MAX_MESSAGE_LENGTH) }
@@ -491,7 +651,7 @@ export default class MicrosoftTeamsPage {
 
         body.push(
           MicrosoftTeamsCardChoices.buildNoteElement(
-            WORKSPACE_PAGE_FORM_TEXT.messageHint,
+            WorkspacePage.getMessageHint(data.about),
           ),
         );
 
@@ -507,6 +667,13 @@ export default class MicrosoftTeamsPage {
               style: "positive",
               data: {
                 action: MicrosoftTeamsPageActionType.SubmitPageSomeone,
+                // What it pages about, read again as whoever submits it.
+                ...(record && data.about
+                  ? {
+                      [MICROSOFT_TEAMS_PAGE_ABOUT_FIELD]:
+                        WorkspacePageAbout.toValue(data.about),
+                    }
+                  : {}),
               },
             },
           ],
@@ -672,15 +839,18 @@ export default class MicrosoftTeamsPage {
   }
 
   /*
-   * Whether the member may page; told why not, in the conversation, when
-   * they may not.
+   * Whether the member may page, as `check` asks: start an on-call run
+   * (WorkspacePage.assertMayStartPage), before what the page is about is
+   * read, then all a page about it asks (WorkspacePage.assertMayPage) - one
+   * about something new creates an alert. Told why not, in the
+   * conversation, when they may not.
    */
   private static async mayPage(
     turnContext: TurnContext,
-    props: DatabaseCommonInteractionProps,
+    check: () => Promise<void>,
   ): Promise<boolean> {
     try {
-      await WorkspacePage.assertMayPage(props);
+      await check();
       return true;
     } catch (err) {
       if (!(err instanceof NotAuthorizedException)) {
@@ -712,6 +882,7 @@ export default class MicrosoftTeamsPage {
     props: DatabaseCommonInteractionProps;
     targets: OnCallPageTargets;
     message: string;
+    about: WorkspacePageSubject;
   }): Promise<boolean> {
     // Paging takes a moment: Teams shows the bot is on it ("typing").
     await MicrosoftTeamsReplies.sendBestEffort(data.turnContext, {
@@ -727,6 +898,7 @@ export default class MicrosoftTeamsPage {
         workspaceType: WorkspaceType.MicrosoftTeams,
         targets: data.targets,
         message: data.message.substring(0, MAX_MESSAGE_LENGTH),
+        about: data.about,
         place: await MicrosoftTeamsPage.getPlace({
           turnContext: data.turnContext,
           activity: data.activity,
@@ -772,6 +944,7 @@ export default class MicrosoftTeamsPage {
     text: WorkspacePageText;
     people: WorkspacePagePeople;
     groups: WorkspacePageGroups;
+    about: WorkspacePageSubject;
   }): Promise<void> {
     let choices: Array<WorkspacePageChoiceGroup>;
 
@@ -820,6 +993,7 @@ export default class MicrosoftTeamsPage {
             choices: choices,
             prefill: prefill,
             budgetInBytes: budgetInBytes,
+            about: data.about,
           });
         },
       });

@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Uma exceção por serviço e erro.** A impressão digital é calculada a partir do serviço, do tipo de exceção, da mensagem e do stack trace. Antes, saem os valores que mudam de uma chamada para outra: UUIDs e outros IDs, timestamps, endereços IP e de e-mail, e números com sete ou mais dígitos. Assim, `Order id=1042 not found` e `Order id=2077 not found` são uma única exceção.
-- **Uma nova ocorrência reabre uma exceção resolvida.** Se ela acontecer de novo depois que você a resolveu, a correção não se sustentou.
+- **Uma nova ocorrência reabre uma exceção resolvida.** Se ela acontecer de novo depois que você a resolveu, a correção não se sustentou, e a exceção é marcada como **Regressão**. Uma ocorrência anterior à resolução que só chega ao OneUptime depois não a reabre.
 - **Uma exceção arquivada continua arquivada.** As novas ocorrências dela continuam sendo contadas, mas deixam de gerar notificações.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Acesse **Produtos → Observabilidade → Exceções**. O selo da aba **Exceçõ
 
 ### Escolher um status
 
-Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gráfico acima da lista mostra quantas ocorrências foram **Não tratado** e quantas **Tratado** ao longo do tempo.
+Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gráfico acima da lista mostra quantas ocorrências foram **Não tratado** e quantas **Tratado** ao longo do tempo. Uma linha marcada como **Regressão** voltou depois de ser resolvida, e uma marcada como **Novo** foi vista pela primeira vez nas últimas 24 horas.
 
 ### Escolher o que conta como problema
 
@@ -58,7 +58,7 @@ Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gr
 
 ### Pesquisar e filtrar
 
-Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**.
+Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**. **Atribuídas a mim** mostra só as exceções atribuídas a você, e o menu de ordenação ordena a lista por **Visto pela última vez**, **Visto pela primeira vez** ou **Mais eventos**.
 
 ### Abrir uma exceção
 
@@ -71,7 +71,7 @@ O menu lateral da página agrupa o que você faz com uma exceção:
 
 | Página | O que mostra |
 | --- | --- |
-| **Visão geral** | A mensagem, o serviço, quantas vezes ela aconteceu e quando foi vista pela primeira e pela última vez, a tendência ao longo do tempo e a ocorrência mais recente: release, ambiente, span, traço e sessão do usuário. |
+| **Visão geral** | A mensagem, o serviço, quantas vezes ela aconteceu e quando foi vista pela primeira e pela última vez, a tendência ao longo do tempo e a ocorrência mais recente: release, ambiente, span, traço e sessão do usuário. No topo, a explicação da OneUptime AI sobre o que aconteceu, quando a IA está ligada. |
 | **Stack trace** | Os frames da pilha. Para código de navegador, os arquivos e as linhas originais, depois que você enviar os [Source maps](/docs/telemetry/source-maps) da release. |
 | **Occurrences** | Cada ocorrência, com a hora, a mensagem e o traço em que aconteceu. |
 | **Context** | Os atributos da ocorrência mais recente, a gravação da sessão quando houver uma, e as etapas que levaram a ela. |
@@ -86,13 +86,18 @@ Os botões no topo da página da exceção, a página **Configurações** dela e
 | Ação | Quando usar | O que acontece depois |
 | --- | --- | --- |
 | **Resolver** | Você implantou a correção. | Ela sai da lista **Não resolvido**. Uma nova ocorrência a reabre. |
+| **Resolver na próxima versão** | A correção sai na sua próxima versão. | Ela sai da lista **Não resolvido**. Ocorrências da versão em que foi vista por último não a reabrem, e uma de qualquer outra versão a reabre. |
 | **Reabrir** | A correção não funcionou. | Ela volta a estar não resolvida. |
 | **Arquivar** | É ruído que você não pretende corrigir. | Ela sai da lista. As novas ocorrências são contadas, mas deixam de gerar notificações. |
 | **Desarquivar** | Você quer voltar a ouvir falar dela. | Ela volta para a lista a que pertence. |
 
+**Resolver na próxima versão** fica no menu ao lado de **Resolver**, no menu ⋯ da linha, em **Ações em massa** e em **Configurações**, enquanto as ocorrências da exceção informarem sua versão: o atributo de recurso `service.version`.
+
 **Configurações** mostra quem resolveu ou arquivou a exceção por último, e quando. Os botões dela dizem **Marcar como resolvido** ou **Marcar como não resolvido**, e **Arquivar** ou **Desarquivar**.
 
 Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima das linhas para todas as exceções da página, e use as mesmas ações em **Ações em massa**. O resultado diz quais exceções mudaram, quais ficaram como estavam e por quê.
+
+**Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez.
 
 ## Classes de erro
 
@@ -108,6 +113,22 @@ Cada exceção tem uma classe de erro, que diz de quem é o problema. O OneUptim
 
 Com **Arquivar exceções esperadas** ativado, nas configurações dos insights de IA, as exceções que a triagem identifica como negações esperadas são arquivadas por você.
 
+## Explicar com IA
+
+No topo da **Visão geral** de uma exceção, **Explicar com OneUptime AI** pergunta à OneUptime AI o que deu errado. Ela lê o stack trace, o traço e os registros da ocorrência mais recente, e os deploys do serviço por volta do momento em que a exceção começou, e responde no cartão **O que aconteceu**:
+
+| Parte | O que diz |
+| --- | --- |
+| **O que aconteceu** | Uma ou duas frases, quão segura a OneUptime AI está e onde está a falha: o código, uma dependência, a infraestrutura, uma entrada inválida ou a configuração. |
+| **Causa raiz provável** | A causa, e o frame, o span, a linha de log ou o deploy que a mostra. |
+| **Correção sugerida** | O que mudar. |
+| **Onde olhar** | Os frames do stack trace a abrir primeiro. |
+| **Próximos passos** | No máximo três passos para confirmá-la ou corrigi-la. |
+
+A explicação fica guardada na exceção, então a próxima pessoa que a abre já a lê, e **Explicar novamente** pede uma nova. **Abrir uma pull request com a correção** abre a página **AI Assistance** da exceção, e **Fazer uma pergunta de acompanhamento** abre o Ask AI sobre a exceção.
+
+IDs, endereços de e-mail e IP e tokens são retirados de tudo o que é enviado, e dos atributos de um span só alguns são enviados, como a rota e o código de status. A explicação usa o provedor de LLM e os créditos de IA do projeto, e não é oferecida enquanto **Habilitar IA** estiver desligado. Qualquer pessoa que possa ler a exceção pode pedir uma.
+
 ## Corrigir com IA
 
 A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa de IA que abre um pull request no seu repositório de código:
@@ -118,7 +139,7 @@ A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa
 | **Generate Regression Test** | Adiciona um teste que falha até o bug ser corrigido. |
 | **Melhorar o tratamento de erros** | Para erros esperados: valida a entrada mais cedo, mantém os dados do usuário fora das mensagens e marca o erro como tratado. |
 
-Antes, a IA precisa de três coisas: um provedor de LLM, um repositório conectado (no GitHub, GitLab, Forgejo ou Gitea, ou em qualquer servidor Git) e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent).
+Antes, a IA precisa de três coisas: um provedor de LLM, um repositório conectado (no GitHub, GitLab, Forgejo ou Gitea, ou em qualquer servidor Git) e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent). Iniciar uma tarefa exige permissão para editar o repositório em que ela trabalha: quem só pode ler a exceção vê as tarefas dela, mas não pode iniciar nenhuma.
 
 ## Encontrar e corrigir exceções novas ou em alta com IA
 
@@ -162,6 +183,8 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 
 A aba **Insights** conta suas exceções **Não resolvido**, **Resolvido** e **Arquivado** e sua taxa de resolução, e lista as exceções mais frequentes, os serviços que elas afetam e as vistas mais recentemente.
 
+**Novidades**, no topo da aba, pede à OneUptime AI, com **Resumir com a OneUptime AI**, que resuma as exceções vistas pela primeira vez nas últimas 24 horas e as que voltaram depois de resolvidas: algumas frases sobre todas, depois cada uma em uma linha, a mais urgente primeiro, com um link para a exceção. O resumo é escrito quando você pede e não é guardado, usa os créditos de IA do projeto e não é oferecido enquanto **Habilitar IA** está desligado.
+
 ## Solução de problemas
 
 :::details Uma exceção que acabei de lançar não está na lista
@@ -173,7 +196,7 @@ A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por
 :::
 
 :::details Uma exceção resolvida sempre volta
-Uma nova ocorrência reabre uma exceção resolvida de propósito: o erro ainda acontece. Verifique se a correção chegou à release que a informa, ou arquive a exceção se não quiser mais ouvir falar dela.
+Uma nova ocorrência reabre uma exceção resolvida de propósito: o erro ainda acontece. Verifique se a correção chegou à release que a informa, ou arquive a exceção se não quiser mais ouvir falar dela. Se pods antigos da versão continuarem a informá-la durante um rollout, use **Resolver na próxima versão**.
 :::
 
 ## Próximos passos

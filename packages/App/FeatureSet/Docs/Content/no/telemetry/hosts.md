@@ -32,7 +32,7 @@ Hver vert kjører én konfigurasjon, valgt i denne rekkefølgen:
 | Den første av **Innsamlerkonfigurasjoner** som gjelder for den | En konfigurasjon gjelder når den er for vertens system og, hvis den nevner etiketter, verten har en av dem. |
 | OneUptimes standard for systemet | Ingen konfigurasjon gjelder. |
 
-OneUptimes standard leser CPU, minne, disker, filsystemer, nettverk og prosesser på alle systemer; journalen og systemd-enheter på Linux, der verten har dem; hendelsesloggene System, Application og Security og Windows-tjenester på Windows; og installasjons- og Wi-Fi-loggene i `/var/log` på macOS. Den følger OneUptimes utgivelser, så en vert på standarden får OneUptimes forbedringer av den.
+OneUptimes standard leser CPU, minne, disker, filsystemer, nettverk og prosesser på alle systemer; journalen og systemd-enheter på Linux, der verten har dem; hendelsesloggene System, Application og Security og Windows-tjenester på Windows; og installasjons- og Wi-Fi-loggene i `/var/log` på macOS. Den utelater filsystemene som er fulle med vilje, som snap-pakker og `/dev` på macOS, så de aldri får malen High Filesystem Usage til å fortsette å utløses. Den følger OneUptimes utgivelser, så en vert på standarden får OneUptimes forbedringer av den.
 
 ## Før du begynner
 

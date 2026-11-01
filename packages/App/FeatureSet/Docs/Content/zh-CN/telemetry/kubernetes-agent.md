@@ -452,16 +452,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 启用控制平面监控
 
-集群的 **控制平面** 页面绘制 etcd、API 服务器、调度器和控制器管理器的图表。当 `controlPlane.enabled` 为 `true` 时，代理会抓取这四者：
-
-```bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent \
-  --reset-then-reuse-values \
-  --set controlPlane.enabled=true
-```
-
-每个组件都在其自身列表中的地址上被抓取：`controlPlane.etcd.endpoints`、`controlPlane.apiServer.endpoints`、`controlPlane.scheduler.endpoints` 和 `controlPlane.controllerManager.endpoints`。抓取在代理的 Pod 中运行，而该 Pod 没有主机网络，因此默认值（`https://localhost:<port>/metrics`）指向的是该 Pod 本身：请把每个列表设置为该 Pod 能够访问的地址。在任何集群内部，API 服务器都会在 `https://kubernetes.default.svc:443/metrics` 上响应：
+集群的 **控制平面** 页面绘制 etcd、API 服务器、调度器和控制器管理器的图表。开启 `controlPlane.enabled` 后，代理会在任何集群内部 API 服务器应答的地址 `https://kubernetes.default.svc:443/metrics` 上，用其服务账号的令牌读取 API 服务器：
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -471,12 +462,31 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
 
-`controlPlane.enabled` 会一次性开启全部四项抓取。如果某个组件无法通过其端点访问（托管集群上的 etcd、调度器和控制器管理器，或者仍使用其 `localhost` 默认值时），它的抓取在每个间隔都会失败：Collector 会记录一个抓取错误并将目标报告为宕机，除此之外没有任何变化。
+该地址是 chart 中 `controlPlane.apiServer.endpoints` 的默认值；再显式设置一次，还能让保留了旧版 chart 的 `localhost` 默认值的 Helm 发布也随之切换。
 
-代理只通过 HTTPS 抓取，使用服务账号的令牌，不使用客户端证书。因此：
+etcd、调度器和控制器管理器运行在控制平面节点上，而抓取在代理的 Pod 中运行，该 Pod 没有主机网络：那里的 `localhost` 就是该 Pod 本身。因此，在你列出每个节点的地址之前，`controlPlane.etcd.endpoints`、`controlPlane.scheduler.endpoints` 和 `controlPlane.controllerManager.endpoints` 都是空的，没有端点的组件不会被抓取：
 
-- **etcd** 需要一个不要求客户端证书的 HTTPS 指标地址。etcd 常用的指标端口都无法使用：`2381` 上的明文 HTTP（kubeadm 的 `--listen-metrics-urls`）会被当作 HTTPS 抓取而失败，而 `2379` 需要客户端证书。
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.scheduler.endpoints={https://10.0.0.10:10259/metrics}" \
+  --set "controlPlane.controllerManager.endpoints={https://10.0.0.10:10257/metrics}" \
+  --set "controlPlane.etcd.endpoints={http://10.0.0.10:2381/metrics}"
+```
+
+端点通过 HTTPS、使用服务账号的令牌抓取，除非它以 `http://` 开头，这时会以明文 HTTP 抓取；同一组件的端点共用一种协议。如果某个组件无法通过其端点访问，它的抓取在每个间隔都会失败：Collector 会记录一个抓取错误并将目标报告为宕机，除此之外没有任何变化。
+
 - **调度器**（`10259`）和 **控制器管理器**（`10257`）提供 HTTPS 并接受令牌，但 kubeadm 在控制平面节点上把它们绑定到 `127.0.0.1`：它们需要一个代理的 Pod 能够访问的 `--bind-address`。
+- **etcd** 在 `2381` 上以明文 HTTP 提供指标（kubeadm 的 `--listen-metrics-urls`，在你加入节点地址之前绑定在 `127.0.0.1`），如上所示。它的客户端端口 `2379` 提供 HTTPS 并要求客户端证书：把证书放进代理命名空间中的一个 Secret，键为 `ca.crt`、`tls.crt` 和 `tls.key`，并在 `controlPlane.etcd.clientCertSecret` 中填写它。在 kubeadm 控制平面节点上，可以使用健康检查客户端的证书：
+
+```bash
+kubectl -n oneuptime-agent create secret generic etcd-client-cert \
+  --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+  --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+  --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+```
 
 托管 Kubernetes 服务（EKS、GKE、AKS）不暴露 etcd、调度器或控制器管理器，因此这些选项卡在那里保持为空。在某个选项卡的指标到达之前，**控制平面** 页面会显示需要设置的内容来代替图表，并附上可复制的命令。
 
@@ -823,7 +833,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-这只会停止 Pod 日志。节点、Pod 和容器指标会继续传送，基于它们的监视器（OOM kill、CPU 限流、PVC 磁盘不足）也会继续工作：节点 Collector 仍然保留，只是不再读取 `/var/log/pods`。`logs.mode: api` 和 `logs.mode: disabled` 也是如此。
+这只会停止 Pod 日志。节点、Pod 和容器指标会继续传送，基于它们的监视器（崩溃循环、未就绪的节点、触及限制的 Pod、节点磁盘已满）也会继续工作：节点 Collector 仍然保留，只是不再读取 `/var/log/pods`。`logs.mode: api` 和 `logs.mode: disabled` 也是如此。
 
 ### 精简 eBPF 自动插桩
 
@@ -877,7 +887,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 基数，即不同序列的数量，与频率同样重要，因为每个序列都会单独存储和计费。
 
-- cAdvisor 有意采用允许列表。cAdvisor 接收器（默认开启）可以发出数百个指标；chart 只转发监视器使用的少数几个（`cadvisor.metricsAllowlist`）。请保持列表简短：每个条目都按容器保存，因此多一个指标就会乘以集群的容器数量。kube-state-metrics 默认关闭；如果你开启它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也以同样的方式工作。
+- cAdvisor 有意采用允许列表。cAdvisor 接收器（默认开启）可以发出数百个指标；chart 只转发 `cadvisor.metricsAllowlist` 中的 CPU 限流和 OOM kill 计数器，供你自己的图表和指标监视器使用：没有内置模板读取它们。请保持列表简短：每个条目都按容器保存，因此多一个指标就会乘以集群的容器数量。kube-state-metrics 默认关闭；如果你开启它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也以同样的方式工作，并且每个条目都必须与指标的完整名称匹配。
 - 每个 PVC 的卷指标（`kubeletstats.volumeMetrics.enabled`，默认开启）会为每个 Pod 的每个 PVC 发出一个序列：对大多数集群来说没问题，但在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上会很多。如果你不监视 PVC 磁盘空间，请在那里用 `--set kubeletstats.volumeMetrics.enabled=false` 关闭它们。
 - 饱和度指标（`kubeletstats.utilizationMetrics.enabled`，默认开启）会增加 8 个派生的“占 request 或 limit 的 %”指标族。它们不需要额外的抓取，但如果你不使用针对 limit 的 CPU 和内存监视器，请用 `--set kubeletstats.utilizationMetrics.enabled=false` 丢弃它们。
 - 对于接收器允许列表无法表达的内容，用作用于所有接收器的 `filters.metrics.exclude` 按名称丢弃指标（见 [按名称包含或排除指标](#按名称包含或排除指标)）：
@@ -977,7 +987,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 按需进一步收紧：把 `minSeverity` 提高到 `ERROR`，把 `metrics` 加入命名空间规则的作用域，或者如果你已经通过 OpenTelemetry SDK 发送追踪，就设置 `ebpf.enabled=false`。
 
 > [!CAUTION]
-> 注意你削减的内容。有些监视器依赖特定的信号：关闭 `cadvisor` 会移除 OOM kill 和 CPU 限流监视器，关闭 `kubeletstats.volumeMetrics` 会移除 PVC 磁盘不足监视器，关闭日志会移除基于日志的警报。`sampling.traces.percentage` 不会移除任何监视器，但会按比例缩小基于 Span 的监视器（针对 `Span Count` 的 **追踪**、针对 `Exception Count` 的 **异常**），因此请重新调整它们的阈值。削减你不会据此采取行动的信号，而不是监视器正在监视的信号。
+> 注意你削减的内容。有些监视器依赖特定的信号：关闭 `kubeletstats.utilizationMetrics` 会让两个按容器限制衡量 Pod 的模板失效，关闭日志会移除基于日志的警报，关闭 `cadvisor` 或 `kubeletstats.volumeMetrics` 会移除你自己的图表和指标监视器可能读取的限流、OOM kill 和 PVC 序列。`sampling.traces.percentage` 不会移除任何监视器，但会按比例缩小基于 Span 的监视器（针对 `Span Count` 的 **追踪**、针对 `Exception Count` 的 **异常**），因此请重新调整它们的阈值。削减你不会据此采取行动的信号，而不是监视器正在监视的信号。
 
 ### 衡量效果
 
@@ -1073,7 +1083,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## 后续步骤
 
 :::cards
-- [Kubernetes 监控](/docs/monitor/kubernetes-monitor): 针对崩溃循环、OOM kill、CPU 限流和磁盘已满发出警报。
+- [Kubernetes 监控](/docs/monitor/kubernetes-monitor): 针对崩溃循环、未就绪的节点、触及限制的 Pod 和节点磁盘已满发出警报。
 - [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost): 查看每个工作负载的成本，以及应缩减哪些 request。
 - [数据库](/docs/telemetry/databases): 集群中的数据库工作负载会被发现，并拥有自己的页面。
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 监视 Kubernetes 之外的 Linux、macOS 和 Windows 机器。

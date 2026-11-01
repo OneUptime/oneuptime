@@ -1,7 +1,8 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
+import Tooltip from "../../Tooltip/Tooltip";
 import IconProp from "../../../../Types/Icon/IconProp";
 import { FacetValueState } from "../FacetSelection";
 import {
@@ -51,6 +52,14 @@ export interface TelemetryFacetValueRowProps {
    * it; a click on the chosen one does nothing - there is no "none".
    */
   isRadio?: boolean | undefined;
+  /*
+   * What the value is, in one plain sentence (English, drawn in the reader's
+   * language; FacetConfig.valueDescriptionMap) - the Span Type's "Where a
+   * trace starts." for Root spans. The row says it on hover and keyboard
+   * focus, beside the row, and a screen reader hears it as the row's
+   * description.
+   */
+  description?: string | undefined;
   // A value that is not filtering was clicked: keep only its rows.
   onInclude: (value: string) => void;
   /*
@@ -80,11 +89,20 @@ export interface TelemetryFacetValueRowProps {
  * The row spends its width on the value's name: the count is shortened
  * (2.4M, its full figure on hover), and the exclude button takes the count's
  * place while the row is hovered rather than keeping a column of its own.
+ *
+ * A described value (the Span Type's Root spans: "Where a trace starts.")
+ * says what it is beside the row on hover and keyboard focus - a focus a
+ * click moved there shows nothing the hover has not - and to a screen
+ * reader as the row's description. Its sentence then takes the place of the
+ * row's own hover text, so two tooltips never show at once.
  */
 const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
   props: TelemetryFacetValueRowProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const descriptionId: string = useId();
+  const description: string | undefined =
+    (props.description || "").trim() || undefined;
   const barWidth: number =
     props.maxCount > 0
       ? Math.max(4, Math.round((props.count / props.maxCount) * 100))
@@ -148,6 +166,104 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
   const isShortened: boolean = isFacetCountShortened(props.count);
   const exactCount: string = formatExactFacetCount(props.count);
 
+  const control: ReactElement = (
+    <button
+      type="button"
+      role={isRadio ? "radio" : "checkbox"}
+      /*
+       * Checked keeps only this value; mixed is the third state, an
+       * excluded value, and a press clears either. A radio is chosen or
+       * not.
+       */
+      aria-checked={
+        isIncluded ? "true" : isExcluded && !isRadio ? "mixed" : "false"
+      }
+      aria-disabled={isLocked ? true : undefined}
+      aria-describedby={description ? descriptionId : undefined}
+      className={`flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-0.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        isLocked
+          ? "cursor-default bg-gray-50 ring-1 ring-gray-200"
+          : isIncluded
+            ? "bg-indigo-50 ring-1 ring-indigo-200 hover:bg-indigo-100"
+            : isExcluded
+              ? "bg-red-50 ring-1 ring-red-200 hover:bg-red-100"
+              : "hover:bg-gray-50"
+      }`}
+      onClick={() => {
+        if (isLocked) {
+          return;
+        }
+
+        if (isRadio) {
+          // Choosing the chosen value again changes nothing.
+          if (!isIncluded) {
+            props.onInclude(props.value);
+          }
+          return;
+        }
+
+        if (isFiltering) {
+          props.onClear(props.value);
+          return;
+        }
+
+        props.onInclude(props.value);
+      }}
+      title={description ? undefined : title}
+    >
+      {isRadio ? (
+        <span
+          className={`flex h-3.5 w-3.5 flex-none items-center justify-center rounded-full border ${
+            isIncluded ? "border-indigo-500 bg-indigo-500" : "border-gray-300"
+          }`}
+        >
+          {isIncluded && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+        </span>
+      ) : isLocked ? (
+        /*
+         * The grey of the page's own locked chips, with their lock: set
+         * by the page, not by the reader.
+         */
+        <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded border border-gray-300 bg-gray-100">
+          <Icon icon={IconProp.Lock} className="h-2.5 w-2.5 text-gray-500" />
+        </span>
+      ) : isIncluded ? (
+        <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded bg-indigo-500">
+          <Icon icon={IconProp.Check} className="h-2.5 w-2.5 text-white" />
+        </span>
+      ) : isExcluded ? (
+        <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded bg-red-500">
+          <Icon icon={IconProp.Minus} className="h-2.5 w-2.5 text-white" />
+        </span>
+      ) : props.color ? (
+        <span
+          className="h-2.5 w-2.5 flex-none rounded-full"
+          style={{ backgroundColor: props.color }}
+        />
+      ) : (
+        <span className="h-2.5 w-2.5 flex-none rounded-full bg-gray-300" />
+      )}
+      <span
+        className={`min-w-0 truncate text-[12px] ${
+          isLocked
+            ? "font-medium text-gray-700"
+            : isIncluded
+              ? "font-medium text-indigo-700"
+              : isExcluded
+                ? "font-medium text-red-700 line-through"
+                : isZeroCount
+                  ? "text-gray-400"
+                  : "text-gray-700"
+        }`}
+      >
+        {displayLabel}
+      </span>
+      {isExcluded && (
+        <span className="sr-only">{translator.translateText("Excluded")}</span>
+      )}
+    </button>
+  );
+
   return (
     <div
       className="group/row group relative flex items-center gap-2 py-0.5"
@@ -155,104 +271,27 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
       data-value={props.value}
       data-state={state}
     >
-      <button
-        type="button"
-        role={isRadio ? "radio" : "checkbox"}
-        /*
-         * Checked keeps only this value; mixed is the third state, an
-         * excluded value, and a press clears either. A radio is chosen or
-         * not.
-         */
-        aria-checked={
-          isIncluded ? "true" : isExcluded && !isRadio ? "mixed" : "false"
-        }
-        aria-disabled={isLocked ? true : undefined}
-        className={`flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-0.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-          isLocked
-            ? "cursor-default bg-gray-50 ring-1 ring-gray-200"
-            : isIncluded
-              ? "bg-indigo-50 ring-1 ring-indigo-200 hover:bg-indigo-100"
-              : isExcluded
-                ? "bg-red-50 ring-1 ring-red-200 hover:bg-red-100"
-                : "hover:bg-gray-50"
-        }`}
-        onClick={() => {
-          if (isLocked) {
-            return;
-          }
-
-          if (isRadio) {
-            // Choosing the chosen value again changes nothing.
-            if (!isIncluded) {
-              props.onInclude(props.value);
-            }
-            return;
-          }
-
-          if (isFiltering) {
-            props.onClear(props.value);
-            return;
-          }
-
-          props.onInclude(props.value);
-        }}
-        title={title}
-      >
-        {isRadio ? (
-          <span
-            className={`flex h-3.5 w-3.5 flex-none items-center justify-center rounded-full border ${
-              isIncluded ? "border-indigo-500 bg-indigo-500" : "border-gray-300"
-            }`}
-          >
-            {isIncluded && (
-              <span className="h-1.5 w-1.5 rounded-full bg-white" />
-            )}
-          </span>
-        ) : isLocked ? (
-          /*
-           * The grey of the page's own locked chips, with their lock: set
-           * by the page, not by the reader.
-           */
-          <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded border border-gray-300 bg-gray-100">
-            <Icon icon={IconProp.Lock} className="h-2.5 w-2.5 text-gray-500" />
-          </span>
-        ) : isIncluded ? (
-          <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded bg-indigo-500">
-            <Icon icon={IconProp.Check} className="h-2.5 w-2.5 text-white" />
-          </span>
-        ) : isExcluded ? (
-          <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded bg-red-500">
-            <Icon icon={IconProp.Minus} className="h-2.5 w-2.5 text-white" />
-          </span>
-        ) : props.color ? (
-          <span
-            className="h-2.5 w-2.5 flex-none rounded-full"
-            style={{ backgroundColor: props.color }}
-          />
-        ) : (
-          <span className="h-2.5 w-2.5 flex-none rounded-full bg-gray-300" />
-        )}
-        <span
-          className={`min-w-0 truncate text-[12px] ${
-            isLocked
-              ? "font-medium text-gray-700"
-              : isIncluded
-                ? "font-medium text-indigo-700"
-                : isExcluded
-                  ? "font-medium text-red-700 line-through"
-                  : isZeroCount
-                    ? "text-gray-400"
-                    : "text-gray-700"
-          }`}
+      {description ? (
+        <Tooltip
+          text={description}
+          placement="right"
+          fallbackPlacements={["top", "bottom"]}
+          isTriggerAlreadyDescribed={true}
+          isShownOnKeyboardFocusOnly={true}
         >
-          {displayLabel}
+          {control}
+        </Tooltip>
+      ) : (
+        control
+      )}
+      {description ? (
+        // Read as the row's description, never drawn on its own.
+        <span id={descriptionId} hidden={true}>
+          {translator.translateText(description) || description}
         </span>
-        {isExcluded && (
-          <span className="sr-only">
-            {translator.translateText("Excluded")}
-          </span>
-        )}
-      </button>
+      ) : (
+        <></>
+      )}
 
       {props.isCountUnknown ? (
         /*

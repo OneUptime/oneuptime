@@ -150,7 +150,7 @@ describe("shared header and panel contracts", () => {
     expect(INVESTIGATION_PANEL).toContain("id={AI_INVESTIGATION_PANEL_ID}");
     expect(INVESTIGATION_PANEL).toContain("tabIndex={-1}");
     expect(INVESTIGATION_PANEL).toContain(
-      'aria-label={translator.translateText("AI Investigation")}',
+      "aria-label={translator.translateText(AI_CARD_TITLE)}",
     );
   });
 

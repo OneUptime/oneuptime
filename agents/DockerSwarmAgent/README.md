@@ -4,7 +4,7 @@ Monitor a Docker Swarm cluster — nodes, services, tasks, stacks, overlay netwo
 
 The agent is two cooperating containers:
 
-1. **Collector** (a pinned `otel/opentelemetry-collector-contrib`) — the stock upstream image, pointed at the tuned [`otel-collector-config.yaml`](./otel-collector-config.yaml) that ships next to this file. It scrapes `docker_stats` for container metrics, tails container logs, and tails the inventory snapshot file, stamping everything with your cluster identity (`docker.swarm.cluster.name`) before shipping over OTLP.
+1. **Collector** (a pinned `otel/opentelemetry-collector-contrib`) — the stock upstream image, pointed at the tuned [`otel-collector-config.yaml`](./otel-collector-config.yaml) that ships next to this file. It scrapes `docker_stats` for container metrics, tails container logs, and tails the inventory snapshot file, stamping everything with your cluster identity (`docker.swarm.cluster.name`), and each task's metrics with its service and node, before shipping over OTLP.
 2. **Inventory poller** (a small `alpine` + `curl` + `jq` sidecar running [`inventory-snapshot.sh`](./inventory-snapshot.sh)) — every 5 minutes it walks the Swarm manager API (`/nodes`, `/services?status=true`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) and derives stacks from the `com.docker.stack.namespace` service label, writing one JSON line per object to a file the collector tails.
 
 ## Prerequisites
@@ -23,7 +23,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-The script prompts for your OneUptime URL, ingestion key, and cluster name, installs to `/opt/oneuptime-docker-swarm-agent`, and starts the agent.
+The script prompts for your OneUptime URL, ingestion key, and cluster name, writes the node's hostname to `.env` as `DOCKER_SWARM_NODE_NAME`, installs to `/opt/oneuptime-docker-swarm-agent`, and starts the agent.
 
 ## Quick Start — Docker Compose
 
@@ -33,6 +33,12 @@ Download `docker-compose.yml`, `otel-collector-config.yaml`, and `inventory-snap
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+Add this node's name to it (the collector stamps it on the node's container metrics as `docker.swarm.node.name`):
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 Then:
@@ -50,7 +56,7 @@ The cluster auto-registers in OneUptime on first telemetry (keyed by `DOCKER_SWA
 | ---------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------ |
 | Node / Service / Task / Stack / Network / Secret / Config / Volume inventory | inventory poller → Swarm manager API | the cluster's resource list + detail pages |
 | Cluster counts (nodes ready, tasks running, services, stacks, …)             | derived from the same snapshot       | the overview cards + sidebar badges        |
-| Container CPU / memory / pids / uptime                                       | `docker_stats` receiver              | the Metrics tab                            |
+| Container CPU / memory / pids / uptime, per task with its service and node   | `docker_stats` receiver              | the Metrics tab, Docker Swarm monitors     |
 | Container stdout/stderr logs                                                 | `filelog` receiver                   | the Logs tab                               |
 
 ## Environment variables
@@ -60,12 +66,17 @@ The cluster auto-registers in OneUptime on first telemetry (keyed by `DOCKER_SWA
 | `ONEUPTIME_URL`                     | yes      | `https://oneuptime.com` | Your OneUptime instance                                                                      |
 | `ONEUPTIME_SERVICE_TOKEN`           | yes      | —                       | Telemetry ingestion key                                                                      |
 | `DOCKER_SWARM_CLUSTER_NAME`         | yes      | `docker-swarm`          | The cluster join key (matches the cluster's Name in OneUptime)                               |
+| `DOCKER_SWARM_NODE_NAME`            | no       | empty                   | This node's name, stamped as `docker.swarm.node.name`; `install.sh` writes the node's hostname |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot                                        |
-| `DOCKER_API_VERSION`                | no       | `1.44`                  | Docker Engine API version the collector and the inventory poller speak (see Troubleshooting) |
+| `DOCKER_API_VERSION`                | no       | empty (negotiated)      | Docker Engine API version the collector and the inventory poller speak (see Troubleshooting) |
+
+## What each task's metrics carry
+
+The `docker_stats` receiver puts each container's identity on its metrics as resource attributes: `container.name` (a task's container is `<service>.<slot>.<taskid>`), `container.image.name` (Swarm pins it to a digest, `nginx:latest@sha256:…`), `container.id` and `container.runtime=docker`. The collector config adds the task's service, `docker.swarm.service.name`, and its node's ID, `docker.swarm.node.id`, from the labels Swarm puts on every task container, and the node's name, `docker.swarm.node.name`, from `DOCKER_SWARM_NODE_NAME` (left off when that is empty). A Docker Swarm monitor's **Service Name**, **Node Name**, **Container Name** and **Container Image** filters match these.
 
 ## How it differs from the Docker Host agent
 
-The Docker Host agent models a single host and stamps `host.name` + `container.runtime=docker`. The Swarm agent deliberately stamps **only** `docker.swarm.cluster.name` (not `host.name`/`container.runtime`) so OneUptime attributes the telemetry to the swarm cluster instead of auto-registering each node as a standalone Host or Docker Host.
+The Docker Host agent models a single host and stamps `host.name` on everything. The Swarm agent stamps `docker.swarm.cluster.name` and never `host.name` (the `docker_stats` receiver adds `container.runtime=docker` to both), so OneUptime attributes the telemetry to the swarm cluster instead of auto-registering each node as a standalone Host or Docker Host.
 
 ## AI agent
 
@@ -102,18 +113,28 @@ Maximum supported API version is 1.41
 ```
 
 The daemon refuses a client newer than its own maximum, the receiver fails to start,
-and the collector exits with it — so the container restart-loops. Set
-`DOCKER_API_VERSION` to the daemon's maximum:
+and the collector exits with it — so the container restart-loops. `DOCKER_API_VERSION`
+is empty by default, and empty negotiates the version with the daemon (one
+`HEAD /_ping`, then the daemon's own maximum), which works on Docker Engine 20.10 and
+later; the inventory poller then asks for the daemon's own version. So this means a
+version is pinned: by `DOCKER_API_VERSION` in `.env`, or by older agent files, which
+pinned `1.44` (Docker Engine 20.10 to 24 refuse it). Download the current files (run
+`install.sh` again), take the `DOCKER_API_VERSION` line out of `.env` or leave it
+empty, and run `docker compose up -d`, on every node the collector runs on.
+
+To pin a version anyway, use no more than the daemon's maximum:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'   # e.g. 1.41 on Engine 20.10
 ```
 
-Then add `DOCKER_API_VERSION=1.41` (or the value you got) to `.env` and run
-`docker compose up -d`, on every node the collector runs on. The value keeps working
-after the daemon is upgraded, since newer daemons still serve older API versions, so it
-can be removed on its own schedule.
+Then add `DOCKER_API_VERSION=1.41` (or the value you got) to `.env`. The value keeps
+working after the daemon is upgraded, since newer daemons still serve older API
+versions.
 
-If you would rather not look the number up, put `DOCKER_API_VERSION=` (empty) in `.env`
-instead. The collector then negotiates the version with the daemon (one `HEAD /_ping`,
-then the daemon's own maximum), which works against both old and new daemons.
+### A monitor filtered by node finds no data
+
+The **Node Name** filter matches `docker.swarm.node.name`, which the collector stamps
+from `DOCKER_SWARM_NODE_NAME`. Check that `.env` on that node has it, set to the node's
+hostname as `docker node ls` shows it (`install.sh` writes it), and that the node runs
+the current files.

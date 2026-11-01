@@ -13,7 +13,7 @@ O agente Docker Swarm do OneUptime monitora um cluster Docker Swarm: os nós, se
 
 O agente são três contêineres, todos definidos em um único `docker-compose.yml`:
 
-1. **Coletor**: um OpenTelemetry Collector que lê `docker_stats` para as métricas de cada contêiner, acompanha os arquivos de log dos contêineres e acompanha o arquivo de snapshot do inventário. Ele marca tudo com o nome do seu cluster (`docker.swarm.cluster.name`) e envia ao OneUptime por OTLP.
+1. **Coletor**: um OpenTelemetry Collector que lê `docker_stats` para as métricas de cada contêiner, acompanha os arquivos de log dos contêineres e acompanha o arquivo de snapshot do inventário. Ele marca tudo com o nome do seu cluster (`docker.swarm.cluster.name`), e as métricas de cada tarefa com o serviço e o nó dela, e envia ao OneUptime por OTLP.
 2. **Poller de inventário**: um pequeno sidecar com `curl` e `jq` que, a cada 5 minutos, percorre a API do manager do swarm (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) e deduz os stacks a partir do rótulo de serviço `com.docker.stack.namespace`. Ele grava uma linha JSON por objeto para o coletor encaminhar.
 3. **Agente de IA**: `oneuptime-docker-swarm-ai-agent`, que executa os comandos `docker` que a OneUptime AI pede enquanto investiga um incidente ou alerta neste cluster. Ele é somente leitura, a menos que você permita correções (veja [Agente de IA](#agente-de-ia)).
 
@@ -56,7 +56,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-O script pede a sua URL do OneUptime, a chave de ingestão e um nome para o cluster. Ele instala em `/opt/oneuptime-docker-swarm-agent`, grava um arquivo `.env` que só o dono pode ler e inicia os três contêineres. Adicione `--no-ai-agent` para deixar o agente de IA de fora.
+O script pede a sua URL do OneUptime, a chave de ingestão e um nome para o cluster. Ele instala em `/opt/oneuptime-docker-swarm-agent`, grava um arquivo `.env` que só o dono pode ler, com o nome de host do nó como `DOCKER_SWARM_NODE_NAME`, e inicia os três contêineres. Adicione `--no-ai-agent` para deixar o agente de IA de fora.
 @tab Docker Compose
 Baixe `docker-compose.yml`, `otel-collector-config.yaml` e `inventory-snapshot.sh` do [diretório DockerSwarmAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) para uma pasta nova em um nó manager:
 
@@ -73,6 +73,12 @@ Crie um arquivo `.env` ao lado deles. Ele guarda a chave de ingestão, então ma
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+Adicione a ele o nome do nó. O coletor o marca nas métricas dos contêineres do nó:
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 Inicie o agente:
@@ -98,15 +104,16 @@ Abra **Produtos → Infraestrutura → Docker Swarm → Todos os clusters**. O c
 
 ## Variáveis de ambiente
 
-O script de instalação grava as três primeiras em `/opt/oneuptime-docker-swarm-agent/.env`; uma instalação com o Docker Compose as lê do `.env` ao lado de `docker-compose.yml`. Adicione ou mude qualquer uma delas ali e depois execute `docker compose up -d` nessa pasta.
+O script de instalação grava as quatro primeiras em `/opt/oneuptime-docker-swarm-agent/.env`; uma instalação com o Docker Compose as lê do `.env` ao lado de `docker-compose.yml`. Adicione ou mude qualquer uma delas ali e depois execute `docker compose up -d` nessa pasta.
 
 | Variável | Obrigatória | Descrição |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Sim | A sua URL do OneUptime, como `https://oneuptime.com` ou a sua instância auto-hospedada. Use `http://` e a porta dela se a instância for só HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Sim | A chave de ingestão de **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. |
 | `DOCKER_SWARM_CLUSTER_NAME` | Não | O nome do cluster no OneUptime, e a chave pela qual os dados de cada nó se juntam: marcado em tudo como o atributo de recurso `docker.swarm.cluster.name`. Mantenha-o estável: mudá-lo depois registra um segundo cluster. O padrão é `docker-swarm`. |
+| `DOCKER_SWARM_NODE_NAME` | Não | O nome do nó, marcado nas métricas e nos logs dos contêineres dele como o atributo de recurso `docker.swarm.node.name`, pelo qual um [monitor Docker Swarm](/docs/monitor/docker-swarm-monitor#configurações-do-monitor) filtra. O script de instalação o define como o nome de host do nó, como `docker node ls` o mostra. Vazio: nenhum nome de nó é marcado. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Não | Com que frequência o poller de inventário tira um snapshot, em segundos. O padrão é `300`. |
-| `DOCKER_API_VERSION` | Não | A versão da API do Docker Engine que o coletor e o poller de inventário falam. O padrão é `1.44`; vazio, ela é negociada com o daemon (veja [Solução de problemas](#solução-de-problemas)). O agente de IA a negocia, a menos que você defina uma. |
+| `DOCKER_API_VERSION` | Não | A versão da API do Docker Engine que o coletor e o poller de inventário falam. Vazia por padrão: eles usam a do próprio daemon, então todo Docker Engine a partir do 20.10 funciona. Defina-a só para fixar uma versão (veja [Solução de problemas](#solução-de-problemas)). O agente de IA a negocia, a menos que você defina uma. |
 
 As configurações próprias do agente de IA estão em [Agente de IA](#agente-de-ia).
 
@@ -119,9 +126,11 @@ As configurações próprias do agente de IA estão em [Agente de IA](#agente-de
 | CPU, memória, número de processos e tempo de atividade dos contêineres | O receiver `docker_stats` | A página **Métricas** |
 | Logs stdout e stderr dos contêineres | O receiver `filelog` | A página **Registros** |
 
+As métricas de cada tarefa trazem a identidade do contêiner dela, que o receiver `docker_stats` adiciona (`container.name`, `container.image.name`, `container.id` e `container.runtime=docker`), o serviço dela e o ID do nó dela, que o coletor copia dos rótulos que o Swarm coloca na tarefa (`docker.swarm.service.name` e `docker.swarm.node.id`), e o nome do nó dela, a partir de `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). Os [monitores Docker Swarm](/docs/monitor/docker-swarm-monitor#configurações-do-monitor) filtram por eles.
+
 ### Como ele difere do agente Docker
 
-O [agente Docker](/docs/telemetry/docker-host) modela um único host e marca `host.name` e `container.runtime=docker`. O agente Docker Swarm marca só `docker.swarm.cluster.name`, de propósito: assim o OneUptime arquiva os dados sob o cluster do swarm, em vez de registrar cada nó como um host próprio.
+O [agente Docker](/docs/telemetry/docker-host) modela um único host e marca `host.name` em tudo. O agente Docker Swarm marca `docker.swarm.cluster.name` e nunca `host.name`, de propósito: assim o OneUptime arquiva os dados sob o cluster do swarm, em vez de registrar cada nó como um host próprio.
 
 ## Marcar o cluster com rótulos do projeto
 
@@ -225,13 +234,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-A versão mais alta da API do daemon está abaixo do padrão `1.44` (o Docker Engine 20.10 para em `1.41`), então o receiver `docker_stats` não consegue iniciar e o contêiner reinicia em loop. Descubra a versão mais alta do daemon:
+A versão mais alta da API do daemon está abaixo da que o coletor pediu (o Docker Engine 20.10 para em `1.41`), então o receiver `docker_stats` não consegue iniciar e o contêiner reinicia em loop. O coletor negocia a versão com o daemon, a menos que `DOCKER_API_VERSION` indique uma, e os arquivos do agente anteriores à versão 0.161.2 fixavam `1.44`. [Atualize o agente](#atualizando-o-agente) e tire de `.env` qualquer `DOCKER_API_VERSION` com uma versão (ou deixe-a vazia, `DOCKER_API_VERSION=`), em cada nó onde o agente roda.
+
+Para fixar uma versão mesmo assim, não passe da versão mais alta do daemon:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-Defina `DOCKER_API_VERSION` com esse valor em `.env` e execute `docker compose up -d` em cada nó onde o agente roda. Daemons mais novos continuam servindo versões antigas da API, então a configuração continua funcionando depois de atualizar o Docker. Ou defina `DOCKER_API_VERSION=` (vazio) para o coletor negociar a versão com o daemon em vez de fixar uma.
+Defina `DOCKER_API_VERSION` com esse valor em `.env` e execute `docker compose up -d` em cada nó onde o agente roda. Daemons mais novos continuam servindo versões antigas da API, então a configuração continua funcionando depois de atualizar o Docker.
 :::
 
 :::details O cluster aparece com o nome errado

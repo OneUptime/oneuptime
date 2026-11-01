@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Tips på diagrammen
 
-De flesta diagram som zoomar anger gesten ovanför ritområdet, **Dra för att zooma** eller **Klicka eller dra för att zooma**, och lägger till påminnelsen **double-click to reset** medan en zoom är aktiv. Måttkort, måttutforskaren och utforskarnas volymdiagram visar alltid tipset. På diagramkorten i resursöversikter och SLO:er, och på vissa widgetar i instrumentpaneler, visas det bara medan du pekar på kortet eller tabbar in i det.
+De flesta diagram som zoomar anger gesten ovanför ritområdet, **Dra för att zooma** eller **Klicka eller dra för att zooma**, och lägger till påminnelsen **dubbelklicka för att återställa** medan en zoom är aktiv. Måttkort, måttutforskaren och utforskarnas volymdiagram visar alltid tipset. På diagramkorten i resursöversikter och SLO:er, och på vissa widgetar i instrumentpaneler, visas det bara medan du pekar på kortet eller tabbar in i det.
 
 ## Var det fungerar
 

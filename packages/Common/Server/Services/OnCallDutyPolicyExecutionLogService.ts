@@ -15,6 +15,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
+import { toOnCallPersonPageMessage } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -304,6 +305,13 @@ export class Service extends ProjectReferencesService<Model> {
     triggeredByIncidentId?: ObjectID | undefined;
     triggeredByAlertId?: ObjectID | undefined;
     startedBy?: OnCallDirectPageStartedBy | undefined;
+    /*
+     * What the person who paged wrote to the people the page reaches, for a
+     * page about a record that was there already (OnCallPageService). Kept
+     * on the run, from its creation: its chat message is first posted from
+     * the run as it is then.
+     */
+    pageMessage?: string | undefined;
   }): Promise<OnCallDirectPageRun> {
     if (
       Boolean(data.triggeredByIncidentId) === Boolean(data.triggeredByAlertId)
@@ -339,6 +347,12 @@ export class Service extends ProjectReferencesService<Model> {
     } else {
       log.triggeredByAlertId = data.triggeredByAlertId!;
       log.userNotificationEventType = UserNotificationEventType.AlertCreated;
+    }
+
+    const pageMessage: string = toOnCallPersonPageMessage(data.pageMessage);
+
+    if (pageMessage) {
+      log.pageMessage = pageMessage;
     }
 
     /*

@@ -301,6 +301,14 @@ describe("the undo every persona recommends is a safe change the policy accepts"
     [AiResourceType.CephCluster, "ceph osd in 3"],
     [AiResourceType.CephCluster, "ceph osd unset noout"],
     [AiResourceType.Host, "systemctl start nginx"],
+    [
+      AiResourceType.AwsAccount,
+      "cloud start-instance arn:aws:ec2:us-east-1:123456789012:instance/i-0abc1234def567890",
+    ],
+    [
+      AiResourceType.GoogleCloudProject,
+      "cloud start-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1",
+    ],
   ];
 
   it.each(SAMPLE_UNDOS)(

@@ -99,7 +99,7 @@ Zonder winget downloadt u de agent zelf:
 Gebruik `oneuptime-infrastructure-agent-amd64.msi` (of `oneuptime-infrastructure-agent-arm64.msi`) uit dezelfde release om de agent met Intune, Configuration Manager of Groepsbeleid uit te rollen. Die installeert de agent in `C:\Program Files\OneUptimeInfrastructureAgent`, en een nieuwere MSI werkt hem ter plekke bij en start hem opnieuw. Een MSI uit een eerdere release kan niet worden bijgewerkt: verwijder die eerst één keer.
 :::
 
-Elke manier installeert de nieuwste release voor uw besturingssysteem en processor (x86-64 of ARM64). De apt- en yum-repository's bevatten de `.deb`- en `.rpm`-pakketten die bij elke GitHub-release horen, ondertekend met de sleutel op `https://packages.oneuptime.com/gpg.key`, en de pakketten zetten het binaire bestand in `/usr/bin`. Het installatiescript zet het binaire bestand `oneuptime-infrastructure-agent` in `$HOME/bin`. Bij een zelfgehoste installatie wordt het script vanaf uw eigen OneUptime-URL geleverd.
+Elke manier installeert de nieuwste release voor uw besturingssysteem en processor (x86-64 of ARM64). De apt- en yum-repository's bevatten de `.deb`- en `.rpm`-pakketten die bij elke GitHub-release horen, ondertekend met de sleutel op `https://packages.oneuptime.com/gpg.key`, en de pakketten zetten het binaire bestand in `/usr/bin`. Uitgevoerd met `sudo` zet het installatiescript het binaire bestand `oneuptime-infrastructure-agent` in `/usr/local/bin` (zonder `sudo` in `$HOME/bin`), en het downloadt met `curl` of `wget`. Bij een zelfgehoste installatie wordt het script vanaf uw eigen OneUptime-URL geleverd.
 
 ### Hem aan de monitor koppelen
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-Bij het starten controleert de agent de geheime sleutel bij OneUptime en stuurt hij direct zijn eerste rapport.
+Bij het starten controleert de agent de geheime sleutel bij OneUptime en stuurt hij direct zijn eerste rapport. Zolang hij OneUptime niet bereikt, blijft hij het proberen: opnieuw na 5 seconden, daarna telkens na twee keer zo lang, tot elke 5 minuten.
 
 ### Controleren of hij rapporteert
 
@@ -165,7 +165,7 @@ Voer `sudo oneuptime-infrastructure-agent status` uit (zonder `sudo` op Windows)
 | `uninstall` | Verwijdert de service en wist het configuratiebestand van de agent. |
 | `help` | Somt de opdrachten op. |
 
-Voer ze op Linux en macOS uit met `sudo`, en op Windows in een **Opdrachtprompt** met beheerdersrechten. Om de geheime sleutel, de URL of de proxy van een geconfigureerde agent te wijzigen, voert u `stop` en `uninstall` uit en daarna opnieuw `configure` en `start`.
+Voer ze op Linux en macOS uit met `sudo`, en op Windows in een **Opdrachtprompt** met beheerdersrechten. Om de geheime sleutel, de URL of de proxy van een geconfigureerde agent te wijzigen, voert u `stop` en `uninstall` uit en daarna opnieuw `configure` en `start`. Elke opdracht toont wat hij deed, of waarom hij mislukte, en schrijft hetzelfde naar het logboek van de agent. Stopt de service door een fout, dan start het servicebeheer hem opnieuw, op Linux en Windows na twee minuten. Een Windows-service die door de `configure` van een oudere agent is ingesteld, start pas opnieuw nadat u `uninstall` en `configure` opnieuw hebt uitgevoerd.
 
 ### Bestanden
 
@@ -199,15 +199,15 @@ Elk rapport bevat de hostnaam van de server en:
 
 | Gebied | Wat wordt gerapporteerd |
 | --- | --- |
-| CPU | Gebruik in %, aantal kernen, gebruik per kern, en de tijd in user, system, idle, I/O-wachttijd, steal, nice, IRQ en soft-IRQ |
+| CPU | Gebruik in %, aantal kernen, gebruik per kern, en de tijd in user, system, idle, I/O-wachttijd, steal, nice, IRQ en soft-IRQ sinds het vorige rapport |
 | Geheugen | Totaal, gebruikt, vrij en beschikbaar geheugen, buffers en cache, gebruik in %, en swap totaal, gebruikt, vrij en gebruik in % |
-| Schijven | Voor elke gekoppelde schijf: koppelpad, apparaat, bestandssysteem, totale, gebruikte en vrije ruimte, gebruik in %, gelezen en geschreven bytes en bewerkingen, en I/O-tijd |
+| Schijven | Voor elke gekoppelde schijf, behalve alleen-lezen images (snaps, ISO's) en `/dev`: koppelpad, apparaat, bestandssysteem, totale, gebruikte en vrije ruimte, gebruik in % zoals `df` het telt, gelezen en geschreven bytes en bewerkingen, en I/O-tijd |
 | Belasting | Gemiddelde belasting over 1, 5 en 15 minuten |
 | Netwerk | Voor elke interface: verzonden en ontvangen bytes en pakketten, fouten en weggevallen pakketten in en uit; plus gevestigde en luisterende verbindingen |
 | Host | Besturingssysteem, platform en versie, kernelversie en architectuur, uptime, opstarttijd, virtualisatie en aantal processen |
-| Processen | Elk draaiend proces: naam, PID, opdracht, CPU in %, geheugen, status, threads, gebruiker en starttijd |
+| Processen | Elk draaiend proces: naam, PID, opdracht, CPU in %, geheugen, status, threads, gebruiker en starttijd; een proces waarvan de opdrachtregel niet te lezen is, zoals een beveiligd Windows-proces, zonder zijn opdracht |
 
-Waarden die het besturingssysteem niet levert, worden weggelaten. Het tabblad **Metrieken** van de monitor toont grafieken van beschikbaarheid, CPU, geheugen, schijfgebruik en -I/O, gemiddelde belasting, swap, netwerkverkeer en -fouten, verbindingen, uptime en het aantal processen.
+Waarden die het besturingssysteem niet levert, worden weggelaten, en een criterium op een waarde die het rapport niet heeft, wordt niet vervuld: een ontbrekende waarde is geen 0. Het tabblad **Metrieken** van de monitor toont grafieken van beschikbaarheid, CPU, geheugen, schijfgebruik en -I/O, gemiddelde belasting, swap, netwerkverkeer en -fouten, verbindingen, uptime en het aantal processen.
 
 ## Bewakingscriteria
 
@@ -228,7 +228,7 @@ Criteria bepalen wanneer de monitor online, verminderd of offline is, en wanneer
 | Server Process Command | Of er een proces met precies deze opdrachtregel draait (hoofdletterongevoelig) | Is Executing, Is Not Executing |
 | Server Process PID | Of er een proces met deze PID draait | Is Executing, Is Not Executing |
 
-**Schijfpad** accepteert een koppelpunt of een apparaat, zoals `/`, `/mnt/data`, `C:\` of `/dev/sda1`; leeg gelaten is het `/`. Vul `*` in om elke schijf te controleren die de agent rapporteert: elke schijf die de drempel overschrijdt, krijgt een eigen waarschuwing, zodat een tweede schijf die volloopt niet verborgen blijft achter de openstaande waarschuwing van de eerste.
+**Schijfpad** accepteert een koppelpunt of een apparaat, zoals `/`, `/mnt/data`, `C:\` of `/dev/sda1`; leeg gelaten is het `/`. Vul `*` in om elke schijf te controleren die de agent rapporteert: elke schijf die de drempel overschrijdt, krijgt een eigen waarschuwing, zodat een tweede schijf die volloopt niet verborgen blijft achter de openstaande waarschuwing van de eerste. Hoofdletters en een afsluitende `/` of `\` maken niet uit, en een apparaat staat voor de schijf die ervan is gekoppeld. Een pad dat geen schijf noemt die de agent rapporteert, komt niet overeen. Kan de agent de processen van de server niet lezen, dan heeft zijn rapport geen proceslijst en komt geen procesfilter overeen, of het nu controleert dat een proces draait of dat het niet draait.
 
 ### Over een periode evalueren
 
@@ -262,16 +262,16 @@ Criteria bepalen wanneer de monitor online, verminderd of offline is, en wanneer
 
 :::details De agent rapporteert niet
 - Controleer of de service draait: `sudo oneuptime-infrastructure-agent status`.
-- Lees het logboek: `sudo oneuptime-infrastructure-agent logs -n 50`. Een regel `Metrics successfully pushed to OneUptime server` betekent dat rapporten doorkomen.
-- De agent controleert de geheime sleutel bij het starten en stopt als OneUptime hem weigert, met de logregel `Secret key is invalid`. Vergelijk de sleutel met die op de pagina **Instellingen** van de monitor, onder **Geheime sleutel voor servermonitor opnieuw instellen**.
+- Lees het logboek: `sudo oneuptime-infrastructure-agent logs -n 50`. Een regel `Metrics successfully pushed to OneUptime server` betekent dat OneUptime een rapport heeft ontvangen, niet dat het dat heeft geaccepteerd: OneUptime antwoordt voordat het de geheime sleutel controleert. Dat het tabblad **Metrieken** van de monitor grafieken van de server toont, laat zien dat het ze heeft geaccepteerd.
+- De agent controleert de geheime sleutel bij het starten en stopt als OneUptime hem weigert, met de logregel `Secret key is invalid`. Vergelijk de sleutel met die op de pagina **Instellingen** van de monitor, onder **Geheime sleutel voor servermonitor opnieuw instellen**. Zolang OneUptime onbereikbaar is, logt de agent `The secret key could not be verified with OneUptime yet` en probeert hij het opnieuw.
 - Zorg dat de server uw OneUptime-URL via HTTPS kan bereiken en dat geen firewall uitgaande verbindingen blokkeert.
 :::
 
 :::details `sudo` meldt dat de opdracht niet gevonden is
-De pakketten zetten de agent op het systeempad, dus dit gebeurt alleen met het installatiescript. Het installatiescript zet het binaire bestand in de `$HOME/bin` van de gebruiker onder wie het draaide, en toont de map die het gebruikte. Start de agent met zijn volledige pad, bijvoorbeeld `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. Om hem in plaats daarvan in een map op het systeempad te installeren, geeft u `-b` aan het script mee:
+De pakketten zetten de agent in `/usr/bin`, dat op elk pad staat. Uitgevoerd met `sudo` zet het installatiescript hem in `/usr/local/bin`, dat sommige systemen, zoals RHEL, buiten het pad van sudo laten: daar toont het script de opdrachten met het volledige pad van de agent, `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`. Vroeger zette het script de agent in `$HOME/bin`, onder `sudo` dus `/root/bin`: start een toen geïnstalleerde agent met dat volledige pad, of installeer hem opnieuw. Om de agent in plaats daarvan in een map op het systeempad te installeren, geeft u `-b` aan het script mee:
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 

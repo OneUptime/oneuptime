@@ -128,6 +128,8 @@ Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van
 | **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
+| **Geen gegevens** | ontbreekt: de query stuurde niets in het venster |
+| **Gegevens aanwezig** | aanwezig is: de query stuurde iets in het venster |
 
 De anomaliecondities hebben geen drempel. **Wanneer waarschuwen** toont in plaats daarvan **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog), en de eigen criteria ook een **Baseline-venster** (14 dagen, de standaard, 28, 60 of 90), en elk datapunt wordt vergeleken met de baseline voor hetzelfde uur van de week die uit dat venster is opgebouwd. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en levert het geen waarschuwingen op.
 

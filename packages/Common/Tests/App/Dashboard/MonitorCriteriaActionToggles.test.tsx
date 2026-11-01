@@ -319,22 +319,27 @@ describe("Monitor criteria action switches", () => {
   });
 
   describe("the switch seeds a row on the way on only", () => {
-    test("switching an action off does not create a row it never had", () => {
+    test("an incident sub-form opened on an empty array seeds one row, and switching off adds none", () => {
       /*
-       * NetworkDeviceAlertPackUtil ships criteria with the create flag on and
-       * an empty array, and MonitorCriteriaIncidentsForm renders that as zero
-       * rows rather than seeding one. Switching the action off used to run the
-       * seeding block anyway and add a blank row on the way OUT — invisible,
-       * because the sub-form is rendered only while the switch is on.
+       * A criteria with the incident switch on and an empty array (as the
+       * network device alert pack shipped them) used to render zero rows:
+       * no field to fill in, nothing checked on save, and an incident-creating
+       * criteria that declared nothing. MonitorCriteriaIncidentsForm now seeds
+       * a row, as the alerts form does, and the form then asks for it.
+       * Switching the action off keeps that one row - inert, as an alert row
+       * is - and adds no other on the way out.
        */
       const harness: Harness = renderCriteria(
         buildCriteria({ createIncidents: true, incidents: [] }),
       );
 
+      expect(harness.latest().data?.incidents).toHaveLength(1);
+      expect(harness.error()).toContain("Incident title is required");
+
       fireEvent.click(switchFor(INCIDENT_SWITCH));
 
       expect(harness.latest().data?.createIncidents).toBe(false);
-      expect(harness.latest().data?.incidents).toHaveLength(0);
+      expect(harness.latest().data?.incidents).toHaveLength(1);
       expect(harness.error()).toBeNull();
     });
 

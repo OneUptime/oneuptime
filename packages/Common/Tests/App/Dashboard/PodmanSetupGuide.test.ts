@@ -658,19 +658,29 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
     }
   });
 
-  test("the API version fix asks the socket and sets the variable where this method keeps it", () => {
+  /*
+   * The agent negotiates the version unless DOCKER_API_VERSION names one, so
+   * the fix is to stop pinning one (an older image pinned 1.44): the latest
+   * image, started without the variable. A version is still pinned where this
+   * method keeps it, no higher than the socket reports.
+   */
+  test("the API version fix unpins the version, and pins one the socket reports where this method keeps it", () => {
     const topic: string = topicTitled(
       guide.troubleshooting,
       'Agent restarts with "client version is too new"',
     ).markdown;
+    expect(topic).toContain("negotiates the version with the socket");
+    expect(topic).toContain("an older agent image pinned `1.44`");
+    expect(topic).toContain(
+      isCli
+        ? `podman pull ${PODMAN_AGENT_IMAGE}`
+        : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list",
+    );
     expect(topic).toContain(
       `curl -s -o /dev/null -D - --unix-socket ${PODMAN_SOCKET_PATH} http://localhost/_ping | grep -i '^api-version'`,
     );
     expect(topic).toContain(
       isCli ? "-e DOCKER_API_VERSION=1.41" : "- DOCKER_API_VERSION=1.41",
-    );
-    expect(topic).toContain(
-      isCli ? "`-e DOCKER_API_VERSION=`" : "`- DOCKER_API_VERSION=`",
     );
   });
 
@@ -681,6 +691,7 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
     ).markdown;
     expect(topic).toContain("sudo systemctl enable --now podman.socket");
     expect(topic).toContain("/run/user/<uid>/podman/podman.sock");
+    expect(topic).toContain("~/.local/share/containers/storage");
     expect(topic).toContain("systemctl --user enable --now podman.socket");
     expect(topic).toContain(isCli ? "`--user 0:0`" : '`user: "0:0"`');
   });
@@ -808,13 +819,36 @@ describe("the guide matches agents/PodmanAgent", () => {
     expect(installRun.name).toBe(PODMAN_AGENT_CONTAINER_NAME);
   });
 
+  /*
+   * The installer mounts the socket and storage of the Podman it runs as
+   * (ContainerAgentInstallers.test.js in Tests/Ops runs it rootful and
+   * rootless), at the paths the collector reads inside the container; for
+   * rootful Podman those are the guide's paths on the host too.
+   */
   test("the podman run command mounts and sets what the agent's installer does", () => {
     const guideRun: RunFlags = parseRunCommand(
       runCommandFor(cliMarkdown, PODMAN_AGENT_CONTAINER_NAME),
     );
+    const inContainer: (volume: string) => string = (
+      volume: string,
+    ): string => {
+      return volume.substring(volume.indexOf(":") + 1);
+    };
     expect(guideRun.name).toBe(PODMAN_AGENT_CONTAINER_NAME);
     expect(guideRun.image).toBe(PODMAN_AGENT_IMAGE);
-    expect(guideRun.volumes).toEqual(installRun.volumes);
+    expect(guideRun.volumes.map(inContainer)).toEqual(
+      installRun.volumes.map(inContainer),
+    );
+    expect(installRun.volumes).toEqual([
+      `$PODMAN_SOCKET:${PODMAN_SOCKET_PATH}:ro`,
+      `$PODMAN_STORAGE:${PODMAN_STORAGE_PATH}:ro`,
+    ]);
+    expect(installScript).toContain(
+      `PODMAN_SOCKET="\${PODMAN_SOCKET:-${PODMAN_SOCKET_PATH}}"`,
+    );
+    expect(installScript).toContain(
+      `PODMAN_STORAGE="\${PODMAN_STORAGE:-${PODMAN_STORAGE_PATH}}"`,
+    );
     expect(guideRun.volumes).toEqual(repoCollector["volumes"]);
     expect(guideRun.envNames).toEqual(installRun.envNames);
     expect(runCommandFor(cliMarkdown, PODMAN_AGENT_CONTAINER_NAME)).toContain(
@@ -918,8 +952,10 @@ describe("the guide matches agents/PodmanAgent", () => {
     expect(repoCollector["environment"]).toContain(
       `PODMAN_HOST_NAME=\${PODMAN_HOST_NAME:-${PODMAN_DEFAULT_HOST_NAME}}`,
     );
+    // Empty: negotiated with the socket, in the image and in Compose.
+    expect(PODMAN_DEFAULT_API_VERSION).toBe("");
     expect(repoCollector["environment"]).toContain(
-      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${PODMAN_DEFAULT_API_VERSION}}`,
+      `DOCKER_API_VERSION=\${DOCKER_API_VERSION:-${PODMAN_DEFAULT_API_VERSION}}`,
     );
   });
 

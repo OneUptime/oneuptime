@@ -10,7 +10,18 @@ import AIToolbox from "../../../../Server/Utils/AI/Toolbox/Index";
 import {
   CommitCodeToBranchTool,
   OpenCodePullRequestTool,
+  assertChatWritesToRepository,
 } from "../../../../Server/Utils/AI/Toolbox/CodeWriteTools";
+import CodeHostWriters, {
+  CodeHostWriterGap,
+} from "../../../../Server/Utils/CodeRepository/CodeHost/CodeHostWriter";
+import {
+  CONNECTED_PROJECT_ID,
+  ConnectedRepository,
+  connectRepository,
+  disconnectRepository,
+} from "../CodeRepository/CodeHost/ConnectedRepository";
+import { FakeRoute } from "../CodeRepository/CodeHost/FakeCodeHost";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -751,5 +762,385 @@ describe("permission-mode gating", () => {
         changes: [{ filePath: "a.ts", content: "" }],
       }),
     ).toBe("Commit 1 file to feature/x");
+  });
+});
+
+/*
+ * Chat writes to a GitLab project, and to a Forgejo or Gitea repository,
+ * through the repository's connection - the same invariant held by the
+ * host's own answer: never its default branch, never a protected one; the
+ * change in a merge (pull) request a person reviews, recorded so the
+ * open-PR cap counts it. A Git server has no pull requests for chat to
+ * open, and says so.
+ */
+describe("chat's writes beyond GitHub", () => {
+  const SHA: string = "2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c";
+  const gitLabCtx: ToolContext = {
+    projectId: CONNECTED_PROJECT_ID,
+    props: { isRoot: true, userId: ObjectID.generate() },
+  };
+  let posted: Array<{ path: string; body: Record<string, unknown> }>;
+
+  function gitLabRoutes(
+    change: { protectedBranch?: boolean } = {},
+  ): Array<FakeRoute> {
+    const record: (
+      path: string,
+      status: number,
+      json: unknown,
+    ) => FakeRoute["answer"] = (
+      path: string,
+      status: number,
+      json: unknown,
+    ): FakeRoute["answer"] => {
+      return (request: { body?: string | undefined }) => {
+        posted.push({
+          path,
+          body: JSON.parse(request.body || "{}") as Record<string, unknown>,
+        });
+        return { status, json };
+      };
+    };
+
+    return [
+      {
+        method: "GET",
+        path: "/projects/4217",
+        answer: () => {
+          return {
+            json: {
+              id: 4217,
+              path: "checkout",
+              path_with_namespace: "acme/checkout",
+              default_branch: "trunk",
+            },
+          };
+        },
+      },
+      {
+        method: "GET",
+        path: /^\/projects\/4217\/repository\/branches\/.+$/,
+        answer: (_request: unknown, url: URL) => {
+          return url.pathname.endsWith("/feature")
+            ? {
+                json: {
+                  name: "feature",
+                  protected: Boolean(change.protectedBranch),
+                  commit: { id: SHA },
+                },
+              }
+            : { status: 404, json: { message: "404 Branch Not Found" } };
+        },
+      },
+      {
+        method: "POST",
+        path: "/projects/4217/repository/branches",
+        answer: record("branches", 201, { name: "x" }),
+      },
+      {
+        method: "GET",
+        path: /^\/projects\/4217\/repository\/files\/.+$/,
+        answer: () => {
+          return { status: 404, json: { message: "404 File Not Found" } };
+        },
+      },
+      {
+        method: "POST",
+        path: "/projects/4217/repository/commits",
+        answer: record("commits", 201, {
+          id: SHA,
+          web_url: `https://gitlab.example.com/acme/checkout/-/commit/${SHA}`,
+        }),
+      },
+      {
+        method: "POST",
+        path: "/projects/4217/merge_requests",
+        answer: record("merge_requests", 201, {
+          id: 90231,
+          iid: 12,
+          state: "opened",
+          web_url:
+            "https://gitlab.example.com/acme/checkout/-/merge_requests/12",
+        }),
+      },
+    ];
+  }
+
+  function connect(
+    provider: CodeRepositoryType.GitLab | CodeRepositoryType.Forgejo,
+    routes: Array<FakeRoute>,
+  ): ConnectedRepository {
+    const connected: ConnectedRepository = connectRepository({
+      provider,
+      routes,
+    });
+
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([connected.repository] as never);
+    jest
+      .spyOn(CodeRepositoryService, "findOneUpdatableById")
+      .mockResolvedValue(connected.repository as never);
+    jest.spyOn(AIAgentTaskPullRequestService, "countBy").mockResolvedValue({
+      toNumber: () => {
+        return 0;
+      },
+    } as never);
+    jest
+      .spyOn(AIAgentTaskPullRequestService, "create")
+      .mockResolvedValue({} as never);
+
+    return connected;
+  }
+
+  beforeEach(() => {
+    posted = [];
+  });
+
+  afterEach(() => {
+    disconnectRepository();
+  });
+
+  test("a GitLab change opens a merge request off GitLab's own default branch, and records it", async () => {
+    connect(CodeRepositoryType.GitLab, gitLabRoutes());
+
+    const result: ToolExecutionResult = await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      gitLabCtx,
+    );
+
+    const branch: Record<string, unknown> = posted.find(
+      (entry: { path: string }) => {
+        return entry.path === "branches";
+      },
+    )!.body;
+    const commit: Record<string, unknown> = posted.find(
+      (entry: { path: string }) => {
+        return entry.path === "commits";
+      },
+    )!.body;
+    const mergeRequest: Record<string, unknown> = posted.find(
+      (entry: { path: string }) => {
+        return entry.path === "merge_requests";
+      },
+    )!.body;
+
+    // Off the default branch GitLab says - trunk, not the stored main.
+    expect(branch["ref"]).toBe("trunk");
+    expect(String(branch["branch"])).toContain("oneuptime-ai/");
+    expect(commit["branch"]).toBe(branch["branch"]);
+    expect(commit["actions"]).toEqual([
+      {
+        action: "create",
+        file_path: "src/billing/charge.ts",
+        content: Buffer.from("export const a = 1;\n", "utf8").toString(
+          "base64",
+        ),
+        encoding: "base64",
+      },
+    ]);
+    expect(mergeRequest).toMatchObject({
+      source_branch: branch["branch"],
+      target_branch: "trunk",
+      title: "Fix charge",
+    });
+    expect(String(mergeRequest["description"])).toContain(
+      "Proposed by OneUptime AI from a chat conversation",
+    );
+
+    expect(result.dataForLlm).toContain(
+      "Opened merge request !12 on acme/checkout, ready for review.",
+    );
+    expect(result.dataForLlm).toContain(
+      "url: https://gitlab.example.com/acme/checkout/-/merge_requests/12",
+    );
+    expect(result.dataForLlm).toContain("NOT merged");
+    expect(result.citationLabel).toBe("MR !12: Fix charge");
+
+    const record: AIAgentTaskPullRequest = (
+      AIAgentTaskPullRequestService.create as unknown as jest.Mock
+    ).mock.calls[0][0].data;
+
+    expect(record.pullRequestNumber).toBe(12);
+    expect(record.pullRequestId).toBe(90231);
+    expect(record.pullRequestState).toBe(PullRequestState.Open);
+    expect(record.baseRefName).toBe("trunk");
+    expect(record.pullRequestUrl?.toString()).toBe(
+      "https://gitlab.example.com/acme/checkout/-/merge_requests/12",
+    );
+
+    // The real validator takes the record.
+    expect(() => {
+      return (
+        AIAgentTaskPullRequestService as unknown as {
+          checkRequiredFields: (
+            model: AIAgentTaskPullRequest,
+          ) => AIAgentTaskPullRequest;
+        }
+      ).checkRequiredFields.call(AIAgentTaskPullRequestService, record);
+    }).not.toThrow();
+  });
+
+  test("on GitLab, chat never commits to the default branch, nor a protected one - by GitLab's own answer", async () => {
+    connect(CodeRepositoryType.GitLab, gitLabRoutes({ protectedBranch: true }));
+
+    await expect(
+      CommitCodeToBranchTool.execute(
+        { branchName: "TRUNK", commitMessage: "fix", changes: CHANGES },
+        gitLabCtx,
+      ),
+    ).rejects.toThrow(/"TRUNK" is the default branch of acme\/checkout/);
+
+    await expect(
+      CommitCodeToBranchTool.execute(
+        { branchName: "feature", commitMessage: "fix", changes: CHANGES },
+        gitLabCtx,
+      ),
+    ).rejects.toThrow(/is protected/);
+
+    await expect(
+      CommitCodeToBranchTool.execute(
+        { branchName: "gone", commitMessage: "fix", changes: CHANGES },
+        gitLabCtx,
+      ),
+    ).rejects.toThrow(/does not exist in acme\/checkout/);
+
+    expect(posted).toHaveLength(0);
+  });
+
+  test("on GitLab, chat commits to an unprotected branch someone names", async () => {
+    connect(CodeRepositoryType.GitLab, gitLabRoutes());
+
+    const result: ToolExecutionResult = await CommitCodeToBranchTool.execute(
+      { branchName: "feature", commitMessage: "fix", changes: CHANGES },
+      gitLabCtx,
+    );
+
+    expect(
+      posted.map((entry: { path: string }) => {
+        return entry.path;
+      }),
+    ).toEqual(["commits"]);
+    expect(posted[0]!.body["branch"]).toBe("feature");
+    expect(result.dataForLlm).toContain(`commitSha: ${SHA}`);
+    expect(result.dataForLlm).toContain(
+      "NOT merged and NOT on the default branch",
+    );
+  });
+
+  test("a Forgejo or Gitea change opens a pull request, written #7", async () => {
+    connect(CodeRepositoryType.Forgejo, [
+      {
+        method: "GET",
+        path: "/repos/acme/checkout",
+        answer: () => {
+          return {
+            json: {
+              id: 5,
+              name: "checkout",
+              full_name: "acme/checkout",
+              owner: { login: "acme" },
+              default_branch: "main",
+              permissions: { push: true },
+            },
+          };
+        },
+      },
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/branches",
+        answer: () => {
+          return { status: 201, json: { name: "x" } };
+        },
+      },
+      {
+        method: "GET",
+        path: /^\/repos\/acme\/checkout\/contents\/.+$/,
+        answer: () => {
+          return { status: 404, json: { message: "not found" } };
+        },
+      },
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/contents",
+        answer: () => {
+          return { status: 201, json: { commit: { sha: SHA } } };
+        },
+      },
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/pulls",
+        answer: () => {
+          return {
+            status: 201,
+            json: {
+              id: 4,
+              number: 7,
+              state: "open",
+              html_url: "https://git.example.com/acme/checkout/pulls/7",
+            },
+          };
+        },
+      },
+    ]);
+
+    const result: ToolExecutionResult = await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      gitLabCtx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "Opened pull request #7 on acme/checkout, ready for review.",
+    );
+    expect(result.citationLabel).toBe("PR #7: Fix charge");
+  });
+
+  test("a repository whose connection stopped working while chat wrote is said as such, and nothing is written", async () => {
+    connect(CodeRepositoryType.GitLab, gitLabRoutes());
+    jest
+      .spyOn(CodeHostWriters, "openForRepository")
+      .mockResolvedValue({ writer: null, gap: CodeHostWriterGap.NotReached });
+
+    await expect(
+      OpenCodePullRequestTool.execute(
+        { title: "Fix charge", description: "why", changes: CHANGES },
+        gitLabCtx,
+      ),
+    ).rejects.toThrow(
+      "acme/checkout's connection to GitLab does not work now, so chat cannot write to it. Replace its access token on the repository's Settings page in Code.",
+    );
+    expect(posted).toHaveLength(0);
+    expect(AIAgentTaskPullRequestService.create).not.toHaveBeenCalled();
+  });
+
+  test("a Git server's repository is refused before anything is asked of it", () => {
+    const repository: CodeRepositoryModel = buildRepository();
+    repository.repositoryHostedAt = CodeRepositoryType.Git;
+
+    expect(() => {
+      return assertChatWritesToRepository(repository);
+    }).toThrow(
+      "acme/checkout is on a Git server, which has no pull requests for chat to open. Ask for the change in Code instead, where AI works in the repository and pushes a branch you open a pull request from.",
+    );
+
+    for (const type of [
+      CodeRepositoryType.GitHub,
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+    ]) {
+      repository.repositoryHostedAt = type;
+      expect(() => {
+        return assertChatWritesToRepository(repository);
+      }).not.toThrow();
+    }
+  });
+
+  test("both tools say which hosts they write to", () => {
+    for (const tool of [OpenCodePullRequestTool, CommitCodeToBranchTool]) {
+      expect(tool.description).toContain("GitHub, GitLab, Forgejo");
+    }
+    expect(OpenCodePullRequestTool.description).toContain(
+      "a merge request on GitLab",
+    );
   });
 });

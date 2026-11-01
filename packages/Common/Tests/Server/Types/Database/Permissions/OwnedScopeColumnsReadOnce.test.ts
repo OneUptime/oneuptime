@@ -18,7 +18,11 @@ import Permission, {
 } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
-import { fastestRun, FastestRun } from "../../../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../../../../Helpers/FastestRun";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -384,8 +388,12 @@ describe("OwnedScopePermission.getColumnsKeptToOwnersWithTeams", () => {
     );
     const calls: number = 30;
 
-    const before: FastestRun<number> = fastestRun({
-      run: (): number => {
+    /*
+     * Timed in turns (fastestRunsCompared): the faster side's attempts take
+     * a fraction of a millisecond, and one stall could cover them all.
+     */
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         let kept: number = 0;
 
         for (let index: number = 0; index < calls; index++) {
@@ -394,11 +402,7 @@ describe("OwnedScopePermission.getColumnsKeptToOwnersWithTeams", () => {
 
         return kept;
       },
-      limitInMs: 0,
-    });
-
-    const after: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         let kept: number = 0;
 
         for (let index: number = 0; index < calls; index++) {
@@ -410,8 +414,9 @@ describe("OwnedScopePermission.getColumnsKeptToOwnersWithTeams", () => {
 
         return kept;
       },
-      limitInMs: 0,
     });
+    const before: FastestRun<number> = runs.first;
+    const after: FastestRun<number> = runs.second;
 
     expect(after.result).toBe(before.result);
     // Measured about 40 times faster; five leaves room for a busy runner.

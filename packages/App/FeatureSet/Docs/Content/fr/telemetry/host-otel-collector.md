@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -492,6 +510,8 @@ Toutes les configurations suivent la même forme : des receivers pour ce qu'il f
 `hostmetrics` fonctionne sur tous les systèmes d'exploitation. Il lit le CPU, la mémoire, les disques, les systèmes de fichiers, le réseau, la charge, la pagination et les processus depuis le noyau, à chaque `collection_interval`. Les métriques `*.utilization` et `system.cpu.logical.count` sont désactivées par défaut dans le receiver, et les graphiques de l'hôte ainsi que les modèles d'alerte Host les lisent : gardez-les donc activées comme le font les configurations ci-dessus. Le scraper `process` alimente la page **Processus** ; c'est aussi la plus grande source de séries (voir [Envoyer moins](#réduire-le-volume-de-données-collectées)).
 
 Sous Linux, le collecteur lit `/proc` et `/sys`. Un collecteur dans un conteneur doit monter ceux de l'hôte et définir `HOST_PROC` et `HOST_SYS` (voir [Dans un conteneur Docker](#dans-un-conteneur-docker)) ; une installation native n'a besoin de rien.
+
+Les configurations ci-dessus laissent hors du scraper `filesystem` les systèmes de fichiers pleins par conception ou qui ne contiennent aucune donnée (`exclude_fs_types`) : les paquets snap (`squashfs`) et les autres images en lecture seule, les CD et DVD, le `/dev` de macOS (`devfs`) et les tables de l'automonteur (`autofs`). Ceux qui sont pleins affichent 100 % d'utilisation tant qu'ils sont montés, si bien que le modèle High Filesystem Usage se déclencherait sur eux sans jamais se rétablir : gardez l'exclusion dans une configuration à vous. Une image en lecture seule avec un système de fichiers ordinaire, comme un `.dmg` monté, apparaît pleine elle aussi ; excluez son point de montage avec `exclude_mount_points`.
 
 ### Journaux de fichiers
 
@@ -934,6 +954,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1105,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true

@@ -11,8 +11,10 @@ import AiFirstResponderEligibility, {
   AiHoldDecision,
   AiHoldFacts,
   decideAiHold,
+  getAiHoldPlanReason,
   getInvestigationNotStartedWords,
 } from "../../../../../Server/Utils/AI/FirstResponder/AiFirstResponderEligibility";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import { InvestigationNotStartedCode } from "../../../../../Types/AI/InvestigationNotStartedReason";
 import { KubernetesAiRemediationMode } from "../../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -47,6 +49,7 @@ function holdable(overrides?: Partial<AiHoldFacts>): AiHoldFacts {
     isCreatedByPerson: false,
     isHighestSeverity: false,
     otherRecordsOpenedRecently: 0,
+    planNeededToHold: null,
     investigationNotStartedCode: null,
     isAutomaticFixingOn: true,
     hasMonitor: true,
@@ -96,6 +99,63 @@ describe("the decision, from what was read", () => {
     expect(decision.reason).toBe(
       "3 other alerts and incidents opened within 5 minutes, which looks like an outage.",
     );
+  });
+
+  /*
+   * A held page is an on-call run, and a project below the runs' plan
+   * cannot read one: no "OneUptime AI is on it", no Page now, no execution
+   * log. Held there, a page would wait where nobody could see it or end it.
+   */
+  test("a project below the plan its on-call runs need pages right away, and says the plan", () => {
+    expect(
+      decideAiHold(holdable({ planNeededToHold: PlanType.Growth })),
+    ).toEqual({
+      canHold: false,
+      reason: "OneUptime AI responds first on the Growth plan and above.",
+    });
+    expect(getAiHoldPlanReason(PlanType.Scale)).toBe(
+      "OneUptime AI responds first on the Scale plan and above.",
+    );
+  });
+
+  test("the plan is said after what is about the record and an outage, and before what is about AI", () => {
+    expect(
+      decideAiHold(
+        holdable({
+          planNeededToHold: PlanType.Growth,
+          isCreatedByPerson: true,
+        }),
+      ).reason,
+    ).toBe("A person declared this incident.");
+    expect(
+      decideAiHold(
+        holdable({
+          planNeededToHold: PlanType.Growth,
+          isHighestSeverity: true,
+        }),
+      ).reason,
+    ).toBe("This incident has the project's highest severity.");
+
+    // An outage still says so, so the pages AI holds start at once.
+    const outage: AiHoldDecision = decideAiHold(
+      holdable({
+        planNeededToHold: PlanType.Growth,
+        otherRecordsOpenedRecently: 4,
+      }),
+    );
+    expect(outage.isOutage).toBe(true);
+
+    expect(
+      decideAiHold(
+        holdable({
+          planNeededToHold: PlanType.Growth,
+          investigationNotStartedCode: "insufficient_ai_balance",
+          isAutomaticFixingOn: false,
+          hasMonitor: false,
+          unattendedFixTargetCount: 0,
+        }),
+      ).reason,
+    ).toBe("OneUptime AI responds first on the Growth plan and above.");
   });
 
   test("AI that may not investigate holds nothing, and says why in the reader's words", () => {
@@ -165,6 +225,7 @@ describe("the decision, from what was read", () => {
         isCreatedByPerson: true,
         isHighestSeverity: true,
         otherRecordsOpenedRecently: 10,
+        planNeededToHold: PlanType.Growth,
         investigationNotStartedCode: "ai_disabled",
         isAutomaticFixingOn: false,
         hasMonitor: false,

@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Tips på diagrammene
 
-De fleste diagrammer som zoomer, nevner bevegelsen over tegneflaten, **Dra for å zoome** eller **Klikk eller dra for å zoome**, og legger mens en zoom er aktiv til påminnelsen **double-click to reset**. Målingskort, målingsutforskeren og utforskernes volumdiagrammer viser alltid tipset. På diagramkortene i ressursoversikter og SLO-er, og på enkelte dashbord-widgeter, vises det bare mens du peker på kortet eller tabber inn i det.
+De fleste diagrammer som zoomer, nevner bevegelsen over tegneflaten, **Dra for å zoome** eller **Klikk eller dra for å zoome**, og legger mens en zoom er aktiv til påminnelsen **dobbeltklikk for å tilbakestille**. Målingskort, målingsutforskeren og utforskernes volumdiagrammer viser alltid tipset. På diagramkortene i ressursoversikter og SLO-er, og på enkelte dashbord-widgeter, vises det bare mens du peker på kortet eller tabber inn i det.
 
 ## Hvor det virker
 

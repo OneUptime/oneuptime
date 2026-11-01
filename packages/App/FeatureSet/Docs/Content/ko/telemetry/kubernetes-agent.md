@@ -452,16 +452,7 @@ Windows 노드 풀이 있는 클러스터에서는 모든 에이전트 이미지
 
 ### 컨트롤 플레인 모니터링 활성화
 
-클러스터의 **컨트롤 플레인** 페이지는 etcd, API 서버, 스케줄러, 컨트롤러 매니저를 차트로 보여 줍니다. `controlPlane.enabled`가 `true`이면 에이전트가 네 가지를 모두 스크레이프합니다:
-
-```bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent \
-  --reset-then-reuse-values \
-  --set controlPlane.enabled=true
-```
-
-각 구성 요소는 자체 목록에 있는 주소에서 스크레이프됩니다: `controlPlane.etcd.endpoints`, `controlPlane.apiServer.endpoints`, `controlPlane.scheduler.endpoints`, `controlPlane.controllerManager.endpoints`. 스크레이프는 호스트 네트워크가 없는 에이전트의 Pod에서 실행되므로 기본값(`https://localhost:<port>/metrics`)은 그 Pod 자체를 가리킵니다. 각 목록에 Pod가 도달할 수 있는 주소를 설정하세요. 어떤 클러스터에서든 API 서버는 클러스터 안에서 `https://kubernetes.default.svc:443/metrics`로 응답합니다:
+클러스터의 **컨트롤 플레인** 페이지는 etcd, API 서버, 스케줄러, 컨트롤러 매니저를 차트로 보여 줍니다. `controlPlane.enabled`를 켜면 에이전트가 어떤 클러스터에서든 클러스터 안에서 응답하는 `https://kubernetes.default.svc:443/metrics`에서 자신의 서비스 계정 토큰으로 API 서버를 읽습니다:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -471,12 +462,31 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
 
-`controlPlane.enabled`는 네 가지 스크레이프를 한꺼번에 켭니다. 구성 요소에 엔드포인트로 도달할 수 없으면(관리형 클러스터의 etcd, 스케줄러, 컨트롤러 매니저, 또는 `localhost` 기본값 그대로인 경우) 그 스크레이프는 매 간격마다 실패합니다. Collector는 스크레이프 오류를 기록하고 대상을 다운으로 보고하며, 그 밖에는 아무것도 바뀌지 않습니다.
+이 주소는 `controlPlane.apiServer.endpoints`의 차트 기본값입니다. 함께 설정하면 이전 차트의 `localhost` 기본값을 그대로 유지한 릴리스도 옮겨 갑니다.
 
-에이전트는 HTTPS로만, 서비스 계정 토큰을 사용하고 클라이언트 인증서 없이 스크레이프합니다. 따라서:
+etcd, 스케줄러, 컨트롤러 매니저는 컨트롤 플레인 노드에서 실행되고, 스크레이프는 호스트 네트워크가 없는 에이전트의 Pod에서 실행됩니다. 그곳의 `localhost`는 Pod 자체입니다. 그래서 `controlPlane.etcd.endpoints`, `controlPlane.scheduler.endpoints`, `controlPlane.controllerManager.endpoints`는 각 노드의 주소를 넣기 전까지 비어 있으며, 엔드포인트가 없는 구성 요소는 스크레이프되지 않습니다:
 
-- **etcd**에는 클라이언트 인증서를 요구하지 않는 HTTPS 메트릭 주소가 필요합니다. etcd의 일반적인 메트릭 포트에는 도달할 수 없습니다. `2381`의 일반 HTTP(kubeadm의 `--listen-metrics-urls`)는 HTTPS로 스크레이프되어 실패하고, `2379`는 클라이언트 인증서가 필요합니다.
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.scheduler.endpoints={https://10.0.0.10:10259/metrics}" \
+  --set "controlPlane.controllerManager.endpoints={https://10.0.0.10:10257/metrics}" \
+  --set "controlPlane.etcd.endpoints={http://10.0.0.10:2381/metrics}"
+```
+
+엔드포인트는 서비스 계정 토큰으로 HTTPS를 통해 스크레이프되지만, `http://`로 시작하는 엔드포인트는 일반 HTTP로 스크레이프됩니다. 한 구성 요소의 엔드포인트는 같은 스킴을 공유합니다. 구성 요소에 엔드포인트로 도달할 수 없으면 그 스크레이프는 매 간격마다 실패합니다. Collector는 스크레이프 오류를 기록하고 대상을 다운으로 보고하며, 그 밖에는 아무것도 바뀌지 않습니다.
+
 - **스케줄러**(`10259`)와 **컨트롤러 매니저**(`10257`)는 HTTPS를 제공하고 토큰을 받지만, kubeadm은 컨트롤 플레인 노드에서 이들을 `127.0.0.1`에 바인딩합니다. 에이전트의 Pod가 도달할 수 있는 `--bind-address`가 필요합니다.
+- **etcd**는 `2381`에서 일반 HTTP로 메트릭을 제공합니다(kubeadm의 `--listen-metrics-urls`, 노드의 주소를 추가하기 전까지는 `127.0.0.1`에 바인딩됨). 위 예시와 같습니다. 클라이언트 포트 `2379`는 HTTPS를 제공하며 클라이언트 인증서를 요구합니다. 인증서를 에이전트 네임스페이스의 Secret에 `ca.crt`, `tls.crt`, `tls.key` 키로 넣고, 그 Secret을 `controlPlane.etcd.clientCertSecret`에 지정하세요. kubeadm 컨트롤 플레인 노드에서는 헬스 체크 클라이언트의 인증서를 쓸 수 있습니다:
+
+```bash
+kubectl -n oneuptime-agent create secret generic etcd-client-cert \
+  --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+  --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+  --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+```
 
 관리형 Kubernetes 서비스(EKS, GKE, AKS)는 etcd, 스케줄러, 컨트롤러 매니저를 노출하지 않으므로 그 탭은 비어 있습니다. 탭의 메트릭이 도착할 때까지 **컨트롤 플레인** 페이지는 차트 대신 설정할 내용을 복사할 명령과 함께 보여 줍니다.
 
@@ -823,7 +833,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-이렇게 하면 Pod 로그만 멈춥니다. 노드, Pod, 컨테이너 메트릭은 계속 흐르고, 이를 기반으로 한 모니터(OOM kill, CPU 스로틀링, PVC 디스크 부족)도 계속 작동합니다. 노드 Collector는 남아 있으며 `/var/log/pods` 읽기만 멈춥니다. `logs.mode: api`와 `logs.mode: disabled`도 마찬가지입니다.
+이렇게 하면 Pod 로그만 멈춥니다. 노드, Pod, 컨테이너 메트릭은 계속 흐르고, 이를 기반으로 한 모니터(크래시 루프, 준비되지 않은 노드, 한도에 걸린 Pod, 가득 찬 노드 디스크)도 계속 작동합니다. 노드 Collector는 남아 있으며 `/var/log/pods` 읽기만 멈춥니다. `logs.mode: api`와 `logs.mode: disabled`도 마찬가지입니다.
 
 ### eBPF 자동 계측 줄이기
 
@@ -877,7 +887,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 고유 시계열 수인 카디널리티는 빈도만큼 중요합니다. 각 시계열이 따로 저장되고 과금되기 때문입니다.
 
-- cAdvisor는 의도적으로 허용 목록 방식입니다. cAdvisor 리시버(기본적으로 켜짐)는 수백 개의 메트릭을 내보낼 수 있지만, 차트는 모니터가 사용하는 몇 개(`cadvisor.metricsAllowlist`)만 전달합니다. 목록을 짧게 유지하세요. 각 항목은 컨테이너별로 유지되므로 메트릭 하나를 더하면 클러스터의 컨테이너 수만큼 곱해집니다. kube-state-metrics는 기본적으로 꺼져 있으며, 켜면(`kubeStateMetrics.enabled=true`) 그 `kubeStateMetrics.metricsAllowlist`도 같은 방식으로 작동합니다.
+- cAdvisor는 의도적으로 허용 목록 방식입니다. cAdvisor 리시버(기본적으로 켜짐)는 수백 개의 메트릭을 내보낼 수 있지만, 차트는 `cadvisor.metricsAllowlist`에 있는 CPU 스로틀링 및 OOM kill 카운터만 직접 만드는 차트와 메트릭 모니터를 위해 전달합니다. 기본 제공 템플릿은 이를 읽지 않습니다. 목록을 짧게 유지하세요. 각 항목은 컨테이너별로 유지되므로 메트릭 하나를 더하면 클러스터의 컨테이너 수만큼 곱해집니다. kube-state-metrics는 기본적으로 꺼져 있으며, 켜면(`kubeStateMetrics.enabled=true`) 그 `kubeStateMetrics.metricsAllowlist`도 같은 방식으로 작동하고, 각 항목은 메트릭 이름 전체와 일치해야 합니다.
 - PVC별 볼륨 메트릭(`kubeletstats.volumeMetrics.enabled`, 기본적으로 켜짐)은 Pod별·PVC별로 시계열 하나를 내보냅니다. 대부분의 클러스터에는 괜찮지만, PVC가 수천 개인 상태 저장 워크로드(Kafka, 데이터베이스)에서는 많아집니다. PVC 디스크 공간을 감시하지 않는다면 그곳에서 `--set kubeletstats.volumeMetrics.enabled=false`로 끄세요.
 - 포화도 메트릭(`kubeletstats.utilizationMetrics.enabled`, 기본적으로 켜짐)은 "request 또는 limit 대비 %"의 파생 패밀리 8개를 추가합니다. 추가 스크레이프는 들지 않지만, limit 대비 CPU 및 메모리 모니터를 사용하지 않는다면 `--set kubeletstats.utilizationMetrics.enabled=false`로 버리세요.
 - 리시버 허용 목록으로 표현할 수 없는 것은 모든 리시버에 적용되는 `filters.metrics.exclude`로 이름을 지정해 메트릭을 버리세요([이름으로 메트릭 포함 또는 제외](#이름으로-메트릭-포함-또는-제외) 참조):
@@ -977,7 +987,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 필요에 따라 더 조이세요. `minSeverity`를 `ERROR`로 올리거나, 네임스페이스 규칙의 범위에 `metrics`를 추가하거나, 이미 OpenTelemetry SDK로 트레이스를 보내고 있다면 `ebpf.enabled=false`를 설정하세요.
 
 > [!CAUTION]
-> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `cadvisor`를 끄면 OOM kill 및 CPU 스로틀링 모니터가 없어지고, `kubeletstats.volumeMetrics`를 끄면 PVC 디스크 부족 모니터가 없어지며, 로그를 끄면 로그 기반 알림이 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
+> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `kubeletstats.utilizationMetrics`를 끄면 Pod를 컨테이너 한도와 비교하는 두 템플릿이 멈추고, 로그를 끄면 로그 기반 알림이 없어지며, `cadvisor` 또는 `kubeletstats.volumeMetrics`를 끄면 직접 만든 차트와 메트릭 모니터가 읽을 수 있는 스로틀링, OOM kill, PVC 시리즈가 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
 
 ### 효과 측정
 
@@ -1073,7 +1083,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## 다음 단계
 
 :::cards
-- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 크래시 루프, OOM kill, CPU 스로틀링, 가득 찬 디스크에 대해 알림을 보냅니다.
+- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 크래시 루프, 준비되지 않은 노드, 한도에 걸린 Pod, 가득 찬 노드 디스크에 대해 알림을 보냅니다.
 - [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost): 각 워크로드의 비용과 줄일 request를 확인합니다.
 - [데이터베이스](/docs/telemetry/databases): 클러스터의 데이터베이스 워크로드가 발견되어 전용 페이지가 생깁니다.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): Kubernetes 밖의 Linux, macOS, Windows 머신을 모니터링합니다.

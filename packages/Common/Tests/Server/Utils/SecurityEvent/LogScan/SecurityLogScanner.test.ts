@@ -850,3 +850,119 @@ describe("SecurityLogScanner.enqueueProjectsWithEnabledSources", () => {
     });
   });
 });
+
+/*
+ * Each kind of record "Your logs" reads has a health of its own on
+ * Connections: when the scan last found one. The scan keeps that in its
+ * result, kind by kind, carried from one scan to the next.
+ */
+describe("SecurityLogScanner.scanSource - when each kind was last found", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("stamps each kind this scan found with the scan's time", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    install([
+      ...logs(2, startAt, 20, SSH_LINES.failedPasswordInvalidUser),
+      ...logs(1, startAt, 30, SUDO_LINES.commandRun),
+    ]);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(startAt.toISOString()),
+    );
+
+    expect(result.lastFoundAtByFormat).toEqual({
+      [SecurityLogFormat.SshSignIn]: NOW.toISOString(),
+      [SecurityLogFormat.Sudo]: NOW.toISOString(),
+    });
+  });
+
+  test("keeps when the kinds this scan did not find were found before", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const installed: Installed = install([
+      ...logs(1, startAt, 20, SSH_LINES.failedPasswordInvalidUser),
+    ]);
+    const earlier: string = "2026-10-15T08:00:00.000Z";
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(startAt.toISOString(), {
+        lastFoundAtByFormat: {
+          [SecurityLogFormat.SshSignIn]: earlier,
+          [SecurityLogFormat.WindowsEvents]: earlier,
+        },
+      }),
+    );
+
+    expect(result.lastFoundAtByFormat).toEqual({
+      [SecurityLogFormat.SshSignIn]: NOW.toISOString(),
+      [SecurityLogFormat.WindowsEvents]: earlier,
+    });
+    expect(
+      (installed.updates[0]!["lastScanResult"] as JSONObject)[
+        "lastFoundAtByFormat"
+      ],
+    ).toEqual(result.lastFoundAtByFormat);
+  });
+
+  test("a quiet scan keeps every earlier time", async () => {
+    install([]);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -2).toISOString(), {
+        lastFoundAtByFormat: {
+          [SecurityLogFormat.Cef]: "2026-10-18T00:00:00.000Z",
+        },
+      }),
+    );
+
+    expect(result.lastFoundAtByFormat).toEqual({
+      [SecurityLogFormat.Cef]: "2026-10-18T00:00:00.000Z",
+    });
+  });
+
+  test("leaves out a stored kind it does not know and a time it cannot read", async () => {
+    install([]);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -2).toISOString(), {
+        lastFoundAtByFormat: {
+          "not-a-format": "2026-10-18T00:00:00.000Z",
+          [SecurityLogFormat.Leef]: "yesterday",
+          [SecurityLogFormat.Sudo]: 12,
+        },
+      }),
+    );
+
+    expect(result.lastFoundAtByFormat).toEqual({});
+  });
+
+  test("a Windows event a shipper sent is read through the scan, and counted under its kind", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const installed: Installed = install(
+      logs(
+        1,
+        startAt,
+        20,
+        JSON.stringify({
+          EventID: 4625,
+          SourceName: "Microsoft-Windows-Security-Auditing",
+          Channel: "Security",
+          Hostname: "WIN-01",
+          TargetUserName: "alice",
+          LogonType: "3",
+          IpAddress: "203.0.113.7",
+          SubStatus: "0xc000006a",
+        }),
+      ),
+    );
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(startAt.toISOString()),
+    );
+
+    expect(result.byFormat).toEqual({ [SecurityLogFormat.WindowsEvents]: 1 });
+    expect(installed.inserted[0]!["className"]).toBe("Authentication");
+    expect(installed.inserted[0]!["productName"]).toBe("Windows");
+  });
+});

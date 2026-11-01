@@ -41,9 +41,9 @@ import ProjectUtil from "../../../UI/Utils/Project";
 /*
  * The two hooks behind the AI card's one line:
  *
- *   - useAiCardFold, the page's go-between: the Remediation card says what
- *     fixing did, the AI card says how it is drawn, each for one record and
- *     never for the next one;
+ *   - useAiCardFold, what the card's Remediation step said fixing did,
+ *     kept for the card for one record and never for the next one (the card
+ *     hands the step how it is drawn itself: the step is drawn inside it);
  *   - useAiLaneSwitchStates, the record's two switches as they are now, read
  *     once per project and kind of record, and only while the card may fold;
  *     the card folds once they are read, so the line is drawn in its final
@@ -98,15 +98,14 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("useAiCardFold, between a page's AI card and its Remediation card", () => {
-  test("starts from 'still reading' and 'checking'", () => {
+describe("useAiCardFold, what the card's Remediation step said", () => {
+  test("starts from 'still reading'", () => {
     render(<FoldHarness recordKey="incident-1" />);
 
     expect(wiring!.remediationState).toEqual({ kind: "loading" });
-    expect(wiring!.fold).toBe("checking");
   });
 
-  test("hands each card what the other said", () => {
+  test("hands the card what the step said", () => {
     render(<FoldHarness recordKey="incident-1" />);
 
     act(() => {
@@ -116,30 +115,22 @@ describe("useAiCardFold, between a page's AI card and its Remediation card", () 
       kind: "off",
       reason: "fixing_off",
     });
-
-    act(() => {
-      wiring!.onFoldChange("folded");
-    });
-    expect(wiring!.fold).toBe("folded");
   });
 
-  test("the same answer twice keeps what it holds, so neither card has anything new to draw", () => {
+  test("the same answer twice keeps what it holds, so the card has nothing new to draw", () => {
     render(<FoldHarness recordKey="incident-1" />);
 
     act(() => {
       wiring!.onRemediationStateChange({ kind: "off", reason: "fixing_off" });
-      wiring!.onFoldChange("folded");
     });
     const kept: AiCardFoldWiring = wiring!;
 
     // A new object that says the same thing: the one held stays.
     act(() => {
       wiring!.onRemediationStateChange({ kind: "off", reason: "fixing_off" });
-      wiring!.onFoldChange("folded");
     });
 
     expect(wiring!.remediationState).toBe(kept.remediationState);
-    expect(wiring!.fold).toBe("folded");
 
     // Something different is taken.
     act(() => {
@@ -157,20 +148,22 @@ describe("useAiCardFold, between a page's AI card and its Remediation card", () 
 
     act(() => {
       wiring!.onRemediationStateChange({ kind: "off", reason: "fixing_off" });
-      wiring!.onFoldChange("folded");
     });
 
     view.rerender(<FoldHarness recordKey="incident-2" />);
 
     expect(wiring!.remediationState).toEqual({ kind: "loading" });
-    expect(wiring!.fold).toBe("checking");
 
     act(() => {
       wiring!.onRemediationStateChange({ kind: "on" });
     });
 
     expect(wiring!.remediationState).toEqual({ kind: "on" });
-    expect(wiring!.fold).toBe("checking");
+
+    // Back on the first record, what was said for it is not read either.
+    view.rerender(<FoldHarness recordKey="incident-1" />);
+
+    expect(wiring!.remediationState).toEqual({ kind: "loading" });
   });
 
   test("its callbacks are the same between draws of one record", () => {
@@ -184,7 +177,6 @@ describe("useAiCardFold, between a page's AI card and its Remediation card", () 
     expect(wiring!.onRemediationStateChange).toBe(
       first.onRemediationStateChange,
     );
-    expect(wiring!.onFoldChange).toBe(first.onFoldChange);
   });
 });
 

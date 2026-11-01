@@ -808,7 +808,7 @@ describe("watching the deployed fix", () => {
     }
   }
 
-  test("the exception in the deployed version is a regression, and reopens it", async () => {
+  test("the exception in the deployed version is a regression, and reopens it as Regressed", async () => {
     baseline(21);
     occurrences.push({ time: hoursAfterMerge(5), release: "2.3.2" });
 
@@ -823,7 +823,7 @@ describe("watching the deployed fix", () => {
     expect(exceptionUpdates).toEqual([
       {
         id: EXCEPTION_ID,
-        data: { isResolved: false },
+        data: { isResolved: false, regressedAt: NOW },
         props: { isRoot: true },
       },
     ]);

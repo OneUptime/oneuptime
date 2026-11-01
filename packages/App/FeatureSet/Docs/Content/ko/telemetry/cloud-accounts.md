@@ -7,6 +7,8 @@
 - [Microsoft Azure](#microsoft-azure): Monitoring Reader 역할이 있는 앱.
 - [Google Cloud](#google-cloud): 읽기 전용 역할 네 개가 있는 서비스 계정.
 - [OneUptime이 읽는 것](#oneuptime이-읽는-것): 리소스, 메트릭, 변경 사항, 상태 이벤트를 얼마나 자주 읽으며 비용이 얼마인지.
+- [데이터 보안](#데이터-보안): 연결이 데이터 보안에 무엇을 읽도록 허용하는지, 그리고 각 수준이 명령에 무엇을 더하는지.
+- [AI가 문제를 해결하도록 허용](#ai가-문제를-해결하도록-허용): 명령 하나만 더 실행하면 OneUptime AI가 찾은 문제를 해결할 수 있습니다.
 :::
 
 ## 작동 방식
@@ -20,7 +22,7 @@ flowchart TB
     ou --> chg["변경 사항과<br/>상태 이벤트"]
 ```
 
-- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 역할, Google Cloud에서는 뷰어 역할 네 개입니다. 데이터나 비밀은 절대 읽지 않습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
+- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 역할, Google Cloud에서는 뷰어 역할 네 개입니다. OneUptime은 이 액세스로 데이터나 비밀을 절대 읽지 않습니다. 다만 AI가 계정의 로그를 읽도록 허용한 경우에는 로그 줄을, [데이터 보안](#데이터-보안)의 콘텐츠 샘플을 켠 경우에는 그 샘플을 읽습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
 - **OneUptime은 일정에 따라 읽습니다.** 연결할 때 다른 간격을 고르지 않으면 Azure와 Google Cloud는 5분마다, AWS는 10분마다 읽습니다. 각 읽기는 지난 읽기 이후 바뀐 내용도 기록하며, 30분마다 모든 리소스를 다시 나열합니다.
 - **리소스마다 고유한 페이지가 있습니다.** 리소스는 **클라우드 → 모든 리소스**에 주요 메트릭, 소유자, 레이블과 함께 표시됩니다. 나열된 리소스의 페이지에는 **연결된 리소스**(실행되는 곳, 트래픽을 보내는 곳), 엔드포인트, 태그, 설정, 그리고 **인시던트**, **알림**, **변경 사항**도 표시됩니다.
 - **계정마다 고유한 페이지가 있습니다.** 계정은 **클라우드 → 계정**에 유형과 리전별 리소스, **변경 사항**, 그리고 리소스가 어떻게 이어지는지 보여 주는 **토폴로지**와 함께 표시됩니다.
@@ -48,7 +50,7 @@ OneUptime이 로그인하는 방법을 선택합니다. 권장하는 방법은 *
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -70,6 +72,9 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | Cloud Control을 통해 모든 리소스와 그 구성을 나열함 | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | 바뀐 내용을 읽음: 계정의 관리 이벤트 | `cloudtrail:LookupEvents` |
 | 계정에 대한 AWS 자체 상태 이벤트를 읽음 | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| 조사 중에 리소스의 현재 상태와 최근 이벤트를 읽음 | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
+| 조사 중에 계정의 할당량을 읽음 | `servicequotas:ListServiceQuotas` |
+| AI가 계정의 로그를 읽도록 허용한 경우에만 로그 줄을 읽음 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | 관리 계정에서 조직의 계정을 나열함 | `organizations:ListAccounts` |
 
 `apigateway:GET`은 API 자체의 정의에만 허용되고 키에는 허용되지 않으며, 조직의 계정은 관리 계정의 역할만 나열할 수 있습니다. AWS Health는 Business, Enterprise On-Ramp 또는 Enterprise 지원 플랜을 사용하는 계정에만 응답합니다. 지원 플랜이 없으면 OneUptime은 하루 뒤에 다시 묻습니다.
@@ -178,6 +183,62 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 **프로젝트**에 몇 개를 지정하지 않으면 조직 연결은 조직의 프로젝트를 최대 50개까지 읽습니다.
 
+## 데이터 보안
+
+같은 연결로 [데이터 보안](/docs/data-security/index)이 계정의 데이터 저장소, 즉 버킷, 데이터베이스, 웨어하우스를 읽게 할 수 있습니다. **추가 필드** 아래의 **데이터 보안** 은 다르게 선택하기 전까지 **꺼짐** 이며, 양식에 표시되는 명령도 선택에 따라 바뀝니다.
+
+| 데이터 보안 | 데이터 보안이 읽을 수 있는 것 | 명령이 추가하는 것 |
+| --- | --- | --- |
+| **꺼짐** | 계정의 어떤 저장소도 읽지 않음 | 없음 |
+| **구성만** | 각 저장소에 누가 접근할 수 있는지, 그리고 어떻게 암호화, 백업, 로깅되는지. 데이터는 절대 읽지 않습니다. | AWS에서는 읽기 작업으로 된 두 번째 인라인 정책 `OneUptimeDataSecurity`. Azure와 Google Cloud에서는 없음: **Monitoring Reader** 와 **Cloud Asset Viewer** 가 이미 이를 읽습니다. |
+| **구성 및 콘텐츠 샘플** | 위의 내용에 더해, 민감한 데이터를 찾기 위한 객체와 행의 샘플 | AWS에서는 같은 정책에 `s3:ListBucket`, `s3:GetObject`, 그리고 S3를 통해서만 허용되는 `kms:Decrypt` 를 더한 것. Azure에서는 **Storage Blob Data Reader**. Google Cloud에서는 `roles/storage.objectViewer`, `roles/bigquery.dataViewer`, BigQuery API. |
+
+AWS에서는 역할용 명령에 한 줄이 더해져 정책이 추가됩니다. 콘텐츠 수준에서는 다음과 같습니다.
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+```
+
+IAM은 사용자 자체의 인라인 정책을 모두 합쳐 2,048자로 제한하므로, **액세스 키** 를 쓰면 정책은 사용자가 가입하는 그룹 `OneUptimeDataSecurity` 에 들어갑니다.
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Azure에서는 콘텐츠 수준이 **Monitoring Reader** 와 같은 범위에 **Storage Blob Data Reader** 를 추가합니다.
+
+```bash
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+Google Cloud에서는 두 역할을 추가하고 `bigquery.googleapis.com` 을 켭니다.
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/storage.objectViewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.dataViewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+더 낮은 수준의 명령은 AWS 정책을 더 낮은 수준의 정책으로 바꿉니다. **꺼짐** 은 아무것도 추가하지 않으므로, 이전 명령이 부여한 것은 직접 삭제할 때까지 그대로 남습니다. AWS의 `OneUptimeDataSecurity` 정책은 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity` 로 삭제하고, Azure와 Google Cloud에서는 콘텐츠 수준의 역할을 삭제하세요. 어느 경우든 데이터 보안은 즉시 읽기를 멈춥니다. 연결의 수준이 허용하는 것만 읽기 때문입니다. [데이터 보안 설정하기](/docs/data-security/setup)에는 정책의 모든 작업과, 데이터 보안이 읽은 것 중 무엇을 보관하는지가 나와 있습니다.
+
 ## OneUptime이 읽는 것
 
 | | AWS | Azure | Google Cloud |
@@ -201,9 +262,25 @@ OneUptime의 호출은 클라우드 요금으로 클라우드 계정에 청구�
 
 ## OneUptime에서 보는 것
 
-- **계정 페이지.** **클라우드 → 계정**에서 계정의 개요는 리소스를 유형과 리전별로 세고, 연결이 마지막으로 읽은 시각을 알려 줍니다. **리소스**는 리소스를 나열하고, **변경 사항**은 계정에서 바뀐 내용을 최신순으로 나열하며, **토폴로지**는 리전, 그 안의 네트워크, 각각에서 실행되는 것을 연결된 리소스의 열린 인시던트 및 알림과 함께 그립니다.
+- **계정 페이지.** **클라우드 → 계정**에서 계정의 개요는 리소스를 유형과 리전별로 세고, 연결이 마지막으로 읽은 시각을 알려 줍니다. **리소스**는 리소스를 나열하고, **변경 사항**은 계정에서 바뀐 내용을 최신순으로 나열하며, **토폴로지**는 리전, 그 안의 네트워크, 각각에서 실행되는 것을 연결된 리소스의 열린 인시던트 및 알림과 함께 그립니다. **피드**는 계정이 OneUptime에 들어온 경위, 클라우드 AI 에이전트의 연결이나 재설정, 그리고 OneUptime AI가 계정에서 할 수 있는 일을 누가 변경했는지 기록합니다.
 - **리소스의 변경 사항.** 변경 사항은 바뀐 리소스와 그 계정에 연결된 변경 이벤트로 저장되며, 리소스의 메트릭 차트에 인시던트 및 알림과 함께 마커로 그려집니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그가 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
 - **인시던트와 알림.** 모니터, 인시던트 또는 알림의 연결된 리소스에서 클라우드 리소스를 연결하면 그 인시던트와 알림이 리소스 페이지에 나열됩니다. 호스트가 직접 또는 DNS를 통해 리소스의 엔드포인트로 이어지는 웹사이트, API, SSL, ping 또는 포트 모니터는 **연결된 리소스** 카드의 **추천 클라우드 리소스**에 그 리소스를 표시합니다. 연결하려면 **리소스 연결**을 선택합니다.
+
+## AI가 문제를 해결하도록 허용
+
+OneUptime AI는 조사하는 동안 위의 읽기 전용 액세스로 연결된 모든 계정을 읽습니다. 서비스 재시작, 스케일 아웃, 롤백처럼 문제 해결까지 맡기려면 **클라우드 → 계정**에서 계정을 열고 그 **개요**의 **AI 에이전트** 카드에서 **AI가 문제를 해결하도록 허용**을 선택하세요.
+
+대화 상자는 질문 하나, **AI에게 어디까지 맡기시겠습니까?** 를 묻습니다. 기본값인 **먼저 물어보기**는 OneUptime AI가 수정을 하나씩 제안하고 사람이 클릭 한 번으로 승인하는 방식이고, **안전한 수정은 스스로 적용하기**는 안전한 변경은 자동으로 실행되고 더 위험한 변경은 여전히 승인을 기다리는 방식입니다. 그 밖의 모든 것은 **추가 필드**에 안전한 기본값이 있습니다. 그다음 이 계정용으로 작성된 명령 하나를 보여 줍니다. 계정에서 역할을 만들 수 있는 사용자로 로그인해 AWS CloudShell, Azure Cloud Shell 또는 Google Cloud Shell에서 실행하세요. 명령은 켜진 변경만 할 수 있는 역할을 만들고, 그 역할로 계정 안에서 클라우드 AI 에이전트를 시작합니다. 에이전트는 몇 분 안에 스스로 연결되고 대화 상자에도 그렇게 표시됩니다. 다시 붙여 넣을 것은 없습니다.
+
+에이전트는 계정에서 한 달 내내 실행되는 작은 컨테이너 하나이며, 사용 중인 클라우드가 정가로 청구합니다:
+
+| 클라우드 | 실행되는 것 | 대략 |
+| --- | --- | --- |
+| AWS | 0.25 vCPU와 0.5 GB의 ECS Fargate 태스크 하나와 그 퍼블릭 IPv4 주소, `us-east-1` 요금 기준 | 월 $13 |
+| Azure | 0.25 vCPU와 0.5 GiB의 Container Apps 복제본 하나, 구독의 월간 무료 제공량인 180,000 vCPU-초와 360,000 GiB-초를 뺀 후 | 월 $14 |
+| Google Cloud | CPU가 항상 할당된 1 vCPU와 0.5 GiB의 Cloud Run 인스턴스 하나(vCPU 하나를 통째로 사용), 월간 무료 등급인 240,000 vCPU-초와 450,000 GiB-초를 뺀 후 | 월 $45 |
+
+에이전트가 변경할 수 있는 것, 각 변경의 단계와 실행 취소 방식, 로그를 읽는 방법: [인프라 AI 에이전트](/docs/ai/infrastructure-ai-agents#클라우드-계정에서).
 
 ## 문제 해결
 

@@ -4,18 +4,18 @@ L'agent Docker di OneUptime è un container che esegui su un host Docker. Legge 
 
 :::cards
 - [Installa l'agent](#installa-lagent): Due container, con `docker run` o Docker Compose.
-- [Cosa raccoglie l'agent](#cosa-raccoglie-lagent): Metriche, log e un inventario di ogni container.
+- [Cosa raccoglie l'agent](#cosa-raccoglie-lagent): Le metriche e i log di ogni container.
 - [I log dei container richiedono json-file](#i-log-dei-container-richiedono-il-driver-json-file): Verificare e cambiare il driver di log di un container.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Riavvii in loop, metriche mancanti, log mancanti.
 :::
 
 ## Come funziona
 
-L'agent è un OpenTelemetry Collector con la configurazione di OneUptime integrata. Tramite il socket di Docker legge le statistiche di ogni container ogni 30 secondi ed elenca ogni container, immagine, rete e volume ogni 5 minuti. Segue i file di log dei container e invia tutto al tuo URL di OneUptime tramite OTLP, con la chiave di acquisizione che gli fornisci.
+L'agent è un OpenTelemetry Collector con la configurazione di OneUptime integrata. Tramite il socket di Docker legge le statistiche di ogni container ogni 30 secondi. Segue i file di log dei container e invia tutto al tuo URL di OneUptime tramite OTLP, con la chiave di acquisizione che gli fornisci.
 
 ```mermaid title="Due container sul tuo host Docker"
 flowchart TB
-    containers["I tuoi container"] -->|"statistiche, file di log,<br/>inventario"| agent["Agent Docker"]
+    containers["I tuoi container"] -->|"statistiche e<br/>file di log"| agent["Agent Docker"]
     agent -->|"OTLP su HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"indaga su un incidente<br/>o un avviso"| ai["Agente IA Docker"]
     ai -->|"comandi docker<br/>in sola lettura"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Trova l'host in OneUptime
 
-Apri **Prodotti → Infrastruttura → Docker → Tutti gli host**. L'host compare con il suo `DOCKER_HOST_NAME` entro un minuto circa, con i suoi container, le metriche e i log. L'agente IA risulta connesso nella pagina **Agente IA** dell'host e in fondo alla sua **Panoramica**. La pagina **Topologia** dell'host disegna i suoi progetti Compose, container, immagini, reti e volumi su un'unica mappa: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
+Apri **Prodotti → Infrastruttura → Docker → Tutti gli host**. L'host compare con il suo `DOCKER_HOST_NAME` entro un minuto circa, con i suoi container, le metriche e i log. L'agente IA risulta connesso nella pagina **Agente IA** dell'host e in fondo alla sua **Panoramica**. La pagina **Topologia** dell'host disegna i suoi progetti Compose e i suoi container su un'unica mappa: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
 :::
 
 ## Variabili d'ambiente
@@ -139,7 +139,7 @@ Apri **Prodotti → Infrastruttura → Docker → Tutti gli host**. L'host compa
 | `ONEUPTIME_URL` | Sì | Il tuo URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. Usa `http://` e la sua porta se l'istanza usa solo HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Sì | La chiave di acquisizione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
 | `DOCKER_HOST_NAME` | No | Il nome dell'host in OneUptime. Il valore predefinito è `docker-host`, quindi dai a ogni host il suo. |
-| `DOCKER_API_VERSION` | No | La versione dell'API di Docker Engine che l'agent usa. Il valore predefinito è `1.44`. Abbassala con un daemon più vecchio, oppure impostala su un valore vuoto per negoziarla con il daemon (vedi [Risoluzione dei problemi](#risoluzione-dei-problemi)). |
+| `DOCKER_API_VERSION` | No | La versione dell'API di Docker Engine che l'agent usa. Vuota per impostazione predefinita: l'agent la negozia con il daemon, quindi funziona con ogni Docker Engine dalla 20.10 in poi. Impostala solo per fissare una versione (vedi [Risoluzione dei problemi](#risoluzione-dei-problemi)). |
 
 Per cambiare un valore, rimuovi l'agent ed esegui di nuovo il suo comando (Docker CLI), oppure modifica `docker-compose.yml` ed esegui `docker compose up -d` (Docker Compose).
 
@@ -149,7 +149,6 @@ Per cambiare un valore, rimuovi l'agent ed esegui di nuovo il suo comando (Docke
 | --- | --- |
 | Metriche dei container | CPU (utilizzo, percentuale, limitazione), memoria (utilizzo, limite, percentuale), I/O di rete e di blocco, uptime, riavvii e numero di processi, per container, ogni 30 secondi. |
 | Log dei container | stdout e stderr di ogni container, dal suo file di log `json-file`. |
-| Inventario | Ogni container in qualsiasi stato, e ogni immagine, rete e volume, ogni 5 minuti. |
 
 Le metriche e i log di ogni container vengono archiviati sotto un servizio con il nome del container. Ogni riga di log riceve una severità in base al livello che indica, come `[ERROR]`, `level=warn` o `{"level":"info"}`; una riga che non ne indica nessuno prende quella del suo flusso: stderr è `ERROR`, stdout è `INFO`. Le righe che iniziano con uno spazio o una parentesi di chiusura vengono unite alla riga precedente, quindi uno stack trace arriva come un unico record. I log dell'agent stesso vengono esclusi.
 
@@ -254,19 +253,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-Un daemon rifiuta un client più recente del proprio massimo, quindi il receiver non parte mai e il collector termina con esso. Trova il massimo del daemon:
+Un daemon rifiuta un client più recente del proprio massimo, quindi il receiver non parte mai e il collector termina con esso. L'agent negozia la versione con il daemon (un `HEAD /_ping`, poi il massimo del daemon stesso) a meno che `DOCKER_API_VERSION` non ne indichi una, e un'immagine più vecchia dell'agent fissava `1.44`, che Docker Engine dalla 20.10 alla 24 rifiuta. [Aggiorna l'agent](#aggiornare-lagent) e avvialo senza `-e DOCKER_API_VERSION` (oppure togli `DOCKER_API_VERSION` da Compose).
+
+Per fissare comunque una versione, non superare il massimo del daemon:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
 Poi aggiungi `-e DOCKER_API_VERSION=1.41` (o il valore che hai ottenuto) a `docker run`, oppure imposta `DOCKER_API_VERSION` in Compose. I daemon più recenti servono ancora le versioni più vecchie dell'API, quindi l'impostazione resta valida dopo un aggiornamento.
-
-Preferisci non cercare il numero? Imposta `DOCKER_API_VERSION` sulla stringa vuota. L'agent negozia allora la versione con il daemon (un `HEAD /_ping`, poi il massimo del daemon stesso), il che funziona sia con daemon vecchi sia con daemon nuovi:
-
-```bash
-docker run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Permesso negato sul socket di Docker

@@ -13,6 +13,7 @@ import {
   RESOURCE_AI_CHOICE_GAP_CODES,
   RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS,
   RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT,
+  RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   ResourceAccessTestResult,
   ResourceAiAgentMeta,
@@ -67,6 +68,7 @@ import {
   getResourceSentenceName,
 } from "../../../Types/AI/ResourceAiAccessPermissions";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -77,6 +79,8 @@ import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -235,6 +239,20 @@ describe("settings the agent sets", () => {
     }
   });
 
+  /*
+   * A Cloud AI agent's settings come from its setup command, which writes
+   * both variables itself: its line names the command and the Change
+   * button that shows it again, never variables to edit by hand.
+   */
+  test("a Cloud AI agent's line names its setup command and Change, not variables", () => {
+    expect(RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT).toBe(
+      "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.",
+    );
+    expect(RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT).not.toContain(
+      "ONEUPTIME_AI_",
+    );
+  });
+
   test("investigation off, set by the agent: the step points where it runs and offers the lines", () => {
     const investigationOff: ResourceAiAccessGap = gap("investigation_disabled");
     const status: ResourceAiAccessStatus = makeStatus({
@@ -279,9 +297,14 @@ describe("the descriptors", () => {
     [AiResourceType.CephCluster]: CephCluster,
     [AiResourceType.DatabaseServer]: DatabaseServer,
     [AiResourceType.Host]: Host,
+    // The three clouds' accounts are one model.
+    [AiResourceType.AwsAccount]: CloudAccount,
+    [AiResourceType.AzureSubscription]: CloudAccount,
+    [AiResourceType.GoogleCloudProject]: CloudAccount,
   };
 
-  const PAGES: Record<AiResourceType, [PageMap, PageMap, PageMap]> = {
+  // A cloud account has no AI insights page of its own.
+  const PAGES: Record<AiResourceType, [PageMap, PageMap | null, PageMap]> = {
     [AiResourceType.DockerHost]: [
       PageMap.DOCKER_HOST_VIEW_AI_AGENT,
       PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS,
@@ -321,6 +344,21 @@ describe("the descriptors", () => {
       PageMap.HOST_VIEW_AI_AGENT,
       PageMap.HOST_VIEW_AI_INSIGHTS,
       PageMap.HOST_VIEW_AI_LOGS,
+    ],
+    [AiResourceType.AwsAccount]: [
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+      null,
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
+    ],
+    [AiResourceType.AzureSubscription]: [
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+      null,
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
+    ],
+    [AiResourceType.GoogleCloudProject]: [
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+      null,
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
     ],
   };
 
@@ -398,6 +436,10 @@ describe("the descriptors", () => {
       // Pinned by id: database server names are not unique.
       [AiResourceType.DatabaseServer, null],
       [AiResourceType.Host, "hostIdentifier"],
+      // Pinned by id too: the setup command names the account's row.
+      [AiResourceType.AwsAccount, null],
+      [AiResourceType.AzureSubscription, null],
+      [AiResourceType.GoogleCloudProject, null],
     ]);
   });
 
@@ -547,6 +589,33 @@ describe("the agent card's state", () => {
     });
   });
 
+  /*
+   * A cloud account's agent is never installed by hand: Let AI fix
+   * problems writes the command that starts it, so with none connected its
+   * pill says "Not set up". Every other resource's says "Not installed".
+   */
+  test("a cloud account with no agent is Not set up; every other resource Not installed", () => {
+    for (const descriptor of Object.values(RESOURCE_AI_AGENT_DESCRIPTORS)) {
+      expect(
+        getResourceAiAgentStatusPill(makeStatus({ agent: null }), descriptor),
+      ).toEqual({
+        text: descriptor.isCloudAccount ? "Not set up" : "Not installed",
+        tone: "neutral",
+      });
+      // Connected or offline reads the same for every resource.
+      expect(getResourceAiAgentStatusPill(makeStatus(), descriptor).text).toBe(
+        "Connected",
+      );
+    }
+    expect(
+      Object.values(RESOURCE_AI_AGENT_DESCRIPTORS).filter(
+        (descriptor: ResourceAiAgentDescriptor): boolean => {
+          return descriptor.isCloudAccount;
+        },
+      ),
+    ).toHaveLength(3);
+  });
+
   test("an online agent that cannot reach the resource is still connected, but unreachable", () => {
     const status: ResourceAiAccessStatus = makeStatus({
       agent: makeAgent({
@@ -637,7 +706,11 @@ describe("why an offline agent is offline", () => {
 });
 
 describe("the card's sentence", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isCloudAiResourceType(type);
+    }),
+  )(
     "%s: names the agent and the resource in every state",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -661,6 +734,41 @@ describe("the card's sentence", () => {
       expect(getResourceAiAgentNotInstalledText(descriptor)).toContain(
         "read-only by default",
       );
+    },
+  );
+
+  /*
+   * A Cloud AI agent runs in the account itself, and nothing is installed
+   * next to a cloud account: one command in the cloud's own shell starts
+   * it. Its page used to say both, one sentence under the other.
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: the Cloud AI agent runs in the account, and one command starts it",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const connected: string = getResourceAiAgentStateSentence(
+        makeStatus({ resourceType: type }),
+        descriptor,
+        NOW,
+      );
+      const notInstalled: string = getResourceAiAgentStateSentence(
+        makeStatus({ resourceType: type, agent: null }),
+        descriptor,
+        NOW,
+      );
+
+      expect(connected).toBe(
+        `The Cloud AI agent is running in this ${descriptor.noun}.`,
+      );
+      expect(notInstalled).toBe(getResourceAiAgentNotInstalledText(descriptor));
+      expect(notInstalled).toBe(
+        "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+      );
+      for (const sentence of [connected, notInstalled]) {
+        expect(sentence).not.toContain("next to");
+        expect(sentence).not.toContain("Install the");
+      }
     },
   );
 
@@ -858,6 +966,68 @@ describe("the meta line", () => {
       ),
     ).toBe("Can change: web-*, api");
   });
+
+  /*
+   * A Cloud AI agent with writes on changes its own account's resources
+   * (only the tagged ones when it requires a tag), never "any target".
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: what the Cloud AI agent may change, from its posture",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({ resourceType: type }),
+          descriptor,
+        ),
+      ).toBe("Read-only");
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({
+            resourceType: type,
+            allowWrites: true,
+            details: { requiredTag: null },
+          }),
+          descriptor,
+        ),
+      ).toBe("Can make changes");
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({
+            resourceType: type,
+            allowWrites: true,
+            details: { requiredTag: " oneuptime-ai=allow " },
+          }),
+          descriptor,
+        ),
+      ).toBe("Changes only resources tagged oneuptime-ai=allow");
+      // Targets it was given are still named, as for every agent.
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({
+            resourceType: type,
+            allowWrites: true,
+            writeTargets: ["*checkout*"],
+          }),
+          descriptor,
+        ),
+      ).toBe("Can change: *checkout*");
+      // And the meta line says it.
+      expect(
+        getResourceAiAgentMetaParts(
+          makeStatus({
+            resourceType: type,
+            agent: makeAgent({
+              posture: makePosture({ resourceType: type, allowWrites: true }),
+            }),
+          }),
+          descriptor,
+        ),
+      ).toContain("Can make changes");
+    },
+  );
 
   test.each([
     [AiResourceType.DockerHost, "27.3.1", {}, "Docker 27.3.1"],
@@ -1215,6 +1385,8 @@ const SERVER_FLAGS: Record<
   auto_remediation_disabled_for_project: { investigation: false, fixes: true },
   llm_provider_missing: { investigation: true, fixes: true },
   ai_balance_insufficient: { investigation: true, fixes: true },
+  // A cloud account with no read-only connection: nothing to read it with.
+  cloud_connection_missing: { investigation: true, fixes: false },
 };
 
 function serverGap(code: ResourceAiAccessGapCode): ResourceAiAccessGap {
@@ -1479,7 +1651,12 @@ describe("Needs attention's headline", () => {
           }),
           descriptor,
         ),
-      ).toBe(`OneUptime AI can't investigate this ${descriptor.noun}`);
+      ).toBe(
+        // A cloud account is read live on the server: no agent blocks only fixes.
+        isCloudAiResourceType(type)
+          ? `OneUptime AI can't do all of its job on this ${descriptor.noun}`
+          : `OneUptime AI can't investigate this ${descriptor.noun}`,
+      );
     },
   );
 });
@@ -1606,7 +1783,10 @@ describe("Needs attention's steps", () => {
       }
 
       expect(texts["ai_agent_not_connected"]).toBe(
-        `Install the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} with the instructions above.`,
+        // A cloud account's agent is started by its setup command.
+        isCloudAiResourceType(type)
+          ? `Start the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} in this ${descriptor.noun} with the command above.`
+          : `Install the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} with the instructions above.`,
       );
       expect(texts["ai_agent_unreachable_resource"]).toContain(
         `reach this ${descriptor.noun}`,

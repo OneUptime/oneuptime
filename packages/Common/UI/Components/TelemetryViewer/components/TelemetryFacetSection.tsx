@@ -16,6 +16,11 @@ import useFacetSectionSearch, {
 } from "../useFacetSectionSearch";
 import { getFacetEmptyStateText } from "../FacetVisibility";
 import {
+  FacetHelp,
+  buildFacetHelp,
+  getFacetValueDescription,
+} from "../FacetHelp";
+import {
   DisplayedFacetValues,
   FacetValueState,
   getDisplayedFacetValues,
@@ -53,8 +58,13 @@ export interface TelemetryFacetSectionProps {
    * radio buttons, this one chosen.
    */
   chosenValue?: string | undefined;
-  // One line under the title saying what the values mean (English).
+  /*
+   * What the facet is about, and what each value is (English):
+   * FacetConfig.description and valueDescriptionMap. Said by an (i) beside
+   * the title and by each described value's row, never under the title.
+   */
   description?: string | undefined;
+  valueDescriptionMap?: Record<string, string> | undefined;
   defaultExpanded?: boolean;
   /*
    * When set, the search box also emits typed text to the parent (debounced)
@@ -174,6 +184,24 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
 
   const isSingleChoice: boolean = props.chosenValue !== undefined;
 
+  /*
+   * What the facet and its values mean, for the (i) beside the title: every
+   * value the facet has, not only the ones a search leaves on screen.
+   */
+  const help: FacetHelp | undefined = useMemo(() => {
+    return buildFacetHelp({
+      description: props.description,
+      valueDescriptionMap: props.valueDescriptionMap,
+      values: props.values,
+      valueDisplayMap: props.valueDisplayMap,
+    });
+  }, [
+    props.description,
+    props.valueDescriptionMap,
+    props.values,
+    props.valueDisplayMap,
+  ]);
+
   const stateOf: (value: string) => FacetValueState = (
     value: string,
   ): FacetValueState => {
@@ -201,6 +229,7 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
         onToggle={() => {
           setIsExpanded(!isExpanded);
         }}
+        help={help}
       />
 
       {isExpanded && (
@@ -214,16 +243,11 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
               : undefined
           }
         >
-          {props.description && (
-            <p
-              className="px-1.5 pb-1.5 text-[11px] leading-snug text-gray-500"
-              data-testid="facet-section-description"
-            >
-              {translator.translateText(props.description) || props.description}
-            </p>
-          )}
-
           {/*
+           * No paragraph goes between the title and the values: what the
+           * facet means is behind the (i) beside the title, and each value
+           * says what it is on its own row.
+           *
            * Two words, not a sentence: why it was not counted is said once,
            * by the note at the top of the sidebar or by the message where
            * the rows go, rather than again in every facet it stopped.
@@ -255,6 +279,10 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
                 displayValue={
                   facet.displayName ?? props.valueDisplayMap?.[facet.value]
                 }
+                description={getFacetValueDescription(
+                  props.valueDescriptionMap,
+                  facet.value,
+                )}
                 count={facet.count}
                 maxCount={maxCount}
                 isCountUnknown={props.isCountStopped}

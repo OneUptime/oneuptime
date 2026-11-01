@@ -5,7 +5,11 @@ import moment from "moment-timezone";
 import fs from "fs";
 import path from "path";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
-import { FastestRun, fastestRun } from "../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../Helpers/FastestRun";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -561,27 +565,25 @@ describe("speed", () => {
   test("fromUnixNano: 100,000 numbers well within a second, at least three times master's speed", () => {
     const count: number = 100000;
 
-    const branch: FastestRun<number> = fastestRun({
-      run: (): number => {
+    // Timed in turns (fastestRunsCompared), as the batch below is by hand.
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         let sum: number = 0;
         for (let i: number = 0; i < count; i++) {
           sum += OneUptimeDate.fromUnixNano(NOW_IN_NANOS + i * 1000).getTime();
         }
         return sum;
       },
-      limitInMs: 0,
-    });
-
-    const master: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         let sum: number = 0;
         for (let i: number = 0; i < count; i++) {
           sum += referenceFromUnixNano(NOW_IN_NANOS + i * 1000).getTime();
         }
         return sum;
       },
-      limitInMs: 0,
     });
+    const branch: FastestRun<number> = runs.first;
+    const master: FastestRun<number> = runs.second;
 
     expect(branch.result).toBe(master.result);
     expect(branch.inMs).toBeLessThan(1000);

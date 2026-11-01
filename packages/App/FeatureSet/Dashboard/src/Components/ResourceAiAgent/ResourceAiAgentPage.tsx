@@ -14,6 +14,7 @@ import {
   RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT,
   ResourceAccessTestResult,
   ResourceAiAgentCardCommand,
+  RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   ResourceAiAgentGapAction,
   ResourceAiAgentMeta,
@@ -33,6 +34,7 @@ import {
   getResourceAiAgentStatusPill,
   getResourceAiAttention,
   getResourceAiRefusedRegistrationWarning,
+  getResourceAutomaticRemediation,
   parseResourceAccessTestResult,
   parseResourceAiAccessStatus,
   shouldShowResourceWriteAccessCommands,
@@ -117,6 +119,18 @@ import {
 } from "../AiAccess/AiAccessRow";
 import AgentAiSettingsModal from "../AiAccess/AgentAiSettingsModal";
 import { AgentAiSettingsInstructions } from "../AiAccess/AgentAiSettingsInstructions";
+import {
+  AutomaticRemediationSettings,
+  shouldShowAutomaticRemediationLine,
+} from "../AiAccess/AutomaticRemediationLine";
+import AutomaticRemediationNote from "../AiAccess/AutomaticRemediationNote";
+import CloudAiAgentSetupModal from "../Cloud/CloudAiAgentSetupModal";
+import {
+  getCloudAiAgentLogsCommand,
+  readCloudProvider,
+} from "../Cloud/CloudAiAgentSetup";
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import AgentVersion from "../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import { AiAgentAction, getAiAgentActions } from "../AiAccess/AiAgentActions";
@@ -217,6 +231,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps extends PageComponentProps {
   descriptor: ResourceAiAgentDescriptor;
+  /*
+   * A cloud account's page: the account, for its setup command (its cloud,
+   * its id and whether AI may read its logs).
+   */
+  cloudAccount?: CloudAccount | null | undefined;
 }
 
 const PILL_COLORS: Record<ResourceAiAgentStatusPill["tone"], Color> = {
@@ -889,6 +908,11 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     turnOnInvestigation: boolean;
   } | null>(null);
   const [isConfirmingReset, setIsConfirmingReset] = useState<boolean>(false);
+  // A cloud account's "Let AI fix problems" dialog, with the setup command.
+  const [isCloudSetupOpen, setIsCloudSetupOpen] = useState<boolean>(false);
+  const cloudProvider: CloudProvider | null = descriptor.isCloudAccount
+    ? readCloudProvider(props.cloudAccount?.provider)
+    : null;
   const [isActing, setIsActing] = useState<boolean>(false);
   const [confirmationError, setConfirmationError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
@@ -1111,7 +1135,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     return (
       <Fragment>
         {heading}
-        <ErrorMessage message={error || "Could not load the AI agent."} />
+        <ErrorMessage
+          message={error || "Could not load the AI agent."}
+          onRefreshClick={refresh}
+        />
       </Fragment>
     );
   }
@@ -1136,7 +1163,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   );
 
   const agent: ResourceAiAgentSummary | null = status.agent;
-  const pill: ResourceAiAgentStatusPill = getResourceAiAgentStatusPill(status);
+  const pill: ResourceAiAgentStatusPill = getResourceAiAgentStatusPill(
+    status,
+    descriptor,
+  );
   const command: ResourceAiAgentCardCommand =
     getResourceAiAgentCardCommand(status);
   const meta: ResourceAiAgentMeta = getResourceAiAgentMeta(status, descriptor);
@@ -1161,6 +1191,9 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   const hasAgent: boolean = agent !== null;
   const remediationMode: ResourceAiRemediationMode =
     readResourceRemediationMode(status.aiRemediationMode);
+  // The project's automatic fixing switches, drawn under the fixes.
+  const automaticRemediation: AutomaticRemediationSettings | null =
+    getResourceAutomaticRemediation(status);
   const allowlistInEffect: Array<string> = getResourceAllowlistInEffect(
     status.aiCommandAllowlist,
   );
@@ -1200,6 +1233,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   const openAgentSettingsDialog: (turnOnInvestigation: boolean) => void = (
     turnOnInvestigation: boolean,
   ): void => {
+    // A cloud agent's settings change with its setup command.
+    if (cloudProvider) {
+      setIsCloudSetupOpen(true);
+      return;
+    }
+
     setAgentSettingsDialog({ turnOnInvestigation });
   };
 
@@ -1347,7 +1386,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
    * them in the agent — instructions, so it is offered to everyone who can
    * see the page; the server refuses an edit here anyway.
    */
-  const settingsButtons: Array<ReactElement> = isSetByAgent
+  const settingsButtons: Array<ReactElement> = cloudProvider
     ? [
         <Button
           key="change"
@@ -1357,11 +1396,11 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           buttonSize={ButtonSize.Normal}
           dataTestId="ai-access-change-button"
           onClick={() => {
-            openAgentSettingsDialog(false);
+            setIsCloudSetupOpen(true);
           }}
         />,
       ]
-    : settingsGate.isAllowed || settingsGate.disabledReason
+    : isSetByAgent
       ? [
           <Button
             key="change"
@@ -1369,24 +1408,39 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             icon={IconProp.Edit}
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Normal}
-            disabled={!settingsGate.isAllowed}
-            tooltip={settingsGate.disabledReason}
             dataTestId="ai-access-change-button"
             onClick={() => {
-              if (!settingsGate.isAllowed) {
-                return;
-              }
-              setEditCanConfigureUnattended(
-                canConfigureUnattendedResourceAiAccess(),
-              );
-              setIsEditingSettings(true);
+              openAgentSettingsDialog(false);
             }}
           />,
         ]
-      : [];
+      : settingsGate.isAllowed || settingsGate.disabledReason
+        ? [
+            <Button
+              key="change"
+              title="Change"
+              icon={IconProp.Edit}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Normal}
+              disabled={!settingsGate.isAllowed}
+              tooltip={settingsGate.disabledReason}
+              dataTestId="ai-access-change-button"
+              onClick={() => {
+                if (!settingsGate.isAllowed) {
+                  return;
+                }
+                setEditCanConfigureUnattended(
+                  canConfigureUnattendedResourceAiAccess(),
+                );
+                setIsEditingSettings(true);
+              }}
+            />,
+          ]
+        : [];
 
+  // A cloud account's agent is set up with its cloud's command, below.
   const install: ResourceAiAgentInstall | null =
-    command === "install"
+    command === "install" && !descriptor.isCloudAccount
       ? getResourceAiAgentInstall({
           resourceType: descriptor.resourceType,
           resourceId: modelId.toString(),
@@ -1458,11 +1512,30 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               descriptor={descriptor}
               isInvestigationEnabled={status.isAiInvestigationEnabled}
             />
+          ) : command === "install" && cloudProvider ? (
+            <div
+              className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+              data-testid="ai-agent-cloud-setup"
+            >
+              <Button
+                title="Let AI fix problems"
+                icon={IconProp.Automation}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="ai-agent-cloud-set-up"
+                onClick={() => {
+                  setIsCloudSetupOpen(true);
+                }}
+              />
+            </div>
           ) : command === "logs" ? (
             <div data-testid="ai-agent-logs-command">
               <CodeBlock
                 language="bash"
-                code={getResourceAiAgentLogsCommand(descriptor.resourceType)}
+                code={
+                  cloudProvider
+                    ? getCloudAiAgentLogsCommand(cloudProvider)
+                    : getResourceAiAgentLogsCommand(descriptor.resourceType)
+                }
               />
             </div>
           ) : (
@@ -1719,7 +1792,9 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         {isSetByAgent || canMoveSettingsToAgent ? (
           <AiAccessSetBy
             text={translator.translateTemplate(
-              RESOURCE_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
+              descriptor.isCloudAccount && isSetByAgent
+                ? RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT
+                : RESOURCE_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
               { agent: translatableTerm(descriptor.agentName) },
             )}
             isSetByAgent={isSetByAgent}
@@ -1758,10 +1833,29 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             sentence={RESOURCE_REMEDIATION_MODE_SUMMARIES[remediationMode]}
             dataTestId="ai-access-fixes"
           >
+            {/*
+             * Whether the project fixes new incidents and alerts at all:
+             * the resource's fixes act on nothing new while both of the
+             * project's switches are off (the default), so the line says
+             * so, with a link to turn each one on - the line a cluster's
+             * page draws. Only while the resource's own fixes are on: with
+             * them off, the hint below is the one next step.
+             */}
+            {automaticRemediation &&
+            shouldShowAutomaticRemediationLine({
+              settings: automaticRemediation,
+              areFixesOn:
+                remediationMode !== ResourceAiRemediationMode.Disabled,
+            }) ? (
+              <AutomaticRemediationNote
+                settings={automaticRemediation}
+                dataTestId="ai-access-automatic-remediation"
+              />
+            ) : null}
             {remediationMode === ResourceAiRemediationMode.Disabled ? (
               <AiAccessHint
                 text={
-                  isSetByAgent
+                  isSetByAgent || descriptor.isCloudAccount
                     ? AI_FIXES_OFF_AGENT_SET_HINT
                     : getAiFixesOffHint(
                         settingsGate.isAllowed &&
@@ -1798,7 +1892,20 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               />
             ) : null}
             {shouldShowResourceWriteAccessCommands(status) ? (
-              <WriteAccessInstructions descriptor={descriptor} />
+              cloudProvider ? (
+                <p
+                  className="text-xs text-gray-600"
+                  data-testid="ai-access-cloud-write-access"
+                >
+                  {translator.translateText(
+                    translationKey(
+                      "The agent runs read-only. Run its setup command again (Change) to let it make the changes you pick.",
+                    ),
+                  )}
+                </p>
+              ) : (
+                <WriteAccessInstructions descriptor={descriptor} />
+              )
             ) : null}
           </AiAccessRow>
         </AiAccessRows>
@@ -1843,6 +1950,23 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             setAgentSettingsDialog(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isCloudSetupOpen && cloudProvider && props.cloudAccount ? (
+        <CloudAiAgentSetupModal
+          descriptor={descriptor}
+          cloudAccountId={modelId}
+          provider={cloudProvider}
+          accountId={props.cloudAccount.accountId || ""}
+          isAiLogReadEnabled={props.cloudAccount.isAiLogReadEnabled === true}
+          status={status}
+          onClose={() => {
+            setIsCloudSetupOpen(false);
+            refresh();
           }}
         />
       ) : (

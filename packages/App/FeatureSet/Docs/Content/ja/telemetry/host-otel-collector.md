@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -492,6 +510,8 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 `hostmetrics` はどの OS でも動作します。`collection_interval` ごとに、CPU、メモリ、ディスク、ファイルシステム、ネットワーク、負荷、ページング、プロセスをカーネルから読み取ります。`*.utilization` メトリクスと `system.cpu.logical.count` はレシーバーで既定ではオフですが、ホストのグラフと Host アラートテンプレートはこれらを読み取るため、上の設定のように有効のままにしておいてください。`process` スクレイパーは **プロセス** ページのデータ源で、系列の最大の発生源でもあります ([送信量を減らす](#収集するデータ量を減らす) を参照)。
 
 Linux では、Collector は `/proc` と `/sys` を読み取ります。コンテナ内の Collector はホストのものをマウントし、`HOST_PROC` と `HOST_SYS` を設定する必要があります ([Docker コンテナ内で](#docker-コンテナ内で) を参照)。ネイティブインストールでは何も必要ありません。
+
+上の設定は、設計上いっぱいのファイルシステムやデータを持たないファイルシステムを `filesystem` スクレイパーから除外しています (`exclude_fs_types`)。snap パッケージ (`squashfs`) などの読み取り専用イメージ、CD や DVD、macOS の `/dev` (`devfs`)、オートマウンターのマップ (`autofs`) です。いっぱいのものはマウントされている間ずっと 100% 使用中と読み取られるため、除外しないと High Filesystem Usage テンプレートがそれらで発火し、回復しません。独自の設定でもこの除外を残してください。通常のファイルシステムを持つ読み取り専用イメージ (マウントした `.dmg` など) もいっぱいと読み取られるため、そのマウントポイントは `exclude_mount_points` で除外してください。
 
 ### ファイルログ
 
@@ -934,6 +954,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1105,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true

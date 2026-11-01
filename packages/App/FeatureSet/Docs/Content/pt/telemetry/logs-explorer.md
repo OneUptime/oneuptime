@@ -131,7 +131,7 @@ A aba **Insights** mostra o que seus serviços registraram em um intervalo de te
 | **Top errors** | As mensagens distintas registradas com gravidade Error ou Fatal, as mais frequentes primeiro. |
 | **Sources reporting logs** | O volume e o sinal de erros de cada serviço, host ou outra origem. |
 
-Selecione um dos principais erros para ver o que acontecia ao redor dele: quando ocorreu, o que as ocorrências têm em comum, onde ocorre, os traços que o carregam e as linhas mais recentes dele. **Open matching logs** os abre no **Visualizador**, e **Explain with AI** abre o [Pergunte à IA](/docs/ai/ask-ai) com o erro e as evidências dele como um prompt que você pode editar.
+Selecione um dos principais erros para ver o que acontecia ao redor dele: quando ocorreu, o que as ocorrências têm em comum, onde ocorre, os traços que o carregam e as linhas mais recentes dele. **Open matching logs** os abre no **Visualizador**, e **Explicar com IA** abre o [Pergunte à IA](/docs/ai/ask-ai) com o erro e as evidências dele como um prompt que você pode editar.
 
 ## Encontrar e corrigir com IA logs de erro, ausentes ou ruidosos
 

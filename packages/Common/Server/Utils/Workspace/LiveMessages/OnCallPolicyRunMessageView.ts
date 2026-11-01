@@ -117,9 +117,57 @@ import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/On
  *   See every step in OneUptime
  *
  * A page a PERSON started ends as the paging ending, not as the person
- * doing something: "✅ Nawaz acknowledged Alert #12, so paging stopped". A
- * policy or a workflow stops paging itself ("so PolicyX stopped paging");
- * "so Simon Lee stopped paging" read as if Simon had called his page off.
+ * doing something: "✅ Nawaz acknowledged the page for Alert #12, so paging
+ * stopped". A policy or a workflow stops paging itself ("so PolicyX stopped
+ * paging"); "so Simon Lee stopped paging" read as if Simon had called his
+ * page off. Who answers a person's page acknowledges the page: the record
+ * may have been acknowledged long before by somebody else, and "Nawaz
+ * acknowledged Incident INC-8" would not be true of it then.
+ *
+ * In an incident's or an alert's own channel a page is about that incident
+ * or alert (WorkspacePage), and what the person who paged wrote is the
+ * page's message, kept on the run: the message quotes it under its first
+ * line, everywhere it is posted - the record's title is right above, in the
+ * message that announced the record:
+ *
+ *   📟 Simon Lee is paging for Incident INC-8
+ *
+ *   “Can you check the database?”
+ *
+ *   • Nawaz: paged once · by SMS
+ *
+ * Such a page goes on until somebody it paged answers it, or the record is
+ * resolved (OnCallPersonPage) - somebody else acknowledging the incident
+ * does not stop it. When it ends with nobody answering while the record
+ * is acknowledged, somebody is on the record: the ending says the page went
+ * unanswered, not that somebody needs to take the record.
+ *
+ *   ⚠️ Nobody answered the page from Simon Lee for Incident INC-8
+ *
+ * A TEAM IS NAMED ONCE. A page of one team - everybody it paged was paged
+ * as a member of that team - says whom it pages in its first line, the way
+ * a person says it, and its list is the team's people:
+ *
+ *   📟 Simon Lee is paging Platform for Incident INC-8
+ *
+ *   • Nawaz: paged once · by SMS
+ *   • Sam: acknowledged · paged once
+ *
+ * The team was said on every line once ("Nawaz (member of Platform)"), and
+ * a team of six said it six times, each line two lines long on a phone. It
+ * stays in the first line while the page goes on and when it ends with
+ * nobody answering ("Nobody in Platform answered the page from Simon Lee");
+ * once somebody answers, who did is what the line says. People paged
+ * through different teams, or some by name, each say their own, as a
+ * person covering for somebody says whom:
+ *
+ *   • Nawaz (member of Platform): paged once · by SMS
+ *   • Alex: paged once · by call
+ *
+ * A policy's run names its policy first, so a level that pages one team
+ * lists its people as it always did. An alarm names each team first, then
+ * its people: "Simon Lee paged Platform (Nawaz and Sam), and paging has
+ * stopped".
  *
  * SOMEBODY WHO CANNOT TAKE A PAGE can escalate it (OnCallPagePassOn). Their
  * line says so, and the run's progress says where it moved on to - straight
@@ -179,6 +227,13 @@ export enum OnCallPolicyRunOutcome {
   PolicyArchived = "PolicyArchived",
   // Every escalation rule (and repeat) ran, people were paged, nobody acknowledged.
   NobodyAcknowledged = "NobodyAcknowledged",
+  /*
+   * A page a person asked for (OnCallPersonPage) whose people were all
+   * paged, none of them answering, about a record somebody else had
+   * acknowledged by then: somebody is on the record, and the page went
+   * unanswered.
+   */
+  NobodyAnswered = "NobodyAnswered",
   // Every escalation rule ran and none of them reached anybody.
   NobodyReached = "NobodyReached",
   /*
@@ -215,6 +270,12 @@ export interface OnCallPolicyRunPagedPerson {
    * was for another reason.
    */
   nextInRotationOf?: Array<string> | undefined;
+  /*
+   * The teams they were paged as a member of - a team a direct page or an
+   * escalation rule named - by name. Empty when no page reached them
+   * through a team.
+   */
+  teams?: Array<string> | undefined;
 }
 
 // Somebody, or some step, the run could not page, once per reason.
@@ -276,6 +337,12 @@ export interface OnCallPolicyRun {
   directPage?: OnCallDirectPageRun | undefined;
   // The run's own page in OneUptime: every step, in order.
   runUrl: string;
+  /*
+   * What the person who paged wrote to the people the page reaches - a
+   * page from an incident's or an alert's own channel (pageMessage).
+   * Empty for none.
+   */
+  pageMessage?: string | undefined;
   // "Incident INC-8", "Alert #12", "Incident Episode EP-3", ...
   recordLabel: string;
   recordUrl: string;
@@ -362,6 +429,12 @@ export const ON_CALL_RUN_NOT_PAGED: string = "not paged";
  */
 export const WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED: MarkdownText = mdText`Check who is on call, or page someone yourself.`;
 
+/*
+ * What the person who paged does next when nobody they paged answered,
+ * about a record somebody else is on (OnCallPolicyRunOutcome.NobodyAnswered).
+ */
+export const WHAT_TO_DO_WHEN_NOBODY_ANSWERED: MarkdownText = mdText`Page someone else, or reach them another way.`;
+
 // How many of the people paged an alarm names before "and N others".
 const MAX_NAMES_IN_AN_ALARM: number = 5;
 
@@ -401,6 +474,57 @@ export default class OnCallPolicyRunMessageView {
   }
 
   /*
+   * Why a person was paged as a member of a team - a team a direct page or
+   * an escalation rule named: "member of Platform", "member of Platform and
+   * Database". The teams' names are text.
+   */
+  public static getTeamReason(teamNames: Array<string>): MarkdownText {
+    return mdText`member of ${this.joinNames(teamNames)}`;
+  }
+
+  /*
+   * The one team everybody the run paged was paged through, by name - a
+   * page of one team. The message says it once, not on each person's line
+   * (see the header); a direct page says it in its first line. Null when
+   * nobody was paged yet, when somebody was paged by name or through a
+   * schedule, or through another team - or through two teams at once: each
+   * line then says its own.
+   */
+  public static getTeamOfEveryonePaged(run: OnCallPolicyRun): string | null {
+    let team: string | null = null;
+
+    for (const person of run.paged) {
+      const teams: Array<string> = person.teams || [];
+
+      if (teams.length !== 1 || (team !== null && teams[0] !== team)) {
+        return null;
+      }
+
+      team = teams[0]!;
+    }
+
+    return team;
+  }
+
+  /*
+   * The team a direct page of one team pages, for its first line: "**Platform**".
+   * Null for a policy's run - its first line names the policy - and for any
+   * other run (getTeamOfEveryonePaged).
+   */
+  private static getPagedTeam(run: OnCallPolicyRun): MarkdownText | null {
+    const team: string | null = run.directPage
+      ? this.getTeamOfEveryonePaged(run)
+      : null;
+
+    return team ? mdText`**${team}**` : null;
+  }
+
+  // The same, as plain text: what a notification shows of it.
+  private static getPagedTeamName(run: OnCallPolicyRun): string | null {
+    return run.directPage ? this.getTeamOfEveryonePaged(run) : null;
+  }
+
+  /*
    * Why a rule that pages the next person in a schedule's rotation paged
    * nobody there, for the alarm about a rule that reached nobody: "nobody
    * was next in the Primary rotation".
@@ -418,11 +542,15 @@ export default class OnCallPolicyRunMessageView {
   ): string {
     const parts: Array<MarkdownText> = [this.getHeadline(run)];
 
-    // What the page is about, where somebody paged from a chat.
-    const recordTitle: string = this.getRecordTitle(options);
+    /*
+     * What the person who paged wrote, everywhere - or, where somebody
+     * paged from a chat about something new, what the page is about: its
+     * alert's title, which is their message.
+     */
+    const quote: string = this.getQuote(run, options);
 
-    if (recordTitle) {
-      parts.push(mdText`“${recordTitle}”`);
+    if (quote) {
+      parts.push(mdText`“${quote}”`);
     }
 
     /*
@@ -460,9 +588,17 @@ export default class OnCallPolicyRunMessageView {
       }
     }
 
+    /*
+     * Everybody paged as a member of one team: the team is said once (the
+     * first line, for a direct page), not on each of their lines.
+     */
+    const isTeamSaidOnce: boolean = this.getTeamOfEveryonePaged(run) !== null;
+
     const people: Array<MarkdownText> = [
       ...run.paged.map((person: OnCallPolicyRunPagedPerson): MarkdownText => {
-        return this.getPagedPersonLine(person);
+        return this.getPagedPersonLine(person, {
+          isTeamSaid: isTeamSaidOnce,
+        });
       }),
       ...run.notPaged.map((entry: OnCallPolicyRunNotPaged): MarkdownText => {
         return this.getNotPagedLine(entry, run.ruleCount);
@@ -503,28 +639,31 @@ export default class OnCallPolicyRunMessageView {
     options?: OnCallPolicyRunViewOptions | undefined,
   ): string {
     const line: string = this.getPlainTextLine(run);
-    const recordTitle: string = this.getRecordTitle(options);
+    const quote: string = this.getQuote(run, options);
 
-    // Where somebody paged from a chat: what the page is about, after it.
-    return recordTitle ? `${line}: ${recordTitle}` : line;
+    // The page's message, or what the page is about, after it.
+    return quote ? `${line}: ${quote}` : line;
   }
 
   /*
-   * The record's title as the message shows it: on one line, cut to a
-   * length a chat line reads at a glance. Empty when there is none to show.
+   * What the message quotes under its first line: the page's message - what
+   * the person who paged wrote (pageMessage) - or, where somebody paged
+   * from a chat, the record's title. On one line, cut to a length a chat
+   * line reads at a glance. Empty when there is nothing to quote.
    */
-  private static getRecordTitle(
+  private static getQuote(
+    run: OnCallPolicyRun,
     options: OnCallPolicyRunViewOptions | undefined,
   ): string {
-    const title: string = (options?.recordTitle || "")
+    const quote: string = (run.pageMessage || options?.recordTitle || "")
       .replace(WHITE_SPACE_RUN, " ")
       .trim();
 
-    if (title.length <= ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH) {
-      return title;
+    if (quote.length <= ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH) {
+      return quote;
     }
 
-    return `${title.substring(0, ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH - 1).trimEnd()}…`;
+    return `${quote.substring(0, ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH - 1).trimEnd()}…`;
   }
 
   private static getPlainTextLine(run: OnCallPolicyRun): string {
@@ -535,6 +674,8 @@ export default class OnCallPolicyRunMessageView {
     });
     // A person's page: the paging stops, not the person (see the header).
     const isStartedByPerson: boolean = this.isStartedByPerson(run);
+    // A direct page of one team: whom it pages (see the header).
+    const team: string | null = this.getPagedTeamName(run);
 
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Waiting:
@@ -544,11 +685,18 @@ export default class OnCallPolicyRunMessageView {
           ? `${run.recordLabel} moved to ${run.outcomeDetail}, so ${pagerNameInSentence} did not page anyone`
           : `${pagerName} did not page anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Paging:
-        return run.pageAgainNumber
-          ? `${pagerName} is paging again for ${run.recordLabel}`
+        if (run.pageAgainNumber) {
+          return `${pagerName} is paging again for ${run.recordLabel}`;
+        }
+
+        return team
+          ? `${pagerName} is paging ${team} for ${run.recordLabel}`
           : `${pagerName} is paging for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Acknowledged:
-        return `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
+        // A person's page is answered: its record may be somebody else's.
+        return isStartedByPerson
+          ? `${run.acknowledgedByName || "Someone"} acknowledged the page for ${run.recordLabel}`
+          : `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.RecordHandled:
         if (isStartedByPerson) {
           return run.outcomeDetail
@@ -566,6 +714,11 @@ export default class OnCallPolicyRunMessageView {
         return run.pageAgainNumber
           ? `Nobody answered the page again for ${run.recordLabel}`
           : `Nobody acknowledged ${run.recordLabel}`;
+      // A person's page, about a record somebody else is on.
+      case OnCallPolicyRunOutcome.NobodyAnswered:
+        return team
+          ? `Nobody in ${team} answered the page from ${pagerNameInSentence} for ${run.recordLabel}`
+          : `Nobody answered the page from ${pagerNameInSentence} for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
         return `Nobody could take ${run.recordLabel}: everybody paged by ${pagerNameInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
@@ -677,6 +830,19 @@ export default class OnCallPolicyRunMessageView {
           text: `Nobody has acknowledged ${run.recordLabel}: someone needs to take it`,
         });
         break;
+      /*
+       * A person's page about a record somebody else is on: nobody needs to
+       * take the record - the person who paged needs somebody else.
+       */
+      case OnCallPolicyRunOutcome.NobodyAnswered:
+        alarms.push({
+          key: ON_CALL_RUN_ALARM_OUTCOME,
+          markdown:
+            mdText`⚠️ Nobody answered the page for ${record}: ${policy} paged ${this.getPagedNames(run)}, and paging has stopped. ${WHAT_TO_DO_WHEN_NOBODY_ANSWERED}`.toString(),
+          // The message's own line, as a notification shows it.
+          text: this.getPlainTextLine(run),
+        });
+        break;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
@@ -755,6 +921,11 @@ export default class OnCallPolicyRunMessageView {
     const soPagingStopped: MarkdownText = isStartedByPerson
       ? mdText`so paging stopped`
       : mdText`so ${policyInSentence} stopped paging`;
+    /*
+     * A direct page of one team says whom it pages: "Simon Lee is paging
+     * Platform for ..." (see the header).
+     */
+    const team: MarkdownText | null = this.getPagedTeam(run);
 
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Waiting:
@@ -769,11 +940,22 @@ export default class OnCallPolicyRunMessageView {
           : mdText`✅ ${record} is being handled, so ${policyInSentence} did not page anyone`;
       case OnCallPolicyRunOutcome.Paging:
         // A page again (OnCallAcknowledgementTimeout) says it is one.
-        return run.pageAgainNumber
-          ? mdText`📟 ${policy} is paging again for ${record}`
+        if (run.pageAgainNumber) {
+          return mdText`📟 ${policy} is paging again for ${record}`;
+        }
+
+        return team
+          ? mdText`📟 ${policy} is paging ${team} for ${record}`
           : mdText`📟 ${policy} is paging for ${record}`;
       case OnCallPolicyRunOutcome.Acknowledged:
-        return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, ${soPagingStopped}`;
+        /*
+         * A person's page is answered by acknowledging the page: its record
+         * may have been acknowledged by somebody else before (see the
+         * header).
+         */
+        return isStartedByPerson
+          ? mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged the page for ${record}, ${soPagingStopped}`
+          : mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, ${soPagingStopped}`;
       case OnCallPolicyRunOutcome.RecordHandled:
         /*
          * In the past tense: the message is not edited once the run is
@@ -791,9 +973,18 @@ export default class OnCallPolicyRunMessageView {
         }
 
         // A direct page has no escalation rules to have gone through.
-        return run.directPage
-          ? mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`
-          : mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
+        if (run.directPage) {
+          return team
+            ? mdText`⚠️ ${policy} paged ${team} for ${record} and nobody acknowledged`
+            : mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`;
+        }
+
+        return mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
+      // A person's page about a record somebody else is on.
+      case OnCallPolicyRunOutcome.NobodyAnswered:
+        return team
+          ? mdText`⚠️ Nobody in ${team} answered the page from ${policyInSentence} for ${record}`
+          : mdText`⚠️ Nobody answered the page from ${policyInSentence} for ${record}`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
         return mdText`⚠️ Nobody could take ${record}: everybody paged by ${policyInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
@@ -904,10 +1095,13 @@ export default class OnCallPolicyRunMessageView {
   /*
    * "**Nitin**: paged twice · by SMS and email", with why somebody else's
    * page reached them: "(covering for Alex)", "(next in the Primary
-   * rotation)".
+   * rotation)" - and the team a page reached them through: "(member of
+   * Platform)", unless the message says it once for everybody
+   * (`isTeamSaid`, getTeamOfEveryonePaged).
    */
   private static getPagedPersonLine(
     person: OnCallPolicyRunPagedPerson,
+    options: { isTeamSaid: boolean },
   ): MarkdownText {
     const why: Array<MarkdownText> = [];
 
@@ -917,6 +1111,12 @@ export default class OnCallPolicyRunMessageView {
 
     for (const scheduleName of person.nextInRotationOf || []) {
       why.push(this.getNextInRotationReason(scheduleName));
+    }
+
+    const teams: Array<string> = person.teams || [];
+
+    if (teams.length > 0 && !options.isTeamSaid) {
+      why.push(this.getTeamReason(teams));
     }
 
     const who: MarkdownText =
@@ -1151,19 +1351,54 @@ export default class OnCallPolicyRunMessageView {
 
   /*
    * Who the run paged, for an alarm: "Nitin", "Nitin and NB User 3", up to
-   * five names and then "and 3 others".
+   * five names and then "and 3 others". The people a team was paged for are
+   * named after the team, together: "Platform (Nitin and Sam) and Alex".
    */
   private static getPagedNames(run: OnCallPolicyRun): MarkdownText {
-    const names: Array<string> = run.paged.map(
-      (person: OnCallPolicyRunPagedPerson): string => {
-        return person.name;
-      },
-    );
-
-    if (names.length === 0) {
+    if (run.paged.length === 0) {
       return mdText`nobody`;
     }
 
+    // In the order each was first paged: a team where its first member was.
+    const entries: Array<{ team: string | null; names: Array<string> }> = [];
+
+    for (const person of run.paged) {
+      const team: string | null = (person.teams || [])[0] || null;
+      const entry: { team: string | null; names: Array<string> } | undefined =
+        team
+          ? entries.find(
+              (candidate: { team: string | null; names: Array<string> }) => {
+                return candidate.team === team;
+              },
+            )
+          : undefined;
+
+      if (entry) {
+        entry.names.push(person.name);
+      } else {
+        entries.push({ team: team, names: [person.name] });
+      }
+    }
+
+    const said: Array<MarkdownText> = entries.map(
+      (entry: { team: string | null; names: Array<string> }): MarkdownText => {
+        const names: MarkdownText = this.joinNamesUpTo(entry.names);
+
+        return entry.team ? mdText`${entry.team} (${names})` : names;
+      },
+    );
+
+    if (said.length <= MAX_NAMES_IN_AN_ALARM) {
+      return this.joinMarkdown(said);
+    }
+
+    const others: number = said.length - MAX_NAMES_IN_AN_ALARM;
+
+    return mdText`${FeedMarkdown.join(said.slice(0, MAX_NAMES_IN_AN_ALARM), ", ")} and ${others} ${others === 1 ? "other" : "others"}`;
+  }
+
+  // "A", "A and B", up to five names and then "and 3 others". Names are text.
+  private static joinNamesUpTo(names: Array<string>): MarkdownText {
     if (names.length <= MAX_NAMES_IN_AN_ALARM) {
       return this.joinNames(names);
     }
@@ -1171,6 +1406,15 @@ export default class OnCallPolicyRunMessageView {
     const others: number = names.length - MAX_NAMES_IN_AN_ALARM;
 
     return mdText`${FeedMarkdown.join(names.slice(0, MAX_NAMES_IN_AN_ALARM), ", ")} and ${others} ${others === 1 ? "other" : "others"}`;
+  }
+
+  // "A", "A and B", "A, B and C", of Markdown already placed.
+  private static joinMarkdown(parts: Array<MarkdownText>): MarkdownText {
+    if (parts.length <= 1) {
+      return parts[0] || FeedMarkdown.empty();
+    }
+
+    return mdText`${FeedMarkdown.join(parts.slice(0, -1), ", ")} and ${parts[parts.length - 1]!}`;
   }
 
   // "A", "A and B", "A, B and C". Names are text.

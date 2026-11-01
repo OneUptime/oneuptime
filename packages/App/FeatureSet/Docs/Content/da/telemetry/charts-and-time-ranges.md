@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Tip på graferne
 
-De fleste grafer, der kan zoome, nævner bevægelsen over tegnefladen, **Træk for at zoome** eller **Klik eller træk for at zoome**, og tilføjer, mens en zoom er aktiv, påmindelsen **double-click to reset**. Metrikkort, metrikudforskeren og udforskernes volumengrafer viser altid tippet. På grafkortene i ressourceoversigter og SLO'er og på nogle dashboard-widgets vises det kun, mens du peger på kortet eller tabber ind i det.
+De fleste grafer, der kan zoome, nævner bevægelsen over tegnefladen, **Træk for at zoome** eller **Klik eller træk for at zoome**, og tilføjer, mens en zoom er aktiv, påmindelsen **dobbeltklik for at nulstille**. Metrikkort, metrikudforskeren og udforskernes volumengrafer viser altid tippet. På grafkortene i ressourceoversigter og SLO'er og på nogle dashboard-widgets vises det kun, mens du peger på kortet eller tabber ind i det.
 
 ## Hvor det virker
 

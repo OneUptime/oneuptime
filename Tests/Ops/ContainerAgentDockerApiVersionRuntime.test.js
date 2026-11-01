@@ -10,11 +10,13 @@
  *   - a version above the daemon's maximum kills the collector (the bug this
  *     plumbing exists to let operators fix),
  *   - a version below the daemon's minimum kills it too (the other direction,
- *     which is why the version is pinned at all rather than left off),
+ *     which is why the field is set at all rather than left off: left off,
+ *     the receiver pins its own 1.44),
  *   - an EMPTY value is safe and starts fine, because the receiver falls back to
- *     Docker SDK auto-negotiation rather than to some too-old default. This is
- *     the fact the configs, the READMEs and the docs all now assert, and it is
- *     the one most likely to be quietly wrong after an upstream bump.
+ *     Docker SDK auto-negotiation rather than to some too-old default. Empty is
+ *     what the agents ship: the fact the configs, the images, the compose
+ *     files, the READMEs and the docs all now rest on, and the one most likely
+ *     to be quietly wrong after an upstream bump.
  *
  * This is the check that would have caught the stale "the receiver default is
  * 1.25" claim, and the one that will notice if a future collector release
@@ -267,12 +269,13 @@ describeRuntime("docker_stats api_version, against a real daemon", () => {
   }, 120000);
 
   /*
-   * THE ESCAPE HATCH. An empty value does not fall back to some too-old default:
-   * the receiver auto-negotiates with the daemon, so the collector comes up on
-   * any daemon. The docs tell operators they can use this instead of looking
-   * their maximum up, and this is what makes that promise true.
+   * THE SHIPPED DEFAULT. An empty value does not fall back to some too-old
+   * default: the receiver auto-negotiates with the daemon, so the collector
+   * comes up on any daemon. The images and compose files ship it empty for
+   * that reason (a pinned 1.44 restart-looped the agent on Docker Engine 20.10
+   * to 24), and this is what makes that true.
    */
-  test("an explicitly empty version starts fine, via auto-negotiation", () => {
+  test("the shipped default, an empty version, starts fine via auto-negotiation", () => {
     const result = runCollector("");
 
     expect(result.status).toBe("running");
@@ -294,20 +297,15 @@ describeRuntime("docker_stats api_version, against a real daemon", () => {
   }, 120000);
 
   /*
-   * The shipped default itself, on whatever daemon is running the suite. Skipped
-   * rather than failed on a daemon that cannot serve 1.44, since that is a fact
-   * about the host and not about this repo.
+   * The version the agents used to pin, on whatever daemon is running the
+   * suite: fine where the daemon serves it, and the restart loop where it does
+   * not (Docker Engine 20.10 to 24). Skipped where the daemon serves it, since
+   * that is a fact about the host and not about this repo.
    */
-  test("the shipped default 1.44 works on this daemon", () => {
-    const withinBounds =
-      compare("1.44", BOUNDS.max) <= 0 &&
-      (!BOUNDS.min || compare("1.44", BOUNDS.min) >= 0);
-
-    if (!withinBounds) {
+  test("the old pinned 1.44 is refused by a daemon older than it, as the empty default is not", () => {
+    if (compare("1.44", BOUNDS.max) <= 0) {
       console.log(
-        `skipped: this daemon serves ${BOUNDS.min || "?"}..${
-          BOUNDS.max
-        }, which does not include the shipped default 1.44`,
+        `skipped: this daemon serves up to ${BOUNDS.max}, which includes 1.44`,
       );
 
       return;
@@ -315,7 +313,8 @@ describeRuntime("docker_stats api_version, against a real daemon", () => {
 
     const result = runCollector("1.44");
 
-    expect(result.status).toBe("running");
+    expect(result.status).toBe("exited");
+    expect(result.logs).toContain("is too new");
   }, 120000);
 });
 

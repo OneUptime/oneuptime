@@ -284,6 +284,11 @@ describe("InvestigationReportView summary section", () => {
     const tldr: HTMLElement = within(summary).getByText(TLDR);
     expect(tldr.tagName).toBe("P");
     expect(tldr).toHaveClass("text-base", "font-semibold", "text-gray-900");
+    /*
+     * The AI's words read in their own direction: an English answer on a
+     * Persian page ends with its full stop, not starts with it.
+     */
+    expect(tldr).toHaveAttribute("dir", "auto");
 
     const summaryMarkdown: HTMLElement =
       within(summary).getByTestId("report-markdown");

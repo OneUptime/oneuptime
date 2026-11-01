@@ -1624,4 +1624,46 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     nullable: true,
   })
   public triggeredByWorkflowName?: string = undefined;
+
+  /*
+   * What the person who paged wrote to the people the page reaches: the
+   * message typed with `/oneuptime page` in Slack or "page" in Microsoft
+   * Teams, in an incident's or an alert's own channel, where the page is
+   * about that incident or alert (WorkspacePage). The run's Slack and
+   * Microsoft Teams message quotes it under its first line, and the people
+   * paged read it in their notifications (OnCallPersonPage). Empty for a
+   * page with no message, and for every run OneUptime starts on its own.
+   *
+   * No caller may write it: OneUptime writes it as it starts the page
+   * (OnCallPageService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "Page Message",
+    description:
+      "What the person who paged from Slack or Microsoft Teams wrote to the people this page reaches.",
+    canReadOnRelationQuery: false,
+    example: "Can you check the database connection pool?",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public pageMessage?: string = undefined;
 }

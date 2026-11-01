@@ -32,7 +32,7 @@ Each host runs one config, chosen in this order:
 | The first of the **Collector Configs** that applies to it | A config applies when it is for the host's system and, if it names labels, the host has one of them. |
 | OneUptime's default for its system | No config applies. |
 
-OneUptime's default reads CPU, memory, disks, filesystems, network and processes on every system; the journal and systemd units on Linux, where the host has them; the System, Application and Security event logs and Windows services on Windows; and the install and Wi-Fi logs in `/var/log` on macOS. It follows OneUptime's releases, so a host on the default gets OneUptime's improvements to it.
+OneUptime's default reads CPU, memory, disks, filesystems, network and processes on every system; the journal and systemd units on Linux, where the host has them; the System, Application and Security event logs and Windows services on Windows; and the install and Wi-Fi logs in `/var/log` on macOS. It leaves out the file systems that are full by design, such as snap packages and macOS's `/dev`, so they never keep the High Filesystem Usage template firing. It follows OneUptime's releases, so a host on the default gets OneUptime's improvements to it.
 
 ## Before you begin
 

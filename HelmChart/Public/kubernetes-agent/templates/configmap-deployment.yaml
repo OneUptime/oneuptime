@@ -94,68 +94,92 @@ data:
           {{- end }}
           {{- end }}
 
-      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
+      {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
       # Scrape metrics via Prometheus endpoints (control plane, service
       # mesh, CSI drivers, CoreDNS, kube-state-metrics, cost engine)
       prometheus:
         config:
           scrape_configs:
             {{- if .Values.controlPlane.enabled }}
+            {{- /* Each component is scraped at the endpoints in its own list,
+                   from this pod, which has no host network: localhost is the
+                   pod itself. A component with no endpoints gets no job. The
+                   job's scheme comes from the endpoints (http:// is plain
+                   HTTP, anything else HTTPS) and the target is their
+                   host:port (kubernetes-agent.controlPlaneScheme/Target). */}}
+            {{- with .Values.controlPlane.etcd }}
+            {{- if .endpoints }}
             - job_name: etcd
-              scheme: https
+              scheme: {{ include "kubernetes-agent.controlPlaneScheme" (dict "endpoints" .endpoints "setting" "controlPlane.etcd.endpoints") }}
               metrics_path: /metrics
               tls_config:
-                insecure_skip_verify: {{ .Values.controlPlane.etcd.insecureSkipVerify }}
-              static_configs:
-                {{- range .Values.controlPlane.etcd.endpoints }}
-                - targets:
-                    # Prometheus targets must be bare host:port — strip any
-                    # scheme/path the endpoint was written with (scheme is set
-                    # above, metrics_path defaults to /metrics).
-                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                {{- if .clientCertSecret }}
+                # etcd's client port asks for a client certificate: the one
+                # in the Secret controlPlane.etcd.clientCertSecret names,
+                # mounted by templates/deployment.yaml.
+                ca_file: /etc/oneuptime/etcd-client-cert/ca.crt
+                cert_file: /etc/oneuptime/etcd-client-cert/tls.crt
+                key_file: /etc/oneuptime/etcd-client-cert/tls.key
                 {{- end }}
+              static_configs:
+                {{- range .endpoints }}
+                - targets:
+                    - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
+                {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.controlPlane.apiServer }}
+            {{- if .endpoints }}
+            # The API server, by default where it answers inside every
+            # cluster (kubernetes.default.svc), with the service account's
+            # token: the ClusterRole grants GET on /metrics.
             - job_name: kube-apiserver
-              scheme: https
+              scheme: {{ include "kubernetes-agent.controlPlaneScheme" (dict "endpoints" .endpoints "setting" "controlPlane.apiServer.endpoints") }}
               metrics_path: /metrics
               tls_config:
-                insecure_skip_verify: {{ .Values.controlPlane.apiServer.insecureSkipVerify }}
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                # The cluster's CA, which signs the API server's certificate:
+                # used when insecureSkipVerify is false.
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
-                {{- range .Values.controlPlane.apiServer.endpoints }}
+                {{- range .endpoints }}
                 - targets:
-                    # Prometheus targets must be bare host:port — strip any
-                    # scheme/path the endpoint was written with (scheme is set
-                    # above, metrics_path defaults to /metrics).
-                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
+                    - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.controlPlane.scheduler }}
+            {{- if .endpoints }}
             - job_name: kube-scheduler
-              scheme: https
+              scheme: {{ include "kubernetes-agent.controlPlaneScheme" (dict "endpoints" .endpoints "setting" "controlPlane.scheduler.endpoints") }}
               metrics_path: /metrics
               tls_config:
-                insecure_skip_verify: {{ .Values.controlPlane.scheduler.insecureSkipVerify }}
+                insecure_skip_verify: {{ .insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
-                {{- range .Values.controlPlane.scheduler.endpoints }}
+                {{- range .endpoints }}
                 - targets:
-                    # Prometheus targets must be bare host:port — strip any
-                    # scheme/path the endpoint was written with (scheme is set
-                    # above, metrics_path defaults to /metrics).
-                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
+                    - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.controlPlane.controllerManager }}
+            {{- if .endpoints }}
             - job_name: kube-controller-manager
-              scheme: https
+              scheme: {{ include "kubernetes-agent.controlPlaneScheme" (dict "endpoints" .endpoints "setting" "controlPlane.controllerManager.endpoints") }}
               metrics_path: /metrics
               tls_config:
-                insecure_skip_verify: {{ .Values.controlPlane.controllerManager.insecureSkipVerify }}
+                insecure_skip_verify: {{ .insecureSkipVerify }}
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               static_configs:
-                {{- range .Values.controlPlane.controllerManager.endpoints }}
+                {{- range .endpoints }}
                 - targets:
-                    # Prometheus targets must be bare host:port — strip any
-                    # scheme/path the endpoint was written with (scheme is set
-                    # above, metrics_path defaults to /metrics).
-                    - {{ . | trimPrefix "https://" | trimPrefix "http://" | trimSuffix "/metrics" | quote }}
+                    - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- end }}
+            {{- end }}
             {{- end }}
             {{- if and .Values.serviceMesh.enabled (eq .Values.serviceMesh.provider "istio") }}
             - job_name: envoy-stats
@@ -602,7 +626,7 @@ data:
             # path to OneUptime.
             - otlp
             {{- end }}
-            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
+            {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
             - prometheus
             {{- end }}
           processors:

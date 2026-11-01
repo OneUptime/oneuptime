@@ -157,8 +157,9 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Anomalous",
     "Ignore",
     "Treat As Zero",
-    // A template's name, as the Quick Setup picker shows it.
+    // Templates' names, as the Quick Setup picker shows them.
     "Inactive Placement Groups",
+    "Cluster Stopped Reporting",
   ],
 };
 

@@ -34,7 +34,7 @@ The role goes on the user as well as the token because a privilege-separated tok
 
 ### Where to run the agent
 
-The agent queries the PVE API over the network, so it does not have to live on a cluster node — and ideally it should not: run it on a machine that survives a node failure (a small monitoring VM on separate hardware, a management host), or point `PVE_HOST` at a VIP / round-robin DNS name instead of a single node's address. If the agent's API target is the node that just died, your monitoring dies with it. (The one exception is the optional journald logs pipeline, which must run on a PVE node — see [Shipping Proxmox service logs](#shipping-proxmox-service-logs-optional).)
+The agent queries the PVE API over the network, so it does not have to live on a cluster node — and ideally it should not: run it on a machine that survives a node failure (a small monitoring VM on separate hardware, a management host), or point `PVE_HOST` at a VIP / round-robin DNS name instead of a single node's address. If the agent's API target is the node that just died, your monitoring dies with it. `PVE_NODES` is the exception: it lists each node at its own address, never a VIP (see [Every node, not just one](#every-node-not-just-one)). (The one exception is the optional journald logs pipeline, which must run on a PVE node — see [Shipping Proxmox service logs](#shipping-proxmox-service-logs-optional).)
 
 ## Quick Start — Install Script
 
@@ -43,7 +43,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion key, cluster name, and Proxmox API details, installs to `/opt/oneuptime-proxmox-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, and re-running the script reuses everything in an existing `.env` instead of prompting again, which is how you [upgrade](#upgrading).
+The script prompts for your OneUptime URL, telemetry ingestion key, cluster name, and Proxmox API details — including every node's address, which it offers from the cluster's own node list when it has the API token — installs to `/opt/oneuptime-proxmox-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, and re-running the script reuses everything in an existing `.env` instead of prompting again, which is how you [upgrade](#upgrading).
 
 ## Quick Start — Docker Compose
 
@@ -54,6 +54,7 @@ ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
 PROXMOX_CLUSTER_NAME=my-proxmox-cluster
 PVE_HOST=192.168.1.10
+PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=oneuptime@pve!exporter
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
@@ -82,7 +83,8 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (*Project Settings → Telemetry Ingestion Keys*) |
 | `PROXMOX_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `proxmox-cluster`) |
-| `PVE_HOST` | Yes | Proxmox VE API host (any node of the cluster) the exporter and the AI agent query, e.g. `192.168.1.10` |
+| `PVE_HOST` | Yes | Proxmox VE API host (any node of the cluster, or a VIP that fails over between them) the exporter reads the cluster from and the AI agent queries, e.g. `192.168.1.10` |
+| `PVE_NODES` | On a cluster | Every node's own API address, comma-separated in square brackets, e.g. `[192.168.1.10,192.168.1.11,192.168.1.12]`: the exporter reads start-on-boot, replication and the subscription from each node in turn. Defaults to `PVE_HOST` alone, which is enough for a single node (see [Every node, not just one](#every-node-not-just-one)) |
 | `PVE_PORT` | No | Proxmox VE API port the AI agent uses when `PVE_HOST` names none (default: `8006`) |
 | `PVE_EXPORTER_URL` | No | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`) |
 | `PVE_API_TOKEN_ID` | Bundled exporter and AI agent | Full Proxmox API token id, e.g. `oneuptime@pve!exporter` (PVEAuditor, read-only) |
@@ -151,7 +153,7 @@ Like the exporter, the AI agent does not verify the API's certificate by default
 
 ## Collected Metrics
 
-The agent scrapes the exporter's `/pve` endpoint every 30 seconds with both the cluster and node collectors enabled. Every series carries an `id` label that identifies the resource — `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, or `storage/<node>/<storage>`:
+The agent scrapes the exporter's `/pve` endpoint every 30 seconds: the cluster collectors once, at `PVE_HOST`, and the node collectors once per node in `PVE_NODES`. Every series carries an `id` label that identifies the resource — `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>`, or `storage/<node>/<storage>`:
 
 - **Availability**: `pve_up`, `pve_uptime_seconds`
 - **Node**: `pve_node_info`, `pve_cpu_usage_ratio`, `pve_cpu_usage_limit`, `pve_memory_usage_bytes`, `pve_memory_size_bytes`
@@ -159,6 +161,17 @@ The agent scrapes the exporter's `/pve` endpoint every 30 seconds with both the 
 - **Storage**: `pve_disk_usage_bytes`, `pve_disk_size_bytes`
 - **HA**: `pve_ha_state`
 - **Backup coverage**: `pve_not_backed_up_total` (count of guests not covered by any backup job), `pve_not_backed_up_info` (one series per uncovered guest, labeled with its `id`). These come from the exporter's `backup-info` collector, which is enabled by default and runs under the cluster scope (`cluster=1`, already set in the shipped config) — no extra flags needed. Note the honest boundary: "covered by a backup job" means the guest is selected by at least one job, not that recent backups succeeded.
+- **Start-on-boot**: `pve_onboot_status` per guest, which the **Guest Down** template reads.
+- **Replication**: `pve_replication_*` per storage replication job (their `id` label is the job id, e.g. `100-0`), which **Replication Failing** reads.
+- **Subscription**: `pve_subscription_*` per node.
+
+Everything above the last three comes from the exporter's cluster collectors, which any node answers for the whole cluster. The last three come from its node collectors.
+
+### Every node, not just one
+
+pve-exporter's node collectors (start-on-boot, replication, the subscription) read only the node the exporter queries — the one whose API answers at the `target` address. So the shipped config scrapes the cluster collectors once at `PVE_HOST` (`cluster=1&node=0`) and the node collectors once per node at its own address (`cluster=0&node=1`), from the list in `PVE_NODES`. A node missing from the list goes unseen: **Guest Down** never fires for its guests (it needs their start-on-boot flag) and **Replication Failing** never sees its jobs. List each node at its own address, not a VIP: behind a VIP the exporter would read a different node from one scrape to the next.
+
+On a re-run, `install.sh` keeps the list in `.env`; an `.env` written before `PVE_NODES` keeps reading `PVE_HOST` alone and the script says how to add the others. `troubleshoot.sh` checks every listed node and warns when the cluster has more nodes than the list.
 
 ### Derived identity attributes — `pve.scope` / `pve.type` / `pve.id`
 
@@ -311,7 +324,7 @@ bash troubleshoot.sh                 # add -d <dir> if you installed outside /op
 ### No cluster appears in OneUptime
 
 1. Check the collector logs: `docker logs oneuptime-proxmox-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).
-2. Verify the scrape works (the collector image is distroless, so test from alongside it): `docker run --rm --network container:oneuptime-pve-exporter curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>" | head` — you should see `pve_*` metric lines.
+2. Verify the scrape works (the collector image is distroless, so test from alongside it): `docker run --rm --network container:oneuptime-pve-exporter curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=0" | head` — you should see `pve_*` metric lines.
 3. Make sure `PROXMOX_CLUSTER_NAME` is set — discovery keys on the `proxmox.cluster.name` resource attribute.
 
 ### The exporter returns 401 / 595 errors
@@ -321,6 +334,10 @@ The API token is wrong or lacks permissions. Re-check the token id format (`user
 ### Only node metrics, no guest metrics
 
 Guest series (`qemu/*`, `lxc/*` ids) come from the cluster collector. The shipped config enables it (`cluster=1` scrape parameter) — if you customized the config, restore the `cluster: ["1"]` param.
+
+### Guest Down or Replication Failing stays quiet for some guests
+
+Their start-on-boot flags and replication jobs come from the node they run on, and the agent reads only the nodes in `PVE_NODES`. List every node's own address there (`PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]`) and run `docker compose up -d`. If the collector refuses to start after an edit, `PVE_NODES` lost its square brackets.
 
 ### The AI agent
 
@@ -358,5 +375,7 @@ docker logs -f oneuptime-proxmox-ai-agent
 
 # Test the exporter scrape by hand (the bundled exporter does not
 # publish its port on the host, so run curl inside its network namespace)
-docker run --rm --network container:oneuptime-pve-exporter curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>" | head
+docker run --rm --network container:oneuptime-pve-exporter curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=0" | head
+# ... and one node's start-on-boot and replication data
+docker run --rm --network container:oneuptime-pve-exporter curlimages/curl -s "http://localhost:9221/pve?target=<NODE>&cluster=0&node=1" | head
 ```

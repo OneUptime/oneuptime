@@ -144,11 +144,12 @@ describe("an entity's risk key", () => {
 });
 
 describe("which entities carry risk", () => {
-  test("users, hosts and addresses do; indicators and processes do not", () => {
+  test("users, hosts, addresses and data stores do; indicators and processes do not", () => {
     expect([...RISK_ENTITY_TYPES]).toEqual([
       SecurityEntityType.User,
       SecurityEntityType.Host,
       SecurityEntityType.IpAddress,
+      SecurityEntityType.DataStore,
     ]);
 
     for (const type of Object.values(SecurityEntityType)) {

@@ -21,6 +21,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const postMock: MockFunction = getJestMockFunction();
 const getCommonHeadersMock: MockFunction = getJestMockFunction();
 
+// The card's Remediation step reads on its own (its own suites).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep",
+  () => {
+    return jest.requireActual("./RemediationStepStub");
+  },
+);
+
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
@@ -129,7 +137,7 @@ describe("InvestigationPanel status reporting", () => {
     expect(request.headers).toEqual({ tenantid: "project-id" });
 
     const panel: HTMLElement = screen.getByRole("region", {
-      name: "AI Investigation",
+      name: "OneUptime AI",
     });
     expect(panel).toHaveAttribute("id", AI_INVESTIGATION_PANEL_ID);
     expect(panel).toHaveAttribute("tabindex", "-1");

@@ -77,7 +77,6 @@ flowchart TB
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
 | **IoT Fleet** | 全部 | 必填。把每个查询限定到 `resource.iot.fleet.name`。 |
-| **资源范围** | Custom Metric、高级 | 可选。**设备** 或 **Fleet**：对 `iot.scope` 属性的精确匹配。选择指标后会设置为 **设备**。 |
 | **Device ID** | Custom Metric、高级 | 可选。一个设备，按其 `device.id`，例如 `sensor-001`。 |
 | **Device Type** | Custom Metric、高级 | 可选。上报该 `iot.device.type` 的设备，例如 `sensor` 或 `gateway`。 |
 | **IoT Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。 |
@@ -124,7 +123,7 @@ flowchart TB
 
 ## 采集的指标
 
-每个序列都带有设备的 `device.id` 标签，以及 `iot.scope`、`iot.device.type` 和 `iot.device.kind` 属性。
+每个序列都带有设备的 `device.id` 标签，以及 `iot.device.type` 和 `iot.device.kind` 属性。
 
 | 指标 | 单位 | 描述 |
 | --- | --- | --- |
@@ -145,7 +144,7 @@ flowchart TB
 | **过滤器类型** | 始终为 **Metric Value**，这是该监视器提供的唯一检查。 |
 | **Select Metric Variable** | 要检查的查询或公式，按其变量名。 |
 | **聚合** | 窗口中的值如何变成一个答案：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**(整个窗口内每个值都必须匹配)或 **Any Value**(一个就够)。 |
-| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**无数据** 在查询于窗口内没有返回任何数据时匹配，**有数据** 在返回了数据时匹配。 |
 | **阈值** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
 | **灵敏度** | 仅限异常条件。**低**(4σ)、**中**(3σ，默认)或 **高**(2σ)。 |
 | **基线窗口** | 仅限异常条件。14 天(默认)、28、60 或 90 天的历史。 |
@@ -159,11 +158,11 @@ flowchart TB
 
 | 顺序 | 条件 | 匹配时机 | 然后 |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | 第一个查询的任意值为 `0` | 把监视器标记为 **离线**，并声明事件 "_monitor name_ is offline"，监视器恢复时该事件会自行解决。 |
-| 2 | Check if _monitor name_ is online | 任意值大于 `0` | 把监视器标记为 **运行正常**。 |
+| 1 | Check if _monitor name_ is offline | 第一个查询在整个窗口内没有数据 | 把监视器标记为 **离线**，并声明事件 "_monitor name_ is offline"，监视器恢复时该事件会自行解决。 |
+| 2 | Check if _monitor name_ is online | 第一个查询有数据 | 把监视器标记为 **运行正常**。 |
 
 > [!IMPORTANT]
-> 静默不会匹配任何一个条件：停止发送数据的机群会让监视器保持原样。要在数据停止时收到通知，请在某个条件上把 **如果无数据** 设置为 **触发器**。OneUptime 自身未接收数据的时间永远不算作没有数据：窗口包含这段时间的检查会改为等待，正如 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving) 所解释的那样。
+> 值为 `0` 也是数据，因此经常为零的指标（例如重启次数或错误数）不会让监控器离线。要针对某个值告警，请从模板开始，或添加带阈值的条件。当完全没有数据到达且没有任何条件匹配时，监控器保持原有状态，未解决的事件也保持打开：沉默不等于恢复。OneUptime 自身未接收数据的时间从不算作无数据：窗口包含这段时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## Terraform
 

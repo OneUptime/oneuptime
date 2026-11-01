@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"oneuptime-infrastructure-agent/model"
 
-	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v4/net"
 )
 
 // GetNetworkMetrics returns per-interface and aggregate network counters.

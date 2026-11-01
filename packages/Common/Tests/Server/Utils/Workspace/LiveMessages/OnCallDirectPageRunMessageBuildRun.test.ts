@@ -286,6 +286,8 @@ describe("the people a direct page paged", () => {
         acknowledged: false,
         methods: ["call"],
         coveringFor: [],
+        // Paged as a member of the team the page named.
+        teams: ["Platform"],
       },
       {
         name: "Alex Kim",
@@ -322,6 +324,8 @@ describe("the people a direct page paged", () => {
     expect(built.paged).toHaveLength(1);
     expect(built.paged[0]!.name).toBe("Nitin");
     expect(built.paged[0]!.timesPaged).toBe(1);
+    // Reached through the team: the line names it, once.
+    expect(built.paged[0]!.teams).toEqual(["Platform"]);
     expect(built.notPaged).toEqual([]);
   });
 

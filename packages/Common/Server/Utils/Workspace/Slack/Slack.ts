@@ -3050,6 +3050,10 @@ export default class SlackUtil extends WorkspaceBase {
           text: data.payloadTextAreaBlock.placeholder,
         },
         initial_value: data.payloadTextAreaBlock.initialValue,
+        // Slack counts the characters as they are typed, and says when too many.
+        ...(data.payloadTextAreaBlock.maxLength
+          ? { max_length: data.payloadTextAreaBlock.maxLength }
+          : {}),
       },
       label: {
         type: "plain_text",

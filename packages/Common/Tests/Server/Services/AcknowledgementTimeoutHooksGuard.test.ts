@@ -199,6 +199,26 @@ describe.each(STATE_TIMELINES)(
     test("is awaited, so the clock is started before the change is answered", () => {
       expect(ts.isAwaitExpression(calls[0]!.parent)).toBe(true);
     });
+
+    /*
+     * Who changed it: an incident's or an alert's author, paged about it by
+     * a page a person asked for, answers their page by acknowledging it
+     * (OnCallPersonPageAnswer). An episode has no such pages.
+     */
+    test("names who changed it - the change's author, else the caller - for an incident or an alert", () => {
+      const properties: Record<string, string> = argumentProperties(
+        calls[0]!,
+        source,
+      );
+
+      if (hook.kind === "incident" || hook.kind === "alert") {
+        expect(properties["changedByUserId"]).toBe(
+          "createdItem.createdByUserId || onCreate.createBy.props.userId",
+        );
+      } else {
+        expect(properties["changedByUserId"]).toBeUndefined();
+      }
+    });
   },
 );
 

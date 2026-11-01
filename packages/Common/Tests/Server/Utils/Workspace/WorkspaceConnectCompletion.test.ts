@@ -7,6 +7,7 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import WorkspaceNotificationLogService from "../../../../Server/Services/WorkspaceNotificationLogService";
 import logger from "../../../../Server/Utils/Logger";
+import OnCallPersonPageAnswer from "../../../../Server/Utils/OnCall/OnCallPersonPageAnswer";
 import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import WorkspaceActionAnswers from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
@@ -286,6 +287,10 @@ describe("a press OneUptime finishes", () => {
 
   test("a press somebody got to first is not done again: who did it, as news", async () => {
     getStanding.mockResolvedValue(standing({ isAcknowledged: true }));
+    // No page of theirs about it to answer.
+    const pagesAnswered: jest.SpyInstance = jest
+      .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+      .mockResolvedValue(0);
     const already: jest.SpyInstance = jest
       .spyOn(WorkspaceActionAnswers, "getAlreadyAnswer")
       .mockResolvedValue({
@@ -301,9 +306,17 @@ describe("a press OneUptime finishes", () => {
 
     expect(acknowledge).not.toHaveBeenCalled();
     expect(logPressed).not.toHaveBeenCalled();
+    expect(pagesAnswered).toHaveBeenCalledWith({
+      kind: "incident",
+      recordId: INCIDENT_ID,
+      projectId: PROJECT_ID,
+      pressedByUserId: USER_ID,
+      isResolved: false,
+    });
     expect(already).toHaveBeenCalledWith({
       event: incident(),
       press: "Acknowledge",
+      answeredPageCount: 0,
     });
     // Answered, not done: somebody else did it, and the chat says who.
     expect(result).toEqual({
@@ -313,6 +326,63 @@ describe("a press OneUptime finishes", () => {
         text: "Your Slack account is connected to OneUptime. Incident INC-2 was already acknowledged by Simon Lee",
       },
     });
+  });
+
+  /*
+   * Paged into the incident by a person's page (UI review of block 31):
+   * their Acknowledge, finished once connected, answers that page, as the
+   * button does for somebody connected already.
+   */
+  test("Acknowledge on an incident somebody else is on answers the presser's own page about it, and the answer is told so", async () => {
+    getStanding.mockResolvedValue(standing({ isAcknowledged: true }));
+    jest
+      .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+      .mockResolvedValue(1);
+    const already: jest.SpyInstance = jest
+      .spyOn(WorkspaceActionAnswers, "getAlreadyAnswer")
+      .mockResolvedValue({
+        markdown: `✅ You acknowledged the page for **[Incident INC-2](${INCIDENT_LINK})**, so paging stopped.`,
+        text: "You acknowledged the page for Incident INC-2, so paging stopped",
+      });
+
+    await WorkspaceConnectCompletion.complete({
+      request: request(),
+      userId: USER_ID,
+    });
+
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(already).toHaveBeenCalledWith({
+      event: incident(),
+      press: "Acknowledge",
+      answeredPageCount: 1,
+    });
+  });
+
+  test("Resolve on a resolved incident answers no page: only Acknowledge does", async () => {
+    getStanding.mockResolvedValue(
+      standing({ isAcknowledged: true, isResolved: true }),
+    );
+    const pagesAnswered: jest.SpyInstance = jest
+      .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+      .mockResolvedValue(0);
+    jest.spyOn(WorkspaceActionAnswers, "getAlreadyAnswer").mockResolvedValue({
+      markdown: `✅ **[Incident INC-2](${INCIDENT_LINK})** is already resolved.`,
+      text: "Incident INC-2 is already resolved",
+    });
+
+    await WorkspaceConnectCompletion.complete({
+      request: request({
+        purpose: "resolve this incident",
+        pendingAction: {
+          kind: WorkspacePendingActionKind.Resolve,
+          eventType: WorkspaceEventType.Incident,
+          eventId: INCIDENT_ID,
+        },
+      }),
+      userId: USER_ID,
+    });
+
+    expect(pagesAnswered).not.toHaveBeenCalled();
   });
 
   test.each([

@@ -21,6 +21,15 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import RunnerJobOrigin from "../../../Types/Runbook/RunnerJobOrigin";
 import KubectlPolicy from "../../../Utils/AiRemediation/KubectlPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import AiCommandKillSwitch from "../../../Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 /*
  * Contract under test — XP-6, the server half: the enqueue chokepoint never

@@ -27,6 +27,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAgentStatusSummary";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -326,8 +327,14 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
       expect(summary.connectionDetails).toEqual([]);
       // Investigation is on by default: the switch says so even before an agent.
       expect(summary.investigation.text).toBe("On");
+      /*
+       * A cloud account is read without its agent: with fixes off, having
+       * none is its choice (the server reports it blocking only fixes).
+       */
       expect(summary.attention).toBe(
-        `OneUptime AI can't investigate this ${descriptor.noun}`,
+        isCloudAiResourceType(type)
+          ? null
+          : `OneUptime AI can't investigate this ${descriptor.noun}`,
       );
     });
 
@@ -430,6 +437,13 @@ describe("every resource type's card", () => {
       }),
     );
 
-    expect(sentences.size).toBe(ALL_AI_RESOURCE_TYPES.length);
+    // The three clouds share one agent, the Cloud AI agent.
+    expect(sentences.size).toBe(
+      new Set(
+        ALL_AI_RESOURCE_TYPES.map((type: AiResourceType): string => {
+          return getResourceAiAgentDescriptor(type).agentName;
+        }),
+      ).size,
+    );
   });
 });

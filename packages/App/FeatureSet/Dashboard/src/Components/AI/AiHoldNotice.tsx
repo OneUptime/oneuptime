@@ -16,16 +16,24 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { shouldAttemptRead } from "../../Utils/OverviewSection";
+import InvestigationNotice, {
+  NOTICE_ICON_CLASS_NAME,
+} from "./InvestigationNotice";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -40,6 +48,24 @@ import React, {
  * not (the permission snapshot says so) is spared the read, as the page's
  * other cards spare theirs (shouldAttemptRead): the server would refuse it
  * on every incident and alert they open, and they see no notice either way.
+ *
+ * Drawn the way the card says everything that is not the report
+ * (InvestigationNotice): a mark, a sentence and a quieter line, and Page now
+ * under them. It used to be a tinted, bordered box - a card inside the card,
+ * which the card's one-frame rule leaves out, and louder than the report.
+ *
+ * Page now takes the permission to page an on-call policy by hand (create
+ * an on-call run), as the server asks it (AiFirstResponderAPI). Someone the
+ * permission snapshot certainly refuses - a Viewer, an On-Call Viewer - sees
+ * it locked, saying why, as every locked action does, instead of pressing
+ * it and being refused. While the snapshot is on its way it can be pressed:
+ * the server decides.
+ *
+ * Only the newest read's answer lands. The read every 15 seconds could be
+ * on its way when Page now was pressed, answer after Page now's own read,
+ * and bring the notice back for up to 15 seconds; and the card stays
+ * mounted when the page moves to another record, where the last record's
+ * hold is not this one's.
  */
 
 export const AI_HOLD_NOTICE_TEST_ID: string = "ai-hold-notice";
@@ -59,12 +85,25 @@ export const AI_HOLD_NOTICE_TEXT: Record<"incident" | "alert", string> = {
 
 export const PAGE_NOW_TITLE: string = translationKey("Page now");
 
+export const PAGE_NOW_TEST_ID: string = "ai-hold-page-now";
+
+// Why Page now is locked: the first sentence, then what would allow it.
+export const PAGE_NOW_LOCKED_SENTENCE: string = translationKey(
+  "You do not have permission to page on-call policies.",
+);
+
 // How often the notice reads the hold again while one is held.
 export const AI_HOLD_NOTICE_REFRESH_MS: number = 15000;
 
 export interface ComponentProps {
   subjectType: "incident" | "alert";
   subjectId: ObjectID;
+}
+
+// The hold read last, and the record it was read for.
+interface ReadHold {
+  subjectKey: string;
+  pagingStartsAt: Date | null;
 }
 
 const AiHoldNotice: FunctionComponent<ComponentProps> = (
@@ -78,11 +117,39 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
   const mayReadHold: boolean = shouldAttemptRead(
     PermissionGate.check(new OnCallDutyPolicyExecutionLog(), ModelAction.Read),
   );
-  const [pagingStartsAt, setPagingStartsAt] = useState<Date | null>(null);
+  // Page now's lock: only a definite refusal locks it (see above).
+  const pageNowGate: PermissionGateResult = PermissionGate.check(
+    new OnCallDutyPolicyExecutionLog(),
+    ModelAction.Create,
+    { sentence: PAGE_NOW_LOCKED_SENTENCE },
+  );
+  const pageNowLockedReason: string | undefined = shouldAttemptRead(pageNowGate)
+    ? undefined
+    : pageNowGate.disabledReason;
+
+  const subjectKey: string = `${props.subjectType}:${props.subjectId.toString()}`;
+  const [hold, setHold] = useState<ReadHold | null>(null);
   const [isPaging, setIsPaging] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  /*
+   * A count bumped by every read, and by Page now: a read's answer lands
+   * only if nothing was read or pressed since it was asked.
+   */
+  const readCountRef: MutableRefObject<number> = useRef<number>(0);
+  // While Page now is on its way the read every 15 seconds waits.
+  const isPagingRef: MutableRefObject<boolean> = useRef<boolean>(false);
+
+  const pagingStartsAt: Date | null =
+    mayReadHold && hold && hold.subjectKey === subjectKey
+      ? hold.pagingStartsAt
+      : null;
+
   const readHold: () => Promise<void> = useCallback(async (): Promise<void> => {
+    readCountRef.current += 1;
+    const readNumber: number = readCountRef.current;
+    let startsAt: Date | null = null;
+
     try {
       const result: ListResult<OnCallDutyPolicyExecutionLog> =
         await ModelAPI.getList<OnCallDutyPolicyExecutionLog>({
@@ -102,23 +169,27 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
 
       const first: OnCallDutyPolicyExecutionLog | undefined = result.data[0];
 
-      setPagingStartsAt(
-        first?.pagingStartsAt
-          ? OneUptimeDate.fromString(first.pagingStartsAt)
-          : null,
-      );
+      startsAt = first?.pagingStartsAt
+        ? OneUptimeDate.fromString(first.pagingStartsAt)
+        : null;
     } catch {
       /*
        * Refused - a reader the snapshot could not yet rule out - or failed:
        * no notice.
        */
-      setPagingStartsAt(null);
+      startsAt = null;
     }
-  }, [props.subjectType, props.subjectId.toString()]);
+
+    // Something was read or pressed since: this answer is not the news.
+    if (readNumber !== readCountRef.current) {
+      return;
+    }
+
+    setHold({ subjectKey: subjectKey, pagingStartsAt: startsAt });
+  }, [subjectKey]);
 
   useEffect(() => {
     if (!mayReadHold) {
-      setPagingStartsAt(null);
       return;
     }
 
@@ -131,6 +202,10 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
     }
 
     const interval: ReturnType<typeof setInterval> = setInterval(() => {
+      if (isPagingRef.current) {
+        return;
+      }
+
       void readHold();
     }, AI_HOLD_NOTICE_REFRESH_MS);
 
@@ -140,6 +215,9 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
   }, [pagingStartsAt?.getTime(), readHold]);
 
   const pageNow: () => Promise<void> = async (): Promise<void> => {
+    // Whatever was being read when Page now was pressed is old news now.
+    readCountRef.current += 1;
+    isPagingRef.current = true;
     setIsPaging(true);
     setError(null);
 
@@ -164,6 +242,7 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
+      isPagingRef.current = false;
       setIsPaging(false);
     }
   };
@@ -173,51 +252,63 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div
-      className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-indigo-100 bg-indigo-50 px-4 py-3"
-      data-testid={AI_HOLD_NOTICE_TEST_ID}
-      aria-live="polite"
-    >
-      <div className="flex min-w-0 items-start gap-2">
-        <Icon
-          icon={IconProp.Bolt}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500"
-        />
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900">
-            {translator.translateText(AI_HOLD_NOTICE_TITLE)}
-          </p>
-          <p className="text-sm text-gray-700">
-            {translator.translateTemplate(
-              AI_HOLD_NOTICE_TEXT[props.subjectType],
-              {
-                time: OneUptimeDate.getLocalTimeString(pagingStartsAt, {
-                  use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
-                }),
-              },
+    // Read out as it changes, without taking the reader's focus.
+    <div data-testid={AI_HOLD_NOTICE_TEST_ID} aria-live="polite">
+      <InvestigationNotice
+        indicator={
+          <Icon
+            icon={IconProp.Bolt}
+            className={`${NOTICE_ICON_CLASS_NAME} text-indigo-500`}
+          />
+        }
+        title={AI_HOLD_NOTICE_TITLE}
+        actionsTestId="ai-hold-notice-actions"
+        actions={
+          <>
+            {/*
+             * Button's own margin is for a dialog's footer: here it would
+             * only push Page now off the line's start - the locked one's
+             * too, inside the wrapper that carries its reason.
+             */}
+            <div className="flex-shrink-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+              <Button
+                title={PAGE_NOW_TITLE}
+                buttonStyle={ButtonStyleType.NORMAL}
+                buttonSize={ButtonSize.Small}
+                icon={IconProp.Call}
+                isLoading={isPaging}
+                disabled={isPaging || Boolean(pageNowLockedReason)}
+                tooltip={pageNowLockedReason}
+                dataTestId={PAGE_NOW_TEST_ID}
+                onClick={() => {
+                  if (pageNowLockedReason) {
+                    return;
+                  }
+
+                  void pageNow();
+                }}
+              />
+            </div>
+            {error ? (
+              <p
+                className="text-sm leading-6 text-red-600"
+                role="alert"
+                data-testid="ai-hold-page-now-error"
+              >
+                {error}
+              </p>
+            ) : (
+              <></>
             )}
-          </p>
-          {error ? (
-            <p className="mt-1 text-sm text-red-600" role="alert">
-              {error}
-            </p>
-          ) : (
-            <></>
-          )}
-        </div>
-      </div>
-      <Button
-        title={PAGE_NOW_TITLE}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Small}
-        icon={IconProp.Call}
-        isLoading={isPaging}
-        disabled={isPaging}
-        dataTestId="ai-hold-page-now"
-        onClick={() => {
-          void pageNow();
-        }}
-      />
+          </>
+        }
+      >
+        {translator.translateTemplate(AI_HOLD_NOTICE_TEXT[props.subjectType], {
+          time: OneUptimeDate.getLocalTimeString(pagingStartsAt, {
+            use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+          }),
+        })}
+      </InvestigationNotice>
     </div>
   );
 };

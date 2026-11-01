@@ -77,6 +77,16 @@ export const CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY: string =
   "closeAlertsWhenCaseCloses";
 
 /*
+ * The Microsoft Entra ID connection's option that also reads the Microsoft
+ * 365 audit log (Exchange, SharePoint, OneDrive, Teams) through the Office
+ * 365 Management Activity API, with the same app registration.
+ */
+export const MICROSOFT_365_AUDIT_KEY: string = "includeMicrosoft365Audit";
+
+// The Google Workspace connection's option that also reads Drive activity.
+export const GOOGLE_WORKSPACE_DRIVE_KEY: string = "includeDrive";
+
+/*
  * A two-option presentation of alertingOnly: the alerting records are
  * always imported (a fixed, checked option) and a second option adds the
  * non-alerting ones. Checking the second option stores alertingOnly=false.
@@ -542,6 +552,130 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
             "An Okta API token (SSWS) for a read-only administrator. Encrypted at rest and never returned by the API.",
           type: "password",
           required: true,
+        },
+      ],
+    },
+    {
+      provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+      title: "Microsoft Entra ID",
+      vendorName: "Microsoft",
+      productName: "Microsoft Entra ID",
+      description:
+        "Import sign-ins and directory changes from Microsoft Entra ID, and the Microsoft 365 audit log if you choose, as OCSF identity events.",
+      category: "Identity",
+      icon: IconProp.Identification,
+      logo: ProviderLogo.MicrosoftEntraId,
+      docsPath: "/docs/integrations/microsoft-entra-id",
+      defaultPollIntervalInMinutes: 5,
+      supportsAlertingOnlyToggle: false,
+      importedRecordName: "record",
+      /*
+       * Microsoft documents sign-in and audit logs as arriving minutes after
+       * the activity, and later at busy times: each poll re-reads the half
+       * hour before its cursor, and the id dedupe drops what it has.
+       */
+      cursorOverlapInMinutes: 30,
+      configFields: [
+        {
+          key: "tenantId",
+          title: "Directory (tenant) ID",
+          description:
+            "The Microsoft Entra tenant to read sign-ins and directory changes from.",
+          type: "text",
+          required: true,
+          placeholder: "00000000-0000-0000-0000-000000000000",
+        },
+        {
+          key: "clientId",
+          title: "Application (client) ID",
+          description:
+            "The app registration granted the AuditLog.Read.All application permission.",
+          type: "text",
+          required: true,
+          placeholder: "00000000-0000-0000-0000-000000000000",
+        },
+        {
+          key: "cloud",
+          title: "Cloud",
+          description: "Which Microsoft cloud hosts the tenant.",
+          type: "dropdown",
+          required: true,
+          options: MICROSOFT_CLOUD_OPTIONS,
+          defaultValue: "public",
+        },
+        {
+          key: MICROSOFT_365_AUDIT_KEY,
+          title: "Microsoft 365 audit log",
+          description:
+            "Also import Exchange, SharePoint, OneDrive and Teams activity. The app registration needs the ActivityFeed.Read permission of the Office 365 Management APIs.",
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
+        },
+      ],
+      secretFields: [
+        {
+          key: "clientSecret",
+          title: "Client secret",
+          description:
+            "A client secret of the app registration. Encrypted at rest and never returned by the API.",
+          type: "password",
+          required: true,
+        },
+      ],
+    },
+    {
+      provider: SecurityEventConnectorProvider.GoogleWorkspace,
+      title: "Google Workspace",
+      vendorName: "Google",
+      productName: "Google Workspace",
+      description:
+        "Import sign-ins, admin changes, OAuth grants and account security events from Google Workspace's audit logs as OCSF identity events.",
+      category: "Identity",
+      icon: IconProp.BuildingOffice,
+      logo: ProviderLogo.GoogleWorkspace,
+      docsPath: "/docs/integrations/google-workspace",
+      defaultPollIntervalInMinutes: 5,
+      supportsAlertingOnlyToggle: false,
+      // Drawn plural with an "s": Preview audit events, Read audit events.
+      importedRecordName: "audit event",
+      /*
+       * Google documents its audit logs as arriving minutes to hours after
+       * the activity, by application: each poll re-reads the two hours
+       * before its cursor, and the id dedupe drops what it has.
+       */
+      cursorOverlapInMinutes: 120,
+      configFields: [
+        {
+          key: "adminEmail",
+          title: "Administrator email",
+          description:
+            "A Google Workspace administrator who may read the audit logs. The service account reads them as this person, through domain-wide delegation.",
+          type: "text",
+          required: true,
+          placeholder: "admin@example.com",
+        },
+        {
+          key: GOOGLE_WORKSPACE_DRIVE_KEY,
+          title: "Drive activity",
+          description:
+            "Also import files shared outside the organization, made public or downloaded in Google Drive.",
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
+        },
+      ],
+      secretFields: [
+        {
+          key: "serviceAccountJson",
+          title: "Service account JSON",
+          description:
+            "A Google Cloud service-account key (JSON) whose client ID has domain-wide delegation for the admin.reports.audit.readonly scope. Encrypted at rest and never returned by the API.",
+          type: "json",
+          required: true,
+          placeholder: '{ "client_email": "...", "private_key": "..." }',
         },
       ],
     },

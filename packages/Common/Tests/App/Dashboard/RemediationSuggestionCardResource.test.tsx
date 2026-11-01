@@ -20,11 +20,12 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
+import RemediationStep, {
+  getCommandProgramChip,
   getCommandStepLabel,
   getCommandTargetLabel,
   getResourceCommandTierLabel,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import {
   AiRemediationCommandExecutionStatus,
@@ -50,9 +51,10 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
  * - the card names the fix an infrastructure fix and its source the
  *   resource's round, never "Rule: …";
  * - every ResourceCommand row names the resource it runs on ("Docker host
- *   web-1"), shows the program it runs ("docker", "systemctl", …) where a
- *   kubectl row shows "kubectl", and carries the resource command policy's
- *   tier in the same words and colours as a kubectl tier;
+ *   web-1") and the program it runs ("docker", "systemctl", …) as a kubectl
+ *   row names "kubectl" - once: the command under it starts with the
+ *   program, so no chip repeats it - and carries the resource command
+ *   policy's tier in the same words and colours as a kubectl tier;
  * - the approval pill follows what happened to the command, as for kubectl;
  * - a kubectl row renders exactly as before.
  */
@@ -118,7 +120,9 @@ async function renderCard(
       return { data: [row], count: 1, skip: 0, limit: 10 };
     },
   );
-  render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+  render(
+    <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
+  );
   const command: HTMLElement = await screen.findByText(commandText);
   const commandRow: HTMLElement | null = command.closest("li");
 
@@ -165,6 +169,41 @@ describe("the command row helpers", () => {
     );
   });
 
+  test("the program chip is left out when the command already says the program", () => {
+    expect(
+      getCommandProgramChip({
+        stepType: RunbookStepType.ResourceCommand,
+        command: "docker stop web",
+      }),
+    ).toBeNull();
+    expect(
+      getCommandProgramChip({
+        stepType: RunbookStepType.Kubectl,
+        command: "kubectl rollout restart deployment/web -n web",
+      }),
+    ).toBeNull();
+    // A kubectl command stored without its program keeps the chip.
+    expect(
+      getCommandProgramChip({
+        stepType: RunbookStepType.Kubectl,
+        command: "rollout restart deployment/web -n web",
+      }),
+    ).toBe("kubectl");
+    // A Bash or SSH command does not say what runs it.
+    expect(
+      getCommandProgramChip({
+        stepType: RunbookStepType.Bash,
+        command: "systemctl restart nginx",
+      }),
+    ).toBe(RunbookStepType.Bash);
+    expect(
+      getCommandProgramChip({
+        stepType: RunbookStepType.SSH,
+        command: "uptime",
+      }),
+    ).toBe(RunbookStepType.SSH);
+  });
+
   test("an unknown resource type or a missing name never breaks the row", () => {
     expect(
       getCommandTargetLabel({
@@ -207,7 +246,7 @@ describe("the command row helpers", () => {
   });
 });
 
-describe("RemediationSuggestionCard for a resource round", () => {
+describe("RemediationStep for a resource round", () => {
   test("a plan waiting for approval names the resource, the program and the tier — and needs approval", async () => {
     const row: HTMLElement = await renderCard(
       resourceSuggestion(AutoRemediationSuggestionStatus.Suggested, [
@@ -223,7 +262,11 @@ describe("RemediationSuggestionCard for a resource round", () => {
     expect(screen.queryByText(/^Rule:/)).not.toBeInTheDocument();
 
     expect(within(row).getByText("Docker host web-1")).toBeInTheDocument();
-    expect(within(row).getByText("docker")).toBeInTheDocument();
+    // The program is the command's own first word: no chip repeats it.
+    expect(within(row).getByText("docker stop web")).toBeInTheDocument();
+    expect(
+      within(row).queryByTestId("remediation-command-program"),
+    ).not.toBeInTheDocument();
     expect(within(row).getByText("riskier change")).toBeInTheDocument();
     expect(within(row).getByText("needs approval")).toBeInTheDocument();
     expect(within(row).queryByText("auto-approved")).not.toBeInTheDocument();
@@ -256,7 +299,12 @@ describe("RemediationSuggestionCard for a resource round", () => {
     );
 
     expect(within(row).getByText("Host web-2")).toBeInTheDocument();
-    expect(within(row).getByText("systemctl")).toBeInTheDocument();
+    expect(
+      within(row).getByText("systemctl restart nginx"),
+    ).toBeInTheDocument();
+    expect(
+      within(row).queryByTestId("remediation-command-program"),
+    ).not.toBeInTheDocument();
     expect(within(row).getByText("safe change")).toBeInTheDocument();
     expect(within(row).getByText("auto-approved")).toBeInTheDocument();
     expect(within(row).getByText("Succeeded")).toBeInTheDocument();
@@ -311,7 +359,47 @@ describe("RemediationSuggestionCard for a resource round", () => {
 
     expect(screen.getByText("AI kubectl fix")).toBeInTheDocument();
     expect(within(row).getByText("cluster prod-east")).toBeInTheDocument();
-    expect(within(row).getByText("kubectl")).toBeInTheDocument();
+    expect(
+      within(row).getByText("kubectl rollout restart deployment/web -n web"),
+    ).toBeInTheDocument();
+    expect(
+      within(row).queryByTestId("remediation-command-program"),
+    ).not.toBeInTheDocument();
     expect(within(row).getByText("safe change")).toBeInTheDocument();
+  });
+
+  test("a Bash command keeps its chip, as code, since its command does not say what runs it", async () => {
+    const row: HTMLElement = await renderCard(
+      Object.assign(new AutoRemediationSuggestion(), {
+        _id: "0193c0de-6666-4aaa-8bbb-000000000008",
+        status: AutoRemediationSuggestionStatus.Suggested,
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        ruleNameSnapshot: "Restart nginx",
+        commandPlan: {
+          commands: [
+            {
+              sequence: 1,
+              stepType: RunbookStepType.Bash,
+              runnerId: AGENT_ID,
+              runnerNameSnapshot: "web-runner-1",
+              command: "systemctl restart nginx",
+              timeoutInMs: 60000,
+              rationale: "r",
+              expectedEffect: "e",
+              policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+            },
+          ],
+        },
+        createdAt: new Date("2026-09-22T10:00:00Z"),
+      }),
+      "systemctl restart nginx",
+    );
+
+    const chip: HTMLElement = within(row).getByTestId(
+      "remediation-command-program",
+    );
+    expect(chip).toHaveTextContent(RunbookStepType.Bash);
+    expect(chip.tagName).toBe("CODE");
+    expect(within(row).getByText("web-runner-1")).toBeInTheDocument();
   });
 });

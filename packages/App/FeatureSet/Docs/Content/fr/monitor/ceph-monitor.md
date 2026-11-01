@@ -4,7 +4,7 @@ Un moniteur Ceph surveille un cluster Ceph — son état de santé, ses health c
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-ceph): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prédéfinis): 23 alertes prêtes à l'emploi pour la santé, les OSD, les placement groups et la capacité.
+- [Modèles](#modèles-dalerte-prédéfinis): 24 alertes prêtes à l'emploi pour un cluster devenu silencieux, la santé, les OSD, les placement groups et la capacité.
 - [Health checks](#séries-des-health-checks): Alerter sur n'importe quel health check Ceph par son nom.
 - [Métriques](#métriques-collectées): Chaque série `ceph_*` sur laquelle le moniteur peut alerter.
 :::
@@ -99,9 +99,17 @@ Les séries de données des pools ne portent que le label `pool_id` : le nom du 
 
 ## Modèles d'alerte prédéfinis
 
-**Quick Setup** propose 23 modèles couvrant la santé du cluster, les OSD, les placement groups et la capacité. Chacun construit un moniteur complet — requêtes, filtres de labels, un regroupement, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ modifiables.
+**Quick Setup** propose 24 modèles couvrant un cluster devenu silencieux, la santé du cluster, les OSD, les placement groups et la capacité. Chacun construit un moniteur complet — requêtes, filtres de labels, un regroupement, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ modifiables.
 
 Les modèles lisent les 5 dernières minutes sauf indication contraire dans le tableau. Un critère ne se déclenche que si la condition est vraie pendant chaque minute de sa fenêtre, et un critère à seuil se rétablit 10 % au-delà de son seuil, pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse. **Gravité** est le libellé affiché par le sélecteur ; l'incident et l'alerte créés par un modèle démarrent avec la gravité d'incident et d'alerte la plus élevée de votre projet.
+
+### Modèles de disponibilité
+
+| Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critique | `ceph_health_status`, Count, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
+
+**Cluster Stopped Reporting** se déclenche quand rien n'arrive du cluster pendant dix minutes : l'agent Ceph s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué, ou aucun mgr ne sert le module `prometheus`. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état, et les modèles de health checks prennent un cluster silencieux pour un cluster sain ; c'est donc lui qui vous prévient.
 
 ### Modèles de santé du cluster
 
@@ -219,7 +227,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. |
 | **Seuil** | La valeur de comparaison. Une liste d'unités s'affiche à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (par défaut), 28, 60 ou 90 jours d'historique. |
@@ -235,13 +243,11 @@ Un moniteur que vous ne construisez pas à partir d'un modèle démarre avec deu
 
 | Ordre | Critère | Correspond quand | Ensuite |
 | --- | --- | --- | --- |
-| 1 | Check if _nom du moniteur_ is offline | Une valeur de la première requête vaut `0` | Passe le moniteur à **Hors ligne** et déclare l'incident « _nom du moniteur_ is offline », qui se résout tout seul quand le moniteur se rétablit. |
-| 2 | Check if _nom du moniteur_ is online | Une valeur est au-dessus de `0` | Passe le moniteur à **Opérationnel**. |
-
-Ces valeurs par défaut conviennent à peu de métriques Ceph : `ceph_health_status` vaut 0 quand le cluster est sain. Choisissez un modèle ou définissez vos propres critères.
+| 1 | Check if _nom du moniteur_ is offline | La première requête n'a aucune donnée sur toute la fenêtre | Passe le moniteur à **Hors ligne** et déclare l'incident « _nom du moniteur_ is offline », qui se résout tout seul quand le moniteur se rétablit. |
+| 2 | Check if _nom du moniteur_ is online | La première requête a des données | Passe le moniteur à **Opérationnel**. |
 
 > [!IMPORTANT]
-> Le silence ne correspond à aucun des deux critères : un cluster qui n'envoie plus de données laisse le moniteur dans son état. Pour être prévenu quand les données s'arrêtent, réglez **En l'absence de données** sur **Déclencheur** dans un critère. Le temps pendant lequel OneUptime lui-même ne recevait pas de données n'est jamais une absence de données : une vérification dont la fenêtre en contient attend à la place, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
+> Une valeur de `0` est une donnée : une métrique souvent nulle, comme les redémarrages ou les erreurs, ne met pas le moniteur hors ligne. Pour être alerté sur une valeur, partez d'un modèle ou ajoutez un critère avec un seuil. Quand aucune donnée n'arrive et qu'aucun critère ne correspond, le moniteur garde son statut et les incidents ouverts restent ouverts : le silence n'est pas un rétablissement. Le temps où OneUptime lui-même ne recevait rien ne compte jamais comme une absence de données : une vérification dont la fenêtre en contient attend, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Dépannage
 

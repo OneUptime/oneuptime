@@ -12,7 +12,7 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices  which part to draw
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules  which part to draw
  *     (all of them when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN   the Dashboard's words in that language
@@ -64,6 +64,10 @@ import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import RuleCriteriaBuilder from "Common/UI/Components/RuleCriteria/RuleCriteriaBuilder";
+import { RULE_CRITERIA_SCHEMA_VERSION } from "Common/Types/Rules/RuleCriteria";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -339,7 +343,7 @@ function Buttons() {
 
       <Card
         title="Locked with a reason"
-        description="A locked button says why on hover."
+        description="A locked button or switch says why when it is tapped, clicked or pointed at."
         buttons={[
           {
             title: "Reset API Key",
@@ -381,6 +385,28 @@ function Buttons() {
           >
             {[<MoreMenuItem key="b" text="Every minute" onClick={() => {}} />]}
           </MoreMenu>
+        </div>
+        {/*
+         * A switch somebody may not change, its reason behind the help icon
+         * after its title (ModelSwitchRow draws a locked one so), and a
+         * switch whose help icon says what it does.
+         */}
+        <div className="mt-5 space-y-4" data-testid="switches-with-help">
+          <Toggle
+            title="Show on status page"
+            value={true}
+            disabled={true}
+            tooltip="You need one of these permissions: Project Owner, Project Admin."
+            dataTestId="locked-switch"
+            onChange={() => {}}
+          />
+          <Toggle
+            title="When filters match, create an alert"
+            value={false}
+            tooltip="Alerts notify the team but are not shown on the status page."
+            dataTestId="help-switch"
+            onChange={() => {}}
+          />
         </div>
       </Card>
 
@@ -886,6 +912,101 @@ function Choices() {
   );
 }
 
+/*
+ * A rule's conditions (RuleCriteriaBuilder) at the widths a rule form gives
+ * them: a phone's dialog, a dialog beside its steps, a dialog with no steps
+ * and a page. Each row lays itself out by the room its list of conditions
+ * has (RuleCriteriaRowLayout), not by the window. Two conditions, one with
+ * the longest operator there is ("Does not match pattern").
+ */
+const RULE_FIELDS = [
+  {
+    field: { title: true },
+    title: "Incident Title",
+    fieldType: FormFieldSchemaType.Text,
+  },
+  {
+    field: { labels: true },
+    title: "Labels",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    dropdownOptions: [
+      { label: "Production", value: "production" },
+      { label: "Payments", value: "payments" },
+    ],
+  },
+];
+
+const RULE_CRITERIA = {
+  schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+  filterCondition: FilterCondition.All,
+  filters: [
+    {
+      field: "title",
+      operator: "DoesNotMatchPattern",
+      value: "^staging-",
+    },
+    {
+      field: "labels",
+      operator: "HasAnyOf",
+      value: ["production"],
+    },
+  ],
+};
+
+/*
+ * The widths rule forms give their builder. The list of conditions inside
+ * is some 62px narrower (the indent under "Applies to" from 640px, and the
+ * conditions' own frame): 314px, as on a 390px phone; 478px, as in a
+ * dialog beside its steps; 658px, as in a dialog with none; 914px, a page.
+ */
+const RULE_WIDTHS = [
+  { name: "phone", width: 376, caption: "As on a phone" },
+  { name: "dialog", width: 540, caption: "As in a dialog beside its steps" },
+  {
+    name: "wide-dialog",
+    width: 720,
+    caption: "As in a dialog with no steps",
+  },
+  { name: "page", width: 976, caption: "As on a page" },
+];
+
+function RuleConditions(props) {
+  const [criteria, setCriteria] = useState(RULE_CRITERIA);
+
+  return (
+    <div
+      className="w-full space-y-2"
+      style={{ maxWidth: props.width }}
+      data-testid={`rules-${props.name}`}
+    >
+      <p className="text-xs font-medium text-gray-500">{props.caption}</p>
+      <RuleCriteriaBuilder
+        fields={RULE_FIELDS}
+        value={criteria}
+        onChange={setCriteria}
+        subject="Incidents"
+      />
+    </div>
+  );
+}
+
+function Rules() {
+  return (
+    <div className="space-y-5" data-testid="section-rules">
+      {RULE_WIDTHS.map((each) => {
+        return (
+          <RuleConditions
+            key={each.name}
+            name={each.name}
+            width={each.width}
+            caption={each.caption}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -893,6 +1014,7 @@ const SECTIONS = {
   pills: Pills,
   avatars: Avatars,
   choices: Choices,
+  rules: Rules,
 };
 
 function Gallery() {

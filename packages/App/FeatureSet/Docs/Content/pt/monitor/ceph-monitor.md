@@ -4,7 +4,7 @@ Um monitor de Ceph acompanha um cluster Ceph — a saúde, os health checks, o q
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-ceph): Seis etapas no painel.
-- [Modelos](#modelos-de-alerta-prontos): 23 alertas prontos para saúde, OSDs, placement groups e capacidade.
+- [Modelos](#modelos-de-alerta-prontos): 24 alertas prontos para um cluster silencioso, saúde, OSDs, placement groups e capacidade.
 - [Health checks](#séries-de-health-checks): Alertar sobre qualquer health check do Ceph pelo nome.
 - [Métricas](#métricas-coletadas): Cada série `ceph_*` sobre a qual o monitor pode alertar.
 :::
@@ -99,9 +99,17 @@ As séries de dados dos pools têm só o rótulo `pool_id`: o nome do pool exist
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece 23 modelos que cobrem a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+**Quick Setup** oferece 24 modelos que cobrem um cluster silencioso, a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério com limite recupera 10% além do limite, para que um valor que oscila na linha não fique alternando. **Gravidade** é o rótulo que o seletor mostra; o incidente e o alerta criados por um modelo começam com a gravidade de incidente e de alerta mais alta do seu projeto.
+
+### Modelos de disponibilidade
+
+| Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `ceph_health_status`, Count, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
+
+**Cluster Stopped Reporting** dispara quando nada chega do cluster por dez minutos: o agente Ceph parou, perdeu a rota até o OneUptime ou teve o token revogado, ou nenhum mgr atende o módulo `prometheus`. Ele se resolve quando os dados voltam. Quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, e os modelos de health checks leem um cluster silencioso como um cluster saudável, então é este que avisa você.
 
 ### Modelos de saúde do cluster
 
@@ -219,7 +227,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam atender, na janela inteira) ou **Any Value** (um basta). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. |
 | **Limite** | O valor de comparação. Uma lista de unidades aparece ao lado quando a métrica tem unidade. Não aparece para condições de anomalia. |
 | **Sensibilidade** | Somente condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Somente condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
@@ -235,13 +243,11 @@ Um monitor que você não monta a partir de um modelo começa com dois critério
 
 | Ordem | Critério | Atendido quando | Então |
 | --- | --- | --- | --- |
-| 1 | Check if _nome do monitor_ is offline | Algum valor da primeira consulta é `0` | Marca o monitor como **Offline** e declara o incidente "_nome do monitor_ is offline", que se resolve sozinho quando o monitor se recupera. |
-| 2 | Check if _nome do monitor_ is online | Algum valor está acima de `0` | Marca o monitor como **Operacional**. |
-
-Esses padrões servem para poucas métricas do Ceph: `ceph_health_status` é 0 quando o cluster está saudável. Escolha um modelo ou defina seus próprios critérios.
+| 1 | Check if _nome do monitor_ is offline | A primeira consulta não tem dados em toda a janela | Marca o monitor como **Offline** e declara o incidente "_nome do monitor_ is offline", que se resolve sozinho quando o monitor se recupera. |
+| 2 | Check if _nome do monitor_ is online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
-> O silêncio não atende a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para saber quando os dados param, defina **Se não houver dados** como **Gatilho** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+> Um valor de `0` é um dado, então uma métrica que costuma ser zero, como reinícios ou erros, não deixa o monitor offline. Para receber alertas sobre um valor, comece por um modelo ou adicione um critério com um limite. Quando nenhum dado chega e nenhum critério corresponde, o monitor mantém o status e os incidentes abertos continuam abertos: silêncio não é recuperação. O tempo em que o próprio OneUptime não recebia dados nunca conta como falta de dados: uma verificação cuja janela o inclui espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solução de problemas
 

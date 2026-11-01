@@ -4,7 +4,7 @@ Un monitor VMware osserva un vCenter - i suoi datacenter, cluster, host ESXi, ma
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-vmware): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-predefiniti): Ventitré avvisi pronti, un incidente per host, VM o datastore.
+- [Modelli](#modelli-di-avviso-predefiniti): Ventiquattro avvisi pronti, un incidente per host, VM o datastore.
 - [Attributi di identità](#attributi-di-identità): Come puntare a un host, una VM o un datastore.
 - [Metriche](#metriche-raccolte): Ogni serie `vcenter.*` su cui il monitor può generare avvisi.
 :::
@@ -106,12 +106,13 @@ Nei filtri del monitor e nelle chiavi di raggruppamento, gli attributi di risors
 
 ## Modelli di avviso predefiniti
 
-OneUptime fornisce 23 modelli per i problemi VMware più comuni, e **Quick Setup** li offre tutti. Ognuno costruisce un monitor completo: la query della metrica, i suoi filtri sugli attributi, un raggruppamento sull'attributo di identità proprio dell'oggetto, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
+OneUptime fornisce 24 modelli per i problemi VMware più comuni, e **Quick Setup** li offre tutti. Ognuno costruisce un monitor completo: la query della metrica, i suoi filtri sugli attributi, un raggruppamento sull'attributo di identità proprio dell'oggetto, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e un criterio di soglia rientra il 10 % oltre la sua soglia, così un valore che oscila attorno alla linea non va avanti e indietro.
 
 | Modello | Categoria | Gravità | Osserva | Scatta quando | Rientra quando |
 | --- | --- | --- | --- | --- | --- |
+| vCenter Stopped Reporting | Disponibilità | Critico | `vcenter.datacenter.cpu.limit`, Count sull'intero vCenter, **ultimi 10 minuti** | Nessun dato per tutta la finestra: l'agente o la sonda ha smesso di funzionare, oppure vCenter non gli risponde più | I dati tornano ad arrivare |
 | Host CPU Saturation | Host | Warning | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Sopra il 90 %: ogni VM sull'host si contende i core e mostra tempo di CPU ready | All'81 % o meno |
 | Host Memory Saturation | Host | Warning | `vcenter.host.memory.utilization`, Avg per host | Sopra il 90 %: l'host inizia a recuperare memoria con ballooning, compressione e swapping | All'81 % o meno |
 | Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max per host | Sopra 50 ms: ogni VM i cui dischi sono su quel percorso attende lo storage. Richiede il livello 3 dei contatori di prestazioni | A 45 ms o meno |
@@ -141,7 +142,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 - **I modelli di utilizzo usano Avg:** il receiver riporta una vera percentuale da 0 a 100 per ogni oggetto, quindi la media in un minuto è l'utilizzo sostenuto.
 - **I modelli di latenza usano Max:** la metrica è già la latenza peggiore tra i dischi dell'oggetto, quindi il suo campione più alto è quello onesto.
 - **I modelli di conteggio e di stato usano Max**, così una sola raccolta che mostra la condizione li fa scattare: errori di pacchetto, ballooning, swapping, stato rosso e giallo, host non effettivi, congestione.
-- **Ogni modello raggruppa sull'attributo di identità proprio dell'oggetto**, quindi scatta un incidente per ogni oggetto interessato, e l'incidente lo nomina.
+- **Ogni modello raggruppa sull'attributo di identità proprio dell'oggetto**, quindi scatta un incidente per ogni oggetto interessato, e l'incidente lo nomina. L'eccezione è **vCenter Stopped Reporting**, che osserva l'intero vCenter: quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che te lo segnala.
 - **Le soglie sono fissate nella loro unità** (`%`, `ms`, `us`), così mantengono il loro significato qualunque unità mostri un grafico.
 
 ## Metriche raccolte
@@ -270,7 +271,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il nome della sua variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. |
 | **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
@@ -292,11 +293,11 @@ Un monitor che non costruisci da un modello parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Un valore qualsiasi della prima query è `0` | Segna il monitor come **Offline** e dichiara l'incidente «_monitor name_ is offline», che si risolve da solo quando il monitor rientra. |
-| 2 | Check if _monitor name_ is online | Un valore qualsiasi è sopra `0` | Segna il monitor come **Operativo**. |
+| 1 | Check if _monitor name_ is offline | La prima query non ha dati per l'intera finestra | Segna il monitor come **Offline** e dichiara l'incidente «_monitor name_ is offline», che si risolve da solo quando il monitor rientra. |
+| 2 | Check if _monitor name_ is online | La prima query ha dati | Segna il monitor come **Operativo**. |
 
 > [!IMPORTANT]
-> Il silenzio non corrisponde a nessuno dei due criteri: un vCenter che smette di inviare dati lascia il monitor com'era. Per essere avvisato quando i dati si fermano, imposta **Se nessun dato** su **Trigger** in un criterio. Il tempo in cui OneUptime stesso non stava ricevendo non conta mai come assenza di dati: un controllo la cui finestra lo contiene aspetta invece, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
+> Un valore di `0` è un dato: una metrica che spesso vale zero, come i riavvii o gli errori, non porta il monitor offline. Per ricevere un avviso su un valore, parti da un modello o aggiungi un criterio con una soglia. Quando non arriva alcun dato e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un ripristino. Il tempo in cui OneUptime stesso non riceveva dati non conta mai come assenza di dati: un controllo la cui finestra lo contiene attende, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Terraform
 

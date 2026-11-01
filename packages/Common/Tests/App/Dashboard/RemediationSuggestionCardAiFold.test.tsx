@@ -20,7 +20,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+import RemediationStep from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import {
   AiCardFold,
   RemediationFoldState,
@@ -36,12 +36,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * The Remediation card and the page's AI card, when OneUptime AI did
- * nothing with an incident or alert because it was off for it. The card
- * tells the page what fixing did (onFoldStateChange), and, while the AI
- * card is its one-line "AI investigation is off" summary - or is still
- * deciding whether it is - leaves "nothing was fixed" to that line. A fix
- * to show, or anything else it has to say, it draws as always.
+ * The Remediation step and the AI card it is the second step of, when
+ * OneUptime AI did nothing with an incident or alert because it was off for
+ * it. The step tells the card what fixing did (onFoldStateChange), and,
+ * while the card is its one-line "AI investigation is off" summary - or is
+ * still deciding whether it is - draws nothing: the line says "nothing was
+ * fixed" too. A fix to show, or anything else it has to say, is never off,
+ * so the card never folds over it.
  */
 
 const INCIDENT_ID: ObjectID = new ObjectID(
@@ -157,9 +158,9 @@ describe("what the Remediation card tells the AI card", () => {
     const onFoldStateChange: MockFunction = getJestMockFunction();
 
     render(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={INCIDENT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           onFoldStateChange as unknown as (state: RemediationFoldState) => void
         }
@@ -178,9 +179,9 @@ describe("what the Remediation card tells the AI card", () => {
     const onFoldStateChange: MockFunction = getJestMockFunction();
 
     render(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         alertId={ALERT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           onFoldStateChange as unknown as (state: RemediationFoldState) => void
         }
@@ -196,9 +197,9 @@ describe("what the Remediation card tells the AI card", () => {
     const started: MockFunction = getJestMockFunction();
 
     render(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={INCIDENT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           started as unknown as (state: RemediationFoldState) => void
         }
@@ -213,9 +214,9 @@ describe("what the Remediation card tells the AI card", () => {
     const nothing: MockFunction = getJestMockFunction();
 
     render(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={INCIDENT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           nothing as unknown as (state: RemediationFoldState) => void
         }
@@ -238,9 +239,9 @@ describe("what the Remediation card tells the AI card", () => {
     const onFoldStateChange: MockFunction = getJestMockFunction();
 
     const view: ReturnType<typeof render> = render(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={INCIDENT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           onFoldStateChange as unknown as (state: RemediationFoldState) => void
         }
@@ -254,9 +255,9 @@ describe("what the Remediation card tells the AI card", () => {
     ]);
 
     view.rerender(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={NEXT_INCIDENT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           onFoldStateChange as unknown as (state: RemediationFoldState) => void
         }
@@ -313,9 +314,9 @@ describe("what the Remediation card tells the AI card", () => {
 
     const onFoldStateChange: MockFunction = getJestMockFunction();
     const view: ReturnType<typeof render> = render(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={INCIDENT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           onFoldStateChange as unknown as (state: RemediationFoldState) => void
         }
@@ -324,9 +325,9 @@ describe("what the Remediation card tells the AI card", () => {
     await settle();
 
     view.rerender(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={NEXT_INCIDENT_ID}
-        hideIfEmpty={true}
         onFoldStateChange={
           onFoldStateChange as unknown as (state: RemediationFoldState) => void
         }
@@ -350,12 +351,12 @@ describe("what the Remediation card tells the AI card", () => {
   });
 });
 
-describe("what the Remediation card draws beside a folded AI card", () => {
+describe("what the Remediation step draws inside a folded AI card", () => {
   function renderWithFold(aiCardFold: AiCardFold | undefined): void {
     render(
-      <RemediationSuggestionCard
+      <RemediationStep
+        investigationStage="reported"
         incidentId={INCIDENT_ID}
-        hideIfEmpty={true}
         {...(aiCardFold ? { aiCardFold } : {})}
       />,
     );
@@ -390,24 +391,59 @@ describe("what the Remediation card draws beside a folded AI card", () => {
     },
   );
 
-  test("a fix to show is drawn whatever the AI card is", async () => {
+  /*
+   * The step is part of the card: while the card is one line, or still
+   * deciding whether it is, the step draws nothing - whatever it holds.
+   * What it holds decides the card instead: a fix to show, or a fix that
+   * started, is fixing "on", and the card never folds over it.
+   */
+  test.each<[string, Served, AiCardFold]>([
+    [
+      "a fix to show",
+      { suggestions: [suggestion()], decisions: [FIXING_OFF] },
+      "checking",
+    ],
+    [
+      "a fix that started",
+      { suggestions: [], decisions: [CLUSTER_FIX_STARTED] },
+      "checking",
+    ],
+  ])(
+    "%s keeps the card whole: it reports fixing on",
+    async (_case: string, served: Served, aiCardFold: AiCardFold) => {
+      serveAll(served);
+      const onFoldStateChange: MockFunction = getJestMockFunction();
+
+      render(
+        <RemediationStep
+          investigationStage="reported"
+          incidentId={INCIDENT_ID}
+          aiCardFold={aiCardFold}
+          onFoldStateChange={
+            onFoldStateChange as unknown as (
+              state: RemediationFoldState,
+            ) => void
+          }
+        />,
+      );
+      await settle();
+
+      expect(reported(onFoldStateChange).pop()).toEqual({ kind: "on" });
+      // Drawn as soon as the card is: never before, and never folded away.
+      expect(screen.queryByTestId("ai-card-step-remediation")).toBeNull();
+    },
+  );
+
+  test("once the card is whole, the fix is drawn", async () => {
     serveAll({ suggestions: [suggestion()], decisions: [FIXING_OFF] });
 
-    renderWithFold("folded");
+    renderWithFold("full");
 
     expect(
       await screen.findByText("Restart the checkout pods"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Remediation")).toBeVisible();
-  });
-
-  test("a fix that started is drawn whatever the AI card is", async () => {
-    serveAll({ suggestions: [], decisions: [CLUSTER_FIX_STARTED] });
-
-    renderWithFold("checking");
-
-    expect(await screen.findByTestId("remediation-decision")).toHaveTextContent(
-      'cluster "prod-eu-west-1"',
-    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Remediation" }),
+    ).toBeVisible();
   });
 });

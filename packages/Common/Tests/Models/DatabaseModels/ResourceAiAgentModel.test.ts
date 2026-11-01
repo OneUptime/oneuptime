@@ -3,6 +3,7 @@ import AllModelTypes, {
 } from "../../../Models/DatabaseModels/Index";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -28,6 +29,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { describe, expect, it } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
@@ -63,7 +65,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 
 type ModelType = { new (): BaseModel; name: string };
 
-// The model each AiResourceType's resourceId points into.
+/*
+ * The model each AiResourceType's resourceId points into: its own, but for
+ * the three clouds, whose accounts share one table.
+ */
 const RESOURCE_MODELS: Record<AiResourceType, ModelType> = {
   [AiResourceType.DockerHost]: DockerHost,
   [AiResourceType.PodmanHost]: PodmanHost,
@@ -73,7 +78,15 @@ const RESOURCE_MODELS: Record<AiResourceType, ModelType> = {
   [AiResourceType.CephCluster]: CephCluster,
   [AiResourceType.DatabaseServer]: DatabaseServer,
   [AiResourceType.Host]: Host,
+  [AiResourceType.AwsAccount]: CloudAccount,
+  [AiResourceType.AzureSubscription]: CloudAccount,
+  [AiResourceType.GoogleCloudProject]: CloudAccount,
 };
+
+// The distinct models, each once.
+const DISTINCT_RESOURCE_MODELS: Array<ModelType> = Array.from(
+  new Set<ModelType>(Object.values(RESOURCE_MODELS)),
+);
 
 const UNIQUE_INDEX_NAME: string =
   "IDX_ResourceAiAgent_projectId_resourceType_resourceId";
@@ -280,7 +293,8 @@ describe("ResourceAiAgent model", () => {
       });
 
     expect(shared.length).toBeGreaterThan(3);
-    expect(extra).toHaveLength(ALL_AI_RESOURCE_TYPES.length);
+    // One Read permission per model; the three clouds' accounts share one.
+    expect(extra).toHaveLength(DISTINCT_RESOURCE_MODELS.length);
 
     for (const permission of extra) {
       expect(String(permission)).toMatch(/^Read/);
@@ -573,8 +587,12 @@ describe("ResourceAiAgent model", () => {
     );
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
-      expect(new RESOURCE_MODELS[type]().tableName).toBe(type);
-      expect(getModelTypeByName(type)).toBe(RESOURCE_MODELS[type]);
+      const tableName: string = isCloudAiResourceType(type)
+        ? "CloudAccount"
+        : type;
+
+      expect(new RESOURCE_MODELS[type]().tableName).toBe(tableName);
+      expect(getModelTypeByName(tableName)).toBe(RESOURCE_MODELS[type]);
     }
   });
 });

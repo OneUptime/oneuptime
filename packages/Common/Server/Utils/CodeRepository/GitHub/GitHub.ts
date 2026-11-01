@@ -429,12 +429,14 @@ export default class GitHubUtil extends HostedCodeRepository {
          */
         issues?: "read" | "write";
         /*
-         * Check-run READ access for the Tier 1 CI verification sweep. The
-         * GitHub App must have the "Checks: Read-only" permission configured
-         * or requesting this scope fails with 422 — callers that can degrade
-         * (the PR sync sweep) retry without it.
+         * Check-run READ access for the Tier 1 CI verification sweep, and
+         * WRITE for a production review's check run. The GitHub App must
+         * have the "Checks" permission configured, and the installation
+         * must have accepted it, or requesting this scope fails with 422 —
+         * callers that can degrade (the PR sync sweep, the review's check)
+         * go on without it.
          */
-        checks?: "read";
+        checks?: "read" | "write";
         metadata?: "read";
       };
       /*
@@ -539,7 +541,7 @@ export default class GitHubUtil extends HostedCodeRepository {
       contents?: "read" | "write";
       pull_requests?: "read" | "write";
       issues?: "read" | "write";
-      checks?: "read";
+      checks?: "read" | "write";
       metadata?: "read";
     };
   }): Promise<GitHubInstallationToken> {

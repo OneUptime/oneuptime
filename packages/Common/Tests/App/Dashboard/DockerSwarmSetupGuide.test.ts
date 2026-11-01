@@ -19,6 +19,7 @@ import {
   DockerSwarmInstallMethod,
   getDockerSwarmAgentFileUrl,
   getDockerSwarmEnvFile,
+  DOCKER_SWARM_NODE_NAME_COMMAND,
   getDockerSwarmSetupGuide,
   resolveDockerSwarmInstallMethod,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
@@ -447,9 +448,59 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
     expect(apiVersion).toContain(
       "docker version --format '{{ .Server.APIVersion }}'",
     );
+    // Negotiated unless pinned: older files pinned 1.44, so new files, unpinned.
+    expect(apiVersion).toContain("older agent files pinned `1.44`");
+    expect(apiVersion).toContain(
+      isScript
+        ? "Run the install script again"
+        : "Download the agent's files again (step 2)",
+    );
+    expect(apiVersion).toContain("`DOCKER_API_VERSION=`");
     expect(apiVersion).toContain("`DOCKER_API_VERSION=1.41`");
-    expect(apiVersion).toContain("`DOCKER_API_VERSION=` (empty)");
     expect(apiVersion).toContain("on every node the collector runs on");
+  });
+
+  /*
+   * Swarm labels a task with its node's ID only, so a Docker Compose install
+   * adds the node's name to .env itself - the install script writes it.
+   */
+  test("tells a Docker Compose install to add the node's name to .env, which the install script writes itself", () => {
+    const configure: string = guide.steps
+      .map((step: SetupGuideStep): string => {
+        return step.markdown || "";
+      })
+      .join("\n");
+    const envTopic: string = topicTitled(
+      guide.advanced,
+      "Environment variables",
+    ).markdown;
+
+    expect(envTopic).toContain("`DOCKER_SWARM_NODE_NAME`");
+
+    if (isScript) {
+      expect(configure).not.toContain(DOCKER_SWARM_NODE_NAME_COMMAND);
+      expect(envTopic).toContain(
+        "The install script sets it to the node's hostname",
+      );
+    } else {
+      expect(configure).toContain(
+        `\`\`\`bash\n${DOCKER_SWARM_NODE_NAME_COMMAND}\n\`\`\``,
+      );
+      // After the .env it appends to, before the agent starts.
+      expect(configure.indexOf(DOCKER_SWARM_NODE_NAME_COMMAND)).toBeGreaterThan(
+        configure.indexOf("DOCKER_SWARM_CLUSTER_NAME="),
+      );
+      expect(configure.indexOf(DOCKER_SWARM_NODE_NAME_COMMAND)).toBeLessThan(
+        configure.indexOf("docker compose up -d"),
+      );
+    }
+
+    expect(DOCKER_SWARM_NODE_NAME_COMMAND).toBe(
+      `echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env`,
+    );
+    expect(readAgentFile("install.sh")).toContain(
+      `DOCKER_SWARM_NODE_NAME="$(docker info --format '{{.Name}}' 2>/dev/null || true)"`,
+    );
   });
 
   test("the diagnostic script looks in the folder this method installed to", () => {
@@ -886,15 +937,20 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
     expect(collectorEnv).toContain(
       `DOCKER_SWARM_CLUSTER_NAME=\${DOCKER_SWARM_CLUSTER_NAME:-${DOCKER_SWARM_DEFAULT_CLUSTER_NAME}}`,
     );
+    // Empty: the collector negotiates the version with the daemon.
+    expect(DOCKER_SWARM_DEFAULT_API_VERSION).toBe("");
     expect(collectorEnv).toContain(
-      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${DOCKER_SWARM_DEFAULT_API_VERSION}}`,
+      `DOCKER_API_VERSION=\${DOCKER_API_VERSION:-${DOCKER_SWARM_DEFAULT_API_VERSION}}`,
+    );
+    expect(collectorEnv).toContain(
+      "DOCKER_SWARM_NODE_NAME=${DOCKER_SWARM_NODE_NAME:-}",
     );
     expect(inventoryEnv).toContain(
       `DOCKER_INVENTORY_INTERVAL_SECONDS=\${DOCKER_INVENTORY_INTERVAL_SECONDS:-${DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS}}`,
     );
   });
 
-  test("the collector stamps only the cluster name the guide describes", () => {
+  test("the collector stamps the cluster name, and each task's service and node, as the guide describes", () => {
     const attributes: Array<Record<string, string>> =
       collectorConfig["processors"]["resource"]["attributes"];
     const keys: Array<string> = attributes.map(
@@ -905,6 +961,25 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
     expect(keys).toContain("docker.swarm.cluster.name");
     expect(keys).not.toContain("host.name");
     expect(keys).not.toContain("container.runtime");
+
+    const labels: Record<string, string> =
+      collectorConfig["receivers"]["docker_stats"][
+        "container_labels_to_metric_labels"
+      ];
+    const collects: string = topicTitled(
+      guideFor("install-script").advanced,
+      "What the agent collects",
+    ).markdown;
+    for (const attribute of [
+      ...Object.values(labels),
+      "docker.swarm.node.name",
+      "docker.swarm.cluster.name",
+    ]) {
+      expect(collects).toContain(`\`${attribute}\``);
+    }
+    // The receiver's container.runtime, which the guide used to deny.
+    expect(collects).toContain("`container.runtime=docker`");
+    expect(collects).not.toContain("stamps **only**");
     expect(
       attributes.find((attribute: Record<string, string>): boolean => {
         return attribute["key"] === "docker.swarm.cluster.name";

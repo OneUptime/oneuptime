@@ -86,7 +86,7 @@ const serverWrittenColumnAccess: {
   pluralName: "Entity Risks",
   icon: IconProp.Fingerprint,
   tableDescription:
-    "The risk of each user, host and IP address: what the detection rules, threat intel and connected products found about it in the last 7 days adds up to.",
+    "The risk of each user, host, IP address and data store: what the detection rules, threat intel, connected products and Data Security found about it in the last 7 days adds up to.",
 })
 @TableAccessControl({
   create: [],
@@ -142,7 +142,8 @@ export default class SecurityEntityRisk extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Type",
-    description: "What the entity is: a User, a Host or an IP Address.",
+    description:
+      "What the entity is: a User, a Host, an IP Address or a Data Store.",
   })
   @Column({
     type: ColumnType.ShortText,

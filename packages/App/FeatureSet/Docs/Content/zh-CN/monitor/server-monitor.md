@@ -99,7 +99,7 @@ winget install --id OneUptime.InfrastructureAgent --exact --scope machine
 要用 Intune、Configuration Manager 或组策略部署代理，请使用同一版本中的 `oneuptime-infrastructure-agent-amd64.msi`（或 `oneuptime-infrastructure-agent-arm64.msi`）。它会把代理安装到 `C:\Program Files\OneUptimeInfrastructureAgent`，更新的 MSI 会原地升级代理并重新启动它。早期版本的 MSI 无法升级：请先将其卸载一次。
 :::
 
-每种方式都会安装适用于你的操作系统和处理器（x86-64 或 ARM64）的最新版本。apt 和 yum 软件源提供每个 GitHub 版本附带的 `.deb` 和 `.rpm` 软件包，并用 `https://packages.oneuptime.com/gpg.key` 处的密钥签名，软件包会把二进制文件放到 `/usr/bin`。安装脚本会把 `oneuptime-infrastructure-agent` 二进制文件放到 `$HOME/bin`。在自托管部署中，脚本由你自己的 OneUptime URL 提供。
+每种方式都会安装适用于你的操作系统和处理器（x86-64 或 ARM64）的最新版本。apt 和 yum 软件源提供每个 GitHub 版本附带的 `.deb` 和 `.rpm` 软件包，并用 `https://packages.oneuptime.com/gpg.key` 处的密钥签名，软件包会把二进制文件放到 `/usr/bin`。用 `sudo` 运行时，安装脚本会把 `oneuptime-infrastructure-agent` 二进制文件放到 `/usr/local/bin`（不用 `sudo` 时放到 `$HOME/bin`），并用 `curl` 或 `wget` 下载。在自托管部署中，脚本由你自己的 OneUptime URL 提供。
 
 ### 将其连接到监视器
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-启动时，代理会向 OneUptime 验证密钥，并立即发送第一份报告。
+启动时，代理会向 OneUptime 验证密钥，并立即发送第一份报告。无法连接 OneUptime 时，它会继续重试：5 秒后再试，之后每次间隔加倍，最长每 5 分钟一次。
 
 ### 检查它是否在报告
 
@@ -165,7 +165,7 @@ oneuptime-infrastructure-agent start
 | `uninstall` | 移除服务并删除代理的配置文件。 |
 | `help` | 列出命令。 |
 
-在 Linux 和 macOS 上用 `sudo` 运行，在 Windows 上从管理员身份的 **命令提示符** 运行。要更改已配置代理的密钥、URL 或代理服务器，请先运行 `stop` 和 `uninstall`，再重新运行 `configure` 和 `start`。
+在 Linux 和 macOS 上用 `sudo` 运行，在 Windows 上从管理员身份的 **命令提示符** 运行。要更改已配置代理的密钥、URL 或代理服务器，请先运行 `stop` 和 `uninstall`，再重新运行 `configure` 和 `start`。每个命令都会输出它做了什么或失败的原因，并把同样的内容写入代理的日志。如果服务因故障停止，服务管理器会重新启动它；在 Linux 和 Windows 上会在两分钟后重启。由旧版代理的 `configure` 设置的 Windows 服务，只有在你重新运行 `uninstall` 和 `configure` 之后才会自动重启。
 
 ### 文件
 
@@ -199,15 +199,15 @@ oneuptime-infrastructure-agent start
 
 | 方面 | 报告内容 |
 | --- | --- |
-| CPU | 使用率（%）、核心数、每个核心的使用率，以及在 user、system、idle、I/O 等待、steal、nice、IRQ 和软 IRQ 中花费的时间 |
+| CPU | 使用率（%）、核心数、每个核心的使用率，以及在 user、system、idle、I/O 等待、steal、nice、IRQ 和软 IRQ 中花费的时间（自上一份报告以来） |
 | 内存 | 总内存、已用、空闲和可用内存，缓冲区和缓存，使用率（%），以及交换空间的总量、已用、空闲和使用率（%） |
-| 磁盘 | 每个已挂载磁盘的挂载路径、设备、文件系统、总空间、已用空间和空闲空间、使用率（%）、读写的字节数和操作数，以及 I/O 时间 |
+| 磁盘 | 每个已挂载磁盘（只读镜像（snap、ISO）和 `/dev` 除外）的挂载路径、设备、文件系统、总空间、已用空间和空闲空间、按 `df` 的算法计算的使用率（%）、读写的字节数和操作数，以及 I/O 时间 |
 | 负载 | 1 分钟、5 分钟和 15 分钟的平均负载 |
 | 网络 | 每个接口发送和接收的字节数与数据包数、进出方向的错误和丢包；以及已建立和正在监听的连接 |
 | 主机 | 操作系统、平台和版本、内核版本和架构、运行时间、启动时间、虚拟化和进程数 |
-| 进程 | 每个正在运行的进程：名称、PID、命令、CPU（%）、内存、状态、线程、用户和启动时间 |
+| 进程 | 每个正在运行的进程：名称、PID、命令、CPU（%）、内存、状态、线程、用户和启动时间；无法读取命令行的进程（例如受保护的 Windows 进程）不带命令 |
 
-操作系统不提供的值会被省略。监视器的 **指标** 选项卡会绘制可用性、CPU、内存、磁盘使用量和磁盘 I/O、平均负载、交换空间、网络流量和错误、连接、运行时间以及进程数的图表。
+操作系统不提供的值会被省略，针对报告中没有的值的条件不会满足：缺失的值不等于 0。监视器的 **指标** 选项卡会绘制可用性、CPU、内存、磁盘使用量和磁盘 I/O、平均负载、交换空间、网络流量和错误、连接、运行时间以及进程数的图表。
 
 ## 监控条件
 
@@ -228,7 +228,7 @@ oneuptime-infrastructure-agent start
 | Server Process Command | 是否有命令行与此完全一致的进程在运行（不区分大小写） | Is Executing, Is Not Executing |
 | Server Process PID | 是否有此 PID 的进程在运行 | Is Executing, Is Not Executing |
 
-**磁盘路径** 接受挂载点或设备，例如 `/`、`/mnt/data`、`C:\` 或 `/dev/sda1`；留空时为 `/`。输入 `*` 可检查代理报告的所有磁盘：每个超过阈值的磁盘都会获得单独的警报，因此第二个磁盘写满时不会被第一个磁盘未关闭的警报掩盖。
+**磁盘路径** 接受挂载点或设备，例如 `/`、`/mnt/data`、`C:\` 或 `/dev/sda1`；留空时为 `/`。输入 `*` 可检查代理报告的所有磁盘：每个超过阈值的磁盘都会获得单独的警报，因此第二个磁盘写满时不会被第一个磁盘未关闭的警报掩盖。大小写以及末尾的 `/` 或 `\` 都不影响匹配，设备代表从该设备挂载的磁盘。不指向代理所报告的任何磁盘的路径不会匹配。代理无法读取服务器的进程时，报告中没有进程列表，任何进程筛选条件都不会匹配，无论它检查进程正在运行还是未在运行。
 
 ### 按时间段评估
 
@@ -262,16 +262,16 @@ oneuptime-infrastructure-agent start
 
 :::details 代理不报告
 - 检查服务是否在运行：`sudo oneuptime-infrastructure-agent status`。
-- 查看它的日志：`sudo oneuptime-infrastructure-agent logs -n 50`。出现 `Metrics successfully pushed to OneUptime server` 这一行，说明报告已送达。
-- 代理在启动时验证密钥，如果 OneUptime 拒绝，会记录 `Secret key is invalid` 并退出。请把密钥与监视器 **设置** 页面中 **重置服务器监视器密钥** 下的密钥进行比较。
+- 查看它的日志：`sudo oneuptime-infrastructure-agent logs -n 50`。出现 `Metrics successfully pushed to OneUptime server` 这一行，只说明 OneUptime 收到了报告，并不说明它接受了报告：OneUptime 会在检查密钥之前就作出响应。监视器的 **指标** 选项卡开始绘制服务器的图表，才说明报告已被接受。
+- 代理在启动时验证密钥，如果 OneUptime 拒绝，会记录 `Secret key is invalid` 并退出。请把密钥与监视器 **设置** 页面中 **重置服务器监视器密钥** 下的密钥进行比较。无法连接 OneUptime 时，代理会记录 `The secret key could not be verified with OneUptime yet` 并重试。
 - 确保服务器能通过 HTTPS 访问你的 OneUptime URL，并且没有防火墙阻止出站连接。
 :::
 
 :::details `sudo` 提示找不到命令
-软件包会把代理放到系统路径中，所以只有使用安装脚本时才会出现这种情况。安装脚本会把二进制文件放到运行脚本的用户的 `$HOME/bin` 中，并输出所用的目录。请用完整路径运行代理，例如 `sudo /root/bin/oneuptime-infrastructure-agent configure ...`。若要改为安装到系统路径中的目录，请给脚本传入 `-b`：
+软件包会把代理放到 `/usr/bin`，它在所有路径中。用 `sudo` 运行时，安装脚本会把代理放到 `/usr/local/bin`，而 RHEL 等一些系统不把它放进 sudo 的路径：在这些系统上，脚本会输出带代理完整路径的命令，例如 `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`。以前，脚本会把代理放到 `$HOME/bin`，在 `sudo` 下即 `/root/bin`：请用这个完整路径运行当时安装的代理，或重新安装。若要改为安装到系统路径中的目录，请给脚本传入 `-b`：
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 

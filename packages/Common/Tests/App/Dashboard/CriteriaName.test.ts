@@ -1004,3 +1004,28 @@ describe("what the monitor docs say about criteria names", () => {
     },
   );
 });
+
+describe("CriteriaNameUtil.describeFilter: a metric that has data, or not", () => {
+  test("Has No Data and Has Data read as the metric's words, never 'is empty'", () => {
+    const base: {
+      checkOn: CheckOn;
+      metricMonitorOptions: { metricAlias: string };
+    } = {
+      checkOn: CheckOn.MetricValue,
+      metricMonitorOptions: { metricAlias: "host_cpu" },
+    };
+
+    expect(
+      CriteriaNameUtil.describeFilter({
+        ...base,
+        filterType: FilterType.IsEmpty,
+      } as never),
+    ).toBe("host_cpu has no data");
+    expect(
+      CriteriaNameUtil.describeFilter({
+        ...base,
+        filterType: FilterType.IsNotEmpty,
+      } as never),
+    ).toBe("host_cpu has data");
+  });
+});

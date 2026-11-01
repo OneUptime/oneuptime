@@ -195,6 +195,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | Плановое обслуживание | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Команды и дежурства | `team`, `on-call-policy` |
 | Безопасность | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| Безопасность данных | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | Метки | `label` |
 
 Телеметрия принимает `list`, `create` и `count`:

@@ -42,10 +42,9 @@ Sopra l'elenco, i riquadri contano **Destinatari**, **Pronto**, **Da configurare
 | --- | --- |
 | **Destinatario** | La persona, con il suo indirizzo e-mail. |
 | **Stato** | **Pronto**, **Irraggiungibile** o quante lacune ha. |
-| **Team** | I team che la avvisano tramite una regola di escalation. |
 | **Canali** | Un segmento per canale: pieno per un metodo verificato, vuoto per uno non ancora verificato. |
 | **Coverage** | Quante gravità hanno una regola, su ogni scheda, sul totale. |
-| **Reached via** | Come la raggiungono le policy: `Direct`, `Team`, `Schedule` o `Override`. |
+| **Reached via** | Come la raggiungono le policy: ogni team che la avvisa tramite una regola di escalation, con il suo nome, oppure **Direct**, **Pianificazione** o **Sostituzione**. |
 
 **Coverage** su una riga mostra i metodi di notifica della persona, perché ha il suo stato e una griglia di ogni gravità con o senza regola. L'imbuto filtra l'elenco per **Destinatario**, **Stato**, **Team** o **Reached via**. La risposta può avere un minuto: **Aggiorna** la ricalcola.
 

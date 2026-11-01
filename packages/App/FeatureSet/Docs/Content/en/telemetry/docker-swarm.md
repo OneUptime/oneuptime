@@ -13,7 +13,7 @@ The OneUptime Docker Swarm agent monitors a Docker Swarm cluster: its nodes, ser
 
 The agent is three containers, all defined in one `docker-compose.yml`:
 
-1. **Collector**: an OpenTelemetry Collector that reads `docker_stats` for each container's metrics, tails the containers' log files, and tails the inventory snapshot file. It stamps everything with your cluster's name (`docker.swarm.cluster.name`) and sends it to OneUptime over OTLP.
+1. **Collector**: an OpenTelemetry Collector that reads `docker_stats` for each container's metrics, tails the containers' log files, and tails the inventory snapshot file. It stamps everything with your cluster's name (`docker.swarm.cluster.name`), and each task's metrics with its service and node, and sends it to OneUptime over OTLP.
 2. **Inventory poller**: a small `curl` and `jq` sidecar that every 5 minutes walks the swarm manager's API (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) and works out the stacks from the `com.docker.stack.namespace` service label. It writes one JSON line per object for the collector to forward.
 3. **AI agent**: `oneuptime-docker-swarm-ai-agent`, which runs the `docker` commands OneUptime AI asks for while it investigates an incident or alert on this cluster. It is read-only unless you allow fixes (see [AI agent](#ai-agent)).
 
@@ -56,7 +56,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-The script asks for your OneUptime URL, the ingestion key and a name for the cluster. It installs to `/opt/oneuptime-docker-swarm-agent`, writes a `.env` file only its owner can read, and starts all three containers. Add `--no-ai-agent` to leave the AI agent out.
+The script asks for your OneUptime URL, the ingestion key and a name for the cluster. It installs to `/opt/oneuptime-docker-swarm-agent`, writes a `.env` file only its owner can read, with the node's hostname as `DOCKER_SWARM_NODE_NAME`, and starts all three containers. Add `--no-ai-agent` to leave the AI agent out.
 @tab Docker Compose
 Download `docker-compose.yml`, `otel-collector-config.yaml` and `inventory-snapshot.sh` from the [DockerSwarmAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) into a new folder on a manager node:
 
@@ -73,6 +73,12 @@ Create a `.env` file next to them. It holds the ingestion key, so keep it privat
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+Add the node's name to it. The collector stamps it on the node's container metrics:
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 Start the agent:
@@ -98,15 +104,16 @@ Open **Products → Infrastructure → Docker Swarm → All Clusters**. The clus
 
 ## Environment variables
 
-The install script writes the first three to `/opt/oneuptime-docker-swarm-agent/.env`; a Docker Compose install reads them from the `.env` next to `docker-compose.yml`. Add or change any of them there, then run `docker compose up -d` in that folder.
+The install script writes the first four to `/opt/oneuptime-docker-swarm-agent/.env`; a Docker Compose install reads them from the `.env` next to `docker-compose.yml`. Add or change any of them there, then run `docker compose up -d` in that folder.
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Yes | Your OneUptime URL, such as `https://oneuptime.com` or your self-hosted instance. Use `http://` and its port if the instance is HTTP-only. |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys**. |
 | `DOCKER_SWARM_CLUSTER_NAME` | No | The cluster's name in OneUptime, and the key every node's data joins by: stamped on everything as the `docker.swarm.cluster.name` resource attribute. Keep it stable: changing it later registers a second cluster. Defaults to `docker-swarm`. |
+| `DOCKER_SWARM_NODE_NAME` | No | The node's name, stamped on its containers' metrics and logs as the `docker.swarm.node.name` resource attribute, which a [Docker Swarm monitor](/docs/monitor/docker-swarm-monitor#monitor-settings) filters by. The install script sets it to the node's hostname, as `docker node ls` shows it. Empty: no node name is stamped. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | No | How often the inventory poller takes a snapshot, in seconds. Defaults to `300`. |
-| `DOCKER_API_VERSION` | No | The Docker Engine API version the collector and the inventory poller speak. Defaults to `1.44`; empty negotiates it with the daemon (see [Troubleshooting](#troubleshooting)). The AI agent negotiates it unless you set one. |
+| `DOCKER_API_VERSION` | No | The Docker Engine API version the collector and the inventory poller speak. Empty by default: they use the daemon's own, so every Docker Engine from 20.10 on works. Set it only to pin a version (see [Troubleshooting](#troubleshooting)). The AI agent negotiates it unless you set one. |
 
 The AI agent's own settings are under [AI agent](#ai-agent).
 
@@ -119,9 +126,11 @@ The AI agent's own settings are under [AI agent](#ai-agent).
 | Container CPU, memory, process count and uptime | The `docker_stats` receiver | The **Metrics** page |
 | Container stdout and stderr logs | The `filelog` receiver | The **Logs** page |
 
+Each task's metrics carry its container's identity, which the `docker_stats` receiver adds (`container.name`, `container.image.name`, `container.id` and `container.runtime=docker`), its service and its node's ID, which the collector copies from the labels Swarm puts on the task (`docker.swarm.service.name` and `docker.swarm.node.id`), and its node's name from `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [Docker Swarm monitors](/docs/monitor/docker-swarm-monitor#monitor-settings) filter by them.
+
 ### How it differs from the Docker agent
 
-The [Docker agent](/docs/telemetry/docker-host) models one host, and stamps `host.name` and `container.runtime=docker`. The Docker Swarm agent stamps only `docker.swarm.cluster.name`, on purpose: OneUptime then files the data under the swarm cluster, instead of registering each node as a host of its own.
+The [Docker agent](/docs/telemetry/docker-host) models one host, and stamps `host.name` on everything. The Docker Swarm agent stamps `docker.swarm.cluster.name` and never `host.name`, on purpose: OneUptime then files the data under the swarm cluster, instead of registering each node as a host of its own.
 
 ## Tag the cluster with project labels
 
@@ -225,13 +234,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-The daemon's highest API version is below the default `1.44` (Docker Engine 20.10 stops at `1.41`), so the `docker_stats` receiver cannot start and the container restarts in a loop. Find the daemon's highest version:
+The daemon's highest API version is below the one the collector asked for (Docker Engine 20.10 stops at `1.41`), so the `docker_stats` receiver cannot start and the container restarts in a loop. The collector negotiates the version with the daemon unless `DOCKER_API_VERSION` names one, and agent files older than version 0.161.2 pinned `1.44`. [Upgrade the agent](#upgrading-the-agent), and take any `DOCKER_API_VERSION` with a version out of `.env` (or set it empty, `DOCKER_API_VERSION=`), on every node the agent runs on.
+
+To pin a version anyway, use no more than the daemon's highest:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-Set `DOCKER_API_VERSION` to that value in `.env`, and run `docker compose up -d` on every node the agent runs on. Newer daemons still serve older API versions, so the setting keeps working after you upgrade Docker. Or set `DOCKER_API_VERSION=` (empty) to have the collector negotiate the version with the daemon instead of pinning one.
+Set `DOCKER_API_VERSION` to that value in `.env`, and run `docker compose up -d` on every node the agent runs on. Newer daemons still serve older API versions, so the setting keeps working after you upgrade Docker.
 :::
 
 :::details The cluster appears under the wrong name

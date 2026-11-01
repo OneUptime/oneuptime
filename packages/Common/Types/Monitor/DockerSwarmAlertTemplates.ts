@@ -3,7 +3,9 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
@@ -190,6 +192,54 @@ export function buildDockerSwarmMonitorConfig(args: {
  * from the step's clusterIdentifier; no container.runtime filter.
  */
 
+const clusterStoppedReportingTemplate: DockerSwarmAlertTemplate = {
+  id: "docker-swarm-cluster-stopped-reporting",
+  name: "Cluster Stopped Reporting",
+  summary: "The cluster sends no container metrics for 10 minutes.",
+  description:
+    "Alert when no node of the Swarm cluster sends container metrics for ten minutes: the nodes running the agent are down, or the agent stopped, lost its route to OneUptime or had its token revoked. A node with no tasks still reports, because the agent runs as a container itself and reports its own. One incident for the whole cluster.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: DockerSwarmAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildDockerSwarmMonitorStep({
+      dockerSwarmMonitor: buildDockerSwarmMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * The heartbeat. docker_stats reports RUNNING containers only, but
+         * on every node the agent itself runs as one
+         * (`oneuptime-docker-swarm-agent`, DockerSwarmAgent/
+         * docker-compose.yml) and the receiver excludes no image, so its
+         * own container.memory.percent - stamped with the cluster name
+         * like every other row of the pipeline - arrives every 30s for as
+         * long as any node's agent runs. NOT grouped: a node that leaves
+         * the cluster takes its series with it, and the whole-cluster
+         * silence is the one this template is for.
+         */
+        metricName: "container.memory.percent",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Docker Swarm cluster",
+        incidentTitle: `[Docker Swarm] Cluster Stopped Reporting - ${args.monitorName}`,
+        incidentDescription: `OneUptime has received no container metrics from this Docker Swarm cluster for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the nodes running the agent are up, whether the \`oneuptime-docker-swarm-agent\` container is running on them and what its logs say (\`docker logs oneuptime-docker-swarm-agent\`), and whether they can reach OneUptime with the agent's token. The incident resolves on its own once metrics arrive again.`,
+        criteriaName: "Cluster Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when no node of the Swarm cluster sends container metrics for the whole ten-minute window.",
+      }),
+    });
+  },
+};
+
 const highCpuTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-cpu",
   name: "High Task CPU Usage",
@@ -304,9 +354,9 @@ const highMemoryTemplate: DockerSwarmAlertTemplate = {
 const highProcessCountTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-pids",
   name: "High Task Process Count",
-  summary: "A task runs more than 500 processes.",
+  summary: "A task runs more than 2000 processes and threads.",
   description:
-    "Alert when any Swarm task's container has an unusually high number of processes (container.pids.count > 500), which may indicate a fork bomb or resource leak. One incident per task.",
+    "Alert when any Swarm task's container holds more than 2000 tasks — processes PLUS threads (container.pids.count > 2000) — which may indicate a fork bomb, a thread leak, or an unbounded worker pool. One incident per task.",
   category: "Container",
   severity: "Warning",
   getMonitorStep: (args: DockerSwarmAlertTemplateArgs): MonitorStep => {
@@ -328,19 +378,25 @@ const highProcessCountTemplate: DockerSwarmAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
+        /*
+         * 2000, as Docker's docker-high-pids. container.pids.count reads
+         * the cgroup pids controller, which counts TASKS - threads as well
+         * as processes - so 500 was ordinary for a JVM or a Go service and
+         * the alert called a task working as designed a fork bomb.
+         */
         filterType: FilterType.GreaterThan,
-        value: 500,
-        incidentTitle: `[Docker Swarm] High Task Process Count (>500) - ${args.monitorName}`,
-        incidentDescription: `A Docker Swarm task's container has an unusually high number of processes (>500). This may indicate a fork bomb, a thread/connection leak, or a misconfigured application. Check the root cause for the affected task container and inspect it for runaway processes.`,
-        criteriaName: "High Task PIDs - Count > 500",
+        value: 2000,
+        incidentTitle: `[Docker Swarm] High Task Process/Thread Count (>2000) - ${args.monitorName}`,
+        incidentDescription: `A Docker Swarm task's container held more than 2000 tasks for the whole evaluation window. container.pids.count reads the cgroup pids controller, which counts TASKS — threads as well as processes — so a JVM or a Go service sits far above its process count. Sustained above 2000 usually means a fork bomb, a thread leak, or a pool sized without a ceiling. Check the root cause for the affected task container and inspect it for runaway processes and threads.`,
+        criteriaName: "High Task PIDs - Task Count > 2000",
         criteriaDescription:
-          "Triggers when any task's process count exceeds 500 over the monitoring window.",
+          "Triggers when any task's task (process + thread) count stays above 2000 over the monitoring window.",
       }),
       onlineCriteriaInstance: buildDockerSwarmOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 500,
+        value: 2000,
       }),
     });
   },
@@ -427,6 +483,7 @@ const taskDownTemplate: DockerSwarmAlertTemplate = {
 
 export function getAllDockerSwarmAlertTemplates(): Array<DockerSwarmAlertTemplate> {
   return [
+    clusterStoppedReportingTemplate,
     taskDownTemplate,
     highCpuTemplate,
     highMemoryTemplate,
@@ -452,4 +509,13 @@ export function getDockerSwarmAlertTemplateById(
       return template.id === id;
     },
   );
+}
+
+/*
+ * The template a NEW Docker Swarm monitor starts on: the cluster going
+ * silent. It is the one template that still speaks when every other one has
+ * stopped being evaluated, and it has no threshold to tune.
+ */
+export function getDockerSwarmDefaultAlertTemplateId(): string {
+  return clusterStoppedReportingTemplate.id;
 }

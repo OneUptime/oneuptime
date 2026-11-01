@@ -542,6 +542,43 @@ describe("getAITaskCardState", () => {
     ).toBe(AI_TASKS_PAUSED_REASON);
   });
 
+  /*
+   * Someone who may not edit the repository a task works in: their reason
+   * comes first, since nothing else on the card is theirs to change.
+   */
+  test("a person who may not start tasks is told why, before anything else", () => {
+    const reason: string =
+      "AI tasks work in this exception's repository, so starting one takes permission to edit it.";
+
+    for (const value of [
+      undefined,
+      task(AIRunStatus.Error),
+      task(AIRunStatus.Completed),
+    ]) {
+      expect(
+        getAITaskCardState({
+          task: value,
+          presentation,
+          ...gates,
+          isResolved: true,
+          isBlockedBySetup: true,
+          isTasksLoading: true,
+          startRefusedReason: reason,
+        }).primaryAction,
+      ).toMatchObject({ isDisabled: true, disabledReason: reason });
+    }
+
+    // An active task offers nothing to start, whoever reads it.
+    expect(
+      getAITaskCardState({
+        task: task(AIRunStatus.Running),
+        presentation,
+        ...gates,
+        startRefusedReason: reason,
+      }).primaryAction,
+    ).toBeNull();
+  });
+
   test("a resolved exception still lets the user open an earlier task", () => {
     expect(
       state(task(AIRunStatus.Completed), { isResolved: true }).canViewTask,

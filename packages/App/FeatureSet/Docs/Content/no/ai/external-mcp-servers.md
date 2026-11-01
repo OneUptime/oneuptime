@@ -72,10 +72,10 @@ flowchart TB
 
 **I en retting** utarbeider OneUptime AI en retting via en server den kan bruke, når den tilbyr et verktøy som kan endre noe, etter rotårsaksanalysen når det finnes en:
 
-- **Spør før retting** – hver endring den ville gjort, registreres og sendes ingen steder. Hendelsens kort **Utbedring** lister dem i rekkefølge, hver med sin server, sitt verktøy og det den ville sendt. **Godkjenn og kjør** gjør nøyaktig de endringene, i den rekkefølgen, i ditt navn; godkjenning krever samme tillatelse som å starte en runbook. En endring som mislykkes, stopper de etter den.
+- **Spør før retting** – hver endring den ville gjort, registreres og sendes ingen steder. Trinnet **Utbedring** på hendelsens kort **OneUptime AI** lister dem i rekkefølge, hver med sin server, sitt verktøy og det den ville sendt. **Godkjenn og kjør** gjør nøyaktig de endringene, i den rekkefølgen, i ditt navn; godkjenning krever samme tillatelse som å starte en runbook. En endring som mislykkes, stopper de etter den.
 - **Rett uten å spørre** – OneUptime AI gjør endringene selv, hver registrert før den sendes. Det gjør den bare for en regel som nevner sine MCP-servere, når ingen annen samsvarende regel spør først, ingenting annet allerede retter hendelsen på egen hånd (en AI-agent på en klynge eller vert, eller en runbook), og regelen ikke har gjort det største antallet rettinger den kan gjøre på egen hånd i løpet av en time; ellers foreslås endringene. Uten en oppsatt regel, eller med en regel som ikke nevner noen MCP-server, foreslås hver endring.
 
-En retting gjør høyst 5 endringer. Deretter følger OneUptime med på hendelsens monitorer, som ved enhver retting. Ingenting angres automatisk: Et MCP-verktøy har ingen angre som OneUptime kan kjenne til, så en retting som ikke virket, overlates til en person, og kortet **Utbedring** viser hva hver server svarte.
+En retting gjør høyst 5 endringer. Deretter følger OneUptime med på hendelsens monitorer, som ved enhver retting. Ingenting angres automatisk: Et MCP-verktøy har ingen angre som OneUptime kan kjenne til, så en retting som ikke virket, overlates til en person, og trinnet **Utbedring** viser hva hver server svarte.
 
 For at OneUptime AI skal slutte å bruke en server, slår du av **La OneUptime AI bruke denne serveren** på siden dens. Den spør først: Serveren brukes ikke lenger i noen undersøkelse eller retting, og en foreslått retting via den kan ikke lenger godkjennes.
 
@@ -93,7 +93,7 @@ Når flere regler som undersøker, samsvarer, kan OneUptime AI bruke hver server
 - **Det en server sender tilbake, er data, aldri instruksjoner.** OneUptime AI leser beskrivelsene og svarene fra verktøyene som tekst utenfra: De endrer aldri en regel, en godkjenning eller det OneUptime AI kan gjøre.
 - **Adressen kontrolleres ved hver tilkobling.** OneUptime kobler aldri til sin egen eller en link-local-adresse. På OneUptime Cloud avviser den også private nettverksadresser: Bruk serverens offentlige adresse. En selvdriftet OneUptime når private adresser med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` er satt. Den følger ikke omdirigeringer.
 - **Grenser.** Et prosjekt har høyst 20 servere, og OneUptime leser høyst 200 verktøy på hver. Tilkoblingen tidsavbrytes etter 20 sekunder, listen over verktøy etter 30 og et verktøykall etter 60. Et svar større enn 2 MB avvises, og en kjøring gjør høyst 40 kall til MCP-servere.
-- **Hvert kall registreres.** Hvert kall er et trinn i kjøringen, vist i aktiviteten, og hver endring en retting gjør, står på kortet **Utbedring** med svaret fra serveren. Modellkallene bak dem finnes under **Prosjektinnstillinger → KI → AI-logger**.
+- **Hvert kall registreres.** Hvert kall er et trinn i kjøringen, vist i aktiviteten, og hver endring en retting gjør, står i trinnet **Utbedring** med svaret fra serveren. Modellkallene bak dem finnes under **Prosjektinnstillinger → KI → AI-logger**.
 
 ## Feilsøking
 

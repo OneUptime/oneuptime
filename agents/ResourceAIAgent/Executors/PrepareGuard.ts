@@ -182,6 +182,50 @@ function describeWriteSwitch(setting: string | null): string {
 }
 
 export default class PrepareGuard {
+  /*
+   * Why this agent would refuse a change (a command its policy reads as
+   * SafeWrite or RiskyWrite), or null: the write switch and the fixes
+   * switch, the protected targets' bound, then the policy's write scope
+   * (ONEUPTIME_AI_WRITE_TARGETS and the protected targets). Without the
+   * "Refused by" prefix: check() puts it on every change it refuses, and a
+   * cloud dry run reports it as why the change would be refused.
+   */
+  public static describeWriteRefusal(data: {
+    config: AgentConfig;
+    result: ResourceCommandPolicyResult;
+    // The configured protected targets and the executor's, merged.
+    protectedTargets: Array<string>;
+    policy: GuardPolicy;
+    resourceType: AiResourceType;
+  }): string | null {
+    const { config, result, protectedTargets, policy, resourceType } = data;
+    const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[resourceType];
+
+    if (!config.allowWrites) {
+      return config.writesOffByFixes
+        ? `"${result.displayCommand}" changes the ${info.displayName}, and AI fixes are off in this agent's configuration (${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.Disabled}). To let OneUptime AI apply fixes, set ${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval} (or ${AGENT_AI_FIXES_SETTING_VALUES.Automatic}, or ${AGENT_AI_FIXES_SETTING_VALUES.BypassApproval}) on the agent and restart it.`
+        : `"${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only (${describeWriteSwitch(
+            config.allowWritesSetting,
+          )}). To let OneUptime AI apply fixes, set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the agent and restart it.`;
+    }
+
+    if (protectedTargets.length > MAX_POSTURE_LIST_ENTRIES) {
+      return `it protects ${protectedTargets.length} targets, more than the ${MAX_POSTURE_LIST_ENTRIES} OneUptime accepts, so it runs no changes. Shorten ONEUPTIME_AI_PROTECTED_TARGETS.`;
+    }
+
+    try {
+      return policy.getWriteScopeRefusal({
+        result,
+        allowWrites: config.allowWrites,
+        writeTargets: config.writeTargets,
+        protectedTargets,
+        resourceType,
+      });
+    } catch {
+      return "its write scope could not be checked for this command, so it does not run.";
+    }
+  }
+
   public static check(input: GuardInput): GuardResult {
     const config: AgentConfig = input.config;
     const request: ResourceCommandRequest = input.request;
@@ -361,39 +405,16 @@ export default class PrepareGuard {
     );
 
     if (result.tier !== ResourceCommandTier.Read) {
-      if (!config.allowWrites) {
-        return {
-          refusal: config.writesOffByFixes
-            ? `${refused}: "${result.displayCommand}" changes the ${info.displayName}, and AI fixes are off in this agent's configuration (${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.Disabled}). To let OneUptime AI apply fixes, set ${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval} (or ${AGENT_AI_FIXES_SETTING_VALUES.Automatic}, or ${AGENT_AI_FIXES_SETTING_VALUES.BypassApproval}) on the agent and restart it.`
-            : `${refused}: "${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only (${describeWriteSwitch(
-                config.allowWritesSetting,
-              )}). To let OneUptime AI apply fixes, set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the agent and restart it.`,
-        };
-      }
+      const writeRefusal: string | null = PrepareGuard.describeWriteRefusal({
+        config,
+        result,
+        protectedTargets,
+        policy,
+        resourceType,
+      });
 
-      if (protectedTargets.length > MAX_POSTURE_LIST_ENTRIES) {
-        return {
-          refusal: `${refused}: it protects ${protectedTargets.length} targets, more than the ${MAX_POSTURE_LIST_ENTRIES} OneUptime accepts, so it runs no changes. Shorten ONEUPTIME_AI_PROTECTED_TARGETS.`,
-        };
-      }
-
-      let scopeRefusal: string | null;
-
-      try {
-        scopeRefusal = policy.getWriteScopeRefusal({
-          result,
-          allowWrites: config.allowWrites,
-          writeTargets: config.writeTargets,
-          protectedTargets,
-          resourceType,
-        });
-      } catch {
-        scopeRefusal =
-          "its write scope could not be checked for this command, so it does not run.";
-      }
-
-      if (scopeRefusal) {
-        return { refusal: `${refused}: ${scopeRefusal}` };
+      if (writeRefusal) {
+        return { refusal: `${refused}: ${writeRefusal}` };
       }
     }
 

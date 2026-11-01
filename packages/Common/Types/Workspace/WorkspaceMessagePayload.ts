@@ -33,6 +33,8 @@ export interface WorkspaceTextAreaBlock extends WorkspaceMessageBlock {
   initialValue?: string | undefined;
   description?: string | undefined;
   optional?: boolean | undefined;
+  // The most characters it takes: Slack counts them as they are typed.
+  maxLength?: number | undefined;
 }
 
 export interface WorkspaceTextBoxBlock extends WorkspaceMessageBlock {

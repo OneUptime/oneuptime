@@ -78,6 +78,27 @@ interface HostTemplateCase {
 
 const HOST_TEMPLATES: Array<HostTemplateCase> = [
   {
+    id: "host-stopped-reporting",
+    category: "Availability",
+    severity: "Critical",
+    /*
+     * The heartbeat: counted, unfiltered, so any memory state the scraper
+     * reports keeps it alive. The `< 0` criteria only fires on no data.
+     */
+    queries: [
+      {
+        metricName: "system.memory.usage",
+        metricAlias: "samples_received",
+        aggregation: MetricsAggregationType.Count,
+        attributes: {},
+      },
+    ],
+    metricAlias: "samples_received",
+    formula: null,
+    legendUnit: undefined,
+    threshold: 0,
+  },
+  {
     id: "host-high-cpu",
     category: "Resource",
     severity: "Warning",
@@ -237,7 +258,11 @@ describe("HostAlertTemplates", () => {
 
   test("getHostAlertTemplatesByCategory returns only that category and covers the catalog", () => {
     const all: Array<HostAlertTemplate> = getAllHostAlertTemplates();
-    const categories: Array<HostAlertTemplateCategory> = ["Resource", "Host"];
+    const categories: Array<HostAlertTemplateCategory> = [
+      "Availability",
+      "Resource",
+      "Host",
+    ];
 
     let total: number = 0;
     for (const category of categories) {
@@ -425,9 +450,18 @@ describe("HostAlertTemplates", () => {
         ),
       ).toBe(true);
 
-      // Host ceilings are all "> threshold" unhealthy / "<= threshold" healthy.
-      expect(offlineFilter.filterType).toBe(FilterType.GreaterThan);
-      expect(onlineFilter.filterType).toBe(FilterType.LessThanOrEqualTo);
+      /*
+       * Host ceilings are all "> threshold" unhealthy / "<= threshold"
+       * healthy - except the heartbeat, whose "< 0" on a count can only
+       * fire through its no-data policy.
+       */
+      if (tc.id === "host-stopped-reporting") {
+        expect(offlineFilter.filterType).toBe(FilterType.LessThan);
+        expect(onlineFilter.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+      } else {
+        expect(offlineFilter.filterType).toBe(FilterType.GreaterThan);
+        expect(onlineFilter.filterType).toBe(FilterType.LessThanOrEqualTo);
+      }
 
       expect(offline.data.createIncidents).toBe(true);
       expect(offline.data.createAlerts).toBe(true);

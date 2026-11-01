@@ -6,6 +6,9 @@ import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import CodeTaskAccess from "../Utils/AI/CodeTask/CodeTaskAccess";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus, { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
 import CodeFixTaskType, {
@@ -57,6 +60,10 @@ import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
+import {
+  applyAssignmentChange,
+  applyManualResolutionChange,
+} from "../../Utils/Exceptions/ExceptionIssueState";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -65,6 +72,13 @@ import Text from "../../Types/Text";
  * safety margin while covering all realistic projects.
  */
 export const EXCLUDED_FINGERPRINT_LIMIT: number = 5000;
+
+/*
+ * A person who may read an exception but not change its repository asks
+ * for a fix: refused in these words (createCodeFixRunForException).
+ */
+export const EXCEPTION_FIX_NOT_ALLOWED_MESSAGE: string =
+  "You can read this exception. Fixing it with AI works in its repository, and takes permission to edit that repository - ask a project admin for it.";
 
 export interface CreateCodeFixRunForExceptionParams {
   telemetryExceptionId: ObjectID;
@@ -170,6 +184,18 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * Resolving or reopening clears the Regressed mark, and a resolve keeps
+     * a release to wait for only when it names one (Resolve in next
+     * release). See applyManualResolutionChange.
+     */
+    applyManualResolutionChange(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    // One assignee: a person or a team. See applyAssignmentChange.
+    applyAssignmentChange(updateBy.data as unknown as Record<string, unknown>);
 
     updateBy.query = await this.addExceptionScope(
       updateBy.query,
@@ -601,6 +627,52 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whether a person may ask AI to fix an exception: they may ask AI to work
+   * in the repository the fix is queued on. With no repository (one that
+   * went away after it resolved), they need to be allowed to edit the
+   * project's repositories. Root and master admins may.
+   */
+  private async assertMayAskForFix(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    codeRepositoryId: ObjectID | null;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    let mayAsk: boolean = false;
+
+    if (data.codeRepositoryId) {
+      mayAsk = await CodeTaskAccess.canAskInRepository({
+        props: data.props,
+        projectId: data.projectId,
+        repositoryId: data.codeRepositoryId,
+      });
+    } else {
+      try {
+        ModelPermission.checkTableWritePermission(
+          CodeRepository,
+          data.props,
+          DatabaseRequestType.Update,
+        );
+        mayAsk = true;
+      } catch (error) {
+        if (
+          !(error instanceof NotAuthorizedException) &&
+          !(error instanceof PaymentRequiredException)
+        ) {
+          throw error;
+        }
+      }
+    }
+
+    if (!mayAsk) {
+      throw new NotAuthorizedException(EXCEPTION_FIX_NOT_ALLOWED_MESSAGE);
+    }
+  }
+
+  /*
    * "Fix with AI Agent": record the durable intent as a Queued CodeFix
    * AIRun (the unified run substrate — same enqueue semantics as the
    * investigation queue: attemptCount defaults to 0 and no events are
@@ -734,6 +806,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * Reading the exception is not enough. A fix run is AI working in the
+     * exception's repository - it spends the project's AI and opens a pull
+     * request there - so a person needs what asking AI to work in that
+     * repository takes everywhere else (CodeTaskAccess.canAskInRepository):
+     * permission to edit it. The automatic lanes run as root.
+     */
+    await this.assertMayAskForFix({
+      props,
+      projectId: telemetryException.projectId,
+      codeRepositoryId,
+    });
+
+    /*
      * The duplicate guards below are check-then-create: without
      * serialization, two triage completions for splintered variants of the
      * same root cause can both pass the guards and both create runs. A
@@ -816,7 +901,8 @@ export class Service extends ProjectReferencesService<Model> {
 
       /*
        * Created as root: AIRun rows are server-written only (empty create
-       * ACL); the user's access was already checked by the exception read.
+       * ACL); the person's access was checked above - the exception read
+       * and the repository they ask AI to work in (assertMayAskForFix).
        */
       createdRun = await AIRunService.create({
         data: run,

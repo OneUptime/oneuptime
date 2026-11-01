@@ -65,7 +65,7 @@ flowchart TB
 
 除非你變更設定，否則會建立以下四個連線：
 
-- 應用程式每天一次向 GitHub 的 API（`api.github.com`）詢問是否有更新的版本。要關閉它，請在 Helm Chart 中設定 `updateCheck.disabled: true`，或在 Docker Compose 的 `config.env` 中設定 `DISABLE_UPDATE_CHECK=true`。
+- 應用程式每天一次向 GitHub 的 API（`api.github.com`）詢問是否有更新的版本。它也會讀取 OneUptime 發布的安全性公告，以便在某則公告影響你執行的版本時通知你的主管理員（[更新與安全性檢查](/docs/self-hosted/update-checks)）。要關閉它，請在 Helm Chart 中設定 `updateCheck.disabled: true`，或在 Docker Compose 的 `config.env` 中設定 `DISABLE_UPDATE_CHECK=true`。
 - 應用程式每天一次把你的安裝位址與它執行的版本告知 `oneuptime.com`，以便 OneUptime 知道哪些安裝仍在執行有安全問題的版本。不會傳送任何關於你的使用者、專案或監控資料的內容。要關閉它，請在 Helm Chart 中設定 `instanceCheckIn.disabled: true`，或在 Docker Compose 的 `config.env` 中設定 `DISABLE_INSTANCE_CHECK_IN=true`。
 - 勾選「通知我有關安全修補程式與新版本」註冊時（此選項預設已勾選），會把此人的姓名與電子郵件、其填寫的公司與電話號碼，以及你的安裝位址與版本傳送到 `oneuptime.com`。在無法存取網際網路的網路中，請取消勾選。
 - 在 Kubernetes 上，探針在你叢集本身的 DNS 之後會改用公用解析器 `8.8.8.8` 與 `1.1.1.1`。將 `dnsConfig.nameservers` 設為 `[]`，即可讓所有查詢都留在你自己的 DNS 上。

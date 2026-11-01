@@ -64,6 +64,7 @@ flowchart TB
 - [云](/docs/telemetry/cloud-environments): 观测 ECS、Cloud Run、Azure Container Apps 和其他托管平台。
 - [AI 可观测性](/docs/telemetry/ai-llm-observability): 跟踪你的 AI 的对话，并在它回答得不好时收到通知。
 - [安全](/docs/telemetry/security-events): 收集安全事件和威胁情报。
+- [数据安全](/docs/data-security/index): 找出你的存储桶、数据库和遥测中的敏感数据，并修正其保存方式。
 - [真实用户监控](/docs/rum/index): 借助 Core Web Vitals 和会话回放，衡量真实用户的体验。
 - [仪表板](/docs/dashboards/index): 用你的指标、日志和监视器构建仪表板。
 - [资产清单](/docs/inventory/overview): 查看 OneUptime 所知道的每个服务、主机和设备。

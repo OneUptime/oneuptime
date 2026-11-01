@@ -754,6 +754,23 @@ describe("Storage Array docs", (): void => {
         const shape: TemplateShape = templateShape(template);
         const firesWhen: string = cells(templateRow(template) as string)[4]!;
 
+        /*
+         * Array Stopped Reporting compares a count below 0, which only its
+         * Trigger no-data policy can satisfy, so its row says so in words.
+         */
+        if (template.category === "Availability") {
+          expect(shape.fire.filterType).toBe(FilterType.LessThan);
+          expect(shape.fire.value).toBe(0);
+          expect(shape.recover.filterType).toBe(
+            FilterType.GreaterThanOrEqualTo,
+          );
+          expect(firesWhen.startsWith("No data for the whole window")).toBe(
+            true,
+          );
+          expect(firesWhen).toContain("recovers when data arrives again");
+          continue;
+        }
+
         expect({ template: template.id, firesWhen }).toEqual({
           template: template.id,
           firesWhen: expect.stringContaining(

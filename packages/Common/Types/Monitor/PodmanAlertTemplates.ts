@@ -3,7 +3,9 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
@@ -11,7 +13,11 @@ import MonitorStepPodmanMonitor from "./MonitorStepPodmanMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
-export type PodmanAlertTemplateCategory = "Container" | "Resource" | "Host";
+export type PodmanAlertTemplateCategory =
+  | "Availability"
+  | "Container"
+  | "Resource"
+  | "Host";
 
 export type PodmanAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -171,7 +177,127 @@ export function buildPodmanMonitorConfig(args: {
   };
 }
 
+/*
+ * Two queries over the SAME lifetime counter, differenced per one-minute
+ * bucket and summed over the window by the criteria: the counter's growth.
+ * The same house pattern, and the same limits, as
+ * DockerAlertTemplates.buildDockerDeltaMonitorConfig - read that comment
+ * before changing this one. In short: only growth between two samples of
+ * the same minute is seen (about half of it at the agent's 30 s interval),
+ * so it is a lower bound that cannot manufacture a breach, and it reads 0
+ * at a 60 s interval or slower.
+ */
+export function buildPodmanDeltaMonitorConfig(args: {
+  hostIdentifier: string;
+  metricName: string;
+  maxAlias: string;
+  minAlias: string;
+  resultAlias: string;
+  resultLegend: string;
+  rollingTime: RollingTime;
+  groupByAttributeKey: string;
+}): MonitorStepPodmanMonitor {
+  const buildQueryConfig: (
+    alias: string,
+    aggregationType: MetricsAggregationType,
+  ) => any = (alias: string, aggregationType: MetricsAggregationType): any => {
+    return {
+      metricAliasData: {
+        metricVariable: alias,
+        title: alias,
+        description: alias,
+        legend: alias,
+        legendUnit: undefined,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: args.metricName,
+          attributes: {},
+          aggegationType: aggregationType,
+          aggregateBy: {},
+        },
+        // Both halves group identically, or the formula's join finds nothing.
+        groupByAttributeKeys: [args.groupByAttributeKey],
+      },
+    };
+  };
+
+  return {
+    hostIdentifier: args.hostIdentifier,
+    containerFilters: {},
+    metricViewConfig: {
+      queryConfigs: [
+        buildQueryConfig(args.maxAlias, MetricsAggregationType.Max),
+        buildQueryConfig(args.minAlias, MetricsAggregationType.Min),
+      ],
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: args.resultAlias,
+            title: args.resultLegend,
+            description: args.resultLegend,
+            legend: args.resultLegend,
+            // A dimensionless count.
+            legendUnit: undefined,
+          },
+          metricFormulaData: {
+            metricFormula: `${args.maxAlias} - ${args.minAlias}`,
+          },
+        },
+      ],
+    },
+    rollingTime: args.rollingTime,
+  };
+}
+
 // --- Template Definitions ---
+
+const hostStoppedReportingTemplate: PodmanAlertTemplate = {
+  id: "podman-host-stopped-reporting",
+  name: "Host Stopped Reporting",
+  summary: "The Podman host sends no container metrics for 10 minutes.",
+  description:
+    "Alert when the Podman host sends no container metrics for ten minutes: the host is down, or the Podman agent stopped, lost its route to OneUptime or had its token revoked. A host with no other containers still reports, because the agent runs as a container itself and reports its own.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildPodmanMonitorStep({
+      podmanMonitor: buildPodmanMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        /*
+         * The heartbeat. docker_stats reports RUNNING containers only, but
+         * the agent itself runs as one (`oneuptime-podman-agent`,
+         * PodmanAgent/docker-compose.yml, also under its systemd unit,
+         * which runs `podman compose up`) on the socket it reads, and the
+         * receiver excludes no image - so its own container.memory.percent
+         * arrives every 30s for as long as the agent runs. Ungrouped and
+         * counted: only a window with no row from any container is the
+         * breach.
+         */
+        metricName: "container.memory.percent",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Podman host",
+        incidentTitle: `[Podman] Host Stopped Reporting - ${args.monitorName}`,
+        incidentDescription: `OneUptime has received no container metrics from this Podman host for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the host is up, whether the \`oneuptime-podman-agent\` container is running and what its logs say (\`podman logs oneuptime-podman-agent\`), whether the Podman socket it reads is still there, and whether the host can reach OneUptime with the agent's token. The incident resolves on its own once metrics arrive again.`,
+        criteriaName: "Host Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the Podman host sends no container metrics for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 const highCpuTemplate: PodmanAlertTemplate = {
   id: "podman-high-cpu",
@@ -281,36 +407,40 @@ const highMemoryTemplate: PodmanAlertTemplate = {
   },
 };
 
+/*
+ * The id stays "podman-restart-loop": it is the stable key the
+ * recommendation catalog and the already-created-monitor diff match on.
+ */
 const containerRestartLoopTemplate: PodmanAlertTemplate = {
   id: "podman-restart-loop",
-  name: "High Container Restart Count",
-  summary: "A container has restarted more than 5 times.",
+  name: "Container Restart Loop",
+  summary: "A container restarts more than 3 times in 15 minutes.",
   description:
-    "Alert when a container's restart count passes 5. The count is a running total kept by the container engine, not a count of restarts inside the monitoring window. One alert per container.",
+    "Alert when a container's restart count climbs by more than 3 within fifteen minutes, indicating a crash loop. The count only grows between two samples of the same minute, and the agent samples running containers only, so a container that exits the moment it starts is rarely seen at all: Container Restarted (Low Uptime) catches every restart the agent does see. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
     const metricAlias: string = "container_restarts";
 
     return buildPodmanMonitorStep({
-      podmanMonitor: buildPodmanMonitorConfig({
+      /*
+       * NOT the restart count itself. container.restarts is the engine's
+       * RestartCount for the container - a lifetime total. Thresholding it
+       * ("> 5") fired on a container's history, and could never recover:
+       * a counter that only grows never comes back under its threshold, so
+       * the alert stayed open until the container was recreated. Its
+       * GROWTH in the window is the loop signal; the same delta, window
+       * and threshold as Docker's docker-restart-loop.
+       */
+      podmanMonitor: buildPodmanDeltaMonitorConfig({
         hostIdentifier: args.hostIdentifier,
         metricName: "container.restarts",
-        metricAlias,
-        rollingTime: RollingTime.Past5Minutes,
-        /*
-         * container.restarts is the engine's RestartCount for the container
-         * (contrib docker_stats receiver, enabled in
-         * PodmanAgent/otel-collector-config.yaml) — a monotonic running
-         * total, NOT a per-window count. Nothing in the alerting path turns
-         * a cumulative counter into a delta: ingest stores the raw value and
-         * records temporality/monotonicity only as catalog metadata for the
-         * dashboard's rate-view hint, and the worker merely buckets values
-         * per minute before aggregating. So Max over this window is simply
-         * "the current running total" — which is what the copy below says,
-         * and what it must keep saying.
-         */
-        aggregationType: MetricsAggregationType.Max,
+        maxAlias: "container_restarts_max",
+        minAlias: "container_restarts_min",
+        resultAlias: metricAlias,
+        resultLegend: "Container Restarts (in window)",
+        // Fifteen minutes, for the reasons docker-restart-loop gives.
+        rollingTime: RollingTime.Past15Minutes,
         groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
@@ -320,18 +450,25 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        value: 5,
-        incidentTitle: `[Podman] Container Restart Count Above 5 - ${args.monitorName}`,
-        incidentDescription: `A Podman container has restarted more than 5 times since the container engine last reset its restart count. That count is a running total, so this is NOT five restarts in the last five minutes — check the container's exit code and logs to see whether it is crash-looping right now. The count, and therefore this alert, clears when the container is recreated. The affected container is named in the resources affected on this alert.`,
-        criteriaName: "Restart Count - Restarts > 5",
+        value: 3,
+        /*
+         * Sum, not the sustained AllValues default: each sample is ONE
+         * MINUTE'S restart increment, and the window total is the count.
+         */
+        metricAggregationType: EvaluateOverTimeType.Sum,
+        incidentTitle: `[Podman] Container Restart Loop Detected - ${args.monitorName}`,
+        incidentDescription: `A Podman container restarted more than 3 times in the last fifteen minutes — it is crash-looping, not recovering from a one-off failure. The affected container is named in the resources affected on this alert; read its logs and its restart policy. The alert clears once the container stops restarting.`,
+        criteriaName: "Restart Loop - Restarts > 3 in 15 min",
         criteriaDescription:
-          "Triggers when a container's running restart total exceeds 5. The total is cumulative rather than per-window, so this criteria stays met until the container is recreated.",
+          "Triggers when a container's restart counter increases by more than 3 across the monitoring window. The growth is counted between two samples of the same minute, so it is a lower bound.",
       }),
       onlineCriteriaInstance: buildPodmanOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 5,
+        value: 3,
+        // Must match the unhealthy side: a sum of per-minute growth.
+        metricAggregationType: EvaluateOverTimeType.Sum,
       }),
     });
   },
@@ -364,9 +501,9 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
 const highProcessCountTemplate: PodmanAlertTemplate = {
   id: "podman-high-pids",
   name: "High Container Process Count",
-  summary: "A container runs more than 500 processes.",
+  summary: "A container runs more than 2000 processes and threads.",
   description:
-    "Alert when a container has an unusually high number of processes, which may indicate a fork bomb or resource leak. One alert per container.",
+    "Alert when a container's task count (processes PLUS threads) stays above 2000, which may indicate a fork bomb, a thread leak, or an unbounded worker pool. One alert per container.",
   category: "Container",
   severity: "Warning",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
@@ -387,19 +524,26 @@ const highProcessCountTemplate: PodmanAlertTemplate = {
         alertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
         metricAlias,
+        /*
+         * 2000, as Docker's docker-high-pids. container.pids.count reads
+         * the cgroup pids controller, which counts TASKS - threads as well
+         * as processes - so 500 was ordinary for a JVM, an nginx with a
+         * large worker pool or a Go binary, and the alert called a
+         * container working as designed a fork bomb.
+         */
         filterType: FilterType.GreaterThan,
-        value: 500,
-        incidentTitle: `[Podman] High Process Count (>500) - ${args.monitorName}`,
-        incidentDescription: `A Podman container has more than 500 processes. This may indicate a fork bomb, a thread or connection leak, or a misconfigured application. The affected container is named in the resources affected on this alert; inspect it for runaway processes.`,
-        criteriaName: "High PIDs - Count > 500",
+        value: 2000,
+        incidentTitle: `[Podman] High Process/Thread Count (>2000) - ${args.monitorName}`,
+        incidentDescription: `A Podman container held more than 2000 tasks for the whole evaluation window. container.pids.count reads the cgroup pids controller, which counts TASKS — threads as well as processes — so a JVM, an nginx with a large worker pool, or a Go binary sits far above its process count. Sustained above 2000 usually means a fork bomb, a thread leak, or a pool sized without a ceiling. The affected container is named in the resources affected on this alert; inspect it for runaway processes and threads.`,
+        criteriaName: "High PIDs - Task Count > 2000",
         criteriaDescription:
-          "Triggers when container process count exceeds 500.",
+          "Triggers when a container's task (process + thread) count stays above 2000 across the monitoring window.",
       }),
       onlineCriteriaInstance: buildPodmanOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 500,
+        value: 2000,
       }),
     });
   },
@@ -473,6 +617,7 @@ const containerUptimeTemplate: PodmanAlertTemplate = {
 
 export function getAllPodmanAlertTemplates(): Array<PodmanAlertTemplate> {
   return [
+    hostStoppedReportingTemplate,
     highCpuTemplate,
     highMemoryTemplate,
     containerRestartLoopTemplate,
@@ -497,4 +642,13 @@ export function getPodmanAlertTemplateById(
   return getAllPodmanAlertTemplates().find((template: PodmanAlertTemplate) => {
     return template.id === id;
   });
+}
+
+/*
+ * The template a NEW Podman monitor starts on: the host going silent. It is
+ * the one template that still speaks when every other one has stopped being
+ * evaluated, and it has no threshold to tune.
+ */
+export function getPodmanDefaultAlertTemplateId(): string {
+  return hostStoppedReportingTemplate.id;
 }

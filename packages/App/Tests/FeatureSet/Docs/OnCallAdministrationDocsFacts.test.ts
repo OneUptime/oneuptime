@@ -1972,8 +1972,16 @@ describe("readiness", () => {
     expect(READINESS_SERVICE).toContain(
       '  Direct = "Direct",\n  Team = "Team",\n  Schedule = "Schedule",\n  Override = "Override",',
     );
+    /*
+     * A team that pages them is named in Reached via (there is no Teams
+     * column of its own); every other source keeps its word.
+     */
+    expect(READINESS_PAGE).toContain(
+      'if (source === "Team" && row.readiness.teams.length > 0) {',
+    );
+    expect(READINESS_PAGE).toContain("text: team.name,");
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "| **Reached via** | How the policies reach them: `Direct`, `Team`, `Schedule` or `Override`. |",
+      "| **Reached via** | How the policies reach them: each team that pages them through an escalation rule, by its name, or **Direct**, **Schedule** or **Override**. |",
     );
   });
 
@@ -1985,13 +1993,13 @@ describe("readiness", () => {
     for (const column of [
       "Responder",
       "Status",
-      "Teams",
       "Channels",
       "Coverage",
       "Reached via",
     ]) {
       expect(columns).toContain(`title: "${column}"`);
     }
+    expect(columns).not.toContain('title: "Teams"');
 
     expect(
       firstColumn(
@@ -2000,7 +2008,6 @@ describe("readiness", () => {
     ).toEqual([
       "**Responder**",
       "**Status**",
-      "**Teams**",
       "**Channels**",
       "**Coverage**",
       "**Reached via**",

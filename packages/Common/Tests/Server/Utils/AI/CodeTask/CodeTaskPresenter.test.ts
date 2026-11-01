@@ -33,6 +33,7 @@ import {
 } from "../../../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
@@ -958,6 +959,56 @@ describe("CodeTaskOrigin", () => {
       label: "#12",
       url: "https://github.com/acme/api/issues/12",
     });
+  });
+
+  /*
+   * A production review of a GitLab merge request is "!12", of a Forgejo
+   * or Gitea pull request "#12" - linked to its page when the task knows it.
+   */
+  test("a production review names the merge or pull request it is of, on its host, linked", () => {
+    const review: (run: AIRun) => void = (run: AIRun): void => {
+      run.codeFixTaskType = CodeFixTaskType.GitHubPullRequestProductionReview;
+    };
+
+    expect(
+      originOf(review, {
+        codeHostPullRequest: {
+          codeRepositoryId: REPOSITORY_ID.toString(),
+          provider: CodeRepositoryType.GitLab,
+          pullRequestNumber: 12,
+          pullRequestUrl:
+            "https://gitlab.example.com/acme/api/-/merge_requests/12",
+        },
+      }),
+    ).toEqual({
+      type: CodeTaskOriginType.GitLabMergeRequest,
+      label: "!12",
+      url: "https://gitlab.example.com/acme/api/-/merge_requests/12",
+    });
+
+    expect(
+      originOf(review, {
+        codeHostPullRequest: {
+          codeRepositoryId: REPOSITORY_ID.toString(),
+          provider: CodeRepositoryType.Forgejo,
+          pullRequestNumber: 7,
+        },
+      }),
+    ).toEqual({
+      type: CodeTaskOriginType.CodeHostPullRequest,
+      label: "#7",
+    });
+
+    // A context that names no whole pull request is no origin of this kind.
+    expect(
+      originOf(review, {
+        codeHostPullRequest: {
+          codeRepositoryId: REPOSITORY_ID.toString(),
+          provider: CodeRepositoryType.GitHub,
+          pullRequestNumber: 7,
+        },
+      }).type,
+    ).toBe(CodeTaskOriginType.Unknown);
   });
 
   test("an incident it was started from is named by number and title when readable", () => {

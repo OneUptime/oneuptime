@@ -58,8 +58,13 @@ flowchart LR
 | --- | --- |
 | SSH 登录 | 服务器认证日志、journal 或 syslog 中失败和成功的 SSH 登录 |
 | sudo | 以其他用户身份运行的命令、错误的 sudo 密码，以及不允许使用 sudo 的人 |
-| Kubernetes 审计日志 | 对集群的更改、在 Pod 中打开的 shell、被读取的 secret 和被拒绝的请求 |
+| Windows 事件 | 来自 Windows、Sysmon 和 Microsoft Defender 的登录、新进程、被更改的账户和组、安装的服务和被清除的日志 |
 | AWS CloudTrail | 控制台登录、在您的 AWS 账户中所做的更改，以及被 AWS 拒绝的调用 |
+| Google Cloud 审计日志 | 在您的 Google Cloud 项目中所做的更改、被 Google 拒绝的调用，以及与 Google Cloud 共享的 Google Workspace 登录 |
+| Azure 活动和 Entra ID 日志 | 在您的 Azure 订阅中所做的更改、Defender for Cloud 警报，以及 Microsoft Entra ID 的登录和目录更改 |
+| CEF | 发送 Common Event Format 的防火墙、IDS、WAF 和其他安全产品产生的威胁、被阻止的连接和登录 |
+| LEEF | 来自发送 Log Event Extended Format 的产品的同类内容，许多产品为 IBM QRadar 发送这种格式 |
+| Kubernetes 审计日志 | 对集群的更改、在 Pod 中打开的 shell、被读取的 secret 和被拒绝的请求 |
 | Web 攻击 | Web 服务器访问日志中尝试 SQL 注入、路径遍历或 Log4Shell 的请求 |
 
 您的日志保持原样。只有对安全重要的行才会变成事件：绝不会是 Web 服务器返回的每个页面，也不会是对 API 的每次读取。
@@ -83,7 +88,7 @@ flowchart LR
 :::
 
 :::details 我的日志没有产生安全事件
-请确认 **在日志中查找安全事件** 已开启，并且 **你的日志** 显示了上次检查的时间。只有上表中的那几类行才会变成事件：不发送 SSH、sudo、审计、CloudTrail 或访问日志的服务器，没有可以发现的内容。
+请确认 **在日志中查找安全事件** 已开启，并且 **你的日志** 显示了上次检查的时间。只有上表中的那几类行才会变成事件：不发送 SSH、sudo、Windows、审计、CEF、LEEF 或访问日志的服务器，没有可以发现的内容。把它的一行粘贴到 **你的日志** 上的 **检查一行日志** 中，即可查看 OneUptime 能否读取它。
 :::
 
 :::details 概览显示最后一个安全事件是几天前到达的

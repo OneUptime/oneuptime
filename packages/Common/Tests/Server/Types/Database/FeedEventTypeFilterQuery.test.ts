@@ -10,9 +10,18 @@ import AlertFeed, {
 import CephClusterFeed, {
   CephClusterFeedEventType,
 } from "../../../../Models/DatabaseModels/CephClusterFeed";
+import CloudAccountFeed, {
+  CloudAccountFeedEventType,
+} from "../../../../Models/DatabaseModels/CloudAccountFeed";
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../../Models/DatabaseModels/CloudResourceFeed";
+import DataSecurityIssueFeed, {
+  DataSecurityIssueFeedEventType,
+} from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
+import DataStoreFeed, {
+  DataStoreFeedEventType,
+} from "../../../../Models/DatabaseModels/DataStoreFeed";
 import DatabaseServerFeed, {
   DatabaseServerFeedEventType,
 } from "../../../../Models/DatabaseModels/DatabaseServerFeed";
@@ -185,12 +194,36 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypeColumn: "cephClusterFeedEventType",
   },
   {
+    file: "CloudAccountFeed",
+    enumName: "CloudAccountFeedEventType",
+    modelType: CloudAccountFeed,
+    eventTypes: Object.values(CloudAccountFeedEventType),
+    resourceIdColumn: "cloudAccountId",
+    eventTypeColumn: "cloudAccountFeedEventType",
+  },
+  {
     file: "CloudResourceFeed",
     enumName: "CloudResourceFeedEventType",
     modelType: CloudResourceFeed,
     eventTypes: Object.values(CloudResourceFeedEventType),
     resourceIdColumn: "cloudResourceId",
     eventTypeColumn: "cloudResourceFeedEventType",
+  },
+  {
+    file: "DataSecurityIssueFeed",
+    enumName: "DataSecurityIssueFeedEventType",
+    modelType: DataSecurityIssueFeed,
+    eventTypes: Object.values(DataSecurityIssueFeedEventType),
+    resourceIdColumn: "dataSecurityIssueId",
+    eventTypeColumn: "dataSecurityIssueFeedEventType",
+  },
+  {
+    file: "DataStoreFeed",
+    enumName: "DataStoreFeedEventType",
+    modelType: DataStoreFeed,
+    eventTypes: Object.values(DataStoreFeedEventType),
+    resourceIdColumn: "dataStoreId",
+    eventTypeColumn: "dataStoreFeedEventType",
   },
   {
     file: "DatabaseServerFeed",

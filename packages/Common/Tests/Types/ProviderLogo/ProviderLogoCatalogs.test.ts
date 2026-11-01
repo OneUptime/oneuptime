@@ -277,6 +277,10 @@ describe("Security Events", () => {
         [SecurityEventConnectorProvider.AwsSecurityHub]:
           ProviderLogo.AwsSecurityHub,
         [SecurityEventConnectorProvider.OktaSystemLog]: ProviderLogo.Okta,
+        [SecurityEventConnectorProvider.MicrosoftEntraId]:
+          ProviderLogo.MicrosoftEntraId,
+        [SecurityEventConnectorProvider.GoogleWorkspace]:
+          ProviderLogo.GoogleWorkspace,
         [SecurityEventConnectorProvider.GoogleSecOps]:
           ProviderLogo.GoogleSecurityOperations,
       },

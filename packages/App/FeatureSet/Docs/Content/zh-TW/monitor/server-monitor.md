@@ -99,7 +99,7 @@ winget install --id OneUptime.InfrastructureAgent --exact --scope machine
 若要用 Intune、Configuration Manager 或群組原則部署代理程式，請使用同一版本中的 `oneuptime-infrastructure-agent-amd64.msi`（或 `oneuptime-infrastructure-agent-arm64.msi`）。它會把代理程式安裝到 `C:\Program Files\OneUptimeInfrastructureAgent`，較新的 MSI 會就地升級代理程式並重新啟動它。較早版本的 MSI 無法升級：請先將其解除安裝一次。
 :::
 
-每種方式都會安裝適用於你的作業系統和處理器（x86-64 或 ARM64）的最新版本。apt 和 yum 套件庫提供每個 GitHub 版本附帶的 `.deb` 和 `.rpm` 套件，並以 `https://packages.oneuptime.com/gpg.key` 的金鑰簽署，套件會把二進位檔放到 `/usr/bin`。安裝指令碼會把 `oneuptime-infrastructure-agent` 二進位檔放到 `$HOME/bin`。在自行託管的部署中，指令碼由你自己的 OneUptime URL 提供。
+每種方式都會安裝適用於你的作業系統和處理器（x86-64 或 ARM64）的最新版本。apt 和 yum 套件庫提供每個 GitHub 版本附帶的 `.deb` 和 `.rpm` 套件，並以 `https://packages.oneuptime.com/gpg.key` 的金鑰簽署，套件會把二進位檔放到 `/usr/bin`。以 `sudo` 執行時，安裝指令碼會把 `oneuptime-infrastructure-agent` 二進位檔放到 `/usr/local/bin`（不使用 `sudo` 時放到 `$HOME/bin`），並以 `curl` 或 `wget` 下載。在自行託管的部署中，指令碼由你自己的 OneUptime URL 提供。
 
 ### 將它連接到監測器
 
@@ -143,7 +143,7 @@ oneuptime-infrastructure-agent start
 ```
 :::
 
-啟動時，代理程式會向 OneUptime 驗證密鑰，並立即傳送第一份報告。
+啟動時，代理程式會向 OneUptime 驗證密鑰，並立即傳送第一份報告。無法連線到 OneUptime 時，它會持續重試：5 秒後再試，之後每次間隔加倍，最長每 5 分鐘一次。
 
 ### 確認它有在回報
 
@@ -165,7 +165,7 @@ oneuptime-infrastructure-agent start
 | `uninstall` | 移除服務並刪除代理程式的設定檔。 |
 | `help` | 列出指令。 |
 
-在 Linux 和 macOS 上以 `sudo` 執行，在 Windows 上從系統管理員身分的 **命令提示字元** 執行。若要變更已設定代理程式的密鑰、URL 或 Proxy，請先執行 `stop` 和 `uninstall`，再重新執行 `configure` 和 `start`。
+在 Linux 和 macOS 上以 `sudo` 執行，在 Windows 上從系統管理員身分的 **命令提示字元** 執行。若要變更已設定代理程式的密鑰、URL 或 Proxy，請先執行 `stop` 和 `uninstall`，再重新執行 `configure` 和 `start`。每個命令都會輸出它做了什麼或失敗的原因，並把同樣的內容寫入代理程式的日誌。如果服務因故障停止，服務管理員會重新啟動它；在 Linux 和 Windows 上會在兩分鐘後重新啟動。由舊版代理程式的 `configure` 設定的 Windows 服務，要在你重新執行 `uninstall` 和 `configure` 之後才會自動重新啟動。
 
 ### 檔案
 
@@ -199,15 +199,15 @@ oneuptime-infrastructure-agent start
 
 | 方面 | 回報內容 |
 | --- | --- |
-| CPU | 使用率（%）、核心數、每個核心的使用率，以及在 user、system、idle、I/O 等待、steal、nice、IRQ 和軟體 IRQ 中花費的時間 |
+| CPU | 使用率（%）、核心數、每個核心的使用率，以及在 user、system、idle、I/O 等待、steal、nice、IRQ 和軟體 IRQ 中花費的時間（自上一份報告以來） |
 | 記憶體 | 總記憶體、已用、可用與空閒記憶體，緩衝區和快取，使用率（%），以及置換空間的總量、已用、空閒和使用率（%） |
-| 磁碟 | 每個已掛接磁碟的掛接路徑、裝置、檔案系統、總空間、已用空間和可用空間、使用率（%）、讀寫的位元組數和操作數，以及 I/O 時間 |
+| 磁碟 | 每個已掛接磁碟（唯讀映像（snap、ISO）和 `/dev` 除外）的掛接路徑、裝置、檔案系統、總空間、已用空間和可用空間、依 `df` 的算法計算的使用率（%）、讀寫的位元組數和操作數，以及 I/O 時間 |
 | 負載 | 1 分鐘、5 分鐘和 15 分鐘的平均負載 |
 | 網路 | 每個介面傳送和接收的位元組數與封包數、進出方向的錯誤和丟棄；以及已建立和正在監聽的連線 |
 | 主機 | 作業系統、平台和版本、核心版本和架構、運行時間、開機時間、虛擬化和處理程序數 |
-| 處理程序 | 每個正在執行的處理程序：名稱、PID、指令、CPU（%）、記憶體、狀態、執行緒、使用者和開始時間 |
+| 處理程序 | 每個正在執行的處理程序：名稱、PID、指令、CPU（%）、記憶體、狀態、執行緒、使用者和開始時間；無法讀取命令列的處理程序（例如受保護的 Windows 處理程序）不附指令 |
 
-作業系統不提供的值會被省略。監測器的 **指標** 分頁會繪製可用性、CPU、記憶體、磁碟使用量和磁碟 I/O、平均負載、置換空間、網路流量和錯誤、連線、運行時間以及處理程序數的圖表。
+作業系統不提供的值會被省略，針對報告中沒有的值的條件不會成立：缺少的值不等於 0。監測器的 **指標** 分頁會繪製可用性、CPU、記憶體、磁碟使用量和磁碟 I/O、平均負載、置換空間、網路流量和錯誤、連線、運行時間以及處理程序數的圖表。
 
 ## 監控條件
 
@@ -228,7 +228,7 @@ oneuptime-infrastructure-agent start
 | Server Process Command | 是否有指令列與此完全相同的處理程序正在執行（不區分大小寫） | Is Executing, Is Not Executing |
 | Server Process PID | 是否有此 PID 的處理程序正在執行 | Is Executing, Is Not Executing |
 
-**磁碟路徑** 接受掛接點或裝置，例如 `/`、`/mnt/data`、`C:\` 或 `/dev/sda1`；留白時為 `/`。輸入 `*` 可檢查代理程式回報的所有磁碟：每個超過閾值的磁碟都會有自己的警示，因此第二個磁碟快滿時，不會被第一個磁碟尚未解決的警示掩蓋。
+**磁碟路徑** 接受掛接點或裝置，例如 `/`、`/mnt/data`、`C:\` 或 `/dev/sda1`；留白時為 `/`。輸入 `*` 可檢查代理程式回報的所有磁碟：每個超過閾值的磁碟都會有自己的警示，因此第二個磁碟快滿時，不會被第一個磁碟尚未解決的警示掩蓋。大小寫以及結尾的 `/` 或 `\` 都不影響比對，裝置代表從該裝置掛接的磁碟。沒有指向代理程式所回報任何磁碟的路徑不會相符。代理程式無法讀取伺服器的處理程序時，報告中沒有處理程序清單，任何處理程序篩選條件都不會相符，無論它檢查處理程序正在執行還是未在執行。
 
 ### 依時間區段評估
 
@@ -262,16 +262,16 @@ oneuptime-infrastructure-agent start
 
 :::details 代理程式沒有回報
 - 檢查服務是否正在執行：`sudo oneuptime-infrastructure-agent status`。
-- 查看它的日誌：`sudo oneuptime-infrastructure-agent logs -n 50`。出現 `Metrics successfully pushed to OneUptime server` 這一行，表示報告有送達。
-- 代理程式在啟動時會驗證密鑰，如果 OneUptime 拒絕，就會記錄 `Secret key is invalid` 並結束。請把密鑰與監測器 **設定** 頁面中 **重設伺服器監測器密鑰** 下的密鑰比對。
+- 查看它的日誌：`sudo oneuptime-infrastructure-agent logs -n 50`。出現 `Metrics successfully pushed to OneUptime server` 這一行，只表示 OneUptime 收到了報告，不表示它接受了報告：OneUptime 會在檢查密鑰之前就回應。監測器的 **指標** 分頁開始繪製伺服器的圖表，才表示報告已被接受。
+- 代理程式在啟動時會驗證密鑰，如果 OneUptime 拒絕，就會記錄 `Secret key is invalid` 並結束。請把密鑰與監測器 **設定** 頁面中 **重設伺服器監測器密鑰** 下的密鑰比對。無法連線到 OneUptime 時，代理程式會記錄 `The secret key could not be verified with OneUptime yet` 並重試。
 - 確認伺服器能透過 HTTPS 連到你的 OneUptime URL，而且沒有防火牆阻擋對外連線。
 :::
 
 :::details `sudo` 顯示找不到指令
-套件會把代理程式放到系統路徑中，所以只有使用安裝指令碼時才會發生這種情況。安裝指令碼會把二進位檔放到執行指令碼的使用者的 `$HOME/bin`，並輸出所用的目錄。請以完整路徑執行代理程式，例如 `sudo /root/bin/oneuptime-infrastructure-agent configure ...`。若要改為安裝到系統路徑中的目錄，請傳入 `-b` 給指令碼：
+套件會把代理程式放到 `/usr/bin`，它在所有路徑中。以 `sudo` 執行時，安裝指令碼會把代理程式放到 `/usr/local/bin`，而 RHEL 等部分系統不會把它納入 sudo 的路徑：在這些系統上，指令碼會輸出含代理程式完整路徑的命令，例如 `sudo /usr/local/bin/oneuptime-infrastructure-agent configure ...`。以前，指令碼會把代理程式放到 `$HOME/bin`，在 `sudo` 下即 `/root/bin`：請以這個完整路徑執行當時安裝的代理程式，或重新安裝。若要改為安裝到系統路徑中的目錄，請傳入 `-b` 給指令碼：
 
 ```bash
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/bin
 ```
 :::
 

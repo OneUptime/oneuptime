@@ -205,13 +205,13 @@ import {
 } from "../../Utils/SpanStatusPresentation";
 import {
   DEFAULT_TRACE_SPAN_TYPE,
-  TRACE_SPAN_TYPE_HELP,
   TRACE_SPAN_TYPE_OPTIONS,
   TraceSpanType,
   TraceSpanTypeOption,
   buildTraceSpanTypeFacetValues,
   buildTraceSpanTypeUrlParams,
   getTraceSpanTypeChartTitle,
+  getTraceSpanTypeDescriptions,
   getTraceSpanTypeItemLabel,
   getTraceSpanTypeLabel,
   getTraceSpanTypeQuery,
@@ -2495,8 +2495,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       /*
        * Span Type: a choice of one - Entry spans (the default), Root spans,
        * All spans - drawn as radio buttons, each with the exact count of
-       * such spans in the window, and one line saying what each is.
-       * Choosing one drives `spanType`, not a chip.
+       * such spans in the window. What each is, in one sentence, is behind
+       * the (i) beside the title and on each option's own hover, never a
+       * paragraph above the options. Choosing one drives `spanType`, not a
+       * chip.
        */
       {
         key: SPAN_TYPE_FACET_KEY,
@@ -2508,8 +2510,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             },
           ),
         ),
+        valueDescriptionMap: getTraceSpanTypeDescriptions(),
         chosenValue: spanType,
-        description: TRACE_SPAN_TYPE_HELP,
         priority: 6.5,
       },
       /*

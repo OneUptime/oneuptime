@@ -58,8 +58,13 @@ La carte **Vos journaux**, en haut de **Connexions**, ne demande aucune installa
 | --- | --- |
 | Connexions SSH | Les connexions SSH échouées et réussies, tirées du journal d'authentification, du journal système ou du syslog d'un serveur |
 | sudo | Les commandes exécutées en tant qu'un autre utilisateur, les mauvais mots de passe sudo et les personnes qui n'ont pas le droit d'utiliser sudo |
-| Journaux d'audit Kubernetes | Les modifications du cluster, les shells ouverts dans des pods, les secrets lus et les requêtes refusées |
+| Événements Windows | Les connexions, les nouveaux processus, les comptes et groupes modifiés, les services installés et les journaux effacés, de Windows, Sysmon et Microsoft Defender |
 | AWS CloudTrail | Les connexions à la console, les modifications faites dans vos comptes AWS et les appels refusés par AWS |
+| Journaux d'audit Google Cloud | Les modifications faites dans vos projets Google Cloud, les appels refusés par Google, et les connexions Google Workspace partagées avec Google Cloud |
+| Journaux d'activité Azure et d'Entra ID | Les modifications faites dans vos abonnements Azure, les alertes de Defender for Cloud, et les connexions et modifications d'annuaire de Microsoft Entra ID |
+| CEF | Les menaces, les connexions bloquées et les authentifications des pare-feu, IDS, WAF et autres produits de sécurité qui envoient le Common Event Format |
+| LEEF | La même chose depuis les produits qui envoient le Log Event Extended Format, comme beaucoup le font pour IBM QRadar |
+| Journaux d'audit Kubernetes | Les modifications du cluster, les shells ouverts dans des pods, les secrets lus et les requêtes refusées |
 | Attaques web | Les requêtes du journal d'accès d'un serveur web qui tentent une injection SQL, une traversée de répertoires ou Log4Shell |
 
 Vos journaux restent tels quels. Seules les lignes qui comptent pour la sécurité deviennent des événements : jamais chaque page servie par un serveur web, ni chaque lecture d'une API.
@@ -83,7 +88,7 @@ Le dossier s'ouvre en général avant que le bouton ne réponde ; quand la règl
 :::
 
 :::details Aucun événement de sécurité ne vient de mes journaux
-Vérifiez que **Trouver des événements de sécurité dans vos journaux** est activé et que la carte **Vos journaux** indique quand la dernière vérification a eu lieu. Seuls les types de lignes du tableau ci-dessus deviennent des événements : un serveur qui n'envoie ni journaux SSH, sudo, d'audit, CloudTrail ou d'accès n'a rien à trouver.
+Vérifiez que **Trouver des événements de sécurité dans vos journaux** est activé et que la carte **Vos journaux** indique quand la dernière vérification a eu lieu. Seuls les types de lignes du tableau ci-dessus deviennent des événements : un serveur qui n'envoie ni journaux SSH, sudo, Windows, d'audit, CEF, LEEF ou d'accès n'a rien à trouver. Collez l'une de ses lignes dans **Vérifier une ligne de journal**, sur **Vos journaux**, pour voir si OneUptime la lit.
 :::
 
 :::details Vue d'ensemble indique que le dernier événement de sécurité date de plusieurs jours

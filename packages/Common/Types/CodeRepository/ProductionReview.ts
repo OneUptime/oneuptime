@@ -23,6 +23,8 @@
  * Pure, with no server or React imports.
  */
 
+import { LlmProviderActivity } from "../AI/LlmProviderChoice";
+
 /*
  * What a pull request's comment shows, a repository's choice
  * (CodeRepository.productionReviewPullRequestContent). Unset is Review.
@@ -257,12 +259,30 @@ export interface ProductionReviewReport {
   // What OneUptime AI says to watch; empty without an AI read.
   points: Array<ProductionReviewPointJSON>;
   aiNote?: ProductionReviewAiNote | undefined;
+  /*
+   * The LLM provider OneUptime AI read the review with, when the
+   * repository picks one for its production reviews
+   * (CodeRepository.productionReviewLlmProviderId): the pick, or the
+   * provider it fell back to and why the pick could not be used - for the
+   * review's page in Code; the pull request's comment never names it.
+   * Unset when the repository picks none (the project's default provider,
+   * else the global one, read it, as every review's did before a
+   * repository could pick) and when no read was made.
+   */
+  llmProvider?: LlmProviderActivity | undefined;
   // The parts that could not be read this time.
   unreadSections: Array<ProductionReviewSection>;
   // What the pull request's comment shows.
   posting: ProductionReviewPosting;
   isPublicRepository?: boolean | undefined;
   commentUrl?: string | undefined;
+  /*
+   * The pull request's host would not let the access token comment on it
+   * (GitLab, Forgejo, Gitea: a Forgejo or Gitea token without write access
+   * to issues, a merge request whose discussion is locked): nothing was
+   * posted, and the review is only on its page in Code. Unset otherwise.
+   */
+  isCommentRefused?: boolean | undefined;
 }
 
 // What a list row says of a review.
@@ -326,6 +346,8 @@ export const PRODUCTION_REVIEW_LIMITS: {
   // AI reads of one pull request, and of one repository, in a UTC day.
   maxAiReadsPerPullRequestPerDay: number;
   maxAiReadsPerRepositoryPerDay: number;
+  // The digits of a pull request's number a person may give: 1 to 999,999,999.
+  maxPullRequestNumberDigits: number;
 } = {
   maxFilesRead: 300,
   maxCodeFiles: 60,
@@ -344,7 +366,20 @@ export const PRODUCTION_REVIEW_LIMITS: {
   minHotFunctionPercent: 1,
   maxAiReadsPerPullRequestPerDay: 10,
   maxAiReadsPerRepositoryPerDay: 100,
+  maxPullRequestNumberDigits: 9,
 };
+
+/*
+ * The marks a pull request's number may be written after: "#12", GitLab's
+ * "!12", and the full-width "＃" and "！" a Japanese or Chinese input
+ * method may type.
+ */
+export const PULL_REQUEST_NUMBER_MARKS: ReadonlyArray<string> = [
+  "#",
+  "!",
+  "\uFF03",
+  "\uFF01",
+];
 
 // The hidden line every production review comment starts with.
 export const PRODUCTION_REVIEW_COMMENT_MARKER: string =
@@ -454,5 +489,78 @@ export class ProductionReviewUtil {
   // A commit as GitHub shortens it.
   public static shortSha(sha: string | null | undefined): string {
     return (sha || "").substring(0, 7);
+  }
+
+  /*
+   * A pull request's number as a person gives it - 12, "12", "#12", or
+   * GitLab's "!12" - or null for anything else: a whole number from 1 up,
+   * of at most PRODUCTION_REVIEW_LIMITS.maxPullRequestNumberDigits digits.
+   * Its digits may be Persian or Arabic-Indic ones too ("۱۲"), as a
+   * Persian keyboard types them, or full-width ones ("＃１２"), as a
+   * Japanese or Chinese input method may. Read character by character,
+   * never with a pattern.
+   */
+  public static readPullRequestNumber(raw: unknown): number | null {
+    if (typeof raw === "number") {
+      return Number.isSafeInteger(raw) && raw > 0 ? raw : null;
+    }
+
+    if (typeof raw !== "string") {
+      return null;
+    }
+
+    let text: string = raw.trim();
+
+    if (
+      PULL_REQUEST_NUMBER_MARKS.some((mark: string): boolean => {
+        return text.startsWith(mark);
+      })
+    ) {
+      text = text.substring(1).trim();
+    }
+
+    if (
+      text.length === 0 ||
+      text.length > PRODUCTION_REVIEW_LIMITS.maxPullRequestNumberDigits
+    ) {
+      return null;
+    }
+
+    let digits: string = "";
+
+    for (const character of text) {
+      const digit: number | null = ProductionReviewUtil.readDigit(character);
+
+      if (digit === null) {
+        return null;
+      }
+
+      digits += digit.toString();
+    }
+
+    const number: number = Number(digits);
+
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
+  }
+
+  /*
+   * One character's digit, 0 to 9: a Latin one, a Persian one (U+06F0 to
+   * U+06F9), an Arabic-Indic one (U+0660 to U+0669) or a full-width one
+   * (U+FF10 to U+FF19) - or null.
+   */
+  private static readDigit(character: string): number | null {
+    if (character >= "0" && character <= "9") {
+      return character.charCodeAt(0) - "0".charCodeAt(0);
+    }
+
+    const code: number = character.charCodeAt(0);
+
+    for (const zero of [0x06f0, 0x0660, 0xff10]) {
+      if (character.length === 1 && code >= zero && code <= zero + 9) {
+        return code - zero;
+      }
+    }
+
+    return null;
   }
 }

@@ -47,6 +47,8 @@ import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResp
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
@@ -130,6 +132,55 @@ export default class MonitorResourceUtil {
     return (
       input.monitor.monitorType === MonitorType.Logs &&
       LogGroupCriteriaFanOut.isResolvedByLog(input.dataToProcess)
+    );
+  }
+
+  /*
+   * Whether a telemetry check of an infrastructure monitor read nothing at
+   * all: every query of its window came back empty, grouped or not.
+   *
+   * That is the agent (or the resource) going quiet, not the resource
+   * recovering. A template's criteria compare values, so silence matches
+   * none of them, and "no criteria met" used to put the monitor back on its
+   * default status and close its open incidents and alerts: an OSD Down or
+   * Node Offline incident resolved itself the moment the agent that reported
+   * it stopped, and the monitor turned green. The monitor now keeps its
+   * status, and its open incidents and alerts stay open, until data comes
+   * back. A criteria that asks for silence - Has No Data, or If No Data set
+   * to Trigger - still matches it as before.
+   */
+  public static isSilentInfrastructureWindow(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+  }): boolean {
+    if (!MonitorTypeHelper.isInfrastructureMonitor(input.monitor.monitorType)) {
+      return false;
+    }
+
+    const response: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // Not a telemetry check's answer: nothing here to judge.
+    if (!Array.isArray(response.metricResult)) {
+      return false;
+    }
+
+    const hasData: (results: Array<AggregatedResult> | undefined) => boolean = (
+      results: Array<AggregatedResult> | undefined,
+    ): boolean => {
+      return (results || []).some((result: AggregatedResult): boolean => {
+        return Array.isArray(result?.data) && result.data.length > 0;
+      });
+    };
+
+    if (hasData(response.metricResult)) {
+      return false;
+    }
+
+    return !(response.seriesBreakdown || []).some(
+      (series: MetricSeriesResult): boolean => {
+        return hasData(series?.aggregatedResults);
+      },
     );
   }
 
@@ -1518,6 +1569,15 @@ export default class MonitorResourceUtil {
          * the monitor's state).
          */
         !isSnmpTrapEvent &&
+        /*
+         * An infrastructure monitor whose agent sent nothing in the window
+         * keeps its status and its open incidents and alerts: silence is
+         * not recovery (isSilentInfrastructureWindow).
+         */
+        !MonitorResourceUtil.isSilentInfrastructureWindow({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+        }) &&
         monitorSteps.data.defaultMonitorStatusId &&
         monitor.currentMonitorStatusId?.toString() !==
           monitorSteps.data.defaultMonitorStatusId.toString()

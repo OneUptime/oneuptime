@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+誰かが Slack や Microsoft Teams からあなたを呼び出したときは、SMS は `OneUptime:` の後に誰が誰を呼び出したかを伝えます。この言葉も短くされることはなく、次のように表示されます。
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 SMS の基本の文字セットにない文字が 1 つでもあると、メッセージ全体が 70 文字ごとの通で送られます。そのため、カーリークォートやダッシュは `"` 、 `'` 、 `-` に、 `…` は `...` に置き換えられ、 `ç` や `ł` のような文字はアクセントが外れます。絵文字は省かれます。日本語やロシア語など別の文字体系のタイトルは、書かれたとおりに送られ、2 通以上になります。
 
 OneUptime が送るほかの SMS（自分がオーナーのインシデントの変更や、オンコールシフトの開始など）も `OneUptime:` で始まり、 `Turn off in User Settings > Notification Settings.` で終わります。この文を省けば 1 通に収まる場合は、この文が省かれます。

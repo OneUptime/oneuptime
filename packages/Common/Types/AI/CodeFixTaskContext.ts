@@ -1,6 +1,8 @@
 import GitHubCommandType, {
   GitHubCommentKind,
 } from "../CodeRepository/GitHubCommand";
+import { CodeHost, CodeHostCapability } from "../CodeRepository/CodeHost";
+import CodeRepositoryType from "../CodeRepository/CodeRepositoryType";
 import { CodeTaskBranchName, CodeTaskRequest } from "./CodeTask";
 import {
   ProductionReviewPosting,
@@ -176,6 +178,44 @@ export interface GitHubTaskContext {
 }
 
 /*
+ * A pull (or merge) request on a host other than GitHub - GitLab, Forgejo
+ * or Gitea - that a production review is about. The
+ * GitHubPullRequestProductionReview recipe, named for GitHub where it
+ * started, reviews the pull requests of every host that has them; GitHub's
+ * are named in `github`, as they always were, and a repository is on one
+ * host, so a task names its pull request in one or the other. Written by
+ * the server only (ProductionReviewQueue), from what the host's API said
+ * and the repository's own row.
+ */
+export interface CodeHostPullRequestTaskContext {
+  // The OneUptime CodeRepository row the pull request is in.
+  codeRepositoryId: string;
+  // The repository's host: GitLab, or Forgejo (Gitea too).
+  provider: CodeRepositoryType;
+  // GitLab's merge request iid ("!12"); Forgejo's and Gitea's index ("#12").
+  pullRequestNumber: number;
+  // Its page on the host, as the host's API gave it.
+  pullRequestUrl?: string | undefined;
+  // Whether its branch lives in another repository: a fork.
+  isPullRequestFromFork?: boolean | undefined;
+  // The login that opened, pushed or asked. Attribution, never authority.
+  triggeredByLogin?: string | undefined;
+}
+
+/*
+ * The pull request a production review task is about, whichever host it is
+ * on: GitHub's from `github`, every other host's from `codeHostPullRequest`.
+ */
+export interface ReviewedPullRequest {
+  codeRepositoryId: string;
+  provider: CodeRepositoryType;
+  number: number;
+  isFromFork: boolean;
+  // Its page on the host, when the task knows it.
+  url?: string | undefined;
+}
+
+/*
  * A pull request's production review task (the
  * GitHubPullRequestProductionReview recipe): what it was asked to review,
  * and what it keeps between one review of the pull request and the next.
@@ -210,6 +250,13 @@ export interface ProductionReviewTaskContext {
   commentUrl?: string | undefined;
   commentPosting?: ProductionReviewPosting | undefined;
   reviewedHeadSha?: string | undefined;
+  /*
+   * GitHub only: the check run the review wrote on the pull request's
+   * head, and that head - edited in place while the head is the same, a
+   * new one written for a new head (GitHub keeps checks per commit).
+   */
+  checkRunId?: number | undefined;
+  checkRunHeadSha?: string | undefined;
   // OneUptime AI's reads of this pull request today (UTC), and the input of the last.
   aiReadDay?: string | undefined;
   aiReadsToday?: number | undefined;
@@ -259,10 +306,15 @@ export interface CodeFixTaskContext {
   request?: CodeTaskRequest | undefined;
   /*
    * GitHubPullRequestProductionReview: what the pull request's review was
-   * asked to do, and what it keeps between reviews. `github` names the
-   * pull request.
+   * asked to do, and what it keeps between reviews. `github` names a
+   * GitHub pull request, `codeHostPullRequest` one on any other host.
    */
   productionReview?: ProductionReviewTaskContext | undefined;
+  /*
+   * GitHubPullRequestProductionReview of a pull (or merge) request on
+   * GitLab, Forgejo or Gitea: which one, and where it is.
+   */
+  codeHostPullRequest?: CodeHostPullRequestTaskContext | undefined;
   /*
    * ImproveInstrumentation / FixFromIncident opened on their own: the code
    * repositories the auto remediation rules that opened the run allow it to
@@ -285,8 +337,77 @@ export interface CodeFixTaskContext {
 }
 
 /*
- * A production review task's context, when it is whole: a pull request
- * named in `github` and a request to review it. Null otherwise.
+ * A pull request on another host, as a task names it: whole - its
+ * repository, a host that has production reviews and is not GitHub, a
+ * number - or null.
+ */
+export function getCodeHostPullRequestTaskContext(
+  taskContext: CodeFixTaskContext | null | undefined,
+): CodeHostPullRequestTaskContext | null {
+  const pullRequest: CodeHostPullRequestTaskContext | undefined =
+    taskContext?.codeHostPullRequest;
+
+  if (
+    !pullRequest ||
+    typeof pullRequest !== "object" ||
+    typeof pullRequest.codeRepositoryId !== "string" ||
+    pullRequest.codeRepositoryId.trim().length === 0 ||
+    !CodeHost.isKnownType(pullRequest.provider) ||
+    pullRequest.provider === CodeRepositoryType.GitHub ||
+    !CodeHost.can(pullRequest.provider, CodeHostCapability.ProductionReview) ||
+    typeof pullRequest.pullRequestNumber !== "number" ||
+    !Number.isSafeInteger(pullRequest.pullRequestNumber) ||
+    pullRequest.pullRequestNumber < 1
+  ) {
+    return null;
+  }
+
+  return pullRequest;
+}
+
+/*
+ * The pull request a task is about, whichever host it is on - GitHub's
+ * from `github`, every other host's from `codeHostPullRequest` - or null.
+ */
+export function getReviewedPullRequest(
+  taskContext: CodeFixTaskContext | null | undefined,
+): ReviewedPullRequest | null {
+  const github: GitHubTaskContext | null = getGitHubTaskContext(taskContext);
+
+  if (github && typeof github.pullRequestNumber === "number") {
+    return {
+      codeRepositoryId: github.codeRepositoryId,
+      provider: CodeRepositoryType.GitHub,
+      number: github.pullRequestNumber,
+      isFromFork: Boolean(github.isPullRequestFromFork),
+    };
+  }
+
+  const other: CodeHostPullRequestTaskContext | null =
+    getCodeHostPullRequestTaskContext(taskContext);
+
+  if (!other) {
+    return null;
+  }
+
+  const reviewed: ReviewedPullRequest = {
+    codeRepositoryId: other.codeRepositoryId,
+    provider: other.provider,
+    number: other.pullRequestNumber,
+    isFromFork: Boolean(other.isPullRequestFromFork),
+  };
+
+  if (typeof other.pullRequestUrl === "string" && other.pullRequestUrl) {
+    reviewed.url = other.pullRequestUrl;
+  }
+
+  return reviewed;
+}
+
+/*
+ * A production review task's context, when it is whole: a pull request -
+ * named in `github`, or on another host in `codeHostPullRequest` - and a
+ * request to review it. Null otherwise.
  */
 export function getProductionReviewTaskContext(
   taskContext: CodeFixTaskContext | null | undefined,
@@ -306,9 +427,7 @@ export function getProductionReviewTaskContext(
     return null;
   }
 
-  const github: GitHubTaskContext | null = getGitHubTaskContext(taskContext);
-
-  if (!github || typeof github.pullRequestNumber !== "number") {
+  if (!getReviewedPullRequest(taskContext)) {
     return null;
   }
 

@@ -4,18 +4,18 @@ The OneUptime Podman agent is one container you run on a Podman host. It reads t
 
 :::cards
 - [Install the agent](#install-the-agent): Two containers, with `podman run` or Podman Compose.
-- [What the agent collects](#what-the-agent-collects): Metrics, logs and an inventory of every container.
+- [What the agent collects](#what-the-agent-collects): The metrics and logs of every container.
 - [Container logs need k8s-file](#container-logs-need-the-k8s-file-log-driver): Podman logs to journald unless you switch.
 - [Troubleshooting](#troubleshooting): Restart loops, missing metrics, missing logs.
 :::
 
 ## How it works
 
-The agent is an OpenTelemetry Collector with OneUptime's configuration built in. Through Podman's Docker-compatible API socket it reads each container's stats every 30 seconds and lists every container, image, network and volume every 5 minutes. It tails the containers' log files and sends everything to your OneUptime URL over OTLP, with the ingestion key you give it.
+The agent is an OpenTelemetry Collector with OneUptime's configuration built in. Through Podman's Docker-compatible API socket it reads each container's stats every 30 seconds. It tails the containers' log files and sends everything to your OneUptime URL over OTLP, with the ingestion key you give it.
 
 ```mermaid title="Two containers on your Podman host"
 flowchart TB
-    containers["Your containers"] -->|"stats, log files,<br/>inventory"| agent["Podman agent"]
+    containers["Your containers"] -->|"stats and<br/>log files"| agent["Podman agent"]
     agent -->|"OTLP over HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"investigates an<br/>incident or alert"| ai["Podman AI agent"]
     ai -->|"read-only<br/>docker commands"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find the host in OneUptime
 
-Open **Products → Infrastructure → Podman → All Hosts**. The host appears under its `PODMAN_HOST_NAME` within a minute or so, with its containers, metrics and logs. The AI agent shows as connected on the host's **AI agent** page, and at the bottom of its **Overview**. The host's **Topology** page draws its Compose projects, containers, images, networks and volumes as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
+Open **Products → Infrastructure → Podman → All Hosts**. The host appears under its `PODMAN_HOST_NAME` within a minute or so, with its containers, metrics and logs. The AI agent shows as connected on the host's **AI agent** page, and at the bottom of its **Overview**. The host's **Topology** page draws its Compose projects and containers as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
 
 ## Environment variables
@@ -139,7 +139,7 @@ Open **Products → Infrastructure → Podman → All Hosts**. The host appears 
 | `ONEUPTIME_URL` | Yes | Your OneUptime URL, such as `https://oneuptime.com` or your self-hosted instance. Use `http://` and its port if the instance is HTTP-only. |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys**. |
 | `PODMAN_HOST_NAME` | No | The host's name in OneUptime. Defaults to `podman-host`, so give every host its own. |
-| `DOCKER_API_VERSION` | No | The Docker API version the agent speaks to the Podman socket. Defaults to `1.44`. Lower it if the socket reports an older maximum, or set it to an empty value to negotiate it (see [Troubleshooting](#troubleshooting)). |
+| `DOCKER_API_VERSION` | No | The Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see [Troubleshooting](#troubleshooting)). |
 
 To change a value, remove the agent and run its command again (Podman CLI), or edit `docker-compose.yml` and run `podman compose up -d` (Podman Compose).
 
@@ -149,7 +149,6 @@ To change a value, remove the agent and run its command again (Podman CLI), or e
 | --- | --- |
 | Container metrics | CPU (usage, percentage, throttling), memory (usage, limit, percentage), network and block I/O, uptime, restarts and process count, per container, every 30 seconds. |
 | Container logs | The stdout and stderr of every container, from the `ctr.log` file the `k8s-file` log driver writes. |
-| Inventory | Every container in every state, and every image, network and volume, every 5 minutes. |
 
 Each container's metrics and logs are filed under a service named after the container. Each log line gets a severity from the level it names, such as `[ERROR]`, `level=warn` or `{"level":"info"}`; a line that names none takes its stream's: stderr is `ERROR`, stdout is `INFO`. Lines that start with whitespace or a closing bracket join the line before, so a stack trace arrives as one record. The agent's own logs are left out.
 
@@ -253,23 +252,19 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-A Docker-API server that enforces a maximum client version refuses a newer one, so the receiver never starts and the collector exits with it. Check the API version the Podman socket reports:
+A Docker-API server that enforces a maximum client version refuses a newer one, so the receiver never starts and the collector exits with it. The agent negotiates the version with the socket (one `HEAD /_ping`, then the maximum the socket reports) unless `DOCKER_API_VERSION` names one, and an older agent image pinned `1.44`. [Upgrade the agent](#upgrading-the-agent), and start it without `-e DOCKER_API_VERSION` (or take `DOCKER_API_VERSION` out of Compose).
+
+To pin a version anyway, use no more than the API version the Podman socket reports:
 
 ```bash
 curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
 ```
 
 Then add `-e DOCKER_API_VERSION=1.41` (or the value you got) to `podman run`, or set `DOCKER_API_VERSION` in Compose. Newer servers still serve older API versions, so the setting stays valid after an upgrade.
-
-Rather not look the number up? Set `DOCKER_API_VERSION` to the empty string. The agent then negotiates the version with the socket (one `HEAD /_ping`, then the maximum the socket reports) instead of pinning one:
-
-```bash
-podman run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Podman socket permission denied, or no socket
-The agent must run as root to read `/run/podman/podman.sock`. Check that `--user 0:0` is in your `podman run` command, or `user: "0:0"` in Compose, and that the socket is on: `sudo systemctl enable --now podman.socket`. Rootless Podman has its socket at `/run/user/<uid>/podman/podman.sock` instead (`systemctl --user enable --now podman.socket`): mount that path in place of `/run/podman/podman.sock`.
+The agent must run as root to read `/run/podman/podman.sock`. Check that `--user 0:0` is in your `podman run` command, or `user: "0:0"` in Compose, and that the socket is on: `sudo systemctl enable --now podman.socket`. Rootless Podman has its socket at `/run/user/<uid>/podman/podman.sock` instead (`systemctl --user enable --now podman.socket`) and its storage at `~/.local/share/containers/storage`: mount them in place of `/run/podman/podman.sock` and `/var/lib/containers/storage`. The agent's `install.sh` does both when you run it as that user, and stops with the command to run when the socket is off.
 :::
 
 :::details The host shows as Disconnected

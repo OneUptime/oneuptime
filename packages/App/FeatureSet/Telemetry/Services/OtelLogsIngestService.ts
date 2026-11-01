@@ -1720,6 +1720,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        * extraction (escaped null) must not mark the group unhandled.
        */
       unhandled: extracted.escaped === true,
+      // The log record's own time: the group's first and last seen.
+      occurredAt: data.timeDate,
       ...(extracted.exceptionType
         ? { exceptionType: extracted.exceptionType }
         : {}),

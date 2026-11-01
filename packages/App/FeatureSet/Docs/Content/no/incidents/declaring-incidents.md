@@ -298,7 +298,7 @@ flowchart TB
 - **Ved eller etter den løste tilstanden din** — **Løst**, eller enhver tilstand som står under den — er hendelsen over, så i tillegg kjører ingenting som reagerer på en live hendelse:
   - den grupperes ikke i en episode, som kunne tilkalle igjen;
   - ingen runbook-regel og ingen AI-regel handler på den;
-  - OneUptime AI undersøker den ikke — kortet **AI Investigation** sier at den ble opprettet allerede løst, og **Ask OneUptime AI** under det svarer fortsatt på spørsmål om den;
+  - OneUptime AI undersøker den ikke — kortet **OneUptime AI** sier at den ble opprettet allerede løst, og **Ask OneUptime AI** under det svarer fortsatt på spørsmål om den;
   - det opprettes ingen Slack- eller Microsoft Teams-kanal for den;
   - monitorene beholder statusen sin og fortsetter å bli overvåket, uansett hva **Endre overvåkingsstatus til** sier;
   - det startes ingen SLA for den.

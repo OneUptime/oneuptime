@@ -35,15 +35,14 @@ COPY ./agents/PodmanAgent/otel-collector-config.yaml /etc/otelcol-contrib/config
 # `${env:PODMAN_HOST_NAME}` placeholder in the baked-in config.
 ENV PODMAN_HOST_NAME=podman-host
 
-# Docker Engine API version the docker_stats receiver speaks. Kept as an env var
-# so a host whose daemon is older than this can lower it without replacing the
-# baked-in config: a daemon refuses a client newer than its own maximum, and the
-# rejected receiver fails to start, which takes the whole collector down with it.
-#
-# 1.44 keeps the behaviour the image has always had. Setting it to the empty
-# string is also supported and makes the receiver auto-negotiate the version with
-# the daemon instead of pinning one -- see otel-collector-config.yaml.
-ENV DOCKER_API_VERSION=1.44
+# Docker API version the docker_stats receiver speaks to Podman's socket.
+# EMPTY: the receiver negotiates the version with the socket (one HEAD /_ping,
+# then the version the socket reports). The image used to pin 1.44, which a
+# server that enforces its maximum refuses as
+# "client version 1.44 is too new", taking the whole collector down with it.
+# Set it (-e DOCKER_API_VERSION=1.41) only to pin a version -- see
+# otel-collector-config.yaml.
+ENV DOCKER_API_VERSION=
 
 # Run as root so the collector can read the Podman socket and
 # /var/lib/containers/storage/.../ctr.log without additional user/group

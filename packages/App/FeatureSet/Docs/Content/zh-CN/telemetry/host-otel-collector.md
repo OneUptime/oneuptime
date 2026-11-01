@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -492,6 +510,8 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 `hostmetrics` 适用于所有操作系统。它每隔 `collection_interval` 从内核读取 CPU、内存、磁盘、文件系统、网络、负载、分页和进程。`*.utilization` 指标和 `system.cpu.logical.count` 在接收器中默认关闭，而主机的图表和 Host 警报模板会读取它们，所以请像上面的配置那样保持启用。`process` 抓取器为 **进程** 页面提供数据；它也是序列的最大来源（见 [减少发送量](#减少采集的数据量)）。
 
 在 Linux 上，Collector 读取 `/proc` 和 `/sys`。容器中的 Collector 必须挂载主机的这两个目录并设置 `HOST_PROC` 和 `HOST_SYS`（见 [在 Docker 容器中](#在-docker-容器中)）；原生安装则什么都不需要。
+
+上面的配置把按设计就是满的或不存放数据的文件系统排除在 `filesystem` 抓取器之外（`exclude_fs_types`）：snap 软件包（`squashfs`）和其他只读镜像、CD 和 DVD、macOS 的 `/dev`（`devfs`）以及自动挂载器的映射（`autofs`）。满的那些只要处于挂载状态就一直显示 100% 已用，所以 High Filesystem Usage 模板会在它们上面触发且永远不会恢复：在你自己的配置中也请保留这项排除。带有普通文件系统的只读镜像（例如已挂载的 `.dmg`）同样显示为满；请用 `exclude_mount_points` 排除它的挂载点。
 
 ### 文件日志
 
@@ -934,6 +954,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1105,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true

@@ -156,7 +156,10 @@ export const SecurityPlaybookStepStatusPill: FunctionComponent<
   );
 };
 
-// Whose judgement a detection is: a rule's, threat intelligence's, a product's or a person's.
+/*
+ * Whose judgement a detection is: a rule's, threat intelligence's, a
+ * product's, a person's, an entity's risk or Data Security's.
+ */
 export function getSecurityDetectionSourceIcon(
   source: SecurityDetectionSource | string | undefined | null,
 ): IconProp {
@@ -171,6 +174,8 @@ export function getSecurityDetectionSourceIcon(
       return IconProp.User;
     case SecurityDetectionSource.EntityRisk:
       return IconProp.Fire;
+    case SecurityDetectionSource.DataSecurity:
+      return IconProp.Database;
     default:
       return IconProp.Circle;
   }

@@ -1314,6 +1314,8 @@ export default class QuietChannelsWorld {
   public async startDirectPage(data: {
     targets: Partial<OnCallDirectPageTargets>;
     startedBy?: OnCallDirectPageStartedBy | undefined;
+    // What the person who paged wrote (OnCallPersonPage).
+    pageMessage?: string | undefined;
   }): Promise<OnCallDirectPageRun> {
     const started: OnCallDirectPageRun =
       await OnCallDutyPolicyExecutionLogService.startDirectPage({
@@ -1330,6 +1332,7 @@ export default class QuietChannelsWorld {
           workflowId: PAGING_WORKFLOW_ID,
           workflowName: PAGING_WORKFLOW_NAME,
         },
+        ...(data.pageMessage ? { pageMessage: data.pageMessage } : {}),
       });
 
     await this.settle();
@@ -1932,7 +1935,8 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
     );
   }
 
-  private incidentStates(): Array<IncidentState> {
+  // The project's incident states, as the suites read them.
+  public incidentStates(): Array<IncidentState> {
     const make: (
       id: ObjectID,
       name: string,
@@ -2108,6 +2112,7 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
     to: ObjectID;
     name: string;
     isFirst: boolean;
+    by?: ObjectID | undefined;
   }): Promise<void> {
     jest.spyOn(AlertService, "updateOneBy").mockResolvedValue(1 as never);
     jest
@@ -2149,6 +2154,10 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
     created.alertId = ALERT_ID;
     created.alertStateId = data.to;
     created.startsAt = new Date();
+
+    if (data.by) {
+      created.createdByUserId = data.by;
+    }
 
     const before: AlertStateTimeline | null = data.isFirst
       ? null

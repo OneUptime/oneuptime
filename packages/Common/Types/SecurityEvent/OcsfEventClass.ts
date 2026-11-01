@@ -38,8 +38,9 @@ export interface OcsfEventClassProps {
 
 /*
  * Class uids come from the OCSF schema. The Windows extension's Registry
- * Key Activity (201001) is included because Google SecOps UDM registry
- * events are common in the wild.
+ * Key Activity (201001) and Registry Value Activity (201002) are included
+ * because Google SecOps UDM and Sysmon registry events are common in the
+ * wild.
  */
 export const OcsfEventClasses: Array<OcsfEventClassProps> = [
   { uid: 0, name: "Base Event", category: OcsfCategory.Uncategorized },
@@ -48,6 +49,11 @@ export const OcsfEventClasses: Array<OcsfEventClassProps> = [
   {
     uid: 1001,
     name: "File System Activity",
+    category: OcsfCategory.SystemActivity,
+  },
+  {
+    uid: 1003,
+    name: "Kernel Extension Activity",
     category: OcsfCategory.SystemActivity,
   },
   {
@@ -63,6 +69,18 @@ export const OcsfEventClasses: Array<OcsfEventClassProps> = [
   {
     uid: 1007,
     name: "Process Activity",
+    category: OcsfCategory.SystemActivity,
+  },
+  // A log cleared, or its policy changed (Windows 1102, 104 and 4719).
+  {
+    uid: 1008,
+    name: "Event Log Activity",
+    category: OcsfCategory.SystemActivity,
+  },
+  // A script run, such as a PowerShell script block.
+  {
+    uid: 1009,
+    name: "Script Activity",
     category: OcsfCategory.SystemActivity,
   },
 
@@ -155,11 +173,22 @@ export const OcsfEventClasses: Array<OcsfEventClassProps> = [
     name: "API Activity",
     category: OcsfCategory.ApplicationActivity,
   },
+  // A file shared or downloaded in a file hosting service, such as Google Drive.
+  {
+    uid: 6006,
+    name: "File Hosting Activity",
+    category: OcsfCategory.ApplicationActivity,
+  },
 
   // Windows extension.
   {
     uid: 201001,
     name: "Registry Key Activity",
+    category: OcsfCategory.SystemActivity,
+  },
+  {
+    uid: 201002,
+    name: "Registry Value Activity",
     category: OcsfCategory.SystemActivity,
   },
 ];

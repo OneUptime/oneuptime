@@ -3,6 +3,11 @@ import {
   OnCallPageAgainNotice,
   getOnCallPageAgainNoticeReason,
 } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  OnCallPersonPageNotice,
+  getOnCallPersonPagePushBody,
+  getOnCallPersonPagePushTitle,
+} from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
 
 export default class PushNotificationUtil {
   public static readonly DEFAULT_ICON =
@@ -19,6 +24,40 @@ export default class PushNotificationUtil {
       ...notification,
     } as PushNotificationMessage;
   }
+
+  /*
+   * The push of a page a person asked for (OnCallPersonPage): who paged and
+   * the record in the title - "Alice Kim paged you: Incident INC-42",
+   * "Alice Kim paged Platform: Incident INC-42" - and its title, project
+   * and the message they wrote in the body. Tapped, it opens the record,
+   * and it carries the record's own type and data, as any page's push does.
+   */
+  private static getPersonPageNotification(data: {
+    recordLabel: string;
+    recordTitle: string;
+    projectName: string;
+    notice: OnCallPersonPageNotice;
+    viewLink: string;
+    tag: string;
+    data: { [key: string]: unknown };
+  }): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: getOnCallPersonPagePushTitle({
+        recordLabel: data.recordLabel,
+        notice: data.notice,
+      }),
+      body: `${getOnCallPersonPagePushBody({
+        recordTitle: data.recordTitle,
+        projectName: data.projectName,
+        notice: data.notice,
+      })} Click to view details.`,
+      clickAction: data.viewLink,
+      url: data.viewLink,
+      tag: data.tag,
+      requireInteraction: true,
+      data: data.data,
+    });
+  }
   public static createIncidentCreatedNotification(params: {
     incidentTitle: string;
     projectName: string;
@@ -29,6 +68,11 @@ export default class PushNotificationUtil {
     projectId?: string;
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
+    /*
+     * A page a person asked for (OnCallPersonPage): says who paged, and
+     * the message they wrote, instead of "A new incident has been created".
+     */
+    personPage?: OnCallPersonPageNotice | undefined;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -44,6 +88,27 @@ export default class PushNotificationUtil {
     const incidentIdentifier: string = displayNumber
       ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
+
+    if (params.personPage) {
+      return PushNotificationUtil.getPersonPageNotification({
+        recordLabel: `Incident${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordTitle: incidentTitle,
+        projectName: projectName,
+        notice: params.personPage,
+        viewLink: incidentViewLink,
+        tag: "incident-created",
+        data: {
+          type: "incident-created",
+          entityType: "incident",
+          entityId: incidentId,
+          projectId: projectId,
+          incidentTitle: incidentTitle,
+          projectName: projectName,
+          url: incidentViewLink,
+        },
+      });
+    }
+
     return PushNotificationUtil.applyDefaults({
       title: params.pageAgain
         ? `Incident${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${incidentTitle}`
@@ -174,6 +239,11 @@ export default class PushNotificationUtil {
     projectId?: string;
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
+    /*
+     * A page a person asked for (OnCallPersonPage): says who paged, and
+     * the message they wrote, instead of "A new alert has been created".
+     */
+    personPage?: OnCallPersonPageNotice | undefined;
   }): PushNotificationMessage {
     const {
       alertTitle,
@@ -189,6 +259,27 @@ export default class PushNotificationUtil {
     const alertIdentifier: string = displayNumber
       ? `${displayNumber} (${alertTitle})`
       : alertTitle;
+
+    if (params.personPage) {
+      return PushNotificationUtil.getPersonPageNotification({
+        recordLabel: `Alert${displayNumber ? ` ${displayNumber}` : ""}`,
+        recordTitle: alertTitle,
+        projectName: projectName,
+        notice: params.personPage,
+        viewLink: alertViewLink,
+        tag: "alert-created",
+        data: {
+          type: "alert-created",
+          entityType: "alert",
+          entityId: alertId,
+          projectId: projectId,
+          alertTitle: alertTitle,
+          projectName: projectName,
+          url: alertViewLink,
+        },
+      });
+    }
+
     return PushNotificationUtil.applyDefaults({
       title: params.pageAgain
         ? `Alert${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${alertTitle}`

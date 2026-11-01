@@ -34,6 +34,9 @@ import CloudAccountChanges from "../Pages/Cloud/Accounts/View/Changes";
 import CloudAccountTopology from "../Pages/Cloud/Accounts/View/Topology";
 import CloudAccountSettings from "../Pages/Cloud/Accounts/View/Settings";
 import CloudAccountDelete from "../Pages/Cloud/Accounts/View/Delete";
+import CloudAccountAiAgent from "../Pages/Cloud/Accounts/View/AI/Agent";
+import CloudAccountAiLogs from "../Pages/Cloud/Accounts/View/AI/Logs";
+import CloudAccountFeed from "../Pages/Cloud/Accounts/View/Feed";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -183,6 +186,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_FEED)}
+          element={
+            <CloudAccountFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_FEED] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY,
           )}
@@ -210,6 +222,30 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudAccountDelete
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_DELETE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <CloudAccountAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <CloudAccountAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS] as Route}
             />
           }
         />

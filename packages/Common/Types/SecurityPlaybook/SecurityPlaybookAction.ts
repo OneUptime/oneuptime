@@ -23,6 +23,7 @@ export enum SecurityPlaybookActionType {
 
   // Notify
   EmailPeople = "Email People",
+  NotifyDataStoreOwners = "Notify Data Store Owners",
   PostToSlack = "Post to Slack",
   PostToMicrosoftTeams = "Post to Microsoft Teams",
   PostStatusPageAnnouncement = "Post Status Page Announcement",
@@ -39,6 +40,8 @@ export enum SecurityPlaybookActionType {
   UnsuspendOktaUser = "Unsuspend Okta User",
   LiftCrowdStrikeContainment = "Lift CrowdStrike Containment",
   ReleaseDefenderDevice = "Release Defender Device",
+  BlockDataStorePublicAccess = "Block Data Store Public Access",
+  RevokeDataStoreSharing = "Revoke Data Store Sharing",
 
   // Automate
   SendWebhook = "Send Webhook",
@@ -179,6 +182,15 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       isDisruptive: false,
     },
     {
+      type: SecurityPlaybookActionType.NotifyDataStoreOwners,
+      title: "Notify data store owners",
+      description:
+        "Email the owners of each data store the case is about, as Data Security lists them, with the store and a link to the case.",
+      category: SecurityPlaybookActionCategory.Notify,
+      icon: IconProp.Database,
+      isDisruptive: false,
+    },
+    {
       type: SecurityPlaybookActionType.PostToSlack,
       title: "Post to Slack",
       description:
@@ -303,6 +315,34 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       connectionProvider: SecurityEventConnectorProvider.MicrosoftDefenderXdr,
       entityType: SecurityEntityType.Host,
       undoes: SecurityPlaybookActionType.IsolateDefenderDevice,
+    },
+    /*
+     * A data store's exposure, closed through its cloud connection's "Data
+     * security response" role (Server/Utils/DataSecurity/
+     * DataSecurityResponse): the stores the case is about, never one marked
+     * public by design. They cut nobody off, but they change a cloud's
+     * settings - a public website stops being public - so a new step starts
+     * needing approval, which whoever adds it may turn off.
+     */
+    {
+      type: SecurityPlaybookActionType.BlockDataStorePublicAccess,
+      title: "Block public access to data stores",
+      description:
+        "Block public access to each bucket or storage account the case is about, through its cloud connection. A store marked public by design is left alone.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.Lock,
+      isDisruptive: false,
+      needsApprovalByDefault: true,
+    },
+    {
+      type: SecurityPlaybookActionType.RevokeDataStoreSharing,
+      title: "Revoke data store sharing",
+      description:
+        "Stop sharing the snapshots of each database the case is about with everyone and with accounts outside the project's, through its cloud connection.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.Lock,
+      isDisruptive: false,
+      needsApprovalByDefault: true,
     },
     {
       type: SecurityPlaybookActionType.SendWebhook,

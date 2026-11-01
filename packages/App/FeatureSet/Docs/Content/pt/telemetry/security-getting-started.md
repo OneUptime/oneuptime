@@ -58,8 +58,13 @@ O cartão **Seus logs**, no topo de **Conexões**, não precisa de instalação.
 | --- | --- |
 | Logins SSH | Logins SSH com falha e bem-sucedidos do log de autenticação, do journal ou do syslog de um servidor |
 | sudo | Comandos executados como outro usuário, senhas de sudo erradas e pessoas que não podem usar o sudo |
-| Logs de auditoria do Kubernetes | Mudanças no cluster, shells abertos em pods, secrets lidos e requisições recusadas |
+| Eventos do Windows | Logins, processos novos, contas e grupos alterados, serviços instalados e logs apagados, do Windows, do Sysmon e do Microsoft Defender |
 | AWS CloudTrail | Logins no console, mudanças feitas nas suas contas da AWS e chamadas que a AWS recusou |
+| Logs de auditoria do Google Cloud | Mudanças feitas nos seus projetos do Google Cloud, chamadas que o Google recusou e logins do Google Workspace compartilhados com o Google Cloud |
+| Logs de atividade do Azure e do Entra ID | Mudanças feitas nas suas assinaturas do Azure, alertas do Defender for Cloud, e logins e mudanças de diretório do Microsoft Entra ID |
+| CEF | Ameaças, conexões bloqueadas e logins de firewalls, IDS, WAFs e outros produtos de segurança que enviam Common Event Format |
+| LEEF | O mesmo dos produtos que enviam Log Event Extended Format, como muitos fazem para o IBM QRadar |
+| Logs de auditoria do Kubernetes | Mudanças no cluster, shells abertos em pods, secrets lidos e requisições recusadas |
 | Ataques web | Requisições no log de acesso de um servidor web que tentam injeção de SQL, path traversal ou Log4Shell |
 
 Seus logs continuam como estão. Só as linhas que importam para a segurança viram eventos: nunca cada página que um servidor web serviu, nem cada leitura de uma API.
@@ -83,7 +88,7 @@ Normalmente o caso abre antes de o botão responder; quando a regra ainda está 
 :::
 
 :::details Nenhum evento de segurança vem dos meus logs
-Verifique se **Encontrar eventos de segurança nos seus logs** está ativado e se o cartão **Seus logs** mostra quando foi a última verificação. Só os tipos de linha da tabela acima viram eventos: um servidor que não envia logs de SSH, sudo, auditoria, CloudTrail ou de acesso não tem nada a encontrar.
+Verifique se **Encontrar eventos de segurança nos seus logs** está ativado e se o cartão **Seus logs** mostra quando foi a última verificação. Só os tipos de linha da tabela acima viram eventos: um servidor que não envia logs de SSH, sudo, Windows, auditoria, CEF, LEEF ou de acesso não tem nada a encontrar. Cole uma das linhas dele em **Verificar uma linha de log**, em **Seus logs**, para ver se o OneUptime a lê.
 :::
 
 :::details A Visão geral diz que o último evento de segurança chegou há dias

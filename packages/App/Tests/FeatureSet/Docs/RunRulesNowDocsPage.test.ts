@@ -74,7 +74,8 @@ describe("Run Rules on Existing Resources docs page", () => {
       }
     }
 
-    expect(resources.size).toBe(31);
+    // Data Security's data stores, the 32nd.
+    expect(resources.size).toBe(32);
 
     for (const resource of resources) {
       expect(page).toContain(resource.toLowerCase());

@@ -65,7 +65,7 @@ All of the app's roles are the same image: Docker Compose runs them in one `app`
 
 Four connections are made unless you change a setting:
 
-- Once a day, the app asks GitHub's API (`api.github.com`) whether a newer release is out. To turn this off, set `updateCheck.disabled: true` in the Helm chart, or `DISABLE_UPDATE_CHECK=true` in `config.env` on Docker Compose.
+- Once a day, the app asks GitHub's API (`api.github.com`) whether a newer release is out. It also reads the security advisories OneUptime published, so your master admins are told when one affects the version you run ([Update and Security Checks](/docs/self-hosted/update-checks)). To turn this off, set `updateCheck.disabled: true` in the Helm chart, or `DISABLE_UPDATE_CHECK=true` in `config.env` on Docker Compose.
 - Once a day, the app tells `oneuptime.com` your install's address and the version it runs, so OneUptime knows which installs still run a release with a security issue. Nothing about your users, projects or monitoring data is sent. To turn this off, set `instanceCheckIn.disabled: true` in the Helm chart, or `DISABLE_INSTANCE_CHECK_IN=true` in `config.env` on Docker Compose.
 - Signing up with “Notify me about security patches and new releases” ticked, as it is at first, sends the person's name and email, any company and phone number they gave, and your install's address and version to `oneuptime.com`. Untick it on a network without internet access.
 - On Kubernetes, probes fall back to the public resolvers `8.8.8.8` and `1.1.1.1` after your cluster's own DNS. Set `dnsConfig.nameservers` to `[]` to keep every lookup on your own DNS.

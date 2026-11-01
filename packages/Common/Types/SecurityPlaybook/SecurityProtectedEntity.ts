@@ -10,7 +10,14 @@ import { SecurityEntityType } from "../SecurityCase/SecurityEntity";
  * neither it nor an approver can act on it.
  */
 
-// The kinds of entity containment acts on, and so the ones a project protects.
+/*
+ * The kinds of entity containment acts on, and so the ones a project
+ * protects. A data store is neither: the steps that close a store's
+ * exposure (Block public access to data stores, Revoke data store sharing)
+ * change how it is shared, never cut anyone off, and a store meant to be
+ * public is protected where it is described - marked public by design in
+ * its Settings, which those steps leave alone.
+ */
 export const PROTECTED_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
   SecurityEntityType.User,
   SecurityEntityType.Host,

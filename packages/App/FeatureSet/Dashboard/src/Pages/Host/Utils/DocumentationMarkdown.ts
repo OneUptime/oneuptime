@@ -9,6 +9,7 @@ import {
 } from "../../../Components/SetupGuide/SetupGuide";
 import { getKubernetesSetupGuide } from "../../Kubernetes/Utils/DocumentationMarkdown";
 import { HOST_COLLECTOR_VERSION } from "../../../Components/AgentVersion/AgentKind";
+import { HOST_COLLECTOR_FILESYSTEM_EXCLUSION } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 
 /*
  * How the OpenTelemetry Collector gets onto the host. Every method runs the
@@ -193,6 +194,7 @@ export function getHostCollectorConfig(data: {
             enabled: true
       disk:
       filesystem:
+${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}
         metrics:
           system.filesystem.utilization:
             enabled: true

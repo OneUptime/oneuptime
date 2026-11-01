@@ -74,6 +74,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -171,6 +177,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -261,6 +273,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true
@@ -492,6 +510,8 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 `hostmetrics` روی هر سیستم‌عاملی کار می‌کند. CPU، حافظه، دیسک‌ها، سامانه‌های فایل، شبکه، بار، صفحه‌بندی و فرایندها را در هر `collection_interval` از هسته می‌خواند. متریک‌های `*.utilization` و `system.cpu.logical.count` در گیرنده به‌طور پیش‌فرض خاموش‌اند، و نمودارهای میزبان و الگوهای هشدار Host آن‌ها را می‌خوانند، پس مانند پیکربندی‌های بالا روشن نگهشان دارید. خراشگر `process` صفحه **فرایندها** را پر می‌کند؛ بزرگ‌ترین منبع سری‌ها هم هست (ببینید [فرستادن داده کمتر](#کاهش-حجم-داده-گردآوریشده)).
 
 روی Linux کالکتور `/proc` و `/sys` را می‌خواند. کالکتوری که در کانتینر است باید این‌ها را از میزبان سوار کند و `HOST_PROC` و `HOST_SYS` را تنظیم کند (ببینید [در یک کانتینر Docker](#در-یک-کانتینر-docker))؛ نصب بومی به چیزی نیاز ندارد.
+
+پیکربندی‌های بالا سامانه‌های فایلی را که طبق طراحی پرند یا داده‌ای ندارند از خراشگر `filesystem` کنار می‌گذارند (`exclude_fs_types`): بسته‌های snap (`squashfs`) و دیگر ایمیج‌های فقط‌خواندنی، CD و DVDها، `/dev` در macOS (`devfs`) و نقشه‌های automounter (`autofs`). پرها تا وقتی سوار باشند ۱۰۰٪ استفاده‌شده خوانده می‌شوند، پس الگوی High Filesystem Usage برایشان فعال می‌شد و هرگز بهبود نمی‌یافت: این کنارگذاری را در پیکربندی خودتان هم نگه دارید. ایمیج فقط‌خواندنی با یک سامانه فایل معمولی، مانند یک `.dmg` سوارشده، هم پر خوانده می‌شود؛ نقطه سوارکردن آن را با `exclude_mount_points` کنار بگذارید.
 
 ### لاگ‌های فایل
 
@@ -934,6 +954,12 @@ receivers:
       memory:
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
       network:
       load:
       paging:
@@ -1079,6 +1105,12 @@ receivers:
             enabled: true
       disk:
       filesystem:
+        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [autofs, cd9660, CDFS, devfs, erofs, iso9660, squashfs, udf, UDF]
+          match_type: strict
         metrics:
           system.filesystem.utilization:
             enabled: true

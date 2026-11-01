@@ -24,9 +24,10 @@ import { describe, expect, it } from "@jest/globals";
  * Code's "Connect a repository" section, held to the product: the four
  * places a repository can be, in the order the connect dialog offers them
  * (CodeHostChoices), what each connects with (the dialog's own help), what
- * AI does in each (CodeHost's capabilities - commands and production
- * reviews are GitHub's alone, a Git server pushes a branch), and the words
- * of the repository's settings and of a refused token.
+ * AI does in each (CodeHost's capabilities - commands are GitHub's alone,
+ * production reviews every host's with pull requests, a Git server pushes
+ * a branch), and the words of the repository's settings and of a refused
+ * token.
  */
 
 const SECTION: string = "## Connect a repository";
@@ -83,9 +84,13 @@ describe("Code: Connect a repository", () => {
     expect(gitLab![1]).toContain("`api` and `write_repository` scopes");
     expect(gitLab![1]).toContain("at least the Developer role");
 
-    // Forgejo and Gitea: read and write on repositories, read on the user.
+    /*
+     * Forgejo and Gitea: read and write on repositories and issues - a
+     * production review's comment is its pull request's issue's - and read
+     * on the user.
+     */
     expect(CODE_CONNECT_COPY.tokenHelpForgejo).toBe(
-      "An access token with read and write access to repositories, and read access to the user.",
+      "An access token with read and write access to repositories and issues, and read access to the user.",
     );
     expect(forgejo![1]).toBe(CODE_CONNECT_COPY.tokenHelpForgejo);
 
@@ -101,21 +106,28 @@ describe("Code: Connect a repository", () => {
   it("says what AI does on each host as CodeHost's capabilities have it", () => {
     const [gitHub, gitLab, forgejo, git] = rows() as Array<Array<string>>;
 
-    // Commands and production reviews are GitHub's alone.
+    /*
+     * Commands are GitHub's alone; production reviews are every host's with
+     * pull requests - a Git server has none.
+     */
     for (const type of Object.values(CodeRepositoryType)) {
-      const isGitHub: boolean = type === CodeRepositoryType.GitHub;
-
-      expect(CodeHost.can(type, CodeHostCapability.Commands)).toBe(isGitHub);
+      expect(CodeHost.can(type, CodeHostCapability.Commands)).toBe(
+        type === CodeRepositoryType.GitHub,
+      );
       expect(CodeHost.can(type, CodeHostCapability.ProductionReview)).toBe(
-        isGitHub,
+        type !== CodeRepositoryType.Git,
       );
     }
 
     expect(gitHub![2]).toContain("commands from GitHub");
-    expect(gitHub![2]).toContain("production reviews");
-    expect(section()).toContain(
-      "Commands from comments and production reviews need the GitHub App, so they work in GitHub repositories only, for now",
+    // GitHub's own: a check on the pull request's commit.
+    expect(gitHub![2]).toContain(
+      "a check on each [production review](#production-review-of-pull-requests)",
     );
+    expect(section()).toContain(
+      "Commands from comments need the GitHub App, so they work in GitHub repositories only, for now, and the repository's **Settings** say so. A Git server has no pull requests, so it has no production review either.",
+    );
+    expect(section()).not.toContain("production reviews need the GitHub App");
 
     // GitLab and Forgejo: pull (merge) requests, branches, code, tracking.
     for (const type of [
@@ -136,6 +148,10 @@ describe("Code: Connect a repository", () => {
       "merge request",
     );
     expect(gitLab![2]).toContain("each change in a merge request");
+    expect(gitLab![2]).toContain(
+      "[production reviews](#production-review-of-pull-requests)",
+    );
+    expect(gitLab![2]).toContain("a deploy's commits");
     expect(gitLab![2]).toContain("the branch picker");
     expect(gitLab![2]).toContain(
       "the code a stack trace or a profile runs through",

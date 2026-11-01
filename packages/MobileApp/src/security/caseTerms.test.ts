@@ -93,6 +93,7 @@ describe("entities", () => {
       expect(term.icon.length).toBeGreaterThan(0);
     }
     expect(getEntityTerm("IP Address").label).toBe("IP address");
+    expect(getEntityTerm("Data Store").label).toBe("Data store");
   });
 
   test("an unknown type reads as Other", () => {
@@ -133,6 +134,7 @@ describe("what opened the case", () => {
     expect(describeCaseSource("Threat Intel")).toBe("Threat intel");
     expect(describeCaseSource("Connected Product")).toBe("Connected product");
     expect(describeCaseSource("Entity Risk")).toBe("Entity risk");
+    expect(describeCaseSource("Data Security")).toBe("Data security");
     expect(describeCaseSource("Manual")).toBe("A person");
   });
 

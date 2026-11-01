@@ -8,6 +8,7 @@ import CodeRepositoryConnection from "../../../../Models/DatabaseModels/CodeRepo
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import {
   CodeHost,
+  CodeHostCapability,
   CodeHostUrl,
   CodeHostUrlError,
   GitRemoteAddress,
@@ -957,10 +958,11 @@ export default class CodeRepositoryConnector {
   }
 
   /*
-   * Writes the repositories: new ones with GitHub's switches off and no
-   * Runner of their own - they follow the project's default Runner, and a
-   * global Runner while there is none - and the project's own ones from
-   * this server moved onto the connection.
+   * Writes the repositories: new ones with GitHub's commands off, production
+   * review on where the host has pull requests, and no Runner of their own
+   * - they follow the project's default Runner, and a global Runner while
+   * there is none - and the project's own ones from this server moved onto
+   * the connection.
    */
   private static async saveRepositories(data: {
     projectId: ObjectID;
@@ -1091,11 +1093,16 @@ export default class CodeRepositoryConnector {
       }
 
       /*
-       * Commands from comments and production reviews are GitHub's: off
-       * here, said plainly on the repository's settings.
+       * Commands from comments are GitHub's: off here, said plainly on the
+       * repository's settings. Production review is on where the host has
+       * pull requests to review - GitLab, Forgejo and Gitea - as it is for
+       * every repository the GitHub App connects; a Git server has none.
        */
       row.isGitHubCommandsEnabled = false;
-      row.isProductionReviewEnabled = false;
+      row.isProductionReviewEnabled = CodeHost.can(
+        data.provider,
+        CodeHostCapability.ProductionReview,
+      );
 
       /*
        * No Runner of its own: it follows the project's default Runner, and

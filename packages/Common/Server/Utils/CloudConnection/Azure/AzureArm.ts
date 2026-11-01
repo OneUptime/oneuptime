@@ -1,5 +1,7 @@
 import Dictionary from "../../../../Types/Dictionary";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
+import { DataSourceHttpResponse } from "../../DataSource/HttpFetch";
 import LlmProviderHttp, {
   buildQueryString,
   readArray,
@@ -43,6 +45,16 @@ import { withCloudRetries } from "../CloudRetry";
  *   GET/POST anything else the inventory, the changes and the billing read,
  *       through get() and post() - always on the management host.
  *
+ *   GET https://{account}.blob.core.windows.net/... (getStorageText,
+ *       getStorageBytes)
+ *       -> Azure Storage's data plane, for Data Security's content scans:
+ *          signed in with a token for Azure Storage instead, which a data
+ *          role (Storage Blob Data Reader) authorizes; listings answered
+ *          in XML, a blob's first bytes as its bytes.
+ *   PATCH {arm}{resource id}?api-version=... (patch)
+ *       -> one setting of one resource changed, for Data Security's
+ *          response actions: only with the connection's opt-in write role.
+ *
  * Listing and metric definitions are free; Azure Monitor gives each
  * subscription its first million metric reads a month free.
  */
@@ -62,6 +74,19 @@ const RESOURCE_GRAPH_MAX_PAGES: number = 20;
 
 const PROVIDER_TITLE: string = "Azure";
 const MAX_LIST_PAGES: number = 50;
+
+/*
+ * Azure Storage's sign-in resource is the same in every cloud; only the
+ * hosts its accounts answer on differ (core.windows.net, Azure
+ * Government's core.usgovcloudapi.net).
+ */
+export const AZURE_STORAGE_RESOURCE: string = "https://storage.azure.com";
+// The Blob service REST version the data-plane calls are made in.
+export const AZURE_STORAGE_SERVICE_VERSION: string = "2023-11-03";
+const AZURE_STORAGE_SUFFIXES: Record<MicrosoftCloud, string> = {
+  public: "core.windows.net",
+  usgov: "core.usgovcloudapi.net",
+};
 
 export interface AzureSubscription {
   subscriptionId: string;
@@ -129,6 +154,113 @@ export default class AzureArm {
     return EntraTokenClient.getEndpoints(this.options.cloud).managementBaseUrl;
   }
 
+  // The suffix of the cloud's storage hosts: blob.<suffix>, queue.<suffix>.
+  public getStorageSuffix(): string {
+    return AZURE_STORAGE_SUFFIXES[this.options.cloud];
+  }
+
+  /*
+   * A GET on Azure Storage's Blob service - a container's blobs, the
+   * account's containers - signed in as the app with a token for Azure
+   * Storage. The Blob service lists in XML, so this returns the answer's
+   * text.
+   */
+  public async getStorageText(data: {
+    url: string;
+    step: string;
+    headers?: Dictionary<string> | undefined;
+  }): Promise<string> {
+    const response: DataSourceHttpResponse = await this.getStorage({
+      ...data,
+      keepBodyBytes: false,
+    });
+
+    return response.bodyText || "";
+  }
+
+  /*
+   * The same GET for a blob's own bytes - a gzip, a spreadsheet - exactly
+   * as they came. A transport that keeps no bytes gives its text's UTF-8.
+   */
+  public async getStorageBytes(data: {
+    url: string;
+    step: string;
+    headers?: Dictionary<string> | undefined;
+  }): Promise<Buffer> {
+    const response: DataSourceHttpResponse = await this.getStorage({
+      ...data,
+      keepBodyBytes: true,
+    });
+
+    return response.bodyBytes || Buffer.from(response.bodyText || "", "utf8");
+  }
+
+  /*
+   * One data-plane GET. The token goes only to the cloud's own blob hosts:
+   * any other URL is refused before anything is sent.
+   */
+  private async getStorage(data: {
+    url: string;
+    step: string;
+    headers?: Dictionary<string> | undefined;
+    keepBodyBytes: boolean;
+  }): Promise<DataSourceHttpResponse> {
+    let host: string = "";
+
+    try {
+      host = new URL(data.url).host.toLowerCase();
+    } catch {
+      host = "";
+    }
+
+    if (!host.endsWith(`.blob.${this.getStorageSuffix()}`)) {
+      throw new BadDataException(
+        `Azure Storage ${data.step} must go to a blob host of the connection's cloud.`,
+      );
+    }
+
+    // Storage answers a burst with 503 Server Busy: each try is a request of the budget.
+    return await withCloudRetries({
+      sleep: this.options.sleep,
+      call: async (): Promise<DataSourceHttpResponse> => {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const token: string = await this.tokens.getAccessToken(
+          AZURE_STORAGE_RESOURCE,
+        );
+
+        return await LlmProviderHttp.send({
+          transport: this.options.transport,
+          method: "GET",
+          url: data.url,
+          headers: {
+            ...(data.headers || {}),
+            Authorization: `Bearer ${token}`,
+            "x-ms-version": AZURE_STORAGE_SERVICE_VERSION,
+          },
+          timeoutInMs: this.options.requestTimeoutInMs,
+          keepBodyBytes: data.keepBodyBytes,
+          step: data.step,
+          providerTitle: PROVIDER_TITLE,
+          secretValues: [this.options.clientSecret, token],
+        });
+      },
+    });
+  }
+
+  /*
+   * Every item (value[]) of a listing on the management host, page by
+   * page. `complete` is false when it stopped at MAX_LIST_PAGES.
+   */
+  public async listAll(
+    url: string,
+    step: string,
+  ): Promise<{ items: Array<JSONObject>; complete: boolean }> {
+    return await this.listPagedWithEnd(url, step);
+  }
+
   // A GET on the management host, signed in as the app.
   public async getJson(url: string, step: string): Promise<JSONObject> {
     return await this.get(url, step);
@@ -167,6 +299,67 @@ export default class AzureArm {
           providerTitle: PROVIDER_TITLE,
           secretValues: [this.options.clientSecret, token],
         });
+      },
+    });
+  }
+
+  /*
+   * A PATCH of a JSON body on the management host, signed in as the app: a
+   * change to one setting of one resource, for Data Security's response
+   * actions - which Azure lets the app make only once the connection's
+   * "Data security response" setting has given it a role that may write.
+   * The token goes only to the management host; any other URL is refused
+   * before anything is sent. The answer's JSON, or {} when it has none
+   * (202 Accepted).
+   */
+  public async patch(
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> {
+    let host: string = "";
+
+    try {
+      host = new URL(url).host;
+    } catch {
+      host = "";
+    }
+
+    if (host !== new URL(this.getManagementBaseUrl()).host) {
+      throw new BadDataException(
+        `Azure ${step} must go to the connection's Resource Manager host.`,
+      );
+    }
+
+    // A setting set twice is set once: a throttled try is asked again.
+    return await withCloudRetries({
+      sleep: this.options.sleep,
+      call: async (): Promise<JSONObject> => {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const token: string = await this.tokens.getAccessToken(
+          this.getManagementBaseUrl(),
+        );
+
+        const response: DataSourceHttpResponse = await LlmProviderHttp.send({
+          transport: this.options.transport,
+          method: "PATCH",
+          url,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          timeoutInMs: this.options.requestTimeoutInMs,
+          step,
+          providerTitle: PROVIDER_TITLE,
+          secretValues: [this.options.clientSecret, token],
+        });
+
+        return readObject(response.bodyJson);
       },
     });
   }

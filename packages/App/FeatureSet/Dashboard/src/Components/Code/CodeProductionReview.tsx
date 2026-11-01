@@ -6,10 +6,13 @@ import {
   PRODUCTION_REVIEW_SECTION_LABELS,
   PRODUCTION_REVIEW_SPANS_LAST_HOUR,
   PRODUCTION_REVIEW_WHERE_LABELS,
+  ProductionReviewProviderLine,
   formatReviewDuration,
   formatReviewPercent,
   getProductionReviewNothingSentence,
+  getProductionReviewProviderLine,
   getProfileKindLabel,
+  inReviewHostWords,
   splitCodeNameAtBreaks,
   splitPointText,
 } from "./CodeProductionReviewCopy";
@@ -19,6 +22,8 @@ import PageMap from "../../Utils/PageMap";
 import { buildProfilesRoute } from "../../Utils/ProfilesUrlState";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
   PRODUCTION_REVIEW_WINDOWS,
   ProductionReviewDeployJSON,
@@ -61,6 +66,19 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export interface ComponentProps {
   report: ProductionReviewReport;
+  /*
+   * Where the repository is hosted: GitLab's words say merge request, and
+   * what a posted review holds names the host. Unset reads as GitHub.
+   */
+  provider?: string | undefined;
+  // The host's name as Code says it: "GitLab", "Forgejo", "Gitea".
+  hostName?: string | undefined;
+  /*
+   * Where the repository's LLM provider for production reviews is picked
+   * (its Settings, at Production Review LLM Provider), for those who may
+   * change it: a pick that could not be used links there.
+   */
+  llmProviderSettingsRoute?: Route | undefined;
 }
 
 const SECTION_CLASS_NAME: string =
@@ -300,14 +318,90 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
   const notableIncidents: Array<ProductionReviewIncidentJSON> =
     ProductionReviewUtil.getNotableIncidents(report.incidents);
 
+  // A sentence in the host's words: GitLab's merge request.
   const text: (key: string) => string = (key: string): string => {
-    return translator.translateText(key) || key;
+    const sentence: string = inReviewHostWords(key, props.provider);
+
+    return translator.translateText(sentence) || sentence;
   };
 
   const days: (count: number) => string = (count: number): string => {
     return translator.translateTemplate("Last {{days}} days", {
       days: translator.formatNumber(count),
     });
+  };
+
+  const providerLine: ProductionReviewProviderLine | null =
+    getProductionReviewProviderLine(report.llmProvider);
+
+  /*
+   * The LLM provider that read the review, when the repository picks one:
+   * named where What to watch says OneUptime AI read the facts - or, when
+   * the pick could not be used, a warning that says which provider read it
+   * instead and why, wherever the review says what AI did: marked as one
+   * (not by its colour alone), with Change in Settings for those who may
+   * pick another.
+   */
+  const renderProviderLine: (
+    line: ProductionReviewProviderLine,
+    place: "after-list" | "after-line" | "alone",
+  ) => ReactElement = (
+    line: ProductionReviewProviderLine,
+    place: "after-list" | "after-line" | "alone",
+  ): ReactElement => {
+    const placeClassName: string =
+      place === "after-list"
+        ? "mt-2 text-xs"
+        : place === "after-line"
+          ? "mt-1.5 text-xs"
+          : "text-sm";
+    const sentence: string = translator.translateTemplate(line.template, {
+      provider: line.providerName,
+    });
+
+    if (!line.isWarning) {
+      return (
+        <p
+          data-testid="production-review-llm-provider"
+          data-llm-provider="picked"
+          className={`${placeClassName} [overflow-wrap:anywhere] text-gray-500`}
+        >
+          {sentence}
+        </p>
+      );
+    }
+
+    return (
+      <div
+        data-testid="production-review-llm-provider"
+        data-llm-provider="fell-back"
+        className={`${placeClassName} flex items-start gap-1.5 text-amber-700`}
+      >
+        <Icon
+          icon={IconProp.Alert}
+          className={`${
+            place === "alone" ? "mt-0.5 h-4 w-4" : "mt-px h-3.5 w-3.5"
+          } flex-shrink-0 text-amber-500`}
+        />
+        <p className="min-w-0 [overflow-wrap:anywhere]">
+          {sentence}
+          {props.llmProviderSettingsRoute ? (
+            <>
+              {" "}
+              <Link
+                to={props.llmProviderSettingsRoute}
+                dataTestId="production-review-llm-provider-settings"
+                className="font-medium text-amber-900 underline hover:text-amber-700"
+              >
+                <>{text(PRODUCTION_REVIEW_COPY.openSettings)}</>
+              </Link>
+            </>
+          ) : (
+            <></>
+          )}
+        </p>
+      </div>
+    );
   };
 
   const renderPoints: () => ReactElement = (): ReactElement => {
@@ -352,27 +446,55 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
               },
             )}
           </ul>
-          <p className="mt-2 text-xs text-gray-500">
-            {text(PRODUCTION_REVIEW_COPY.pointsBy)}
-          </p>
+          {providerLine && !providerLine.isWarning ? (
+            renderProviderLine(providerLine, "after-list")
+          ) : (
+            <p className="mt-2 text-xs text-gray-500">
+              {text(PRODUCTION_REVIEW_COPY.pointsBy)}
+            </p>
+          )}
+          {providerLine?.isWarning ? (
+            renderProviderLine(providerLine, "after-line")
+          ) : (
+            <></>
+          )}
         </section>
       );
     }
 
-    if (report.aiNote) {
+    /*
+     * No points: why, when the review says - and a pick that could not be
+     * used, even when the read had nothing to say.
+     */
+    const fellBack: ProductionReviewProviderLine | null =
+      providerLine?.isWarning ? providerLine : null;
+
+    if (report.aiNote || fellBack) {
       return (
         <div
           data-testid="production-review-ai-note"
-          data-ai-note={report.aiNote.code}
+          {...(report.aiNote ? { "data-ai-note": report.aiNote.code } : {})}
           className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 sm:px-5"
         >
           <Icon
             icon={IconProp.Sparkles}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
-          <p className="min-w-0">
-            {text(PRODUCTION_REVIEW_AI_NOTES[report.aiNote.code])}
-          </p>
+          <div className="min-w-0">
+            {report.aiNote ? (
+              <p>{text(PRODUCTION_REVIEW_AI_NOTES[report.aiNote.code])}</p>
+            ) : (
+              <></>
+            )}
+            {fellBack ? (
+              renderProviderLine(
+                fellBack,
+                report.aiNote ? "after-line" : "alone",
+              )
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
       );
     }
@@ -889,7 +1011,11 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
               {text(PRODUCTION_REVIEW_COPY.nothingFoundTitle)}
             </p>
             <p className="mt-1 text-sm leading-6 text-gray-600">
-              {getProductionReviewNothingSentence(report, translator)}
+              {getProductionReviewNothingSentence(
+                report,
+                translator,
+                props.provider,
+              )}
             </p>
           </div>
         </div>
@@ -909,7 +1035,15 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
           />
           <p className="min-w-0">
-            {text(PRODUCTION_REVIEW_COPY.aggregatesOnly)}
+            {CodeHost.readType(props.provider) === CodeRepositoryType.GitHub
+              ? text(PRODUCTION_REVIEW_COPY.aggregatesOnly)
+              : translator.translateTemplate(
+                  PRODUCTION_REVIEW_COPY.aggregatesOnlyHost,
+                  {
+                    host:
+                      props.hostName || CodeHost.getFacts(props.provider).name,
+                  },
+                )}
           </p>
         </div>
       ) : (

@@ -461,6 +461,8 @@ describe("every cloud, one paste", () => {
       config: {
         authMethod: CloudConnectionAuthMethod.AwsRole,
         roleArn: ROLE_ARN,
+        dataSecurity: "off",
+        dataSecurityResponse: "off",
         readIntervalInMinutes: "10",
         readScope: "account",
       },
@@ -630,6 +632,8 @@ describe("testing and connecting", () => {
         tenantId: TENANT,
         clientId: APP,
         cloud: "public",
+        dataSecurity: "off",
+        dataSecurityResponse: "off",
         readIntervalInMinutes: "5",
         readScope: "account",
       },

@@ -61,6 +61,7 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { isOnCallPersonPage } from "../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallPageAgainRun } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallEmptyLevelMovedOnAtOnce } from "../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
@@ -763,6 +764,8 @@ export default class OnCallPolicyRunMessage {
             name: true,
             email: true,
           },
+          // What the person who paged wrote (OnCallPersonPage).
+          pageMessage: true,
         },
         props: {
           isRoot: true,
@@ -1320,6 +1323,22 @@ export default class OnCallPolicyRunMessage {
         }
 
         /*
+         * Paged as a member of a team the page or the rule named: the line
+         * names the team, once per team.
+         */
+        if (step.userBelongsToTeamId) {
+          const teamName: string =
+            step.userBelongsToTeam?.name?.trim() || "(unnamed)";
+          const teams: Array<string> = person.teams || [];
+
+          if (!teams.includes(teamName)) {
+            teams.push(teamName);
+          }
+
+          person.teams = teams;
+        }
+
+        /*
          * Paged as the next in a schedule's rotation - the backup after
          * whoever is on call: the line says so, once per schedule.
          */
@@ -1703,9 +1722,13 @@ export default class OnCallPolicyRunMessage {
         ? (executionLog.pagingStartedEarlyReason || "").trim()
         : "";
 
+    // What the person who paged wrote, quoted under the first line.
+    const pageMessage: string = (executionLog.pageMessage || "").trim();
+
     return {
       ...waiting,
       ...(startedEarlyReason ? { startedEarlyReason: startedEarlyReason } : {}),
+      ...(pageMessage ? { pageMessage: pageMessage } : {}),
       ...(isOnCallPageAgainRun(executionLog)
         ? { pageAgainNumber: Number(executionLog.pageAgainNumber) }
         : {}),
@@ -1793,6 +1816,20 @@ export default class OnCallPolicyRunMessage {
         if (
           statusMessage === ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE
         ) {
+          /*
+           * A page a person asked for goes on whether or not somebody else
+           * acknowledges the record (OnCallPersonPage). Ending with nobody
+           * answering while somebody is on the record, it went unanswered:
+           * nobody needs to take the record. Read once, as it ends: the
+           * ending is kept as it was first told (keepEnding).
+           */
+          if (
+            isOnCallPersonPage(executionLog) &&
+            (await data.record.isAcknowledged())
+          ) {
+            return { outcome: OnCallPolicyRunOutcome.NobodyAnswered };
+          }
+
           return { outcome: OnCallPolicyRunOutcome.NobodyAcknowledged };
         }
 

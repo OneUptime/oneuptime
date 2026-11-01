@@ -24,13 +24,16 @@ services:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - DOCKER_SWARM_CLUSTER_NAME=${DOCKER_SWARM_CLUSTER_NAME:-docker-swarm}
-      # Lower this if the host's daemon is older: docker version --format '{{ .Server.APIVersion }}'
-      # Keep the default here: the config references the variable and, unlike the
-      # Docker Host agent, there is no image ENV to fall back on when it is unset.
-      # Set it to an empty value to negotiate the version with the daemon instead.
-      # Hence "${VAR-default}" and not "${VAR:-default}": the colon form would
-      # replace an explicitly empty value with the default and swallow that.
-      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}
+      # This node's name, stamped as docker.swarm.node.name on its containers'
+      # metrics and logs (a Docker Swarm monitor's Node Name filter matches
+      # it). install.sh writes the node's hostname, the name `docker node ls`
+      # shows: docker info --format '{{.Name}}'. Empty: no node name is
+      # stamped, and only the node's ID (docker.swarm.node.id) is.
+      - DOCKER_SWARM_NODE_NAME=${DOCKER_SWARM_NODE_NAME:-}
+      # Empty: the collector negotiates the Docker Engine API version with the
+      # daemon, which works from Engine 20.10 on. Set it only to pin a version
+      # (no higher than docker version --format '{{ .Server.APIVersion }}').
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
       # Required. otel-collector-config.yaml stamps oneuptime.agent.version
       # from this, and the collector refuses to start pipelines when a
       # referenced env var is unset — it would crash-loop rather than run
@@ -39,11 +42,12 @@ services:
       # is the upstream collector plus this config, it is the version of
       # these files: the collector `image:` above pins, with the last number
       # raised each time the files change on the same collector (0.161.1:
-      # the CPU processors, #5076). OneUptime shows a sign beside an agent
-      # that reports less. Raise it with any change to this file, the
-      # collector config or inventory-snapshot.sh, and set it back to the
+      # the CPU processors, #5076; 0.161.2: the service and node of each
+      # task, and the negotiated API version). OneUptime shows a sign beside
+      # an agent that reports less. Raise it with any change to this file,
+      # the collector config or inventory-snapshot.sh, and set it back to the
       # collector's version when `image:` moves on.
-      - APP_VERSION=${APP_VERSION:-0.161.1}
+      - APP_VERSION=${APP_VERSION:-0.161.2}
     restart: unless-stopped
     logging:
       driver: json-file
@@ -68,8 +72,9 @@ services:
       - swarm-inventory:/var/log
     environment:
       - DOCKER_INVENTORY_INTERVAL_SECONDS=${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}
-      # Same pin as the collector above; the poller builds its Docker API URL from it.
-      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}
+      # Same value as the collector above; the poller builds its Docker API
+      # URL from it (empty: the daemon's own version, see the script).
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
     # Pin the sidecar to a manager node when deployed as a stack:
     #   deploy:
     #     placement:

@@ -35,15 +35,15 @@ COPY ./agents/DockerAgent/otel-collector-config.yaml /etc/otelcol-contrib/config
 # `${env:DOCKER_HOST_NAME}` placeholder in the baked-in config.
 ENV DOCKER_HOST_NAME=docker-host
 
-# Docker Engine API version the docker_stats receiver speaks. Kept as an env var
-# so a host whose daemon is older than this can lower it without replacing the
-# baked-in config: a daemon refuses a client newer than its own maximum, and the
-# rejected receiver fails to start, which takes the whole collector down with it.
-#
-# 1.44 keeps the behaviour the image has always had. Setting it to the empty
-# string is also supported and makes the receiver auto-negotiate the version with
-# the daemon instead of pinning one -- see otel-collector-config.yaml.
-ENV DOCKER_API_VERSION=1.44
+# Docker Engine API version the docker_stats receiver speaks. EMPTY: the
+# receiver negotiates the version with the daemon (one HEAD /_ping, then the
+# daemon's own maximum), which works on every Engine the agent supports, 20.10
+# (API 1.41) included. The image used to pin 1.44, which a daemon older than
+# Engine 25 refuses as "client version 1.44 is too new" -- and the refused
+# receiver takes the whole collector down with it, so the agent restart-looped
+# on Engine 20.10 to 24. Set it (-e DOCKER_API_VERSION=1.41) only to pin a
+# version -- see otel-collector-config.yaml.
+ENV DOCKER_API_VERSION=
 
 # Run as root so the collector can read the Docker socket and
 # /var/lib/docker/containers/*/*-json.log without additional user/group

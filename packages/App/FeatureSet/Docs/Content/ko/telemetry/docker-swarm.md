@@ -13,7 +13,7 @@ OneUptime Docker Swarm 에이전트는 Docker Swarm 클러스터의 노드, 서�
 
 에이전트는 컨테이너 세 개이며, 모두 하나의 `docker-compose.yml`에 정의되어 있습니다:
 
-1. **Collector**: OpenTelemetry Collector로, 각 컨테이너의 메트릭을 위해 `docker_stats`를 읽고, 컨테이너의 로그 파일을 따라가며, 인벤토리 스냅샷 파일도 따라갑니다. 모든 것에 클러스터 이름(`docker.swarm.cluster.name`)을 붙여 OTLP로 OneUptime에 보냅니다.
+1. **Collector**: OpenTelemetry Collector로, 각 컨테이너의 메트릭을 위해 `docker_stats`를 읽고, 컨테이너의 로그 파일을 따라가며, 인벤토리 스냅샷 파일도 따라갑니다. 모든 것에 클러스터 이름(`docker.swarm.cluster.name`)을 붙이고, 각 태스크의 메트릭에는 그 태스크의 서비스와 노드를 붙여 OTLP로 OneUptime에 보냅니다.
 2. **인벤토리 폴러**: `curl`과 `jq`로 된 작은 사이드카로, 5분마다 Swarm 매니저의 API(`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`)를 순회하고 서비스 레이블 `com.docker.stack.namespace`에서 스택을 알아냅니다. 객체마다 JSON 한 줄을 쓰고, Collector가 이를 전달합니다.
 3. **AI 에이전트**: `oneuptime-docker-swarm-ai-agent`로, OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 요청하는 `docker` 명령을 실행합니다. 수정을 허용하지 않는 한 읽기 전용입니다([AI 에이전트](#ai-에이전트) 참고).
 
@@ -56,7 +56,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-스크립트는 OneUptime URL, 수집 키, 클러스터 이름을 묻습니다. `/opt/oneuptime-docker-swarm-agent`에 설치하고, 소유자만 읽을 수 있는 `.env` 파일을 쓰고, 컨테이너 세 개를 모두 시작합니다. AI 에이전트를 빼려면 `--no-ai-agent`를 추가하세요.
+스크립트는 OneUptime URL, 수집 키, 클러스터 이름을 묻습니다. `/opt/oneuptime-docker-swarm-agent`에 설치하고, 소유자만 읽을 수 있는 `.env` 파일을 쓰면서 노드의 호스트 이름을 `DOCKER_SWARM_NODE_NAME`으로 넣고, 컨테이너 세 개를 모두 시작합니다. AI 에이전트를 빼려면 `--no-ai-agent`를 추가하세요.
 @tab Docker Compose
 [DockerSwarmAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent)에서 `docker-compose.yml`, `otel-collector-config.yaml`, `inventory-snapshot.sh`를 매니저 노드의 새 폴더로 내려받으세요:
 
@@ -73,6 +73,12 @@ chmod +x inventory-snapshot.sh
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+여기에 노드 이름을 추가하세요. Collector가 이 이름을 노드의 컨테이너 메트릭에 붙입니다:
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 에이전트를 시작하세요:
@@ -98,15 +104,16 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ## 환경 변수
 
-설치 스크립트는 처음 세 개를 `/opt/oneuptime-docker-swarm-agent/.env`에 씁니다. Docker Compose 설치는 `docker-compose.yml` 옆의 `.env`에서 읽습니다. 거기서 어느 것이든 추가하거나 바꾼 다음, 그 폴더에서 `docker compose up -d`를 실행하세요.
+설치 스크립트는 처음 네 개를 `/opt/oneuptime-docker-swarm-agent/.env`에 씁니다. Docker Compose 설치는 `docker-compose.yml` 옆의 `.env`에서 읽습니다. 거기서 어느 것이든 추가하거나 바꾼 다음, 그 폴더에서 `docker compose up -d`를 실행하세요.
 
 | 변수 | 필수 | 설명 |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 예 | OneUptime URL(예: `https://oneuptime.com` 또는 자체 호스팅 인스턴스). 인스턴스가 HTTP 전용이면 `http://`와 해당 포트를 사용하세요. |
 | `ONEUPTIME_SERVICE_TOKEN` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
 | `DOCKER_SWARM_CLUSTER_NAME` | 아니요 | OneUptime에서의 클러스터 이름이자 모든 노드의 데이터를 묶는 키로, 모든 것에 `docker.swarm.cluster.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 클러스터가 등록됩니다. 기본값은 `docker-swarm`입니다. |
+| `DOCKER_SWARM_NODE_NAME` | 아니요 | 노드의 이름으로, 그 노드에 있는 컨테이너의 메트릭과 로그에 `docker.swarm.node.name` 리소스 속성으로 붙으며, [Docker Swarm 모니터](/docs/monitor/docker-swarm-monitor#모니터-설정)는 이것으로 필터링합니다. 설치 스크립트는 `docker node ls`에 표시되는 노드의 호스트 이름으로 설정합니다. 비어 있으면 노드 이름을 붙이지 않습니다. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | 아니요 | 인벤토리 폴러가 스냅샷을 찍는 간격(초). 기본값은 `300`입니다. |
-| `DOCKER_API_VERSION` | 아니요 | Collector와 인벤토리 폴러가 사용하는 Docker Engine API 버전. 기본값은 `1.44`이며, 비워 두면 데몬과 협상합니다([문제 해결](#문제-해결) 참고). AI 에이전트는 지정하지 않는 한 협상합니다. |
+| `DOCKER_API_VERSION` | 아니요 | Collector와 인벤토리 폴러가 사용하는 Docker Engine API 버전. 기본값은 비어 있으며, 이때는 데몬 자체의 버전을 사용하므로 Docker Engine 20.10 이상이면 모두 작동합니다. 버전을 고정할 때만 설정하세요([문제 해결](#문제-해결) 참고). AI 에이전트는 지정하지 않는 한 협상합니다. |
 
 AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있습니다.
 
@@ -119,9 +126,11 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 | 컨테이너 CPU, 메모리, 프로세스 수, 가동 시간 | `docker_stats` 리시버 | **메트릭** 페이지 |
 | 컨테이너 stdout 및 stderr 로그 | `filelog` 리시버 | **로그** 페이지 |
 
+각 태스크의 메트릭에는 `docker_stats` 리시버가 추가하는 컨테이너의 신원(`container.name`, `container.image.name`, `container.id`, `container.runtime=docker`), Collector가 Swarm이 태스크에 붙이는 레이블에서 복사하는 서비스와 노드 ID(`docker.swarm.service.name`, `docker.swarm.node.id`), 그리고 `DOCKER_SWARM_NODE_NAME`에서 가져온 노드 이름(`docker.swarm.node.name`)이 담깁니다. [Docker Swarm 모니터](/docs/monitor/docker-swarm-monitor#모니터-설정)는 이것들로 필터링합니다.
+
 ### Docker 에이전트와의 차이
 
-[Docker 에이전트](/docs/telemetry/docker-host)는 호스트 하나를 모델링하며 `host.name`과 `container.runtime=docker`를 붙입니다. Docker Swarm 에이전트는 의도적으로 `docker.swarm.cluster.name`만 붙입니다. 그러면 OneUptime은 각 노드를 별도의 호스트로 등록하는 대신 데이터를 Swarm 클러스터 아래에 정리합니다.
+[Docker 에이전트](/docs/telemetry/docker-host)는 호스트 하나를 모델링하며 모든 것에 `host.name`을 붙입니다. Docker Swarm 에이전트는 의도적으로 `docker.swarm.cluster.name`을 붙이고 `host.name`은 절대 붙이지 않습니다. 그러면 OneUptime은 각 노드를 별도의 호스트로 등록하는 대신 데이터를 Swarm 클러스터 아래에 정리합니다.
 
 ## 프로젝트 레이블로 클러스터에 태그 붙이기
 
@@ -225,13 +234,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-데몬의 가장 높은 API 버전이 기본값 `1.44`보다 낮아서(Docker Engine 20.10은 `1.41`까지), `docker_stats` 리시버가 시작되지 못하고 컨테이너가 계속 재시작됩니다. 데몬의 가장 높은 버전을 확인하세요:
+데몬의 가장 높은 API 버전이 Collector가 요청한 버전보다 낮아서(Docker Engine 20.10은 `1.41`까지), `docker_stats` 리시버가 시작되지 못하고 컨테이너가 계속 재시작됩니다. Collector는 `DOCKER_API_VERSION`이 버전을 지정하지 않는 한 데몬과 버전을 협상하는데, 버전 0.161.2보다 오래된 에이전트 파일은 `1.44`로 고정되어 있었습니다. [에이전트를 업그레이드하고](#에이전트-업그레이드), 에이전트가 실행되는 모든 노드에서 `.env`에 버전이 지정된 `DOCKER_API_VERSION`이 있으면 빼세요(또는 `DOCKER_API_VERSION=`처럼 비워 두세요).
+
+그래도 버전을 고정하려면 데몬의 가장 높은 버전을 넘지 않는 값을 사용하세요:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-`.env`에서 `DOCKER_API_VERSION`을 그 값으로 설정하고, 에이전트가 실행되는 모든 노드에서 `docker compose up -d`를 실행하세요. 새 데몬도 이전 API 버전을 계속 지원하므로, Docker를 업그레이드한 뒤에도 이 설정은 계속 동작합니다. 또는 `DOCKER_API_VERSION=`(빈 값)으로 설정하면 Collector가 버전을 고정하지 않고 데몬과 협상합니다.
+`.env`에서 `DOCKER_API_VERSION`을 그 값으로 설정하고, 에이전트가 실행되는 모든 노드에서 `docker compose up -d`를 실행하세요. 새 데몬도 이전 API 버전을 계속 지원하므로, Docker를 업그레이드한 뒤에도 이 설정은 계속 동작합니다.
 :::
 
 :::details 클러스터가 잘못된 이름으로 나타남

@@ -566,6 +566,9 @@ describe("ResourceAiDeleteCleanup", () => {
         [AiResourceType.CephCluster]: 'the Ceph cluster "x"',
         [AiResourceType.DatabaseServer]: 'the database server "x"',
         [AiResourceType.Host]: 'the host "x"',
+        [AiResourceType.AwsAccount]: 'the AWS account "x"',
+        [AiResourceType.AzureSubscription]: 'the Azure subscription "x"',
+        [AiResourceType.GoogleCloudProject]: 'the Google Cloud project "x"',
       };
 
       for (const resourceType of ALL_AI_RESOURCE_TYPES) {

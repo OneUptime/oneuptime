@@ -782,6 +782,14 @@ test.describe("the Teams list", () => {
         await screenshot(page, "teams-built-in-locked");
       }
 
+      /*
+       * One Escape never does two things (Tooltip/TooltipEscape, #5420): the
+       * first puts the tooltip away and leaves the menu open, the next one
+       * closes the menu.
+       */
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("tooltip")).toBeHidden();
+      await expect(menu).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(menu).toBeHidden();
     }

@@ -32,12 +32,12 @@ In de modus **Alleen-lezen** krijgt het model nooit acties aangeboden, dus het g
 | --- | --- |
 | Elke pagina | Klik op **AI vragen** in de kopbalk, of druk op `Ctrl` + `I` (`Cmd` + `I` op een Mac). Terwijl je in een tekstvak of editor typt, blijven die toetsen de cursiefsneltoets van de editor. |
 | Het opdrachtenpalet | Druk op `Ctrl` + `K` (`Cmd` + `K` op een Mac) en kies **AI vragen**. |
-| Een foutpatroon in de logs, of de bevindingen van een grafiek | Klik op **Explain with AI**: AI vragen opent met het bewijs als een vraag die je kunt aanpassen voordat je hem verstuurt. |
+| Een foutpatroon in de logs, of de bevindingen van een grafiek | Klik op **Uitleggen met AI**: AI vragen opent met het bewijs als een vraag die je kunt aanpassen voordat je hem verstuurt. |
 | Het productmenu | Open **Producten → AI → Chat**. AI vragen opent boven de pagina waarop je was. Elk gesprek heeft een eigen adres, zodat je het als bladwijzer kunt bewaren en ernaar kunt terugkeren. |
 
 AI vragen opent in het midden van het scherm, boven de pagina waarop je was, en vult op een telefoon het hele scherm. Druk op `Esc`, of klik ernaast, om terug te gaan naar de pagina. Het gesprek blijft waar je het liet: open AI vragen opnieuw om verder te gaan. Sluit je hem terwijl hij nog antwoordt, dan zegt een melding in de hoek wanneer het antwoord klaar is, en opent die het.
 
-Bij een incident of waarschuwing heeft de kaart **AI Investigation** een eigen gesprek, **Ask OneUptime AI**, dat iedereen deelt die dat incident of die waarschuwing kan zien: zie [Met OneUptime AI over het incident praten](/docs/ai/ai-sre#praat-met-oneuptime-ai-over-het-incident).
+Bij een incident of waarschuwing heeft de kaart **OneUptime AI** een eigen gesprek, **Ask OneUptime AI**, dat iedereen deelt die dat incident of die waarschuwing kan zien: zie [Met OneUptime AI over het incident praten](/docs/ai/ai-sre#praat-met-oneuptime-ai-over-het-incident).
 
 ## Wat hij kan zien
 
@@ -87,7 +87,7 @@ Wat AI vragen kan doen als een modus het toestaat:
 - Een interne notitie plaatsen bij een incident of waarschuwing. Interne notities verschijnen nooit op een statuspagina.
 - Een openbare statusupdate bij een incident publiceren. Dat is een aparte actie, omdat de abonnees van de statuspagina een melding krijgen.
 - Een bereikbaarheidsbeleid oproepen, een runbook uitvoeren of een AI-onderzoek van een incident of waarschuwing starten.
-- Een codewijziging voorstellen: committen op een nieuwe branch van een gekoppelde repository en een pull request openen. Hij schrijft nooit naar de standaardbranch of een beschermde branch, dus een mens merget de wijziging nog altijd.
+- Een codewijziging voorstellen: committen op een nieuwe branch van een repository op GitHub, GitLab, Forgejo of Gitea en een pull request openen (een merge request op GitLab). Hij schrijft nooit naar de standaardbranch of een beschermde branch, dus een mens merget de wijziging nog altijd.
 
 Vraag om een incident als gebruikers geraakt worden, en om een waarschuwing als iets eerst de aandacht van je team nodig heeft, zoals het geheugen van een host dat blijft stijgen. Beide worden één keer aangemaakt en bewaken niets: om elke keer gewaarschuwd te worden als het geheugen van een host boven 75% komt, maak je een [host-monitor](/docs/monitor/host-monitor#kant-en-klare-waarschuwingssjablonen) vanuit zijn geheugensjabloon, met 75% als drempel. AI vragen kan geen monitoren aanmaken. Vraag je erom, dan zegt het dat, controleert het de huidige waarde en biedt het aan een waarschuwing aan te maken als die er al boven zit.
 

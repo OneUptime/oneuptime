@@ -58,6 +58,8 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Elastic Security](/docs/integrations/elastic-security) | Båda | Hämtar detektionslarm från Elastic Security till Säkerhetshändelser, och skickar dit det OneUptime hittar. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inkommande | Hämtar fynd från AWS Security Hub till Säkerhetshändelser. |
 | [Okta System Log](/docs/integrations/okta) | Inkommande | Hämtar inloggningar, kontoändringar och hotdetektioner från Okta till Säkerhetshändelser. |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inkommande | Hämtar inloggningar och katalogändringar från Microsoft Entra ID och Microsoft 365-granskningsloggen till Säkerhetshändelser. |
+| [Google Workspace](/docs/integrations/google-workspace) | Inkommande | Hämtar inloggningar, administratörsändringar och detektioner från Google Workspace till Säkerhetshändelser. |
 
 ### Ärendehantering och IT-tjänstehantering
 

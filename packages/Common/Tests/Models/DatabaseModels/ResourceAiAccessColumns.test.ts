@@ -1,5 +1,6 @@
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -29,6 +30,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
+  CLOUD_AI_RESOURCE_TYPES,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -135,6 +137,14 @@ const CASES: Array<ResourceCase> = [
     noun: "host",
     edit: Permission.EditHost,
     read: Permission.ReadHost,
+  },
+  // The three clouds' accounts share one table, read and edited like their resources.
+  {
+    type: AiResourceType.AwsAccount,
+    model: CloudAccount,
+    noun: "account",
+    edit: Permission.EditCloudResource,
+    read: Permission.ReadCloudResource,
   },
 ];
 
@@ -291,15 +301,26 @@ function caseTable(): Array<[string, ResourceCase]> {
 }
 
 describe("resource AI access columns - coverage", () => {
-  it("covers every AiResourceType exactly once, with the model of that name", () => {
+  it("covers every AiResourceType exactly once, with the model of that name, and the clouds with their account", () => {
     expect(
       CASES.map((resource: ResourceCase) => {
         return resource.type;
       }),
-    ).toEqual([...ALL_AI_RESOURCE_TYPES]);
+    ).toEqual(
+      ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+        return (
+          !CLOUD_AI_RESOURCE_TYPES.includes(type) ||
+          type === CLOUD_AI_RESOURCE_TYPES[0]
+        );
+      }),
+    );
 
     for (const resource of CASES) {
-      expect(new resource.model().tableName).toBe(resource.type);
+      expect(new resource.model().tableName).toBe(
+        CLOUD_AI_RESOURCE_TYPES.includes(resource.type)
+          ? "CloudAccount"
+          : resource.type,
+      );
     }
   });
 

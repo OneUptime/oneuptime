@@ -757,6 +757,11 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.SecurityCaseView]: "Security case",
   [AIChatCitationTargetType.ThreatIntel]: "Threat Intel",
   [AIChatCitationTargetType.SecurityPlaybooks]: "Playbooks",
+  [AIChatCitationTargetType.DataStores]: "Data stores",
+  [AIChatCitationTargetType.DataStoreView]: "Data store",
+  [AIChatCitationTargetType.DataSecurityIssues]: "Data security issues",
+  [AIChatCitationTargetType.DataSecurityIssueView]: "Data security issue",
+  [AIChatCitationTargetType.DataSecurityAccess]: "Data Security access",
 };
 
 // The page an evidence target opens, for "Open in <page>".

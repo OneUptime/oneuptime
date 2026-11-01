@@ -1120,11 +1120,16 @@ export default class FixProductionVerifier {
       return;
     }
 
+    /*
+     * A fix that did not hold in production is the exception coming back:
+     * it reopens as Regressed, as an occurrence after a person's resolve
+     * reopens it at ingest (ExceptionIssueState).
+     */
     await TelemetryExceptionService.updateOneById({
       id: exception.id!,
       data: isResolved
         ? { isResolved: true, markedAsResolvedAt: now }
-        : { isResolved: false },
+        : { isResolved: false, regressedAt: now },
       props: { isRoot: true },
     });
   }

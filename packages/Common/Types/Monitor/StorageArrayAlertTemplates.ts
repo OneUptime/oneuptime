@@ -3,7 +3,9 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import { FilterType } from "./CriteriaFilter";
@@ -15,6 +17,7 @@ import StorageSystem, {
 } from "../StorageArray/StorageSystem";
 
 export type StorageArrayAlertTemplateCategory =
+  | "Availability"
   | "Array Health"
   | "Capacity"
   | "Performance"
@@ -279,6 +282,74 @@ function singleQueryTemplate(
 
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
+
+/*
+ * "Array Stopped Reporting", one per platform: the heartbeat is the
+ * platform's identity series. Every endpoint the Storage Array Agent scrapes
+ * exports it (`purefa_info` / `purefb_info`, value 1, with the array's name
+ * and version as labels - agents/StorageArrayAgent/README.md), the array
+ * endpoint every 60 seconds, whatever state the array is in. Ungrouped and
+ * counted: only a window with no row at all is the breach.
+ */
+function arrayStoppedReportingTemplate(data: {
+  id: string;
+  storageSystem: StorageSystem;
+  platformName: string;
+  infoMetricName: string;
+}): StorageArrayAlertTemplate {
+  return {
+    id: data.id,
+    name: "Array Stopped Reporting",
+    summary: "The array sends no data for 10 minutes.",
+    description: `Alert when the ${data.platformName} sends no data for ten minutes: the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the array stopped answering it (down, unreachable, or its read-only API token no longer works). Reads ${data.infoMetricName}, which every endpoint the agent scrapes exports on every scrape.`,
+    category: "Availability",
+    severity: "Critical",
+    storageSystems: [data.storageSystem],
+    getMonitorStep: (args: StorageArrayAlertTemplateArgs): MonitorStep => {
+      const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+      return buildStorageArrayMonitorStep({
+        storageArrayMonitor: buildStorageArrayMonitorConfig({
+          arrayIdentifier: args.arrayIdentifier,
+          storageSystem: data.storageSystem,
+          metricName: data.infoMetricName,
+          metricAlias,
+          rollingTime: RollingTime.Past10Minutes,
+          aggregationType: MetricsAggregationType.Count,
+        }),
+        ...buildStoppedReportingCriteriaInstances({
+          onlineMonitorStatusId: args.onlineMonitorStatusId,
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          incidentSeverityId: args.defaultIncidentSeverityId,
+          alertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+          metricAlias,
+          resourceNoun: "storage array",
+          incidentTitle: `[Storage Array] Array Stopped Reporting - ${args.monitorName}`,
+          incidentDescription: `OneUptime has received no data from this ${data.platformName} for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the array's management address answers from the agent's machine, whether the read-only user's API token still works, whether the Storage Array Agent's containers are running and what the collector's log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.`,
+          criteriaName: "Array Stopped Reporting - No data for 10 minutes",
+          criteriaDescription: `Triggers when the array sends no ${data.infoMetricName} data for the whole ten-minute window.`,
+        }),
+      });
+    },
+  };
+}
+
+const faStoppedReportingTemplate: StorageArrayAlertTemplate =
+  arrayStoppedReportingTemplate({
+    id: "purefa-array-stopped-reporting",
+    storageSystem: FA,
+    platformName: "FlashArray",
+    infoMetricName: "purefa_info",
+  });
+
+const fbStoppedReportingTemplate: StorageArrayAlertTemplate =
+  arrayStoppedReportingTemplate({
+    id: "purefb-array-stopped-reporting",
+    storageSystem: FB,
+    platformName: "FlashBlade",
+    infoMetricName: "purefb_info",
+  });
 
 // Recovery for a state-in-a-label series: the series is gone.
 const RECOVER_WHEN_ABSENT: SingleQueryTemplateSpec["recover"] = {
@@ -758,6 +829,7 @@ const fbFileSystemNearFullTemplate: StorageArrayAlertTemplate =
 
 export function getAllStorageArrayAlertTemplates(): Array<StorageArrayAlertTemplate> {
   return [
+    faStoppedReportingTemplate,
     faCriticalAlertsTemplate,
     faWarningAlertsTemplate,
     faCapacityHighTemplate,
@@ -769,6 +841,7 @@ export function getAllStorageArrayAlertTemplates(): Array<StorageArrayAlertTempl
     faDriveFailedTemplate,
     faHostConnectivityTemplate,
     faReplicaLagTemplate,
+    fbStoppedReportingTemplate,
     fbCriticalAlertsTemplate,
     fbWarningAlertsTemplate,
     fbCapacityHighTemplate,
@@ -829,4 +902,19 @@ export function getStorageArrayAlertTemplateById(
       return template.id === id;
     },
   );
+}
+
+/*
+ * The template a NEW storage array monitor starts on: the array going
+ * silent, for the array's platform. It is the one template that still speaks
+ * when every other one has stopped being evaluated, and it has no threshold
+ * to tune. An array whose platform is not known yet gets the FlashArray one,
+ * the agent's default platform (STORAGE_SYSTEM).
+ */
+export function getStorageArrayDefaultAlertTemplateId(
+  system?: string | null | undefined,
+): string {
+  return system === FB
+    ? fbStoppedReportingTemplate.id
+    : faStoppedReportingTemplate.id;
 }

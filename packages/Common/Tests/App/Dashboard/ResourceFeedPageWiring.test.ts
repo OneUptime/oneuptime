@@ -113,6 +113,13 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     routesFile: "CloudResourceRoutes.tsx",
   },
   {
+    product: "Cloud accounts",
+    pageMapKey: "CLOUD_ACCOUNT_VIEW_FEED",
+    urlPrefix: "cloud/accounts",
+    pagesDirectory: "Cloud/Accounts",
+    routesFile: "CloudResourceRoutes.tsx",
+  },
+  {
     product: "Databases",
     pageMapKey: "DATABASE_SERVER_VIEW_FEED",
     urlPrefix: "databases",
@@ -143,7 +150,7 @@ function read(...segments: Array<string>): string {
 
 describe("Resource feed pages", () => {
   test("every product that grew a feed is covered here", () => {
-    expect(FEED_PAGES.length).toBe(13);
+    expect(FEED_PAGES.length).toBe(14);
   });
 
   test.each(FEED_PAGES)(

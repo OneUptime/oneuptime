@@ -96,6 +96,11 @@ const COVERED: Record<string, Coverage> = {
     suites: [MORE_SETTINGS_ONE_CARD],
     drawnBy: "Pages/Dashboards/View/Sharing",
   },
+  "packages/App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/Scanning.tsx":
+    {
+      suites: ["DataSecurityScanningSettings.test.tsx"],
+      drawnBy: "Pages/DataSecurity/Settings/Scanning",
+    },
   "packages/App/FeatureSet/Dashboard/src/Pages/Forms/View/Share.tsx": {
     suites: [MORE_SETTINGS_ONE_CARD, "FormsPages.test.tsx"],
     drawnBy: "Pages/Forms/View/Share",

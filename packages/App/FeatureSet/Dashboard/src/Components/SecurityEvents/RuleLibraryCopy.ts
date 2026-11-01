@@ -37,6 +37,7 @@ export const RULE_LIBRARY_CATEGORY_TITLES: Record<
   [DetectionRuleLibraryCategory.Network]: translationKey("Network"),
   [DetectionRuleLibraryCategory.Web]: translationKey("Web"),
   [DetectionRuleLibraryCategory.Kubernetes]: translationKey("Kubernetes"),
+  [DetectionRuleLibraryCategory.DataSecurity]: translationKey("Data security"),
 };
 
 // What each kind of event is called, in the Data column and a rule's details.
@@ -44,9 +45,17 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.SignIns]: translationKey("Sign-in events"),
   [DetectionRuleDataKind.AccountChanges]: translationKey("Account changes"),
   [DetectionRuleDataKind.OktaSystemLog]: translationKey("Okta System Log"),
+  [DetectionRuleDataKind.EntraId]: translationKey("Microsoft Entra ID"),
+  [DetectionRuleDataKind.GoogleWorkspace]: translationKey("Google Workspace"),
   [DetectionRuleDataKind.ProcessEvents]: translationKey("Process events"),
+  [DetectionRuleDataKind.WindowsEvents]: translationKey("Windows events"),
   [DetectionRuleDataKind.SudoLogs]: translationKey("sudo logs"),
   [DetectionRuleDataKind.AwsCloudTrail]: translationKey("AWS CloudTrail"),
+  [DetectionRuleDataKind.GoogleCloudAuditLogs]: translationKey(
+    "Google Cloud audit logs",
+  ),
+  [DetectionRuleDataKind.AzureActivityLog]:
+    translationKey("Azure Activity Log"),
   [DetectionRuleDataKind.NetworkActivity]: translationKey("Network activity"),
   [DetectionRuleDataKind.WebRequests]: translationKey("Web requests"),
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
@@ -58,32 +67,51 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
     "OneUptime audit log",
   ),
   [DetectionRuleDataKind.SessionReplays]: translationKey("Session replays"),
+  [DetectionRuleDataKind.DataSecurity]: translationKey(
+    "Changes to sensitive data stores",
+  ),
 };
 
 /*
  * How to start sending a kind of event, for a rule whose events do not
  * arrive yet, and where that is done: Connections - a product to connect,
  * or "Your logs" on it - or, for network events, which come from a
- * firewall or a SIEM, the Setup Guide.
+ * firewall or a SIEM, the Setup Guide; for Data Security's, which come
+ * from a cloud account it reads, connecting one.
  */
 export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.SignIns]: translationKey(
-    "Connect Okta, Microsoft Sentinel, Google SecOps or another source, or find SSH sign-ins in the logs you send.",
+    "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.",
   ),
   [DetectionRuleDataKind.AccountChanges]: translationKey(
-    "Connect Okta, or another source that sends account changes.",
+    "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.",
   ),
   [DetectionRuleDataKind.OktaSystemLog]: translationKey(
     "Connect Okta to read its System Log.",
   ),
+  [DetectionRuleDataKind.EntraId]: translationKey(
+    "Connect Microsoft Entra ID, or send its sign-in and audit logs to OneUptime from Azure and find security events in your logs.",
+  ),
+  [DetectionRuleDataKind.GoogleWorkspace]: translationKey(
+    "Connect Google Workspace to read its audit logs.",
+  ),
+  [DetectionRuleDataKind.WindowsEvents]: translationKey(
+    "Send your Windows machines' event logs to OneUptime and find security events in your logs.",
+  ),
   [DetectionRuleDataKind.ProcessEvents]: translationKey(
-    "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.",
+    "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.",
   ),
   [DetectionRuleDataKind.SudoLogs]: translationKey(
     "Send your servers' auth logs to OneUptime and find security events in your logs.",
   ),
   [DetectionRuleDataKind.AwsCloudTrail]: translationKey(
     "Send CloudTrail to OneUptime as logs and find security events in your logs.",
+  ),
+  [DetectionRuleDataKind.GoogleCloudAuditLogs]: translationKey(
+    "Send your Google Cloud audit logs to OneUptime and find security events in your logs.",
+  ),
+  [DetectionRuleDataKind.AzureActivityLog]: translationKey(
+    "Send your Azure Activity Log to OneUptime through a diagnostic setting and find security events in your logs.",
   ),
   [DetectionRuleDataKind.NetworkActivity]: translationKey(
     "Send firewall, flow log or IDS events to OneUptime, or connect a SIEM that has them.",
@@ -105,6 +133,9 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   ),
   [DetectionRuleDataKind.SessionReplays]: translationKey(
     "Record session replays of signed-in users and find security events in your session replays.",
+  ),
+  [DetectionRuleDataKind.DataSecurity]: translationKey(
+    "Connect an AWS account with Data Security on: changes to the stores it finds sensitive arrive as security events.",
   ),
 };
 
@@ -130,9 +161,15 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
   [DetectionRuleDataKind.SignIns]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.AccountChanges]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.OktaSystemLog]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.EntraId]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.GoogleWorkspace]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.ProcessEvents]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.WindowsEvents]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.SudoLogs]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.AwsCloudTrail]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.GoogleCloudAuditLogs]:
+    PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.AzureActivityLog]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.NetworkActivity]:
     PageMap.SECURITY_EVENTS_DOCUMENTATION,
   [DetectionRuleDataKind.WebRequests]: PageMap.SECURITY_EVENTS_CONNECTIONS,
@@ -143,16 +180,25 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
   [DetectionRuleDataKind.OneUptimeAuditLog]:
     PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.SessionReplays]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.DataSecurity]: PageMap.CLOUD_CONNECT,
 };
 
 export const GO_TO_CONNECTIONS: string = translationKey("Go to Connections");
 export const OPEN_SETUP_GUIDE: string = translationKey("Open the Setup Guide");
+export const CONNECT_A_CLOUD_ACCOUNT: string = translationKey(
+  "Connect a cloud account",
+);
 
 // The link under a rule whose events do not arrive yet.
 export function getDataKindSendLinkText(kind: DetectionRuleDataKind): string {
-  return DATA_KIND_SEND_PAGE[kind] === PageMap.SECURITY_EVENTS_DOCUMENTATION
-    ? OPEN_SETUP_GUIDE
-    : GO_TO_CONNECTIONS;
+  switch (DATA_KIND_SEND_PAGE[kind]) {
+    case PageMap.SECURITY_EVENTS_DOCUMENTATION:
+      return OPEN_SETUP_GUIDE;
+    case PageMap.CLOUD_CONNECT:
+      return CONNECT_A_CLOUD_ACCOUNT;
+    default:
+      return GO_TO_CONNECTIONS;
+  }
 }
 
 // Whether the project sends what a rule reads, in a word, and in a sentence.

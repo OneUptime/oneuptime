@@ -96,10 +96,21 @@ export interface FacetConfig {
    */
   chosenValue?: string | undefined;
   /*
-   * One plain-language line under the title saying what the facet's values
-   * mean. Drawn in the reader's language.
+   * What the facet is about, in one or two plain sentences (English, drawn
+   * in the reader's language). Never spelled out under the title, where a
+   * paragraph pushed the values down the sidebar: an (i) beside the title
+   * shows it on hover, keyboard focus or a tap, and a screen reader hears it
+   * as the (i)'s description.
    */
   description?: string | undefined;
+  /*
+   * What each value is, value -> one plain sentence (English, drawn in the
+   * reader's language): the Span Type's "Where a trace starts." for Root
+   * spans. The (i) beside the title lists every one under its value's name,
+   * and a described value's row says its own on hover and keyboard focus,
+   * and to a screen reader as the row's description.
+   */
+  valueDescriptionMap?: Record<string, string> | undefined;
 }
 
 export interface SearchHelpRow {

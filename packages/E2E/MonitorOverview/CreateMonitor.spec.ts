@@ -1222,7 +1222,7 @@ test.describe("Create Monitor, start to finish", () => {
  * step on Quick Setup: pick a template, and it fills in the metric, the
  * thresholds and the criteria. The list carried every template's whole
  * description - up to 509 characters of metric names and formulas,
- * seventeen cards one under the other. Now each template is one compact
+ * seventeen cards one under the other (eighteen since #5421). Now each template is one compact
  * row (name, severity, one line saying when it fires), two to a line on a
  * wide screen. Once one is picked the list folds into it, the way the type
  * picker on step one does: its row with Change, its full description
@@ -1230,7 +1230,7 @@ test.describe("Create Monitor, start to finish", () => {
  * seventeen rows used to put them a screen away from the row clicked.
  */
 test.describe("Quick Setup's alert templates", () => {
-  const KUBERNETES_TEMPLATE_COUNT: number = 17;
+  const KUBERNETES_TEMPLATE_COUNT: number = 18;
   const ETCD_DESCRIPTION_START: string =
     "Requires the agent's control-plane scrape";
 
@@ -1272,6 +1272,7 @@ test.describe("Quick Setup's alert templates", () => {
     await expect(
       page.getByTestId("alert-template-picker").getByRole("heading"),
     ).toHaveText([
+      "Availability",
       "Workload",
       "Node",
       "Control Plane",
@@ -1279,11 +1280,17 @@ test.describe("Quick Setup's alert templates", () => {
       "Scheduling",
     ]);
 
-    // Two to a line: the first two Workload templates share a top.
+    /*
+     * Two to a line: the first two Workload templates share a top (#5421's
+     * Cluster Stopped Reporting has the Availability group to itself).
+     */
+    const workloadRows: Locator = page
+      .getByTestId("alert-template-group-Workload")
+      .getByRole("radio");
     const first: { x: number; y: number; width: number; height: number } =
-      await boxOf(rows.nth(0));
+      await boxOf(workloadRows.nth(0));
     const second: { x: number; y: number; width: number; height: number } =
-      await boxOf(rows.nth(1));
+      await boxOf(workloadRows.nth(1));
     expect(Math.abs(first.y - second.y)).toBeLessThan(2);
     expect(second.x).toBeGreaterThan(first.x + first.width - 2);
 
@@ -1453,7 +1460,7 @@ test.describe("Quick Setup's alert templates", () => {
     await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
       "Node Not Ready",
     );
-    await expect(criteriaName).toContainText("Node NotReady");
+    await expect(criteriaName).toContainText("Node Not Ready");
   });
 
   test("fits a phone: one row a line, and the folded template uses the screen's width", async ({

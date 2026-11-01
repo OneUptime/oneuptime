@@ -2,7 +2,11 @@ import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import JsonWebTokenKeys from "../../../Server/Utils/JsonWebTokenKeys";
 import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import { JSONObject } from "../../../Types/JSON";
-import { fastestRun, FastestRun } from "../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../../Helpers/FastestRun";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -200,35 +204,31 @@ describe("JsonWebTokenKeys", () => {
       return verified;
     }
 
-    const withText: FastestRun<number> = fastestRun({
-      run: (): number => {
+    // Each pair is timed in turns (fastestRunsCompared): one stall cannot slow one side alone.
+    const verifies: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         return verifyWith(secret);
       },
-      limitInMs: 0,
-    });
-    const withKey: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         return verifyWith(JsonWebTokenKeys.forVerifying(secret) as jwt.Secret);
       },
-      limitInMs: 0,
     });
+    const withText: FastestRun<number> = verifies.first;
+    const withKey: FastestRun<number> = verifies.second;
 
     expect(withKey.result).toBe(withText.result);
     // Measured about four times faster; two leaves room for a busy runner.
     expect(withKey.inMs * 2).toBeLessThan(withText.inMs);
 
-    const signText: FastestRun<number> = fastestRun({
-      run: (): number => {
+    const signs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
         for (let index: number = 0; index < calls; index++) {
           jwt.sign({ a: index }, secret);
         }
 
         return calls;
       },
-      limitInMs: 0,
-    });
-    const signKey: FastestRun<number> = fastestRun({
-      run: (): number => {
+      second: (): number => {
         for (let index: number = 0; index < calls; index++) {
           jwt.sign(
             { a: index },
@@ -238,8 +238,9 @@ describe("JsonWebTokenKeys", () => {
 
         return calls;
       },
-      limitInMs: 0,
     });
+    const signText: FastestRun<number> = signs.first;
+    const signKey: FastestRun<number> = signs.second;
 
     expect(signKey.inMs * 2).toBeLessThan(signText.inMs);
   });

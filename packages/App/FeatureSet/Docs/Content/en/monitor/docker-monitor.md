@@ -4,7 +4,7 @@ A Docker monitor watches the containers on one Docker host and tells you when a 
 
 :::cards
 - [Create the monitor](#create-a-docker-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Six ready-made alerts, one incident per container.
+- [Templates](#pre-built-alert-templates): Seven ready-made alerts, one incident per container.
 - [Metrics](#collected-metrics): What the agent collects, and what each metric means.
 - [Logs](#collected-logs): Container logs, and the log driver they need.
 :::
@@ -84,20 +84,24 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers six templates. Each builds a complete monitor: a query grouped by `resource.container.name`, a criteria that fires and one that recovers. Every container is judged on its own, so one busy container does not hide another, and each breaching container gets its own incident and alert. Thresholds are starting points you can edit.
+**Quick Setup** offers seven templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Host Stopped Reporting** groups its query by `resource.container.name`, so every container is judged on its own, one busy container does not hide another, and each breaching container gets its own incident and alert. Thresholds are starting points you can edit.
 
 Unless the table says otherwise, a criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critical | `container.memory.percent`, Count over every container on the host, past 10 minutes | No data for the whole window | Data arrives again |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, past 5 minutes | Above 85% | At or below 76.5% |
 | Container Restart Loop | Critical | Growth of `container.restarts` per container, past 15 minutes | More than 3 restarts in the window (Sum) | 2.7 or fewer |
 | Container CPU Throttling | Warning | Growth of `container.cpu.throttling_data.throttled_time` in ms per container, past 5 minutes | More than 1000 ms in the window (Sum) | 900 ms or less |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, past 5 minutes | Above 2000 | At or below 1800 |
-| Container Down (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Equal to 0 | Above 0 |
+| Container Restarted (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Below 120 seconds | At or above 132 seconds |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
+
+> [!NOTE]
+> **Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the host is down, or the agent stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you. A host with no other containers still reports, because the agent runs as a container and reports its own.
 
 > [!NOTE]
 > `container.cpu.utilization` is the number `docker stats` prints, averaged over the agent's 30-second interval: 100% is one full CPU core, not the whole host, so a container using two cores reads 200. On a multi-core host the 80 threshold is a CPU budget, not a share of the machine.
@@ -106,10 +110,10 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 > `container.memory.percent` divides by the container's memory limit when one is set, and by the **host's** total memory when it is not. Check whether the container was started with `--memory` before you treat a breach as an imminent out-of-memory kill.
 
 > [!WARNING]
-> `container.restarts` and `container.cpu.throttling_data.throttled_time` only ever grow, so those two templates alert on how much they grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real activity, and the thresholds already allow for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting.
+> `container.restarts` and `container.cpu.throttling_data.throttled_time` only ever grow, so those two templates alert on how much they grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real activity, and the thresholds already allow for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting. The agent also samples running containers only, so a container that exits the moment it starts is rarely sampled at all: **Container Restarted (Low Uptime)** fires on every restart the agent does see.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** cannot catch a container that stops and stays stopped. The agent only reports running containers, so a stopped container sends no data at all and its uptime never reads 0. For a service that must stay up, also watch what it serves — for example with an [API Monitor](/docs/monitor/api-monitor).
+> `container.uptime` exists only for running containers. A container that stops and stays stopped sends no data, so **Container Restarted (Low Uptime)** catches restarts and redeploys, not a permanent shutdown. A container meant to run for less than two minutes stays in the alerting state for its whole life. For a service that must stay up, also watch what it serves — for example with an [API Monitor](/docs/monitor/api-monitor).
 
 ## Collected Metrics
 
@@ -143,8 +147,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver against the Docker sock
 
 | Metric | Description |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes read from block devices. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes written to block devices. |
+| `container.blockio.io_service_bytes_recursive` | Bytes read and written on each block device since the container started, split by `operation` (`read`, `write`). A lifetime counter. The list offers it filtered to reads and to writes. |
 
 ### Container
 
@@ -154,7 +157,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver against the Docker sock
 | `container.restarts` | Times the container has restarted since it was created. A lifetime counter. |
 | `container.pids.count` | Tasks in the container. The cgroup pids controller counts threads as well as processes. |
 
-The **Docker Metric** list also offers `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` and the network packet counters. The shipped agent configuration does not turn these on, so check the host's **Metrics** page before you build on them. `container.cpu.throttling_data.throttled_periods` is not in the list; query it from **Advanced**.
+`container.cpu.throttling_data.throttled_periods` is not in the **Docker Metric** list; query it from **Advanced**.
 
 ## Monitoring criteria
 
@@ -164,7 +167,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -180,11 +183,11 @@ A monitor you do not build from a template starts with two criteria:
 
 | Order | Criteria | Matches when | Then |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
-| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
 
 > [!IMPORTANT]
-> Silence matches neither criteria: a host that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Collected logs
 

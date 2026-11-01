@@ -5,14 +5,18 @@
  */
 
 import CodeFixTaskContext, {
+  CodeHostPullRequestTaskContext,
   GitHubTaskContext,
   InvestigationCodeFixTaskSnapshot,
   ProductionReviewTaskContext,
+  getCodeHostPullRequestTaskContext,
   getGitHubConversationNumber,
   getGitHubTaskContext,
   getInvestigationCodeFixTaskSnapshot,
   getProductionReviewTaskContext,
+  getReviewedPullRequest,
 } from "../../../Types/AI/CodeFixTaskContext";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import { ProductionReviewTrigger } from "../../../Types/CodeRepository/ProductionReview";
 import GitHubCommandType from "../../../Types/CodeRepository/GitHubCommand";
 import { describe, expect, test } from "@jest/globals";
@@ -333,5 +337,147 @@ describe("getProductionReviewTaskContext", () => {
     expect(
       getProductionReviewTaskContext(context as CodeFixTaskContext),
     ).toBeNull();
+  });
+});
+
+/*
+ * A merge request on GitLab, or a pull request on Forgejo or Gitea, that a
+ * production review is about: whole - its repository, a host other than
+ * GitHub that has production reviews, a number - or none. Written by the
+ * server only, but read back from JSON like every task context.
+ */
+describe("getCodeHostPullRequestTaskContext", () => {
+  const onGitLab: CodeHostPullRequestTaskContext = {
+    codeRepositoryId: "repo-row-id",
+    provider: CodeRepositoryType.GitLab,
+    pullRequestNumber: 12,
+    pullRequestUrl: "https://gitlab.example.com/acme/x/-/merge_requests/12",
+  };
+
+  test("reads a whole one back, on GitLab and on Forgejo", () => {
+    expect(
+      getCodeHostPullRequestTaskContext({ codeHostPullRequest: onGitLab }),
+    ).toBe(onGitLab);
+
+    const onForgejo: CodeHostPullRequestTaskContext = {
+      ...onGitLab,
+      provider: CodeRepositoryType.Forgejo,
+    };
+
+    expect(
+      getCodeHostPullRequestTaskContext({ codeHostPullRequest: onForgejo }),
+    ).toBe(onForgejo);
+  });
+
+  test.each([
+    ["no context", undefined],
+    ["no pull request", {}],
+    [
+      "GitHub's - which is named in github, never here",
+      { ...onGitLab, provider: CodeRepositoryType.GitHub },
+    ],
+    [
+      "a Git server's, which has none",
+      { ...onGitLab, provider: CodeRepositoryType.Git },
+    ],
+    ["a host it does not know", { ...onGitLab, provider: "Bitbucket" }],
+    ["no repository", { ...onGitLab, codeRepositoryId: " " }],
+    ["a number that is none", { ...onGitLab, pullRequestNumber: 0 }],
+    ["a fraction", { ...onGitLab, pullRequestNumber: 1.5 }],
+    ["a number as text", { ...onGitLab, pullRequestNumber: "12" }],
+  ])("%s is none", (_name: string, pullRequest: unknown) => {
+    expect(
+      getCodeHostPullRequestTaskContext(
+        pullRequest === undefined
+          ? undefined
+          : ({ codeHostPullRequest: pullRequest } as CodeFixTaskContext),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("getReviewedPullRequest: the pull request a review is of, on any host", () => {
+  test("GitHub's from github", () => {
+    expect(
+      getReviewedPullRequest({
+        github: github({
+          commandType: GitHubCommandType.ProductionReview,
+          issueNumber: undefined,
+          pullRequestNumber: 42,
+          isPullRequestFromFork: true,
+        }),
+      }),
+    ).toEqual({
+      codeRepositoryId: "repo-row-id",
+      provider: CodeRepositoryType.GitHub,
+      number: 42,
+      isFromFork: true,
+    });
+  });
+
+  test("any other host's from codeHostPullRequest, with its page when the task knows it", () => {
+    expect(
+      getReviewedPullRequest({
+        codeHostPullRequest: {
+          codeRepositoryId: "repo-row-id",
+          provider: CodeRepositoryType.GitLab,
+          pullRequestNumber: 12,
+          pullRequestUrl:
+            "https://gitlab.example.com/acme/x/-/merge_requests/12",
+        },
+      }),
+    ).toEqual({
+      codeRepositoryId: "repo-row-id",
+      provider: CodeRepositoryType.GitLab,
+      number: 12,
+      isFromFork: false,
+      url: "https://gitlab.example.com/acme/x/-/merge_requests/12",
+    });
+
+    expect(
+      getReviewedPullRequest({
+        codeHostPullRequest: {
+          codeRepositoryId: "repo-row-id",
+          provider: CodeRepositoryType.Forgejo,
+          pullRequestNumber: 3,
+          isPullRequestFromFork: true,
+          pullRequestUrl: "",
+        },
+      }),
+    ).toEqual({
+      codeRepositoryId: "repo-row-id",
+      provider: CodeRepositoryType.Forgejo,
+      number: 3,
+      isFromFork: true,
+    });
+  });
+
+  test("an issue, or nothing, is no pull request a review is of", () => {
+    expect(getReviewedPullRequest({ github: github() })).toBeNull();
+    expect(getReviewedPullRequest({})).toBeNull();
+    expect(getReviewedPullRequest(undefined)).toBeNull();
+  });
+
+  test("a production review of a merge request is whole with its ask", () => {
+    const review: ProductionReviewTaskContext = {
+      requestNumber: 1,
+      requestedAt: "2026-10-22T10:00:00.000Z",
+      headSha: "abc1234",
+      trigger: ProductionReviewTrigger.PullRequestChanged,
+      isAuthorTrusted: true,
+      checkRunId: 7,
+      checkRunHeadSha: "abc1234",
+    };
+
+    expect(
+      getProductionReviewTaskContext({
+        codeHostPullRequest: {
+          codeRepositoryId: "repo-row-id",
+          provider: CodeRepositoryType.GitLab,
+          pullRequestNumber: 12,
+        },
+        productionReview: review,
+      }),
+    ).toBe(review);
   });
 });

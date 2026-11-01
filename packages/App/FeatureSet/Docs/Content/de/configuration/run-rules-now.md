@@ -14,7 +14,7 @@ flowchart TB
 
 ## Welche Regeln sich ausführen lassen
 
-- **Beschriftungsregeln** und **Eigentümerregeln**, für jede Ressource, die sie hat: Monitore, Vorfälle, Vorfall-Episoden, Warnungen, Warnungs-Episoden, Ereignisse geplanter Wartung, Statusseiten, Dienste, Hosts, Kubernetes-Cluster, Docker-Hosts, Docker-Swarm-Cluster, Podman-Hosts, Proxmox-Cluster, VMware-vCenter, Ceph-Cluster, Speicher-Arrays, Datenbanken, Warteschlangen, IoT-Flotten, Serverless-Funktionen, Cloud-Ressourcen, RUM-Anwendungen, Dashboards, Bereitschaftsrichtlinien, Bereitschaftspläne, Richtlinien für eingehende Anrufe, Workflows, Runbooks, Netzwerkgeräte und SLOs.
+- **Beschriftungsregeln** und **Eigentümerregeln**, für jede Ressource, die sie hat: Monitore, Vorfälle, Vorfall-Episoden, Warnungen, Warnungs-Episoden, Ereignisse geplanter Wartung, Statusseiten, Dienste, Hosts, Kubernetes-Cluster, Docker-Hosts, Docker-Swarm-Cluster, Podman-Hosts, Proxmox-Cluster, VMware-vCenter, Ceph-Cluster, Speicher-Arrays, Datenbanken, Datenspeicher, Warteschlangen, IoT-Flotten, Serverless-Funktionen, Cloud-Ressourcen, RUM-Anwendungen, Dashboards, Bereitschaftsrichtlinien, Bereitschaftspläne, Richtlinien für eingehende Anrufe, Workflows, Runbooks, Netzwerkgeräte und SLOs.
 - **Datenschutzregeln**, für Vorfälle, Warnungen, Vorfall-Episoden und Warnungs-Episoden.
 - **Monitor-Regeln** auf einer Statusseite. Sie gleichen die Seite ohnehin bei jedem Speichern einer Regel neu ab; wenn Sie eine ausführen, geschieht das sofort.
 - **Monitor-Regeln** auf einem SLO. Sie gleichen das SLO ohnehin bei jedem Speichern einer Regel neu ab; wenn Sie eine ausführen, werden die Monitore des SLOs sofort neu abgeglichen. Siehe [Monitore und Monitor-Regeln](/docs/slo/monitor-rules).

@@ -694,3 +694,176 @@ describe("ports, versions and intervals", () => {
     }
   });
 });
+
+describe("a cloud account's identity and settings", () => {
+  function cloud(
+    alias: string,
+    env: Record<string, string> = {},
+  ): ParsedConfig {
+    return parseConfig({
+      ...VALID,
+      DOCKER_HOST_NAME: "",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: alias,
+      ...env,
+    });
+  }
+
+  const CLOUDS: Array<[string, AiResourceType, string, string]> = [
+    ["aws", AiResourceType.AwsAccount, "AWS_ACCOUNT_ID", "123456789012"],
+    [
+      "azure",
+      AiResourceType.AzureSubscription,
+      "AZURE_SUBSCRIPTION_ID",
+      "0b1c2d3e-4f50-4172-8394-a5b6c7d8e9f0",
+    ],
+    [
+      "gcp",
+      AiResourceType.GoogleCloudProject,
+      "GOOGLE_CLOUD_PROJECT",
+      "shop-prod-1234",
+    ],
+  ];
+
+  for (const [alias, type, variable, account] of CLOUDS) {
+    test(`${alias}: no ${variable} is not a problem — the executor asks the cloud`, () => {
+      const parsed: ParsedConfig = cloud(alias);
+
+      assert.deepStrictEqual(parsed.problems, []);
+      assert.strictEqual(parsed.config.resourceType, type);
+      assert.strictEqual(parsed.config.resourceIdentifier, null);
+      assert.strictEqual(parsed.config.identitySource, null);
+      assert.strictEqual(parsed.config.resourceId, null);
+    });
+
+    test(`${alias}: ${variable} names the account`, () => {
+      const parsed: ParsedConfig = cloud(alias, { [variable]: ` ${account} ` });
+
+      assert.deepStrictEqual(parsed.problems, []);
+      assert.strictEqual(parsed.config.resourceIdentifier, account);
+      assert.strictEqual(parsed.config.identitySource, variable);
+    });
+
+    test(`${alias}: a ${variable} that is not an account id of the cloud is a problem`, () => {
+      const parsed: ParsedConfig = cloud(alias, {
+        [variable]: "not an account",
+      });
+
+      assert.strictEqual(parsed.problems.length, 1);
+      assert.match(
+        parsed.problems[0]!,
+        new RegExp(
+          `^${variable}="not an account" is not an? .*\\. Set it to the .* the agent serves, or leave it unset: the agent asks its cloud which one it is in\\.$`,
+        ),
+      );
+    });
+  }
+
+  test("an Azure subscription id is lowercased (Azure compares them without case)", () => {
+    assert.strictEqual(
+      cloud("azure", {
+        AZURE_SUBSCRIPTION_ID: "0B1C2D3E-4F50-4172-8394-A5B6C7D8E9F0",
+      }).config.resourceIdentifier,
+      "0b1c2d3e-4f50-4172-8394-a5b6c7d8e9f0",
+    );
+  });
+
+  test("a Google Cloud project may be named by its number", () => {
+    const parsed: ParsedConfig = cloud("gcp", {
+      GOOGLE_CLOUD_PROJECT: "987654321012",
+    });
+
+    assert.deepStrictEqual(parsed.problems, []);
+    assert.strictEqual(parsed.config.resourceIdentifier, "987654321012");
+  });
+
+  test("ONEUPTIME_AI_AGENT_RESOURCE_NAME overrides the account variable, held to the same form", () => {
+    const parsed: ParsedConfig = cloud("aws", {
+      AWS_ACCOUNT_ID: "123456789012",
+      ONEUPTIME_AI_AGENT_RESOURCE_NAME: "210987654321",
+    });
+
+    assert.strictEqual(parsed.config.resourceIdentifier, "210987654321");
+    assert.strictEqual(
+      parsed.config.identitySource,
+      "ONEUPTIME_AI_AGENT_RESOURCE_NAME",
+    );
+    assert.match(
+      cloud("aws", { ONEUPTIME_AI_AGENT_RESOURCE_NAME: "prod" }).problems[0]!,
+      /^ONEUPTIME_AI_AGENT_RESOURCE_NAME="prod" is not an AWS account id \(12 digits\)/,
+    );
+  });
+
+  test("ONEUPTIME_AI_CLOUD_ACCOUNT_ID pins the OneUptime cloud account sent on registration (lowercased)", () => {
+    const parsed: ParsedConfig = cloud("aws", {
+      ONEUPTIME_AI_CLOUD_ACCOUNT_ID: ` ${DB_UUID} `,
+    });
+
+    assert.deepStrictEqual(parsed.problems, []);
+    assert.deepStrictEqual(parsed.warnings, []);
+    assert.strictEqual(parsed.config.resourceId, DB_UUID.toLowerCase());
+    // The identity still comes from the cloud.
+    assert.strictEqual(parsed.config.resourceIdentifier, null);
+  });
+
+  test("an ONEUPTIME_AI_CLOUD_ACCOUNT_ID that is not a UUID is a warning, and ignored", () => {
+    const parsed: ParsedConfig = cloud("gcp", {
+      ONEUPTIME_AI_CLOUD_ACCOUNT_ID: "prod-account",
+    });
+
+    assert.deepStrictEqual(parsed.problems, []);
+    assert.strictEqual(parsed.config.resourceId, null);
+    assert.strictEqual(parsed.warnings.length, 1);
+    assert.match(
+      parsed.warnings[0]!,
+      /^ONEUPTIME_AI_CLOUD_ACCOUNT_ID="prod-account" is not a OneUptime cloud account id \(a UUID\), so the agent ignores it/,
+    );
+  });
+
+  test("other resource types never read ONEUPTIME_AI_CLOUD_ACCOUNT_ID", () => {
+    const parsed: ParsedConfig = parse({
+      ONEUPTIME_AI_CLOUD_ACCOUNT_ID: DB_UUID,
+    });
+
+    assert.strictEqual(parsed.config.resourceId, null);
+    assert.deepStrictEqual(parsed.warnings, []);
+  });
+
+  test("the cloud settings it cannot read are said once at start-up", () => {
+    const parsed: ParsedConfig = cloud("aws", {
+      AWS_ACCOUNT_ID: "123456789012",
+      ONEUPTIME_AI_CLOUD_OPERATIONS:
+        "restart-service, Scale-Out, describe, purge, redrive-queue",
+      ONEUPTIME_AI_CLOUD_REQUIRED_TAG: "oneuptime-ai",
+      ONEUPTIME_AI_AWS_WRITE_ROLE_ARN: "OneUptimeAiAgentWrite",
+    });
+
+    assert.deepStrictEqual(parsed.problems, []);
+    assert.deepStrictEqual(parsed.warnings, [
+      'ONEUPTIME_AI_CLOUD_OPERATIONS names "describe", which is a read: reads are always available and are not listed there, so the agent ignores it.',
+      'ONEUPTIME_AI_CLOUD_OPERATIONS names "purge", which is not a cloud change, so the agent ignores it. The changes are: restart-service, start-instance, scale-out, scale-in, reboot-instance, roll-back-service, set-concurrency, fail-over-database, stop-instance, redrive-queue.',
+      'ONEUPTIME_AI_CLOUD_REQUIRED_TAG="oneuptime-ai" is not a tag written as key=value (such as oneuptime-ai=allow), so the agent changes nothing until it is fixed.',
+      'ONEUPTIME_AI_AWS_WRITE_ROLE_ARN="OneUptimeAiAgentWrite" is not an IAM role ARN (arn:aws:iam::123456789012:role/OneUptimeAiAgentWrite), so the agent changes nothing until it is fixed.',
+    ]);
+  });
+
+  test("a change another cloud has, or the AWS write role on another cloud, is a warning", () => {
+    const parsed: ParsedConfig = cloud("azure", {
+      ONEUPTIME_AI_CLOUD_OPERATIONS: "redrive-queue",
+      ONEUPTIME_AI_AWS_WRITE_ROLE_ARN:
+        "arn:aws:iam::123456789012:role/OneUptimeAiAgentWrite",
+    });
+
+    assert.deepStrictEqual(parsed.warnings, [
+      'ONEUPTIME_AI_CLOUD_OPERATIONS names "redrive-queue", which Azure does not have, so the agent ignores it.',
+      "ONEUPTIME_AI_CLOUD_OPERATIONS names no cloud change this agent knows, so it makes no change at all. List the changes it may make (restart-service, start-instance, scale-out, scale-in, reboot-instance, roll-back-service, fail-over-database, stop-instance), or leave it empty for all of them.",
+      "ONEUPTIME_AI_AWS_WRITE_ROLE_ARN is set, but this agent serves Azure, so it is ignored.",
+    ]);
+  });
+
+  test("the resource type list names the clouds", () => {
+    assert.match(
+      parseConfig({}).problems[2]!,
+      /docker, podman, docker-swarm, proxmox, vmware, ceph, database, host, aws, azure, gcp\.$/,
+    );
+  });
+});

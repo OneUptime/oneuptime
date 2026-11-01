@@ -27,13 +27,13 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
+import RemediationStep, {
   CommandApprovalPillKind,
   REMOVED_SSH_PLAN_NOTE,
   getActionErrorTitle,
   getCommandApprovalPillKind,
   hasRemovedSshCommand,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -136,7 +136,9 @@ async function renderCard(
   row: AutoRemediationSuggestion,
 ): Promise<HTMLElement> {
   serve(row);
-  render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+  render(
+    <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
+  );
   const command: HTMLElement = await screen.findByText(
     "kubectl rollout restart deployment/web -n web",
   );
@@ -229,7 +231,7 @@ describe("getCommandApprovalPillKind", () => {
   });
 });
 
-describe("RemediationSuggestionCard approval pill", () => {
+describe("RemediationStep approval pill", () => {
   test("a kubectl plan waiting for approval never shows 'auto-approved'", async () => {
     const row: HTMLElement = await renderCard(
       suggestion(AutoRemediationSuggestionStatus.Suggested, [
@@ -316,7 +318,13 @@ describe("RemediationSuggestionCard approval pill", () => {
 
     expect(within(row).queryByText("auto-approved")).not.toBeInTheDocument();
     expect(within(row).queryByText("needs approval")).not.toBeInTheDocument();
-    expect(screen.getByText("Dismissed")).toBeInTheDocument();
+    // The fix's own pill, and the Remediation step's, both say so.
+    expect(
+      within(screen.getByTestId("remediation-fix")).getByText("Dismissed"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Remediation status")).toHaveTextContent(
+      "Dismissed",
+    );
   });
 });
 
@@ -328,7 +336,7 @@ describe("RemediationSuggestionCard approval pill", () => {
  * — the cluster's remediation switched off, or its Runner or credential
  * changed, since the plan was composed — has to reach the reader intact.
  */
-describe("RemediationSuggestionCard Approve & Run", () => {
+describe("RemediationStep Approve & Run", () => {
   const APPROVE_ROUTE: string = "/auto-remediation/approve";
   const DISMISS_ROUTE: string = "/auto-remediation/dismiss";
   const SUGGESTION_ID: string = "0193c0de-6666-4aaa-8bbb-000000000006";
@@ -624,7 +632,7 @@ describe("RemediationSuggestionCard Approve & Run", () => {
  * whole ended, but not what happened to each undo; the per-command
  * rollbackExecution records were never shown.
  */
-describe("RemediationSuggestionCard rollback outcomes", () => {
+describe("RemediationStep rollback outcomes", () => {
   function rolledBackPlan(
     rollbackExecution: JSONObject | undefined,
   ): AutoRemediationSuggestion {
@@ -714,7 +722,7 @@ describe("RemediationSuggestionCard rollback outcomes", () => {
  * instead of "needs approval". A plan without one, and a plan that is no
  * longer waiting, read as before.
  */
-describe("RemediationSuggestionCard with an SSH command from before runbook credentials were removed", () => {
+describe("RemediationStep with an SSH command from before runbook credentials were removed", () => {
   const SSH_COMMAND_TEXT: string = "sudo systemctl restart nginx";
   const BASH_COMMAND_TEXT: string = "curl -fsS https://web-01.internal/healthz";
 
@@ -762,7 +770,12 @@ describe("RemediationSuggestionCard with an SSH command from before runbook cred
   // The card, once the plan's commands are on screen, and each command's row.
   async function renderPlan(row: AutoRemediationSuggestion): Promise<PlanRows> {
     serve(row);
-    render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
     const ssh: HTMLElement | null = (
       await screen.findByText(SSH_COMMAND_TEXT)
     ).closest("li");

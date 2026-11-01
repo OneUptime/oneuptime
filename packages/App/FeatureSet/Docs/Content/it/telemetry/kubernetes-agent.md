@@ -452,16 +452,7 @@ Sui cluster con pool di nodi Windows, la modalità `daemonset` copre solo i nodi
 
 ### Attivare il monitoraggio del piano di controllo
 
-La pagina **Piano di controllo** del cluster mostra i grafici di etcd, dell'API server, dello scheduler e del controller manager. L'agent li raccoglie tutti e quattro quando `controlPlane.enabled` è `true`:
-
-```bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent \
-  --reset-then-reuse-values \
-  --set controlPlane.enabled=true
-```
-
-Ogni componente viene raccolto agli indirizzi della propria lista: `controlPlane.etcd.endpoints`, `controlPlane.apiServer.endpoints`, `controlPlane.scheduler.endpoints` e `controlPlane.controllerManager.endpoints`. La raccolta avviene nel pod dell'agent, che non ha la rete dell'host, quindi i valori predefiniti (`https://localhost:<port>/metrics`) puntano a quel pod stesso: imposta ogni lista su un indirizzo che il pod può raggiungere. In qualsiasi cluster, l'API server risponde su `https://kubernetes.default.svc:443/metrics`:
+La pagina **Piano di controllo** del cluster mostra i grafici di etcd, dell'API server, dello scheduler e del controller manager. Attiva `controlPlane.enabled` e l'agent legge l'API server dove risponde all'interno di qualsiasi cluster, `https://kubernetes.default.svc:443/metrics`, con il token del suo service account:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -471,12 +462,31 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
 
-`controlPlane.enabled` attiva tutte e quattro le raccolte insieme. Dove un componente non è raggiungibile ai suoi endpoint (etcd, lo scheduler e il controller manager su un cluster gestito, o ai loro valori predefiniti `localhost`), la sua raccolta fallisce a ogni intervallo: il collector registra un errore di scrape e segnala il target come non raggiungibile, e nient'altro cambia.
+Quell'indirizzo è il valore predefinito del chart per `controlPlane.apiServer.endpoints`; impostarlo comunque sposta anche una release che ha mantenuto il valore predefinito `localhost` di un chart precedente.
 
-L'agent raccoglie solo tramite HTTPS, con il token del service account e senza certificato client. Quindi:
+etcd, lo scheduler e il controller manager girano sui nodi del piano di controllo, e la raccolta avviene nel pod dell'agent, che non ha la rete dell'host: lì `localhost` è il pod stesso. Per questo `controlPlane.etcd.endpoints`, `controlPlane.scheduler.endpoints` e `controlPlane.controllerManager.endpoints` restano vuoti finché non elenchi l'indirizzo di ogni nodo, e un componente senza endpoint non viene raccolto:
 
-- **etcd** ha bisogno di un indirizzo HTTPS per le metriche che non richieda un certificato client. Le porte delle metriche abituali di etcd sono fuori portata: l'HTTP semplice sulla `2381` (il `--listen-metrics-urls` di kubeadm) viene raccolto come HTTPS e fallisce, e la `2379` richiede certificati client.
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.scheduler.endpoints={https://10.0.0.10:10259/metrics}" \
+  --set "controlPlane.controllerManager.endpoints={https://10.0.0.10:10257/metrics}" \
+  --set "controlPlane.etcd.endpoints={http://10.0.0.10:2381/metrics}"
+```
+
+Un endpoint viene raccolto tramite HTTPS con il token del service account, a meno che non inizi con `http://`, nel qual caso viene raccolto in HTTP semplice; gli endpoint di un componente condividono un unico schema. Dove un componente non è raggiungibile ai suoi endpoint, la sua raccolta fallisce a ogni intervallo: il collector registra un errore di scrape e segnala il target come non raggiungibile, e nient'altro cambia.
+
 - **Lo scheduler** (`10259`) e **il controller manager** (`10257`) servono HTTPS e accettano il token, ma kubeadm li vincola a `127.0.0.1` sui nodi del piano di controllo: serve un `--bind-address` che il pod dell'agent possa raggiungere.
+- **etcd** espone le sue metriche in HTTP semplice sulla `2381` (il `--listen-metrics-urls` di kubeadm, vincolato a `127.0.0.1` finché non aggiungi l'indirizzo del nodo), come sopra. La sua porta client, la `2379`, serve HTTPS e chiede un certificato client: mettine uno in un Secret nel namespace dell'agent, sotto le chiavi `ca.crt`, `tls.crt` e `tls.key`, e indicalo in `controlPlane.etcd.clientCertSecret`. Su un nodo del piano di controllo kubeadm va bene il certificato del client di health check:
+
+```bash
+kubectl -n oneuptime-agent create secret generic etcd-client-cert \
+  --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+  --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+  --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+```
 
 I servizi Kubernetes gestiti (EKS, GKE, AKS) non espongono etcd, lo scheduler né il controller manager, quindi lì quelle schede restano vuote. Finché le metriche di una scheda non arrivano, la pagina **Piano di controllo** mostra al posto dei suoi grafici cosa impostare, con il comando da copiare.
 
@@ -823,7 +833,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-Questo ferma solo i log dei pod. Le metriche di nodi, pod e container continuano ad arrivare, e i monitor costruiti su di esse (OOM kill, throttling della CPU, poco spazio su PVC) continuano a funzionare: il collector di nodo resta, smette solo di leggere `/var/log/pods`. Lo stesso vale per `logs.mode: api` e `logs.mode: disabled`.
+Questo ferma solo i log dei pod. Le metriche di nodi, pod e container continuano ad arrivare, e i monitor costruiti su di esse (crash loop, nodi non pronti, pod al limite delle loro risorse, dischi dei nodi pieni) continuano a funzionare: il collector di nodo resta, smette solo di leggere `/var/log/pods`. Lo stesso vale per `logs.mode: api` e `logs.mode: disabled`.
 
 ### Snellisci l'autostrumentazione eBPF
 
@@ -877,7 +887,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 La cardinalità, cioè il numero di serie distinte, conta quanto la frequenza, perché ogni serie viene memorizzata e fatturata per conto proprio.
 
-- cAdvisor usa di proposito una allowlist. Il receiver cAdvisor (attivo per impostazione predefinita) può emettere centinaia di metriche; il chart inoltra solo le poche che usano i monitor (`cadvisor.metricsAllowlist`). Tieni la lista corta: ogni voce viene mantenuta per container, quindi una metrica in più si moltiplica per il numero di container del cluster. kube-state-metrics è disattivato per impostazione predefinita; se lo attivi (`kubeStateMetrics.enabled=true`), la sua `kubeStateMetrics.metricsAllowlist` funziona allo stesso modo.
+- cAdvisor usa di proposito una allowlist. Il receiver cAdvisor (attivo per impostazione predefinita) può emettere centinaia di metriche; il chart inoltra solo i contatori di throttling della CPU e di OOM kill di `cadvisor.metricsAllowlist`, per i tuoi grafici e monitor di metriche: nessun modello integrato li legge. Tieni la lista corta: ogni voce viene mantenuta per container, quindi una metrica in più si moltiplica per il numero di container del cluster. kube-state-metrics è disattivato per impostazione predefinita; se lo attivi (`kubeStateMetrics.enabled=true`), la sua `kubeStateMetrics.metricsAllowlist` funziona allo stesso modo, e ogni voce deve corrispondere al nome intero di una metrica.
 - Le metriche dei volumi per PVC (`kubeletstats.volumeMetrics.enabled`, attive per impostazione predefinita) emettono una serie per PVC per pod: va bene per la maggior parte dei cluster, ma è molto sui carichi di lavoro con stato (Kafka, database) con migliaia di PVC. Lì disattivale, se non controlli lo spazio su disco dei PVC, con `--set kubeletstats.volumeMetrics.enabled=false`.
 - Le metriche di saturazione (`kubeletstats.utilizationMetrics.enabled`, attive per impostazione predefinita) aggiungono 8 famiglie derivate "% della request o del limit". Non costano raccolte aggiuntive, ma se non usi i monitor di CPU e memoria rispetto al limit, scartale con `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Scarta le metriche per nome con `filters.metrics.exclude`, che vale per tutti i receiver, per tutto ciò che le allowlist dei receiver non sanno esprimere (vedi [Includere o escludere metriche per nome](#includere-o-escludere-metriche-per-nome)):
@@ -977,7 +987,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Stringi ancora di più se serve: alza `minSeverity` a `ERROR`, aggiungi `metrics` agli ambiti di una regola di namespace, oppure imposta `ebpf.enabled=false` se invii già tracce dagli SDK OpenTelemetry.
 
 > [!CAUTION]
-> Fai attenzione a ciò che tagli. Alcuni monitor dipendono da segnali specifici: disattivare `cadvisor` rimuove i monitor di OOM kill e throttling della CPU, disattivare `kubeletstats.volumeMetrics` rimuove il monitor dello spazio su PVC in esaurimento, e disattivare i log rimuove gli avvisi basati sui log. `sampling.traces.percentage` non rimuove alcun monitor, ma ridimensiona quelli basati sugli span (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`), quindi ricalibra le loro soglie. Taglia i segnali su cui non agisci, non quelli che un monitor osserva.
+> Fai attenzione a ciò che tagli. Alcuni monitor dipendono da segnali specifici: disattivare `kubeletstats.utilizationMetrics` silenzia i due modelli che controllano i pod rispetto ai limiti dei loro container, disattivare i log rimuove gli avvisi basati sui log, e disattivare `cadvisor` o `kubeletstats.volumeMetrics` rimuove le serie di throttling, OOM kill e PVC che i tuoi grafici e monitor di metriche possono leggere. `sampling.traces.percentage` non rimuove alcun monitor, ma ridimensiona quelli basati sugli span (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`), quindi ricalibra le loro soglie. Taglia i segnali su cui non agisci, non quelli che un monitor osserva.
 
 ### Misura l'effetto
 
@@ -1073,7 +1083,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## Passaggi successivi
 
 :::cards
-- [Monitor Kubernetes](/docs/monitor/kubernetes-monitor): Ricevere avvisi su crash loop, OOM kill, throttling della CPU e dischi pieni.
+- [Monitor Kubernetes](/docs/monitor/kubernetes-monitor): Ricevere avvisi su crash loop, nodi non pronti, pod al limite delle loro risorse e dischi dei nodi pieni.
 - [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost): Vedere quanto costa ogni carico di lavoro e quali richieste ridurre.
 - [Database](/docs/telemetry/databases): I carichi di lavoro di database nel cluster vengono rilevati e ottengono pagine proprie.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): Monitorare macchine Linux, macOS e Windows fuori da Kubernetes.

@@ -236,11 +236,11 @@ describe("exception detail page wiring", () => {
     );
 
     /*
-     * Resolve and Archive, then Create monitor (an Exceptions monitor for
-     * this exception), all three only where the data plan shows them.
+     * Assign, then Resolve and Archive, then Create monitor (an Exceptions
+     * monitor for this exception), all only where the data plan shows them.
      */
     expect(exceptionExplorer).toContain(
-      "{...(dataPlan.showHeaderActions?{actions:(<><ExceptionTriageActions",
+      "{...(dataPlan.showHeaderActions?{actions:(<><ExceptionAssigneeexception={telemetryException}isSaving={isAssigning}onAssign={onAssign}/><ExceptionTriageActions",
     );
     expect(exceptionExplorer).toContain("onAction={onTriageAction}");
     expect(exceptionExplorer).toContain(

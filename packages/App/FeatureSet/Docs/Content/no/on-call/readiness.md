@@ -42,10 +42,9 @@ Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Util
 | --- | --- |
 | **Mottaker** | Personen, med e-postadressen. |
 | **Status** | **Klar**, **Utilgjengelig** eller hvor mange hull personen har. |
-| **Team** | Teamene som tilkaller personen gjennom en eskaleringsregel. |
 | **Kanaler** | Ett segment per kanal: fylt for en verifisert metode, hult for en som ikke er verifisert ennå. |
 | **Coverage** | Hvor mange alvorlighetsgrader som har en regel, på hver fane, av alle. |
-| **Reached via** | Hvordan retningslinjene når personen: `Direct`, `Team`, `Schedule` eller `Override`. |
+| **Reached via** | Hvordan retningslinjene når personen: hvert team som tilkaller personen gjennom en eskaleringsregel, med navnet sitt, eller **Direct**, **Tidsplan** eller **Overstyring**. |
 
 **Coverage** i en rad viser varselmetodene til personen, hvorfor personen har statusen sin, og et rutenett over hver alvorlighetsgrad med eller uten regel. Trakten filtrerer listen etter **Mottaker**, **Status**, **Team** eller **Reached via**. Svaret kan være et minutt gammelt: **Oppdater** fastsetter det på nytt.
 

@@ -85,6 +85,11 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "dashboardDescriptionPattern",
     "dashboardLabels",
   ],
+  DataStoreLabelRule: [
+    "nameRegexPattern",
+    "descriptionRegexPattern",
+    "matchLabels",
+  ],
   DatabaseServerLabelRule: [
     "databaseServerNamePattern",
     "databaseServerDescriptionPattern",

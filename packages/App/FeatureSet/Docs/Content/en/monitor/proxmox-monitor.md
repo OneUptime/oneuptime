@@ -4,14 +4,14 @@ A Proxmox monitor watches one Proxmox VE cluster — its nodes, VMs and LXC cont
 
 :::cards
 - [Create the monitor](#create-a-proxmox-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Eleven ready-made alerts, one incident per node, guest or volume.
+- [Templates](#pre-built-alert-templates): Twelve ready-made alerts, one incident per node, guest or volume.
 - [Resource identity](#resource-identity): How to target one node, guest or storage volume.
 - [Metrics](#collected-metrics): Every `pve_*` series the monitor can alert on.
 :::
 
 ## How it works
 
-The OneUptime Proxmox Agent runs on a machine that can reach the Proxmox VE API. Every 30 seconds it scrapes prometheus-pve-exporter with the cluster and node collectors, labels each series with the resource it describes, and sends the metrics to OneUptime over OTLP, stamped with the cluster's name, `proxmox.cluster.name`. The first data registers the cluster. Proxmox VE 9 and later can instead push metrics natively, with nothing to install; see [the native push](#the-proxmox-ve-native-push).
+The OneUptime Proxmox Agent runs on a machine that can reach the Proxmox VE API. Every 30 seconds it scrapes prometheus-pve-exporter's cluster collectors once and its node collectors once for each node, labels each series with the resource it describes, and sends the metrics to OneUptime over OTLP, stamped with the cluster's name, `proxmox.cluster.name`. The first data registers the cluster. Proxmox VE 9 and later can instead push metrics natively, with nothing to install; see [the native push](#the-proxmox-ve-native-push).
 
 A Proxmox monitor is tied to one cluster. Every minute it runs its query over that cluster's metrics and compares the result with its criteria.
 
@@ -109,12 +109,13 @@ Filter on `pve.scope` or `pve.type` for one kind of resource, on `pve.id` or `id
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers 11 templates. Each builds a complete monitor — queries, attribute filters, a group-by, a criteria that fires and one that recovers. Most group by `id`, so each node, guest, volume or job gets its own incident and alert. Thresholds are starting points you can edit.
+**Quick Setup** offers 12 templates. Each builds a complete monitor — queries, attribute filters, a group-by, a criteria that fires and one that recovers. Most group by `id`, so each node, guest, volume or job gets its own incident and alert. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critical | `pve_up`, Count over the whole cluster, past 10 minutes | No data for the whole window | Data arrives again |
 | Node Offline | Critical | `pve_up` for `pve.scope = node`, Min per `id` | Below 1 | At 1 |
 | Guest Down | Warning | `pve_up` and `pve_onboot_status` for `pve.scope = guest`, Min per `id` | `pve_up` is below 1 while `pve_onboot_status` is 1 | `pve_up` is back at 1, or start on boot is turned off |
 | Cluster Quorum at Risk | Critical | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (both Sum): the share of nodes online | 50% or less | Above 55% |
@@ -129,6 +130,7 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
+- **Cluster Stopped Reporting** fires when nothing arrives from the cluster for ten minutes: the Proxmox Agent or its pve-exporter stopped, lost its route to OneUptime or had its token revoked, the Proxmox API stopped answering it, or every node of a native push went quiet. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **Down templates use Minimum**, so one down scrape trips them instead of being hidden by scrapes where the resource was up.
 - **Guest Down** only looks at guests set to start on boot, so a guest you stopped on purpose never pages.
 - **Cluster Quorum at Risk** is a proxy: pve-exporter has no corosync metric, so it counts nodes online.
@@ -146,7 +148,7 @@ Proxmox VE 9 and later can push metrics through its built-in OpenTelemetry metri
 
 ## Collected Metrics
 
-The agent scrapes prometheus-pve-exporter every 30 seconds with both the cluster and the node collectors, which also covers the exporter's `backup-info` and `replication` collectors (both on by default).
+The agent scrapes prometheus-pve-exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`, because they read only the node the exporter asks. The node collectors are `config` (start-on-boot) and `replication`; the exporter's `backup-info` (cluster) and `replication` collectors are both on by default.
 
 ### Availability
 
@@ -204,7 +206,7 @@ From the exporter's cluster-level `backup-info` collector. They report backup-**
 
 ### Replication
 
-From the exporter's node-level `replication` collector. The series exist only when the cluster has replication jobs, and carry the job id in `id`:
+From the exporter's node-level `replication` collector, read from every node in `PVE_NODES`. The series exist only when the cluster has replication jobs, and carry the job id in `id`:
 
 | Metric | Unit | Description |
 | --- | --- | --- |
@@ -223,7 +225,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -239,11 +241,11 @@ A monitor you do not build from a template starts with two criteria:
 
 | Order | Criteria | Matches when | Then |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
-| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
 
 > [!IMPORTANT]
-> Silence matches neither criteria: a cluster that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Troubleshooting
 
@@ -264,7 +266,7 @@ On the Proxmox VE native push, a node taken out of the cluster looks the same as
 :::
 
 :::details Backup or replication metrics are missing
-`pve_not_backed_up_*` comes from the exporter's `backup-info` collector and `pve_replication_*` from its `replication` collector. Both are on by default and covered by the shipped configuration's `cluster=1` and `node=1` scrape parameters. If you run your own exporter, check you have not turned them off. `pve_replication_*` only exists when the cluster has storage replication jobs.
+`pve_not_backed_up_*` comes from the exporter's `backup-info` collector and `pve_replication_*` from its `replication` collector. Both are on by default and covered by the shipped configuration: `cluster=1` once, and `node=1` for each node in `PVE_NODES`. A node missing from `PVE_NODES` sends no replication jobs, and its guests no start-on-boot flags, so **Guest Down** never fires for them. If you run your own exporter, check you have not turned them off. `pve_replication_*` only exists when the cluster has storage replication jobs.
 :::
 
 :::details Counters like pve_network_receive_bytes only ever grow

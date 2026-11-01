@@ -106,6 +106,7 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Valores da lista de observação | `Watchlist Value` |
 | Caçadas | `Hunt` |
 | Tarefas e evidências dos casos de segurança | `Security Case Task`, `Security Case Evidence` |
+| Repositórios de dados e as suas descobertas, e os problemas, as configurações, as configurações das verificações, os tipos de dados personalizados e as regras de residência da Segurança de dados | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Exportações do registro de auditoria | `Audit Log Export` |
 
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.

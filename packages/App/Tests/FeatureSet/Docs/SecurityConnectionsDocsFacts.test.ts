@@ -1,9 +1,12 @@
+import { generateKeyPairSync } from "crypto";
 import {
   AWS_SECURITY_HUB,
   CROWDSTRIKE,
   DEFENDER,
   ELASTIC,
+  ENTRA_ID,
   GOOGLE_SECOPS,
+  GOOGLE_WORKSPACE,
   OKTA,
   SECURITY_CONNECTION_PAGES,
   SENTINEL,
@@ -62,6 +65,8 @@ import MicrosoftSentinelClient, {
   MICROSOFT_SENTINEL_DEFAULT_PAGE_SIZE,
 } from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelClient";
 import ElasticSecurityConnector from "Common/Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityConnector";
+import GoogleWorkspaceConnector from "Common/Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceConnector";
+import MicrosoftEntraIdConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftEntraId/MicrosoftEntraIdConnector";
 import MicrosoftSentinelConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelConnector";
 import OktaConnector from "Common/Server/Utils/SecurityEvent/Connectors/Okta/OktaConnector";
 import SecurityEventConnectionPoller, {
@@ -170,6 +175,16 @@ const CONNECTION_PAGES: Array<ConnectionPage> = [
     provider: SecurityEventConnectorProvider.OktaSystemLog,
     messagePrefix: "Okta System Log",
   },
+  {
+    page: ENTRA_ID,
+    provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+    messagePrefix: "Microsoft Entra ID",
+  },
+  {
+    page: GOOGLE_WORKSPACE,
+    provider: SecurityEventConnectorProvider.GoogleWorkspace,
+    messagePrefix: "Google Workspace",
+  },
 ];
 
 const TOKEN: DataSourceHttpResponse = json(200, {
@@ -239,6 +254,36 @@ const OTHER_CONNECTION_SETTINGS: Partial<
     secrets: { apiToken: "00a-test-okta-api-token" },
     alertingOnly: false,
   },
+  // With its option on, so the test's checklist has the audit log's check.
+  [SecurityEventConnectorProvider.MicrosoftEntraId]: {
+    provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+    config: {
+      tenantId: TENANT_ID,
+      clientId: CLIENT_ID,
+      cloud: "public",
+      includeMicrosoft365Audit: true,
+    },
+    secrets: { clientSecret: SECRET },
+    alertingOnly: false,
+  },
+  // With Drive on, for the same reason; a real key, which the sign-in signs with.
+  [SecurityEventConnectorProvider.GoogleWorkspace]: {
+    provider: SecurityEventConnectorProvider.GoogleWorkspace,
+    config: { adminEmail: "admin@example.com", includeDrive: true },
+    secrets: {
+      serviceAccountJson: JSON.stringify({
+        type: "service_account",
+        client_email: "reader@example-project.iam.gserviceaccount.com",
+        private_key: generateKeyPairSync("rsa", {
+          modulusLength: 2048,
+          privateKeyEncoding: { type: "pkcs8", format: "pem" },
+          publicKeyEncoding: { type: "spki", format: "pem" },
+        }).privateKey,
+        token_uri: "https://oauth2.googleapis.com/token",
+      }),
+    },
+    alertingOnly: false,
+  },
 };
 
 function crowdStrikeSettings(): SecurityConnectorSettings {
@@ -276,6 +321,14 @@ function connectorFor(
 
   if (provider === SecurityEventConnectorProvider.OktaSystemLog) {
     return new OktaConnector(transport);
+  }
+
+  if (provider === SecurityEventConnectorProvider.MicrosoftEntraId) {
+    return new MicrosoftEntraIdConnector(transport);
+  }
+
+  if (provider === SecurityEventConnectorProvider.GoogleWorkspace) {
+    return new GoogleWorkspaceConnector(transport);
   }
 
   return new CrowdStrikeFalconConnector(transport);
@@ -525,6 +578,8 @@ const OVERLAP_IN_MINUTES: Partial<
   [SecurityEventConnectorProvider.ElasticSecurity]: 1,
   [SecurityEventConnectorProvider.AwsSecurityHub]: 30,
   [SecurityEventConnectorProvider.OktaSystemLog]: 15,
+  [SecurityEventConnectorProvider.MicrosoftEntraId]: 30,
+  [SecurityEventConnectorProvider.GoogleWorkspace]: 120,
 };
 
 describe("every connection page's polling", () => {

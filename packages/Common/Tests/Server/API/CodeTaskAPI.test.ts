@@ -30,8 +30,10 @@ import {
   CODE_TASK_BRANCHES_UNREADABLE_MESSAGE,
   CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE,
   CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE,
+  CODE_TASK_REVIEW_PULL_REQUEST_REFUSED_MESSAGE,
   CodeTaskListKind,
 } from "../../../Server/API/CodeTaskAPI";
+import ProductionReviewAsk from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewAsk";
 import ProductionReviewQueue, {
   ProductionReviewRequest,
 } from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
@@ -69,7 +71,7 @@ import {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
-import {
+import CodeHostAccess, {
   CodeHostConnectionState,
   CodeHostConnectionSummary,
 } from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
@@ -421,6 +423,10 @@ describe("every route is for a member of the project", () => {
     ["/code-task/reply/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/stop/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/review-again/:taskId", { taskId: TASK_ID.toString() }],
+    [
+      "/code-task/review-pull-request/:repositoryId",
+      { repositoryId: REPOSITORY_ID.toString() },
+    ],
   ])(
     "%s refuses someone who is not",
     async (route: string, params: Record<string, string>) => {
@@ -492,6 +498,8 @@ describe("every route acts as a signed-in person", () => {
       "/code-task/stop/:taskId",
       // A pull request's production review, asked again.
       "/code-task/review-again/:taskId",
+      // A pull request reviewed against production, asked by its number.
+      "/code-task/review-pull-request/:repositoryId",
       // Where a profile's frames live in the repositories (the Profiler).
       "/code-task/source-links",
     ]);
@@ -1580,5 +1588,246 @@ describe("the repositories, at a glance", () => {
       // As the server answers a command.
       expect(GitHubCommandAuthorizer.areCommandsEnabled(value)).toBe(shown);
     }
+  });
+});
+
+/*
+ * A production review of a GitLab merge request (or a Forgejo or Gitea
+ * pull request), asked again from its page: through the repository's
+ * connection, which must still work, and on the host the review was asked
+ * on - with what the task keeps of it, the head and who it trusts.
+ */
+describe("reviewing a merge request against production again, off GitHub", () => {
+  const route: string = "/code-task/review-again/:taskId";
+  let requestSpy: jest.SpyInstance;
+  let summary: CodeHostConnectionSummary;
+
+  function gitLabReview(): AIRun {
+    const value: AIRun = task();
+    value.codeFixTaskType = CodeFixTaskType.GitHubPullRequestProductionReview;
+    value.title = "fix: guard the card";
+    value.taskContext = {
+      codeHostPullRequest: {
+        codeRepositoryId: REPOSITORY_ID.toString(),
+        provider: CodeRepositoryType.GitLab,
+        pullRequestNumber: 12,
+        isPullRequestFromFork: false,
+        pullRequestUrl:
+          "https://gitlab.example.com/acme/users-api/-/merge_requests/12",
+      },
+      productionReview: {
+        requestNumber: 2,
+        requestedAt: "2026-10-22T09:00:00.000Z",
+        headSha: "abc1234",
+        trigger: ProductionReviewTrigger.PullRequestChanged,
+        isAuthorTrusted: true,
+      },
+    };
+    return value;
+  }
+
+  beforeEach(() => {
+    world.task = gitLabReview();
+    summary = {
+      connectionId: "c0de0000-0000-4000-8000-000000000003",
+      provider: CodeRepositoryType.GitLab,
+      hostUrl: "https://gitlab.example.com",
+      hostProduct: null,
+      accountLogin: "oneuptime-bot",
+      credentialHint: "abcd",
+      state: CodeHostConnectionState.Connected,
+      isReachableFromServer: true,
+    };
+    jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
+      return world.task;
+    });
+    jest
+      .spyOn(CodeHostAccess, "getConnectionSummaries")
+      .mockImplementation(async () => {
+        return new Map([[REPOSITORY_ID.toString(), summary]]);
+      });
+    requestSpy = jest
+      .spyOn(ProductionReviewQueue, "request")
+      .mockImplementation(async () => {
+        return world.task!;
+      });
+  });
+
+  test("asks again now through the connection, as the person who pressed it, on the host it was asked on", async () => {
+    const { next, result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result).toEqual({ taskId: TASK_ID.toString() });
+    expect(requestSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      codeRepositoryId: REPOSITORY_ID,
+      provider: CodeRepositoryType.GitLab,
+      pullRequestNumber: 12,
+      pullRequestTitle: "fix: guard the card",
+      headSha: "abc1234",
+      isFromFork: false,
+      trigger: ProductionReviewTrigger.OneUptime,
+      isAuthorTrusted: true,
+      requestedByUserId: USER_ID,
+      isImmediate: true,
+    });
+  });
+
+  test("a connection whose token was refused, or gone, is said as such and asks nothing", async () => {
+    summary.state = CodeHostConnectionState.TokenRefused;
+
+    const refused: { next: jest.Mock } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(refusal(refused.next).message).toBe(
+      "GitLab refused this repository's access token, so AI cannot work in it. It may have expired: replace it on the repository's Settings page in Code.",
+    );
+
+    summary.state = CodeHostConnectionState.NoConnection;
+
+    const gone: { next: jest.Mock } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(refusal(gone.next)).toBeInstanceOf(BadDataException);
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  test("a repository now on another host than the review was asked on is not asked again", async () => {
+    summary.provider = CodeRepositoryType.Forgejo;
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(BadDataException);
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Review a pull request: any of a repository's open pull (merge) requests,
+ * by its number - 12, "12", "#12" or GitLab's "!12" - for those who may ask
+ * AI in the repository. The repository is read as root for how it is
+ * reached (ProductionReviewAsk), and the answer is the review's task.
+ */
+describe("asking for a review of a pull request by its number", () => {
+  const route: string = "/code-task/review-pull-request/:repositoryId";
+  let askSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    askSpy = jest
+      .spyOn(ProductionReviewAsk, "ask")
+      .mockImplementation(async () => {
+        const run: AIRun = new AIRun();
+        run._id = TASK_ID.toString();
+        return run;
+      });
+  });
+
+  test.each([[12], ["12"], ["#12"], ["!12"], [" 12 "]] as Array<[unknown]>)(
+    "%j asks for pull request 12, as the person who asked, and answers its task",
+    async (number: unknown) => {
+      const { next, result } = await call(route, {
+        params: { repositoryId: REPOSITORY_ID.toString() },
+        body: { number } as JSONObject,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(result).toEqual({ taskId: TASK_ID.toString() });
+
+      const asked: {
+        projectId: ObjectID;
+        repository: CodeRepository;
+        pullRequestNumber: number;
+        requestedByUserId: ObjectID;
+      } = askSpy.mock.calls[0]![0] as never;
+
+      expect(asked.projectId).toEqual(PROJECT_ID);
+      expect(asked.pullRequestNumber).toBe(12);
+      expect(asked.requestedByUserId).toBe(USER_ID);
+      expect(asked.repository.gitHubAppInstallationId).toBe(INSTALLATION_ID);
+    },
+  );
+
+  test.each([
+    [0],
+    [-3],
+    ["x"],
+    [""],
+    ["12a"],
+    ["1234567890"],
+    [null],
+    [1.5],
+  ] as Array<[unknown]>)(
+    "%j is no pull request's number, said in the host's words, and nothing is asked",
+    async (number: unknown) => {
+      const { next } = await call(route, {
+        params: { repositoryId: REPOSITORY_ID.toString() },
+        body: { number } as JSONObject,
+      });
+
+      expect(refusal(next).message).toBe(
+        "Enter the number of a pull request, such as #12.",
+      );
+      expect(askSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a read-only member reads the repository but may not ask", async () => {
+    world.props = VIEWER;
+
+    const { next } = await call(route, {
+      params: { repositoryId: REPOSITORY_ID.toString() },
+      body: { number: 12 },
+    });
+
+    const error: Error = refusal(next);
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(CODE_TASK_REVIEW_PULL_REQUEST_REFUSED_MESSAGE);
+    expect(askSpy).not.toHaveBeenCalled();
+  });
+
+  test("a repository the caller may not read is not found", async () => {
+    world.repositoryReadable = false;
+
+    const { next } = await call(route, {
+      params: { repositoryId: REPOSITORY_ID.toString() },
+      body: { number: 12 },
+    });
+
+    expect(refusal(next).message).toBe(CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE);
+    expect(askSpy).not.toHaveBeenCalled();
+  });
+
+  test("what the ask refuses (a closed pull request) reaches the person, word for word", async () => {
+    askSpy.mockRejectedValue(
+      new BadDataException(
+        "The pull request is closed, so it was not reviewed.",
+      ),
+    );
+
+    const { next } = await call(route, {
+      params: { repositoryId: REPOSITORY_ID.toString() },
+      body: { number: 12 },
+    });
+
+    expect(refusal(next).message).toBe(
+      "The pull request is closed, so it was not reviewed.",
+    );
+  });
+
+  test("a repository id that is not one is refused before anything is read", async () => {
+    const { next } = await call(route, {
+      params: { repositoryId: "not-an-id" },
+      body: { number: 12 },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(BadDataException);
+    expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
   });
 });

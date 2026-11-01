@@ -100,6 +100,8 @@ describe("the suggestion helpers", () => {
       [
         "AiSuggestion.ts",
         "CodeFixSuggestion.ts",
+        // The fix in the code an incident's or alert's investigation recommends.
+        "InvestigationCodeFixSuggestion.ts",
         "ProfileFixSuggestion.ts",
         "SuggestionBlocker.ts",
         "SuggestionOffer.ts",

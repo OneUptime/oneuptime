@@ -397,16 +397,35 @@ export interface AITaskCardStateArgs {
   isArchived: boolean;
   isTasksLoading: boolean;
   isBlockedBySetup: boolean;
+  /*
+   * Why this person may not start a task (they may not edit the
+   * repository it would work in - PermissionGate's words), first: nothing
+   * else on the card is theirs to change.
+   */
+  startRefusedReason?: string | undefined;
 }
 
-export const AI_TASKS_PAUSED_REASON: string =
-  "Reopen and unarchive this exception to start AI tasks.";
+export const AI_TASKS_PAUSED_REASON: string = translationKey(
+  "Reopen and unarchive this exception to start AI tasks.",
+);
 
-export const AI_TASKS_SETUP_REASON: string =
-  "Finish the setup checklist above to start AI tasks.";
+export const AI_TASKS_SETUP_REASON: string = translationKey(
+  "Finish the setup checklist above to start AI tasks.",
+);
 
-export const AI_TASKS_LOADING_REASON: string =
-  "Checking for tasks that are already running.";
+export const AI_TASKS_LOADING_REASON: string = translationKey(
+  "Checking for tasks that are already running.",
+);
+
+/*
+ * The first sentence of why a person may not start an AI task: the task
+ * works in the exception's repository, and the server asks for permission
+ * to edit it (TelemetryExceptionService.createCodeFixRunForException).
+ * PermissionGate adds what would allow it.
+ */
+export const AI_TASKS_NOT_ALLOWED_SENTENCE: string = translationKey(
+  "AI tasks work in this exception's repository, so starting one takes permission to edit it.",
+);
 
 function getStatusDisplay(task: AIAgentTaskInfo | undefined): {
   tone: AITaskTone;
@@ -469,7 +488,9 @@ export function getAITaskCardState(args: AITaskCardStateArgs): AITaskCardState {
 
     let disabledReason: string | undefined = undefined;
 
-    if (args.isResolved || args.isArchived) {
+    if (args.startRefusedReason) {
+      disabledReason = args.startRefusedReason;
+    } else if (args.isResolved || args.isArchived) {
       disabledReason = AI_TASKS_PAUSED_REASON;
     } else if (args.isBlockedBySetup) {
       disabledReason = AI_TASKS_SETUP_REASON;

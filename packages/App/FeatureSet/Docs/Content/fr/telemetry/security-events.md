@@ -178,7 +178,22 @@ La page **Guide de configuration**, sous **Connexions**, contient ces extraits a
 
 ### Trouver des événements de sécurité dans vos journaux
 
-La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH, commande sudo, entrée d'audit Kubernetes, modification AWS CloudTrail et attaque web qu'ils contiennent est stockée comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, entrée d'audit Kubernetes et attaque web qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+
+Chaque type parvient à OneUptime sous forme de journaux ordinaires :
+
+| Type | L'envoyer depuis |
+| --- | --- |
+| Connexions SSH, sudo | Le journal système ou le journal d'authentification d'une machine Linux, avec l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
+| Événements Windows | Le récepteur `windowseventlog` du collecteur sur la machine, ou un transmetteur qui écrit chaque événement en JSON, comme NXLog ou Winlogbeat |
+| AWS CloudTrail | Un trail livré à CloudWatch Logs, lu par le récepteur `awscloudwatch` du collecteur |
+| Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text` |
+| Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw` |
+| CEF, LEEF | Le syslog du produit, relayé par [rsyslog](/docs/telemetry/syslog) |
+| Journaux d'audit Kubernetes | Le fichier de journal d'audit du serveur d'API, lu par le récepteur `filelog` du collecteur |
+| Attaques web | Le journal d'accès d'un serveur web, lu par le récepteur `filelog` du collecteur |
+
+Sur **Vos journaux**, chaque type indique quand il a été trouvé pour la dernière fois, et **Vérifier une ligne de journal** montre ce que devient une ligne que vous collez, avant qu'il en arrive une.
 
 ### Connecter un produit de sécurité
 
@@ -194,6 +209,8 @@ La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous
 | Elastic Security | Alertes de détection, comme Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, comme Detection et Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Événements de connexion, de MFA, de compte et de stratégie | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | Connexions et modifications d'annuaire, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Open Cases From** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.

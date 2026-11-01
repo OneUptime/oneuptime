@@ -204,6 +204,10 @@ const DECLARES_ADVANCED_SECTION: RegExp =
  * (the sweep below renders every menu and holds this list to what it draws).
  */
 const ADVANCED_DECLARED_IN_DATA: Readonly<Record<string, string>> = {
+  "Dashboard/src/Pages/DataSecurity/IssueView/SideMenu.tsx":
+    "a data security issue's sections are DATA_SECURITY_ISSUE_MENU, in Components/DataSecurity/IssueViewMenu.ts",
+  "Dashboard/src/Pages/DataSecurity/SideMenu.tsx":
+    "Data Security's sections are DATA_SECURITY_MENU, in Utils/DataSecurityNavigation.ts",
   "Dashboard/src/Pages/SecurityEvents/CaseView/SideMenu.tsx":
     "a security case's sections are SECURITY_CASE_MENU, in Utils/SecurityCaseNavigation.ts",
 };

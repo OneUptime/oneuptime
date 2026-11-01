@@ -150,7 +150,7 @@ Prenumerera i inställningarna **Permissions & events** för din GitHub App på:
 | **Pull request review** | ett omnämnande i texten i en inskickad granskning |
 | **Pull request review comment** | ett omnämnande i en inbäddad kommentar till diffen |
 
-Under **Repository permissions** måste **Issues** vara **Read & write**: GitHub skickar en pull requests konversationskommentarer via issues-API:t, så det är detta som låter appen kommentera på pull requests också.
+Under **Repository permissions** måste **Issues** vara **Read & write**: GitHub skickar en pull requests konversationskommentarer via issues-API:t, så det är detta som låter appen kommentera på pull requests också. **Checks** med **Read & write** låter varje produktionsgranskning lägga till en check på pull requestens senaste commit; utan den publicerar en granskning bara kommentaren.
 
 ## Prompt injection: vad som är skyddat och vad som inte är det
 

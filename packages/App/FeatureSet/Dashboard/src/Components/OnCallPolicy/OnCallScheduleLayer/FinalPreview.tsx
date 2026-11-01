@@ -1,5 +1,6 @@
 import LayersPreview from "./LayersPreview";
 import {
+  SCHEDULE_FINAL_SCHEDULE_DESCRIPTION,
   SCHEDULE_FINAL_SCHEDULE_TITLE,
   SCHEDULE_NO_LAYERS_TEST_ID,
   ScheduleNoLayersCopy,
@@ -11,7 +12,6 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Navigation from "Common/UI/Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -25,8 +25,6 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -42,7 +40,6 @@ export interface ComponentProps {
 const Layers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const [layers, setLayers] = React.useState<
@@ -220,17 +217,7 @@ const Layers: FunctionComponent<ComponentProps> = (
       {layers.length > 0 && (
         <Card
           title={SCHEDULE_FINAL_SCHEDULE_TITLE}
-          description={
-            scheduleTimezone
-              ? translator.translateTemplate(
-                  "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
-                  { timezone: scheduleTimezone },
-                )
-              : translator.translateTemplate(
-                  "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
-                  { timezone: OneUptimeDate.getCurrentTimezoneString() },
-                )
-          }
+          description={SCHEDULE_FINAL_SCHEDULE_DESCRIPTION}
         >
           <LayersPreview
             layers={layers}

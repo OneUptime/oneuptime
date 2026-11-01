@@ -48,6 +48,11 @@ import GovcCommandPolicy from "./GovcCommandPolicy";
 import CephCommandPolicy from "./CephCommandPolicy";
 import DatabaseCommandPolicy from "./DatabaseCommandPolicy";
 import HostCommandPolicy from "./HostCommandPolicy";
+import {
+  AwsCloudCommandPolicy,
+  AzureCloudCommandPolicy,
+  GcpCloudCommandPolicy,
+} from "./CloudCommandPolicy";
 
 /*
  * Bounds on a resource's command allowlist, exported so the server's save
@@ -95,6 +100,9 @@ const TOOL_POLICY_BY_TYPE: Readonly<
   [AiResourceType.CephCluster]: CephCommandPolicy,
   [AiResourceType.DatabaseServer]: DatabaseCommandPolicy,
   [AiResourceType.Host]: HostCommandPolicy,
+  [AiResourceType.AwsAccount]: AwsCloudCommandPolicy,
+  [AiResourceType.AzureSubscription]: AzureCloudCommandPolicy,
+  [AiResourceType.GoogleCloudProject]: GcpCloudCommandPolicy,
 };
 
 // Refuses everything, for a resource type this build does not know.

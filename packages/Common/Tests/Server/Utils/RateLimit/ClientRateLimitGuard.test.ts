@@ -60,7 +60,7 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
   "packages/App/FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts":
     "the project a worker run starts from",
   "packages/Common/Server/Infrastructure/GlobalCache.ts":
-    "the counters its callers name: certificate orders and production review AI reads, below",
+    "the counters its callers name: certificate orders, production review AI reads and cloud live reads, below",
   "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts":
     "OneUptime AI's production review reads per repository and day",
   "packages/Common/Server/Utils/Greenlock/CertificateOrder.ts":
@@ -71,6 +71,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "wrong two factor codes per account, wherever they come from",
   "packages/Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector.ts":
     "deploys and rollouts recorded per service or workload and hour",
+  "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
+    "OneUptime AI's live reads per cloud account and minute",
 };
 
 /*

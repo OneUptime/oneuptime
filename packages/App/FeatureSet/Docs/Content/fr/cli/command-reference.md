@@ -195,6 +195,7 @@ Les enregistrements prennent `list`, `get`, `create`, `update`, `delete` et `cou
 | Maintenance planifiée | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Équipes et astreinte | `team`, `on-call-policy` |
 | Sécurité | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| Sécurité des données | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | Libellés | `label` |
 
 La télémétrie prend `list`, `create` et `count` :

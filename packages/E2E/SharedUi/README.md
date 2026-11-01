@@ -7,7 +7,9 @@ first focus, the Duplicate, Reset and Delete cards (`DuplicateModel`,
 `SideMenuSection`, the pills (`Label`, `BooleanValue`, `DropdownValueBadge`),
 the stat tiles (`InfoCard`), the multi-selects' chips (`Dropdown`,
 `EntityDropdown`), `PeopleAvatar`, and the radios and checkboxes
-(`ChoiceRows`, `Checkbox`; `?section=choices`). A network device's Connectivity tools are
+(`ChoiceRows`, `Checkbox`; `?section=choices`), and a rule's conditions
+(`RuleCriteriaBuilder`, `?section=rules`) at the widths rule forms give
+them. A network device's Connectivity tools are
 the real `DeviceDiagnostics`. It bundles the production components with
 esbuild, replaces only the `ModelAPI` / `API` data boundary and the synthetic
 user's permissions, and serves them on `127.0.0.1:4329`. No Docker, no
@@ -23,6 +25,11 @@ The suite checks what jsdom cannot:
   cursor, keeps its own fill and keeps its look under the pointer; a busy
   button keeps its look, and a busy link keeps its spinner on its words'
   line; a locked button with a reason says why on hover;
+- on a phone (real touch events, 390 pixels), a tap on a locked button, or
+  on the help icon after a locked switch's title, shows why it is locked and
+  keeps it once the finger lifts, until the next tap; the help icon is a
+  24-pixel button on the title's line that never flips the switch, Tab
+  reaches it after the switch and its focus says why too;
 - a busy button keeps its look and its spinner also when its caller locks
   it for as long as it works (`disabled` and `isLoading` on one flag), and
   gives no hover wash;
@@ -53,7 +60,15 @@ The suite checks what jsdom cannot:
   checked the brand indigo (3:1 on the card) with a white dot, tick or dash,
   locked faded, focused with an indigo ring, in place beside their titles
   (sizes and margins the components' own), on a phone too; the light theme
-  keeps the browser's own.
+  keeps the browser's own;
+- a rule's conditions lay themselves out by their own width, not the
+  window's (`RuleCriteriaRowLayout`): on a phone the word and the remove
+  button on a line over full-width pickers; beside a dialog's steps (the
+  reminder rule's Match step, which squeezed its pickers to "Lab..." and
+  "H...") one picker a line; in a dialog with no steps the field and the
+  operator side by side over the value; on a page one line - each at 1280
+  pixels, with the longest operator ("Does not match pattern") whole, right
+  to left, dark, and all of them a phone's at 390 pixels.
 
 `Fixture/Fixture.js` records every read on `window.__fixture.reads`, every
 write on `window.__fixture.updates`, and every read it does not model on

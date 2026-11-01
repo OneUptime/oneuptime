@@ -146,6 +146,16 @@ const PROGRAM_ACCESS_ERROR_PATTERNS: Readonly<Record<string, Array<RegExp>>> = {
   ],
   systemctl: [/Failed to connect to bus/i, /nsenter: /],
   journalctl: [/nsenter: /],
+  /*
+   * The Cloud AI agent's words for a call its role may not make, or
+   * credentials the cloud did not accept: "AWS refused ecs:UpdateService
+   * (HTTP 403 AccessDenied)". The cloud refusing a change for the
+   * resource's state (HTTP 400) is no access failure.
+   */
+  cloud: [
+    /\b(?:AWS|Azure|Google Cloud) refused \S+ \(HTTP 40[13]\b/,
+    /did not accept the (?:credentials|token) of /,
+  ],
 };
 
 /*

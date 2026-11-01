@@ -4,14 +4,14 @@ En Docker Swarm-monitor overvåger containerne bag en Swarm-klynges tjenesteopga
 
 :::cards
 - [Opret monitoren](#opret-en-docker-swarm-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Fire færdige advarsler, én hændelse pr. opgave.
+- [Skabeloner](#færdige-advarselsskabeloner): Fem færdige advarsler, én hændelse pr. opgave.
 - [Metrikker](#indsamlede-metrikker): De containermetrikker, du kan advare på.
 - [Filtre](#monitorindstillinger): Indsnævr en monitor til en tjeneste, en opgave eller et image.
 :::
 
 ## Sådan virker det
 
-OneUptimes Docker Swarm-agent kører på en managernode. Dens collector læser containerstatistik fra nodens Docker-dæmon hvert 30. sekund og stempler hver batch med klyngens navn, `docker.swarm.cluster.name`. En lille inventarpoller ved siden af læser klyngens noder, tjenester og opgaver fra Swarm-API'et hvert 5. minut. De første data registrerer klyngen i OneUptime.
+OneUptimes Docker Swarm-agent kører på en managernode. Dens collector læser containerstatistik fra nodens Docker-dæmon hvert 30. sekund, stempler hver batch med klyngens navn, `docker.swarm.cluster.name`, og hver opgaves metrikker med dens tjeneste og node. En lille inventarpoller ved siden af læser klyngens noder, tjenester og opgaver fra Swarm-API'et hvert 5. minut. De første data registrerer klyngen i OneUptime.
 
 Collectoren ser kun containere på den node, den kører på. For at få metrikker fra hver node skal du køre collectoren på hver node med det samme `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,33 +77,37 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Påkrævet. Afgrænser hver forespørgsel til `resource.docker.swarm.cluster.name`. Det er den eneste ressourceattribut, agenten stempler, så monitoren tilføjer intet filter på `container.runtime` eller `host.name`. |
-| **Tjenestenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `docker.swarm.service.name`, f.eks. `web`. |
-| **Nodenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `docker.swarm.node.name`, f.eks. `swarm-node-1`. |
+| **Docker Swarm Cluster** | Alle | Påkrævet. Afgrænser hver forespørgsel til `resource.docker.swarm.cluster.name`. En opgaves metrikker bærer `container.runtime=docker` ligesom en Docker-værts, og agenten stempler aldrig `host.name`, så monitoren filtrerer på ingen af dem. |
+| **Tjenestenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.docker.swarm.service.name`, tjenesten, som `docker service ls` navngiver den, f.eks. `web` (`<stack>_web` i en stack). |
+| **Nodenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.docker.swarm.node.name`, nodens værtsnavn, som `docker node ls` viser det, f.eks. `swarm-node-1`. Agenten på den node stempler det fra `DOCKER_SWARM_NODE_NAME`. |
 | **Containernavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.name`. En opgaves container hedder `<service>.<slot>.<taskid>`, f.eks. `web.1.abc123`. |
-| **Container-image** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.image.name`, f.eks. `nginx:latest`. |
+| **Container-image** | Custom Metric, Avanceret | Valgfri. Matcher `resource.container.image.name` med eller uden det digest, Swarm fastlåser til imaget: `nginx:latest` matcher også `nginx:latest@sha256:…`, et digest, du skriver, udelades, og et navn uden tag betyder `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner angiver deres eget. |
 | **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
-> [!WARNING]
-> Den medfølgende agent angiver endnu ikke `docker.swarm.service.name` eller `docker.swarm.node.name`, så en monitor med **Tjenestenavn** eller **Nodenavn** udfyldt finder ingen data. Indsnævr i stedet med **Container-image**, eller gruppér efter `resource.container.name`.
+> [!NOTE]
+> **Tjenestenavn** og **Nodenavn** kræver agentens filer fra version 0.161.2 og frem: ældre filer sender hverken tjenesten eller noden. [Opgradér agenten](/docs/telemetry/docker-swarm#opgradering-af-agenten) på hver node, den kører på.
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder fire skabeloner. Hver bygger en komplet monitor: en forespørgsel grupperet efter `resource.container.name`, et kriterium, der udløses, og et, der genopretter. Hver opgave bedømmes for sig og får sin egen hændelse og sin egen advarsel, hvis grundårsag viser de berørte opgaver og deres værdier. Tærsklerne er udgangspunkter, du kan redigere.
+**Quick Setup** tilbyder fem skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Cluster Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver opgave bedømmes for sig og får sin egen hændelse og sin egen advarsel, hvis grundårsag viser de berørte opgaver og deres værdier. Tærsklerne er udgangspunkter, du kan redigere.
 
 Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere i klyngen, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min pr. opgave, seneste 1 minut | En vilkårlig værdi er under 60 sekunder | Hver værdi er ved eller over 66 sekunder |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg pr. opgave, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg pr. opgave, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
-| High Task Process Count | Warning | `container.pids.count`, Max pr. opgave, seneste 5 minutter | Over 500 | Ved eller under 450 |
+| High Task Process Count | Warning | `container.pids.count`, Max pr. opgave, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngen i ti minutter: noderne, der kører agenten, er nede, eller agenten er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked. En node uden opgaver rapporterer stadig, fordi agenten selv kører som en container og rapporterer sine egne data.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** udløses på én enkelt ung måling, fordi en genstart er en hændelse, ikke et niveau. Swarm giver en erstatningsopgave en ny container og dermed en ny serie, og derfor leder skabelonen efter en oppetid under et minut i stedet for et 0. En udrulning eller en opskalering udløser den også, og den ophører, så snart de nye opgaver har passeret et minuts oppetid. En opgave, der dør og ikke erstattes, sender intet, så den fanges ikke.
@@ -136,10 +140,10 @@ Agentens collector bruger OpenTelemetry-modtageren `docker_stats`, så metrikker
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
-| `container.pids.count` | antal | Processer i en opgaves container. En pludselig stigning kan betyde en forkbombe eller en lækage. |
+| `container.pids.count` | antal | Opgaver i en tasks container: cgroup-pids-controlleren tæller både tråde og processer. En pludselig stigning kan betyde en fork-bombe eller en trådlækage. |
 | `container.uptime` | sekunder | Hvor længe en opgaves container har kørt. En opgave, der planlægges om eller genstartes, starter en ny container på 0. |
 
-Hver serie bærer containerens identitet som ressourceattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` og `resource.docker.swarm.cluster.name`.
+Hver serie bærer containerens identitet som ressourceattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (når agenten kender nodens navn) og `resource.docker.swarm.cluster.name`.
 
 ## Overvågningskriterier
 
@@ -149,7 +153,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | --- | --- |
 | **Metrik** | Den forespørgsel eller formel, der kontrolleres, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** – eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** – eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. |
 | **Tærskel** | Den værdi, der sammenlignes med. En liste over enheder står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standard) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
@@ -165,11 +169,11 @@ En monitor, som du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Matcher, når | Så |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | En vilkårlig værdi i den første forespørgsel er `0` | Markerer monitoren som **Offline** og erklærer hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren kommer sig. |
-| 2 | Check if _monitor name_ is online | En vilkårlig værdi er over `0` | Markerer monitoren som **I drift**. |
+| 1 | Check if _monitor name_ is offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren kommer sig. |
+| 2 | Check if _monitor name_ is online | Den første forespørgsel har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> Stilhed matcher ingen af kriterierne: en klynge, der holder op med at sende data, efterlader monitoren, som den var. For at få besked, når data stopper, skal du sætte **Hvis ingen data** til **Trigger** på et kriterium. Tid, hvor OneUptime selv ikke modtog data, er aldrig manglende data: en kontrol, hvis vindue indeholder sådan tid, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En værdi på `0` er data, så en metrik, der ofte er nul, som genstarter eller fejl, gør ikke monitoren offline. For at få en advarsel om en værdi skal du starte fra en skabelon eller tilføje et kriterium med en tærskel. Når der slet ikke kommer data, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: stilhed er ikke en bedring. Tid, hvor OneUptime selv ikke modtog data, tæller aldrig som manglende data: en kontrol, hvis vindue indeholder den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Fejlfinding
 
@@ -182,7 +186,7 @@ Collectoren læser Docker-dæmonen på den node, den kører på, så den ser kun
 :::
 
 :::details En monitor filtreret efter tjeneste eller node finder ingen data
-**Tjenestenavn** og **Nodenavn** matcher `docker.swarm.service.name` og `docker.swarm.node.name`, som den medfølgende agent ikke angiver. Ryd dem, og indsnævr med **Container-image**, eller gruppér efter `resource.container.name`.
+**Tjenestenavn** og **Nodenavn** matcher `resource.docker.swarm.service.name` og `resource.docker.swarm.node.name`, som agenten sender fra version 0.161.2 af sine filer og frem: [opgradér den](/docs/telemetry/docker-swarm#opgradering-af-agenten). Nodens navn kommer fra `DOCKER_SWARM_NODE_NAME` i hver nodes `.env`, som installationsscriptet skriver; på en node, der er sat op på en anden måde, skal du tilføje det der.
 :::
 
 :::details Hver opgave vises som én serie

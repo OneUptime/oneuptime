@@ -2,7 +2,11 @@ import Entities from "../../../../Models/DatabaseModels/Index";
 import EntityMetadataLookup, {
   EntityMetadataStringIndex,
 } from "../../../../Server/Infrastructure/Postgres/EntityMetadataLookup";
-import { fastestRun, FastestRun } from "../../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRunsCompared,
+} from "../../../Helpers/FastestRun";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { DataSource, EntitySchema } from "typeorm";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -436,17 +440,25 @@ describe("EntityMetadataLookup", () => {
       return found;
     }
 
-    EntityMetadataLookup.uninstall();
-    const walked: FastestRun<number> = fastestRun({
-      run: lookUp,
-      limitInMs: 0,
+    /*
+     * Timed in turns (fastestRunsCompared), each side setting the patch it
+     * runs under - a swap of one prototype method; the index is built on
+     * first use and kept. The faster side's attempts take about a
+     * millisecond, and one stall could cover them all.
+     */
+    const runs: ComparedRuns<number, number> = fastestRunsCompared({
+      first: (): number => {
+        EntityMetadataLookup.uninstall();
+        return lookUp();
+      },
+      second: (): number => {
+        EntityMetadataLookup.install();
+        return lookUp();
+      },
     });
-
     EntityMetadataLookup.install();
-    const indexed: FastestRun<number> = fastestRun({
-      run: lookUp,
-      limitInMs: 0,
-    });
+    const walked: FastestRun<number> = runs.first;
+    const indexed: FastestRun<number> = runs.second;
 
     expect(indexed.result).toBe(walked.result);
     // Measured about 40 times faster; five leaves room for a busy runner.

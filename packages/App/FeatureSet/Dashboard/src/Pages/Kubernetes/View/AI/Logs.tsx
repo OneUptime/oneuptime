@@ -890,6 +890,12 @@ const KubernetesClusterAILogs: FunctionComponent<
           modelType={RunnerJob}
           id="kubernetes-cluster-ai-kubectl-jobs"
           name={KUBECTL_COMMANDS_CARD_TITLE}
+          /*
+           * Its rows are commands, never "runner jobs" (the model's own
+           * name): "Showing 1-2 of 2 commands".
+           */
+          singularName="Command"
+          pluralName="Commands"
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}

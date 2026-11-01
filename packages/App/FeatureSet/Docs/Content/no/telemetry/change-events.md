@@ -118,7 +118,7 @@ OneUptime sjekker også hver utrulling på egen hånd, enten noen blir varslet e
 
 En pull-forespørsel med en rettelse som OneUptime AI åpnet, sjekkes på samme måte: når en registrert utrulling inneholder commiten, følger OneUptime med der på det rettelsen var til - unntaket, operasjonen den gjorde raskere, monitoren bak hendelsen eller varselet, telemetrien den legger til - og sier om rettelsen virket (se [Automatiske koderettelser](/docs/ai/ai-sre#automatiske-koderettelser)). Den utrullede rettelsen leses bare i utrullingens versjon når tjenestens egen telemetri melder den versjonen, og ellers fra 10 minutter etter utrullingen, når gamle instanser har stoppet.
 
-I en undersøkelse og i [Ask AI](/docs/ai/ask-ai) lister `recent_changes` endringene i et hvilket som helst tidsvindu, og `get_change_details` viser hva en utrulling leverte: commitene siden tjenestens forrige utrulling, forfatterne deres, pull requestene og filene de endret. Det krever commiten på endringen og et repository som er koblet til via [GitHub App](/docs/ai/github-app).
+I en undersøkelse og i [Ask AI](/docs/ai/ask-ai) lister `recent_changes` endringene i et hvilket som helst tidsvindu, og `get_change_details` viser hva en utrulling leverte: commitene siden tjenestens forrige utrulling, forfatterne deres, pull requestene og filene de endret. Det krever commiten på endringen og at repositoryet er koblet til i Kode: via [GitHub App](/docs/ai/github-app) eller en GitLab-, Forgejo- eller Gitea-tilkobling (se [Koble til et repositorium](/docs/ai/ai-agent#koble-til-et-repositorium)).
 
 ## Referanse
 

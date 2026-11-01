@@ -60,8 +60,8 @@ helm repo update
 Ersätt URL:en med din OneUptime-URL, och de två platshållarna med din intagningsnyckel och klustrets namn:
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -73,7 +73,7 @@ Det här använder presetet `standard`. På GKE Autopilot eller EKS Fargate ska 
 ### Kontrollera att poddarna körs
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
+kubectl get pods -n oneuptime-agent
 ```
 
 Varje podd bör nå `Running` inom en minut eller två.
@@ -100,16 +100,16 @@ GKE Autopilot och EKS Fargate avvisar också privilegierade poddar, som eBPF-ins
 :::tabs
 @tab Standard
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod
 ```
 @tab GKE Autopilot
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
@@ -117,8 +117,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ```
 @tab EKS Fargate
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
@@ -131,8 +131,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 Etiketter som du anger vid installationen kopplas till klustret och till de tjänster och värdar som den här agenten rapporterar. `--set oneuptime.labels.<key>=<value>` blir en projektetikett med namnet `<key>:<value>`:
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -156,8 +156,8 @@ clusterName: prod
 ```
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   -f values.yaml
 ```
 
@@ -182,8 +182,8 @@ Windows-noder kör aldrig en agentpodd. Data på klusternivå om dem och deras p
 För att också samla in loggarna från poddar på Windows-noder slår du på hybridläget:
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -240,8 +240,8 @@ OBI för också spåret vidare genom ett anrop: när podd A anropar podd B över
 - **Varje annan loggrad** samlas in oförändrad, utan länken, om du inte också sätter `ebpf.logEnricher.plainText=true`. OBI lägger då till ` trace_id=… span_id=…` på den, och nod-collectorn flyttar id-värdena till loggposten och tar bort dem från raden, så att OneUptime visar den som din app skrev den. Raden i containerns loggfil, som `kubectl logs` skriver ut, behåller annoteringen.
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=true
 ```
 
@@ -310,8 +310,8 @@ ebpf:
 För att kontrollera att OBI körs och ser trafik:
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl get pods -n oneuptime-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 ## Kontinuerlig CPU-profilering
@@ -338,14 +338,14 @@ Profilering kräver **Linux 5.10** eller senare och en privilegierad podd med no
 | Inställning | Standard | Vad den lägger till |
 | --- | --- | --- |
 | `hostMetrics.enabled` | på | Varje nods operativsystemmätvärden från `/proc` och `/sys`: diskens I/O-köer, filsystemens inoder, fel på nätverksgränssnitt, paging och load average. Körs i nod-collectorn, utan extra poddar. |
-| `kubeletstats.utilizationMetrics.enabled` | på | CPU och minne för containrar och poddar i procent av deras request och limit, som monitorerna för CPU- och minnesmättnad läser. Alltid 0 för en podd utan request eller limit. |
-| `kubeletstats.volumeMetrics.enabled` | på | Varje PVC:s lediga och totala utrymme (`k8s.volume.available`, `k8s.volume.capacity`), som monitorn PVC Low Disk Space läser. En serie per PVC per podd. |
+| `kubeletstats.utilizationMetrics.enabled` | på | CPU och minne för containrar och poddar i procent av deras request och limit, som mallarna Pod CPU Saturating Container Limit och Pod Memory Saturating Container Limit läser. En container utan limit (eller request) får ingen av dessa serier, och en podd bara när varje container i den har en. |
+| `kubeletstats.volumeMetrics.enabled` | på | Varje PVC:s lediga och totala utrymme (`k8s.volume.available`, `k8s.volume.capacity`), för egna diagram och mätvärdesmonitorer: ingen inbyggd mall läser dem. En serie per PVC per podd. |
 | `cadvisor.enabled` | på | CPU-strypning och OOM-avslut från varje kubelets `/metrics/cadvisor`: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` och `container_oom_events_total`, och inget annat. |
 | `kubeStateMetrics.enabled` | av | Poddfaser (Pending, Terminating), poddar som inte kan schemaläggas, containrars vänteorsaker (CrashLoopBackOff, ImagePullBackOff) och användning av resurskvoter, från kube-state-metrics. `kubeStateMetrics.mode: bundled` (standard) kör en liten kube-state-metrics åt dig; `external` läser en som du redan kör, på `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | av | Kubernetes granskningslogg, `/var/log/kubernetes/audit.log`: varje förfrågan till API:et, från vem och på vad. Bara självhanterade kluster: hanterade (EKS, GKE, AKS, DOKS) skickar den till molnleverantören. |
 | `csi.enabled` | av | Mätvärden från CSI-lagringsdrivrutiner, från poddar med etiketten `app=csi-driver` eller `app.kubernetes.io/component=csi-driver`: tider för att ansluta och koppla från volymer, provisioneringsfel, IOPS. |
 | `coreDns.enabled` | av | CoreDNS mätvärden på `:9153/metrics`: frågefrekvens, latens, cacheträffar och fel. |
-| `controlPlane.enabled` | av | etcd, API-servern, schemaläggaren och controller managern. Bara självhanterade kluster: hanterade exponerar dem inte. |
+| `controlPlane.enabled` | av | API-servern på sin adress inuti klustret, och etcd, schemaläggaren och controller managern på de slutpunkter du anger ([Aktivera övervakning av kontrollplanet](/docs/telemetry/kubernetes-agent#aktivera-övervakning-av-kontrollplanet)). Bara självhanterade kluster: hanterade exponerar dem inte. |
 | `cost.enabled` | av | Vad varje workload kostar. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
 
 ## Vanliga inställningar
@@ -376,8 +376,8 @@ Chartets [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/Helm
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values
 ```
 
@@ -385,9 +385,9 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm repo update
-helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
-  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent -f values.yaml
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
 ```
 
 Uppgradera inte med `--reuse-values`: den behåller också standardvärdena från chartet du uppgraderar från, så ett nyare charts standardvärden, bland dem dess eBPF-image, aldrig tillämpas. När en release körs på ett äldre charts standardvärden slutar anteckningarna som Helm skriver ut efter installationen eller uppgraderingen med en varning och kommandot som rättar det.
@@ -398,8 +398,8 @@ Uppgradera inte med `--reuse-values`: den behåller också standardvärdena frå
 ## Avinstallation
 
 ```bash
-helm uninstall oneuptime-agent --namespace oneuptime-kubernetes-agent
-kubectl delete namespace oneuptime-kubernetes-agent
+helm uninstall kubernetes-agent --namespace oneuptime-agent
+kubectl delete namespace oneuptime-agent
 ```
 
 ## Felsökning
@@ -409,7 +409,7 @@ Kör chartets diagnosskript. Det kontrollerar poddarna, intagningsnyckeln och v�
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
-  | bash -s -- -n oneuptime-kubernetes-agent
+  | bash -s -- -n oneuptime-agent
 ```
 
 Den vanliga orsaken, särskilt efter en ominstallation, är en felaktig eller återkallad intagningsnyckel: OneUptime avvisar den, och collectorn kastar varje batch medan dess poddar förblir `Running`.
@@ -420,8 +420,8 @@ Klustret blockerar `hostPath`. Byt till ett preset som läser loggar via Kuberne
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set preset=gke-autopilot
 ```
@@ -437,8 +437,8 @@ På EKS Fargate använder du `--set preset=eks-fargate`.
 Kontrollera agentens poddar och deras loggar:
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
-kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
+kubectl get pods -n oneuptime-agent
+kubectl logs -n oneuptime-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
 I läget `api` svarar logg-tailern på `/healthz`, port 13133, med tillståndet för sina exporter: nå den med `kubectl port-forward`.
@@ -448,7 +448,7 @@ I läget `api` svarar logg-tailern på `/healthz`, port 13133, med tillståndet 
 Läs OBI:s logg:
 
 ```bash
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 - **Kärnan är för gammal, eller saknar BTF.** OBI kräver Linux 5.8 eller senare med BTF; kontrollera med `uname -r` på en nod. Om du inte kan uppgradera den stänger du av eBPF med `--set ebpf.enabled=false`.
@@ -468,7 +468,7 @@ En APM-agent som läses in via `LD_PRELOAD` finns i samma poddar: se [APM-agente
 Fördela namespaces över flera releaser, var och en installerad med sina egna namespace-regler:
 
 ```bash
-helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
+helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
   --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...

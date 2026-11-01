@@ -563,7 +563,7 @@ describe("Video Calls docs - connecting in one click", () => {
 
 /*
  * Call transcripts (issue #4875): the Video Call card's transcript and the
- * AI Investigation card's reading of it, as the Dashboard draws them, the
+ * OneUptime AI card's reading of it, as the Dashboard draws them, the
  * scopes Zoom asks for, and the limits the server and the Dashboard keep.
  */
 describe("Video Calls docs - call transcripts", () => {

@@ -72,10 +72,10 @@ flowchart TB
 
 **I en rettelse** udarbejder OneUptime AI en rettelse via en server, den må bruge, når den tilbyder et værktøj, der kan ændre noget, efter rodårsagsanalysen, når der er en:
 
-- **Spørg, før der rettes** – hver ændring, den ville foretage, registreres og sendes ingen steder hen. Hændelsens kort **Afhjælpning** viser dem i rækkefølge, hver med sin server, sit værktøj og det, den ville sende. **Godkend og kør** foretager præcis de ændringer, i den rækkefølge, i dit navn; godkendelse kræver samme tilladelse som at starte en runbook. En ændring, der mislykkes, stopper dem efter den.
+- **Spørg, før der rettes** – hver ændring, den ville foretage, registreres og sendes ingen steder hen. Trinnet **Afhjælpning** på hændelsens kort **OneUptime AI** viser dem i rækkefølge, hver med sin server, sit værktøj og det, den ville sende. **Godkend og kør** foretager præcis de ændringer, i den rækkefølge, i dit navn; godkendelse kræver samme tilladelse som at starte en runbook. En ændring, der mislykkes, stopper dem efter den.
 - **Ret uden at spørge** – OneUptime AI foretager selv ændringerne, hver registreret, før den sendes. Det gør den kun for en regel, der nævner sine MCP-servere, når ingen anden matchende regel spørger først, intet andet allerede retter hændelsen på egen hånd (en AI-agent på en klynge eller vært, eller en runbook), og reglen ikke har foretaget det største antal rettelser, den må foretage på egen hånd i en time; ellers foreslås ændringerne. Uden en opsat regel, eller med en regel, der ikke nævner nogen MCP-server, foreslås hver ændring.
 
-En rettelse foretager højst 5 ændringer. Derefter overvåger OneUptime hændelsens monitorer, som ved enhver rettelse. Intet fortrydes automatisk: Et MCP-værktøj har ingen fortrydelse, OneUptime kan kende, så en rettelse, der ikke virkede, overlades til en person, og kortet **Afhjælpning** viser, hvad hver server svarede.
+En rettelse foretager højst 5 ændringer. Derefter overvåger OneUptime hændelsens monitorer, som ved enhver rettelse. Intet fortrydes automatisk: Et MCP-værktøj har ingen fortrydelse, OneUptime kan kende, så en rettelse, der ikke virkede, overlades til en person, og trinnet **Afhjælpning** viser, hvad hver server svarede.
 
 For at få OneUptime AI til at holde op med at bruge en server skal du slå **Lad OneUptime AI bruge denne server** fra på dens side. Den spørger først: Serveren bruges ikke længere i nogen undersøgelse eller rettelse, og en foreslået rettelse via den kan ikke længere godkendes.
 
@@ -93,7 +93,7 @@ Når flere regler, der undersøger, matcher, må OneUptime AI bruge hver server,
 - **Det, en server sender tilbage, er data, aldrig instruktioner.** OneUptime AI læser beskrivelserne og svarene fra dens værktøjer som tekst udefra: De ændrer aldrig en regel, en godkendelse eller det, OneUptime AI må gøre.
 - **Adressen kontrolleres ved hver forbindelse.** OneUptime forbinder aldrig til sin egen eller en link-local-adresse. På OneUptime Cloud afviser den også private netværksadresser: Brug serverens offentlige adresse. En selvhostet OneUptime når private adresser, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` er sat. Den følger ikke omdirigeringer.
 - **Grænser.** Et projekt har højst 20 servere, og OneUptime læser højst 200 værktøjer på hver. Forbindelsen udløber efter 20 sekunder, listen over værktøjer efter 30 og et værktøjskald efter 60. Et svar på over 2 MB afvises, og en kørsel foretager højst 40 kald til MCP-servere.
-- **Hvert kald registreres.** Hvert kald er et trin i kørslen, vist i dens aktivitet, og hver ændring, en rettelse foretager, står på kortet **Afhjælpning** med serverens svar. Modelkaldene bag dem findes under **Projektindstillinger → AI → AI-logs**.
+- **Hvert kald registreres.** Hvert kald er et trin i kørslen, vist i dens aktivitet, og hver ændring, en rettelse foretager, står i trinnet **Afhjælpning** med serverens svar. Modelkaldene bag dem findes under **Projektindstillinger → AI → AI-logs**.
 
 ## Fejlfinding
 

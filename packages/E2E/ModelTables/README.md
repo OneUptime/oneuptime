@@ -31,7 +31,8 @@ The pages:
 - `/dashboard/<project>/network-devices/settings/roles` - Device Roles, a
   list put in order by dragging its rows;
 - `/dashboard/<project>/tables` - the gallery: every kind of column
-  (`?table=kinds`), a table with many columns (`?table=wide`), a table drawn
+  (`?table=kinds`), a table with many columns and a pill that says why in
+  one of them (`?table=wide`), a table drawn
   outside a card (`?table=plain`), people, each name drawn beside a
   picture and over an email (`?table=people`), and tables a page draws
   itself - a monitor's network interfaces, in a card with no ⋯
@@ -91,6 +92,11 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
   over an email) keeps its cap and its lines;
 - a table wider than its card scrolls in its own box, its Actions column
   stuck at the card's edge and lit with its row under the pointer;
+- the keyboard never leaves what it moves to under that stuck column: a pill
+  that says why (the wide gallery's "Never reminds", in a column the column
+  covers at 1280px) is scrolled clear of it, 12px short, its reason beside
+  it, right to left too (`?lang=fa`); the row's own View, in the column,
+  moves nothing;
 - the header row sticks under the top bar while a long page scrolls, and
   stays put when the rows scroll sideways (it could not follow them);
 - a row opens its record on a click on its own words - not on its select

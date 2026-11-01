@@ -42,7 +42,7 @@ import {
   getAiAgentStatusPill,
   getAiAgentSummary,
   getAttentionGaps,
-  AUTOMATIC_REMEDIATION_LINE,
+  AUTOMATIC_REMEDIATION_SENTENCES,
   AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   getAutomaticInvestigation,
   getAutomaticInvestigationConfirmation,
@@ -1894,26 +1894,26 @@ describe("the write-access commands", () => {
  * are turned on there, with their rules, not from a cluster.
  */
 describe("the automatic-fix line", () => {
-  test("reads the project's two switches, On or Off, in one sentence", () => {
-    expect(AUTOMATIC_REMEDIATION_LINE).toBe(
-      "Automatic fixes for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
+  test("reads the project's two switches in one sentence", () => {
+    expect(AUTOMATIC_REMEDIATION_SENTENCES.neither).toBe(
+      "This project doesn't fix new incidents or alerts automatically.",
     );
     expect(
       getAutomaticRemediationLine({ incidents: true, alerts: false }),
     ).toBe(
-      "Automatic fixes for new incidents in this project: On · alerts: Off",
+      "This project fixes new incidents automatically, but not new alerts.",
     );
     expect(
       getAutomaticRemediationLine({ incidents: false, alerts: true }),
     ).toBe(
-      "Automatic fixes for new incidents in this project: Off · alerts: On",
+      "This project fixes new alerts automatically, but not new incidents.",
     );
   });
 
-  test("links each switch's own settings page", () => {
+  test("links each switch's own settings page with a Turn on", () => {
     expect(AUTOMATIC_REMEDIATION_SETTINGS_LINKS).toEqual({
-      incidents: "Incident AI settings",
-      alerts: "Alert AI settings",
+      incidents: "Turn on for incidents",
+      alerts: "Turn on for alerts",
     });
   });
 

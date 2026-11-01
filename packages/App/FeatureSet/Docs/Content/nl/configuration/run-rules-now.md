@@ -14,7 +14,7 @@ flowchart TB
 
 ## Welke regels u kunt uitvoeren
 
-- **Labelregels** en **Eigenaarsregels**, voor elke resource die ze heeft: monitoren, incidenten, incidentepisodes, waarschuwingen, waarschuwingsepisodes, geplande onderhoudsgebeurtenissen, statuspagina's, services, hosts, Kubernetes-clusters, Docker-hosts, Docker Swarm-clusters, Podman-hosts, Proxmox-clusters, VMware vCenters, Ceph-clusters, storage-arrays, databases, wachtrijen, IoT-vloten, serverless functies, cloudresources, RUM-applicaties, dashboards, dienstbeleid, dienstroosters, beleid voor inkomende oproepen, workflows, runbooks, netwerkapparaten en SLO's.
+- **Labelregels** en **Eigenaarsregels**, voor elke resource die ze heeft: monitoren, incidenten, incidentepisodes, waarschuwingen, waarschuwingsepisodes, geplande onderhoudsgebeurtenissen, statuspagina's, services, hosts, Kubernetes-clusters, Docker-hosts, Docker Swarm-clusters, Podman-hosts, Proxmox-clusters, VMware vCenters, Ceph-clusters, storage-arrays, databases, gegevensopslagen, wachtrijen, IoT-vloten, serverless functies, cloudresources, RUM-applicaties, dashboards, dienstbeleid, dienstroosters, beleid voor inkomende oproepen, workflows, runbooks, netwerkapparaten en SLO's.
 - **Privacyregels**, voor incidenten, waarschuwingen, incidentepisodes en waarschuwingsepisodes.
 - **Monitorregels** op een statuspagina. Die synchroniseren de pagina al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert haar meteen.
 - **Monitorregels** op een SLO. Die synchroniseren de SLO al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert de monitoren van de SLO meteen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).

@@ -333,10 +333,10 @@ describe("ExceptionSummary", () => {
     expect(row).toHaveClass(
       "flex",
       "flex-col",
-      "[@container(min-width:56rem)]:flex-row",
+      "[@container(min-width:72rem)]:flex-row",
     );
     expect(row.className).not.toContain("lg:flex-row");
-    expect(actions).toHaveClass("[@container(min-width:56rem)]:justify-end");
+    expect(actions).toHaveClass("[@container(min-width:72rem)]:justify-end");
     expect(actions.className).not.toContain("lg:justify-end");
     expect(within(actions).getAllByRole("button")).toHaveLength(3);
   });
@@ -363,7 +363,7 @@ describe("ExceptionSummary", () => {
      */
     expect(actions).toHaveClass(
       "sm:ps-[3.75rem]",
-      "[@container(min-width:56rem)]:ps-0",
+      "[@container(min-width:72rem)]:ps-0",
     );
     expect(screen.getByTestId("exception-summary-status-icon")).toHaveClass(
       "sm:flex",

@@ -30,10 +30,19 @@ services:
       # Address (host:port, no scheme) of prometheus-pve-exporter. The
       # default points at the bundled exporter service below.
       - PVE_EXPORTER_URL=${PVE_EXPORTER_URL:-pve-exporter:9221}
-      # Proxmox VE API host (any node of the cluster) that the exporter
-      # should query. "localhost" only works when the exporter runs
-      # directly on a PVE node — set this when using the bundled exporter.
+      # Proxmox VE API host (any node of the cluster, or a virtual IP that
+      # fails over between them) that the exporter reads the cluster from.
+      # "localhost" only works when the exporter runs directly on a PVE
+      # node — set this when using the bundled exporter.
       - PVE_HOST=${PVE_HOST:-localhost}
+      # Every node's own API address, comma-separated in square brackets so
+      # the collector reads a list, e.g.
+      #   PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
+      # The exporter reads start-on-boot (Guest Down), replication and the
+      # subscription only for the node it queries, so each node is queried
+      # in turn. Unset, only PVE_HOST is: fine for a single node, but on a
+      # cluster the guests and jobs of every other node go unseen.
+      - PVE_NODES=${PVE_NODES:-[${PVE_HOST:-localhost}]}
     restart: unless-stopped
     logging:
       driver: json-file

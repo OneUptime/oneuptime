@@ -2769,6 +2769,123 @@ test.describe("a table wider than its card", () => {
     await screenshot(page, "incidents-rich-scrolled-1280");
   });
 
+  /*
+   * A pill that says why (ExplainedPill, as a reminder rule's "Never
+   * reminds") in a column that sits under the stuck Actions column at
+   * 1280px: the browser counts the room under the column as in sight, so
+   * the keyboard's focus used to land on the pill behind View and ⋯, its
+   * ring and words hidden and its reason pointing at the column (#5282).
+   * The rows now scroll on until it is clear (TableStickyEndFocus). Each
+   * reading is one evaluate, once the rows have stopped moving.
+   */
+  for (const [language, isRightToLeft, reason] of [
+    ["en", false, "This rule never sends a reminder"],
+    // The Dashboard's Persian words for it (Locales/fa.json).
+    ["fa", true, "این قاعده هرگز یادآوری نمی‌فرستد"],
+  ] as Array<[string, boolean, string]>) {
+    test(`the keyboard never leaves a focused pill under the stuck Actions column${
+      isRightToLeft ? ", right to left too (?lang=fa)" : ""
+    }`, async ({ page }: { page: Page }) => {
+      await open(
+        page,
+        `${GALLERY}?table=wide&data=rich${
+          language === "en" ? "" : `&lang=${language}`
+        }`,
+      );
+
+      const scroller: Locator = page.getByTestId("table-scroll");
+      const row: Locator = bodyRows(page, "gallery-wide").first();
+      const pill: Locator = row.getByTestId("never-reminds-5");
+
+      await expect(scroller).toHaveAttribute("data-overflowing", "true");
+
+      // From the row's select box, the next stop is the pill.
+      await row.getByRole("checkbox").focus();
+      await page.keyboard.press("Tab");
+      await expect(pill).toBeFocused();
+
+      // The rows scroll as soon as the focus lands: read once they rest.
+      await expect
+        .poll(async (): Promise<number> => {
+          return await scroller.evaluate((element: Element): number => {
+            return element.scrollLeft;
+          });
+        })
+        .not.toBe(0);
+
+      const reading: {
+        pill: { left: number; right: number };
+        stuck: { left: number; right: number };
+        box: { left: number; right: number };
+      } = await pill.evaluate(
+        (
+          element: Element,
+        ): {
+          pill: { left: number; right: number };
+          stuck: { left: number; right: number };
+          box: { left: number; right: number };
+        } => {
+          const cells: Array<Element> = Array.from(
+            (element.closest("tr") as Element).children,
+          );
+          const stuck: Element = cells.find((cell: Element): boolean => {
+            return getComputedStyle(cell).position === "sticky";
+          }) as Element;
+          const edges: (target: Element) => {
+            left: number;
+            right: number;
+          } = (target: Element): { left: number; right: number } => {
+            const rect: DOMRect = target.getBoundingClientRect();
+            return { left: rect.left, right: rect.right };
+          };
+
+          return {
+            pill: edges(element),
+            stuck: edges(stuck),
+            box: edges(
+              element.closest("[data-testid='table-scroll']") as Element,
+            ),
+          };
+        },
+      );
+
+      if (isRightToLeft) {
+        // The column is stuck at the left; the pill ends 12px clear of it.
+        expect(reading.stuck.left).toBeLessThan(reading.pill.left);
+        expect(reading.pill.left).toBeGreaterThanOrEqual(
+          reading.stuck.right + 11,
+        );
+        expect(reading.pill.right).toBeLessThanOrEqual(reading.box.right);
+      } else {
+        expect(reading.pill.right).toBeLessThanOrEqual(reading.stuck.left - 11);
+        expect(reading.pill.left).toBeGreaterThanOrEqual(reading.box.left);
+      }
+
+      // Its reason shows beside it, not over the column.
+      await expect(page.getByRole("tooltip")).toContainText(reason);
+      await screenshot(
+        page,
+        `wide-focused-pill-clear-of-stuck-column-${language}`,
+      );
+
+      // Tab goes on to the row's View, in the stuck column: the rows stay.
+      const scrolled: number = await scroller.evaluate(
+        (element: Element): number => {
+          return element.scrollLeft;
+        },
+      );
+      await page.keyboard.press("Tab");
+      await expect(
+        row.locator("td").last().getByRole("button").first(),
+      ).toBeFocused();
+      expect(
+        await scroller.evaluate((element: Element): number => {
+          return element.scrollLeft;
+        }),
+      ).toBe(scrolled);
+    });
+  }
+
   test("a row under the pointer lights up across the stuck column too", async ({
     page,
   }: {

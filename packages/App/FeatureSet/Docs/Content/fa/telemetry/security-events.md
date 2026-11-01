@@ -178,7 +178,22 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### یافتن رویدادهای امنیتی در لاگ‌های شما
 
-**لاگ‌های شما** در بالای **اتصال‌ها** لاگ‌هایی را که از قبل برای OneUptime می‌فرستید به یک منبع تبدیل می‌کند. وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، لاگ‌های تازهٔ پروژه هر دقیقه خوانده می‌شوند و هر ورود SSH، فرمان sudo، رکورد ممیزی Kubernetes، تغییر AWS CloudTrail و حملهٔ وب در آن‌ها به‌صورت یک رویداد امنیتی ذخیره می‌شود. برای اینکه هر گونه چه چیزهایی را پوشش می‌دهد، [شروع کار با امنیت](/docs/telemetry/security-getting-started#یافتن-رویدادهای-امنیتی-در-لاگهای-شما) را ببینید.
+**لاگ‌های شما** در بالای **اتصال‌ها** لاگ‌هایی را که از قبل برای OneUptime می‌فرستید به یک منبع تبدیل می‌کند. وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، لاگ‌های تازهٔ پروژه هر دقیقه خوانده می‌شوند و هر ورود SSH یا Windows، فرمان sudo، رکورد ممیزی یک ابر، رکورد CEF یا LEEF یک محصول امنیتی، رکورد ممیزی Kubernetes و حملهٔ وب در آن‌ها به‌صورت یک رویداد امنیتی ذخیره می‌شود. برای اینکه هر گونه چه چیزهایی را پوشش می‌دهد، [شروع کار با امنیت](/docs/telemetry/security-getting-started#یافتن-رویدادهای-امنیتی-در-لاگهای-شما) را ببینید.
+
+هر گونه به‌صورت لاگ‌های معمولی به OneUptime می‌رسد:
+
+| گونه | از کجا بفرستید |
+| --- | --- |
+| ورودهای SSH، sudo | ژورنال یا لاگ احراز هویت یک ماشین Linux، با [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
+| رویدادهای Windows | گیرندهٔ `windowseventlog` در collector روی ماشین، یا یک بازارسال‌کننده که هر رویداد را به‌صورت JSON می‌نویسد، مانند NXLog یا Winlogbeat |
+| AWS CloudTrail | یک trail که به CloudWatch Logs تحویل داده می‌شود و گیرندهٔ `awscloudwatch` در collector آن را می‌خواند |
+| لاگ‌های ممیزی Google Cloud | یک log sink به Pub/Sub، که گیرندهٔ `googlecloudpubsub` در collector آن را با `encoding: raw_text` می‌خواند |
+| لاگ‌های فعالیت Azure و Entra ID | یک تنظیم تشخیصی که به یک Event Hub جریان می‌دهد و گیرندهٔ `azureeventhub` در collector آن را با `format: raw` می‌خواند |
+| CEF، LEEF | syslog محصول، که [rsyslog](/docs/telemetry/syslog) آن را بازپخش می‌کند |
+| لاگ‌های ممیزی Kubernetes | پروندهٔ لاگ ممیزی سرور API، که گیرندهٔ `filelog` در collector آن را می‌خواند |
+| حمله‌های وب | لاگ دسترسی یک سرور وب، که گیرندهٔ `filelog` در collector آن را می‌خواند |
+
+در **لاگ‌های شما** هر گونه نشان می‌دهد آخرین بار کی پیدا شده، و **بررسی یک خط لاگ** نشان می‌دهد خطی که می‌چسبانید به چه تبدیل می‌شود، پیش از آنکه خطی برسد.
 
 ### اتصال به یک محصول امنیتی
 
@@ -194,6 +209,8 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Elastic Security | هشدارهای تشخیص، به‌صورت Detection Finding | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findingها، به‌صورت Detection و Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | رویدادهای ورود، MFA، حساب و سیاست | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | ورودها و تغییرات دایرکتوری، و از لاگ ممیزی Microsoft 365 بازارسال ایمیل، اشتراک‌گذاری و حکم‌های فیشینگ | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | ورودها، یافته‌های خود Google، تغییرات مدیریتی و دسترسی‌های داده‌شده به برنامه‌ها، و اشتراک‌گذاری در Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - هشدارهای خود محصول در سطح **Open Cases From** یا بالاتر از آن (**بالا و بالاتر** ، مگر اینکه سطح دیگری برگزینید، یا **هرگز** ) [پرونده](/docs/telemetry/security-cases) باز می‌کنند، که بر پایهٔ کاربر، میزبان یا نشانی‌ای که دربارهٔ آن‌اند گروه‌بندی می‌شوند.
 - یک اتصال رکوردها را بر پایهٔ زمانی می‌خواند که محصول آن‌ها را ساخته است، نه زمان فعالیتی که توصیف می‌کنند. قاعدهٔ SIEMی که ساعتی یک بار اجرا می‌شود، تشخیص‌ها را مدت‌ها پس از رویدادهایی که با آن‌ها تطابق داشته می‌سازد، و آن‌ها باز هم وارد می‌شوند.

@@ -19,6 +19,9 @@ import {
 import * as React from "react";
 import SecurityLogsSourceCard, {
   SECURITY_LOGS_SOURCE_CARD_ID,
+  SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME,
+  SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES,
+  getSecurityLogFormatHealth,
   readFoundByFormat,
   readScanProgress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard";
@@ -26,7 +29,9 @@ import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource"
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
-import { SECURITY_LOG_FORMATS } from "../../../Types/SecurityEvent/SecurityLogFormat";
+import SecurityLogFormat, {
+  SECURITY_LOG_FORMATS,
+} from "../../../Types/SecurityEvent/SecurityLogFormat";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -45,6 +50,15 @@ const SOURCE_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
 );
 const NOW: Date = new Date("2026-10-19T12:00:00Z");
+
+// A column count keyed to the window's width (sm:, md:, lg:, xl:, 2xl:).
+const WINDOW_COLUMNS: RegExp = /(?:^|\s)(?:sm|md|lg|xl|2xl):grid-cols-/;
+
+// Any column count at all, of a grid of tiles.
+const GRID_COLUMNS: RegExp = /grid-cols-/;
+
+// A kind's health line, or the dot in front of it.
+const HEALTH_TEST_ID: RegExp = /^security-log-format-health-/;
 
 function source(overrides: Partial<SecurityLogSource> = {}): SecurityLogSource {
   const value: SecurityLogSource = new SecurityLogSource();
@@ -138,10 +152,212 @@ describe("Your logs", () => {
     ).toEqual([
       "SSH sign-ins",
       "sudo",
-      "Kubernetes audit logs",
+      "Windows events",
       "AWS CloudTrail",
+      "Google Cloud audit logs",
+      "Azure activity and Entra ID logs",
+      "CEF",
+      "LEEF",
+      "Kubernetes audit logs",
       "Web attacks",
     ]);
+    // Off, no kind says what was found of it.
+    expect(
+      within(card).queryByTestId("security-log-format-health-cef"),
+    ).toBeNull();
+  });
+
+  test("the kinds are grouped by where they come from, each group under its name", async () => {
+    await renderCard();
+
+    const groups: Array<[string, Array<string>]> = [
+      ["servers", ["ssh-sign-in", "sudo", "windows-events"]],
+      ["cloud", ["aws-cloudtrail", "google-cloud-audit", "azure-activity"]],
+      ["security-devices", ["cef", "leef"]],
+      ["applications", ["kubernetes-audit", "web-attack"]],
+    ];
+
+    expect(
+      groups.map(([group, formats]: [string, Array<string>]) => {
+        const section: HTMLElement = screen.getByTestId(
+          `security-log-format-group-${group}`,
+        );
+
+        return [
+          within(section).getByRole("heading").textContent,
+          formats.every((format: string): boolean => {
+            return section.contains(
+              screen.getByTestId(`security-log-format-${format}`),
+            );
+          }),
+        ];
+      }),
+    ).toEqual([
+      ["Servers", true],
+      ["Cloud", true],
+      ["Security devices", true],
+      ["Applications", true],
+    ]);
+    expect(
+      screen.getByRole("region", { name: "Security devices" }),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * Each group is one list, a kind a row, as Your OneUptime data lists its
+   * sources: ten bordered tiles in rows of three left two groups with an
+   * empty third of a row, and made the card the page's longest. The groups
+   * pair up side by side from 44rem of the card's own width - beside the
+   * side menu the card is about 370px wide at a 768 window, whatever the
+   * window says. The browser suite measures them.
+   */
+  test("each group is one list, a kind a row, and the groups take their columns from the card's width", async () => {
+    await renderCard();
+
+    const groups: HTMLElement = screen.getByTestId(
+      "security-log-format-groups",
+    );
+    expect(groups.parentElement).toHaveClass("[container-type:inline-size]");
+    expect(groups).toHaveClass(
+      "grid",
+      "grid-cols-1",
+      "[@container(min-width:44rem)]:grid-cols-2",
+    );
+    expect(groups.className).toBe(SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME);
+    // No column count from the window: md and xl are the window's widths.
+    expect(groups.className).not.toMatch(WINDOW_COLUMNS);
+
+    expect(
+      Array.from(groups.children).map((child: Element): string | null => {
+        return child.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "security-log-format-group-servers",
+      "security-log-format-group-cloud",
+      "security-log-format-group-security-devices",
+      "security-log-format-group-applications",
+    ]);
+
+    for (const group of [
+      "servers",
+      "cloud",
+      "security-devices",
+      "applications",
+    ]) {
+      const kinds: HTMLElement = screen.getByTestId(
+        `security-log-format-group-${group}-kinds`,
+      );
+      // One bordered list, its rows divided: never a grid of tiles.
+      expect(kinds.tagName).toBe("UL");
+      expect(kinds).toHaveClass(
+        "divide-y",
+        "divide-gray-100",
+        "rounded-lg",
+        "border",
+        "border-gray-200",
+      );
+      expect(kinds.className).not.toMatch(GRID_COLUMNS);
+
+      for (const kind of Array.from(kinds.children)) {
+        expect(kind.tagName).toBe("LI");
+        // A row draws no box of its own: its list does.
+        expect(kind).not.toHaveClass("border");
+        expect(kind).not.toHaveClass("rounded-lg");
+      }
+    }
+  });
+
+  test("on: each kind says what the last check found of it, when one was last found, or that none has been", async () => {
+    stored = [
+      source({
+        lastScannedAt: new Date(NOW.getTime() - 60_000),
+        lastEventFoundAt: new Date(NOW.getTime() - 60_000),
+        lastScanResult: {
+          logsRead: 400,
+          eventsFound: 2,
+          byFormat: { cef: 2 },
+          lastFoundAtByFormat: {
+            cef: new Date(NOW.getTime() - 60_000).toISOString(),
+            "windows-events": new Date(
+              NOW.getTime() - 26 * 60 * 60_000,
+            ).toISOString(),
+          },
+        },
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      screen.getByTestId("security-log-format-health-cef"),
+    ).toHaveTextContent("Found in the last check: 2");
+    expect(
+      screen.getByTestId("security-log-format-health-windows-events"),
+    ).toHaveTextContent("Last found 1 day ago");
+    expect(
+      screen.getByTestId("security-log-format-health-leef"),
+    ).toHaveTextContent("None found yet");
+  });
+
+  /*
+   * A dot in front of each health line reads down the list at a glance:
+   * green while the last check found some, grey once some were found
+   * before, an empty ring while none has been. The words say the same, so
+   * the dot is hidden from screen readers; "None found yet" is gray-500, as
+   * readable as the rest of the card's small text (gray-400 on white is
+   * 2.5:1).
+   */
+  test("on: a dot in front of each kind's health says found now, found before or never", async () => {
+    stored = [
+      source({
+        lastScannedAt: new Date(NOW.getTime() - 60_000),
+        lastScanResult: {
+          byFormat: { cef: 2 },
+          lastFoundAtByFormat: {
+            cef: new Date(NOW.getTime() - 60_000).toISOString(),
+            "windows-events": new Date(
+              NOW.getTime() - 26 * 60 * 60_000,
+            ).toISOString(),
+          },
+        },
+      }),
+    ];
+    await renderCard();
+
+    const expected: Array<[string, string, string, string]> = [
+      ["cef", "found-now", "bg-emerald-500", "text-emerald-700"],
+      ["windows-events", "found-before", "bg-gray-300", "text-gray-600"],
+      ["leef", "not-yet", "border-gray-300", "text-gray-500"],
+    ];
+
+    for (const [format, health, dot, text] of expected) {
+      const line: HTMLElement = screen.getByTestId(
+        `security-log-format-health-${format}`,
+      );
+      const mark: HTMLElement = screen.getByTestId(
+        `security-log-format-health-dot-${format}`,
+      );
+
+      expect([format, line.getAttribute("data-health")]).toEqual([
+        format,
+        health,
+      ]);
+      expect(line).toHaveClass(text);
+      expect(line).not.toHaveClass("text-gray-400");
+      expect(line.firstElementChild).toBe(mark);
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+      expect(mark).toHaveClass("rounded-full", dot);
+      expect(mark.className).toContain(
+        SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES[
+          health as "found-now" | "found-before" | "not-yet"
+        ],
+      );
+    }
+  });
+
+  test("off: no kind says anything of its health", async () => {
+    await renderCard();
+
+    expect(screen.queryAllByTestId(HEALTH_TEST_ID)).toHaveLength(0);
   });
 
   test("the first flip creates the project's record, on, and says it saved", async () => {
@@ -321,6 +537,34 @@ describe("Your logs", () => {
     await flip();
 
     expect(ModelAPI.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("getSecurityLogFormatHealth", () => {
+  const at: Date = new Date("2026-10-19T08:00:00Z");
+
+  test("what the last check found comes first, then when one was last found, then none yet", () => {
+    expect(
+      getSecurityLogFormatHealth({
+        format: SecurityLogFormat.Cef,
+        foundByFormat: { cef: 3 },
+        lastFoundAtByFormat: { [SecurityLogFormat.Cef]: at },
+      }),
+    ).toEqual({ kind: "found-now", count: 3 });
+    expect(
+      getSecurityLogFormatHealth({
+        format: SecurityLogFormat.Cef,
+        foundByFormat: { leef: 3 },
+        lastFoundAtByFormat: { [SecurityLogFormat.Cef]: at },
+      }),
+    ).toEqual({ kind: "found-before", at });
+    expect(
+      getSecurityLogFormatHealth({
+        format: SecurityLogFormat.Cef,
+        foundByFormat: {},
+        lastFoundAtByFormat: {},
+      }),
+    ).toEqual({ kind: "not-yet" });
   });
 });
 

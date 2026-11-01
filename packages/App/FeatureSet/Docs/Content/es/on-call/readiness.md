@@ -42,10 +42,9 @@ Encima de la lista, los mosaicos cuentan **Respondedores**, **Listo**, **Necesit
 | --- | --- |
 | **Respondedor** | La persona, con su dirección de correo. |
 | **Estado** | **Listo**, **Inaccesible** o cuántos huecos tiene. |
-| **Equipos** | Los equipos que le avisan mediante una regla de escalado. |
 | **Canales** | Un segmento por canal: lleno para un método verificado, hueco para uno que aún no está verificado. |
 | **Cobertura** | Cuántas gravedades tienen regla, en cada pestaña, sobre el total. |
-| **Se llega a través de** | Cómo le llegan las políticas: `Direct`, `Team`, `Schedule` u `Override`. |
+| **Se llega a través de** | Cómo le llegan las políticas: cada equipo que le avisa mediante una regla de escalado, por su nombre, o **Directo**, **Programación** o **Sustitución**. |
 
 **Cobertura** en una fila muestra los métodos de notificación de la persona, por qué tiene su estado y una cuadrícula de cada gravedad con o sin regla. El embudo filtra la lista por **Respondedor**, **Estado**, **Equipo** o **Se llega a través de**. La respuesta puede tener un minuto: **Actualizar** la vuelve a calcular.
 

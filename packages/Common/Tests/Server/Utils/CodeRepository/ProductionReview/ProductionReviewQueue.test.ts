@@ -1,11 +1,14 @@
 import ProductionReviewQueue, {
+  CodeHostProductionReviewRequest,
   PRODUCTION_REVIEW_CLAIMS_PER_TICK,
   PRODUCTION_REVIEW_DEBOUNCE_SECONDS,
   PRODUCTION_REVIEW_RETRY_SECONDS,
   ProductionReviewRequest,
   getDueAt,
+  isCodeHostReviewRequest,
   toTaskTitle,
 } from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import Semaphore from "../../../../../Server/Infrastructure/Semaphore";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
@@ -747,5 +750,197 @@ describe("getDueAt and toTaskTitle", () => {
     expect(toTaskTitle("fix:\n  guard   the card")).toBe("fix: guard the card");
     expect(toTaskTitle("x".repeat(200)).length).toBe(120);
     expect(toTaskTitle("")).toBe("");
+  });
+});
+
+/*
+ * A merge request on GitLab, or a pull request on Forgejo or Gitea: one
+ * review task per pull request too, named in `codeHostPullRequest` - the
+ * repository, the host, the number and its page - never in GitHub's
+ * `github`, and found again by it.
+ */
+describe("ProductionReviewQueue: a pull request on GitLab, Forgejo or Gitea", () => {
+  function hostRequest(
+    change: Partial<CodeHostProductionReviewRequest> = {},
+  ): CodeHostProductionReviewRequest {
+    return {
+      projectId: PROJECT_ID,
+      codeRepositoryId: REPOSITORY_ID,
+      provider: CodeRepositoryType.GitLab,
+      pullRequestNumber: 12,
+      pullRequestTitle: "fix: guard the card",
+      pullRequestUrl:
+        "https://gitlab.example.com/acme/checkout/-/merge_requests/12",
+      headSha: "abc1234def",
+      isFromFork: false,
+      trigger: ProductionReviewTrigger.PullRequestChanged,
+      isAuthorTrusted: true,
+      requestedByLogin: "dana",
+      ...change,
+    };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers({ now: new Date("2026-10-22T10:00:00.000Z") });
+    jest.spyOn(Semaphore, "lock").mockResolvedValue({ id: "mutex" } as never);
+    jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  test("an ask is GitLab's or Forgejo's by its provider; GitHub's names none", () => {
+    expect(isCodeHostReviewRequest(hostRequest())).toBe(true);
+    expect(
+      isCodeHostReviewRequest(
+        hostRequest({ provider: CodeRepositoryType.Forgejo }),
+      ),
+    ).toBe(true);
+    expect(isCodeHostReviewRequest(request())).toBe(false);
+  });
+
+  test("its task is found by the pull request named in codeHostPullRequest", async () => {
+    const findOneBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(null);
+
+    await ProductionReviewQueue.findTask({
+      projectId: PROJECT_ID,
+      codeRepositoryId: REPOSITORY_ID,
+      pullRequestNumber: 12,
+      provider: CodeRepositoryType.GitLab,
+    });
+
+    const context: string = JSON.stringify(
+      (findOneBy.mock.calls[0]![0] as { query: JSONObject }).query[
+        "taskContext"
+      ],
+    );
+
+    expect(context).toContain("codeHostPullRequest");
+    expect(context).not.toContain('\\"github\\"');
+  });
+
+  test("a merge request with no review yet gets its task, naming it in codeHostPullRequest", async () => {
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockImplementation(async (data: { data: AIRun }) => {
+        return data.data;
+      });
+
+    await ProductionReviewQueue.request(hostRequest());
+
+    const run: AIRun = (create.mock.calls[0]![0] as { data: AIRun }).data;
+
+    expect(run.codeFixTaskType).toBe(
+      CodeFixTaskType.GitHubPullRequestProductionReview,
+    );
+    expect(run.taskContext).toEqual({
+      codeHostPullRequest: {
+        codeRepositoryId: REPOSITORY_ID.toString(),
+        provider: CodeRepositoryType.GitLab,
+        pullRequestNumber: 12,
+        isPullRequestFromFork: false,
+        pullRequestUrl:
+          "https://gitlab.example.com/acme/checkout/-/merge_requests/12",
+        triggeredByLogin: "dana",
+      },
+      productionReview: {
+        requestNumber: 1,
+        requestedAt: "2026-10-22T10:00:00.000Z",
+        headSha: "abc1234def",
+        trigger: ProductionReviewTrigger.PullRequestChanged,
+        isAuthorTrusted: true,
+        requestedByLogin: "dana",
+      },
+    });
+  });
+
+  test("asked again: the newest head, and the page an earlier ask gave when this one says none", async () => {
+    const existing: AIRun = task(AIRunStatus.Queued, {
+      codeHostPullRequest: {
+        codeRepositoryId: REPOSITORY_ID.toString(),
+        provider: CodeRepositoryType.Forgejo,
+        pullRequestNumber: 12,
+        pullRequestUrl: "https://git.example.com/acme/checkout/pulls/12",
+      },
+      productionReview: {
+        requestNumber: 2,
+        requestedAt: "2026-10-22T09:00:00.000Z",
+        headSha: "old0000",
+        trigger: ProductionReviewTrigger.PullRequestChanged,
+        isAuthorTrusted: true,
+        commentId: 41,
+      },
+    });
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(existing);
+    const update: jest.SpyInstance = jest
+      .spyOn(AIRunService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await ProductionReviewQueue.request(
+      hostRequest({
+        provider: CodeRepositoryType.Forgejo,
+        pullRequestUrl: undefined,
+        headSha: "new1111",
+        trigger: ProductionReviewTrigger.OneUptime,
+        requestedByLogin: undefined,
+      }),
+    );
+
+    const context: CodeFixTaskContext = (
+      update.mock.calls[0]![0] as { data: { taskContext: CodeFixTaskContext } }
+    ).data.taskContext;
+
+    expect(context.codeHostPullRequest).toEqual({
+      codeRepositoryId: REPOSITORY_ID.toString(),
+      provider: CodeRepositoryType.Forgejo,
+      pullRequestNumber: 12,
+      isPullRequestFromFork: false,
+      pullRequestUrl: "https://git.example.com/acme/checkout/pulls/12",
+    });
+    expect(context.github).toBeUndefined();
+    expect(context.productionReview).toMatchObject({
+      requestNumber: 3,
+      headSha: "new1111",
+      commentId: 41,
+      trigger: ProductionReviewTrigger.OneUptime,
+    });
+  });
+
+  test("its finish holds the lock of the pull request it names", async () => {
+    const lock: jest.SpyInstance = jest
+      .spyOn(Semaphore, "lock")
+      .mockResolvedValue({ id: "mutex" } as never);
+    const running: AIRun = task(AIRunStatus.Running, {
+      codeHostPullRequest: {
+        codeRepositoryId: REPOSITORY_ID.toString(),
+        provider: CodeRepositoryType.GitLab,
+        pullRequestNumber: 12,
+      },
+      productionReview: {
+        requestNumber: 1,
+        requestedAt: "2026-10-22T09:00:00.000Z",
+        headSha: "abc",
+        trigger: ProductionReviewTrigger.PullRequestChanged,
+        isAuthorTrusted: true,
+      },
+    });
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(running);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+
+    await ProductionReviewQueue.finish({
+      run: running,
+      requestNumber: 1,
+      outcome: null,
+      update: { checkRunId: 7700, checkRunHeadSha: "abc" },
+    });
+
+    expect((lock.mock.calls[0]![0] as { key: string }).key).toBe(
+      `${REPOSITORY_ID.toString()}:12`,
+    );
   });
 });

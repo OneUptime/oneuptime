@@ -158,7 +158,7 @@ const SecurityEventConnectionsEmptyState: FunctionComponent<ComponentProps> = (
          * a tile needs: 17rem for the row a tile is below lg, where the icon
          * and the plus sit beside the name, and 11.5rem for the upright card
          * it is from lg, where the name has the tile's whole width (see
-         * SecurityEventProviderTile). The eight products sit one, two, three
+         * SecurityEventProviderTile). The ten products sit one, two, three
          * or four to a row, as the card allows.
          */}
         <ul
@@ -195,10 +195,16 @@ const SecurityEventConnectionsEmptyState: FunctionComponent<ComponentProps> = (
         >
           {translateString("What you'll need")}
         </h4>
+        {/*
+         * Two side by side only where each has 18rem, from the card's own
+         * width as the tiles above: beside the side menu at a 768 window
+         * the card is about 370px wide, and a window-keyed md:grid-cols-2
+         * squeezed each sentence to a word or two a line there.
+         */}
         <ul
           role="list"
           aria-labelledby={requirementsHeadingId}
-          className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2"
+          className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-x-8 gap-y-4"
         >
           {SECURITY_EVENT_CONNECTION_REQUIREMENTS.map(
             (requirement: SecurityEventConnectionRequirement): ReactElement => {

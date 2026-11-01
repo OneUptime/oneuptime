@@ -208,6 +208,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   [KUBERNETES]: [
     // Template names.
+    "Cluster Stopped Reporting",
+    "Job Failures",
     "etcd No Leader",
     "API Server Request Saturation",
     "Scheduler Backlog",
@@ -221,6 +223,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Pod CPU Usage",
     "Node CPU Usage",
     "Pod Phase (Code)",
+    "Node Ready Condition",
     // What every rule checks.
     "Metric Value",
     ...ANOMALY_CONDITIONS,
@@ -228,20 +231,23 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   [DOCKER]: [
     ...FORM_NAMES,
-    "Container Down (Low Uptime)",
+    "Host Stopped Reporting",
+    "Container Restarted (Low Uptime)",
     "High Container CPU Usage",
     ...CRITERIA_NAMES,
   ],
-  [HOST]: [...FORM_NAMES, ...CRITERIA_NAMES],
+  [HOST]: [...FORM_NAMES, "Host Stopped Reporting", ...CRITERIA_NAMES],
   [PODMAN]: [
     ...FORM_NAMES,
-    "High Container Restart Count",
+    "Host Stopped Reporting",
+    "Container Restart Loop",
     "Container Restarted (Low Uptime)",
     "High Container CPU Usage",
     ...CRITERIA_NAMES,
   ],
   [PROXMOX]: [
     ...FORM_NAMES,
+    "Cluster Stopped Reporting",
     "Guest Down",
     "Cluster Quorum at Risk",
     "High Guest CPU Usage",
@@ -252,7 +258,12 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "HA Resource in Error State",
     ...CRITERIA_NAMES,
   ],
-  [SWARM]: [...FORM_NAMES, "Task Down (Low Uptime)", ...CRITERIA_NAMES],
+  [SWARM]: [
+    ...FORM_NAMES,
+    "Cluster Stopped Reporting",
+    "Task Down (Low Uptime)",
+    ...CRITERIA_NAMES,
+  ],
 };
 
 /*

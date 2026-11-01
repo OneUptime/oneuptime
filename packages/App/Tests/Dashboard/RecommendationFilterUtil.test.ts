@@ -1255,7 +1255,18 @@ describe("RecommendationFilterUtil", () => {
     });
 
     it("sorts within each group so the actionable cards are at the top", () => {
-      const category: string = KUBERNETES_CATEGORIES[0]!;
+      // The first category that holds more than one card to sort.
+      const category: string = KUBERNETES_CATEGORIES.find(
+        (candidate: string): boolean => {
+          return (
+            KUBERNETES_RECOMMENDATIONS.filter(
+              (recommendation: MonitorRecommendation) => {
+                return recommendation.category === candidate;
+              },
+            ).length > 1
+          );
+        },
+      )!;
 
       const inCategory: Array<MonitorRecommendation> =
         KUBERNETES_RECOMMENDATIONS.filter(

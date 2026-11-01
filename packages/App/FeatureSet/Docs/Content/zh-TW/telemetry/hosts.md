@@ -32,7 +32,7 @@ flowchart TB
 | **收集器設定** 中第一個適用於它的設定 | 設定是針對主機的系統，且若設定指定了標籤，主機具有其中之一時，該設定即適用。 |
 | 其系統的 OneUptime 預設設定 | 沒有適用的設定。 |
 
-OneUptime 預設設定在任何系統上都會讀取 CPU、記憶體、磁碟、檔案系統、網路與處理程序；在 Linux 上，若主機有 journal 與 systemd 單元，也會讀取它們；在 Windows 上讀取 System、Application 與 Security 事件記錄以及 Windows 服務；在 macOS 上讀取 `/var/log` 中的安裝記錄與 Wi-Fi 記錄。它會隨 OneUptime 的發行版本更新，因此使用預設設定的主機會獲得 OneUptime 對它的改進。
+OneUptime 預設設定在任何系統上都會讀取 CPU、記憶體、磁碟、檔案系統、網路與處理程序；在 Linux 上，若主機有 journal 與 systemd 單元，也會讀取它們；在 Windows 上讀取 System、Application 與 Security 事件記錄以及 Windows 服務；在 macOS 上讀取 `/var/log` 中的安裝記錄與 Wi-Fi 記錄。它會排除在設計上就是滿的檔案系統，例如 snap 套件和 macOS 的 `/dev`，因此它們永遠不會讓 High Filesystem Usage 範本一直觸發。它會隨 OneUptime 的發行版本更新，因此使用預設設定的主機會獲得 OneUptime 對它的改進。
 
 ## 開始之前
 

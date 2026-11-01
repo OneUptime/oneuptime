@@ -72,6 +72,7 @@ import {
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "../../../Types/Runbook/RunnerJobOrigin";
+import { DRY_RUN_COMMAND_STEP_ID_PREFIX } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunnerJobStatus from "../../../Types/Runbook/RunnerJobStatus";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -450,6 +451,7 @@ describe("parseResourceAiLogs", () => {
       incidentId: null,
       alertId: ALERT_ID,
       approvedAt: null,
+      approvedByName: null,
     });
   });
 
@@ -602,7 +604,7 @@ describe("the words on each row", () => {
     ).toBe("Still investigating.");
   });
 
-  test("a command's reason: an investigation, a connection test or a fix", () => {
+  test("a command's reason: an investigation, a connection test, a fix or a fix's dry run", () => {
     expect(
       describeResourceCommandJobOrigin({
         origin: RunnerJobOrigin.AiInvestigation,
@@ -619,6 +621,27 @@ describe("the words on each row", () => {
         origin: RunnerJobOrigin.AiRemediation,
       }),
     ).toBe("Fix");
+    expect(
+      describeResourceCommandJobOrigin({
+        origin: RunnerJobOrigin.AiRemediation,
+        stepId: "ai-cmd-2",
+      }),
+    ).toBe("Fix");
+    // Checked before a person approved the fix, and changed nothing.
+    expect(
+      describeResourceCommandJobOrigin({
+        origin: RunnerJobOrigin.AiRemediation,
+        stepId: `${DRY_RUN_COMMAND_STEP_ID_PREFIX}2`,
+      }),
+    ).toBe("Dry run of a fix (read-only)");
+    // Only a fix's job can be its dry run.
+    expect(
+      describeResourceCommandJobOrigin({
+        origin: RunnerJobOrigin.AiInvestigation,
+        aiRunId: new ObjectID(RUN_ID),
+        stepId: `${DRY_RUN_COMMAND_STEP_ID_PREFIX}2`,
+      }),
+    ).toBe("Investigation (read-only)");
     expect(describeResourceCommandJobOrigin({})).toBe("");
     expect(RESOURCE_COMMAND_JOB_ORIGIN_LABELS).toEqual({
       [RunnerJobOrigin.AiInvestigation]: "Investigation or connection test",
@@ -699,6 +722,36 @@ describe("the AI Logs page", () => {
     );
     // No KPI tiles: the counts are not rendered.
     expect(screen.queryByText("1717")).not.toBeInTheDocument();
+    // Nobody approved either of them.
+    expect(screen.queryByTestId("ai-logs-fix-approved-by")).toBeNull();
+  });
+
+  test("names who approved a fix, and when, under its reason", async () => {
+    const logs: JSONObject = fullLogs();
+    const fixes: Array<JSONObject> = logs["fixes"] as Array<JSONObject>;
+    fixes[0] = {
+      ...fixes[0]!,
+      status: AutoRemediationSuggestionStatus.Approved,
+      approvedAt: "2026-09-22T09:06:00.000Z",
+      approvedByName: "Maya Chen",
+    };
+    serve(ok(logs));
+    openLogsPage();
+    await findText("Investigations");
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("ai-logs-fix");
+    const approvedBy: HTMLElement = within(rows[0]!).getByTestId(
+      "ai-logs-fix-approved-by",
+    );
+    expect(approvedBy).toHaveTextContent(/^Approved by Maya Chen/);
+    expect(approvedBy.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      "2026-09-22T09:06:00.000Z",
+    );
+    // The other fix nobody approved names nobody.
+    expect(
+      within(rows[1]!).queryByTestId("ai-logs-fix-approved-by"),
+    ).toBeNull();
   });
 
   test("renders server text as text, never as markup", async () => {
@@ -873,6 +926,11 @@ describe("the commands table", () => {
         errorMessage: "Refused by the Ceph AI agent: this agent is read-only",
         payload: { displayCommand: "ceph osd out 3" },
       }),
+      makeJob("dry-run", {
+        origin: RunnerJobOrigin.AiRemediation,
+        stepId: `${DRY_RUN_COMMAND_STEP_ID_PREFIX}1`,
+        payload: { displayCommand: "cloud dry-run scale-out arn --count 4" },
+      }),
     ];
     openLogsPage();
 
@@ -892,6 +950,18 @@ describe("the commands table", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Investigation (read-only)")).toBeInTheDocument();
     expect(screen.getByText("Connection test (read-only)")).toBeInTheDocument();
+    // Its rows are commands, never the model's "runner jobs".
+    expect(document.body.textContent || "").toMatch(/of 4 commands/);
+    expect(document.body.textContent || "").not.toMatch(/runner jobs/i);
+
+    // A fix's dry run reads as one, never as the fix it checked.
+    const dryRunRow: HTMLElement | null = screen
+      .getByText("cloud dry-run scale-out arn --count 4")
+      .closest("tr");
+    expect(
+      within(dryRunRow!).getByText("Dry run of a fix (read-only)"),
+    ).toBeInTheDocument();
+    expect(within(dryRunRow!).queryByText("Fix")).not.toBeInTheDocument();
 
     const request: ListRequest | undefined = jobListRequest();
     expect(request?.select).toEqual(
@@ -901,6 +971,7 @@ describe("the commands table", () => {
         origin: true,
         status: true,
         aiRunId: true,
+        stepId: true,
         exitCode: true,
         errorMessage: true,
       }),

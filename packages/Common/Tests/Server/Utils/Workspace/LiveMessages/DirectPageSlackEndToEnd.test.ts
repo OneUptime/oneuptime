@@ -288,8 +288,8 @@ describe("a workflow pages a person, two teams and two schedules about an incide
       `📟 Workflow ${WORKFLOW_IN_SLACK} is paging for ${INCIDENT_IN_SLACK}`,
     );
     expect(listOf(posted)).toEqual([
-      "•   *Nitin*: paged once · by SMS and email",
-      "•   *Jane Doe*: paged once · by SMS and email",
+      "•   *Nitin* (member of Platform): paged once · by SMS and email",
+      "•   *Jane Doe* (member of Platform): paged once · by SMS and email",
       "•   *NB User 3*: paged once · by SMS and email",
       "•   Team *Night Shift* has no members",
       "•   *NB User 2*: not paged · not a member of this project",
@@ -316,8 +316,8 @@ describe("a workflow pages a person, two teams and two schedules about an incide
 
   test("it lists everybody once - who was paged and how, then who was not and why", () => {
     expect(listOf(pageMessageNow())).toEqual([
-      "•   *Nitin*: paged once · by SMS and email",
-      "•   *Jane Doe*: paged once · by SMS and email",
+      "•   *Nitin* (member of Platform): paged once · by SMS and email",
+      "•   *Jane Doe* (member of Platform): paged once · by SMS and email",
       "•   *NB User 3*: paged once · by SMS and email",
       "•   Team *Night Shift* has no members",
       "•   *NB User 2*: not paged · not a member of this project",
@@ -450,7 +450,7 @@ describe("a workflow pages a person, two teams and two schedules about an incide
         `✅ *Nitin* acknowledged ${INCIDENT_IN_SLACK}, so workflow ${WORKFLOW_IN_SLACK} stopped paging`,
       );
       expect(listOf(pageMessageNow())[0]).toBe(
-        "•   *Nitin*: acknowledged · paged once · by SMS and email",
+        "•   *Nitin* (member of Platform): acknowledged · paged once · by SMS and email",
       );
     });
 
@@ -551,7 +551,7 @@ describe("a workflow pages a person, two teams and two schedules about an incide
 
       expect(alarms).toHaveLength(1);
       expect(alarms[0]!.text).toContain(
-        `⚠️ Nobody has acknowledged ${INCIDENT_IN_SLACK}. Workflow ${WORKFLOW_IN_SLACK} paged Nitin, Jane Doe and NB User 3, and has stopped paging. Someone needs to take it.`,
+        `⚠️ Nobody has acknowledged ${INCIDENT_IN_SLACK}. Workflow ${WORKFLOW_IN_SLACK} paged Platform (Nitin and Jane Doe) and NB User 3, and has stopped paging. Someone needs to take it.`,
       );
       expect(alarms[0]!.notification).toBe(
         "Nobody has acknowledged Incident INC-8: someone needs to take it",

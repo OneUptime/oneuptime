@@ -195,6 +195,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 計画メンテナンス | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | チームとオンコール | `team`, `on-call-policy` |
 | セキュリティ | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| データセキュリティ | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | ラベル | `label` |
 
 テレメトリは `list`、`create`、`count` を受け付けます。

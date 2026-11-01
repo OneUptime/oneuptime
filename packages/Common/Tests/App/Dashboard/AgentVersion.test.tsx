@@ -58,6 +58,7 @@ import AgentVersion from "../../../../App/FeatureSet/Dashboard/src/Components/Ag
 import {
   AgentKind,
   DOCKER_SWARM_AGENT_VERSION,
+  PROXMOX_AGENT_VERSION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   getKubernetesAgentChartUpgradeCommand,
@@ -678,44 +679,48 @@ describe("the hero chip", () => {
 
 /*
  * Hosts, Proxmox, Ceph, VMware and storage arrays: their agents now report
- * the collector release their files pin, so an older one gets the sign,
- * compared with the pin whatever the server's own version is, and the dialog
- * shows that agent's own upgrade, taken from its setup guide.
+ * the release their files pin, so an older one gets the sign, compared with
+ * the pin whatever the server's own version is, and the dialog shows that
+ * agent's own upgrade, taken from its setup guide. The pin is the collector's
+ * release, except Proxmox's: its files changed on the same collector (#5428),
+ * so they report a release of their own, as the Docker Swarm agent's do -
+ * AgentFilesVersion tells a cluster on the older files to upgrade.
  */
 describe("the agents that report the collector they pin", () => {
-  const OUTDATED_COLLECTOR: string =
-    "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.";
+  const COLLECTOR_RELEASE: string = "0.161.0";
 
-  test.each([
-    [AgentKind.HostCollector],
-    [AgentKind.ProxmoxAgent],
-    [AgentKind.CephAgent],
-    [AgentKind.VMwareAgent],
-    [AgentKind.StorageArrayAgent],
-  ])(
+  function outdatedName(pin: string): string {
+    return `Agent 0.154.0 is outdated. A newer agent is available: ${pin}. Show how to upgrade.`;
+  }
+
+  const OUTDATED_COLLECTOR: string = outdatedName(COLLECTOR_RELEASE);
+
+  const PINS: Array<[AgentKind, string]> = [
+    [AgentKind.HostCollector, COLLECTOR_RELEASE],
+    [AgentKind.ProxmoxAgent, PROXMOX_AGENT_VERSION],
+    [AgentKind.CephAgent, COLLECTOR_RELEASE],
+    [AgentKind.VMwareAgent, COLLECTOR_RELEASE],
+    [AgentKind.StorageArrayAgent, COLLECTOR_RELEASE],
+  ];
+
+  test.each(PINS)(
     "%s: an older collector shows the sign, compared with the pin even when the server knows no version",
-    (kind: AgentKind) => {
+    (kind: AgentKind, pin: string) => {
       setServerVersion("");
       render(<AgentVersion kind={kind} version="0.154.0" />);
 
       const trigger: HTMLElement = screen.getByRole("button", {
-        name: OUTDATED_COLLECTOR,
+        name: outdatedName(pin),
       });
       expect(trigger).toHaveAttribute("data-agent-kind", kind);
       expect(trigger).toHaveTextContent("0.154.0");
     },
   );
 
-  test.each([
-    [AgentKind.HostCollector],
-    [AgentKind.ProxmoxAgent],
-    [AgentKind.CephAgent],
-    [AgentKind.VMwareAgent],
-    [AgentKind.StorageArrayAgent],
-  ])(
+  test.each(PINS)(
     "%s: the pinned release, or a newer one, is drawn exactly as before",
-    (kind: AgentKind) => {
-      for (const version of ["0.161.0", "0.162.0"]) {
+    (kind: AgentKind, pin: string) => {
+      for (const version of [pin, "0.162.0"]) {
         const { container }: RenderResult = render(
           <AgentVersion kind={kind} version={version} />,
         );
@@ -756,6 +761,7 @@ describe("the agents that report the collector they pin", () => {
   test.each([
     [
       AgentKind.ProxmoxAgent,
+      PROXMOX_AGENT_VERSION,
       "Upgrade the OneUptime Proxmox Agent",
       getProxmoxAgentUpgradeCommand(),
       getProxmoxAgentDownloadCommand(),
@@ -763,6 +769,7 @@ describe("the agents that report the collector they pin", () => {
     ],
     [
       AgentKind.CephAgent,
+      COLLECTOR_RELEASE,
       "Upgrade the OneUptime Ceph Agent",
       getCephAgentUpgradeCommand(),
       getCephAgentDownloadCommand(),
@@ -772,20 +779,21 @@ describe("the agents that report the collector they pin", () => {
     "%s: the install script again, which keeps the .env, or the files and a recreate",
     async (
       kind: AgentKind,
+      pin: string,
       title: string,
       upgrade: string,
       download: string,
       recreate: string,
     ) => {
       render(<AgentVersion kind={kind} version="0.154.0" />);
-      const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+      const dialog: HTMLElement = await openDialog(outdatedName(pin));
 
       expect(
         within(dialog).getByRole("heading", { name: title }),
       ).toBeInTheDocument();
       expect(
         within(dialog).getByText(
-          "This agent runs version 0.154.0. Version 0.161.0 is available.",
+          `This agent runs version 0.154.0. Version ${pin} is available.`,
         ),
       ).toBeInTheDocument();
       expect(

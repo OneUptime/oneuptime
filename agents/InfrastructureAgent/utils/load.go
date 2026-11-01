@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"oneuptime-infrastructure-agent/model"
 
-	"github.com/shirou/gopsutil/v3/load"
+	"github.com/shirou/gopsutil/v4/load"
 )
 
 // GetLoadMetrics returns 1/5/15-minute load averages.

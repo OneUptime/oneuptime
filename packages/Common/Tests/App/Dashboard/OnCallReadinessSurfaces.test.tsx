@@ -118,6 +118,13 @@ import {
   parseReadinessSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ReadinessTypes";
 import OnCallReadinessPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Readiness";
+import {
+  STAT_TILE_BODY_CLASS_NAME,
+  STAT_TILE_CONTAINER_CLASS_NAME,
+  STAT_TILE_FRAME_CLASS_NAME,
+  STAT_TILE_STACKED_BELOW_WIDTH_IN_REM,
+  STAT_TILE_TEXT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/StatTile";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -125,6 +132,7 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
 import type { SpyInstance } from "jest-mock";
 
 const POLICY_ID: ObjectID = new ObjectID(
@@ -1929,7 +1937,7 @@ describe("On-call readiness page", () => {
       await screen.findByText("Zed Unreachable");
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -2775,7 +2783,7 @@ describe("On-call readiness page", () => {
       await screen.findByText("Ada Ready");
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -2795,7 +2803,7 @@ describe("On-call readiness page", () => {
       await screen.findByText("Zed Unreachable");
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -2935,7 +2943,7 @@ describe("On-call readiness page", () => {
       filterToUnreachable();
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -3317,9 +3325,10 @@ describe("On-call readiness page", () => {
   });
 
   /*
-   * The teams column - the same fact the filter reads, rendered.
+   * The teams that page a responder - the same fact the filter reads,
+   * rendered in their "Reached via" (there is no Teams column of its own).
    */
-  describe("the teams column", () => {
+  describe("the teams in Reached via", () => {
     test("a responder's teams are named in their row", async () => {
       respondWith(summaryJson([TWO_TEAM_USER]));
 
@@ -3335,10 +3344,10 @@ describe("On-call readiness page", () => {
 
     /*
      * A responder reached directly or through a schedule has no team involved at
-     * all, so an empty cell is not a gap to be fixed. It renders as a dash rather
-     * than as "None", which would read like something is missing.
+     * all: their Reached via says how they are paged, and nothing in the row
+     * reads as a team that is missing - no "None", and no empty Teams cell.
      */
-    test("a responder no team pages renders a dash, not an accusation", async () => {
+    test("a responder no team pages is named by how they are paged, not by a missing team", async () => {
       respondWith(summaryJson([UNREACHABLE_USER]));
 
       await renderProjectPage();
@@ -3347,7 +3356,14 @@ describe("On-call readiness page", () => {
 
       const row: HTMLElement = tableRowFor("Zed Unreachable");
 
-      expect(within(row).getByText("—")).toBeInTheDocument();
+      expect(
+        within(row)
+          .getAllByTestId("reached-via-part")
+          .map((part: HTMLElement): string => {
+            return part.textContent || "";
+          }),
+      ).toEqual(["Direct"]);
+      expect(within(row).queryByText("None")).toBeNull();
     });
   });
 
@@ -3852,6 +3868,368 @@ describe("no unmasked identifier reaches the DOM", () => {
 
     for (const raw of ALL_RAW_IDENTIFIERS) {
       expect(href).not.toContain(raw);
+    }
+  });
+});
+
+/*
+ * LESS TO READ ON THE READINESS PAGE (#4972, #5282: "the readiness density").
+ *
+ * A responder's teams were a column of their own, and "Reached via" beside
+ * it said "Team" again: with Coverage next to them the table ran past its
+ * card at 1280 pixels beside the side menu, the last of it under the stuck
+ * Coverage buttons. Now "Reached via" names the teams that page a responder
+ * in place of the word Team, and shows on a phone's card too; the hint over
+ * the table is one short line; the tiles' names wrap rather than being cut,
+ * four a row only where the card has room for four.
+ */
+// A class that goes by the window's width rather than the tile's.
+const WINDOW_BREAKPOINT_VARIANT: RegExp = /^(?:max-)?(?:sm|md|lg|xl|2xl):/;
+
+// "[@container(max-width:10.49rem)]:flex-col": the width it stops at, in rem.
+const CONTAINER_MAX_WIDTH_VARIANT: RegExp =
+  /^\[@container\(max-width:([\d.]+)rem\)\]:(.+)$/;
+
+/*
+ * The direction a tile's body takes at a width of room, in pixels, read from
+ * its classes as the browser reads them: a flex box is a row unless a class
+ * that applies at that width makes it a column.
+ */
+function getStatTileDirection(widthInPx: number): "row" | "column" {
+  let direction: "row" | "column" = "row";
+
+  for (const token of STAT_TILE_BODY_CLASS_NAME.split(" ")) {
+    const match: RegExpMatchArray | null = token.match(
+      CONTAINER_MAX_WIDTH_VARIANT,
+    );
+
+    if (!match) {
+      if (token === "flex-col") {
+        direction = "column";
+      }
+      continue;
+    }
+
+    if (widthInPx <= Number(match[1]) * 16 && match[2] === "flex-col") {
+      direction = "column";
+    }
+  }
+
+  return direction;
+}
+
+describe("the readiness table, with less to read", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the columns: Responder, Status, Channels, Coverage, Reached via - no Teams column", async () => {
+    respondWith(summaryJson([TWO_TEAM_USER, PARTIAL_USER]));
+
+    await renderProjectPage();
+    await screen.findByText("Ravi Twoteams");
+
+    const headers: Array<string> = within(
+      tableRowFor("Ravi Twoteams").closest("table") as HTMLElement,
+    )
+      .getAllByRole("columnheader")
+      .map((header: HTMLElement): string => {
+        return (header.textContent || "").trim();
+      })
+      .filter((text: string): boolean => {
+        return text.length > 0;
+      });
+
+    expect(headers).not.toContain("Teams");
+    expect(headers).toEqual(
+      expect.arrayContaining([
+        "Responder",
+        "Status",
+        "Channels",
+        "Coverage",
+        "Reached via",
+      ]),
+    );
+  });
+
+  test("a responder two teams page reads as those teams, by name, where the word Team was", async () => {
+    respondWith(summaryJson([TWO_TEAM_USER]));
+
+    await renderProjectPage();
+    await screen.findByText("Ravi Twoteams");
+
+    const parts: Array<string> = within(tableRowFor("Ravi Twoteams"))
+      .getAllByTestId("reached-via-part")
+      .map((part: HTMLElement): string => {
+        return part.textContent || "";
+      });
+
+    expect(parts).toEqual(["Platform", "Payments"]);
+    // Each says it is a team, under the pointer.
+    for (const part of within(tableRowFor("Ravi Twoteams")).getAllByTestId(
+      "reached-via-part",
+    )) {
+      expect(part).toHaveAttribute("title", "Team");
+    }
+  });
+
+  test("every other source keeps its word: a schedule, an override, directly", async () => {
+    respondWith(summaryJson([PARTIAL_USER, UNREACHABLE_USER]));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    expect(
+      within(tableRowFor("Jane Partial"))
+        .getAllByTestId("reached-via-part")
+        .map((part: HTMLElement): string => {
+          return part.textContent || "";
+        }),
+    ).toEqual(["Schedule", "Override"]);
+    expect(
+      within(tableRowFor("Zed Unreachable"))
+        .getAllByTestId("reached-via-part")
+        .map((part: HTMLElement): string => {
+          return part.textContent || "";
+        }),
+    ).toEqual(["Direct"]);
+  });
+
+  test("a responder reached by a team the payload does not name still says Team", async () => {
+    respondWith(
+      summaryJson([{ ...READY_USER, teams: [], reachedVia: ["Team"] }]),
+    );
+
+    await renderProjectPage();
+    await screen.findByText("Ada Ready");
+
+    expect(
+      within(tableRowFor("Ada Ready"))
+        .getAllByTestId("reached-via-part")
+        .map((part: HTMLElement): string => {
+          return part.textContent || "";
+        }),
+    ).toEqual(["Team"]);
+  });
+
+  test("the hint over the table is one short line", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    expect(
+      screen.getByText(
+        "Tick the responders to remind. Ready ones have nothing to set up.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Responders who are already ready cannot be selected/),
+    ).toBeNull();
+  });
+
+  test("the tiles sit in a grid of two that takes four only where its card has room (by the card's width, not the window's)", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const grid: HTMLElement = screen.getByTestId("stat-tile-grid");
+
+    expect(grid.className).toContain("grid-cols-2");
+    expect(grid.className).toContain(
+      "[@container(min-width:45rem)]:grid-cols-4",
+    );
+    expect(grid.className).not.toContain("lg:grid-cols-4");
+    expect(grid.parentElement!.className).toContain(
+      "[container-type:inline-size]",
+    );
+  });
+
+  test("a tile's name wraps rather than being cut short", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const label: HTMLElement = within(
+      screen.getByTestId("stat-tile-grid"),
+    ).getByText("Needs setup");
+
+    expect(label.className).not.toContain("truncate");
+    expect(label.className).toContain("break-words");
+    /*
+     * ...and splits where its lines come out even: "Verified methods / (1
+     * unverified)", not "Verified methods (1 / unverified)".
+     */
+    expect(label.classList.contains("text-balance")).toBe(true);
+  });
+
+  /*
+   * Beside its icon, a tile two to a row on a phone left its name some 65
+   * pixels, and a word wider than that broke inside itself ("Responder / s",
+   * "Unreachabl / e"). A tile reads its own width now: narrow, its icon is
+   * over its number and its name has the tile's whole width. jsdom applies
+   * no styles, so the classes are read here as the browser reads them.
+   */
+  test("each tile is a container of its own, holding its icon, its number and its name", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const bodies: Array<HTMLElement> = within(
+      screen.getByTestId("stat-tile-grid"),
+    ).getAllByTestId("stat-tile-body");
+
+    expect(bodies).toHaveLength(4);
+
+    for (const body of bodies) {
+      expect(body.className).toBe(STAT_TILE_BODY_CLASS_NAME);
+      expect(body.parentElement!.className).toBe(
+        STAT_TILE_CONTAINER_CLASS_NAME,
+      );
+      // The number and the name, after the icon.
+      expect(body.children).toHaveLength(2);
+      expect(body.children[1]!.className).toBe(STAT_TILE_TEXT_CLASS_NAME);
+    }
+
+    expect(STAT_TILE_CONTAINER_CLASS_NAME).toContain(
+      "[container-type:inline-size]",
+    );
+  });
+
+  test("under 10.5rem of room the icon sits over the number; from 10.5rem it is beside it", () => {
+    expect(STAT_TILE_STACKED_BELOW_WIDTH_IN_REM).toBe(10.5);
+
+    // A phone's tile (two a row in 390 pixels) has some 119 pixels of room.
+    expect(getStatTileDirection(119)).toBe("column");
+    expect(getStatTileDirection(167)).toBe("column");
+    // Two a row beside the side menu at 768: some 150 pixels, over too.
+    expect(getStatTileDirection(150)).toBe("column");
+    // Four a row at 1280 beside the side menu: 179 pixels, beside.
+    expect(getStatTileDirection(168)).toBe("row");
+    expect(getStatTileDirection(179)).toBe("row");
+    // Two a row beside the side menu at 1024: 277 pixels.
+    expect(getStatTileDirection(277)).toBe("row");
+  });
+
+  test("only the direction changes with the width, and nothing else sets it: no rule depends on the stylesheet's order", () => {
+    const tokens: Array<string> = STAT_TILE_BODY_CLASS_NAME.split(" ");
+    const containerTokens: Array<string> = tokens.filter(
+      (token: string): boolean => {
+        return token.startsWith("[@container");
+      },
+    );
+
+    expect(containerTokens).toEqual([
+      "[@container(max-width:10.49rem)]:flex-col",
+    ]);
+    // No plain class sets a direction for the width's class to win over.
+    expect(tokens).not.toContain("flex-row");
+    expect(tokens).not.toContain("flex-col");
+    // Beside, the gap is gap-x; over, gap-y: each applies to one direction only.
+    expect(tokens).toEqual(
+      expect.arrayContaining(["flex", "items-start", "gap-x-3", "gap-y-2"]),
+    );
+    expect(tokens).not.toContain("gap-3");
+    expect(tokens).not.toContain("items-center");
+    // Nothing goes by the window's width.
+    for (const token of tokens) {
+      expect(token).not.toMatch(WINDOW_BREAKPOINT_VARIANT);
+    }
+  });
+
+  test("the number and the name take the room beside the icon, or the tile's whole width under it", () => {
+    const tokens: Array<string> = STAT_TILE_TEXT_CLASS_NAME.split(" ");
+
+    expect(tokens).toEqual(expect.arrayContaining(["w-full", "min-w-0"]));
+  });
+
+  /*
+   * A row's tiles are as tall as the tallest - a name on two lines
+   * ("Einrichtung / erforderlich") - and a button centres what it holds, so
+   * the tiles that filter the table (buttons) drew their icon and number
+   * lower than the Responders tile (a plain div) beside them. Every tile's
+   * frame is a column whose content starts at the top.
+   */
+  test("every tile, pressable or not, holds its icon and number at its top, so a row's numbers keep one line", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const tiles: Array<Element> = Array.from(
+      screen.getByTestId("stat-tile-grid").children,
+    );
+
+    expect(tiles).toHaveLength(4);
+    // The page's tiles: the count of responders, and three that filter.
+    expect(
+      tiles.map((tile: Element): string => {
+        return tile.tagName;
+      }),
+    ).toEqual(["DIV", "BUTTON", "BUTTON", "BUTTON"]);
+
+    for (const tile of tiles) {
+      for (const token of STAT_TILE_FRAME_CLASS_NAME.split(" ")) {
+        expect([tile.tagName, token, tile.classList.contains(token)]).toEqual([
+          tile.tagName,
+          token,
+          true,
+        ]);
+      }
+    }
+
+    const frame: Array<string> = STAT_TILE_FRAME_CLASS_NAME.split(" ");
+
+    expect(frame).toEqual(
+      expect.arrayContaining(["flex", "flex-col", "justify-start", "w-full"]),
+    );
+    // Not a block (a button centres a block's content), nor centred.
+    expect(frame).not.toContain("block");
+    expect(frame).not.toContain("items-center");
+    expect(frame).not.toContain("justify-center");
+  });
+
+  /*
+   * The CSV keeps what the Teams column carried: a responder's teams are in
+   * their Reached via, after the source that names them.
+   */
+  test("the CSV has no Teams column and names the teams in Reached via", async () => {
+    const downloads: Array<{ csv: string; filename: string }> = [];
+    const downloadSpy: SpyInstance = jest
+      .spyOn(TableColumnsToCsv, "downloadCsv")
+      .mockImplementation((data: { csv: string; filename: string }): void => {
+        downloads.push(data);
+      }) as unknown as SpyInstance;
+
+    try {
+      respondWith(summaryJson([TWO_TEAM_USER, UNREACHABLE_USER]));
+
+      await renderProjectPage();
+      await screen.findByText("Ravi Twoteams");
+
+      selectResponder("Ravi Twoteams");
+      selectResponder("Zed Unreachable");
+      runBulkAction("Export CSV");
+
+      await waitFor(() => {
+        expect(downloads).toHaveLength(1);
+      });
+
+      const lines: Array<string> = downloads[0]!.csv.split("\n");
+
+      expect(lines[0]).toContain("Reached via");
+      expect(lines[0]).not.toContain("Teams");
+      expect(downloads[0]!.csv).toContain("Team (Platform, Payments)");
+      expect(
+        lines.find((line: string): boolean => {
+          return line.includes("Zed Unreachable");
+        }),
+      ).toContain("Direct");
+    } finally {
+      downloadSpy.mockRestore();
     }
   });
 });

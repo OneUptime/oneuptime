@@ -106,6 +106,7 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 | Bevakningslistvärden | `Watchlist Value` |
 | Hunts | `Hunt` |
 | Uppgifter och bevis i säkerhetsärenden | `Security Case Task`, `Security Case Evidence` |
+| Datalager och deras fynd, samt Datasäkerhets problem, inställningar, kontrollinställningar, anpassade datatyper och hemvistregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Exporter av granskningsloggen | `Audit Log Export` |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.

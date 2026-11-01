@@ -38,6 +38,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
 import * as RuleLibraryCopy from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryCopy";
 import {
+  CONNECT_A_CLOUD_ACCOUNT,
   DATA_KIND_HOW_TO_SEND,
   DATA_KIND_SEND_PAGE,
   DATA_KIND_TITLES,
@@ -786,24 +787,33 @@ describe("the library's words", () => {
         [
           PageMap.SECURITY_EVENTS_CONNECTIONS,
           PageMap.SECURITY_EVENTS_DOCUMENTATION,
+          PageMap.CLOUD_CONNECT,
         ].includes(DATA_KIND_SEND_PAGE[kind]),
       ]).toEqual([kind, true]);
     }
   });
 
-  test("network events come from a firewall or a SIEM: the Setup Guide; everything else is connected or read from your logs", () => {
+  test("network events come from a firewall or a SIEM: the Setup Guide; Data Security's from a cloud account; everything else is connected or read from your logs", () => {
     for (const kind of DETECTION_RULE_DATA_KINDS_IN_ORDER) {
       const isNetwork: boolean = kind === DetectionRuleDataKind.NetworkActivity;
+      const isDataSecurity: boolean =
+        kind === DetectionRuleDataKind.DataSecurity;
 
       expect([kind, DATA_KIND_SEND_PAGE[kind]]).toEqual([
         kind,
         isNetwork
           ? PageMap.SECURITY_EVENTS_DOCUMENTATION
-          : PageMap.SECURITY_EVENTS_CONNECTIONS,
+          : isDataSecurity
+            ? PageMap.CLOUD_CONNECT
+            : PageMap.SECURITY_EVENTS_CONNECTIONS,
       ]);
       expect([kind, getDataKindSendLinkText(kind)]).toEqual([
         kind,
-        isNetwork ? OPEN_SETUP_GUIDE : GO_TO_CONNECTIONS,
+        isNetwork
+          ? OPEN_SETUP_GUIDE
+          : isDataSecurity
+            ? CONNECT_A_CLOUD_ACCOUNT
+            : GO_TO_CONNECTIONS,
       ]);
     }
   });

@@ -4,7 +4,9 @@ import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
   AdditionalCriteriaFilterSpec,
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import FilterCondition from "../Filter/FilterCondition";
@@ -14,6 +16,7 @@ import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type VMwareAlertTemplateCategory =
+  | "Availability"
   | "Host"
   | "Virtual Machine"
   | "Datastore"
@@ -366,6 +369,54 @@ function buildThresholdTemplate(
     },
   };
 }
+
+// --- Availability ---
+
+const vcenterStoppedReportingTemplate: VMwareAlertTemplate = {
+  id: "vmware-vcenter-stopped-reporting",
+  name: "vCenter Stopped Reporting",
+  summary: "The vCenter sends no data for 10 minutes.",
+  description:
+    "Alert when the vCenter (or standalone ESXi host) sends no data for ten minutes: the VMware Agent stopped, lost its route to OneUptime or had its token revoked, or vCenter stopped answering it (down, or its login no longer works). Reads vcenter.datacenter.cpu.limit, which the vcenter receiver reports for every datacenter on every collection. One incident for the whole vCenter.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: VMwareAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildVMwareMonitorStep({
+      vmwareMonitor: buildVMwareMonitorConfig({
+        vcenterIdentifier: args.vcenterIdentifier,
+        /*
+         * The heartbeat. The vcenter receiver records each datacenter's CPU
+         * limit on every collection, whatever its hosts' states - unlike the
+         * host and VM series, which only exist for connected hosts and
+         * powered-on VMs - and a vCenter or standalone ESXi host always has
+         * a datacenter (both recorded fixtures,
+         * Probe/Tests/Utils/VMware/Fixtures, carry it). Ungrouped and
+         * counted: only a window with no row at all is the breach.
+         */
+        metricName: "vcenter.datacenter.cpu.limit",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "vCenter",
+        incidentTitle: `[VMware] CRITICAL: vCenter Stopped Reporting - ${args.monitorName}`,
+        incidentDescription: `OneUptime has received no data from this vCenter for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether vCenter (or the ESXi host) is up and its read-only monitoring user can still log in, whether the VMware Agent's collector is running and what its log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.`,
+        criteriaName: "vCenter Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the vCenter sends no datacenter data for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 // --- Host (ESXi) templates ---
 
@@ -1058,6 +1109,7 @@ const resourcePoolMemorySwappedTemplate: VMwareAlertTemplate =
 
 export function getAllVMwareAlertTemplates(): Array<VMwareAlertTemplate> {
   return [
+    vcenterStoppedReportingTemplate,
     hostCpuSaturationTemplate,
     hostMemorySaturationTemplate,
     hostDiskLatencyHighTemplate,
@@ -1100,4 +1152,13 @@ export function getVMwareAlertTemplateById(
   return getAllVMwareAlertTemplates().find((template: VMwareAlertTemplate) => {
     return template.id === id;
   });
+}
+
+/*
+ * The template a NEW VMware monitor starts on: the vCenter going silent. It
+ * is the one template that still speaks when every other one has stopped
+ * being evaluated, and it has no threshold to tune.
+ */
+export function getVMwareDefaultAlertTemplateId(): string {
+  return vcenterStoppedReportingTemplate.id;
 }

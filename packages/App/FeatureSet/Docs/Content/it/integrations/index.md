@@ -58,6 +58,8 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 | [Elastic Security](/docs/integrations/elastic-security) | Entrambe | Porta gli alert di rilevamento di Elastic Security in Eventi di sicurezza, e gli invia ciò che OneUptime trova. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | In entrata | Porta i finding di AWS Security Hub in Eventi di sicurezza. |
 | [Okta System Log](/docs/integrations/okta) | In entrata | Porta gli accessi, le modifiche agli account e i rilevamenti di minacce di Okta in Eventi di sicurezza. |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | In entrata | Porta gli accessi e le modifiche alla directory di Microsoft Entra ID, e il log di audit di Microsoft 365, in Eventi di sicurezza. |
+| [Google Workspace](/docs/integrations/google-workspace) | In entrata | Porta gli accessi, le modifiche degli amministratori e i rilevamenti di Google Workspace in Eventi di sicurezza. |
 
 ### Ticketing e gestione dei servizi IT
 

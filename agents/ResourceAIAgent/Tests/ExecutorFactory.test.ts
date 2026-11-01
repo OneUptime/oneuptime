@@ -5,6 +5,7 @@ import path from "path";
 import { after, before, describe, test } from "node:test";
 import { AgentConfig } from "../Config";
 import CephExecutor from "../Executors/CephExecutor";
+import CloudExecutor from "../Executors/CloudExecutor";
 import DatabaseExecutor from "../Executors/DatabaseExecutor";
 import DockerExecutor from "../Executors/DockerExecutor";
 import {
@@ -78,6 +79,19 @@ const TYPE_ENV: Record<AiResourceType, Record<string, string>> = {
     ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "host",
     HOST_NAME: "res-1",
   },
+  // A cloud agent's identity is its account; any name will do for these checks.
+  [AiResourceType.AwsAccount]: {
+    ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "aws",
+    ONEUPTIME_AI_AGENT_RESOURCE_NAME: "res-1",
+  },
+  [AiResourceType.AzureSubscription]: {
+    ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "azure",
+    ONEUPTIME_AI_AGENT_RESOURCE_NAME: "res-1",
+  },
+  [AiResourceType.GoogleCloudProject]: {
+    ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "gcp",
+    ONEUPTIME_AI_AGENT_RESOURCE_NAME: "res-1",
+  },
 };
 
 let tmpDir: string;
@@ -142,6 +156,9 @@ describe("which executor serves which resource", () => {
       [AiResourceType.CephCluster]: CephExecutor,
       [AiResourceType.DatabaseServer]: DatabaseExecutor,
       [AiResourceType.Host]: HostExecutor,
+      [AiResourceType.AwsAccount]: CloudExecutor,
+      [AiResourceType.AzureSubscription]: CloudExecutor,
+      [AiResourceType.GoogleCloudProject]: CloudExecutor,
     };
 
     assert.deepStrictEqual(

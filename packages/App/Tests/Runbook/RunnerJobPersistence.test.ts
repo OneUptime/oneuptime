@@ -20,6 +20,15 @@ import {
   StepExecutionContext,
   StepRunResult,
 } from "../../FeatureSet/Runbook/Services/StepExecutors";
+import AiCommandKillSwitch from "Common/Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 /*
  * ---------------------------------------------------------------------------

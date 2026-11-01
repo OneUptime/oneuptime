@@ -9,6 +9,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -105,6 +106,8 @@ interface Recorded {
   reviewLists: Array<string>;
   // Each Review again, by its task.
   reviewAgains: Array<string>;
+  // Each Review a pull request, by its repository and the number sent.
+  reviewAsks: Array<{ repositoryId: string; number: unknown }>;
   reads: { task: number; list: number; repositories: number };
 }
 
@@ -215,6 +218,19 @@ function sendButton(page: Page): Locator {
 
 function turnReplies(page: Page): Locator {
   return page.getByTestId("code-turn-reply");
+}
+
+/*
+ * A repository's Production Reviews: Review a pull request (a merge request
+ * on GitLab), and its dialog, opened.
+ */
+async function openAskDialog(page: Page): Promise<Locator> {
+  await page.getByTestId("code-production-review-ask").click();
+  const dialog: Locator = page.getByRole("dialog");
+  await expect(
+    dialog.getByTestId("code-production-review-ask-dialog"),
+  ).toBeVisible();
+  return dialog;
 }
 
 // The page is never wider than the screen: nothing scrolls sideways.
@@ -1213,7 +1229,11 @@ test.describe("Code's Repositories", () => {
  */
 test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git server", () => {
   const BILLING: string = "20000000-0000-4000-8000-0000000000b4";
+  const WIDGETS: string = "20000000-0000-4000-8000-0000000000b5";
   const INFRA: string = "20000000-0000-4000-8000-0000000000b6";
+  // Production reviews off GitHub: GitLab's merge request !15, Forgejo's pull request #7.
+  const GITLAB_REVIEW: string = "40000000-0000-4000-8000-0000000000f4";
+  const FORGEJO_REVIEW: string = "40000000-0000-4000-8000-0000000000f5";
   const INVOICES_TASK: string = "40000000-0000-4000-8000-0000000000d8";
   const TERRAFORM_TASK: string = "40000000-0000-4000-8000-0000000000d9";
   const GITLAB_CONNECTION: string = "70000000-0000-4000-8000-0000000000a1";
@@ -1262,6 +1282,10 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
 
   function settingsPath(id: string): string {
     return `${repositoryPath(id)}/settings`;
+  }
+
+  function reviewsPath(id: string): string {
+    return `${repositoryPath(id)}/production-reviews`;
   }
 
   test("Connect repositories asks where the code is: GitHub, GitLab, Forgejo or Gitea, any Git server - each saying how it connects", async ({
@@ -1609,15 +1633,21 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     await expect(
       connection.getByTestId("code-repository-github-only"),
     ).toHaveText(
-      "Commands from GitLab comments and production reviews work in GitHub repositories only, for now.",
+      "Commands from GitLab comments work in GitHub repositories only, for now.",
     );
-    // More settings holds only what GitLab has, in GitLab's word.
+    /*
+     * More settings holds only what GitLab has, in GitLab's word: production
+     * review among it, on as the repository connected.
+     */
     const moreSettings: Locator = page.getByTestId(
       "code-repository-more-settings",
     );
     await expect(moreSettings.getByTestId("folded-section-item")).toHaveText([
+      "Production Review",
       "Runner",
       "Merge Requests",
+      "Production Review Comment",
+      "Production Review LLM Provider",
     ]);
     await expect(
       page.getByTestId("code-repository-github-commands"),
@@ -1672,7 +1702,7 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     await expect(
       connection.getByTestId("code-repository-github-only"),
     ).toHaveText(
-      "On a Git server, AI pushes a branch and you open the pull request. Commands from comments and production reviews work in GitHub repositories only.",
+      "On a Git server, AI pushes a branch and you open the pull request, so there is no production review. Commands from comments work in GitHub repositories only.",
     );
     const moreSettings: Locator = page.getByTestId(
       "code-repository-more-settings",
@@ -1772,18 +1802,26 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     );
   });
 
-  test("a GitLab task: Opened merge request !12, with GitLab's mark and View on GitLab - and no Production Reviews in its repository's menu", async ({
+  test("a GitLab task: Opened merge request !12, with GitLab's mark and View on GitLab - and Production Reviews in its repository's menu, as a Git server's has none", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
+    await openRepository(page, INFRA, "hosts=1");
+    await expect(
+      page.getByRole("link", { name: "Production Reviews" }),
+    ).toHaveCount(0);
+
     await openRepository(page, BILLING, "hosts=1");
     await expect(page.getByTestId("code-task-row-pull-request")).toHaveText(
       /MR !12/,
     );
-    await expect(
-      page.getByRole("link", { name: "Production Reviews" }),
-    ).toHaveCount(0);
+    // A phone folds the menu away; at a laptop's width it is beside the page.
+    if (!isPhone(testInfo)) {
+      await expect(
+        page.getByRole("link", { name: "Production Reviews" }),
+      ).toHaveCount(1);
+    }
     // GitLab's own word for it, before a task opens one.
     await expect(page.getByTestId("code-ask-footer")).toHaveText(
       "AI works on a new branch and opens a merge request for you to review when it changes code. Nothing is merged on its own.",
@@ -1837,6 +1875,360 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     ).toEqual([]);
   });
 
+  test("a GitLab repository's Production Reviews: on from when it connected, in GitLab's words - each merge request with what its latest review found", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${reviewsPath(BILLING)}?hosts=1`);
+
+    const status: Locator = page.getByTestId("code-production-reviews-status");
+    await expect(status).toHaveAttribute("data-production-review", "on");
+    await expect(status).toContainText(
+      "A merge request from someone with write access is reviewed when it opens and each time it changes.",
+    );
+    // GitLab reads no command: anyone else's is asked for here.
+    await expect(
+      page.getByTestId("code-production-reviews-status-others"),
+    ).toHaveText(
+      "A merge request from anyone else is reviewed only when someone asks for it here.",
+    );
+    await expect(
+      page.locator("code", { hasText: "production review" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("code-production-reviews-list").getByRole("heading"),
+    ).toContainText("Merge Requests");
+
+    const rows: Locator = page
+      .getByTestId("code-production-review-list")
+      .getByTestId("code-task-row");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText(
+      "Charge VAT on reverse-charge invoices",
+    );
+    await expect(rows.first()).toContainText("MR !15");
+    await expect(rows.first()).toContainText("1 exception");
+    await expect(page.getByTestId("code-production-review-ask")).toHaveText(
+      "Review a merge request",
+    );
+    // Read as its own list of reviews, of this repository only.
+    const reviewLists: Array<string> = (await recorded(page)).reviewLists;
+    expect(reviewLists.length).toBeGreaterThan(0);
+    expect(
+      reviewLists.every((id: string): boolean => {
+        return id === BILLING;
+      }),
+    ).toBe(true);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-reviews-gitlab");
+
+    // A row opens its review.
+    await rows.first().getByRole("link").click();
+    await expect(page).toHaveURL(taskPath(GITLAB_REVIEW));
+    await expect(page.getByTestId("production-review")).toBeVisible();
+  });
+
+  test("Review a merge request: a number GitLab does not hold is said in the dialog, which keeps it - one it holds opens its review, queued, then reviewed", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${reviewsPath(BILLING)}?hosts=1`);
+    const dialog: Locator = await openAskDialog(page);
+
+    await expect(dialog.getByTestId("modal-title")).toHaveText(
+      "Review a merge request",
+    );
+    await expect(dialog).toContainText("Merge request number");
+    await expect(dialog).toContainText(
+      "Any open merge request in this repository, even one from a fork or a bot.",
+    );
+    const number: Locator = dialog.getByTestId(
+      "code-production-review-ask-number",
+    );
+    const reviewNow: Locator = dialog.getByRole("button", {
+      name: "Review now",
+    });
+    // A phone offers its number keys.
+    await expect(number).toHaveAttribute("inputmode", "numeric");
+    // Nothing to ask until there is a number - written as GitLab writes it, or not.
+    await expect(reviewNow).toBeDisabled();
+    await number.fill("!");
+    await expect(dialog.getByTestId("error-message")).toHaveCount(0);
+    // What can never be one is said under the field, in GitLab's words.
+    await number.fill("VAT");
+    await expect(reviewNow).toBeDisabled();
+    await expect(dialog.getByTestId("error-message")).toHaveText(
+      "Enter the number of a merge request, such as 12.",
+    );
+    await number.fill("!99");
+    await expect(reviewNow).toBeEnabled();
+    await expect(dialog.getByTestId("error-message")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-ask-gitlab");
+
+    await reviewNow.click();
+    await expect(dialog).toContainText(
+      "There is no merge request !99 in this repository.",
+    );
+    await expect(number).toHaveValue("!99");
+    // Still on the reviews page: a refusal opens nothing.
+    await expect(page).toHaveURL(
+      new RegExp(`${escapeRegExp(reviewsPath(BILLING))}(\\?|$)`),
+    );
+    await screenshot(page, testInfo, "code-production-review-ask-refused");
+
+    /*
+     * Enter asks too: a merge request from a fork, never reviewed on its
+     * own - its number as a Persian keyboard types it, "!۱۸".
+     */
+    await number.fill("!\u06F1\u06F8");
+    await number.press("Enter");
+
+    await expect(page).toHaveURL(/\/code\/tasks\/60000000-/);
+    await expect(page.getByTestId("code-task-title")).toHaveText(
+      "Export invoices as CSV",
+    );
+    const pullRequest: Locator = page.getByTestId(
+      "production-review-pull-request",
+    );
+    await expect(pullRequest).toHaveText("Merge request !18");
+    await expect(pullRequest).toHaveAttribute(
+      "href",
+      "https://gitlab.com/acme/billing-service/-/merge_requests/18",
+    );
+    await expect(page.getByTestId("production-review-working")).toBeVisible();
+    /*
+     * Its first review on its way: nothing to ask again yet, and no word on
+     * its next pushes, which its review reads (it is from a fork).
+     */
+    await expect(page.getByTestId("production-review-footer-bar")).toHaveCount(
+      0,
+    );
+
+    // Reviewed: here on the fixture's next reads, within a minute for real.
+    await expect(
+      page.getByTestId("production-review-nothing-found"),
+    ).toContainText(
+      "Nothing in production runs through this merge request's changes",
+      { timeout: 30000 },
+    );
+    // Asked for, it is posted on the merge request even so.
+    const posting: Locator = page.getByTestId("production-review-posting");
+    await expect(posting).toContainText("Posted on the merge request.");
+    await expect(
+      posting.getByTestId("production-review-comment"),
+    ).toHaveAttribute(
+      "href",
+      "https://gitlab.com/acme/billing-service/-/merge_requests/18#note_3001",
+    );
+    await expect(page.getByTestId("production-review-updates")).toHaveText(
+      "Its author cannot write to this repository, so it is reviewed again only when someone asks.",
+    );
+    expect((await recorded(page)).reviewAsks).toEqual([
+      { repositoryId: BILLING, number: 99 },
+      { repositoryId: BILLING, number: 18 },
+    ]);
+
+    // The repository's list holds it now, first.
+    await page.goBack();
+    const rows: Locator = page
+      .getByTestId("code-production-review-list")
+      .getByTestId("code-task-row");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.first()).toContainText("Export invoices as CSV");
+    await expect(rows.first()).toContainText("MR !18");
+  });
+
+  test("a GitLab review: Merge request !15 with GitLab's mark, posted on it with View comment and what never leaves OneUptime - Review again runs it in place", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${taskPath(GITLAB_REVIEW)}?hosts=1`);
+
+    const pullRequest: Locator = page.getByTestId(
+      "production-review-pull-request",
+    );
+    await expect(pullRequest).toHaveText("Merge request !15");
+    // Its trail names it as its title and button do: GitLab's merge request.
+    await expect(
+      page
+        .locator("nav[aria-label='Breadcrumb']")
+        .locator("li.breadcrumb-item"),
+    ).toHaveText([
+      "Project",
+      "Code",
+      "billing-service",
+      "Production Reviews",
+      "Merge request !15",
+    ]);
+    await expect(pullRequest).toHaveAttribute(
+      "href",
+      "https://gitlab.com/acme/billing-service/-/merge_requests/15",
+    );
+    await expect(pullRequest.getByTestId("code-host-mark")).toHaveAttribute(
+      "data-provider",
+      "GitLab",
+    );
+    const posting: Locator = page.getByTestId("production-review-posting");
+    await expect(posting).toContainText("Posted on the merge request.");
+    await expect(
+      posting.getByTestId("production-review-comment"),
+    ).toHaveAttribute(
+      "href",
+      "https://gitlab.com/acme/billing-service/-/merge_requests/15#note_2001",
+    );
+    await expect(page.getByTestId("production-review-aggregates")).toHaveText(
+      "Only counts, durations and the names of code are posted on GitLab: never an exception's message, a log line, an incident's title or personal data.",
+    );
+    await expect(page.getByTestId("production-review")).toContainText(
+      "LedgerMismatchError",
+    );
+    await expect(page.getByTestId("production-review-updates")).toHaveText(
+      "Reviewed again each time the merge request changes.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-gitlab");
+
+    await page.getByTestId("production-review-again").click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).reviewAgains;
+      })
+      .toEqual([GITLAB_REVIEW]);
+    await expect(page.getByTestId("production-review-working")).toBeVisible();
+    await expect(page.getByTestId("production-review-commit")).toHaveText(
+      "Commit 9b8a7c6",
+      { timeout: 30000 },
+    );
+    // Still GitLab's review, posted on the merge request.
+    await expect(page.getByTestId("production-review-posting")).toContainText(
+      "Posted on the merge request.",
+    );
+  });
+
+  test("a Forgejo review its token could not post: said where it would have been posted, with what lets it comment - and Go to Settings", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${taskPath(FORGEJO_REVIEW)}?hosts=1`);
+
+    const pullRequest: Locator = page.getByTestId(
+      "production-review-pull-request",
+    );
+    await expect(pullRequest).toHaveText("Pull request #7");
+    await expect(pullRequest).toHaveAttribute(
+      "href",
+      "https://codeberg.org/acme/status-widgets/pulls/7",
+    );
+    await expect(pullRequest.getByTestId("code-host-mark")).toHaveAttribute(
+      "data-provider",
+      "Forgejo",
+    );
+    const refusal: Locator = page.getByTestId(
+      "production-review-comment-refused",
+    );
+    await expect(refusal).toHaveText(
+      "Forgejo did not let the access token comment on this pull request, so this review is only here. Replace the access token with one that can also write issues. Go to Settings",
+    );
+    await expect(page.getByTestId("production-review-posting")).toHaveCount(0);
+    // What it found is here, for whoever opens it.
+    await expect(page.getByTestId("production-review")).toContainText(
+      "GET /widgets/:id",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-forgejo-refused");
+
+    await refusal
+      .getByTestId("production-review-comment-refused-settings")
+      .click();
+    await expect(page).toHaveURL(settingsPath(WIDGETS));
+  });
+
+  test("a GitLab token refused: its Production Reviews and its review say nothing is reviewed, with Replace access token - and neither Review a merge request nor Review again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${taskPath(GITLAB_REVIEW)}?hosts=1&token=refused`);
+    await expect(page.getByTestId("production-review")).toBeVisible();
+    await expect(page.getByTestId("production-review-again")).toHaveCount(0);
+    const notConnected: Locator = page.getByTestId(
+      "production-review-not-connected",
+    );
+    await expect(notConnected).toContainText(
+      "This repository's connection to GitLab does not work now, so its merge requests cannot be reviewed again.",
+    );
+    // With its one fix beside it: GitLab refused the token.
+    const reconnect: Locator = notConnected.getByTestId(
+      "production-review-reconnect",
+    );
+    await expect(reconnect).toHaveText("Replace access token");
+    await reconnect.click();
+    await expect(page).toHaveURL(settingsPath(BILLING));
+
+    await page.goto(`${reviewsPath(BILLING)}?hosts=1&token=refused`);
+    const status: Locator = page.getByTestId("code-production-reviews-status");
+    await expect(status).toHaveAttribute(
+      "data-production-review",
+      "not-connected",
+    );
+    await expect(status).toContainText(
+      "This repository's connection to GitLab does not work, so its merge requests are not reviewed.",
+    );
+    await expect(page.getByTestId("code-production-review-ask")).toHaveCount(0);
+    // Named as its Tasks name the fix.
+    await expect(
+      page.getByTestId("code-production-reviews-connect"),
+    ).toHaveText("Replace access token");
+    await page.getByTestId("code-production-reviews-connect").click();
+    await expect(page).toHaveURL(settingsPath(BILLING));
+  });
+
+  test("a Git server has no pull requests: its Production Reviews address says so, with nothing to turn on or ask", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${reviewsPath(INFRA)}?hosts=1`);
+    await expect(
+      page.getByTestId("code-production-reviews-no-pull-requests"),
+    ).toHaveText(
+      "A Git server has no pull requests for OneUptime to review: production reviews work in GitHub, GitLab, Forgejo and Gitea repositories. Ask AI about a change in this repository from its Tasks.",
+    );
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("code-production-review-ask")).toHaveCount(0);
+    expect((await recorded(page)).reviewLists).toEqual([]);
+  });
+
+  test("German: a GitLab repository's reviews and Review a merge request speak the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(`${reviewsPath(BILLING)}?hosts=1&lang=de`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toContainText(
+      "Ein Merge Request von jemandem mit Schreibzugriff wird geprüft, wenn er geöffnet wird und jedes Mal, wenn er sich ändert.",
+    );
+    await expect(page.getByTestId("code-production-review-ask")).toHaveText(
+      "Merge Request prüfen",
+    );
+    const dialog: Locator = await openAskDialog(page);
+    await expect(dialog).toContainText("Nummer des Merge Requests");
+    await expect(
+      dialog.getByRole("button", { name: "Jetzt prüfen" }),
+    ).toBeVisible();
+    await screenshot(page, testInfo, "code-production-review-ask-gitlab-de");
+  });
+
   test("dark mode: the connect dialog and a GitLab repository's settings draw on dark surfaces", async ({
     page,
   }: {
@@ -1880,6 +2272,24 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
       }),
     ).toBe(true);
     await screenshot(page, testInfo, "code-repository-settings-gitlab-dark");
+
+    // Review a merge request's dialog too.
+    await page.goto(`${reviewsPath(BILLING)}?hosts=1&theme=dark`);
+    const askDialog: Locator = await openAskDialog(page);
+    const askBackground: string = await askDialog.evaluate(
+      (element: Element): string => {
+        return window.getComputedStyle(element).backgroundColor;
+      },
+    );
+    expect(
+      (askBackground.match(COLOUR_CHANNELS) || [])
+        .slice(0, 3)
+        .map(Number)
+        .every((value: number) => {
+          return value < 100;
+        }),
+    ).toBe(true);
+    await screenshot(page, testInfo, "code-production-review-ask-gitlab-dark");
   });
 });
 
@@ -4245,7 +4655,9 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await page.goto(`${REVIEWS}?review=off&ghcommands=off&reviews=none`);
     await expect(
       page.getByTestId("code-production-reviews-status"),
-    ).toContainText("Pull requests are not reviewed against production.");
+    ).toContainText(
+      "Pull requests are reviewed only when someone asks for one here.",
+    );
     await expect(
       page.locator("code", { hasText: "production review" }),
     ).toHaveCount(0);
@@ -4415,7 +4827,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     // Its author cannot write to the repository: reviewed again only when asked.
     await openReview(page, REVIEW.found, "reviewcase=outside");
     await expect(page.getByTestId("production-review-updates")).toHaveText(
-      "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
+      "Its author cannot write to this repository, so it is reviewed again only when someone asks.",
     );
 
     // Parts not read are said before the findings.
@@ -4440,6 +4852,91 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await screenshot(page, testInfo, "code-production-review-long");
   });
 
+  test("Review a pull request: a closed one is said in the dialog; one already reviewed is reviewed again; one from a fork gets a review of its own", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(REVIEWS);
+    const ask: Locator = page.getByTestId("code-production-review-ask");
+    await expect(ask).toHaveText("Review a pull request");
+    // Beside the list's heading, on the same line at a laptop's width.
+    if (!isPhone(testInfo)) {
+      const askBox: { y: number; height: number } | null =
+        await ask.boundingBox();
+      const headingBox: { y: number; height: number } | null = await page
+        .getByTestId("code-production-reviews-list")
+        .getByRole("heading")
+        .boundingBox();
+      expect(
+        Math.abs(
+          askBox!.y +
+            askBox!.height / 2 -
+            (headingBox!.y + headingBox!.height / 2),
+        ),
+      ).toBeLessThan(8);
+    }
+
+    let dialog: Locator = await openAskDialog(page);
+    await expect(dialog.getByTestId("modal-title")).toHaveText(
+      "Review a pull request",
+    );
+    await expect(dialog).toContainText("Pull request number");
+    await expect(dialog).toContainText(
+      "Any open pull request in this repository, even one from a fork or a bot.",
+    );
+    let number: Locator = dialog.getByTestId(
+      "code-production-review-ask-number",
+    );
+    await number.fill("#39");
+    await dialog.getByRole("button", { name: "Review now" }).click();
+    await expect(dialog).toContainText(
+      "The pull request is closed, so it was not reviewed.",
+    );
+    await expect(number).toHaveValue("#39");
+
+    // One already reviewed: its review's page, where it is reviewed again.
+    await number.fill("42");
+    await dialog.getByRole("button", { name: "Review now" }).click();
+    await expect(page).toHaveURL(taskPath(REVIEW.found));
+    await expect(page.getByTestId("production-review-working")).toBeVisible();
+    await expect(page.getByTestId("production-review")).toBeVisible();
+
+    // One from a fork, which is never reviewed on its own: a review of its own.
+    await page.goBack();
+    dialog = await openAskDialog(page);
+    number = dialog.getByTestId("code-production-review-ask-number");
+    await number.fill("64");
+    await dialog.getByRole("button", { name: "Review now" }).click();
+    await expect(page).toHaveURL(/\/code\/tasks\/60000000-/);
+    await expect(page.getByTestId("code-task-title")).toHaveText(
+      "Accept Apple Pay at checkout",
+    );
+    await expect(page.getByTestId("production-review-pull-request")).toHaveText(
+      "Pull request #64",
+    );
+    await expect(page.getByTestId("production-review-working")).toContainText(
+      "Starting in a minute or so.",
+    );
+    // Its first review on its way: no promise about its next pushes yet.
+    await expect(page.getByTestId("production-review-footer-bar")).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByTestId("production-review-nothing-found"),
+    ).toContainText(
+      "Nothing in production runs through this pull request's changes",
+      { timeout: 30000 },
+    );
+    await screenshot(page, testInfo, "code-production-review-asked");
+
+    expect((await recorded(page)).reviewAsks).toEqual([
+      { repositoryId: REPOSITORY.checkout, number: 39 },
+      { repositoryId: REPOSITORY.checkout, number: 42 },
+      { repositoryId: REPOSITORY.checkout, number: 64 },
+    ]);
+  });
+
   test("a member who may only read reads the review, and is told why they cannot review it again", async ({
     page,
   }: {
@@ -4453,7 +4950,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
     );
 
-    // No way to Settings from the reviews page either.
+    // No way to Settings from the reviews page either, nor to ask for one.
     await page.goto(`${REVIEWS}?role=viewer`);
     await expect(
       page.getByTestId("code-production-reviews-status"),
@@ -4461,6 +4958,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(
       page.getByTestId("code-production-reviews-settings"),
     ).toHaveCount(0);
+    await expect(page.getByTestId("code-production-review-ask")).toHaveCount(0);
   });
 
   test("the setting: one switch under More settings, on for this repository and saved the moment it is flipped - and what a review posts, beside it", async ({
@@ -4646,6 +5144,60 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     ).toHaveText(
       "OneUptime AI can no longer use this provider, so it uses the default instead. Pick another one, or clear it.",
     );
+  });
+
+  test("a review says which LLM provider read it - and a pick it could not use, as a warning with Change in Settings, which lands on the pick", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // The repository's pick, used: named where What to watch says who read it.
+    await openReview(page, REVIEW.found, "reviewllm=opus");
+    const points: Locator = page.getByTestId("production-review-points");
+    const picked: Locator = points.getByTestId(
+      "production-review-llm-provider",
+    );
+    await expect(picked).toHaveText(
+      "OneUptime AI read the facts below and the diff, with Claude Opus.",
+    );
+    await expect(picked).toHaveAttribute("data-llm-provider", "picked");
+    await expect(
+      page.getByTestId("production-review-llm-provider-settings"),
+    ).toHaveCount(0);
+
+    // A pick no longer there: who read it instead, marked as a warning.
+    await openReview(page, REVIEW.found, "reviewllm=gone");
+    const fellBack: Locator = page
+      .getByTestId("production-review-points")
+      .getByTestId("production-review-llm-provider");
+    await expect(fellBack).toHaveAttribute("data-llm-provider", "fell-back");
+    await expect(fellBack).toContainText(
+      "This repository's LLM provider for production reviews is no longer available, so Azure GPT-4o, the project's default, read this review.",
+    );
+    await expect(fellBack.locator("svg")).toHaveCount(1);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-llm-fell-back");
+
+    // Change in Settings opens More settings at the pick.
+    await fellBack
+      .getByTestId("production-review-llm-provider-settings")
+      .click();
+    await expect(page).toHaveURL(`${SETTINGS}#production-review-llm-provider`);
+    await expect(
+      page.getByTestId("production-review-llm-provider-value"),
+    ).toHaveText("No longer available");
+    await expect(
+      page.getByTestId("production-review-llm-provider-value"),
+    ).toBeInViewport();
+
+    // Someone who may only read is told, with no way to change it.
+    await openReview(page, REVIEW.found, "reviewllm=gone&role=viewer");
+    await expect(
+      page.getByTestId("production-review-llm-provider"),
+    ).toHaveAttribute("data-llm-provider", "fell-back");
+    await expect(
+      page.getByTestId("production-review-llm-provider-settings"),
+    ).toHaveCount(0);
   });
 
   test("a repository that had picked one opens with it", async ({

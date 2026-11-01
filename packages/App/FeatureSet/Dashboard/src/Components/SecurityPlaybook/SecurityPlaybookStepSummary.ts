@@ -199,6 +199,13 @@ export function summarizeSecurityPlaybookStep(
         ),
       });
     }
+    case SecurityPlaybookActionType.NotifyDataStoreOwners:
+      return text(config, "message")
+        ? translator.translateText(
+            "The owners of the case's data stores, with your message",
+          ) || ""
+        : translator.translateText("The owners of the case's data stores") ||
+            "";
     case SecurityPlaybookActionType.PostToSlack:
     case SecurityPlaybookActionType.PostToMicrosoftTeams:
       return `#${text(config, "channelName")}`;
@@ -289,6 +296,18 @@ export function summarizeSecurityPlaybookStep(
       return (
         translator.translateText(
           "A pull request for each exception the case's requests threw",
+        ) || ""
+      );
+    case SecurityPlaybookActionType.BlockDataStorePublicAccess:
+      return (
+        translator.translateText(
+          "The buckets and storage accounts the case is about",
+        ) || ""
+      );
+    case SecurityPlaybookActionType.RevokeDataStoreSharing:
+      return (
+        translator.translateText(
+          "The snapshots of the databases the case is about",
         ) || ""
       );
     default:

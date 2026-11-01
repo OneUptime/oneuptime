@@ -128,6 +128,8 @@ Diese Monitore werten immer den **Metric Value** aus – den aggregierten Wert d
 | **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
+| **Keine Daten** | fehlt: Die Abfrage hat im Zeitfenster nichts gesendet |
+| **Daten vorhanden** | vorhanden ist: Die Abfrage hat im Zeitfenster etwas gesendet |
 
 Die Anomaliebedingungen haben keinen Schwellenwert. **Wann alarmieren** zeigt stattdessen **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch –, die eigenen Kriterien zusätzlich ein **Baseline-Fenster** – 14 Tage (der Standard), 28, 60 oder 90 –, und jeder Datenpunkt wird mit der Baseline derselben Stunde der Woche verglichen, die aus diesem Fenster gebildet wird. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und erzeugt keine Warnungen.
 

@@ -89,6 +89,9 @@ const EVENT_TYPE_LABELS: Map<string, string> = new Map<string, string>([
   ["AutoRemediation", "Auto-Remediation"],
   // A security case's OneUptime AI triage: "AI", as the product writes it.
   ["AiTriage", "AI Triage"],
+  // A Data Security issue's OneUptime AI explanation, and a fix it was asked to open.
+  ["AiExplanation", "AI Explanation"],
+  ["AiFixRequested", "AI Fix Requested"],
 ]);
 
 /*

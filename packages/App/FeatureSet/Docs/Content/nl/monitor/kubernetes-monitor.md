@@ -5,7 +5,7 @@ Een Kubernetes-monitor waarschuwt op de metrieken die de OneUptime-Kubernetes-ag
 :::cards
 - [De agent installeren](/docs/monitor/kubernetes-agent): Eén Helm-opdracht brengt het cluster in OneUptime.
 - [De monitor maken](#een-kubernetes-monitor-maken): Het cluster kiezen, dan een sjabloon, een metriek of een query.
-- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Zeventien kant-en-klare waarschuwingen, van CrashLoopBackOff tot etcd.
+- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Achttien kant-en-klare waarschuwingen, van een stil cluster tot etcd.
 - [Criteria](#bewakingscriteria): Statische drempels en anomaliedetectie.
 :::
 
@@ -23,7 +23,7 @@ flowchart TB
 ## Voordat u begint
 
 - De OneUptime-Kubernetes-agent draait in het cluster. Zie [Kubernetes-agent (Helm-installatie)](/docs/monitor/kubernetes-agent); het cluster verschijnt een paar minuten na de installatie onder **Kubernetes**.
-- Voor de control-plane-sjablonen (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): het uitlezen van het control plane door de agent, `controlPlane.enabled`. Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen die monitors nooit gegevens.
+- Voor de control-plane-sjablonen (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): het uitlezen van het control plane door de agent, `controlPlane.enabled`, dat de API-server direct leest; etcd en de scheduler hebben daarnaast hun opgegeven endpoints nodig (zie [Controlevlakmonitoring inschakelen](/docs/telemetry/kubernetes-agent#controlevlakmonitoring-inschakelen)). Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen die monitors nooit gegevens.
 
 ## Een Kubernetes-monitor maken
 
@@ -65,7 +65,7 @@ Maak het formulier af en sla op. De monitor verschijnt onder **Monitoren**, en z
 | --- | --- | --- |
 | Cluster | Het hele cluster | — |
 | Naamruimte | Resources in een naamruimte | **Naamruimte** |
-| Werklast | Een deployment, statefulset, daemonset, job of cronjob | **Naamruimte**, **Workloadnaam** |
+| Werklast | Een deployment, statefulset, daemonset, job of cronjob | **Naamruimte**, **Workloadtype**, **Workloadnaam** |
 | Node | Een node van het cluster | **Nodenaam** |
 | Pod | Een pod | **Naamruimte**, **Pod-naam** |
 
@@ -84,14 +84,14 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 | Categorie | Metrieken |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Werklast | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Controlevlak | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** en **Node CPU Usage** zijn in kernen, niet in procenten: `0.18` is 0,18 van een kern. **Pod Phase (Code)** is een code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregeer hem met Maximum of Minimum, nooit met Som. Control-plane-metrieken komen alleen binnen als het uitlezen van het control plane door de agent aan staat.
+> **Pod CPU Usage** en **Node CPU Usage** zijn in kernen, niet in procenten: `0.18` is 0,18 van een kern. **Pod Phase (Code)** is een code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregeer hem met Maximum of Minimum, nooit met Som. Control-plane-metrieken komen alleen binnen als het uitlezen van het control plane door de agent aan staat. **Node Ready Condition** is 1 bij Ready, 0 bij NotReady en -1 bij Unknown, wat een uitgevallen node meldt: waarschuw bij minder dan 1.
 
 ## Bewakingscriteria
 
@@ -112,7 +112,7 @@ Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfig
 
 ### Voorwaarden
 
-Statische drempels worden vergeleken met de **Drempel** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**.
+Statische drempels worden vergeleken met de **Drempel** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde.
 
 Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies een van deze voorwaarden, en het formulier toont in plaats daarvan **Gevoeligheid** en **Baseline-venster**:
 
@@ -132,13 +132,14 @@ Het tabblad **Quick Setup** toont deze sjablonen, gegroepeerd per categorie. Elk
 
 | Sjabloon | Categorie | Gaat af als | Ernst |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | Werklast | Een container meer dan 5 keer is herstart sinds zijn pod is gemaakt | Kritiek |
+| Cluster Stopped Reporting | Beschikbaarheid | Er 10 minuten lang geen gegevens van de agent van het cluster binnenkomen | Kritiek |
+| CrashLoopBackOff Detection | Werklast | Een container binnen 15 minuten is herstart en minder dan de helft daarvan gereed was | Kritiek |
 | Pod Stuck in Pending | Plannen | Een pod in elke meting van een venster van 15 minuten in de fase Pending staat | Warning |
-| Node Not Ready | Node | Een node NotReady meldt | Kritiek |
+| Node Not Ready | Node | Een node NotReady meldt of zijn status niet meer meldt (Unknown) | Kritiek |
 | High Node CPU Utilization | Node | Het gemiddelde CPU-gebruik van een node boven 90% van zijn toewijsbare CPU ligt | Warning |
-| High Node Memory Utilization | Node | Het gemiddelde geheugengebruik van een node boven 85% van zijn toewijsbare geheugen ligt | Warning |
+| High Node Memory Utilization | Node | De gemiddelde geheugen-working-set van een node boven 85% van zijn toewijsbare geheugen ligt | Warning |
 | Deployment Replica Mismatch | Werklast | Een deployment 15 minuten lang minder beschikbare replica's heeft dan gewenst | Warning |
-| Job Failures | Werklast | Een job mislukte pods heeft | Warning |
+| Job Failures | Werklast | Een pod van een job binnen 15 minuten is mislukt | Warning |
 | etcd No Leader | Controlevlak | etcd geen gekozen leider heeft | Kritiek |
 | API Server Request Saturation | Controlevlak | De API-server het hele venster 200 of meer lopende verzoeken vasthoudt | Kritiek |
 | Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Warning |
@@ -146,14 +147,16 @@ Het tabblad **Quick Setup** toont deze sjablonen, gegroepeerd per categorie. Elk
 | DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Warning |
 | High Node CPU Request Commitment | Node | De opgetelde CPU-requests van de containers van een node meer dan 90% van zijn toewijsbare CPU bedragen | Warning |
 | High Node Memory Request Commitment | Node | De opgetelde geheugen-requests van de containers van een node meer dan 90% van zijn toewijsbare geheugen bedragen | Warning |
-| HPA Saturated at Max Replicas | Werklast | Een HPA op 90% of meer van zijn `maxReplicas` draait | Kritiek |
+| HPA Saturated at Max Replicas | Werklast | Een boven zijn `minReplicas` geschaalde HPA op 90% of meer van zijn `maxReplicas` draait | Kritiek |
 | Pod Memory Saturating Container Limit | Werklast | Een pod meer dan 90% van de geheugenlimiet van zijn containers gebruikt | Kritiek |
 | Pod CPU Saturating Container Limit | Werklast | Een pod meer dan 90% van de CPU-limiet van zijn containers gebruikt | Warning |
 
 Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, DaemonSet of HPA afzonderlijk, zodat een cluster met meerdere ongezonde pods een incident per pod krijgt in plaats van één voor het hele cluster.
 
+**Cluster Stopped Reporting** gaat af als er tien minuten lang niets van de agent van het cluster binnenkomt: de agent is verwijderd of crasht steeds, zijn API-sleutel is ingetrokken, hij is zijn route naar OneUptime kwijtgeraakt, of de API-server van het cluster antwoordt hem niet meer. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** leest het aantal herstarts van de container over de hele levensduur van zijn huidige pod, geen tempo. Een container die in een crashlus zat en daarna herstelde, houdt de waarschuwing open tot zijn pod wordt vervangen.
+> **CrashLoopBackOff Detection** en **Job Failures** tellen hoeveel een teller van herstarts of mislukte pods in het venster groeide, niet de teller zelf, en lossen zichzelf dus op zodra de herstarts of fouten stoppen. De groei is alleen zichtbaar tussen twee metingen van dezelfde minuut: bij het interval van 30 seconden van de agent is dat ongeveer de helft. Een crashloop herstart steeds opnieuw en wordt opgemerkt; één losse herstart kan onopgemerkt blijven.
 
 ### Oorzaken vangen, niet alleen symptomen
 
@@ -174,15 +177,15 @@ Clusters registreren zichzelf uit de gegevens van de agent, onder de `clusterNam
 :::
 
 :::details Een control-plane-sjabloon gaat nooit af
-**etcd No Leader**, **API Server Request Saturation** en **Scheduler Backlog** lezen metrieken die alleen het uitlezen van het control plane door de agent verzamelt. Zet `controlPlane.enabled` aan in de Helm-waarden van de agent; standaard staat het uit. Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen deze monitors nooit gegevens.
+**etcd No Leader**, **API Server Request Saturation** en **Scheduler Backlog** lezen metrieken die alleen het uitlezen van het control plane door de agent verzamelt. Zet `controlPlane.enabled` aan in de Helm-waarden van de agent; standaard staat het uit. Dat leest de API-server. etcd en de scheduler draaien op de control-plane-nodes, dus **etcd No Leader** en **Scheduler Backlog** hebben ook `controlPlane.etcd.endpoints` en `controlPlane.scheduler.endpoints` nodig, ingesteld op adressen die de pod van de agent kan bereiken (zie [Controlevlakmonitoring inschakelen](/docs/telemetry/kubernetes-agent#controlevlakmonitoring-inschakelen)). Beheerde clusters (EKS, GKE, AKS) stellen deze endpoints niet beschikbaar, dus daar krijgen deze monitors nooit gegevens.
 :::
 
 :::details Een CPU-drempel gaat nooit af
 **Pod CPU Usage** en **Node CPU Usage** zijn in kernen, niet in procenten, dus een drempel van `80` betekent 80 kernen. Stel de drempel in kernen in, of begin met **High Node CPU Utilization** of **Pod CPU Saturating Container Limit**, die een percentage vergelijken.
 :::
 
-:::details CrashLoopBackOff Detection blijft open nadat de pod is hersteld
-Het sjabloon leest het aantal herstarts van de container over de hele levensduur van zijn huidige pod, dus het aantal zakt niet meer terug zodra het boven 5 is gekomen. De waarschuwing wordt opgelost als de pod wordt vervangen, bijvoorbeeld door een nieuwe deploy, een eviction of het leegmaken van een node.
+:::details CrashLoopBackOff Detection ging niet af bij een herstart
+Het sjabloon gaat af als de herstartteller van een container binnen 15 minuten groeit terwijl de container minder dan de helft daarvan gereed was, dus een container die één keer herstartte en meteen terugkwam, waarschuwt niet. De groei is alleen zichtbaar tussen twee metingen van dezelfde minuut, dus één losse herstart kan onopgemerkt blijven; een crashloop herstart om de paar minuten en wordt opgemerkt.
 :::
 
 ## Volgende stappen

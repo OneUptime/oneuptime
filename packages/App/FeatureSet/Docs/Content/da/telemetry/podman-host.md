@@ -4,18 +4,18 @@ OneUptime Podman-agenten er én container, du kører på en Podman-vært. Den l�
 
 :::cards
 - [Installer agenten](#installer-agenten): To containere, med `podman run` eller Podman Compose.
-- [Hvad agenten indsamler](#hvad-agenten-indsamler): Metrikker, logs og et inventar over hver container.
+- [Hvad agenten indsamler](#hvad-agenten-indsamler): Hver containers metrikker og logs.
 - [Containerlogs kræver k8s-file](#containerlogs-kræver-logdriveren-k8s-file): Podman logger til journald, medmindre du skifter.
 - [Fejlfinding](#fejlfinding): Genstartsløkker, manglende metrikker, manglende logs.
 :::
 
 ## Sådan virker det
 
-Agenten er en OpenTelemetry Collector med OneUptimes konfiguration indbygget. Gennem Podmans Docker-kompatible API-socket læser den hver containers statistik hvert 30. sekund og lister hver container, hvert image, hvert netværk og hver volumen hvert 5. minut. Den følger containernes logfiler og sender alt til din OneUptime-URL over OTLP med den indtagelsesnøgle, du giver den.
+Agenten er en OpenTelemetry Collector med OneUptimes konfiguration indbygget. Gennem Podmans Docker-kompatible API-socket læser den hver containers statistik hvert 30. sekund. Den følger containernes logfiler og sender alt til din OneUptime-URL over OTLP med den indtagelsesnøgle, du giver den.
 
 ```mermaid title="To containere på din Podman-vært"
 flowchart TB
-    containers["Dine containere"] -->|"statistik, logfiler,<br/>inventar"| agent["Podman-agent"]
+    containers["Dine containere"] -->|"statistik og<br/>logfiler"| agent["Podman-agent"]
     agent -->|"OTLP over HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"undersøger en hændelse<br/>eller advarsel"| ai["Podman-AI-agent"]
     ai -->|"skrivebeskyttede<br/>docker-kommandoer"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find værten i OneUptime
 
-Åbn **Produkter → Infrastruktur → Podman → Alle værter**. Værten vises under sit `PODMAN_HOST_NAME` inden for et minuts tid, med sine containere, metrikker og logs. AI-agenten vises som forbundet på værtens side **AI-agent** og nederst på dens **Oversigt**. Værtens side **Topologi** tegner dens Compose-projekter, containere, images, netværk og volumes på ét kort: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
+Åbn **Produkter → Infrastruktur → Podman → Alle værter**. Værten vises under sit `PODMAN_HOST_NAME` inden for et minuts tid, med sine containere, metrikker og logs. AI-agenten vises som forbundet på værtens side **AI-agent** og nederst på dens **Oversigt**. Værtens side **Topologi** tegner dens Compose-projekter og containere på ét kort: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Miljøvariabler
@@ -139,7 +139,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, såsom `https://oneuptime.com` eller din selvhostede instans. Brug `http://` og dens port, hvis instansen kun bruger HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Indtagelsesnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `PODMAN_HOST_NAME` | Nej | Værtens navn i OneUptime. Standard er `podman-host`, så giv hver vært sit eget. |
-| `DOCKER_API_VERSION` | Nej | Den Docker API-version, agenten taler med Podman-socketen. Standard er `1.44`. Sænk den, hvis socketen rapporterer et ældre maksimum, eller sæt den til en tom værdi for at forhandle den (se [Fejlfinding](#fejlfinding)). |
+| `DOCKER_API_VERSION` | Nej | Den Docker API-version, agenten taler med Podman-socketen. Tom som standard: agenten forhandler den med socketen. Sæt den kun for at fastlåse en version (se [Fejlfinding](#fejlfinding)). |
 
 For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Podman CLI) eller redigere `docker-compose.yml` og køre `podman compose up -d` (Podman Compose).
 
@@ -149,7 +149,6 @@ For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Podm
 | --- | --- |
 | Containermetrikker | CPU (forbrug, procent, throttling), hukommelse (forbrug, limit, procent), netværks- og blok-I/O, oppetid, genstarter og antal processer, pr. container, hvert 30. sekund. |
 | Containerlogs | stdout og stderr fra hver container, fra filen `ctr.log`, som logdriveren `k8s-file` skriver. |
-| Inventar | Hver container i enhver tilstand samt hvert image, netværk og volumen, hvert 5. minut. |
 
 Hver containers metrikker og logs arkiveres under en tjeneste opkaldt efter containeren. Hver loglinje får en alvorlighed ud fra det niveau, den nævner, såsom `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje, der ikke nævner noget, får sin strøms: stderr er `ERROR`, stdout er `INFO`. Linjer, der starter med mellemrum eller en lukkende parentes, sættes sammen med linjen før, så en stack trace ankommer som én post. Agentens egne logs udelades.
 
@@ -253,23 +252,19 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-En Docker-API-server, der håndhæver en maksimal klientversion, afviser en nyere, så receiveren starter aldrig, og collectoren afslutter med den. Kontrollér den API-version, Podman-socketen rapporterer:
+En Docker-API-server, der håndhæver en maksimal klientversion, afviser en nyere, så receiveren starter aldrig, og collectoren afslutter med den. Agenten forhandler versionen med socketen (ét `HEAD /_ping`, derefter det maksimum, socketen rapporterer), medmindre `DOCKER_API_VERSION` angiver en, og et ældre image af agenten fastlåste `1.44`. [Opgradér agenten](#opgradering-af-agenten), og start den uden `-e DOCKER_API_VERSION` (eller fjern `DOCKER_API_VERSION` fra Compose).
+
+For alligevel at fastlåse en version skal du højst bruge den API-version, Podman-socketen rapporterer:
 
 ```bash
 curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
 ```
 
 Tilføj derefter `-e DOCKER_API_VERSION=1.41` (eller den værdi, du fik) til `podman run`, eller sæt `DOCKER_API_VERSION` i Compose. Nyere servere betjener stadig ældre API-versioner, så indstillingen forbliver gyldig efter en opgradering.
-
-Vil du hellere ikke slå tallet op? Sæt `DOCKER_API_VERSION` til den tomme streng. Agenten forhandler så versionen med socketen (ét `HEAD /_ping`, derefter det maksimum, socketen rapporterer) i stedet for at fastlåse en:
-
-```bash
-podman run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Adgang nægtet til Podman-socket, eller ingen socket
-Agenten skal køre som root for at læse `/run/podman/podman.sock`. Kontrollér, at `--user 0:0` er i din `podman run`-kommando, eller `user: "0:0"` i Compose, og at socketen er slået til: `sudo systemctl enable --now podman.socket`. Rootless Podman har i stedet sin socket på `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`): monter den sti i stedet for `/run/podman/podman.sock`.
+Agenten skal køre som root for at læse `/run/podman/podman.sock`. Kontrollér, at `--user 0:0` er i din `podman run`-kommando, eller `user: "0:0"` i Compose, og at socketen er slået til: `sudo systemctl enable --now podman.socket`. Rootless Podman har i stedet sin socket på `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`) og sit lager på `~/.local/share/containers/storage`: monter dem i stedet for `/run/podman/podman.sock` og `/var/lib/containers/storage`. Agentens `install.sh` gør begge dele, når du kører det som den bruger, og stopper med den kommando, der skal køres, når socketen er slået fra.
 :::
 
 :::details Værten vises som afbrudt

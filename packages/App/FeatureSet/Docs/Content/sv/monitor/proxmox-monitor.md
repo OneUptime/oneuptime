@@ -4,14 +4,14 @@ En Proxmox-monitor övervakar ett Proxmox VE-kluster – dess noder, VM:ar och L
 
 :::cards
 - [Skapa monitorn](#skapa-en-proxmox-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Elva färdiga larm, en incident per nod, gäst eller volym.
+- [Mallar](#färdiga-larmmallar): Tolv färdiga larm, en incident per nod, gäst eller volym.
 - [Resursidentitet](#resursidentitet): Så riktar du in dig på en nod, gäst eller lagringsvolym.
 - [Mätvärden](#insamlade-mätvärden): Varje serie `pve_*` som monitorn kan varna på.
 :::
 
 ## Så fungerar det
 
-OneUptimes Proxmox-agent körs på en maskin som når Proxmox VE-API:t. Var 30:e sekund hämtar den data från prometheus-pve-exporter med kluster- och nodinsamlarna, märker varje serie med resursen den beskriver och skickar måtten till OneUptime över OTLP, stämplade med klustrets namn, `proxmox.cluster.name`. De första data registrerar klustret. Proxmox VE 9 och senare kan i stället pusha mått själv, utan att något installeras; se [den inbyggda pushen](#den-inbyggda-pushen-i-proxmox-ve).
+OneUptimes Proxmox-agent körs på en maskin som når Proxmox VE-API:t. Var 30:e sekund hämtar den data från klusterinsamlarna i prometheus-pve-exporter en gång och från nodinsamlarna en gång för varje nod, märker varje serie med resursen den beskriver och skickar måtten till OneUptime över OTLP, stämplade med klustrets namn, `proxmox.cluster.name`. De första data registrerar klustret. Proxmox VE 9 och senare kan i stället pusha mått själv, utan att något installeras; se [den inbyggda pushen](#den-inbyggda-pushen-i-proxmox-ve).
 
 En Proxmox-monitor är knuten till ett kluster. Varje minut kör den sin fråga över klustrets mätvärden och jämför resultatet med sina kriterier.
 
@@ -109,12 +109,13 @@ Filtrera på `pve.scope` eller `pve.type` för en typ av resurs, på `pve.id` el
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 11 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
+**Quick Setup** erbjuder 12 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och ett tröskelkriterium återställs 10 % förbi sin tröskel, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Kritisk | `pve_up`, Count över hela klustret, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | Node Offline | Kritisk | `pve_up` för `pve.scope = node`, Min per `id` | Under 1 | Vid 1 |
 | Guest Down | Warning | `pve_up` och `pve_onboot_status` för `pve.scope = guest`, Min per `id` | `pve_up` är under 1 medan `pve_onboot_status` är 1 | `pve_up` är tillbaka på 1, eller start vid uppstart är avstängd |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 för `pve.scope = node` (båda Summa): andelen noder som är online | 50 % eller mindre | Över 55 % |
@@ -129,6 +130,7 @@ Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 
+- **Cluster Stopped Reporting** utlöses när ingenting kommer från klustret på tio minuter: Proxmox-agenten eller dess pve-exporter har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad, Proxmox-API:t har slutat svara den, eller varje nod i en inbyggd push har tystnat. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **Mallarna för nedtid använder Minimum**, så att en enda insamling där resursen var nere utlöser dem i stället för att döljas av insamlingar där den var igång.
 - **Guest Down** tittar bara på gäster som är inställda på att starta vid uppstart, så en gäst som du har stoppat med avsikt larmar aldrig någon.
 - **Cluster Quorum at Risk** är en approximation: pve-exporter har inget corosync-mått, så mallen räknar de noder som är online.
@@ -146,7 +148,7 @@ Proxmox VE 9 och senare kan pusha mått via sin inbyggda OpenTelemetry-måttserv
 
 ## Insamlade mätvärden
 
-Agenten hämtar data från prometheus-pve-exporter var 30:e sekund med både kluster- och nodinsamlarna, vilket också täcker exporterns insamlare `backup-info` och `replication` (båda påslagna som standard).
+Agenten hämtar data från prometheus-pve-exporter var 30:e sekund: klusterinsamlarna en gång, på `PVE_HOST`, och nodinsamlarna en gång för varje nod i `PVE_NODES`, eftersom de bara läser den nod som exportern frågar. Nodinsamlarna är `config` (start vid uppstart) och `replication`; exporterns insamlare `backup-info` (kluster) och `replication` är båda påslagna som standard.
 
 ### Tillgänglighet
 
@@ -204,7 +206,7 @@ Från exporterns insamlare `backup-info` på klusternivå. De rapporterar bara t
 
 ### Replikering
 
-Från exporterns insamlare `replication` på nodnivå. Serierna finns bara när klustret har replikeringsjobb, och bär jobbets id i `id`:
+Från exporterns insamlare `replication` på nodnivå, läst från varje nod i `PVE_NODES`. Serierna finns bara när klustret har replikeringsjobb, och bär jobbets id i `id`:
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
@@ -223,7 +225,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
 | **Tröskel** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Bara avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -239,11 +241,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Något värde i den första frågan är `0` | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Något värde är över `0` | Markerar monitorn som **Fungerar**. |
+| 1 | Check if _monitor name_ is offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Tystnad matchar inget av kriterierna: ett kluster som slutar skicka data lämnar monitorn som den var. För att få veta när data slutar komma ställer du in **Om ingen data** på **Utlösare** i ett kriterium. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 
@@ -264,7 +266,7 @@ Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likad
 :::
 
 :::details Mått för säkerhetskopiering eller replikering saknas
-`pve_not_backed_up_*` kommer från exporterns insamlare `backup-info` och `pve_replication_*` från dess insamlare `replication`. Båda är påslagna som standard och täcks av insamlingsparametrarna `cluster=1` och `node=1` i den medföljande konfigurationen. Om du kör en egen exporter kontrollerar du att du inte har stängt av dem. `pve_replication_*` finns bara när klustret har jobb för lagringsreplikering.
+`pve_not_backed_up_*` kommer från exporterns insamlare `backup-info` och `pve_replication_*` från dess insamlare `replication`. Båda är påslagna som standard och täcks av den medföljande konfigurationen: `cluster=1` en gång, och `node=1` för varje nod i `PVE_NODES`. En nod som saknas i `PVE_NODES` skickar inga replikeringsjobb, och dess gäster inga flaggor för start vid uppstart, så **Guest Down** utlöses aldrig för dem. Om du kör en egen exporter kontrollerar du att du inte har stängt av dem. `pve_replication_*` finns bara när klustret har jobb för lagringsreplikering.
 :::
 
 :::details Räknare som pve_network_receive_bytes bara växer

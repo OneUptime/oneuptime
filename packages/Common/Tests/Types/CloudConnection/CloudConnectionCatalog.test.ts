@@ -6,10 +6,14 @@ import {
   CloudConnectionDefinition,
   CloudConnectionField,
   AZURE_SECRET_EXPIRES_AT_KEY,
+  CLOUD_CONNECTION_DATA_SECURITY_LEVELS,
+  DATA_SECURITY_FIELD_KEY,
+  DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   getCloudConnectionAuthMethod,
   getCloudConnectionAuthMethodDefinition,
+  getCloudConnectionDataSecurityLevel,
   getCloudConnectionDefinition,
   getCloudConnectionFieldsForMethod,
   getCloudConnectionReadIntervalInMinutes,
@@ -174,16 +178,56 @@ describe("the catalog", () => {
     expect(folded(CloudProvider.AWS)).toEqual([
       "regions",
       READ_INTERVAL_FIELD_KEY,
+      DATA_SECURITY_FIELD_KEY,
+      DATA_SECURITY_RESPONSE_FIELD_KEY,
     ]);
     expect(folded(CloudProvider.Azure)).toEqual([
       "subscriptionIds",
       "cloud",
       READ_INTERVAL_FIELD_KEY,
+      DATA_SECURITY_FIELD_KEY,
+      DATA_SECURITY_RESPONSE_FIELD_KEY,
     ]);
     expect(folded(CloudProvider.GCP)).toEqual([
       "projectIds",
       READ_INTERVAL_FIELD_KEY,
+      DATA_SECURITY_FIELD_KEY,
+      DATA_SECURITY_RESPONSE_FIELD_KEY,
     ]);
+  });
+
+  test("what Data Security may read is opt-in on every cloud: off until someone picks configuration, or content too", () => {
+    for (const provider of [
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]) {
+      const field: CloudConnectionField | undefined = definitionOf(
+        provider,
+      ).configFields.find((candidate: CloudConnectionField): boolean => {
+        return candidate.key === DATA_SECURITY_FIELD_KEY;
+      });
+
+      expect(field).toBeDefined();
+      expect(field!.isAdvanced).toBe(true);
+      expect(field!.required).toBe(false);
+      expect(field!.defaultValue).toBe("off");
+      expect(
+        (field!.options || []).map((option: { value: string }): string => {
+          return option.value;
+        }),
+      ).toEqual([...CLOUD_CONNECTION_DATA_SECURITY_LEVELS]);
+    }
+
+    expect(getCloudConnectionDataSecurityLevel("configuration")).toBe(
+      "configuration",
+    );
+    expect(getCloudConnectionDataSecurityLevel("content")).toBe("content");
+    expect(getCloudConnectionDataSecurityLevel("off")).toBe("off");
+    // Anything else - absent, misspelt, another type - reads nothing.
+    expect(getCloudConnectionDataSecurityLevel(undefined)).toBe("off");
+    expect(getCloudConnectionDataSecurityLevel("Content")).toBe("off");
+    expect(getCloudConnectionDataSecurityLevel(true)).toBe("off");
   });
 });
 
@@ -203,6 +247,8 @@ describe("fields by sign-in method", () => {
       READ_SCOPE_FIELD_KEY,
       "regions",
       READ_INTERVAL_FIELD_KEY,
+      DATA_SECURITY_FIELD_KEY,
+      DATA_SECURITY_RESPONSE_FIELD_KEY,
     ]);
     expect(
       keysOf(
@@ -219,7 +265,13 @@ describe("fields by sign-in method", () => {
           CloudConnectionAuthMethod.AwsAccessKey,
         ),
       ),
-    ).toEqual(["accessKeyId", "regions", READ_INTERVAL_FIELD_KEY]);
+    ).toEqual([
+      "accessKeyId",
+      "regions",
+      READ_INTERVAL_FIELD_KEY,
+      DATA_SECURITY_FIELD_KEY,
+      DATA_SECURITY_RESPONSE_FIELD_KEY,
+    ]);
     expect(
       keysOf(
         getCloudConnectionFieldsForMethod(

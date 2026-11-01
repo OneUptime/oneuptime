@@ -131,7 +131,7 @@ La pestaña **Análisis** muestra lo que sus servicios registraron en un interva
 | **Errores principales** | Los mensajes distintos registrados con gravedad Error o Fatal, los más frecuentes primero. |
 | **Orígenes que informan registros** | El volumen y la señal de errores de cada servicio, host u otro origen. |
 
-Seleccione un error principal para ver qué ocurría a su alrededor: cuándo pasó, qué comparten sus ocurrencias, dónde ocurre, las trazas que lo llevan y sus líneas más recientes. **Abrir registros coincidentes** los abre en el **Visor**, y **Explain with AI** abre [Ask AI](/docs/ai/ask-ai) con el error y sus pruebas como un prompt que puede editar.
+Seleccione un error principal para ver qué ocurría a su alrededor: cuándo pasó, qué comparten sus ocurrencias, dónde ocurre, las trazas que lo llevan y sus líneas más recientes. **Abrir registros coincidentes** los abre en el **Visor**, y **Explicar con IA** abre [Ask AI](/docs/ai/ask-ai) con el error y sus pruebas como un prompt que puede editar.
 
 ## Encontrar y corregir con IA registros de error, faltantes o ruidosos
 

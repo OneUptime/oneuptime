@@ -1,26 +1,15 @@
 import { beforeEach, describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 import {
   AFFECTED_RESOURCES_PLACE_ID,
   getRemediationDecisionLines,
-  getRemediationDecisionStatus,
   pickRemediationDecision,
-  REMEDIATION_DECISION_STATUS_TEXT,
   RemediationDecision,
   RemediationDecisionLine,
   RemediationDecisionSignal,
-  RemediationDecisionStatus,
-  RemediationDecisionTone,
+  RemediationSwitchesNow,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
 import {
-  SeededRandom,
-  seededRandom,
-  shuffled,
-} from "../../Helpers/SeededRandom";
-import {
   AutoRemediationDecisionEntry,
-  AutoRemediationDecisionHelper,
   AutoRemediationDecisionLane,
   AutoRemediationDecisionReason,
   AutoRemediationDecisionStage,
@@ -30,8 +19,8 @@ import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * What the Remediation card says about what auto-remediation did with an
- * incident or alert - one sentence per fix path, from the engine's
+ * What the AI card's Remediation step says about what auto-remediation did
+ * with an incident or alert - one sentence per fix path, from the engine's
  * recorded decision:
  *
  * - the newest Evaluated decision is shown, and wins over a wait however
@@ -179,7 +168,7 @@ describe("getRemediationDecisionLines", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]!.tone).toBe("waiting");
     expect(lines[0]!.text).toBe(
-      "Auto-remediation runs once OneUptime AI has finished investigating this alert, so it can act on the root cause analysis.",
+      "OneUptime AI decides how to fix this alert once the investigation is done, so it can act on the root cause.",
     );
   });
 
@@ -809,13 +798,13 @@ describe("getRemediationDecisionLines", () => {
         "incident" as RemediationDecisionSignal,
         '"Fix new incidents automatically" is off for this project, so OneUptime AI did not try to fix this incident.',
         `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
-        "Incident AI settings",
+        "Turn on for incidents",
       ],
       [
         "alert" as RemediationDecisionSignal,
         '"Fix new alerts automatically" is off for this project, so OneUptime AI did not try to fix this alert.',
         `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
-        "Alert AI settings",
+        "Turn on for alerts",
       ],
     ])(
       "says fixing new %ss is off - a choice, not a fault - and links to its switch",
@@ -854,6 +843,123 @@ describe("getRemediationDecisionLines", () => {
         `/dashboard/${PROJECT_ID}/settings/ai-features`,
       ]);
     });
+
+    /*
+     * A decision is written once, with the switches of that moment (block
+     * 43): turned on since, a switch that was off is said to be on now -
+     * Try again is the next step, not turning on what is on. Unknown, or
+     * still off, the line says it is off and links to it.
+     */
+    test.each([
+      [
+        "incident" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.RemediationOff,
+        { isFixingOn: true },
+        '"Fix new incidents automatically" was off when OneUptime AI checked this incident. It is on now.',
+      ],
+      [
+        "alert" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.RemediationOff,
+        { isFixingOn: true },
+        '"Fix new alerts automatically" was off when OneUptime AI checked this alert. It is on now.',
+      ],
+      [
+        "incident" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.EnableAiOff,
+        { isAiOn: true },
+        "Enable AI was off when OneUptime AI checked this incident. It is on now.",
+      ],
+      [
+        "alert" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.EnableAiOff,
+        { isAiOn: true },
+        "Enable AI was off when OneUptime AI checked this alert. It is on now.",
+      ],
+    ])(
+      "an %s whose %s switch is on now says so, with no link to turn it on",
+      (
+        signal: RemediationDecisionSignal,
+        reason: AutoRemediationDecisionReason,
+        switchesNow: RemediationSwitchesNow,
+        text: string,
+      ) => {
+        const lines: Array<RemediationDecisionLine> =
+          getRemediationDecisionLines({
+            decision: evaluated([
+              { lane: AutoRemediationDecisionLane.Project, reason },
+            ]),
+            signal,
+            translator: getGlobalTranslator(),
+            switchesNow,
+          });
+
+        expect(lines).toHaveLength(1);
+        expect(lines[0]!.text).toBe(text);
+        expect(lines[0]!.tone).toBe("attention");
+        expect(lines[0]!.links).toEqual([]);
+      },
+    );
+
+    test.each<[string, RemediationSwitchesNow | undefined]>([
+      ["not read", undefined],
+      ["unknown", { isAiOn: undefined, isFixingOn: undefined }],
+      ["still off", { isAiOn: false, isFixingOn: false }],
+      // The other switch being on says nothing about this one.
+      ["the other one on", { isAiOn: true, isFixingOn: false }],
+    ])(
+      "with the fixing switch %s, the line says it is off and links to it",
+      (_case: string, switchesNow: RemediationSwitchesNow | undefined) => {
+        const lines: Array<RemediationDecisionLine> =
+          getRemediationDecisionLines({
+            decision: evaluated([
+              {
+                lane: AutoRemediationDecisionLane.Project,
+                reason: AutoRemediationDecisionReason.RemediationOff,
+              },
+            ]),
+            signal: "incident",
+            translator: getGlobalTranslator(),
+            switchesNow,
+          });
+
+        expect(lines).toHaveLength(1);
+        expect(lines[0]!.text).toBe(
+          '"Fix new incidents automatically" is off for this project, so OneUptime AI did not try to fix this incident.',
+        );
+        expect(lines[0]!.links[0]!.text).toBe("Turn on for incidents");
+      },
+    );
+
+    test.each<[string, RemediationSwitchesNow | undefined]>([
+      ["not read", undefined],
+      ["unknown", { isAiOn: undefined }],
+      ["still off", { isAiOn: false }],
+      ["the other one on", { isAiOn: false, isFixingOn: true }],
+    ])(
+      "with Enable AI %s, the line says it is off and links to it",
+      (_case: string, switchesNow: RemediationSwitchesNow | undefined) => {
+        const lines: Array<RemediationDecisionLine> =
+          getRemediationDecisionLines({
+            decision: evaluated([
+              {
+                lane: AutoRemediationDecisionLane.Project,
+                reason: AutoRemediationDecisionReason.EnableAiOff,
+              },
+            ]),
+            signal: "incident",
+            translator: getGlobalTranslator(),
+            switchesNow,
+          });
+
+        expect(lines).toHaveLength(1);
+        expect(lines[0]!.text).toBe(
+          "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no AI rule runs.",
+        );
+        expect(hrefsOf(lines[0]!)).toEqual([
+          `/dashboard/${PROJECT_ID}/settings/ai-features`,
+        ]);
+      },
+    );
 
     test("says an error stopped the evaluation", () => {
       expect(
@@ -965,364 +1071,5 @@ describe("getRemediationDecisionLines", () => {
         }),
       ).size,
     ).toBe(2);
-  });
-});
-
-/*
- * The card's status pill: the decision in a few words, so "did it fix
- * itself?" is answered before a sentence is read. A wait says so; a line
- * that needs attention outranks one that acted, so the pill never hides a
- * blocked cluster behind "Action taken"; a decision whose lines only say
- * how things stand took no action.
- */
-describe("getRemediationDecisionStatus", () => {
-  beforeEach(() => {
-    goTo(`/dashboard/${PROJECT_ID}/incidents`);
-  });
-
-  const PROJECT_REASONS: Array<AutoRemediationDecisionReason> = [
-    AutoRemediationDecisionReason.EnableAiOff,
-    AutoRemediationDecisionReason.RemediationOff,
-    AutoRemediationDecisionReason.SuggestionLimitReached,
-    AutoRemediationDecisionReason.EvaluationFailed,
-  ];
-
-  // Entries that name nothing they could link to, as the engine writes them.
-  const UNLINKED_REASONS: Array<AutoRemediationDecisionReason> = [
-    AutoRemediationDecisionReason.ClusterNoneLinked,
-    AutoRemediationDecisionReason.ClusterLookupFailed,
-    AutoRemediationDecisionReason.ClusterSkippedForResourceRound,
-    AutoRemediationDecisionReason.ClusterSkippedLimit,
-    AutoRemediationDecisionReason.ResourceNoneLinked,
-    AutoRemediationDecisionReason.ResourceLookupFailed,
-    AutoRemediationDecisionReason.ResourceSkippedForClusterRound,
-    AutoRemediationDecisionReason.ResourceSkippedForOtherRound,
-    AutoRemediationDecisionReason.ResourceSkippedLimit,
-  ];
-
-  const ALL_REASONS: Array<AutoRemediationDecisionReason> = Object.values(
-    AutoRemediationDecisionReason,
-  );
-
-  function laneOf(
-    reason: AutoRemediationDecisionReason,
-  ): AutoRemediationDecisionLane {
-    if (PROJECT_REASONS.includes(reason)) {
-      return AutoRemediationDecisionLane.Project;
-    }
-
-    if (reason.startsWith("Cluster")) {
-      return AutoRemediationDecisionLane.KubernetesCluster;
-    }
-
-    if (reason.startsWith("Resource")) {
-      return AutoRemediationDecisionLane.Resource;
-    }
-
-    return AutoRemediationDecisionLane.Rule;
-  }
-
-  // An entry with every field its lane can carry, as the engine records it.
-  function entryFor(
-    reason: AutoRemediationDecisionReason,
-  ): AutoRemediationDecisionEntry {
-    const lane: AutoRemediationDecisionLane = laneOf(reason);
-    const isLinked: boolean = !UNLINKED_REASONS.includes(reason);
-    const entry: AutoRemediationDecisionEntry = { lane, reason };
-
-    if (lane === AutoRemediationDecisionLane.KubernetesCluster && isLinked) {
-      entry.kubernetesClusterId = CLUSTER_ID;
-      entry.kubernetesClusterName = "prod-east";
-      entry.remediationMode = KubernetesAiRemediationMode.Automatic;
-    }
-
-    if (lane === AutoRemediationDecisionLane.Resource && isLinked) {
-      entry.resourceType = "DockerHost";
-      entry.resourceId = RESOURCE_ID;
-      entry.resourceName = "web-1";
-      entry.remediationMode = KubernetesAiRemediationMode.Automatic;
-    }
-
-    if (
-      reason === AutoRemediationDecisionReason.ClusterNotReady ||
-      reason === AutoRemediationDecisionReason.ResourceNotReady
-    ) {
-      entry.gaps = [
-        { code: "agent_offline", title: "Offline", nextStep: "Start it." },
-      ];
-    }
-
-    if (
-      reason === AutoRemediationDecisionReason.ClusterNoneLinked ||
-      reason === AutoRemediationDecisionReason.ResourceNoneLinked
-    ) {
-      entry.monitors = [{ id: MONITOR_ID, name: "Checkout website" }];
-    }
-
-    if (lane === AutoRemediationDecisionLane.Rule) {
-      entry.ruleId = "r-1";
-      entry.ruleName = "Restart checkout";
-      entry.runbookId = "b-1";
-      entry.runbookName = "Restart pods";
-      entry.rulesChecked = 2;
-    }
-
-    return entry;
-  }
-
-  function statusOf(
-    entries: Array<AutoRemediationDecisionEntry>,
-    signal: RemediationDecisionSignal = "incident",
-  ): RemediationDecisionStatus | null {
-    return getRemediationDecisionStatus(linesOf(entries, signal));
-  }
-
-  function line(tone: RemediationDecisionTone): RemediationDecisionLine {
-    return { key: tone, tone, text: `A ${tone} line.`, links: [] };
-  }
-
-  test("has nothing to say about no lines", () => {
-    expect(getRemediationDecisionStatus([])).toBeNull();
-  });
-
-  test.each([
-    ["waiting" as RemediationDecisionTone, "Waiting for investigation"],
-    ["attention" as RemediationDecisionTone, "Needs attention"],
-    ["acted" as RemediationDecisionTone, "Action taken"],
-    ["info" as RemediationDecisionTone, "No action taken"],
-  ])(
-    "says a decision of %s lines in its own words",
-    (tone: RemediationDecisionTone, text: string) => {
-      expect(getRemediationDecisionStatus([line(tone)])).toEqual({
-        tone,
-        text,
-      });
-      expect(getRemediationDecisionStatus([line(tone), line(tone)])).toEqual({
-        tone,
-        text,
-      });
-    },
-  );
-
-  test.each([
-    [["info", "acted"], "acted"],
-    [["acted", "info"], "acted"],
-    [["acted", "attention"], "attention"],
-    [["attention", "acted", "info"], "attention"],
-    [["info", "info", "attention"], "attention"],
-    [["info", "waiting"], "waiting"],
-    [["attention", "waiting", "acted"], "waiting"],
-  ] as Array<[Array<RemediationDecisionTone>, RemediationDecisionTone]>)(
-    "lines of %j take the pill of the one that matters most: %s",
-    (
-      tones: Array<RemediationDecisionTone>,
-      expected: RemediationDecisionTone,
-    ) => {
-      expect(getRemediationDecisionStatus(tones.map(line))).toEqual({
-        tone: expected,
-        text: REMEDIATION_DECISION_STATUS_TEXT[expected],
-      });
-    },
-  );
-
-  test("the screenshot: fixing new incidents is off, so no action was taken", () => {
-    expect(
-      statusOf([
-        {
-          lane: AutoRemediationDecisionLane.Project,
-          reason: AutoRemediationDecisionReason.RemediationOff,
-        },
-      ]),
-    ).toEqual({ tone: "info", text: "No action taken" });
-  });
-
-  test("waits while remediation waits for the investigation", () => {
-    expect(
-      getRemediationDecisionStatus(
-        getRemediationDecisionLines({
-          decision: {
-            stage: AutoRemediationDecisionStage.WaitingForInvestigation,
-            entries: [],
-          },
-          signal: "alert",
-          translator: getGlobalTranslator(),
-        }),
-      ),
-    ).toEqual({ tone: "waiting", text: "Waiting for investigation" });
-  });
-
-  test("needs attention for a signal linked to nothing, though each half alone is only so", () => {
-    expect(statusOf(NOTHING_LINKED)).toEqual({
-      tone: "attention",
-      text: "Needs attention",
-    });
-    expect(statusOf([NOTHING_LINKED[0]!])).toEqual({
-      tone: "info",
-      text: "No action taken",
-    });
-  });
-
-  test("a fix that started still needs attention while another path is blocked", () => {
-    expect(
-      statusOf([
-        entryFor(AutoRemediationDecisionReason.ClusterNotReady),
-        entryFor(AutoRemediationDecisionReason.ResourceRoundStarted),
-        entryFor(AutoRemediationDecisionReason.NoRuleMatched),
-      ]),
-    ).toEqual({ tone: "attention", text: "Needs attention" });
-  });
-
-  test("a fix that started is action taken, whatever else just stands", () => {
-    expect(
-      statusOf([
-        entryFor(AutoRemediationDecisionReason.ClusterRoundStarted),
-        entryFor(AutoRemediationDecisionReason.ResourceSkippedForClusterRound),
-        entryFor(AutoRemediationDecisionReason.NoRulesConfigured),
-      ]),
-    ).toEqual({ tone: "acted", text: "Action taken" });
-  });
-
-  test("has nothing to say when every lane only says another lane took the signal", () => {
-    expect(
-      statusOf([
-        entryFor(AutoRemediationDecisionReason.ClusterSkippedForResourceRound),
-        entryFor(AutoRemediationDecisionReason.ResourceSkippedForClusterRound),
-      ]),
-    ).toBeNull();
-  });
-
-  /*
-   * The engine classifies its own reasons (AutoRemediationDecisionHelper):
-   * which ones acted and which need the reader. For every reason it
-   * records, the pill of that one entry agrees with it.
-   */
-  test.each(ALL_REASONS)(
-    "a decision of only %s gets the pill the engine's own classification says",
-    (reason: AutoRemediationDecisionReason) => {
-      const entry: AutoRemediationDecisionEntry = entryFor(reason);
-      const lines: Array<RemediationDecisionLine> = linesOf([entry]);
-      const status: RemediationDecisionStatus | null =
-        getRemediationDecisionStatus(lines);
-
-      if (lines.length === 0) {
-        expect(status).toBeNull();
-        return;
-      }
-
-      const expected: RemediationDecisionTone =
-        AutoRemediationDecisionHelper.needsAttention(entry)
-          ? "attention"
-          : AutoRemediationDecisionHelper.isActed(entry)
-            ? "acted"
-            : "info";
-
-      expect(status).toEqual({
-        tone: expected,
-        text: REMEDIATION_DECISION_STATUS_TEXT[expected],
-      });
-      expect(lines[0]!.tone).toBe(expected);
-    },
-  );
-
-  test("every reason the engine records draws a line or is one of the silent ones", () => {
-    const silent: Array<AutoRemediationDecisionReason> = ALL_REASONS.filter(
-      (reason: AutoRemediationDecisionReason): boolean => {
-        return linesOf([entryFor(reason)]).length === 0;
-      },
-    );
-
-    expect(silent.sort()).toEqual(
-      [
-        AutoRemediationDecisionReason.ClusterSkippedForResourceRound,
-        AutoRemediationDecisionReason.ResourceSkippedForClusterRound,
-      ].sort(),
-    );
-  });
-
-  /*
-   * Any mix of entries, in any order, for either kind of signal: the pill
-   * needs attention exactly when the engine says an entry does (or the
-   * signal is linked to nothing at all), says action was taken exactly when
-   * one acted and none needs attention, and has nothing to say exactly when
-   * there is no line.
-   */
-  test("agrees with the engine's classification for any mix of entries", () => {
-    const random: SeededRandom = seededRandom(4701);
-    const checked: Set<string> = new Set<string>();
-
-    for (let round: number = 0; round < 600; round++) {
-      const count: number = 1 + random(5);
-      const entries: Array<AutoRemediationDecisionEntry> = shuffled(
-        ALL_REASONS,
-        random,
-      )
-        .slice(0, count)
-        .map(entryFor);
-      const signal: RemediationDecisionSignal =
-        random(2) === 0 ? "incident" : "alert";
-      const lines: Array<RemediationDecisionLine> = linesOf(entries, signal);
-      const status: RemediationDecisionStatus | null =
-        getRemediationDecisionStatus(lines);
-
-      const isLinkedToNothing: boolean =
-        entries.some((entry: AutoRemediationDecisionEntry): boolean => {
-          return (
-            entry.reason === AutoRemediationDecisionReason.ClusterNoneLinked
-          );
-        }) &&
-        entries.some((entry: AutoRemediationDecisionEntry): boolean => {
-          return (
-            entry.reason === AutoRemediationDecisionReason.ResourceNoneLinked
-          );
-        });
-      const needsAttention: boolean =
-        isLinkedToNothing ||
-        entries.some((entry: AutoRemediationDecisionEntry): boolean => {
-          return AutoRemediationDecisionHelper.needsAttention(entry);
-        });
-      const acted: boolean = entries.some(
-        (entry: AutoRemediationDecisionEntry): boolean => {
-          return AutoRemediationDecisionHelper.isActed(entry);
-        },
-      );
-      const expected: RemediationDecisionTone | null =
-        lines.length === 0
-          ? null
-          : needsAttention
-            ? "attention"
-            : acted
-              ? "acted"
-              : "info";
-
-      checked.add(String(expected));
-      expect({ entries, status: status?.tone ?? null }).toEqual({
-        entries,
-        status: expected,
-      });
-    }
-
-    // The sweep reached every pill a decision can have, and none.
-    expect(Array.from(checked).sort()).toEqual(
-      ["acted", "attention", "info", "null"].sort(),
-    );
-  });
-
-  test("every pill's words are in the Dashboard's English locale file", () => {
-    const english: Record<string, string> = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
-        ),
-        "utf8",
-      ),
-    ) as Record<string, string>;
-
-    for (const text of Object.values(REMEDIATION_DECISION_STATUS_TEXT)) {
-      expect({ text, inLocale: english[text] }).toEqual({
-        text,
-        inLocale: text,
-      });
-    }
   });
 });

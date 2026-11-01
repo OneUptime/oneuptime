@@ -6,6 +6,7 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import { ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH } from "../../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown, {
   MarkdownText,
@@ -95,6 +96,8 @@ export const MICROSOFT_TEAMS_SEVERITY_FIELD: string = "incidentSeverity";
 export const MICROSOFT_TEAMS_ROLE_FIELD: string = "incidentRole";
 export const MICROSOFT_TEAMS_ROLE_PERSON_FIELD: string = "incidentRolePerson";
 export const MICROSOFT_TEAMS_PAGE_FIELD: string = "incidentPageTargets";
+export const MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD: string =
+  "incidentPageMessage";
 
 // A Date and time field's two inputs: its day, and its time.
 const DATE_SUFFIX: string = "__date";
@@ -782,6 +785,25 @@ export default class MicrosoftTeamsIncidentMoreActions {
           ),
         ];
 
+        /*
+         * What the list leaves out is said under the list itself; the
+         * page's own message follows (pushed below), optional - the
+         * incident says what the page is about.
+         */
+        const message: Array<JSONObject> = [
+          {
+            type: "Input.Text",
+            id: MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD,
+            label: WORKSPACE_PAGE_FORM_TEXT.messageLabel,
+            placeholder: WORKSPACE_PAGE_FORM_TEXT.messagePlaceholder,
+            isMultiline: true,
+            maxLength: ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH,
+          },
+          MicrosoftTeamsCardChoices.buildNoteElement(
+            WORKSPACE_INCIDENT_FORM_TEXT.pageMessageHint,
+          ),
+        ];
+
         const leftOut: number = keys.reduce(
           (count: number, key: string): number => {
             return (
@@ -799,6 +821,8 @@ export default class MicrosoftTeamsIncidentMoreActions {
             ),
           );
         }
+
+        body.push(...message);
 
         return MicrosoftTeamsIncidentMoreActions.form({
           title: WORKSPACE_INCIDENT_FORM_TEXT.pageTitle,
@@ -820,6 +844,14 @@ export default class MicrosoftTeamsIncidentMoreActions {
     const picked: Array<string> = MicrosoftTeamsIncidentMoreActions.toList(
       data.value[MICROSOFT_TEAMS_PAGE_FIELD],
     );
+    // Optional, and on cards sent before it was asked: none.
+    const message: string =
+      typeof data.value[MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD] ===
+      "string"
+        ? (data.value[
+            MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD
+          ] as string)
+        : "";
 
     const problem: string | null =
       WorkspaceIncidentActions.getPageProblem(picked);
@@ -855,11 +887,13 @@ export default class MicrosoftTeamsIncidentMoreActions {
       event: incident.event,
       targets: WorkspacePage.readTargets(picked),
       props: data.databaseProps,
+      // The page's own message, when they wrote one.
+      ...(message.trim() ? { message: message } : {}),
     });
 
     await MicrosoftTeamsIncidentMoreActions.confirm(
       data.turnContext,
-      WorkspaceIncidentActions.getPagedAnswer(result),
+      WorkspaceIncidentActions.getPagedAnswer(result, message),
     );
 
     // Paged: the card goes, so nobody pages with it twice.

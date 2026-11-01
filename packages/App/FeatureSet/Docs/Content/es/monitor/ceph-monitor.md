@@ -4,7 +4,7 @@ Un monitor de Ceph vigila un clúster de Ceph —su salud, sus health checks, el
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-ceph): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-predefinidas): 23 alertas listas para salud, OSD, placement groups y capacidad.
+- [Plantillas](#plantillas-de-alerta-predefinidas): 24 alertas listas para un clúster silencioso, salud, OSD, placement groups y capacidad.
 - [Health checks](#series-de-health-checks): Alertar sobre cualquier health check de Ceph por su nombre.
 - [Métricas](#métricas-recopiladas): Cada serie `ceph_*` sobre la que el monitor puede alertar.
 :::
@@ -99,9 +99,17 @@ Las series de datos de los pools solo llevan la etiqueta `pool_id`: el nombre de
 
 ## Plantillas de alerta predefinidas
 
-**Quick Setup** ofrece 23 plantillas que cubren la salud del clúster, los OSD, los placement groups y la capacidad. Cada una crea un monitor completo: consultas, filtros de etiquetas, una agrupación, un criterio que dispara y otro que recupera. Los umbrales son un punto de partida que puedes editar.
+**Quick Setup** ofrece 24 plantillas que cubren un clúster silencioso, la salud del clúster, los OSD, los placement groups y la capacidad. Cada una crea un monitor completo: consultas, filtros de etiquetas, una agrupación, un criterio que dispara y otro que recupera. Los umbrales son un punto de partida que puedes editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un criterio solo dispara si la condición se cumple en cada minuto de su ventana, y un criterio con umbral se recupera un 10 % más allá de su umbral, para que un valor que ronda la línea no oscile. **Gravedad** es la etiqueta que muestra el selector; el incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de tu proyecto.
+
+### Plantillas de disponibilidad
+
+| Plantilla | Gravedad | Vigila | Dispara cuando | Se recupera cuando |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Crítico | `ceph_health_status`, Count, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
+
+**Cluster Stopped Reporting** dispara cuando no llega nada del clúster durante diez minutos: el agente de Ceph se detuvo, perdió su conexión con OneUptime o le revocaron el token, o ningún mgr sirve el módulo `prometheus`. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, y las plantillas de health checks leen un clúster silencioso como uno sano, así que esta es la que te avisa.
 
 ### Plantillas de salud del clúster
 
@@ -219,7 +227,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos los valores deben cumplirse, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. |
 | **Umbral** | El valor con el que se compara. Junto a él aparece una lista de unidades cuando la métrica tiene unidad. No se muestra con las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Baja** (4σ), **Media** (3σ, la predeterminada) o **Alta** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (la predeterminada), 28, 60 o 90 días de historial. |
@@ -235,13 +243,11 @@ Un monitor que no creas a partir de una plantilla empieza con dos criterios:
 
 | Orden | Criterio | Se cumple cuando | Entonces |
 | --- | --- | --- | --- |
-| 1 | Check if _nombre del monitor_ is offline | Algún valor de la primera consulta es `0` | Marca el monitor como **Sin conexión** y declara el incidente «_nombre del monitor_ is offline», que se resuelve solo cuando el monitor se recupera. |
-| 2 | Check if _nombre del monitor_ is online | Algún valor está por encima de `0` | Marca el monitor como **Operativo**. |
-
-Estos valores predeterminados sirven para pocas métricas de Ceph: `ceph_health_status` es 0 cuando el clúster está sano. Elige una plantilla o define tus propios criterios.
+| 1 | Check if _nombre del monitor_ is offline | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente «_nombre del monitor_ is offline», que se resuelve solo cuando el monitor se recupera. |
+| 2 | Check if _nombre del monitor_ is online | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
 
 > [!IMPORTANT]
-> El silencio no cumple ninguno de los dos criterios: un clúster que deja de enviar datos deja el monitor como estaba. Para enterarte cuando dejan de llegar datos, pon **Si no hay datos** en **Disparador** en un criterio. El tiempo en que el propio OneUptime no estaba recibiendo nunca cuenta como falta de datos: una comprobación cuya ventana lo contiene espera en su lugar, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
+> Un valor de `0` son datos, así que una métrica que suele valer cero, como los reinicios o los errores, no deja el monitor fuera de línea. Para recibir alertas sobre un valor, empiece con una plantilla o añada un criterio con un umbral. Cuando no llega ningún dato y no se cumple ningún criterio, el monitor conserva su estado y los incidentes abiertos siguen abiertos: el silencio no es una recuperación. El tiempo en que OneUptime no recibía datos nunca cuenta como falta de datos: una comprobación cuya ventana lo incluye espera, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solución de problemas
 

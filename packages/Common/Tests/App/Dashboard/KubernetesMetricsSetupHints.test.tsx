@@ -305,6 +305,7 @@ describe("Control Plane", () => {
     expect(codeIn(hint)).toEqual([
       "controlPlane.enabled",
       "controlPlane.etcd.endpoints",
+      "controlPlane.etcd.clientCertSecret",
     ]);
     expect(hint).toHaveTextContent("Managed clusters such as EKS, GKE and AKS");
     expect(commandIn(hint)).toBe(
@@ -419,13 +420,20 @@ describe("Control Plane", () => {
     expect(commandIn(hintFor("coredns"))).not.toContain("controlPlane");
   });
 
-  test("the etcd hint asks for the only kind of address the agent can scrape", async () => {
+  /*
+   * The agent could once scrape etcd only at an HTTPS address that asked for
+   * no client certificate, which etcd does not serve. The chart now scrapes
+   * an http:// endpoint in plain HTTP (kubeadm's metrics port) and presents
+   * the client certificate a Secret holds to its HTTPS port, and the hint
+   * names both.
+   */
+  test("the etcd hint names both ways the agent reaches etcd", async () => {
     mockAnswers = [["etcd_", "empty"]];
 
     await renderControlPlane();
 
     expect(hintFor("etcd")).toHaveTextContent(
-      "an HTTPS etcd metrics address the agent's pod can reach without a client certificate",
+      "http:// for its plain metrics port, or its HTTPS client port with controlPlane.etcd.clientCertSecret naming a Secret that holds the client certificate etcd asks for",
     );
   });
 

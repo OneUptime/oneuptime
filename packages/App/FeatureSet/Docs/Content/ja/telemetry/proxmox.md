@@ -39,14 +39,14 @@ flowchart TB
 
 ## 始める前に
 
-- Docker Engine 20.10 以降と Docker Compose v2 プラグイン。ポート 8006 で Proxmox VE API に到達できるマシン上に必要です。
+- Docker Engine 20.10 以降と Docker Compose v2 プラグイン。ポート 8006 ですべてのノードの Proxmox VE API に到達できるマシン上に必要です。
 - API トークンを作成するための、任意の Proxmox VE ノードの root シェル、または Proxmox の Web UI。
 - 取り込みキー。**プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成し、その値をコピーします。
 - そのマシンから OneUptime の URL への送信方向の HTTPS。
 
 ### エージェントを実行する場所
 
-エージェントはネットワーク経由で Proxmox VE API にクエリするため、クラスターのノード上に置く必要はなく、置くべきでもありません。ノードの障害を生き延びるマシン (別のハードウェア上の小さな監視用 VM、管理ホスト) で実行するか、`PVE_HOST` を 1 つのノードのアドレスではなく仮想 IP やラウンドロビン DNS の名前に向けてください。エージェントの API の接続先がちょうど停止したノードだと、監視もそれとともに止まります。唯一の例外は任意の journald のログパイプラインで、これは Proxmox VE ノード上で実行する必要があります ([Proxmox のサービスログを送信する](#任意-proxmox-のサービスログを送信する) を参照)。
+エージェントはネットワーク経由で Proxmox VE API にクエリするため、クラスターのノード上に置く必要はなく、置くべきでもありません。ノードの障害を生き延びるマシン (別のハードウェア上の小さな監視用 VM、管理ホスト) で実行するか、`PVE_HOST` を 1 つのノードのアドレスではなく仮想 IP やラウンドロビン DNS の名前に向けてください。エージェントの API の接続先がちょうど停止したノードだと、監視もそれとともに止まります。`PVE_NODES` は違います。各ノードをそれぞれ自身のアドレスで列挙し、仮想 IP は決して使いません ([エージェントが収集するもの](#エージェントが収集するもの) を参照)。唯一の例外は任意の journald のログパイプラインで、これは Proxmox VE ノード上で実行する必要があります ([Proxmox のサービスログを送信する](#任意-proxmox-のサービスログを送信する) を参照)。
 
 ## エージェントをインストールする
 
@@ -87,7 +87,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-スクリプトは、OneUptime の URL、取り込みキー、クラスターの名前、Proxmox VE API のホスト、同梱のエクスポーターを実行するかどうか、トークン ID とシークレットを尋ねます。さらに、[AI エージェント](#ai-エージェント) に修正の適用を許可するかどうかと、許可する場合はその専用のトークンと、決して変更してはならないゲストも尋ねます。`/opt/oneuptime-proxmox-agent` にインストールし、`0600` の `.env` ファイルを書き込み、Docker Compose でエージェントを起動します。スクリプトを再実行すると、再び尋ねる代わりにその `.env` の内容をすべて再利用します。これが [エージェントのアップグレード](#エージェントのアップグレード) の方法です。
+スクリプトは、OneUptime の URL、取り込みキー、クラスターの名前、Proxmox VE API のホスト、同梱のエクスポーターを実行するかどうか、トークン ID とシークレット、各ノードのアドレス (トークンを得た時点でクラスター自身のノード一覧を提示します) を尋ねます。さらに、[AI エージェント](#ai-エージェント) に修正の適用を許可するかどうかと、許可する場合はその専用のトークンと、決して変更してはならないゲストも尋ねます。`/opt/oneuptime-proxmox-agent` にインストールし、`0600` の `.env` ファイルを書き込み、Docker Compose でエージェントを起動します。スクリプトを再実行すると、再び尋ねる代わりにその `.env` の内容をすべて再利用します。これが [エージェントのアップグレード](#エージェントのアップグレード) の方法です。
 @tab Docker Compose
 [ProxmoxAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) から、`docker-compose.yml` と `otel-collector-config.yaml` を新しいフォルダーにダウンロードします:
 
@@ -104,12 +104,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 PROXMOX_CLUSTER_NAME=my-proxmox-cluster
 PVE_HOST=192.168.1.10
+PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
 ```
 
-`COMPOSE_PROFILES=pve-exporter` により、同梱のエクスポーターも起動します。エージェントを起動します:
+`PVE_NODES` は各ノードをそれぞれ自身のアドレスで角かっこ内に列挙し、`COMPOSE_PROFILES=pve-exporter` により、同梱のエクスポーターも起動します。エージェントを起動します:
 
 ```bash
 docker compose up -d
@@ -149,7 +150,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | はい | OneUptime の URL。`https://oneuptime.com` やセルフホストのインスタンスなど。インスタンスが HTTP のみの場合は、`http://` とそのポートを使います。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
 | `PROXMOX_CLUSTER_NAME` | はい | OneUptime でのクラスターの名前で、すべてのメトリクスに `proxmox.cluster.name` リソース属性として付与されます。変えないでください。あとで変更すると別のクラスターとして登録されます。既定は `proxmox-cluster` です。 |
-| `PVE_HOST` | はい | エクスポーターと AI エージェントがクエリする Proxmox VE API のホスト (クラスターの任意のノード)。`192.168.1.10` など。 |
+| `PVE_HOST` | はい | エクスポーターがクラスターを読み取り、AI エージェントがクエリする Proxmox VE API のホスト。任意のノード、またはノード間で切り替わる仮想 IP です。`192.168.1.10` など。 |
+| `PVE_NODES` | クラスターの場合 | 各ノード自身の API アドレスを、角かっこ内にカンマ区切りで指定します。`[192.168.1.10,192.168.1.11,192.168.1.12]` など。エクスポーターはブート時起動、レプリケーション、サブスクリプションを問い合わせたノードについてしか読み取らないため、各ノードに順番に問い合わせます。既定は `PVE_HOST` のみで、単一ノードならこれで十分です。 |
 | `PVE_EXPORTER_URL` | いいえ | prometheus-pve-exporter のアドレス (`host:port` の形式、スキームなし)。既定は同梱のエクスポーター `pve-exporter:9221` です。 |
 | `PVE_API_TOKEN_ID` | 同梱のエクスポーターまたは AI エージェント | Proxmox API トークンの完全な ID。`monitoring@pam!oneuptime` など。AI エージェントは、専用のトークン (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`) がない限り、これで API を読み取ります。 |
 | `PVE_API_TOKEN_SECRET` | 同梱のエクスポーターまたは AI エージェント | Proxmox API トークンのシークレット。 |
@@ -158,7 +160,7 @@ Everything is ready. Begin running and processing data.
 
 ## エージェントが収集するもの
 
-Collector は、クラスターとノードの両方のコレクターを有効にして、30 秒ごとにエクスポーターをスクレイプします。これにより、エクスポーターで既定で有効な `backup-info` (クラスターレベル) と `replication` (ノードレベル) のコレクターもカバーされます。すべての系列には、リソースを示す `id` ラベルが付いています: `node/<name>`、`qemu/<vmid>`、`lxc/<vmid>`、`storage/<node>/<storage>`。
+Collector は 30 秒ごとにエクスポーターをスクレイプします。クラスターのコレクターは `PVE_HOST` で 1 回、ノードのコレクターは `PVE_NODES` の各ノードで 1 回ずつです。クラスターのコレクター (既定で有効な `backup-info` を含む) には、どのノードもクラスター全体について応答します。ノードのコレクター (ブート時起動の `config` と `replication`) は、エクスポーターが問い合わせたノードしか読み取りません。そのため、`PVE_NODES` にないノードからは、**Guest Down** が必要とするゲストのブート時起動フラグも、レプリケーションジョブも送られません。すべての系列には、リソースを示す `id` ラベルが付いています: `node/<name>`、`qemu/<vmid>`、`lxc/<vmid>`、`storage/<node>/<storage>`。
 
 | カテゴリ | メトリクス |
 | --- | --- |
@@ -168,6 +170,7 @@ Collector は、クラスターとノードの両方のコレクターを有効�
 | ストレージ | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
 | バックアップの対象範囲 | `pve_not_backed_up_total` (どのバックアップジョブの対象にもなっていないゲスト。クラスターレベルの単一の系列で、`id` ラベルなし) と `pve_not_backed_up_info` (対象外のゲストごとの系列で、その `id` 付き)。対象範囲内とは、少なくともいずれかのジョブがゲストを選択していることを意味します。バックアップが最近実行されたか、成功したかは、エクスポーターでは公開されません。 |
+| ブート時起動 | ゲストごとの系列 `pve_onboot_status`。ゲストがブート時に起動する設定のとき 1 です。**Guest Down** はこれらのゲストについてのみ通知します。 |
 | レプリケーション | ストレージのレプリケーションジョブごとの `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。その `id` ラベルはリソースではなくジョブ ID (`100-0` など) です。 |
 
 モニターの条件と属性フィルターは、プレフィックスではなく完全一致で照合するため、Collector の `transform/pve-identity` プロセッサーは `id` を 3 つの属性にも分割します。組み込みの Proxmox アラートテンプレートはこれらで絞り込むため、設定をカスタマイズする場合もこのプロセッサーは残してください:
@@ -297,7 +300,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 エージェントは、そのファイルが固定している Collector のバージョンを **エージェントバージョン** として報告します。それがこの OneUptime のリリースが固定しているバージョンより古い場合、クラスターの **概要** でその横に警告マークが表示されます。マークを選択すると、これらのコマンドが表示されます。ファイルがバージョンを報告するようになる前にインストールしたエージェントは、この方法でアップグレードするまでバージョンが表示されません。
 
-Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、イメージをプルしてエージェントを作り直すため、Collector は新しい設定を読み込みます。
+Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、イメージをプルしてエージェントを作り直すため、Collector は新しい設定を読み込みます。`PVE_NODES` より前の `.env` は引き続き `PVE_HOST` だけを読み取り、スクリプトが追加すべきノードを示します。
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
@@ -359,6 +362,10 @@ API トークンが誤っているか、権限が不足しています。トー�
 
 :::details ノードのメトリクスだけでゲストのメトリクスがない
 ゲストの系列 (`qemu/*` と `lxc/*` の ID) は、エクスポーターのクラスターコレクターから取得されます。同梱の設定では、スクレイプのパラメーター `cluster=1` でこれを有効にしています。`otel-collector-config.yaml` をカスタマイズした場合は、`cluster: ["1"]` のパラメーターを戻してください。
+:::
+
+:::details Guest Down や Replication Failing が一部のゲストで発火しない
+ゲストのブート時起動フラグとレプリケーションジョブは、そのゲストが動作しているノードから届きますが、エージェントは `PVE_NODES` のノードしか読み取りません。そこに各ノード自身のアドレスを列挙し (`PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]` など)、`docker compose up -d` を実行してください。編集後に Collector が起動しなくなった場合は、一覧の角かっこが失われています。診断スクリプトは一覧のすべてのノードを確認します。
 :::
 
 :::details メトリクスが別のクラスターに入る

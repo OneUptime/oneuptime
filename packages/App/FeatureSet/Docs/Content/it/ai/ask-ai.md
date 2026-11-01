@@ -32,12 +32,12 @@ In modalità **Sola lettura** le azioni non vengono mai offerte al modello, quin
 | --- | --- |
 | Qualsiasi pagina | Fai clic su **Chiedi all'IA** nell'intestazione, oppure premi `Ctrl` + `I` (`Cmd` + `I` su un Mac). Mentre scrivi in una casella di testo o in un editor, quei tasti restano la scorciatoia del corsivo dell'editor. |
 | La palette dei comandi | Premi `Ctrl` + `K` (`Cmd` + `K` su un Mac) e scegli **Chiedi all'IA**. |
-| Un pattern di errore dei log, o i risultati di un grafico | Fai clic su **Explain with AI**: Chiedi all'IA si apre con le prove sotto forma di domanda che puoi modificare prima di inviarla. |
+| Un pattern di errore dei log, o i risultati di un grafico | Fai clic su **Spiega con l'IA**: Chiedi all'IA si apre con le prove sotto forma di domanda che puoi modificare prima di inviarla. |
 | Il menu dei prodotti | Apri **Prodotti → AI → Chat**. Chiedi all'IA si apre sopra la pagina in cui eri. Ogni conversazione ha un proprio indirizzo, così puoi salvarla nei preferiti e tornarci. |
 
 Chiedi all'IA si apre al centro dello schermo, sopra la pagina in cui eri, e su un telefono occupa tutto lo schermo. Premi `Esc`, o fai clic accanto, per tornare alla pagina. La conversazione resta dove l'hai lasciata: riapri Chiedi all'IA per continuare. Se la chiudi mentre sta ancora rispondendo, un promemoria nell'angolo ti dice quando la risposta è pronta, e la apre.
 
-Su un incidente o un avviso, la scheda **AI Investigation** ha una conversazione tutta sua, **Ask OneUptime AI**, condivisa con chiunque possa vedere quell'incidente o quell'avviso: vedi [Parlare dell'incidente con OneUptime AI](/docs/ai/ai-sre#parla-con-oneuptime-ai-dellincidente).
+Su un incidente o un avviso, la scheda **OneUptime AI** ha una conversazione tutta sua, **Ask OneUptime AI**, condivisa con chiunque possa vedere quell'incidente o quell'avviso: vedi [Parlare dell'incidente con OneUptime AI](/docs/ai/ai-sre#parla-con-oneuptime-ai-dellincidente).
 
 ## Cosa può vedere
 
@@ -87,7 +87,7 @@ Cosa può fare Chiedi all'IA quando una modalità lo consente:
 - Pubblicare una nota interna su un incidente o un avviso. Le note interne non compaiono mai su una pagina di stato.
 - Pubblicare un aggiornamento di stato pubblico su un incidente. È un'azione a parte, perché avvisa gli iscritti alla pagina di stato.
 - Chiamare una policy di reperibilità, eseguire un runbook o avviare un'indagine IA su un incidente o un avviso.
-- Proporre una modifica al codice: fare un commit su un nuovo branch di un repository collegato e aprire una pull request. Non scrive mai sul branch predefinito né su uno protetto, quindi è sempre una persona a fare il merge della modifica.
+- Proporre una modifica al codice: fare un commit su un nuovo branch di un repository su GitHub, GitLab, Forgejo o Gitea e aprire una pull request (una merge request su GitLab). Non scrive mai sul branch predefinito né su uno protetto, quindi è sempre una persona a fare il merge della modifica.
 
 Chiedi un incidente quando gli utenti sono colpiti, e un avviso quando qualcosa richiede prima l'attenzione del tuo team, come la memoria di un host che continua a salire. Entrambi vengono creati una volta e non sorvegliano nulla: per essere avvisato ogni volta che la memoria di un host supera il 75%, crea un [monitor host](/docs/monitor/host-monitor#modelli-di-avviso-pronti) dal suo modello per la memoria, con il 75% come soglia. Chiedi all'IA non può creare monitor. Se gliene chiedi uno, lo dice, controlla il valore attuale e propone di creare un avviso se è già oltre.
 

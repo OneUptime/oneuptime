@@ -128,6 +128,8 @@ Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la co
 | **Anomalously High** | por encima del rango esperado para esta hora de la semana |
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
+| **Sin datos** | ausente: la consulta no envió nada en la ventana |
+| **Con datos** | presente: la consulta envió algo en la ventana |
 
 Las condiciones de anomalía no tienen umbral. En su lugar, **Cuándo alertar** muestra **Sensibilidad** (Baja, Media, la predeterminada, o Alta), y los criterios propios también una **Ventana de referencia** (14 días, la predeterminada, 28, 60 o 90), y cada punto de datos se compara con la referencia de la misma hora de la semana construida con esa ventana. Hasta que esa hora de la semana tenga suficiente historial, el criterio sigue aprendiendo y no genera alertas.
 

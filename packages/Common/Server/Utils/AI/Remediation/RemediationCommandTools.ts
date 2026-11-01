@@ -39,7 +39,12 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
+import CloudAiTargets, {
+  CloudChangeTargetCheck,
+  getCloudUndoCommandText,
+} from "../ResourceAccess/CloudAiTargets";
 import {
   MAX_RESOURCE_COMMAND_TIMEOUT_MS,
   RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -1697,6 +1702,21 @@ export default class RemediationCommandToolkit {
       if (scopeRefusal) {
         return this.failure(scopeRefusal);
       }
+
+      /*
+       * A cloud resource declared as code is only ever proposed: the next
+       * apply would put the old value back, so a person decides (and
+       * changes the code too).
+       */
+      if (command.managedAsCode) {
+        const refusal: FullAutoRefusal = {
+          text: `The resource this changes belongs to ${command.managedAsCode}, and OneUptime AI only proposes changes to resources declared as code: the next apply would put the old value back. It was NOT executed. ${this.describeWhereRefusedChangesGo()}`,
+          approvalReason: `the resource belongs to ${command.managedAsCode}`,
+        };
+
+        this.recordNeedingApproval(command, refusal);
+        return this.failure(refusal.text);
+      }
     }
 
     /*
@@ -2077,6 +2097,19 @@ export default class RemediationCommandToolkit {
         isTruncated = outcome.isTruncated ?? false;
         if (!outcome.succeeded) {
           command.execution.errorMessage = outcome.errorMessage;
+        }
+
+        // A cloud change's exact undo, from the value it replaced.
+        if (outcome.succeeded) {
+          const target: ResourceAiAccessStatus | undefined =
+            this.findResourceTarget(command.resourceType, command.resourceId);
+
+          if (target) {
+            RemediationCommandToolkit.applyCloudUndo({
+              command,
+              resource: target,
+            });
+          }
         }
 
         if (outcome.runState === ResourceCommandRunState.Unknown) {
@@ -2634,6 +2667,99 @@ export default class RemediationCommandToolkit {
     return this.options.proposesRefusedCommands
       ? "It is recorded for a human: if you run no other change in this round, OneUptime AI proposes it for one-click approval when the round ends. Also put it in your final recommendations."
       : "Include this action in your final recommendations for a human.";
+  }
+
+  /*
+   * A cloud change, once composed: its resource must be in the account's
+   * inventory (the enqueue chokepoint refuses it otherwise, so the model
+   * hears why now), and the code that declares it, if any, goes on the
+   * step (managedAsCode). Anything else passes through.
+   */
+  private async checkCloudChangeTarget(
+    parsed: CommandArgsParseResult,
+  ): Promise<CommandArgsParseResult> {
+    const command: AiRemediationCommand | undefined = parsed.command;
+
+    if (
+      !command ||
+      !isCloudAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !command.resourceCommandTier ||
+      command.resourceCommandTier === ResourceCommandTier.Read
+    ) {
+      return parsed;
+    }
+
+    const check: CloudChangeTargetCheck = await CloudAiTargets.checkChange({
+      projectId: this.options.projectId,
+      resourceType: command.resourceType as AiResourceType,
+      cloudAccountId: new ObjectID(command.resourceId),
+      tier: command.resourceCommandTier,
+      command: command.command,
+    });
+
+    if (check.refusal) {
+      return { errorText: check.refusal };
+    }
+
+    if (check.target?.managedAsCode) {
+      command.managedAsCode = check.target.managedAsCode;
+    }
+
+    return parsed;
+  }
+
+  /*
+   * After a cloud change ran: its exact undo — the catalog's inverse with
+   * the value the agent reported it replaced — becomes its rollbackCommand,
+   * under the rules a written rollback meets (never a change a person must
+   * approve; a riskier one only where the account bypasses approvals; the
+   * agent's write scope). An undo that does not qualify, or a change with
+   * nothing to undo, leaves no rollbackCommand: the plan then does not roll
+   * it back on its own, and the step's output says how to undo it.
+   */
+  public static applyCloudUndo(data: {
+    command: AiRemediationCommand;
+    resource: ResourceAiAccessStatus;
+  }): void {
+    const { command, resource } = data;
+
+    if (
+      command.stepType !== RunbookStepType.ResourceCommand ||
+      !isCloudAiResourceType(resource.resourceType)
+    ) {
+      return;
+    }
+
+    const undo: string | null = getCloudUndoCommandText({
+      resourceType: resource.resourceType,
+      command: command.command,
+      output: command.execution?.output,
+    });
+
+    if (!undo) {
+      command.rollbackCommand = undefined;
+      return;
+    }
+
+    const policy: ResourceCommandPolicyResult =
+      ResourceCommandPolicy.evaluateCommand({
+        resourceType: resource.resourceType,
+        command: undo,
+      });
+
+    const qualifies: boolean =
+      (policy.tier === ResourceCommandTier.SafeWrite ||
+        (policy.tier === ResourceCommandTier.RiskyWrite &&
+          resource.aiRemediationMode ===
+            ResourceAiRemediationMode.BypassApproval)) &&
+      policy.requiresHuman !== true &&
+      RemediationCommandToolkit.getResourceWriteScopeRefusal({
+        resource,
+        command: policy.displayCommand,
+      }) === null;
+
+    command.rollbackCommand = qualifies ? policy.displayCommand : undefined;
   }
 
   /*
@@ -3761,15 +3887,17 @@ export default class RemediationCommandToolkit {
         };
       }
 
-      return this.parseResourceCommand({
-        args,
-        sequence,
-        commandText,
-        rollbackCommand,
-        timeoutInMs,
-        rationale,
-        expectedEffect,
-      });
+      return await this.checkCloudChangeTarget(
+        this.parseResourceCommand({
+          args,
+          sequence,
+          commandText,
+          rollbackCommand,
+          timeoutInMs,
+          rationale,
+          expectedEffect,
+        }),
+      );
     }
 
     const denyReason: string | null = CommandPolicy.getDenyReason(commandText);
@@ -4054,11 +4182,22 @@ export default class RemediationCommandToolkit {
 
     let rollbackDisplay: string | undefined = undefined;
 
-    if (data.rollbackCommand) {
+    /*
+     * A cloud change's undo is OneUptime's to write, from the catalog's
+     * inverse and the value the agent reports the change replaced
+     * (applyCloudUndo), so a rollbackCommand the model wrote is not kept.
+     */
+    const modelRollback: string | undefined = isCloudAiResourceType(
+      resource.resourceType,
+    )
+      ? undefined
+      : data.rollbackCommand;
+
+    if (modelRollback) {
       const rollbackPolicy: ResourceCommandPolicyResult =
         ResourceCommandPolicy.evaluateCommand({
           resourceType: resource.resourceType,
-          command: data.rollbackCommand,
+          command: modelRollback,
         });
 
       if (rollbackPolicy.tier === ResourceCommandTier.Denied) {

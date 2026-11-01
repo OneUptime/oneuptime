@@ -78,7 +78,7 @@ GitHub のドキュメントによると、 **Request user authorization (OAuth)
 | Contents | Read and write | リポジトリのファイルを読み取り、AI 修正の pull request のブランチを push する |
 | Pull requests | Read and write | pull request を作成・更新し、レビューを投稿する |
 | Issues | Read and write | アプリのコメントを投稿する。 **pull request でも同様** で、GitHub は pull request の会話を issues API 経由で扱います |
-| Checks | Read-only | 任意。修正の pull request の CI 結果を読み取る。これがないと、CI の状態は未検証のままです |
+| Checks | Read and write | 任意。修正の pull request の CI 結果を読み取り、本番レビューごとにチェックを追加する。Read-only では CI 結果は読み取れますがチェックは追加されません。これがないと、修正の pull request の CI の状態は未検証のままです |
 | Metadata | Read-only | リポジトリの基本的なメタデータ (GitHub が必須としています) |
 
 **アプリを対話的にするのは Issues: Read and write です。** これがないと、メンションは受信されるものの、アプリが返信しようとした時点で何も言わずに失敗します。GitHub は pull request の会話のコメントを issues API から提供するため、アプリが書くすべての返信はこの 1 つの権限にかかっています。 [GitHub から OneUptime を使う](/docs/ai/github-app) を参照してください。

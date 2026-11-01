@@ -7,26 +7,55 @@ receivers:
   prometheus:
     config:
       scrape_configs:
+        # The exporter's cluster collectors, once for the whole cluster: any
+        # node answers them for every node, guest and storage — status and
+        # usage (pve_up, pve_node_info, pve_guest_info, pve_storage_info,
+        # pve_cpu_usage_ratio, pve_memory_*, pve_disk_*), HA state
+        # (pve_ha_state), backup-job coverage (pve_not_backed_up_*) and the
+        # version.
         - job_name: oneuptime-proxmox
           # The exporter serves metrics on /pve and proxies each scrape
           # to the Proxmox VE API host given in the `target` parameter.
           metrics_path: /pve
           params:
-            # Proxmox VE API host (any cluster node) the exporter queries.
+            # Proxmox VE API host the exporter queries: any node of the
+            # cluster, or a virtual IP that fails over between them.
             target: ["${env:PVE_HOST}"]
-            # Enable both the cluster collectors (guest up/cpu/memory,
-            # HA state, backup-job coverage — pve_up, pve_guest_info,
-            # pve_ha_state, pve_not_backed_up_total) and the node
-            # collectors (node cpu/memory/disk, replication —
-            # pve_node_info, pve_cpu_usage_ratio on node ids,
-            # pve_replication_* series).
             cluster: ["1"]
-            node: ["1"]
+            node: ["0"]
           # pve-exporter answers each scrape with a live Proxmox VE API
           # round-trip; 30s keeps the load on pveproxy negligible.
           scrape_interval: 30s
           static_configs:
             - targets: ["${env:PVE_EXPORTER_URL}"]
+        # The exporter's node collectors, once per node: start-on-boot
+        # (pve_onboot_status, which Guest Down reads), storage replication
+        # (pve_replication_*) and the subscription (pve_subscription_*).
+        # The exporter reads these only for the node it queries, so every
+        # node is queried at its own address. PVE_NODES lists them, as a
+        # comma-separated list in square brackets so the collector reads a
+        # list, e.g.
+        #   PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
+        # Guests and replication jobs on a node it leaves out are never
+        # seen; a virtual IP here would mix up the nodes behind it.
+        - job_name: oneuptime-proxmox-nodes
+          metrics_path: /pve
+          params:
+            cluster: ["0"]
+            node: ["1"]
+          scrape_interval: 30s
+          static_configs:
+            - targets: ${env:PVE_NODES}
+          relabel_configs:
+            # Each node becomes the exporter's `target` parameter (and the
+            # scrape's instance)...
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_target]
+              target_label: instance
+            # ...and the exporter is what is scraped.
+            - target_label: __address__
+              replacement: "${env:PVE_EXPORTER_URL}"
 
   # Optional: ship Proxmox VE service logs from the systemd journal — this
   # is what powers the Logs tab of the Proxmox dashboard. Off by default
@@ -104,19 +133,20 @@ processors:
         value: "${env:PROXMOX_CLUSTER_NAME}"
         action: upsert
       # Shown as the agent version on the cluster's page, with a sign when
-      # a newer one is out. Keep it in step with the collector image
-      # docker-compose.yml pins.
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.1"
         action: upsert
       # The prometheus receiver synthesizes service.name (= the scrape job
-      # name, "oneuptime-proxmox") and service.instance.id on every batch
-      # per the Prometheus->OTLP compatibility spec. Drop them: OneUptime
-      # routes batches by service.name first, so leaving them in would
-      # register a phantom "oneuptime-proxmox" Service instead of routing
-      # this data to the Proxmox cluster discovered from
-      # `proxmox.cluster.name` (which would also break per-cluster
-      # retention settings). Do not remove these two deletes.
+      # name, "oneuptime-proxmox" or "oneuptime-proxmox-nodes") and
+      # service.instance.id on every batch per the Prometheus->OTLP
+      # compatibility spec. Drop them: OneUptime routes batches by
+      # service.name first, so leaving them in would register a phantom
+      # Service named after the job instead of routing this data to the
+      # Proxmox cluster discovered from `proxmox.cluster.name` (which
+      # would also break per-cluster retention settings). Do not remove
+      # these two deletes.
       - key: service.name
         action: delete
       - key: service.instance.id

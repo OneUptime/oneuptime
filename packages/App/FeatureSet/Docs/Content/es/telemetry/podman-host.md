@@ -4,18 +4,18 @@ El agente de Podman de OneUptime es un contenedor que ejecutas en un host de Pod
 
 :::cards
 - [Instala el agente](#instala-el-agente): Dos contenedores, con `podman run` o Podman Compose.
-- [Qué recopila el agente](#qué-recopila-el-agente): Métricas, logs y un inventario de cada contenedor.
+- [Qué recopila el agente](#qué-recopila-el-agente): Las métricas y los logs de cada contenedor.
 - [Los logs de contenedores necesitan k8s-file](#los-logs-de-contenedores-necesitan-el-controlador-k8s-file): Podman envía los logs a journald salvo que lo cambies.
 - [Solución de problemas](#solución-de-problemas): Bucles de reinicio, métricas que faltan, logs que faltan.
 :::
 
 ## Cómo funciona
 
-El agente es un OpenTelemetry Collector con la configuración de OneUptime integrada. A través del socket de API compatible con Docker de Podman lee las estadísticas de cada contenedor cada 30 segundos y enumera cada contenedor, imagen, red y volumen cada 5 minutos. Sigue los archivos de log de los contenedores y lo envía todo a tu URL de OneUptime por OTLP, con la clave de ingesta que le das.
+El agente es un OpenTelemetry Collector con la configuración de OneUptime integrada. A través del socket de API compatible con Docker de Podman lee las estadísticas de cada contenedor cada 30 segundos. Sigue los archivos de log de los contenedores y lo envía todo a tu URL de OneUptime por OTLP, con la clave de ingesta que le das.
 
 ```mermaid title="Dos contenedores en tu host de Podman"
 flowchart TB
-    containers["Tus contenedores"] -->|"estadísticas, archivos de log,<br/>inventario"| agent["Agente de Podman"]
+    containers["Tus contenedores"] -->|"estadísticas y<br/>archivos de log"| agent["Agente de Podman"]
     agent -->|"OTLP por HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"investiga un incidente<br/>o una alerta"| ai["Agente de IA de Podman"]
     ai -->|"comandos docker<br/>de solo lectura"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Busca el host en OneUptime
 
-Abre **Productos → Infraestructura → Podman → Todos los hosts**. El host aparece con su `PODMAN_HOST_NAME` en más o menos un minuto, con sus contenedores, métricas y logs. El agente de IA aparece como conectado en la página **Agente de IA** del host y al final de su **Vista general**. La página **Topología** del host dibuja sus proyectos de Compose, contenedores, imágenes, redes y volúmenes en un solo mapa: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
+Abre **Productos → Infraestructura → Podman → Todos los hosts**. El host aparece con su `PODMAN_HOST_NAME` en más o menos un minuto, con sus contenedores, métricas y logs. El agente de IA aparece como conectado en la página **Agente de IA** del host y al final de su **Vista general**. La página **Topología** del host dibuja sus proyectos de Compose y contenedores en un solo mapa: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
 :::
 
 ## Variables de entorno
@@ -139,7 +139,7 @@ Abre **Productos → Infraestructura → Podman → Todos los hosts**. El host a
 | `ONEUPTIME_URL` | Sí | Tu URL de OneUptime, como `https://oneuptime.com` o tu instancia autoalojada. Usa `http://` y su puerto si la instancia solo admite HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Sí | La clave de ingesta de **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. |
 | `PODMAN_HOST_NAME` | No | El nombre del host en OneUptime. Su valor predeterminado es `podman-host`, así que da a cada host el suyo. |
-| `DOCKER_API_VERSION` | No | La versión de la API de Docker que el agente habla con el socket de Podman. Su valor predeterminado es `1.44`. Bájala si el socket informa de un máximo más antiguo, o establécela en un valor vacío para negociarla (consulta [Solución de problemas](#solución-de-problemas)). |
+| `DOCKER_API_VERSION` | No | La versión de la API de Docker que el agente habla con el socket de Podman. Vacía por defecto: el agente la negocia con el socket. Establécela solo para fijar una versión (consulta [Solución de problemas](#solución-de-problemas)). |
 
 Para cambiar un valor, quita el agente y vuelve a ejecutar su comando (Podman CLI), o edita `docker-compose.yml` y ejecuta `podman compose up -d` (Podman Compose).
 
@@ -149,7 +149,6 @@ Para cambiar un valor, quita el agente y vuelve a ejecutar su comando (Podman CL
 | --- | --- |
 | Métricas de contenedores | CPU (uso, porcentaje, limitación), memoria (uso, límite, porcentaje), E/S de red y de bloques, tiempo de actividad, reinicios y número de procesos, por contenedor, cada 30 segundos. |
 | Logs de contenedores | stdout y stderr de cada contenedor, del archivo `ctr.log` que escribe el controlador de logs `k8s-file`. |
-| Inventario | Cada contenedor en cualquier estado, y cada imagen, red y volumen, cada 5 minutos. |
 
 Las métricas y los logs de cada contenedor se archivan en un servicio con el nombre del contenedor. Cada línea de log recibe una severidad a partir del nivel que menciona, como `[ERROR]`, `level=warn` o `{"level":"info"}`; una línea que no menciona ninguno toma la de su flujo: stderr es `ERROR`, stdout es `INFO`. Las líneas que empiezan con un espacio en blanco o un corchete de cierre se unen a la línea anterior, así que un stack trace llega como un solo registro. Los logs del propio agente se omiten.
 
@@ -253,23 +252,19 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-Un servidor de la API de Docker que impone una versión máxima de cliente rechaza una más nueva, así que el receiver nunca arranca y el colector termina con él. Comprueba la versión de la API que informa el socket de Podman:
+Un servidor de la API de Docker que impone una versión máxima de cliente rechaza una más nueva, así que el receiver nunca arranca y el colector termina con él. El agente negocia la versión con el socket (un `HEAD /_ping` y luego el máximo que informa el socket) salvo que `DOCKER_API_VERSION` indique una, y una imagen antigua del agente fijaba `1.44`. [Actualiza el agente](#actualizar-el-agente) e inícialo sin `-e DOCKER_API_VERSION` (o quita `DOCKER_API_VERSION` de Compose).
+
+Para fijar una versión de todos modos, no uses más que la versión de la API que informa el socket de Podman:
 
 ```bash
 curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
 ```
 
 Luego añade `-e DOCKER_API_VERSION=1.41` (o el valor que obtuviste) a `podman run`, o establece `DOCKER_API_VERSION` en Compose. Los servidores más nuevos siguen atendiendo versiones antiguas de la API, así que el ajuste sigue siendo válido después de una actualización.
-
-¿Prefieres no buscar el número? Establece `DOCKER_API_VERSION` en la cadena vacía. El agente negocia entonces la versión con el socket (un `HEAD /_ping` y luego el máximo que informa el socket) en lugar de fijar una:
-
-```bash
-podman run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Permiso denegado en el socket de Podman, o no hay socket
-El agente debe ejecutarse como root para leer `/run/podman/podman.sock`. Comprueba que `--user 0:0` está en tu comando `podman run`, o `user: "0:0"` en Compose, y que el socket está activado: `sudo systemctl enable --now podman.socket`. Podman sin root tiene su socket en `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`): monta esa ruta en lugar de `/run/podman/podman.sock`.
+El agente debe ejecutarse como root para leer `/run/podman/podman.sock`. Comprueba que `--user 0:0` está en tu comando `podman run`, o `user: "0:0"` en Compose, y que el socket está activado: `sudo systemctl enable --now podman.socket`. Podman sin root tiene su socket en `/run/user/<uid>/podman/podman.sock` (`systemctl --user enable --now podman.socket`) y su almacenamiento en `~/.local/share/containers/storage`: móntalos en lugar de `/run/podman/podman.sock` y `/var/lib/containers/storage`. El `install.sh` del agente hace ambas cosas cuando lo ejecutas como ese usuario, y se detiene con el comando que hay que ejecutar cuando el socket está desactivado.
 :::
 
 :::details El host aparece como desconectado

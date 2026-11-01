@@ -257,6 +257,13 @@ Adding all of `Common/Utils` at once would bring in some 840 strings, most of
 them for the server, so route a directory when its strings are put on
 screen.
 
+A file whose other words must stay as written goes in as a `keys` root: the
+extractor reads only the text it marks with `translationKey()` (a local marker
+of its own, as `Common/Types/Telemetry/TraceSpanType.ts` keeps, is enough).
+That file's Span Type choices read "Entry spans" in every language, as the
+translated docs quote them, while the sentence saying what each one is reads
+in the reader's.
+
 ## Filling in a language (stage 3)
 
 Work on **one locale**, and touch only its two files:

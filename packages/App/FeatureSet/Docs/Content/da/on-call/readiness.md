@@ -42,10 +42,9 @@ Over listen tæller felterne **Modtagere**, **Klar**, **Kræver opsætning** og 
 | --- | --- |
 | **Modtager** | Personen, med e-mailadresse. |
 | **Status** | **Klar**, **Utilgængelig** eller hvor mange huller personen har. |
-| **Teams** | De teams, der tilkalder personen via en eskaleringsregel. |
 | **Kanaler** | Et segment pr. kanal: udfyldt for en bekræftet metode, hult for en, der ikke er bekræftet endnu. |
 | **Coverage** | Hvor mange alvorligheder der har en regel, på hver fane, ud af dem alle. |
-| **Reached via** | Hvordan politikkerne når personen: `Direct`, `Team`, `Schedule` eller `Override`. |
+| **Reached via** | Hvordan politikkerne når personen: hvert team, der tilkalder personen via en eskaleringsregel, med dets navn, eller **Direct**, **Tidsplan** eller **Tilsidesættelse**. |
 
 **Coverage** i en række viser personens notifikationsmetoder, hvorfor personen har sin status, og et gitter over hver alvorlighed med eller uden regel. Tragten filtrerer listen efter **Modtager**, **Status**, **Team** eller **Reached via**. Svaret kan være et minut gammelt: **Opdater** fastlægger det igen.
 

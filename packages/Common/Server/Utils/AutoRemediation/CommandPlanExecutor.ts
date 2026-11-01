@@ -66,6 +66,7 @@ import ResourceCommandJobRunner, {
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -376,6 +377,11 @@ export default class CommandPlanExecutor {
         }
 
         command.execution = state;
+
+        if (state.status === AiRemediationCommandExecutionStatus.Succeeded) {
+          await this.attachCloudUndo({ suggestion, command });
+        }
+
         await this.persistPlan(suggestion, plan, "executor");
 
         if (state.status !== AiRemediationCommandExecutionStatus.Succeeded) {
@@ -1427,6 +1433,51 @@ export default class CommandPlanExecutor {
     }
 
     return null;
+  }
+
+  /*
+   * An approved cloud change that ran gets its exact undo, as an inline
+   * one does (RemediationCommandToolkit.applyCloudUndo): the catalog's
+   * inverse with the value the agent reported it replaced, kept only when
+   * it may run unattended under the account's settings now. Never throws:
+   * a status that cannot be read leaves no rollback.
+   */
+  private static async attachCloudUndo(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+  }): Promise<void> {
+    const { suggestion, command } = data;
+
+    if (
+      command.stepType !== RunbookStepType.ResourceCommand ||
+      !isCloudAiResourceType(command.resourceType) ||
+      !command.resourceId ||
+      !ObjectID.isValidUUID(command.resourceId) ||
+      !suggestion.projectId
+    ) {
+      return;
+    }
+
+    try {
+      const status: ResourceAiAccessStatus | null =
+        await ResourceAiAccessService.getStatusForResource({
+          projectId: suggestion.projectId,
+          resourceType: command.resourceType as AiResourceType,
+          resourceId: new ObjectID(command.resourceId),
+        });
+
+      if (!status) {
+        command.rollbackCommand = undefined;
+        return;
+      }
+
+      RemediationCommandToolkit.applyCloudUndo({ command, resource: status });
+    } catch (error) {
+      command.rollbackCommand = undefined;
+      logger.error(
+        `CommandPlanExecutor: could not write the undo of cloud change ${command.sequence} of suggestion ${suggestion.id?.toString()}: ${error}`,
+      );
+    }
   }
 
   /*

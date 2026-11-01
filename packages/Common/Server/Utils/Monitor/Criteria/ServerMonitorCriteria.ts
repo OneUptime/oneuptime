@@ -2,9 +2,14 @@ import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import MonitorCriteriaMessageFormatter from "../MonitorCriteriaMessageFormatter";
 import OneUptimeDate from "../../../../Types/Date";
-import { BasicDiskMetrics } from "../../../../Types/Infrastructure/BasicMetrics";
-import { JSONObject } from "../../../../Types/JSON";
+import BasicInfrastructureMetrics, {
+  BasicDiskMetrics,
+  CPUMetrics,
+  LoadMetrics,
+  MemoryMetrics,
+} from "../../../../Types/Infrastructure/BasicMetrics";
 import {
   CheckOn,
   CriteriaFilter,
@@ -17,6 +22,11 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ReceivingSilence from "../ReceivingSilence";
 import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
+
+/*
+ * A Windows drive as the agent names it: its letter and a colon ("C:").
+ */
+const WINDOWS_DRIVE: RegExp = /^[a-z]:$/i;
 
 export default class ServerMonitorCriteria {
   @CaptureSpan()
@@ -33,24 +43,37 @@ export default class ServerMonitorCriteria {
   }): Promise<string | null> {
     // Server Monitoring Checks
 
-    let threshold: number | string | undefined | null =
-      input.criteriaFilter.value;
+    const serverResponse: ServerMonitorResponse =
+      input.dataToProcess as ServerMonitorResponse;
+
+    /*
+     * Disk usage names one disk, or every disk ("*"), so the disk is found
+     * in the report before its over-time window is read: the window is read
+     * for the path the agent reports the disk under, never for what was
+     * typed.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent) {
+      return await ServerMonitorCriteria.isDiskUsageCriteriaFilterMet({
+        serverResponse: serverResponse,
+        criteriaFilter: input.criteriaFilter,
+        monitoringInterval: input.monitoringInterval,
+      });
+    }
+
+    const threshold: number | string | undefined = input.criteriaFilter.value;
     const overTime: OverTimeCriteriaValue =
       await EvaluateOverTime.getOverTimeValueForCriteriaFilter({
-        projectId: (input.dataToProcess as ServerMonitorResponse).projectId,
+        projectId: serverResponse.projectId,
         monitorId: input.dataToProcess.monitorId!,
         criteriaFilter: input.criteriaFilter,
         /*
-         * Only the disk-usage series carries a diskPath attribute, so
-         * scoping any other series by it would filter against an attribute
-         * no row has - and an empty window now means "cannot judge yet"
-         * rather than "compare the live value", which would silence the
-         * filter outright.
+         * Only the disk-usage series carries a diskPath attribute, so no
+         * other series is scoped by one: it would filter against an
+         * attribute no row has - and an empty window means "cannot judge
+         * yet" rather than "compare the live value", which would silence
+         * the filter outright.
          */
-        miscData:
-          input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent
-            ? (input.criteriaFilter.serverMonitorOptions as JSONObject)
-            : undefined,
+        miscData: undefined,
         monitoringInterval: input.monitoringInterval,
       });
 
@@ -77,12 +100,10 @@ export default class ServerMonitorCriteria {
       | boolean
       | undefined = overTime.value;
 
-    const lastCheckTime: Date = (input.dataToProcess as ServerMonitorResponse)
-      .requestReceivedAt;
+    const lastCheckTime: Date = serverResponse.requestReceivedAt;
 
     const timeNow: Date =
-      (input.dataToProcess as ServerMonitorResponse).timeNow ||
-      OneUptimeDate.getCurrentDate();
+      serverResponse.timeNow || OneUptimeDate.getCurrentDate();
 
     let differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
       lastCheckTime,
@@ -125,25 +146,6 @@ export default class ServerMonitorCriteria {
       `Offline if not checked in minutes: ${offlineIfNotCheckedInMinutes}`,
     );
 
-    const normalizeDiskPath: (value: string | undefined | null) => string = (
-      value: string | undefined | null,
-    ): string => {
-      let normalized: string = (value || "").trim().toLowerCase();
-
-      if (normalized === "/") {
-        return normalized;
-      }
-
-      normalized = normalized.replace(/\\/g, "/");
-      normalized = withoutTrailingSlashes(normalized);
-
-      if (normalized === "") {
-        return "/";
-      }
-
-      return normalized;
-    };
-
     if (
       input.criteriaFilter.checkOn === CheckOn.IsOnline &&
       differenceInMinutes >= offlineIfNotCheckedInMinutes
@@ -182,125 +184,51 @@ export default class ServerMonitorCriteria {
       return criteria;
     }
 
+    /*
+     * The agent sends null for an area it could not read - a macOS agent
+     * built without cgo sent "cpuMetrics": null with every report - and
+     * leaves out one an older agent does not collect. Each is read through
+     * an optional chain: reading a field of null threw, the report was
+     * never saved, and the server was marked offline. A metric the report
+     * does not have matches nothing; it is not 0.
+     */
+    const metrics: BasicInfrastructureMetrics | undefined =
+      serverResponse.basicInfrastructureMetrics;
+    const cpuMetrics: CPUMetrics | null | undefined = metrics?.cpuMetrics;
+    const memoryMetrics: MemoryMetrics | null | undefined =
+      metrics?.memoryMetrics;
+    const loadMetrics: LoadMetrics | null | undefined = metrics?.loadMetrics;
+
     if (
       input.criteriaFilter.checkOn === CheckOn.CPUUsagePercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !serverResponse.onlyCheckRequestReceivedAt
     ) {
-      threshold = CompareCriteria.convertToNumber(threshold);
-
-      const currentCpuPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ??
-        ((input.dataToProcess as ServerMonitorResponse)
-          .basicInfrastructureMetrics?.cpuMetrics.percentUsed ||
-          0);
-
-      return CompareCriteria.compareCriteriaNumbers({
-        value: currentCpuPercent,
-        threshold: threshold as number,
+      return ServerMonitorCriteria.compareReading({
+        overTimeValue: overTimeValue,
+        reading: ServerMonitorCriteria.reportedNumber(cpuMetrics?.percentUsed),
         criteriaFilter: input.criteriaFilter,
       });
     }
 
     if (
       input.criteriaFilter.checkOn === CheckOn.MemoryUsagePercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !serverResponse.onlyCheckRequestReceivedAt
     ) {
-      threshold = CompareCriteria.convertToNumber(threshold);
-
-      const memoryPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ??
-        ((input.dataToProcess as ServerMonitorResponse)
-          .basicInfrastructureMetrics?.memoryMetrics.percentUsed ||
-          0);
-
-      return CompareCriteria.compareCriteriaNumbers({
-        value: memoryPercent,
-        threshold: threshold as number,
+      return ServerMonitorCriteria.compareReading({
+        overTimeValue: overTimeValue,
+        reading: ServerMonitorCriteria.reportedNumber(
+          memoryMetrics?.percentUsed,
+        ),
         criteriaFilter: input.criteriaFilter,
       });
     }
 
     if (
-      input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
-    ) {
-      threshold = CompareCriteria.convertToNumber(threshold);
-
-      const diskPath: string =
-        input.criteriaFilter.serverMonitorOptions?.diskPath || "/";
-
-      const normalizedDiskPath: string = normalizeDiskPath(diskPath);
-
-      const allDiskMetrics: Array<BasicDiskMetrics> =
-        (input.dataToProcess as ServerMonitorResponse)
-          .basicInfrastructureMetrics?.diskMetrics || [];
-
-      /*
-       * "*" means every disk the agent reported. The criteria is met
-       * when ANY of them breaches, mirroring how a grouped metric
-       * monitor's criteria is met when any series breaches. The
-       * per-entity pass then re-runs this filter once per disk to work
-       * out which ones, so each full mount gets its own alert instead
-       * of the first one silencing the rest.
-       */
-      if (PerEntityCriteriaFanOut.isWildcard(diskPath)) {
-        for (const candidateDisk of allDiskMetrics) {
-          const candidateUsage: number =
-            candidateDisk.percentUsed ?? candidateDisk.percentFree ?? 0;
-
-          const candidateResult: string | null =
-            CompareCriteria.compareCriteriaNumbers({
-              value: candidateUsage,
-              threshold: threshold as number,
-              criteriaFilter: input.criteriaFilter,
-            });
-
-          if (candidateResult) {
-            return `Disk ${candidateDisk.diskPath} - ${candidateResult}`;
-          }
-        }
-
-        return null;
-      }
-
-      const diskMetric: BasicDiskMetrics | undefined = allDiskMetrics.find(
-        (item: BasicDiskMetrics) => {
-          return normalizeDiskPath(item.diskPath) === normalizedDiskPath;
-        },
-      );
-
-      const diskUsagePercent: number =
-        diskMetric?.percentUsed ?? diskMetric?.percentFree ?? 0;
-
-      /*
-       * Disk usage was the one server metric that computed its over-time
-       * window and then threw it away, comparing the reading from this check
-       * instead - so "evaluate over time" was a no-op here.
-       */
-      const value: number | Array<number> =
-        (overTimeValue as Array<number>) ?? diskUsagePercent;
-
-      return CompareCriteria.compareCriteriaNumbers({
-        value: value,
-        threshold: threshold as number,
-        criteriaFilter: input.criteriaFilter,
-      });
-    }
-
-    if (
-      !(input.dataToProcess as ServerMonitorResponse)
-        .onlyCheckRequestReceivedAt &&
+      !serverResponse.onlyCheckRequestReceivedAt &&
       (input.criteriaFilter.checkOn === CheckOn.LoadAverage1Min ||
         input.criteriaFilter.checkOn === CheckOn.LoadAverage5Min ||
         input.criteriaFilter.checkOn === CheckOn.LoadAverage15Min)
     ) {
-      threshold = CompareCriteria.convertToNumber(threshold);
-
-      const loadMetrics:
-        | { load1: number; load5: number; load15: number }
-        | undefined = (input.dataToProcess as ServerMonitorResponse)
-        .basicInfrastructureMetrics?.loadMetrics;
-
       let currentLoad: number | undefined = undefined;
       if (input.criteriaFilter.checkOn === CheckOn.LoadAverage1Min) {
         currentLoad = loadMetrics?.load1;
@@ -310,72 +238,78 @@ export default class ServerMonitorCriteria {
         currentLoad = loadMetrics?.load15;
       }
 
-      const value: number | Array<number> =
-        (overTimeValue as Array<number>) ?? (currentLoad || 0);
-
-      return CompareCriteria.compareCriteriaNumbers({
-        value: value,
-        threshold: threshold as number,
+      return ServerMonitorCriteria.compareReading({
+        overTimeValue: overTimeValue,
+        reading: ServerMonitorCriteria.reportedNumber(currentLoad),
         criteriaFilter: input.criteriaFilter,
       });
     }
 
     if (
       input.criteriaFilter.checkOn === CheckOn.SwapUsagePercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !serverResponse.onlyCheckRequestReceivedAt
     ) {
-      threshold = CompareCriteria.convertToNumber(threshold);
-
-      const swapPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ??
-        ((input.dataToProcess as ServerMonitorResponse)
-          .basicInfrastructureMetrics?.memoryMetrics?.swapPercentUsed ||
-          0);
-
-      return CompareCriteria.compareCriteriaNumbers({
-        value: swapPercent,
-        threshold: threshold as number,
+      /*
+       * The agent leaves a zero out of the memory it reports, so a memory
+       * reading without swap usage says 0%. No memory reading says nothing.
+       */
+      return ServerMonitorCriteria.compareReading({
+        overTimeValue: overTimeValue,
+        reading: memoryMetrics
+          ? ServerMonitorCriteria.reportedNumber(
+              memoryMetrics.swapPercentUsed,
+            ) ?? 0
+          : undefined,
         criteriaFilter: input.criteriaFilter,
       });
     }
 
     if (
       input.criteriaFilter.checkOn === CheckOn.CPUIoWaitPercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !serverResponse.onlyCheckRequestReceivedAt
     ) {
-      threshold = CompareCriteria.convertToNumber(threshold);
-
-      const ioWaitPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ??
-        ((input.dataToProcess as ServerMonitorResponse)
-          .basicInfrastructureMetrics?.cpuMetrics?.timeIoWaitPercent ||
-          0);
-
-      return CompareCriteria.compareCriteriaNumbers({
-        value: ioWaitPercent,
-        threshold: threshold as number,
+      // As for swap: the agent leaves a zero out of the CPU it reports.
+      return ServerMonitorCriteria.compareReading({
+        overTimeValue: overTimeValue,
+        reading: cpuMetrics
+          ? ServerMonitorCriteria.reportedNumber(
+              cpuMetrics.timeIoWaitPercent,
+            ) ?? 0
+          : undefined,
         criteriaFilter: input.criteriaFilter,
       });
     }
 
+    /*
+     * The three process checks below need the report's process list. An
+     * agent that could not list the processes sends none, and no list says
+     * nothing about any process: "Is Not Executing" must not fire for every
+     * process because the list could not be read.
+     */
+    const processes: Array<ServerProcess> | undefined =
+      ServerMonitorCriteria.reportedProcesses(serverResponse);
+
     if (
       input.criteriaFilter.checkOn === CheckOn.ServerProcessName &&
       threshold &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !serverResponse.onlyCheckRequestReceivedAt
     ) {
+      if (!processes) {
+        return null;
+      }
+
       const thresholdProcessName: string = threshold
         .toString()
         .trim()
         .toLowerCase();
 
-      if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
-        const processNames: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
-            (item: ServerProcess) => {
-              return item.name.trim().toLowerCase();
-            },
-          ) || [];
+      const processNames: Array<string> = processes.map(
+        (item: ServerProcess) => {
+          return (item.name || "").trim().toLowerCase();
+        },
+      );
 
+      if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
         if (processNames.includes(thresholdProcessName)) {
           return `Process ${threshold} is executing.`;
         }
@@ -384,13 +318,6 @@ export default class ServerMonitorCriteria {
       }
 
       if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
-        const processNames: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
-            (item: ServerProcess) => {
-              return item.name.trim().toLowerCase();
-            },
-          ) || [];
-
         if (!processNames.includes(thresholdProcessName)) {
           return `Process ${threshold} is not executing.`;
         }
@@ -402,21 +329,26 @@ export default class ServerMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.ServerProcessPID &&
       threshold &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !serverResponse.onlyCheckRequestReceivedAt
     ) {
+      if (!processes) {
+        return null;
+      }
+
       const thresholdProcessPID: string = threshold
         .toString()
         .trim()
         .toLowerCase();
 
-      if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
-        const processPIDs: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
-            (item: ServerProcess) => {
-              return item.pid.toString().trim().toLowerCase();
-            },
-          ) || [];
+      const processPIDs: Array<string> = processes.map(
+        (item: ServerProcess) => {
+          return String(item.pid ?? "")
+            .trim()
+            .toLowerCase();
+        },
+      );
 
+      if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
         if (processPIDs.includes(thresholdProcessPID)) {
           return `Process with PID ${threshold} is executing.`;
         }
@@ -425,13 +357,6 @@ export default class ServerMonitorCriteria {
       }
 
       if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
-        const processPIDs: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
-            (item: ServerProcess) => {
-              return item.pid.toString().trim().toLowerCase();
-            },
-          ) || [];
-
         if (!processPIDs.includes(thresholdProcessPID)) {
           return `Process with PID ${threshold} is not executing.`;
         }
@@ -445,21 +370,24 @@ export default class ServerMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.ServerProcessCommand &&
       threshold &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !serverResponse.onlyCheckRequestReceivedAt
     ) {
+      if (!processes) {
+        return null;
+      }
+
       const thresholdProcessCommand: string = threshold
         .toString()
         .trim()
         .toLowerCase();
 
-      if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
-        const processCommands: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
-            (item: ServerProcess) => {
-              return item.command.trim().toLowerCase();
-            },
-          ) || [];
+      const processCommands: Array<string> = processes.map(
+        (item: ServerProcess) => {
+          return (item.command || "").trim().toLowerCase();
+        },
+      );
 
+      if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
         if (processCommands.includes(thresholdProcessCommand)) {
           return `Process with command ${threshold} is executing.`;
         }
@@ -468,13 +396,6 @@ export default class ServerMonitorCriteria {
       }
 
       if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
-        const processCommands: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
-            (item: ServerProcess) => {
-              return item.command.trim().toLowerCase();
-            },
-          ) || [];
-
         if (!processCommands.includes(thresholdProcessCommand)) {
           return `Process with command ${threshold} is not executing.`;
         }
@@ -486,5 +407,246 @@ export default class ServerMonitorCriteria {
     }
 
     return null;
+  }
+
+  /*
+   * A Disk Path written the one way both sides are compared in: trimmed,
+   * lower case, "\" as "/", and without the "/" that ends it - so "C:\" is
+   * the "C:" the agent reports, and "/mnt/data/" and "/MNT/DATA" are its
+   * "/mnt/data". An empty path is the root disk, "/".
+   */
+  public static normalizeDiskPath(value: string | undefined | null): string {
+    let normalized: string = (value || "").trim().toLowerCase();
+
+    if (normalized === "/") {
+      return normalized;
+    }
+
+    normalized = normalized.replace(/\\/g, "/");
+    normalized = withoutTrailingSlashes(normalized);
+
+    if (normalized === "") {
+      return "/";
+    }
+
+    return normalized;
+  }
+
+  /*
+   * The disk a Disk Path names in a report: the disk mounted at that path
+   * or, when none is, the disk on that device ("/dev/sda1"), both compared
+   * as normalizeDiskPath writes them. Undefined when the report has neither.
+   */
+  public static findDiskMetric(data: {
+    diskMetrics: Array<BasicDiskMetrics> | undefined | null;
+    diskPath: string | undefined | null;
+  }): BasicDiskMetrics | undefined {
+    const wanted: string = ServerMonitorCriteria.normalizeDiskPath(
+      data.diskPath,
+    );
+    const disks: Array<BasicDiskMetrics> = (data.diskMetrics || []).filter(
+      (disk: BasicDiskMetrics | null | undefined): boolean => {
+        return Boolean(disk);
+      },
+    );
+
+    return (
+      disks.find((disk: BasicDiskMetrics): boolean => {
+        return (
+          Boolean((disk.diskPath || "").trim()) &&
+          ServerMonitorCriteria.normalizeDiskPath(disk.diskPath) === wanted
+        );
+      }) ||
+      disks.find((disk: BasicDiskMetrics): boolean => {
+        return (
+          Boolean((disk.device || "").trim()) &&
+          ServerMonitorCriteria.normalizeDiskPath(disk.device) === wanted
+        );
+      })
+    );
+  }
+
+  /*
+   * A Disk Path written the way the agent writes the path of the disk it
+   * names: the over-time window is read for that, when the report does not
+   * have the disk to take its path from. "C:\" and "c:" are the agent's
+   * "C:", "/mnt/data/" is its "/mnt/data", and an empty path is "/".
+   */
+  public static toAgentDiskPath(value: string | undefined | null): string {
+    const path: string =
+      withoutTrailingSlashes((value || "").trim().replace(/\\/g, "/")) || "/";
+
+    if (WINDOWS_DRIVE.test(path)) {
+      return path.toUpperCase();
+    }
+
+    return path;
+  }
+
+  /*
+   * Disk usage: the disk the Disk Path names, or with "*" every disk the
+   * agent reported.
+   */
+  private static async isDiskUsageCriteriaFilterMet(input: {
+    serverResponse: ServerMonitorResponse;
+    criteriaFilter: CriteriaFilter;
+    monitoringInterval?: string | undefined;
+  }): Promise<string | null> {
+    const diskPath: string | undefined =
+      input.criteriaFilter.serverMonitorOptions?.diskPath;
+
+    const allDiskMetrics: Array<BasicDiskMetrics> = (
+      input.serverResponse.basicInfrastructureMetrics?.diskMetrics || []
+    ).filter((disk: BasicDiskMetrics | null | undefined): boolean => {
+      return Boolean(disk);
+    });
+
+    /*
+     * "*" means every disk the agent reported. The criteria is met when
+     * ANY of them breaches, mirroring how a grouped metric monitor's
+     * criteria is met when any series breaches. The per-entity pass then
+     * re-runs this filter once per disk to work out which ones, so each
+     * full mount gets its own alert instead of the first one silencing the
+     * rest. Each disk is judged on its own window too: "*" is never a path
+     * the agent reports, so a window read for it held nothing.
+     */
+    if (PerEntityCriteriaFanOut.isWildcard(diskPath)) {
+      for (const candidateDisk of allDiskMetrics) {
+        const candidateResult: string | null =
+          await ServerMonitorCriteria.isOneDiskUsageMet({
+            serverResponse: input.serverResponse,
+            criteriaFilter: input.criteriaFilter,
+            monitoringInterval: input.monitoringInterval,
+            agentDiskPath: candidateDisk.diskPath,
+            disk: candidateDisk,
+          });
+
+        if (candidateResult) {
+          return `Disk ${candidateDisk.diskPath} - ${candidateResult}`;
+        }
+      }
+
+      return null;
+    }
+
+    const diskMetric: BasicDiskMetrics | undefined =
+      ServerMonitorCriteria.findDiskMetric({
+        diskMetrics: allDiskMetrics,
+        diskPath: diskPath,
+      });
+
+    return await ServerMonitorCriteria.isOneDiskUsageMet({
+      serverResponse: input.serverResponse,
+      criteriaFilter: input.criteriaFilter,
+      monitoringInterval: input.monitoringInterval,
+      agentDiskPath:
+        diskMetric?.diskPath || ServerMonitorCriteria.toAgentDiskPath(diskPath),
+      disk: diskMetric,
+    });
+  }
+
+  /*
+   * One disk's usage against the filter: over its window when the filter
+   * evaluates over time, else the reading in this report. A disk the report
+   * does not have has no reading, and matches nothing - not 0% - so a path
+   * that names no disk never passes for an empty one.
+   */
+  private static async isOneDiskUsageMet(input: {
+    serverResponse: ServerMonitorResponse;
+    criteriaFilter: CriteriaFilter;
+    monitoringInterval?: string | undefined;
+    // The path the agent reports the disk under, which its window is read by.
+    agentDiskPath: string;
+    disk: BasicDiskMetrics | undefined;
+  }): Promise<string | null> {
+    const overTime: OverTimeCriteriaValue =
+      await EvaluateOverTime.getOverTimeValueForCriteriaFilter({
+        projectId: input.serverResponse.projectId,
+        monitorId: input.serverResponse.monitorId,
+        criteriaFilter: input.criteriaFilter,
+        miscData: { diskPath: input.agentDiskPath },
+        monitoringInterval: input.monitoringInterval,
+      });
+
+    if (overTime.earlyReturn) {
+      return overTime.earlyReturn.result;
+    }
+
+    if (input.serverResponse.onlyCheckRequestReceivedAt) {
+      return null;
+    }
+
+    /*
+     * Usage is percentUsed. Free space is not usage: the percentFree the
+     * comparison used to fall back to read an empty disk as a full one.
+     */
+    return ServerMonitorCriteria.compareReading({
+      overTimeValue: overTime.value,
+      reading: input.disk
+        ? MonitorCriteriaMessageFormatter.computeDiskUsagePercent(input.disk) ??
+          undefined
+        : undefined,
+      criteriaFilter: input.criteriaFilter,
+    });
+  }
+
+  /*
+   * Compare a numeric filter: the over-time window's value when there is
+   * one, else this report's reading. With neither there is nothing to
+   * compare, and the filter is not met.
+   */
+  private static compareReading(input: {
+    overTimeValue: Array<number | boolean> | number | boolean | undefined;
+    reading: number | undefined;
+    criteriaFilter: CriteriaFilter;
+  }): string | null {
+    const value: Array<number> | number | undefined =
+      (input.overTimeValue as Array<number> | number | undefined) ??
+      input.reading;
+
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    const threshold: number | null = CompareCriteria.convertToNumber(
+      input.criteriaFilter.value,
+    );
+
+    return CompareCriteria.compareCriteriaNumbers({
+      value: value,
+      threshold: threshold as number,
+      criteriaFilter: input.criteriaFilter,
+    });
+  }
+
+  // A number the agent reported, or undefined for one it did not.
+  private static reportedNumber(value: unknown): number | undefined {
+    if (typeof value !== "number" || isNaN(value)) {
+      return undefined;
+    }
+
+    return value;
+  }
+
+  /*
+   * The report's processes, or undefined when it has none to judge: an
+   * agent that could not list them sends no list (an older one sent null),
+   * and a server is never without a process, so an empty list was not read
+   * either.
+   */
+  public static reportedProcesses(
+    serverResponse: ServerMonitorResponse,
+  ): Array<ServerProcess> | undefined {
+    const processes: Array<ServerProcess> = Array.isArray(
+      serverResponse.processes,
+    )
+      ? serverResponse.processes.filter(
+          (process: ServerProcess | null | undefined): boolean => {
+            return Boolean(process);
+          },
+        )
+      : [];
+
+    return processes.length > 0 ? processes : undefined;
   }
 }

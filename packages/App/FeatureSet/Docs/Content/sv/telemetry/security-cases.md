@@ -229,7 +229,7 @@ För att posta i en kanal lägger du till en regel under **Produkter → Securit
 | Prioritet för säkerhetsärende | En av projektets ärendeprioriteter, till exempel Critical eller High |
 | Titel på säkerhetsärende, Beskrivning av säkerhetsärende | Text som ärendets titel eller beskrivning innehåller, börjar med eller slutar med |
 | Status för säkerhetsärende | En av projektets ärendestatusar, till exempel New eller Closed |
-| Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product, Entitetsrisk eller Manual |
+| Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product, Entitetsrisk, Datasäkerhet eller Manual |
 | Etiketter för säkerhetsärende | Ärendets etiketter |
 
 Varje avisering utom en uppgifts postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
@@ -268,6 +268,7 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Utredning | Look up entity activity | Räknar varje entitets säkerhetshändelser under ett fönster bakåt i tiden och antecknar resultatet i ärendet |
 | Utredning | Preserve the evidence | Behåller sessionsinspelningarna av förfrågningarna bakom ärendet och antecknar deras spår och undantag i ärendet |
 | Avisering | Email people | Mejlar användare och team en sammanfattning av ärendet, med en länk till det |
+| Avisering | Notify data store owners | Mejlar ägarna till varje datalager som ärendet gäller, med en länk till ärendet |
 | Avisering | Post to Slack | Postar en sammanfattning av ärendet i en Slack-kanal |
 | Avisering | Post to Microsoft Teams | Postar en sammanfattning av ärendet i en Microsoft Teams-kanal |
 | Avisering | Post a status page announcement | Publicerar ett meddelande du har skrivit på de statussidor du väljer |
@@ -280,6 +281,8 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Begränsning | Unsuspend the user in Okta | Återaktiverar användaren som ärendet handlar om i Okta |
 | Begränsning | Lift containment in CrowdStrike | Häver CrowdStrike Falcons nätverksisolering av värden som ärendet handlar om |
 | Begränsning | Release the device in Microsoft Defender | Frigör värden som ärendet handlar om från isoleringen i Microsoft Defender for Endpoint |
+| Begränsning | Blockera offentlig åtkomst till datalager | Blockerar offentlig åtkomst till varje bucket eller lagringskonto som ärendet handlar om, via dess molnanslutning |
+| Begränsning | Återkalla delning av datalager | Slutar dela ögonblicksbilderna av varje databas som ärendet handlar om utanför dina konton, via dess molnanslutning |
 | Automatisering | Send a webhook | Postar ärendet som JSON till en URL |
 | Automatisering | Run a workflow | Startar ett OneUptime-arbetsflöde med ärendet som indata |
 | Automatisering | Run a runbook | Startar en av dina OneUptime-runbooks med ärendet som indata |
@@ -287,7 +290,7 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
-- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook** och **Post a status page announcement** börjar med godkännande påslaget, eftersom det ena kör kommandon på era system och det andra vänder sig till era kunder; den som lägger till steget kan slå av det.
+- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook**, **Post a status page announcement** och de två datalagerstegen börjar med godkännande påslaget, eftersom de kör kommandon på era system, vänder sig till era kunder eller ändrar ett molns inställningar; den som lägger till steget kan slå av det.
 - **Bara vid träff i hotinformation**: hoppar över steget om inte ett tidigare steg **Kontrollera entiteter mot hotinformation** i körningen hittade en känd indikator.
 - **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen.
 
@@ -302,20 +305,23 @@ Fyra steg agerar genom resten av OneUptime i stället för genom en ansluten pro
 
 ### Begränsning
 
-Begränsningsstegen agerar via en [anslutning för säkerhetshändelser](/docs/telemetry/security-events#anslut-en-säkerhetsprodukt) till produkten, och den behöver mer än läsbehörighet:
+Begränsningsstegen agerar via en anslutning som behöver mer än läsbehörighet: en [anslutning för säkerhetshändelser](/docs/telemetry/security-events#anslut-en-säkerhetsprodukt) till produkten, eller datalagrets [molnanslutning](/docs/telemetry/cloud-accounts):
 
 | Steg | Anslutning | Behöver |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | En API-token som får hantera användare |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivbehörighet i scopet Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med behörigheten Machine.Isolate |
+| Blockera offentlig åtkomst till datalager, Återkalla delning av datalager | Datalagrets molnanslutning | **Datasäkerhetsrespons** påslaget, och dess installationskommando kört igen |
 
-Ett begränsningssteg agerar bara på de användare eller värdar som ärendet handlar om, aldrig på alla som det nämner:
+Ett steg för användare eller värdar agerar bara på de användare eller värdar som ärendet handlar om, aldrig på alla som det nämner:
 
 - Värdet som en detektion i ärendet grupperas efter, till exempel kontot som en regel för omöjliga resor grupperar efter, eller värden som ett larm från en ansluten produkt nämner.
 - En användare eller värd i ärendet som dina hotunderrättelser känner till som en indikator.
 
 Ett ärende som grupperas efter en adress, till exempel en brute force-attack mot ditt VPN, handlar om ingetdera: dess begränsningssteg hoppas över, och kontot som attacken prövade och gatewayen som den träffade lämnas i fred. Ett steg agerar på högst 10 användare eller värdar. Det letar upp var och en i produkten efter namn och skriver i körningen vad det gjorde med var och en: klart, redan klart, hittades inte, nekades eller skyddad.
+
+De två datalagerstegen agerar på de datalager som ärendet handlar om, högst 10: de som hör till de datasäkerhetsproblem som det har tagit in, och alla som en detektion grupperade det efter. De lämnar ett datalager som är markerat **Offentlig avsiktligt** i fred, ändrar hur ett datalager delas men aldrig dess data, och skriver i körningen vad de gjorde med varje datalager (se [Stäng en exponering](/docs/data-security/integrations#stäng-en-exponering)).
 
 #### Skyddade entiteter
 

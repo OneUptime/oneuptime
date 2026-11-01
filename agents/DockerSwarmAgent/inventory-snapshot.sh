@@ -22,18 +22,14 @@ set -eu
 SOCKET="${DOCKER_INVENTORY_SOCKET:-/var/run/docker.sock}"
 LOG_PATH="${DOCKER_INVENTORY_LOG_PATH:-/var/log/oneuptime-docker-swarm-inventory.log}"
 INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"
-API_VERSION="${DOCKER_API_VERSION-1.44}"
+API_VERSION="${DOCKER_API_VERSION:-}"
 
-# Follow the collector's DOCKER_API_VERSION so that a host which lowers the
-# docker_stats receiver's version for an older daemon lowers ours too.
-#
-# Note the "-" rather than ":-": unset means "use the shipped default", but an
-# explicitly EMPTY value is the documented "let the server pick" escape hatch.
-# The collector answers that by auto-negotiating; curl has no negotiation, so we
-# answer it by dropping the /v<version> prefix -- the Docker API serves those
-# unversioned paths at the daemon's own latest version, which is the same
-# outcome. A pinned modern default keeps newer daemons from rejecting us with
-# "client version too old".
+# Follow the collector's DOCKER_API_VERSION, which is empty unless someone
+# pins a version: the collector then negotiates the version with the daemon.
+# curl has no negotiation, so empty drops the /v<version> prefix instead --
+# the Docker API serves those unversioned paths at the daemon's own version,
+# the same outcome, on any daemon (a pinned 1.44 was refused by Engine 20.10
+# to 24 as "too new"). A version that IS set is used as it is.
 # docker-compose.yml passes the variable to this sidecar as well as the collector.
 if [ -n "${API_VERSION}" ]; then
     DOCKER_API="http://localhost/v${API_VERSION}"

@@ -298,7 +298,7 @@ flowchart TB
 - **At or past your resolved state** — **Resolved**, or any state placed below it — the incident is over, so on top of that nothing that answers a live incident runs:
   - it is not grouped into an episode, which could page again;
   - no runbook rule and no AI rule acts on it;
-  - OneUptime AI does not investigate it — its **AI Investigation** card says it was created already resolved, and **Ask OneUptime AI** below it still answers questions about it;
+  - OneUptime AI does not investigate it — its **OneUptime AI** card says it was created already resolved, and **Ask OneUptime AI** below it still answers questions about it;
   - no Slack or Microsoft Teams channel is created for it;
   - its monitors keep their status and keep being monitored, whatever **Change Monitor Status to** says;
   - no SLA is started for it.

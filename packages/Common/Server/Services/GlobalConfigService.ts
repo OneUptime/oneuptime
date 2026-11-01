@@ -126,6 +126,28 @@ export const ROOT_ONLY_BRANDING_COLUMNS: ReadonlyArray<keyof Model> = [
   "brandingUpdatedAt",
 ];
 
+/*
+ * What the daily update check (Workers/Jobs/InstanceUpdate) found: the
+ * latest release, the published security advisories, when GitHub last
+ * answered and which advisories the owners were emailed about. Written by
+ * the worker only (isRoot). A master admin reaches GlobalConfig through the
+ * generic CRUD API too, and master admins bypass the (empty) column ACLs:
+ * without this list one PUT could empty the advisory list - hiding the
+ * security notice from every other master admin - or mark advisories as
+ * emailed that nobody was told about. Reading them is not restricted: the
+ * Enterprise licenses page reads the latest release.
+ */
+export const ROOT_ONLY_UPDATE_CHECK_COLUMNS: ReadonlyArray<keyof Model> = [
+  "latestReleaseVersion",
+  "latestReleasePublishedAt",
+  "latestReleaseCheckedAt",
+  "securityAdvisories",
+  "securityAdvisoriesCheckedAt",
+  "securityAdvisoriesEmailed",
+  "updateCheckLastAttemptAt",
+  "updateCheckLastFailure",
+];
+
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
   "global-config-security";
 const TELEGRAM_WEBHOOK_SECRET_GENERATION_KEY: string =
@@ -500,6 +522,38 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses any write to ROOT_ONLY_UPDATE_CHECK_COLUMNS that does not come
+   * from the update check itself. An explicit null counts as a write:
+   * clearing the advisories hides them as surely as replacing them.
+   */
+  public assertUpdateCheckColumnsWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const writtenColumns: Array<string> = ROOT_ONLY_UPDATE_CHECK_COLUMNS.filter(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown>)[column as string] !== undefined
+        );
+      },
+    ).map((column: keyof Model): string => {
+      return column as string;
+    });
+
+    if (writtenColumns.length === 0) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      `${writtenColumns.join(", ")} can only be changed by OneUptime's daily update check.`,
+    );
+  }
+
+  /*
    * The branding columns, removed from what a caller other than OneUptime
    * itself selects or filters on: read back through the generic API, they
    * would show values the enterprise module has decided not to apply.
@@ -793,6 +847,10 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertBrandingColumnsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertUpdateCheckColumnsWrittenByRootOnly(
+      createBy.data,
+      createBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
@@ -810,6 +868,10 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertBrandingColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertUpdateCheckColumnsWrittenByRootOnly(
+      updateBy.data,
+      updateBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);

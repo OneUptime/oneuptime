@@ -38,8 +38,8 @@ import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * What auto-remediation did with an incident or alert, as the Remediation
- * card draws it: one line per fix path, divided by hairlines.
+ * What auto-remediation did with an incident or alert, as the AI card's
+ * Remediation step draws it: one line per fix path, divided by hairlines.
  *
  * - Each line starts with a tinted mark of its tone - green for what
  *   OneUptime did, amber for what needs looking at, indigo for a wait, gray
@@ -49,8 +49,7 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  *   a definition list set off by a rule under the sentence.
  * - Links say where they go, carry an arrow that is drawn and not read,
  *   and wrap.
- * - The list's own heading shows only when the card asks for it (above
- *   fixes); alone on the card, the card's description says what it is.
+ * - The list has no heading of its own: the step's title says what it is.
  */
 
 const MONITOR_ID: string = "44444444-4444-4444-8444-444444444444";
@@ -96,17 +95,11 @@ afterEach(() => {
 });
 
 describe("RemediationDecisionList", () => {
-  test("draws nothing without a line, heading or not", () => {
+  test("draws nothing without a line", () => {
     const view: ReturnType<typeof render> = render(
       <RemediationDecisionList lines={[]} />,
     );
     expect(view.container).toBeEmptyDOMElement();
-    view.unmount();
-
-    const withHeading: ReturnType<typeof render> = render(
-      <RemediationDecisionList lines={[]} showHeading={true} />,
-    );
-    expect(withHeading.container).toBeEmptyDOMElement();
   });
 
   test("draws one list item per line, in order, each with its tone", () => {
@@ -151,34 +144,17 @@ describe("RemediationDecisionList", () => {
     }
   });
 
-  test("has no heading of its own unless the card asks for one", () => {
-    const view: ReturnType<typeof render> = render(
-      <RemediationDecisionList lines={[line({ key: "a" })]} />,
-    );
+  // The Remediation step's title heads the lines: none of their own.
+  test("has no heading of its own", () => {
+    render(<RemediationDecisionList lines={[line({ key: "a" })]} />);
 
     expect(screen.queryByRole("heading")).not.toBeInTheDocument();
     expect(
       screen.queryByText("What auto-remediation did"),
     ).not.toBeInTheDocument();
-    view.unmount();
-
-    render(
-      <RemediationDecisionList
-        lines={[line({ key: "a" })]}
-        showHeading={true}
-      />,
+    expect(screen.getByTestId("remediation-decision").firstElementChild).toBe(
+      screen.getByRole("list"),
     );
-
-    const heading: HTMLElement = screen.getByRole("heading", {
-      level: 3,
-      name: "What auto-remediation did",
-    });
-    expect(heading).toBe(
-      screen.getByTestId("remediation-decision").firstElementChild,
-    );
-    // A heading in the body's type, not a shouted eyebrow.
-    expect(heading).toHaveClass("text-sm", "font-semibold", "text-gray-900");
-    expect(heading.className).not.toContain("uppercase");
   });
 
   test.each(TONES)(

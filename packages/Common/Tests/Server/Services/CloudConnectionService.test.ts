@@ -137,6 +137,9 @@ describe("validateSettings", () => {
       config: {
         accessKeyId: ACCESS_KEY_ID,
         readIntervalInMinutes: "10",
+        // Data Security reads nothing until it is chosen.
+        dataSecurity: "off",
+        dataSecurityResponse: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },
@@ -213,6 +216,8 @@ describe("validateSettings", () => {
       readIntervalInMinutes: "5",
       // Nothing chosen: the key's own project, not its organization.
       readScope: "account",
+      dataSecurity: "off",
+      dataSecurityResponse: "off",
       authMethod: CloudConnectionAuthMethod.GcpServiceAccountKey,
       clientEmail: "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
       keyProjectId: "acme-prod",
@@ -586,6 +591,8 @@ describe("getConnectorSettings", () => {
       config: {
         accessKeyId: ACCESS_KEY_ID,
         readIntervalInMinutes: "10",
+        dataSecurity: "off",
+        dataSecurityResponse: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },

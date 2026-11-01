@@ -3,11 +3,18 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiLaneSwitchStates from "../AI/useAiLaneSwitchStates";
 import { OnCallRuleRecord } from "./WorkingHoursText";
 import Route from "Common/Types/API/Route";
+import { canReadPlanGatedTableBelowPlan } from "Common/Types/Billing/PlanGatedTable";
+import SubscriptionPlan, {
+  PlanType,
+} from "Common/Types/Billing/SubscriptionPlan";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getAiHoldTimeInMinutes } from "Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import OnCallRuleWhenToPage from "Common/Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -62,6 +69,41 @@ export const AI_FIRST_RESPONDER_OTHERWISE: string = translationKey(
   "Otherwise this rule pages right away, and the feed says why.",
 );
 
+// The plan a held page needs, as a need of the list: "The Growth plan".
+export const AI_FIRST_RESPONDER_PLAN_NEED: string =
+  translationKey("The {{plan}} plan");
+
+/*
+ * The plan a held page needs, when the project's plan is below it - the
+ * server's AiFirstResponderEligibility.getAiHoldPlanShortfall, read from the
+ * plan the dashboard knows. A held page is an on-call run, and below the
+ * runs' read plan nobody could read one ("OneUptime AI is on it", Page now,
+ * the execution logs), so the server pages right away there. Null with
+ * billing off (every self-hosted install), a plan not known yet, or one
+ * that reaches it: the list names only what is missing.
+ */
+export function getAiHoldPlanNeeded(): PlanType | null {
+  if (!BILLING_ENABLED) {
+    return null;
+  }
+
+  const runs: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+  const readPlan: PlanType | null = runs.getReadBillingPlan();
+  const currentPlan: PlanType | null = ProjectUtil.getCurrentPlan();
+
+  if (!readPlan || canReadPlanGatedTableBelowPlan(runs) || !currentPlan) {
+    return null;
+  }
+
+  return SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+    readPlan,
+    currentPlan,
+    getAllEnvVars(),
+  )
+    ? null
+    : readPlan;
+}
+
 export interface ComponentProps {
   rule: {
     whenToPage?: OnCallRuleWhenToPage | string | null | undefined;
@@ -112,6 +154,9 @@ const AiFirstResponderSummary: FunctionComponent<ComponentProps> = (
     ] as Route,
   );
 
+  // First of the needs, when it is one: the plan, where the plan is changed.
+  const planNeeded: PlanType | null = getAiHoldPlanNeeded();
+
   return (
     <div
       className="mt-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5"
@@ -133,6 +178,31 @@ const AiFirstResponderSummary: FunctionComponent<ComponentProps> = (
         {translator.translateText(AI_FIRST_RESPONDER_NEEDS)}
       </p>
       <ul className="mt-1 space-y-1 text-sm text-gray-700">
+        {planNeeded ? (
+          <li
+            className="flex items-start gap-2"
+            data-testid="ai-first-responder-need-plan"
+          >
+            <Icon
+              icon={IconProp.Circle}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+            />
+            <Link
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_BILLING] as Route,
+              )}
+              className="text-indigo-600 hover:text-indigo-800"
+            >
+              <span>
+                {translator.translateTemplate(AI_FIRST_RESPONDER_PLAN_NEED, {
+                  plan: planNeeded,
+                })}
+              </span>
+            </Link>
+          </li>
+        ) : (
+          <></>
+        )}
         <li
           className="flex items-start gap-2"
           data-testid="ai-first-responder-need-fixing"

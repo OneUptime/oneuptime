@@ -18,6 +18,7 @@ import IncidentStateService from "../../../../Server/Services/IncidentStateServi
 import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import logger from "../../../../Server/Utils/Logger";
+import OnCallPersonPageAnswer from "../../../../Server/Utils/OnCall/OnCallPersonPageAnswer";
 import OnCallAcknowledgementTimeout, {
   CLOCK_RUN_SELECT,
   OnCallPageAgainOutcome,
@@ -501,6 +502,75 @@ describe.each(KINDS)(
         (kindCase.timelineService as { findBy: unknown }).findBy,
       ).toHaveBeenCalled();
     });
+  },
+);
+
+/*
+ * An incident's or an alert's state change is handed on to the pages people
+ * asked for (OnCallPersonPageAnswer), with who changed it and where the
+ * record stands in its new state, read with the states the clock reads.
+ */
+describe.each(KINDS)(
+  "a $kind's state change, handed on to the person's pages",
+  (kindCase: KindCase) => {
+    const isHandedOn: boolean =
+      kindCase.kind === "incident" || kindCase.kind === "alert";
+
+    test.each([
+      [
+        "acknowledged",
+        ACKNOWLEDGED,
+        { isAcknowledged: true, isResolved: false },
+      ],
+      ["resolved", RESOLVED, { isAcknowledged: true, isResolved: true }],
+      [
+        "back to created",
+        CREATED,
+        { isAcknowledged: false, isResolved: false },
+      ],
+    ] as Array<
+      [string, string, { isAcknowledged: boolean; isResolved: boolean }]
+    >)(
+      "%s",
+      async (
+        _name: string,
+        stateId: string,
+        standing: { isAcknowledged: boolean; isResolved: boolean },
+      ) => {
+        const answered: SpyInstance<
+          typeof OnCallPersonPageAnswer.onRecordStateChanged
+        > = jest
+          .spyOn(OnCallPersonPageAnswer, "onRecordStateChanged")
+          .mockResolvedValue(0);
+        jest
+          .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+          .mockResolvedValue([] as never);
+
+        await OnCallAcknowledgementTimeout.onRecordStateChanged({
+          kind: kindCase.kind,
+          recordId: RECORD_ID,
+          projectId: PROJECT_ID,
+          stateId: new ObjectID(stateId),
+          previousStateId: new ObjectID(ACKNOWLEDGED),
+          changedByUserId: ANA,
+        });
+
+        if (!isHandedOn) {
+          // An episode has no pages a person asked for.
+          expect(answered).not.toHaveBeenCalled();
+          return;
+        }
+
+        expect(answered).toHaveBeenCalledTimes(1);
+        expect(answered.mock.calls[0]![0]).toEqual({
+          kind: kindCase.kind,
+          recordId: RECORD_ID,
+          projectId: PROJECT_ID,
+          changedByUserId: ANA,
+          ...standing,
+        });
+      },
+    );
   },
 );
 

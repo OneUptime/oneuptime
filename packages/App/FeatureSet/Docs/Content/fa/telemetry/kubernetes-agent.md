@@ -452,16 +452,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### روشن کردن پایش Control Plane
 
-صفحه **Control Plane** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. وقتی `controlPlane.enabled` برابر `true` باشد، عامل هر چهار را برداشت می‌کند:
-
-```bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent \
-  --reset-then-reuse-values \
-  --set controlPlane.enabled=true
-```
-
-هر مؤلفه در نشانی‌های فهرست خودش برداشت می‌شود: `controlPlane.etcd.endpoints`، `controlPlane.apiServer.endpoints`، `controlPlane.scheduler.endpoints` و `controlPlane.controllerManager.endpoints`. برداشت در پاد عامل اجرا می‌شود که شبکه میزبان ندارد، پس پیش‌فرض‌ها (`https://localhost:<port>/metrics`) به خود همان پاد اشاره می‌کنند: هر فهرست را روی نشانی‌ای بگذارید که پاد بتواند به آن برسد. درون هر خوشه‌ای، سرور API در `https://kubernetes.default.svc:443/metrics` پاسخ می‌دهد:
+صفحه **Control Plane** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -471,12 +462,31 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
 
-`controlPlane.enabled` هر چهار برداشت را یکجا روشن می‌کند. جایی که مؤلفه‌ای در نقطه‌های پایانی‌اش در دسترس نباشد (etcd، زمان‌بند و مدیر کنترلرها روی یک خوشه مدیریت‌شده، یا در پیش‌فرض‌های `localhost` خود)، برداشتش در هر بازه شکست می‌خورد: کالکتور یک خطای برداشت در لاگ می‌نویسد و هدف را از کار افتاده گزارش می‌کند، و هیچ چیز دیگری تغییر نمی‌کند.
+این نشانی پیش‌فرض چارت برای `controlPlane.apiServer.endpoints` است؛ اگر آن را خودتان هم تنظیم کنید، انتشاری که پیش‌فرض `localhost` یک چارت قدیمی‌تر را نگه داشته است هم جابه‌جا می‌شود.
 
-عامل فقط از راه HTTPS برداشت می‌کند، با توکن حساب سرویس و بدون گواهی کلاینت. پس:
+etcd، زمان‌بند و مدیر کنترلرها روی گره‌های control plane اجرا می‌شوند، و برداشت در پاد عامل اجرا می‌شود که شبکه میزبان ندارد: `localhost` آنجا خود همان پاد است. پس `controlPlane.etcd.endpoints`، `controlPlane.scheduler.endpoints` و `controlPlane.controllerManager.endpoints` تا وقتی نشانی هر گره را در آن‌ها فهرست نکنید خالی می‌مانند، و مؤلفه‌ای که نقطه پایانی ندارد برداشت نمی‌شود:
 
-- **etcd** به یک نشانی متریک HTTPS نیاز دارد که گواهی کلاینت نخواهد. پورت‌های معمول متریک etcd دست‌نیافتنی‌اند: HTTP ساده روی `2381` (`--listen-metrics-urls` در kubeadm) به‌صورت HTTPS برداشت می‌شود و شکست می‌خورد، و `2379` گواهی کلاینت می‌خواهد.
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.scheduler.endpoints={https://10.0.0.10:10259/metrics}" \
+  --set "controlPlane.controllerManager.endpoints={https://10.0.0.10:10257/metrics}" \
+  --set "controlPlane.etcd.endpoints={http://10.0.0.10:2381/metrics}"
+```
+
+هر نقطه پایانی از راه HTTPS با توکن حساب سرویس برداشت می‌شود، مگر اینکه با `http://` شروع شود؛ آن‌وقت با HTTP ساده برداشت می‌شود. نقطه‌های پایانی یک مؤلفه یک طرح مشترک دارند. جایی که مؤلفه‌ای در نقطه‌های پایانی‌اش در دسترس نباشد، برداشتش در هر بازه شکست می‌خورد: کالکتور یک خطای برداشت در لاگ می‌نویسد و هدف را از کار افتاده گزارش می‌کند، و هیچ چیز دیگری تغییر نمی‌کند.
+
 - **زمان‌بند** (`10259`) و **مدیر کنترلرها** (`10257`) روی HTTPS پاسخ می‌دهند و توکن را می‌پذیرند، ولی kubeadm آن‌ها را روی گره‌های control plane به `127.0.0.1` می‌بندد: به یک `--bind-address` نیاز دارند که پاد عامل بتواند به آن برسد.
+- **etcd** متریک‌هایش را با HTTP ساده روی `2381` می‌دهد (`--listen-metrics-urls` در kubeadm، که تا وقتی نشانی گره را اضافه نکنید به `127.0.0.1` بسته است)، همان‌طور که در بالا آمد. پورت کلاینت آن، `2379`، روی HTTPS پاسخ می‌دهد و گواهی کلاینت می‌خواهد: یک گواهی را در یک Secret در فضای نام عامل، زیر کلیدهای `ca.crt`، `tls.crt` و `tls.key` بگذارید و نام آن را در `controlPlane.etcd.clientCertSecret` بیاورید. روی یک گره control plane در kubeadm، گواهی کلاینت health check کار را راه می‌اندازد:
+
+```bash
+kubectl -n oneuptime-agent create secret generic etcd-client-cert \
+  --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+  --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+  --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+```
 
 سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، صفحه **Control Plane** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
 
@@ -823,7 +833,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-این کار فقط لاگ‌های پاد را متوقف می‌کند. متریک‌های گره، پاد و کانتینر همچنان جریان دارند و مانیتورهایی که بر آن‌ها ساخته شده‌اند (OOM kill، محدودسازی CPU، کمبود فضای دیسک PVC) همچنان کار می‌کنند: کالکتور گره می‌ماند و فقط خواندن `/var/log/pods` را متوقف می‌کند. همین درباره `logs.mode: api` و `logs.mode: disabled` هم درست است.
+این کار فقط لاگ‌های پاد را متوقف می‌کند. متریک‌های گره، پاد و کانتینر همچنان جریان دارند و مانیتورهایی که بر آن‌ها ساخته شده‌اند (چرخه‌های از کار افتادن، گره‌هایی که آماده نیستند، پادهایی که به محدودیت‌هایشان چسبیده‌اند، دیسک‌های پر گره) همچنان کار می‌کنند: کالکتور گره می‌ماند و فقط خواندن `/var/log/pods` را متوقف می‌کند. همین درباره `logs.mode: api` و `logs.mode: disabled` هم درست است.
 
 ### ابزارگذاری خودکار eBPF را کم کنید
 
@@ -877,7 +887,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 کاردینالیتی، یعنی شمار سری‌های متمایز، به اندازه بسامد مهم است، چون هر سری جداگانه ذخیره و صورت‌حساب می‌شود.
 
-- cAdvisor عمداً فهرست مجاز دارد. گیرنده cAdvisor (به‌طور پیش‌فرض روشن) می‌تواند صدها متریک بفرستد؛ چارت فقط همان چندتایی را می‌فرستد که مانیتورها به کار می‌برند (`cadvisor.metricsAllowlist`). فهرست را کوتاه نگه دارید: هر ورودی برای هر کانتینر نگه داشته می‌شود، پس یک متریک بیشتر در شمار کانتینرهای خوشه ضرب می‌شود. kube-state-metrics به‌طور پیش‌فرض خاموش است؛ اگر روشنش کنید (`kubeStateMetrics.enabled=true`)، `kubeStateMetrics.metricsAllowlist` آن به همان شیوه کار می‌کند.
+- cAdvisor عمداً فهرست مجاز دارد. گیرنده cAdvisor (به‌طور پیش‌فرض روشن) می‌تواند صدها متریک بفرستد؛ چارت فقط شمارنده‌های محدودسازی CPU و OOM kill در `cadvisor.metricsAllowlist` را می‌فرستد، برای نمودارها و مانیتورهای متریک خودتان: هیچ قالب داخلی آن‌ها را نمی‌خواند. فهرست را کوتاه نگه دارید: هر ورودی برای هر کانتینر نگه داشته می‌شود، پس یک متریک بیشتر در شمار کانتینرهای خوشه ضرب می‌شود. kube-state-metrics به‌طور پیش‌فرض خاموش است؛ اگر روشنش کنید (`kubeStateMetrics.enabled=true`)، `kubeStateMetrics.metricsAllowlist` آن به همان شیوه کار می‌کند و هر ورودی باید با نام کامل یک متریک جور باشد.
 - متریک‌های حجم برای هر PVC (`kubeletstats.volumeMetrics.enabled`، به‌طور پیش‌فرض روشن) برای هر PVC در هر پاد یک سری می‌فرستند: برای بیشتر خوشه‌ها خوب است، ولی روی بارهای کاری حالت‌دار (Kafka، پایگاه‌های داده) با هزاران PVC زیاد است. اگر فضای دیسک PVC را نمی‌پایید، آنجا با `--set kubeletstats.volumeMetrics.enabled=false` خاموششان کنید.
 - متریک‌های اشباع (`kubeletstats.utilizationMetrics.enabled`، به‌طور پیش‌فرض روشن) ۸ خانواده مشتق از نوع «٪ از request یا limit» می‌افزایند. برداشت اضافه‌ای ندارند، ولی اگر از مانیتورهای CPU و حافظه در برابر limit استفاده نمی‌کنید، با `--set kubeletstats.utilizationMetrics.enabled=false` کنارشان بگذارید.
 - متریک‌ها را با `filters.metrics.exclude` که همه گیرنده‌ها را دربر می‌گیرد بر پایه نام کنار بگذارید، برای هر چیزی که فهرست‌های مجاز گیرنده‌ها نمی‌توانند بیان کنند (ببینید [گنجاندن یا کنار گذاشتن متریک‌ها بر پایه نام](#گنجاندن-یا-کنار-گذاشتن-متریکها-بر-پایه-نام)):
@@ -977,7 +987,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 به اندازه نیاز سخت‌گیرتر شوید: `minSeverity` را به `ERROR` برسانید، `metrics` را به دامنه‌های یک قاعده namespace بیفزایید، یا اگر از پیش از OpenTelemetry SDKها ترِیس می‌فرستید `ebpf.enabled=false` را تنظیم کنید.
 
 > [!CAUTION]
-> مراقب باشید چه چیزی را کم می‌کنید. برخی مانیتورها به سیگنال‌های مشخصی وابسته‌اند: خاموش کردن `cadvisor` مانیتورهای OOM kill و محدودسازی CPU را برمی‌دارد، خاموش کردن `kubeletstats.volumeMetrics` مانیتور کمبود فضای دیسک PVC را برمی‌دارد، و خاموش کردن لاگ‌ها هشدارهای مبتنی بر لاگ را برمی‌دارد. `sampling.traces.percentage` هیچ مانیتوری را برنمی‌دارد ولی مانیتورهای اسپن‌محور (**ترِیس‌ها** روی `Span Count`، **استثناها** روی `Exception Count`) را پایین می‌آورد، پس آستانه‌هایشان را دوباره تنظیم کنید. سیگنال‌هایی را کم کنید که بر پایه‌شان کاری نمی‌کنید، نه آن‌هایی را که مانیتوری می‌پاید.
+> مراقب باشید چه چیزی را کم می‌کنید. برخی مانیتورها به سیگنال‌های مشخصی وابسته‌اند: خاموش کردن `kubeletstats.utilizationMetrics` دو قالبی را که پادها را با محدودیت‌های کانتینرشان می‌سنجند از کار می‌اندازد، خاموش کردن لاگ‌ها هشدارهای مبتنی بر لاگ را برمی‌دارد، و خاموش کردن `cadvisor` یا `kubeletstats.volumeMetrics` سری‌های محدودسازی، OOM kill و PVC را برمی‌دارد که نمودارها و مانیتورهای متریک خودتان ممکن است بخوانند. `sampling.traces.percentage` هیچ مانیتوری را برنمی‌دارد ولی مانیتورهای اسپن‌محور (**ترِیس‌ها** روی `Span Count`، **استثناها** روی `Exception Count`) را پایین می‌آورد، پس آستانه‌هایشان را دوباره تنظیم کنید. سیگنال‌هایی را کم کنید که بر پایه‌شان کاری نمی‌کنید، نه آن‌هایی را که مانیتوری می‌پاید.
 
 ### اثر را بسنجید
 
@@ -1073,7 +1083,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## گام‌های بعدی
 
 :::cards
-- [مانیتور Kubernetes](/docs/monitor/kubernetes-monitor): هشدار برای چرخه‌های از کار افتادن، OOM kill، محدودسازی CPU و دیسک‌های پر.
+- [مانیتور Kubernetes](/docs/monitor/kubernetes-monitor): هشدار برای چرخه‌های از کار افتادن، گره‌هایی که آماده نیستند، پادهایی که به محدودیت‌هایشان چسبیده‌اند و دیسک‌های پر گره.
 - [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost): ببینید هر بار کاری چقدر هزینه دارد و کدام requestها را باید کوچک کرد.
 - [پایگاه‌های داده](/docs/telemetry/databases): بارهای کاری پایگاه داده در خوشه پیدا می‌شوند و صفحه‌های خودشان را می‌گیرند.
 - [کالکتور OpenTelemetry روی میزبان](/docs/telemetry/host-otel-collector): ماشین‌های Linux، macOS و Windows بیرون از Kubernetes را پایش کنید.

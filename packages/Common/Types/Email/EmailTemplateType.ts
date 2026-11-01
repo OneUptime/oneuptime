@@ -122,6 +122,13 @@ enum EmailTemplateType {
   EnterpriseLicenseUserLimitBreach = "EnterpriseLicenseUserLimitBreach.hbs",
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",
 
+  /*
+   * A published OneUptime security advisory affects the version this
+   * self-hosted installation runs (Workers/Jobs/InstanceUpdate): once per
+   * advisory, to its master admins and admin notification email.
+   */
+  SecurityAdvisoryAffectsInstallation = "SecurityAdvisoryAffectsInstallation.hbs",
+
   NotificationRollup = "NotificationRollup.hbs",
 
   // The marketing site's Resellers page form (Home/Utils/ResellerInquiry.ts).

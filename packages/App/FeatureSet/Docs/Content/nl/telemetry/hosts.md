@@ -32,7 +32,7 @@ Elke host voert één configuratie uit, gekozen in deze volgorde:
 | De eerste van de **Collectorconfiguraties** die voor hem geldt | Een configuratie geldt als die voor het systeem van de host is en, als ze labels noemt, de host er een van heeft. |
 | De standaard van OneUptime voor zijn systeem | Er geldt geen configuratie. |
 
-De standaard van OneUptime leest op elk systeem CPU, geheugen, schijven, bestandssystemen, netwerk en processen; op Linux de journal en systemd-units, waar de host ze heeft; op Windows de gebeurtenislogboeken System, Application en Security en de Windows-services; en op macOS de installatie- en wifi-logs in `/var/log`. Ze volgt de releases van OneUptime, zodat een host op de standaard de verbeteringen van OneUptime daaraan krijgt.
+De standaard van OneUptime leest op elk systeem CPU, geheugen, schijven, bestandssystemen, netwerk en processen; op Linux de journal en systemd-units, waar de host ze heeft; op Windows de gebeurtenislogboeken System, Application en Security en de Windows-services; en op macOS de installatie- en wifi-logs in `/var/log`. Ze laat de bestandssystemen weg die bewust vol zijn, zoals snap-pakketten en `/dev` op macOS, zodat die het sjabloon High Filesystem Usage nooit blijvend laten afgaan. Ze volgt de releases van OneUptime, zodat een host op de standaard de verbeteringen van OneUptime daaraan krijgt.
 
 ## Voordat je begint
 

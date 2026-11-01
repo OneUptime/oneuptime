@@ -4,7 +4,7 @@ Un moniteur Docker surveille les conteneurs d'un hôte Docker et vous prévient 
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-docker): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Six alertes prêtes à l'emploi, un incident par conteneur.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Sept alertes prêtes à l'emploi, un incident par conteneur.
 - [Métriques](#métriques-collectées): Ce que collecte l'agent, et ce que signifie chaque métrique.
 - [Journaux](#journaux-collectés): Les journaux des conteneurs, et le pilote de journalisation dont ils ont besoin.
 :::
@@ -84,20 +84,24 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose six modèles. Chacun construit un moniteur complet : une requête regroupée par `resource.container.name`, un critère qui se déclenche et un autre qui rétablit. Chaque conteneur est jugé séparément, si bien qu'un conteneur chargé n'en masque pas un autre, et chaque conteneur qui dépasse le seuil reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+**Quick Setup** propose sept modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Host Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque conteneur est jugé séparément, qu'un conteneur chargé n'en masque pas un autre, et que chaque conteneur qui dépasse le seuil reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Sauf indication contraire dans le tableau, un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
 | Container Restart Loop | Critique | Croissance de `container.restarts` par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
 | Container CPU Throttling | Warning | Croissance de `container.cpu.throttling_data.throttled_time` en ms par conteneur, 5 dernières minutes | Plus de 1000 ms dans la fenêtre (Somme) | 900 ms ou moins |
 | High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
-| Container Down (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Égal à 0 | Au-dessus de 0 |
+| Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Moins de 120 secondes | 132 secondes ou plus |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
+
+> [!NOTE]
+> **Host Stopped Reporting** se déclenche quand rien n'arrive de l'hôte pendant dix minutes : l'hôte est en panne, ou l'agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient. Un hôte sans autre conteneur envoie quand même des données, car l'agent s'exécute lui-même comme conteneur et remonte les siennes.
 
 > [!NOTE]
 > `container.cpu.utilization` est le nombre qu'affiche `docker stats`, en moyenne sur l'intervalle de 30 secondes de l'agent : 100 % correspond à un cœur de CPU complet, et non à l'hôte entier, si bien qu'un conteneur utilisant deux cœurs affiche 200. Sur un hôte multicœur, le seuil de 80 est un budget de CPU, pas une part de la machine.
@@ -106,10 +110,10 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 > `container.memory.percent` divise par la limite de mémoire du conteneur quand elle est définie, et sinon par la mémoire totale **de l'hôte**. Vérifiez si le conteneur a été démarré avec `--memory` avant de traiter un dépassement comme un arrêt imminent pour manque de mémoire.
 
 > [!WARNING]
-> `container.restarts` et `container.cpu.throttling_data.throttled_time` ne font que croître, donc ces deux modèles alertent sur leur croissance dans la fenêtre : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de l'agent toutes les 30 secondes, cela voit environ la moitié de l'activité réelle, et les seuils en tiennent déjà compte. Si vous portez le `collection_interval` de l'agent à 60 secondes ou plus, chaque minute ne contient qu'une mesure et les deux modèles cessent d'alerter.
+> `container.restarts` et `container.cpu.throttling_data.throttled_time` ne font que croître, donc ces deux modèles alertent sur leur croissance dans la fenêtre : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de l'agent toutes les 30 secondes, cela voit environ la moitié de l'activité réelle, et les seuils en tiennent déjà compte. Si vous portez le `collection_interval` de l'agent à 60 secondes ou plus, chaque minute ne contient qu'une mesure et les deux modèles cessent d'alerter. L'agent n'échantillonne en outre que les conteneurs en cours d'exécution : un conteneur qui s'arrête dès son démarrage n'est presque jamais échantillonné, et **Container Restarted (Low Uptime)** se déclenche à chaque redémarrage que l'agent voit.
 
 > [!CAUTION]
-> **Container Down (Low Uptime)** ne peut pas détecter un conteneur qui s'arrête et reste arrêté. L'agent ne remonte que les conteneurs en cours d'exécution, donc un conteneur arrêté n'envoie aucune donnée et sa durée de fonctionnement ne vaut jamais 0. Pour un service qui doit rester disponible, surveillez aussi ce qu'il sert – par exemple avec une [surveillance d'API](/docs/monitor/api-monitor).
+> `container.uptime` n'existe que pour les conteneurs en cours d'exécution. Un conteneur qui s'arrête et reste arrêté n'envoie aucune donnée, donc **Container Restarted (Low Uptime)** détecte les redémarrages et les redéploiements, pas un arrêt définitif. Un conteneur prévu pour tourner moins de deux minutes reste en état d'alerte pendant toute sa vie. Pour un service qui doit rester disponible, surveillez aussi ce qu'il sert – par exemple avec une [surveillance d'API](/docs/monitor/api-monitor).
 
 ## Métriques collectées
 
@@ -143,8 +147,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` sur le socket Docker,
 
 | Métrique | Description |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Octets lus sur les périphériques de bloc. |
-| `container.blockio.io_service_bytes_recursive.write` | Octets écrits sur les périphériques de bloc. |
+| `container.blockio.io_service_bytes_recursive` | Octets lus et écrits sur chaque périphérique bloc depuis le démarrage du conteneur, répartis par `operation` (`read`, `write`). Un compteur cumulé. La liste le propose filtré sur les lectures et sur les écritures. |
 
 ### Conteneur
 
@@ -154,7 +157,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` sur le socket Docker,
 | `container.restarts` | Nombre de redémarrages du conteneur depuis sa création. Un compteur sur toute la durée de vie. |
 | `container.pids.count` | Tâches dans le conteneur. Le contrôleur pids du cgroup compte les threads aussi bien que les processus. |
 
-La liste **Métrique Docker** propose aussi `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` et les compteurs de paquets réseau. La configuration de l'agent fournie ne les active pas ; vérifiez donc la page **Métriques** de l'hôte avant de vous appuyer dessus. `container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
+`container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
 
 ## Critères de surveillance
 
@@ -164,7 +167,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. |
 | **Seuil** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
@@ -180,11 +183,11 @@ Un moniteur que vous ne créez pas à partir d'un modèle commence avec deux cri
 
 | Ordre | Critère | Correspond quand | Ensuite |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Une valeur quelconque de la première requête vaut `0` | Marque le moniteur **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même quand le moniteur se rétablit. |
-| 2 | Check if _monitor name_ is online | Une valeur quelconque est au-dessus de `0` | Marque le moniteur **Opérationnel**. |
+| 1 | Check if _monitor name_ is offline | La première requête n'a aucune donnée sur toute la fenêtre | Marque le moniteur **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même quand le moniteur se rétablit. |
+| 2 | Check if _monitor name_ is online | La première requête a des données | Marque le moniteur **Opérationnel**. |
 
 > [!IMPORTANT]
-> Le silence ne correspond à aucun des deux critères : un hôte qui cesse d'envoyer des données laisse le moniteur tel qu'il était. Pour être prévenu quand les données s'arrêtent, réglez **En l'absence de données** sur **Déclencheur** dans un critère. Le temps pendant lequel OneUptime lui-même ne recevait pas de données n'est jamais une absence de données : une vérification dont la fenêtre en contient attend à la place, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
+> Une valeur de `0` est une donnée : une métrique souvent nulle, comme les redémarrages ou les erreurs, ne met pas le moniteur hors ligne. Pour être alerté sur une valeur, partez d'un modèle ou ajoutez un critère avec un seuil. Quand aucune donnée n'arrive et qu'aucun critère ne correspond, le moniteur garde son statut et les incidents ouverts restent ouverts : le silence n'est pas un rétablissement. Le temps où OneUptime lui-même ne recevait rien ne compte jamais comme une absence de données : une vérification dont la fenêtre en contient attend, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Journaux collectés
 

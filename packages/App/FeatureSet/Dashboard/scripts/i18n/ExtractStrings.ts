@@ -90,7 +90,18 @@ export interface SourceScanResult {
   nestedKeyReferences: Array<UndefinedNestedKey>;
 }
 
-export type SourceKind = "ui" | "models";
+/*
+ * How a root is read:
+ *
+ *   - "ui":     every string a person reads (see the kinds above);
+ *   - "models": a model's names and its columns' titles;
+ *   - "keys":   only what the file marks as a key - the text of a
+ *               translation call, translationKey("...") - in a file whose
+ *               other words are drawn as written. TraceSpanType's choices
+ *               read "Entry spans" in every language, as the translated docs
+ *               quote them, while what each one is reads in the reader's.
+ */
+export type SourceKind = "ui" | "models" | "keys";
 
 export interface SourceRoot {
   // Repository-relative directory, or one file in a directory of its own.
@@ -177,6 +188,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory: "packages/Common/Types/SecurityEvent/SecurityHunt.ts",
     kind: "ui",
+  },
+  /*
+   * What each of the traces explorer's span types is: the (i) beside the
+   * Span Type choice lists them, and each choice says its own. Only the
+   * sentences the file marks are read: the choices' names are drawn as
+   * written in every language.
+   */
+  {
+    directory: "packages/Common/Types/Telemetry/TraceSpanType.ts",
+    kind: "keys",
   },
 ];
 
@@ -1275,8 +1296,34 @@ export const scanSourceText: (
     ts.forEachChild(node, visitUi);
   };
 
+  /*
+   * A "keys" root: the text of its translation calls, and nothing else -
+   * no property, attribute or element text, and nothing reported as still
+   * hard-coded, since its other words are drawn as written on purpose.
+   */
+  const visitKeys: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const callee: string | undefined = getCalleeName(node.expression);
+
+      if (callee && TRANSLATION_FUNCTION.test(callee)) {
+        const argument: ts.Expression | undefined =
+          node.arguments[KEY_ARGUMENT_INDEX[callee] ?? 0];
+
+        if (argument) {
+          for (const literal of getLiteralStrings(argument)) {
+            add(literal.text, "call", literal.node);
+          }
+        }
+      }
+    }
+
+    ts.forEachChild(node, visitKeys);
+  };
+
   if (options.kind === "models") {
     visitModel(sourceFile);
+  } else if (options.kind === "keys") {
+    visitKeys(sourceFile);
   } else {
     visitUi(sourceFile);
   }

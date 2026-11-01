@@ -38,7 +38,10 @@ import {
 } from "../../../Types/AI/AiAffectedResources";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
-import { ALL_AI_RESOURCE_TYPES } from "../../../Types/ResourceAiAgent/AiResourceType";
+import AiResourceType, {
+  ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
+} from "../../../Types/ResourceAiAgent/AiResourceType";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -161,10 +164,14 @@ describe("the kinds OneUptime AI links", () => {
       })
       .sort();
 
+    // A cloud account is fixed through the cloud resources linked to it.
     expect(fixed).toEqual(
       [
         AiAffectedResourceKind.KubernetesCluster as string,
-        ...ALL_AI_RESOURCE_TYPES.map((type: string): string => {
+        AiAffectedResourceKind.CloudResource as string,
+        ...ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+          return !isCloudAiResourceType(type);
+        }).map((type: string): string => {
           return type;
         }),
       ].sort(),
@@ -331,14 +338,14 @@ describe("getPageAffectedResource - what an incident declared on a page is about
         resourcePage(AIResourceType.CloudResource, CLUSTER_ID),
       ),
     ).toEqual({ kind: AiAffectedResourceKind.CloudResource, id: CLUSTER_ID });
-    // Linked for its changes and its page, never fixed: no agent acts on a cloud.
+    // Linked for its changes and its page, and fixed through its account's Cloud AI agent.
     expect(
       getAiAffectedResourceKindInfo(AiAffectedResourceKind.CloudResource),
     ).toEqual({
       kind: AiAffectedResourceKind.CloudResource,
       relation: "cloudResources",
       noun: "cloud resource",
-      isFixedByOneUptimeAi: false,
+      isFixedByOneUptimeAi: true,
     });
   });
 

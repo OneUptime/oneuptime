@@ -27,11 +27,12 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard, {
-  REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES,
-  getRemediationCardDescription,
+import RemediationStep, {
+  REMEDIATION_APPROVAL_NOTE,
   isMcpFixInProgress,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+  isRemediationApprovalNoteShown,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
+import { MCP_TOOL_CALL_STATUS_VISUAL } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/McpToolCallList";
 import {
   RemediationDecisionLine,
   getRemediationDecisionLines,
@@ -83,6 +84,16 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 const SUGGESTION_ID: string = "da1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b02";
 const SERVER_ID: string = "da1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b03";
+
+// A box's classes: a frame, a tinted background, rounded corners, a shadow.
+const MCP_ROW_BOX_CLASS_NAME: RegExp =
+  /(^|\s)(border(-\d+)?|rounded(-\w+)?|bg-[a-z]+-\d+|shadow(-\w+)?)(\s|$)/;
+
+// A pill's shape: rounded all round, with a ring and a pill's padding.
+const PILL_CLASS_NAME: RegExp = /(^|\s)(rounded-full|ring-1|px-2\.5)(\s|$)/;
+
+// A dot's colour: a saturated shade, which reads the same in both themes.
+const DOT_CLASS_NAME: RegExp = /^bg-[a-z]+-(400|500)$/;
 
 function call(
   sequence: number,
@@ -150,7 +161,12 @@ describe("the Remediation card", () => {
     );
 
     await act(async () => {
-      render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+      render(
+        <RemediationStep
+          investigationStage="reported"
+          incidentId={INCIDENT_ID}
+        />,
+      );
     });
 
     expect(
@@ -158,8 +174,9 @@ describe("the Remediation card", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Rule: Fix the API")).toBeInTheDocument();
     expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
-    expect(screen.getByTestId("card-description")).toHaveTextContent(
-      REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES,
+    // What approving does, over the fix that waits for it.
+    expect(screen.getByTestId("remediation-approval-note")).toHaveTextContent(
+      REMEDIATION_APPROVAL_NOTE,
     );
 
     const rows: Array<HTMLElement> = screen.getAllByTestId(
@@ -171,6 +188,19 @@ describe("the Remediation card", () => {
     expect(rows[0]).toHaveTextContent("Proposed");
     expect(within(rows[0]!).getByText(/"force": true/)).toBeInTheDocument();
     expect(rows[1]).toHaveTextContent("scale_service");
+
+    /*
+     * Where each change stands is words with a dot, never a pill: the
+     * step's status is the card's one pill. The tool is code.
+     */
+    const status: HTMLElement = within(rows[0]!).getByTestId(
+      "remediation-mcp-tool-call-status",
+    );
+    expect(status).toHaveTextContent("Proposed");
+    expect(status.className).not.toMatch(PILL_CLASS_NAME);
+    expect(
+      within(rows[0]!).getByTestId("remediation-mcp-tool-name").tagName,
+    ).toBe("CODE");
 
     // Approving sends exactly this suggestion to the approve route.
     const post: ReturnType<typeof jest.spyOn> = jest
@@ -207,7 +237,12 @@ describe("the Remediation card", () => {
     );
 
     await act(async () => {
-      render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+      render(
+        <RemediationStep
+          investigationStage="reported"
+          incidentId={INCIDENT_ID}
+        />,
+      );
     });
 
     const rows: Array<HTMLElement> = await screen.findAllByTestId(
@@ -219,6 +254,26 @@ describe("the Remediation card", () => {
     expect(rows[1]).toHaveTextContent("Failed");
     expect(rows[1]).toHaveTextContent("quota exceeded");
     expect(rows[2]).toHaveTextContent("Not sent");
+    // A change that failed says so in red; the others in the line's grey.
+    expect(
+      within(rows[1]!).getByTestId("remediation-mcp-tool-call-status"),
+    ).toHaveAttribute("data-alarming", "true");
+    expect(
+      within(rows[0]!).getByTestId("remediation-mcp-tool-call-status"),
+    ).toHaveAttribute("data-alarming", "false");
+    // Nothing waits for approval, so nothing says what approving does.
+    expect(
+      screen.queryByTestId("remediation-approval-note"),
+    ).not.toBeInTheDocument();
+
+    /*
+     * Each change is a line with a rule beside it, as a command of a plan
+     * is: on the AI card, the card is the only frame (block 43).
+     */
+    for (const row of rows) {
+      expect(row).toHaveClass("border-l-2", "pl-3");
+      expect(row.className).not.toMatch(MCP_ROW_BOX_CLASS_NAME);
+    }
 
     // The answer is folded until asked for.
     expect(screen.queryByText("restarted api")).not.toBeInTheDocument();
@@ -238,7 +293,12 @@ describe("the Remediation card", () => {
     );
 
     await act(async () => {
-      render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+      render(
+        <RemediationStep
+          investigationStage="reported"
+          incidentId={INCIDENT_ID}
+        />,
+      );
     });
 
     expect(
@@ -289,17 +349,38 @@ describe("the Remediation card", () => {
     ).toBe(false);
   });
 
-  test("its description names MCP servers only when a fix goes through them", () => {
+  test("what approving does is said while a fix through MCP servers waits for approval, and only then", () => {
     expect(
-      getRemediationCardDescription([
-        { suggestionType: AutoRemediationSuggestionType.McpToolCalls },
-      ] as never),
-    ).toBe(REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES);
-    expect(
-      getRemediationCardDescription([
-        { suggestionType: AutoRemediationSuggestionType.Runbook },
-      ] as never),
-    ).not.toBe(REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES);
+      isRemediationApprovalNoteShown([
+        mcpFix(AutoRemediationSuggestionStatus.Suggested, [
+          call(1, ExternalMcpToolCallStatus.Proposed),
+        ]),
+      ]),
+    ).toBe(true);
+    for (const status of [
+      AutoRemediationSuggestionStatus.AutoExecuted,
+      AutoRemediationSuggestionStatus.Approved,
+      AutoRemediationSuggestionStatus.Dismissed,
+    ]) {
+      expect(
+        isRemediationApprovalNoteShown([
+          mcpFix(status, [call(1, ExternalMcpToolCallStatus.Succeeded)]),
+        ]),
+      ).toBe(false);
+    }
+  });
+
+  test("each change's state has words and a dot, and only a failure is alarming", () => {
+    for (const [status, visual] of Object.entries(
+      MCP_TOOL_CALL_STATUS_VISUAL,
+    )) {
+      expect(visual.label.length).toBeGreaterThan(0);
+      expect(visual.dot).toMatch(DOT_CLASS_NAME);
+      expect({ status, isAlarming: Boolean(visual.isAlarming) }).toEqual({
+        status,
+        isAlarming: status === ExternalMcpToolCallStatus.Failed,
+      });
+    }
   });
 });
 

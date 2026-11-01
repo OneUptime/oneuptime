@@ -436,6 +436,18 @@ export const isCardDescriptionAllItSays: (
 };
 
 /*
+ * Whether a card's description is drawn in a block (a div) rather than a
+ * paragraph: whenever it is an element, whatever the element holds - a
+ * paragraph, a list, an icon - since none of those may sit in a paragraph.
+ * Words alone stay a paragraph, as every card's description always was.
+ */
+export const isCardDescriptionDrawnAsBlock: (
+  description: string | ReactElement | undefined,
+) => boolean = (description: string | ReactElement | undefined): boolean => {
+  return Boolean(description) && typeof description !== "string";
+};
+
+/*
  * A card's frame on a page: a white box with a border, rounded corners and a
  * shadow, and a gap under it for the next card.
  */
@@ -743,11 +755,29 @@ const Card: FunctionComponent<ComponentProps> = (
       ? CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME
       : CARD_DESCRIPTION_CLASS_NAME;
 
+  /*
+   * A description in words is a paragraph. One that is an element - a
+   * sentence with a code span or a link in it, a paragraph of its own, an
+   * icon (which draws a div) - is drawn in a block that may hold any of
+   * them: a paragraph cannot hold a paragraph or a div (React warns,
+   * "validateDOMNesting"), which Reset Runner Key's description did, and
+   * pages took to wrapping their sentences in a span to get by
+   * (isCardDescriptionDrawnAsBlock).
+   */
+  const DescriptionTag: "p" | "div" = isCardDescriptionDrawnAsBlock(
+    translatedDescription,
+  )
+    ? "div"
+    : "p";
+
   const descriptionElement: ReactElement | false | "" | undefined =
     translatedDescription && (
-      <p data-testid="card-description" className={descriptionClassName}>
+      <DescriptionTag
+        data-testid="card-description"
+        className={descriptionClassName}
+      >
         {translatedDescription}
-      </p>
+      </DescriptionTag>
     );
 
   const stackedActionsClassName: string = centresActionsOnTitle

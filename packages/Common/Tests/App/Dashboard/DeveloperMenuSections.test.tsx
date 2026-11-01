@@ -163,6 +163,10 @@ const DASHBOARD_SRC: string = path.join(
 const VIEW_MENUS_WITHOUT_DEVELOPER_PAGES: Readonly<Record<string, string>> = {
   "Pages/AIInsights/View/SideMenu.tsx":
     "An AI insight is written by OneUptime AI; the API cannot create one, so there is nothing to manage as code.",
+  "Pages/DataSecurity/IssueView/SideMenu.tsx":
+    "A data security issue is opened, updated and resolved by Data Security's checks and worked on its own pages, not set up as code; its API and MCP tools are on the Data Security docs page.",
+  "Pages/DataSecurity/StoreView/SideMenu.tsx":
+    "A data store is discovered from your clouds, databases and telemetry, and what is found in it is written by scans, not set up as code; its API and MCP tools are on the Data Stores docs page.",
   "Pages/Exceptions/View/SideMenu.tsx":
     "An exception is grouped from telemetry, not set up by anyone.",
   "Pages/SecurityEvents/CaseView/SideMenu.tsx":

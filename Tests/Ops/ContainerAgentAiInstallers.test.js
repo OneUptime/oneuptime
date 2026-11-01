@@ -53,9 +53,13 @@ function writeExecutable(file, text) {
 
 /*
  * `docker` / `podman` record every call. `ps -a` lists the names in
- * $STUB_DIR/containers; `info --format` prints $STUB_SWARM_INFO, the node's
- * "<LocalNodeState> <ControlAvailable>" (the swarm manager check); `compose up` records the protected-targets value it
- * was started with. `curl` serves the Swarm agent's files from this checkout.
+ * $STUB_DIR/containers; `info --format` answers the format asked: the
+ * swarm manager check gets $STUB_SWARM_INFO, the node's
+ * "<LocalNodeState> <ControlAvailable>", the daemon's name a node name, and
+ * Podman's rootless flag, API socket and storage a rootful Podman whose
+ * socket is on (ContainerAgentInstallers.test.js varies those); `compose up`
+ * records the protected-targets value it was started with. `curl` serves
+ * the Swarm agent's files from this checkout.
  */
 function installStubs(dir) {
   const bin = path.join(dir, "bin");
@@ -70,7 +74,14 @@ case "$1" in
     ;;
   info)
     if [ "$2" = "--format" ]; then
-      printf '%s\\n' "\${STUB_SWARM_INFO-active true}"
+      case "$3" in
+        *Swarm.LocalNodeState*) printf '%s\\n' "\${STUB_SWARM_INFO-active true}" ;;
+        '{{.Name}}') printf '%s\\n' "swarm-manager-1" ;;
+        *Security.Rootless*) printf '%s\\n' "false" ;;
+        *RemoteSocket.Path*) printf '%s\\n' "/run/podman/podman.sock" ;;
+        *RemoteSocket.Exists*) printf '%s\\n' "true" ;;
+        *Store.GraphRoot*) printf '%s\\n' "/var/lib/containers/storage" ;;
+      esac
     fi
     exit 0
     ;;
@@ -134,9 +145,7 @@ function run(dir, shell, script, env, input, args) {
 function aiAgentArgs(dir, name) {
   const file = path.join(dir, `run-${name}.args`);
 
-  return fs.existsSync(file)
-    ? fs.readFileSync(file, "utf8").split("\n")
-    : null;
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n") : null;
 }
 
 function engineLog(dir) {
@@ -243,7 +252,10 @@ describe.each(CONTAINER_INSTALLERS)(
           ONEUPTIME_AI_INVESTIGATION: "true",
           ONEUPTIME_AI_FIXES: "automatic",
         }).args,
-      ).toEqual(["ONEUPTIME_AI_INVESTIGATION=true", "ONEUPTIME_AI_FIXES=automatic"]);
+      ).toEqual([
+        "ONEUPTIME_AI_INVESTIGATION=true",
+        "ONEUPTIME_AI_FIXES=automatic",
+      ]);
     });
 
     test("unset, both reach the agent empty, so it uses its defaults", () => {
@@ -342,9 +354,9 @@ describe("DockerSwarmAgent install.sh", () => {
 
     expect(run1.status).toBe(0);
     expect(run1.envLine("ONEUPTIME_SERVICE_TOKEN")).toBe("ingest-key");
-    expect(
-      fs.statSync(path.join(run1.installDir, ".env")).mode & 0o777,
-    ).toBe(0o600);
+    expect(fs.statSync(path.join(run1.installDir, ".env")).mode & 0o777).toBe(
+      0o600,
+    );
   });
 
   test("a re-run without the target lists keeps the ones .env has; one that sets a list (even empty) replaces it", () => {
@@ -521,9 +533,7 @@ describe("DockerSwarmAgent install.sh", () => {
 
         expect(result.status).toBe(0);
         expect(result.output).not.toContain("not a swarm manager");
-        expect(fs.existsSync(path.join(dir, "override-at-up.yml"))).toBe(
-          false,
-        );
+        expect(fs.existsSync(path.join(dir, "override-at-up.yml"))).toBe(false);
       },
     );
 

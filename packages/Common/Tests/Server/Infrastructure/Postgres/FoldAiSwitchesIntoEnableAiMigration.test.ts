@@ -52,6 +52,26 @@ const MIGRATIONS_DIRECTORY: string = path.join(
   "SchemaMigrations",
 );
 
+/*
+ * The models whose Fixes mode came after this migration, each with the
+ * migration that added its column. Enable AI was already the only AI switch
+ * then, so this migration had nothing to fold for them - and it never will:
+ * a shipped migration's statements do not change, and on a new install
+ * their column does not exist yet when it runs. Each column starts at a
+ * mode that asks before anything runs.
+ */
+interface FixesModeAddedLater {
+  table: string;
+  migrationFile: string;
+}
+
+const FIXES_MODES_ADDED_LATER: Array<FixesModeAddedLater> = [
+  {
+    table: "CloudAccount",
+    migrationFile: "1808470000000-AddCloudAccountAiAccess.ts",
+  },
+];
+
 // Exactly what `npm run generate-postgres-migration` produced.
 const DROP_AUTO_REMEDIATION: string = `ALTER TABLE "Project" DROP COLUMN "enableAutoRemediation"`;
 const DROP_AI_COMMAND_EXECUTION: string = `ALTER TABLE "Project" DROP COLUMN "enableAiCommandExecution"`;
@@ -359,7 +379,7 @@ describe("FoldAiSwitchesIntoEnableAi migration - up()", () => {
       }
     });
 
-    test("the table list is exactly the models that declare a Fixes mode today", () => {
+    test("the table list is exactly the models that declare a Fixes mode today, but for those whose Fixes mode came after it", () => {
       const declaring: Array<string> = getMetadataArgsStorage()
         .columns.filter((column: ColumnMetadataArgs): boolean => {
           return (
@@ -372,12 +392,50 @@ describe("FoldAiSwitchesIntoEnableAi migration - up()", () => {
         });
 
       expect([...declaring].sort()).toEqual(
-        [...TABLES_WITH_AI_REMEDIATION_MODE].sort(),
+        [
+          ...TABLES_WITH_AI_REMEDIATION_MODE,
+          ...FIXES_MODES_ADDED_LATER.map(
+            (later: FixesModeAddedLater): string => {
+              return later.table;
+            },
+          ),
+        ].sort(),
       );
       expect(new Set(TABLES_WITH_AI_REMEDIATION_MODE).size).toBe(
         TABLES_WITH_AI_REMEDIATION_MODE.length,
       );
     });
+
+    test.each(FIXES_MODES_ADDED_LATER)(
+      "$table's Fixes mode came after it, from a registered migration, starting at a mode that asks first",
+      (later: FixesModeAddedLater) => {
+        expect(TABLES_WITH_AI_REMEDIATION_MODE).not.toContain(later.table);
+
+        // The migration that added the column sorts after this one...
+        const fileMatch: RegExpMatchArray | null =
+          later.migrationFile.match(/^(\d{13})-(\w+)\.ts$/);
+        expect(fileMatch).not.toBeNull();
+        const className: string = `${fileMatch![2]}${fileMatch![1]}`;
+        expect(timestampOf(className)!).toBeGreaterThan(
+          timestampOf(OWN_CLASS_NAME)!,
+        );
+
+        // ...runs on every install...
+        expect(registeredNames).toContain(className);
+
+        // ...and adds the column at Disabled, never at an unattended mode.
+        const source: string = fs.readFileSync(
+          path.join(MIGRATIONS_DIRECTORY, later.migrationFile),
+          "utf8",
+        );
+        expect(source).toContain(
+          `ALTER TABLE "${later.table}" ADD "aiRemediationMode" character varying(100) NOT NULL DEFAULT '${ResourceAiRemediationMode.Disabled}'`,
+        );
+        expect(UNATTENDED_RESOURCE_REMEDIATION_MODES).not.toContain(
+          ResourceAiRemediationMode.Disabled,
+        );
+      },
+    );
   });
 
   describe("step 2: a project that never opted into AI command execution", () => {

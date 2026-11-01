@@ -2,8 +2,10 @@ import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/O
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import { ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH } from "../../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { WorkspaceLiveMessageDestinationType } from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import {
   WorkspaceDropdownBlock,
@@ -38,6 +40,10 @@ import WorkspacePage, {
   WorkspacePagePeople,
   WorkspacePagePlace,
 } from "../../WorkspacePage";
+import WorkspacePageAbout, {
+  WorkspacePageRecord,
+  WorkspacePageSubject,
+} from "../../WorkspacePageAbout";
 import WorkspacePageTextReader, {
   WorkspacePagePerson,
   WorkspacePageText,
@@ -54,17 +60,22 @@ import SlackActionAuthorization from "./Authorization";
  *
  *   /oneuptime page @nawaz The checkout API is throwing 500s
  *
- * Slack is answered at once (it waits three seconds at most), then:
+ * Slack is answered at once (it waits three seconds at most). What the page
+ * is about is the channel's (WorkspacePageAbout): in an incident's or an
+ * alert's own channel, that incident or alert - the message is optional
+ * there - and anywhere else a new alert, whose title is the message. Then:
  *
- *   - people @mentioned, OneUptime can tell them all, and a message: they
- *     are paged now. "📟 Paging Nawaz Dhandala…" only the person who ran it
- *     sees, then the page's message in the channel, edited as it goes. A
- *     user group @mentioned that follows on-call schedules pages them -
- *     whoever is on call in them now - the same way;
+ *   - people @mentioned, OneUptime can tell them all, and a message where
+ *     one is needed: they are paged now. "📟 Paging Nawaz Dhandala about
+ *     Incident INC-42…" (or "... about a new alert…") only the person who
+ *     ran it sees, then the page's message in the channel, edited as it
+ *     goes. A user group @mentioned that follows on-call schedules pages
+ *     them - whoever is on call in them now - the same way;
  *   - anything else: the Page someone form (a modal), with what was typed
  *     filled in - who to page, picked from the project's on-call schedules,
- *     people, teams and on-call policies, and the message. Submitted, it
- *     pages the same way.
+ *     people, teams and on-call policies, and the message - opening with
+ *     the incident it is about, or saying its message becomes a new alert's
+ *     title. Submitted, it pages the same way.
  *
  * Both act as the member the Slack account is connected to: somebody not
  * connected, not a member, or who may not page is told so where they ran
@@ -135,6 +146,39 @@ export default class SlackPageActions {
       return;
     }
 
+    /*
+     * What the page is about: in an incident's or an alert's own channel,
+     * that record; anywhere else, something new (WorkspacePageAbout).
+     */
+    const about: WorkspacePageSubject | null = await SlackPageActions.readAbout(
+      {
+        slackRequest: slackRequest,
+        props: props,
+        read: (): Promise<WorkspacePageSubject> => {
+          return WorkspacePageAbout.read({
+            projectId: slackRequest.projectId!,
+            channelId: slackRequest.slackChannelId,
+            props: props,
+          });
+        },
+      },
+    );
+
+    if (!about) {
+      return;
+    }
+
+    // ... and do all a page about it asks of them.
+    if (
+      !(await SlackPageActions.mayPage({
+        slackRequest: slackRequest,
+        props: props,
+        about: about,
+      }))
+    ) {
+      return;
+    }
+
     const [people, groups]: [WorkspacePagePeople, WorkspacePageGroups] =
       await Promise.all([
         (async (): Promise<WorkspacePagePeople> => {
@@ -161,6 +205,7 @@ export default class SlackPageActions {
         text: text,
         people: people,
         groups: groups,
+        about: about,
       })
     ) {
       return await SlackPageActions.openForm({
@@ -169,6 +214,7 @@ export default class SlackPageActions {
         text: text,
         people: people,
         groups: groups,
+        about: about,
       });
     }
 
@@ -177,13 +223,16 @@ export default class SlackPageActions {
 
     /*
      * Said at once, only to them: a page can take a few seconds, and a
-     * command that seems to do nothing gets run again.
+     * command that seems to do nothing gets run again. It says what the
+     * page is about - the channel's incident, or a new alert - before the
+     * page makes anything.
      */
     if (place) {
       await SlackActionAnswer.answer({
         place: place,
         answer: SlackPageActions.getPagingAnswer(
           WorkspacePage.getPagedNames({ people: people, groups: groups }),
+          about,
         ),
       });
     }
@@ -193,12 +242,43 @@ export default class SlackPageActions {
       props: props,
       targets: WorkspacePage.getTargets({ people: people, groups: groups }),
       message: text.message,
+      about: about,
       channelName:
         typeof (data.req.body as JSONObject | undefined)?.["channel_name"] ===
         "string"
           ? ((data.req.body as JSONObject)["channel_name"] as string)
           : undefined,
     });
+  }
+
+  /*
+   * What a page is about, read as the member (`read`); null - and they are
+   * told why, where they asked - when the channel is a record's own that
+   * they may not read: the page there would be about it, and nothing is
+   * paged.
+   */
+  private static async readAbout(data: {
+    slackRequest: SlackRequest;
+    props: DatabaseCommonInteractionProps;
+    read: () => Promise<WorkspacePageSubject>;
+  }): Promise<WorkspacePageSubject | null> {
+    try {
+      return await data.read();
+    } catch (err) {
+      if (
+        !(err instanceof NotAuthorizedException) &&
+        !(err instanceof PaymentRequiredException)
+      ) {
+        throw err;
+      }
+
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: err.message,
+      });
+
+      return null;
+    }
   }
 
   /*
@@ -225,12 +305,22 @@ export default class SlackPageActions {
         ? (values[PAGE_FORM_MESSAGE_FIELD] as string)
         : "";
 
+    /*
+     * A form about an incident or an alert carries it (its value), and its
+     * message is optional: told from the value alone, as Slack is answered
+     * now. The record is read again below, as the member.
+     */
+    const isAboutRecord: boolean = Boolean(
+      WorkspacePageAbout.parseValue(data.action.actionValue),
+    );
+
     const problems: {
       who?: string | undefined;
       message?: string | undefined;
     } | null = WorkspacePage.getFormProblems({
       values: picked,
       message: message,
+      isMessageRequired: !isAboutRecord,
     });
 
     if (problems) {
@@ -261,19 +351,64 @@ export default class SlackPageActions {
       return;
     }
 
+    const about: WorkspacePageSubject | null = await SlackPageActions.readAbout(
+      {
+        slackRequest: slackRequest,
+        props: props,
+        read: (): Promise<WorkspacePageSubject> => {
+          return WorkspacePageAbout.readValue({
+            value: data.action.actionValue,
+            props: props,
+          });
+        },
+      },
+    );
+
+    if (!about) {
+      return;
+    }
+
+    /*
+     * Resolved since the form opened: there is nothing left to page about,
+     * and the message left empty for it is no new alert's title.
+     */
+    if (isAboutRecord && !about.record) {
+      return await SlackActionAuthorization.sendRefusal({
+        requester: slackRequest,
+        message: WorkspacePage.getResolvedSinceMessage(about),
+      });
+    }
+
+    if (
+      !(await SlackPageActions.mayPage({
+        slackRequest: slackRequest,
+        props: props,
+        about: about,
+      }))
+    ) {
+      return;
+    }
+
     await SlackPageActions.pageAndAnswer({
       slackRequest: slackRequest,
       props: props,
       targets: WorkspacePage.readTargets(picked),
       message: message,
+      about: about,
     });
   }
 
   /*
-   * What the person who paged sees at once, only them: "📟 Paging Nawaz
-   * Dhandala…".
+   * What the person who paged sees at once, only them, before anything is
+   * made: who, and what the page is about - "📟 Paging **Nawaz Dhandala**
+   * about Incident INC-42…" in the incident's own channel, "📟 Paging
+   * **Nawaz Dhandala** about a new alert…" anywhere else
+   * (WorkspacePageAbout). Without `about`, who alone.
    */
-  public static getPagingAnswer(names: Array<string>): {
+  public static getPagingAnswer(
+    names: Array<string>,
+    about?: WorkspacePageSubject | undefined,
+  ): {
     markdown: string;
     text: string;
   } {
@@ -293,9 +428,13 @@ export default class SlackPageActions {
         ? names[0] || "them"
         : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]!}`;
 
+    const aboutWords: string = about
+      ? ` ${WorkspacePageAbout.getAboutWords(about)}`
+      : "";
+
     return {
-      markdown: mdText`📟 Paging ${who}…`.toString(),
-      text: `Paging ${plainWho}…`,
+      markdown: mdText`📟 Paging ${who}${aboutWords}…`.toString(),
+      text: `Paging ${plainWho}${aboutWords}…`,
     };
   }
 
@@ -307,34 +446,38 @@ export default class SlackPageActions {
     slackRequest: SlackRequest,
   ): Promise<DatabaseCommonInteractionProps | null> {
     // A member of the project, who may start an on-call run...
-    const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.authorize({
-        requester: slackRequest,
-        modelType: OnCallDutyPolicyExecutionLog,
-        action: WORKSPACE_PAGE_ACTION,
-      });
+    return await SlackActionAuthorization.authorize({
+      requester: slackRequest,
+      modelType: OnCallDutyPolicyExecutionLog,
+      action: WORKSPACE_PAGE_ACTION,
+    });
+  }
 
-    if (!props) {
-      return null;
-    }
-
-    // ... and do all a page asks of them.
+  /*
+   * ... who may do all a page about `about` asks of them
+   * (WorkspacePage.assertMayPage): one about something new creates an
+   * alert. Told why not, where they asked, when they may not.
+   */
+  private static async mayPage(data: {
+    slackRequest: SlackRequest;
+    props: DatabaseCommonInteractionProps;
+    about: WorkspacePageSubject;
+  }): Promise<boolean> {
     try {
-      await WorkspacePage.assertMayPage(props);
+      await WorkspacePage.assertMayPage(data.props, data.about);
+      return true;
     } catch (err) {
       if (!(err instanceof NotAuthorizedException)) {
         throw err;
       }
 
       await SlackActionAuthorization.sendRefusal({
-        requester: slackRequest,
+        requester: data.slackRequest,
         message: err.message,
       });
 
-      return null;
+      return false;
     }
-
-    return props;
   }
 
   /*
@@ -347,6 +490,7 @@ export default class SlackPageActions {
     props: DatabaseCommonInteractionProps;
     targets: OnCallPageTargets;
     message: string;
+    about: WorkspacePageSubject;
     channelName?: string | undefined;
   }): Promise<void> {
     const { slackRequest } = data;
@@ -362,6 +506,7 @@ export default class SlackPageActions {
             workspaceType: WorkspaceType.Slack,
             targets: data.targets,
             message: data.message.substring(0, MAX_MESSAGE_LENGTH),
+            about: data.about,
             place: SlackPageActions.getPlace(slackRequest, data.channelName),
           });
         },
@@ -393,6 +538,7 @@ export default class SlackPageActions {
     text: WorkspacePageText;
     people: WorkspacePagePeople;
     groups: WorkspacePageGroups;
+    about: WorkspacePageSubject;
   }): Promise<void> {
     const { slackRequest } = data;
 
@@ -437,6 +583,7 @@ export default class SlackPageActions {
         modalBlock: SlackPageActions.getFormModal({
           choices: choices,
           prefill: prefill,
+          about: data.about,
         }),
       });
     } catch (err) {
@@ -456,13 +603,27 @@ export default class SlackPageActions {
    * The Page someone form: who to page - the project's on-call schedules,
    * people, teams and on-call policies, each kind under its own heading -
    * and the message, with what was typed filled in and a note for anybody
-   * named that it cannot pick.
+   * named that it cannot pick. A form about an incident or an alert opens
+   * with it, as the incident's own forms do, and its message is optional;
+   * one about something new says the message becomes a new alert's title
+   * (WorkspacePage.getMessageHint). It carries what it is about, for its
+   * submission (WorkspacePageAbout.toValue).
    */
   public static getFormModal(data: {
     choices: Array<WorkspacePageChoiceGroup>;
     prefill: WorkspacePageFormPrefill;
+    // Something new when left out.
+    about?: WorkspacePageSubject | undefined;
   }): WorkspaceModalBlock {
     const blocks: Array<WorkspaceMessageBlock> = [];
+    const record: WorkspacePageRecord | null = data.about?.record || null;
+
+    if (record) {
+      blocks.push({
+        _type: "WorkspacePayloadMarkdown",
+        text: WorkspacePageAbout.getHeading(record).toString(),
+      } as WorkspacePayloadMarkdown);
+    }
 
     if (data.prefill.notes.length > 0) {
       blocks.push({
@@ -513,10 +674,22 @@ export default class SlackPageActions {
       label: WORKSPACE_PAGE_FORM_TEXT.messageLabel,
       blockId: PAGE_FORM_MESSAGE_FIELD,
       placeholder: WORKSPACE_PAGE_FORM_TEXT.messagePlaceholder,
-      description: WORKSPACE_PAGE_FORM_TEXT.messageHint,
+      description: WorkspacePage.getMessageHint(data.about),
+      /*
+       * About an incident or an alert, the record says what it is about:
+       * the message is the page's own, kept as long as an alert's title.
+       */
+      ...(record
+        ? { optional: true, maxLength: ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH }
+        : {}),
       ...(data.prefill.message
         ? {
-            initialValue: data.prefill.message.substring(0, MAX_MESSAGE_LENGTH),
+            initialValue: data.prefill.message.substring(
+              0,
+              record
+                ? ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH
+                : MAX_MESSAGE_LENGTH,
+            ),
           }
         : {}),
     };
@@ -529,7 +702,7 @@ export default class SlackPageActions {
       submitButtonTitle: WORKSPACE_PAGE_FORM_TEXT.submit,
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitPageSomeone,
-      actionValue: "",
+      actionValue: data.about ? WorkspacePageAbout.toValue(data.about) : "",
       blocks: blocks,
     };
   }

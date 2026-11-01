@@ -630,19 +630,30 @@ describe.each(METHODS)("the %s guide", (method: DockerInstallMethod) => {
     }
   });
 
-  test("the API version fix sets the variable where this method keeps it", () => {
+  /*
+   * The agent negotiates the version unless DOCKER_API_VERSION names one, so
+   * the fix is to stop pinning one (an older image pinned 1.44, which Engine
+   * 20.10 to 24 refuse): the latest image, started without the variable. A
+   * version is still pinned where this method keeps it, no higher than the
+   * daemon's maximum.
+   */
+  test("the API version fix unpins the version, and pins one where this method keeps it", () => {
     const topic: string = topicTitled(
       guide.troubleshooting,
       'Agent restarts with "client version is too new"',
     ).markdown;
+    expect(topic).toContain("negotiates the version with the daemon");
+    expect(topic).toContain("an older agent image pinned `1.44`");
+    expect(topic).toContain(
+      isCli
+        ? `docker pull ${DOCKER_AGENT_IMAGE}`
+        : "Take `DOCKER_API_VERSION` out of the agent's `environment:` list",
+    );
     expect(topic).toContain(
       "docker version --format '{{ .Server.APIVersion }}'",
     );
     expect(topic).toContain(
       isCli ? "-e DOCKER_API_VERSION=1.41" : "- DOCKER_API_VERSION=1.41",
-    );
-    expect(topic).toContain(
-      isCli ? "`-e DOCKER_API_VERSION=`" : "`- DOCKER_API_VERSION=`",
     );
   });
 });
@@ -857,8 +868,10 @@ describe("the guide matches agents/DockerAgent", () => {
     expect(repoCollector["environment"]).toContain(
       `DOCKER_HOST_NAME=\${DOCKER_HOST_NAME:-${DOCKER_DEFAULT_HOST_NAME}}`,
     );
+    // Empty: negotiated with the daemon, in the image and in Compose.
+    expect(DOCKER_DEFAULT_API_VERSION).toBe("");
     expect(repoCollector["environment"]).toContain(
-      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${DOCKER_DEFAULT_API_VERSION}}`,
+      `DOCKER_API_VERSION=\${DOCKER_API_VERSION:-${DOCKER_DEFAULT_API_VERSION}}`,
     );
   });
 

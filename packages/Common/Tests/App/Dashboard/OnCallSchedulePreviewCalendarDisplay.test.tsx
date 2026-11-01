@@ -448,16 +448,19 @@ function getCalendarProps(): CapturedCalendarProps {
 }
 
 /*
- * The override resolution has landed: the note under the legend is only
- * rendered once the policy context and the overrides are known, and is
- * withdrawn again while a new window is being fetched.
+ * The override resolution has landed: the preview's data-overrides reads
+ * "resolved" once the policy context and the overrides are known, and goes
+ * back to "resolving" while a new window is being fetched. (This waited for
+ * the scope note under the legend, which is written now only when there is
+ * an override to explain.)
  */
 async function waitForOverridesResolved(): Promise<void> {
   await waitFor(
     () => {
-      expect(
-        screen.getByText(/the same set used to route alerts/),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("layers-preview")).toHaveAttribute(
+        "data-overrides",
+        "resolved",
+      );
     },
     { timeout: TIMEOUT_MS },
   );

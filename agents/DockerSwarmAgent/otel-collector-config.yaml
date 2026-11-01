@@ -7,25 +7,24 @@ receivers:
   docker_stats:
     endpoint: unix:///var/run/docker.sock
     # Docker Engine API version the receiver speaks, from DOCKER_API_VERSION.
+    # Empty by default (docker-compose.yml), and empty means NEGOTIATE.
     #
     # Verified against otel/opentelemetry-collector-contrib:0.161.0:
+    #   * empty makes the receiver let the Docker SDK negotiate (one HEAD
+    #     /_ping, then the daemon's own maximum, down to API 1.40), which
+    #     works against any daemon this agent supports: Docker Engine 20.10
+    #     (API 1.41) to the newest;
     #   * a daemon rejects a client NEWER than its maximum ("client version 1.44
     #     is too new"), and a rejected receiver fails to start, which takes the
-    #     whole collector down with it -- so a host on an older Engine has to be
-    #     able to lower this without replacing the config;
-    #   * the receiver's own default is 1.44 (1.25 is its accepted MINIMUM, not
-    #     its default);
-    #   * leaving this empty is safe, not broken: the receiver then asks the
-    #     Docker SDK to auto-negotiate (one HEAD /_ping, then the daemon's own
-    #     maximum), which works against any daemon. Operators who do not want to
-    #     look their maximum up can set DOCKER_API_VERSION= (empty) instead.
+    #     whole collector down with it -- which is what a pinned 1.44 did to
+    #     every node on Engine 20.10 to 24, so a version is pinned only when
+    #     DOCKER_API_VERSION names one;
+    #   * the receiver's own default, with the field left out, is 1.44 (1.25
+    #     is its accepted MINIMUM, not its default) -- which is why the field
+    #     is here, and empty, rather than left out.
     #
-    # Deliberately a plain ${env:...} and not ${env:...:-1.44}: confmap applies a
-    # ":-" default only when the variable is UNSET, so it would not catch the
-    # empty string Compose injects for an absent .env entry -- and the unset case
-    # already degrades to auto-negotiation, which is the safer of the two.
-    # The default lives in docker-compose.yml; unlike the Docker Host agent this
-    # runs the stock upstream image, so there is no Dockerfile ENV to bake it into.
+    # A plain ${env:...}: an unset variable expands to empty too, which is
+    # the same negotiation.
     api_version: "${env:DOCKER_API_VERSION}"
     collection_interval: 30s
     metrics:
@@ -44,6 +43,18 @@ receivers:
         enabled: true
       container.uptime:
         enabled: true
+    # Copy the labels Swarm puts on every task container onto the metrics of
+    # that container, as RESOURCE attributes (the receiver puts them on the
+    # resource, next to container.name and container.image.name, so
+    # OneUptime stores them resource.-prefixed; a container that is not a
+    # task lacks the labels, and the attributes are simply absent). They are
+    # what a Docker Swarm monitor's Service Name filter matches and what
+    # names a task's service and node in its incidents. Swarm labels a task
+    # with its node's ID only: the node's NAME is stamped from
+    # DOCKER_SWARM_NODE_NAME, by transform/swarm-node-name below.
+    container_labels_to_metric_labels:
+      com.docker.swarm.service.name: docker.swarm.service.name
+      com.docker.swarm.node.id: docker.swarm.node.id
 
   # Container stdout/stderr logs (powers the cluster Logs tab).
   filelog:
@@ -233,11 +244,32 @@ processors:
           - set(metric.description, "CPU used over each collection interval, where 100% is one full CPU core.") where metric.name == "container.cpu.utilization"
           - set(metric.unit, "%") where metric.name == "container.memory.percent"
           - set(metric.description, "Memory in use as a percent of the container's limit, or of host memory if it has none.") where metric.name == "container.memory.percent"
-  # IMPORTANT: we stamp ONLY docker.swarm.cluster.name (the join key)
-  # and the agent version. We deliberately do NOT stamp host.name or
-  # container.runtime, and do NOT run resourcedetection — that would
-  # make OneUptime auto-discover this node as a generic Host / Docker
-  # Host in addition to the swarm cluster.
+  # The node's name, from DOCKER_SWARM_NODE_NAME, as docker.swarm.node.name
+  # on the node's container metrics and logs (install.sh writes the node's
+  # hostname, the name `docker node ls` shows). Left off entirely when the
+  # variable is empty, rather than stamped as an empty name: then only the
+  # node's ID (docker.swarm.node.id, from the task label) says where a task
+  # runs. Not on the inventory pipeline: the inventory describes the whole
+  # cluster, not the node the poller happens to run on.
+  transform/swarm-node-name:
+    error_mode: ignore
+    metric_statements:
+      - context: resource
+        statements:
+          - set(attributes["docker.swarm.node.name"], "${env:DOCKER_SWARM_NODE_NAME}")
+          - delete_key(attributes, "docker.swarm.node.name") where attributes["docker.swarm.node.name"] == ""
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["docker.swarm.node.name"], "${env:DOCKER_SWARM_NODE_NAME}")
+          - delete_key(attributes, "docker.swarm.node.name") where attributes["docker.swarm.node.name"] == ""
+  # IMPORTANT: this config stamps docker.swarm.cluster.name (the join key)
+  # and the agent version on everything, and the node's name above -- never
+  # host.name, and no resourcedetection. The docker_stats receiver itself
+  # puts container.runtime=docker on every container's metrics, as it does
+  # on a Docker host, so host.name is what would make OneUptime
+  # auto-discover each node as a generic Host / Docker Host in addition to
+  # the swarm cluster.
   resource:
     attributes:
       - key: docker.swarm.cluster.name
@@ -276,13 +308,21 @@ service:
           cumulative_to_delta/cpu-utilization,
           delta_to_rate/cpu-utilization,
           transform/percent-units,
+          transform/swarm-node-name,
           resource,
           batch,
         ]
       exporters: [otlphttp]
     logs:
       receivers: [filelog]
-      processors: [memory_limiter, filter/drop_self_logs, resource, batch]
+      processors:
+        [
+          memory_limiter,
+          filter/drop_self_logs,
+          transform/swarm-node-name,
+          resource,
+          batch,
+        ]
       exporters: [otlphttp]
     logs/inventory:
       receivers: [filelog/inventory]

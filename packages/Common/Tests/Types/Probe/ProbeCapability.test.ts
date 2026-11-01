@@ -18,6 +18,8 @@ describe("ProbeCapability", () => {
     expect(ProbeCapability.SnmpTables).toBe("snmpTables");
     // Only a probe declaring this is handed SNMP walks and credentials.
     expect(ProbeCapability.SnmpWalk).toBe("snmpWalk");
+    // Only a probe declaring this is handed databases to scan.
+    expect(ProbeCapability.DataSecurityScan).toBe("dataSecurityScan");
   });
 
   test("every capability is a distinct wire string a request is read for", () => {

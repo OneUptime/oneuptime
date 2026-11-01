@@ -539,6 +539,26 @@ describe("DataSourceHttpFetch.fetch - headers and body encoding", () => {
     await DataSourceHttpFetch.fetch(makeRequest({ method: "PUT", body: "x" }));
     expect(getAxiosConfig().data).toBe("x");
   });
+
+  /*
+   * A response action changes one setting of a cloud resource: PATCH, with
+   * only that setting in its body (a PUT would reset the rest).
+   */
+  test("PATCH sends its body, JSON-encoded like POST's", async () => {
+    await DataSourceHttpFetch.fetch(
+      makeRequest({
+        method: "PATCH",
+        body: '{"properties":{"allowBlobPublicAccess":false}}',
+      }),
+    );
+    const config: AxiosRequestConfig = getAxiosConfig();
+
+    expect(config.method).toBe("PATCH");
+    expect(config.data).toBe('{"properties":{"allowBlobPublicAccess":false}}');
+    expect((config.headers as Dictionary<string>)["Content-Type"]).toBe(
+      "application/json",
+    );
+  });
 });
 
 /*
@@ -718,6 +738,60 @@ describe("DataSourceHttpFetch.fetch - response handling", () => {
     expect(response.statusCode).toBe(204);
     expect(response.bodyText).toBe("");
     expect(response.bodyJson).toBeUndefined();
+  });
+
+  test("keeps no bytes unless asked: a text answer has no bodyBytes", async () => {
+    axiosMock.mockResolvedValue({ status: 200, data: "plain text response" });
+    const response: DataSourceHttpResponse =
+      await DataSourceHttpFetch.fetch(makeRequest());
+    expect("bodyBytes" in response).toBe(false);
+  });
+
+  test("a reader of files gets the bytes as they came, not their text", async () => {
+    // A gzip header and bytes that are not UTF-8: text would replace them.
+    const bytes: Buffer = Buffer.from([
+      0x1f, 0x8b, 0x08, 0x00, 0xff, 0xfe, 0x80, 0x00, 0xc3,
+    ]);
+    axiosMock.mockResolvedValue({ status: 200, data: bytes });
+
+    const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch(
+      makeRequest({ keepBodyBytes: true }),
+    );
+    const config: AxiosRequestConfig = getAxiosConfig();
+
+    expect(config.responseType).toBe("arraybuffer");
+    expect(response.statusCode).toBe(200);
+    expect(response.bodyBytes).toBeDefined();
+    expect(Buffer.compare(response.bodyBytes!, bytes)).toBe(0);
+    expect(response.bodyText).toBe(bytes.toString("utf8"));
+    expect(response.bodyJson).toBeUndefined();
+  });
+
+  test("the bytes transform turns axios' ArrayBuffer into a Buffer and leaves a Buffer as it is", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest({ keepBodyBytes: true }));
+    const config: AxiosRequestConfig = getAxiosConfig();
+    const transforms: Array<(body: ArrayBuffer | Buffer) => Buffer> =
+      config.transformResponse as Array<(body: ArrayBuffer | Buffer) => Buffer>;
+    const source: Uint8Array = new Uint8Array([1, 2, 250]);
+    const fromArrayBuffer: Buffer = transforms[0]!(
+      source.buffer as ArrayBuffer,
+    );
+    const buffer: Buffer = Buffer.from([9, 8]);
+
+    expect(Buffer.isBuffer(fromArrayBuffer)).toBe(true);
+    expect([...fromArrayBuffer]).toEqual([1, 2, 250]);
+    expect(transforms[0]!(buffer)).toBe(buffer);
+  });
+
+  test("a JSON answer read as bytes is still parsed", async () => {
+    axiosMock.mockResolvedValue({
+      status: 200,
+      data: Buffer.from('{"ok":true}', "utf8"),
+    });
+    const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch(
+      makeRequest({ keepBodyBytes: true }),
+    );
+    expect(response.bodyJson).toEqual({ ok: true });
   });
 });
 

@@ -118,7 +118,7 @@ OneUptime controlla anche ogni deploy da solo, che qualcuno venga avvisato o no.
 
 Una pull request di correzione che OneUptime AI ha aperto viene verificata allo stesso modo: appena un deploy registrato contiene il suo commit, OneUptime osserva lì ciò per cui serviva la correzione - l'eccezione, l'operazione che ha reso più veloce, il monitor dietro l'incidente o l'avviso, la telemetria che aggiunge - e indica se la correzione ha funzionato (vedi [Correzioni automatiche del codice](/docs/ai/ai-sre#correzioni-automatiche-del-codice)). La correzione distribuita viene letta nella versione del deploy solo quando la telemetria del servizio riporta essa stessa quella versione, e altrimenti da 10 minuti dopo il deploy, quando le vecchie istanze si sono fermate.
 
-In un'indagine e in [Chiedi all'IA](/docs/ai/ask-ai), `recent_changes` elenca le modifiche in qualsiasi finestra di tempo, e `get_change_details` mostra che cosa ha rilasciato un deploy: i commit dal deploy precedente del servizio, i loro autori, le pull request e i file che hanno toccato. Per questo servono il commit sulla modifica e un repository collegato tramite la [GitHub App](/docs/ai/github-app).
+In un'indagine e in [Chiedi all'IA](/docs/ai/ask-ai), `recent_changes` elenca le modifiche in qualsiasi finestra di tempo, e `get_change_details` mostra che cosa ha rilasciato un deploy: i commit dal deploy precedente del servizio, i loro autori, le pull request e i file che hanno toccato. Per questo servono il commit sulla modifica e il suo repository collegato in Codice: tramite la [GitHub App](/docs/ai/github-app), o una connessione GitLab, Forgejo o Gitea (vedi [Collegare un repository](/docs/ai/ai-agent#collegare-un-repository)).
 
 ## Riferimento
 

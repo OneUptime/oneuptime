@@ -298,7 +298,7 @@ flowchart TB
 - **In Ihrem behobenen Status oder danach** – **Behoben** oder ein Status darunter – ist der Vorfall vorbei; zusätzlich läuft also nichts, was auf einen laufenden Vorfall reagiert:
   - er wird keiner Episode zugeordnet, die erneut alarmieren könnte;
   - keine Runbook-Regel und keine KI-Regel wirkt auf ihn;
-  - die OneUptime-KI untersucht ihn nicht – seine Karte **KI-Untersuchung** sagt, dass er bereits behoben angelegt wurde, und **Ask OneUptime AI** darunter beantwortet weiterhin Fragen dazu;
+  - die OneUptime-KI untersucht ihn nicht – seine Karte **OneUptime AI** sagt, dass er bereits behoben angelegt wurde, und **Ask OneUptime AI** darunter beantwortet weiterhin Fragen dazu;
   - es wird kein Slack- oder Microsoft-Teams-Kanal für ihn angelegt;
   - seine Monitore behalten ihren Status und werden weiter überwacht, egal was **Monitor-Status ändern in** sagt;
   - für ihn wird kein SLA gestartet.

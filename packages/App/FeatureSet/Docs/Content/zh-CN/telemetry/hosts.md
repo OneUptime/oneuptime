@@ -32,7 +32,7 @@ flowchart TB
 | **收集器配置** 中第一个适用于它的配置 | 配置面向主机的系统，并且如果配置指定了标签，主机带有其中之一时，该配置适用。 |
 | 其系统的 OneUptime 默认配置 | 没有适用的配置。 |
 
-OneUptime 默认配置在任何系统上都会读取 CPU、内存、磁盘、文件系统、网络和进程；在 Linux 上，如果主机有 journal 和 systemd 单元，还会读取它们；在 Windows 上读取 System、Application 和 Security 事件日志以及 Windows 服务；在 macOS 上读取 `/var/log` 中的安装日志和 Wi-Fi 日志。它随 OneUptime 的发布版本更新，因此使用默认配置的主机会获得 OneUptime 对它的改进。
+OneUptime 默认配置在任何系统上都会读取 CPU、内存、磁盘、文件系统、网络和进程；在 Linux 上，如果主机有 journal 和 systemd 单元，还会读取它们；在 Windows 上读取 System、Application 和 Security 事件日志以及 Windows 服务；在 macOS 上读取 `/var/log` 中的安装日志和 Wi-Fi 日志。它会排除按设计就是满的文件系统，例如 snap 软件包和 macOS 的 `/dev`，因此它们永远不会让 High Filesystem Usage 模板一直触发。它随 OneUptime 的发布版本更新，因此使用默认配置的主机会获得 OneUptime 对它的改进。
 
 ## 开始之前
 

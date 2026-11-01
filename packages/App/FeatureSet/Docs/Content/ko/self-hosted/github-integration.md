@@ -78,7 +78,7 @@ GitHub 문서에 따르면 **Request user authorization (OAuth) during installat
 | Contents | Read and write | 저장소 파일을 읽고 AI 수정 pull request의 브랜치를 push |
 | Pull requests | Read and write | pull request를 열고 업데이트하며 리뷰를 게시 |
 | Issues | Read and write | 앱의 댓글 게시. **pull request에서도 마찬가지**이며, GitHub는 pull request 대화를 issues API로 처리합니다 |
-| Checks | Read-only | 선택 사항. 수정 pull request의 CI 결과를 읽습니다. 이 권한이 없으면 CI 상태는 검증되지 않은 채로 남습니다 |
+| Checks | Read and write | 선택 사항. 수정 pull request의 CI 결과를 읽고, 프로덕션 리뷰마다 체크를 추가합니다. Read-only이면 CI 결과는 읽지만 체크는 추가하지 않습니다. 이 권한이 없으면 수정 pull request의 CI 상태는 검증되지 않은 채로 남습니다 |
 | Metadata | Read-only | 저장소의 기본 메타데이터(GitHub 필수) |
 
 **앱을 대화형으로 만드는 것은 Issues: Read and write입니다.** 이 권한이 없으면 멘션은 수신되지만 앱이 답하려는 순간 조용히 실패합니다. GitHub는 pull request 대화의 댓글을 issues API로 제공하므로, 앱이 쓰는 모든 답장이 이 권한 하나에 달려 있습니다. [GitHub에서 OneUptime 사용하기](/docs/ai/github-app)를 참고하세요.

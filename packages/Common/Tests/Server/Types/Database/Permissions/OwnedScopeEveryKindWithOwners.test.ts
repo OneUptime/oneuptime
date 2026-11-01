@@ -1084,6 +1084,7 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
   "NetworkDeviceDiagnostic.probe": PICKS_A_PROBE,
   "NetworkDeviceDiscoveryScan.probe": PICKS_A_PROBE,
   "NetworkSite.probe": PICKS_A_PROBE,
+  "DataSecurityScan.probe": PICKS_A_PROBE,
   "PacketCapture.probe": PICKS_A_PROBE,
   "PushNotificationLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "RunbookVariable.runners": PICKS_RUNNERS,

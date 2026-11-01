@@ -1320,6 +1320,9 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: LATEST_RELEASE_CHECK_URL
   value: {{ default "" $.Values.updateCheck.url | quote }}
 
+- name: SECURITY_ADVISORIES_CHECK_URL
+  value: {{ default "" (($.Values.updateCheck).securityAdvisoriesUrl) | quote }}
+
 - name: DISABLE_INSTANCE_CHECK_IN
   value: {{ default false (($.Values.instanceCheckIn).disabled) | squote }}
 

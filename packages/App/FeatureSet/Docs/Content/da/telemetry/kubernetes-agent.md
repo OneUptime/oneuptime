@@ -452,16 +452,7 @@ På klynger med Windows-nodepuljer dækker tilstanden `daemonset` kun Linux-node
 
 ### Slå overvågning af kontrolplanet til
 
-Klyngens side **Kontrolplan** viser grafer for etcd, API-serveren, scheduleren og controller manageren. Agenten scraper alle fire, når `controlPlane.enabled` er `true`:
-
-```bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent \
-  --reset-then-reuse-values \
-  --set controlPlane.enabled=true
-```
-
-Hver komponent scrapes på adresserne i sin egen liste: `controlPlane.etcd.endpoints`, `controlPlane.apiServer.endpoints`, `controlPlane.scheduler.endpoints` og `controlPlane.controllerManager.endpoints`. Scrapet kører i agentens pod, som ikke har noget værtsnetværk, så standarderne (`https://localhost:<port>/metrics`) peger på selve den pod: sæt hver liste til en adresse, som poden kan nå. Inde i enhver klynge svarer API-serveren på `https://kubernetes.default.svc:443/metrics`:
+Klyngens side **Kontrolplan** viser grafer for etcd, API-serveren, scheduleren og controller manageren. Slå `controlPlane.enabled` til, så læser agenten API-serveren, hvor den svarer inde i enhver klynge, `https://kubernetes.default.svc:443/metrics`, med sin serviceaccounts token:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -471,12 +462,31 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
 
-`controlPlane.enabled` slår alle fire scrapes til på én gang. Hvor en komponent ikke kan nås på sine endpoints (etcd, scheduleren og controller manageren på en administreret klynge, eller på deres `localhost`-standarder), fejler dens scrape ved hvert interval: collectoren logger en scrape-fejl og rapporterer målet som nede, og intet andet ændres.
+Den adresse er chartets standard for `controlPlane.apiServer.endpoints`; at sætte den alligevel flytter også en release, der har beholdt et ældre charts `localhost`-standard.
 
-Agenten scraper kun over HTTPS, med serviceaccountens token og uden klientcertifikat. Derfor:
+etcd, scheduleren og controller manageren kører på kontrolplanets noder, og scrapet kører i agentens pod, som ikke har noget værtsnetværk: `localhost` er dér selve poden. Derfor er `controlPlane.etcd.endpoints`, `controlPlane.scheduler.endpoints` og `controlPlane.controllerManager.endpoints` tomme, indtil du angiver hver nodes adresse, og en komponent uden endpoints scrapes ikke:
 
-- **etcd** kræver en HTTPS-metrikadresse, der ikke beder om et klientcertifikat. etcd's sædvanlige metrikporte er uden for rækkevidde: almindelig HTTP på `2381` (kubeadms `--listen-metrics-urls`) scrapes som HTTPS og fejler, og `2379` kræver klientcertifikater.
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.scheduler.endpoints={https://10.0.0.10:10259/metrics}" \
+  --set "controlPlane.controllerManager.endpoints={https://10.0.0.10:10257/metrics}" \
+  --set "controlPlane.etcd.endpoints={http://10.0.0.10:2381/metrics}"
+```
+
+Et endpoint scrapes over HTTPS med serviceaccountens token, medmindre det begynder med `http://`; så scrapes det over almindelig HTTP. En komponents endpoints deler ét skema. Hvor en komponent ikke kan nås på sine endpoints, fejler dens scrape ved hvert interval: collectoren logger en scrape-fejl og rapporterer målet som nede, og intet andet ændres.
+
 - **Scheduleren** (`10259`) og **controller manageren** (`10257`) serverer HTTPS og accepterer tokenet, men kubeadm binder dem til `127.0.0.1` på kontrolplanets noder: de kræver en `--bind-address`, som agentens pod kan nå.
+- **etcd** serverer sine metrikker over almindelig HTTP på `2381` (kubeadms `--listen-metrics-urls`, bundet til `127.0.0.1`, indtil du tilføjer nodens adresse), som ovenfor. Dens klientport, `2379`, serverer HTTPS og beder om et klientcertifikat: læg et i en Secret i agentens namespace under nøglerne `ca.crt`, `tls.crt` og `tls.key`, og angiv den i `controlPlane.etcd.clientCertSecret`. På en kubeadm-kontrolplannode kan health check-klientens certifikat bruges:
+
+```bash
+kubectl -n oneuptime-agent create secret generic etcd-client-cert \
+  --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+  --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+  --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+```
 
 Administrerede Kubernetes-tjenester (EKS, GKE, AKS) eksponerer ikke etcd, scheduleren eller controller manageren, så de faner forbliver tomme der. Indtil en fanes metrikker ankommer, viser siden **Kontrolplan** i stedet for dens grafer, hvad der skal sættes, med kommandoen til at kopiere.
 
@@ -823,7 +833,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-Dette stopper kun pod-logs. Node-, pod- og containermetrikker bliver ved med at flyde, og de monitorer, der bygger på dem (OOM-kills, CPU-throttling, lav PVC-diskplads), bliver ved med at virke: node-collectoren bliver, den holder bare op med at læse `/var/log/pods`. Det samme gælder for `logs.mode: api` og `logs.mode: disabled`.
+Dette stopper kun pod-logs. Node-, pod- og containermetrikker bliver ved med at flyde, og de monitorer, der bygger på dem (crash-loops, noder, der ikke er klar, pods, der rammer deres grænser, fulde nodediske), bliver ved med at virke: node-collectoren bliver, den holder bare op med at læse `/var/log/pods`. Det samme gælder for `logs.mode: api` og `logs.mode: disabled`.
 
 ### Begræns eBPF-autoinstrumentering
 
@@ -877,7 +887,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Kardinalitet, antallet af forskellige serier, betyder lige så meget som hyppighed, fordi hver serie gemmes og faktureres for sig.
 
-- cAdvisor er med vilje begrænset af en tilladelsesliste. Receiveren cAdvisor (slået til som standard) kan udsende hundredvis af metrikker; chartet videresender kun de få, som monitorer bruger (`cadvisor.metricsAllowlist`). Hold listen kort: hver post beholdes pr. container, så én metrik mere ganges med klyngens antal containere. kube-state-metrics er slået fra som standard; slår du den til (`kubeStateMetrics.enabled=true`), virker dens `kubeStateMetrics.metricsAllowlist` på samme måde.
+- cAdvisor er med vilje begrænset af en tilladelsesliste. Receiveren cAdvisor (slået til som standard) kan udsende hundredvis af metrikker; chartet videresender kun tællerne for CPU-throttling og OOM-kills i `cadvisor.metricsAllowlist`, til dine egne grafer og metrikmonitorer: ingen indbygget skabelon læser dem. Hold listen kort: hver post beholdes pr. container, så én metrik mere ganges med klyngens antal containere. kube-state-metrics er slået fra som standard; slår du den til (`kubeStateMetrics.enabled=true`), virker dens `kubeStateMetrics.metricsAllowlist` på samme måde, og hver post skal matche hele navnet på en metrik.
 - Volumenmetrikker pr. PVC (`kubeletstats.volumeMetrics.enabled`, slået til som standard) udsender én serie pr. PVC pr. pod: fint for de fleste klynger, meget på tilstandsfulde workloads (Kafka, databaser) med tusindvis af PVC'er. Slå dem fra der, hvis du ikke overvåger PVC-diskplads, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Mætningsmetrikker (`kubeletstats.utilizationMetrics.enabled`, slået til som standard) tilføjer 8 afledte familier for "% af request eller limit". De koster intet ekstra scrape, men bruger du ikke monitorerne for CPU og hukommelse i forhold til limit, så drop dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Drop metrikker efter navn med `filters.metrics.exclude`, som gælder for alle receivers, for alt, hvad receivernes tilladelseslister ikke kan udtrykke (se [Inkludering eller udelukkelse af metrikker efter navn](#inkludering-eller-udelukkelse-af-metrikker-efter-navn)):
@@ -977,7 +987,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Stram yderligere op efter behov: hæv `minSeverity` til `ERROR`, føj `metrics` til områderne i en namespace-regel, eller sæt `ebpf.enabled=false`, hvis du allerede sender traces fra OpenTelemetry-SDK'er.
 
 > [!CAUTION]
-> Hold øje med, hvad du skærer væk. Nogle monitorer afhænger af bestemte signaler: at slå `cadvisor` fra fjerner monitorerne for OOM-kills og CPU-throttling, at slå `kubeletstats.volumeMetrics` fra fjerner monitoren for lav PVC-diskplads, og at slå logs fra fjerner logbaserede advarsler. `sampling.traces.percentage` fjerner ingen monitor, men skalerer de spanbaserede ned (**Spor** på `Span Count`, **Undtagelser** på `Exception Count`), så juster deres tærskler. Skær de signaler væk, du ikke handler på, ikke dem, en monitor overvåger.
+> Hold øje med, hvad du skærer væk. Nogle monitorer afhænger af bestemte signaler: at slå `kubeletstats.utilizationMetrics` fra bringer de to skabeloner, der måler pods mod deres containergrænser, til tavshed, at slå logs fra fjerner logbaserede advarsler, og at slå `cadvisor` eller `kubeletstats.volumeMetrics` fra fjerner de serier for throttling, OOM-kills og PVC'er, som dine egne grafer og metrikmonitorer kan læse. `sampling.traces.percentage` fjerner ingen monitor, men skalerer de spanbaserede ned (**Spor** på `Span Count`, **Undtagelser** på `Exception Count`), så juster deres tærskler. Skær de signaler væk, du ikke handler på, ikke dem, en monitor overvåger.
 
 ### Mål effekten
 
@@ -1073,7 +1083,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## Næste trin
 
 :::cards
-- [Kubernetes-monitor](/docs/monitor/kubernetes-monitor): Advar ved crash-loops, OOM-kills, CPU-throttling og fulde diske.
+- [Kubernetes-monitor](/docs/monitor/kubernetes-monitor): Advar ved crash-loops, noder, der ikke er klar, pods, der rammer deres grænser, og fulde nodediske.
 - [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost): Se, hvad hver workload koster, og hvilke requests der kan skrumpes.
 - [Databaser](/docs/telemetry/databases): Database-workloads i klyngen findes og får deres egne sider.
 - [OpenTelemetry-collector på værten](/docs/telemetry/host-otel-collector): Overvåg Linux-, macOS- og Windows-maskiner uden for Kubernetes.

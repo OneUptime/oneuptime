@@ -1,4 +1,10 @@
-import SecurityLogFormat from "Common/Types/SecurityEvent/SecurityLogFormat";
+import SecurityLogFormat, {
+  SecurityLogFormatGroup,
+} from "Common/Types/SecurityEvent/SecurityLogFormat";
+import {
+  GOOGLE_WORKSPACE_DRIVE_KEY,
+  MICROSOFT_365_AUDIT_KEY,
+} from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventDestinationScope from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import SecurityEventDestinationProvider from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -33,6 +39,12 @@ export const SECURITY_LOG_FORMAT_TEXTS: Record<
       "Commands run as another user, wrong sudo passwords and people not allowed to use sudo.",
     ),
   },
+  [SecurityLogFormat.WindowsEvents]: {
+    title: translationKey("Windows events"),
+    description: translationKey(
+      "Sign-ins, new processes, accounts and groups changed, services installed and logs cleared, from Windows, Sysmon and Microsoft Defender.",
+    ),
+  },
   [SecurityLogFormat.KubernetesAudit]: {
     title: translationKey("Kubernetes audit logs"),
     description: translationKey(
@@ -45,12 +57,50 @@ export const SECURITY_LOG_FORMAT_TEXTS: Record<
       "Console sign-ins, changes made in your AWS accounts and calls AWS refused.",
     ),
   },
+  [SecurityLogFormat.GoogleCloudAudit]: {
+    title: translationKey("Google Cloud audit logs"),
+    description: translationKey(
+      "Changes made in your Google Cloud projects, calls Google refused, and Google Workspace sign-ins shared with Google Cloud.",
+    ),
+  },
+  [SecurityLogFormat.AzureActivity]: {
+    title: translationKey("Azure activity and Entra ID logs"),
+    description: translationKey(
+      "Changes made in your Azure subscriptions, Defender for Cloud alerts, and Microsoft Entra ID sign-ins and directory changes.",
+    ),
+  },
+  [SecurityLogFormat.Cef]: {
+    title: translationKey("CEF"),
+    description: translationKey(
+      "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.",
+    ),
+  },
+  [SecurityLogFormat.Leef]: {
+    title: translationKey("LEEF"),
+    description: translationKey(
+      "The same from products that send Log Event Extended Format, as many do for IBM QRadar.",
+    ),
+  },
   [SecurityLogFormat.WebAttack]: {
     title: translationKey("Web attacks"),
     description: translationKey(
       "Requests in a web server's access log that try SQL injection, path traversal or Log4Shell.",
     ),
   },
+};
+
+/*
+ * Where each kind of log comes from, as Your logs groups them: four places a
+ * team knows instead of ten formats in a row.
+ */
+export const SECURITY_LOG_FORMAT_GROUP_TEXTS: Record<
+  SecurityLogFormatGroup,
+  string
+> = {
+  [SecurityLogFormatGroup.Servers]: translationKey("Servers"),
+  [SecurityLogFormatGroup.Cloud]: translationKey("Cloud"),
+  [SecurityLogFormatGroup.SecurityDevices]: translationKey("Security devices"),
+  [SecurityLogFormatGroup.Applications]: translationKey("Applications"),
 };
 
 export const SECURITY_EVENT_DESTINATION_SCOPE_TEXTS: Record<
@@ -225,6 +275,18 @@ export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
     title: translationKey("Close alerts when their case closes"),
     description: translationKey(
       "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
+    ),
+  },
+  [MICROSOFT_365_AUDIT_KEY]: {
+    title: translationKey("Microsoft 365 audit log"),
+    description: translationKey(
+      "Also import Exchange, SharePoint, OneDrive and Teams activity. The app registration needs the ActivityFeed.Read permission of the Office 365 Management APIs.",
+    ),
+  },
+  [GOOGLE_WORKSPACE_DRIVE_KEY]: {
+    title: translationKey("Drive activity"),
+    description: translationKey(
+      "Also import files shared outside the organization, made public or downloaded in Google Drive.",
     ),
   },
 };

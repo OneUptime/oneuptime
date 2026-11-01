@@ -1,6 +1,9 @@
 import { CodeTaskResponse } from "./CodeApi";
 import { getProductionReviewsRoute, getRepositoryRoute } from "./CodePaths";
-import { PRODUCTION_REVIEW_COPY } from "./CodeProductionReviewCopy";
+import {
+  PRODUCTION_REVIEW_COPY,
+  inReviewHostWords,
+} from "./CodeProductionReviewCopy";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -18,7 +21,8 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  *
  * A pull request's production review sits under its repository's
  * Production Reviews: Project > Code > the repository > Production Reviews
- * > Pull request #42.
+ * > Pull request #42 - in its host's words, so a GitLab merge request's is
+ * Merge request !12, as its page's title and button say it.
  */
 export const getCodeTaskTrail: (data: {
   taskId: string;
@@ -70,7 +74,10 @@ export const getCodeTaskTrail: (data: {
     links.push({
       title: data.response.task.origin.label
         ? data.translator.translateTemplate(
-            PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+            inReviewHostWords(
+              PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+              data.response.repository?.provider,
+            ),
             { label: data.response.task.origin.label },
           )
         : data.translator.translateTemplate(PRODUCTION_REVIEW_COPY.recipeLabel),

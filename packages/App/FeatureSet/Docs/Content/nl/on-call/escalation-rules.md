@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+Roept iemand je op vanuit Slack of Microsoft Teams, dan zegt de sms na `OneUptime:` wie wie opriep, en ook die woorden worden nooit ingekort:
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Eén teken buiten het eenvoudige alfabet van sms'jes laat het hele bericht in delen van 70 tekens vertrekken. Daarom worden gekrulde aanhalingstekens en gedachtestreepjes geschreven als `"`, `'` en `-`, `…` als `...`, en verliezen letters als `ç` en `ł` hun accenten; emoji worden weggelaten. Een titel in een ander schrift, zoals Japans of Russisch, wordt verstuurd zoals hij is geschreven, en neemt twee delen of meer.
 
 De andere sms'jes die OneUptime u stuurt, bijvoorbeeld over een wijziging in een incident waarvan u eigenaar bent of het begin van uw dienst, beginnen ook met `OneUptime:` en eindigen met `Turn off in User Settings > Notification Settings.`, een zin die wordt weggelaten als de sms juist daardoor in één deel past.

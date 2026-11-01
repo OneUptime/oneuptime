@@ -355,11 +355,21 @@ export default class WorkspaceActionAnswers {
    * no name; a record whose change cannot be found says only where it is.
    * Acknowledging a record that is resolved says it is resolved. Executing
    * an on-call policy for a resolved record says that nobody was paged.
+   *
+   * Acknowledge pressed by somebody a person's page paged into the record
+   * answered their page (OnCallPersonPageAnswer.onAcknowledgePressed,
+   * `answeredPageCount`): that is what the press did, so it is said first,
+   * and who is on the record after it:
+   *
+   *   ✅ You acknowledged the page for **Incident INC-2**, so paging
+   *   stopped. **Simon Lee** acknowledged the incident at 6:07 PM.
    */
   @CaptureSpan()
   public static async getAlreadyAnswer(data: {
     event: WorkspaceEventRecord;
     press: WorkspaceLatePress;
+    // The presser's own person's pages the press answered.
+    answeredPageCount?: number | undefined;
   }): Promise<WorkspaceAnswer> {
     const record: WorkspaceRecordName = await this.getRecordName(data.event);
 
@@ -387,6 +397,20 @@ export default class WorkspaceActionAnswers {
 
     const verb: string = this.getStandingVerb(standing);
     const recordMarkdown: MarkdownText = this.getRecordMarkdown(record);
+
+    // The press answered the presser's own page (see above).
+    if (
+      data.press === WorkspaceLatePress.Acknowledge &&
+      standing === LateStanding.Acknowledged &&
+      (data.answeredPageCount || 0) > 0
+    ) {
+      return this.getPageAcknowledgedAnswer({
+        event: data.event,
+        record: record,
+        acknowledgedBy: name,
+        acknowledgedAt: change?.startsAt,
+      });
+    }
 
     let markdown: MarkdownText;
     let text: string;
@@ -425,6 +449,42 @@ export default class WorkspaceActionAnswers {
       markdown: mdText`✅ ${markdown}.`.toString(),
       text: text,
     };
+  }
+
+  /*
+   * A late Acknowledge that answered the presser's page about the record
+   * (getAlreadyAnswer): what the press did, then who is on the record -
+   * "**Simon Lee** acknowledged the incident at 6:07 PM." - or only when,
+   * or nothing more when that cannot be told.
+   */
+  private static getPageAcknowledgedAnswer(data: {
+    event: WorkspaceEventRecord;
+    record: WorkspaceRecordName;
+    acknowledgedBy: string | null;
+    acknowledgedAt: Date | undefined;
+  }): WorkspaceAnswer {
+    const noun: string =
+      data.event.type === WorkspaceEventType.Alert ? "alert" : "incident";
+    const answered: MarkdownText = mdText`✅ You acknowledged the page for ${this.getRecordMarkdown(data.record)}, so paging stopped.`;
+    const text: string = `You acknowledged the page for ${data.record.label}, so paging stopped`;
+
+    if (data.acknowledgedAt && data.acknowledgedBy) {
+      return {
+        markdown:
+          mdText`${answered} **${data.acknowledgedBy}** acknowledged the ${noun} at ${WorkspaceMessageTime.time(data.acknowledgedAt)}.`.toString(),
+        text: text,
+      };
+    }
+
+    if (data.acknowledgedAt) {
+      return {
+        markdown:
+          mdText`${answered} The ${noun} was acknowledged at ${WorkspaceMessageTime.time(data.acknowledgedAt)}.`.toString(),
+        text: text,
+      };
+    }
+
+    return { markdown: answered.toString(), text: text };
   }
 
   // The record as answers name it: "Incident INC-2", with its link.

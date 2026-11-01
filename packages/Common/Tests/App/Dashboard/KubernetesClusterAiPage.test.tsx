@@ -2245,16 +2245,16 @@ describe("What AI may do", () => {
     ).getByTestId("ai-access-automatic-remediation");
 
     expect(line).toHaveTextContent(
-      "Automatic fixes for new incidents in this project: Off · alerts: On",
+      "This project fixes new alerts automatically, but not new incidents.",
     );
     expect(
-      within(line).getByRole("link", { name: /Incident AI settings/ }),
+      within(line).getByRole("link", { name: /Turn on for incidents/ }),
     ).toHaveAttribute(
       "href",
       expect.stringContaining("/incidents/ai/settings"),
     );
     expect(
-      within(line).queryByRole("link", { name: /Alert AI settings/ }),
+      within(line).queryByRole("link", { name: /Turn on for alerts/ }),
     ).toBeNull();
     expect(
       within(screen.getByTestId("ai-access-investigation")).queryByTestId(
@@ -2266,6 +2266,7 @@ describe("What AI may do", () => {
   test("with both switches on, the automatic-fix line links nothing", async () => {
     serve(
       makeStatus({
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
         automaticRemediation: { incidents: true, alerts: true },
       }),
     );
@@ -2276,9 +2277,30 @@ describe("What AI may do", () => {
     ).getByTestId("ai-access-automatic-remediation");
 
     expect(line).toHaveTextContent(
-      "Automatic fixes for new incidents in this project: On · alerts: On",
+      "This project fixes new incidents and alerts automatically.",
     );
     expect(within(line).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  /*
+   * With the cluster's own fixes off, the project's switches change
+   * nothing there yet: the hint that turns the fixes on is the one next
+   * step, so the line waits until they are on.
+   */
+  test("with the cluster's fixes off, no automatic-fix line: only the hint that turns them on", async () => {
+    serve(
+      makeStatus({
+        remediationMode: KubernetesAiRemediationMode.Disabled,
+        automaticRemediation: { incidents: false, alerts: false },
+      }),
+    );
+    openAgentPage();
+
+    await findTestId("ai-access-fixes");
+    expect(
+      screen.queryByTestId("ai-access-automatic-remediation"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("ai-access-fixes-off-hint")).toBeInTheDocument();
   });
 
   test("an older server that sends no automatic-fix switches draws no line", async () => {

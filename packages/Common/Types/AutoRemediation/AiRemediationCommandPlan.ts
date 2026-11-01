@@ -135,6 +135,44 @@ export enum AiRemediationRollbackStatus {
   NotApplicable = "NotApplicable",
 }
 
+/*
+ * A DRY RUN of one change a plan proposes, checked for the person about to
+ * approve it: the resource's AI agent ran the change's checks and the reads
+ * it makes first, and stopped before the call that makes it (for a cloud
+ * account, `cloud dry-run <change>`, CloudOperationCatalog). Facts about
+ * the change, never what decides whether it runs: approving runs the
+ * change exactly as recorded, and the agent checks it again then.
+ */
+export enum AiRemediationDryRunStatus {
+  // OneUptime asked the agent; the answer is on its way.
+  Running = "Running",
+  // The agent found nothing that would stop the change.
+  WouldRun = "WouldRun",
+  // Something would stop it; summary says what.
+  WouldBeRefused = "WouldBeRefused",
+  // The dry run could not answer (no agent, a read it could not make, no answer in time).
+  Failed = "Failed",
+}
+
+export interface AiRemediationCommandDryRun {
+  status: AiRemediationDryRunStatus;
+  // ISO 8601: when it was asked for (Running) or answered.
+  checkedAt: string;
+  /*
+   * What the agent said, in its own words (English, like a command's
+   * output): what would change and how it would be undone, or why it would
+   * not run, or why the dry run could not answer. Redacted and capped.
+   */
+  summary?: string | undefined;
+  // What the change would replace, read from the agent's replaced-value line.
+  replaced?: Record<string, string> | undefined;
+  // The job that ran it, for the resource's AI Logs.
+  runnerJobId?: string | undefined;
+}
+
+// The longest dry-run summary kept on a plan.
+export const MAX_DRY_RUN_SUMMARY_CHARS: number = 1500;
+
 export interface AiRemediationCommandExecutionState {
   status: AiRemediationCommandExecutionStatus;
   runnerJobId?: string | undefined;
@@ -183,6 +221,14 @@ export interface AiRemediationCommand {
   resourceId?: string | undefined;
   resourceNameSnapshot?: string | undefined;
   resourceCommandTier?: ResourceCommandTier | undefined;
+  /*
+   * ResourceCommand on a cloud account only: the code that declares the
+   * resource the change names ('CloudFormation stack "web"', "Terraform"),
+   * read from its tags when the change was composed. Such a change is only
+   * ever proposed — a person approves it — and the card says the next
+   * apply may put the old value back. Absent when no code declares it.
+   */
+  managedAsCode?: string | undefined;
   command: string;
   timeoutInMs: number;
   // Why the AI wants to run this — shown verbatim on the approval card.
@@ -215,6 +261,12 @@ export interface AiRemediationCommand {
    * object, which verification reads again to notice the change put back.
    */
   revertWatch?: AiRemediationRevertWatch | undefined;
+  /*
+   * A change proposed for approval, on a resource whose agent can dry-run
+   * it (a cloud account's Cloud AI agent): the latest dry run of it.
+   * Absent when none was asked for.
+   */
+  dryRun?: AiRemediationCommandDryRun | undefined;
   execution?: AiRemediationCommandExecutionState | undefined;
   rollbackExecution?: AiRemediationCommandExecutionState | undefined;
 }
@@ -266,6 +318,13 @@ export function isSettledCommandExecutionStatus(
 export const INLINE_COMMAND_STEP_ID_PREFIX: string = "ai-command-";
 export const APPROVED_COMMAND_STEP_ID_PREFIX: string = "ai-approved-";
 export const ROLLBACK_COMMAND_STEP_ID_PREFIX: string = "ai-rollback-";
+/*
+ * The dry run OneUptime asks for a change a plan proposes, before anyone
+ * approves it: a read, never a forward change or a rollback, so the
+ * per-resource breakers never count it, and the project's hourly brake for
+ * fixes neither (it has a brake of its own).
+ */
+export const DRY_RUN_COMMAND_STEP_ID_PREFIX: string = "ai-dry-run-";
 
 /*
  * The stepId the FORWARD job of a command carries: inline when a FullAuto
@@ -286,6 +345,12 @@ export function getRollbackCommandStepId(
   command: Pick<AiRemediationCommand, "sequence">,
 ): string {
   return `${ROLLBACK_COMMAND_STEP_ID_PREFIX}${command.sequence}`;
+}
+
+export function getDryRunCommandStepId(
+  command: Pick<AiRemediationCommand, "sequence">,
+): string {
+  return `${DRY_RUN_COMMAND_STEP_ID_PREFIX}${command.sequence}`;
 }
 
 // Hard caps — enforced at plan acceptance, not just in the prompt.
@@ -518,6 +583,7 @@ export class AiRemediationCommandPlanUtil {
         | "resourceId"
         | "resourceNameSnapshot"
         | "resourceCommandTier"
+        | "managedAsCode"
       > | null = null;
 
       if (stepType === RunbookStepType.ResourceCommand) {
@@ -603,6 +669,7 @@ export class AiRemediationCommandPlanUtil {
         ...(stepType === RunbookStepType.Kubectl
           ? AiRemediationCommandPlanUtil.parseKubectlFacts(obj)
           : {}),
+        ...AiRemediationCommandPlanUtil.parseDryRunFact(obj["dryRun"]),
         execution: AiRemediationCommandPlanUtil.parseExecutionState(
           obj["execution"],
         ),
@@ -663,6 +730,7 @@ export class AiRemediationCommandPlanUtil {
     | "resourceId"
     | "resourceNameSnapshot"
     | "resourceCommandTier"
+    | "managedAsCode"
   > | null {
     const resourceType: unknown = obj["resourceType"];
 
@@ -704,6 +772,8 @@ export class AiRemediationCommandPlanUtil {
       resourceCommandTier = tierRaw as ResourceCommandTier;
     }
 
+    const managedAsCode: unknown = obj["managedAsCode"];
+
     return {
       resourceType,
       resourceId,
@@ -712,6 +782,9 @@ export class AiRemediationCommandPlanUtil {
           ? obj["resourceNameSnapshot"]
           : undefined,
       resourceCommandTier,
+      ...(typeof managedAsCode === "string" && managedAsCode.trim()
+        ? { managedAsCode: managedAsCode.trim().slice(0, 256) }
+        : {}),
     };
   }
 
@@ -728,6 +801,70 @@ export class AiRemediationCommandPlanUtil {
       ...(gitOps ? { gitOps } : {}),
       ...(revertWatch ? { revertWatch } : {}),
     };
+  }
+
+  /*
+   * A stored dry run, when well-formed: a status this build knows and a
+   * time; its summary capped, its replaced value kept to short strings.
+   * Anything else is dropped (a fact, never what decides a run).
+   */
+  public static parseDryRunFact(
+    value: unknown,
+  ): Pick<AiRemediationCommand, "dryRun"> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    const obj: JSONObject = value as JSONObject;
+    const status: string = String(obj["status"] || "");
+    const checkedAt: unknown = obj["checkedAt"];
+
+    if (
+      !Object.values(AiRemediationDryRunStatus).includes(
+        status as AiRemediationDryRunStatus,
+      ) ||
+      typeof checkedAt !== "string" ||
+      !checkedAt.trim()
+    ) {
+      return {};
+    }
+
+    const dryRun: AiRemediationCommandDryRun = {
+      status: status as AiRemediationDryRunStatus,
+      checkedAt,
+    };
+
+    if (typeof obj["summary"] === "string" && obj["summary"].trim()) {
+      dryRun.summary = obj["summary"].slice(0, MAX_DRY_RUN_SUMMARY_CHARS);
+    }
+
+    const replacedRaw: unknown = obj["replaced"];
+
+    if (
+      replacedRaw &&
+      typeof replacedRaw === "object" &&
+      !Array.isArray(replacedRaw)
+    ) {
+      const replaced: Record<string, string> = {};
+
+      for (const key of Object.keys(replacedRaw as JSONObject).slice(0, 8)) {
+        const entry: unknown = (replacedRaw as JSONObject)[key];
+
+        if (typeof entry === "string" && key.length <= 32) {
+          replaced[key] = entry.slice(0, 256);
+        }
+      }
+
+      if (Object.keys(replaced).length > 0) {
+        dryRun.replaced = replaced;
+      }
+    }
+
+    if (typeof obj["runnerJobId"] === "string" && obj["runnerJobId"].trim()) {
+      dryRun.runnerJobId = obj["runnerJobId"];
+    }
+
+    return { dryRun };
   }
 
   public static toJSON(plan: AiRemediationCommandPlan): JSONObject {

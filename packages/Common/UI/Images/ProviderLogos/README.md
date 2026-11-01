@@ -52,12 +52,14 @@ is registered and listed below, and no file reaches outside itself.
 | `azure-openai.svg` | Azure OpenAI | Azure Public Service Icons V24, Azure OpenAI | as above |
 | `microsoft-sentinel.svg` | Microsoft Sentinel | Azure Public Service Icons V24, Azure Sentinel | as above |
 | `microsoft-defender.svg` | Microsoft Defender | Microsoft's Defender icon (2025), as Wikimedia Commons keeps it from microsoft.com | [Microsoft Trademark and Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks) |
+| `microsoft-entra-id.svg` | Microsoft Entra ID | Microsoft Entra architecture icons (Oct 2023 package), Microsoft Entra ID color icon | [Microsoft Entra icon terms](https://learn.microsoft.com/entra/architecture/architecture-icons), [Microsoft Trademark and Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks) |
 | `microsoft-teams.svg` | Microsoft Teams | Microsoft's Teams icon (2025), as Wikimedia Commons keeps it from microsoft.com | as above |
 | `microsoft-copilot.svg`, `microsoft-copilot-dark.svg` | Microsoft Copilot | Microsoft's one-colour Copilot icon, as Wikimedia Commons keeps it from Microsoft's documentation; dark: in white | as above |
 | `google-cloud.svg` | Google Cloud | SVG Logos, `google-cloud` | [Google brand resources](https://about.google/brand-resource-center/) |
 | `google-cloud-storage.svg` | Google Cloud Storage | Google Cloud product icons ([cloud.google.com/icons](https://cloud.google.com/icons)), Cloud Storage | as above |
 | `google-vertex-ai.svg` | Vertex AI | Google Cloud product icons, Vertex AI | as above |
 | `google-security-operations.svg` | Google Security Operations | Google Cloud product icons, Security Operations | as above |
+| `google-workspace.svg` | Google Workspace | SVG Logos, `google-icon` (Google's "G"): Google Workspace's own logo is a wordmark, so its connection is drawn by Google's mark | as above |
 | `google-meet.svg` | Google Meet | SVG Logos, `google-meet` | as above |
 | `cloudflare.svg` | Cloudflare | SVG Logos, `cloudflare-icon` | [Cloudflare trademark](https://www.cloudflare.com/trademark/) |
 | `backblaze.svg` | Backblaze | Simple Icons, `backblaze` | [Backblaze press](https://www.backblaze.com/company/news.html) |

@@ -37,13 +37,14 @@ export interface DataSourceHttpRequest {
    * DELETE is for the security response actions (ending a person's Okta
    * sessions is a DELETE); it carries no body, like GET. PUT is an object
    * storage upload (an audit log export's file): it carries a body, like
-   * POST.
+   * POST. PATCH changes one setting of a cloud resource (Data Security's
+   * response actions) and carries a body too.
    */
-  method: "GET" | "POST" | "PUT" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   url: string;
   headers?: Dictionary<string> | undefined;
   /*
-   * POST or PUT body. Strings are sent as-is; a Buffer is sent as its bytes
+   * POST, PUT or PATCH body. Strings are sent as-is; a Buffer is sent as its bytes
    * (application/octet-stream unless a Content-Type is given); objects are
    * JSON-encoded unless formUrlEncoded is set (Prometheus' query endpoints
    * take form bodies).
@@ -61,11 +62,19 @@ export interface DataSourceHttpRequest {
    * do. Off by default.
    */
   acceptAnyStatus?: boolean | undefined;
+  /*
+   * Keep the body's bytes as they came, in bodyBytes, beside its text: for
+   * a reader of files - a gzip, a spreadsheet - whose bytes are not text.
+   * Off by default.
+   */
+  keepBodyBytes?: boolean | undefined;
 }
 
 export interface DataSourceHttpResponse {
   statusCode: number;
   bodyText: string;
+  // The body's bytes, when the request asked to keep them (keepBodyBytes).
+  bodyBytes?: Buffer | undefined;
   // Parsed JSON body, or undefined when the body is not valid JSON.
   bodyJson: unknown;
   /*
@@ -126,7 +135,9 @@ export default class DataSourceHttpFetch {
 
     let data: string | Buffer | URLSearchParams | undefined = undefined;
     if (
-      (request.method === "POST" || request.method === "PUT") &&
+      (request.method === "POST" ||
+        request.method === "PUT" ||
+        request.method === "PATCH") &&
       request.body !== undefined
     ) {
       if (Buffer.isBuffer(request.body)) {
@@ -159,12 +170,19 @@ export default class DataSourceHttpFetch {
       maxBodyLength: DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,
       /*
        * Keep the raw body so connectors can produce useful errors for
-       * non-JSON responses; status handling is ours, not axios'.
+       * non-JSON responses; status handling is ours, not axios'. A reader
+       * of files takes the bytes themselves.
        */
-      responseType: "text",
+      responseType: request.keepBodyBytes ? "arraybuffer" : "text",
       transformResponse: [
-        (body: string): string => {
-          return body;
+        (body: string | ArrayBuffer | Buffer): string | Buffer => {
+          if (request.keepBodyBytes) {
+            return Buffer.isBuffer(body)
+              ? body
+              : Buffer.from(body as ArrayBuffer);
+          }
+
+          return body as string;
         },
       ],
       validateStatus: (status: number): boolean => {
@@ -180,8 +198,14 @@ export default class DataSourceHttpFetch {
     };
 
     try {
-      const response: AxiosResponse<string> = await axios(axiosOptions);
-      const bodyText: string = response.data || "";
+      const response: AxiosResponse<string | Buffer> =
+        await axios(axiosOptions);
+      const bodyBytes: Buffer | undefined = Buffer.isBuffer(response.data)
+        ? response.data
+        : undefined;
+      const bodyText: string = bodyBytes
+        ? bodyBytes.toString("utf8")
+        : (response.data as string) || "";
 
       let bodyJson: unknown = undefined;
       try {
@@ -205,6 +229,7 @@ export default class DataSourceHttpFetch {
         bodyText: bodyText,
         bodyJson: bodyJson,
         headers: responseHeaders,
+        ...(bodyBytes ? { bodyBytes } : {}),
       };
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -216,7 +241,9 @@ export default class DataSourceHttpFetch {
         const responseBody: string =
           typeof error.response.data === "string"
             ? error.response.data
-            : JSON.stringify(error.response.data ?? "");
+            : Buffer.isBuffer(error.response.data)
+              ? error.response.data.toString("utf8")
+              : JSON.stringify(error.response.data ?? "");
         throw new BadDataException(
           `Data source responded with HTTP ${error.response.status}: ${responseBody.substring(0, 500)}`,
         );

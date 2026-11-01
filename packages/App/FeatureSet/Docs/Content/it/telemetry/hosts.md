@@ -32,7 +32,7 @@ Ogni host esegue una configurazione, scelta in questo ordine:
 | La prima delle **Configurazioni del collector** che si applica a lui | Una configurazione si applica quando è per il sistema dell'host e, se nomina etichette, l'host ne ha una. |
 | La predefinita di OneUptime per il suo sistema | Nessuna configurazione si applica. |
 
-La predefinita di OneUptime legge CPU, memoria, dischi, file system, rete e processi su ogni sistema; il journal e le unità systemd su Linux, dove l'host li ha; i registri eventi System, Application e Security e i servizi Windows su Windows; e i log di installazione e Wi-Fi in `/var/log` su macOS. Segue le release di OneUptime, quindi un host con la predefinita riceve i miglioramenti che OneUptime vi apporta.
+La predefinita di OneUptime legge CPU, memoria, dischi, file system, rete e processi su ogni sistema; il journal e le unità systemd su Linux, dove l'host li ha; i registri eventi System, Application e Security e i servizi Windows su Windows; e i log di installazione e Wi-Fi in `/var/log` su macOS. Esclude i file system pieni per progettazione, come i pacchetti snap e il `/dev` di macOS, così non tengono mai attivo il modello High Filesystem Usage. Segue le release di OneUptime, quindi un host con la predefinita riceve i miglioramenti che OneUptime vi apporta.
 
 ## Prima di iniziare
 

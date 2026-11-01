@@ -155,6 +155,21 @@ describe("what an entry holds", () => {
     expect((anyKind as unknown as JSONObject)["entityType"]).toBeNull();
   });
 
+  test("takes a data store, the kind Data Security keeps entries for", async () => {
+    const store: SecurityEntityCriticality = entry({
+      value: "data-store:cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders",
+      entityType: SecurityEntityType.DataStore,
+      criticality: Criticality.Extreme,
+    });
+
+    await service.onBeforeCreate({ data: store, props: { isRoot: true } });
+
+    expect(store.entityType).toBe(SecurityEntityType.DataStore);
+    expect(store.value).toBe(
+      "data-store:cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders",
+    );
+  });
+
   test("refuses another kind of entity, an unknown criticality, and an empty or over-long value", async () => {
     await expect(
       service.onBeforeCreate({
@@ -164,7 +179,7 @@ describe("what an entry holds", () => {
         }),
         props: { isRoot: true },
       }),
-    ).rejects.toThrow(/a User, a Host or an IP Address/);
+    ).rejects.toThrow(/a User, a Host, an IP Address or a Data Store/);
 
     await expect(
       service.onBeforeCreate({
@@ -179,7 +194,7 @@ describe("what an entry holds", () => {
         props: { isRoot: true },
       }),
     ).rejects.toThrow(
-      /Enter the user's sign-in name, the host's name or the address/,
+      /Enter the user's sign-in name, the host's name, the address or the data store/,
     );
 
     await expect(

@@ -298,7 +298,7 @@ flowchart TB
 - **En tu estado resuelto o después** — **Resuelto**, o cualquier estado situado por debajo — el incidente ha terminado, así que, además, no se ejecuta nada de lo que responde a un incidente en curso:
   - no se agrupa en un episodio, lo que podría volver a avisar;
   - ninguna regla de runbook ni de IA actúa sobre él;
-  - OneUptime AI no lo investiga: su tarjeta **Investigación de IA** dice que se creó ya resuelto, y **Ask OneUptime AI** debajo sigue respondiendo preguntas sobre él;
+  - OneUptime AI no lo investiga: su tarjeta **OneUptime AI** dice que se creó ya resuelto, y **Ask OneUptime AI** debajo sigue respondiendo preguntas sobre él;
   - no se crea ningún canal de Slack ni de Microsoft Teams para él;
   - sus monitores conservan su estado y siguen monitorizándose, diga lo que diga **Cambiar el estado del monitor a**;
   - no se inicia ningún SLA para él.

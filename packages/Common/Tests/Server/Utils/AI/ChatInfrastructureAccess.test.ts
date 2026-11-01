@@ -504,10 +504,13 @@ describe("ChatInfrastructureAccess.getStatusesForPage", () => {
     expect(lookups.resourceStatus).not.toHaveBeenCalled();
   });
 
+  /*
+   * A cloud resource's page reaches its account
+   * (ChatInfrastructureAccessCloudResource.test.ts).
+   */
   test.each([
     [AIResourceType.StorageArray],
     [AIResourceType.ServerlessFunction],
-    [AIResourceType.CloudResource],
     [AIResourceType.IoTFleet],
     [AIResourceType.NetworkDevice],
   ])(

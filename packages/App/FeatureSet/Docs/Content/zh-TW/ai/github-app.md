@@ -150,7 +150,7 @@ GitHub 命令是事件和警示之外的 AI 工作，因此不適用每日修正
 | **Pull request review** | 已提交審查內文中的提及 |
 | **Pull request review comment** | diff 行內留言中的提及 |
 
-在 **Repository permissions** 下，**Issues** 必須為 **Read & write**：GitHub 透過 issues API 傳送拉取請求的對話留言，因此正是這項權限讓應用程式也能在拉取請求上留言。
+在 **Repository permissions** 下，**Issues** 必須為 **Read & write**：GitHub 透過 issues API 傳送拉取請求的對話留言，因此正是這項權限讓應用程式也能在拉取請求上留言。 **Checks** 為 **Read & write** 時，每次正式環境審查都能在拉取請求的最新提交上新增一個檢查；沒有它，審查只發布留言。
 
 ## 提示注入：哪些受到保護，哪些沒有
 

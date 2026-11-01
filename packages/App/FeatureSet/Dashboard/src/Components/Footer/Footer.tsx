@@ -9,7 +9,12 @@ import Footer, { FooterLink } from "Common/UI/Components/Footer/Footer";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
+import UpdateStatusPill from "Common/UI/Components/UpdateStatus/UpdateStatusPill";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import { useUpdateStatus } from "Common/UI/Utils/UpdateStatus";
+import UpdateStatusUtil, {
+  UpdateStatus,
+} from "Common/Types/UpdateCheck/UpdateStatus";
 import {
   getProductName,
   isProductRenamed,
@@ -31,6 +36,25 @@ const DashboardFooter: () => JSX.Element = () => {
   const [isAboutModalLoading, setIsAboutModalLoading] =
     React.useState<boolean>(false);
   const [versionInfo, setVersionInfo] = React.useState<VersionInfo>({});
+
+  /*
+   * Whether this installation should be upgraded - a newer release, or a
+   * published security advisory that affects the version it runs - for a
+   * master admin of a self-hosted installation (the server tells nobody
+   * else). Drawn beside the edition pill, and only when there is something
+   * to say, so the footer reads as it always did otherwise.
+   */
+  const updateStatus: UpdateStatus | null = useUpdateStatus();
+
+  const updateLinks: Array<FooterLink> = UpdateStatusUtil.isShownInFooter(
+    updateStatus,
+  )
+    ? [
+        {
+          content: <UpdateStatusPill status={updateStatus} />,
+        },
+      ]
+    : [];
 
   const fetchVersions: PromiseVoidFunction = async (): Promise<void> => {
     setIsAboutModalLoading(true);
@@ -72,7 +96,7 @@ const DashboardFooter: () => JSX.Element = () => {
    */
   const isRenamed: boolean = isProductRenamed();
 
-  const oneUptimeLinks: Array<FooterLink> = [
+  const editionLinks: Array<FooterLink> = [
     {
       /*
        * The Enterprise plugin's license manager, read here in render
@@ -82,6 +106,9 @@ const DashboardFooter: () => JSX.Element = () => {
         <EditionLabel licenseManager={getDashboardPlugins().LicenseManager} />
       ),
     },
+  ];
+
+  const oneUptimeLinks: Array<FooterLink> = [
     {
       title: (
         <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
@@ -110,6 +137,8 @@ const DashboardFooter: () => JSX.Element = () => {
         className="bg-gray-50/50 border-t border-gray-100 px-8"
         copyright={isRenamed ? getProductName() : t("footer.copyright")}
         links={[
+          ...(isRenamed ? [] : editionLinks),
+          ...updateLinks,
           ...(isRenamed ? [] : oneUptimeLinks),
           {
             title: (

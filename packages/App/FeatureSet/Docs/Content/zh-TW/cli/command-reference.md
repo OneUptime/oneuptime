@@ -195,6 +195,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 排定維護 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | 團隊與待命 | `team`, `on-call-policy` |
 | 安全性 | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| 資料安全 | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | 標籤 | `label` |
 
 遙測資料支援 `list`、`create` 和 `count`：

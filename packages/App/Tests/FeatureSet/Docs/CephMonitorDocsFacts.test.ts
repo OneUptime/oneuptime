@@ -89,6 +89,7 @@ function sectionOf(page: string, heading: string): string {
 
 // The table each template category is listed in.
 const TABLE_OF_CATEGORY: Record<CephAlertTemplateCategory, string> = {
+  Availability: "### Availability templates",
   "Cluster Health": "### Cluster health templates",
   OSD: "### OSD templates",
   PG: "### Placement group templates",
@@ -187,6 +188,14 @@ function firingComparison(cell: string): {
     return { filterType: FilterType.GreaterThan, value: 0 };
   }
 
+  /*
+   * Cluster Stopped Reporting: a count compared below 0, which only its
+   * Trigger no-data policy can satisfy.
+   */
+  if (cell === "No data for the whole window") {
+    return { filterType: FilterType.LessThan, value: 0 };
+  }
+
   const orMore: number | null = numberIn(cell, /^(\d+(?:\.\d+)?) or more\b/);
 
   if (orMore !== null) {
@@ -258,6 +267,15 @@ function recoveryComparison(cell: string): {
   if (cell === "At 0") {
     return {
       filterType: [FilterType.LessThanOrEqualTo, FilterType.EqualTo],
+      value: 0,
+      treatsNoDataAsZero: false,
+    };
+  }
+
+  // Cluster Stopped Reporting: any count at all.
+  if (cell === "Data arrives again") {
+    return {
+      filterType: [FilterType.GreaterThanOrEqualTo],
       value: 0,
       treatsNoDataAsZero: false,
     };
@@ -375,14 +393,15 @@ describe("the Ceph Monitor page's templates", () => {
 
     for (const template of templates) {
       const rollingTime: RollingTime = build(template).ceph.rollingTime;
-      const saysPastMinute: boolean =
-        templateRow(template).watches.includes("past 1 minute");
+      const watches: string = templateRow(template).watches;
 
       expect({ template: template.name, rollingTime }).toEqual({
         template: template.name,
-        rollingTime: saysPastMinute
+        rollingTime: watches.includes("past 1 minute")
           ? RollingTime.Past1Minute
-          : RollingTime.Past5Minutes,
+          : watches.includes("past 10 minutes")
+            ? RollingTime.Past10Minutes
+            : RollingTime.Past5Minutes,
       });
     }
   });

@@ -49,6 +49,16 @@ export const PROFILE_CHECK_ON_LABELS: ReadonlyArray<string> = [
   translationKey("Function Share (in %)"),
 ];
 
+/*
+ * The two conditions a metric criteria asks without a threshold: whether
+ * its query sent anything in the window (FilterType.IsEmpty / IsNotEmpty,
+ * worded for a metric). An infrastructure monitor's out-of-the-box
+ * criteria are these two: offline while its agent sends nothing, online
+ * while it sends.
+ */
+export const METRIC_HAS_NO_DATA_LABEL: string = translationKey("Has No Data");
+export const METRIC_HAS_DATA_LABEL: string = translationKey("Has Data");
+
 export default class CriteriaFilterUtil {
   /*
    * The window a filter is given when "Evaluate this criteria over a period
@@ -948,6 +958,18 @@ export default class CriteriaFilterUtil {
             i.value === FilterType.Anomalous);
         return baseStatic || baseAnomaly;
       });
+
+      /*
+       * A metric can also be asked whether it sent anything at all, last,
+       * after the comparisons people pick most.
+       */
+      if (checkOn === CheckOn.MetricValue) {
+        options = [
+          ...options,
+          { label: METRIC_HAS_NO_DATA_LABEL, value: FilterType.IsEmpty },
+          { label: METRIC_HAS_DATA_LABEL, value: FilterType.IsNotEmpty },
+        ];
+      }
     }
 
     /*

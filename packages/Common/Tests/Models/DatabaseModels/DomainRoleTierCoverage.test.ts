@@ -48,6 +48,12 @@ const DOMAIN_PREFIXES: Array<[string, string]> = [
   ["Workflow", "Workflow"],
   ["Runbook", "Runbook"],
   ["Security", "Security"],
+  /*
+   * Data Security (DSPM): which stores hold card numbers, and who can reach
+   * them, is security data - read by the Security tiers, like the SIEM.
+   */
+  ["DataStore", "Security"],
+  ["DataSecurity", "Security"],
 ];
 
 /*

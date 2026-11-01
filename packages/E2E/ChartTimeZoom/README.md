@@ -534,6 +534,40 @@ and the explorer's reads follow:
   value keeps its row's geometry. Run against a row that writes counts out in full,
   the bars of one section start 4px apart and the test fails.
 
+## Explorers: what each Span Type option is
+
+`SpanTypeHelp.spec.ts` (12 tests, same fixture and command) pins the report "Too long
+description, have this in a tooltip or something": the Traces sidebar drew "Entry spans:
+where a request or message enters a service. Root spans: ... All spans: ..." as a
+paragraph between the Span Type title and its three options. It covers:
+
+- the title followed by the options alone: the first option starts under the title, none
+  of the sentences is drawn until asked for, and the section is no taller than its title
+  and three rows;
+- an (i) right after the title, on the title's line. Pointing at it lists each option's
+  name with its sentence ("Where a trace starts."), in a box that opens to the right of
+  the title, so the options' names stay in view;
+- each option saying its own sentence when pointed at, one tooltip at a time;
+- the keyboard: Tab goes from the header to the (i), whose focus shows the help, then to
+  each option, whose focus shows its sentence;
+- a click anywhere on the header's row folds the section, the chevron and the stretch
+  before it included (the fold button's `::after` covers the row), while a click on the
+  (i) shows the help and folds nothing;
+- the dark theme: the help's box is dark, and its names and sentences read at a contrast
+  of 4.5 or more;
+- a phone (390 pixels, touch): the (i) is a finger-sized target, a tap shows the help and
+  it stays once the finger lifts, above the title (there is no room to its right) so the
+  options stay in view, and a second tap puts it away; a tap on an option still chooses
+  it, and nothing it showed stays once the next tap lands elsewhere;
+- Escape (WCAG 1.4.13): the (i)'s help, pointed at, reached with Tab or tapped, and an
+  option's sentence, pointed at or reached with Tab, each goes on Escape with the pointer
+  and the focus left where they were. Nothing else answers that Escape - the section
+  stays open and the chosen option chosen - the help stays away while the pointer rests
+  on the (i), and pointing at it or tapping it again brings it back.
+
+Screenshots: `span-type-1440`, `span-type-help-1440`, `span-type-option-1440`,
+`span-type-help-dark-1440` and `span-type-help-390`.
+
 ## A host's and a cluster's Security card
 
 `ResourceSecurityCard.spec.ts` (9 tests, same fixture and command) opens the host and the

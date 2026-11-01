@@ -113,7 +113,7 @@ På incidentens kort **Video Call** läser **Hämta från Zoom**, **Hämta från
 
 ### OneUptime AI läser den
 
-Inom en minut eller två visar incidentens kort **AI Investigation** **Föreslagen rotorsak**, markerad **Inte bekräftad**, med de rader i transkriptionen som den bygger på, citerade med tid och talare. Under den, ihopfällt, står resten av det samtalet sa: fynd, uppdelade i **Bekräftat i samtalet** och **Hypoteser**, sedan vad som provades, beslut, uppföljningar och öppna frågor. Det den läste publiceras också i incidentens flöde, och därifrån i incidentens Slack- och Microsoft Teams-kanaler.
+Inom en minut eller två visar incidentens kort **OneUptime AI** **Föreslagen rotorsak**, markerad **Inte bekräftad**, med de rader i transkriptionen som den bygger på, citerade med tid och talare. Under den, ihopfällt, står resten av det samtalet sa: fynd, uppdelade i **Bekräftat i samtalet** och **Hypoteser**, sedan vad som provades, beslut, uppföljningar och öppna frågor. Det den läste publiceras också i incidentens flöde, och därifrån i incidentens Slack- och Microsoft Teams-kanaler.
 
 ### Använd den, eller avfärda den
 

@@ -10,6 +10,7 @@ import AiResourceType, {
   AiResourceTypeInfo,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -41,16 +42,21 @@ export type ResourceAiModel =
   | VMwareVCenter
   | CephCluster
   | DatabaseServer
-  | Host;
+  | Host
+  | CloudAccount;
 
 export type ResourceAiModelType = { new (): ResourceAiModel };
 
 export interface ResourceAiAgentDescriptor {
   resourceType: AiResourceType;
   modelType: ResourceAiModelType;
-  // The resource's AI → AI agent, AI → Insights and AI → Logs pages.
+  /*
+   * The resource's AI → AI agent, AI → Insights and AI → Logs pages. A
+   * cloud account has no Insights page: its AI section is the agent and
+   * its Logs.
+   */
   agentPage: PageMap;
-  insightsPage: PageMap;
+  insightsPage: PageMap | null;
   logsPage: PageMap;
   // How sentences name the resource, after "this" or "a": "Docker host".
   noun: string;
@@ -80,6 +86,11 @@ export interface ResourceAiAgentDescriptor {
    * agent is pinned by the resource's id instead (database servers).
    */
   identityColumn: "hostIdentifier" | "name" | null;
+  /*
+   * A cloud account's agent: set up in its cloud with one command (the
+   * account's "Let AI fix problems"), never installed beside a collector.
+   */
+  isCloudAccount: boolean;
   // An allowlist entry to show as the field's example: a riskier command.
   allowlistPlaceholder: string;
   // What fixes may change, and the changes that always ask a person.
@@ -107,6 +118,47 @@ type DescriptorCopy = Omit<
   "resourceType" | "agentName" | "noun" | "allowlistPlaceholder"
 >;
 
+/*
+ * The three cloud accounts share one model, one set of pages and one
+ * agent: the Cloud AI agent, which makes one change at a time from the
+ * cloud catalog. Their copy is the same words, but for the reads each
+ * cloud has (target-health is AWS's) and a commands table of their own.
+ */
+const CLOUD_ACCOUNT_DESCRIPTOR_COPY: Omit<
+  DescriptorCopy,
+  "readExamples" | "commandsTableId"
+> = {
+  modelType: CloudAccount,
+  agentPage: PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+  insightsPage: null,
+  logsPage: PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
+  agentCardDescription: translationKey(
+    "The small container in your cloud account that makes one change at a time from a fixed catalog for OneUptime AI, with a role of its own.",
+  ),
+  investigateTitle: translationKey("Investigate with live reads"),
+  readOnlyCommandsPhrase: translationKey("live reads"),
+  /*
+   * Not a command-line tool's name, as docker or govc is on the other
+   * resources: the agent's catalog of operations, named in words.
+   */
+  commandsCardTitle: translationKey("Cloud operations"),
+  toolVersionLabel: null,
+  identityColumn: null,
+  writeExamples: translationKey(
+    "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency",
+  ),
+  alwaysHumanExamples: translationKey(
+    "failing a database over, stopping an instance and redriving a queue",
+  ),
+  riskierExamples: translationKey(
+    "riskier changes such as scaling in, rebooting an instance or rolling back a service",
+  ),
+  riskierChanges: translationKey(
+    "scaling in, rebooting an instance or rolling back a service",
+  ),
+  isCloudAccount: true,
+};
+
 const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
   [AiResourceType.DockerHost]: {
     modelType: DockerHost,
@@ -131,6 +183,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     ),
     riskierChanges: translationKey("stopping, killing or updating a container"),
     commandsTableId: "docker-host-ai-commands",
+    isCloudAccount: false,
   },
   [AiResourceType.PodmanHost]: {
     modelType: PodmanHost,
@@ -155,6 +208,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     ),
     riskierChanges: translationKey("stopping, killing or updating a container"),
     commandsTableId: "podman-host-ai-commands",
+    isCloudAccount: false,
   },
   [AiResourceType.DockerSwarmCluster]: {
     modelType: DockerSwarmCluster,
@@ -181,6 +235,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "scaling a service to zero or changing its image",
     ),
     commandsTableId: "docker-swarm-cluster-ai-commands",
+    isCloudAccount: false,
   },
   [AiResourceType.ProxmoxCluster]: {
     modelType: ProxmoxCluster,
@@ -211,6 +266,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "shutting down, stopping or resetting a guest",
     ),
     commandsTableId: "proxmox-cluster-ai-commands",
+    isCloudAccount: false,
   },
   [AiResourceType.VMwareVCenter]: {
     modelType: VMwareVCenter,
@@ -239,6 +295,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "powering a VM off, resetting or suspending it",
     ),
     commandsTableId: "vmware-vcenter-ai-commands",
+    isCloudAccount: false,
   },
   [AiResourceType.CephCluster]: {
     modelType: CephCluster,
@@ -267,6 +324,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "marking an OSD out, setting noout or repairing a PG",
     ),
     commandsTableId: "ceph-cluster-ai-commands",
+    isCloudAccount: false,
   },
   [AiResourceType.DatabaseServer]: {
     modelType: DatabaseServer,
@@ -289,6 +347,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey("riskier changes such as ending a session"),
     riskierChanges: translationKey("ending a session"),
     commandsTableId: "database-server-ai-commands",
+    isCloudAccount: false,
   },
   [AiResourceType.Host]: {
     modelType: Host,
@@ -315,6 +374,22 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     ),
     riskierChanges: translationKey("stopping a unit or vacuuming the journal"),
     commandsTableId: "host-ai-commands",
+    isCloudAccount: false,
+  },
+  [AiResourceType.AwsAccount]: {
+    ...CLOUD_ACCOUNT_DESCRIPTOR_COPY,
+    readExamples: "describe, recent-events, target-health, quota-usage",
+    commandsTableId: "aws-account-ai-commands",
+  },
+  [AiResourceType.AzureSubscription]: {
+    ...CLOUD_ACCOUNT_DESCRIPTOR_COPY,
+    readExamples: "describe, recent-events, quota-usage, read-logs",
+    commandsTableId: "azure-subscription-ai-commands",
+  },
+  [AiResourceType.GoogleCloudProject]: {
+    ...CLOUD_ACCOUNT_DESCRIPTOR_COPY,
+    readExamples: "describe, recent-events, quota-usage, read-logs",
+    commandsTableId: "google-cloud-project-ai-commands",
   },
 };
 
@@ -341,6 +416,10 @@ export const RESOURCE_AI_NAME_KEYS: ReadonlyArray<string> = [
   translationKey("Ceph AI agent"),
   translationKey("Database AI agent"),
   translationKey("Host AI agent"),
+  translationKey("AWS account"),
+  translationKey("Azure subscription"),
+  translationKey("Google Cloud project"),
+  translationKey("Cloud AI agent"),
 ];
 
 export const RESOURCE_AI_AGENT_DESCRIPTORS: Readonly<

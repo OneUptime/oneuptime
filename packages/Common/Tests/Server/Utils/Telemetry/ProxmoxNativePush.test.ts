@@ -2473,6 +2473,11 @@ describe("built-in alert templates on a native push", () => {
     "pve-guest-high-cpu",
     "pve-storage-near-full",
     "pve-lxc-disk-near-full",
+    /*
+     * Counts pve_up, which every node's status push carries: the cluster
+     * stops reporting only when every node is silent.
+     */
+    "pve-cluster-stopped-reporting",
   ];
   /*
    * Each node pushes only its own status, so a node that dies goes quiet

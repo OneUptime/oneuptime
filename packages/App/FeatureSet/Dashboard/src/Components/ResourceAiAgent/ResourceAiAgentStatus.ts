@@ -10,6 +10,7 @@ import {
 } from "Common/Types/AI/ResourceAiAccessApi";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
+  isCloudAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -37,6 +38,10 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { ADD_AI_CREDITS_STEP } from "../ProjectBalance/ProjectBalanceCopy";
+import {
+  AutomaticRemediationSettings,
+  readAutomaticRemediation,
+} from "../AiAccess/AutomaticRemediationLine";
 
 /*
  * What a resource's AI agent page (ResourceAiAgentPage) and its AI Insights
@@ -128,6 +133,16 @@ export function getResourceAiAgentReadyText(
 export function getResourceAiAgentNotInstalledText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
+  /*
+   * A cloud account is read live without an agent; its Cloud AI agent runs
+   * in the account and starts from one command in the cloud's own shell.
+   */
+  if (descriptor.isCloudAccount) {
+    return translateTemplate(
+      "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+    );
+  }
+
   return translateTemplate(
     "Install the {{agent}} — it runs next to this {{noun}}, read-only by default, with the key its telemetry agent already uses. This page updates within a minute.",
     {
@@ -234,6 +249,15 @@ export const RESOURCE_AI_SETTINGS_SET_BY_TEXT: Readonly<
   ),
 };
 
+/*
+ * A Cloud AI agent's line above the rows: its setup command writes both
+ * settings (ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES), and Change
+ * shows that command again - there is no configuration to edit by hand.
+ */
+export const RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT: string = translationKey(
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.",
+);
+
 // The "Needs attention" step for investigation the agent keeps off.
 export const RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT: string =
   translationKey("Turn on AI investigation where the {{agent}} runs.");
@@ -291,6 +315,17 @@ export function parseResourceAiAccessStatus(
 }
 
 /*
+ * The project's automatic fixing switches the status carries, or null from
+ * a server older than them: a resource whose fixes are on fixes nothing new
+ * while both are off, and its page says so under its fixes.
+ */
+export function getResourceAutomaticRemediation(
+  status: ResourceAiAccessStatus,
+): AutomaticRemediationSettings | null {
+  return readAutomaticRemediation(status.automaticRemediation);
+}
+
+/*
  * Which of its states the agent card shows:
  *
  * connected:     the agent heartbeated within the alive window.
@@ -331,14 +366,22 @@ export interface ResourceAiAgentStatusPill {
   tone: ResourceAiAgentStatusTone;
 }
 
+/*
+ * A cloud account's agent is never installed by hand: its setup command
+ * starts it in the account (Let AI fix problems), so with none connected
+ * the pill says "Not set up", in the words of that dialog.
+ */
 export function getResourceAiAgentStatusPill(
   status: ResourceAiAccessStatus,
+  descriptor?: Pick<ResourceAiAgentDescriptor, "isCloudAccount"> | undefined,
 ): ResourceAiAgentStatusPill {
   switch (getResourceAiAgentCardState(status)) {
     case "connected":
       return { text: translationKey("Connected"), tone: "success" };
     case "not_installed":
-      return { text: translationKey("Not installed"), tone: "neutral" };
+      return descriptor?.isCloudAccount
+        ? { text: translationKey("Not set up"), tone: "neutral" }
+        : { text: translationKey("Not installed"), tone: "neutral" };
     case "offline":
     default:
       return { text: translationKey("Offline"), tone: "danger" };
@@ -425,6 +468,14 @@ export function getResourceAiAgentStateSentence(
             );
       }
 
+      // A Cloud AI agent runs in the account itself.
+      if (descriptor.isCloudAccount) {
+        return translateTemplate(
+          "The {{agent}} is running in this {{noun}}.",
+          getAgentAndNoun(descriptor),
+        );
+      }
+
       return translateTemplate(
         "The {{agent}} is running next to this {{noun}}.",
         getAgentAndNoun(descriptor),
@@ -471,10 +522,14 @@ export function getResourceAiAgentCardCommand(
 /*
  * What the agent may change, from the posture it reports: "Read-only",
  * "Can change: web, api" (ONEUPTIME_AI_WRITE_TARGETS) or "Can change any
- * target" (writes on, no target list). Null without a posture.
+ * target" (writes on, no target list). Null without a posture. A Cloud AI
+ * agent's targets are its own account's resources (only those carrying its
+ * required tag when it has one), never "any target": it says "Can make
+ * changes", or names the tag.
  */
 export function describeResourceAiAgentWriteAccess(
   posture: ResourceAiAgentPosture | null | undefined,
+  descriptor?: ResourceAiAgentDescriptor | undefined,
 ): string | null {
   if (!posture) {
     return null;
@@ -490,11 +545,23 @@ export function describeResourceAiAgentWriteAccess(
       })
     : [];
 
-  return targets.length === 0
-    ? translateTemplate("Can change any target")
-    : translateTemplate("Can change: {{targets}}", {
-        targets: targets.join(", "),
-      });
+  if (targets.length > 0) {
+    return translateTemplate("Can change: {{targets}}", {
+      targets: targets.join(", "),
+    });
+  }
+
+  if (descriptor?.isCloudAccount) {
+    const requiredTag: unknown = posture.details?.["requiredTag"];
+
+    return typeof requiredTag === "string" && requiredTag.trim()
+      ? translateTemplate("Changes only resources tagged {{tag}}", {
+          tag: requiredTag.trim(),
+        })
+      : translateTemplate("Can make changes");
+  }
+
+  return translateTemplate("Can change any target");
 }
 
 /*
@@ -574,6 +641,7 @@ export function getResourceAiAgentMeta(
 
   const writeAccess: string | null = describeResourceAiAgentWriteAccess(
     agent.posture,
+    descriptor,
   );
 
   if (writeAccess) {
@@ -674,7 +742,21 @@ export const RESOURCE_AI_CHOICE_GAP_CODES: ReadonlyArray<ResourceAiAccessGapCode
 export function getResourceAiAttentionGaps(
   status: ResourceAiAccessStatus,
 ): Array<ResourceAiAccessGap> {
+  /*
+   * A cloud account is investigated without its agent, which only fixes
+   * need: with fixes off, an account without one is AI reading it and not
+   * changing it — the account's own choice, not a problem.
+   */
+  const isCloudAccountReadOnly: boolean =
+    isCloudAiResourceType(status.resourceType) &&
+    parseResourceAiRemediationMode(status.aiRemediationMode) ===
+      ResourceAiRemediationMode.Disabled;
+
   return status.gaps.filter((gap: ResourceAiAccessGap): boolean => {
+    if (isCloudAccountReadOnly && gap.code === "ai_agent_not_connected") {
+      return false;
+    }
+
     return !RESOURCE_AI_CHOICE_GAP_CODES.includes(gap.code);
   });
 }
@@ -796,7 +878,14 @@ export function getResourceAiAttentionStepText(
   switch (gap.code) {
     case "ai_agent_not_connected":
       return translateTemplate(
-        "Install the {{agent}} with the instructions above.",
+        descriptor.isCloudAccount
+          ? "Start the {{agent}} in this {{noun}} with the command above."
+          : "Install the {{agent}} with the instructions above.",
+        values,
+      );
+    case "cloud_connection_missing":
+      return translateTemplate(
+        "Connect this {{noun}} under Cloud → Connect, so OneUptime AI can read it live.",
         values,
       );
     case "ai_agent_offline":

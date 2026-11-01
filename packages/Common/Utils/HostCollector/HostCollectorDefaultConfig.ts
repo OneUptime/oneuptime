@@ -48,6 +48,45 @@ export const ALL_HOST_FEATURES: HostCollectorHostFeatures = {
   systemd: true,
 };
 
+/*
+ * The file systems the filesystem scraper leaves out, on every system: the
+ * ones that are full by design and the ones that hold no data. Read-only
+ * images are always 100% used - snap packages (squashfs), EROFS images, and
+ * CDs, DVDs and ISO images, under each system's name for them (iso9660 and
+ * udf on Linux, cd9660 and udf on macOS, CDFS and UDF on Windows) - and so
+ * is macOS's /dev (devfs). Measured, they would keep High Filesystem Usage
+ * firing for as long as they are mounted. The automounter's maps (autofs,
+ * which macOS lists) have no size at all. The match is strict, so case
+ * counts.
+ *
+ * Linux's other virtual file systems (proc, sysfs, tmpfs, overlay, nsfs,
+ * ...) need no entry: the scraper skips every one /proc/filesystems marks
+ * nodev unless include_virtual_filesystems is on.
+ */
+export const HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES: ReadonlyArray<string> = [
+  "autofs",
+  "cd9660",
+  "CDFS",
+  "devfs",
+  "erofs",
+  "iso9660",
+  "squashfs",
+  "udf",
+  "UDF",
+];
+
+/*
+ * The filesystem scraper's exclusion as every host collector config OneUptime
+ * writes or hands out carries it, indented to sit under `filesystem:` in
+ * `scrapers:` (the Hosts guide's config.yaml and the docs' configs too).
+ */
+export const HOST_COLLECTOR_FILESYSTEM_EXCLUSION: string = `        # Leave out file systems that are full by design (snap packages and
+        # other read-only images, CDs and DVDs, macOS's /dev) or hold no data
+        # (the automounter's maps): the full ones would read 100% used for good.
+        exclude_fs_types:
+          fs_types: [${HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES.join(", ")}]
+          match_type: strict`;
+
 // The receivers every system shares: CPU, memory, disks, network, processes.
 const HOST_METRICS_RECEIVER: string = `  host_metrics:
     collection_interval: 30s
@@ -64,6 +103,7 @@ const HOST_METRICS_RECEIVER: string = `  host_metrics:
             enabled: true
       disk:
       filesystem:
+${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}
         metrics:
           system.filesystem.utilization:
             enabled: true

@@ -32,6 +32,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessStatus,
@@ -270,17 +271,23 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
     });
 
     test("an agent not installed yet: Not installed, investigation still on, and what needs attention", async () => {
+      /*
+       * A cloud account is read live through its connection: with fixes
+       * off, no agent is nothing to fix, and its investigation is ready.
+       */
+      const isCloud: boolean = isCloudAiResourceType(type);
+
       serveStatus(
         makeStatus(type, {
           agent: null,
-          isInvestigationReady: false,
+          isInvestigationReady: isCloud,
           aiRemediationMode: ResourceAiRemediationMode.Disabled,
           gaps: [
             {
               code: "ai_agent_not_connected",
               title: "No agent",
               nextStep: "Install it",
-              blocksInvestigation: true,
+              blocksInvestigation: !isCloud,
               blocksRemediation: true,
             },
           ],
@@ -291,6 +298,16 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
       expect(await findBadge("connection")).toBe("Not installed");
       expect(await findBadge("investigation")).toBe("On");
       expect(await findBadge("fixes")).toBe("Off");
+
+      if (isCloud) {
+        expect(
+          screen.queryByTestId(
+            `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-attention-title`,
+          ),
+        ).toBeNull();
+        return;
+      }
+
       expect(
         screen.getByTestId(
           `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-attention-title`,

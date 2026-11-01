@@ -32,12 +32,12 @@ No modo **Somente leitura** as ações nunca são oferecidas ao modelo, então a
 | --- | --- |
 | Qualquer página | Clique em **Pergunte à IA** no cabeçalho, ou pressione `Ctrl` + `I` (`Cmd` + `I` em um Mac). Enquanto você digita em uma caixa de texto ou em um editor, essas teclas continuam sendo o atalho de itálico do editor. |
 | A paleta de comandos | Pressione `Ctrl` + `K` (`Cmd` + `K` em um Mac) e escolha **Pergunte à IA**. |
-| Um padrão de erro dos logs, ou as conclusões de um gráfico | Clique em **Explain with AI**: o Pergunte à IA abre com as evidências como uma pergunta que você pode editar antes de enviar. |
+| Um padrão de erro dos logs, ou as conclusões de um gráfico | Clique em **Explicar com IA**: o Pergunte à IA abre com as evidências como uma pergunta que você pode editar antes de enviar. |
 | O menu de produtos | Abra **Produtos → AI → Chat**. O Pergunte à IA abre sobre a página em que você estava. Cada conversa tem o próprio endereço, então você pode salvá-la nos favoritos e voltar a ela. |
 
 O Pergunte à IA abre no meio da tela, sobre a página em que você estava, e em um celular ocupa a tela inteira. Pressione `Esc`, ou clique ao lado, para voltar à página. A conversa fica onde você parou: abra o Pergunte à IA de novo para continuar. Se você o fechar enquanto ele ainda responde, um lembrete no canto avisa quando a resposta está pronta, e a abre.
 
-Em um incidente ou alerta, o cartão **AI Investigation** tem uma conversa própria, **Ask OneUptime AI**, compartilhada com todos que podem ver aquele incidente ou alerta: veja [Conversar com o OneUptime AI sobre o incidente](/docs/ai/ai-sre#converse-com-a-oneuptime-ai-sobre-o-incidente).
+Em um incidente ou alerta, o cartão **OneUptime AI** tem uma conversa própria, **Ask OneUptime AI**, compartilhada com todos que podem ver aquele incidente ou alerta: veja [Conversar com o OneUptime AI sobre o incidente](/docs/ai/ai-sre#converse-com-a-oneuptime-ai-sobre-o-incidente).
 
 ## O que ele vê
 
@@ -87,7 +87,7 @@ O que o Pergunte à IA pode fazer quando um modo permite:
 - Publicar uma nota interna em um incidente ou alerta. Notas internas nunca aparecem em uma página de status.
 - Publicar uma atualização de status pública em um incidente. É uma ação separada, porque avisa os assinantes da página de status.
 - Acionar uma política de plantão, executar um runbook ou iniciar uma investigação de IA de um incidente ou alerta.
-- Propor uma mudança de código: fazer commit em um novo branch de um repositório conectado e abrir um pull request. Ele nunca escreve no branch padrão nem em um branch protegido, então uma pessoa ainda faz o merge da mudança.
+- Propor uma mudança de código: fazer commit em um novo branch de um repositório no GitHub, GitLab, Forgejo ou Gitea e abrir um pull request (um merge request no GitLab). Ele nunca escreve no branch padrão nem em um branch protegido, então uma pessoa ainda faz o merge da mudança.
 
 Peça um incidente quando os usuários forem afetados, e um alerta quando algo precisar primeiro da atenção da sua equipe, como a memória de um host que não para de subir. Os dois são criados uma vez e não vigiam nada: para ser alertado toda vez que a memória de um host passar de 75%, crie um [monitor de host](/docs/monitor/host-monitor#modelos-de-alerta-prontos) a partir do modelo de memória dele, com 75% como limite. O Pergunte à IA não consegue criar monitores. Quando você pede um, ele diz isso, verifica o valor atual e oferece criar um alerta se ele já tiver passado.
 

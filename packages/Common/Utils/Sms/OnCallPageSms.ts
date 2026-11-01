@@ -29,6 +29,16 @@ import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
  * The person paged acknowledged it once already; worded as a first page,
  * the text read like a second alarm about something new.
  *
+ * A PAGE A PERSON ASKED FOR - from Slack or Microsoft Teams
+ * (OnCallPersonPage) - says who paged, and whom, after the product, where a
+ * page OneUptime starts goes straight on to what happened:
+ *
+ *   OneUptime: Alice Kim paged Platform about Critical Incident INC-42 in
+ *   Acme Prod: Checkout API is down. Ack or escalate: https://...
+ *
+ * The page is often about an incident declared an hour ago: worded as a
+ * first page, the text read like news of it, from nobody.
+ *
  * THE FITTING RULE. The text takes the fewest parts it can, trying for one
  * part, then two, and so on. For each number of parts:
  *
@@ -41,7 +51,8 @@ import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
  *
  * The product name, the severity, the number and the link are never cut:
  * they say who sends it, how bad it is, which one it is and where to act -
- * and nor is a page again's "is still not resolved", which says why.
+ * and nor is a page again's "is still not resolved", which says why, or who
+ * paged a person's page.
  *
  * Every value is written in the characters an SMS carries cheaply
  * (Gsm7Text): a curly quote or an emoji in a title no longer makes the page
@@ -164,6 +175,12 @@ export interface OnCallPageSmsInput {
    * still not resolved. Never cut.
    */
   isPageAgain?: boolean | undefined;
+  /*
+   * A page a person asked for (OnCallPersonPage): who paged whom - "Alice
+   * Kim paged you" - said after the product, before what the page is
+   * about. Never cut.
+   */
+  lead?: string | null | undefined;
   // What the send path does to the text before the provider gets it.
   sentAs?: ((text: string) => string) | undefined;
 }
@@ -187,6 +204,8 @@ interface PageParts {
   title: Array<string>;
   link: string;
   isPageAgain: boolean;
+  // Who paged whom, for a page a person asked for. Empty for none.
+  lead: string;
 }
 
 // A value on one line, in the characters an SMS carries cheaply.
@@ -248,7 +267,9 @@ const compose: (
   parts: PageParts,
   options: { withProject: boolean; title: string; isTitleCut: boolean },
 ): string => {
-  let head: string = `${parts.productName}: ${parts.what}`;
+  let head: string = parts.lead
+    ? `${parts.productName}: ${parts.lead} about ${parts.what}`
+    : `${parts.productName}: ${parts.what}`;
 
   if (parts.number) {
     head += ` ${parts.number}`;
@@ -362,6 +383,7 @@ export const buildOnCallPageSms: (
     title: Array.from(toSmsValue(input.title)),
     link: input.link.trim(),
     isPageAgain: input.isPageAgain === true,
+    lead: toSmsValue(input.lead),
   };
 
   const wholeTitle: string = parts.title.join("");

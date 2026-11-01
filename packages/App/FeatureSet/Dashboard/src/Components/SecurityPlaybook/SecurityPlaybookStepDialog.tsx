@@ -522,6 +522,7 @@ export function getStepSettingsFields(
         return isAction(
           values,
           SecurityPlaybookActionType.EmailPeople,
+          SecurityPlaybookActionType.NotifyDataStoreOwners,
           SecurityPlaybookActionType.PostToSlack,
           SecurityPlaybookActionType.PostToMicrosoftTeams,
         );

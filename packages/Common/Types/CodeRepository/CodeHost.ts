@@ -11,8 +11,10 @@ import CodeRepositoryType from "./CodeRepositoryType";
  *   GitHub   the OneUptime GitHub App: everything, including commands from
  *            GitHub comments and production reviews of pull requests;
  *   GitLab   an access token on GitLab.com or a self-managed GitLab: merge
- *            requests, their state and pipelines, branches, and reading the
- *            code (stack traces, source links, OneUptime AI reading files);
+ *            requests, their state and pipelines, branches, reading the
+ *            code (stack traces, source links, OneUptime AI reading files)
+ *            and production reviews of merge requests - everything but
+ *            commands from comments;
  *   Forgejo  an access token on a Forgejo or Gitea server, Codeberg among
  *            them: the same as GitLab, with pull requests;
  *   Git      a username and a password or token, over HTTPS: AI pushes a
@@ -42,7 +44,12 @@ export enum CodeHostCapability {
   ReadCode = "ReadCode",
   // People give AI work from the host itself: a mention, a label.
   Commands = "Commands",
-  // OneUptime reviews each pull request against production.
+  /*
+   * OneUptime reviews each pull request against production, and posts the
+   * review on it. GitHub tells OneUptime of a pull request through the
+   * App's webhooks; GitLab's and Forgejo's are read with the repository's
+   * access token every minute (ProductionReviewPoller).
+   */
   ProductionReview = "ProductionReview",
 }
 
@@ -53,6 +60,9 @@ export enum CodeHostConnectMethod {
   GitCredentials = "GitCredentials",
 }
 
+// A host's name for a pull request: GitLab's is a merge request.
+export type PullRequestTerm = "pull request" | "merge request";
+
 export interface CodeHostFacts {
   type: CodeRepositoryType;
   // The host's name, as it names itself.
@@ -61,7 +71,7 @@ export interface CodeHostFacts {
   // The public server most people use, filled in for them.
   defaultHostUrl: string | null;
   // The host's name for a pull request.
-  pullRequestTerm: "pull request" | "merge request";
+  pullRequestTerm: PullRequestTerm;
   capabilities: Array<CodeHostCapability>;
 }
 
@@ -91,7 +101,7 @@ export const CODE_HOST_FACTS: Record<CodeRepositoryType, CodeHostFacts> = {
     connectMethod: CodeHostConnectMethod.AccessToken,
     defaultHostUrl: "https://gitlab.com",
     pullRequestTerm: "merge request",
-    capabilities: [...FULL_CAPABILITIES],
+    capabilities: [...FULL_CAPABILITIES, CodeHostCapability.ProductionReview],
   },
   [CodeRepositoryType.Forgejo]: {
     type: CodeRepositoryType.Forgejo,
@@ -99,7 +109,7 @@ export const CODE_HOST_FACTS: Record<CodeRepositoryType, CodeHostFacts> = {
     connectMethod: CodeHostConnectMethod.AccessToken,
     defaultHostUrl: "https://codeberg.org",
     pullRequestTerm: "pull request",
-    capabilities: [...FULL_CAPABILITIES],
+    capabilities: [...FULL_CAPABILITIES, CodeHostCapability.ProductionReview],
   },
   [CodeRepositoryType.Git]: {
     type: CodeRepositoryType.Git,

@@ -503,7 +503,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // What OneUptime AI answers in Slack: the rule's two halves.
     "In your own conversation, just reply.",
     "In any other thread, mention OneUptime.",
-    // Paging someone from Slack.
+    // Paging someone from Slack: what a page is about, by where it is asked.
+    "In an incident's or an alert's own channel",
+    "Anywhere else",
     "Who is paged at once.",
     "Anything else opens a form.",
     "Where it shows.",
@@ -559,7 +561,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Add Note on a private incident.",
     "Where the person is answered.",
     "If their account is not connected.",
-    // Paging someone from Microsoft Teams.
+    // Paging someone from Microsoft Teams: what a page is about, by where.
+    "In an incident's or an alert's own channel",
+    "Anywhere else",
     "Who is paged at once.",
     "Anything else gets a card.",
     "Where it shows.",

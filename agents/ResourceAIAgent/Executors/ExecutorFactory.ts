@@ -1,4 +1,5 @@
 import CephExecutor from "./CephExecutor";
+import CloudExecutor from "./CloudExecutor";
 import DatabaseExecutor from "./DatabaseExecutor";
 import DockerExecutor from "./DockerExecutor";
 import GovcExecutor from "./GovcExecutor";
@@ -24,6 +25,8 @@ import AiResourceType, {
  *   CephCluster                                 CephExecutor (ceph CLI)
  *   DatabaseServer                              DatabaseExecutor (drivers)
  *   Host                                        HostExecutor (nsenter)
+ *   AwsAccount, AzureSubscription,              CloudExecutor (the cloud's
+ *   GoogleCloudProject                          own APIs)
  *
  * Every class is constructed the same way (constructor(options:
  * ExecutorOptions)); an agent without a known type gets an
@@ -40,6 +43,9 @@ export const EXECUTOR_CLASSES: Readonly<
   [AiResourceType.CephCluster]: CephExecutor,
   [AiResourceType.DatabaseServer]: DatabaseExecutor,
   [AiResourceType.Host]: HostExecutor,
+  [AiResourceType.AwsAccount]: CloudExecutor,
+  [AiResourceType.AzureSubscription]: CloudExecutor,
+  [AiResourceType.GoogleCloudProject]: CloudExecutor,
 };
 
 export function getExecutorClass(

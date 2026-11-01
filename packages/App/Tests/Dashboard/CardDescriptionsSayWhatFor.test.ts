@@ -336,21 +336,13 @@ const SHARED_DESCRIPTIONS: Array<[string, string]> = [
     "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.",
   ],
   [
-    "Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview.tsx",
-    // The schedule's Layers page.
-    "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
-  ],
-  [
-    "Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview.tsx",
-    "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
-  ],
-  [
-    "Components/OnCallPolicy/OnCallScheduleLayer/LayersPreview.tsx",
-    "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
-  ],
-  [
-    "Components/OnCallPolicy/OnCallScheduleLayer/LayersPreview.tsx",
-    "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
+    /*
+     * The Final Schedule card on a schedule's Overview and Layers page, and
+     * the layer form's preview, all take it from here. The timezone is said
+     * once, in the note beside "View as".
+     */
+    "Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy.ts",
+    "Who is on call and when, with every layer applied.",
   ],
 ];
 

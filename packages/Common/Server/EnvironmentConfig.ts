@@ -1332,9 +1332,12 @@ export const TelemetryErrorClassEnabled: boolean =
   process.env["TELEMETRY_ERROR_CLASS_ENABLED"] !== "false";
 
 /*
- * Opt out of the daily "is a newer OneUptime released?" check against the
- * GitHub API. Deliberately separate from DISABLE_TELEMETRY, which turns off
- * the OpenTelemetry SDK and says nothing about outbound calls.
+ * Opt out of the daily update check against the GitHub API: "is a newer
+ * OneUptime released?" and "does a published OneUptime security advisory
+ * affect the version this installation runs?". Both questions are asked of
+ * GitHub with nothing about the installation in them, and answered here.
+ * Deliberately separate from DISABLE_TELEMETRY, which turns off the
+ * OpenTelemetry SDK and says nothing about outbound calls.
  */
 export const DisableUpdateCheck: boolean =
   process.env["DISABLE_UPDATE_CHECK"] === "true";
@@ -1965,6 +1968,23 @@ export const EnterpriseLicenseUserCountReportUrl: URL = URL.fromString(
 export const LatestReleaseCheckUrl: URL = URL.fromString(
   process.env["LATEST_RELEASE_CHECK_URL"] ||
     "https://api.github.com/repos/OneUptime/oneuptime/releases/latest",
+);
+
+/*
+ * GitHub's list of the security advisories OneUptime published for
+ * OneUptime/oneuptime. A published advisory of a public repository can be
+ * read without a token; the daily update check reads the list and decides
+ * here whether the version this installation runs is affected.
+ *
+ * Overridable for the same reason as the release URL: an installation with
+ * no route to github.com can point it at an internal mirror, which must
+ * answer with GitHub's repository advisory shape (ghsa_id, summary,
+ * severity, html_url, published_at, vulnerabilities with
+ * vulnerable_version_range and patched_versions).
+ */
+export const SecurityAdvisoriesCheckUrl: URL = URL.fromString(
+  process.env["SECURITY_ADVISORIES_CHECK_URL"] ||
+    "https://api.github.com/repos/OneUptime/oneuptime/security-advisories",
 );
 
 // Inbound Email Configuration for Incoming Email Monitor

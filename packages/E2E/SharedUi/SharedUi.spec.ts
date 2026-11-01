@@ -81,6 +81,10 @@ const GREEN_700: string = "rgb(21, 128, 61)";
 const INDIGO_50: string = "rgb(238, 242, 255)";
 const INDIGO_700: string = "rgb(67, 56, 202)";
 
+// Why the fixture's switch is locked, behind the help icon after its title.
+const LOCKED_SWITCH_REASON: string =
+  "You need one of these permissions: Project Owner, Project Admin.";
+
 interface FixtureRecord {
   reads: Array<{ kind: string; tableName: string; id?: string }>;
   updates: Array<{ tableName: string; id: string; deleted?: boolean }>;
@@ -565,6 +569,39 @@ test.describe("a button that cannot be pressed looks it", () => {
     await screenshot(page, "locked-with-a-reason", { fullPage: false });
   });
 
+  test("a locked switch's help icon is a button after its title that says why under the pointer and on the keyboard's focus", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+
+    await expect(help).toHaveAttribute("type", "button");
+    await expect(help).toHaveAccessibleName("About Show on status page");
+    expect(await styleOf(help, "cursor")).toBe("help");
+
+    await help.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+
+    // From the keyboard: the switch, then its help icon, which says why.
+    await page.getByRole("switch", { name: "Show on status page" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(help).toBeFocused();
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    // The keyboard's focus is drawn: an indigo ring...
+    const ring: string = await styleOf(help, "box-shadow");
+    expect(ring).toContain("rgb(99, 102, 241)");
+    /*
+     * ...inside the button's own square: drawn outside it, 2px from the
+     * title, the ring ran into the title's last letter.
+     */
+    expect(ring).toContain("inset");
+  });
+
   test("a busy link keeps its spinner beside its words", async ({
     page,
   }: {
@@ -591,6 +628,229 @@ test.describe("a button that cannot be pressed looks it", () => {
       expect(spinnerMiddle).toBeGreaterThan(wordsBox!.y);
       expect(spinnerMiddle).toBeLessThan(wordsBox!.y + wordsBox!.height);
     }
+  });
+});
+
+/*
+ * ON A PHONE, A TAP IS HOW SOMEBODY ASKS WHY.
+ *
+ * A locked button keeps its reason in a tooltip, and a locked switch keeps
+ * its reason behind the help icon after its title. Both opened on hover
+ * alone, and a tap ends with the pointer leaving - Chrome sends mouseleave
+ * as the finger lifts - so the reason showed for a moment and went: a
+ * locked switch or button just looked broken. Now a tap shows the reason
+ * and keeps it until the next tap. Real touch events, at a phone's width.
+ */
+test.describe("a locked button or switch says why on a tap", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+
+  // Long enough for a reason shown only until the finger lifted to be gone.
+  async function afterTheFingerLifts(page: Page): Promise<void> {
+    await page.waitForTimeout(700);
+  }
+
+  test("a tap on a locked button shows its reason, which stays once the finger lifts, and a second tap puts it away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const wrapper: Locator = page.getByTestId(
+      "locked-with-reason-disabled-wrapper",
+    );
+
+    await wrapper.scrollIntoViewIfNeeded();
+    await wrapper.tap();
+    await afterTheFingerLifts(page);
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Your role cannot change this monitor.",
+    );
+    await expect(page.getByRole("tooltip")).toBeVisible();
+    await screenshot(page, "locked-button-tapped-phone", { fullPage: false });
+
+    await wrapper.tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+  });
+
+  test("a tap on a locked switch's help icon says why it is locked, which stays, and the switch stays as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const theSwitch: Locator = page.getByRole("switch", {
+      name: "Show on status page",
+    });
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+
+    await help.scrollIntoViewIfNeeded();
+    await help.tap();
+    await afterTheFingerLifts(page);
+
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    await expect(page.getByRole("tooltip")).toBeVisible();
+    await expect(theSwitch).toHaveAttribute("aria-checked", "true");
+    await expect(theSwitch).toHaveAttribute("aria-disabled", "true");
+
+    // The reason fits the phone's width, wrapped rather than cut.
+    const tip: { left: number; right: number } = await page
+      .getByRole("tooltip")
+      .evaluate((element: Element): { left: number; right: number } => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return { left: box.left, right: box.right };
+      });
+    expect(tip.left).toBeGreaterThanOrEqual(0);
+    expect(tip.right).toBeLessThanOrEqual(390);
+
+    await screenshot(page, "locked-switch-tapped-phone", { fullPage: false });
+
+    await help.tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+  });
+
+  test("a switch's help icon is a target a finger can hit: 24 pixels square, on the title's line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+    const box: { width: number; height: number; y: number } | null =
+      await help.boundingBox();
+    const title: { y: number; height: number } | null = await page
+      .getByText("Show on status page", { exact: true })
+      .boundingBox();
+
+    expect(box).not.toBeNull();
+    expect(title).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(24);
+    expect(box!.height).toBeGreaterThanOrEqual(24);
+    // On the title's line: their middles within a few pixels.
+    expect(
+      Math.abs(box!.y + box!.height / 2 - (title!.y + title!.height / 2)),
+    ).toBeLessThan(4);
+  });
+
+  /*
+   * "When filters match, create an alert" fills a phone's line, and the
+   * question mark after it went on to a line of its own. The title's line
+   * wraps "pretty" now: its last word goes down with the help icon.
+   */
+  test("a switch whose title wraps keeps its last word beside the help icon, never the icon alone on a line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const reading: {
+      titleLines: number;
+      lastLineMiddle: number;
+      lastLineRight: number;
+      lastLineWords: string;
+      iconMiddle: number;
+      iconLeft: number;
+    } = await page.evaluate(
+      (): {
+        titleLines: number;
+        lastLineMiddle: number;
+        lastLineRight: number;
+        lastLineWords: string;
+        iconMiddle: number;
+        iconLeft: number;
+      } => {
+        const icon: Element = document.querySelector(
+          "[data-testid='help-switch-toggle-help']",
+        ) as Element;
+        const title: Element = Array.from(
+          document.querySelectorAll("label"),
+        ).find((label: Element): boolean => {
+          return label.textContent === "When filters match, create an alert";
+        }) as Element;
+        const text: Text = title.querySelector("span")!.firstChild as Text;
+        const range: Range = document.createRange();
+        range.selectNodeContents(text);
+        // One rect a line (a line's words are one run of text here).
+        const lines: Array<DOMRect> = Array.from(range.getClientRects());
+        const last: DOMRect = lines[lines.length - 1] as DOMRect;
+        // The words on the title's last line.
+        const words: Array<string> = [];
+        const content: string = text.textContent || "";
+        for (let index: number = 0; index < content.length; index++) {
+          const letter: Range = document.createRange();
+          letter.setStart(text, index);
+          letter.setEnd(text, index + 1);
+          const box: DOMRect = letter.getBoundingClientRect();
+          if (Math.abs(box.top - last.top) < 2) {
+            words.push(content[index] as string);
+          }
+        }
+        const iconBox: DOMRect = icon.getBoundingClientRect();
+        return {
+          titleLines: lines.length,
+          lastLineMiddle: last.top + last.height / 2,
+          lastLineRight: last.right,
+          lastLineWords: words.join("").trim(),
+          iconMiddle: iconBox.top + iconBox.height / 2,
+          iconLeft: iconBox.left,
+        };
+      },
+    );
+
+    // At 390 pixels the title takes two lines...
+    expect(reading.titleLines).toBe(2);
+    // ...and the icon ends the second, after a word of the title.
+    expect(reading.lastLineWords.length).toBeGreaterThan(0);
+    expect(Math.abs(reading.iconMiddle - reading.lastLineMiddle)).toBeLessThan(
+      4,
+    );
+    expect(reading.iconLeft).toBeGreaterThanOrEqual(reading.lastLineRight);
+  });
+
+  test("a tap on a switch's help icon shows what the switch does, and never flips it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const theSwitch: Locator = page.getByRole("switch", {
+      name: "When filters match, create an alert",
+    });
+
+    await page.getByTestId("help-switch-toggle-help").scrollIntoViewIfNeeded();
+    await page.getByTestId("help-switch-toggle-help").tap();
+    await afterTheFingerLifts(page);
+
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Alerts notify the team but are not shown on the status page.",
+    );
+    await expect(theSwitch).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("in the dark theme a tapped reason reads on the dark page (?theme=dark)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons&theme=dark");
+
+    const help: Locator = page.getByTestId("locked-switch-toggle-help");
+
+    await help.scrollIntoViewIfNeeded();
+    await help.tap();
+    await afterTheFingerLifts(page);
+    await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
+    await screenshot(page, "locked-switch-tapped-phone-dark", {
+      fullPage: false,
+    });
   });
 });
 
@@ -1479,5 +1739,256 @@ test.describe("radios and checkboxes in the dark theme are the theme's own", () 
     expect([box?.width, box?.height]).toEqual([16, 16]);
     expect(await horizontalOverflow(page)).toBe(0);
     await screenshot(page, "choices-dark-390");
+  });
+});
+
+/*
+ * A RULE'S CONDITIONS, LAID OUT BY THEIR OWN WIDTH (RuleCriteriaRowLayout).
+ *
+ * A condition's row - "If [Incident Title] [Does not match pattern]
+ * [^staging-]" - went onto one line at the window's 1024px, so in a dialog
+ * beside its steps (478px of conditions at any window) the reminder rule's
+ * Match step squeezed its pickers to "Lab..." and "H..." (#5282). Each row
+ * now reads the width of its list of conditions: on a phone the word and
+ * the remove button take a line over full-width pickers; beside a dialog's
+ * steps one picker a line; in a dialog with no steps the field and the
+ * operator side by side over the value; on a page one line. The gallery
+ * draws the builder at each of those widths (?section=rules), with the
+ * longest operator there is.
+ */
+interface ConditionCell {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  width: number;
+}
+
+interface ConditionRow {
+  connector: ConditionCell;
+  field: ConditionCell;
+  operator: ConditionCell;
+  value: ConditionCell;
+  remove: ConditionCell;
+  // Each picker's chosen value cut short ("Does not match patt...").
+  cutWords: Array<string>;
+}
+
+// Every condition of one gallery entry, read in one go once drawn.
+async function readConditions(
+  page: Page,
+  name: string,
+): Promise<Array<ConditionRow>> {
+  const entry: Locator = page.getByTestId(`rules-${name}`);
+
+  await expect(entry.getByTestId("rule-criteria-row-1")).toBeVisible();
+
+  return await entry.evaluate((element: Element): Array<ConditionRow> => {
+    const read: (cell: Element) => ConditionCell = (
+      cell: Element,
+    ): ConditionCell => {
+      const box: DOMRect = cell.getBoundingClientRect();
+      return {
+        left: Math.round(box.left),
+        right: Math.round(box.right),
+        top: Math.round(box.top),
+        bottom: Math.round(box.bottom),
+        width: Math.round(box.width),
+      };
+    };
+
+    return Array.from(
+      element.querySelectorAll("[data-testid^='rule-criteria-row-']"),
+    ).map((row: Element): ConditionRow => {
+      const cells: Array<Element> = Array.from(row.children);
+
+      return {
+        connector: read(cells[0] as Element),
+        field: read(cells[1] as Element),
+        operator: read(cells[2] as Element),
+        value: read(cells[3] as Element),
+        remove: read(cells[4] as Element),
+        /*
+         * A picker's value is cut where its words are wider than the box
+         * that shows them. Its scrollWidth does not say so (it reads the
+         * box's own width, ellipsis or not): the words are measured by
+         * their own text.
+         */
+        cutWords: Array.from(row.querySelectorAll(".ou-select__single-value"))
+          .filter((value: Element): boolean => {
+            const words: Range = document.createRange();
+            words.selectNodeContents(value.firstChild || value);
+            return words.getBoundingClientRect().width > value.clientWidth + 1;
+          })
+          .map((value: Element): string => {
+            return value.textContent || "";
+          }),
+      };
+    });
+  });
+}
+
+test.describe("a rule's conditions at every width", () => {
+  test("on a phone: the word and the remove button on a line, then the field, the operator and the value at the row's full width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "phone")) {
+      expect(row.remove.top).toBe(row.connector.top);
+      expect(row.field.top).toBeGreaterThanOrEqual(row.connector.bottom);
+      expect(row.operator.top).toBeGreaterThanOrEqual(row.field.bottom);
+      expect(row.value.top).toBeGreaterThanOrEqual(row.operator.bottom);
+      // The pickers start where the word does, and take the row's width.
+      expect(row.field.left).toBe(row.connector.left);
+      expect(row.field.width).toBe(row.operator.width);
+      expect(row.field.width).toBe(row.value.width);
+      expect(row.field.right).toBe(row.remove.right);
+      expect(row.cutWords).toEqual([]);
+    }
+  });
+
+  test("in a dialog beside its steps: one picker a line, after the word, the remove button at the first line's end - the Match step's 'Lab...' and 'H...' whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "dialog")) {
+      expect(row.field.top).toBe(row.connector.top);
+      expect(row.remove.top).toBe(row.connector.top);
+      expect(row.field.left).toBeGreaterThan(row.connector.right);
+      expect(row.remove.left).toBeGreaterThan(row.field.right);
+      expect(row.operator.top).toBeGreaterThanOrEqual(row.field.bottom);
+      expect(row.value.top).toBeGreaterThanOrEqual(row.operator.bottom);
+      expect(row.operator.left).toBe(row.field.left);
+      expect(row.value.left).toBe(row.field.left);
+      // Wide enough for the longest operator, whole.
+      expect(row.operator.width).toBeGreaterThanOrEqual(240);
+      expect(row.cutWords).toEqual([]);
+    }
+  });
+
+  test("in a dialog with no steps: the field and the operator side by side, the value under both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "wide-dialog")) {
+      expect(row.field.top).toBe(row.connector.top);
+      expect(row.operator.top).toBe(row.connector.top);
+      expect(row.remove.top).toBe(row.connector.top);
+      expect(row.operator.left).toBeGreaterThan(row.field.right);
+      expect(row.value.top).toBeGreaterThanOrEqual(row.field.bottom);
+      // From the field's start to the operator's end.
+      expect(row.value.left).toBe(row.field.left);
+      expect(row.value.right).toBe(row.operator.right);
+      expect(row.cutWords).toEqual([]);
+    }
+  });
+
+  test("on a page: one line - the word, the field, the operator, the value and the remove button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "page")) {
+      for (const cell of [row.field, row.operator, row.value, row.remove]) {
+        expect(cell.top).toBe(row.connector.top);
+      }
+      expect(row.field.left).toBeGreaterThan(row.connector.right);
+      expect(row.operator.left).toBeGreaterThan(row.field.right);
+      expect(row.value.left).toBeGreaterThan(row.operator.right);
+      expect(row.remove.left).toBeGreaterThan(row.value.right);
+      expect(row.cutWords).toEqual([]);
+    }
+
+    await screenshot(page, "rule-conditions-every-width-1280");
+  });
+
+  test("the layout follows the room, not the window: at 1280 every width draws its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    const lines: Array<number> = [];
+
+    for (const name of ["phone", "dialog", "wide-dialog", "page"]) {
+      const row: ConditionRow = (await readConditions(page, name))[0]!;
+      const tops: Set<number> = new Set<number>(
+        [row.field, row.operator, row.value].map(
+          (cell: ConditionCell): number => {
+            return cell.top;
+          },
+        ),
+      );
+      lines.push(tops.size);
+    }
+
+    // Three lines of pickers, three, two, one.
+    expect(lines).toEqual([3, 3, 2, 1]);
+  });
+
+  test("on a 390px phone every entry is a phone's: nothing past the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "section=rules");
+
+    for (const name of ["phone", "dialog", "wide-dialog", "page"]) {
+      for (const row of await readConditions(page, name)) {
+        expect(row.remove.top).toBe(row.connector.top);
+        expect(row.field.top).toBeGreaterThanOrEqual(row.connector.bottom);
+        expect(row.cutWords).toEqual([]);
+      }
+    }
+
+    expect(await horizontalOverflow(page)).toBe(0);
+    await screenshot(page, "rule-conditions-390");
+  });
+
+  test("right to left the word is at the right and the remove button at the left (?lang=fa)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules&lang=fa");
+
+    for (const row of (await readConditions(page, "dialog")).concat(
+      await readConditions(page, "page"),
+    )) {
+      expect(row.connector.left).toBeGreaterThan(row.field.right);
+      expect(row.remove.right).toBeLessThan(row.field.left);
+      expect(row.cutWords).toEqual([]);
+    }
+
+    // Beside a dialog's steps, one picker a line there too.
+    for (const row of await readConditions(page, "dialog")) {
+      expect(row.operator.top).toBeGreaterThanOrEqual(row.field.bottom);
+      expect(row.operator.right).toBe(row.field.right);
+    }
+
+    await screenshot(page, "rule-conditions-fa-1280");
+  });
+
+  test("in the dark theme (?theme=dark)", async ({ page }: { page: Page }) => {
+    await open(page, "section=rules&theme=dark");
+
+    for (const row of await readConditions(page, "dialog")) {
+      expect(row.cutWords).toEqual([]);
+    }
+
+    await screenshot(page, "rule-conditions-dark-1280");
   });
 });

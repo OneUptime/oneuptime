@@ -62,6 +62,12 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.TelemetryResourceView]: undefined,
   [AIChatCitationTargetType.ServiceView]: PageMap.SERVICE_VIEW,
   [AIChatCitationTargetType.Profiles]: PageMap.PROFILES,
+  [AIChatCitationTargetType.DataStores]: PageMap.DATA_SECURITY_STORES,
+  [AIChatCitationTargetType.DataStoreView]: PageMap.DATA_SECURITY_STORE_VIEW,
+  [AIChatCitationTargetType.DataSecurityIssues]: PageMap.DATA_SECURITY_ISSUES,
+  [AIChatCitationTargetType.DataSecurityIssueView]:
+    PageMap.DATA_SECURITY_ISSUE_VIEW,
+  [AIChatCitationTargetType.DataSecurityAccess]: PageMap.DATA_SECURITY_ACCESS,
 };
 
 export const targetTypeToIcon: {
@@ -103,6 +109,11 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.TelemetryResourceView]: IconProp.Server,
   [AIChatCitationTargetType.ServiceView]: IconProp.Cube,
   [AIChatCitationTargetType.Profiles]: IconProp.Fire,
+  [AIChatCitationTargetType.DataStores]: IconProp.Database,
+  [AIChatCitationTargetType.DataStoreView]: IconProp.Database,
+  [AIChatCitationTargetType.DataSecurityIssues]: IconProp.ShieldExclamation,
+  [AIChatCitationTargetType.DataSecurityIssueView]: IconProp.ShieldExclamation,
+  [AIChatCitationTargetType.DataSecurityAccess]: IconProp.Key,
 };
 
 /*

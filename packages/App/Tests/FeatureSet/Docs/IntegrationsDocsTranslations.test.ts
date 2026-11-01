@@ -145,6 +145,8 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/elastic-security": 21,
   "integrations/aws-security-hub": 22,
   "integrations/okta": 23,
+  "integrations/microsoft-entra-id": 23,
+  "integrations/google-workspace": 23,
   "integrations/github": 21,
   "integrations/gitlab": 20,
   "integrations/discord": 20,

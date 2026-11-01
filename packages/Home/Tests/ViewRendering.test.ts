@@ -48,6 +48,7 @@ import {
   SECURITY_PLAYBOOK_ACTIONS,
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import {
@@ -1113,9 +1114,29 @@ describe("security-events.ejs", () => {
       ]);
     }
 
+    /*
+     * Most containment acts through a security product's connection and cuts
+     * someone off (isDisruptive). Closing a data store's exposure (#5366)
+     * acts through the store's own cloud connection and cuts nobody off, but
+     * it changes a cloud's settings, so it starts needing approval too
+     * (needsApprovalByDefault).
+     */
+    const productContainment: Array<SecurityPlaybookActionDefinition> =
+      containActions.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return action.connectionProvider !== undefined;
+        },
+      );
+    const dataStoreContainment: Array<SecurityPlaybookActionDefinition> =
+      containActions.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return action.connectionProvider === undefined;
+        },
+      );
+
     expect(
       new Set(
-        containActions.map(
+        productContainment.map(
           (
             action: SecurityPlaybookActionDefinition,
           ): SecurityEventConnectorProvider | undefined => {
@@ -1131,9 +1152,33 @@ describe("security-events.ejs", () => {
       ]),
     );
 
-    for (const action of containActions) {
+    for (const action of productContainment) {
       expect([action.type, action.isDisruptive]).toEqual([action.type, true]);
     }
+
+    expect(
+      dataStoreContainment
+        .map((action: SecurityPlaybookActionDefinition): string => {
+          return action.type;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        SecurityPlaybookActionType.BlockDataStorePublicAccess,
+        SecurityPlaybookActionType.RevokeDataStoreSharing,
+      ].sort(),
+    );
+
+    for (const action of dataStoreContainment) {
+      expect([action.type, action.needsApprovalByDefault]).toEqual([
+        action.type,
+        true,
+      ]);
+    }
+
+    expect(html).toContain(
+      "or close a data store&rsquo;s exposure through its cloud connection",
+    );
 
     expect(html).toContain("with approval on by default");
     expect(html).toContain(
@@ -1225,7 +1270,7 @@ describe("vmware.ejs", () => {
      */
     const templates: Array<VMwareAlertTemplate> = getAllVMwareAlertTemplates();
 
-    expect(templates.length).toBe(23);
+    expect(templates.length).toBe(24);
     for (const template of templates) {
       expect(html).toContain(`<span>${escapeForHtml(template.name)}</span>`);
     }

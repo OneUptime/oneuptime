@@ -68,12 +68,14 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *     the repository's own AGENTS.md. Code no longer asks for those
  *     commands: they are shown, run, and can be removed.
  *
- * A repository that is not on GitHub has no GitHub App to answer commands
- * or review its pull requests: its More settings hold the Runner, its pull
- * requests (GitLab, Forgejo, Gitea) or - for a Git server, where AI pushes
- * a branch and opens no pull request - its Branches, and the commands, with
- * one plain line saying what works in GitHub repositories only
- * (getRepositorySettingsFor).
+ * A repository that is not on GitHub has no GitHub App to answer commands:
+ * its More settings hold the Runner and its pull requests (GitLab, Forgejo,
+ * Gitea) or - for a Git server, where AI pushes a branch and opens no pull
+ * request - its Branches, and the commands, with one plain line saying what
+ * works in GitHub repositories only (getRepositorySettingsFor). A host with
+ * pull requests has production reviews too - GitLab's, Forgejo's and
+ * Gitea's are found by OneUptime's poll - and their settings, in the host's
+ * words (a merge request on GitLab).
  *
  * The maintainer, on the page that kept GitHub Commands and Runner in sight
  * above More settings: "GitHub commands and runner should be inside of more
@@ -109,14 +111,18 @@ export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySett
 
 /*
  * The settings of a repository on GitHub, and the ones a repository on
- * another host has: the GitHub App's commands, its trigger label and the
- * production reviews it posts are GitHub's alone; a Git repository has
+ * another host has: the GitHub App's commands and its trigger label are
+ * GitHub's alone; production reviews are every host's with pull requests
+ * (CodeHostCapability.ProductionReview) - not a Git server's, which has
  * Branches where the others have Pull Requests.
  */
 const GITHUB_ONLY_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
   CodeRepositorySetting.GitHubCommands,
-  CodeRepositorySetting.ProductionReview,
   CodeRepositorySetting.TriggerLabel,
+];
+
+const PRODUCTION_REVIEW_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
+  CodeRepositorySetting.ProductionReview,
   CodeRepositorySetting.ProductionReviewComment,
   CodeRepositorySetting.ProductionReviewLlmProvider,
 ];
@@ -132,9 +138,17 @@ export const getRepositorySettingsFor: (
     return [...CODE_REPOSITORY_SETTINGS_IN_ORDER];
   }
 
+  const hasProductionReviews: boolean = CodeHost.can(
+    type,
+    CodeHostCapability.ProductionReview,
+  );
+
   return CODE_REPOSITORY_SETTINGS_IN_ORDER.filter(
     (setting: CodeRepositorySetting): boolean => {
-      return !GITHUB_ONLY_SETTINGS.includes(setting);
+      return (
+        !GITHUB_ONLY_SETTINGS.includes(setting) &&
+        (hasProductionReviews || !PRODUCTION_REVIEW_SETTINGS.includes(setting))
+      );
     },
   ).map((setting: CodeRepositorySetting): CodeRepositorySetting => {
     return setting === CodeRepositorySetting.PullRequests &&
@@ -234,13 +248,13 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   moreSettingsDescription: translationKey(
     "GitHub commands, production reviews, where AI works, and where its pull requests open.",
   ),
-  // The same, for a repository on GitLab, Forgejo or Gitea.
+  // The same, for a repository on Forgejo or Gitea.
   moreSettingsDescriptionPullRequests: translationKey(
-    "Where AI works, and where its pull requests open.",
+    "Production reviews, where AI works, and where its pull requests open.",
   ),
   // The same, on GitLab, which calls a pull request a merge request.
   moreSettingsDescriptionMergeRequests: translationKey(
-    "Where AI works, and where its merge requests open.",
+    "Production reviews, where AI works, and where its merge requests open.",
   ),
   // The same, for a repository on a Git server.
   moreSettingsDescriptionBranches: translationKey(
@@ -619,8 +633,9 @@ export function getRepositoryMoreSettingsItems(
 
 /*
  * What More settings says it holds, once it is open, for the repository's
- * host: GitHub's commands and production reviews only on GitHub; a Git
- * repository's branch where the others' pull requests open.
+ * host: GitHub's commands only on GitHub; production reviews on every host
+ * with pull requests; a Git repository's branch where the others' pull
+ * requests open.
  */
 export function getRepositoryMoreSettingsDescription(
   provider: string | null | undefined,

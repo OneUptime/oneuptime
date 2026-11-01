@@ -35,6 +35,7 @@ import OnCallPolicyRunMessage from "../../../../Server/Utils/Workspace/LiveMessa
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspacePage, {
   WORKSPACE_PAGE_ACTION,
+  WORKSPACE_PAGE_NEW_ALERT_ACTION,
   WORKSPACE_PAGE_FORM_TEXT,
   WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH,
   WORKSPACE_PAGE_MAX_CHOICES_PER_KIND,
@@ -47,6 +48,11 @@ import WorkspacePage, {
   WorkspacePagePeople,
   WorkspacePageTargetKind,
 } from "../../../../Server/Utils/Workspace/WorkspacePage";
+import {
+  WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+  WorkspacePageSubject,
+} from "../../../../Server/Utils/Workspace/WorkspacePageAbout";
+import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import WorkspacePageTextReader, {
   WorkspacePageGroup,
   WorkspacePageText,
@@ -94,6 +100,10 @@ const DB_ESCALATION: ObjectID = new ObjectID(
 );
 
 const ALERT_URL: string = `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/alerts/${ALERT_ID.toString()}`;
+const INCIDENT_ID: ObjectID = new ObjectID(
+  "e1000000-0000-4000-8000-0000000000b2",
+);
+const INCIDENT_URL: string = `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID.toString()}`;
 
 const PROPS: DatabaseCommonInteractionProps = {
   userId: SIMON,
@@ -171,12 +181,19 @@ describe("WorkspacePage.assertMayPage: who may page", () => {
 
     await expect(WorkspacePage.assertMayPage(PROPS)).resolves.toBeUndefined();
 
-    // Both, as the page will be held to: the run, and the alert it is about.
+    /*
+     * Both, as the page will be held to: the run, and the alert it is
+     * about - refused as a page here, where a page creates an alert: who may
+     * page in an incident's own channel may not page here all the same.
+     */
     expect(asked).toEqual([
       [OnCallDutyPolicyExecutionLog, WORKSPACE_PAGE_ACTION],
-      [Alert, WORKSPACE_PAGE_ACTION],
+      [Alert, WORKSPACE_PAGE_NEW_ALERT_ACTION],
     ]);
     expect(WORKSPACE_PAGE_ACTION).toBe("page people");
+    expect(WORKSPACE_PAGE_NEW_ALERT_ACTION).toBe(
+      "page people here, where a page creates an alert",
+    );
   });
 
   test.each([
@@ -1766,6 +1783,417 @@ describe("WorkspacePage.page: the page itself", () => {
     expect(errors).toHaveBeenCalledWith(
       "A page from a chat went out, but its message could not be shown where it was asked for.",
       { projectId: PROJECT_ID.toString() },
+    );
+  });
+
+  /*
+   * In an incident's own channel (WorkspacePageAbout): the page is about
+   * the incident - no alert - and the message is the page's own.
+   */
+  describe("about the incident of the channel it was asked in", () => {
+    function incidentSubject(): WorkspacePageSubject {
+      return {
+        record: {
+          type: OnCallPageRecordType.Incident,
+          event: {
+            type: WorkspaceEventType.Incident,
+            id: INCIDENT_ID,
+            projectId: PROJECT_ID,
+            currentStateId: undefined,
+            number: 42,
+            numberWithPrefix: "INC-42",
+          },
+          name: { label: "Incident INC-42", link: INCIDENT_URL },
+          title: "Checkout is down",
+        },
+      };
+    }
+
+    function incidentResult(): OnCallPageResult {
+      return result({
+        record: {
+          type: OnCallPageRecordType.Incident,
+          id: INCIDENT_ID,
+          label: "Incident INC-42",
+          title: "Checkout is down",
+          url: URL.fromString(INCIDENT_URL),
+          isNew: false,
+        },
+      });
+    }
+
+    test("one call to OnCallPageService about the incident - no new alert - with the message as the page's own, on one line", async () => {
+      pageResult = incidentResult();
+
+      await page({
+        message: "  Can you check\nthe database? ",
+        about: incidentSubject(),
+      });
+
+      expect(pageRequests).toEqual([
+        {
+          projectId: PROJECT_ID,
+          targets: { userIds: [NAWAZ] },
+          about: {
+            incidentId: INCIDENT_ID,
+            message: "Can you check the database?",
+          },
+          props: PROPS,
+          maxWaitForRecordInMs: WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
+        },
+      ]);
+      expect(pageRequests[0]!.about.newAlert).toBeUndefined();
+    });
+
+    test("with no message: about the incident, and no message at all", async () => {
+      pageResult = incidentResult();
+
+      await page({ message: "", about: incidentSubject() });
+
+      expect(pageRequests[0]!.about).toEqual({ incidentId: INCIDENT_ID });
+    });
+
+    test("about an alert, its alert's id", async () => {
+      const subject: WorkspacePageSubject = incidentSubject();
+      subject.record!.type = OnCallPageRecordType.Alert;
+      subject.record!.event = {
+        ...subject.record!.event,
+        type: WorkspaceEventType.Alert,
+        id: ALERT_ID,
+      };
+
+      await page({ message: "", about: subject });
+
+      expect(pageRequests[0]!.about).toEqual({ alertId: ALERT_ID });
+    });
+
+    test("the place is kept for the incident, so the run is shown where it was asked", async () => {
+      pageResult = incidentResult();
+
+      await page({ message: "", about: incidentSubject() });
+
+      expect(
+        liveRows.some((row: WorkspaceLiveMessage): boolean => {
+          return (
+            row.messageKey ===
+            WorkspaceLiveMessageKey.forOnCallPageRequest(
+              WorkspaceLiveMessagePageRecordType.Incident,
+              INCIDENT_ID,
+            )
+          );
+        }),
+      ).toBe(true);
+    });
+
+    test("shown where it was asked, nothing else is said; not shown, the answer quotes the message and points to the incident", async () => {
+      pageResult = incidentResult();
+
+      const shown: WorkspacePageOutcome = await page({
+        message: "Can you check the database?",
+        about: incidentSubject(),
+      });
+      expect(shown.answer).toBeNull();
+
+      isPostedAtPlace = false;
+      liveRows = [];
+
+      const notShown: WorkspacePageOutcome = await page({
+        message: "Can you check the database?",
+        about: incidentSubject(),
+      });
+
+      expect(notShown.answer!.markdown).toBe(
+        [
+          `📟 Paged **Nawaz Dhandala** about **[Incident INC-42](${INCIDENT_URL})**: “Can you check the database?”`,
+          "OneUptime can't post in this conversation, so the page's progress isn't shown here. Follow it on the incident.",
+        ].join("\n\n"),
+      );
+    });
+
+    test("a page about something new still says its progress is followed on the alert", async () => {
+      isPostedAtPlace = false;
+
+      const outcome: WorkspacePageOutcome = await page();
+
+      expect(outcome.answer!.markdown).toContain("Follow it on the alert.");
+    });
+  });
+});
+
+describe("WorkspacePage: what a page needs, and what its form says, by what it is about", () => {
+  const incident: WorkspacePageSubject = {
+    record: {
+      type: OnCallPageRecordType.Incident,
+      event: {
+        type: WorkspaceEventType.Incident,
+        id: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        currentStateId: undefined,
+        number: 42,
+        numberWithPrefix: "INC-42",
+      },
+      name: { label: "Incident INC-42", link: INCIDENT_URL },
+      title: "Checkout is down",
+    },
+  };
+  const resolved: WorkspacePageSubject = {
+    record: null,
+    resolvedRecord: { label: "Incident INC-42", link: INCIDENT_URL },
+  };
+
+  function textOf(message: string): WorkspacePageText {
+    return {
+      people: [{ workspaceUserId: "U0NAWAZ", name: "nawaz" }],
+      groups: [],
+      unknownNames: [],
+      message: message,
+    };
+  }
+
+  const people: WorkspacePagePeople = {
+    people: [{ userId: NAWAZ, name: "Nawaz Dhandala" }],
+    notTold: [],
+  };
+  const groups: WorkspacePageGroups = { paged: [], notPaged: [] };
+
+  test("a message is needed only for something new: it is its alert's title", () => {
+    expect(WorkspacePage.isMessageRequired(undefined)).toBe(true);
+    expect(
+      WorkspacePage.isMessageRequired(WORKSPACE_PAGE_NEW_ALERT_SUBJECT),
+    ).toBe(true);
+    expect(WorkspacePage.isMessageRequired(resolved)).toBe(true);
+    expect(WorkspacePage.isMessageRequired(incident)).toBe(false);
+  });
+
+  test("@nawaz with no message pages at once in an incident's channel - and opens the form anywhere else", () => {
+    expect(
+      WorkspacePage.isReadyToPage({
+        text: textOf(""),
+        people: people,
+        groups: groups,
+        about: incident,
+      }),
+    ).toBe(true);
+
+    for (const about of [
+      undefined,
+      WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+      resolved,
+    ]) {
+      expect(
+        WorkspacePage.isReadyToPage({
+          text: textOf(""),
+          people: people,
+          groups: groups,
+          about: about,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("in an incident's channel, somebody it cannot tell still opens the form: never guessed", () => {
+    expect(
+      WorkspacePage.isReadyToPage({
+        text: textOf(""),
+        people: { people: [], notTold: ["OneUptime can't tell who @x is."] },
+        groups: groups,
+        about: incident,
+      }),
+    ).toBe(false);
+  });
+
+  test("the form's message hint says where the message goes, and why when the channel's incident is resolved", () => {
+    /*
+     * Never "Optional.": Slack writes "(optional)" after an optional
+     * field's label, and Microsoft Teams marks the required ones.
+     */
+    expect(WorkspacePage.getMessageHint(incident)).toBe(
+      "The people you page see it with Incident INC-42.",
+    );
+    expect(WorkspacePage.getMessageHint(undefined)).toBe(
+      "The people you page get this as the title of a new alert.",
+    );
+    expect(WorkspacePage.getMessageHint(WORKSPACE_PAGE_NEW_ALERT_SUBJECT)).toBe(
+      WORKSPACE_PAGE_FORM_TEXT.messageHint,
+    );
+    expect(WorkspacePage.getMessageHint(resolved)).toBe(
+      "Incident INC-42 is resolved, so the people you page get this as the title of a new alert.",
+    );
+  });
+
+  test("a form about an incident resolved after it opened: nobody was paged, and why", () => {
+    expect(WorkspacePage.getResolvedSinceMessage(resolved)).toBe(
+      "Incident INC-42 was resolved after the form opened, so nobody was paged.",
+    );
+    expect(WorkspacePage.getResolvedSinceMessage(undefined)).toBe(
+      "It was resolved after the form opened, so nobody was paged.",
+    );
+  });
+
+  test("a form's message is asked for only when needed", () => {
+    expect(
+      WorkspacePage.getFormProblems({
+        values: [`user:${NAWAZ.toString()}`],
+        message: "  ",
+        isMessageRequired: false,
+      }),
+    ).toBeNull();
+    expect(
+      WorkspacePage.getFormProblems({
+        values: [`user:${NAWAZ.toString()}`],
+        message: "  ",
+      }),
+    ).toEqual({ message: WORKSPACE_PAGE_FORM_TEXT.writeMessage });
+    // Who to page is always needed.
+    expect(
+      WorkspacePage.getFormProblems({
+        values: [],
+        message: "",
+        isMessageRequired: false,
+      }),
+    ).toEqual({ who: WORKSPACE_PAGE_FORM_TEXT.pickWho });
+  });
+
+  describe("who may page, by what the page is about", () => {
+    let asked: Array<unknown>;
+
+    beforeEach(() => {
+      asked = [];
+      jest
+        .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+        .mockImplementation(
+          async (data: { modelType: unknown; action: string }) => {
+            asked.push(data.modelType);
+
+            // A member who may page, but not create alerts.
+            if (data.modelType === Alert) {
+              throw new NotAuthorizedException(
+                "You do not have permission to page people. You need one of these permissions: Alert Member.",
+              );
+            }
+          },
+        );
+    });
+
+    test("about the incident of its own channel: an on-call run is all it asks - it creates no alert", async () => {
+      await expect(
+        WorkspacePage.assertMayPage(PROPS, incident),
+      ).resolves.toBeUndefined();
+      expect(asked).toEqual([OnCallDutyPolicyExecutionLog]);
+    });
+
+    test("about something new - in another channel, or a resolved incident's: the alert it creates, too", async () => {
+      for (const about of [
+        undefined,
+        WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+        resolved,
+      ]) {
+        asked = [];
+
+        await expect(WorkspacePage.assertMayPage(PROPS, about)).rejects.toThrow(
+          "You need one of these permissions: Alert Member.",
+        );
+        expect(asked).toEqual([OnCallDutyPolicyExecutionLog, Alert]);
+      }
+    });
+
+    test("somebody who may not start an on-call run may page about nothing, the incident of its channel included", async () => {
+      jest
+        .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+        .mockImplementation(async () => {
+          throw new NotAuthorizedException(
+            "You do not have permission to page people. You need one of these permissions: Project Member.",
+          );
+        });
+
+      await expect(
+        WorkspacePage.assertMayPage(PROPS, incident),
+      ).rejects.toThrow("You need one of these permissions: Project Member.");
+    });
+  });
+});
+
+describe("WorkspacePage.getPagedWho and getPagedAnswer: a paged team by its name first, then its people", () => {
+  function person(
+    name: string,
+    teamName: string | null,
+  ): OnCallPageResult["paged"][number] {
+    return {
+      userId: ObjectID.generate(),
+      name: name,
+      email: null,
+      teamName: teamName,
+      scheduleName: null,
+      coveringForName: null,
+    };
+  }
+
+  test("one team: its name, then its people in brackets", () => {
+    const who: { markdown: { toString: () => string }; text: string } =
+      WorkspacePage.getPagedWho([
+        person("Test User 4", "Team X"),
+        person("Test User 3", "Team X"),
+      ]);
+
+    expect(who.markdown.toString()).toBe(
+      "**Team X** (Test User 4 and Test User 3)",
+    );
+    expect(who.text).toBe("Team X (Test User 4 and Test User 3)");
+  });
+
+  test("a team and somebody named on their own, in the order paged", () => {
+    const who: { markdown: { toString: () => string }; text: string } =
+      WorkspacePage.getPagedWho([
+        person("Ana Ruiz", "Platform"),
+        person("Nawaz Dhandala", null),
+        person("Sam Lee", "Platform"),
+        person("Alex Kim", "Database"),
+      ]);
+
+    expect(who.markdown.toString()).toBe(
+      "**Platform** (Ana Ruiz and Sam Lee), **Nawaz Dhandala** and **Database** (Alex Kim)",
+    );
+    expect(who.text).toBe(
+      "Platform (Ana Ruiz and Sam Lee), Nawaz Dhandala and Database (Alex Kim)",
+    );
+  });
+
+  test("people named on their own, as before: each in bold", () => {
+    expect(
+      WorkspacePage.getPagedWho([
+        person("Nawaz Dhandala", null),
+        person("Ana Ruiz", null),
+      ]).markdown.toString(),
+    ).toBe("**Nawaz Dhandala** and **Ana Ruiz**");
+  });
+
+  test("names are text: a team's name never becomes formatting", () => {
+    expect(
+      WorkspacePage.getPagedWho([
+        person("Nawaz", "*Ops* [team](https://evil.example)"),
+      ]).markdown.toString(),
+    ).toBe("**\\*Ops\\* \\[team\\](https://evil.example)** (Nawaz)");
+  });
+
+  test("the answer only the person who paged sees: 📟 Paged Team X (its people) about the record", () => {
+    const answer: { markdown: string; text: string } =
+      WorkspacePage.getPagedAnswer({
+        result: result({
+          paged: [
+            person("Test User 4", "Team X"),
+            person("Test User 3", "Team X"),
+          ],
+        }),
+        message: "Paging team X.",
+        isShownAtPlace: false,
+        canBeShownAtPlace: false,
+      });
+
+    expect(answer.markdown).toBe(
+      `📟 Paged **Team X** (Test User 4 and Test User 3) about **[Alert AL-12](${ALERT_URL})**: “Paging team X.”`,
+    );
+    expect(answer.text).toBe(
+      "Paged Team X (Test User 4 and Test User 3) about Alert AL-12",
     );
   });
 });

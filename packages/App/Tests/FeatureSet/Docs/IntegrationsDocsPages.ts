@@ -40,6 +40,10 @@ export const ELASTIC: string = "integrations/elastic-security";
 export const AWS_SECURITY_HUB: string = "integrations/aws-security-hub";
 export const OKTA: string = "integrations/okta";
 
+// The identity connections that followed: Entra ID and Google Workspace.
+export const ENTRA_ID: string = "integrations/microsoft-entra-id";
+export const GOOGLE_WORKSPACE: string = "integrations/google-workspace";
+
 // Task 28c: issues opened in GitHub and GitLab, and the chat steps.
 export const GITHUB: string = "integrations/github";
 export const GITLAB: string = "integrations/gitlab";
@@ -79,6 +83,8 @@ export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: ELASTIC, navTitle: "Elastic Security" },
   { page: AWS_SECURITY_HUB, navTitle: "AWS Security Hub" },
   { page: OKTA, navTitle: "Okta System Log" },
+  { page: ENTRA_ID, navTitle: "Microsoft Entra ID" },
+  { page: GOOGLE_WORKSPACE, navTitle: "Google Workspace" },
   { page: GITHUB, navTitle: "GitHub" },
   { page: GITLAB, navTitle: "GitLab" },
   { page: DISCORD, navTitle: "Discord" },
@@ -105,6 +111,8 @@ export const SECURITY_CONNECTION_PAGES: ReadonlyArray<string> = [
   ELASTIC,
   AWS_SECURITY_HUB,
   OKTA,
+  ENTRA_ID,
+  GOOGLE_WORKSPACE,
 ];
 
 // The pages of a workflow that opens an issue for every incident.
@@ -664,6 +672,44 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Any IP",
     "Token Value",
   ],
+  // The Microsoft Entra admin center, and Audit in the Microsoft Purview portal.
+  [ENTRA_ID]: [
+    "Audit",
+    "Start recording user and admin activity",
+    "App registrations",
+    "New registration",
+    "Supported account types",
+    "Accounts in this organizational directory only",
+    "Register",
+    "Overview",
+    "API permissions → Add a permission → Microsoft Graph → Application permissions",
+    "Add permissions",
+    "Add a permission → Office 365 Management APIs → Application permissions",
+    "Grant admin consent for",
+    "Granted",
+    "Certificates & secrets → Client secrets → New client secret",
+    "Add",
+    "Value",
+    "Secret ID",
+  ],
+  // The Google Cloud console and the Google Admin console.
+  [GOOGLE_WORKSPACE]: [
+    "APIs & Services → Library",
+    "Admin SDK API",
+    "Enable",
+    "IAM & Admin → Service accounts → Create service account",
+    "Done",
+    "Unique ID",
+    "Keys",
+    "Add key → Create new key → JSON",
+    "Security → Access and data control → API controls → Manage domain-wide delegation",
+    "Add new",
+    "Client ID",
+    "OAuth scope",
+    "Authorize",
+    "Manage domain-wide delegation",
+    "Account → Admin roles",
+  ],
   // A fine-grained token's permission, as GitHub's settings name it.
   [GITHUB]: ["Issues", "Read and write"],
   // A GitLab project's overview and settings.
@@ -832,6 +878,28 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Authenticate with Okta",
       "Read System Log events",
       "Events available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    [ENTRA_ID]: [
+      "Preview records",
+      "Authenticate with Microsoft Entra",
+      "Read sign-ins",
+      "Read directory changes",
+      "Read the Microsoft 365 audit log",
+      "Records available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    [GOOGLE_WORKSPACE]: [
+      "Administrator email",
+      "Preview audit events",
+      "Authenticate with Google",
+      "Read the audit logs",
+      "Read Drive activity",
+      "Activities available to import",
       "Background workers",
       "Poll scheduler",
       "Security event storage",
@@ -1095,6 +1163,28 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Correlation.",
     "Detection rules.",
     "Monitors.",
+  ],
+  [ENTRA_ID]: [
+    "Records are read by when Entra ID recorded them",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 30 minutes before the saved cursor.",
+    "A poll reads at most 24 hours past the cursor.",
+    "A tenant without Microsoft Entra ID P1 or P2",
+    "A failed run changes nothing.",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+  ],
+  [GOOGLE_WORKSPACE]: [
+    "Activities are read by when they happened.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 120 minutes before the saved cursor",
+    "A poll reads at most 24 hours past the cursor.",
+    "Drive is read one event at a time",
+    "A failed run changes nothing.",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
   ],
   [GITHUB]: ["GitHub Enterprise Server.", "Assign it.", "Only some incidents."],
   [GITLAB]: [

@@ -113,7 +113,7 @@ Auf der Karte **Videoanruf** des Vorfalls liest **Von Zoom abrufen**, **Von Goog
 
 ### OneUptime AI liest es
 
-Nach ein bis zwei Minuten zeigt die Karte **KI-Untersuchung** des Vorfalls die **Vorgeschlagene Grundursache**, markiert als **Nicht bestätigt**, mit den Transkriptzeilen, auf denen sie beruht, zitiert mit Zeit und Sprecher. Darunter, eingeklappt, steht der Rest dessen, was im Anruf gesagt wurde: Befunde, aufgeteilt in **Im Anruf bestätigt** und **Hypothesen**, dann was versucht wurde, Entscheidungen, Folgeaufgaben und offene Fragen. Was OneUptime AI gelesen hat, geht außerdem in den Feed des Vorfalls und von dort in die Slack- und Microsoft-Teams-Kanäle des Vorfalls.
+Nach ein bis zwei Minuten zeigt die Karte **OneUptime AI** des Vorfalls die **Vorgeschlagene Grundursache**, markiert als **Nicht bestätigt**, mit den Transkriptzeilen, auf denen sie beruht, zitiert mit Zeit und Sprecher. Darunter, eingeklappt, steht der Rest dessen, was im Anruf gesagt wurde: Befunde, aufgeteilt in **Im Anruf bestätigt** und **Hypothesen**, dann was versucht wurde, Entscheidungen, Folgeaufgaben und offene Fragen. Was OneUptime AI gelesen hat, geht außerdem in den Feed des Vorfalls und von dort in die Slack- und Microsoft-Teams-Kanäle des Vorfalls.
 
 ### Übernehmen oder ausblenden
 

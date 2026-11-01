@@ -206,13 +206,13 @@ export interface StorageArrayResourceBreakdown
 }
 
 export interface DockerSwarmAffectedResource {
-  /** `container.name` datapoint label — a Swarm task's container is `<service>.<slot>.<taskid>`. */
+  /** `resource.container.name` — a Swarm task's container is `<service>.<slot>.<taskid>`. */
   containerName?: string | undefined;
-  /** `container.image.name` datapoint label, when present. */
+  /** `resource.container.image.name`, when present. */
   containerImage?: string | undefined;
-  /** `docker.swarm.node.name` datapoint label, when the agent stamps it. */
+  /** `resource.docker.swarm.node.name`, when the agent knows its node's name. */
   nodeName?: string | undefined;
-  /** `docker.swarm.service.name` datapoint label, when the agent stamps it. */
+  /** `resource.docker.swarm.service.name`, Swarm's service label on the task. */
   serviceName?: string | undefined;
   metricValue: number;
   /**

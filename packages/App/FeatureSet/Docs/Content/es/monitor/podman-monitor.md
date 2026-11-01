@@ -4,7 +4,7 @@ Un monitor de Podman vigila los contenedores de un host de Podman y le avisa cua
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-podman): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cinco alertas listas para usar, un incidente por contenedor.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Seis alertas listas para usar, un incidente por contenedor.
 - [Métricas](#métricas-recopiladas): Qué recopila el agente y qué significa cada métrica.
 - [Registros](#registros-recopilados): Los registros de los contenedores y el controlador de registro que necesitan.
 :::
@@ -84,27 +84,30 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece cinco plantillas. Cada una crea un monitor completo: una consulta agrupada por `resource.container.name`, un criterio que se dispara y otro que se recupera. Cada contenedor se juzga por separado y recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
+**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Host Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada contenedor se juzga por separado y recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos los contenedores del host, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | High Container CPU Usage | Advertencia | `container.cpu.utilization`, Avg por contenedor, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Container Memory Usage | Advertencia | `container.memory.percent`, Avg por contenedor, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
-| High Container Restart Count | Crítico | `container.restarts`, Max por contenedor, últimos 5 minutos | Por encima de 5 reinicios en total | 4,5 o menos |
-| High Container Process Count | Advertencia | `container.pids.count`, Max por contenedor, últimos 5 minutos | Por encima de 500 | En 450 o menos |
+| Container Restart Loop | Crítico | Crecimiento de `container.restarts` por contenedor, últimos 15 minutos | Más de 3 reinicios en la ventana (Suma) | 2,7 o menos |
+| High Container Process Count | Advertencia | `container.pids.count`, Max por contenedor, últimos 5 minutos | Por encima de 2000 | En 1800 o menos |
 | Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contenedor, último 1 minuto | Por debajo de 120 segundos | En 132 segundos o más |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
 
-Las dos plantillas de porcentaje usan **Promedio**: sus métricas ya son porcentajes por contenedor, así que el promedio de un minuto es la lectura sostenida. El número de reinicios y el número de procesos usan **Máximo**, donde una sola muestra por encima del umbral es la señal.
+**Host Stopped Reporting** se dispara cuando no llega nada del host durante diez minutos: el host está caído, o el agente se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa. Un host sin otros contenedores sigue enviando datos, porque el agente se ejecuta como contenedor e informa de los suyos.
+
+Las dos plantillas de porcentaje usan **Promedio**: sus métricas ya son porcentajes por contenedor, así que el promedio de un minuto es la lectura sostenida. El número de procesos usa **Maximum**, donde una sola muestra que supera el límite es la señal.
 
 > [!NOTE]
 > `container.cpu.utilization` es el número que imprime `podman stats`, promediado en el intervalo de 30 segundos del agente: el 100 % es un núcleo de CPU completo, no toda la asignación de CPU del contenedor. Un contenedor con varios núcleos marca bastante más de 100 cuando está sano, así que suba el umbral en esos casos.
 
 > [!NOTE]
-> `container.restarts` es un total acumulado que lleva Podman, no un recuento de reinicios en la ventana. Por eso **High Container Restart Count** sigue abierta hasta que se vuelve a crear el contenedor, lo que pone el recuento a cero.
+> `container.restarts` es un total acumulado que lleva Podman, así que **Container Restart Loop** avisa de cuánto creció en la ventana, como en Docker: una consulta Maximum y otra Minimum por minuto, restadas con una fórmula y sumadas. Con el muestreo de 30 segundos del agente se ve aproximadamente la mitad de los reinicios, y el umbral ya lo tiene en cuenta. Además, el agente solo muestrea contenedores en ejecución, así que un contenedor que termina en cuanto arranca casi nunca se muestrea: **Container Restarted (Low Uptime)** se dispara en cada reinicio que el agente sí ve.
 
 > [!CAUTION]
 > `container.uptime` solo existe para los contenedores en ejecución. Un contenedor que se detiene y sigue detenido no envía datos, así que **Container Restarted (Low Uptime)** detecta reinicios y nuevos despliegues, no una parada definitiva. Un contenedor pensado para ejecutarse menos de dos minutos permanece en estado de alerta durante toda su vida.
@@ -143,8 +146,7 @@ El agente usa el receptor `docker_stats` de OpenTelemetry apuntando al socket co
 
 | Métrica | Descripción |
 | --- | --- |
-| `container.blockio.io_service_bytes_recursive.read` | Bytes leídos de dispositivos de bloques. |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes escritos en dispositivos de bloques. |
+| `container.blockio.io_service_bytes_recursive` | Bytes leídos y escritos en cada dispositivo de bloques desde que arrancó el contenedor, separados por `operation` (`read`, `write`). Un contador acumulado. La lista lo ofrece filtrado a lecturas y a escrituras. |
 
 ### Contenedor
 
@@ -154,7 +156,7 @@ El agente usa el receptor `docker_stats` de OpenTelemetry apuntando al socket co
 | `container.restarts` | Veces que se ha reiniciado el contenedor. Un total acumulado. |
 | `container.pids.count` | Tareas del contenedor. El controlador pids del cgroup cuenta los hilos además de los procesos. |
 
-La lista **Métrica de Podman** también ofrece `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` y los contadores de paquetes de red. La configuración del agente que se distribuye no las activa, así que revise la página **Métricas** del host antes de basarse en ellas. `container.cpu.throttling_data.throttled_periods` no está en la lista; consúltela desde **Avanzado**.
+`container.cpu.throttling_data.throttled_periods` no está en la lista; consúltela desde **Avanzado**.
 
 ## Criterios de monitoreo
 
@@ -164,7 +166,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (cada valor debe coincidir, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. |
 | **Umbral** | El valor con el que comparar. Junto a él hay una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
@@ -180,11 +182,11 @@ Un monitor que no crea a partir de una plantilla empieza con dos criterios:
 
 | Orden | Criterio | Coincide cuando | Entonces |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Cualquier valor de la primera consulta es `0` | Marca el monitor como **Sin conexión** y declara el incidente «_monitor name_ is offline», que se resuelve solo cuando el monitor se recupera. |
-| 2 | Check if _monitor name_ is online | Cualquier valor está por encima de `0` | Marca el monitor como **Operativo**. |
+| 1 | Check if _monitor name_ is offline | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente «_monitor name_ is offline», que se resuelve solo cuando el monitor se recupera. |
+| 2 | Check if _monitor name_ is online | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
 
 > [!IMPORTANT]
-> El silencio no coincide con ninguno de los dos criterios: un host que deja de enviar datos deja el monitor como estaba. Para que se le avise cuando dejen de llegar datos, ponga **Si no hay datos** en **Disparador** en un criterio. El tiempo en que el propio OneUptime no estaba recibiendo nunca cuenta como falta de datos: una comprobación cuya ventana lo contiene espera en su lugar, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
+> Un valor de `0` son datos, así que una métrica que suele valer cero, como los reinicios o los errores, no deja el monitor fuera de línea. Para recibir alertas sobre un valor, empiece con una plantilla o añada un criterio con un umbral. Cuando no llega ningún dato y no se cumple ningún criterio, el monitor conserva su estado y los incidentes abiertos siguen abiertos: el silencio no es una recuperación. El tiempo en que OneUptime no recibía datos nunca cuenta como falta de datos: una comprobación cuya ventana lo incluye espera, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Registros recopilados
 

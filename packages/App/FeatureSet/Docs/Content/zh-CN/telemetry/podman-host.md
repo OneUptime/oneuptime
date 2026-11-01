@@ -4,18 +4,18 @@ OneUptime Podman 代理是你在 Podman 主机上运行的一个容器。它读�
 
 :::cards
 - [安装代理](#安装代理): 两个容器，使用 `podman run` 或 Podman Compose。
-- [代理采集的内容](#代理采集的内容): 每个容器的指标、日志和清单。
+- [代理采集的内容](#代理采集的内容): 每个容器的指标和日志。
 - [容器日志需要 k8s-file](#容器日志需要-k8s-file-日志驱动): 除非你切换，否则 Podman 会把日志写入 journald。
 - [故障排查](#故障排查): 重启循环、缺少指标、缺少日志。
 :::
 
 ## 工作原理
 
-该代理是一个内置了 OneUptime 配置的 OpenTelemetry Collector。它通过 Podman 兼容 Docker 的 API 套接字每 30 秒读取一次每个容器的统计信息，并每 5 分钟列出一次所有容器、镜像、网络和卷。它跟踪容器的日志文件，并使用你提供的摄取密钥，通过 OTLP 将所有内容发送到你的 OneUptime URL。
+该代理是一个内置了 OneUptime 配置的 OpenTelemetry Collector。它通过 Podman 兼容 Docker 的 API 套接字每 30 秒读取一次每个容器的统计信息。它跟踪容器的日志文件，并使用你提供的摄取密钥，通过 OTLP 将所有内容发送到你的 OneUptime URL。
 
 ```mermaid title="Podman 主机上的两个容器"
 flowchart TB
-    containers["你的容器"] -->|"统计、日志文件、<br/>清单"| agent["Podman 代理"]
+    containers["你的容器"] -->|"统计和<br/>日志文件"| agent["Podman 代理"]
     agent -->|"通过 HTTPS 的 OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"调查事件<br/>或警报"| ai["Podman AI 代理"]
     ai -->|"只读<br/>docker 命令"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到主机
 
-打开 **产品 → 基础设施 → Podman → 所有主机**。大约一分钟内，主机会以其 `PODMAN_HOST_NAME` 出现，并带有其容器、指标和日志。AI 代理会在主机的 **AI 代理** 页面上以及其 **概览** 底部显示为已连接。主机的 **拓扑** 页面将其 Compose 项目、容器、镜像、网络和卷绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
+打开 **产品 → 基础设施 → Podman → 所有主机**。大约一分钟内，主机会以其 `PODMAN_HOST_NAME` 出现，并带有其容器、指标和日志。AI 代理会在主机的 **AI 代理** 页面上以及其 **概览** 底部显示为已连接。主机的 **拓扑** 页面将其 Compose 项目和容器绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量
@@ -139,7 +139,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自托管实例。如果实例只支持 HTTP，请使用 `http://` 及其端口。 |
 | `ONEUPTIME_SERVICE_TOKEN` | 是 | 来自 **项目设置 → 遥测与 APM → 摄取密钥** 的摄取密钥。 |
 | `PODMAN_HOST_NAME` | 否 | 主机在 OneUptime 中的名称。默认为 `podman-host`，因此请为每台主机设置自己的名称。 |
-| `DOCKER_API_VERSION` | 否 | 代理与 Podman 套接字通信时使用的 Docker API 版本。默认为 `1.44`。如果套接字报告的上限更旧，请调低它，或者将其设为空值以进行协商（见 [故障排查](#故障排查)）。 |
+| `DOCKER_API_VERSION` | 否 | 代理与 Podman 套接字通信时使用的 Docker API 版本。默认为空：代理会与套接字协商版本。仅在需要固定某个版本时才设置它（见 [故障排查](#故障排查)）。 |
 
 要更改某个值，请移除代理并重新运行其命令（Podman CLI），或者编辑 `docker-compose.yml` 并运行 `podman compose up -d`（Podman Compose）。
 
@@ -149,7 +149,6 @@ Everything is ready. Begin running and processing data.
 | --- | --- |
 | 容器指标 | 每个容器每 30 秒一次：CPU（用量、百分比、限流）、内存（用量、限制、百分比）、网络和块 I/O、运行时长、重启次数和进程数。 |
 | 容器日志 | 每个容器的 stdout 和 stderr，来自 `k8s-file` 日志驱动写入的 `ctr.log` 文件。 |
-| 清单 | 处于任何状态的每个容器，以及每个镜像、网络和卷，每 5 分钟一次。 |
 
 每个容器的指标和日志都归入一个以该容器命名的服务下。每条日志行的严重性取自它所写明的级别，例如 `[ERROR]`、`level=warn` 或 `{"level":"info"}`；没有写明级别的行则采用其所在流的严重性：stderr 为 `ERROR`，stdout 为 `INFO`。以空白或右括号开头的行会并入前一行，因此堆栈跟踪会作为一条记录到达。代理自身的日志不会被采集。
 
@@ -253,23 +252,19 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-强制限定客户端最高版本的 Docker API 服务器会拒绝更新的客户端，因此接收器永远无法启动，Collector 也随之退出。检查 Podman 套接字报告的 API 版本：
+强制限定客户端最高版本的 Docker API 服务器会拒绝更新的客户端，因此接收器永远无法启动，Collector 也随之退出。除非 `DOCKER_API_VERSION` 指定了版本，否则代理会与套接字协商版本（一次 `HEAD /_ping`，然后使用套接字报告的上限），而较旧的代理镜像固定使用 `1.44`。[升级代理](#升级代理)，并在启动它时不带 `-e DOCKER_API_VERSION`（或者从 Compose 中去掉 `DOCKER_API_VERSION`）。
+
+如果仍要固定某个版本，请使用不超过 Podman 套接字报告的 API 版本：
 
 ```bash
 curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
 ```
 
 然后在 `podman run` 中添加 `-e DOCKER_API_VERSION=1.41`（或你得到的值），或者在 Compose 中设置 `DOCKER_API_VERSION`。较新的服务器仍然支持较旧的 API 版本，因此该设置在升级后依然有效。
-
-不想查这个数字？把 `DOCKER_API_VERSION` 设为空字符串。代理随后会与套接字协商版本（一次 `HEAD /_ping`，然后使用套接字报告的上限），而不是固定某个版本：
-
-```bash
-podman run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Podman 套接字权限被拒绝，或没有套接字
-代理必须以 root 身份运行才能读取 `/run/podman/podman.sock`。请检查你的 `podman run` 命令中是否有 `--user 0:0`，或者 Compose 中是否有 `user: "0:0"`，以及套接字是否已开启：`sudo systemctl enable --now podman.socket`。无 root 的 Podman 的套接字则位于 `/run/user/<uid>/podman/podman.sock`（`systemctl --user enable --now podman.socket`）：请挂载该路径来代替 `/run/podman/podman.sock`。
+代理必须以 root 身份运行才能读取 `/run/podman/podman.sock`。请检查你的 `podman run` 命令中是否有 `--user 0:0`，或者 Compose 中是否有 `user: "0:0"`，以及套接字是否已开启：`sudo systemctl enable --now podman.socket`。无 root 的 Podman 的套接字则位于 `/run/user/<uid>/podman/podman.sock`（`systemctl --user enable --now podman.socket`），存储则位于 `~/.local/share/containers/storage`：请挂载它们来代替 `/run/podman/podman.sock` 和 `/var/lib/containers/storage`。以该用户身份运行代理的 `install.sh` 时，它会同时完成这两项；如果套接字未开启，它会停止并给出需要运行的命令。
 :::
 
 :::details 主机显示为已断开

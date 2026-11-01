@@ -429,7 +429,7 @@ func TestCollectMetricsJobTransportErrorLogsNoSecret(t *testing.T) {
 }
 
 // The mirror image of the test above, for the other function that builds a
-// secret-bearing URL. checkIfSecretKeyIsValid's client.Get failure carries the
+// secret-bearing URL. verifySecretKey's client.Get failure carries the
 // verify URL in its error text for the same reason, and agent.go redacts it the
 // same way:
 //
@@ -438,8 +438,10 @@ func TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newDroppingAgentServer(t)
 
-	if checkIfSecretKeyIsValid(context.Background(), testSecretKey, srv.URL, "") {
-		t.Error("a key whose verification request never completed must not be treated as valid")
+	// A request that got no answer says nothing about the key: it is asked
+	// about again, not refused.
+	if got := verifySecretKey(context.Background(), testSecretKey, srv.URL, ""); got != keyNotVerified {
+		t.Errorf("verifySecretKey() = %v for a verification that never completed, want keyNotVerified (%v)", got, keyNotVerified)
 	}
 
 	request := recorder.only(t)
@@ -470,6 +472,7 @@ const testUnparsableURL = "http://oneuptime.invalid\x7f"
 func TestCheckIfSecretKeyIsValidUnparsableURLLogsNoSecret(t *testing.T) {
 	buf := captureAgentLogs(t)
 
+	// A URL that cannot be read never will be: the agent stops asking.
 	if checkIfSecretKeyIsValid(context.Background(), testSecretKey, testUnparsableURL, "") {
 		t.Error("a key whose verification could not be sent must not be treated as valid")
 	}
@@ -493,21 +496,33 @@ func TestCollectMetricsJobUnparsableURLLogsNoSecret(t *testing.T) {
 	assertNoSecretInLogs(t, buf, testSecretKey)
 }
 
-// checkIfSecretKeyIsValid builds a verify URL that contains the secret. On the
+// verifySecretKey builds a verify URL that contains the secret. On the
 // HTTP-status paths exercised here that URL is not logged, and this table is
 // what keeps it that way. It deliberately does NOT cover the transport-error
 // path: every case below reaches a live server, so client.Get never returns an
 // error and agent.go's redacted error log is never executed. That path is
 // covered by TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret.
+//
+// Only OneUptime's own answer about the key is final: 200 accepts it, and 400
+// - what OneUptime answers a key it does not know - or any other client error
+// refuses it. A server error, a timeout or "too many requests" says nothing
+// about the key, which is then asked about again.
 func TestCheckIfSecretKeyIsValid(t *testing.T) {
 	cases := []struct {
 		name   string
 		status int
-		want   bool
+		want   keyVerification
 	}{
-		{name: "200 accepts the key", status: http.StatusOK, want: true},
-		{name: "401 rejects the key", status: http.StatusUnauthorized, want: false},
-		{name: "500 rejects the key", status: http.StatusInternalServerError, want: false},
+		{name: "200 accepts the key", status: http.StatusOK, want: keyAccepted},
+		{name: "400 refuses the key", status: http.StatusBadRequest, want: keyRefused},
+		{name: "401 refuses the key", status: http.StatusUnauthorized, want: keyRefused},
+		{name: "404 refuses the key", status: http.StatusNotFound, want: keyRefused},
+		{name: "408 does not verify the key", status: http.StatusRequestTimeout, want: keyNotVerified},
+		{name: "429 does not verify the key", status: http.StatusTooManyRequests, want: keyNotVerified},
+		{name: "500 does not verify the key", status: http.StatusInternalServerError, want: keyNotVerified},
+		{name: "502 does not verify the key", status: http.StatusBadGateway, want: keyNotVerified},
+		{name: "503 does not verify the key", status: http.StatusServiceUnavailable, want: keyNotVerified},
+		{name: "504 does not verify the key", status: http.StatusGatewayTimeout, want: keyNotVerified},
 	}
 
 	for _, tc := range cases {
@@ -516,8 +531,8 @@ func TestCheckIfSecretKeyIsValid(t *testing.T) {
 			buf := captureAgentLogs(t)
 			srv, recorder := newRecordingAgentServer(t, tc.status, "")
 
-			if got := checkIfSecretKeyIsValid(context.Background(), testSecretKey, srv.URL, ""); got != tc.want {
-				t.Errorf("checkIfSecretKeyIsValid() = %v for status %d, want %v", got, tc.status, tc.want)
+			if got := verifySecretKey(context.Background(), testSecretKey, srv.URL, ""); got != tc.want {
+				t.Errorf("verifySecretKey() = %v for status %d, want %v", got, tc.status, tc.want)
 			}
 
 			request := recorder.only(t)

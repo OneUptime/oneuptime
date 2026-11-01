@@ -150,7 +150,7 @@ Abonneer je in de instellingen **Permissions & events** van je GitHub App op:
 | **Pull request review** | een vermelding in de tekst van een ingediende review |
 | **Pull request review comment** | een vermelding in een inline-opmerking bij de diff |
 
-Onder **Repository permissions** moet **Issues** op **Read & write** staan: GitHub stuurt de gespreksopmerkingen van een pull request via de issues-API, dus dit is wat de app ook op pull requests laat reageren.
+Onder **Repository permissions** moet **Issues** op **Read & write** staan: GitHub stuurt de gespreksopmerkingen van een pull request via de issues-API, dus dit is wat de app ook op pull requests laat reageren. **Checks** op **Read & write** laat elke productiebeoordeling een check toevoegen aan de nieuwste commit van de pull request; zonder die permissie plaatst een beoordeling alleen de opmerking.
 
 ## Prompt injection: wat wel en niet beschermd is
 

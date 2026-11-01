@@ -13,6 +13,12 @@
  * Kubernetes clusters are NOT here: they keep their own Kubernetes AI agent
  * (Types/Kubernetes/KubernetesClusterAiAccess).
  *
+ * Cloud accounts are: an AWS account, an Azure subscription and a Google
+ * Cloud project are each served by a Cloud AI agent that runs in the
+ * customer's own cloud (not next to a collector) and runs one operation of
+ * a fixed catalog at a time (Utils/AiRemediation/Resource/
+ * CloudOperationCatalog). Its identity comes from the cloud itself.
+ *
  * This file imports NOTHING outside Types/ResourceAiAgent on purpose: the
  * resource AI agent (agents/ResourceAIAgent) carries a byte-identical copy of
  * this directory and must compile without the rest of Common.
@@ -32,6 +38,9 @@ enum AiResourceType {
   CephCluster = "CephCluster",
   DatabaseServer = "DatabaseServer",
   Host = "Host",
+  AwsAccount = "AwsAccount",
+  AzureSubscription = "AzureSubscription",
+  GoogleCloudProject = "GoogleCloudProject",
 }
 
 export default AiResourceType;
@@ -40,6 +49,7 @@ export default AiResourceType;
  * Every type, in declaration order. This is also the priority order in
  * which a remediation round picks among several resources linked to one
  * incident or alert, so reordering it changes which resource AI fixes first.
+ * The cloud accounts come last, appended, so no existing priority changes.
  */
 export const ALL_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
   AiResourceType.DockerHost,
@@ -50,7 +60,25 @@ export const ALL_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
   AiResourceType.CephCluster,
   AiResourceType.DatabaseServer,
   AiResourceType.Host,
+  AiResourceType.AwsAccount,
+  AiResourceType.AzureSubscription,
+  AiResourceType.GoogleCloudProject,
 ];
+
+// The cloud accounts, in ALL_AI_RESOURCE_TYPES order.
+export const CLOUD_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
+  AiResourceType.AwsAccount,
+  AiResourceType.AzureSubscription,
+  AiResourceType.GoogleCloudProject,
+];
+
+// Whether a type is a cloud account served by a Cloud AI agent.
+export function isCloudAiResourceType(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    (CLOUD_AI_RESOURCE_TYPES as ReadonlyArray<string>).includes(value)
+  );
+}
 
 // Exactly an enum value, case included — what a stored row must hold.
 export function isAiResourceType(value: unknown): value is AiResourceType {
@@ -228,7 +256,54 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
     identityEnvVars: ["HOST_NAME"],
     defaultIdentityPlaceholders: [],
   },
+  /*
+   * "cloud" is not a binary either: it names the closed catalog of cloud
+   * operations, each mapped to one API call the agent owns. The agent asks
+   * the cloud which account it is in (STS GetCallerIdentity, the one
+   * subscription its identity may read, the metadata server's project); the
+   * variable only overrides that. A cloud agent binds to an account that is
+   * already connected and never creates one.
+   */
+  [AiResourceType.AwsAccount]: {
+    type: AiResourceType.AwsAccount,
+    displayName: "AWS account",
+    agentDisplayName: "Cloud AI agent",
+    agentAlias: "aws",
+    programs: ["cloud"],
+    testCommands: ["cloud whoami"],
+    identityEnvVars: ["AWS_ACCOUNT_ID"],
+    defaultIdentityPlaceholders: [],
+  },
+  [AiResourceType.AzureSubscription]: {
+    type: AiResourceType.AzureSubscription,
+    displayName: "Azure subscription",
+    agentDisplayName: "Cloud AI agent",
+    agentAlias: "azure",
+    programs: ["cloud"],
+    testCommands: ["cloud whoami"],
+    identityEnvVars: ["AZURE_SUBSCRIPTION_ID"],
+    defaultIdentityPlaceholders: [],
+  },
+  [AiResourceType.GoogleCloudProject]: {
+    type: AiResourceType.GoogleCloudProject,
+    displayName: "Google Cloud project",
+    agentDisplayName: "Cloud AI agent",
+    agentAlias: "gcp",
+    programs: ["cloud"],
+    testCommands: ["cloud whoami"],
+    identityEnvVars: ["GOOGLE_CLOUD_PROJECT"],
+    defaultIdentityPlaceholders: [],
+  },
 };
+
+/*
+ * Whether the agent finds its identity itself when no variable names it: a
+ * Host reads its own hostname, a cloud agent asks its cloud
+ * (ResourceExecutor.resolveResourceIdentifier).
+ */
+export function isIdentityResolvedByAgent(type: AiResourceType): boolean {
+  return type === AiResourceType.Host || isCloudAiResourceType(type);
+}
 
 export function getAiResourceTypeInfo(
   type: AiResourceType,
@@ -245,13 +320,15 @@ const EXTRA_AGENT_ALIASES: Readonly<Record<string, AiResourceType>> = {
   swarm: AiResourceType.DockerSwarmCluster,
   vcenter: AiResourceType.VMwareVCenter,
   db: AiResourceType.DatabaseServer,
+  "google-cloud": AiResourceType.GoogleCloudProject,
 };
 
 /*
  * Read a resource type from configuration or a request: an enum value in
  * any case ("DockerHost", "dockerhost"), or an agent alias ("docker",
  * "podman", "docker-swarm"/"swarm", "proxmox", "vmware"/"vcenter", "ceph",
- * "database"/"db", "host"). Anything else is null — never a guess.
+ * "database"/"db", "host", "aws", "azure", "gcp"/"google-cloud"). Anything
+ * else is null — never a guess.
  */
 export function parseAiResourceType(value: unknown): AiResourceType | null {
   if (typeof value !== "string") {

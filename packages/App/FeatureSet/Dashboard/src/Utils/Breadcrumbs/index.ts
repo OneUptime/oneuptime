@@ -7,6 +7,7 @@ export * from "./FormsBreadcrumbs";
 export * from "./OnCallDutyBreadcrumbs";
 export * from "./LogsBreadcrumbs";
 export * from "./SecurityEventsBreadcrumbs";
+export * from "./DataSecurityBreadcrumbs";
 export * from "./MetricsBreadcrumbs";
 export * from "./TracesBreadcrumbs";
 export * from "./SettingsBreadcrumbs";

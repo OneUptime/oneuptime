@@ -72,6 +72,7 @@ const FEED_SERVICE_NAMES: Array<string> = [
   "VMwareVCenterFeedService",
   "HostFeedService",
   "CloudResourceFeedService",
+  "CloudAccountFeedService",
   "ServiceFeedService",
   "ServiceLevelObjectiveFeedService",
 ];

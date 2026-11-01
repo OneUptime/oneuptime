@@ -1,10 +1,25 @@
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
+import AzureActivityLogParser, {
+  AZURE_PREFILTER_WORDS,
+} from "./AzureActivityLogParser";
 import CloudTrailLogParser from "./CloudTrailLogParser";
+import GoogleCloudAuditLogParser, {
+  AUDIT_LOG_TYPE_MARKER,
+  GOOGLE_AUDIT_FILTERED_LOG_MARKERS,
+  GOOGLE_AUDIT_REFUSAL_MARKERS,
+} from "./GoogleCloudAuditLogParser";
 import KubernetesAuditLogParser from "./KubernetesAuditLogParser";
+import SecurityDeviceLogParser, {
+  SECURITY_DEVICE_PREFILTER_WORDS,
+} from "./SecurityDeviceLogParser";
 import { SecurityLogLine } from "./SecurityLogLine";
 import SshLogParser, { SSH_AUTHENTICATION_METHODS } from "./SshLogParser";
 import SudoLogParser from "./SudoLogParser";
 import WebAttackLogParser, { WEB_ATTACK_MARKERS } from "./WebAttackLogParser";
+import WindowsEventLogParser, {
+  WINDOWS_PREFILTER_GROUPS,
+  WindowsPrefilterGroup,
+} from "./WindowsEventLogParser";
 
 /*
  * Reads one log line for the security records OneUptime recognizes
@@ -13,9 +28,11 @@ import WebAttackLogParser, { WEB_ATTACK_MARKERS } from "./WebAttackLogParser";
  * a CloudTrail file of records.
  *
  * The parsers are tried from the most specific shape to the least: a JSON
- * audit or CloudTrail record, then SSH and sudo lines, and last an attack
- * string in a request. A line is one kind of record, so the first parser
- * that reads it wins.
+ * audit, CloudTrail, Google Cloud audit or Azure record, then a Windows
+ * event, then a security product's CEF or LEEF record, then SSH and sudo
+ * lines, and last an attack string in a request. A line is one kind of
+ * record, so the first parser that reads it wins - a WAF's CEF record of
+ * an attack is one event, never a second one for the attack string in it.
  */
 
 type LogLineParser = (line: SecurityLogLine) => Array<NormalizedSecurityEvent>;
@@ -26,6 +43,18 @@ const PARSERS: ReadonlyArray<LogLineParser> = [
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return CloudTrailLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return GoogleCloudAuditLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return AzureActivityLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return WindowsEventLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return SecurityDeviceLogParser.parse(line);
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return SshLogParser.parse(line);
@@ -143,6 +172,46 @@ export const SECURITY_LOG_PREFILTER: SecurityLogPrefilter = {
         '"readonly":"false"',
         '"readonly": "false"',
       ],
+    },
+    /*
+     * Google Cloud's audit logs: Admin Activity and Policy Denied whole;
+     * Data Access and System Event, the bulk of the volume, only for what
+     * Google refused, Workspace's sign-ins and changes to where audit logs
+     * go (GoogleCloudAuditLogParser).
+     */
+    {
+      requires: AUDIT_LOG_TYPE_MARKER,
+      anyOf: [AUDIT_LOG_TYPE_MARKER],
+      noneOf: GOOGLE_AUDIT_FILTERED_LOG_MARKERS,
+      unlessAnyOf: GOOGLE_AUDIT_REFUSAL_MARKERS,
+    },
+    /*
+     * Azure's exports: the Activity Log's categories read, and Entra ID's
+     * (AzureActivityLogParser). An export batches records, so no record's
+     * words may keep its line out: the parser reads each.
+     */
+    {
+      requires: '"category"',
+      anyOf: AZURE_PREFILTER_WORDS,
+    },
+    // Windows: each provider read, by the ids read (WindowsEventLogParser).
+    ...WINDOWS_PREFILTER_GROUPS.map(
+      (group: WindowsPrefilterGroup): SecurityLogPrefilterGroup => {
+        return { ...group };
+      },
+    ),
+    /*
+     * A security product's CEF or LEEF record: a threat, something blocked
+     * or detected, a sign-in, or a High severity - never an allowed
+     * connection (SecurityDeviceLogParser).
+     */
+    {
+      requires: "cef:",
+      anyOf: SECURITY_DEVICE_PREFILTER_WORDS,
+    },
+    {
+      requires: "leef:",
+      anyOf: SECURITY_DEVICE_PREFILTER_WORDS,
     },
   ],
 };

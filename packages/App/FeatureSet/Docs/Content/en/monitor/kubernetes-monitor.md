@@ -5,7 +5,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 :::cards
 - [Install the agent](/docs/monitor/kubernetes-agent): One Helm command puts the cluster into OneUptime.
 - [Create the monitor](#create-a-kubernetes-monitor): Pick the cluster, then a template, a metric or a query.
-- [Alert templates](#pre-built-alert-templates): Seventeen ready-made alerts, from CrashLoopBackOff to etcd.
+- [Alert templates](#pre-built-alert-templates): Eighteen ready-made alerts, from a silent cluster to etcd.
 - [Criteria](#monitoring-criteria): Static thresholds and anomaly detection.
 :::
 
@@ -23,7 +23,7 @@ flowchart TB
 ## Before you begin
 
 - The OneUptime Kubernetes agent running in the cluster. See [Install the Kubernetes Agent](/docs/monitor/kubernetes-agent); the cluster appears under **Kubernetes** a few minutes after the install.
-- For the control-plane templates (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): the agent's control-plane scrape, `controlPlane.enabled`. Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so those monitors never receive data there.
+- For the control-plane templates (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): the agent's control-plane scrape, `controlPlane.enabled`, which reads the API server out of the box; etcd and the scheduler also need their endpoints listed (see [Enable control plane monitoring](/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring)). Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so those monitors never receive data there.
 
 ## Create a Kubernetes monitor
 
@@ -65,7 +65,7 @@ Finish the form and save. The monitor appears under **Monitors**, and its status
 | --- | --- | --- |
 | Cluster | The whole cluster | — |
 | Namespace | Resources in a namespace | **Namespace** |
-| Workload | A deployment, statefulset, daemonset, job or cronjob | **Namespace**, **Workload Name** |
+| Workload | A deployment, statefulset, daemonset, job or cronjob | **Namespace**, **Workload Kind**, **Workload Name** |
 | Node | A cluster node | **Node Name** |
 | Pod | A pod | **Namespace**, **Pod Name** |
 
@@ -84,14 +84,14 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 | Category | Metrics |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
 | Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. Control-plane metrics only arrive when the agent's control-plane scrape is on.
+> **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. **Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown, which is what a node that went down reports: alert on less than 1. Control-plane metrics only arrive when the agent's control-plane scrape is on.
 
 ## Monitoring criteria
 
@@ -112,7 +112,7 @@ These monitors always evaluate the **Metric Value** — the value of the configu
 
 ### Conditions
 
-Static thresholds are compared against the **Threshold** you enter: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**.
+Static thresholds are compared against the **Threshold** you enter: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.
 
 Baseline anomaly detection needs no threshold. Pick one of these conditions, and the form shows **Sensitivity** and **Baseline Window** instead:
 
@@ -132,13 +132,14 @@ The **Quick Setup** tab lists these templates, grouped by category. Each one fil
 
 | Template | Category | Fires when | Severity |
 | --- | --- | --- | --- |
-| CrashLoopBackOff Detection | Workload | A container has restarted more than 5 times since its pod was created | Critical |
+| Cluster Stopped Reporting | Availability | No data arrives from the cluster's agent for 10 minutes | Critical |
+| CrashLoopBackOff Detection | Workload | A container restarted within 15 minutes and was ready for less than half of them | Critical |
 | Pod Stuck in Pending | Scheduling | Some pod is in the Pending phase in every sample of a 15-minute window | Warning |
-| Node Not Ready | Node | A node reports NotReady | Critical |
+| Node Not Ready | Node | A node reports NotReady, or stops reporting its status (Unknown) | Critical |
 | High Node CPU Utilization | Node | A node's average CPU usage is above 90% of its allocatable CPU | Warning |
-| High Node Memory Utilization | Node | A node's average memory usage is above 85% of its allocatable memory | Warning |
+| High Node Memory Utilization | Node | A node's average memory working set is above 85% of its allocatable memory | Warning |
 | Deployment Replica Mismatch | Workload | A deployment has fewer available replicas than desired for 15 minutes | Warning |
-| Job Failures | Workload | A job has failed pods | Warning |
+| Job Failures | Workload | A pod of a job failed within 15 minutes | Warning |
 | etcd No Leader | Control Plane | etcd has no elected leader | Critical |
 | API Server Request Saturation | Control Plane | The API server holds 200 or more in-flight requests for the whole window | Critical |
 | Scheduler Backlog | Scheduling | The scheduler's pending-pod queue is non-empty for 5 minutes | Warning |
@@ -146,14 +147,16 @@ The **Quick Setup** tab lists these templates, grouped by category. Each one fil
 | DaemonSet Misscheduled Nodes | Workload | A DaemonSet runs pods on nodes that no longer match its node selector, affinity or tolerations | Warning |
 | High Node CPU Request Commitment | Node | A node's summed container CPU requests exceed 90% of its allocatable CPU | Warning |
 | High Node Memory Request Commitment | Node | A node's summed container memory requests exceed 90% of its allocatable memory | Warning |
-| HPA Saturated at Max Replicas | Workload | An HPA runs at 90% or more of its `maxReplicas` | Critical |
+| HPA Saturated at Max Replicas | Workload | An HPA scaled above its `minReplicas` runs at 90% or more of its `maxReplicas` | Critical |
 | Pod Memory Saturating Container Limit | Workload | A pod uses more than 90% of its container memory limit | Critical |
 | Pod CPU Saturating Container Limit | Workload | A pod uses more than 90% of its container CPU limit | Warning |
 
 Templates on per-object metrics evaluate each node, pod, deployment, job, DaemonSet or HPA on its own, so a cluster with several unhealthy pods gets an incident per pod rather than one for the whole cluster.
 
+**Cluster Stopped Reporting** fires when nothing arrives from the cluster's agent for ten minutes: the agent was uninstalled or keeps crashing, its API key was revoked, it lost its route to OneUptime, or the cluster's API server stopped answering it. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
+
 > [!NOTE]
-> **CrashLoopBackOff Detection** reads the container's lifetime restart count for its current pod, not a rate. A container that crash-looped and then recovered keeps the alert open until its pod is replaced.
+> **CrashLoopBackOff Detection** and **Job Failures** count how much a restart or failed-pod count grew in the window, not the count itself, so they clear on their own once the restarts or failures stop. The growth is only seen between two samples of the same minute: at the agent's 30-second interval that is about half of it. A crash loop restarts again and again and is caught; a single restart can go unseen.
 
 ### Catching causes, not just symptoms
 
@@ -174,15 +177,15 @@ Clusters register themselves from the agent's data, under the `clusterName` the 
 :::
 
 :::details A control-plane template never fires
-**etcd No Leader**, **API Server Request Saturation** and **Scheduler Backlog** read metrics that only the agent's control-plane scrape collects. Turn on `controlPlane.enabled` in the agent's Helm values; it is off by default. Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so on them these monitors never receive data.
+**etcd No Leader**, **API Server Request Saturation** and **Scheduler Backlog** read metrics that only the agent's control-plane scrape collects. Turn on `controlPlane.enabled` in the agent's Helm values; it is off by default. That reads the API server. etcd and the scheduler run on the control-plane nodes, so **etcd No Leader** and **Scheduler Backlog** also need `controlPlane.etcd.endpoints` and `controlPlane.scheduler.endpoints` set to addresses the agent's pod can reach (see [Enable control plane monitoring](/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring)). Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so on them these monitors never receive data.
 :::
 
 :::details A CPU threshold never fires
 **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent, so a threshold of `80` means 80 cores. Set the threshold in cores, or start from **High Node CPU Utilization** or **Pod CPU Saturating Container Limit**, which compare a percentage.
 :::
 
-:::details CrashLoopBackOff Detection stays open after the pod recovered
-The template reads the container's lifetime restart count for its current pod, so the count does not fall back once it has passed 5. The alert resolves when the pod is replaced, for example by a redeploy, an eviction or a node drain.
+:::details CrashLoopBackOff Detection did not fire for a restart
+The template fires when a container's restart count grows within 15 minutes while the container was ready for less than half of them, so a container that restarted once and came straight back does not page. The growth is only seen between two samples of the same minute, so a single restart can go unseen; a crash loop restarts every few minutes and is caught.
 :::
 
 ## Next steps

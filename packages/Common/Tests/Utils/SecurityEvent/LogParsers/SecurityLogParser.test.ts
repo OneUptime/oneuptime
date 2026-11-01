@@ -43,6 +43,25 @@ import {
   logLine,
 } from "./LogParserFixtures";
 import { sigmaRuleMatchesEvent } from "./SigmaTestMatcher";
+import { DEVICE_LINES } from "./SecurityDeviceFixtures";
+import { LogKind, googleAuditEntry } from "./GoogleCloudAuditFixtures";
+import {
+  NAMED_SHAPES,
+  WindowsEventSpec,
+  WindowsShape,
+  failedSignIn,
+  fluentBitBody,
+  processCreated,
+  successfulSignIn,
+  windowsEvent,
+} from "./WindowsEventFixtures";
+import {
+  azureActivityExport,
+  entraExport,
+  entraFailedSignIn,
+  entraSignIn,
+} from "../Connectors/EntraIdFixtures";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 function parse(body: string): Array<NormalizedSecurityEvent> {
   return SecurityLogParser.parse(logLine(body, { "host.name": "web-03" }));
@@ -159,6 +178,40 @@ const EVENT_LINES: Array<[SecurityLogFormat, string]> = [
       return [SecurityLogFormat.WebAttack, line];
     },
   ),
+  ...NAMED_SHAPES.map(
+    ([, render]: [WindowsShape, (spec: WindowsEventSpec) => string]): [
+      SecurityLogFormat,
+      string,
+    ] => {
+      return [SecurityLogFormat.WindowsEvents, render(failedSignIn())];
+    },
+  ),
+  [SecurityLogFormat.WindowsEvents, fluentBitBody(processCreated())],
+  [SecurityLogFormat.Cef, DEVICE_LINES.paloAltoThreat],
+  [SecurityLogFormat.Cef, DEVICE_LINES.paloAltoDeny],
+  [SecurityLogFormat.Cef, DEVICE_LINES.fortiGateAdminLoginFailed],
+  [SecurityLogFormat.Cef, DEVICE_LINES.mikroTikLoginFailure],
+  [SecurityLogFormat.Leef, DEVICE_LINES.zscalerLeefBlocked],
+  [SecurityLogFormat.Leef, DEVICE_LINES.qradarLeef2],
+  [
+    SecurityLogFormat.GoogleCloudAudit,
+    JSON.stringify(googleAuditEntry("activity")),
+  ],
+  [
+    SecurityLogFormat.GoogleCloudAudit,
+    JSON.stringify(
+      googleAuditEntry("data_access", {
+        status: { code: 7, message: "PERMISSION_DENIED" },
+      }),
+    ),
+  ],
+  [SecurityLogFormat.AzureActivity, JSON.stringify(azureActivityExport())],
+  [
+    SecurityLogFormat.AzureActivity,
+    JSON.stringify({
+      records: [entraExport("SignInLogs", entraFailedSignIn())],
+    }),
+  ],
 ];
 
 describe("SecurityLogParser", () => {
@@ -185,6 +238,23 @@ describe("SecurityLogParser", () => {
         cloudTrailRecord({ eventName: "ListUsers", readOnly: true }),
       ),
       "GET /index.html 200",
+      DEVICE_LINES.paloAltoAllow,
+      DEVICE_LINES.fortiGateAccept,
+      DEVICE_LINES.uniFiClientDisconnected,
+      DEVICE_LINES.zscalerLeefAllowed,
+      JSON.stringify(googleAuditEntry("data_access")),
+      JSON.stringify(azureActivityExport({ resultType: "Start" })),
+      JSON.stringify(
+        entraExport("NonInteractiveUserSignInLogs", entraSignIn()),
+      ),
+      ...NAMED_SHAPES.map(
+        ([, render]: [
+          WindowsShape,
+          (spec: WindowsEventSpec) => string,
+        ]): string => {
+          return render(successfulSignIn({ LogonType: "3" }));
+        },
+      ),
     ]) {
       expect(parse(line)).toEqual([]);
     }
@@ -350,6 +420,264 @@ describe("SECURITY_LOG_PREFILTER", () => {
  * makes is shown matching an event a real log line becomes - by the rule's
  * own Sigma detection, read the way the engine reads it.
  */
+/*
+ * The same promise for the formats whose records are structured: a
+ * security product's CEF or LEEF line, a Windows event, a Google Cloud
+ * audit entry and an Azure export, each generated in thousands of shapes -
+ * the words the parsers decide on in every order, Windows' providers, ids
+ * and logon types, the four audit logs with every refusal and none, and
+ * Azure's categories and outcomes in batches.
+ */
+describe("SECURITY_LOG_PREFILTER holds the structured formats", () => {
+  function expectHeld(text: string): boolean {
+    const events: Array<NormalizedSecurityEvent> = SecurityLogParser.parse(
+      logLine(text),
+    );
+
+    if (events.length === 0) {
+      return false;
+    }
+
+    expect([text, matchesSecurityLogPrefilter(text)]).toEqual([text, true]);
+
+    return true;
+  }
+
+  test("CEF and LEEF lines of every name, severity, action and separator", () => {
+    const random: SeededRandom = seededRandom(5150);
+    const pick: (items: ReadonlyArray<string>) => string = (
+      items: ReadonlyArray<string>,
+    ): string => {
+      return items[random(items.length)]!;
+    };
+    const names: Array<string> = [
+      "Traffic",
+      "Port Scan",
+      "Web attack",
+      "Admin log in",
+      "vpn sign-in",
+      "system,error",
+      "Tunnel down",
+      "Bad\\|name",
+      "",
+    ];
+    const severities: Array<string> = [
+      "1",
+      "3",
+      "7",
+      "10",
+      "High",
+      "Very-High",
+      "Low",
+      " 8 ",
+      "x",
+    ];
+    const actions: Array<string> = [
+      "block",
+      "allow",
+      "reset-both",
+      "alert",
+      "Accept",
+      "Prevent",
+      "",
+    ];
+    const values: Array<string> = [
+      "203.0.113.7",
+      "192.0.2.1",
+      "22",
+      "user guest login failure",
+      "/a?b\\=c",
+      "two words",
+      "",
+    ];
+    const keys: Array<string> = [
+      "src",
+      "dst",
+      "dpt",
+      "msg",
+      "request",
+      "cat",
+      "suser",
+      "outcome",
+      "sev",
+    ];
+    let held: number = 0;
+
+    for (let index: number = 0; index < 20000; index++) {
+      const isCef: boolean = random(2) === 0;
+      const separator: string = isCef ? " " : pick(["\t", "^", " "]);
+      const pairs: Array<string> = [];
+      const pairCount: number = random(5);
+
+      if (random(3) !== 0) {
+        pairs.push(`${isCef ? "act" : "action"}=${pick(actions)}`);
+      }
+
+      for (let pair: number = 0; pair < pairCount; pair++) {
+        pairs.push(`${pick(keys)}=${pick(values)}`);
+      }
+
+      if (!isCef && random(2) === 0) {
+        pairs.push(`sev=${pick(severities)}`);
+      }
+
+      const prefix: string = pick(["", "<134>", "Oct 30 10:00:00 fw-01 "]);
+      const line: string = isCef
+        ? `${prefix}CEF:0|Acme|Gateway|1.0|${random(1000)}|${pick(names)}|${pick(severities)}|${pairs.join(separator)}`
+        : `${prefix}LEEF:${separator === "\t" ? "1.0" : "2.0"}|Acme|Gateway|1.0|${pick(names)}|${separator === "\t" ? "" : `${separator}|`}${pairs.join(separator)}`;
+
+      if (expectHeld(line)) {
+        held++;
+      }
+    }
+
+    expect(held).toBeGreaterThan(5000);
+  });
+
+  test("Windows events of every provider, id and logon type, in every shape", () => {
+    const random: SeededRandom = seededRandom(4624);
+    const providers: Array<string> = [
+      "Microsoft-Windows-Security-Auditing",
+      "Microsoft-Windows-Eventlog",
+      "Service Control Manager",
+      "Microsoft-Windows-Sysmon",
+      "Microsoft-Windows-Windows Defender",
+      "Microsoft-Windows-PowerShell",
+      "Application Error",
+    ];
+    const ids: Array<number> = [
+      1, 3, 5, 10, 22, 104, 1102, 1116, 4104, 4624, 4625, 4634, 4648, 4688,
+      4720, 4732, 4740, 4768, 4771, 5001, 7040, 7045,
+    ];
+    const logonTypes: Array<string> = ["2", "3", "4", "5", "7", "10", "11", ""];
+    let held: number = 0;
+
+    for (let index: number = 0; index < 3000; index++) {
+      const spec: WindowsEventSpec = windowsEvent(
+        ids[random(ids.length)]!,
+        providers[random(providers.length)]!,
+        "Security",
+        [
+          ["TargetUserName", random(4) === 0 ? "WIN-01$" : "alice"],
+          ["SubjectUserName", random(4) === 0 ? "WIN-01$" : "bob"],
+          ["LogonType", logonTypes[random(logonTypes.length)]!],
+          ["param3", random(2) === 0 ? "disabled" : "auto start"],
+          ["IpAddress", "203.0.113.7"],
+        ],
+        { level: random(2) === 0 ? "Warning" : "Information" },
+      );
+      const [, render] = NAMED_SHAPES[random(NAMED_SHAPES.length)]!;
+
+      if (expectHeld(render(spec))) {
+        held++;
+      }
+    }
+
+    expect(held).toBeGreaterThan(300);
+  });
+
+  test("Google Cloud audit entries of every log, with and without a refusal", () => {
+    const random: SeededRandom = seededRandom(7);
+    const kinds: Array<LogKind> = [
+      "activity",
+      "data_access",
+      "system_event",
+      "policy",
+    ];
+    const statuses: Array<JSONObject> = [
+      {},
+      { code: 7, message: "denied" },
+      { code: 16 },
+      { code: 3, message: "bad request" },
+    ];
+    const methods: Array<[string, string]> = [
+      ["iam.googleapis.com", "google.iam.admin.v1.CreateServiceAccountKey"],
+      ["storage.googleapis.com", "storage.objects.get"],
+      ["login.googleapis.com", "google.login.LoginService.loginFailure"],
+      [
+        "logging.googleapis.com",
+        "google.logging.v2.ConfigServiceV2.DeleteSink",
+      ],
+      ["compute.googleapis.com", "google.longrunning.Operations.GetOperation"],
+    ];
+    let held: number = 0;
+
+    for (let index: number = 0; index < 2000; index++) {
+      const [serviceName, methodName] = methods[random(methods.length)]!;
+      const entry: JSONObject = googleAuditEntry(kinds[random(kinds.length)]!, {
+        status: statuses[random(statuses.length)]!,
+        serviceName,
+        methodName,
+        authorizationInfo: [{ permission: "x", granted: random(3) !== 0 }],
+        ...(random(3) === 0
+          ? {
+              request: {
+                filter: "logName:cloudaudit.googleapis.com%2Fdata_access",
+              },
+            }
+          : {}),
+      });
+      const text: string =
+        random(2) === 0
+          ? JSON.stringify(entry)
+          : JSON.stringify(entry, null, 1);
+
+      if (expectHeld(text)) {
+        held++;
+      }
+    }
+
+    expect(held).toBeGreaterThan(300);
+  });
+
+  test("Azure exports of every category and outcome, alone and in batches", () => {
+    const random: SeededRandom = seededRandom(50126);
+    const records: Array<() => JSONObject> = [
+      (): JSONObject => {
+        return azureActivityExport({
+          resultType: ["Start", "Accept", "Success", "Failure"][random(4)]!,
+          category: ["Administrative", "Policy", "Security", "ServiceHealth"][
+            random(4)
+          ]!,
+        });
+      },
+      (): JSONObject => {
+        return entraExport(
+          [
+            "SignInLogs",
+            "NonInteractiveUserSignInLogs",
+            "ServicePrincipalSignInLogs",
+            "ManagedIdentitySignInLogs",
+          ][random(4)]!,
+          random(2) === 0 ? entraSignIn() : entraFailedSignIn(),
+        );
+      },
+    ];
+    let held: number = 0;
+
+    for (let index: number = 0; index < 2000; index++) {
+      const count: number = 1 + random(4);
+      const batch: Array<JSONObject> = [];
+
+      for (let item: number = 0; item < count; item++) {
+        batch.push(records[random(records.length)]!());
+      }
+
+      const value: JSONObject = count === 1 ? batch[0]! : { records: batch };
+      const text: string =
+        random(2) === 0
+          ? JSON.stringify(value)
+          : JSON.stringify(value, null, 1);
+
+      if (expectHeld(text)) {
+        held++;
+      }
+    }
+
+    expect(held).toBeGreaterThan(300);
+  });
+});
+
 describe("the recommended rules fire on what the log parsers make", () => {
   const EXPECTED_MATCHES: Array<[string, string]> = [
     ["Brute force from one IP address", SSH_LINES.failedPasswordInvalidUser],

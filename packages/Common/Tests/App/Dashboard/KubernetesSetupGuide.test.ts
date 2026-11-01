@@ -7,6 +7,9 @@ import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
   KUBERNETES_EXAMPLE_CLUSTER_NAME,
+  KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT,
+  KUBERNETES_EXAMPLE_ETCD_ENDPOINT,
+  KUBERNETES_EXAMPLE_SCHEDULER_ENDPOINT,
   KUBERNETES_PLATFORMS,
   KubernetesPlatform,
   getKubernetesAgentPreset,
@@ -791,5 +794,58 @@ describe("every chart value the guide sets exists in the chart", () => {
     ]) {
       expect(checked).toContain(key);
     }
+  });
+});
+
+/*
+ * The topic used to say `--set controlPlane.enabled=true` was all control
+ * plane metrics needed. The chart scraped `https://localhost:<port>` from a
+ * pod without host network - the pod itself - so it collected nothing, and
+ * etcd's plain-HTTP port and client-certificate port were both out of reach.
+ * Now the API server is read at its in-cluster address by default, and the
+ * topic says where the other three answer and how to point the agent there.
+ */
+describe("the control plane topic", () => {
+  const topic: SetupGuideTopic = guideFor("standard").advanced!.find(
+    (candidate: SetupGuideTopic): boolean => {
+      return candidate.title === "Collect control plane metrics";
+    },
+  )!;
+
+  test("turns the scrape on, which reads the API server where it answers inside the cluster", () => {
+    expect(topic.markdown).toContain(
+      getKubernetesAgentUpgradeCommand(["--set controlPlane.enabled=true"]),
+    );
+    expect(topic.markdown).toContain(
+      "That reads the API server, where it answers inside the cluster.",
+    );
+  });
+
+  test("lists the other three at a control-plane node's address, etcd in plain HTTP", () => {
+    expect(topic.markdown).toContain(
+      getKubernetesAgentUpgradeCommand([
+        "--set controlPlane.enabled=true",
+        `--set "controlPlane.scheduler.endpoints={${KUBERNETES_EXAMPLE_SCHEDULER_ENDPOINT}}"`,
+        `--set "controlPlane.controllerManager.endpoints={${KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT}}"`,
+        `--set "controlPlane.etcd.endpoints={${KUBERNETES_EXAMPLE_ETCD_ENDPOINT}}"`,
+      ]),
+    );
+    expect(KUBERNETES_EXAMPLE_ETCD_ENDPOINT).toMatch(/^http:\/\/[^/]+:2381\//);
+    for (const endpoint of [
+      KUBERNETES_EXAMPLE_ETCD_ENDPOINT,
+      KUBERNETES_EXAMPLE_SCHEDULER_ENDPOINT,
+      KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT,
+    ]) {
+      expect(endpoint).not.toContain("localhost");
+      expect(endpoint).not.toContain("127.0.0.1");
+    }
+  });
+
+  test("says what the scheduler, the controller manager and etcd's HTTPS port need", () => {
+    expect(topic.markdown).toContain("`--bind-address`");
+    expect(topic.markdown).toContain("`controlPlane.etcd.clientCertSecret`");
+    expect(topic.markdown).toContain(
+      `a Secret in \`${KUBERNETES_AGENT_HELM_NAMESPACE}\``,
+    );
   });
 });

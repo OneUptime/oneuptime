@@ -54,7 +54,7 @@ Query parameters, parsed once per page load:
 | `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `?latest=` | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
 | `?siem=`   | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
-| `?logs=`   | `on`: the project's Your logs is on, checked two minutes before the pinned clock, nothing found yet, so the Events page's Your logs card says On and Open Your logs. `check-failed`: on, and that last check failed, which the card says under its status line. `fail`: reading Your logs fails (a 500), on the Events page and on Connections. Without it, Your logs is off (no record yet).                                                                                                                                                                                                                                                                 |
+| `?logs=`   | `on`: the project's Your logs is on, checked two minutes before the pinned clock, nothing found yet, so the Events page's Your logs card says On and Open Your logs. `check-failed`: on, and that last check failed, which the card says under its status line. `fail`: reading Your logs fails (a 500), on the Events page and on Connections. Without it, Your logs is off (no record yet).                                                                                                          |
 | `?events=` | `one`: the window holds one event - Defender's encoded PowerShell on `web-03`, by `k.morgan@acme-commerce.example` from `203.0.113.30`, twenty minutes before the pinned clock - so its row opens the event's drawer. The drawer's Connected tab asks `POST /security-case/connections` what the event names, answered from Security Operations' records (`web-03`, its staging namesake, Kai Morgan) with the server's own matching rules (`../SecurityOperations/Fixture/ConnectionsFixture.js`).    |
 
 ## What the fixture records
@@ -82,7 +82,7 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 
 - **Connections empty state**: rendered by the table as its no-items message, inside the
   table card above its Refresh? link and the pagination; header (badge, heading,
-  description, Add connection) on one centre line; eight tiles in catalog order, each with its
+  description, Add connection) on one centre line; ten tiles in catalog order, each with its
   category and a Setup guide link (`href` `/docs/integrations/<slug>`, `target="_blank"`);
   every tile built the same way with an icon of its own; the old grey requirements box and
   the Setup guides list are gone.
@@ -98,9 +98,9 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
   form with nothing chosen (a tile's choice does not stick); every Setup guide opens a new tab
   on its docs URL and never the form; hovering a tile turns its border, badge and plus indigo.
 - **Layout**, beside the side menu from md up, the grid's columns taken from the card's own
-  width: at 1440 four tiles a row, one size, every name on one line; 1280 (four columns,
-  "Splunk Enterprise Security" wraps), 1024 (two), 768 (one) and 390 (one) with nothing
-  wider than the card and no horizontal scroll.
+  width: at 1440 four tiles a row (the last row the two left), one size, every name on one
+  line; 1280 (four columns, "Splunk Enterprise Security" wraps), 1024 (two), 768 (one) and
+  390 (one) with nothing wider than the card and no horizontal scroll.
 - **Viewer**: disabled hero and header buttons with the gate's sentence under the hero
   button and in its tooltip, "Supported products", static tiles with no buttons and no plus,
   guide links still working and reachable by Tab, and a click on a tile opening nothing.

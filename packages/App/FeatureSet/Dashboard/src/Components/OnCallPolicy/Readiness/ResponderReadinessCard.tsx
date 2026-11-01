@@ -15,7 +15,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import UserElement from "../../User/User";
-import StatTile from "./StatTile";
+import StatTile, { StatTileGrid } from "./StatTile";
 import {
   READINESS_STATUS_NOT_REACHABLE,
   READINESS_STATUS_READY,
@@ -211,7 +211,7 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
   const getSkeleton: () => ReactElement = (): ReactElement => {
     return (
       <div>
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTileGrid>
           {[0, 1, 2, 3].map((index: number): ReactElement => {
             return (
               <div
@@ -220,7 +220,7 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
               />
             );
           })}
-        </div>
+        </StatTileGrid>
         <div className="space-y-3">
           {[0, 1].map((index: number): ReactElement => {
             return (
@@ -532,7 +532,7 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div>
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTileGrid>
           <StatTile
             icon={IconProp.CheckCircle}
             label="Ready"
@@ -556,7 +556,7 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
             label={summary.users.length === 1 ? "Responder" : "Responders"}
             value={`${summary.users.length}`}
           />
-        </div>
+        </StatTileGrid>
 
         {/*
          * The tiles above count the rows this card is holding. When the policy

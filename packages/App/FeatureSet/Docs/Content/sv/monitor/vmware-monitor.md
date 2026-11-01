@@ -4,7 +4,7 @@ En VMware-monitor bevakar ett vCenter - datacenter, kluster, ESXi-värdar, virtu
 
 :::cards
 - [Skapa monitorn](#skapa-en-vmware-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Tjugotre färdiga larm, en incident per värd, VM eller datastore.
+- [Mallar](#färdiga-larmmallar): Tjugofyra färdiga larm, en incident per värd, VM eller datastore.
 - [Identitetsattribut](#identitetsattribut): Så träffar du en värd, VM eller datastore.
 - [Mätvärden](#insamlade-mätvärden): Varje `vcenter.*`-serie som monitorn kan varna på.
 :::
@@ -106,12 +106,13 @@ I monitorfilter och grupperingsnycklar börjar resursattribut med `resource.` (`
 
 ## Färdiga larmmallar
 
-OneUptime levererar 23 mallar för vanliga VMware-problem, och **Quick Setup** erbjuder alla. Var och en bygger en komplett monitor: mätvärdesfrågan, attributfiltren, en gruppering på objektets eget identitetsattribut, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
+OneUptime levererar 24 mallar för vanliga VMware-problem, och **Quick Setup** erbjuder alla. Var och en bygger en komplett monitor: mätvärdesfrågan, attributfiltren, en gruppering på objektets eget identitetsattribut, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
 Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret, och ett tröskelkriterium återhämtar sig 10 % förbi tröskeln, så ett värde som pendlar kring linjen inte växlar fram och tillbaka.
 
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när | Återhämtar när |
 | --- | --- | --- | --- | --- | --- |
+| vCenter Stopped Reporting | Tillgänglighet | Kritisk | `vcenter.datacenter.cpu.limit`, Count över hela vCenter, **senaste 10 minuterna** | Inga data under hela fönstret: agenten eller proben har stoppat, eller vCenter har slutat svara den | Data kommer in igen |
 | Host CPU Saturation | Värd | Warning | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Över 90 %: varje VM på värden konkurrerar om kärnor och visar CPU-ready-tid | Vid 81 % eller mindre |
 | Host Memory Saturation | Värd | Warning | `vcenter.host.memory.utilization`, Avg per värd | Över 90 %: värden börjar ta tillbaka minne med ballooning, komprimering och swappning | Vid 81 % eller mindre |
 | Host Disk Latency High | Värd | Warning | `vcenter.host.disk.latency.max`, Max per värd | Över 50 ms: varje VM med diskar på den sökvägen väntar på lagring. Kräver prestandaräknarnivå 3 | Vid 45 ms eller mindre |
@@ -141,7 +142,7 @@ Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Et
 - **Utnyttjandemallar använder Avg:** receivern rapporterar en äkta procentsats från 0 till 100 för varje objekt, så genomsnittet under en minut är det ihållande utnyttjandet.
 - **Latensmallar använder Max:** mätvärdet är redan den sämsta latensen över objektets diskar, så det högsta stickprovet är det ärliga.
 - **Antals- och tillståndsmallar använder Max**, så en enda insamling som visar tillståndet utlöser dem: paketfel, ballooning, swappning, röd och gul status, värdar som inte är effektiva, överbelastning.
-- **Varje mall grupperar på objektets eget identitetsattribut**, så det utlöses en incident per berört objekt, och incidenten nämner det.
+- **Varje mall grupperar på objektets eget identitetsattribut**, så det utlöses en incident per berört objekt, och incidenten nämner det. Undantaget är **vCenter Stopped Reporting**, som bevakar hela vCenter: när data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **Tröskelvärden är låsta till sin enhet** (`%`, `ms`, `us`), så de behåller sin betydelse oavsett vilken enhet ett diagram visar.
 
 ## Insamlade mätvärden
@@ -270,7 +271,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
 | **Tröskel** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -292,11 +293,11 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 
 | Ordning | Kriterium | Matchar när | Sedan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Vilket värde som helst i den första frågan är `0` | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Vilket värde som helst är över `0` | Markerar monitorn som **Fungerar**. |
+| 1 | Check if _monitor name_ is offline | Den första frågan har inga data under hela fönstret | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
-> Tystnad matchar inget av kriterierna: ett vCenter som slutar skicka data lämnar monitorn som den var. För att få veta när data uteblir sätter du **Om ingen data** till **Utlösare** på ett kriterium. Tid då OneUptime själv inte tog emot något räknas aldrig som saknade data: en kontroll vars fönster innehåller den tiden väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+> Ett värde på `0` är data, så ett mått som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Terraform
 

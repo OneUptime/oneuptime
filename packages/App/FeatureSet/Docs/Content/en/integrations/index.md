@@ -58,6 +58,8 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | [Elastic Security](/docs/integrations/elastic-security) | Both | Bring Elastic Security detection alerts into Security Events, and send it what OneUptime finds. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inbound | Bring AWS Security Hub findings into Security Events. |
 | [Okta System Log](/docs/integrations/okta) | Inbound | Bring Okta sign-ins, account changes and threat detections into Security Events. |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inbound | Bring Microsoft Entra ID sign-ins and directory changes, and the Microsoft 365 audit log, into Security Events. |
+| [Google Workspace](/docs/integrations/google-workspace) | Inbound | Bring Google Workspace sign-ins, admin changes and Google's own findings into Security Events. |
 
 ### Ticketing and IT service management
 
