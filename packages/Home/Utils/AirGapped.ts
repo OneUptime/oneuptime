@@ -447,7 +447,7 @@ export const AirGappedConnections: Array<AirGappedConnection> = [
       "Twilio, OneUptime's push relay or Expo, and browsers' push services",
     when: "Paging people by SMS, phone call, the mobile app or a browser.",
     inside:
-      "These need a route to their service. Page by email, webhook or a chat server on your network instead.",
+      "Send SMS and calls through a gateway you run on your network. Push needs a route to its service, so page by email, webhook or a chat server on your network instead.",
     onByDefault: false,
   },
   {
@@ -547,7 +547,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "Can we page people without SMS, calls or push?",
     answer:
-      "Yes. OneUptime emails them through your own mail server, posts to webhooks your own tools receive, and runs workflows that post to Mattermost or IRC on your network. SMS and calls go through Twilio, and mobile push through OneUptime's push relay or Expo, so those need a route out.",
+      "Yes. OneUptime emails them through your own mail server, posts to webhooks your own tools receive, and runs workflows that post to Mattermost or IRC on your network. SMS and calls go through Twilio by default, or through a gateway you run on your network. Mobile push goes through OneUptime's push relay or Expo, so it needs a route out.",
   },
   {
     question: "Does OneUptime AI work without the internet?",

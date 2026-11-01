@@ -24,7 +24,11 @@ import {
 import { Claim, getClaim } from "../Utils/Claims";
 import LlmType from "Common/Types/LLM/LlmType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import CallProviderType from "Common/Types/Call/CallProviderType";
+import {
+  CALL_AND_SMS_PROVIDERS,
+  CallAndSmsProvider,
+  DEFAULT_CALL_AND_SMS_PROVIDER,
+} from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -866,8 +870,33 @@ describe("what reaches out, and how it is stopped", () => {
     expectFileToSay(CHART_VALUES, "  provision: false");
   });
 
-  test("SMS and calls go through Twilio alone, and mobile push through the relay or Expo", () => {
-    expect(Object.values(CallProviderType)).toEqual([CallProviderType.Twilio]);
+  test("SMS and calls go through Twilio or a gateway on the customer's network, and mobile push through the relay or Expo", () => {
+    expect(CALL_AND_SMS_PROVIDERS).toEqual([
+      CallAndSmsProvider.Twilio,
+      CallAndSmsProvider.Gateway,
+    ]);
+    expect(DEFAULT_CALL_AND_SMS_PROVIDER).toBe(CallAndSmsProvider.Twilio);
+
+    const gateway: string = docsPagePath("self-hosted/sms-and-call-gateway");
+
+    expectFileToSay(
+      gateway,
+      "OneUptime can send its SMS and calls through a gateway you run, instead of Twilio.",
+    );
+    expectFileToSay(
+      gateway,
+      "enter the **Gateway URL**. It can be on your private network.",
+    );
+    expect(connection("paging").inside).toContain(
+      "Send SMS and calls through a gateway you run on your network.",
+    );
+    // In the core, so every edition has it: nothing under ee/ sends through it.
+    expect(
+      repoPathExists(
+        "packages/App/FeatureSet/Notification/Services/CallAndSmsGatewayService.ts",
+      ),
+    ).toBe(true);
+
     expectFileToSay(
       ENVIRONMENT_CONFIG,
       '"https://oneuptime.com/api/notification/push-relay/send"',
@@ -1151,13 +1180,16 @@ describe("the questions buyers ask", () => {
     expect(text).toContain("offline license token never does");
   });
 
-  test("the paging answer names Twilio and the push relay as what needs a route out", () => {
+  test("the paging answer offers a gateway for SMS and calls, and names push as what needs a route out", () => {
     const text: string = faqAnswer(
       "Can we page people without SMS, calls or push?",
     );
 
-    expect(text).toContain("SMS and calls go through Twilio");
+    expect(text).toContain(
+      "SMS and calls go through Twilio by default, or through a gateway you run on your network.",
+    );
     expect(text).toContain("OneUptime's push relay or Expo");
+    expect(text).toContain("so it needs a route out");
   });
 });
 
@@ -1177,7 +1209,14 @@ describe("the claims matrix agrees with the page", () => {
       "packages/Home/Utils/SelfHosted.ts",
       "makes no calls to oneuptime.com",
     );
-    // OneUptime sends SMS through Twilio alone: there is no SMS gateway to point at.
-    expectFileNotToSay("packages/Home/Utils/SelfHosted.ts", "SMS gateway");
+    // The gateway SMS and calls can go through shipped: nothing still says they cannot.
+    expectFileNotToSay(
+      "packages/Home/Utils/SelfHosted.ts",
+      "SMS, calls and push need their providers",
+    );
+    expectFileNotToSay(
+      "packages/Home/Utils/AirGapped.ts",
+      "These need a route to their service.",
+    );
   });
 });

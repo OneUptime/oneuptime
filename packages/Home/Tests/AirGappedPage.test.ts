@@ -1196,7 +1196,6 @@ describe("the pages and menus that lead to the air-gapped page", () => {
     expect(
       section.querySelector('a[href="/enterprise/air-gapped#connections-out"]'),
     ).not.toBeNull();
-    expect(textOf(section)).not.toContain("SMS gateway");
   });
 
   test("the Enterprise overview's data residency card and the government page lead here", async () => {
