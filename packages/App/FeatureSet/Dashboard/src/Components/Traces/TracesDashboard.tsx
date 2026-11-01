@@ -1010,7 +1010,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
             to={viewerRoute}
           >
-            {translator.translateText("Open Viewer")}
+            <span>{translator.translateText("Open Viewer")}</span>
           </AppLink>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -1187,7 +1187,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                               )
                         }
                       >
-                        {translator.translateText("View")}
+                        <span>{translator.translateText("View")}</span>
                       </AppLink>
                     </td>
                   </tr>
