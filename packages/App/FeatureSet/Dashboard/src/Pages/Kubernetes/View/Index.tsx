@@ -2233,6 +2233,8 @@ const KubernetesClusterOverview: FunctionComponent<
                     return (
                       <span
                         key={`pod-${idx}`}
+                        data-testid="kubernetes-cluster-status-chip"
+                        data-chip={chip.label}
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
                       >
                         {chip.plural ? (

@@ -2,7 +2,8 @@
 
 An offline harness for a Kubernetes cluster's pages
 (`packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View`): the
-cluster's Overview, its Pods, Deployments and Nodes lists, the pages of a
+cluster's Overview, its Pods, Deployments, StatefulSets, DaemonSets, Jobs,
+CronJobs and Nodes lists, the pages of a
 pod, a Deployment, a StatefulSet, a DaemonSet, a Job, a CronJob and a node
 (`Components/Kubernetes/Part`, built on the shared `Components/ResourcePart`)
 and Recommendations. It bundles the production cluster layout and side menu
@@ -36,21 +37,27 @@ The suite reads the pages the way someone on call does:
   at, each with why in Kubernetes' own words (Unreachable, 2 of 3
   available, CrashLoopBackOff, Last restart: OOMKilled, Can't be scheduled,
   Last run failed), six rows and the rest one click away, each row one step
-  from its part's page in its namespace; a calm cluster saying nothing, a
-  disconnected one not trusting its last snapshot, and a failed read said
-  as such;
+  from its part's page in its namespace; "1 Node Not Ready" in its count's
+  form; a calm cluster saying nothing, a disconnected one not trusting its
+  last snapshot, and a failed read said in Needs attention's own card, with
+  Refresh asking again;
 - a Deployment's page: its status, where it sits, its chips, what on it and
   its pods needs a look (the most urgent first), what is open on it, the
   Deployment alerts with "Turn on N alerts" opening Recommendations with
-  exactly those selected (`?select=`), its Pods tab, a Deployment of the
-  same name in another namespace kept apart, and a failed read;
+  exactly those selected (`?select=`), its facts in one Details card with
+  no second rollout status, its Pods tab, a Deployment of the same name in
+  another namespace kept apart, and a failed read said in its card, with
+  Refresh;
 - a pod's page: its workload, namespace and node (links), its containers'
-  readiness, restarts and QoS, why it restarted (its Containers tab);
+  readiness, restarts and QoS, its phase a plain fact, its owner a real
+  link, why it restarted (its Containers tab, red for a crash loop);
 - a node's page: Unreachable, its open incident, the pod on it that is not
-  ready, its Pods tab's Workload and Namespace columns, a cordoned node;
-- a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page, with dates
-  in words or as a time, never as ISO strings;
-- the Deployments and Pods lists' statuses, tones and per-namespace CPU;
+  ready with its namespace, no NotReady in its details, its Pods tab's
+  Workload and Namespace columns, a cordoned node;
+- a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page (a run says
+  whose run it is), with dates in words or as a time, never as ISO strings;
+- the Deployments, StatefulSets, DaemonSets, Jobs, CronJobs and Pods lists'
+  statuses, tones and per-namespace CPU;
 - a phone (390 wide: nothing scrolls sideways), dark mode (`?theme=dark`),
   German (`?lang=de`) and Persian (`?lang=fa`, right to left, Persian
   digits).

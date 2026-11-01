@@ -312,6 +312,18 @@ async function selectedRecommendations(page: Page): Promise<Array<string>> {
 // A Latin digit, which a Persian sentence should not mix with its own.
 const LATIN_DIGIT: RegExp = /[0-9]/;
 
+// The Overview's chip that counts the nodes that are not ready.
+function notReadyChip(page: Page): Locator {
+  return page.locator(
+    '[data-testid="kubernetes-cluster-status-chip"][data-chip="Nodes Not Ready"]',
+  );
+}
+
+// One fact of a part's Details card, by its row's key.
+function detailRow(page: Page, kind: string, key: string): Locator {
+  return page.getByTestId(`kubernetes-${kind.toLowerCase()}-details-${key}`);
+}
+
 test.describe("the cluster's Overview", () => {
   test("says what needs attention first, the most urgent first, each a step to its page in its namespace", async ({
     page,
@@ -323,6 +335,8 @@ test.describe("the cluster's Overview", () => {
     const health: Locator = page.getByTestId("kubernetes-cluster-health");
     await expect(health).toHaveAttribute("data-health", "Unhealthy");
     await expect(health).toHaveText("Unhealthy");
+    // One node is one node: never "1 Nodes Not Ready".
+    await expect(notReadyChip(page)).toHaveText("1 Node Not Ready");
 
     const card: Locator = page.getByTestId("kubernetes-needs-attention");
     await expect(card).toBeVisible();
@@ -466,10 +480,28 @@ test.describe("the cluster's Overview", () => {
   }) => {
     await openOverview(page, "fail=attention");
 
+    const frame: Locator = page.getByTestId("kubernetes-needs-attention-error");
+    await expect(frame).toContainText(
+      "Something went wrong on the server. Please try again.",
+    );
+    // In the card it would have been, named, so the reader knows what failed.
     await expect(
-      page.getByTestId("kubernetes-needs-attention-error"),
-    ).toContainText("Something went wrong on the server. Please try again.");
+      frame.getByRole("heading", { name: "Needs attention" }),
+    ).toBeVisible();
     await expect(page.getByTestId("kubernetes-needs-attention")).toHaveCount(0);
+
+    // Refresh asks again.
+    const reads: number = await apiCalls(
+      page,
+      "/kubernetes-resource/needs-attention/",
+    );
+    await frame.getByRole("button", { name: "Refresh?" }).click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return await apiCalls(page, "/kubernetes-resource/needs-attention/");
+      })
+      .toBe(reads + 1);
+    await screenshot(page, "overview-attention-failed");
   });
 });
 
@@ -551,6 +583,32 @@ test.describe("a Deployment's page", () => {
       "href",
       partPath("pods", CRASHING_POD, "shop"),
     );
+    // Its pods are in its namespace, which the hero names: no "shop" under each.
+    await expect(
+      crashing.getByTestId("kubernetes-deployment-attention-detail"),
+    ).toHaveCount(0);
+
+    /*
+     * What Kubernetes reports about it is one Details card, saying nothing
+     * the hero says otherwise: no cluster, and no Rollout Status reading
+     * "In Progress" for a finished rollout one replica short.
+     */
+    const details: Locator = page.getByTestId("kubernetes-deployment-details");
+    await expect(details).toBeVisible();
+    await expect(detailRow(page, "Deployment", "desired-replicas")).toHaveText(
+      /Desired Replicas\s*3/,
+    );
+    await expect(detailRow(page, "Deployment", "unavailable")).toHaveText(
+      /Unavailable\s*1/,
+    );
+    await expect(details).not.toContainText("Rollout Status");
+    await expect(details).not.toContainText("In Progress");
+    await expect(detailRow(page, "Deployment", "cluster")).toHaveCount(0);
+    await expect(
+      detailRow(page, "Deployment", "namespace").getByRole("link", {
+        name: "shop",
+      }),
+    ).toHaveAttribute("href", `${CLUSTER_PATH}/namespaces/shop`);
 
     // The alert open on its pod is open on it.
     const open: Locator = page.getByTestId("kubernetes-deployment-open-item");
@@ -733,6 +791,25 @@ test.describe("a Deployment's page", () => {
     await expect(
       page.getByTestId("kubernetes-deployment-attention"),
     ).toHaveCount(0);
+    // Said in Needs attention's own frame, and where it sits still known.
+    const frame: Locator = page.getByTestId(
+      "kubernetes-deployment-attention-error",
+    );
+    await expect(
+      frame.getByRole("heading", { name: "Needs attention" }),
+    ).toBeVisible();
+    await expect(
+      hero.getByTestId("kubernetes-deployment-hero-location"),
+    ).toHaveText("In namespace shop of cluster EKS Production (eu-west-1)");
+    // Refresh reads it again.
+    const reads: number = await apiCalls(page, "/kubernetes-resource/part/");
+    await frame.getByRole("button", { name: "Refresh?" }).click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return await apiCalls(page, "/kubernetes-resource/part/");
+      })
+      .toBe(reads + 1);
+    await screenshot(page, "deployment-part-failed");
     // Its alerts and its own details still draw.
     await expect(
       page.getByTestId("kubernetes-deployment-alerts-turn-on"),
@@ -793,11 +870,29 @@ test.describe("a pod's page", () => {
 
     await screenshot(page, "pod-crash-looping");
 
-    // Why it restarted, on its container.
+    /*
+     * Its phase is a plain fact: a green Running under the hero's red
+     * CrashLoopBackOff read as two answers.
+     */
+    const phase: Locator = detailRow(page, "Pod", "phase");
+    await expect(phase).toHaveText(/Phase\s*Running/);
+    await expect(phase.locator("[class*='bg-green']")).toHaveCount(0);
+    await expect(detailRow(page, "Pod", "status")).toHaveCount(0);
+    // What owns it is a real link, to the Deployment its ReplicaSet belongs to.
+    await expect(
+      detailRow(page, "Pod", "owner-references").getByRole("link", {
+        name: "checkout-7d9f8b6c5",
+      }),
+    ).toHaveAttribute("href", partPath("deployments", "checkout", "shop"));
+
+    // Why it restarted, on its container: red, as its state is.
     await openTab(page, "Containers");
     await expect(
       page.getByTestId("kubernetes-container-last-restart").first(),
     ).toContainText("OOMKilled");
+    await expect(
+      page.getByTestId("kubernetes-container-diagnosis").first(),
+    ).toHaveAttribute("data-tone", "danger");
 
     // Its workload, one step away.
     await openTab(page, "Overview");
@@ -855,6 +950,18 @@ test.describe("a node's page", () => {
         "kubernetes-node-attention-name",
       ),
     ).toHaveText("This node");
+    // A node's pods come from every namespace: each says its own.
+    await expect(
+      attentionRow(card, `Pod:kube-system/${LOST_NODE_POD}`).getByTestId(
+        "kubernetes-node-attention-detail",
+      ),
+    ).toHaveText("kube-system");
+    // No NotReady in its details beside the hero's Unreachable.
+    await expect(page.getByTestId("kubernetes-node-details")).toBeVisible();
+    await expect(detailRow(page, "Node", "status")).toHaveCount(0);
+    await expect(page.getByTestId("kubernetes-node-details")).not.toContainText(
+      "NotReady",
+    );
 
     const open: Locator = page.getByTestId("kubernetes-node-open-item");
     await expect(open).toHaveCount(1);
@@ -1072,6 +1179,14 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     const status: Locator = hero.getByTestId("kubernetes-job-hero-status");
     expect(await statusLabel(status)).toBe("Failed");
     await expect(status).toHaveAttribute("data-tone", "warning");
+    // Whose run it is, one step from that CronJob's page in its namespace.
+    const location: Locator = hero.getByTestId("kubernetes-job-hero-location");
+    await expect(location).toHaveText(
+      "Run of CronJob nightly-report in namespace shop",
+    );
+    await expect(
+      location.getByRole("link", { name: "CronJob nightly-report" }),
+    ).toHaveAttribute("href", partPath("cronjobs", "nightly-report", "shop"));
     await expect(
       hero.getByTestId("kubernetes-job-hero-chips").locator("[data-key]"),
     ).toHaveText(["3 pods failed"]);
@@ -1125,6 +1240,46 @@ test.describe("the lists", () => {
     ).toHaveAttribute("href", partPath("deployments", "checkout", "payments"));
     await expectNoSidewaysScroll(page);
     await screenshot(page, "deployments-list");
+  });
+
+  test("StatefulSets, DaemonSets, Jobs and CronJobs: each one's status in the rules' words and tone, a step from its page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}/statefulsets`);
+    const postgres: Locator = tableRow(page, "postgres");
+    await expect(statusCell(postgres)).toHaveText("2 of 3 ready");
+    await expect(statusCell(postgres)).toHaveAttribute("data-tone", "warning");
+    await expect(
+      postgres.getByRole("link", { name: "postgres" }),
+    ).toHaveAttribute("href", partPath("statefulsets", "postgres", "data"));
+
+    await page.goto(`${CLUSTER_PATH}/daemonsets`);
+    const fluentBit: Locator = tableRow(page, "fluent-bit");
+    await expect(statusCell(fluentBit)).toHaveText("Ready on 3 of 4 nodes");
+    await expect(statusCell(fluentBit)).toHaveAttribute("data-tone", "warning");
+
+    // A failed run says so; one that finished is done, not a warning.
+    await page.goto(`${CLUSTER_PATH}/jobs`);
+    const failed: Locator = tableRow(page, FAILED_RUN);
+    await expect(statusCell(failed)).toHaveText("Failed");
+    await expect(statusCell(failed)).toHaveAttribute("data-tone", "warning");
+    await expect(statusCell(tableRow(page, "db-migrate-41"))).toHaveText(
+      "Completed",
+    );
+    await expect(
+      failed.getByRole("link", { name: FAILED_RUN }),
+    ).toHaveAttribute("href", partPath("jobs", FAILED_RUN, "shop"));
+
+    // A CronJob whose newest run failed says so, as its page does.
+    await page.goto(`${CLUSTER_PATH}/cronjobs`);
+    const nightly: Locator = tableRow(page, "nightly-report");
+    await expect(statusCell(nightly)).toHaveText("Last run failed");
+    await expect(statusCell(nightly)).toHaveAttribute("data-tone", "warning");
+    await expect(nightly).toContainText("0 2 * * *");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cronjobs-list");
   });
 
   test("Pods: the crash loop red, the pod that cannot be scheduled amber, restarts counted", async ({
@@ -1261,6 +1416,21 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
         "kubernetes-needs-attention-reason",
       ),
     ).toHaveText(GERMAN["Unreachable"] as string);
+    // The hero's counts are German too: "18 Pods", "1 Knoten nicht bereit".
+    expect(GERMAN["{{count}} pods"]).not.toBe("{{count}} pods");
+    await expect(
+      page.getByText(fill(GERMAN, "{{count}} pods", { count: "18" }), {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(fill(GERMAN, "{{count}} nodes", { count: "4" }), {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(notReadyChip(page)).toHaveText(
+      fill(GERMAN, "{{count}} Nodes Not Ready_one", { count: "1" }),
+    );
     await expectNoSidewaysScroll(page);
     await screenshot(page, "german-overview");
 

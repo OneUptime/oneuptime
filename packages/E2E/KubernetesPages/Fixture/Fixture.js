@@ -1,7 +1,8 @@
 /*
  * Offline fixture for a Kubernetes cluster's pages: the production cluster
  * layout (ModelPage, the cluster's side menu) with its Overview, its Pods,
- * Deployments and Nodes lists, and the pages of a pod, a Deployment, a
+ * Deployments, StatefulSets, DaemonSets, Jobs, CronJobs and Nodes lists,
+ * and the pages of a pod, a Deployment, a
  * StatefulSet, a DaemonSet, a Job, a CronJob and a node - under their real
  * RouteMap patterns - and Recommendations. Only the data boundary
  * (ModelAPI, AnalyticsModelAPI, API, Realtime) and the signed-in user are
@@ -61,6 +62,10 @@ import KubernetesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Kubern
 import KubernetesOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index";
 import KubernetesPods from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Pods";
 import KubernetesDeployments from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Deployments";
+import KubernetesStatefulSets from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/StatefulSets";
+import KubernetesDaemonSets from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/DaemonSets";
+import KubernetesJobs from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Jobs";
+import KubernetesCronJobs from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/CronJobs";
 import KubernetesNodes from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Nodes";
 import KubernetesPodDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/PodDetail";
 import KubernetesDeploymentDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/DeploymentDetail";
@@ -1685,6 +1690,10 @@ const PAGES = [
   [PageMap.KUBERNETES_CLUSTER_VIEW, KubernetesOverview],
   [PageMap.KUBERNETES_CLUSTER_VIEW_PODS, KubernetesPods],
   [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS, KubernetesDeployments],
+  [PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS, KubernetesStatefulSets],
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS, KubernetesDaemonSets],
+  [PageMap.KUBERNETES_CLUSTER_VIEW_JOBS, KubernetesJobs],
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS, KubernetesCronJobs],
   [PageMap.KUBERNETES_CLUSTER_VIEW_NODES, KubernetesNodes],
   [PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL, KubernetesPodDetail],
   [
