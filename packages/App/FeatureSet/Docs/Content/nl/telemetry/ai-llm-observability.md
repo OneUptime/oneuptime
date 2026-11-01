@@ -185,12 +185,12 @@ Het tabblad **Waarschuwingen** toont de waarschuwingen die de meeste AI-apps wil
 
 | Waarschuwing | Wanneer je een melding krijgt | Ernst |
 | --- | --- | --- |
-| Antwoorden gaan mis | Meer dan 5% van de antwoorden in 15 minuten mislukt, wordt geweigerd, afgekapt, is leeg of gemarkeerd | Warning |
+| Antwoorden gaan mis | Meer dan 5% van de antwoorden in 15 minuten mislukt, wordt geweigerd, afgekapt, is leeg of gemarkeerd | Waarschuwing |
 | AI-aanroepen mislukken | Meer dan 10% van de aanroepen naar het model in 5 minuten eindigt met een fout | Critical |
-| De AI weigert te antwoorden | Meer dan 5% van de antwoorden in 30 minuten zijn weigeringen | Warning |
-| Antwoorden worden afgekapt | 3 of meer antwoorden in 30 minuten stoppen bij de tokenlimiet | Warning |
-| Antwoorden worden gemarkeerd | Een evaluatie markeert een antwoord als slecht | Warning |
-| Antwoorden zijn traag | Meer dan 10% van de antwoorden in 15 minuten duurt langer dan 30 seconden | Warning |
+| De AI weigert te antwoorden | Meer dan 5% van de antwoorden in 30 minuten zijn weigeringen | Waarschuwing |
+| Antwoorden worden afgekapt | 3 of meer antwoorden in 30 minuten stoppen bij de tokenlimiet | Waarschuwing |
+| Antwoorden worden gemarkeerd | Een evaluatie markeert een antwoord als slecht | Waarschuwing |
+| Antwoorden zijn traag | Meer dan 10% van de antwoorden in 15 minuten duurt langer dan 30 seconden | Waarschuwing |
 | De AI stopt met antwoorden | De AI geeft 30 minuten lang geen antwoorden | Critical |
 
 De waarschuwingen op een aandeel van de antwoorden wachten ook op minstens 3 slechte antwoorden, zodat één slecht antwoord op twee niemand oproept. Een Critical-waarschuwing krijgt de zwaarste waarschuwingsernst van je project en een Warning-waarschuwing de volgende: High en Low in een nieuw project.

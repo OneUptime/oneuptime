@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "与此许可证关联的公司名称。",
+  "Annual contract value (in USD) for this license.": "此许可证的年度合同金额（美元）。",
+  "Expiration date of this license.": "此许可证的到期日期。",
+  "Something went wrong": "出了点问题",
+  "An unexpected error has occurred. Please reload the page to continue": "发生了意外错误。请重新加载页面以继续",
+  "Error details": "错误详情",
+  "Still stuck?": "还是无法解决？",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "下载一个本地诊断文件，其中包含错误堆栈、组件堆栈、已清理的页面 URL、浏览器信息和 OneUptime 版本。它从不读取 Cookie、浏览器保存的数据或表单内容。分享给 OneUptime 支持团队之前请先检查。",
+  "Download support bundle": "下载支持包",
+  "Send it to {{email}}": "将它发送到 {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "支持包已下载。请检查后再附加到你的邮件中。",
+  "The support bundle could not be downloaded. Please try again.": "无法下载支持包。请重试。",
   "common": {
     "save": "保存",
     "cancel": "取消",

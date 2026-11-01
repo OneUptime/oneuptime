@@ -28,7 +28,7 @@ För att köra en regel behöver du behörighet att redigera regeln **och** att 
 > [!IMPORTANT]
 > En behörighet som är begränsad till vissa etiketter, eller till resurser som du äger, räcker inte: en körning kan ändra alla resurser i projektet. Teamens blocklistor gäller som överallt annars, och en blockering som är begränsad till vissa etiketter räknas också: en körning skulle ändra resurserna med de etiketterna, så en blockering med etiketter på redigering av de resurser som en regel ändrar avvisar körningen.
 
-Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Kör nu** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Dry Run** och **Run Rule** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importera-automatiskt-med-regler-för-automatisk-import).
+Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Kör nu** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Dry Run** och **Kör regel** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importera-automatiskt-med-regler-för-automatisk-import).
 
 ## Köra en regel
 
@@ -43,11 +43,11 @@ Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan h
 
 ### Välj om nya ägare ska aviseras
 
-För en ägarregel väljer du om du vill **Notify the owners this run adds**. Det är avstängt som standard och gäller bara när regeln själv har **Avisera ägare** påslaget. En ägare aviseras en gång för varje resurs som hen läggs till på.
+För en ägarregel väljer du om du vill **Meddela ägarna som den här körningen lägger till**. Det är avstängt som standard och gäller bara när regeln själv har **Avisera ägare** påslaget. En ägare aviseras en gång för varje resurs som hen läggs till på.
 
 ### Starta regeln
 
-Välj **Run Rule** och låt dialogrutan vara öppen. I ett stort projekt visar dialogrutan hur långt körningen har kommit.
+Välj **Kör regel** och låt dialogrutan vara öppen. I ett stort projekt visar dialogrutan hur långt körningen har kommit.
 
 ### Läs rapporten
 

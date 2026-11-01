@@ -48,7 +48,7 @@ A conexão entra com a chave de uma conta de serviço e a [delegação em todo o
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Google Workspace** em **Identidade** e clique em **Próximo**. Informe o **Administrator email**, clique em **Próximo** e cole o conteúdo do arquivo da chave em **JSON da conta de serviço**. Na etapa **Consulta periódica**, ative **Atividade do Drive** para ler também o Drive.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Google Workspace** em **Identidade** e clique em **Próximo**. Informe o **Administrator email**, clique em **Próximo** e cole o conteúdo do arquivo da chave em **JSON da conta de serviço**. Na etapa **Consulta periódica**, ative **Atividade do Drive** para ler também o Drive.
 
 ### Testar antes de salvar
 

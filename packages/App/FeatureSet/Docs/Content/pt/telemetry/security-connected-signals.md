@@ -28,9 +28,9 @@ O OneUptime procura cada valor entre os itens do projeto, diz o quão certa é c
 
 ## Onde você vê
 
-- **Sinais conectados**, uma página de cada caso de segurança: abra um caso em **Produtos → Security Events → Casos de segurança → Casos abertos** e depois **Sinais conectados** após **Entidades** no menu dele.
-- **Conectado**, uma aba de cada evento de segurança: abra um evento em **Produtos → Security Events → Eventos**. Ela lista o que o evento nomeia, na hora em torno dele.
-- A página de uma entidade, em **Produtos → Security Events → Risco de entidades**: onde o OneUptime conhece o usuário, o host ou o endereço, em torno do seu último evento de segurança.
+- **Sinais conectados**, uma página de cada caso de segurança: abra um caso em **Produtos → Eventos de segurança → Casos de segurança → Casos abertos** e depois **Sinais conectados** após **Entidades** no menu dele.
+- **Conectado**, uma aba de cada evento de segurança: abra um evento em **Produtos → Eventos de segurança → Eventos**. Ela lista o que o evento nomeia, na hora em torno dele.
+- A página de uma entidade, em **Produtos → Eventos de segurança → Risco de entidades**: onde o OneUptime conhece o usuário, o host ou o endereço, em torno do seu último evento de segurança.
 - Um cartão **Segurança** na página de cada host, host do Docker, host do Podman, cluster do Kubernetes, dispositivo de rede, recurso de nuvem, função serverless, serviço, monitor, membro e item de inventário: os casos de segurança abertos que o nomeiam, quantos eventos de segurança e descobertas o nomearam nos últimos 7 dias, o mais grave deles e o seu risco. **Abrir em Security Events** o abre lá. O cartão de um monitor trata dos hosts e endereços que ele verifica.
 - Um cartão **Segurança** na página de um incidente, quando um caso de segurança declarou o incidente (**Declarado a partir de**) ou casos abertos nomeiam um host ou cluster que ele afeta (**Casos abertos que nomeiam o que ele afeta**).
 

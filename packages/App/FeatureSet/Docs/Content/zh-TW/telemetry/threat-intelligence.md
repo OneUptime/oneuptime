@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### 前往 Threat Intel
 
-開啟 **產品 → Security Events → 偵測 → 威脅情報** 。
+開啟 **產品 → 安全事件 → 偵測 → 威脅情報** 。
 
 ### 建立情資來源
 

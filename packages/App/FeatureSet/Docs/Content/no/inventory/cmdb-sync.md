@@ -147,7 +147,7 @@ Verter og nettverksenheter beskrives med de samme opplysningene, lagret under de
 | Fastvareversjon | `device.firmware.version` | Stemplet | ENTITY-MIB, ellers det `sysDescr` nevner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det `sysDescr` nevner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-versjon | `os.version` | Oppdaget | ENTITY-MIB, ellers det `sysDescr` nevner |
-| Device Type | `device.type` | Stemplet. Ellers klassifiserer kortet den ut fra operativsystem og navn (Server, Brannmur, ...) | Rollen: den du tildelte, ellers den topologikartet tegner den som |
+| Enhetstype | `device.type` | Stemplet. Ellers klassifiserer kortet den ut fra operativsystem og navn (Server, Brannmur, ...) | Rollen: den du tildelte, ellers den topologikartet tegner den som |
 | Plassering | `device.location` | Stemplet. Ellers viser kortet skysonen | `sysLocation`. Kortet viser stedet først |
 
 [Verttabellen](#eiendelsattributter-for-verter) og [tabellen over nettverksenheter](#eiendelsattributter-for-nettverksenheter) nedenfor forteller i detalj hvor hver verdi kommer fra.

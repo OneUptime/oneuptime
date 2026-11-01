@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
+import { toDetectedLanguage } from "Common/Types/ReaderLanguage";
 import {
   getProductNamePostProcess,
   productNamePostProcessor,
@@ -10,6 +11,8 @@ import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 
 import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
+  STATUS_PAGE_LANGUAGE_STORAGE_KEY,
+  STATUS_PAGE_LANGUAGE_USER_CHOICE_KEY,
   StatusPageLanguage,
   SUPPORTED_STATUS_PAGE_LANGUAGES,
   SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
@@ -39,14 +42,9 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
   SUPPORTED_STATUS_PAGE_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_STATUS_PAGE_LANGUAGE;
-export const LANGUAGE_STORAGE_KEY: string = "statusPageLang";
-/*
- * Separate key tracks whether the user explicitly chose a language (vs.
- * the value being auto-detected from the browser). Without this we cannot
- * distinguish a stored auto-detection from a real user choice, so the
- * status page's configured default would be ignored after the first visit.
- */
-export const LANGUAGE_USER_CHOICE_KEY: string = "statusPageLangUserChoice";
+export const LANGUAGE_STORAGE_KEY: string = STATUS_PAGE_LANGUAGE_STORAGE_KEY;
+export const LANGUAGE_USER_CHOICE_KEY: string =
+  STATUS_PAGE_LANGUAGE_USER_CHOICE_KEY;
 
 /*
  * Backward-compat: the language code "zh" was renamed to "zh-CN" when
@@ -62,12 +60,12 @@ if (
 }
 
 /*
- * Browsers report Chinese in many forms (zh, zh-CN, zh-SG, zh-Hans-CN,
- * zh-TW, zh-HK, zh-MO, zh-Hant-HK, ...). Map them onto our two supported
- * variants so detection actually resolves to a loaded resource instead of
- * falling back to English. Also collapse regional variants of other
- * languages (e.g. "es-ES" -> "es") whose resources we ship under the bare
- * language code.
+ * A browser's language tag as the language this frontend shows: Chinese
+ * in every form onto Simplified or Traditional Chinese, Norwegian Bokmal
+ * and Nynorsk (nb, nn) onto Norwegian, a regional variant onto its
+ * language (es-ES is es), else the tag as it came
+ * (Common/Types/ReaderLanguage, shared with the server and the public
+ * dashboards).
  */
 const convertDetectedLanguage: (lng: string) => string = (
   lng: string,
@@ -75,26 +73,8 @@ const convertDetectedLanguage: (lng: string) => string = (
   if (!lng) {
     return lng;
   }
-  const lower: string = lng.toLowerCase();
-  if (
-    lower === "zh-tw" ||
-    lower === "zh-hk" ||
-    lower === "zh-mo" ||
-    lower === "zh-hant" ||
-    lower.startsWith("zh-hant-")
-  ) {
-    return "zh-TW";
-  }
-  if (lower === "zh" || lower.startsWith("zh-") || lower.startsWith("zh_")) {
-    return "zh-CN";
-  }
-  if (lng.includes("-") || lng.includes("_")) {
-    const langPart: string = lng.split(/[-_]/)[0]!.toLowerCase();
-    if (SUPPORTED_STATUS_PAGE_LANGUAGE_CODES.includes(langPart)) {
-      return langPart;
-    }
-  }
-  return lng;
+
+  return toDetectedLanguage(lng, SUPPORTED_STATUS_PAGE_LANGUAGE_CODES);
 };
 
 i18n

@@ -117,7 +117,7 @@ Binnen een à twee minuten toont de kaart **OneUptime AI** van het incident de *
 
 ### Gebruik het, of wijs het af
 
-**Gebruiken als hoofdoorzaak** opent het voorstel, met citaten en al, in de editor van de hoofdoorzaak. Pas aan wat nodig is en sla op: het wordt de hoofdoorzaak van het incident als uw eigen wijziging, vastgelegd in de feed. **Sluiten** legt het voorstel opzij, en **Ongedaan maken** haalt het terug.
+**Gebruiken als hoofdoorzaak** opent het voorstel, met citaten en al, in de editor van de hoofdoorzaak. Pas aan wat nodig is en sla op: het wordt de hoofdoorzaak van het incident als uw eigen wijziging, vastgelegd in de feed. **Verbergen** legt het voorstel opzij, en **Ongedaan maken** haalt het terug.
 :::
 
 OneUptime AI stelt alleen een oorzaak voor als het gesprek er een noemt, met de regels die dat zeggen, en citeert die regels zoals de transcriptie ze bevat. Heeft het gesprek de oorzaak niet vastgesteld, dan zegt de kaart **Er is in het gesprek niet genoeg gezegd om een hoofdoorzaak voor te stellen** in plaats van te gokken.

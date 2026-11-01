@@ -18,7 +18,7 @@ Voor het instellen van beveiliging is de rol Project Owner, Project Admin of Sec
 :::steps
 ### Inschakelen wat de meeste teams nodig hebben
 
-Open **Producten → Security Events**. Klik op **Overzicht** op **Aanbevolen inschakelen**. Daarmee gaan drie dingen tegelijk aan: **Beveiligingsgebeurtenissen in uw logboeken vinden**, de aanbevolen detectieregels en **Nieuwe zaken verrijken**, een playbook dat elke nieuwe zaak vergelijkt met dreigingsinformatie en er een checklist voor de beoordeling in achterlaat.
+Open **Producten → Beveiligingsgebeurtenissen**. Klik op **Overzicht** op **Aanbevolen inschakelen**. Daarmee gaan drie dingen tegelijk aan: **Beveiligingsgebeurtenissen in uw logboeken vinden**, de aanbevolen detectieregels en **Nieuwe zaken verrijken**, een playbook dat elke nieuwe zaak vergelijkt met dreigingsinformatie en er een checklist voor de beoordeling in achterlaat.
 
 ### Een testaanval versturen
 
@@ -96,7 +96,7 @@ Sindsdien heeft niets Security bereikt. Open **Verbindingen** en controleer of *
 :::
 
 :::details De kaart die Security inschakelt is weg
-Iemand heeft hem weggezet met **Sluiten**. Zolang er nog niets op dreigingen wordt bewaakt, biedt **Overzicht** **Security instellen** aan, waarmee hij terugkomt.
+Iemand heeft hem weggezet met **Verbergen**. Zolang er nog niets op dreigingen wordt bewaakt, biedt **Overzicht** **Security instellen** aan, waarmee hij terugkomt.
 :::
 
 ## Volgende stappen

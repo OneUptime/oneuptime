@@ -35,8 +35,10 @@ import MetricMonitorResponse from "../../../../../Types/Monitor/MetricMonitor/Me
 import MetricSeriesResult from "../../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MetricQueryConfigData from "../../../../../Types/Metrics/MetricQueryConfigData";
 import MetricQueryData from "../../../../../Types/Metrics/MetricQueryData";
+import MetricsAggregationType from "../../../../../Types/Metrics/MetricsAggregationType";
 import MetricsViewConfig from "../../../../../Types/Metrics/MetricsViewConfig";
 import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
+import AggregationInterval from "../../../../../Types/BaseDatabase/AggregationInterval";
 import ObjectID from "../../../../../Types/ObjectID";
 import RollingTime from "../../../../../Types/RollingTime/RollingTime";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -83,6 +85,12 @@ function buildInputs(input: {
   points?: Array<AggregateModel>;
   series?: Array<MetricSeriesResult>;
   filterType?: FilterType;
+  aggregationType?: MetricsAggregationType;
+  attributes?: Record<string, string>;
+  groupByAttributeKeys?: Array<string>;
+  telemetryServiceIds?: Array<ObjectID>;
+  window?: { start: string; end: string };
+  isInfrastructure?: boolean;
 }): {
   criteriaFilter: CriteriaFilter;
   monitorStep: MonitorStep;
@@ -97,7 +105,16 @@ function buildInputs(input: {
       legendUnit: undefined,
     },
     metricQueryData: {
-      filterData: { metricName: METRIC_NAME },
+      filterData: {
+        metricName: METRIC_NAME,
+        ...(input.aggregationType
+          ? { aggegationType: input.aggregationType }
+          : {}),
+        ...(input.attributes ? { attributes: input.attributes } : {}),
+      },
+      ...(input.groupByAttributeKeys
+        ? { groupByAttributeKeys: input.groupByAttributeKeys }
+        : {}),
     } as unknown as MetricQueryData,
   };
 
@@ -111,10 +128,19 @@ function buildInputs(input: {
     id: ObjectID.generate().toString(),
     monitorCriteria: { data: undefined } as never,
   } as unknown as MonitorStep["data"];
-  monitorStep.data!.metricMonitor = {
-    metricViewConfig,
-    rollingTime: RollingTime.Past5Minutes,
-  };
+  if (input.isInfrastructure) {
+    (monitorStep.data as unknown as Record<string, unknown>)[
+      "kubernetesMonitor"
+    ] = { metricViewConfig };
+  } else {
+    monitorStep.data!.metricMonitor = {
+      metricViewConfig,
+      rollingTime: RollingTime.Past5Minutes,
+      ...(input.telemetryServiceIds
+        ? { telemetryServiceIds: input.telemetryServiceIds }
+        : {}),
+    };
+  }
 
   return {
     criteriaFilter: {
@@ -127,6 +153,14 @@ function buildInputs(input: {
       projectId: ObjectID.generate(),
       metricResult: [{ data: input.points || [] }],
       ...(input.series ? { seriesBreakdown: input.series } : {}),
+      ...(input.window
+        ? {
+            startAndEndDate: {
+              startValue: new Date(input.window.start),
+              endValue: new Date(input.window.end),
+            },
+          }
+        : {}),
       metricViewConfig,
       monitorId: ObjectID.generate(),
     } as unknown as MetricMonitorResponse,
@@ -169,6 +203,241 @@ describe("MetricMonitorCriteria - what an anomaly condition asks the baseline fo
   beforeEach(() => {
     getBaseline.mockReset();
     getBaseline.mockResolvedValue(baseline() as never);
+  });
+
+  describe("what the query reads", () => {
+    const asked: () => Record<string, unknown> = (): Record<
+      string,
+      unknown
+    > => {
+      return getBaseline.mock.calls[0]![0] as Record<string, unknown>;
+    };
+
+    const onePoint: Array<AggregateModel> = pointsOf([
+      { time: "2026-11-30T09:40:00.000Z", value: 100 },
+    ]);
+
+    /*
+     * A service reads its own samples. Against the whole project's, its spread
+     * is mostly the spread between services: a doubling of a small one stayed
+     * inside it (MetricHourBaseline.test.ts).
+     */
+    test("the services a monitor names are the ones its baseline reads", async () => {
+      const services: Array<ObjectID> = [
+        ObjectID.generate(),
+        ObjectID.generate(),
+      ];
+
+      await evaluate({ points: onePoint, telemetryServiceIds: services });
+
+      expect(asked()["primaryEntityId"]).toEqual(services);
+    });
+
+    test("a monitor that names none reads them all", async () => {
+      await evaluate({ points: onePoint });
+
+      expect(asked()["primaryEntityId"]).toBeUndefined();
+    });
+
+    test("so does the empty list a monitor is created with", async () => {
+      await evaluate({ points: onePoint, telemetryServiceIds: [] });
+
+      expect(asked()["primaryEntityId"]).toEqual([]);
+    });
+
+    test("a query that names no aggregation is the average it reads", async () => {
+      await evaluate({ points: onePoint });
+
+      expect(asked()["query"]).toEqual({
+        aggregationType: MetricsAggregationType.Avg,
+        isNarrowedByAttributes: false,
+        interval: AggregationInterval.Minute,
+      });
+    });
+
+    test("it says what the query makes of the metric", async () => {
+      await evaluate({
+        points: onePoint,
+        aggregationType: MetricsAggregationType.Sum,
+      });
+
+      expect(asked()["query"]).toMatchObject({
+        aggregationType: MetricsAggregationType.Sum,
+      });
+    });
+
+    test("an attribute filter narrows it", async () => {
+      await evaluate({
+        points: onePoint,
+        attributes: { "resource.host.name": "web-1" },
+      });
+
+      expect(asked()["query"]).toMatchObject({ isNarrowedByAttributes: true });
+    });
+
+    test("a group by narrows it", async () => {
+      await evaluate({
+        points: onePoint,
+        groupByAttributeKeys: ["resource.host.name"],
+      });
+
+      expect(asked()["query"]).toMatchObject({ isNarrowedByAttributes: true });
+    });
+
+    test("an infrastructure monitor's query is narrowed by what the worker adds to it", async () => {
+      await evaluate({ points: onePoint, isInfrastructure: true });
+
+      expect(asked()["query"]).toMatchObject({ isNarrowedByAttributes: true });
+    });
+
+    test.each([
+      ["2026-11-30T08:40:00.000Z", AggregationInterval.Minute],
+      ["2026-11-30T05:40:00.000Z", AggregationInterval.FiveMinutes],
+      ["2026-11-29T09:40:00.000Z", AggregationInterval.FifteenMinutes],
+    ])(
+      "the window sets how long its data points are, from %s",
+      async (start: string, interval: AggregationInterval) => {
+        await evaluate({
+          points: onePoint,
+          window: { start, end: "2026-11-30T09:40:00.000Z" },
+        });
+
+        expect(asked()["query"]).toMatchObject({ interval });
+      },
+    );
+
+    test("a query with no baseline is still learning, and fires on nothing", async () => {
+      getBaseline.mockResolvedValue(null as never);
+
+      const { rootCause, anomalyBaseline } = await evaluate({
+        points: pointsOf([{ time: "2026-11-30T09:40:00.000Z", value: 900000 }]),
+        aggregationType: MetricsAggregationType.Sum,
+        attributes: { "resource.host.name": "web-1" },
+      });
+
+      expect(rootCause).toBeNull();
+      expect(anomalyBaseline?.state).toBe("Learning");
+    });
+  });
+
+  /*
+   * A check at 09:40:05 of a five-minute window holds 09:35 from 09:35:05 on,
+   * and 09:40 up to five seconds in. Summed, both read low whatever the metric
+   * does, and 09:39 may still have data on the way.
+   */
+  describe("a total of a bucket not yet all there", () => {
+    const window: { start: string; end: string } = {
+      start: "2026-11-30T09:35:05.000Z",
+      end: "2026-11-30T09:40:05.000Z",
+    };
+
+    const firesLow: (
+      time: string,
+      data?: {
+        aggregationType?: MetricsAggregationType;
+        filterType?: FilterType;
+        value?: number;
+      },
+    ) => Promise<boolean> = async (
+      time: string,
+      data: {
+        aggregationType?: MetricsAggregationType;
+        filterType?: FilterType;
+        value?: number;
+      } = {},
+    ): Promise<boolean> => {
+      const { rootCause } = await evaluate({
+        points: pointsOf([{ time, value: data.value ?? 1 }]),
+        aggregationType: data.aggregationType ?? MetricsAggregationType.Sum,
+        filterType: data.filterType ?? FilterType.AnomalouslyLow,
+        window,
+      });
+
+      return rootCause !== null;
+    };
+
+    test.each([
+      ["the first, which starts before the window", "2026-11-30T09:35:00.000Z"],
+      ["the newest, still filling", "2026-11-30T09:40:00.000Z"],
+      ["the one before it, with data on the way", "2026-11-30T09:39:00.000Z"],
+    ])("%s is not judged low", async (_: string, time: string) => {
+      expect(await firesLow(time)).toBe(false);
+    });
+
+    test.each([
+      ["2026-11-30T09:36:00.000Z"],
+      ["2026-11-30T09:37:00.000Z"],
+      ["2026-11-30T09:38:00.000Z"],
+    ])(
+      "a whole bucket with a whole one after it is: %s",
+      async (time: string) => {
+        expect(await firesLow(time)).toBe(true);
+      },
+    );
+
+    test("a Count is a total too", async () => {
+      expect(
+        await firesLow("2026-11-30T09:40:00.000Z", {
+          aggregationType: MetricsAggregationType.Count,
+        }),
+      ).toBe(false);
+      expect(
+        await firesLow("2026-11-30T09:37:00.000Z", {
+          aggregationType: MetricsAggregationType.Count,
+        }),
+      ).toBe(true);
+    });
+
+    test("Anomalous does not fire on it either", async () => {
+      expect(
+        await firesLow("2026-11-30T09:40:00.000Z", {
+          filterType: FilterType.Anomalous,
+        }),
+      ).toBe(false);
+    });
+
+    test("all it can do is grow, so it can be judged high", async () => {
+      expect(
+        await firesLow("2026-11-30T09:40:00.000Z", {
+          filterType: FilterType.AnomalouslyHigh,
+          value: 5000,
+        }),
+      ).toBe(true);
+    });
+
+    test("an average is not a total: any bucket can read low", async () => {
+      expect(
+        await firesLow("2026-11-30T09:40:00.000Z", {
+          aggregationType: MetricsAggregationType.Avg,
+        }),
+      ).toBe(true);
+    });
+
+    test("a longer data point is held to its own length", async () => {
+      const { rootCause } = await evaluate({
+        points: pointsOf([{ time: "2026-11-30T08:45:00.000Z", value: 1 }]),
+        aggregationType: MetricsAggregationType.Sum,
+        filterType: FilterType.AnomalouslyLow,
+        window: {
+          start: "2026-11-30T03:40:05.000Z",
+          end: "2026-11-30T08:52:00.000Z",
+        },
+      });
+
+      expect(rootCause).toBeNull();
+
+      const whole: { rootCause: string | null } = await evaluate({
+        points: pointsOf([{ time: "2026-11-30T08:40:00.000Z", value: 1 }]),
+        aggregationType: MetricsAggregationType.Sum,
+        filterType: FilterType.AnomalouslyLow,
+        window: {
+          start: "2026-11-30T03:40:05.000Z",
+          end: "2026-11-30T08:52:00.000Z",
+        },
+      });
+
+      expect(whole.rootCause).not.toBeNull();
+    });
   });
 
   describe("the hour judged", () => {

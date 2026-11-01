@@ -42,7 +42,7 @@ Hvert token kan bruke en andel av organisasjonens API-hastighetsgrense, som rade
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Okta System Log**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn tokenet i **API token**.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Okta System Log**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn tokenet i **API token**.
 
 ### Test den før du lagrer
 

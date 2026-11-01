@@ -2,7 +2,7 @@
 
 Et **Skymiljø** er stedet der containerne dine kjører på en administrert skyplattform: kontoen og regionen til et ECS-cluster, prosjektet og regionen til Cloud Run, abonnementet og regionen til Container Apps. OneUptime oppretter et første gang telemetrien din kommer frem med de riktige ressursattributtene, og samler hver arbeidsbelastning som kjører der. Det er ingenting å registrere for hånd.
 
-Miljøer vises i App-plattformer, et eget produkt: **App-plattformer → Oversikt** grupperer dem etter plattform og viser de som har blitt stille først, og **App-plattformer → Alle miljøer** viser alle. Ressursene i skykontoene dine, som virtuelle maskiner, bøtter og administrerte databaser, finnes i Sky: se [Skyressurser](/docs/telemetry/cloud-resources).
+Miljøer vises i App-plattformer, et eget produkt: **App-plattformer → Oversikt** grupperer dem etter plattform og viser de som har blitt stille først, **App-plattformer → Alle apper** viser hver app som kjører i dem, og **App-plattformer → Alle miljøer** viser alle. Ressursene i skykontoene dine, som virtuelle maskiner, bøtter og administrerte databaser, finnes i Sky: se [Skyressurser](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Oppgaver på Fargate eller EC2, med CPU og minne per oppgave.
@@ -31,6 +31,7 @@ flowchart TB
 - **En ressursdetektor forteller hvor arbeidsbelastningen kjører.** En OpenTelemetry-ressursdetektor, i SDK-en eller i en collector, leser plattformens metadata og setter `cloud.platform`, `cloud.account.id` og `cloud.region` på alt arbeidsbelastningen sender. Der det ikke finnes noen detektor, setter du dem selv.
 - **Miljøet samler alt.** Hver arbeidsbelastning med samme plattform, konto og region havner i ett miljø. Tjenestene beholder sine egne rader under **Tjenester**.
 - **Hver kjørende oppgave er en instans.** Fanen **Instanser** i miljøet viser de kjørende oppgavene, instansene eller replikaene, med CPU og minne i sanntid der plattformen kan levere dem.
+- **Hver tjeneste er en app.** En ECS-tjeneste, en Cloud Run-tjeneste eller en Container App er en app i miljøet sitt, og OneUptime tar vare på revisjonene den kjører: se [Apper og utrullinger](#apper-og-utrullinger).
 
 ## Før du begynner
 
@@ -94,6 +95,32 @@ Plattformens egen identitet kommer først med vilje. En sidecar-collector og app
 ### Legg til et miljø
 
 Inntaket oppretter miljøer for deg, så det er ingenting å skrive inn. Åpne **App-plattformer → Alle miljøer** og klikk **Legg til skymiljø**: velg hvor applikasjonen din kjører, så viser veiledningen OpenTelemetry-innstillingene for den plattformen, med OneUptime-URL-en og inntaksnøkkelen din allerede fylt ut. Det siste trinnet, **Vent på tilkobling**, sier fra når de første dataene for miljøet har kommet inn, og lenker til det. For å vise et annet navn velger du **Rediger detaljer** på kortet **Miljødetaljer** på miljøets side **Innstillinger** og skriver et **Visningsnavn**.
+
+## Apper og utrullinger
+
+Hver tjeneste et miljø kjører, er en app i det, navngitt slik plattformens konsoll navngir den. **App-plattformer → Alle apper** viser hver app med revisjonen den kjører og forespørslene, feilraten og p95-latensen dens den siste timen, og fanen **Apper** i et miljø viser miljøets egne.
+
+| Plattform | App | Holdt adskilt av | Revisjon |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`, ellers `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`, ellers `service.version` eller `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`, ellers `container.image.tag` |
+| Google Cloud Run | `faas.name`, ellers `service.name` | — | `faas.version`, ellers `service.version` |
+| Google App Engine | `faas.name`, ellers `service.name` | — | `faas.version`, ellers `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`, ellers `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`, ellers `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+Det første attributtet telemetrien bærer, navngir appen, så en app på en plattform uten ressursdetektor er fortsatt en app, ved sitt `service.name`. Den `unknown_service` som et SDK rapporterer når ingen `service.name` er satt, navngir ingen app.
+
+- **En revisjon appen aldri har kjørt, er en utrulling.** OneUptime registrerer hvilken revisjon den erstattet, og når. Den første revisjonen OneUptime ser, er der appens historikk begynner, ikke en utrulling.
+- **Å gå tilbake er en rollback.** Når revisjonen en app kjører, ikke rapporterer noe på 15 minutter mens en den kjørte før, fortsetter å kjøre, registrerer OneUptime en rollback til den.
+- **Begge er endringer.** Hver er en stiplet linje i diagrammene til appen og miljøet, en linje i miljøets **Feed** og en [endringshendelse](/docs/telemetry/change-events) som OneUptime AI leser når den undersøker en hendelse i miljøet. **Nylige utrullinger** under **App-plattformer → Oversikt** viser de nyeste.
+- **Det registreres høyst 12 nye revisjoner av en app i timen.** En `service.version` som endres med hvert bygg, ville ellers vært en utrulling i minuttet.
+
+Siden til en app har en **Oversikt** med forespørslene, feilene, latensen, instansene og revisjonene som kjører nå, en fane **Revisjoner** med tallene for hver revisjon, og fanene **Instanser**, **Logger** og **Spor**, filtrert til appen. **Sett opp varsler** åpner de anbefalte monitorene for appens tjeneste under **Tjenester**.
+
+En app som ikke sender noe på 30 dager, fjernes sammen med revisjonene sine, og det samme gjør en revisjon som ingen instans rapporterer på 30 dager, med mindre appen fortsatt kjører den. På en selvdriftet OneUptime setter `CLOUD_APP_RETENTION_DAYS` de 30.
 
 ## Det som ikke er et skymiljø
 
@@ -182,12 +209,13 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 **Oversikt** for et miljø viser:
 
-- **Forespørsler**, **Feilrate** og **p95-latens** fra sporene dine, med diagrammer over forespørsler, feil og minne i tidsrommet du velger.
+- **Forespørsler**, **Feilrate** og **p95-latens** fra spennene der forespørsler går inn i tjenestene dine, med diagrammer over forespørsler, feil og minne i tidsrommet du velger og en stiplet linje ved hver utrulling.
 - **CPU** og **Minne** på tvers av de levende instansene, og en liste **Toppinstanser etter CPU**. De kommer fra metrikkene `container.cpu.utilization` og `container.memory.usage` som bærer instansidentiteten; på ECS fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`.
 - **Instanser**: hvor mange som har rapportert de siste 15 minuttene. Fanen **Instanser** har én rad for hver.
+- **Apper**: appene miljøet kjører, de som trenger et blikk først, med forespørslene og feilene deres den siste timen.
 - Fanene **Logger**, **Spor** og **Målinger**, filtrert til miljøet.
 
-Et miljø der telemetrien stopper i 15 minutter, viser **Frakoblet**, og det neste spennet, den neste loggen eller metrikken bringer det tilbake til **Tilkoblet**. Tid da OneUptime selv var nede eller holdt på å ta igjen etterslep, teller ikke med i de 15 minuttene.
+Et miljø som ennå ikke har sendt noe, viser **Venter**. Et der telemetrien stopper i 15 minutter, viser **Frakoblet**, og det neste spennet, den neste loggen eller metrikken bringer det tilbake til **Tilkoblet**. Tid da OneUptime selv var nede eller holdt på å ta igjen etterslep, teller ikke med i de 15 minuttene.
 
 ### Etiketter og eiere
 

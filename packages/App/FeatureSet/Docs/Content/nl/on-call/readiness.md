@@ -34,7 +34,7 @@ Een gat is een ernst zonder regel, op het tabblad voor incidenten, incidentepiso
 
 ## De pagina Gereedheid
 
-Open **Bereikbaarheidsdienst → Gereedheid**. De kaart **On-call readiness** toont iedereen die een bereikbaarheidsbeleid in het project kan bereiken, met de mensen die eerst iets nodig hebben bovenaan. Iedereen in het project kan de pagina openen.
+Open **Bereikbaarheidsdienst → Gereedheid**. De kaart **Paraatheid van diensten** toont iedereen die een bereikbaarheidsbeleid in het project kan bereiken, met de mensen die eerst iets nodig hebben bovenaan. Iedereen in het project kan de pagina openen.
 
 Boven de lijst tellen de tegels **Ontvangers**, **Gereed**, **Moet worden ingesteld** en **Onbereikbaar**. Klik op **Gereed**, **Moet worden ingesteld** of **Onbereikbaar** om alleen die responders te tonen, en klik er nog eens op om iedereen te tonen.
 
@@ -43,10 +43,10 @@ Boven de lijst tellen de tegels **Ontvangers**, **Gereed**, **Moet worden ingest
 | **Ontvanger** | De persoon, met het e-mailadres. |
 | **Status** | **Gereed**, **Onbereikbaar**, of hoeveel gaten de persoon heeft. |
 | **Kanalen** | Een segment per kanaal: gevuld voor een geverifieerde methode, hol voor een die nog niet is geverifieerd. |
-| **Coverage** | Voor hoeveel ernstniveaus er een regel is, op elk tabblad, van allemaal. |
-| **Reached via** | Hoe het beleid de persoon bereikt: elk team dat de persoon via een escalatieregel oproept, met zijn naam, of **Direct**, **Schema** of **Overschrijving**. |
+| **Dekking** | Voor hoeveel ernstniveaus er een regel is, op elk tabblad, van allemaal. |
+| **Bereikt via** | Hoe het beleid de persoon bereikt: elk team dat de persoon via een escalatieregel oproept, met zijn naam, of **Direct**, **Schema** of **Overschrijving**. |
 
-**Coverage** in een rij toont de meldingsmethoden van de persoon, waarom die deze status heeft, en een raster van elke ernst met of zonder regel. De trechter filtert de lijst op **Ontvanger**, **Status**, **Team** of **Reached via**. Het antwoord kan een minuut oud zijn: **Vernieuwen** bepaalt het opnieuw.
+**Dekking** in een rij toont de meldingsmethoden van de persoon, waarom die deze status heeft, en een raster van elke ernst met of zonder regel. De trechter filtert de lijst op **Ontvanger**, **Status**, **Team** of **Bereikt via**. Het antwoord kan een minuut oud zijn: **Vernieuwen** bepaalt het opnieuw.
 
 ## Mensen herinneren hun instellingen af te ronden
 

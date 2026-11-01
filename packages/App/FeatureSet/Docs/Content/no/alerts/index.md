@@ -141,7 +141,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 
 **Oversikt**, **Undersøkelse**, **Team** og **Notater** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
 
-- **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står først i toppen. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **OneUptime AI** med **Ask OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
+- **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står først i toppen. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **OneUptime AI** med **Spør OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
 - **Tilstandstidslinje** — hver tilstand varselet har vært i, når og hvor lenge. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hendelser** — hendelsene varselet er en del av, med **Knytt til hendelsen** og **Erklær hendelse**.
 - **Innstillinger** — **Hvem kan se dette varselet** med bryteren **Privat varsel**, og **Påminnelser** med **Send påminnelser**. Hver bryter lagrer i det øyeblikket du slår den om.
@@ -157,7 +157,7 @@ En episode som et privat varsel åpner, er ikke privat, så den viser aldri vars
 ## Hvem som får vite om et varsel
 
 - **Vakten.** Varselets vaktpolicyer tilkaller personene sine, hver på den måten de har satt det opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**. Den som svarer på tilkallingen, bekrefter varselet, og tilkallingen stopper.
-- **Eierne.** På e-post, med mindre de har valgt andre kanaler under **Brukerinnstillinger → Varselinnstillinger** på fanen **Varsler**: **Varsel opprettet**, **Varseltilstand endret** og **Alert reminder** er slått på som standard, og **Varselnotat publisert** og **Lagt til som varseleier** er slått av til noen slår dem på. Et varsel uten eiere gir i stedet prosjektets eiere beskjed.
+- **Eierne.** På e-post, med mindre de har valgt andre kanaler under **Brukerinnstillinger → Varselinnstillinger** på fanen **Varsler**: **Varsel opprettet**, **Varseltilstand endret** og **Påminnelse om varsel** er slått på som standard, og **Varselnotat publisert** og **Lagt til som varseleier** er slått av til noen slår dem på. Et varsel uten eiere gir i stedet prosjektets eiere beskjed.
 - **Chatverktøyene dine.** **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Feilsøking

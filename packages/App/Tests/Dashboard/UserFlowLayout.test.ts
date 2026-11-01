@@ -46,11 +46,17 @@ function journey(id: string, pages: Array<string>): UserFlowJourney {
     startUnixMs: 0,
     durationMs: 1000,
     deviceType: "desktop",
+    browserName: "Chrome",
+    countryCode: "DK",
     pages: pages,
     errorPages: new Set<string>(),
     frustrationPages: new Set<string>(),
     hadErrors: false,
     hadFrustration: false,
+    errorCount: 0,
+    frustrationCount: 0,
+    isTruncated: false,
+    hasRecording: undefined,
   };
 }
 

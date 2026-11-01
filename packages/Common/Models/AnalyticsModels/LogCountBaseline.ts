@@ -20,6 +20,12 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * logs baselines error volume only — not total log traffic. Read-side
  * queries that don't filter on it merge across the values.
  *
+ * `hourOfWeek` is not the hour the code counts from Monday 00:00. The view's
+ * `toDayOfWeek(time, 1)` makes Monday 0, so Tuesday 00:00 is stored as 0,
+ * Sunday 23:00 as 143 and Monday's hours, wrapped by toUInt8, as 232..255,
+ * as MetricBaselineHourly's are. Read it through
+ * `MetricHourBaseline.toStoredHour` (CountWindowBaseline does).
+ *
  * Read access goes through `LogCountBaselineService`. No CRUD API is
  * exposed; this is read-only baseline storage.
  */
@@ -67,7 +73,7 @@ export default class LogCountBaseline extends AnalyticsBaseModel {
       key: "hourOfWeek",
       title: "Hour Of Week",
       description:
-        "(toDayOfWeek(time, 1) - 1) * 24 + toHour(time). Range 0..167 with Mon 00:00 = 0.",
+        "(toDayOfWeek(time, 1) - 1) * 24 + toHour(time), wrapped by toUInt8. Tue 00:00 = 0, Sun 23:00 = 143, Mon 00:00 = 232.",
       required: true,
       type: TableColumnType.UInt8,
     });

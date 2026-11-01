@@ -233,7 +233,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (la predeterminada), 28, 60 o 90 días de historial. |
 | **Si no hay datos** | En **Más campos**. Qué pasa cuando la ventana no tiene muestras: **Ignore** (la predeterminada), **Treat As Zero** o **Disparador**. |
 
-Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en estado «Learning», sin generar nada, hasta que la ventana de referencia tiene suficiente historial.
+Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en estado «Learning», sin generar nada, hasta que la ventana de referencia tiene suficiente historial. Una suma, un recuento o una consulta sobre un histograma permanece en ese estado para siempre: este monitor filtra sus consultas por atributos y la línea de referencia no guarda ninguno.
 
 Cada criterio indica además qué hacer cuando se cumple: cambiar el estado del monitor, crear una alerta o declarar un incidente. Los criterios se comprueban de arriba abajo, y decide el primero que se cumple.
 

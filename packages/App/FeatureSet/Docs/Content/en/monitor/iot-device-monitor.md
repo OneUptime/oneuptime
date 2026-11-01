@@ -152,7 +152,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
 | **If No Data** | Under **More fields**. What happens when a series has no samples in the window: **Ignore** (the default) skips it, **Treat As Zero** reads it as `0`, and **Trigger** makes the criteria match. |
 
-Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history. A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes, and the baseline holds none.
 
 ### Default criteria
 

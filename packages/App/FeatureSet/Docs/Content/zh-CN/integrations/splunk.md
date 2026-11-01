@@ -44,7 +44,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Splunk Enterprise Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **Authentication token** 中，或者把密码粘贴到 **密码** 中。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Splunk Enterprise Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **Authentication token** 中，或者把密码粘贴到 **密码** 中。
 
 ### 保存之前先测试
 
@@ -159,7 +159,7 @@ OneUptime 也可以通过 Splunk 的 HTTP Event Collector（HEC）把它发现�
 
 ### 添加目标
 
-打开 **产品 → Security Events → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Splunk，然后点击 **下一步**。填写 **HEC URL**，并把令牌粘贴到 **HEC 令牌** 中。**索引** 和 **源类型** 是可选的：留空时，事件会以 sourcetype `oneuptime:security` 进入令牌的默认索引。
+打开 **产品 → 安全事件 → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Splunk，然后点击 **下一步**。填写 **HEC URL**，并把令牌粘贴到 **HEC 令牌** 中。**索引** 和 **源类型** 是可选的：留空时，事件会以 sourcetype `oneuptime:security` 进入令牌的默认索引。
 
 ### 发送测试事件并开始发送
 

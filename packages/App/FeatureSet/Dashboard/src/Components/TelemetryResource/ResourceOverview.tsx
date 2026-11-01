@@ -674,4 +674,10 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   );
 };
 
+/*
+ * One tile on its own, for a page that lays out its own overview - an App
+ * Platforms app's tabs - beside tiles drawn here.
+ */
+export { GoldenMetricTile as ResourceOverviewTileCard };
+
 export default ResourceOverview;

@@ -6,6 +6,13 @@ export interface DashboardLanguage {
 
 export const DEFAULT_DASHBOARD_LANGUAGE: string = "en";
 
+/*
+ * Where the browser keeps the language a person reads OneUptime in. The
+ * Dashboard, the Admin Dashboard and the sign-in pages read the same key, so a
+ * language picked in one is the others' too.
+ */
+export const DASHBOARD_LANGUAGE_STORAGE_KEY: string = "oneuptimeLang";
+
 export const SUPPORTED_DASHBOARD_LANGUAGES: Array<DashboardLanguage> = [
   { code: "en", nativeName: "English", englishName: "English" },
   { code: "de", nativeName: "Deutsch", englishName: "German" },

@@ -28,9 +28,9 @@ OneUptime cerca ogni valore tra i record del progetto, dice quanto è sicura ogn
 
 ## Dove lo vedi
 
-- **Segnali collegati**, una pagina di ogni caso di sicurezza: apri un caso in **Prodotti → Security Events → Casi di sicurezza → Casi aperti**, poi **Segnali collegati** dopo **Entità** nel suo menu.
-- **Connesso**, una scheda di ogni evento di sicurezza: apri un evento in **Prodotti → Security Events → Eventi**. Elenca ciò che l'evento nomina, nell'ora attorno all'evento.
-- La pagina di un'entità, in **Prodotti → Security Events → Rischio delle entità**: dove OneUptime conosce l'utente, l'host o l'indirizzo, attorno al suo ultimo evento di sicurezza.
+- **Segnali collegati**, una pagina di ogni caso di sicurezza: apri un caso in **Prodotti → Eventi di sicurezza → Casi di sicurezza → Casi aperti**, poi **Segnali collegati** dopo **Entità** nel suo menu.
+- **Connesso**, una scheda di ogni evento di sicurezza: apri un evento in **Prodotti → Eventi di sicurezza → Eventi**. Elenca ciò che l'evento nomina, nell'ora attorno all'evento.
+- La pagina di un'entità, in **Prodotti → Eventi di sicurezza → Rischio delle entità**: dove OneUptime conosce l'utente, l'host o l'indirizzo, attorno al suo ultimo evento di sicurezza.
 - Una scheda **Sicurezza** nella pagina di ogni host, host Docker, host Podman, cluster Kubernetes, dispositivo di rete, risorsa cloud, funzione serverless, servizio, monitor, membro ed elemento di inventario: i casi di sicurezza aperti che lo nominano, quanti eventi di sicurezza e rilevamenti lo hanno nominato negli ultimi 7 giorni, il più grave tra questi e il suo rischio. **Apri in Security Events** lo apre lì. La scheda di un monitor riguarda gli host e gli indirizzi che controlla.
 - Una scheda **Sicurezza** nella pagina di un incidente, quando un caso di sicurezza ha dichiarato l'incidente (**Dichiarato da**) o casi aperti nominano un host o un cluster che colpisce (**Casi aperti che nominano ciò che colpisce**).
 

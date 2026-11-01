@@ -119,7 +119,7 @@ function assessOsd(row: CephResource): Assessment {
   if (row.isUp === true && row.isIn === false) {
     return {
       health: "warning",
-      status: text(translationKey("Out")),
+      status: text(translationKey("Out of cluster")),
       reasons: [text(translationKey("The OSD is up but holds no data (out)."))],
       facts: facts,
     };

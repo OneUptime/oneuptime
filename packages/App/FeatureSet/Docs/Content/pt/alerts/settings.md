@@ -120,7 +120,7 @@ Clique em **Criar: Alert Reminder Rule**. Em **Corresponder**, deixe **Todos os 
 Em **Lembretes**, defina **Intervalo de lembrete (minutos)**, com que frequência os proprietários são lembrados, e **Parar lembretes quando**: **Resolvido**, o padrão, ou **Confirmado**. O **Nome** dela acompanha os dois, como "Lembrar a cada 30 minutos até ser resolvido", até você digitar um próprio. Depois crie a regra.
 :::
 
-Os proprietários recebem cada lembrete como **Alert reminder**, que fica ativado por e-mail por padrão. A regra de um alerta volta a corresponder quando sua gravidade ou seus rótulos mudam. Para parar os lembretes de um alerta, desative **Enviar lembretes** na página **Configurações** dele; isso é salvo no momento em que você alterna o interruptor.
+Os proprietários recebem cada lembrete como **Lembrete de alerta**, que fica ativado por e-mail por padrão. A regra de um alerta volta a corresponder quando sua gravidade ou seus rótulos mudam. Para parar os lembretes de um alerta, desative **Enviar lembretes** na página **Configurações** dele; isso é salvo no momento em que você alterna o interruptor.
 
 ## Configurações
 

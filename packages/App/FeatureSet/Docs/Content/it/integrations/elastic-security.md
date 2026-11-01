@@ -44,7 +44,7 @@ Gli alert sono salvati per spazio. Apri lo spazio in cui girano le tue regole: i
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Elastic Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla la chiave in **Chiave API**.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Elastic Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla la chiave in **Chiave API**.
 
 ### Provarla prima di salvare
 
@@ -154,7 +154,7 @@ In Kibana, apri **Stack Management → API keys**, fai clic su **Create API key*
 
 ### Aggiungere la destinazione
 
-Apri **Prodotti → Security Events → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Elastic Security in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL di Elasticsearch**, l'endpoint Elasticsearch del deployment e non quello di Kibana, e incolla la chiave in **Chiave API**. **Data stream** è facoltativo: se resta vuoto, i documenti vanno in `logs-oneuptime.security-default`, che Elasticsearch crea alla prima scrittura.
+Apri **Prodotti → Eventi di sicurezza → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Elastic Security in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL di Elasticsearch**, l'endpoint Elasticsearch del deployment e non quello di Kibana, e incolla la chiave in **Chiave API**. **Data stream** è facoltativo: se resta vuoto, i documenti vanno in `logs-oneuptime.security-default`, che Elasticsearch crea alla prima scrittura.
 
 ### Inviare un evento di prova e iniziare a inviare
 

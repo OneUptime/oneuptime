@@ -208,6 +208,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             },
             title: "Cover",
             stepId: "cover-image",
+            // Its column's help ("Status Page Cover Image") only names it again.
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload cover image",
@@ -373,6 +375,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               faviconFile: true,
             },
             title: "Favicon",
+            // Its column's help ("Status Page Favicon") only names it again.
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload Favicon.",
@@ -560,6 +564,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               copyrightText: true,
             },
             title: "Copyright Info",
+            // Its column's help ("Copyright Text") only names it again.
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "Acme, Inc.",

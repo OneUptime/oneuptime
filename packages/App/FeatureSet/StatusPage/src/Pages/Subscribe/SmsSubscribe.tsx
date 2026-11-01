@@ -121,6 +121,11 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         subscriberPhone: true,
       },
       title: t("subscribe.sms.yourPhoneNumber"),
+      /*
+       * As the email form's: the card above says where updates go, and the
+       * model's column help ("Phone number of subscriber") is the API's.
+       */
+      hideColumnDescription: true,
       fieldType: FormFieldSchemaType.Phone,
       required: true,
       placeholder: t("subscribe.sms.placeholder"),

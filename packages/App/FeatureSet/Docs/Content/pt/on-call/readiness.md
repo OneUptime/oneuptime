@@ -34,7 +34,7 @@ Uma lacuna é uma gravidade sem regra, na aba de incidentes, episódios de incid
 
 ## A página Prontidão
 
-Abra **Plantão → Prontidão**. O cartão **On-call readiness** lista cada pessoa que uma política de plantão do projeto pode alcançar, primeiro as que precisam de algo. Qualquer pessoa do projeto pode abri-lo.
+Abra **Plantão → Prontidão**. O cartão **Prontidão do plantão** lista cada pessoa que uma política de plantão do projeto pode alcançar, primeiro as que precisam de algo. Qualquer pessoa do projeto pode abri-lo.
 
 Acima da lista, os blocos contam **Destinatários**, **Pronto**, **Precisa de configuração** e **Inacessível**. Clique em **Pronto**, **Precisa de configuração** ou **Inacessível** para listar só esses destinatários, e clique de novo para listar todos.
 
@@ -43,10 +43,10 @@ Acima da lista, os blocos contam **Destinatários**, **Pronto**, **Precisa de co
 | **Destinatário** | A pessoa, com o endereço de e-mail dela. |
 | **Status** | **Pronto**, **Inacessível** ou quantas lacunas a pessoa tem. |
 | **Canais** | Um segmento por canal: cheio para um método verificado, vazado para um ainda não verificado. |
-| **Coverage** | Quantas gravidades têm regra, em cada aba, do total. |
-| **Reached via** | Como as políticas chegam à pessoa: cada equipe que a aciona por meio de uma regra de escalonamento, pelo nome, ou **Direct**, **Agendamento** ou **Substituição**. |
+| **Cobertura** | Quantas gravidades têm regra, em cada aba, do total. |
+| **Alcançado via** | Como as políticas chegam à pessoa: cada equipe que a aciona por meio de uma regra de escalonamento, pelo nome, ou **Direto**, **Agendamento** ou **Substituição**. |
 
-**Coverage** em uma linha mostra os métodos de notificação da pessoa, por que ela tem o status dela e uma grade de cada gravidade com ou sem regra. O funil filtra a lista por **Destinatário**, **Status**, **Equipe** ou **Reached via**. A resposta pode ter um minuto: **Atualizar** a calcula de novo.
+**Cobertura** em uma linha mostra os métodos de notificação da pessoa, por que ela tem o status dela e uma grade de cada gravidade com ou sem regra. O funil filtra a lista por **Destinatário**, **Status**, **Equipe** ou **Alcançado via**. A resposta pode ter um minuto: **Atualizar** a calcula de novo.
 
 ## Lembrar as pessoas de terminar a configuração
 

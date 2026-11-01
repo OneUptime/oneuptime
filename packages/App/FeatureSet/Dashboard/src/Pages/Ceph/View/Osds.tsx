@@ -18,7 +18,11 @@ import ResourceTable, {
   InfrastructureResource,
 } from "../../../Components/Infrastructure/ResourceTable";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
-import CephResourceUtils from "../Utils/CephResourceUtils";
+import CephResourceUtils, {
+  getOsdPlacementText,
+} from "../Utils/CephResourceUtils";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
@@ -31,6 +35,7 @@ const CephClusterOsds: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const translator: Translator = useTranslator();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -82,7 +87,7 @@ const CephClusterOsds: FunctionComponent<
             status: row.isUp ? "Up" : "Down",
             age: CephResourceUtils.formatAge(row.createdAt),
             additionalAttributes: {
-              in: row.isIn ? "In" : "Out",
+              in: getOsdPlacementText(row.isIn),
               deviceClass: row.deviceClass || "—",
               used:
                 usedPercent !== null
@@ -139,6 +144,13 @@ const CephClusterOsds: FunctionComponent<
           title: "In / Out",
           key: "in",
           description: CEPH_METRIC_DESCRIPTIONS.osdInOutColumn,
+          // The OSD's placement, in the reader's words when it is drawn.
+          getValue: (resource: InfrastructureResource): string => {
+            return (
+              translator.translateText(resource.additionalAttributes["in"]) ||
+              ""
+            );
+          },
         },
         { title: "Class", key: "deviceClass" },
         {

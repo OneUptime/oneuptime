@@ -58,6 +58,10 @@ import {
   TimePoint,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import CloudResourceConnectBanner from "../../../Components/Cloud/CloudResourceConnectBanner";
+import EnvironmentAppsCard, {
+  useEnvironmentDeployMarkers,
+} from "../../../Components/AppPlatforms/EnvironmentAppsCard";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import {
   CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
   getCloudResourceAttributeFilters,
@@ -100,8 +104,9 @@ export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
 /*
  * An environment's Overview in App Platforms: how the apps on one platform,
  * in one account and region, are doing - their requests, errors and
- * latency from their traces, the CPU and memory of the instances running
- * them, and the busiest instances.
+ * latency from their traces, with every deploy of its apps marked on the
+ * charts, the apps that need a look first, the CPU and memory of the
+ * instances running them, and the busiest instances.
  */
 const CloudEnvironmentOverview: FunctionComponent<
   PageComponentProps
@@ -262,7 +267,8 @@ const CloudEnvironmentOverview: FunctionComponent<
     let ignore: boolean = false;
     metricsInFlightRef.current = true;
     Promise.all([
-      fetchSpanMetrics({ attributes, start, end }),
+      // Requests: where work enters an app, as each app's page counts them.
+      fetchSpanMetrics({ attributes, start, end, entrySpansOnly: true }),
       fetchMetricSeries({
         name: "container.memory.usage",
         attributes,
@@ -320,6 +326,14 @@ const CloudEnvironmentOverview: FunctionComponent<
       refresh({ isAutoRefresh: true });
     },
   });
+
+  // Every deploy of the environment's apps, on both charts.
+  const deployMarkers: Array<ChartTimeReferenceLineProps> =
+    useEnvironmentDeployMarkers({
+      environmentId: modelId,
+      window: chartWindow,
+      refreshToken: metricsRefreshCount,
+    });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -432,7 +446,7 @@ const CloudEnvironmentOverview: FunctionComponent<
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: metricsLoading,
-      sublabel: "spans, selected range",
+      sublabel: "selected range",
       description: CLOUD_METRIC_DESCRIPTIONS.requests,
     },
     {
@@ -462,43 +476,59 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
   ];
 
+  /*
+   * The charts, and under them the apps the environment runs - the ones
+   * that need a look first, right under the numbers they make up, before
+   * its details.
+   */
   const charts: ReactElement = (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <ChartCard
-        title="Requests"
-        icon={IconProp.Workflow}
-        iconColor="sky"
-        series={
-          [
-            { seriesName: "Requests", data: m?.countSeries ?? [] },
-            { seriesName: "Errors", data: m?.errorSeries ?? [] },
-          ] as Array<SeriesPoint>
-        }
-        windowStart={chartWindow?.start ?? null}
-        windowEnd={chartWindow?.end ?? null}
-        syncId={`cloud-${modelId.toString()}`}
-        showLegend={true}
-        loading={metricsLoading && !m}
-        description={CLOUD_METRIC_DESCRIPTIONS.requestsChart}
-      />
-      <ChartCard
-        title="Memory"
-        icon={IconProp.SquareStack}
-        iconColor="violet"
-        series={
-          [{ seriesName: "Memory", data: memorySeries }] as Array<SeriesPoint>
-        }
-        windowStart={chartWindow?.start ?? null}
-        windowEnd={chartWindow?.end ?? null}
-        syncId={`cloud-${modelId.toString()}`}
-        yLegend="Bytes"
-        yFormatter={(n: number): string => {
-          return formatBytes(n);
-        }}
-        loading={metricsLoading && memorySeries.length === 0}
-        description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
-      />
-    </div>
+    <>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard
+          title="Requests"
+          icon={IconProp.Workflow}
+          iconColor="sky"
+          series={
+            [
+              { seriesName: "Requests", data: m?.countSeries ?? [] },
+              { seriesName: "Errors", data: m?.errorSeries ?? [] },
+            ] as Array<SeriesPoint>
+          }
+          windowStart={chartWindow?.start ?? null}
+          windowEnd={chartWindow?.end ?? null}
+          syncId={`cloud-${modelId.toString()}`}
+          showLegend={true}
+          loading={metricsLoading && !m}
+          description={CLOUD_METRIC_DESCRIPTIONS.requestsChart}
+          timeReferenceLines={deployMarkers}
+        />
+        <ChartCard
+          title="Memory"
+          icon={IconProp.SquareStack}
+          iconColor="violet"
+          series={
+            [{ seriesName: "Memory", data: memorySeries }] as Array<SeriesPoint>
+          }
+          windowStart={chartWindow?.start ?? null}
+          windowEnd={chartWindow?.end ?? null}
+          syncId={`cloud-${modelId.toString()}`}
+          yLegend="Bytes"
+          yFormatter={(n: number): string => {
+            return formatBytes(n);
+          }}
+          loading={metricsLoading && memorySeries.length === 0}
+          description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
+          timeReferenceLines={deployMarkers}
+        />
+      </div>
+      <div className="mt-6">
+        <EnvironmentAppsCard
+          environmentId={modelId}
+          environment={r}
+          refreshToken={metricsRefreshCount}
+        />
+      </div>
+    </>
   );
 
   const detailRows: Array<ResourceOverviewDetailRow> = [

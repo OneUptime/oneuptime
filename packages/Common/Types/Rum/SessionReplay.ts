@@ -336,6 +336,9 @@ export const SESSION_REPLAY_MAX_USER_REF_LENGTH: number = 512;
 export const SESSION_REPLAY_VISITOR_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/;
 export const SESSION_REPLAY_MAX_VISITOR_ID_LENGTH: number = 32;
 
+/* What SessionReplayIdentity.buildUserKey yields: a hex SHA-256 HMAC. */
+export const SESSION_REPLAY_USER_KEY_PATTERN: RegExp = /^[0-9a-f]{64}$/;
+
 /*
  * Retention values a session may be clamped to. Under expiry-based
  * partitioning each distinct value creates its own partition per ingest
@@ -734,16 +737,18 @@ export interface SessionReplayChunkEnvelope {
   url: string;
 
   /*
-   * Distinct scrubbed URLs the page was on while this chunk was open, in
-   * chronological order. Optional so an older recorder posting to a newer
-   * server is still accepted - the server then falls back to `url` alone,
-   * which is what it did before this field existed.
+   * Scrubbed URLs the page was on while this chunk was open, in the order
+   * they were visited: a page the user came back to appears again, and only
+   * a back-to-back repeat is left out. An older recorder sends each page
+   * once. Optional so an older recorder posting to a newer server is still
+   * accepted - the server then falls back to `url` alone, which is what it
+   * did before this field existed.
    *
    * `url` says where the chunk was FLUSHED from; this says where the user
    * went while it was filling. The session header's routes[] column is the
    * union of these, and the "sessions that hit /checkout" filter reads it,
    * so without this a navigation that both starts and ends inside one flush
-   * window is invisible.
+   * window is invisible. User Flows reads a journey from the order.
    */
   routes?: Array<string>;
 

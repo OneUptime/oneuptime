@@ -117,7 +117,7 @@ Inom en minut eller två visar incidentens kort **OneUptime AI** **Föreslagen r
 
 ### Använd den, eller avfärda den
 
-**Använd som rotorsak** öppnar förslaget, med citat och allt, i rotorsakens redigerare. Ändra det du behöver och spara: Det blir incidentens rotorsak som din egen ändring, noterad i dess flöde. **Stäng** lägger förslaget åt sidan, och **Ångra** tar tillbaka det.
+**Använd som rotorsak** öppnar förslaget, med citat och allt, i rotorsakens redigerare. Ändra det du behöver och spara: Det blir incidentens rotorsak som din egen ändring, noterad i dess flöde. **Dölj** lägger förslaget åt sidan, och **Ångra** tar tillbaka det.
 :::
 
 OneUptime AI föreslår bara en orsak när samtalet nämner en, med raderna som säger det, och citerar de raderna som transkriptionen har dem. När samtalet inte redde ut orsaken säger kortet **Det sades inte tillräckligt i samtalet för att föreslå en rotorsak** i stället för att gissa.

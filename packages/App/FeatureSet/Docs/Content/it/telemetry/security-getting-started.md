@@ -18,7 +18,7 @@ Configurare la sicurezza richiede il ruolo Project Owner, Project Admin o Securi
 :::steps
 ### Attivare ciò che serve alla maggior parte dei team
 
-Apri **Prodotti → Security Events**. In **Panoramica**, fai clic su **Attiva quanto consigliato**. Si attivano tre cose in una volta: **Trova eventi di sicurezza nei tuoi log**, le regole di rilevamento consigliate e **Arricchisci i nuovi casi**, un playbook che confronta ogni nuovo caso con la threat intelligence e vi lascia una checklist per lo smistamento.
+Apri **Prodotti → Eventi di sicurezza**. In **Panoramica**, fai clic su **Attiva quanto consigliato**. Si attivano tre cose in una volta: **Trova eventi di sicurezza nei tuoi log**, le regole di rilevamento consigliate e **Arricchisci i nuovi casi**, un playbook che confronta ogni nuovo caso con la threat intelligence e vi lascia una checklist per lo smistamento.
 
 ### Inviare un attacco di prova
 
@@ -96,7 +96,7 @@ Da allora a Security non è arrivato niente. Apri **Connessioni** e verifica che
 :::
 
 :::details La scheda che attiva Security è sparita
-Qualcuno l'ha tolta con **Chiudi**. Finché ancora nulla viene sorvegliato in cerca di minacce, **Panoramica** offre **Configura Security**, che la riporta.
+Qualcuno l'ha tolta con **Nascondi**. Finché ancora nulla viene sorvegliato in cerca di minacce, **Panoramica** offre **Configura Security**, che la riporta.
 :::
 
 ## Passaggi successivi

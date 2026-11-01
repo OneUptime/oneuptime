@@ -28,9 +28,9 @@ OneUptime slår hver værdi op blandt projektets poster, siger, hvor sikkert hve
 
 ## Hvor du ser det
 
-- **Forbundne signaler**, en side i hver sikkerhedssag: åbn en sag under **Produkter → Security Events → Sikkerhedssager → Åbne sager**, og derefter **Forbundne signaler** efter **Entiteter** i dens menu.
-- **Forbundet**, en fane i hver sikkerhedsbegivenhed: åbn en begivenhed under **Produkter → Security Events → Begivenheder**. Den viser, hvad begivenheden nævner, i timen omkring den.
-- En entitets side under **Produkter → Security Events → Entitetsrisiko**: hvor OneUptime kender brugeren, værten eller adressen, omkring dens seneste sikkerhedsbegivenhed.
+- **Forbundne signaler**, en side i hver sikkerhedssag: åbn en sag under **Produkter → Sikkerhedshændelser → Sikkerhedssager → Åbne sager**, og derefter **Forbundne signaler** efter **Entiteter** i dens menu.
+- **Forbundet**, en fane i hver sikkerhedsbegivenhed: åbn en begivenhed under **Produkter → Sikkerhedshændelser → Begivenheder**. Den viser, hvad begivenheden nævner, i timen omkring den.
+- En entitets side under **Produkter → Sikkerhedshændelser → Entitetsrisiko**: hvor OneUptime kender brugeren, værten eller adressen, omkring dens seneste sikkerhedsbegivenhed.
 - Et **Sikkerhed**-kort på siden for hver vært, Docker-vært, Podman-vært, Kubernetes-klynge, netværksenhed, cloud-ressource, serverløs funktion, tjeneste, monitor, hvert medlem og hvert inventarelement: de åbne sikkerhedssager, der nævner den, hvor mange sikkerhedsbegivenheder og fund der nævnte den i de seneste 7 dage, den alvorligste af dem og dens risiko. **Åbn i Security Events** åbner den der. En monitors kort handler om de værter og adresser, den tjekker.
 - Et **Sikkerhed**-kort på en hændelses side, når en sikkerhedssag erklærede hændelsen (**Erklæret fra**), eller åbne sager nævner en vært eller klynge, den berører (**Åbne sager, der nævner det, den berører**).
 

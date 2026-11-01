@@ -28,7 +28,7 @@ Per eseguire una regola ti serve l'autorizzazione a modificare la regola **e** a
 > [!IMPORTANT]
 > Un'autorizzazione limitata a determinate etichette, o alle risorse di cui sei proprietario, non basta: un'esecuzione può cambiare tutte le risorse del progetto. Le block list dei team si applicano come ovunque, e anche un blocco limitato ad alcune etichette conta: un'esecuzione cambierebbe le risorse che portano quelle etichette, quindi un blocco con etichette sulla modifica delle risorse che una regola cambia rifiuta l'esecuzione.
 
-Le regole di una rete chiedono lo stesso quando le esegui sui dispositivi che hai già. **Esegui ora** di una regola di assegnazione del sito o di etichette dei dispositivi richiede l'autorizzazione a modificare la regola e **Edit Network Device**. **Dry Run** e **Run Rule** di una regola di importazione automatica richiedono l'autorizzazione a modificare la regola, **Create Network Device** e, quando la regola ha un modello di monitor, **Create Monitor**. Ognuna deve coprire l'intero progetto. Vedi [Importare automaticamente con le regole di importazione automatica](/docs/monitor/network-device-monitor#importare-automaticamente-con-le-regole-di-importazione-automatica).
+Le regole di una rete chiedono lo stesso quando le esegui sui dispositivi che hai già. **Esegui ora** di una regola di assegnazione del sito o di etichette dei dispositivi richiede l'autorizzazione a modificare la regola e **Edit Network Device**. **Dry Run** e **Esegui regola** di una regola di importazione automatica richiedono l'autorizzazione a modificare la regola, **Create Network Device** e, quando la regola ha un modello di monitor, **Create Monitor**. Ognuna deve coprire l'intero progetto. Vedi [Importare automaticamente con le regole di importazione automatica](/docs/monitor/network-device-monitor#importare-automaticamente-con-le-regole-di-importazione-automatica).
 
 ## Eseguire una regola
 
@@ -43,11 +43,11 @@ Apri il menu **⋯** alla fine della riga della regola e seleziona **Esegui ora*
 
 ### Decidere se avvisare i nuovi proprietari
 
-Per una regola per proprietari, scegli se attivare **Notify the owners this run adds**. È disattivato per impostazione predefinita e ha effetto solo quando la regola stessa ha **Notifica ai proprietari** attivo. Un proprietario riceve un avviso per ogni risorsa a cui viene aggiunto.
+Per una regola per proprietari, scegli se attivare **Avvisa i proprietari aggiunti da questa esecuzione**. È disattivato per impostazione predefinita e ha effetto solo quando la regola stessa ha **Notifica ai proprietari** attivo. Un proprietario riceve un avviso per ogni risorsa a cui viene aggiunto.
 
 ### Avviare la regola
 
-Seleziona **Run Rule** e tieni aperta la finestra di dialogo. In un progetto grande, la finestra mostra a che punto è l'esecuzione.
+Seleziona **Esegui regola** e tieni aperta la finestra di dialogo. In un progetto grande, la finestra mostra a che punto è l'esecuzione.
 
 ### Leggere il resoconto
 

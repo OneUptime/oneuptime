@@ -42,7 +42,7 @@ Elk token mag een deel van de API-ratelimiet van de organisatie gebruiken, dat z
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Okta System Log** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **API token**.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Okta System Log** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **API token**.
 
 ### Testen voordat je opslaat
 

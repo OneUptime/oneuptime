@@ -28,9 +28,9 @@ OneUptime slår upp varje värde bland projektets poster, säger hur säker varj
 
 ## Var du ser det
 
-- **Kopplade signaler**, en sida i varje säkerhetsärende: öppna ett ärende under **Produkter → Security Events → Säkerhetsärenden → Öppna ärenden** och sedan **Kopplade signaler** efter **Entiteter** i dess meny.
-- **Ansluten**, en flik i varje säkerhetshändelse: öppna en händelse under **Produkter → Security Events → Händelser**. Den listar vad händelsen nämner, under timmen kring den.
-- En entitets sida under **Produkter → Security Events → Entitetsrisk**: var OneUptime känner till användaren, värden eller adressen, kring dess senaste säkerhetshändelse.
+- **Kopplade signaler**, en sida i varje säkerhetsärende: öppna ett ärende under **Produkter → Säkerhetshändelser → Säkerhetsärenden → Öppna ärenden** och sedan **Kopplade signaler** efter **Entiteter** i dess meny.
+- **Ansluten**, en flik i varje säkerhetshändelse: öppna en händelse under **Produkter → Säkerhetshändelser → Händelser**. Den listar vad händelsen nämner, under timmen kring den.
+- En entitets sida under **Produkter → Säkerhetshändelser → Entitetsrisk**: var OneUptime känner till användaren, värden eller adressen, kring dess senaste säkerhetshändelse.
 - Ett **Säkerhet**-kort på sidan för varje värd, Docker-värd, Podman-värd, Kubernetes-kluster, nätverksenhet, molnresurs, serverlös funktion, tjänst, monitor, medlem och inventariepost: de öppna säkerhetsärenden som nämner den, hur många säkerhetshändelser och fynd som nämnde den under de senaste 7 dagarna, det allvarligaste av dem och dess risk. **Öppna i Security Events** öppnar den där. En monitors kort handlar om värdarna och adresserna den kontrollerar.
 - Ett **Säkerhet**-kort på en incidents sida, när ett säkerhetsärende deklarerade incidenten (**Deklarerad från**) eller öppna ärenden nämner en värd eller ett kluster som den påverkar (**Öppna ärenden som nämner det den påverkar**).
 

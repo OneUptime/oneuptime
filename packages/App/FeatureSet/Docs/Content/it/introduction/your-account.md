@@ -129,7 +129,7 @@ Le **Impostazioni utente**, a destra nella barra sotto la barra superiore, sono 
 
 ## Lingua e tema
 
-Entrambi vengono salvati nel tuo browser, non nel tuo account: impostali di nuovo su un altro browser o dispositivo.
+Entrambi vengono salvati nel tuo browser, non nel tuo account: impostali di nuovo su un altro browser o dispositivo. Restano anche quando esci, quindi su un computer condiviso la persona successiva parte dalle tue impostazioni.
 
 - **Lingua**: la dashboard parte nella lingua del tuo browser. Per cambiarla, usa il menu delle lingue in fondo a ogni pagina. Questa documentazione ha un proprio menu delle lingue, in alto.
 - **Tema**: scegli **Chiaro**, **Scuro** o **Sistema** nel menu utente. **Sistema** è chiaro o scuro in base all'impostazione del tuo dispositivo, e cambia con essa; ogni browser parte da qui. Le pagine di accesso usano lo stesso tema.

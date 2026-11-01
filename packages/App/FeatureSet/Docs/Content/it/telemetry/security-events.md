@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha una sezione per ogni parte della sicurezza, e una pagina a sé per ogni cosa che contiene:
+Apri **Prodotti → Eventi di sicurezza**, sotto **Osservabilità**. Il suo menu ha una sezione per ogni parte della sicurezza, e una pagina a sé per ogni cosa che contiene:
 
 | Pagina | Sezione | A cosa serve |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **Tutti i casi** | Casi di sicurezza | Ogni caso, aperto o chiuso |
 | **Eventi** | Eventi | Cercare e filtrare ogni evento, e aprirne uno per vedere tutti i suoi campi |
 | **Cacce** | Eventi | Ricerche salvate da Eventi, riaperte con un clic o eseguite secondo una pianificazione che avvisa le persone quando trovano qualcosa |
-| **Campaigns** | Eventi | Ogni indirizzo che ha inviato richieste di attacco, e se qualcuna delle sue richieste è passata |
+| **Campagne** | Eventi | Ogni indirizzo che ha inviato richieste di attacco, e se qualcuna delle sue richieste è passata |
 | **Rischio delle entità** | Eventi | Ogni utente, host e indirizzo, valutato in base a ciò che è stato trovato questa settimana, i più a rischio per primi |
 | **Correla** | Eventi | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
 | **Regole di rilevamento** | Detections | Regole Sigma che girano secondo una pianificazione e aprono casi |
@@ -111,7 +111,7 @@ L'endpoint risponde `200` appena gli eventi sono in coda. Un evento inviato senz
 
 ### Trovali in Eventi
 
-Apri **Prodotti → Security Events → Eventi**. Gli eventi compaiono in pochi secondi, con gravità, classe, utente, host e indirizzi IP compilati.
+Apri **Prodotti → Eventi di sicurezza → Eventi**. Gli eventi compaiono in pochi secondi, con gravità, classe, utente, host e indirizzi IP compilati.
 :::
 
 ### Formati
@@ -262,11 +262,11 @@ La barra laterale conta gli eventi della finestra per **Origine**, **Gravità**,
 
 ### Cosa è successo dopo
 
-Un evento letto da una riga di log scritta all'interno di una richiesta tracciata viene seguito dentro quella richiesta. Il suo pannello dice fin dove è arrivata la richiesta (**Rifiutato**, **Reached App**, **Errored** o **Reached Database**), chi l'ha inviata, e rimanda alla sua traccia, alla sua eccezione, al replay della sessione e alla riga di log stessa. Anche una riga di log, una traccia e un'eccezione che fanno parte di un attacco lo dicono nelle proprie pagine.
+Un evento letto da una riga di log scritta all'interno di una richiesta tracciata viene seguito dentro quella richiesta. Il suo pannello dice fin dove è arrivata la richiesta (**Rifiutato**, **App raggiunta**, **In errore** o **Database raggiunto**), chi l'ha inviata, e rimanda alla sua traccia, alla sua eccezione, al replay della sessione e alla riga di log stessa. Anche una riga di log, una traccia e un'eccezione che fanno parte di un attacco lo dicono nelle proprie pagine.
 
 ### Campaigns
 
-**Campaigns** elenca ogni indirizzo che ha inviato richieste di attacco come una sola riga, con i tipi di attacco, gli strumenti e le richieste che ha inviato, e quante sono passate. Prima vengono gli indirizzi le cui richieste hanno raggiunto la tua app.
+**Campagne** elenca ogni indirizzo che ha inviato richieste di attacco come una sola riga, con i tipi di attacco, gli strumenti e le richieste che ha inviato, e quante sono passate. Prima vengono gli indirizzi le cui richieste hanno raggiunto la tua app.
 
 ### Correla
 
@@ -327,7 +327,7 @@ flowchart TB
 ### Creare una regola
 
 :::steps
-1. Apri **Prodotti → Security Events → Rilevamenti → Regole di rilevamento** e fai clic su **Crea: Regola di rilevamento**.
+1. Apri **Prodotti → Eventi di sicurezza → Rilevamenti → Regole di rilevamento** e fai clic su **Crea: Regola di rilevamento**.
 2. In **Regola Sigma**, incolla lo YAML della regola in **Regola Sigma (YAML)**. Viene analizzato al salvataggio, così un errore compare nel modulo.
 3. Il **Nome** si compila dal `title` della regola: scrivici sopra per chiamarla in un altro modo. Una nuova regola gira; **Abilitato** è nel suo modulo di modifica.
 4. In **In caso di corrispondenza**, lascia attivo **Apri un caso in caso di corrispondenza** per raggruppare le sue corrispondenze in casi, in base al valore per cui raggruppa la regola.
@@ -492,7 +492,7 @@ Le risultanze sono eventi normali: cercale in **Eventi** e fai pivot su di esse 
 
 ### Eccezioni
 
-Un'eccezione è qualcosa che una regola salta perché te lo aspetti, come uno scanner di vulnerabilità, un job di backup notturno o un penetration test pianificato. Mette a tacere la regola per quella sola cosa senza spegnerla, e le altre corrispondenze della regola scattano ancora. Ogni eccezione è elencata in **Prodotti → Security Events → Rilevamenti → Eccezioni delle regole**: aggiungine una lì con **Aggiungi: Eccezione della regola**, con **Aggiungi eccezione** nella riga di una regola, oppure con **Aggiungi eccezione** nella riga di un rilevamento di un caso, che parte dalla regola del rilevamento e da ciò per cui è scattato.
+Un'eccezione è qualcosa che una regola salta perché te lo aspetti, come uno scanner di vulnerabilità, un job di backup notturno o un penetration test pianificato. Mette a tacere la regola per quella sola cosa senza spegnerla, e le altre corrispondenze della regola scattano ancora. Ogni eccezione è elencata in **Prodotti → Eventi di sicurezza → Rilevamenti → Eccezioni delle regole**: aggiungine una lì con **Aggiungi: Eccezione della regola**, con **Aggiungi eccezione** nella riga di una regola, oppure con **Aggiungi eccezione** nella riga di un rilevamento di un caso, che parte dalla regola del rilevamento e da ciò per cui è scattato.
 
 | Cosa salta la regola | Con cosa corrisponde |
 | --- | --- |
@@ -508,7 +508,7 @@ Un'eccezione è qualcosa che una regola salta perché te lo aspetti, come uno sc
 
 ### Elenchi di controllo
 
-Un elenco di controllo è un elenco che il tuo team gestisce una volta sola e che ogni regola può leggere, come utenti VIP, host critici, hash di file malevoli noti o gli indirizzi da cui gli amministratori possono accedere. Ogni elenco si trova in **Prodotti → Security Events → Rilevamenti → Elenchi di controllo**: creane uno lì con **Crea: Elenco di controllo**, che chiede il suo nome e cosa contiene, oppure aggiungine uno comune da **Inizia con un elenco comune**. La pagina di un elenco mostra i suoi valori, e **Usalo in una regola** dà una selezione che legge l'elenco, da copiare in una regola.
+Un elenco di controllo è un elenco che il tuo team gestisce una volta sola e che ogni regola può leggere, come utenti VIP, host critici, hash di file malevoli noti o gli indirizzi da cui gli amministratori possono accedere. Ogni elenco si trova in **Prodotti → Eventi di sicurezza → Rilevamenti → Elenchi di controllo**: creane uno lì con **Crea: Elenco di controllo**, che chiede il suo nome e cosa contiene, oppure aggiungine uno comune da **Inizia con un elenco comune**. La pagina di un elenco mostra i suoi valori, e **Usalo in una regola** dà una selezione che legge l'elenco, da copiare in una regola.
 
 Una regola legge un elenco con `expand` e il nome dell'elenco tra due segni `%`. Questa regola scatta quando un amministratore accede da un indirizzo che non è nell'elenco consentito:
 

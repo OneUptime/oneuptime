@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### Threat Intel로 이동하기
 
-**제품 → Security Events → 탐지 → 위협 인텔리전스** 를 엽니다.
+**제품 → 보안 이벤트 → 탐지 → 위협 인텔리전스** 를 엽니다.
 
 ### 피드 만들기
 

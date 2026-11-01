@@ -31,13 +31,19 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * alerts) baselines error volume only — not total traffic. Read-side
  * queries that don't filter on it simply merge across the values.
  *
+ * `hourOfWeek` is not the hour the code counts from Monday 00:00. The view's
+ * `toDayOfWeek(startTime, 1)` makes Monday 0, so Tuesday 00:00 is stored as 0,
+ * Sunday 23:00 as 143 and Monday's hours, wrapped by toUInt8, as 232..255,
+ * as MetricBaselineHourly's are. Read it through
+ * `MetricHourBaseline.toStoredHour` (CountWindowBaseline does).
+ *
  * Read access goes through `SpanCountBaselineService`, which folds the
  * per-minute counts around the same time of the earlier weeks of a rolling
  * window (default 14 days, max 90 — capped by the table's `day + INTERVAL
  * 90 DAY` TTL) into windows of the monitor's length and computes
  * mean/stddev/median/MAD in app code (CountWindowBaseline). The 168
  * hour-of-week buckets capture daily and weekly seasonality (Mon 09:00
- * → 8, Sun 23:00 → 167) using ISO week numbering.
+ * → 9, Sun 23:00 → 167) as the code numbers them.
  *
  * Cold start: the evaluator refuses to fire on fewer than two weeks of the
  * services' history, or fewer than `minSamples` samples (default 5) — the
@@ -91,7 +97,7 @@ export default class SpanCountBaseline extends AnalyticsBaseModel {
       key: "hourOfWeek",
       title: "Hour Of Week",
       description:
-        "(toDayOfWeek(startTime, 1) - 1) * 24 + toHour(startTime). Range 0..167 with Mon 00:00 = 0.",
+        "(toDayOfWeek(startTime, 1) - 1) * 24 + toHour(startTime), wrapped by toUInt8. Tue 00:00 = 0, Sun 23:00 = 143, Mon 00:00 = 232.",
       required: true,
       type: TableColumnType.UInt8,
     });

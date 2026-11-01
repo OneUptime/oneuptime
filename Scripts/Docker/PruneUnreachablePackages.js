@@ -39,8 +39,16 @@
  *      development packages, and keeps every package that something which
  *      stays depends on - so a reached package's own dependencies stay even
  *      where the walk did not see them used, a computed require() inside a
- *      package included - and nothing is downloaded. Last, it checks that
- *      npm removed nothing the walk reached.
+ *      package included - and nothing is downloaded. A package the walk
+ *      reached that nothing staying depends on would go too: a package can
+ *      require one it does not depend on, in a try (debug colours its output
+ *      with supports-color if it is there) or because the install put it
+ *      where require() looks, and it is installed only while something else
+ *      depends on it (supports-color stayed while chalk, through
+ *      @elastic/elasticsearch's apache-arrow, or jake did). So before npm
+ *      runs, package.json names each such package at the version installed,
+ *      and npm keeps it with what it needs. Last, it checks that npm removed
+ *      nothing the walk reached.
  *
  * Any failure fails the image build: an image that cannot be pruned is not
  * shipped unpruned without anybody noticing.
@@ -423,6 +431,185 @@ function withoutDependencies(manifest, names) {
 }
 
 /**
+ * package.json with the given packages added to its dependencies, each at
+ * the version installed. Every other field is kept as it was.
+ *
+ * @param {object} manifest
+ * @param {Array<{name: string, version: string}>} packages
+ * @returns {object}
+ */
+function withDependencies(manifest, packages) {
+  const dependencies = { ...(manifest.dependencies || {}) };
+  for (const item of packages) {
+    dependencies[item.name] = item.version;
+  }
+  return { ...manifest, dependencies };
+}
+
+/**
+ * Where require() finds a package from a directory: in that directory's
+ * node_modules, then in each node_modules above it, up to the package's own
+ * directory.
+ *
+ * @param {string} name
+ * @param {string} fromDirectory a real path
+ * @param {string} root the package's directory (a real path): the search
+ *   stops there
+ * @returns {string | null} the package's directory (a real path)
+ */
+function findInstalled(name, fromDirectory, root) {
+  let directory = fromDirectory;
+  for (;;) {
+    const candidate = path.join(directory, "node_modules", name);
+    if (fs.existsSync(path.join(candidate, "package.json"))) {
+      return fs.realpathSync(candidate);
+    }
+    const parent = path.dirname(directory);
+    if (directory === root || parent === directory) {
+      return null;
+    }
+    directory = parent;
+  }
+}
+
+/**
+ * The installed packages npm keeps along with the given ones: they and,
+ * through the dependencies, optional dependencies and peer dependencies
+ * their package.json files name, everything they need. An optional peer is
+ * no dependency (npm does not install one for it), and development
+ * dependencies are not followed, as `npm prune --omit=dev` removes them.
+ *
+ * @param {Array<string>} directories package directories (real paths)
+ * @param {string} root the package's directory (a real path)
+ * @returns {Set<string>} package directories (real paths)
+ */
+function keptAlongWith(directories, root) {
+  const kept = new Set();
+  const pending = [...directories];
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    if (kept.has(directory)) {
+      continue;
+    }
+    kept.add(directory);
+    let manifest = null;
+    try {
+      manifest = JSON.parse(
+        fs.readFileSync(path.join(directory, "package.json"), "utf8"),
+      );
+    } catch {
+      continue;
+    }
+    const optionalPeers = manifest.peerDependenciesMeta || {};
+    const names = [
+      ...Object.keys(manifest.dependencies || {}),
+      ...Object.keys(manifest.optionalDependencies || {}),
+      ...Object.keys(manifest.peerDependencies || {}).filter((name) => {
+        return !(optionalPeers[name] && optionalPeers[name].optional);
+      }),
+    ];
+    for (const name of names) {
+      const found = findInstalled(name, directory, root);
+      if (found && !kept.has(found)) {
+        pending.push(found);
+      }
+    }
+  }
+  return kept;
+}
+
+/**
+ * The packages the walk reached that npm would remove: those in the
+ * package's own node_modules that nothing staying depends on. Each is
+ * installed only because something the program does not reach depends on
+ * it, or because the install put it where require() looks, and the program
+ * requires it all the same - in a try, as debug requires supports-color.
+ * Naming them in package.json keeps them. Where one of them needs others,
+ * only that one is named, and npm keeps the rest with it.
+ *
+ * @param {{
+ *   packageDirectory: string,
+ *   dependencies: Array<string>,
+ *   reached: Set<string>
+ * }} options dependencies: the names package.json keeps
+ * @returns {Array<{name: string, version: string}>} by name
+ */
+function reachedPackagesNothingKeeps(options) {
+  const root = fs.realpathSync(options.packageDirectory);
+  const nodeModules = path.join(root, "node_modules");
+  const kept = keptAlongWith(
+    options.dependencies
+      .map((name) => {
+        return findInstalled(name, root, root);
+      })
+      .filter(Boolean),
+    root,
+  );
+
+  const candidates = [];
+  for (const directory of options.reached) {
+    const relative = path.relative(nodeModules, directory);
+    const parts = relative.split(path.sep);
+    // Only the package's own top-level packages can be named; a nested one
+    // stays with the package it is nested in.
+    if (
+      relative.startsWith("..") ||
+      path.isAbsolute(relative) ||
+      parts.includes("node_modules") ||
+      kept.has(directory)
+    ) {
+      continue;
+    }
+    candidates.push({ name: parts.join("/"), directory });
+  }
+  candidates.sort((first, second) => {
+    return first.name < second.name ? -1 : first.name > second.name ? 1 : 0;
+  });
+
+  const needs = new Map(
+    candidates.map((candidate) => {
+      return [candidate.directory, keptAlongWith([candidate.directory], root)];
+    }),
+  );
+  const named = [];
+  const name = (candidate) => {
+    named.push(candidate);
+    for (const directory of needs.get(candidate.directory)) {
+      kept.add(directory);
+    }
+  };
+  // First those no other one needs; then, of a group that only needs itself
+  // (two that need each other), the first.
+  for (const candidate of candidates) {
+    const neededByAnother = candidates.some((other) => {
+      return (
+        other !== candidate &&
+        needs.get(other.directory).has(candidate.directory)
+      );
+    });
+    if (!neededByAnother) {
+      name(candidate);
+    }
+  }
+  for (const candidate of candidates) {
+    if (!kept.has(candidate.directory)) {
+      name(candidate);
+    }
+  }
+
+  return named
+    .sort((first, second) => {
+      return first.name < second.name ? -1 : first.name > second.name ? 1 : 0;
+    })
+    .map((candidate) => {
+      const manifest = JSON.parse(
+        fs.readFileSync(path.join(candidate.directory, "package.json"), "utf8"),
+      );
+      return { name: candidate.name, version: manifest.version || "*" };
+    });
+}
+
+/**
  * The total size of the files under a directory, symbolic links not followed.
  *
  * @param {string} directory
@@ -504,7 +691,14 @@ function loadFrom(name, directories) {
  *   log?: Function
  * }} options esbuild, typescript, run and log: for tests (default: loaded
  *   from beside the entry point or the package, runCommand, console.log)
- * @returns {Promise<{removed: Array<string>, kept: number, before: number, after: number}>}
+ * @returns {Promise<{
+ *   removed: Array<string>,
+ *   added: Array<{name: string, version: string}>,
+ *   kept: number,
+ *   before: number,
+ *   after: number
+ * }>} removed: the dependencies taken out of package.json; added: the
+ *   packages named in it so npm keeps them
  */
 async function pruneUnreachablePackages(options) {
   const log = options.log || console.log;
@@ -546,6 +740,12 @@ async function pruneUnreachablePackages(options) {
     dependencies: manifest.dependencies,
     reached: walk.reached,
   });
+  const pruned = withoutDependencies(manifest, removed);
+  const added = reachedPackagesNothingKeeps({
+    packageDirectory,
+    dependencies: Object.keys(pruned.dependencies || {}),
+    reached: walk.reached,
+  });
   const nodeModules = path.join(packageDirectory, "node_modules");
   const before = directorySize(nodeModules);
 
@@ -555,14 +755,23 @@ async function pruneUnreachablePackages(options) {
   log(
     `PruneUnreachablePackages: ${removed.length} of the ${Object.keys(manifest.dependencies || {}).length} dependencies of ${manifestPath} are never reached: ${removed.join(", ") || "none"}.`,
   );
+  log(
+    `PruneUnreachablePackages: ${manifestPath} now names, at the version installed, each package it reaches that nothing staying depends on, so npm keeps it: ${
+      added
+        .map((item) => {
+          return `${item.name}@${item.version}`;
+        })
+        .join(", ") || "none"
+    }.`,
+  );
 
   if (options.dryRun) {
-    return { removed, kept: walk.reached.size, before, after: before };
+    return { removed, added, kept: walk.reached.size, before, after: before };
   }
 
   fs.writeFileSync(
     manifestPath,
-    `${JSON.stringify(withoutDependencies(manifest, removed), null, 2)}\n`,
+    `${JSON.stringify(withDependencies(pruned, added), null, 2)}\n`,
   );
   run("npm", ["prune", "--omit=dev", "--offline", "--no-audit", "--no-fund"], {
     cwd: packageDirectory,
@@ -583,7 +792,7 @@ async function pruneUnreachablePackages(options) {
   log(
     `PruneUnreachablePackages: ${nodeModules} went from ${megabytes(before)} to ${megabytes(after)}.`,
   );
-  return { removed, kept: walk.reached.size, before, after };
+  return { removed, added, kept: walk.reached.size, before, after };
 }
 
 async function main() {
@@ -603,11 +812,15 @@ module.exports = {
   computedImportsIn,
   directorySize,
   findComputedImports,
+  findInstalled,
+  keptAlongWith,
   packageDirectoryOf,
   parseArguments,
   pruneUnreachablePackages,
+  reachedPackagesNothingKeeps,
   runCommand,
   unreachedDependencies,
   walkImports,
+  withDependencies,
   withoutDependencies,
 };

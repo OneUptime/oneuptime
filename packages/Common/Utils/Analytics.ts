@@ -1,6 +1,7 @@
 import Email from "../Types/Email";
 import { JSONObject, JSONValue } from "../Types/JSON";
 import posthog from "posthog-js";
+import { COOKIE_CONSENT_STORAGE_KEY } from "../Types/Analytics/CookieConsent";
 import {
   GoogleAnalyticsEventParameters,
   REVENUE_EVENT_SCHEMA_VERSION,
@@ -9,13 +10,7 @@ import {
   isRevenueEventName,
 } from "../Types/Analytics/RevenueEvent";
 
-/*
- * Where the visitor's answer on the cookie banner is kept. Must match
- * Common/Server/Views/Partials/AnalyticsConsent.ejs; the origins share one
- * hostname on OneUptime Cloud, so the product reads the marketing site's
- * answer here.
- */
-export const COOKIE_CONSENT_STORAGE_KEY: string = "cookiesAccepted";
+export { COOKIE_CONSENT_STORAGE_KEY };
 
 /*
  * What the server-rendered page tells this class about measurement, on window:

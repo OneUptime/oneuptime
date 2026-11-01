@@ -52,7 +52,7 @@ Noter når hemmeligheten utløper. Den dagen stopper pollingen med `Microsoft De
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Defender XDR** under **EDR / XDR**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Klienthemmelighet**.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Defender XDR** under **EDR / XDR**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Klienthemmelighet**.
 
 ### Test den før du lagrer
 

@@ -77,7 +77,11 @@ import ThemeChoiceRow, {
   THEME_CHOICE_ROW_TITLE,
   getThemeChoiceTestId,
 } from "../../../UI/Components/Header/IconDropdown/ThemeChoiceRow";
+import API from "../../../UI/Utils/API/API";
 import ThemeUtil from "../../../UI/Utils/Theme";
+import UserUtil from "../../../UI/Utils/User";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
 
 const FEATURE_SET: string = path.resolve(
   __dirname,
@@ -291,6 +295,29 @@ describe("what is in use", () => {
 
     expect(pressed()).toEqual([name]);
   });
+
+  test.each([
+    [ThemePreference.Light, "Light", true],
+    [ThemePreference.Dark, "Dark", false],
+    [ThemePreference.System, "System", false],
+  ])(
+    "is still %s when the person signs in again (issue #5404)",
+    (kept: ThemePreference, name: string, prefersDark: boolean) => {
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+
+      device.prefersDark = prefersDark;
+      ThemeUtil.setPreference(kept);
+
+      UserUtil.logout();
+
+      render(<ThemeChoiceRow />);
+
+      expect(pressed()).toEqual([name]);
+      jest.restoreAllMocks();
+    },
+  );
 });
 
 describe("picking", () => {

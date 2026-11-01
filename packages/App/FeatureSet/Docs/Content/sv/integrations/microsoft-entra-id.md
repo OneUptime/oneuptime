@@ -53,7 +53,7 @@ Gå till **Certificates & secrets → Client secrets → New client secret**, v�
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Entra ID** under **Identitet** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**. Slå på **Microsoft 365-granskningslogg** i steget **Hämtning** för att läsa den också.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Entra ID** under **Identitet** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**. Slå på **Microsoft 365-granskningslogg** i steget **Hämtning** för att läsa den också.
 
 ### Testa den innan du sparar
 

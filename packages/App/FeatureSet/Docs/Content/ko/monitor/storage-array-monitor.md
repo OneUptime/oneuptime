@@ -32,7 +32,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **Storage Array Agent를 설치하세요**. HTTPS로 어레이에 닿을 수 있는 곳에, 어레이의 **readonly** 역할을 가진 사용자의 API 토큰으로 설치합니다. [Storage Array Agent 가이드](/docs/telemetry/storage-arrays)는 사용자, 토큰, 설치를 `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, 어레이의 주소와 토큰(`PURE_FA_ENDPOINT` 및 `PURE_FA_API_TOKEN`, 또는 `PURE_FB_ENDPOINT` 및 `PURE_FB_API_TOKEN`)과 함께 다룹니다.
-- **어레이가 등록되었는지 확인하세요.** 첫 수집 후 약 1분 뒤에 에이전트의 `STORAGE_ARRAY_NAME` 이름으로 **제품 → 인프라 → Storage Arrays → All Storage Arrays** 에 나타납니다.
+- **어레이가 등록되었는지 확인하세요.** 첫 수집 후 약 1분 뒤에 에이전트의 `STORAGE_ARRAY_NAME` 이름으로 **제품 → 인프라 → 스토리지 어레이 → All Storage Arrays** 에 나타납니다.
 
 ## 스토리지 어레이 모니터 만들기
 
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 템플릿 여러 개를 한 번에 설정하려면 **제품 → 인프라 → Storage Arrays** 에서 어레이를 열고 **권장 사항** 으로 이동하세요. 원하는 템플릿을 고르고 호출할 사람을 정하면, OneUptime이 템플릿마다 모니터를 하나씩 만듭니다.
+> 템플릿 여러 개를 한 번에 설정하려면 **제품 → 인프라 → 스토리지 어레이** 에서 어레이를 열고 **권장 사항** 으로 이동하세요. 원하는 템플릿을 고르고 호출할 사람을 정하면, OneUptime이 템플릿마다 모니터를 하나씩 만듭니다.
 
 ## 모니터 설정
 
@@ -272,7 +272,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | **기준선 기간** | 이상 조건만. 14일(기본값), 28일, 60일, 90일의 기록. |
 | **데이터가 없는 경우** | **추가 필드** 아래에 있습니다. 기간에 샘플이 없을 때의 동작: **Ignore**(기본값), **Treat As Zero**, **트리거**. |
 
-이상 조건은 각 값을 기준선에서 같은 요일의 같은 시간과 비교합니다. 기준선 기간에 기록이 충분히 쌓일 때까지 "Learning" 상태에 머물며 아무것도 올리지 않습니다.
+이상 조건은 각 값을 기준선에서 같은 요일의 같은 시간과 비교합니다. 기준선 기간에 기록이 충분히 쌓일 때까지 "Learning" 상태에 머물며 아무것도 올리지 않습니다. 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남습니다. 이 모니터는 쿼리를 속성으로 필터링하는데 기준선에는 속성이 없기 때문입니다.
 
 시작하기 좋은 기준:
 

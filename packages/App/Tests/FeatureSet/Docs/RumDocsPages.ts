@@ -378,6 +378,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Search.",
     "When every session is anonymous.",
     "This person's other sessions.",
+    "One user or one session.",
     "The timeline",
     "Tabs.",
     "Playing a whole visit.",

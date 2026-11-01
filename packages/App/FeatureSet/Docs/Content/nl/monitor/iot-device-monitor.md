@@ -78,13 +78,13 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | --- | --- | --- |
 | **IoT Fleet** | Alle | Verplicht. Beperkt elke query tot `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Geavanceerd | Optioneel. Eén apparaat, via zijn `device.id`, zoals `sensor-001`. |
-| **Device Type** | Custom Metric, Geavanceerd | Optioneel. De apparaten die deze `iot.device.type` melden, zoals `sensor` of `gateway`. |
+| **Apparaattype** | Custom Metric, Geavanceerd | Optioneel. De apparaten die deze `iot.device.type` melden, zoals `sensor` of `gateway`. |
 | **IoT Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; templates stellen hun eigen venster in. |
 | **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
-De filters werken samen: met een **Device ID** en een **Device Type** komt een apparaat van een ander type met niets overeen.
+De filters werken samen: met een **Device ID** en een **Apparaattype** komt een apparaat van een ander type met niets overeen.
 
 ## Kant-en-klare waarschuwingstemplates
 
@@ -152,7 +152,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als een reeks geen monsters in het venster heeft: **Ignore** (de standaard) slaat haar over, **Treat As Zero** leest haar als `0`, en **Trigger** laat het criterium overeenkomen. |
 
-Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in de toestand "Learning", en geven niets, tot het baseline-venster genoeg geschiedenis bevat.
+Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in de toestand "Learning", en geven niets, tot het baseline-venster genoeg geschiedenis bevat. Een som, een telling of een query op een histogram blijft voorgoed in die toestand: deze monitor filtert zijn query's op attributen, en de baseline bevat er geen.
 
 ### Standaardcriteria
 

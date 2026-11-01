@@ -48,7 +48,7 @@ Tilkoblingen logger på med nøkkelen til en tjenestekonto og [domenedekkende de
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Google Workspace** under **Identitet**, og klikk på **Neste**. Skriv inn **Administrator email**, klikk på **Neste**, og lim inn innholdet i nøkkelfilen i **JSON for tjenestekontoen**. Slå på **Disk-aktivitet** i trinnet **Henting** for å lese Disk også.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Google Workspace** under **Identitet**, og klikk på **Neste**. Skriv inn **Administrator email**, klikk på **Neste**, og lim inn innholdet i nøkkelfilen i **JSON for tjenestekontoen**. Slå på **Disk-aktivitet** i trinnet **Henting** for å lese Disk også.
 
 ### Test den før du lagrer
 

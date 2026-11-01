@@ -14,6 +14,7 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import {
   ChartTimeRangeZoomContextValue,
@@ -72,6 +73,12 @@ export interface ChartCardProps {
   loading?: boolean | undefined;
   // What the chart plots, shown in an (i) tooltip beside the title.
   description?: string | undefined;
+  /*
+   * Moments to mark on the chart - an app's deploys - as the metric charts
+   * mark incidents and changes: a hairline through the plot, its words in
+   * the chip above it.
+   */
+  timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
 }
 
 const ChartCard: FunctionComponent<ChartCardProps> = (
@@ -218,6 +225,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
         heightInPx={176}
         showLegend={props.showLegend ?? false}
         allowDecimals={props.yAllowDecimals}
+        timeReferenceLines={props.timeReferenceLines}
       />
     </div>
   );

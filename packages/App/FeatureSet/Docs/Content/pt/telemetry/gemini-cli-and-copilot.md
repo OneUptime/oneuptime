@@ -64,7 +64,7 @@ O Gemini CLI lê as configurações ao iniciar, então inicie-o de novo e rode u
 
 ### Confira se os dados chegam
 
-Abra **Produtos → AI / LLM → Chamadas**: as chamadas aparecem sob o serviço `gemini-cli`, com o modelo e os tokens.
+Abra **Produtos → IA / LLM → Chamadas**: as chamadas aparecem sob o serviço `gemini-cli`, com o modelo e os tokens.
 :::
 
 Três configurações desse bloco importam mais que as outras:

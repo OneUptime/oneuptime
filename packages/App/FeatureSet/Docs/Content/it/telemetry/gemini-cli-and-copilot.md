@@ -64,7 +64,7 @@ Gemini CLI legge le impostazioni all'avvio, quindi riavvialo ed esegui un prompt
 
 ### Verifica che i dati arrivino
 
-Apri **Prodotti → AI / LLM → Chiamate**: le chiamate compaiono sotto il servizio `gemini-cli`, con il modello e i token.
+Apri **Prodotti → IA / LLM → Chiamate**: le chiamate compaiono sotto il servizio `gemini-cli`, con il modello e i token.
 :::
 
 Tre impostazioni di quel blocco contano più delle altre:

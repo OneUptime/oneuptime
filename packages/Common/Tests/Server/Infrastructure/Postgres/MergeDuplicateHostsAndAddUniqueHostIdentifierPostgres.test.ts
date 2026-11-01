@@ -29,6 +29,12 @@ import { DataSource, QueryRunner } from "typeorm";
  * must end up on the kept host's copy. So a table added by any later
  * migration is covered the day it exists.
  *
+ * Each seeded row fills its other NOT NULL columns with values no other row
+ * has, and a NOT NULL column with a foreign key to another cloned table with
+ * a row made there for it: an exception's activity entry that names a twin
+ * exception as the related one belongs to an exception of its own (its
+ * telemetryExceptionId), which must exist.
+ *
  * Opt in with RUN_POSTGRES_MERGE_DUPLICATE_HOSTS_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
  * database right after its drift check. The tables' STRUCTURE (with their
@@ -73,6 +79,13 @@ interface ColumnInfo {
   maxLength: number | null;
 }
 
+// A one-column foreign key of a cloned table, to another cloned table.
+interface ForeignKey {
+  column: string;
+  parentTable: string;
+  parentColumn: string;
+}
+
 // One host table's seeded group and what refers to it.
 interface HostFixture {
   table: string;
@@ -115,6 +128,7 @@ describePostgres(
     let cloned: Array<string> = [];
 
     const columnsOf: Map<string, Array<ColumnInfo>> = new Map();
+    const foreignKeysOf: Map<string, Array<ForeignKey>> = new Map();
     const fixtures: Map<string, HostFixture> = new Map();
 
     function quoted(table: string): string {
@@ -254,13 +268,97 @@ describePostgres(
       }
     }
 
+    // The one-column foreign keys of a cloned table: each refers to a clone.
+    async function loadForeignKeys(table: string): Promise<Array<ForeignKey>> {
+      const known: Array<ForeignKey> | undefined = foreignKeysOf.get(table);
+
+      if (known) {
+        return known;
+      }
+
+      const foreignKeys: Array<ForeignKey> = await database.query(
+        `SELECT a.attname AS "column", parent.relname AS "parentTable",
+                pa.attname AS "parentColumn"
+           FROM pg_constraint c
+           JOIN pg_class child ON child.oid = c.conrelid
+           JOIN pg_namespace n ON n.oid = child.relnamespace
+           JOIN pg_class parent ON parent.oid = c.confrelid
+           JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+           JOIN pg_attribute pa ON pa.attrelid = c.confrelid AND pa.attnum = c.confkey[1]
+          WHERE c.contype = 'f' AND n.nspname = $1 AND child.relname = $2
+            AND array_length(c.conkey, 1) = 1`,
+        [schema, table],
+      );
+
+      foreignKeysOf.set(table, foreignKeys);
+
+      return foreignKeys;
+    }
+
+    /*
+     * A value of a column no other row has - or, where the column has a
+     * foreign key to another cloned table, the key of a row made there for
+     * it (with what that row needs in turn). `making` holds the tables whose
+     * rows wait, through NOT NULL keys, for the row of `table`: a table
+     * among them again is a cycle of NOT NULL keys, which no first row can
+     * satisfy.
+     */
+    async function valueFor(
+      table: string,
+      column: ColumnInfo,
+      making: Array<string>,
+    ): Promise<unknown> {
+      const foreignKey: ForeignKey | undefined = (
+        await loadForeignKeys(table)
+      ).find((candidate: ForeignKey): boolean => {
+        return candidate.column === column.name;
+      });
+
+      if (!foreignKey) {
+        return uniqueValueOf(column);
+      }
+
+      // A row of `table` needs the parent only when the column is NOT NULL.
+      const waiting: Array<string> = column.required
+        ? [...making, table]
+        : making;
+
+      if (waiting.includes(foreignKey.parentTable)) {
+        throw new Error(
+          `${waiting.join(" -> ")} -> ${foreignKey.parentTable}: a cycle of NOT NULL foreign keys, so no row of ${table} can be seeded first.`,
+        );
+      }
+
+      const parentColumn: ColumnInfo | undefined = (
+        await loadColumns(foreignKey.parentTable)
+      ).find((candidate: ColumnInfo): boolean => {
+        return candidate.name === foreignKey.parentColumn;
+      });
+
+      if (!parentColumn) {
+        throw new Error(
+          `${table}.${column.name} refers to ${foreignKey.parentTable}.${foreignKey.parentColumn}, which the clone does not have.`,
+        );
+      }
+
+      const parent: Record<string, unknown> = await insertRow(
+        foreignKey.parentTable,
+        { [parentColumn.name]: uniqueValueOf(parentColumn) },
+        waiting,
+      );
+
+      return parent[parentColumn.name];
+    }
+
     /*
      * Inserts a row, filling every NOT NULL column without a default that
-     * was not given with a value of its type no other row has.
+     * was not given with a value of its type no other row has - a reference
+     * to another cloned table with a row made for it (valueFor).
      */
     async function insertRow(
       table: string,
       values: Record<string, unknown>,
+      making: Array<string> = [],
     ): Promise<Record<string, unknown>> {
       const columns: Array<ColumnInfo> = await loadColumns(table);
       const row: Record<string, unknown> = { ...values };
@@ -276,7 +374,7 @@ describePostgres(
 
       for (const column of columns) {
         if (column.required && row[column.name] === undefined) {
-          row[column.name] = uniqueValueOf(column);
+          row[column.name] = await valueFor(table, column, making);
         }
       }
 
@@ -300,7 +398,10 @@ describePostgres(
       return row;
     }
 
-    // The values a twin of a row shares with it: the index's other columns.
+    /*
+     * The values a twin of a row shares with it: the index's other columns
+     * (a reference to another cloned table names one row made for both).
+     */
     async function twinValues(
       reference: Reference,
       index: UniqueIndex,
@@ -317,7 +418,9 @@ describePostgres(
             return candidate.name === name;
           },
         );
-        values[name] = column ? uniqueValueOf(column) : null;
+        values[name] = column
+          ? await valueFor(reference.table, column, [])
+          : null;
       }
 
       // A twin is one only among live rows (a partial unique index).
@@ -1177,6 +1280,29 @@ describePostgres(
             ]),
           );
         }
+
+        /*
+         * An exception both copies of the host had keeps its activity, by
+         * either reference: an entry of its own (telemetryExceptionId, ON
+         * DELETE CASCADE - it would go with the dropped twin) and an entry
+         * of another exception that names it (relatedTelemetryExceptionId,
+         * ON DELETE SET NULL - it would lose the name).
+         */
+        expect(
+          fixture.grandchildren.map(
+            (grandchild: {
+              reference: Reference;
+              twinTable: string;
+            }): string => {
+              return `${grandchild.twinTable}<-${grandchild.reference.table}.${grandchild.reference.column}`;
+            },
+          ),
+        ).toEqual(
+          expect.arrayContaining([
+            "TelemetryException<-TelemetryExceptionActivity.telemetryExceptionId",
+            "TelemetryException<-TelemetryExceptionActivity.relatedTelemetryExceptionId",
+          ]),
+        );
       });
 
       test("the unique index is built online and valid, and refuses a second host of the name in any case", async () => {

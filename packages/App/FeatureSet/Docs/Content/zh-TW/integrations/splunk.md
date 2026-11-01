@@ -44,7 +44,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → Security Events → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Splunk Enterprise Security**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把權杖貼上到 **Authentication token** 中，或者把密碼貼上到 **密碼** 中。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Splunk Enterprise Security**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把權杖貼上到 **Authentication token** 中，或者把密碼貼上到 **密碼** 中。
 
 ### 儲存之前先測試
 
@@ -159,7 +159,7 @@ OneUptime 也可以透過 Splunk 的 HTTP Event Collector（HEC）把它發現�
 
 ### 新增目的地
 
-開啟 **產品 → Security Events → 連線**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Splunk，然後按一下 **下一步**。填寫 **HEC URL**，並把權杖貼到 **HEC 權杖** 中。**索引** 和 **來源類型** 是選用的：留空時，事件會以 sourcetype `oneuptime:security` 進入權杖的預設索引。
+開啟 **產品 → 安全事件 → 連線**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Splunk，然後按一下 **下一步**。填寫 **HEC URL**，並把權杖貼到 **HEC 權杖** 中。**索引** 和 **來源類型** 是選用的：留空時，事件會以 sourcetype `oneuptime:security` 進入權杖的預設索引。
 
 ### 傳送測試事件並開始傳送
 
