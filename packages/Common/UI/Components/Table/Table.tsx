@@ -581,25 +581,15 @@ const Table: TableFunction = <T extends GenericObject>(
   };
 
   /*
-   * Whether the rows are wider than the card (they scroll sideways, and the
-   * Actions column sticks at the right edge), and whether the header row
-   * can stick under the page's top bar (TableLayout).
-   */
-  /*
    * A person's sizing stands: a table one of whose columns they sized keeps
    * its columns in a card 48rem or wider, its rows scrolling as they always
    * did - Affected Resources made wider folded Severity, Duration, Labels
    * and Owners away under other cells, and the keyboard's focus went with
    * the edge it was on. In a narrower card the table folds, and is drawn as
-   * cards, as any other. Read as the table is measured: the widths kept
-   * draw no row again (ColumnWidthsStore).
+   * cards, as any other. The widths kept are read as the table is
+   * measured, from their store: a width kept draws no row again
+   * (ColumnWidthsStore). The measuring calls the latest drawing's own.
    */
-  const sizedDrawnColumnIdsRef: React.MutableRefObject<Array<string>> = useRef<
-    Array<string>
-  >([]);
-
-  sizedDrawnColumnIdsRef.current = resizableDrawnColumnIds;
-
   const onCannotFit: (cannotFit: TableCannotFit) => void = (
     cannotFit: TableCannotFit,
   ): void => {
@@ -607,7 +597,7 @@ const Table: TableFunction = <T extends GenericObject>(
       isColumnResizeOn &&
         hasDrawnColumnWidths(
           columnWidths.store.getWidths(),
-          sizedDrawnColumnIdsRef.current,
+          resizableDrawnColumnIds,
         ),
     );
 
@@ -621,6 +611,11 @@ const Table: TableFunction = <T extends GenericObject>(
     fit.onCannotFit(cannotFit);
   };
 
+  /*
+   * Whether the rows are wider than the card (they scroll sideways, and the
+   * Actions column sticks at the right edge), and whether the header row
+   * can stick under the page's top bar (TableLayout).
+   */
   const scrollState: TableScrollState = useTableScrollState({
     scrollRef: scrollBoxRef,
     tableRef: tableElementRef,
