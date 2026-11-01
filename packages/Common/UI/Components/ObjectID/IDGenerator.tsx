@@ -74,12 +74,7 @@ const IDGenerator: FunctionComponent<ComponentProps> = (
           </div>
         </div>
       </>
-      {props.error && (
-        <FieldError
-          message={props.error}
-          announce="none"
-        />
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </>
   );
 };

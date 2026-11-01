@@ -151,12 +151,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
             })}
         </div>
       </fieldset>
-      {props.error && (
-        <FieldError
-          message={props.error}
-          announce="none"
-        />
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </div>
   );
 };

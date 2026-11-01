@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";

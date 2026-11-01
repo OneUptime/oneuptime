@@ -1089,9 +1089,7 @@ test.describe("lists and sentences in the reader's way", () => {
     const category: Locator = page.getByTestId("section-products-menu");
 
     await expect(category).toContainText("Incidents, Alerts, Monitors");
-    expect(await styleOf(category.locator("svg").last(), "scale")).toBe(
-      "none",
-    );
+    expect(await styleOf(category.locator("svg").last(), "scale")).toBe("none");
   });
 
   /*

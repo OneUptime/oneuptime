@@ -389,12 +389,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
         <p className="mt-1 text-sm text-gray-500">{lookup.error}</p>
       )}
 
-      {props.error && (
-        <FieldError
-          id={errorId}
-          message={props.error}
-        />
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
 
       <PeopleSearchPopup
         popup={popup}

@@ -105,9 +105,7 @@ describe("the products menu's folded category", () => {
     expect(
       screen.getByText(names.join(ARABIC_LIST_SEPARATOR)),
     ).toBeInTheDocument();
-    expect(names.join(ARABIC_LIST_SEPARATOR)).toBe(
-      "حوادث، هشدارها، مانیتورها",
-    );
+    expect(names.join(ARABIC_LIST_SEPARATOR)).toBe("حوادث، هشدارها، مانیتورها");
   });
 
   test("English names keep the English comma", () => {

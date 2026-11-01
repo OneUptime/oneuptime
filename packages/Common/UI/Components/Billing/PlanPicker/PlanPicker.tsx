@@ -439,12 +439,7 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
         {props.plans.map(renderOption)}
       </div>
 
-      {props.error && (
-        <FieldError
-          id={errorId}
-          message={props.error}
-        />
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
 
       {terms && (
         <div

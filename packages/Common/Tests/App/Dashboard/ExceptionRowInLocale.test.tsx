@@ -193,9 +193,7 @@ describe("an exception row's first seen, last seen and events", () => {
      * keeps to the words it belongs with (TranslatedSentence).
      */
     expect(smallPrint(view)).toContain(`اولین بار ${isolated("۹ روز پیش")}`);
-    expect(smallPrint(view)).toContain(
-      `آخرین بار ${isolated("۱۷ دقیقه پیش")}`,
-    );
+    expect(smallPrint(view)).toContain(`آخرین بار ${isolated("۱۷ دقیقه پیش")}`);
     expect(smallPrint(view)).toContain(`${isolated("۴۱۲")} رویداد`);
   });
 

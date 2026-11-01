@@ -882,11 +882,7 @@ const FormField: <T extends GenericObject>(
            */}
           {props.field.fieldType === FormFieldSchemaType.Dictionary &&
             props.touched &&
-            props.error && (
-              <FieldError
-                message={props.error}
-              />
-            )}
+            props.error && <FieldError message={props.error} />}
 
           {props.field.fieldType ===
             FormFieldSchemaType.OptionChooserButton && (

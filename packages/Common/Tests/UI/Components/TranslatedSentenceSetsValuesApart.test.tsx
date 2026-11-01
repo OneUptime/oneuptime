@@ -19,7 +19,8 @@ import {
  * right is drawn exactly as before.
  */
 
-const READ_FROM: string = "Read from the Meraki dashboard ({{name}}), {{time}}.";
+const READ_FROM: string =
+  "Read from the Meraki dashboard ({{name}}), {{time}}.";
 const RUNNER: string = "Runner {{runner}} is not online.";
 
 const PERSIAN: Record<string, string> = {
@@ -95,14 +96,14 @@ describe("a sentence drawn in Persian", () => {
     // The slot's element is drawn as given, between its isolate's marks.
     expect(screen.getByTestId("name")).toHaveTextContent(/^Acme Retail$/);
     expect(
-      screen.getByTestId("name").previousSibling?.textContent?.endsWith(
-        FIRST_STRONG_ISOLATE,
-      ),
+      screen
+        .getByTestId("name")
+        .previousSibling?.textContent?.endsWith(FIRST_STRONG_ISOLATE),
     ).toBe(true);
     expect(
-      screen.getByTestId("name").nextSibling?.textContent?.startsWith(
-        POP_DIRECTIONAL_ISOLATE,
-      ),
+      screen
+        .getByTestId("name")
+        .nextSibling?.textContent?.startsWith(POP_DIRECTIONAL_ISOLATE),
     ).toBe(true);
   });
 

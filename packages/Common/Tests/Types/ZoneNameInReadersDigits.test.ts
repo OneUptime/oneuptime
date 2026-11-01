@@ -41,7 +41,8 @@ describe("a date with its zone", () => {
     OneUptimeDate.setUserTimezone(Timezone.AsiaTehran);
     setDateDisplayLanguage("fa");
 
-    const written: string = OneUptimeDate.getDateAsLocalFormattedString(INSTANT);
+    const written: string =
+      OneUptimeDate.getDateAsLocalFormattedString(INSTANT);
 
     expect(written).toContain("GMT+۰۳۳۰");
     expect(written).not.toMatch(LATIN_DIGIT);

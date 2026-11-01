@@ -238,12 +238,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
             portalTarget,
           )
         : null}
-      {props.error && (
-        <FieldError
-          id={errorId}
-          message={props.error}
-        />
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
     </div>
   );
 };

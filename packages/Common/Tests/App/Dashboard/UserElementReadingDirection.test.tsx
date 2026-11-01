@@ -1,6 +1,13 @@
 import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { createInstance, i18n } from "i18next";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
@@ -50,7 +57,11 @@ const drawInCell: (data: {
   language: string;
   name: string;
   email: string;
-}) => void = (data: { language: string; name: string; email: string }): void => {
+}) => void = (data: {
+  language: string;
+  name: string;
+  email: string;
+}): void => {
   render(
     <I18nextProvider i18n={instances[data.language]!}>
       <TableCellContext.Provider value={true}>

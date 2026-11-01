@@ -14,9 +14,7 @@ import { describe, expect, test } from "@jest/globals";
 
 describe("getLineDirection", () => {
   test("a value in Latin letters on a Persian page reads left to right", () => {
-    expect(getLineDirection("José Ignacio Negro de la Vega", "fa")).toBe(
-      "ltr",
-    );
+    expect(getLineDirection("José Ignacio Negro de la Vega", "fa")).toBe("ltr");
     expect(getLineDirection("k.morgan@acme-commerce.example", "fa")).toBe(
       "ltr",
     );

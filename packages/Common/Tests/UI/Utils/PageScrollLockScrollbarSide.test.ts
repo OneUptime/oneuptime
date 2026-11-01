@@ -24,9 +24,10 @@ import {
 
 const SCROLLBAR_WIDTH: number = 15;
 
-const setScrollbar: (data: { width: number; side: "left" | "right" }) => void = (
-  data: { width: number; side: "left" | "right" },
-): void => {
+const setScrollbar: (data: {
+  width: number;
+  side: "left" | "right";
+}) => void = (data: { width: number; side: "left" | "right" }): void => {
   Object.defineProperty(document.documentElement, "clientWidth", {
     configurable: true,
     value: window.innerWidth - data.width,

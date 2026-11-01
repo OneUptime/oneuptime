@@ -418,9 +418,7 @@ const englishDateValues: (values: TemplateValues) => TemplateValues = (
  * Every value as the English sentence shows it, as text: a date in the
  * reader's language goes back to its English (englishDateValues).
  */
-const englishTextValues: (
-  values: TemplateValues,
-) => Record<string, string> = (
+const englishTextValues: (values: TemplateValues) => Record<string, string> = (
   values: TemplateValues,
 ): Record<string, string> => {
   const dated: TemplateValues = englishDateValues(values);

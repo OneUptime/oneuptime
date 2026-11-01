@@ -331,10 +331,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
   };
 
   const errorElement: ReactElement = props.error ? (
-    <FieldError
-      id={errorId}
-      message={props.error}
-    />
+    <FieldError id={errorId} message={props.error} />
   ) : (
     <></>
   );

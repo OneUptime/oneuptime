@@ -26,7 +26,9 @@ let bodyPaddingLeftBeforeLock: string = "";
  * page whatever the page's language. The page's box then starts after the
  * scrollbar, at the scrollbar's width from the window's left edge.
  */
-export type ScrollbarSideFunction = (scrollbarWidth: number) => "left" | "right";
+export type ScrollbarSideFunction = (
+  scrollbarWidth: number,
+) => "left" | "right";
 
 export const getPageScrollbarSide: ScrollbarSideFunction = (
   scrollbarWidth: number,

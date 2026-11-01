@@ -89,9 +89,7 @@ describe("an alert above a form", () => {
     );
 
     expect(screen.getByText("Promo code is invalid.").tagName).toBe("DIV");
-    expect(
-      screen.getByTestId("form-error").querySelector("bdi"),
-    ).toBeNull();
+    expect(screen.getByTestId("form-error").querySelector("bdi")).toBeNull();
   });
 
   test("its bold title and its words on the right read as written too", () => {
@@ -131,9 +129,7 @@ describe("an alert above a form", () => {
       />,
     );
 
-    expect(screen.getByTestId("own-words").parentElement?.tagName).toBe(
-      "DIV",
-    );
+    expect(screen.getByTestId("own-words").parentElement?.tagName).toBe("DIV");
     expect(
       screen.getByTestId("form-error").querySelector("bdi"),
     ).not.toBeInTheDocument();

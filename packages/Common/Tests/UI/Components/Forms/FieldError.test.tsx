@@ -34,7 +34,9 @@ beforeAll(async () => {
       fallbackLng: "en",
       resources: {
         en: { translation: {} },
-        fa: { translation: { "Description is required": "توضیحات الزامی است" } },
+        fa: {
+          translation: { "Description is required": "توضیحات الزامی است" },
+        },
       },
       interpolation: { escapeValue: false },
       keySeparator: false,
@@ -53,7 +55,9 @@ const draw: (language: string, element: ReactElement) => void = (
   language: string,
   element: ReactElement,
 ): void => {
-  render(<I18nextProvider i18n={instances[language]!}>{element}</I18nextProvider>);
+  render(
+    <I18nextProvider i18n={instances[language]!}>{element}</I18nextProvider>,
+  );
 };
 
 const line: () => HTMLElement = (): HTMLElement => {
@@ -79,10 +83,7 @@ describe("on a Persian page", () => {
   });
 
   test("the fields draw their server answers with it: a text field, a long text, a switch", () => {
-    draw(
-      "fa",
-      <Input onChange={() => {}} error="Promo code is invalid." />,
-    );
+    draw("fa", <Input onChange={() => {}} error="Promo code is invalid." />);
 
     expect(line().querySelector("bdi")).toHaveAttribute("dir", "ltr");
     expect(screen.getByRole("alert")).toBe(line());

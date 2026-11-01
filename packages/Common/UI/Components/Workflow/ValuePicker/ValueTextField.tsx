@@ -280,12 +280,7 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
         )}
       </div>
 
-      {props.error && (
-        <FieldError
-          id={errorId}
-          message={props.error}
-        />
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
 
       {isPopoverOpen && (
         <ValuePickerPopup

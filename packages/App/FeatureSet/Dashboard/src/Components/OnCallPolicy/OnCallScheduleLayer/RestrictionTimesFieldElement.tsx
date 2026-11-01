@@ -628,12 +628,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           </p>
         )}
 
-      {props.error && (
-        <FieldError
-          message={props.error}
-          announce="none"
-        />
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </div>
   );
 };

@@ -49,15 +49,19 @@ describe("in a sentence read right to left (Persian)", () => {
       "sara@acme-commerce.example",
       "TRUSTED_PROXY_HOPS=2",
     ]) {
-      expect({ value, isSetApart: isSetApartInSentence(value, RIGHT_TO_LEFT) })
-        .toEqual({ value, isSetApart: true });
+      expect({
+        value,
+        isSetApart: isSetApartInSentence(value, RIGHT_TO_LEFT),
+      }).toEqual({ value, isSetApart: true });
     }
   });
 
   test("a time or a count is set apart, in Persian digits or Latin ones", () => {
     for (const value of ["۴ دقیقه پیش", "۴۱۲", "412", "09:05", "۱۵:۰۷"]) {
-      expect({ value, isSetApart: isSetApartInSentence(value, RIGHT_TO_LEFT) })
-        .toEqual({ value, isSetApart: true });
+      expect({
+        value,
+        isSetApart: isSetApartInSentence(value, RIGHT_TO_LEFT),
+      }).toEqual({ value, isSetApart: true });
     }
   });
 

@@ -42,7 +42,8 @@ const isolated: (value: string) => string = (value: string): string => {
   return `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`;
 };
 
-const READ_FROM: string = "Read from the Meraki dashboard ({{name}}), {{time}}.";
+const READ_FROM: string =
+  "Read from the Meraki dashboard ({{name}}), {{time}}.";
 const PAGE: string = "Page {{policies}}";
 const MATCHES: PluralTemplate = {
   one: "{{count}} more monitor matches.",

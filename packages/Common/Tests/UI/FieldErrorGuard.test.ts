@@ -47,7 +47,7 @@ describe("a field's error line", () => {
     ).toBe(true);
     expect(
       HAND_WRITTEN_ERROR_LINE_REGEX.test(
-        '<FieldError message={props.error} id={errorId} />',
+        "<FieldError message={props.error} id={errorId} />",
       ),
     ).toBe(false);
     expect(
@@ -64,7 +64,9 @@ describe("a field's error line", () => {
         return file.endsWith(".tsx") && relative(file) !== FIELD_ERROR_FILE;
       })
       .filter((file: string): boolean => {
-        return HAND_WRITTEN_ERROR_LINE_REGEX.test(fs.readFileSync(file, "utf8"));
+        return HAND_WRITTEN_ERROR_LINE_REGEX.test(
+          fs.readFileSync(file, "utf8"),
+        );
       })
       .map(relative)
       .sort();

@@ -169,12 +169,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
           </div>
         );
       })}
-      {props.error && (
-        <FieldError
-          message={props.error}
-          announce="none"
-        />
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </div>
   );
 };

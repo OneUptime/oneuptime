@@ -495,11 +495,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <FieldError
-          id={errorId}
-          message={props.error}
-          announce="polite"
-        />
+        <FieldError id={errorId} message={props.error} announce="polite" />
       )}
     </>
   );
