@@ -15,6 +15,8 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  EXACT_SECURITY_CONNECTION_REASONS,
+  POSSIBLE_SECURITY_CONNECTION_REASONS,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
   SecurityConnectionMatch,
@@ -34,7 +36,7 @@ import {
   compareConnectedResources,
   foldConnectionValue,
   getBestCertainty,
-  getMonitorMentionValues,
+  getMonitorMentionTexts,
   getMonitorTargetHosts,
   getSecurityConnectionLookups,
   matchAddress,
@@ -188,6 +190,12 @@ export function isRefusedRead(error: unknown): boolean {
   );
 }
 
+// The order a record's matches are listed in, within one certainty.
+const REASON_ORDER: ReadonlyArray<SecurityConnectionReason> = [
+  ...EXACT_SECURITY_CONNECTION_REASONS,
+  ...POSSIBLE_SECURITY_CONNECTION_REASONS,
+];
+
 interface NamedRow {
   id: string;
   name: string;
@@ -237,14 +245,20 @@ class Collector {
 
     if (!isKnown) {
       record.matches.push(data.match);
-      // The exact matches first: they are what a person reads first.
+      /*
+       * The exact matches first: they are what a person reads first. Then
+       * by reason, in the order the reasons are listed, so the sentence a
+       * record leads with never depends on which read answered first.
+       */
       record.matches.sort(
         (a: SecurityConnectionMatch, b: SecurityConnectionMatch): number => {
-          if (a.certainty === b.certainty) {
-            return 0;
+          if (a.certainty !== b.certainty) {
+            return a.certainty === SecurityConnectionCertainty.Exact ? -1 : 1;
           }
 
-          return a.certainty === SecurityConnectionCertainty.Exact ? -1 : 1;
+          return (
+            REASON_ORDER.indexOf(a.reason) - REASON_ORDER.indexOf(b.reason)
+          );
         },
       );
     }
@@ -1172,9 +1186,10 @@ export default class SecurityConnectedRecords {
    * The monitors that check what a case names - a host or a domain, an
    * address, the host of a URL - read with the caller's own permissions.
    * The project's monitors are narrowed in the database to those whose
-   * steps mention one of the values (getMonitorMentionValues), then each
-   * is held to the hosts it really checks (getMonitorTargetHosts): a
-   * mention in a header or a criterion is no target. An archived monitor
+   * steps hold one of the values where a step holds a host it checks
+   * (getMonitorMentionTexts), then each is held to the hosts it really
+   * checks (getMonitorTargetHosts): a mention in a header or a criterion
+   * is no target. An archived monitor
    * checks nothing and is left out. Each carries its current status.
    */
   private static async matchMonitors(data: {
@@ -1184,7 +1199,7 @@ export default class SecurityConnectedRecords {
     collector: Collector;
   }): Promise<void> {
     const { lookups, collector, projectId, props } = data;
-    const mentions: Array<string> = getMonitorMentionValues(lookups);
+    const mentions: Array<string> = getMonitorMentionTexts(lookups);
 
     if (mentions.length === 0) {
       return;

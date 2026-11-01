@@ -1155,52 +1155,104 @@ export const SECURITY_CONNECTION_LOOKUP_KINDS: Readonly<{
 };
 
 // The most values the project's monitors are searched for in one lookup.
-export const SECURITY_CONNECTION_MAX_MONITOR_MENTIONS: number = 60;
+export const SECURITY_CONNECTION_MAX_MONITOR_MENTIONS: number = 160;
 
 /*
- * What the project's monitors are searched for, before each is held to the
- * hosts it really checks: the names (and their short forms, so a monitor
- * of web-1 is found for web-1.acme.internal), the hosts of the URLs, and
- * the addresses, in their one spelling and as the case wrote them - a
- * monitor's IPv6 address is stored as somebody typed it. Each once, the
- * names a case gives first, at most SECURITY_CONNECTION_MAX_MONITOR_MENTIONS.
+ * What the project's monitors are searched for in the database, before
+ * each is held to the hosts it really checks (getMonitorTargetHosts): the
+ * texts a stored step holds around a host it checks. A monitor's steps are
+ * JSON, so a host, an address, a DNS name or a domain it checks is a whole
+ * string ("shop.acme.example"), and a URL's host follows its "//" (or a
+ * user's "@"). Searching for those, and never for a bare word, keeps a
+ * common short name ("www", "api") from reading every monitor of the
+ * project - which would push the ones that check it past the read's limit.
+ *
+ *   a name, a URL's host    "h"   //h   @h
+ *   a bare name, also       "h.   //h.  @h.   (h and a domain: its full form)
+ *   a full name's short     "s"   //s/  //s:  //s"   (exactly the short form)
+ *   form
+ *   an IPv4 address         "a"   //a   @a
+ *   an IPv6 address         "a"   [a]          (as the case wrote it, and
+ *                                                in its one spelling: a
+ *                                                monitor keeps an address
+ *                                                as somebody typed it)
+ *
+ * Folded, each once, the case's own names and addresses first, at most
+ * SECURITY_CONNECTION_MAX_MONITOR_MENTIONS; matched without case.
  */
-export function getMonitorMentionValues(
+export function getMonitorMentionTexts(
   lookups: Pick<
     SecurityConnectionLookups,
-    "hostNames" | "hostNameQueryValues" | "urlHosts" | "addresses" | "lookedUp"
+    "hostNames" | "urlHosts" | "addresses" | "lookedUp"
   >,
 ): Array<string> {
-  const values: Array<string> = [];
-  const add: (value: string) => void = (value: string): void => {
-    const folded: string = (value || "").trim().toLowerCase();
+  const texts: Array<string> = [];
+  const add: (...values: Array<string>) => void = (
+    ...values: Array<string>
+  ): void => {
+    for (const value of values) {
+      const folded: string = (value || "").trim().toLowerCase();
 
-    if (
-      folded &&
-      !values.includes(folded) &&
-      values.length < SECURITY_CONNECTION_MAX_MONITOR_MENTIONS
-    ) {
-      values.push(folded);
+      if (
+        folded &&
+        !texts.includes(folded) &&
+        texts.length < SECURITY_CONNECTION_MAX_MONITOR_MENTIONS
+      ) {
+        texts.push(folded);
+      }
     }
   };
+  const addHost: (host: string) => void = (host: string): void => {
+    add(`"${host}"`, `//${host}`, `@${host}`);
+  };
 
-  lookups.hostNames.forEach(add);
-  lookups.urlHosts.forEach(add);
+  for (const hostName of lookups.hostNames) {
+    addHost(hostName);
+
+    if (!getShortHostName(hostName)) {
+      add(`"${hostName}.`, `//${hostName}.`, `@${hostName}.`);
+    }
+  }
+
+  lookups.urlHosts.forEach((host: string): void => {
+    if (canonicalAddress(host)?.includes(":")) {
+      add(`"${host}"`, `[${host}]`);
+    } else {
+      addHost(host);
+    }
+  });
 
   for (const address of lookups.addresses) {
-    add(address);
+    const spellings: Array<string> = [
+      address,
+      ...lookups.lookedUp
+        .filter((entity: SecurityEntity): boolean => {
+          return canonicalAddress(entity.value) === address;
+        })
+        .map((entity: SecurityEntity): string => {
+          return entity.value;
+        }),
+    ];
 
-    for (const entity of lookups.lookedUp) {
-      if (canonicalAddress(entity.value) === address) {
-        add(entity.value);
+    for (const spelling of spellings) {
+      if (address.includes(":")) {
+        add(`"${spelling}"`, `[${spelling}]`);
+      } else {
+        addHost(spelling);
       }
     }
   }
 
-  // The short forms last: the full names find the monitors that check them.
-  lookups.hostNameQueryValues.forEach(add);
+  // The short forms last: the case's own names find the monitors checking them.
+  for (const hostName of lookups.hostNames) {
+    const short: string | null = getShortHostName(hostName);
 
-  return values;
+    if (short) {
+      add(`"${short}"`, `//${short}/`, `//${short}:`, `//${short}"`);
+    }
+  }
+
+  return texts;
 }
 
 // The kinds of record one value is looked up among, by what it is.

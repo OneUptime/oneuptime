@@ -130,18 +130,22 @@ export enum SecurityConnectionReason {
   MonitorTarget = "MonitorTarget",
 }
 
-// Exact reasons, and the reasons that only ever make a possible connection.
+/*
+ * Exact reasons, and the reasons that only ever make a possible connection,
+ * each in the order a record's matches are listed: its logs, then its own
+ * names and IDs, then what it checks, then its addresses.
+ */
 export const EXACT_SECURITY_CONNECTION_REASONS: ReadonlyArray<SecurityConnectionReason> =
   [
     SecurityConnectionReason.LogSource,
     SecurityConnectionReason.HostName,
     SecurityConnectionReason.ClusterName,
     SecurityConnectionReason.DeviceName,
-    SecurityConnectionReason.Address,
-    SecurityConnectionReason.Email,
     SecurityConnectionReason.ResourceId,
     SecurityConnectionReason.CloudEndpoint,
     SecurityConnectionReason.MonitorTarget,
+    SecurityConnectionReason.Address,
+    SecurityConnectionReason.Email,
   ];
 
 export const POSSIBLE_SECURITY_CONNECTION_REASONS: ReadonlyArray<SecurityConnectionReason> =

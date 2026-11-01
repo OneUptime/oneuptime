@@ -367,11 +367,40 @@ describe("POST /security-case/resource-security", () => {
     },
   );
 
+  test("a monitor's, a cloud resource's and a serverless function's card, read as the caller", async () => {
+    for (const kind of [
+      SecurityConnectionKind.Monitor,
+      SecurityConnectionKind.CloudResource,
+      SecurityConnectionKind.ServerlessFunction,
+    ]) {
+      const read: jest.SpyInstance = jest
+        .spyOn(ResourceSecurity, "read")
+        .mockResolvedValue({ kind } as never);
+
+      next.mockClear();
+      await route(RESOURCE)(
+        request({ kind, id: HOST_ID.toString() }),
+        res,
+        next,
+      );
+
+      expect(next).not.toHaveBeenCalled();
+      expect(read).toHaveBeenCalledWith({
+        projectId: PROJECT,
+        kind,
+        id: HOST_ID,
+        props,
+      });
+      read.mockRestore();
+    }
+  });
+
   test("a kind it does not know, or an ID that is not one, is refused before any read", async () => {
     const read: jest.SpyInstance = jest.spyOn(ResourceSecurity, "read");
 
     for (const body of [
-      { kind: "Monitor", id: HOST_ID.toString() },
+      { kind: "Probe", id: HOST_ID.toString() },
+      { kind: "monitor", id: HOST_ID.toString() },
       { kind: SecurityConnectionKind.Host, id: "host-1" },
       { id: HOST_ID.toString() },
     ]) {
@@ -508,5 +537,18 @@ describe("reading a request", () => {
         { type: "Nonsense", id: HOST_ID.toString() },
       ] as never),
     ).toEqual([]);
+  });
+
+  test("readLogResources: a cloud resource's and a serverless function's logs are known kinds; a monitor's are not", () => {
+    expect(
+      readLogResources([
+        { type: ServiceType.CloudResource, id: HOST_ID.toString() },
+        { type: ServiceType.ServerlessFunction, id: HOST_ID.toString() },
+        { type: ServiceType.Monitor, id: HOST_ID.toString() },
+      ]),
+    ).toEqual([
+      { type: ServiceType.CloudResource, id: HOST_ID.toString() },
+      { type: ServiceType.ServerlessFunction, id: HOST_ID.toString() },
+    ]);
   });
 });
