@@ -210,6 +210,24 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
       "packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
     kind: "keys",
   },
+  /*
+   * How a change OneUptime AI proposes went the last times it ran on the
+   * same cluster or resource: the Remediation step says it under the
+   * change.
+   */
+  {
+    directory:
+      "packages/Common/Types/AutoRemediation/RemediationTrackRecordWords.ts",
+    kind: "ui",
+  },
+  /*
+   * A cloud change in plain words, above its exact command on the
+   * Remediation step: each change's sentence and each kind of resource.
+   */
+  {
+    directory: "packages/Common/Utils/AiRemediation/CloudChangeWords.ts",
+    kind: "ui",
+  },
 ];
 
 /*

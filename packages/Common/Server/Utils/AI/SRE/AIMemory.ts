@@ -8,6 +8,16 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 import PromptText from "../../../../Utils/AI/PromptText";
+import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
+import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import {
+  AiRemediationCommand,
+  AiRemediationCommandExecutionStatus,
+  AiRemediationCommandPlan,
+  AiRemediationCommandPlanUtil,
+} from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 
 /*
  * AI SRE — episodic memory (Phase 4, "I've seen this before").
@@ -21,12 +31,23 @@ import PromptText from "../../../../Utils/AI/PromptText";
  * The full episodic store (pgvector embeddings over postmortems/runbooks + a
  * temporal knowledge graph) is the deferred, larger build — this delivers the
  * user-visible "this matches #123" behaviour on data we already own.
+ *
+ * Each past incident also says how OneUptime AI fixed it, when a fix of its
+ * was verified - the runbook it started or the commands it ran - so a
+ * recurrence names the fix that worked last time, not only the cause. A
+ * private incident is never one of them: its title and root cause would
+ * reach this incident's report, which everyone who can see this one reads.
  */
 
 // How many recent incidents to consider, and how many prior cases to surface.
 const CANDIDATE_LIMIT: number = 30;
 const MAX_CASES: number = 4;
 const MAX_ROOT_CAUSE_CHARS: number = 300;
+
+// What a past incident's fix line holds, at most.
+const MAX_FIX_COMMANDS: number = 3;
+const MAX_FIX_COMMAND_CHARS: number = 200;
+const MAX_FIXES_READ: number = 20;
 
 const SHARED_MONITOR_SCORE: number = 2;
 const SHARED_LABEL_SCORE: number = 1;
@@ -64,6 +85,7 @@ export default class AIMemory {
           title: true,
           rootCause: true,
           createdAt: true,
+          isPrivate: true,
           monitors: {
             name: true,
           },
@@ -95,6 +117,7 @@ export default class AIMemory {
         .filter((incident: Incident) => {
           return (
             incident.id?.toString() !== currentIdString &&
+            incident.isPrivate !== true &&
             Boolean(incident.rootCause && incident.rootCause.trim().length > 0)
           );
         })
@@ -141,9 +164,20 @@ export default class AIMemory {
         return "";
       }
 
+      const fixes: Map<string, string> = await AIMemory.readVerifiedFixes({
+        projectId: data.projectId,
+        incidentIds: chosen
+          .map((item: { incident: Incident }): ObjectID | undefined => {
+            return item.incident.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
+
       let markdown: string =
         "\n\n# Past resolved incidents in this project (recurrence context)\n" +
-        "If the current signal matches one of these, this may be a recurrence — say so explicitly and reference the incident number and how it was resolved.\n";
+        "If the current signal matches one of these, this may be a recurrence — say so explicitly and reference the incident number and how it was resolved. When OneUptime AI's fix of one was verified, say in the next steps whether the same fix applies now.\n";
 
       for (const { incident } of chosen) {
         // A past incident's screenshot is a note here too, not its base64.
@@ -164,6 +198,14 @@ export default class AIMemory {
         if (monitorNames.length > 0) {
           markdown += `\n  Monitors: ${monitorNames.join(", ")}`;
         }
+
+        const fix: string | undefined = fixes.get(
+          incident.id?.toString().toLowerCase() || "",
+        );
+
+        if (fix) {
+          markdown += `\n  Fixed by OneUptime AI (verified): ${fix}`;
+        }
       }
 
       return markdown;
@@ -171,5 +213,102 @@ export default class AIMemory {
       logger.error(`AI: failed to load recurrence context: ${error}`);
       return "";
     }
+  }
+
+  /*
+   * How OneUptime AI fixed each of `incidentIds`, by incident id (lower
+   * case), when its fix was verified: the runbook it started, or the
+   * commands of its plan that ran. Empty when nothing was, or on any error -
+   * the recurrence context stands without it.
+   */
+  public static async readVerifiedFixes(data: {
+    projectId: ObjectID;
+    incidentIds: Array<ObjectID>;
+  }): Promise<Map<string, string>> {
+    const fixes: Map<string, string> = new Map<string, string>();
+
+    if (data.incidentIds.length === 0) {
+      return fixes;
+    }
+
+    try {
+      const suggestions: Array<AutoRemediationSuggestion> =
+        await AutoRemediationSuggestionService.findBy({
+          query: {
+            projectId: data.projectId,
+            incidentId: QueryHelper.any(data.incidentIds),
+            verificationStatus: AutoRemediationVerificationStatus.Verified,
+          },
+          select: {
+            _id: true,
+            incidentId: true,
+            suggestionType: true,
+            runbookNameSnapshot: true,
+            commandPlan: true,
+            createdAt: true,
+          },
+          sort: { createdAt: SortOrder.Descending },
+          limit: MAX_FIXES_READ,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      for (const suggestion of suggestions) {
+        const key: string = suggestion.incidentId?.toString().toLowerCase() || "";
+
+        // The newest verified fix of each incident speaks for it.
+        if (!key || fixes.has(key)) {
+          continue;
+        }
+
+        const described: string | null = AIMemory.describeFix(suggestion);
+
+        if (described) {
+          fixes.set(key, described);
+        }
+      }
+    } catch (error) {
+      logger.error(`AI: failed to load past incidents' fixes: ${error}`);
+    }
+
+    return fixes;
+  }
+
+  // One fix in a line: its runbook, or the commands of its plan that ran.
+  public static describeFix(
+    suggestion: AutoRemediationSuggestion,
+  ): string | null {
+    if (
+      suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+    ) {
+      const plan: AiRemediationCommandPlan | null =
+        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+      const ran: Array<string> = (plan?.commands || [])
+        .filter((command: AiRemediationCommand): boolean => {
+          return (
+            command.execution?.status ===
+            AiRemediationCommandExecutionStatus.Succeeded
+          );
+        })
+        .slice(0, MAX_FIX_COMMANDS)
+        .map((command: AiRemediationCommand): string => {
+          return `\`${PromptText.field(command.command, {
+            maxLength: MAX_FIX_COMMAND_CHARS,
+          })
+            .split("`")
+            .join("'")}\``;
+        });
+
+      return ran.length > 0 ? `ran ${ran.join("; ")}` : null;
+    }
+
+    if (
+      suggestion.suggestionType === AutoRemediationSuggestionType.Runbook &&
+      suggestion.runbookNameSnapshot
+    ) {
+      return `ran the runbook "${PromptText.field(suggestion.runbookNameSnapshot, { maxLength: 120 })}"`;
+    }
+
+    return null;
   }
 }

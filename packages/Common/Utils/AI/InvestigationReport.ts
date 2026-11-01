@@ -53,9 +53,18 @@ export enum InvestigationReportSectionKind {
   Summary = "Summary",
   RootCause = "RootCause",
   Evidence = "Evidence",
+  /*
+   * The other likely causes the investigation checked, and why the
+   * evidence rules each out (AIInvestigationEngine's persona): one bullet
+   * per cause, "**The cause:** why".
+   */
+  RuledOut = "RuledOut",
   NextSteps = "NextSteps",
   Other = "Other",
 }
+
+// The heading the investigation writes its ruled-out causes under.
+export const RULED_OUT_SECTION_TITLE: string = "Ruled out";
 
 export interface InvestigationReportSection {
   kind: InvestigationReportSectionKind;
@@ -135,6 +144,8 @@ export interface ParsedInvestigationReport {
   summary?: string | undefined;
   rootCause?: string | undefined;
   evidence?: string | undefined;
+  // The other causes the investigation checked and ruled out.
+  ruledOut?: string | undefined;
   nextSteps?: string | undefined;
   /*
    * The server-authored "Evidence checked" list: the LAST such block, unless
@@ -197,6 +208,13 @@ const KNOWN_LABELS: Map<string, LabelKind> = new Map<string, LabelKind>([
   ["supporting evidence", InvestigationReportSectionKind.Evidence],
   ["key findings", InvestigationReportSectionKind.Evidence],
   ["findings", InvestigationReportSectionKind.Evidence],
+  ["ruled out", InvestigationReportSectionKind.RuledOut],
+  ["what was ruled out", InvestigationReportSectionKind.RuledOut],
+  ["other causes ruled out", InvestigationReportSectionKind.RuledOut],
+  ["causes ruled out", InvestigationReportSectionKind.RuledOut],
+  ["other causes checked", InvestigationReportSectionKind.RuledOut],
+  ["alternatives ruled out", InvestigationReportSectionKind.RuledOut],
+  ["hypotheses ruled out", InvestigationReportSectionKind.RuledOut],
   ["suggested next steps", InvestigationReportSectionKind.NextSteps],
   ["next steps", InvestigationReportSectionKind.NextSteps],
   ["recommended next steps", InvestigationReportSectionKind.NextSteps],
@@ -1851,11 +1869,127 @@ export function parseInvestigationReport(
     summary,
     rootCause,
     evidence: firstOfKind(InvestigationReportSectionKind.Evidence),
+    ruledOut: firstOfKind(InvestigationReportSectionKind.RuledOut),
     nextSteps: firstOfKind(InvestigationReportSectionKind.NextSteps),
     evidenceChecked,
     footer: footerMatch?.footer,
     bodyMarkdown: joinKeptLines(lines, kept, 0, lines.length).trim(),
   };
+}
+
+/*
+ * One cause a report ruled out: what it is (the bullet's bold label, as
+ * the persona asks for it) and why the evidence rules it out - each still
+ * Markdown, citations and all, for the card to draw with its chips.
+ */
+export interface RuledOutCause {
+  // "A deploy of checkout-api"; "" when the bullet names none in bold.
+  causeMarkdown: string;
+  // "It went out at 17:20, half an hour before ... [C4]".
+  reasonMarkdown: string;
+}
+
+// The most causes the card lists: the persona asks for at most five.
+export const MAX_RULED_OUT_CAUSES_SHOWN: number = 8;
+
+// The longest bullet read; the rest of a longer one is left as written.
+const MAX_RULED_OUT_BULLET_LENGTH: number = 2000;
+
+// "- ", "* ", "+ " or "1. " at the start of a line opens a bullet.
+const BULLET_START_REGEX: RegExp = /^ {0,3}(?:[-*+]|\d{1,3}[.)])[ \t]+/;
+
+/*
+ * The bullet's bold label, "**The cause:**" or "**The cause**:", and what
+ * follows it. A label is one short run with no asterisk in it, so the
+ * pattern reads it in time linear in the bullet.
+ */
+const BOLD_LABEL_REGEX: RegExp = /^\*\*([^*\n]{1,200}?)\*\*[ \t]*/;
+
+// The colons a label ends with: ASCII, and the full-width one CJK text writes.
+const LABEL_COLONS: ReadonlyArray<string> = [":", "\uFF1A"];
+
+// Text without the colon (and the spaces around it) it ends with.
+function withoutTrailingColon(text: string): string {
+  const trimmed: string = text.trim();
+
+  return LABEL_COLONS.some((colon: string): boolean => {
+    return trimmed.endsWith(colon);
+  })
+    ? trimmed.slice(0, -1).trim()
+    : trimmed;
+}
+
+// Text without the colon (and the spaces after it) it starts with.
+function withoutLeadingColon(text: string): string {
+  const trimmed: string = text.trim();
+
+  return LABEL_COLONS.some((colon: string): boolean => {
+    return trimmed.startsWith(colon);
+  })
+    ? trimmed.slice(1).trim()
+    : trimmed;
+}
+
+/*
+ * The causes a report's Ruled out section lists, one per bullet, in order;
+ * empty when the section is not a list (the card then draws it as written).
+ * Lines under a bullet continue it. Pure, and linear in the text.
+ */
+export function parseRuledOutCauses(
+  markdown: string | null | undefined,
+): Array<RuledOutCause> {
+  if (typeof markdown !== "string" || !markdown.trim()) {
+    return [];
+  }
+
+  const bullets: Array<Array<string>> = [];
+
+  for (const line of markdown.replace(LINE_ENDING_REGEX, "\n").split("\n")) {
+    if (!line.trim()) {
+      continue;
+    }
+
+    const start: RegExpExecArray | null = BULLET_START_REGEX.exec(line);
+
+    if (start) {
+      bullets.push([line.slice(start[0].length).trim()]);
+      continue;
+    }
+
+    // Text before the first bullet: not a list of causes.
+    if (bullets.length === 0) {
+      return [];
+    }
+
+    bullets[bullets.length - 1]!.push(line.trim());
+  }
+
+  const causes: Array<RuledOutCause> = [];
+
+  for (const parts of bullets.slice(0, MAX_RULED_OUT_CAUSES_SHOWN)) {
+    const text: string = parts
+      .join(" ")
+      .slice(0, MAX_RULED_OUT_BULLET_LENGTH)
+      .trim();
+
+    if (!text) {
+      continue;
+    }
+
+    const label: RegExpExecArray | null = BOLD_LABEL_REGEX.exec(text);
+
+    if (!label) {
+      causes.push({ causeMarkdown: "", reasonMarkdown: text });
+      continue;
+    }
+
+    causes.push({
+      causeMarkdown: withoutTrailingColon(label[1] || ""),
+      reasonMarkdown: withoutLeadingColon(text.slice(label[0].length)),
+    });
+  }
+
+  return causes;
 }
 
 type EventReferenceQualifier = "incident" | "alert" | "blocked";

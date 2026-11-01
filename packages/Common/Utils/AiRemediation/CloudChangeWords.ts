@@ -137,61 +137,37 @@ export const CLOUD_SCALE_SENTENCES: Readonly<
 > = {
   out: {
     tasks: {
-      one: translationKey("Scale the {{kind}} {{name}} out to {{count}} task"),
-      other: translationKey(
-        "Scale the {{kind}} {{name}} out to {{count}} tasks",
-      ),
+      one: "Scale the {{kind}} {{name}} out to {{count}} task",
+      other: "Scale the {{kind}} {{name}} out to {{count}} tasks",
     },
     instances: {
-      one: translationKey(
-        "Scale the {{kind}} {{name}} out to {{count}} instance",
-      ),
-      other: translationKey(
-        "Scale the {{kind}} {{name}} out to {{count}} instances",
-      ),
+      one: "Scale the {{kind}} {{name}} out to {{count}} instance",
+      other: "Scale the {{kind}} {{name}} out to {{count}} instances",
     },
     minimumInstances: {
-      one: translationKey(
-        "Raise the minimum of the {{kind}} {{name}} to {{count}} instance",
-      ),
-      other: translationKey(
-        "Raise the minimum of the {{kind}} {{name}} to {{count}} instances",
-      ),
+      one: "Raise the minimum of the {{kind}} {{name}} to {{count}} instance",
+      other: "Raise the minimum of the {{kind}} {{name}} to {{count}} instances",
     },
   },
   in: {
     tasks: {
-      one: translationKey("Scale the {{kind}} {{name}} in to {{count}} task"),
-      other: translationKey(
-        "Scale the {{kind}} {{name}} in to {{count}} tasks",
-      ),
+      one: "Scale the {{kind}} {{name}} in to {{count}} task",
+      other: "Scale the {{kind}} {{name}} in to {{count}} tasks",
     },
     instances: {
-      one: translationKey(
-        "Scale the {{kind}} {{name}} in to {{count}} instance",
-      ),
-      other: translationKey(
-        "Scale the {{kind}} {{name}} in to {{count}} instances",
-      ),
+      one: "Scale the {{kind}} {{name}} in to {{count}} instance",
+      other: "Scale the {{kind}} {{name}} in to {{count}} instances",
     },
     minimumInstances: {
-      one: translationKey(
-        "Lower the minimum of the {{kind}} {{name}} to {{count}} instance",
-      ),
-      other: translationKey(
-        "Lower the minimum of the {{kind}} {{name}} to {{count}} instances",
-      ),
+      one: "Lower the minimum of the {{kind}} {{name}} to {{count}} instance",
+      other: "Lower the minimum of the {{kind}} {{name}} to {{count}} instances",
     },
   },
 };
 
 export const CLOUD_CONCURRENCY_SENTENCE: PluralTemplate = {
-  one: translationKey(
-    "Let at most {{count}} copy of the {{kind}} {{name}} run at once",
-  ),
-  other: translationKey(
-    "Let at most {{count}} copies of the {{kind}} {{name}} run at once",
-  ),
+  one: "Let at most {{count}} copy of the {{kind}} {{name}} run at once",
+  other: "Let at most {{count}} copies of the {{kind}} {{name}} run at once",
 };
 
 // The longest name a sentence shows; the command under it is whole.

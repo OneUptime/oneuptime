@@ -56,6 +56,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -127,6 +128,7 @@ import { quotedUntrustedLine } from "../SRE/UntrustedText";
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
 import RemediationChatMessage from "../../AutoRemediation/RemediationChatMessage";
 import { MessageBlocksByWorkspaceType } from "../../../Services/WorkspaceNotificationRuleService";
+import CloudRoundContext from "./CloudRoundContext";
 import RemediationTrackRecordReader, {
   describeEarlierFixesForPlanner,
   EarlierFix,
@@ -1761,6 +1763,32 @@ export default class RemediationExecutionRunner {
   }
 
   /*
+   * A cloud round's context about what its signal is linked to in the
+   * account: the Cloud resources with the ids a change names them by, and
+   * the App Platforms environments, with how to find the service to change
+   * there (CloudRoundContext). None for any other resource.
+   */
+  private static async describeLinkedCloudResources(data: {
+    suggestion: AutoRemediationSuggestion;
+    resourceTarget: ResourceAiAccessStatus;
+  }): Promise<Array<string>> {
+    if (
+      !isCloudAiResourceType(data.resourceTarget.resourceType) ||
+      !data.suggestion.projectId ||
+      !ObjectID.isValidUUID(data.resourceTarget.resourceId)
+    ) {
+      return [];
+    }
+
+    return await CloudRoundContext.describeLinkedCloudResources({
+      projectId: data.suggestion.projectId,
+      cloudAccountId: new ObjectID(data.resourceTarget.resourceId),
+      incidentId: data.suggestion.incidentId,
+      alertId: data.suggestion.alertId,
+    });
+  }
+
+  /*
    * The round's context about the fixes OneUptime AI made before on its
    * cluster or resource, for other incidents and alerts, and how
    * verification judged them (RemediationTrackRecordReader). None for a
@@ -3147,6 +3175,12 @@ export default class RemediationExecutionRunner {
       lines.push(...(await this.describeEarlierFixes(data.suggestion)));
     } else if (data.resourceTarget) {
       lines.push(...this.describeResourceTarget(data));
+      lines.push(
+        ...(await this.describeLinkedCloudResources({
+          suggestion: data.suggestion,
+          resourceTarget: data.resourceTarget,
+        })),
+      );
       lines.push(...(await this.describePreviousRounds(data.suggestion)));
       lines.push(...(await this.describeEarlierFixes(data.suggestion)));
     } else {

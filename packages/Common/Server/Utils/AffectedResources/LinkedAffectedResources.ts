@@ -14,6 +14,10 @@ import {
   SloAffectedResourceLinkSubject,
 } from "../../../Utils/Slo/SloAffectedResourceMarkdown";
 import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  getCloudResourceDashboardPath,
+  getCloudResourceKindNoun,
+} from "../../../Types/Cloud/CloudResourceKind";
 
 /*
  * What an incident, alert or scheduled maintenance event affects, for the
@@ -66,6 +70,14 @@ export interface LinkedAffectedResource {
   type: LinkedAffectedResourceType;
   id: string;
   name: string;
+  /*
+   * A cloud row's kind (CloudResourceKind), when it was read: an App
+   * Platforms environment is named "Cloud Environment" and linked to its
+   * page in App Platforms, a resource "Cloud Resource" in Cloud. Absent for
+   * every other type, and for a cloud row whose kind was not read, which
+   * links to Cloud's page as before - that page forwards an environment.
+   */
+  cloudResourceKind?: string | undefined;
 }
 
 export interface LinkedAffectedResourceRelation {
@@ -209,7 +221,12 @@ interface RelatedRow {
   _id?: string | ObjectID | undefined | null;
   name?: string | undefined | null;
   projectId?: ObjectID | string | undefined | null;
+  // A cloud row's kind: an App Platforms environment or a Cloud resource.
+  cloudResourceKind?: string | undefined | null;
 }
+
+// The relation whose rows have a kind of their own (cloudResourceKind).
+const CLOUD_RESOURCES_COLUMN: string = "cloudResources";
 
 type RecordWithRelations = {
   projectId?: ObjectID | string | undefined | null;
@@ -379,6 +396,10 @@ export default class LinkedAffectedResources {
                   _id: true,
                   name: true,
                   projectId: true,
+                  // Which product a cloud row is in, for its name and link.
+                  ...(relation.column === CLOUD_RESOURCES_COLUMN
+                    ? { cloudResourceKind: true }
+                    : {}),
                 },
               } as unknown as Select<TBaseModel>,
               props: {
@@ -452,10 +473,16 @@ export default class LinkedAffectedResources {
 
           seen.add(key);
 
+          const kind: string = row.cloudResourceKind?.toString() || "";
+
           resources.push({
             type: relation.type,
             id: id,
             name: row.name?.toString() || "",
+            ...(relation.type === LinkedAffectedResourceType.CloudResource &&
+            kind
+              ? { cloudResourceKind: kind }
+              : {}),
           });
         }
       }
@@ -532,6 +559,22 @@ export default class LinkedAffectedResources {
     const relation: LinkedAffectedResourceRelation =
       LinkedAffectedResources.getRelationForType(data.resource.type);
 
+    /*
+     * A cloud row whose kind was read links to its own product's page: an
+     * environment's in App Platforms, a resource's in Cloud.
+     */
+    if (
+      data.resource.type === LinkedAffectedResourceType.CloudResource &&
+      data.resource.cloudResourceKind
+    ) {
+      return URL.fromString(data.dashboardUrl.toString()).addRoute(
+        `/${data.projectId.toString()}/${getCloudResourceDashboardPath({
+          cloudResourceId: data.resource.id,
+          cloudResourceKind: data.resource.cloudResourceKind,
+        })}`,
+      );
+    }
+
     // URL.addRoute mutates, and the caller reuses its dashboard URL.
     return URL.fromString(data.dashboardUrl.toString()).addRoute(
       `/${data.projectId.toString()}/${relation.dashboardRoute}/${data.resource.id}`,
@@ -582,9 +625,7 @@ export default class LinkedAffectedResources {
         continue;
       }
 
-      const label: string = LinkedAffectedResources.getRelationForType(
-        resource.type,
-      ).label;
+      const label: string = LinkedAffectedResources.getLabel(resource);
       const name: string = resource.name.trim();
 
       lines.push(
@@ -604,6 +645,22 @@ export default class LinkedAffectedResources {
     );
 
     return lines;
+  }
+
+  /*
+   * What a resource's bullet calls it: its relation's label, and for a cloud
+   * row whose kind was read, the product's own noun - "Cloud Environment"
+   * (App Platforms) or "Cloud Resource" (Cloud).
+   */
+  public static getLabel(resource: LinkedAffectedResource): string {
+    if (
+      resource.type === LinkedAffectedResourceType.CloudResource &&
+      resource.cloudResourceKind
+    ) {
+      return getCloudResourceKindNoun(resource.cloudResourceKind);
+    }
+
+    return LinkedAffectedResources.getRelationForType(resource.type).label;
   }
 
   private static getRelationForType(

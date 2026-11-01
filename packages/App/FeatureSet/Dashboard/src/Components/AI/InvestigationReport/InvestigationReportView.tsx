@@ -14,6 +14,8 @@ import {
   InvestigationReportSection,
   InvestigationReportSectionKind,
   ParsedInvestigationReport,
+  parseRuledOutCauses,
+  RuledOutCause,
 } from "Common/Utils/AI/InvestigationReport";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -300,6 +302,18 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
               }): ReactElement => {
                 const headingId: string = `${idPrefix}-report-section-${entry.index}`;
 
+                /*
+                 * The causes the investigation ruled out, one per line
+                 * with a cross before it, the cause first and why after
+                 * it: a list a responder runs an eye down, rather than
+                 * prose. A section that is not such a list is drawn as
+                 * written, like every other.
+                 */
+                const ruledOutCauses: Array<RuledOutCause> =
+                  entry.section.kind === InvestigationReportSectionKind.RuledOut
+                    ? parseRuledOutCauses(entry.section.markdown)
+                    : [];
+
                 return (
                   <section
                     key={headingId}
@@ -312,9 +326,61 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
                     >
                       {entry.section.title}
                     </h3>
-                    <div className={REPORT_SECTION_BODY_CLASS_NAME}>
-                      {renderMarkdown(entry.section.markdown)}
-                    </div>
+                    {ruledOutCauses.length > 0 ? (
+                      <ul
+                        data-testid="investigation-ruled-out"
+                        className="mt-2 space-y-3"
+                      >
+                        {ruledOutCauses.map(
+                          (
+                            cause: RuledOutCause,
+                            causeIndex: number,
+                          ): ReactElement => {
+                            return (
+                              <li
+                                key={`${headingId}-cause-${causeIndex}`}
+                                data-testid="investigation-ruled-out-cause"
+                                className="flex items-start gap-3"
+                              >
+                                {/*
+                                  A div, not a span: Icon renders its own
+                                  div around the svg.
+                                */}
+                                <div className="flex h-6 w-4 flex-shrink-0 items-center justify-center">
+                                  <Icon
+                                    icon={IconProp.Close}
+                                    className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1 break-words text-sm leading-6 text-gray-700 [&_.max-w-none>*:first-child]:mt-0 [&_.max-w-none>*:last-child]:mb-0">
+                                  {cause.causeMarkdown ? (
+                                    <div
+                                      data-testid="investigation-ruled-out-cause-name"
+                                      className="font-medium text-gray-900"
+                                    >
+                                      {renderMarkdown(cause.causeMarkdown)}
+                                    </div>
+                                  ) : (
+                                    <></>
+                                  )}
+                                  {cause.reasonMarkdown ? (
+                                    <div data-testid="investigation-ruled-out-cause-reason">
+                                      {renderMarkdown(cause.reasonMarkdown)}
+                                    </div>
+                                  ) : (
+                                    <></>
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
+                    ) : (
+                      <div className={REPORT_SECTION_BODY_CLASS_NAME}>
+                        {renderMarkdown(entry.section.markdown)}
+                      </div>
+                    )}
                   </section>
                 );
               },

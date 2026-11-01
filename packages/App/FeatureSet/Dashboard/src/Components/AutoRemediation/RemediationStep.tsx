@@ -113,6 +113,11 @@ import {
   RemediationSwitchesNow,
 } from "./RemediationDecisionLines";
 import CloudDryRunNote from "./CloudDryRunNote";
+import RemediationTrackRecordLine from "./RemediationTrackRecordLine";
+import {
+  CloudChangeWords,
+  describeCloudChange,
+} from "Common/Utils/AiRemediation/CloudChangeWords";
 import {
   CLOUD_DRY_RUN_COPY,
   getCloudDryRunButtonTitle,
@@ -797,6 +802,47 @@ function CommandGitOpsNote(props: {
       ) : (
         <></>
       )}
+    </div>
+  );
+}
+
+/*
+ * A cloud change in plain words, above its exact command: "Scale the ECS
+ * service checkout-api out to 8 tasks" - read from the command by the
+ * catalog's grammar (Common/Utils/AiRemediation/CloudChangeWords), never
+ * from the model's words, in the reader's language. Nothing for a command
+ * that is not a cloud change; the command under it is what runs.
+ */
+function CloudChangeWordsLine(props: {
+  command: AiRemediationCommand;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+  const { command } = props;
+
+  if (
+    command.stepType !== RunbookStepType.ResourceCommand ||
+    !isCloudAiResourceType(command.resourceType)
+  ) {
+    return <></>;
+  }
+
+  const words: CloudChangeWords | null = describeCloudChange({
+    resourceType: command.resourceType,
+    command: command.command,
+    translator,
+  });
+
+  if (!words) {
+    return <></>;
+  }
+
+  return (
+    <div
+      dir="auto"
+      data-testid="remediation-command-words"
+      className="mt-2 break-words text-sm font-medium text-gray-900"
+    >
+      {words.sentence}
     </div>
   );
 }
@@ -1872,6 +1918,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                         )}
                       </div>
 
+                      <CloudChangeWordsLine command={command} />
+
                       <pre className="mt-2 overflow-x-auto rounded-md bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800">
                         {command.command}
                       </pre>
@@ -1889,6 +1937,19 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                           { effect: command.expectedEffect },
                         )}
                       </div>
+
+                      {/*
+                        How the same change went the last times it ran
+                        on this cluster or resource, while it waits for
+                        approval: what the person approving weighs.
+                      */}
+                      {command.trackRecord && !command.execution ? (
+                        <RemediationTrackRecordLine
+                          record={command.trackRecord}
+                        />
+                      ) : (
+                        <></>
+                      )}
 
                       <CommandGitOpsNote command={command} />
 

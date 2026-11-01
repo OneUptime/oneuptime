@@ -2,7 +2,6 @@ import {
   createTranslator,
   DEFAULT_LANGUAGE,
   PluralTemplate,
-  translationKey,
   Translator,
 } from "../../UI/Utils/TranslateTemplate";
 import {
@@ -26,20 +25,18 @@ import {
  * about the past runs on the same cluster or resource, never a promise.
  */
 export const TRACK_RECORD_WORKED: PluralTemplate = {
-  one: translationKey("Worked the one time it ran here before"),
-  other: translationKey("Worked all {{count}} times it ran here before"),
+  one: "Worked the one time it ran here before",
+  other: "Worked all {{count}} times it ran here before",
 };
 
 export const TRACK_RECORD_DID_NOT_WORK: PluralTemplate = {
-  one: translationKey("Didn't work the one time it ran here before"),
-  other: translationKey("Didn't work the {{count}} times it ran here before"),
+  one: "Didn't work the one time it ran here before",
+  other: "Didn't work the {{count}} times it ran here before",
 };
 
 export const TRACK_RECORD_MIXED: PluralTemplate = {
-  one: translationKey("Worked {{worked}} of the {{count}} times it ran here before"),
-  other: translationKey(
-    "Worked {{worked}} of the {{count}} times it ran here before",
-  ),
+  one: "Worked {{worked}} of the {{count}} times it ran here before",
+  other: "Worked {{worked}} of the {{count}} times it ran here before",
 };
 
 /*
