@@ -110,6 +110,8 @@ export interface NetworkTrafficUsageAggregates {
 export interface NetworkTrafficUsageFreshness {
   lastUplinkAt: string | null;
   lastAnalyticsAt: string | null;
+  // The connections whose uplinks are on the page, and their newest row's end.
+  uplinkEnds: Map<string, Date>;
 }
 
 function toNumber(value: unknown): number {
@@ -171,6 +173,7 @@ export default class NetworkTrafficUsageAggregationService {
     const freshness: NetworkTrafficUsageFreshness = {
       lastUplinkAt: null,
       lastAnalyticsAt: null,
+      uplinkEnds: new Map(),
     };
 
     for (const row of rows) {
@@ -185,7 +188,15 @@ export default class NetworkTrafficUsageAggregationService {
       const last: string = new Date(lastMs).toISOString();
 
       if (kind === NetworkTrafficUsageKind.Uplink) {
-        freshness.lastUplinkAt = last;
+        if (!freshness.lastUplinkAt || last > freshness.lastUplinkAt) {
+          freshness.lastUplinkAt = last;
+        }
+
+        const connectionId: string = toText(row["connectionKey"]);
+
+        if (connectionId) {
+          freshness.uplinkEnds.set(connectionId, new Date(lastMs));
+        }
       } else if (
         kind === NetworkTrafficUsageKind.Application &&
         (!freshness.lastAnalyticsAt || last > freshness.lastAnalyticsAt)
@@ -1047,13 +1058,14 @@ export default class NetworkTrafficUsageAggregationService {
    * What each network reached, by destination, protocol and port: the
    * nearest thing to a conversation the dashboard API reports. Meraki names
    * only the application for some traffic, so a row with no destination
-   * stays - it is left out only when it is the row that sums a busy
-   * window's rest, which names neither.
+   * stays, kept apart by its application: Teams and Dropbox on TCP 443 are
+   * not one conversation. It is left out only when it is the row that sums a
+   * busy window's rest, which names neither.
    */
   public static buildTopConversationsStatement(
     query: NetworkTrafficUsageQuery,
   ): Statement {
-    return SQL`SELECT controllerNetworkId AS networkKey, any(controllerNetworkName) AS networkName, destination AS destinationKey, protocol AS protocolKey, port AS portKey, argMax(application, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topApplication, max(clients) AS mostClients, sum(toFloat64(sentOctets) * `
+    return SQL`SELECT controllerNetworkId AS networkKey, any(controllerNetworkName) AS networkName, destination AS destinationKey, protocol AS protocolKey, port AS portKey, if(destination = '', application, '') AS applicationWithoutDestination, argMax(application, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topApplication, max(clients) AS mostClients, sum(toFloat64(sentOctets) * `
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
       .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
@@ -1067,7 +1079,7 @@ export default class NetworkTrafficUsageAggregationService {
         ),
       )
       .append(
-        ` AND (destination != '' OR application != '') GROUP BY networkKey, destinationKey, protocolKey, portKey ORDER BY (totalSent + totalReceived) DESC LIMIT ${NETWORK_TRAFFIC_USAGE_TOP_LIMIT}`,
+        ` AND (destination != '' OR application != '') GROUP BY networkKey, destinationKey, protocolKey, portKey, applicationWithoutDestination ORDER BY (totalSent + totalReceived) DESC LIMIT ${NETWORK_TRAFFIC_USAGE_TOP_LIMIT}`,
       )
       .append(QUERY_SETTINGS);
   }
@@ -1079,7 +1091,7 @@ export default class NetworkTrafficUsageAggregationService {
     now: Date;
   }): Statement {
     const statement: Statement = SQL`
-      SELECT kind AS usageKind, toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs
+      SELECT kind AS usageKind, connectionId AS connectionKey, toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs
       FROM ${TABLE_NAME}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -1099,7 +1111,9 @@ export default class NetworkTrafficUsageAggregationService {
       "networkDeviceId",
     );
 
-    return statement.append(" GROUP BY usageKind").append(QUERY_SETTINGS);
+    return statement
+      .append(" GROUP BY usageKind, connectionKey")
+      .append(QUERY_SETTINGS);
   }
 
   /*

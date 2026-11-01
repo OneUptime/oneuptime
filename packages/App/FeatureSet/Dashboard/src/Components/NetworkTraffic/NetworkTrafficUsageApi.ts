@@ -261,6 +261,7 @@ export function parseNetworkTrafficUsageSummary(
     ),
     lastUplinkAt: optionalText(value["lastUplinkAt"]) || null,
     lastAnalyticsAt: optionalText(value["lastAnalyticsAt"]) || null,
+    uplinksReadTo: optionalText(value["uplinksReadTo"]) || null,
     connections: listOf(
       value["connections"],
       parseNetworkTrafficUsageConnection,

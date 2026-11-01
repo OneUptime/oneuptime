@@ -36,7 +36,10 @@ import {
   getNetworkTrafficUsageBucketSeconds,
   getUnavailableNetworkTrafficUsageSummary,
 } from "../../../Types/NetFlow/NetworkTrafficUsage";
-import { getNetworkControllerConnectionHealth } from "../../../Types/NetworkController/NetworkControllerConnectionHealth";
+import {
+  NetworkControllerConnectionStatus,
+  getNetworkControllerConnectionHealth,
+} from "../../../Types/NetworkController/NetworkControllerConnectionHealth";
 import { readNetworkControllerConfig } from "../../../Types/NetworkController/NetworkControllerConnectionSettings";
 import {
   NetworkControllerReadSummary,
@@ -174,6 +177,66 @@ export default class NetworkTrafficUsageSummaryUtil {
         ? { warning: summary.warnings[0] }
         : {}),
     };
+  }
+
+  /*
+   * How far a page's uplinks have been read, from the connections whose
+   * uplinks are on it: each one's newest window read, which a window nothing
+   * crossed moves on as well, or its newest row if that is later (a read
+   * whose outcome was not recorded).
+   *
+   * With several connections, as far as all those still reading have got:
+   * past that a line would fall by what one of them has not reported yet.
+   * One that stopped holds nothing back, and says so over the traffic; when
+   * all of them stopped, the page was read to where the newest did.
+   */
+  public static getUplinksReadTo(data: {
+    connections: Array<NetworkControllerConnection>;
+    uplinkEnds: Map<string, Date>;
+    now: Date;
+  }): string | null {
+    const reading: Array<number> = [];
+    const stopped: Array<number> = [];
+
+    for (const connection of data.connections) {
+      const rowEnd: Date | undefined = data.uplinkEnds.get(
+        connection.id?.toString() || "",
+      );
+
+      if (!rowEnd) {
+        continue;
+      }
+
+      const newestRead: number = Date.parse(
+        readNetworkControllerReadSummary(connection.lastPullResult)
+          ?.newestUplinkAt || "",
+      );
+      const end: number = Number.isFinite(newestRead)
+        ? Math.max(rowEnd.getTime(), newestRead)
+        : rowEnd.getTime();
+      const status: NetworkControllerConnectionStatus =
+        NetworkTrafficUsageSummaryUtil.toPageConnection(
+          connection,
+          data.now,
+        ).status;
+
+      if (
+        status === NetworkControllerConnectionStatus.Healthy ||
+        status === NetworkControllerConnectionStatus.Partial
+      ) {
+        reading.push(end);
+      } else {
+        stopped.push(end);
+      }
+    }
+
+    if (reading.length > 0) {
+      return new Date(Math.min(...reading)).toISOString();
+    }
+
+    return stopped.length > 0
+      ? new Date(Math.max(...stopped)).toISOString()
+      : null;
   }
 
   public static async build(data: {
@@ -359,6 +422,11 @@ export default class NetworkTrafficUsageSummaryUtil {
         topConversations: aggregates.topConversations,
         lastUplinkAt: freshness.lastUplinkAt,
         lastAnalyticsAt: freshness.lastAnalyticsAt,
+        uplinksReadTo: NetworkTrafficUsageSummaryUtil.getUplinksReadTo({
+          connections,
+          uplinkEnds: freshness.uplinkEnds,
+          now: data.now,
+        }),
         connections: pageConnections,
       };
     } catch (error) {

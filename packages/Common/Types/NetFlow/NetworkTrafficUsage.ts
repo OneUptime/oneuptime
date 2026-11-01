@@ -290,6 +290,14 @@ export interface NetworkTrafficUsageSummary {
    */
   lastUplinkAt: string | null;
   lastAnalyticsAt: string | null;
+  /*
+   * How far the page's uplinks have been read: the end of the newest window
+   * its connections read, traffic or none. A window nothing crossed stores no
+   * row, so lastUplinkAt says when the page's traffic stopped, which is not
+   * how far it was read: an uplink that went down would read as a page not
+   * read yet, with no drop to show for it. Null when no uplink is on the page.
+   */
+  uplinksReadTo: string | null;
   connections: Array<NetworkTrafficUsageConnection>;
 }
 
@@ -447,6 +455,7 @@ export function getUnavailableNetworkTrafficUsageSummary(data: {
     topConversations: [],
     lastUplinkAt: null,
     lastAnalyticsAt: null,
+    uplinksReadTo: null,
     connections: [],
   };
 }

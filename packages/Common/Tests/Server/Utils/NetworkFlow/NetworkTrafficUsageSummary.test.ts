@@ -3,6 +3,7 @@ import NetworkTrafficUsageSummaryUtil, {
 } from "../../../../Server/Utils/NetworkFlow/NetworkTrafficUsageSummary";
 import NetworkTrafficUsageAggregationService, {
   NetworkTrafficUsageAggregates,
+  NetworkTrafficUsageFreshness,
   NetworkTrafficUsageQuery,
 } from "../../../../Server/Services/NetworkTrafficUsageAggregationService";
 import NetworkControllerConnectionService from "../../../../Server/Services/NetworkControllerConnectionService";
@@ -13,6 +14,7 @@ import TelemetryReadScopeUtil, {
   TelemetryReadScope,
   TelemetryServiceFilter,
 } from "../../../../Server/Utils/Telemetry/TelemetryReadScope";
+import { JSONObject } from "../../../../Types/JSON";
 import NetworkTrafficUsage from "../../../../Models/AnalyticsModels/NetworkTrafficUsage";
 import NetworkControllerConnection from "../../../../Models/DatabaseModels/NetworkControllerConnection";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
@@ -118,7 +120,7 @@ function request(
 }
 
 let connections: Array<NetworkControllerConnection>;
-let freshness: { lastUplinkAt: string | null; lastAnalyticsAt: string | null };
+let freshness: NetworkTrafficUsageFreshness;
 let scope: TelemetryReadScope;
 let getAggregates: MockFunction;
 let getFreshness: MockFunction;
@@ -128,6 +130,7 @@ beforeEach(() => {
   freshness = {
     lastUplinkAt: "2026-10-24T11:55:00.000Z",
     lastAnalyticsAt: "2026-10-24T10:00:00.000Z",
+    uplinkEnds: new Map(),
   };
   scope = TelemetryReadScopeUtil.getUnrestrictedScope();
 
@@ -265,7 +268,11 @@ describe("whether a page has the source at all", () => {
   });
 
   test("the whole network's page: yes as soon as there is a connection, read or not", async () => {
-    freshness = { lastUplinkAt: null, lastAnalyticsAt: null };
+    freshness = {
+      lastUplinkAt: null,
+      lastAnalyticsAt: null,
+      uplinkEnds: new Map(),
+    };
 
     const summary: NetworkTrafficUsageSummary = await build();
 
@@ -277,7 +284,11 @@ describe("whether a page has the source at all", () => {
     jest
       .spyOn(NetworkDeviceService, "findOneBy")
       .mockResolvedValue(new NetworkDevice(MX) as never);
-    freshness = { lastUplinkAt: null, lastAnalyticsAt: null };
+    freshness = {
+      lastUplinkAt: null,
+      lastAnalyticsAt: null,
+      uplinkEnds: new Map(),
+    };
 
     expect((await build({ networkDeviceId: MX })).isAvailable).toBe(false);
     expect(getAggregates).not.toHaveBeenCalled();
@@ -285,6 +296,7 @@ describe("whether a page has the source at all", () => {
     freshness = {
       lastUplinkAt: "2026-10-24T11:55:00.000Z",
       lastAnalyticsAt: null,
+      uplinkEnds: new Map(),
     };
     expect((await build({ networkDeviceId: MX })).isAvailable).toBe(true);
   });
@@ -390,6 +402,7 @@ describe("the answer", () => {
     freshness = {
       lastUplinkAt: null,
       lastAnalyticsAt: "2026-10-24T10:00:00.000Z",
+      uplinkEnds: new Map(),
     };
     expect((await build()).primaryKind).toBe(
       NetworkTrafficUsageKind.Application,
@@ -471,5 +484,218 @@ describe("the answer", () => {
         now: NOW,
       }),
     ).rejects.toThrow(BadDataException);
+  });
+});
+
+describe("how far a page's uplinks have been read", () => {
+  // A connection that last read its uplinks to `newestUplinkAt`.
+  function read(
+    newestUplinkAt: string | undefined,
+    overrides: Partial<NetworkControllerConnection> = {},
+  ): NetworkControllerConnection {
+    return connection({
+      lastPullResult: {
+        status: "success",
+        ...(newestUplinkAt ? { newestUplinkAt } : {}),
+      },
+      ...overrides,
+    });
+  }
+
+  function readTo(
+    pageConnections: Array<NetworkControllerConnection>,
+    uplinkEnds: Array<[NetworkControllerConnection, string]>,
+  ): string | null {
+    return NetworkTrafficUsageSummaryUtil.getUplinksReadTo({
+      connections: pageConnections,
+      uplinkEnds: new Map(
+        uplinkEnds.map(
+          ([owner, end]: [NetworkControllerConnection, string]): [
+            string,
+            Date,
+          ] => {
+            return [owner.id!.toString(), new Date(end)];
+          },
+        ),
+      ),
+      now: NOW,
+    });
+  }
+
+  test("the bug this guards: a page whose traffic stopped was still read, up to the last read", () => {
+    const meraki: NetworkControllerConnection = read(
+      "2026-10-24T11:55:00.000Z",
+    );
+
+    // Its uplinks' newest row is 45 minutes older than the reads have got.
+    expect(readTo([meraki], [[meraki, "2026-10-24T11:10:00.000Z"]])).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+  });
+
+  test("a connection none of whose uplinks are on the page says nothing about it", () => {
+    const here: NetworkControllerConnection = read("2026-10-24T11:50:00.000Z");
+    const elsewhere: NetworkControllerConnection = read(
+      "2026-10-24T11:55:00.000Z",
+    );
+
+    expect(
+      readTo([here, elsewhere], [[here, "2026-10-24T11:50:00.000Z"]]),
+    ).toBe("2026-10-24T11:50:00.000Z");
+  });
+
+  test("of several, as far as all of them have got: past that a line would fall by what one has not reported", () => {
+    const quick: NetworkControllerConnection = read("2026-10-24T11:55:00.000Z");
+    const slow: NetworkControllerConnection = read("2026-10-24T11:45:00.000Z");
+
+    expect(
+      readTo(
+        [quick, slow],
+        [
+          [quick, "2026-10-24T11:55:00.000Z"],
+          [slow, "2026-10-24T11:45:00.000Z"],
+        ],
+      ),
+    ).toBe("2026-10-24T11:45:00.000Z");
+  });
+
+  test.each([
+    [
+      "failing",
+      {
+        lastError: "Meraki refused the key",
+        lastPulledAt: new Date("2026-10-24T11:58:00.000Z"),
+        lastSuccessfulPullAt: new Date("2026-10-24T08:00:00.000Z"),
+      },
+    ],
+    [
+      "not read lately",
+      {
+        lastPulledAt: new Date("2026-10-24T08:00:00.000Z"),
+        lastSuccessfulPullAt: new Date("2026-10-24T08:00:00.000Z"),
+      },
+    ],
+    ["turned off", { isEnabled: false }],
+  ])(
+    "one that is %s holds nothing back: it says so over the traffic",
+    (_name: string, overrides: Partial<NetworkControllerConnection>) => {
+      const reading: NetworkControllerConnection = read(
+        "2026-10-24T11:55:00.000Z",
+      );
+      const stopped: NetworkControllerConnection = read(
+        "2026-10-24T08:00:00.000Z",
+        overrides,
+      );
+
+      expect(
+        readTo(
+          [reading, stopped],
+          [
+            [reading, "2026-10-24T11:55:00.000Z"],
+            [stopped, "2026-10-24T08:00:00.000Z"],
+          ],
+        ),
+      ).toBe("2026-10-24T11:55:00.000Z");
+    },
+  );
+
+  test("a connection reading in part still counts as reading", () => {
+    const partial: NetworkControllerConnection = connection({
+      lastPullResult: {
+        status: "partial",
+        newestUplinkAt: "2026-10-24T11:40:00.000Z",
+      },
+    });
+    const whole: NetworkControllerConnection = read("2026-10-24T11:55:00.000Z");
+
+    expect(
+      readTo(
+        [partial, whole],
+        [
+          [partial, "2026-10-24T11:40:00.000Z"],
+          [whole, "2026-10-24T11:55:00.000Z"],
+        ],
+      ),
+    ).toBe("2026-10-24T11:40:00.000Z");
+  });
+
+  test("when all of them stopped, the page was read to where the newest did", () => {
+    const stopped: Partial<NetworkControllerConnection> = {
+      lastPulledAt: new Date("2026-10-24T08:00:00.000Z"),
+      lastSuccessfulPullAt: new Date("2026-10-24T08:00:00.000Z"),
+    };
+    const first: NetworkControllerConnection = read(
+      "2026-10-24T07:55:00.000Z",
+      stopped,
+    );
+    const second: NetworkControllerConnection = read(
+      "2026-10-24T06:00:00.000Z",
+      stopped,
+    );
+
+    expect(
+      readTo(
+        [first, second],
+        [
+          [first, "2026-10-24T07:55:00.000Z"],
+          [second, "2026-10-24T06:00:00.000Z"],
+        ],
+      ),
+    ).toBe("2026-10-24T07:55:00.000Z");
+  });
+
+  test("a row newer than what the read recorded wins: a read whose outcome was not recorded", () => {
+    const meraki: NetworkControllerConnection = read(
+      "2026-10-24T11:40:00.000Z",
+    );
+
+    expect(readTo([meraki], [[meraki, "2026-10-24T11:50:00.000Z"]])).toBe(
+      "2026-10-24T11:50:00.000Z",
+    );
+  });
+
+  test.each([
+    ["no summary", undefined],
+    ["a summary with no time", { status: "success" }],
+    [
+      "a time that is no time",
+      { status: "success", newestUplinkAt: "not a date" },
+    ],
+  ])(
+    "%s falls back to the connection's newest row",
+    (_name: string, lastPullResult: JSONObject | undefined) => {
+      const meraki: NetworkControllerConnection = connection({
+        ...(lastPullResult ? { lastPullResult } : {}),
+      });
+
+      expect(readTo([meraki], [[meraki, "2026-10-24T11:50:00.000Z"]])).toBe(
+        "2026-10-24T11:50:00.000Z",
+      );
+    },
+  );
+
+  test("no uplinks on the page: nothing to say", () => {
+    expect(readTo([read("2026-10-24T11:55:00.000Z")], [])).toBeNull();
+    expect(readTo([], [])).toBeNull();
+  });
+
+  test("the page's answer carries it", async () => {
+    const meraki: NetworkControllerConnection = read(
+      "2026-10-24T11:55:00.000Z",
+    );
+
+    connections = [meraki];
+    freshness = {
+      lastUplinkAt: "2026-10-24T11:10:00.000Z",
+      lastAnalyticsAt: null,
+      uplinkEnds: new Map([
+        [meraki.id!.toString(), new Date("2026-10-24T11:10:00.000Z")],
+      ]),
+    };
+
+    const summary: NetworkTrafficUsageSummary = await build();
+
+    expect(summary.lastUplinkAt).toBe("2026-10-24T11:10:00.000Z");
+    expect(summary.uplinksReadTo).toBe("2026-10-24T11:55:00.000Z");
   });
 });

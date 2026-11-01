@@ -17,6 +17,7 @@ import {
   formatLoss,
   getUplinkChartLines,
   hasUplinkHealth,
+  isEveryChartSlotABucket,
 } from "./MerakiTrafficRows";
 import IconProp from "Common/Types/Icon/IconProp";
 import { NetworkTrafficUsageSummary } from "Common/Types/NetFlow/NetworkTrafficUsage";
@@ -54,9 +55,10 @@ import React, {
  * the comparison and the way back stay on the page.
  *
  * Bytes are zero where a read found none: silence is a fact. Loss and
- * latency are measurements, so where none was made the line breaks, instead
- * of joining across a stretch nobody measured or claiming a perfect zero. A
- * row with no measurement says so with a dash, for the same reason.
+ * latency are measurements, never a perfect zero where none was made: the
+ * line breaks across a stretch nobody measured, on a range whose grid can
+ * tell one (isEveryChartSlotABucket), and a row with no measurement says so
+ * with a dash.
  *
  * The columns are a list of buttons rather than a table, so a row is one
  * target. The headings over them are only for the eye: each cell carries its
@@ -276,7 +278,10 @@ const MerakiUplinkComparison: FunctionComponent<ComponentProps> = (
               heightInPx={200}
               showLegend={true}
               colors={LINE_COLORS}
-              connectNulls={mode === "traffic"}
+              connectNulls={
+                mode === "traffic" ||
+                !isEveryChartSlotABucket(props.summary.bucketSeconds)
+              }
             />
           </div>
         ) : (

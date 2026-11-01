@@ -17,7 +17,10 @@ import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import NetworkControllerReadRunner, {
   NetworkControllerReadOutcome,
 } from "Common/Server/Utils/NetworkController/NetworkControllerReadRunner";
-import { NetworkTrafficUsageStoredEnds } from "Common/Server/Utils/NetworkController/NetworkControllerTypes";
+import {
+  NetworkTrafficUsageRecord,
+  NetworkTrafficUsageStoredEnds,
+} from "Common/Server/Utils/NetworkController/NetworkControllerTypes";
 import { toUsageRow } from "Common/Server/Utils/NetworkController/NetworkTrafficUsageRows";
 import { TelemetryServiceFilter } from "Common/Server/Utils/Telemetry/TelemetryReadScope";
 import { JSONObject } from "Common/Types/JSON";
@@ -105,6 +108,8 @@ const PROJECT: ObjectID = ObjectID.generate();
 const OTHER_PROJECT: ObjectID = ObjectID.generate();
 const CONNECTION: ObjectID = ObjectID.generate();
 const OTHER_CONNECTION: ObjectID = ObjectID.generate();
+// Of the rows a test writes itself: no read of CONNECTION ever counts them.
+const WRITTEN_BY_A_TEST: ObjectID = ObjectID.generate();
 const MX_DEVICE: ObjectID = ObjectID.generate();
 
 const START: Date = new Date("2026-10-24T12:00:00.000Z");
@@ -561,6 +566,69 @@ integration("Meraki traffic reads against ClickHouse", () => {
     expect(result.topConversations[0]!.controllerNetworkName).toBe("Branch 2");
   });
 
+  test("traffic Meraki names only by its application stays apart by it, the busiest window's rest left out", async () => {
+    const empty: Omit<
+      NetworkTrafficUsageRecord,
+      "application" | "receivedOctets"
+    > = {
+      kind: NetworkTrafficUsageKind.Application,
+      controllerNetworkId: "L_NO_DESTINATIONS",
+      controllerNetworkName: "No destinations",
+      deviceSerial: "",
+      deviceName: "",
+      interfaceName: "",
+      destination: "",
+      protocol: "TCP",
+      port: 443,
+      clientKey: "",
+      clientName: "",
+      clientIp: "",
+      clientMac: "",
+      clientManufacturer: "",
+      sentOctets: 0,
+      flows: 0,
+      clients: 0,
+      lossPercent: null,
+      latencyMs: null,
+      windowStartAt: new Date("2026-10-24T10:00:00.000Z"),
+      windowEndAt: new Date("2026-10-24T11:00:00.000Z"),
+    };
+
+    await NetworkTrafficUsageService.insertJsonRows(
+      (
+        [
+          ["Microsoft Teams", 5000],
+          ["Dropbox", 2000],
+          ["", 1000],
+        ] as Array<[string, number]>
+      ).map(([application, receivedOctets]: [string, number]): JSONObject => {
+        return toUsageRow({
+          record: { ...empty, application, receivedOctets },
+          projectId: PROJECT,
+          connectionId: WRITTEN_BY_A_TEST,
+          matches: { bySerial: new Map(), byNetwork: new Map() },
+          ingestedAt: START,
+        });
+      }),
+    );
+
+    const result: NetworkTrafficUsageAggregates = await aggregates(
+      {},
+      { controllerNetworkId: "L_NO_DESTINATIONS" },
+    );
+
+    expect(
+      result.topConversations.map(
+        (row: { application: string; receivedOctets: number }) => {
+          return [row.application, row.receivedOctets];
+        },
+      ),
+    ).toEqual([
+      ["Microsoft Teams", 5000],
+      ["Dropbox", 2000],
+    ]);
+  });
+
   describe("an uplink's filter", () => {
     test("narrows the numbers, the chart and the lists of uplinks to it, on every appliance", async () => {
       const result: NetworkTrafficUsageAggregates = await aggregates(
@@ -771,7 +839,7 @@ integration("Meraki traffic reads against ClickHouse", () => {
             windowEndAt: new Date("2026-10-24T11:35:00.000Z"),
           },
           projectId: PROJECT,
-          connectionId: CONNECTION,
+          connectionId: WRITTEN_BY_A_TEST,
           matches: { bySerial: new Map(), byNetwork: new Map() },
           ingestedAt: START,
         }),
@@ -840,6 +908,13 @@ integration("Meraki traffic reads against ClickHouse", () => {
     expect(Date.parse(freshness.lastAnalyticsAt!)).toBeGreaterThanOrEqual(
       START.getTime(),
     );
+    // This project's connection and no other's: the other's read the same way.
+    expect(Array.from(freshness.uplinkEnds.keys())).toEqual([
+      CONNECTION.toString(),
+    ]);
+    expect(
+      freshness.uplinkEnds.get(CONNECTION.toString())?.toISOString(),
+    ).toBe("2026-10-24T11:55:00.000Z");
   });
 
   test("the runner's own reads: which windows are stored, and where they end", async () => {

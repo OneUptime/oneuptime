@@ -205,6 +205,8 @@ describe("every page read is held to the project, the kind, the range and the ca
     expect(statement.query).toContain(
       "toUnixTimestamp64Milli(max(windowEndAt))",
     );
+    // Connection by connection: how far each was read is the page's to weigh.
+    expect(statement.query).toContain("GROUP BY usageKind, connectionKey");
   });
 
   test("the runner's reads are held to the project and the connection", () => {
@@ -296,6 +298,20 @@ describe("every read is bounded in time and memory", () => {
         query(),
       ).query,
     ).toContain("AND (destination != '' OR application != '')");
+  });
+
+  test("traffic with no destination stays apart by its application: Teams and Dropbox on TCP 443 are two rows", () => {
+    const sql: string =
+      NetworkTrafficUsageAggregationService.buildTopConversationsStatement(
+        query(),
+      ).query;
+
+    expect(sql).toContain(
+      "if(destination = '', application, '') AS applicationWithoutDestination",
+    );
+    expect(sql).toContain(
+      "GROUP BY networkKey, destinationKey, protocolKey, portKey, applicationWithoutDestination",
+    );
   });
 
   test("a bucket under a minute, or not whole, is refused", () => {
@@ -921,7 +937,42 @@ describe("what the reads answer", () => {
     expect(freshness).toEqual({
       lastUplinkAt: new Date(1792835700000).toISOString(),
       lastAnalyticsAt: new Date(1792828800000).toISOString(),
+      uplinkEnds: new Map(),
     });
+  });
+
+  test("each connection's uplinks are told apart, and the page's newest is the newest of them", async () => {
+    answers.set("AS lastWindowEndMs", [
+      {
+        usageKind: "uplink",
+        connectionKey: "connection-b",
+        lastWindowEndMs: "1792836000000",
+      },
+      {
+        usageKind: "uplink",
+        connectionKey: "connection-a",
+        lastWindowEndMs: "1792835700000",
+      },
+      {
+        usageKind: "application",
+        connectionKey: "connection-c",
+        lastWindowEndMs: "1792828800000",
+      },
+    ]);
+
+    const freshness: NetworkTrafficUsageFreshness =
+      await NetworkTrafficUsageAggregationService.getFreshness({
+        projectId: PROJECT,
+        devices: {},
+        now: new Date("2026-10-24T12:00:00.000Z"),
+      });
+
+    // The newest, whichever order ClickHouse answers in.
+    expect(freshness.lastUplinkAt).toBe(new Date(1792836000000).toISOString());
+    expect(Array.from(freshness.uplinkEnds.entries())).toEqual([
+      ["connection-b", new Date(1792836000000)],
+      ["connection-a", new Date(1792835700000)],
+    ]);
   });
 
   test("a page's freshness is its traffic's: a health window makes it no fresher", async () => {
@@ -937,10 +988,8 @@ describe("what the reads answer", () => {
         now: new Date("2026-10-24T12:00:00.000Z"),
       });
 
-    expect(freshness).toEqual({
-      lastUplinkAt: new Date(1792835700000).toISOString(),
-      lastAnalyticsAt: null,
-    });
+    expect(freshness.lastUplinkAt).toBe(new Date(1792835700000).toISOString());
+    expect(freshness.lastAnalyticsAt).toBeNull();
   });
 
   test("nothing stored: no freshness", async () => {
@@ -950,7 +999,11 @@ describe("what the reads answer", () => {
         devices: {},
         now: new Date("2026-10-24T12:00:00.000Z"),
       }),
-    ).toEqual({ lastUplinkAt: null, lastAnalyticsAt: null });
+    ).toEqual({
+      lastUplinkAt: null,
+      lastAnalyticsAt: null,
+      uplinkEnds: new Map(),
+    });
   });
 });
 

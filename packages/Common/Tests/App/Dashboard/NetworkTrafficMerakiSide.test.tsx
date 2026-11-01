@@ -1115,6 +1115,25 @@ describe("the page's uplinks, side by side (issue #5377)", () => {
     ).toBe(false);
   });
 
+  test("the bug this guards: on a range whose grid is finer than its buckets the line stays whole", async () => {
+    answerUsage(() => {
+      return usage({ ...TWO_UPLINKS, bucketSeconds: 720 });
+    });
+
+    await renderView(NETWORK);
+
+    fireEvent.click(screen.getByTestId("meraki-uplink-chart-latency"));
+    await flush();
+
+    expect(
+      (
+        getStandInChart("wan1 + wan2 [ms]").props as unknown as {
+          connectNulls: boolean;
+        }
+      ).connectNulls,
+    ).toBe(true);
+  });
+
   test("the chart joins the page's zoom", async () => {
     await renderView(NETWORK);
 
@@ -1330,6 +1349,42 @@ describe("the numbers stop where the reads did (issue #5377)", () => {
     );
   });
 
+  test("the bug this guards: a link that went down draws its drop, and its average counts the silence", async () => {
+    // Traffic to 11:10, then nothing, and the reads went on to 11:55.
+    answerUsage(() => {
+      return usage({
+        totals: { sentOctets: 0, receivedOctets: 36_000_000, flows: 180 },
+        lastUplinkAt: "2026-10-01T11:10:00.000Z",
+        uplinksReadTo: "2026-10-01T11:55:00.000Z",
+        series: [
+          {
+            time: "2026-10-01T11:05:00.000Z",
+            sentOctets: 0,
+            receivedOctets: 3_000_000,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    const points: Array<{ x: Date; y: number }> = getStandInChart(
+      "In + Out [Mbps]",
+    ).props.data[0]!.data as Array<{ x: Date; y: number }>;
+    const last: { x: Date; y: number } = points[points.length - 1]!;
+
+    // The line reaches the last read, flat at zero: the outage, drawn.
+    expect(last.x.toISOString()).toBe("2026-10-01T11:50:00.000Z");
+    expect(last.y).toBe(0);
+    // 36 MB over the 55 minutes read, not the 10 it carried.
+    expect(screen.getByTestId("traffic-tile-average-value")).toHaveTextContent(
+      "87.3 kbps",
+    );
+    expect(screen.getByTestId("meraki-read-up-to")).toHaveTextContent(
+      "Read up to 5 minutes ago.",
+    );
+  });
+
   test("a range read to its end says nothing about it", async () => {
     answerUsage(() => {
       return usage({
@@ -1465,6 +1520,55 @@ describe("who talks to whom", () => {
 
     expect(row).not.toHaveTextContent("Branch 1");
     expect(row).toHaveTextContent("teams.microsoft.com");
+  });
+
+  test("the bug this guards: narrowed to an uplink one network uses, rows of several still say which", async () => {
+    window.history.replaceState(null, "", "/?mup=cellular");
+    answerUsage(() => {
+      return usage({
+        topNetworks: [
+          {
+            controllerNetworkId: "L_1000",
+            name: "Branch 1",
+            sentOctets: 1,
+            receivedOctets: 1,
+          },
+        ],
+        topConversations: CONVERSATIONS,
+        topClients: [
+          {
+            clientKey: "k1",
+            name: "Kiosk 3",
+            ip: "10.0.0.25",
+            mac: "",
+            manufacturer: "",
+            controllerNetworkName: "Branch 1",
+            sentOctets: 2,
+            receivedOctets: 2,
+          },
+          {
+            clientKey: "k2",
+            name: "Kiosk 4",
+            ip: "10.0.0.26",
+            mac: "",
+            manufacturer: "",
+            controllerNetworkName: "Branch 2",
+            sentOctets: 1,
+            receivedOctets: 1,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(
+      within(rowsOf("meraki-conversations")[0]!).getByTestId(
+        "meraki-conversation-from",
+      ),
+    ).toHaveTextContent("Branch 1");
+    expect(rowsOf("meraki-top-clients")[0]).toHaveTextContent("Branch 1");
+    expect(rowsOf("meraki-top-clients")[1]).toHaveTextContent("Branch 2");
   });
 
   test("the rows' shares are of what Meraki's analytics counted, and they stay beside the way to the rest", async () => {

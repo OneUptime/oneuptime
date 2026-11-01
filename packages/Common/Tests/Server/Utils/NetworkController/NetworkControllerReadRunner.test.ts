@@ -25,6 +25,7 @@ import {
   readPullState,
 } from "../../../../Server/Utils/NetworkController/NetworkControllerTypes";
 import { getWindowKey } from "../../../../Server/Utils/NetworkController/NetworkTrafficUsageRows";
+import { MAX_UPLINK_HEALTH_WINDOWS_PER_READ } from "../../../../Server/Utils/NetworkController/Meraki/MerakiTrafficReader";
 import { JSONObject } from "../../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
 import {
@@ -313,7 +314,9 @@ describe("a read that works", () => {
     const outcome: NetworkControllerReadOutcome = await run();
 
     expect(outcome.status).toBe("success");
-    expect(table).toHaveLength(34 * 5 * 2 + 5 + 5);
+    expect(table).toHaveLength(
+      34 * 5 * 2 + 5 + 5 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ * 5 * 2,
+    );
 
     // The MX that is a device in OneUptime: its uplinks and its network's rows.
     const ofMx: Array<JSONObject> = table.filter((row: JSONObject) => {
@@ -365,7 +368,7 @@ describe("a read that works", () => {
       analyticsNetworksWaiting: 0,
       trafficAnalysisOffNetworks: 0,
       rowsWritten: table.length,
-      requestCount: 3 + 34 + 15,
+      requestCount: 3 + 34 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ + 15,
       wasRateLimited: false,
       warnings: [],
     });
@@ -380,9 +383,10 @@ describe("a read that works", () => {
     const second: NetworkControllerReadOutcome = await run();
 
     expect(second.status).toBe("success");
-    expect(table.length - afterFirst).toBe(5 * 2);
-    expect(second.summary?.rowsWritten).toBe(10);
-    expect(second.summary?.requestCount).toBe(3 + 1);
+    // One uplink window of five appliances on two uplinks, and its health.
+    expect(table.length - afterFirst).toBe(5 * 2 + 5 * 2);
+    expect(second.summary?.rowsWritten).toBe(20);
+    expect(second.summary?.requestCount).toBe(3 + 1 + 1);
   });
 
   test("a read cut short by its budget is partial, and the next one comes within a minute", async () => {
@@ -526,8 +530,8 @@ describe("no window written twice", () => {
     const outcome: NetworkControllerReadOutcome = await run();
 
     expect(outcome.status).toBe("success");
-    // One new uplink window, and nothing of the day before again.
-    expect(table.length - stored).toBe(5 * 2);
+    // One new uplink window and its health, and nothing of the day before again.
+    expect(table.length - stored).toBe(5 * 2 + 5 * 2);
     expect(bytesOf(NetworkTrafficUsageKind.Application)).toBe(applicationBytes);
     expect(bytesOf(NetworkTrafficUsageKind.Uplink) - uplinkBytes).toBe(
       5 * 10100 * 300,
@@ -846,7 +850,9 @@ describe("the devices' details the device list fills in", () => {
       warnings: [],
     });
     // The device list is the read's third call, as the appliance list was.
-    expect(outcome.summary?.requestCount).toBe(3 + 34 + 15);
+    expect(outcome.summary?.requestCount).toBe(
+      3 + 34 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ + 15,
+    );
   });
 
   test("a device list that cannot be recorded is a warning on a read that otherwise worked", async () => {

@@ -490,6 +490,7 @@ function emptyUsage(body) {
     topConversations: [],
     lastUplinkAt: null,
     lastAnalyticsAt: null,
+    uplinksReadTo: null,
     connections: connections.map(pageConnection),
   };
 }
@@ -778,6 +779,7 @@ function usageFor(body) {
     topClients,
     topConversations,
     lastUplinkAt: new Date(lastUplinkAt).toISOString(),
+    uplinksReadTo: new Date(lastUplinkAt).toISOString(),
     lastAnalyticsAt: new Date(Date.now() - 70 * 60 * 1000).toISOString(),
   };
 }

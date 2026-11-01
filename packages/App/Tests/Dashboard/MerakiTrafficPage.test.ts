@@ -71,6 +71,7 @@ import {
   MerakiUplinkComparisonRow,
   UNKNOWN_VALUE,
   compareUplinkNames,
+  countListedNetworks,
   formatLatency,
   formatLoss,
   getClientDetails,
@@ -88,6 +89,7 @@ import {
   getUplinkDetails,
   hasMerakiTraffic,
   hasUplinkHealth,
+  isEveryChartSlotABucket,
   isNarrowerThanANetwork,
   isNetworkAddressText,
   isOfOneNetwork,
@@ -779,6 +781,91 @@ describe("how far a page has been read", () => {
     );
   });
 
+  test("the bug this guards: how far the reads got, never the page's newest row", () => {
+    expect(
+      new Date(
+        getReadEndMs(
+          readTo({
+            lastUplinkAt: "2026-10-24T11:10:00.000Z",
+            uplinksReadTo: "2026-10-24T11:55:00.000Z",
+          }),
+        )!,
+      ).toISOString(),
+    ).toBe("2026-10-24T11:55:00.000Z");
+  });
+
+  test("the bug this guards: a link that goes down draws its drop to zero, and is averaged over it", () => {
+    // Traffic to 11:10, then nothing, and the reads went on to 11:55.
+    const summary: NetworkTrafficUsageSummary = readTo({
+      lastUplinkAt: "2026-10-24T11:10:00.000Z",
+      uplinksReadTo: "2026-10-24T11:55:00.000Z",
+      totals: { sentOctets: 0, receivedOctets: 600_000_000, flows: 0 },
+      series: [point(0, 300_000_000), point(5, 300_000_000)],
+    });
+    const points: ReturnType<typeof getReadSeries> = getReadSeries(summary);
+
+    expect(points).toHaveLength(11);
+    expect(points[1]!.octets).toBe(300_000_000);
+    expect(points[2]).toMatchObject({ octets: 0, inOctets: 0, outOctets: 0 });
+    expect(points[points.length - 1]!.octets).toBe(0);
+    expect(points[points.length - 1]!.time).toBe("2026-10-24T11:50:00.000Z");
+    // Over the 55 minutes read: the silence counts. Not the 10 it carried.
+    expect(getReadSeconds(summary)).toBe(55 * 60);
+    expect(getReadUpTo(summary)).toBe("2026-10-24T11:55:00.000Z");
+  });
+
+  test("an uplink nothing crossed since it failed over reads the same in the comparison", () => {
+    const [wan1]: Array<MerakiUplinkComparisonRow> = getUplinkComparison(
+      readTo({
+        lastUplinkAt: "2026-10-24T11:50:00.000Z",
+        uplinksReadTo: "2026-10-24T11:55:00.000Z",
+        uplinkInterfaces: [
+          {
+            interfaceName: "wan1",
+            applianceCount: 1,
+            sentOctets: 0,
+            receivedOctets: 900,
+            lossPercent: null,
+            latencyMs: null,
+          },
+        ],
+        uplinkSeries: [
+          {
+            time: "2026-10-24T11:00:00.000Z",
+            interfaceName: "wan1",
+            sentOctets: 0,
+            receivedOctets: 900,
+            lossPercent: null,
+            latencyMs: null,
+          },
+        ],
+      }),
+    );
+
+    expect(wan1!.series).toHaveLength(11);
+    expect(wan1!.series[10]!.octets).toBe(0);
+  });
+
+  test("an answer from before uplinksReadTo goes by the newest row, as far as it can", () => {
+    expect(
+      new Date(getReadEndMs(readTo({ uplinksReadTo: null }))!).toISOString(),
+    ).toBe("2026-10-24T11:45:00.000Z");
+  });
+
+  test("an organization without uplinks has no read of them to go by", () => {
+    expect(
+      new Date(
+        getReadEndMs(
+          readTo({
+            primaryKind: NetworkTrafficUsageKind.Application,
+            lastAnalyticsAt: "2026-10-24T11:20:00.000Z",
+            uplinksReadTo: "2026-10-24T11:55:00.000Z",
+          }),
+        )!,
+      ).toISOString(),
+    ).toBe("2026-10-24T11:20:00.000Z");
+  });
+
   test("a range older than the newest window is read whole", () => {
     expect(
       new Date(
@@ -1155,6 +1242,40 @@ describe("the page's uplinks, side by side", () => {
     ).toEqual([0, 5]);
   });
 
+  test.each([
+    // A slot for every bucket: an empty one is a stretch nobody measured.
+    [300, true],
+    [600, true],
+    [900, true],
+    [1800, true],
+    [3600, true],
+    // The grid is finer than the buckets: empty slots between them are normal.
+    [720, false],
+    [1440, false],
+    [5040, false],
+    [22320, false],
+    // No grid step fits at all.
+    [0, false],
+    [Number.NaN, false],
+  ])(
+    "a chart of %s-second buckets can tell a gap from a slot between buckets: %s",
+    (bucketSeconds: number, expected: boolean) => {
+      expect(isEveryChartSlotABucket(bucketSeconds)).toBe(expected);
+    },
+  );
+
+  test("a list's networks are counted from its own rows, an unnamed one counting for none", () => {
+    expect(countListedNetworks([])).toBe(0);
+    expect(
+      countListedNetworks([
+        { controllerNetworkName: "Branch 1" },
+        { controllerNetworkName: "Branch 1" },
+        { controllerNetworkName: "Branch 2" },
+        { controllerNetworkName: "" },
+      ]),
+    ).toBe(2);
+  });
+
   test("a chart with no point at all, however it is asked, draws nothing", () => {
     expect(
       getUplinkChartLines({
@@ -1348,6 +1469,18 @@ describe("reading the answers", () => {
     expect(summary.uplinkInterfaces).toEqual([]);
     expect(summary.uplinkSeries).toEqual([]);
     expect(summary.topConversations).toEqual([]);
+    expect(summary.uplinksReadTo).toBeNull();
+  });
+
+  test("how far the uplinks were read is read as text or not at all", () => {
+    expect(
+      parseNetworkTrafficUsageSummary({
+        uplinksReadTo: "2026-10-24T11:55:00.000Z",
+      }).uplinksReadTo,
+    ).toBe("2026-10-24T11:55:00.000Z");
+    expect(
+      parseNetworkTrafficUsageSummary({ uplinksReadTo: 5 }).uplinksReadTo,
+    ).toBeNull();
   });
 
   test("a page's summary, read without trusting its shape", () => {

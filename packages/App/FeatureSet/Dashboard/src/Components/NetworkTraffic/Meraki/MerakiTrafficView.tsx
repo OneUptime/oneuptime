@@ -36,6 +36,7 @@ import {
 import {
   MerakiUplinkComparisonRow,
   UNKNOWN_VALUE,
+  countListedNetworks,
   getClientDetails,
   getClientLabel,
   getConversationDetails,
@@ -319,6 +320,20 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
     filters,
     networkCount: summary.topNetworks.length,
   });
+  const clientsWithNetwork: boolean = !isOfOneNetwork({
+    filters,
+    networkCount: Math.max(
+      summary.topNetworks.length,
+      countListedNetworks(summary.topClients),
+    ),
+  });
+  const conversationsWithNetwork: boolean = !isOfOneNetwork({
+    filters,
+    networkCount: Math.max(
+      summary.topNetworks.length,
+      countListedNetworks(summary.topConversations),
+    ),
+  });
 
   // ---- Rows ----------------------------------------------------------------
 
@@ -446,7 +461,9 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
   const clientRows: Array<TrafficTopRow> = summary.topClients.map(
     (row: NetworkTrafficUsageClientRow): TrafficTopRow => {
-      const details: Array<string> = getClientDetails(row, { withNetwork });
+      const details: Array<string> = getClientDetails(row, {
+        withNetwork: clientsWithNetwork,
+      });
 
       return {
         key: row.clientKey,
@@ -477,7 +494,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
       return {
         key: `${row.controllerNetworkId}/${row.destination}/${row.application}/${row.protocol}/${row.port}`,
-        label: withNetwork ? (
+        label: conversationsWithNetwork ? (
           <span
             dir="ltr"
             className="inline-flex max-w-full items-center gap-1.5"
@@ -501,8 +518,8 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         ) : (
           target
         ),
-        isMono: !withNetwork && isNetworkAddressText(target),
-        title: withNetwork ? `${network} → ${target}` : target,
+        isMono: !conversationsWithNetwork && isNetworkAddressText(target),
+        title: conversationsWithNetwork ? `${network} → ${target}` : target,
         sublabel: details.length > 0 ? details.join(" · ") : undefined,
         octets: getUsageOctets(row),
         detail: [

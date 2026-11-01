@@ -1,3 +1,7 @@
+import {
+  getChartGridStepSeconds,
+  getCoarsestChartGridStepWithin,
+} from "../../NetworkDevice/ChartGridStep";
 import { parseBucketTime } from "../../NetworkDevice/FlowSeriesUtil";
 import {
   formatTrafficProtocolPort,
@@ -140,15 +144,21 @@ type ReadSummaryFields = Pick<
   | "primaryKind"
   | "lastUplinkAt"
   | "lastAnalyticsAt"
+  | "uplinksReadTo"
 >;
 
 /*
- * How far the page's range has been read, in epoch milliseconds: the end of
- * the newest window of the kind its numbers are of, or the end of the range
- * when that is sooner. Meraki reports uplinks minutes late, so a range that
- * ends now always has a stretch at its end no read has reached. That stretch
- * holds no traffic because no one has reported any yet, not because the
- * network went quiet. Null when no part of the range has been read.
+ * How far the page's range has been read, in epoch milliseconds: as far as
+ * its connections' reads got, or the end of the range when that is sooner.
+ * Meraki reports uplinks minutes late, so a range that ends now always has a
+ * stretch at its end no read has reached. That stretch holds no traffic
+ * because no one has reported any yet, not because the network went quiet.
+ *
+ * Never the page's newest row: a window nothing crossed stores no row, so a
+ * link that went down would look like a page not read yet, and the drop to
+ * zero that says it went down would never be drawn. An organization without
+ * uplinks has only its newest application window to go by. Null when no part
+ * of the range has been read.
  */
 export function getReadEndMs(summary: ReadSummaryFields): number | null {
   const start: number = new Date(summary.windowStartAt).getTime();
@@ -156,7 +166,7 @@ export function getReadEndMs(summary: ReadSummaryFields): number | null {
   const newest: string | null =
     summary.primaryKind === NetworkTrafficUsageKind.Application
       ? summary.lastAnalyticsAt
-      : summary.lastUplinkAt;
+      : summary.uplinksReadTo || summary.lastUplinkAt;
   const newestMs: number = newest ? new Date(newest).getTime() : NaN;
 
   if (
@@ -283,6 +293,23 @@ export function isOfOneNetwork(data: {
   networkCount: number;
 }): boolean {
   return Boolean(data.filters.controllerNetworkId) || data.networkCount <= 1;
+}
+
+/*
+ * How many networks a list's rows are of. Top networks cannot say for the
+ * applications and clients: an uplink's filter narrows it and leaves them
+ * whole, and it knows no network that sends nothing over an uplink.
+ */
+export function countListedNetworks(
+  rows: Array<{ controllerNetworkName: string }>,
+): number {
+  return new Set(
+    rows
+      .map((row: { controllerNetworkName: string }): string => {
+        return row.controllerNetworkName;
+      })
+      .filter(Boolean),
+  ).size;
 }
 
 // A client as a person recognises it: its name, else its address, else its MAC.
@@ -549,6 +576,21 @@ export function getUplinkChartLines(data: {
 
     return { seriesName: row.interfaceName, data: points };
   });
+}
+
+/*
+ * Whether an empty slot on a chart of these buckets means a bucket with
+ * nothing in it, so a line may break there to say nobody measured it. That
+ * takes a slot for every bucket and nothing else. Most ranges over a few hours
+ * have none: a bucket of 12 minutes sits on a grid of 10, whose slots between
+ * buckets are always empty, and a line that broke at each would be in pieces
+ * for no reason.
+ */
+export function isEveryChartSlotABucket(bucketSeconds: number): boolean {
+  const step: ReturnType<typeof getCoarsestChartGridStepWithin> =
+    getCoarsestChartGridStepWithin(bucketSeconds);
+
+  return step !== undefined && getChartGridStepSeconds(step) === bucketSeconds;
 }
 
 // Whether Meraki measured any of these uplinks in the range.
