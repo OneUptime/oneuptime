@@ -1,3 +1,4 @@
+import OneUptimeDate from "../../../../Types/Date";
 import {
   AnomalyDetectionMethod,
   FilterType,
@@ -167,6 +168,25 @@ export default class CountAnomaly {
       center,
       spread,
     };
+  }
+
+  /**
+   * Where the window a log or span count was read over ends: the end of
+   * the time range on the query that counted it - an InBetween, or its
+   * JSON form on a Logs monitor's response. That is now, or, while the
+   * ingest queue is behind, where the queue is
+   * (ReceivingCoverage.planTelemetryEvaluation). Now when the query has
+   * no time range.
+   */
+  public static getWindowEnd(queriedTime: unknown): Date {
+    const end: unknown = (queriedTime as { endValue?: unknown } | undefined)
+      ?.endValue;
+
+    if (end instanceof Date || typeof end === "string") {
+      return OneUptimeDate.fromString(end);
+    }
+
+    return OneUptimeDate.getCurrentDate();
   }
 
   private static medianOf(values: Array<number>): number {

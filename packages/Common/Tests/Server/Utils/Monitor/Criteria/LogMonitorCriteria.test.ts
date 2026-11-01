@@ -1,5 +1,8 @@
 import LogMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/LogMonitorCriteria";
 import LogCountBaselineService from "../../../../../Server/Services/LogCountBaselineService";
+import { MetricBaselineService } from "../../../../../Server/Services/MetricBaselineService";
+import OneUptimeDate from "../../../../../Types/Date";
+import JSONFunctions from "../../../../../Types/JSONFunctions";
 import { CountBaselineSummary } from "../../../../../Server/Utils/Monitor/Criteria/CountAnomaly";
 import {
   AnomalyDetectionSensitivity,
@@ -265,6 +268,92 @@ describe("LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         monitorStep: input.monitorStep,
       });
     }
+
+    test("reads the baseline of the hour the window sits in, not the hour it ends in", async () => {
+      /*
+       * Evaluated two seconds past the top of the hour, a five-minute window
+       * covers 02:55:02-03:00:02 - almost all of it in the earlier hour.
+       * Hour-of-week is computed in local time, so the instant is built in
+       * local time too and the case holds in any timezone.
+       */
+      const now: Date = new Date(2026, 9, 5, 3, 0, 2);
+      const dateSpy: jest.SpyInstance = jest
+        .spyOn(OneUptimeDate, "getCurrentDate")
+        .mockReturnValue(now);
+      getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+      try {
+        await evaluateAnomaly({
+          logCount: 100,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+          },
+          monitorStep: buildMonitorStep({ lastXSecondsOfLogs: 300 }),
+        });
+      } finally {
+        dateSpy.mockRestore();
+      }
+
+      const windowHour: number = MetricBaselineService.computeHourOfWeek(
+        new Date(2026, 9, 5, 2, 57, 32),
+      );
+      expect(windowHour).not.toBe(MetricBaselineService.computeHourOfWeek(now));
+      expect(getBaselineSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ hourOfWeek: windowHour }),
+      );
+    });
+
+    test("reads the hour of the window it counted, which ends before now while the ingest queue is behind", async () => {
+      /*
+       * Ten minutes behind, the worker counts 02:50:00-02:55:00 at 03:05:00
+       * (ReceivingCoverage.planTelemetryEvaluation) and hands the criteria
+       * that window in the JSON form of its query. The window sits in the
+       * earlier hour; "now" less half a window does not.
+       */
+      const now: Date = new Date(2026, 9, 5, 3, 5, 0);
+      const monitorStep: MonitorStep = buildMonitorStep({
+        lastXSecondsOfLogs: 300,
+      });
+      const response: LogMonitorResponse = {
+        ...(buildResponse(100) as LogMonitorResponse),
+        logQuery: JSONFunctions.anyObjectToJSONObject(
+          MonitorStepLogMonitorUtil.toQuery(
+            monitorStep.data!.logMonitor!,
+            new Date(2026, 9, 5, 2, 55, 0),
+          ),
+        ),
+      };
+      const dateSpy: jest.SpyInstance = jest
+        .spyOn(OneUptimeDate, "getCurrentDate")
+        .mockReturnValue(now);
+      getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+      try {
+        await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: response,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+          },
+          monitorStep: monitorStep,
+        });
+      } finally {
+        dateSpy.mockRestore();
+      }
+
+      const windowHour: number = MetricBaselineService.computeHourOfWeek(
+        new Date(2026, 9, 5, 2, 52, 30),
+      );
+      expect(windowHour).not.toBe(
+        MetricBaselineService.computeHourOfWeek(new Date(2026, 9, 5, 3, 2, 30)),
+      );
+      expect(getBaselineSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ hourOfWeek: windowHour }),
+      );
+    });
 
     test("AnomalouslyHigh fires when the log rate exceeds mean + 3σ (Medium default)", async () => {
       // mean 20/min, σ 5 → 3σ band is [5, 35]; 90 logs in 60s = 90/min.
