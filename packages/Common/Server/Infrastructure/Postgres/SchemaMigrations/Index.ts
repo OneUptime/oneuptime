@@ -240,6 +240,7 @@ import { AddExceptionSavedView1808690000000 } from "./1808690000000-AddException
 import { AddDashboardDarkThemeLogo1808700000000 } from "./1808700000000-AddDashboardDarkThemeLogo";
 import { AddDashboardDarkThemeLogoKey1808710000000 } from "./1808710000000-AddDashboardDarkThemeLogoKey";
 import { AddFormDomain1808712000000 } from "./1808712000000-AddFormDomain";
+import { AddProxmoxInventoryFactsAndBackups1808740000000 } from "./1808740000000-AddProxmoxInventoryFactsAndBackups";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1682,4 +1683,5 @@ export default [
   AddDashboardDarkThemeLogo1808700000000,
   AddDashboardDarkThemeLogoKey1808710000000,
   AddFormDomain1808712000000,
+  AddProxmoxInventoryFactsAndBackups1808740000000,
 ];
