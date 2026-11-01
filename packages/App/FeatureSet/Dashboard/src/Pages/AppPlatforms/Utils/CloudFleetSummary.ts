@@ -7,11 +7,16 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * The numbers behind the stat strip at the top of the Cloud Environments
- * list, and how they turn into tiles. The fetching lives in
- * Components/Cloud/CloudFleetSummary.tsx; this file is deliberately pure so
- * the wording and arithmetic can be unit tested without a renderer.
+ * The numbers behind the stat strip at the top of App Platforms' Overview,
+ * and how they turn into tiles: its apps and how many run, its environments
+ * by provider, the instances live right now, and the deploys of the last
+ * day. The fetching lives in Components/Cloud/CloudFleetSummary.tsx; this
+ * file is deliberately pure so the wording and arithmetic can be unit
+ * tested without a renderer.
  */
+
+// The window the Deploys tile counts deploys in.
+export const CLOUD_FLEET_DEPLOYS_WINDOW_HOURS: number = 24;
 
 export interface CloudFleetCounts {
   /* Unarchived environments. */
@@ -24,6 +29,12 @@ export interface CloudFleetCounts {
   byProvider: Record<string, number>;
   /* CloudResourceInstance rows seen inside the live window. */
   liveInstances: number;
+  /* Apps (CloudApp rows) of the project's environments. */
+  apps: number;
+  /* Apps whose telemetry arrived inside the live window. */
+  runningApps: number;
+  /* Revisions deployed in the last CLOUD_FLEET_DEPLOYS_WINDOW_HOURS. */
+  deploys: number;
 }
 
 export interface CloudFleetSummaryTile {
@@ -98,43 +109,58 @@ export function summarizeCloudFleet(
 ): Array<CloudFleetSummaryTile> {
   const total: number = Math.max(0, counts.total);
   const connected: number = Math.min(total, Math.max(0, counts.connected));
-  const disconnected: number = Math.max(0, counts.disconnected);
+  const disconnected: number = Math.max(0, total - connected);
+  const apps: number = Math.max(0, counts.apps);
+  const runningApps: number = Math.min(apps, Math.max(0, counts.runningApps));
   const breakdownParts: Array<string> = getProviderBreakdownParts(
     counts.byProvider,
   );
   const breakdown: string = breakdownParts.join(" · ");
 
-  const connectedShare: string =
-    total > 0
-      ? translateTemplate("{{percent}}% of environments", {
-          percent: formatCount((connected / total) * 100),
+  /*
+   * What is not all right comes first in a tile's line: apps that went
+   * quiet, environments that are not connected. All right, the line says
+   * so - or, for the environments, which providers they are on.
+   */
+  const appsLine: string =
+    apps === 0
+      ? "none reported yet"
+      : runningApps >= apps
+        ? "all running"
+        : translateTemplate("{{count}} not reporting", {
+            count: formatCount(apps - runningApps),
+          });
+
+  const environmentsLine: string =
+    total > 0 && disconnected > 0
+      ? translateTemplate("{{count}} disconnected", {
+          count: formatCount(disconnected),
         })
-      : "";
+      : breakdown || "none discovered yet";
 
   return [
     {
+      title: "Apps",
+      value: formatCount(apps),
+      sublabel: appsLine,
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.apps,
+    },
+    {
       title: "Environments",
       value: formatCount(total),
-      sublabel: breakdown || "none discovered yet",
-      ...(breakdownParts.length > 1 ? { sublabelParts: breakdownParts } : {}),
+      sublabel: environmentsLine,
+      ...(environmentsLine === breakdown && breakdownParts.length > 1
+        ? { sublabelParts: breakdownParts }
+        : {}),
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.environments,
     },
     {
-      title: "Connected",
-      value: formatCount(connected),
-      sublabel: connectedShare || "nothing reporting yet",
-      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.connected,
-    },
-    {
-      title: "Disconnected",
-      value: formatCount(disconnected),
-      sublabel:
-        disconnected > 0
-          ? "no telemetry recently"
-          : total > 0
-            ? "every environment is reporting"
-            : "—",
-      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.disconnected,
+      title: "Deploys",
+      value: formatCount(counts.deploys),
+      sublabel: translateTemplate("in the last {{hours}} hours", {
+        hours: formatCount(CLOUD_FLEET_DEPLOYS_WINDOW_HOURS),
+      }),
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.deploys,
     },
     {
       title: "Live instances",

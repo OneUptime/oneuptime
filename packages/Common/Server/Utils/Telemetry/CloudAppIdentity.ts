@@ -4,6 +4,9 @@ import {
   getManagedCloudPlatformDescriptor,
 } from "../../../Types/Cloud/CloudPlatform";
 import { isTrackableVersion } from "./ChangeDetection/TelemetryChangeSignals";
+import { shortenEcsClusterArn } from "../../../Utils/Telemetry/CloudInstanceIdentity";
+
+export { shortenEcsClusterArn };
 
 /*
  * Which APP of an App Platforms environment one OTLP resource belongs to,
@@ -94,26 +97,6 @@ function isUnknownServiceName(value: string): boolean {
   return value.toLowerCase().startsWith(UNKNOWN_SERVICE_NAME_PREFIX);
 }
 
-/*
- * `arn:aws:ecs:us-east-1:123456789012:cluster/production` → "production",
- * the name the ECS console shows. Anything that is not a cluster ARN is
- * returned untouched.
- */
-export function shortenEcsClusterArn(value: string): string {
-  const trimmed: string = value.trim();
-
-  if (!trimmed.startsWith("arn:")) {
-    return trimmed;
-  }
-
-  const slash: number = trimmed.lastIndexOf("/");
-
-  if (slash < 0 || slash === trimmed.length - 1) {
-    return trimmed;
-  }
-
-  return trimmed.slice(slash + 1);
-}
 
 // The first of `keys` the resource reports, as [key, value].
 function readFirst(data: {

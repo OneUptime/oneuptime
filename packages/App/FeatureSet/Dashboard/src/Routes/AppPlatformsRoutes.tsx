@@ -9,6 +9,9 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import AppPlatformsOverview from "../Pages/AppPlatforms/Overview";
 import AppPlatformEnvironments from "../Pages/AppPlatforms/Environments";
+import AppPlatformsApps from "../Pages/AppPlatforms/Apps";
+import AppPlatformEnvironmentApps from "../Pages/AppPlatforms/View/Apps";
+import AppPlatformApp from "../Pages/AppPlatforms/View/App";
 import AppPlatformsArchived from "../Pages/AppPlatforms/Archived";
 import AppPlatformsLabelRules from "../Pages/AppPlatforms/Settings/LabelRules";
 import AppPlatformsOwnerRules from "../Pages/AppPlatforms/Settings/OwnerRules";
@@ -33,10 +36,11 @@ import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPag
 
 /*
  * App Platforms, mounted at …/app-platforms/*: its Overview at the mount,
- * the environments list at environments, each environment's pages at
- * …/app-platforms/:id, and its rules and archived list beside them (a
- * fixed segment outranks the :id, so settings and archived are never read
- * as an environment's id). Environments were Cloud's
+ * every app at apps, the environments list at environments, each
+ * environment's pages at …/app-platforms/:id - its apps at :id/apps and one
+ * app's page at :id/apps/:subModelId - and its rules and archived list
+ * beside them (a fixed segment outranks the :id, so apps, settings and
+ * archived are never read as an environment's id). Environments were Cloud's
  * until the two products split; their old Cloud addresses forward here by
  * themselves (Pages/Cloud/View/Layout, Utils/CloudResourceViewPages).
  */
@@ -61,6 +65,15 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
             <AppPlatformEnvironments
               {...props}
               pageRoute={RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AppPlatformsRoutePath[PageMap.APP_PLATFORMS_APPS] || ""}
+          element={
+            <AppPlatformsApps
+              {...props}
+              pageRoute={RouteMap[PageMap.APP_PLATFORMS_APPS] as Route}
             />
           }
         />
@@ -160,6 +173,33 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APPS,
+          )}
+          element={
+            <AppPlatformEnvironmentApps
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APPS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP,
+            2,
+          )}
+          element={
+            <AppPlatformApp
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP] as Route
               }
             />
           }

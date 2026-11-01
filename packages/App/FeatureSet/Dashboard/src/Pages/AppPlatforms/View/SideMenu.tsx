@@ -24,6 +24,7 @@ import React, {
   useState,
 } from "react";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import { getDetailPageActiveRoute } from "../../../Utils/DetailPageActiveRoute";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
@@ -32,10 +33,11 @@ export interface ComponentProps {
 }
 
 /*
- * An environment's menu in App Platforms: the telemetry its apps send -
- * metrics, logs, traces and the instances running them - its incidents and
- * alerts, and its settings. A resource in a cloud account has a menu of its
- * own, in Cloud (Pages/Cloud/View/SideMenu).
+ * An environment's menu in App Platforms: what runs in it - its apps and
+ * the instances running them, as a Kubernetes cluster's menu leads with its
+ * workloads - the telemetry they send, its incidents and alerts, and its
+ * settings. A resource in a cloud account has a menu of its own, in Cloud
+ * (Pages/Cloud/View/SideMenu).
  */
 const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -104,6 +106,39 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * What runs here: the apps (one page each, which keeps Apps lit) and
+       * the instances running them.
+       */}
+      <SideMenuSection title="Workloads">
+        <SideMenuItem
+          link={{
+            title: "Apps",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APPS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          activeRoute={getDetailPageActiveRoute({
+            detailPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP,
+            modelId: props.modelId,
+          })}
+          icon={IconProp.Squares}
+        />
+        <SideMenuItem
+          link={{
+            title: "Instances",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Observability">
         <SideMenuItem
           link={{
@@ -134,18 +169,6 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Workflow}
-        />
-        <SideMenuItem
-          link={{
-            title: "Instances",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Cube}
         />
         <SideMenuItem
           link={{

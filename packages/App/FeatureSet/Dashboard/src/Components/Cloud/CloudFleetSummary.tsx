@@ -6,9 +6,12 @@ import React, {
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -16,6 +19,7 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import {
+  CLOUD_FLEET_DEPLOYS_WINDOW_HOURS,
   CloudFleetCounts,
   CloudFleetSummaryTile,
   summarizeCloudFleet,
@@ -27,8 +31,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
- * The stat strip above the Cloud Environments table: how many environments
- * there are, how many are reporting, and how many tasks are live right now.
+ * The stat strip at the top of App Platforms' Overview: how many apps there
+ * are and how many run, how many environments, the deploys of the last day,
+ * and how many tasks are live right now.
  *
  * It is strictly decorative — the table underneath is the source of truth —
  * so it must never get in the way: it renders nothing while loading, nothing
@@ -59,22 +64,22 @@ interface TileStyle {
  */
 const TILE_STYLES: ReadonlyArray<TileStyle> = [
   {
+    icon: IconProp.Squares,
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
+    text: "text-emerald-600",
+  },
+  {
     icon: IconProp.Cloud,
     bg: "bg-blue-50",
     ring: "ring-blue-200",
     text: "text-blue-600",
   },
   {
-    icon: IconProp.CheckCircle,
-    bg: "bg-emerald-50",
-    ring: "ring-emerald-200",
-    text: "text-emerald-600",
-  },
-  {
-    icon: IconProp.Alert,
-    bg: "bg-amber-50",
-    ring: "ring-amber-200",
-    text: "text-amber-600",
+    icon: IconProp.RocketLaunch,
+    bg: "bg-indigo-50",
+    ring: "ring-indigo-200",
+    text: "text-indigo-600",
   },
   {
     icon: IconProp.Cube,
@@ -98,7 +103,7 @@ const FALLBACK_TILE_STYLE: TileStyle = {
 const ENVIRONMENT: CloudResourceKind = CloudResourceKind.Environment;
 
 /*
- * Six count requests, issued together. Providers are enumerated from the
+ * Nine count requests, issued together. Providers are enumerated from the
  * shared CloudProvider enum so a new provider shows up here without a
  * dashboard change; the total stays bounded because that enum is short.
  */
@@ -107,9 +112,20 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
   const liveSince: Date = OneUptimeDate.getSomeMinutesAgo(
     CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
   );
+  const deploysSince: Date = OneUptimeDate.addRemoveHours(
+    OneUptimeDate.getCurrentDate(),
+    -CLOUD_FLEET_DEPLOYS_WINDOW_HOURS,
+  );
 
-  const [total, connected, liveInstances, ...providerCounts]: Array<number> =
-    await Promise.all([
+  const [
+    total,
+    connected,
+    liveInstances,
+    apps,
+    runningApps,
+    deploys,
+    ...providerCounts
+  ]: Array<number> = await Promise.all([
       ModelAPI.count({
         modelType: CloudResource,
         query: { isArchived: false, cloudResourceKind: ENVIRONMENT },
@@ -125,6 +141,19 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
       ModelAPI.count({
         modelType: CloudResourceInstance,
         query: { lastSeenAt: new GreaterThan<Date>(liveSince) },
+      }),
+      ModelAPI.count({ modelType: CloudApp, query: {} }),
+      ModelAPI.count({
+        modelType: CloudApp,
+        query: { lastSeenAt: new GreaterThan<Date>(liveSince) },
+      }),
+      // A deploy names the revision it replaced; an app's first does not.
+      ModelAPI.count({
+        modelType: CloudAppRevision,
+        query: {
+          firstSeenAt: new GreaterThan<Date>(deploysSince),
+          previousRevision: new NotNull(),
+        },
       }),
       ...providers.map((provider: CloudProvider): Promise<number> => {
         return ModelAPI.count({
@@ -152,6 +181,9 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
     disconnected: safeTotal - safeConnected,
     byProvider,
     liveInstances: liveInstances || 0,
+    apps: apps || 0,
+    runningApps: runningApps || 0,
+    deploys: deploys || 0,
   };
 }
 

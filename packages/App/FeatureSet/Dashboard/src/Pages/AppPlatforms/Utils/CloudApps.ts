@@ -1,5 +1,6 @@
 import { ManagedCloudPlatform } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
+import { shortenEcsClusterArn } from "Common/Utils/Telemetry/CloudInstanceIdentity";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
@@ -144,30 +145,60 @@ export function getCloudAppTelemetryFilters(data: {
   return filters;
 }
 
+const ECS_CLUSTER_FILTER_KEY: string = `${RESOURCE_ATTRIBUTE_PREFIX}aws.ecs.cluster.arn`;
+
+// Whether a filter key is the attribute an app is kept apart by.
+function isGroupFilterKey(key: string): boolean {
+  return (
+    key === ECS_CLUSTER_FILTER_KEY ||
+    key.startsWith(`${RESOURCE_ATTRIBUTE_PREFIX}deployment.environment`)
+  );
+}
+
 /*
  * Labels for the chips the telemetry viewers draw above an app's results:
- * the environment's ("Platform", "Account", "Region") and the app's own
- * attribute names, so a chip reads "App: checkout", not the raw key.
+ * the environment's ("Platform", "Account", "Region") and the app's own -
+ * "App", and what keeps it apart from another of its name, as its platform
+ * calls it ("Cluster", "Slot") - so a chip reads "App: checkout", not the
+ * raw key.
  */
-export function getCloudAppTelemetryDisplayKeys(
-  filters: Record<string, string>,
-  environmentDisplayKeys: Record<string, string>,
-): Record<string, string> {
-  const displayKeys: Record<string, string> = { ...environmentDisplayKeys };
+export function getCloudAppTelemetryDisplayKeys(data: {
+  filters: Record<string, string>;
+  environmentDisplayKeys: Record<string, string>;
+  cloudPlatform: string | null | undefined;
+}): Record<string, string> {
+  const displayKeys: Record<string, string> = {
+    ...data.environmentDisplayKeys,
+  };
 
-  for (const key of Object.keys(filters)) {
+  for (const key of Object.keys(data.filters)) {
     if (displayKeys[key] !== undefined) {
       continue;
     }
 
-    displayKeys[key] =
-      key === `${RESOURCE_ATTRIBUTE_PREFIX}aws.ecs.cluster.arn` ||
-      key.startsWith(`${RESOURCE_ATTRIBUTE_PREFIX}deployment.environment`)
-        ? translationKey("Group")
-        : translationKey("App");
+    displayKeys[key] = isGroupFilterKey(key)
+      ? getCloudAppGroupNoun(data.cloudPlatform) || translationKey("Group")
+      : translationKey("App");
   }
 
   return displayKeys;
+}
+
+/*
+ * The values those chips show, where the filter's own is not how people
+ * know it: an ECS cluster by its name, not its ARN. Display only.
+ */
+export function getCloudAppTelemetryDisplayValues(
+  filters: Record<string, string>,
+): Record<string, string> {
+  const displayValues: Record<string, string> = {};
+  const cluster: string | undefined = filters[ECS_CLUSTER_FILTER_KEY];
+
+  if (cluster) {
+    displayValues[ECS_CLUSTER_FILTER_KEY] = shortenEcsClusterArn(cluster);
+  }
+
+  return displayValues;
 }
 
 /*
@@ -486,4 +517,126 @@ export function getShortRevision(data: {
   }
 
   return revision;
+}
+
+// A deploy or a rollback, as an app's charts mark it.
+export enum CloudAppChangeMarkerKind {
+  Deployed = "deployed",
+  RolledBack = "rolled-back",
+}
+
+export interface CloudAppChangeMarker {
+  kind: CloudAppChangeMarkerKind;
+  time: Date;
+  revision: string;
+  previousRevision: string;
+}
+
+export interface CloudAppRevisionMarkerSource {
+  revision?: string | null | undefined;
+  previousRevision?: string | null | undefined;
+  firstSeenAt?: Date | string | null | undefined;
+}
+
+function toDate(value: Date | string | null | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date: Date = value instanceof Date ? value : new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/*
+ * The deploys and the rollback inside a chart's window. A revision the app
+ * ran after another one is a deploy at the time it was first seen (the
+ * first revision OneUptime saw is not: it names no revision before it). The
+ * app going back to a revision it ran before is a rollback at the time it
+ * did (currentRevisionSince), when that is after the revision was first
+ * seen. Oldest first.
+ */
+export function getCloudAppChangeMarkers(data: {
+  revisions: ReadonlyArray<CloudAppRevisionMarkerSource>;
+  currentRevision?: string | null | undefined;
+  currentRevisionSince?: Date | string | null | undefined;
+  previousRevision?: string | null | undefined;
+  start: Date;
+  end: Date;
+}): Array<CloudAppChangeMarker> {
+  const markers: Array<CloudAppChangeMarker> = [];
+  const isInWindow: (date: Date) => boolean = (date: Date): boolean => {
+    return (
+      date.getTime() >= data.start.getTime() &&
+      date.getTime() <= data.end.getTime()
+    );
+  };
+
+  let currentFirstSeenAt: Date | null = null;
+  let wentBackFromFirstSeenAt: Date | null = null;
+
+  for (const row of data.revisions) {
+    const revision: string = (row.revision || "").trim();
+    const previousRevision: string = (row.previousRevision || "").trim();
+    const firstSeenAt: Date | null = toDate(row.firstSeenAt);
+
+    if (revision && revision === (data.currentRevision || "").trim()) {
+      currentFirstSeenAt = firstSeenAt;
+    }
+
+    if (revision && revision === (data.previousRevision || "").trim()) {
+      wentBackFromFirstSeenAt = firstSeenAt;
+    }
+
+    if (!revision || !previousRevision || !firstSeenAt) {
+      continue;
+    }
+
+    if (isInWindow(firstSeenAt)) {
+      markers.push({
+        kind: CloudAppChangeMarkerKind.Deployed,
+        time: firstSeenAt,
+        revision,
+        previousRevision,
+      });
+    }
+  }
+
+  const since: Date | null = toDate(data.currentRevisionSince);
+  const current: string = (data.currentRevision || "").trim();
+  const wentBackFrom: string = (data.previousRevision || "").trim();
+
+  /*
+   * The app became current again on a revision it had run before: it went
+   * back to it then - a rollback when it is older than the one it replaced,
+   * a deploy of it again when it is newer. A minute's slack keeps a deploy's
+   * own first sighting from reading as a second change.
+   */
+  if (
+    since &&
+    current &&
+    wentBackFrom &&
+    currentFirstSeenAt &&
+    since.getTime() - currentFirstSeenAt.getTime() > 60 * 1000 &&
+    isInWindow(since)
+  ) {
+    const isOlder: boolean =
+      !wentBackFromFirstSeenAt ||
+      currentFirstSeenAt.getTime() < wentBackFromFirstSeenAt.getTime();
+
+    markers.push({
+      kind: isOlder
+        ? CloudAppChangeMarkerKind.RolledBack
+        : CloudAppChangeMarkerKind.Deployed,
+      time: since,
+      revision: current,
+      previousRevision: wentBackFrom,
+    });
+  }
+
+  return markers.sort(
+    (a: CloudAppChangeMarker, b: CloudAppChangeMarker): number => {
+      return a.time.getTime() - b.time.getTime();
+    },
+  );
 }
