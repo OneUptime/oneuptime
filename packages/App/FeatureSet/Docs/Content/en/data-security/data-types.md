@@ -35,7 +35,7 @@ Every scan - a log line, a CSV cell, a database row, the first bytes of an objec
 | **Medium** | The value passed its validator with nothing around it to confirm it, or the field's name says what it holds and some values agree. |
 | **Low** | The shape matches, but nothing confirms it. |
 
-Only High and Medium findings count: they make a store sensitive and can open an issue. Low findings are listed on the store, folded away, for a person to judge.
+Only High and Medium findings count: they make a store sensitive and can open an issue. Low findings are listed on the store, folded away, for a person to judge: **Confirm** on one that is right makes it High, and it stays High in later scans.
 
 When two data types claim the same characters, the surer finding wins: the higher confidence, then the detector whose own rules prove more, then the longer match.
 
@@ -58,6 +58,12 @@ A field's name is split into words - `customerEmail`, `customer_email` and `cust
 Some data types cannot be told by their values: no pattern tells a person's name from a street, or a religion from any other word. These are found from the field's name alone, when the field has values: Person name, Username, Gender, Nationality, Health information, Racial or ethnic origin, Religious belief, Sexual orientation, Political opinion, Trade union membership, Biometric data, Genetic data and Criminal record. A name, a username, a gender or a nationality is then High when 60% or more of the values look like one, and Medium otherwise.
 
 A field whose name says it holds a password - `password`, `passwordHash`, `pwd`, not `password_changed_at` - should hold a hash: bcrypt, argon2, scrypt, PBKDF2 or another scheme a store is likely to use. Empty values, placeholders such as `********` and encrypted values are set aside. When more of the rest are not hashes than are, the field holds the passwords themselves, which no pattern can see, and the store fails [Passwords are stored in plain text](/docs/data-security/checks-and-issues#data-hygiene).
+
+### Fields no detector could place
+
+A column or a field whose name points at no data type, and whose values match no detector, is not known to be safe: it can be your own customer number, or a column named in another language. With the project's **Enable AI** on, a content scan keeps such fields, at most 200 a scan, and OneUptime AI is asked which of the project's data types each holds, at most 40 fields of a store at a time. It is told the field's name, the names of the fields beside it, and the shapes of its values - every letter written as `a` or `A` and every digit as `9`, so `AB-1234` is `AA-9999` - never a value. Free text, fields with fewer than 5 values, small whole numbers and fields named as an id, a time or a status are not asked about.
+
+Each type OneUptime AI names is a Low finding, marked **Suggested by OneUptime AI** with its reason. Like any Low finding it counts toward nothing until a person chooses **Confirm** on the store's **What's Inside** page; **Mark as Not Sensitive** turns it down. A field that was answered is not asked about again for 30 days, and a field a person judged is not asked about again.
 
 ## Sensitivity
 

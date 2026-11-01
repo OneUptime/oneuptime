@@ -12,6 +12,7 @@ import {
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   DataSecurityResponseAction,
+  EXPOSURE_RESPONSE_ACTIONS,
   describeDataSecurityResponseAction,
   getDataSecurityResponseActionForIssue,
 } from "Common/Types/DataSecurity/DataSecurityResponseAction";
@@ -35,15 +36,16 @@ import React, {
 } from "react";
 
 /*
- * FIX IT FROM HERE: an exposure closed in one click, from the issue.
+ * FIX IT FROM HERE: an issue fixed in one click, from the issue.
  *
  * An issue whose check one of Data Security's response actions fixes -
- * a public bucket, a snapshot shared outside - offers that action above
- * the console steps: Block public access, or Revoke sharing. It runs
- * through the store's cloud connection, so it is offered only where that
- * connection's "Data security response" setting is on; anywhere else the
- * panel says what it would take, and where to turn it on. A store marked
- * public by design is never blocked.
+ * a public bucket, a snapshot shared outside, a bucket whose deleted files
+ * cannot be recovered, a storage account that takes plain HTTP, a table
+ * without point-in-time recovery - offers that action above the console
+ * steps. It runs through the store's cloud connection, so it is offered
+ * only where that connection's "Data security response" setting is on;
+ * anywhere else the panel says what it would take, and where to turn it
+ * on. A store marked public by design is never blocked.
  *
  * The server says which actions a store can take now
  * (DataSecurityApi.getResponseActions), reading the connection as
@@ -64,6 +66,23 @@ export const RESPONSE_ACTION_TITLES: Readonly<
     "Block Public Access",
   ),
   [DataSecurityResponseAction.RevokeSharing]: translationKey("Revoke Sharing"),
+  [DataSecurityResponseAction.TurnOnVersioning]:
+    translationKey("Turn On Versioning"),
+  [DataSecurityResponseAction.TurnOnSoftDelete]: translationKey(
+    "Turn On Soft Delete",
+  ),
+  [DataSecurityResponseAction.TurnOffObjectAcls]: translationKey(
+    "Turn Off Object ACLs",
+  ),
+  [DataSecurityResponseAction.TurnOnUniformAccess]: translationKey(
+    "Turn On Uniform Access",
+  ),
+  [DataSecurityResponseAction.RequireSecureTransfer]: translationKey(
+    "Require Secure Transfer",
+  ),
+  [DataSecurityResponseAction.TurnOnPointInTimeRecovery]: translationKey(
+    "Turn On Point-in-Time Recovery",
+  ),
 };
 
 const CONFIRM_TITLES: Readonly<Record<DataSecurityResponseAction, string>> = {
@@ -73,9 +92,40 @@ const CONFIRM_TITLES: Readonly<Record<DataSecurityResponseAction, string>> = {
   [DataSecurityResponseAction.RevokeSharing]: translationKey(
     "Revoke the sharing of {{store}}?",
   ),
+  [DataSecurityResponseAction.TurnOnVersioning]: translationKey(
+    "Turn on versioning for {{store}}?",
+  ),
+  [DataSecurityResponseAction.TurnOnSoftDelete]: translationKey(
+    "Turn on soft delete for {{store}}?",
+  ),
+  [DataSecurityResponseAction.TurnOffObjectAcls]: translationKey(
+    "Turn off object ACLs for {{store}}?",
+  ),
+  [DataSecurityResponseAction.TurnOnUniformAccess]: translationKey(
+    "Turn on uniform access for {{store}}?",
+  ),
+  [DataSecurityResponseAction.RequireSecureTransfer]: translationKey(
+    "Require secure transfer for {{store}}?",
+  ),
+  [DataSecurityResponseAction.TurnOnPointInTimeRecovery]: translationKey(
+    "Turn on point-in-time recovery for {{store}}?",
+  ),
 };
 
 const PANEL_TITLE: string = translationKey("Fix it from here");
+
+/*
+ * The button's mark: a lock for the changes that close a store to the
+ * internet or to accounts outside, a shield for the ones that turn on a
+ * protection it lacks - versioning is not a lock.
+ */
+export function getResponseActionIcon(
+  action: DataSecurityResponseAction,
+): IconProp {
+  return EXPOSURE_RESPONSE_ACTIONS.includes(action)
+    ? IconProp.Lock
+    : IconProp.ShieldCheck;
+}
 
 const PANEL_DESCRIPTIONS: Readonly<Record<DataSecurityResponseAction, string>> =
   {
@@ -84,6 +134,24 @@ const PANEL_DESCRIPTIONS: Readonly<Record<DataSecurityResponseAction, string>> =
     ),
     [DataSecurityResponseAction.RevokeSharing]: translationKey(
       "OneUptime can stop sharing this store's snapshots outside your accounts through its cloud connection, and check it again right after.",
+    ),
+    [DataSecurityResponseAction.TurnOnVersioning]: translationKey(
+      "OneUptime can turn on versioning for this bucket through its cloud connection, and check it again right after.",
+    ),
+    [DataSecurityResponseAction.TurnOnSoftDelete]: translationKey(
+      "OneUptime can turn on soft delete for this storage account through its cloud connection, and check it again right after.",
+    ),
+    [DataSecurityResponseAction.TurnOffObjectAcls]: translationKey(
+      "OneUptime can turn off this bucket's object ACLs through its cloud connection, and check it again right after.",
+    ),
+    [DataSecurityResponseAction.TurnOnUniformAccess]: translationKey(
+      "OneUptime can turn on uniform bucket-level access for this bucket through its cloud connection, and check it again right after.",
+    ),
+    [DataSecurityResponseAction.RequireSecureTransfer]: translationKey(
+      "OneUptime can make this storage account take HTTPS only, with TLS 1.2 or later, through its cloud connection, and check it again right after.",
+    ),
+    [DataSecurityResponseAction.TurnOnPointInTimeRecovery]: translationKey(
+      "OneUptime can turn on point-in-time recovery for this table through its cloud connection, and check it again right after.",
     ),
   };
 
@@ -96,7 +164,7 @@ export const UNAVAILABLE_SENTENCES: Readonly<
   Record<DataSecurityResponseUnavailableReason, string>
 > = {
   [DataSecurityResponseUnavailableReason.ResponseOff]: translationKey(
-    "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants this one narrow write.",
+    "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.",
   ),
   [DataSecurityResponseUnavailableReason.ConnectionGone]: translationKey(
     "This store's cloud connection is gone or turned off, so fix it in its cloud with the steps below.",
@@ -118,6 +186,24 @@ const DONE_SENTENCES: Readonly<Record<DataSecurityResponseAction, string>> = {
   [DataSecurityResponseAction.RevokeSharing]: translationKey(
     "Sharing is revoked. The store is being checked again, and the issue resolves once its check passes.",
   ),
+  [DataSecurityResponseAction.TurnOnVersioning]: translationKey(
+    "Versioning is on. The store is being checked again, and the issue resolves once its check passes.",
+  ),
+  [DataSecurityResponseAction.TurnOnSoftDelete]: translationKey(
+    "Soft delete is on. The store is being checked again, and the issue resolves once its check passes.",
+  ),
+  [DataSecurityResponseAction.TurnOffObjectAcls]: translationKey(
+    "Object ACLs are off. The store is being checked again, and the issue resolves once its check passes.",
+  ),
+  [DataSecurityResponseAction.TurnOnUniformAccess]: translationKey(
+    "Uniform access is on. The store is being checked again, and the issue resolves once its check passes.",
+  ),
+  [DataSecurityResponseAction.RequireSecureTransfer]: translationKey(
+    "Secure transfer is required. The store is being checked again, and the issue resolves once its check passes.",
+  ),
+  [DataSecurityResponseAction.TurnOnPointInTimeRecovery]: translationKey(
+    "Point-in-time recovery is on. The store is being checked again, and the issue resolves once its check passes.",
+  ),
 };
 
 const ALREADY_SENTENCES: Readonly<Record<DataSecurityResponseAction, string>> =
@@ -127,6 +213,24 @@ const ALREADY_SENTENCES: Readonly<Record<DataSecurityResponseAction, string>> =
     ),
     [DataSecurityResponseAction.RevokeSharing]: translationKey(
       "Nothing to change: nothing was shared outside your accounts any more. The store is checked again at its next read.",
+    ),
+    [DataSecurityResponseAction.TurnOnVersioning]: translationKey(
+      "Nothing to change: versioning was already on. The store is checked again at its next read.",
+    ),
+    [DataSecurityResponseAction.TurnOnSoftDelete]: translationKey(
+      "Nothing to change: soft delete was already on. The store is checked again at its next read.",
+    ),
+    [DataSecurityResponseAction.TurnOffObjectAcls]: translationKey(
+      "Nothing to change: object ACLs were already off. The store is checked again at its next read.",
+    ),
+    [DataSecurityResponseAction.TurnOnUniformAccess]: translationKey(
+      "Nothing to change: uniform access was already on. The store is checked again at its next read.",
+    ),
+    [DataSecurityResponseAction.RequireSecureTransfer]: translationKey(
+      "Nothing to change: secure transfer was already required. The store is checked again at its next read.",
+    ),
+    [DataSecurityResponseAction.TurnOnPointInTimeRecovery]: translationKey(
+      "Nothing to change: point-in-time recovery was already on. The store is checked again at its next read.",
     ),
   };
 
@@ -279,7 +383,7 @@ const IssueResponseAction: FunctionComponent<ComponentProps> = (
         <div className="shrink-0">
           <Button
             title={title}
-            icon={IconProp.Lock}
+            icon={getResponseActionIcon(action)}
             buttonStyle={ButtonStyleType.PRIMARY}
             disabled={!availability.isAvailable || !gate.isAllowed}
             tooltip={

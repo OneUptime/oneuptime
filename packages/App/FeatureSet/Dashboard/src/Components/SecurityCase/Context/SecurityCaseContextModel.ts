@@ -12,9 +12,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  SecurityCaseDataAtRiskJson,
+  SecurityCaseDataStoreAtRiskJson,
   SecurityCaseExposureEvidenceJson,
   SecurityCaseExposureEvidenceKind,
   SecurityCaseFlowPeerJson,
+  SecurityCaseIdentityAtRiskJson,
   SecurityCaseImpactJson,
   SecurityCaseImpactOwnersJson,
   SecurityCaseImpactPeerJson,
@@ -335,6 +338,90 @@ function readOwners(
   };
 }
 
+/*
+ * The data a case puts at risk, as the server says it: null when it sent
+ * none - it could not read it, or it is older than it - and every store or
+ * identity without an id left out.
+ */
+export function parseDataAtRisk(
+  value: JSONValue | undefined,
+): SecurityCaseDataAtRiskJson | null {
+  const json: JSONObject | null = readObject(value);
+
+  if (!json) {
+    return null;
+  }
+
+  const strings: (list: JSONValue | undefined) => Array<string> = (
+    list: JSONValue | undefined,
+  ): Array<string> => {
+    return readArray(list).filter((item: JSONValue): item is string => {
+      return typeof item === "string";
+    });
+  };
+
+  return {
+    stores: readArray(json["stores"])
+      .map((item: JSONValue): SecurityCaseDataStoreAtRiskJson | null => {
+        const store: JSONObject | null = readObject(item);
+
+        if (!store || !readString(store["id"])) {
+          return null;
+        }
+
+        return {
+          id: readString(store["id"]),
+          name: readString(store["name"]),
+          kind: readString(store["kind"]),
+          sensitivity: readString(store["sensitivity"]),
+          dataTypeIds: strings(store["dataTypeIds"]),
+          estimatedRecords: readNumberOrNull(store["estimatedRecords"]),
+          exposure: readString(store["exposure"]),
+          isNamedByCase: store["isNamedByCase"] === true,
+          reachedThrough: strings(store["reachedThrough"]),
+          identityCount: readNumberOrNull(store["identityCount"]) || 0,
+          externalIdentityCount:
+            readNumberOrNull(store["externalIdentityCount"]) || 0,
+        };
+      })
+      .filter(
+        (
+          store: SecurityCaseDataStoreAtRiskJson | null,
+        ): store is SecurityCaseDataStoreAtRiskJson => {
+          return Boolean(store);
+        },
+      ),
+    identities: readArray(json["identities"])
+      .map((item: JSONValue): SecurityCaseIdentityAtRiskJson | null => {
+        const identity: JSONObject | null = readObject(item);
+
+        if (!identity || !readString(identity["id"])) {
+          return null;
+        }
+
+        return {
+          id: readString(identity["id"]),
+          name: readString(identity["name"]),
+          principal: readString(identity["principal"]),
+          principalType: readString(identity["principalType"]),
+          storeCount: readNumberOrNull(identity["storeCount"]) || 0,
+          sensitiveStoreCount:
+            readNumberOrNull(identity["sensitiveStoreCount"]) || 0,
+          highestSensitivity: readString(identity["highestSensitivity"]),
+          riskScore: readNumberOrNull(identity["riskScore"]) || 0,
+        };
+      })
+      .filter(
+        (
+          identity: SecurityCaseIdentityAtRiskJson | null,
+        ): identity is SecurityCaseIdentityAtRiskJson => {
+          return Boolean(identity);
+        },
+      ),
+    hasMoreStores: json["hasMoreStores"] === true,
+  };
+}
+
 export function parseSecurityCaseImpact(
   json: JSONObject,
 ): SecurityCaseImpactJson {
@@ -493,6 +580,7 @@ export function parseSecurityCaseImpact(
           },
         ),
     },
+    dataAtRisk: parseDataAtRisk(json["dataAtRisk"]),
     unreadableSources: readEnumList(
       json["unreadableSources"],
       Object.values(SecurityCaseImpactSource),

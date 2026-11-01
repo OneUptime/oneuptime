@@ -62,7 +62,7 @@ flowchart TB
 | Ст. 25 | Защита данных при проектировании и по умолчанию | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Ст. 28 | Обработчики | `sensitive-data-to-ai` |
 | Ст. 30 | Записи о деятельности по обработке | Выполняет сама Безопасность данных |
-| Ст. 32 | Безопасность обработки | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| Ст. 32 | Безопасность обработки | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | Ст. 44-49 | Передача в третьи страны | `residency-violation` |
 
 ### CCPA
@@ -76,6 +76,7 @@ flowchart TB
 
 | Требование | Что требует | Проверки |
 | --- | --- | --- |
+| 164.308(a)(4) | Управление доступом к информации | `unused-access` |
 | 164.308(a)(7) | План действий в чрезвычайных ситуациях | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | 164.312(a)(1) | Управление доступом | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 164.312(a)(2)(iv) | Шифрование и расшифровка | `not-encrypted-at-rest`, `no-customer-managed-key` |
@@ -91,6 +92,7 @@ flowchart TB
 | 3.5.1 | Номера карт нечитаемы везде, где они хранятся | `not-encrypted-at-rest`, `no-customer-managed-key`, `card-numbers-readable` |
 | 4.2.1 | Стойкая криптография защищает данные карт при передаче | `encryption-in-transit-not-enforced`, `weak-tls` |
 | 7.2 | Доступ определяется и предоставляется по необходимости | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 7.2.4 | Учётные записи и их доступ пересматриваются | `unused-access` |
 | 8.3.2 | Факторы аутентификации нечитаемы при хранении | `plaintext-passwords` |
 | 10.2 | Журналы аудита фиксируют доступ к данным карт | `access-not-logged` |
 
@@ -100,6 +102,7 @@ flowchart TB
 | --- | --- | --- |
 | A1.2 | Резервное копирование и восстановление | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | CC6.1 | Безопасность логического доступа | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| CC6.2 | Доступ отзывается, когда больше не нужен | `unused-access` |
 | CC6.7 | Передача информации | `encryption-in-transit-not-enforced`, `weak-tls` |
 | CC7.2 | Мониторинг компонентов системы | `access-not-logged` |
 
@@ -110,6 +113,7 @@ flowchart TB
 | A.5.9 | Инвентаризация информации и других связанных активов | `no-owner` |
 | A.5.12 | Классификация информации | Выполняет сама Безопасность данных |
 | A.5.15 | Управление доступом | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| A.5.18 | Права доступа | `unused-access` |
 | A.5.34 | Конфиденциальность и защита PII | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.11 | Маскирование данных | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | Предотвращение утечки данных | `secrets-stored`, `secrets-in-telemetry` |
@@ -122,7 +126,7 @@ flowchart TB
 | Требование | Что требует | Проверки |
 | --- | --- | --- |
 | ID.AM-07 | Ведутся реестры данных и метаданных | `no-owner` |
-| PR.AA-05 | Разрешения на доступ управляются | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| PR.AA-05 | Разрешения на доступ управляются | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
 | PR.DS-01 | Данные при хранении защищены | `not-encrypted-at-rest`, `no-customer-managed-key`, `secrets-stored`, `secrets-in-telemetry` |
 | PR.DS-02 | Данные при передаче защищены | `encryption-in-transit-not-enforced`, `weak-tls` |
 | PR.DS-11 | Резервные копии данных создаются и проверяются | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |

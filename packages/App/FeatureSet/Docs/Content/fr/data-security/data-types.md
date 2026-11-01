@@ -35,7 +35,7 @@ Chaque analyse - une ligne de journal, une cellule CSV, une ligne de base de don
 | **Moyen** | La valeur a passé son validateur sans rien autour pour la confirmer, ou le nom du champ dit ce qu'il contient et certaines valeurs concordent. |
 | **Faible** | La forme correspond, mais rien ne la confirme. |
 
-Seules les détections de confiance Élevé ou Moyen comptent : elles rendent un magasin de données sensible et peuvent ouvrir un problème. Les détections de confiance Faible sont listées sur le magasin de données, repliées, pour qu'une personne en juge.
+Seules les détections de confiance Élevé ou Moyen comptent : elles rendent un magasin de données sensible et peuvent ouvrir un problème. Les détections de confiance Faible sont listées sur le magasin de données, repliées, pour qu'une personne en juge : **Confirmer** sur une détection juste la fait passer à Élevé, et elle reste Élevé lors des analyses suivantes.
 
 Quand deux types de données revendiquent les mêmes caractères, la détection la plus sûre l'emporte : la confiance la plus élevée, puis le détecteur dont les propres règles prouvent le plus, puis la correspondance la plus longue.
 
@@ -58,6 +58,12 @@ Le nom d'un champ est découpé en mots - `customerEmail`, `customer_email` et `
 Certains types de données ne se reconnaissent pas à leurs valeurs : aucun motif ne distingue le nom d'une personne d'une rue, ni une religion de n'importe quel autre mot. Ils sont trouvés d'après le seul nom du champ, quand le champ a des valeurs : Nom de personne, Nom d'utilisateur, Genre, Nationalité, Informations de santé, Origine raciale ou ethnique, Croyance religieuse, Orientation sexuelle, Opinion politique, Appartenance syndicale, Données biométriques, Données génétiques et Casier judiciaire. Un nom, un nom d'utilisateur, un genre ou une nationalité a alors une confiance Élevé quand 60 % ou plus des valeurs y ressemblent, et Moyen sinon.
 
 Un champ dont le nom dit qu'il contient un mot de passe - `password`, `passwordHash`, `pwd`, mais pas `password_changed_at` - devrait contenir un hachage : bcrypt, argon2, scrypt, PBKDF2 ou un autre schéma qu'un magasin de données est susceptible d'utiliser. Les valeurs vides, les valeurs fictives comme `********` et les valeurs chiffrées sont mises de côté. Quand le reste compte plus de valeurs qui ne sont pas des hachages que de valeurs qui en sont, le champ contient les mots de passe eux-mêmes, qu'aucun motif ne peut voir, et le magasin de données échoue au contrôle [Les mots de passe sont stockés en clair](/docs/data-security/checks-and-issues#hygiène-des-données).
+
+### Les champs qu'aucun détecteur n'a pu classer
+
+Une colonne ou un champ dont le nom n'évoque aucun type de données, et dont les valeurs ne correspondent à aucun détecteur, n'est pas connu comme sûr : ce peut être votre propre numéro de client, ou une colonne nommée dans une autre langue. Avec **Activer l'IA** activé pour le projet, une analyse du contenu conserve ces champs, 200 au plus par analyse, et OneUptime AI est interrogé sur le type de données du projet que contient chacun, 40 champs au plus d'un magasin de données à la fois. On lui donne le nom du champ, les noms des champs voisins et les formes de ses valeurs - chaque lettre écrite `a` ou `A` et chaque chiffre `9`, donc `AB-1234` devient `AA-9999` - jamais une valeur. Le texte libre, les champs de moins de 5 valeurs, les petits nombres entiers et les champs nommés comme un identifiant, une date ou un statut ne sont pas soumis.
+
+Chaque type que nomme OneUptime AI est une détection de confiance Faible, marquée **Suggéré par OneUptime AI**, avec sa raison. Comme toute détection de confiance Faible, elle ne compte pour rien tant qu'une personne ne choisit pas **Confirmer** sur la page **Contenu** du magasin de données ; **Marquer comme non sensible** la refuse. Un champ qui a reçu une réponse n'est pas soumis de nouveau pendant 30 jours, et un champ qu'une personne a jugé ne l'est plus jamais.
 
 ## Sensibilité
 

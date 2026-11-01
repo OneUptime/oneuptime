@@ -317,6 +317,29 @@ export default class AzureArm {
     body: JSONObject,
     step: string,
   ): Promise<JSONObject> {
+    return await this.write("PATCH", url, body, step);
+  }
+
+  /*
+   * A PUT of a JSON body on the management host, for a resource Azure
+   * changes only whole - a storage account's blob service - so the caller
+   * sends back what it read, with its one change. Held to the management
+   * host as a PATCH is.
+   */
+  public async put(
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> {
+    return await this.write("PUT", url, body, step);
+  }
+
+  private async write(
+    method: "PATCH" | "PUT",
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> {
     let host: string = "";
 
     try {
@@ -345,7 +368,7 @@ export default class AzureArm {
 
         const response: DataSourceHttpResponse = await LlmProviderHttp.send({
           transport: this.options.transport,
-          method: "PATCH",
+          method,
           url,
           headers: {
             Authorization: `Bearer ${token}`,

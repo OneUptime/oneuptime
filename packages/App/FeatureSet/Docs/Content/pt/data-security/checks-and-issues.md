@@ -1,13 +1,13 @@
 # Verificações e problemas da Segurança de dados
 
-A Segurança de dados executa 32 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele.
+A Segurança de dados executa 33 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele.
 
 :::cards
 - [Como uma verificação decide](#como-uma-verificação-decide): Passa, falha ou não consegue determinar, e o quão grave é uma falha.
-- [Todas as verificações](#todas-as-verificações): Todas as 32, com o que cada uma verifica e como corrigir.
+- [Todas as verificações](#todas-as-verificações): Todas as 33, com o que cada uma verifica e como corrigir.
 - [Pontuação de risco](#pontuação-de-risco): Como os problemas são ordenados dentro de uma gravidade.
 - [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema.
-- [Corrigir daqui](#corrigir-daqui): Bloqueie um bucket público, ou pare de compartilhar um snapshot, com um clique.
+- [Corrigir daqui](#corrigir-daqui): Feche uma exposição, ou ative uma proteção que falta, com um clique.
 :::
 
 ## Como uma verificação decide
@@ -75,6 +75,7 @@ A gravidade é dada para os dados de sensibilidade Restrito, Confidencial, Inter
 | Qualquer pessoa com a chave da conta pode ler tudo (`shared-key-access`) | Azure Storage Account | A conta de armazenamento permite o acesso por chave compartilhada, que ignora o Microsoft Entra ID e não deixa trilha de auditoria por pessoa. | Médio / Baixo / — / — | Migre os aplicativos para o Microsoft Entra ID e depois desative o acesso por chave da conta de armazenamento. |
 | Os objetos podem ter as próprias regras de acesso (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | As ACLs de objeto estão ativadas, então um objeto pode ser tornado público enquanto o bucket parece privado. | Baixo / Baixo / — / — | No S3, defina Object Ownership como Bucket owner enforced. No Cloud Storage, ative o acesso uniforme no nível do bucket. |
 | Mais de 25 identidades podem ler dados Restritos (`many-readers`) | Todo repositório, exceto telemetria | Mais identidades do que a maioria das equipes consegue revisar têm acesso de leitura ao repositório. | Médio / — / — / — | Abra a página **Quem pode acessar** do repositório e remova o acesso que não é usado ou é mais amplo do que o necessário. |
+| Identidades sem uso há 90 dias ainda podem acessá-lo (`unused-access`) | Todo repositório, exceto telemetria | Funções e usuários que não são usados há 90 dias ainda têm acesso aos dados sensíveis do repositório. | Médio / Baixo / — / — | Abra a página **Quem pode acessar** do repositório, onde eles aparecem marcados como **Sem uso há 90 dias**, e remova o acesso de que cada um não precisa mais. |
 
 ### Higiene de dados
 
@@ -160,14 +161,20 @@ Um problema que abre de novo mantém o seu histórico. Os riscos aceitos são ex
 
 ## Corrigir daqui
 
-Um problema aberto sobre um bucket público ou um snapshot compartilhado pode ser corrigido a partir da página dele. Acima dos passos no console, **Corrigir daqui** oferece a mudança que o corrige:
+Um problema aberto que uma única mudança nas configurações de um repositório corrige - um bucket público, um snapshot compartilhado, um bucket cujos arquivos excluídos não podem ser recuperados - pode ser corrigido a partir da página dele. Acima dos passos no console, **Corrigir daqui** oferece a mudança que o corrige:
 
 | O problema | O repositório dele | O botão | O que ele muda |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` ou `public-access-not-blocked` | Um bucket do S3, uma conta de armazenamento do Azure ou um bucket do Cloud Storage | **Bloquear acesso público** | Ativa as quatro configurações do Block Public Access do bucket, desativa o acesso anônimo a blobs da conta de armazenamento ou impõe a prevenção de acesso público do bucket |
 | `snapshot-public` ou `snapshot-shared-externally` | Um snapshot do RDS, um banco de dados RDS, ou um cluster Aurora ou DocumentDB | **Revogar compartilhamento** | Para de compartilhar o snapshot, ou cada snapshot manual compartilhado do banco de dados, com todos e com contas fora das que você conectou |
+| `deleted-data-not-recoverable` | Um bucket do S3 ou um bucket do Cloud Storage | **Ativar o versionamento** | Guarda a versão anterior de cada objeto sobrescrito ou excluído, até que uma regra de ciclo de vida a remova |
+| `deleted-data-not-recoverable` | Uma conta de armazenamento do Azure | **Ativar a exclusão reversível** | Guarda blobs e contêineres excluídos por 14 dias, para que possam ser restaurados |
+| `object-acls-enabled` | Um bucket do S3 | **Desativar as ACLs de objeto** | Define Object Ownership como Bucket owner enforced, para que só a política do bucket decida quem o lê |
+| `object-acls-enabled` | Um bucket do Cloud Storage | **Ativar o acesso uniforme** | Ativa o acesso uniforme no nível do bucket, para que só a política do IAM do bucket decida quem o lê |
+| `encryption-in-transit-not-enforced` ou `weak-tls` | Uma conta de armazenamento do Azure | **Exigir transferência segura** | Ativa a transferência segura e define a versão mínima do TLS como 1.2, para que a conta aceite só HTTPS com TLS 1.2 ou posterior |
+| `no-point-in-time-recovery` | Uma tabela do DynamoDB | **Ativar a recuperação pontual** | Permite restaurar a tabela a qualquer segundo dos últimos 35 dias |
 
-Ele pergunta primeiro, dizendo o que muda e o que para de funcionar. Ele muda como o repositório é compartilhado, nunca os dados dele, e não muda nada que já esteja fechado. Um repositório marcado como **Público por design** nunca é bloqueado.
+Ele pergunta primeiro, dizendo o que muda, o que para de funcionar e quanto custa. Ele muda as configurações do repositório, nunca os dados dele, e não muda nada que já esteja como deveria. Um repositório marcado como **Público por design** nunca é bloqueado.
 
 Ele age pela conexão de nuvem do repositório, então a conexão precisa de **Resposta de segurança de dados** ativada e do comando de configuração dela executado de novo (veja [Configurar a Segurança de dados](/docs/data-security/setup#deixe-a-segurança-de-dados-fechar-uma-exposição)). Até lá, o painel diz o que ativar. O repositório é verificado de novo logo depois, e o problema se resolve sozinho quando a verificação dele passa. A **Linha do tempo** do problema e a **Linha do tempo** do repositório dizem o que foi feito, e quem fez.
 

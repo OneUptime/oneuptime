@@ -5,6 +5,7 @@ import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../../../Models/DatabaseModels/StatusPageResource";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
+import DataSecurityIdentityService from "../../../../../Server/Services/DataSecurityIdentityService";
 import HostOwnerTeamService from "../../../../../Server/Services/HostOwnerTeamService";
 import HostOwnerUserService from "../../../../../Server/Services/HostOwnerUserService";
 import HostService from "../../../../../Server/Services/HostService";
@@ -25,6 +26,7 @@ import SecurityCaseImpact, {
   buildReachedRequestsStatement,
   getCaseAddresses,
 } from "../../../../../Server/Utils/SecurityCase/Context/SecurityCaseImpact";
+import SecurityCaseDataAtRisk from "../../../../../Server/Utils/SecurityCase/Context/SecurityCaseDataAtRisk";
 import SecurityConnections from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
 import TelemetryReadAccess from "../../../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import TopologyQueries from "../../../../../Server/Utils/Topology/TopologyQueries";
@@ -520,6 +522,84 @@ describe("SecurityCaseImpact.build", () => {
 
     expect(json.unreadableSources).toEqual([SecurityCaseImpactSource.Records]);
     expect(json.hasMoreRecords).toBe(true);
+  });
+
+  test("names the data the case puts at risk, read as the reader from the case's entities", async () => {
+    const entities: Array<JSONObject> = [
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
+      {
+        type: SecurityEntityType.User,
+        value: "arn:aws:sts::123456789012:assumed-role/exporter/i-0abc",
+      },
+    ];
+    caseRead(entities);
+
+    const dataAtRisk: jest.SpyInstance = jest
+      .spyOn(SecurityCaseDataAtRisk, "read")
+      .mockResolvedValue({
+        stores: [
+          {
+            id: "s1",
+            name: "card-vault",
+            kind: "AWS S3 bucket",
+            sensitivity: "Restricted",
+            dataTypeIds: ["credit-card-number"],
+            estimatedRecords: 1200000,
+            exposure: "Public",
+            isNamedByCase: false,
+            reachedThrough: ["exporter"],
+            identityCount: 14,
+            externalIdentityCount: 2,
+          },
+        ],
+        identities: [],
+        hasMoreStores: false,
+      });
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(
+      json.dataAtRisk?.stores.map((store: { name: string }) => {
+        return store.name;
+      }),
+    ).toEqual(["card-vault"]);
+    expect(dataAtRisk).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      entities,
+      props: CALLER,
+    });
+  });
+
+  test("a role that cannot read Data Security sees the data stores named among what it cannot read", async () => {
+    caseRead([
+      {
+        type: SecurityEntityType.User,
+        value: "arn:aws:iam::123456789012:role/app",
+      },
+    ]);
+    jest
+      .spyOn(DataSecurityIdentityService, "findBy")
+      .mockRejectedValue(new NotAuthorizedException("no"));
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(json.dataAtRisk).toBeNull();
+    expect(json.unreadableSources).toEqual([
+      SecurityCaseImpactSource.DataStores,
+    ]);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("data at risk that could not be read is said, and the rest of the impact is told", async () => {
+    jest
+      .spyOn(SecurityCaseDataAtRisk, "read")
+      .mockRejectedValue(new Error("connection reset"));
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(json.dataAtRisk).toBeNull();
+    expect(json.failedSources).toEqual([SecurityCaseImpactSource.DataStores]);
+    expect(json.records).toHaveLength(2);
   });
 
   test("reads every fact as the reader", async () => {

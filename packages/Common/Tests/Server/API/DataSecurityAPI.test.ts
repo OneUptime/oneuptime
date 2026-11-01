@@ -1543,7 +1543,8 @@ describe("Compliance", () => {
       status: ComplianceRequirementStatus.Failing,
       failingIssueCount: 1,
     });
-    expect(pci.score).toBe(86);
+    // Seven of its eight requirements pass: 87.5, rounded.
+    expect(pci.score).toBe(88);
     expect(pci.fullName).toBe("PCI DSS v4.0");
 
     const lgpd: DataSecurityComplianceFramework = answer.frameworks.find(

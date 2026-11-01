@@ -753,6 +753,9 @@ export default class DataSecurityDiscovery {
         columns["lastUsedAt"] = entry.lastUsedAt;
       }
 
+      // Unknown is not unused: an entry the reader could not judge is not.
+      columns["isUnused"] = entry.isUnused === true;
+
       const existing: DataStoreAccess | undefined = byKey.get(accessKey);
 
       if (existing?.id) {
