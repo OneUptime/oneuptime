@@ -4,6 +4,7 @@ import { getStoreProviderName } from "./StoreFieldOptions";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
+import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
 import Route from "Common/Types/API/Route";
 import {
   Gray500,
@@ -20,6 +21,7 @@ import { DataStoreProvider } from "Common/Types/DataSecurity/DataStoreKind";
 import ObjectID from "Common/Types/ObjectID";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import {
   PluralTemplate,
   Translator,
@@ -223,6 +225,37 @@ export const IdentityLevelCell: FunctionComponent<{
         <></>
       )}
     </div>
+  );
+};
+
+/*
+ * What grants an entry its access, as its cloud's settings say it - a
+ * bucket policy, an IAM policy, a role it may assume. A service seen
+ * calling the store has no grant to name: it says "Seen in traces", in the
+ * reader's language, where the server's own words are English
+ * (DataSecurityTracedAccess).
+ */
+export const GrantedViaCell: FunctionComponent<{
+  access: DataStoreAccess;
+}> = (props: { access: DataStoreAccess }): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (props.access.isSeenInTraces) {
+    return (
+      <span className="text-sm text-gray-700">
+        {translator.translateText(SEEN_IN_TRACES)}
+      </span>
+    );
+  }
+
+  if (!props.access.grantedVia) {
+    return <TableEmptyValue />;
+  }
+
+  return (
+    <span className="text-sm text-gray-700 [overflow-wrap:anywhere]">
+      <IsolatedText text={props.access.grantedVia} />
+    </span>
   );
 };
 

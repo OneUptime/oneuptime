@@ -1,6 +1,6 @@
 import AppLink from "../AppLink/AppLink";
 import { SensitivityPill } from "./DataSecurityPills";
-import { AccessLevelPill } from "./IdentityCells";
+import { AccessLevelPill, GrantedViaCell } from "./IdentityCells";
 import { getStoreViewRoute } from "./IssueListRoute";
 import IssueMoment from "./IssueMoment";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
@@ -121,6 +121,7 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
         dataStoreId: true,
         accessLevel: true,
         grantedVia: true,
+        isSeenInTraces: true,
         lastUsedAt: true,
         isUnused: true,
         dataStore: { name: true, kind: true, sensitivity: true },
@@ -228,11 +229,7 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
                   wrapMaxWidthClassName: "max-w-xs",
                   hideOnMobile: true,
                   getElement: (access: DataStoreAccess): ReactElement => {
-                    return (
-                      <span className="text-sm text-gray-700 [overflow-wrap:anywhere]">
-                        <IsolatedText text={access.grantedVia || "-"} />
-                      </span>
-                    );
+                    return <GrantedViaCell access={access} />;
                   },
                 },
                 {

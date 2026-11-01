@@ -1,5 +1,6 @@
 import AppLink from "../AppLink/AppLink";
 import { SensitivityPill } from "./DataSecurityPills";
+import { GrantedViaCell } from "./IdentityCells";
 import { getStoreViewRoute } from "./IssueListRoute";
 import IssueMoment from "./IssueMoment";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
@@ -233,11 +234,7 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-xs",
           getElement: (access: DataStoreAccess): ReactElement => {
-            return (
-              <span className="text-sm text-gray-700 [overflow-wrap:anywhere]">
-                <IsolatedText text={access.grantedVia || "-"} />
-              </span>
-            );
+            return <GrantedViaCell access={access} />;
           },
         },
         {

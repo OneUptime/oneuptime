@@ -30,6 +30,8 @@ const NOW: Date = new Date("2026-10-27T12:00:00.000Z");
 
 const BASE: string = `/dashboard/${PROJECT_ID}/data-security`;
 const BUCKET: string = "20000000-0000-4000-8000-000000000001";
+// The database a role unused for months can still read.
+const ORDERS_DB: string = "20000000-0000-4000-8000-000000000002";
 const PUBLIC_BUCKET_ISSUE: string = "30000000-0000-4000-8000-000000000001";
 // The same bucket's deleted files cannot be recovered: Turn On Versioning.
 const VERSIONING_ISSUE: string = "30000000-0000-4000-8000-000000000006";
@@ -736,6 +738,29 @@ test.describe("who can reach the data", () => {
     await page.waitForLoadState("networkidle");
     expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
     await screenshot(page, "identity-fa-1280");
+  });
+
+  test("a store's Who Can Reach It marks the access not used in 90 days, as its issue asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${BASE}/stores/${ORDERS_DB}/access`);
+
+    await expect(
+      page
+        .locator("tbody tr")
+        .filter({ hasText: "legacy-etl" })
+        .getByTestId("data-store-access-unused"),
+    ).toHaveText("Not used in 90 days");
+    // Access in use is not marked.
+    await expect(
+      page
+        .locator("tbody tr")
+        .filter({ hasText: "checkout" })
+        .getByTestId("data-store-access-unused"),
+    ).toHaveCount(0);
+    await screenshot(page, "store-access-unused-1280");
   });
 
   test("a new project's Access says nothing reaches its stores yet", async ({
