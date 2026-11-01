@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import PageComponentProps from "../../PageComponentProps";
 import { SEVERITY_COLOR } from "../../../Components/DataSecurity/DataSecurityPills";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
@@ -261,9 +262,10 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
       </dl>
 
       {props.error ? (
-        <p className="mt-2 pl-14 text-sm text-red-600" role="alert">
-          {props.error}
-        </p>
+        <FieldError
+          message={props.error}
+          className="mt-2 pl-14 text-sm text-red-600"
+        />
       ) : (
         <></>
       )}

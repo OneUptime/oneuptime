@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import ObjectID from "../../../Types/ObjectID";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
@@ -1297,16 +1298,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           }
         }}
       />
-      {props.error && (
-        <p
-          id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {tx(props.error) ?? props.error}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
     </div>
   );
 };

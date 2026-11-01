@@ -38,6 +38,9 @@ import {
  *   - An installation's only logo, made for light backgrounds, sits on a
  *     light plate on a dark page; its logo for dark backgrounds, when it has
  *     one, is drawn as it is.
+ *   - A session ending, by Log out or by lapsing, forgets the person and
+ *     leaves the browser's theme, language and cookie answer: the sign-in
+ *     page opens in them, and another open tab never hears otherwise.
  *
  * Screenshots of every page in both themes are saved for review under
  * output/playwright/accounts-theme-ui.
@@ -51,6 +54,7 @@ interface FixtureRecord {
 declare global {
   interface Window {
     __accountsThemeFixture: FixtureRecord;
+    __accountsThemeSession: { logOut: () => void; lapse: () => void };
   }
 }
 
@@ -950,6 +954,232 @@ test.describe("in a long language and one read right to left", () => {
       });
     }
   }
+});
+
+test.describe("a session that ends", () => {
+  /*
+   * What a browser holds when a session ends: the browser's own, which stays,
+   * and the person's, which goes. Written on the open page and not with
+   * keep(): keep() writes again on any visit whose session storage is empty,
+   * which is every visit after signing out, and would put back the very picks
+   * these tests are about.
+   */
+  const THE_BROWSERS_OWN: Record<string, string> = {
+    [THEME_KEY]: "dark",
+    [LANGUAGE_KEY]: "de",
+    cookiesAccepted: "false",
+  };
+
+  const THE_PERSONS_OWN: Record<string, string> = {
+    user_name: "Ada Lovelace",
+    project: '{"name":"Acme"}',
+    "oneuptime-dashboard-time-range:11111111-1111-4111-8111-111111111111":
+      "OneDay",
+  };
+
+  const fillBrowser: (
+    page: Page,
+    entries: Record<string, string>,
+  ) => Promise<void> = async (
+    page: Page,
+    entries: Record<string, string>,
+  ): Promise<void> => {
+    await page.evaluate((kept: Record<string, string>): void => {
+      for (const key of Object.keys(kept)) {
+        window.localStorage.setItem(key, kept[key]!);
+      }
+    }, entries);
+  };
+
+  const whatTheBrowserKeeps: (
+    page: Page,
+  ) => Promise<Record<string, string>> = async (
+    page: Page,
+  ): Promise<Record<string, string>> => {
+    return page.evaluate((): Record<string, string> => {
+      const kept: Record<string, string> = {};
+
+      for (let index: number = 0; index < localStorage.length; index++) {
+        const key: string = localStorage.key(index)!;
+        kept[key] = localStorage.getItem(key)!;
+      }
+
+      return kept;
+    });
+  };
+
+  // The sign-in page as a person who picked Dark and German left it.
+  const openSignedIn: (page: Page, address: string) => Promise<void> = async (
+    page: Page,
+    address: string,
+  ): Promise<void> => {
+    await page.goto(address);
+    await fillBrowser(page, { ...THE_BROWSERS_OWN, ...THE_PERSONS_OWN });
+    await page.reload();
+    await expectScheme(page, "dark");
+    await expect(page.locator("html")).toHaveAttribute("lang", "de");
+  };
+
+  test("Log out leaves the theme, the language and the cookie answer, and nothing of the person's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openSignedIn(page, "/accounts/login");
+    await expect(page.getByTestId("email")).toBeVisible();
+
+    await page.evaluate((): void => {
+      window.__accountsThemeSession.logOut();
+    });
+
+    expect(await whatTheBrowserKeeps(page)).toEqual(THE_BROWSERS_OWN);
+
+    // The sign-in page, opened fresh: a pick of Dark on a light device.
+    await page.reload();
+    await expect(page.getByTestId("email")).toBeVisible();
+    await expectScheme(page, "dark");
+    await expect(page.locator("html")).toHaveAttribute("lang", "de");
+  });
+
+  test("a pick of Light stays light on a dark device", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/accounts/login");
+    await fillBrowser(page, {
+      [THEME_KEY]: "light",
+      user_name: "Ada Lovelace",
+    });
+
+    await page.evaluate((): void => {
+      window.__accountsThemeSession.logOut();
+    });
+
+    await page.reload();
+    await expect(page.getByTestId("email")).toBeVisible();
+    await expectScheme(page, "light");
+  });
+
+  test("a browser where nobody picked still follows the device", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/accounts/login");
+
+    await page.evaluate((): void => {
+      window.__accountsThemeSession.logOut();
+    });
+
+    await page.reload();
+    await expect(page.getByTestId("email")).toBeVisible();
+    await expectScheme(page, "dark");
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await expectScheme(page, "light");
+  });
+
+  test("a session that lapses goes to the sign-in page by itself, in the person's theme and language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openSignedIn(page, "/accounts/forgot-password");
+
+    await page.evaluate((): void => {
+      window.__accountsThemeSession.lapse();
+    });
+
+    await page.waitForURL("**/accounts/login");
+    await expect(page.getByTestId("email")).toBeVisible();
+    await expectScheme(page, "dark");
+    await expect(page.locator("html")).toHaveAttribute("lang", "de");
+    expect(await whatTheBrowserKeeps(page)).toMatchObject(THE_BROWSERS_OWN);
+    expect(
+      await page.evaluate((): string | null => {
+        return localStorage.getItem("user_name");
+      }),
+    ).toBeNull();
+  });
+
+  test("another open tab hears the person go, and never that the theme did", async ({
+    context,
+  }: {
+    context: BrowserContext;
+  }) => {
+    const signingOut: Page = await context.newPage();
+    const otherTab: Page = await context.newPage();
+
+    await signingOut.emulateMedia({ colorScheme: "light" });
+    await otherTab.emulateMedia({ colorScheme: "light" });
+
+    await openSignedIn(signingOut, "/accounts/login");
+    await otherTab.goto("/accounts/login");
+    await expect(otherTab.getByTestId("email")).toBeVisible();
+    await expectScheme(otherTab, "dark");
+
+    await otherTab.evaluate((): void => {
+      const witness: { heard: Array<string | null>; drawn: Array<string> } = {
+        heard: [],
+        drawn: [],
+      };
+
+      (window as unknown as { witness: typeof witness }).witness = witness;
+
+      window.addEventListener("storage", (event: StorageEvent): void => {
+        witness.heard.push(event.key);
+      });
+
+      new MutationObserver((): void => {
+        witness.drawn.push(
+          document.documentElement.getAttribute("data-theme") || "",
+        );
+      }).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class", "data-theme"],
+      });
+    });
+
+    await signingOut.evaluate((): void => {
+      window.__accountsThemeSession.logOut();
+    });
+
+    const heard: () => Promise<Array<string | null>> = async (): Promise<
+      Array<string | null>
+    > => {
+      return otherTab.evaluate((): Array<string | null> => {
+        return (
+          window as unknown as {
+            witness: { heard: Array<string | null> };
+          }
+        ).witness.heard;
+      });
+    };
+
+    // It hears each of the person's keys go, one by one.
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await heard()).length;
+      })
+      .toBe(Object.keys(THE_PERSONS_OWN).length);
+
+    expect((await heard()).sort()).toEqual(Object.keys(THE_PERSONS_OWN).sort());
+
+    // Never that everything went (null), so it never redrew without the pick.
+    expect(await heard()).not.toContain(null);
+    expect(
+      await otherTab.evaluate((): Array<string> => {
+        return (window as unknown as { witness: { drawn: Array<string> } })
+          .witness.drawn;
+      }),
+    ).toEqual([]);
+    await expectScheme(otherTab, "dark");
+  });
 });
 
 test.describe("what a dark page draws quietly", () => {

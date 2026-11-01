@@ -2352,7 +2352,12 @@ describe("SessionReplayIngestService.processFromQueue", () => {
       expect(chunk["routes"]).toEqual(["https://shop.example.com/legacy"]);
     });
 
-    test("a route repeated across the chunk is stored once", async () => {
+    /*
+     * Issue #5375. User Flows reads a journey from this list, so a page the
+     * user came back to has to stay where it happened. Stored once, the
+     * journey below ended on / when the user left from /cart.
+     */
+    test("a page the user returned to is stored again, in order", async () => {
       await SessionReplayIngestService.processFromQueue(
         buildJobData(
           buildBody([
@@ -2372,6 +2377,94 @@ describe("SessionReplayIngestService.processFromQueue", () => {
       const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
 
       expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/cart",
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+      ]);
+    });
+
+    test("a page repeated back to back is stored once", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/cart",
+              routes: [
+                "https://shop.example.com/",
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+                "https://shop.example.com/cart",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+      ]);
+    });
+
+    /*
+     * An older recorder's list is a set in first-seen order: a return to an
+     * earlier page does not move it. The chunk's own url is the one fact
+     * that still says where the user left from, so it closes the list even
+     * though the page is already in it.
+     */
+    test("the list ends on the flush url even when the page is already in it", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/",
+              routes: [
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/",
+      ]);
+    });
+
+    /*
+     * The header's routes[] is a membership set ("sessions that reached
+     * /checkout"), and the list shows its first entries as the session's
+     * pages: a chunk's repeats must not reach it.
+     */
+    test("the provisional header keeps each page once", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/cart",
+              routes: [
+                "https://shop.example.com/cart",
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["routes"]).toEqual([
         "https://shop.example.com/cart",
         "https://shop.example.com/",
       ]);

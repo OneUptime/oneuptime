@@ -1052,7 +1052,7 @@ describe("ExceptionMonitorMeasureReader.read: the learned baseline", () => {
   });
 
   test("a baseline that cannot be read is logged and left out; the check stands", async () => {
-    const errors: SpyInstance = jest
+    const errors: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((() => {
         return undefined;

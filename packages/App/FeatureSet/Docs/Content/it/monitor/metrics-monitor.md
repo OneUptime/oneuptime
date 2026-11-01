@@ -131,7 +131,7 @@ Questi monitor valutano sempre il **Metric Value**: il valore aggregato della qu
 | **Nessun dato** | assente: la query non ha inviato nulla nella finestra |
 | **Dati presenti** | presente: la query ha inviato qualcosa nella finestra |
 
-Le condizioni di anomalia non hanno soglia. **Quando avvisare** mostra invece **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto), e i criteri personalizzati anche una **Finestra di riferimento** (14 giorni, quella predefinita, 28, 60 o 90), e ogni punto dati viene confrontato con il riferimento della stessa ora della settimana costruito su quella finestra. Finché quell'ora della settimana non ha abbastanza storico, il criterio sta ancora imparando e non genera avvisi.
+Le condizioni di anomalia non hanno soglia. **Quando avvisare** mostra invece **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto), e i criteri personalizzati anche una **Finestra di riferimento** (14 giorni, quella predefinita, 28, 60 o 90), e ogni punto dati viene confrontato con la stessa ora della settimana nei giorni precedenti, fin dove arriva quella finestra. Ciò che accade adesso non fa mai parte di questo confronto, quindi un cambiamento che dura continua ad avvisare finché, una settimana dopo, non è entrato in quei giorni precedenti. Finché quell'ora della settimana non ha due settimane di storico, il criterio sta ancora imparando e non genera avvisi.
 
 Un monitor metriche creato in Crea monitor parte con una regola sulla sua prima query: **La media** in **Ultimi 5 minuti**, **Sopra** il **Valore** che inserite, e **Crea un avviso**.
 
@@ -214,7 +214,7 @@ La query non ha **Raggruppa per**, quindi tutti gli host vengono ridotti a un so
 :::
 
 :::details Un criterio di anomalia non scatta mai
-Sta ancora imparando: l'ora della settimana con cui confronta non ha ancora abbastanza storico nella **Finestra di riferimento**.
+Sta ancora imparando: l'ora della settimana con cui confronta non ha ancora due settimane di storico.
 :::
 
 ## Passaggi successivi

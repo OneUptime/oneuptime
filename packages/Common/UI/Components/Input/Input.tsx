@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 // Tailwind
 import { Logger } from "../../Utils/Logger";
 import joinAriaIds from "../../Utils/AriaIds";
@@ -178,16 +179,23 @@ const Input: FunctionComponent<ComponentProps> = (
   const errorId: string = `input-error-${useId()}`;
   let className: string = "";
 
+  /*
+   * Room at the field's end for the error's icon: pr-10 in place of pr-3.
+   * Written beside pr-3 it never applied - Tailwind's stylesheet puts pr-3
+   * after pr-10 - so a value ran under the icon; on a Persian page an
+   * English value starts at the left, where the icon is.
+   */
   if (!props.className) {
-    className =
-      "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
+    className = `block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 ${
+      props.error ? "pr-10" : "pr-3"
+    } text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm`;
   } else {
-    className = props.className;
+    className = props.error ? `${props.className} pr-10` : props.className;
   }
 
   if (props.error) {
     className +=
-      " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
+      " border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
   }
 
   if (props.disabled) {
@@ -433,16 +441,7 @@ const Input: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      {props.error && (
-        <p
-          id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {translateString(props.error)}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
     </>
   );
 };

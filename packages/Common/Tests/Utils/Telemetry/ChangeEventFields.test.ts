@@ -40,6 +40,7 @@ describe("change event wire values", () => {
       "api",
       "service-version",
       "kubernetes",
+      "app-platform",
       "oneuptime-ai",
       "runbook",
       "cloud",
@@ -359,6 +360,56 @@ describe("describeChangeEventFields", () => {
     );
   });
 
+  test("an App Platforms deploy names the app and the revision it replaced", () => {
+    const fields: ChangeEventFields = readChangeEventFields({
+      "oneuptime.change.source": "app-platform",
+      "oneuptime.app_platform.app": "production/checkout-api",
+      "oneuptime.app_platform.app_id": "app-id",
+      "oneuptime.app_platform.revision": "43",
+      "oneuptime.change.previous_revision": "42",
+      "cloud.platform": "aws_ecs",
+      "oneuptime.resource.type": "CloudResource",
+      "oneuptime.resource.id": "environment-id",
+    });
+
+    expect(fields).toEqual({
+      source: ChangeEventSource.AppPlatform,
+      appPlatformApp: "production/checkout-api",
+      appPlatformAppId: "app-id",
+      appPlatformRevision: "43",
+      previousRevision: "42",
+      cloudPlatform: "aws_ecs",
+      resourceType: "CloudResource",
+      resourceId: "environment-id",
+    });
+    expect(describeChangeEventFields(fields)).toBe(
+      "app production/checkout-api, revision 42 → 43, recorded from a new revision on an app platform",
+    );
+    // An app's first recorded revision has none before it.
+    expect(
+      describeChangeEventFields({
+        appPlatformApp: "api",
+        appPlatformRevision: "api-00042-xyz",
+      }),
+    ).toBe("app api, revision api-00042-xyz");
+  });
+
+  test("an App Platforms change's keys sit under the reserved prefix, but cloud.platform is OpenTelemetry's", () => {
+    expect(ChangeEventAttribute.AppPlatformApp).toBe(
+      "oneuptime.app_platform.app",
+    );
+    expect(ChangeEventAttribute.AppPlatformAppId).toBe(
+      "oneuptime.app_platform.app_id",
+    );
+    expect(ChangeEventAttribute.AppPlatformRevision).toBe(
+      "oneuptime.app_platform.revision",
+    );
+    expect(ChangeEventAttribute.PreviousRevision).toBe(
+      "oneuptime.change.previous_revision",
+    );
+    expect(ChangeEventAttribute.CloudPlatform).toBe("cloud.platform");
+  });
+
   test("nothing known says nothing", () => {
     expect(describeChangeEventFields({})).toBe("");
   });
@@ -374,6 +425,9 @@ describe("describeChangeEventSource", () => {
     );
     expect(describeChangeEventSource(ChangeEventSource.Kubernetes)).toBe(
       "a new Kubernetes ReplicaSet",
+    );
+    expect(describeChangeEventSource(ChangeEventSource.AppPlatform)).toBe(
+      "a new revision on an app platform",
     );
     expect(describeChangeEventSource(ChangeEventSource.OneUptimeAi)).toBe(
       "a fix OneUptime AI ran",

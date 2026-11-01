@@ -30,6 +30,7 @@ Você não precisa enviar nada para que estas alterações sejam registradas. O 
 | --- | --- | --- |
 | Um deploy | Um serviço começa a reportar uma `service.version` que ainda não tinha reportado no seu ambiente | `service-version` |
 | Um rollout | Os pods de um Deployment do Kubernetes começam a executar um ReplicaSet que ainda não tinham executado: uma nova imagem, uma variável de ambiente ou uma referência de configuração alterada, ou um reinício | `kubernetes` |
+| Uma implantação de app | Um app numa plataforma de aplicativos gerenciada, como um serviço do ECS ou um serviço do Cloud Run, começa a executar uma revisão que ainda não tinha executado, ou volta para uma que executou antes | `app-platform` |
 | Uma correção que a OneUptime AI executou | Um agente de IA reporta o resultado de um comando que altera algo, como `kubectl rollout restart` | `oneuptime-ai` |
 | Um runbook | Um runbook que o OneUptime executou é concluído, falha ou é cancelado depois de ter começado | `runbook` |
 | Uma alteração na nuvem | O log de atividades de uma conta de nuvem conectada registra uma alteração: AWS CloudTrail, o log de atividades do Azure ou o log de auditoria Admin Activity do Google Cloud | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Um rollout precisa do [agente Kubernetes](/docs/telemetry/kubernetes-agent), que marca a telemetria de cada pod com o Deployment e o ReplicaSet dele.
+
+Uma implantação de app precisa de um app rodando numa [plataforma de aplicativos gerenciada](/docs/telemetry/cloud-environments#apps-e-implantações). Ela é registrada no ambiente do app e desenhada nos gráficos do ambiente e nos do próprio app, e lá um rollback para uma revisão que o app executou antes também é registrado.
 
 Uma alteração na nuvem ou um evento do provedor precisa de uma [conta de nuvem conectada](/docs/telemetry/cloud-accounts). Cada um fica vinculado ao recurso de nuvem que ele nomeia, quando o OneUptime lista esse recurso, e aparece nos gráficos do recurso. O tipo vem da operação: `deployment`, `scaling` ou `rollback` quando o nome da operação diz isso, `config-change` nos outros casos, e `provider-event` para um evento de integridade. Gráficos que não estão filtrados para nenhum recurso deixam de fora o log de atividades de uma conta de nuvem, para que uma conta movimentada não esconda os seus deploys; os eventos de integridade do provedor continuam neles.
 

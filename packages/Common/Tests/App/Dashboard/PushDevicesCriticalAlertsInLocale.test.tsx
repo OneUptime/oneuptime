@@ -20,6 +20,8 @@ import {
   PushDevicePlatform,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlerts";
 import { getMobileAppServerUrl } from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppServerUrl";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * The push devices card's critical alerts in every language the Dashboard
@@ -110,7 +112,16 @@ function expectedStep(language: string, template: string): string {
     );
 }
 
+/*
+ * The steps' words, as read: a Persian step sets the app's labels apart
+ * from its words in isolates (TranslatedSentence), which the next test
+ * looks at on its own.
+ */
 function stepsShown(): Array<string> {
+  return stepsDrawn().map(withoutIsolateMarks);
+}
+
+function stepsDrawn(): Array<string> {
   return Array.from(
     screen.getByTestId("critical-alert-steps-list").querySelectorAll("li > p"),
   ).map((step: Element): string => {
@@ -199,6 +210,29 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
 
       expect([...bold].sort()).toEqual([...expectedLabels].sort());
 
+      /*
+       * In a language read right to left each of the app's labels is set
+       * apart from the words around it, so a label in Latin letters keeps
+       * its place in the sentence; elsewhere the steps are as written.
+       */
+      for (const [index, step] of stepsDrawn().entries()) {
+        const labels: Array<string> = Array.from(
+          (templates[index] || "").matchAll(APP_LABEL_PLACEHOLDER),
+        ).map((match: RegExpMatchArray): string => {
+          return APP_LABEL_OF[match[1]!]!;
+        });
+
+        for (const label of labels) {
+          expect({ label, isSetApart: step.includes(isolated(label)) }).toEqual(
+            { label, isSetApart: isRightToLeftLanguage(language) },
+          );
+        }
+
+        if (!isRightToLeftLanguage(language)) {
+          expect(step).toBe(withoutIsolateMarks(step));
+        }
+      }
+
       // Nothing left unfilled.
       expect(list.textContent).not.toContain("{{");
     },
@@ -221,7 +255,7 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
     const paragraphs: Array<string> = Array.from(
       note.querySelectorAll("p"),
     ).map((paragraph: Element): string => {
-      return paragraph.textContent || "";
+      return withoutIsolateMarks(paragraph.textContent || "");
     });
 
     for (const english of [
@@ -272,7 +306,7 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       "test-notification-did-not-ring",
     );
 
-    expect(hint.textContent).toBe(
+    expect(withoutIsolateMarks(hint.textContent || "")).toBe(
       expectedStep(language, CRITICAL_ALERT_TEST_DID_NOT_RING),
     );
     expect(

@@ -72,6 +72,12 @@ export interface SpanScope {
    * OpenTelemetry browser SDK records for each full page load.
    */
   spanName?: string | undefined;
+  /*
+   * Only the spans where work enters a service (isEntrySpan: a root span,
+   * or a SERVER or CONSUMER span) - its requests, not the database calls
+   * and internal steps under them. App Platforms counts requests so.
+   */
+  entrySpansOnly?: boolean | undefined;
   start: Date;
   end: Date;
 }
@@ -157,6 +163,9 @@ export const fetchSpanMetrics: (
   }
   if (scope.spanName) {
     baseQuery.name = scope.spanName;
+  }
+  if (scope.entrySpansOnly) {
+    baseQuery.isEntrySpan = true;
   }
   if (scope.attributes && Object.keys(scope.attributes).length > 0) {
     baseQuery.attributes = scope.attributes;

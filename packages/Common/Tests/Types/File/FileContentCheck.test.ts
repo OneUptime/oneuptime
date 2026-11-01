@@ -297,6 +297,32 @@ describe("what is never taken", () => {
     expect(check(MimeType.png, bytes([0x89, 0x50]))).toBe(false);
     expect(check(MimeType.webp, bytes("RIFF"))).toBe(false);
   });
+
+  /*
+   * A type is the uploader's word, and the rules are an object's keys: a
+   * name every object has is no rule (CodeQL's unvalidated dynamic method
+   * call, 14.0.100's first gate). Before, "constructor" was Object, which
+   * hands the head back, so any file declared as it passed.
+   */
+  test.each([
+    "constructor",
+    "toString",
+    "valueOf",
+    "hasOwnProperty",
+    "__proto__",
+    "__defineGetter__",
+    "isPrototypeOf",
+  ])(
+    "a type named %s, which every object has, is refused, whatever the bytes",
+    (fileType: string) => {
+      const page: Uint8Array = bytes("<html><script>alert(1)</script></html>");
+
+      expect(hasFileContentRule(fileType)).toBe(false);
+      expect(hasFileContentRule(` ${fileType.toUpperCase()} `)).toBe(false);
+      expect(check(fileType, page)).toBe(false);
+      expect(check(fileType, SAMPLES[MimeType.png]!)).toBe(false);
+    },
+  );
 });
 
 describe("only the start of a file is read", () => {

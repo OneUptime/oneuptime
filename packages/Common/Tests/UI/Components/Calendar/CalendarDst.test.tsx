@@ -124,7 +124,10 @@ const getDayColumns: (container: HTMLElement) => Array<HTMLElement> = (
   );
 };
 
-// Found through its header ("08 Sun"), not assumed from the locale's first weekday.
+/*
+ * Found through its header ("8 Sun": a day's number without a leading zero,
+ * as the calendar writes it), not assumed from the locale's first weekday.
+ */
 const getDayColumn: (container: HTMLElement, date: Date) => HTMLElement = (
   container: HTMLElement,
   date: Date,
@@ -139,7 +142,7 @@ const getDayColumn: (container: HTMLElement, date: Date) => HTMLElement = (
   expect(headers).toHaveLength(7);
   expect(columns).toHaveLength(7);
 
-  const label: string = moment(date).format("DD ddd");
+  const label: string = moment(date).format("D ddd");
   const index: number = headers.findIndex((header: HTMLElement): boolean => {
     return header.textContent === label;
   });

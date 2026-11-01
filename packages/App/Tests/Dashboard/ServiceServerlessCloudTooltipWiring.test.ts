@@ -570,9 +570,9 @@ describe("Cloud fleet summary tooltips", () => {
   const component: string = readCode("Components/Cloud/CloudFleetSummary.tsx");
 
   const EXPECTED: Record<string, string> = {
+    Apps: "apps",
     Environments: "environments",
-    Connected: "connected",
-    Disconnected: "disconnected",
+    Deploys: "deploys",
     "Live instances": "liveInstances",
   };
 
@@ -678,6 +678,9 @@ describe("Cloud Instances tab tooltips", () => {
   // Column title -> description key, or null for a column with no metric.
   const EXPECTED_COLUMNS: Record<string, string | null> = {
     Instance: null,
+    // The app each task runs, on an environment's list; and its revision.
+    App: null,
+    Revision: null,
     Status: null,
     CPU: "cpu",
     Memory: "memory",

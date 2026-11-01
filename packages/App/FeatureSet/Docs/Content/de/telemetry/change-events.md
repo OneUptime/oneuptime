@@ -30,6 +30,7 @@ Dafür müssen Sie nichts senden. OneUptime zeichnet diese Änderungen anhand de
 | --- | --- | --- |
 | Ein Deploy | Ein Dienst beginnt, eine `service.version` zu melden, die er in seiner Umgebung noch nie gemeldet hat | `service-version` |
 | Ein Rollout | Die Pods eines Kubernetes-Deployments beginnen, ein ReplicaSet auszuführen, das sie noch nie ausgeführt haben: ein neues Image, eine geänderte Umgebungsvariable oder Konfigurationsreferenz oder ein Neustart | `kubernetes` |
+| Ein App-Deployment | Eine App auf einer verwalteten App-Plattform, etwa ein ECS-Service oder ein Cloud-Run-Dienst, beginnt, eine Revision auszuführen, die sie noch nie ausgeführt hat, oder kehrt zu einer zurück, die sie früher ausgeführt hat | `app-platform` |
 | Eine Korrektur von OneUptime AI | Ein KI-Agent meldet das Ergebnis eines Befehls, der etwas ändert, etwa `kubectl rollout restart` | `oneuptime-ai` |
 | Ein Runbook | Ein Runbook, das OneUptime ausgeführt hat, wird abgeschlossen, schlägt fehl oder wird nach seinem Start abgebrochen | `runbook` |
 | Eine Cloud-Änderung | Das Aktivitätsprotokoll eines verbundenen Cloud-Kontos zeichnet eine Änderung auf: AWS CloudTrail, das Azure-Aktivitätsprotokoll oder das Audit-Log Admin Activity von Google Cloud | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Für einen Rollout braucht es den [Kubernetes-Agenten](/docs/telemetry/kubernetes-agent), der die Telemetrie jedes Pods mit seinem Deployment und ReplicaSet versieht.
+
+Ein App-Deployment braucht eine App, die auf einer [verwalteten App-Plattform](/docs/telemetry/cloud-environments#apps-und-deployments) läuft. Es wird unter der Umgebung der App aufgezeichnet und in die Diagramme der Umgebung und der App eingezeichnet, und dort wird auch ein Rollback auf eine Revision aufgezeichnet, die die App früher ausgeführt hat.
 
 Eine Cloud-Änderung oder ein Ereignis des Anbieters braucht ein [verbundenes Cloud-Konto](/docs/telemetry/cloud-accounts). Jeder solche Eintrag ist mit der Cloud-Ressource verknüpft, die er nennt, sofern OneUptime diese Ressource auflistet, und wird in deren Diagramme eingezeichnet. Sein Typ ergibt sich aus der Operation: `deployment`, `scaling` oder `rollback`, wenn der Name der Operation das sagt, sonst `config-change`, und `provider-event` für ein Integritätsereignis. Diagramme, die auf keine Ressource gefiltert sind, lassen das Aktivitätsprotokoll eines Cloud-Kontos weg, damit ein geschäftiges Konto Ihre Deploys nicht verdrängt; die Integritätsereignisse des Anbieters bleiben darin.
 

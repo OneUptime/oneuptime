@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import Icon from "../Icon/Icon";
 import InsertValueButton from "./ValuePicker/InsertValueButton";
@@ -479,9 +480,11 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <p className="text-xs text-red-600" data-testid="error-message">
-          {props.error}
-        </p>
+        <FieldError
+          message={props.error}
+          className="text-xs text-red-600"
+          announce="none"
+        />
       )}
     </div>
   );

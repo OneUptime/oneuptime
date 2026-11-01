@@ -20,7 +20,9 @@ import {
   KeyboardSequenceState,
 } from "Common/UI/Utils/GlobalKeyboardShortcut";
 import { SECTION_TITLES_COLLAPSED_BY_DEFAULT } from "Common/UI/Components/SideMenu/SideMenuSectionState";
+import { KEYS_KEPT_AFTER_SIGN_OUT } from "Common/UI/Utils/KeptAfterSignOut";
 import ThemeUtil from "Common/UI/Utils/Theme";
+import { DASHBOARD_LANGUAGE_STORAGE_KEY } from "Common/Types/Dashboard/DashboardLanguage";
 import {
   DEFAULT_THEME_PREFERENCE,
   THEME_PREFERENCES,
@@ -1893,6 +1895,15 @@ describe("Your Account", () => {
     expect(DEFAULT_THEME_PREFERENCE).toBe(ThemePreference.System);
     expect(YOUR_ACCOUNT).toContain(
       "Both are saved in your browser, not in your account",
+    );
+    // Signing out leaves both: the sign-in page opens next (KeptAfterSignOut.ts).
+    expect(YOUR_ACCOUNT).toContain(
+      "Logging out keeps them, so on a shared computer the next person starts with yours.",
+    );
+    expect(KEYS_KEPT_AFTER_SIGN_OUT).toContain(THEME_STORAGE_KEY);
+    expect(KEYS_KEPT_AFTER_SIGN_OUT).toContain(DASHBOARD_LANGUAGE_STORAGE_KEY);
+    expect(i18n).toContain(
+      "export const LANGUAGE_STORAGE_KEY: string = DASHBOARD_LANGUAGE_STORAGE_KEY;",
     );
     expect(YOUR_ACCOUNT).toContain(
       "**System** is light or dark as your device is set, and changes with it; every browser starts with it.",

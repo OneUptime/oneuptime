@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SloOverviewActionLink from "./SloOverviewActionLink";
@@ -106,7 +107,13 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
 
   const getBody: GetBodyFunction = (): ReactElement => {
     if (props.error) {
-      return <p className="text-sm text-red-700">{props.error}</p>;
+      return (
+        <FieldError
+          message={props.error}
+          className="text-sm text-red-700"
+          announce="none"
+        />
+      );
     }
 
     if (enabledRules.length === 0) {
