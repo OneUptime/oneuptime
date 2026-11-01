@@ -88,6 +88,11 @@ export interface ResourceTopologyLinkTarget {
   page: PageMap;
   modelId: string;
   subModelId?: string | undefined;
+  /*
+   * What the page's address says besides: a Kubernetes object's
+   * namespace, as names repeat across namespaces.
+   */
+  queryParams?: Record<string, string> | undefined;
 }
 
 /*

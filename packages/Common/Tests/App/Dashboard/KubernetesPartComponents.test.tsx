@@ -1,0 +1,993 @@
+/**
+ * @timezone UTC
+ */
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import fs from "fs";
+import i18next from "i18next";
+import path from "path";
+import * as React from "react";
+import { initReactI18next } from "react-i18next";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import KubernetesPartHero from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/Part/KubernetesPartOverview";
+import KubernetesPartPods from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/Part/KubernetesPartPods";
+import KubernetesContainersTab from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesContainersTab";
+import KubernetesResourceLink from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesResourceLink";
+import {
+  KubernetesContainerSpec,
+  KubernetesContainerStatus,
+} from "../../../Types/Kubernetes/KubernetesObjectParser";
+import ResourceTable, {
+  InfrastructureResource,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
+import {
+  KubernetesPartRead,
+  KubernetesPartRow,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesPartFacts";
+import {
+  KubernetesPartRoutes,
+  getKubernetesPartRoutes,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesPartRoutes";
+
+/*
+ * A Kubernetes object's own page, above and in its tabs: the hero (what it
+ * is, its state in Kubernetes' own words, where it sits, its facts), its
+ * Overview's Needs attention (the most urgent first, its own row first
+ * among equals) and its Pods tab (attention first, each a step from the pod's page,
+ * in its namespace) - rendered for real, in English and in another
+ * language, with only the cards that read the server stood in.
+ */
+
+jest.mock("../../../UI/Utils/Navigation", () => {
+  return {
+    __esModule: true,
+    default: {
+      navigate: (): void => {},
+      isOnThisPage: (): boolean => {
+        return false;
+      },
+      getQueryStringByName: (): null => {
+        return null;
+      },
+      getFirstParam: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/Project", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCurrentProjectId: (): unknown => {
+        const { default: ObjectIDType } = jest.requireActual(
+          "../../../Types/ObjectID",
+        ) as { default: new (id: string) => unknown };
+        return new ObjectIDType("10000000-0000-4000-8000-000000000001");
+      },
+    },
+  };
+});
+
+const mockAlertCards: Array<Record<string, unknown>> = [];
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertsCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>) => {
+        mockAlertCards.push(props);
+        return <div data-testid={String(props["testId"])} />;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartOpenEventsCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>) => {
+        return <div data-testid={String(props["testId"])} />;
+      },
+    };
+  },
+);
+
+const LOCALES_DIR: string = path.resolve(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Locales",
+);
+
+function readLocale(code: string): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(path.join(LOCALES_DIR, `${code}.json`), "utf8"),
+  ) as Record<string, string>;
+}
+
+beforeAll(async () => {
+  await i18next.use(initReactI18next).init({
+    lng: "en",
+    fallbackLng: "en",
+    resources: {
+      de: { translation: readLocale("de") },
+      fa: { translation: readLocale("fa") },
+    },
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+  });
+});
+
+afterEach(async () => {
+  cleanup();
+  mockAlertCards.length = 0;
+  await act(async (): Promise<void> => {
+    await i18next.changeLanguage("en");
+  });
+});
+
+async function setLanguage(code: string): Promise<void> {
+  await act(async (): Promise<void> => {
+    await i18next.changeLanguage(code);
+  });
+}
+
+const CLUSTER_ID: ObjectID = new ObjectID(
+  "aaaaaaaa-0000-4000-8000-0000000000c1",
+);
+const ROUTES: KubernetesPartRoutes = getKubernetesPartRoutes(CLUSTER_ID);
+const SEEN: string = new Date(Date.now() - 60 * 1000).toISOString();
+
+function ago(minutes: number): string {
+  return new Date(new Date(SEEN).getTime() - minutes * 60 * 1000).toISOString();
+}
+
+function container(fields: {
+  ready: boolean;
+  restartCount?: number;
+  waiting?: string;
+}): JSONObject {
+  return {
+    name: "app",
+    ready: fields.ready,
+    restartCount: fields.restartCount ?? 0,
+    state: fields.waiting ? "waiting" : "running",
+    reason: fields.waiting ?? "",
+    image: "registry.example.com/app:1.4.2",
+  } as unknown as JSONObject;
+}
+
+function pod(fields: {
+  name: string;
+  node?: string;
+  containers?: Array<JSONObject>;
+  ready?: boolean;
+}): KubernetesPartRow {
+  return {
+    kind: "Pod",
+    namespaceKey: "shop",
+    name: fields.name,
+    phase: "Running",
+    ownerReferences: {
+      items: [
+        {
+          kind: "ReplicaSet",
+          name: "checkout-7d9f8b6c5",
+          uid: "rs-checkout",
+        },
+      ],
+    } as unknown as JSONObject,
+    spec: { nodeName: fields.node ?? "node-a" } as unknown as JSONObject,
+    status: {
+      phase: "Running",
+      qosClass: "Burstable",
+      conditions: [
+        {
+          type: "Ready",
+          status: fields.ready === false ? "False" : "True",
+          lastTransitionTime: ago(600),
+        },
+      ],
+      containerStatuses: fields.containers ?? [container({ ready: true })],
+      initContainerStatuses: [],
+    } as unknown as JSONObject,
+    lastSeenAt: SEEN,
+    resourceCreationTimestamp: ago(600),
+  };
+}
+
+const CRASH_LOOPING_POD: KubernetesPartRow = pod({
+  name: "checkout-7d9f8b6c5-b2",
+  node: "node-b",
+  containers: [
+    container({ ready: true, restartCount: 1 }),
+    container({ ready: false, restartCount: 14, waiting: "CrashLoopBackOff" }),
+  ],
+  ready: false,
+});
+
+const HEALTHY_POD: KubernetesPartRow = pod({ name: "checkout-7d9f8b6c5-a1" });
+
+const DEPLOYMENT: KubernetesPartRow = {
+  kind: "Deployment",
+  namespaceKey: "shop",
+  name: "checkout",
+  spec: { replicas: 3 } as unknown as JSONObject,
+  status: {
+    replicas: 3,
+    readyReplicas: 2,
+    availableReplicas: 2,
+    conditions: [
+      {
+        type: "Progressing",
+        status: "True",
+        reason: "NewReplicaSetAvailable",
+        lastTransitionTime: ago(600),
+      },
+    ],
+  } as unknown as JSONObject,
+  lastSeenAt: SEEN,
+  resourceCreationTimestamp: ago(6000),
+};
+
+const DEPLOYMENT_READ: KubernetesPartRead = {
+  part: DEPLOYMENT,
+  pods: [HEALTHY_POD, CRASH_LOOPING_POD],
+  jobs: [],
+  isPodsTruncated: false,
+};
+
+function hrefOf(element: HTMLElement): string {
+  return (
+    element.closest("a")?.getAttribute("href") ||
+    element.querySelector("a")?.getAttribute("href") ||
+    ""
+  );
+}
+
+describe("a pod's hero", () => {
+  const read: KubernetesPartRead = {
+    part: CRASH_LOOPING_POD,
+    pods: [],
+    jobs: [],
+    isPodsTruncated: false,
+  };
+
+  test("says its state as Kubernetes wrote it, where it sits - each a step away - and its facts", () => {
+    render(
+      <KubernetesPartHero
+        kind="Pod"
+        name="checkout-7d9f8b6c5-b2"
+        read={read}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(screen.getByTestId("kubernetes-pod-hero-name")).toHaveTextContent(
+      "checkout-7d9f8b6c5-b2",
+    );
+    const status: HTMLElement = screen.getByTestId(
+      "kubernetes-pod-hero-status",
+    );
+    expect(status).toHaveTextContent("CrashLoopBackOff");
+    expect(status).toHaveAttribute("data-tone", "danger");
+
+    const location: HTMLElement = screen.getByTestId(
+      "kubernetes-pod-hero-location",
+    );
+    expect(location).toHaveTextContent(
+      "Pod of Deployment checkout in namespace shop, on node node-b",
+    );
+    // Its workload's page, in its namespace; its node's, which has none.
+    expect(hrefOf(within(location).getByText("Deployment checkout"))).toContain(
+      "/deployments/checkout?namespace=shop",
+    );
+    expect(hrefOf(within(location).getByText("node-b"))).toMatch(
+      /\/nodes\/node-b$/,
+    );
+
+    const chips: HTMLElement = screen.getByTestId("kubernetes-pod-hero-chips");
+    expect(chips).toHaveTextContent("1/2 containers ready");
+    expect(chips).toHaveTextContent("15 restarts");
+    expect(chips).toHaveTextContent("QoS Burstable");
+  });
+
+  test("in German the product's words are German, Kubernetes' own stay as written", async () => {
+    await setLanguage("de");
+
+    render(
+      <KubernetesPartHero
+        kind="Pod"
+        name="checkout-7d9f8b6c5-b2"
+        read={read}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(screen.getByTestId("kubernetes-pod-hero-status")).toHaveTextContent(
+      "CrashLoopBackOff",
+    );
+    expect(
+      screen.getByTestId("kubernetes-pod-hero-location"),
+    ).toHaveTextContent(
+      "Pod von Deployment checkout im Namespace shop, auf Knoten node-b",
+    );
+    const chips: HTMLElement = screen.getByTestId("kubernetes-pod-hero-chips");
+    expect(chips).toHaveTextContent("1/2 Container bereit");
+    expect(chips).toHaveTextContent("15 Neustarts");
+    expect(chips).toHaveTextContent("QoS Burstable");
+  });
+});
+
+describe("a workload's hero", () => {
+  test("its shortfall is its status, with its numbers, in the reader's language", async () => {
+    render(
+      <KubernetesPartHero
+        kind="Deployment"
+        name="checkout"
+        read={DEPLOYMENT_READ}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    const status: HTMLElement = screen.getByTestId(
+      "kubernetes-deployment-hero-status",
+    );
+    expect(status).toHaveTextContent("2 of 3 available");
+    expect(status).toHaveAttribute("data-tone", "warning");
+    expect(
+      screen.getByTestId("kubernetes-deployment-hero-location"),
+    ).toHaveTextContent("In namespace shop of cluster production");
+    const chips: HTMLElement = screen.getByTestId(
+      "kubernetes-deployment-hero-chips",
+    );
+    expect(chips).toHaveTextContent("3 replicas");
+    expect(chips).toHaveTextContent("2 pods");
+
+    cleanup();
+    await setLanguage("fa");
+
+    render(
+      <KubernetesPartHero
+        kind="Deployment"
+        name="checkout"
+        read={DEPLOYMENT_READ}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    // Persian words, and every number in Persian digits, the counts too.
+    expect(
+      screen.getByTestId("kubernetes-deployment-hero-status"),
+    ).toHaveTextContent("۲ از ۳ در دسترس");
+    expect(
+      screen.getByTestId("kubernetes-deployment-hero-chips"),
+    ).toHaveTextContent("۳ رونوشت");
+  });
+
+  test("a sentence the reader's language has no words for yet keeps English digits", async () => {
+    // Persian with this one sentence left in English: English throughout.
+    const persian: Record<string, string> = readLocale("fa");
+    i18next.addResourceBundle(
+      "fa",
+      "translation",
+      {
+        ...persian,
+        "{{available}} of {{desired}} available":
+          "{{available}} of {{desired}} available",
+      },
+      true,
+      true,
+    );
+    await setLanguage("fa");
+
+    render(
+      <KubernetesPartHero
+        kind="Deployment"
+        name="checkout"
+        read={DEPLOYMENT_READ}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("kubernetes-deployment-hero-status"),
+    ).toHaveTextContent("2 of 3 available");
+
+    i18next.addResourceBundle("fa", "translation", persian, true, true);
+  });
+
+  test("before the read arrives, the address's name and nothing it cannot know", () => {
+    render(
+      <KubernetesPartHero
+        kind="Deployment"
+        name="checkout"
+        read={null}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("kubernetes-deployment-hero-name"),
+    ).toHaveTextContent("checkout");
+    expect(
+      screen.queryByTestId("kubernetes-deployment-hero-status"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("before the read arrives, or when it fails, where it sits comes from the address", () => {
+    render(
+      <KubernetesPartHero
+        kind="Deployment"
+        name="checkout"
+        namespace="shop"
+        read={null}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    const location: HTMLElement = screen.getByTestId(
+      "kubernetes-deployment-hero-location",
+    );
+    expect(location).toHaveTextContent(
+      "In namespace shop of cluster production",
+    );
+    expect(hrefOf(within(location).getByText("shop"))).toMatch(
+      NAMESPACE_PAGE_ADDRESS,
+    );
+    // Still no status it cannot know.
+    expect(
+      screen.queryByTestId("kubernetes-deployment-hero-status"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+// A namespace's own page: it lives in no namespace of its own.
+const NAMESPACE_PAGE_ADDRESS: RegExp = /\/namespaces\/shop$/;
+
+describe("a CronJob's run's hero", () => {
+  const RUN: KubernetesPartRow = {
+    kind: "Job",
+    namespaceKey: "shop",
+    name: "nightly-report-29013480",
+    ownerReferences: {
+      items: [{ kind: "CronJob", name: "nightly-report", uid: "cj-1" }],
+    } as unknown as JSONObject,
+    spec: { completions: 1, backoffLimit: 2 } as unknown as JSONObject,
+    status: { failed: 3 } as unknown as JSONObject,
+    lastSeenAt: SEEN,
+    resourceCreationTimestamp: ago(120),
+  };
+
+  test("says whose run it is, a step from the CronJob's page in its namespace", async () => {
+    render(
+      <KubernetesPartHero
+        kind="Job"
+        name="nightly-report-29013480"
+        read={{ part: RUN, pods: [], jobs: [], isPodsTruncated: false }}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    const location: HTMLElement = screen.getByTestId(
+      "kubernetes-job-hero-location",
+    );
+    expect(location).toHaveTextContent(
+      "Run of CronJob nightly-report in namespace shop",
+    );
+    expect(
+      hrefOf(within(location).getByText("CronJob nightly-report")),
+    ).toContain("/cronjobs/nightly-report?namespace=shop");
+
+    cleanup();
+    await setLanguage("de");
+
+    render(
+      <KubernetesPartHero
+        kind="Job"
+        name="nightly-report-29013480"
+        read={{ part: RUN, pods: [], jobs: [], isPodsTruncated: false }}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("kubernetes-job-hero-location"),
+    ).toHaveTextContent("Lauf von CronJob nightly-report im Namespace shop");
+  });
+
+  test("a Job no CronJob made says its namespace and cluster, as a workload does", () => {
+    render(
+      <KubernetesPartHero
+        kind="Job"
+        name="migrate-db"
+        read={{
+          part: { ...RUN, name: "migrate-db", ownerReferences: null },
+          pods: [],
+          jobs: [],
+          isPodsTruncated: false,
+        }}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("kubernetes-job-hero-location"),
+    ).toHaveTextContent("In namespace shop of cluster production");
+  });
+});
+
+describe("a workload's Overview", () => {
+  test("Needs attention: the pod that crash-loops first, a step from its page, then the workload itself, as This Deployment", () => {
+    render(
+      <KubernetesPartOverview
+        clusterId={CLUSTER_ID}
+        clusterIdentifier="production"
+        kind="Deployment"
+        read={DEPLOYMENT_READ}
+        error=""
+        routes={ROUTES}
+      />,
+    );
+
+    const items: Array<HTMLElement> = screen.getAllByTestId(
+      "kubernetes-deployment-attention-item",
+    );
+    expect(items).toHaveLength(2);
+    // The most urgent first: the crash loop, above one replica short.
+    expect(items[0]).toHaveTextContent("checkout-7d9f8b6c5-b2");
+    expect(items[0]).toHaveTextContent("CrashLoopBackOff");
+    expect(items[0]).toHaveAttribute("data-severity", "critical");
+    expect(hrefOf(items[0]!)).toContain(
+      "/pods/checkout-7d9f8b6c5-b2?namespace=shop",
+    );
+
+    expect(items[1]).toHaveAttribute("data-current", "true");
+    expect(items[1]).toHaveAttribute("data-severity", "warning");
+    expect(items[1]).toHaveTextContent("This Deployment");
+    expect(items[1]).toHaveTextContent("2 of 3 available");
+    // The page the reader is on is no link.
+    expect(items[1]!.querySelector("a")).toBeNull();
+
+    // The alerts that watch Deployments, the one written for them first.
+    const alerts: Record<string, unknown> | undefined = mockAlertCards[0];
+    expect(alerts?.["templateIds"]).toEqual(
+      expect.arrayContaining(["k8s-deployment-replica-mismatch"]),
+    );
+    expect(alerts?.["resourceIdentifier"]).toBe("production");
+  });
+
+  test("a workload with nothing to look at draws no Needs attention", () => {
+    render(
+      <KubernetesPartOverview
+        clusterId={CLUSTER_ID}
+        clusterIdentifier="production"
+        kind="Deployment"
+        read={{
+          ...DEPLOYMENT_READ,
+          part: {
+            ...DEPLOYMENT,
+            status: {
+              ...(DEPLOYMENT.status as Record<string, unknown>),
+              readyReplicas: 3,
+              availableReplicas: 3,
+            } as unknown as JSONObject,
+          },
+          pods: [HEALTHY_POD],
+        }}
+        error=""
+        routes={ROUTES}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("kubernetes-deployment-attention"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a read that failed says why, and guesses nothing", () => {
+    render(
+      <KubernetesPartOverview
+        clusterId={CLUSTER_ID}
+        clusterIdentifier="production"
+        kind="Deployment"
+        read={null}
+        error="The cluster could not be read."
+        routes={ROUTES}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("kubernetes-deployment-part-error"),
+    ).toHaveTextContent("The cluster could not be read.");
+    // No all-clear while the read is missing.
+    expect(
+      screen.queryByTestId("kubernetes-deployment-attention"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a read that failed says so in Needs attention's own frame, and Refresh reads it again", () => {
+    const retries: Array<number> = [];
+
+    render(
+      <KubernetesPartOverview
+        clusterId={CLUSTER_ID}
+        clusterIdentifier="production"
+        kind="Deployment"
+        read={null}
+        error="The cluster could not be read."
+        onRetry={() => {
+          retries.push(1);
+        }}
+        routes={ROUTES}
+      />,
+    );
+
+    const frame: HTMLElement = screen.getByTestId(
+      "kubernetes-deployment-attention-error",
+    );
+    // What failed is named: the card's title and its kind's description.
+    expect(frame).toHaveTextContent("Needs attention");
+    expect(frame).toHaveTextContent(
+      "What about this Deployment and its pods is broken or needs a look, the most urgent first.",
+    );
+    expect(frame).toHaveTextContent("The cluster could not be read.");
+
+    fireEvent.click(within(frame).getByRole("button", { name: "Refresh?" }));
+    expect(retries).toHaveLength(1);
+  });
+
+  test("its pods share its namespace: no namespace line under each of them", () => {
+    render(
+      <KubernetesPartOverview
+        clusterId={CLUSTER_ID}
+        clusterIdentifier="production"
+        kind="Deployment"
+        read={DEPLOYMENT_READ}
+        error=""
+        routes={ROUTES}
+      />,
+    );
+
+    const card: HTMLElement = screen.getByTestId(
+      "kubernetes-deployment-attention",
+    );
+    expect(
+      within(card).getAllByTestId("kubernetes-deployment-attention-item"),
+    ).toHaveLength(2);
+    expect(
+      within(card).queryByTestId("kubernetes-deployment-attention-detail"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a node's pods come from every namespace: each says its own", () => {
+    const NODE: KubernetesPartRow = {
+      kind: "Node",
+      namespaceKey: "",
+      name: "node-b",
+      spec: {} as unknown as JSONObject,
+      status: {
+        conditions: [
+          { type: "Ready", status: "True", lastTransitionTime: ago(600) },
+        ],
+      } as unknown as JSONObject,
+      isReady: true,
+      lastSeenAt: SEEN,
+      resourceCreationTimestamp: ago(6000),
+    };
+
+    render(
+      <KubernetesPartOverview
+        clusterId={CLUSTER_ID}
+        clusterIdentifier="production"
+        kind="Node"
+        read={{
+          part: NODE,
+          pods: [CRASH_LOOPING_POD],
+          jobs: [],
+          isPodsTruncated: false,
+        }}
+        error=""
+        routes={ROUTES}
+      />,
+    );
+
+    const item: HTMLElement = screen.getByTestId(
+      "kubernetes-node-attention-item",
+    );
+    expect(item).toHaveTextContent("checkout-7d9f8b6c5-b2");
+    expect(
+      within(item).getByTestId("kubernetes-node-attention-detail"),
+    ).toHaveTextContent("shop");
+  });
+});
+
+describe("a link to an object on its page", () => {
+  test("is a real link: one step to its page in its namespace, reached with Tab", () => {
+    render(
+      <KubernetesResourceLink
+        modelId={CLUSTER_ID}
+        resourceKind="ReplicaSet"
+        resourceName="checkout-7d9f8b6c5"
+        namespace="shop"
+      />,
+    );
+
+    // A ReplicaSet opens the Deployment that made it, in its namespace.
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "checkout-7d9f8b6c5",
+    });
+    expect(link.tagName).toBe("A");
+    expect(link.getAttribute("href")).toContain(
+      "/deployments/checkout?namespace=shop",
+    );
+    expect(link.getAttribute("tabindex")).not.toBe("-1");
+  });
+
+  test("an object with no page of its own is plain text", () => {
+    render(
+      <KubernetesResourceLink
+        modelId={CLUSTER_ID}
+        resourceKind="ConfigMap"
+        resourceName="app-config"
+        namespace="shop"
+      />,
+    );
+
+    expect(screen.getByText("app-config")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+});
+
+describe("why a container is not running, on its card", () => {
+  const SPEC: KubernetesContainerSpec = {
+    name: "checkout",
+    image: "registry.example.com/checkout:4.12.0",
+    command: [],
+    args: [],
+    env: [],
+    ports: [],
+    resources: { requests: {}, limits: {} },
+    volumeMounts: [],
+  };
+
+  function statusOf(
+    fields: Partial<KubernetesContainerStatus>,
+  ): KubernetesContainerStatus {
+    return {
+      name: "checkout",
+      ready: false,
+      restartCount: 14,
+      state: "waiting",
+      reason: "",
+      image: SPEC.image,
+      ...fields,
+    };
+  }
+
+  test("is red beside a state that cannot run, as its badge is", () => {
+    render(
+      <KubernetesContainersTab
+        containers={[SPEC]}
+        initContainers={[]}
+        containerStatuses={[
+          statusOf({
+            reason: "CrashLoopBackOff",
+            message: "back-off 5m0s restarting failed container=checkout",
+            lastTerminationReason: "OOMKilled",
+            lastTerminationExitCode: 137,
+          }),
+        ]}
+      />,
+    );
+
+    const diagnosis: HTMLElement = screen.getByTestId(
+      "kubernetes-container-diagnosis",
+    );
+    expect(diagnosis).toHaveAttribute("data-tone", "danger");
+    expect(diagnosis.className).toContain("bg-red-50");
+    expect(diagnosis.className).not.toContain("amber");
+    expect(diagnosis).toHaveTextContent("CrashLoopBackOff");
+    expect(diagnosis).toHaveTextContent("Last restart: OOMKilled");
+  });
+
+  test("is amber while it only waits to start", () => {
+    render(
+      <KubernetesContainersTab
+        containers={[SPEC]}
+        initContainers={[]}
+        containerStatuses={[
+          statusOf({
+            reason: "ContainerCreating",
+            message: "pulling image registry.example.com/checkout:4.12.0",
+            restartCount: 0,
+          }),
+        ]}
+      />,
+    );
+
+    const diagnosis: HTMLElement = screen.getByTestId(
+      "kubernetes-container-diagnosis",
+    );
+    expect(diagnosis).toHaveAttribute("data-tone", "warning");
+    expect(diagnosis.className).toContain("bg-amber-50");
+  });
+});
+
+describe("a workload's Pods tab", () => {
+  test("the pods that need attention first, in Kubernetes' words, each a step from its page in its namespace", () => {
+    render(
+      <KubernetesPartPods
+        kind="Deployment"
+        read={DEPLOYMENT_READ}
+        isLoading={false}
+        error=""
+        routes={ROUTES}
+      />,
+    );
+
+    const tab: HTMLElement = screen.getByTestId("kubernetes-deployment-pods");
+    const rows: Array<HTMLElement> = within(tab)
+      .getAllByRole("row")
+      .filter((row: HTMLElement): boolean => {
+        return row.textContent?.includes("checkout-7d9f8b6c5") || false;
+      });
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("checkout-7d9f8b6c5-b2");
+    expect(rows[0]).toHaveTextContent("CrashLoopBackOff");
+    expect(rows[0]).toHaveTextContent("1/2");
+    expect(rows[0]).toHaveTextContent("15");
+    expect(rows[0]).toHaveTextContent("node-b");
+    expect(rows[1]).toHaveTextContent("checkout-7d9f8b6c5-a1");
+    expect(rows[1]).toHaveTextContent("Running");
+    expect(
+      hrefOf(within(rows[0]!).getByText("checkout-7d9f8b6c5-b2")),
+    ).toContain("/pods/checkout-7d9f8b6c5-b2?namespace=shop");
+  });
+
+  test("a node's tab names each pod's workload and namespace, and says when it runs none", () => {
+    render(
+      <KubernetesPartPods
+        kind="Node"
+        read={{
+          part: null,
+          pods: [CRASH_LOOPING_POD],
+          jobs: [],
+          isPodsTruncated: false,
+        }}
+        isLoading={false}
+        error=""
+        routes={ROUTES}
+      />,
+    );
+
+    const tab: HTMLElement = screen.getByTestId("kubernetes-node-pods");
+    expect(
+      within(tab).getByRole("columnheader", { name: /Workload/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(tab).getByRole("columnheader", { name: /Namespace/ }),
+    ).toBeInTheDocument();
+    const row: HTMLElement = within(tab)
+      .getAllByRole("row")
+      .find((candidate: HTMLElement): boolean => {
+        return (
+          candidate.textContent?.includes("checkout-7d9f8b6c5-b2") || false
+        );
+      })!;
+    // A ReplicaSet's pod belongs to its Deployment.
+    expect(row).toHaveTextContent("checkout");
+    expect(row).toHaveTextContent("shop");
+
+    cleanup();
+
+    render(
+      <KubernetesPartPods
+        kind="Node"
+        read={{ part: null, pods: [], jobs: [], isPodsTruncated: false }}
+        isLoading={false}
+        error=""
+        routes={ROUTES}
+      />,
+    );
+
+    expect(screen.getByTestId("kubernetes-node-pods")).toHaveTextContent(
+      /No pods are scheduled on this node/,
+    );
+  });
+
+  test("a read that failed before anything arrived says why", () => {
+    render(
+      <KubernetesPartPods
+        kind="Deployment"
+        read={null}
+        isLoading={false}
+        error="The pods could not be read."
+        routes={ROUTES}
+      />,
+    );
+
+    expect(screen.getByText("The pods could not be read.")).toBeInTheDocument();
+  });
+});
+
+describe("a list's Status", () => {
+  const RESOURCES: Array<InfrastructureResource> = [
+    {
+      name: "checkout",
+      namespace: "shop",
+      cpuUtilization: null,
+      memoryUsageBytes: null,
+      memoryLimitBytes: null,
+      status: "2 of 3 available",
+      statusText: {
+        text: "{{available}} of {{desired}} available",
+        values: { available: "2", desired: "3" },
+      },
+      statusTone: "warning",
+      age: "4d",
+      additionalAttributes: {},
+    },
+    {
+      name: "cart",
+      namespace: "shop",
+      cpuUtilization: null,
+      memoryUsageBytes: null,
+      memoryLimitBytes: null,
+      status: "Available",
+      statusText: { text: "Available" },
+      statusTone: "positive",
+      age: "9d",
+      additionalAttributes: {},
+    },
+  ];
+
+  test("is the cluster's word in the reader's language, coloured by the rules", async () => {
+    await setLanguage("de");
+
+    render(
+      <ResourceTable
+        resources={RESOURCES}
+        title="Deployments"
+        description="Deployments in the cluster."
+      />,
+    );
+
+    const shortfall: HTMLElement = screen.getByText("2 von 3 verfügbar");
+    // Warning's colour, as the Overview's Needs attention draws it.
+    expect(shortfall.className).toContain("yellow");
+    expect(screen.getByText("Verfügbar")).toBeInTheDocument();
+  });
+});

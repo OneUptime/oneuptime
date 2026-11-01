@@ -179,7 +179,6 @@ const DETAIL_FIELDS: Record<
   ],
   PodDetail: [['"Restarts"', "podRestarts"]],
   DeploymentDetail: [
-    ['"Rollout Status"', "deploymentRolloutStatus"],
     ['"Desired Replicas"', "deploymentDesiredReplicas"],
     ['"Ready Replicas"', "deploymentReadyReplicas"],
     ['"Available"', "deploymentAvailableReplicas"],
@@ -233,17 +232,20 @@ const DETAIL_EXTRA_KEYS: Record<string, Array<KubernetesResourceMetric>> = {
   NodeDetail: ["nodeNetworkThroughput"],
 };
 
-// Identity fields: names, where the thing lives, when it was made.
+/*
+ * Identity fields: names, where the thing lives, when it was made. A page
+ * with a hero (KubernetesPartHero) names its cluster there, not in its
+ * Details card.
+ */
 const DETAIL_IDENTITY_FIELDS: Record<string, Array<string>> = {
-  NodeDetail: ['"Node Name"', '"Cluster"', '"Internal IP"', '"Created"'],
-  PodDetail: ['"Pod Name"', '"Cluster"', '"Namespace"', '"Created"'],
-  DeploymentDetail: ['"Cluster"', '"Namespace"', '"Created"'],
-  StatefulSetDetail: ['"Cluster"', '"Namespace"', '"Created"'],
-  DaemonSetDetail: ['"Cluster"', '"Namespace"', '"Created"'],
-  JobDetail: ['"Job Name"', '"Cluster"', '"Namespace"', '"Created"'],
+  NodeDetail: ['"Node Name"', '"Internal IP"', '"Created"'],
+  PodDetail: ['"Pod Name"', '"Namespace"', '"Created"'],
+  DeploymentDetail: ['"Namespace"', '"Created"'],
+  StatefulSetDetail: ['"Namespace"', '"Created"'],
+  DaemonSetDetail: ['"Namespace"', '"Created"'],
+  JobDetail: ['"Job Name"', '"Namespace"', '"Created"'],
   CronJobDetail: [
     '"CronJob Name"',
-    '"Cluster"',
     '"Namespace"',
     '"Schedule"',
     '"Concurrency Policy"',
@@ -418,7 +420,11 @@ const LIST_PAGES: Record<string, ListPage> = {
   Nodes: { builtIn: ["nodeCpu", "nodeMemory"], columns: [], sumsPods: false },
   Pods: {
     builtIn: ["podCpu", "podMemory"],
-    columns: [["Containers", "podContainers"]],
+    columns: [
+      ["Ready", "podReady"],
+      ["Restarts", "podRestarts"],
+      ["Containers", "podContainers"],
+    ],
     sumsPods: false,
   },
   Containers: {
@@ -656,8 +662,9 @@ describe("the texts match the computations behind the lists", () => {
     expect(
       readCode("Pages/Kubernetes/Utils/KubernetesResourceUtils.ts"),
     ).toContain(
+      // Public: a workload's Pods tab reads the same window.
       compact(
-        "private static readonly METRIC_STALE_MS: number = 15 * 60 * 1000;",
+        "public static readonly METRIC_STALE_MS: number = 15 * 60 * 1000;",
       ),
     );
     expect(readCode(`${PAGES}/Containers.tsx`)).toContain(
@@ -750,38 +757,45 @@ describe("the texts match the computations behind the lists", () => {
     expect(table).toContain(compact("{Math.round(pct)}%"));
   });
 
-  test("workload sums are keyed by owner NAME only - the texts own up to it", () => {
+  test("workload sums are keyed by namespace and name - the texts make no same-name caveat", () => {
     /*
-     * Pinned so that the day the aggregate is keyed by namespace too, this
-     * fails and the "same-named ... in other namespaces" caveat is dropped
-     * from the texts.
+     * The server keys each owner's sum <namespace>/<name>
+     * (KubernetesResourceService.getLatestMetricsByOwner), so shop's
+     * checkout never counts payments' checkout pods, and the texts that
+     * owned up to it while it was keyed by name only say nothing of it.
      */
     expect(
       readCode("Pages/Kubernetes/Utils/KubernetesResourceUtils.ts"),
     ).toContain(
       compact(
-        "const agg: PodMetricAggregate | undefined = options.aggregates.get( resource.name, );",
+        "options.aggregates.get(`${resource.namespace}/${resource.name}`) ||",
       ),
     );
 
     for (const key of [
       "deploymentCpu",
+      "deploymentMemory",
       "statefulSetCpu",
+      "statefulSetMemory",
       "daemonSetCpu",
+      "daemonSetMemory",
       "jobCpu",
+      "jobMemory",
       "cronJobCpu",
+      "cronJobMemory",
     ] as Array<KubernetesResourceMetric>) {
-      expect(KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS[key]).toContain(
+      expect(KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS[key]).not.toContain(
         "same-named",
       );
     }
   });
 
-  test("CronJob Active Jobs reads a list as a number - the text owns up to it", () => {
+  test("CronJob Active Jobs counts the list of running Jobs, and the text says so", () => {
     /*
-     * CronJob status.active is a list of job references; parseInt of its
-     * (empty) string form is NaN, so the parser always stores 0. Pinned so
-     * that fixing the parser fails this and the caveat is dropped.
+     * CronJob status.active is a list of job references. parseInt of its
+     * (empty) string form was NaN, so the parser stored 0 even during a run
+     * and the text owned up to it. The parser counts the list now, falling
+     * back to a number an older agent may send, and the caveat is gone.
      */
     const parser: string = readFrom(
       COMMON_SRC,
@@ -795,11 +809,14 @@ describe("the texts match the computations behind the lists", () => {
 
     expect(cronJob).toContain(
       compact(
-        'activeCount: statusKv ? parseInt(getKvStringValue(statusKv as JSONObject, "active")) || 0 : 0',
+        'countArrayValues(getKvValue(statusKv as JSONObject, "active")) || parseInt(getKvStringValue(statusKv as JSONObject, "active")) || 0',
       ),
     );
+    expect(
+      KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobActiveJobs,
+    ).not.toContain("shows 0 even during a run");
     expect(KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobActiveJobs).toContain(
-      "shows 0 even during a run",
+      "still running",
     );
   });
 
@@ -816,16 +833,78 @@ describe("the texts match the computations behind the lists", () => {
     );
   });
 
-  test("the rollout badge uses the rule its text states", () => {
+  test("a Deployment's rollout reads in its hero, by the cluster's rules - no second Rollout Status in its details", () => {
     const code: string = readCode(`${PAGES}/DeploymentDetail.tsx`);
 
-    expect(code).toContain(
-      compact(
-        "const isFullyRolledOut: boolean = ready === desired && unavailable === 0;",
-      ),
-    );
+    /*
+     * Its own rule said "In Progress" for a finished rollout one
+     * crash-looping replica short, under a hero saying "2 of 3 available".
+     */
+    expect(code).not.toContain(compact('"Rollout Status"'));
+    expect(code).not.toContain("isFullyRolledOut");
+    expect(code).not.toContain("deploymentRolloutStatus");
+    // How many are unavailable is still a fact of its own.
     expect(code).toContain(compact("if (unavailable > 0) {"));
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The pages with a hero: their facts as one Details card
+ * ---------------------------------------------------------------------------
+ */
+
+const HERO_PAGES: Record<string, string> = {
+  PodDetail: "Pod",
+  DeploymentDetail: "Deployment",
+  StatefulSetDetail: "StatefulSet",
+  DaemonSetDetail: "DaemonSet",
+  JobDetail: "Job",
+  CronJobDetail: "CronJob",
+  NodeDetail: "Node",
+};
+
+describe("the pages with a hero draw what Kubernetes reports as one Details card", () => {
+  test.each(Object.entries(HERO_PAGES))(
+    "%s passes its kind's Details card, and no Cluster field",
+    (page: string, kind: string) => {
+      const code: string = readCode(`${PAGES}/${page}.tsx`);
+
+      expect(code).toContain(
+        compact(`detailsCard={getKubernetesPartDetailsCard("${kind}")}`),
+      );
+      // The hero names the cluster: its identifier is not a fact of the part.
+      expect(code).not.toContain(compact('title: "Cluster"'));
+      // The name is one copy away, as on every part's details.
+      expect(code).toContain(compact("copyText: "));
+    },
+  );
+
+  test.each(["PodDetail", "NodeDetail"])(
+    "%s says no second status beside its hero's",
+    (page: string) => {
+      const code: string = readCode(`${PAGES}/${page}.tsx`);
+
+      expect(code).not.toContain(compact('title: "Status"'));
+    },
+  );
+
+  test("a pod's phase is a plain fact, under its own name", () => {
+    const code: string = readCode(`${PAGES}/PodDetail.tsx`);
+    const field: string = objectAround(code, compact('title: "Phase",'));
+
+    expect(field).toContain(
+      compact('value: podObject.status.phase || "Unknown"'),
+    );
+    expect(field).not.toContain("StatusBadge");
+  });
+
+  test.each(["PVCDetail", "PVDetail", "HPADetail", "VPADetail"])(
+    "%s, with no hero, keeps a card per fact",
+    (page: string) => {
+      expect(readCode(`${PAGES}/${page}.tsx`)).not.toContain("detailsCard");
+    },
+  );
 });
 
 /*
@@ -900,6 +979,10 @@ describe("every Kubernetes resource text is shown, and every reference exists", 
       return `${PAGES}/${page}.tsx`;
     }),
     "Components/Kubernetes/KubernetesContainersTab.tsx",
+    // A workload's, a node's and a CronJob's Pods tab.
+    "Components/Kubernetes/Part/KubernetesPartPods.tsx",
+    // OpenShift's DeploymentConfig keeps its Rollout Status.
+    `${PAGES}/DeploymentConfigDetail.tsx`,
   ];
 
   const referenced: Map<string, Array<string>> = new Map();

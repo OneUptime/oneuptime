@@ -20,7 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 
 const KubernetesClusterJobs: FunctionComponent<
   PageComponentProps
@@ -38,30 +38,14 @@ const KubernetesClusterJobs: FunctionComponent<
         Array<KubernetesResource>,
         Map<string, PodMetricAggregate>,
       ] = await Promise.all([
+        /*
+         * Each Job's status is the cluster's rules': Running, Completed or
+         * Failed by its conditions (fetchInventoryResources).
+         */
         KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "Job",
           selectFullSpec: true,
-          transform: (
-            resource: KubernetesResource,
-            row: KubernetesResourceModel,
-          ) => {
-            const status: Record<string, unknown> =
-              (row.status as unknown as Record<string, unknown>) || {};
-            const completionTime: unknown = status["completionTime"];
-            const failed: number = (status["failed"] as number) || 0;
-            const active: number = (status["active"] as number) || 0;
-
-            if (completionTime) {
-              resource.status = "Complete";
-            } else if (failed > 0) {
-              resource.status = "Failed";
-            } else if (active > 0) {
-              resource.status = "Running";
-            } else {
-              resource.status = "Pending";
-            }
-          },
         }),
         KubernetesResourceUtils.fetchPodMetricsByOwner(modelId, "Job"),
       ]);
@@ -104,13 +88,21 @@ const KubernetesClusterJobs: FunctionComponent<
         cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobCpu,
         memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobMemory,
       }}
-      getViewRoute={(resource: KubernetesResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: new ObjectID(resource.name),
-          },
+      getViewRoute={(resource: KubernetesResource): Route => {
+        // In its namespace: names repeat across namespaces.
+        return (
+          getKubernetesPartRoute(modelId, {
+            kind: "Job",
+            name: resource.name,
+            namespace: resource.namespace,
+          }) ||
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL] as Route,
+            {
+              modelId: modelId,
+              subModelId: new ObjectID(resource.name),
+            },
+          )
         );
       }}
     />

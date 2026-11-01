@@ -20,6 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterDaemonSets: FunctionComponent<
@@ -52,8 +53,7 @@ const KubernetesClusterDaemonSets: FunctionComponent<
             const desired: number =
               (status["desiredNumberScheduled"] as number) || 0;
 
-            resource.status =
-              numberReady === desired && desired > 0 ? "Ready" : "Progressing";
+            // The status is the cluster's rules' (fetchInventoryResources).
             resource.additionalAttributes["ready"] =
               `${numberReady}/${desired}`;
           },
@@ -106,13 +106,21 @@ const KubernetesClusterDaemonSets: FunctionComponent<
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetReady,
         },
       ]}
-      getViewRoute={(resource: KubernetesResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: new ObjectID(resource.name),
-          },
+      getViewRoute={(resource: KubernetesResource): Route => {
+        // In its namespace: names repeat across namespaces.
+        return (
+          getKubernetesPartRoute(modelId, {
+            kind: "DaemonSet",
+            name: resource.name,
+            namespace: resource.namespace,
+          }) ||
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL] as Route,
+            {
+              modelId: modelId,
+              subModelId: new ObjectID(resource.name),
+            },
+          )
         );
       }}
     />

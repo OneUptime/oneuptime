@@ -23,6 +23,7 @@ import {
   ResourcePartOpenEvents,
   loadResourcePartOpenEvents,
 } from "./ResourcePartOpenEvents";
+import { OpenIssueRelation } from "../ResourceTopology/ResourceTopologyIssuesLoader";
 import ResourcePartRow from "./ResourcePartRow";
 
 /*
@@ -51,6 +52,8 @@ export interface ComponentProps {
   resourceRelation: string;
   resourceId: ObjectID;
   isAbout: (record: OpenIssueRecord) => boolean;
+  // The inventory rows to read with each record (ResourcePartOpenEvents).
+  relations?: Array<OpenIssueRelation> | undefined;
   getIncidentRoute: (incidentId: ObjectID) => Route;
   getAlertRoute: (alertId: ObjectID) => Route;
   // The resource's own Incidents and Alerts pages, for the rest.
@@ -96,6 +99,7 @@ const ResourcePartOpenEventsCard: FunctionComponent<ComponentProps> = (
       resourceRelation: props.resourceRelation,
       resourceId: props.resourceId,
       isAbout: props.isAbout,
+      relations: props.relations,
     })
       .then((loaded: ResourcePartOpenEvents) => {
         if (!ignore) {

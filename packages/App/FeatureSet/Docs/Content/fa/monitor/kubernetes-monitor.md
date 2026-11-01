@@ -5,7 +5,7 @@
 :::cards
 - [نصب عامل](/docs/monitor/kubernetes-agent): یک فرمان Helm خوشه را به OneUptime می‌آورد.
 - [ساخت مانیتور](#ساخت-یک-مانیتور-kubernetes): خوشه را برگزینید، سپس یک الگو، یک متریک یا یک پرس‌وجو.
-- [الگوهای هشدار](#الگوهای-هشدار-آماده): هجده هشدار آماده، از خوشه ساکت تا etcd.
+- [الگوهای هشدار](#الگوهای-هشدار-آماده): بیست و یک هشدار آماده، از خوشه ساکت تا etcd.
 - [معیارها](#معیارهای-مانیتورینگ): آستانه‌های ایستا و تشخیص ناهنجاری.
 :::
 
@@ -86,9 +86,9 @@ flowchart TB
 | دسته | متریک‌ها |
 | --- | --- |
 | پاد | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| گره | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| گره | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | کانتینر | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| بار کاری | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| بار کاری | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ flowchart TB
 | CrashLoopBackOff Detection | بار کاری | یک کانتینر در ۱۵ دقیقه دوباره راه‌اندازی شده و کمتر از نیمی از آن زمان آماده بوده است | بحرانی |
 | Pod Stuck in Pending | در حال زمان‌بندی | در هر نمونه از یک پنجره ۱۵ دقیقه‌ای، پادی در مرحله Pending است | هشدار |
 | Node Not Ready | گره | یک گره NotReady گزارش می‌دهد یا دیگر وضعیتش را گزارش نمی‌کند (Unknown) | بحرانی |
+| Node Under Pressure | گره | یک گره به مدت ۱۰ دقیقه MemoryPressure، DiskPressure یا PIDPressure گزارش می‌دهد | هشدار |
 | High Node CPU Utilization | گره | میانگین مصرف CPU یک گره بیش از ۹۰٪ CPU قابل‌تخصیص آن است | هشدار |
 | High Node Memory Utilization | گره | میانگین working set حافظهٔ یک گره بیش از ۸۵٪ حافظه قابل‌تخصیص آن است | هشدار |
 | Deployment Replica Mismatch | بار کاری | یک deployment به مدت ۱۵ دقیقه کمتر از تعداد مطلوب، رپلیکای در دسترس دارد | هشدار |
+| StatefulSet Replica Mismatch | بار کاری | یک StatefulSet به مدت ۱۵ دقیقه کمتر از تعداد مطلوب، رپلیکای آماده دارد | هشدار |
 | Job Failures | بار کاری | یک پادِ یک job در ۱۵ دقیقه ناموفق شده است | هشدار |
 | etcd No Leader | Control Plane | etcd رهبر برگزیده‌ای ندارد | بحرانی |
 | API Server Request Saturation | Control Plane | سرور API در تمام پنجره ۲۰۰ درخواست در جریان یا بیشتر دارد | بحرانی |
 | Scheduler Backlog | در حال زمان‌بندی | صف پادهای در انتظار زمان‌بند به مدت ۵ دقیقه خالی نمی‌شود | هشدار |
 | High Node Disk Usage | ذخیره‌سازی | سامانه فایل یک گره بیش از ۹۰٪ پر است | هشدار |
+| DaemonSet Pods Not Ready | بار کاری | یک DaemonSet به مدت ۱۵ دقیقه گره‌هایی دارد که هیچ پاد آماده‌ای از آن رویشان نیست | هشدار |
 | DaemonSet Misscheduled Nodes | بار کاری | یک DaemonSet پادهایی را روی گره‌هایی اجرا می‌کند که دیگر با انتخابگر گره، affinity یا tolerationهای آن جور نیستند | هشدار |
 | High Node CPU Request Commitment | گره | جمع درخواست‌های CPU کانتینرهای یک گره از ۹۰٪ CPU قابل‌تخصیص آن بیشتر است | هشدار |
 | High Node Memory Request Commitment | گره | جمع درخواست‌های حافظه کانتینرهای یک گره از ۹۰٪ حافظه قابل‌تخصیص آن بیشتر است | هشدار |

@@ -5,7 +5,7 @@
 :::cards
 - [Установка агента](/docs/monitor/kubernetes-agent): Одна команда Helm подключает кластер к OneUptime.
 - [Создание монитора](#создание-монитора-kubernetes): Выберите кластер, затем шаблон, метрику или запрос.
-- [Шаблоны оповещений](#готовые-шаблоны-оповещений): Восемнадцать готовых оповещений, от замолчавшего кластера до etcd.
+- [Шаблоны оповещений](#готовые-шаблоны-оповещений): Двадцать одно готовое оповещение, от замолчавшего кластера до etcd.
 - [Критерии](#критерии-мониторинга): Статические пороги и обнаружение аномалий.
 :::
 
@@ -86,9 +86,9 @@ flowchart TB
 | Категория | Метрики |
 | --- | --- |
 | Под | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Узел | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Узел | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Контейнер | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Рабочая нагрузка | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Рабочая нагрузка | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Плоскость управления | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ flowchart TB
 | CrashLoopBackOff Detection | Рабочая нагрузка | Контейнер перезапустился за 15 минут и был готов меньше половины этого времени | Критический |
 | Pod Stuck in Pending | Планирование | Какой-либо под находится в фазе Pending в каждом замере 15-минутного окна | Предупреждение |
 | Node Not Ready | Узел | Узел сообщает NotReady или перестаёт сообщать своё состояние (Unknown) | Критический |
+| Node Under Pressure | Узел | Узел сообщает MemoryPressure, DiskPressure или PIDPressure в течение 10 минут | Предупреждение |
 | High Node CPU Utilization | Узел | Среднее использование CPU узлом выше 90 % его выделяемого CPU | Предупреждение |
 | High Node Memory Utilization | Узел | Средний рабочий набор памяти узла выше 85 % его выделяемой памяти | Предупреждение |
 | Deployment Replica Mismatch | Рабочая нагрузка | У deployment меньше доступных реплик, чем требуется, в течение 15 минут | Предупреждение |
+| StatefulSet Replica Mismatch | Рабочая нагрузка | У StatefulSet меньше готовых реплик, чем требуется, в течение 15 минут | Предупреждение |
 | Job Failures | Рабочая нагрузка | Под job завершился неудачей за 15 минут | Предупреждение |
 | etcd No Leader | Плоскость управления | У etcd нет избранного лидера | Критический |
 | API Server Request Saturation | Плоскость управления | API-сервер держит 200 или больше одновременных запросов в течение всего окна | Критический |
 | Scheduler Backlog | Планирование | Очередь ожидающих подов планировщика не пуста в течение 5 минут | Предупреждение |
 | High Node Disk Usage | Хранилище | Файловая система узла заполнена более чем на 90 % | Предупреждение |
+| DaemonSet Pods Not Ready | Рабочая нагрузка | У DaemonSet есть узлы без его готового пода в течение 15 минут | Предупреждение |
 | DaemonSet Misscheduled Nodes | Рабочая нагрузка | DaemonSet запускает поды на узлах, которые больше не соответствуют его селектору узлов, affinity или tolerations | Предупреждение |
 | High Node CPU Request Commitment | Узел | Сумма CPU-запросов контейнеров на узле превышает 90 % его выделяемого CPU | Предупреждение |
 | High Node Memory Request Commitment | Узел | Сумма запросов памяти контейнеров на узле превышает 90 % его выделяемой памяти | Предупреждение |

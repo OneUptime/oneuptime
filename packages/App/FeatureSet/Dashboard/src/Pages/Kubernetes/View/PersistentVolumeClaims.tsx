@@ -21,6 +21,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterPVCs: FunctionComponent<
@@ -83,13 +84,6 @@ const KubernetesClusterPVCs: FunctionComponent<
           },
         });
 
-      // Default to "Unknown" when status.phase is missing, matching prior behavior
-      for (const r of pvcResources) {
-        if (!r.status) {
-          r.status = "Unknown";
-        }
-      }
-
       setResources(pvcResources);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -139,13 +133,21 @@ const KubernetesClusterPVCs: FunctionComponent<
           key: "accessModes",
         },
       ]}
-      getViewRoute={(resource: KubernetesResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: new ObjectID(resource.name),
-          },
+      getViewRoute={(resource: KubernetesResource): Route => {
+        // In its namespace: names repeat across namespaces.
+        return (
+          getKubernetesPartRoute(modelId, {
+            kind: "PersistentVolumeClaim",
+            name: resource.name,
+            namespace: resource.namespace,
+          }) ||
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL] as Route,
+            {
+              modelId: modelId,
+              subModelId: new ObjectID(resource.name),
+            },
+          )
         );
       }}
       emptyMessage="No PVCs yet. They appear once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes persistentvolumeclaims."

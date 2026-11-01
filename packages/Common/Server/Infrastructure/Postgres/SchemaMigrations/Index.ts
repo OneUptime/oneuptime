@@ -248,6 +248,8 @@ import { AddDataSecurityIdentities1808791000000 } from "./1808791000000-AddDataS
 import { AddDataSecurityFieldSuggestions1808792000000 } from "./1808792000000-AddDataSecurityFieldSuggestions";
 import { AddCloudApps1808795310000 } from "./1808795310000-AddCloudApps";
 import { AddCloudResourceInstanceAppIndexAndKey1808795320000 } from "./1808795320000-AddCloudResourceInstanceAppIndexAndKey";
+import { AddKubernetesResourceHealthSeverity1808800000000 } from "./1808800000000-AddKubernetesResourceHealthSeverity";
+import { AddKubernetesResourceHealthSeverityIndex1808810000000 } from "./1808810000000-AddKubernetesResourceHealthSeverityIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1698,4 +1700,6 @@ export default [
   AddDataSecurityFieldSuggestions1808792000000,
   AddCloudApps1808795310000,
   AddCloudResourceInstanceAppIndexAndKey1808795320000,
+  AddKubernetesResourceHealthSeverity1808800000000,
+  AddKubernetesResourceHealthSeverityIndex1808810000000,
 ];

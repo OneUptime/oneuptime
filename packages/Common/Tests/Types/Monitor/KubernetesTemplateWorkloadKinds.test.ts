@@ -26,7 +26,9 @@ import ObjectID from "../../../Types/ObjectID";
 
 const EXPECTED_WORKLOAD_KINDS: Record<string, string> = {
   "k8s-deployment-replica-mismatch": "deployment",
+  "k8s-statefulset-replica-mismatch": "statefulset",
   "k8s-job-failures": "job",
+  "k8s-daemonset-pods-not-ready": "daemonset",
   "k8s-daemonset-unavailable": "daemonset",
   "k8s-hpa-at-max-replicas": "hpa",
 };
