@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "Cosa riporta Kubernetes su questo nodo.",
   "What Kubernetes reports about this pod.": "Cosa riporta Kubernetes su questo pod.",
   "{{count}} Nodes Not Ready": "{{count}} nodi non pronti",
-  "{{count}} Nodes Not Ready_one": "{{count}} nodo non pronto"
+  "{{count}} Nodes Not Ready_one": "{{count}} nodo non pronto",
+  "At its maximum of {{count}} replica": "Al massimo di {{count}} replica",
+  "Runs on {{count}} node it should not": "Eseguito su {{count}} nodo su cui non dovrebbe"
 }

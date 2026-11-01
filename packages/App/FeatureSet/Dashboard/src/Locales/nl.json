@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "Wat Kubernetes over deze node meldt.",
   "What Kubernetes reports about this pod.": "Wat Kubernetes over deze pod meldt.",
   "{{count}} Nodes Not Ready": "{{count}} nodes niet gereed",
-  "{{count}} Nodes Not Ready_one": "{{count}} node niet gereed"
+  "{{count}} Nodes Not Ready_one": "{{count}} node niet gereed",
+  "At its maximum of {{count}} replica": "Op het maximum van {{count}} replica",
+  "Runs on {{count}} node it should not": "Draait op {{count}} node waar het niet hoort"
 }

@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "このノードについて Kubernetes が報告している内容です。",
   "What Kubernetes reports about this pod.": "この Podについて Kubernetes が報告している内容です。",
   "{{count}} Nodes Not Ready": "準備未完了のノード {{count}} 個",
-  "{{count}} Nodes Not Ready_one": "準備未完了のノード {{count}} 個"
+  "{{count}} Nodes Not Ready_one": "準備未完了のノード {{count}} 個",
+  "At its maximum of {{count}} replica": "レプリカの上限 {{count}} に達している",
+  "Runs on {{count}} node it should not": "本来実行すべきでない {{count}} ノードで実行"
 }

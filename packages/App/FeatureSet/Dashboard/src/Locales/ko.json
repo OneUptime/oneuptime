@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "Kubernetes가 이 노드에 대해 보고하는 내용입니다.",
   "What Kubernetes reports about this pod.": "Kubernetes가 이 파드에 대해 보고하는 내용입니다.",
   "{{count}} Nodes Not Ready": "준비되지 않은 노드 {{count}}개",
-  "{{count}} Nodes Not Ready_one": "준비되지 않은 노드 {{count}}개"
+  "{{count}} Nodes Not Ready_one": "준비되지 않은 노드 {{count}}개",
+  "At its maximum of {{count}} replica": "최대 레플리카 {{count}}개에 도달",
+  "Runs on {{count}} node it should not": "실행되면 안 되는 {{count}}개 노드에서 실행"
 }

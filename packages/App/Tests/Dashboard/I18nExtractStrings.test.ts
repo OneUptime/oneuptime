@@ -846,6 +846,9 @@ describe("a root that marks its keys", () => {
         "plural",
         "Runs on {{count}} node it should not",
       ],
+      // Each marked sentence is a key of its own too, as in every keys root.
+      ["Runs on {{count}} node it should not", "call", undefined],
+      ["Runs on {{count}} nodes it should not", "call", undefined],
       ["{{count}} pods", "call", undefined],
       ["One way", "call", undefined],
       ["Other way", "call", undefined],
@@ -860,8 +863,9 @@ describe("a root that marks its keys", () => {
           "Runs on {{count}} node it should not",
       }),
     );
+    // HALF is no plural: no _one for its marked sentence.
     expect(Object.keys(getEnglishEntries(result.strings))).not.toContain(
-      "Runs on {{count}} node it should not",
+      "{{count}} pods_one",
     );
   });
 

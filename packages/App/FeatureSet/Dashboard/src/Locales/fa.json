@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "آنچه Kubernetes درباره این گره گزارش می‌دهد.",
   "What Kubernetes reports about this pod.": "آنچه Kubernetes درباره این پاد گزارش می‌دهد.",
   "{{count}} Nodes Not Ready": "{{count}} گره آماده نیستند",
-  "{{count}} Nodes Not Ready_one": "{{count}} گره آماده نیست"
+  "{{count}} Nodes Not Ready_one": "{{count}} گره آماده نیست",
+  "At its maximum of {{count}} replica": "در حداکثر {{count}} رونوشت",
+  "Runs on {{count}} node it should not": "روی {{count}} گره اجرا می‌شود که نباید"
 }

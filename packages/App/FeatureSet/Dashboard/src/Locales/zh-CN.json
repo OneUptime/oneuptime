@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "Kubernetes 报告的此节点信息。",
   "What Kubernetes reports about this pod.": "Kubernetes 报告的此 Pod 信息。",
   "{{count}} Nodes Not Ready": "{{count}} 个节点未就绪",
-  "{{count}} Nodes Not Ready_one": "{{count}} 个节点未就绪"
+  "{{count}} Nodes Not Ready_one": "{{count}} 个节点未就绪",
+  "At its maximum of {{count}} replica": "已达到 {{count}} 个副本的上限",
+  "Runs on {{count}} node it should not": "运行在 {{count}} 个不应运行的节点上"
 }

@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "Что Kubernetes сообщает об этом узле.",
   "What Kubernetes reports about this pod.": "Что Kubernetes сообщает об этом поде.",
   "{{count}} Nodes Not Ready": "Узлов не готово: {{count}}",
-  "{{count}} Nodes Not Ready_one": "{{count}} узел не готов"
+  "{{count}} Nodes Not Ready_one": "{{count}} узел не готов",
+  "At its maximum of {{count}} replica": "На максимуме в {{count}} реплику",
+  "Runs on {{count}} node it should not": "Работает на {{count}} узле, на котором не должен"
 }

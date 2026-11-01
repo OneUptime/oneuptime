@@ -40006,5 +40006,7 @@
   "What Kubernetes reports about this node.": "Kubernetes इस नोड के बारे में क्या बताता है।",
   "What Kubernetes reports about this pod.": "Kubernetes इस पॉड के बारे में क्या बताता है।",
   "{{count}} Nodes Not Ready": "{{count}} नोड तैयार नहीं",
-  "{{count}} Nodes Not Ready_one": "{{count}} नोड तैयार नहीं"
+  "{{count}} Nodes Not Ready_one": "{{count}} नोड तैयार नहीं",
+  "At its maximum of {{count}} replica": "{{count}} प्रतिकृति की अधिकतम सीमा पर",
+  "Runs on {{count}} node it should not": "{{count}} ऐसे नोड पर चलता है जिस पर इसे नहीं चलना चाहिए"
 }
