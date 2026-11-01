@@ -23,6 +23,19 @@ import { NetworkTrafficUsageWindowKey } from "../../../../Server/Utils/NetworkCo
 import { getWindowKey } from "../../../../Server/Utils/NetworkController/NetworkTrafficUsageRows";
 import { JSONObject } from "../../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
+import {
+  NetworkTopologyEdge,
+  NetworkTopologyNode,
+} from "../../../../Types/Monitor/SnmpMonitor/NetworkTopology";
+import {
+  NetworkDeviceControllerLinks,
+  getCurrentControllerLinks,
+  readNetworkDeviceDiscoveredDetails,
+} from "../../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import NetworkTopologyUtil, {
+  TopologyBuildResult,
+  TopologyEndpointInput,
+} from "../../../../Utils/Monitor/NetworkTopologyUtil";
 import { NetworkControllerReadSummary } from "../../../../Types/NetworkController/NetworkControllerReadSummary";
 import NetworkControllerProvider from "../../../../Types/NetworkController/NetworkControllerProvider";
 import { NetworkTrafficUsageKind } from "../../../../Types/NetFlow/NetworkTrafficUsage";
@@ -1051,8 +1064,85 @@ describe("what a read tells the map (#5379)", () => {
       // The printer's switch is no device here.
       unplacedDeviceCount: 1,
       linkedDeviceCount: 1,
-      linkNetworksWaiting: 0,
     });
+  });
+
+  test("from Meraki's answers to the map: the display on its port, the router on its switch", async () => {
+    await runStore();
+
+    const linkPatch: DiscoveredDetailsMerge | undefined = merged.find(
+      (patch: DiscoveredDetailsMerge): boolean => {
+        return Boolean(patch.set?.["controllerLinks"]);
+      },
+    );
+    const reading: NetworkDeviceControllerLinks | undefined =
+      readNetworkDeviceDiscoveredDetails(linkPatch?.set).controllerLinks;
+
+    const map: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        {
+          id: SWITCH_DEVICE,
+          name: "UN0660LANSWI01",
+          hostname: "10.242.166.220",
+          siteId: SITE,
+          controllerLinks: getCurrentControllerLinks(reading, START),
+          controllerProvider: reading?.provider,
+        },
+        {
+          id: "kds",
+          name: "wb-0660-kds01",
+          hostname: "10.18.166.51",
+          siteId: SITE,
+        },
+        { id: "rtr", name: "UN0660WANRTR01", hostname: "10.1.1.1", siteId: SITE },
+      ],
+      START,
+      [],
+      upserted.map(
+        (client: EndpointControllerClient): TopologyEndpointInput => {
+          return {
+            id: client.macAddress,
+            macAddress: client.macAddress,
+            ipAddress: client.ipAddress,
+            hostname: client.hostname,
+            vlanId: client.vlanId,
+            attachedNetworkDeviceId: client.deviceId.toString(),
+            attachedPortName: client.portName,
+            lastSeenAt: client.seenAt,
+            siteId: client.deviceSiteId?.toString(),
+            attachmentSource: "meraki",
+          };
+        },
+      ),
+    );
+
+    const edgeTo: (nodeId: string) => NetworkTopologyEdge | undefined = (
+      nodeId: string,
+    ): NetworkTopologyEdge | undefined => {
+      return map.edges.find((edge: NetworkTopologyEdge): boolean => {
+        return edge.fromNodeId === nodeId || edge.toNodeId === nodeId;
+      });
+    };
+
+    expect(edgeTo("kds")).toMatchObject({
+      fromNodeId: SWITCH_DEVICE,
+      fromPort: "Port 7",
+      parentNodeId: SWITCH_DEVICE,
+      reportedBy: "meraki",
+    });
+    expect(edgeTo("rtr")).toMatchObject({
+      fromNodeId: SWITCH_DEVICE,
+      fromPort: "Port 49",
+      toPort: "Port 3",
+      protocols: ["lldp"],
+      reportedBy: "meraki",
+    });
+    expect(map.adoptedEndpointCount).toBe(1);
+    expect(
+      map.nodes.map((node: NetworkTopologyNode): string => {
+        return node.id;
+      }),
+    ).toEqual([SWITCH_DEVICE, "kds", "rtr"]);
   });
 
   test("a failure recording them is a warning on a read that otherwise worked", async () => {

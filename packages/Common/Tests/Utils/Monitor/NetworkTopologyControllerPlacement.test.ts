@@ -158,6 +158,49 @@ describe("the store in the issue", () => {
     ).toHaveLength(0);
   });
 
+  test("a row with no ifIndex, as the database hands it back, still finds its port", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      devices,
+      NOW,
+      interfaces,
+      [
+        merakiClient("aa:bb:cc:00:00:51", {
+          ipAddress: "10.18.166.51",
+          attachedInterfaceIndex: null as unknown as undefined,
+        }),
+      ],
+    );
+
+    expect(
+      edgeBetween(result, "sw-01", "kds01")?.fromInterface?.interfaceIndex,
+    ).toBe(7);
+  });
+
+  test("a client on no port is labelled with none, not with an index it does not have", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      devices,
+      NOW,
+      [],
+      [
+        merakiClient("aa:bb:cc:00:00:51", {
+          ipAddress: "10.18.166.51",
+          attachedPortName: undefined,
+          attachedInterfaceIndex: null as unknown as undefined,
+        }),
+        merakiClient("aa:bb:cc:00:00:99", {
+          attachedPortName: undefined,
+          attachedInterfaceIndex: null as unknown as undefined,
+        }),
+      ],
+    );
+
+    expect(edgeBetween(result, "sw-01", "kds01")?.fromPort).toBeUndefined();
+    expect(
+      edgeBetween(result, "sw-01", "endpoint:endpoint-aa:bb:cc:00:00:99")
+        ?.fromPort,
+    ).toBeUndefined();
+  });
+
   test("a display stays placed between two reads of the list, hours after a walk's window", () => {
     const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
       devices,

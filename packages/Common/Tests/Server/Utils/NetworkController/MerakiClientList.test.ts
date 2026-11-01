@@ -213,6 +213,10 @@ describe("when a client was last seen", () => {
     );
   });
 
+  test("digits are seconds, never a year Date.parse would read them as", () => {
+    expect(readClientLastSeen("2026", NOW)).toEqual(new Date(2026 * 1000));
+  });
+
   test("an ISO time, as other Meraki listings send", () => {
     expect(readClientLastSeen("2026-11-01T10:00:00Z", NOW)).toEqual(
       new Date("2026-11-01T10:00:00Z"),

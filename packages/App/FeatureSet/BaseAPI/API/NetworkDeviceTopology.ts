@@ -647,11 +647,12 @@ export default class NetworkDeviceTopologyAPI {
               vlanId: endpoint.vlanId,
               attachedNetworkDeviceId:
                 endpoint.attachedNetworkDeviceId?.toString(),
-              attachedInterfaceIndex: endpoint.attachedInterfaceIndex,
+              attachedInterfaceIndex:
+                endpoint.attachedInterfaceIndex ?? undefined,
               attachedPortName: endpoint.attachedPortName,
               lastSeenAt: endpoint.lastSeenAt,
-              hostname: endpoint.hostname,
-              attachmentSource: endpoint.attachmentSource,
+              hostname: endpoint.hostname ?? undefined,
+              attachmentSource: endpoint.attachmentSource ?? undefined,
               /*
                * .toString() is load-bearing, as for the link rules above:
                * the builder keys a Map on it.

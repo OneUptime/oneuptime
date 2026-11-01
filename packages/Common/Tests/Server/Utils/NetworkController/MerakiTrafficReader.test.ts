@@ -1147,7 +1147,6 @@ describe("the links of a read (#5379)", () => {
     const result: NetworkControllerReadResult = await readOnce(env);
 
     expect(result.linkNetworkIds).toHaveLength(5);
-    expect(result.linkNetworksWaiting).toBe(0);
     expect(result.links).toHaveLength(1);
     expect(result.links[0]?.controllerNetworkId).toBe(result.linkNetworkIds[0]);
     expect(result.links[0]?.ends[1]).toMatchObject({
@@ -1247,20 +1246,46 @@ describe("the links of a read (#5379)", () => {
     const first: NetworkControllerReadResult = await readOnce(env);
 
     expect(first.linkNetworkIds).toHaveLength(MAX_TOPOLOGY_NETWORKS_PER_READ);
-    expect(first.linkNetworksWaiting).toBe(20);
-    expect(first.complete).toBe(false);
 
     env.clock.advance(MINUTE);
 
     const second: NetworkControllerReadResult = await readOnce(env);
 
     expect(second.linkNetworkIds).toHaveLength(20);
-    expect(second.linkNetworksWaiting).toBe(0);
     expect(
       second.linkNetworkIds.filter((id: string): boolean => {
         return first.linkNetworkIds.includes(id);
       }),
     ).toEqual([]);
+  });
+
+  test("links left for the next read are no partial read: nothing is behind that matters", async () => {
+    const count: number = MAX_TOPOLOGY_NETWORKS_PER_READ + 20;
+    const env: Env = environment({}, count);
+
+    // Traffic is up to date, so links are all this read has to do.
+    await readOnce(env);
+    while (!(await readOnce(env)).complete) {
+      env.clock.advance(MINUTE);
+    }
+
+    env.clock.advance(TOPOLOGY_WINDOW_MS);
+    env.state = {
+      ...env.state,
+      analyticsCursors: Object.fromEntries(
+        Object.keys(env.state.analyticsCursors || {}).map(
+          (networkId: string): [string, string] => {
+            return [networkId, env.clock.now().toISOString()];
+          },
+        ),
+      ),
+    };
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.linkNetworkIds).toHaveLength(MAX_TOPOLOGY_NETWORKS_PER_READ);
+    expect(result.analyticsNetworks).toBe(0);
+    expect(result.complete).toBe(true);
   });
 
   test("a network that will not answer is said once, with a count, and asked again next window", async () => {

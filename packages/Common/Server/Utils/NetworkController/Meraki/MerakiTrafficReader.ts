@@ -66,9 +66,9 @@ import {
  *      topology (networks/{id}/topology/linkLayer, MerakiLinkLayer), the
  *      cables the dashboard draws. Cables move rarely and each network costs
  *      a call, so a read asks at most MAX_TOPOLOGY_NETWORKS_PER_READ networks,
- *      the longest-waiting first. Those are asked before the analytics, so a
- *      large organization's links are read over several reads and neither
- *      kind of read can starve the other.
+ *      the longest-waiting first, ahead of the analytics, so neither kind of
+ *      read can starve the other. The rest wait for the connection's next
+ *      read: that is no partial read, and hurries nothing.
  *
  * None of it is flow records: the API never says who talked to whom.
  *
@@ -401,7 +401,6 @@ interface ReadProgress {
   clients: Array<NetworkControllerClient>;
   links: Array<NetworkControllerLink>;
   linkNetworkIds: Array<string>;
-  linkNetworksWaiting: number;
   complete: boolean;
   uplinkWindows: number;
   newestUplinkAt: Date | undefined;
@@ -461,7 +460,6 @@ export default class MerakiTrafficReader {
       clients: [],
       links: [],
       linkNetworkIds: [],
-      linkNetworksWaiting: 0,
       complete: true,
       uplinkWindows: 0,
       newestUplinkAt: undefined,
@@ -600,7 +598,6 @@ export default class MerakiTrafficReader {
       clients: progress.clients,
       links: progress.links,
       linkNetworkIds: progress.linkNetworkIds,
-      linkNetworksWaiting: progress.linkNetworksWaiting,
       records: progress.records,
       windows: progress.windows,
       uplinkWindows: progress.uplinkWindows,
@@ -741,21 +738,11 @@ export default class MerakiTrafficReader {
     progress: ReadProgress,
     networks: Array<MerakiNetwork>,
   ): Promise<void> {
-    const due: Array<MerakiNetwork> = getTopologyDueNetworks({
+    const asked: Array<MerakiNetwork> = getTopologyDueNetworks({
       networks,
       cursors: progress.state.topologyCursors,
       now: progress.now,
-    });
-    const asked: Array<MerakiNetwork> = due.slice(
-      0,
-      MAX_TOPOLOGY_NETWORKS_PER_READ,
-    );
-
-    progress.linkNetworksWaiting = due.length;
-
-    if (due.length > asked.length) {
-      progress.complete = false;
-    }
+    }).slice(0, MAX_TOPOLOGY_NETWORKS_PER_READ);
 
     let unavailableInARow: number = 0;
     let failedNetworks: number = 0;
@@ -824,7 +811,6 @@ export default class MerakiTrafficReader {
         ...(progress.state.topologyCursors || {}),
         [network.id]: iso(progress.now),
       };
-      progress.linkNetworksWaiting--;
     }
 
     sayFailures();

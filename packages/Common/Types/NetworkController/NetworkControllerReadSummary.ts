@@ -50,11 +50,6 @@ export interface NetworkControllerReadSummary {
   unplacedDeviceCount?: number | undefined;
   // Devices in OneUptime whose links the last read of any links recorded.
   linkedDeviceCount?: number | undefined;
-  /*
-   * Networks due to have their links read that are still waiting for it (a
-   * large organization's are read over several reads).
-   */
-  linkNetworksWaiting?: number | undefined;
   // Uplink windows this read stored, and the end of the newest (ISO).
   uplinkWindows: number;
   newestUplinkAt?: string | undefined;
@@ -137,9 +132,6 @@ export function readNetworkControllerReadSummary(
       : {}),
     ...(summary["linkedDeviceCount"] !== undefined
       ? { linkedDeviceCount: readNumber(summary["linkedDeviceCount"]) }
-      : {}),
-    ...(summary["linkNetworksWaiting"] !== undefined
-      ? { linkNetworksWaiting: readNumber(summary["linkNetworksWaiting"]) }
       : {}),
     uplinkWindows: readNumber(summary["uplinkWindows"]),
     ...(newestUplinkAt ? { newestUplinkAt: newestUplinkAt } : {}),

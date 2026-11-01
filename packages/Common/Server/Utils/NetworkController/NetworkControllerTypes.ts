@@ -239,8 +239,6 @@ export interface NetworkControllerReadResult {
    */
   links: Array<NetworkControllerLink>;
   linkNetworkIds: Array<string>;
-  // Networks due to have their links read that this read left to the next.
-  linkNetworksWaiting: number;
   records: Array<NetworkTrafficUsageRecord>;
   // The windows the records cover, whether or not they hold a row.
   windows: Array<NetworkTrafficUsageWindowKey>;

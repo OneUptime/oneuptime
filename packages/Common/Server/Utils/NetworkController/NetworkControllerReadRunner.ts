@@ -513,7 +513,6 @@ export default class NetworkControllerReadRunner {
           : previous?.linkedDeviceCount !== undefined
             ? { linkedDeviceCount: previous.linkedDeviceCount }
             : {}),
-        linkNetworksWaiting: read.linkNetworksWaiting,
         uplinkWindows: read.uplinkWindows,
         ...(read.newestUplinkAt
           ? { newestUplinkAt: read.newestUplinkAt.toISOString() }

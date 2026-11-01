@@ -1196,7 +1196,7 @@ export default class NetworkTopologyUtil {
         );
       let fromPort: string | undefined =
         endpoint.attachedPortName || switchInterface?.name;
-      if (!fromPort && endpoint.attachedInterfaceIndex !== undefined) {
+      if (!fromPort && typeof endpoint.attachedInterfaceIndex === "number") {
         fromPort = `if${endpoint.attachedInterfaceIndex}`;
       }
 
@@ -1593,7 +1593,10 @@ export default class NetworkTopologyUtil {
       );
     let switchPort: string | undefined =
       data.endpoint.attachedPortName || switchInterface?.name;
-    if (!switchPort && data.endpoint.attachedInterfaceIndex !== undefined) {
+    if (
+      !switchPort &&
+      typeof data.endpoint.attachedInterfaceIndex === "number"
+    ) {
       switchPort = `if${data.endpoint.attachedInterfaceIndex}`;
     }
     const switchEndpoint: NetworkTopologyEdgeEndpoint | undefined =
@@ -1880,7 +1883,9 @@ export default class NetworkTopologyUtil {
    * The interface row of the port an endpoint is attached to: by the ifIndex
    * a walk left on it, else by the port a controller named. An ifIndex that
    * finds no row is not then looked up by name: a walk that gave one was
-   * specific, and its port label is that same interface's.
+   * specific, and its port label is that same interface's. A controller's
+   * row has none, which the database hands back as NULL: not a number is
+   * the test, not undefined.
    */
   private static interfaceOfAttachment(
     endpoint: TopologyEndpointInput,
@@ -1890,7 +1895,7 @@ export default class NetworkTopologyUtil {
   ): TopologyInterfaceInput | undefined {
     const deviceId: string = endpoint.attachedNetworkDeviceId || "";
 
-    if (endpoint.attachedInterfaceIndex !== undefined) {
+    if (typeof endpoint.attachedInterfaceIndex === "number") {
       return interfaceByDeviceAndIndex.get(
         `${deviceId}::${endpoint.attachedInterfaceIndex}`,
       );

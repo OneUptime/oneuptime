@@ -25,7 +25,6 @@ describe("what a read did for the map", () => {
     expect(summary?.placedClientCount).toBeUndefined();
     expect(summary?.unplacedDeviceCount).toBeUndefined();
     expect(summary?.linkedDeviceCount).toBeUndefined();
-    expect(summary?.linkNetworksWaiting).toBeUndefined();
   });
 
   test("the counts are read back, and zero stays a count", () => {
@@ -35,13 +34,11 @@ describe("what a read did for the map", () => {
         placedClientCount: 41,
         unplacedDeviceCount: 0,
         linkedDeviceCount: 3,
-        linkNetworksWaiting: 2,
       }),
     ).toMatchObject({
       placedClientCount: 41,
       unplacedDeviceCount: 0,
       linkedDeviceCount: 3,
-      linkNetworksWaiting: 2,
     });
   });
 

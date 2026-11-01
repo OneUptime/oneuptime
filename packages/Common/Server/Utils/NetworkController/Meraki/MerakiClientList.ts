@@ -34,6 +34,9 @@ const MAX_VLAN_ID: number = 4094;
 // What a run of digits has to look like to be read as a whole number.
 const WHOLE_NUMBER_PATTERN: RegExp = /^\d{1,9}$/;
 
+// A time in digits, as Meraki sends it: epoch seconds, far past any date form.
+const EPOCH_SECONDS_PATTERN: RegExp = /^\d{1,12}$/;
+
 function asObject(value: unknown): JSONObject | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JSONObject)
@@ -78,13 +81,12 @@ export function readClientLastSeen(value: unknown, now: Date): Date {
 
   if (typeof value === "number") {
     time = value * 1000;
-  } else if (typeof value === "string" && value.trim()) {
+  } else if (typeof value === "string") {
     const text: string = value.trim();
-    time = WHOLE_NUMBER_PATTERN.test(text) ? NaN : Date.parse(text);
 
-    if (Number.isNaN(time) && Number.isFinite(Number(text))) {
-      time = Number(text) * 1000;
-    }
+    time = EPOCH_SECONDS_PATTERN.test(text)
+      ? Number(text) * 1000
+      : Date.parse(text);
   }
 
   if (!Number.isFinite(time) || time <= 0 || time > now.getTime()) {
