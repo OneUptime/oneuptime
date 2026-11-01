@@ -273,8 +273,10 @@ export const AWS_DATA_SECURITY_POLICY_NAME: string = "OneUptimeDataSecurity";
 
 /*
  * Every AWS action the data security reader calls (AwsDataSecurityReader),
- * by what it is for. Each reads a setting; none reads data or writes. A
- * few are in the read-only policy too: this one stands on its own.
+ * by what it is for. Each reads a setting; none reads data or writes - the
+ * credential report IAM makes on request holds dates and flags, never a
+ * secret. A few are in the read-only policy too: this one stands on its
+ * own.
  * organizations:ListAccounts, which an organization's read also calls,
  * stays in the management account's role alone.
  */
@@ -329,6 +331,15 @@ export const AWS_DATA_SECURITY_CONFIGURATION_ACTION_GROUPS: Array<AwsReadOnlyAct
     {
       purpose: "Tell AWS's own keys (alias/aws/...) from the keys you manage",
       actions: ["kms:ListAliases"],
+    },
+    {
+      purpose:
+        "Read which users and roles reach each bucket and table through their own IAM policies, who may assume each role, and when each was last used",
+      actions: [
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport",
+      ],
     },
   ];
 

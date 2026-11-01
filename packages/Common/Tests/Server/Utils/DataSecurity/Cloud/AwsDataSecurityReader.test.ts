@@ -20,6 +20,7 @@ import {
 } from "../../../../../Server/Utils/DataSource/HttpFetch";
 import {
   AwsDataSecurityReadOptions,
+  CREDENTIAL_REPORT_ATTEMPTS,
   createAwsObjectStoreReader,
   readAwsDataSecurity,
 } from "../../../../../Server/Utils/DataSecurity/Cloud/Aws/AwsDataSecurityReader";
@@ -54,12 +55,18 @@ import {
   FAKE_ACCOUNT_ID,
   FakeAws,
   FakeBucket,
+  FakeIam,
+  FakeIamRole,
   FakeRegion,
   awsError,
   createFakeAws,
   s3Error,
   stsError,
 } from "../../CloudConnection/FakeAwsApi";
+import {
+  IAM_PAGE_SIZE,
+  MAX_IAM_ENTRIES_PER_STORE,
+} from "../../../../../Server/Utils/DataSecurity/Cloud/Aws/AwsIamAccess";
 import {
   FakeProviderApi,
   FakeResponse,
@@ -1256,6 +1263,12 @@ describe("the permissions the reader needs", () => {
       buckets: [
         { name: "placed-later", region: "us-east-1", hideRegion: true },
       ],
+      // A user, so the credential report is read for its last use.
+      iam: {
+        users: [{ name: "alice" }],
+        credentialReport:
+          "user,arn\nalice,arn:aws:iam::123456789012:user/alice",
+      },
     });
 
     const result: CloudDataSecurityReadResult = await read(fake);
@@ -1266,12 +1279,513 @@ describe("the permissions the reader needs", () => {
       ...fake.dataCalls.map((call: FakeAws["dataCalls"][number]): string => {
         return `${call.service}:${call.action}`;
       }),
+      ...fake.iamCalls.map((call: FakeAws["iamCalls"][number]): string => {
+        return `iam:${call.action}`;
+      }),
     ]);
 
     expect(result.warnings).toEqual([]);
     expect(Array.from(called).sort()).toEqual(
       [...AWS_DATA_SECURITY_CONFIGURATION_ACTIONS].sort(),
     );
+  });
+});
+
+describe("who reaches a store through IAM", () => {
+  const S3_READ_ONLY: JSONObject = {
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: ["s3:Get*", "s3:List*"],
+        Resource: "*",
+      },
+    ],
+  };
+
+  function trustOf(principal: JSONObject | string): JSONObject {
+    return {
+      Statement: [
+        { Effect: "Allow", Principal: principal, Action: "sts:AssumeRole" },
+      ],
+    };
+  }
+
+  function ec2Role(
+    name: string,
+    extra: Partial<FakeIamRole> = {},
+  ): FakeIamRole {
+    return {
+      name,
+      trust: trustOf({ Service: "ec2.amazonaws.com" }),
+      ...extra,
+    };
+  }
+
+  function fakeWithIam(
+    iam: FakeIam,
+    extra: Partial<Parameters<typeof createFakeAws>[0]> = {},
+  ): FakeAws {
+    return createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [],
+          dynamoTables: [{ table: { TableName: "customers" } }],
+        },
+      },
+      buckets: [{ name: "orders", region: "us-east-1" }],
+      iam,
+      ...extra,
+    });
+  }
+
+  function iamEntries(store: CloudDataStoreRead): Array<DataStoreAccessEntry> {
+    return store.access.filter((entry: DataStoreAccessEntry): boolean => {
+      return (
+        entry.grantedVia.startsWith("IAM policy") ||
+        entry.grantedVia.startsWith("Can assume role")
+      );
+    });
+  }
+
+  test("a role whose own policy reads every bucket reads one no bucket policy names; a group's policy writes it for its users", async () => {
+    const result: CloudDataSecurityReadResult = await read(
+      fakeWithIam({
+        roles: [
+          ec2Role("app", {
+            attached: ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"],
+            lastUsed: "2026-10-20T08:00:00Z",
+          }),
+          ec2Role("table-admin", {
+            inline: {
+              "customers-admin": {
+                Statement: [
+                  {
+                    Effect: "Allow",
+                    Action: "dynamodb:*",
+                    Resource: `arn:aws:dynamodb:us-east-1:${FAKE_ACCOUNT_ID}:table/customers`,
+                  },
+                ],
+              },
+            },
+          }),
+        ],
+        users: [{ name: "uploader", groups: ["uploaders"] }],
+        groups: [
+          {
+            name: "uploaders",
+            inline: {
+              "put-orders": {
+                Statement: [
+                  {
+                    Effect: "Allow",
+                    Action: "s3:PutObject",
+                    Resource: "arn:aws:s3:::orders/*",
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        policies: [
+          {
+            arn: "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
+            document: S3_READ_ONLY,
+          },
+        ],
+        credentialReport: [
+          "user,arn,user_creation_time,password_last_used,access_key_1_last_used_date",
+          `uploader,arn:aws:iam::${FAKE_ACCOUNT_ID}:user/uploader,2024-01-01T00:00:00+00:00,N/A,2026-10-26T09:00:00+00:00`,
+        ].join("\n"),
+      }),
+    );
+    const bucket: CloudDataStoreRead = storeNamed(result, "orders");
+    const table: CloudDataStoreRead = storeNamed(result, "customers");
+
+    expect(result.warnings).toEqual([]);
+    expect(iamEntries(bucket)).toEqual([
+      {
+        principal: `arn:aws:iam::${FAKE_ACCOUNT_ID}:user/uploader`,
+        principalName: "uploader",
+        principalType: DataStorePrincipalType.User,
+        accessLevel: DataStoreAccessLevel.Write,
+        grantedVia: "IAM policy group uploaders: inline policy put-orders",
+        isExternal: false,
+        isPublic: false,
+        lastUsedAt: new Date("2026-10-26T09:00:00Z"),
+        isUnused: false,
+      },
+      {
+        principal: `arn:aws:iam::${FAKE_ACCOUNT_ID}:role/app`,
+        principalName: "app",
+        principalType: DataStorePrincipalType.Role,
+        accessLevel: DataStoreAccessLevel.Read,
+        grantedVia: "IAM policy AmazonS3ReadOnlyAccess",
+        isExternal: false,
+        isPublic: false,
+        lastUsedAt: new Date("2026-10-20T08:00:00Z"),
+        isUnused: false,
+      },
+    ]);
+    expect(
+      iamEntries(table).map((entry: DataStoreAccessEntry): Array<string> => {
+        return [entry.principalName || "", entry.accessLevel, entry.grantedVia];
+      }),
+    ).toEqual([
+      [
+        "table-admin",
+        DataStoreAccessLevel.Admin,
+        "IAM policy inline policy customers-admin",
+      ],
+    ]);
+    // Reach inside the account leaves the bucket private.
+    expect(bucket.posture.sharedWithExternal).toEqual([]);
+    expect(bucket.posture.publicRead).toBe(false);
+  });
+
+  test("an account outside the connected ones that may assume a role shares what the role reaches", async () => {
+    const result: CloudDataSecurityReadResult = await read(
+      fakeWithIam({
+        roles: [
+          {
+            name: "vendor-reader",
+            trust: trustOf({ AWS: `arn:aws:iam::${OUTSIDE}:root` }),
+            attached: ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"],
+          },
+          {
+            name: "partner-reader",
+            trust: trustOf({ AWS: `arn:aws:iam::${PARTNER}:root` }),
+            attached: ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"],
+          },
+        ],
+        policies: [
+          {
+            arn: "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
+            document: S3_READ_ONLY,
+          },
+        ],
+      }),
+    );
+    const bucket: CloudDataStoreRead = storeNamed(result, "orders");
+
+    expect(bucket.posture.sharedWithExternal).toEqual([OUTSIDE]);
+    expect(getDataStoreExposure(bucket.posture)).toBe(
+      DataStoreExposure.OtherAccounts,
+    );
+    expect(iamEntries(bucket)[0]).toEqual({
+      principal: `arn:aws:iam::${OUTSIDE}:root`,
+      principalName: OUTSIDE,
+      principalType: DataStorePrincipalType.Account,
+      accessLevel: DataStoreAccessLevel.Read,
+      grantedVia:
+        "Can assume role vendor-reader, whose IAM policy AmazonS3ReadOnlyAccess",
+      isExternal: true,
+      isPublic: false,
+    });
+    // The connected partner may assume its role too, and is not outside.
+    expect(
+      iamEntries(bucket).filter((entry: DataStoreAccessEntry): boolean => {
+        return entry.isExternal;
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a role any AWS account may assume makes what its policy reads public, for that reason", async () => {
+    const result: CloudDataSecurityReadResult = await read(
+      fakeWithIam({
+        roles: [
+          {
+            name: "open-door",
+            trust: trustOf("*"),
+            inline: { "read-all": S3_READ_ONLY },
+          },
+        ],
+      }),
+    );
+    const bucket: CloudDataStoreRead = storeNamed(result, "orders");
+
+    expect(bucket.posture.publicRead).toBe(true);
+    expect(bucket.posture.publicWrite).toBe(false);
+    expect(bucket.posture.publicReason).toBe(
+      "Any AWS account can assume a role whose IAM policy reaches it (Can assume role open-door, whose IAM policy inline policy read-all).",
+    );
+    expect(getDataStoreExposure(bucket.posture)).toBe(DataStoreExposure.Public);
+    expect(publicEntries(bucket)).toEqual([
+      expect.objectContaining({
+        principal: "*",
+        principalName: "Any AWS account",
+      }),
+    ]);
+  });
+
+  test("the identities a bucket's own policy names get their last use from IAM", async () => {
+    const result: CloudDataSecurityReadResult = await read(
+      fakeWithIam(
+        {
+          roles: [
+            ec2Role("legacy-etl", {
+              createDate: "2024-01-01T00:00:00Z",
+              lastUsed: "2026-03-01T00:00:00Z",
+            }),
+          ],
+        },
+        {
+          buckets: [
+            {
+              name: "orders",
+              region: "us-east-1",
+              policy: {
+                Statement: [
+                  {
+                    Effect: "Allow",
+                    Principal: {
+                      AWS: `arn:aws:iam::${FAKE_ACCOUNT_ID}:role/legacy-etl`,
+                    },
+                    Action: "s3:GetObject",
+                    Resource: "arn:aws:s3:::orders/*",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ),
+    );
+
+    expect(storeNamed(result, "orders").access).toEqual([
+      {
+        principal: `arn:aws:iam::${FAKE_ACCOUNT_ID}:role/legacy-etl`,
+        principalName: "legacy-etl",
+        principalType: DataStorePrincipalType.Role,
+        accessLevel: DataStoreAccessLevel.Read,
+        grantedVia: "Bucket policy",
+        isExternal: false,
+        isPublic: false,
+        lastUsedAt: new Date("2026-03-01T00:00:00Z"),
+        isUnused: true,
+      },
+    ]);
+  });
+
+  test("a credential report still being made is waited on, then read; one that never gets ready leaves users' use unknown", async () => {
+    const waits: Array<number> = [];
+    const users: FakeIam = {
+      users: [{ name: "analyst", attached: ["arn:aws:iam::aws:policy/S3"] }],
+      policies: [{ arn: "arn:aws:iam::aws:policy/S3", document: S3_READ_ONLY }],
+      credentialReport: [
+        "user,arn,user_creation_time,password_last_used",
+        `analyst,arn:aws:iam::${FAKE_ACCOUNT_ID}:user/analyst,2024-01-01T00:00:00+00:00,2026-10-25T00:00:00+00:00`,
+      ].join("\n"),
+    };
+    const ready: FakeAws = fakeWithIam({
+      ...users,
+      credentialReportStates: ["STARTED", "INPROGRESS", "COMPLETE"],
+    });
+    const later: CloudDataSecurityReadResult = await read(ready, {
+      sleep: async (milliseconds: number): Promise<void> => {
+        waits.push(milliseconds);
+      },
+    });
+
+    expect(iamEntries(storeNamed(later, "orders"))[0]!.lastUsedAt).toEqual(
+      new Date("2026-10-25T00:00:00Z"),
+    );
+    expect(waits).toEqual([2000, 2000]);
+    expect(
+      ready.iamCalls.map((call: FakeAws["iamCalls"][number]): string => {
+        return call.action;
+      }),
+    ).toEqual([
+      "GetAccountAuthorizationDetails",
+      "GenerateCredentialReport",
+      "GenerateCredentialReport",
+      "GenerateCredentialReport",
+      "GetCredentialReport",
+    ]);
+
+    const never: FakeAws = fakeWithIam({
+      ...users,
+      credentialReportStates: Array(CREDENTIAL_REPORT_ATTEMPTS).fill(
+        "INPROGRESS",
+      ),
+    });
+    const unknown: CloudDataSecurityReadResult = await read(never);
+    const entry: DataStoreAccessEntry = iamEntries(
+      storeNamed(unknown, "orders"),
+    )[0]!;
+
+    expect(entry.lastUsedAt).toBeUndefined();
+    expect(entry.isUnused).toBe(false);
+    expect(unknown.warnings).toEqual([]);
+    expect(
+      never.iamCalls.filter((call: FakeAws["iamCalls"][number]) => {
+        return call.action === "GetCredentialReport";
+      }),
+    ).toEqual([]);
+  });
+
+  test("an identity listing the role may not call is a warning that says how to allow it, and the rest is read", async () => {
+    const result: CloudDataSecurityReadResult = await read(
+      fakeWithIam({
+        error: stsError(403, "AccessDenied", "not allowed"),
+      }),
+    );
+    const bucket: CloudDataStoreRead = storeNamed(result, "orders");
+
+    expect(result.warnings).toEqual([
+      "The access key may not call iam:GetAccountAuthorizationDetails. Run the data security setup command again to allow it.",
+    ]);
+    expect(result.complete).toBe(true);
+    expect(iamEntries(bucket)).toEqual([]);
+    expect(bucket.posture.blockPublicAccess).toBe(false);
+  });
+
+  test("a credential report the role may not make is a warning; the identities are still listed", async () => {
+    const result: CloudDataSecurityReadResult = await read(
+      fakeWithIam({
+        users: [{ name: "analyst", attached: ["arn:aws:iam::aws:policy/S3"] }],
+        policies: [
+          { arn: "arn:aws:iam::aws:policy/S3", document: S3_READ_ONLY },
+        ],
+        credentialReportError: stsError(403, "AccessDenied", "not allowed"),
+      }),
+    );
+
+    expect(result.warnings).toEqual([
+      "The access key may not call iam:GenerateCredentialReport. Run the data security setup command again to allow it.",
+    ]);
+    expect(iamEntries(storeNamed(result, "orders"))).toHaveLength(1);
+  });
+
+  test("a managed policy IAM leaves out of the listing is said, and grants nothing", async () => {
+    const result: CloudDataSecurityReadResult = await read(
+      fakeWithIam({
+        roles: [
+          ec2Role("mystery", {
+            attached: ["arn:aws:iam::aws:policy/NotListed"],
+          }),
+        ],
+      }),
+    );
+
+    expect(result.warnings).toEqual([
+      "IAM did not return the documents of 1 attached managed policy (arn:aws:iam::aws:policy/NotListed): what they grant is not counted.",
+    ]);
+    expect(iamEntries(storeNamed(result, "orders"))).toEqual([]);
+  });
+
+  test("the listing is read page by page, as many identities as it holds", async () => {
+    const roles: Array<FakeIamRole> = [];
+
+    for (let index: number = 0; index < IAM_PAGE_SIZE + 10; index++) {
+      roles.push(
+        ec2Role(`reader-${String(index).padStart(3, "0")}`, {
+          inline: { read: S3_READ_ONLY },
+        }),
+      );
+    }
+
+    const fake: FakeAws = fakeWithIam({ roles });
+    const result: CloudDataSecurityReadResult = await read(fake);
+    const listings: Array<FakeAws["iamCalls"][number]> = fake.iamCalls.filter(
+      (call: FakeAws["iamCalls"][number]): boolean => {
+        return call.action === "GetAccountAuthorizationDetails";
+      },
+    );
+
+    expect(
+      listings.map((call: FakeAws["iamCalls"][number]): Array<string> => {
+        return [call.params["MaxItems"] || "", call.params["Marker"] || ""];
+      }),
+    ).toEqual([
+      [String(IAM_PAGE_SIZE), ""],
+      [String(IAM_PAGE_SIZE), String(IAM_PAGE_SIZE)],
+    ]);
+    expect(listings[0]!.params).toEqual(
+      expect.objectContaining({
+        "Filter.member.1": "User",
+        "Filter.member.2": "Role",
+        "Filter.member.3": "Group",
+        "Filter.member.4": "LocalManagedPolicy",
+        "Filter.member.5": "AWSManagedPolicy",
+      }),
+    );
+
+    const bucket: CloudDataStoreRead = storeNamed(result, "orders");
+
+    expect(iamEntries(bucket)).toHaveLength(MAX_IAM_ENTRIES_PER_STORE);
+    expect(bucket.posture.readWarnings).toEqual([
+      `${IAM_PAGE_SIZE + 10 - MAX_IAM_ENTRIES_PER_STORE} more identities reach it through IAM: the ${MAX_IAM_ENTRIES_PER_STORE} with the most access are listed.`,
+    ]);
+  });
+
+  test("an account with neither buckets nor tables is not asked for its identities", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: { "us-east-1": { metrics: [] } },
+      iam: { roles: [ec2Role("idle")] },
+    });
+
+    await read(fake);
+
+    expect(fake.iamCalls).toEqual([]);
+  });
+
+  test("each account of an organization is listed through its own role, and reaches only its own stores", async () => {
+    process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] = "AKIAONEUPTIMESERVER1";
+    process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] =
+      "oneuptime-server-secret";
+
+    const member: string = "555566667777";
+    const tableAdmin: JSONObject = {
+      Statement: [{ Effect: "Allow", Action: "dynamodb:*", Resource: "*" }],
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [],
+          dynamoTables: [{ table: { TableName: "events" } }],
+        },
+      },
+      organizationAccounts: [
+        { Id: FAKE_ACCOUNT_ID, Name: "Management", State: "ACTIVE" },
+        { Id: member, Name: "Data", State: "ACTIVE" },
+      ],
+      iamByAccount: {
+        [FAKE_ACCOUNT_ID]: {
+          roles: [ec2Role("manager", { inline: { admin: tableAdmin } })],
+        },
+        [member]: {
+          roles: [ec2Role("member-admin", { inline: { admin: tableAdmin } })],
+        },
+      },
+    });
+    const settings: CloudConnectionSettings = roleSettings();
+
+    settings.config["readScope"] = CloudConnectionSetupScope.Organization;
+
+    const result: CloudDataSecurityReadResult = await readAwsDataSecurity(
+      settings,
+      readOptions(fake),
+    );
+    const accounts: Set<string> = new Set(
+      fake.iamCalls.map((call: FakeAws["iamCalls"][number]): string => {
+        return call.account;
+      }),
+    );
+
+    expect(accounts).toEqual(new Set([FAKE_ACCOUNT_ID, member]));
+    expect(
+      result.stores.map((store: CloudDataStoreRead): Array<string> => {
+        return [
+          store.identity.accountNumber,
+          ...iamEntries(store).map((entry: DataStoreAccessEntry): string => {
+            return entry.principal;
+          }),
+        ];
+      }),
+    ).toEqual([
+      [FAKE_ACCOUNT_ID, `arn:aws:iam::${FAKE_ACCOUNT_ID}:role/manager`],
+      [member, `arn:aws:iam::${member}:role/member-admin`],
+    ]);
   });
 });
 

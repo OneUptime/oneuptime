@@ -34,6 +34,13 @@ import {
  * them), S3 Control's public access block, RDS, Redshift and ElastiCache
  * (the Query protocol), DynamoDB and KMS's aliases (JSON), and OpenSearch
  * and EFS (REST-JSON).
+ *
+ * And IAM's identities, as GetAccountAuthorizationDetails lists them:
+ * users, groups, roles and managed policies in pages of the MaxItems asked
+ * for, every policy document URL-encoded as IAM writes it, each role with
+ * an instance profile that repeats the role inside it (as IAM's answer
+ * does), and the credential report, made after GenerateCredentialReport
+ * answers COMPLETE. An account given no identities lists none.
  */
 
 export const FAKE_ACCOUNT_ID: string = "123456789012";
@@ -172,6 +179,52 @@ export interface FakeBucket {
   errors?: Record<string, FakeResponse> | undefined;
 }
 
+// An IAM user, role or group's policies: inline by name, managed by ARN.
+export interface FakeIamPolicies {
+  inline?: Record<string, JSONObject> | undefined;
+  attached?: Array<string> | undefined;
+  boundary?: string | undefined;
+}
+
+export interface FakeIamUser extends FakeIamPolicies {
+  name: string;
+  path?: string | undefined;
+  groups?: Array<string> | undefined;
+  createDate?: string | undefined;
+}
+
+export interface FakeIamGroup extends FakeIamPolicies {
+  name: string;
+}
+
+export interface FakeIamRole extends FakeIamPolicies {
+  name: string;
+  path?: string | undefined;
+  trust: JSONObject;
+  createDate?: string | undefined;
+  lastUsed?: string | undefined;
+}
+
+export interface FakeIamPolicy {
+  arn: string;
+  document: JSONObject;
+  // An older version that is not the default: never the one read.
+  olderDocument?: JSONObject | undefined;
+}
+
+export interface FakeIam {
+  users?: Array<FakeIamUser> | undefined;
+  groups?: Array<FakeIamGroup> | undefined;
+  roles?: Array<FakeIamRole> | undefined;
+  policies?: Array<FakeIamPolicy> | undefined;
+  // Answer GetAccountAuthorizationDetails with this instead.
+  error?: FakeResponse | undefined;
+  // The credential report's CSV; GenerateCredentialReport's states in turn (COMPLETE when none left).
+  credentialReport?: string | undefined;
+  credentialReportStates?: Array<string> | undefined;
+  credentialReportError?: FakeResponse | undefined;
+}
+
 export interface FakeOrganizationAccount {
   Id: string;
   Name: string;
@@ -210,6 +263,9 @@ export interface FakeAwsOptions {
   // S3 Control: the account's public access block; not set when left out.
   accountPublicAccessBlock?: FakePublicAccessBlock | undefined;
   accountPublicAccessBlockError?: FakeResponse | undefined;
+  // IAM: every account's identities, or each account's own (by its id).
+  iam?: FakeIam | undefined;
+  iamByAccount?: Record<string, FakeIam> | undefined;
 }
 
 export interface FakeAws extends FakeProviderApi {
@@ -275,6 +331,12 @@ export interface FakeAws extends FakeProviderApi {
     region: string;
     account: string;
     params?: Record<string, string> | undefined;
+  }>;
+  // IAM calls by action, with the account they were signed for and their form fields.
+  iamCalls: Array<{
+    action: string;
+    account: string;
+    params: Record<string, string>;
   }>;
 }
 
@@ -379,6 +441,119 @@ export function queryError(
     status,
     body: `<ErrorResponse><Error><Type>Sender</Type><Code>${code}</Code><Message>${message}</Message></Error><RequestId>1</RequestId></ErrorResponse>`,
   };
+}
+
+// A policy document as IAM writes it in an XML answer: URL-encoded JSON.
+function encodedDocument(document: JSONObject): string {
+  return encodeURIComponent(JSON.stringify(document));
+}
+
+function iamPoliciesXml(policies: FakeIamPolicies, inlineList: string): string {
+  const inline: string = Object.entries(policies.inline || {})
+    .map(([name, document]: [string, JSONObject]): string => {
+      return `<member><PolicyName>${name}</PolicyName><PolicyDocument>${encodedDocument(document)}</PolicyDocument></member>`;
+    })
+    .join("");
+  const attached: string = (policies.attached || [])
+    .map((arn: string): string => {
+      return `<member><PolicyName>${arn.split("/").pop()}</PolicyName><PolicyArn>${arn}</PolicyArn></member>`;
+    })
+    .join("");
+  const boundary: string = policies.boundary
+    ? `<PermissionsBoundary><PermissionsBoundaryType>Policy</PermissionsBoundaryType><PermissionsBoundaryArn>${policies.boundary}</PermissionsBoundaryArn></PermissionsBoundary>`
+    : "";
+
+  return `<${inlineList}>${inline}</${inlineList}><AttachedManagedPolicies>${attached}</AttachedManagedPolicies>${boundary}`;
+}
+
+// One page of an account's identities, as GetAccountAuthorizationDetails answers it.
+export function iamAuthorizationDetailsXml(data: {
+  iam: FakeIam;
+  account: string;
+  marker: number;
+  maxItems: number;
+}): string {
+  const entities: Array<{ list: string; xml: string }> = [];
+
+  for (const user of data.iam.users || []) {
+    const path: string = user.path || "/";
+
+    entities.push({
+      list: "UserDetailList",
+      xml: `<member><Path>${path}</Path><UserName>${user.name}</UserName><UserId>AIDA${user.name.toUpperCase()}</UserId><Arn>arn:aws:iam::${data.account}:user${path}${user.name}</Arn><CreateDate>${user.createDate || "2024-01-01T00:00:00Z"}</CreateDate>${iamPoliciesXml(user, "UserPolicyList")}<GroupList>${(
+        user.groups || []
+      )
+        .map((group: string): string => {
+          return `<member>${group}</member>`;
+        })
+        .join("")}</GroupList><Tags/></member>`,
+    });
+  }
+
+  for (const group of data.iam.groups || []) {
+    entities.push({
+      list: "GroupDetailList",
+      xml: `<member><Path>/</Path><GroupName>${group.name}</GroupName><GroupId>AGPA${group.name.toUpperCase()}</GroupId><Arn>arn:aws:iam::${data.account}:group/${group.name}</Arn><CreateDate>2024-01-01T00:00:00Z</CreateDate>${iamPoliciesXml(group, "GroupPolicyList")}</member>`,
+    });
+  }
+
+  for (const role of data.iam.roles || []) {
+    const path: string = role.path || "/";
+    const arn: string = `arn:aws:iam::${data.account}:role${path}${role.name}`;
+    const trust: string = encodedDocument(role.trust);
+    // IAM repeats the role inside its instance profile, with fields of the same names.
+    const profile: string = `<InstanceProfileList><member><Path>/</Path><InstanceProfileName>${role.name}-profile</InstanceProfileName><Arn>arn:aws:iam::${data.account}:instance-profile/${role.name}-profile</Arn><Roles><member><Path>/nested/</Path><RoleName>nested-${role.name}</RoleName><Arn>arn:aws:iam::${data.account}:role/nested/nested-${role.name}</Arn><AssumeRolePolicyDocument>${trust}</AssumeRolePolicyDocument><CreateDate>2020-01-01T00:00:00Z</CreateDate></member></Roles></member></InstanceProfileList>`;
+
+    entities.push({
+      list: "RoleDetailList",
+      xml: `<member><Path>${path}</Path><RoleName>${role.name}</RoleName><RoleId>AROA${role.name.toUpperCase()}</RoleId><Arn>${arn}</Arn><CreateDate>${role.createDate || "2024-01-01T00:00:00Z"}</CreateDate><AssumeRolePolicyDocument>${trust}</AssumeRolePolicyDocument>${profile}${iamPoliciesXml(role, "RolePolicyList")}<RoleLastUsed>${
+        role.lastUsed
+          ? `<LastUsedDate>${role.lastUsed}</LastUsedDate><Region>us-east-1</Region>`
+          : ""
+      }</RoleLastUsed><Tags/></member>`,
+    });
+  }
+
+  for (const policy of data.iam.policies || []) {
+    const older: string = policy.olderDocument
+      ? `<member><Document>${encodedDocument(policy.olderDocument)}</Document><VersionId>v1</VersionId><IsDefaultVersion>false</IsDefaultVersion><CreateDate>2023-01-01T00:00:00Z</CreateDate></member>`
+      : "";
+    const version: string = policy.olderDocument ? "v2" : "v1";
+
+    entities.push({
+      list: "Policies",
+      xml: `<member><PolicyName>${policy.arn.split("/").pop()}</PolicyName><PolicyId>ANPA1</PolicyId><Arn>${policy.arn}</Arn><Path>/</Path><DefaultVersionId>${version}</DefaultVersionId><AttachmentCount>1</AttachmentCount><IsAttachable>true</IsAttachable><PolicyVersionList>${older}<member><Document>${encodedDocument(policy.document)}</Document><VersionId>${version}</VersionId><IsDefaultVersion>true</IsDefaultVersion><CreateDate>2024-01-01T00:00:00Z</CreateDate></member></PolicyVersionList></member>`,
+    });
+  }
+
+  const page: Array<{ list: string; xml: string }> = entities.slice(
+    data.marker,
+    data.marker + data.maxItems,
+  );
+  const next: number = data.marker + data.maxItems;
+  const lists: Array<string> = [
+    "UserDetailList",
+    "GroupDetailList",
+    "RoleDetailList",
+    "Policies",
+  ];
+  const body: string = lists
+    .map((list: string): string => {
+      return `<${list}>${page
+        .filter((entity: { list: string }): boolean => {
+          return entity.list === list;
+        })
+        .map((entity: { xml: string }): string => {
+          return entity.xml;
+        })
+        .join("")}</${list}>`;
+    })
+    .join("");
+  const truncated: boolean = next < entities.length;
+
+  return `<GetAccountAuthorizationDetailsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/"><GetAccountAuthorizationDetailsResult><IsTruncated>${truncated}</IsTruncated>${
+    truncated ? `<Marker>${next}</Marker>` : ""
+  }${body}</GetAccountAuthorizationDetailsResult><ResponseMetadata><RequestId>1</RequestId></ResponseMetadata></GetAccountAuthorizationDetailsResponse>`;
 }
 
 function escapeXml(text: string): string {
@@ -1081,6 +1256,9 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const expiredSignatures: { count: number } = { count: 0 };
   const s3Calls: FakeAws["s3Calls"] = [];
   const dataCalls: FakeAws["dataCalls"] = [];
+  const iamCalls: FakeAws["iamCalls"] = [];
+  // GenerateCredentialReport's answers so far, per account.
+  const reportTurns: Map<string, number> = new Map();
   // An object answer's bytes, by the request it answered.
   const bytesOfAnswer: WeakMap<DataSourceHttpRequest, Buffer> = new WeakMap();
 
@@ -1171,13 +1349,73 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         return stsError(400, "InvalidAction");
       }
 
-      // IAM's one global endpoint: the account's alias.
+      // IAM's one global endpoint: the account's alias and its identities.
       if (service === "iam") {
         const form: URLSearchParams = new URLSearchParams(
           String(request.body || ""),
         );
+        const action: string = form.get("Action") || "";
+        const signedFor: string = accountOfKey(request) || account;
+        const iam: FakeIam =
+          options.iamByAccount?.[signedFor] || options.iam || {};
 
-        if (form.get("Action") !== "ListAccountAliases") {
+        iamCalls.push({
+          action,
+          account: signedFor,
+          params: formFieldsOf(form),
+        });
+
+        if (action === "GetAccountAuthorizationDetails") {
+          if (iam.error) {
+            return iam.error;
+          }
+
+          return {
+            status: 200,
+            body: iamAuthorizationDetailsXml({
+              iam,
+              account: signedFor,
+              marker: Number(form.get("Marker") || "0") || 0,
+              maxItems: Number(form.get("MaxItems") || "100") || 100,
+            }),
+          };
+        }
+
+        if (action === "GenerateCredentialReport") {
+          if (iam.credentialReportError) {
+            return iam.credentialReportError;
+          }
+
+          const turn: number = reportTurns.get(signedFor) || 0;
+          const states: Array<string> = iam.credentialReportStates || [];
+
+          reportTurns.set(signedFor, turn + 1);
+
+          return {
+            status: 200,
+            body: `<GenerateCredentialReportResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/"><GenerateCredentialReportResult><Description>No report exists. Starting a new report generation task</Description><State>${
+              states[turn] || "COMPLETE"
+            }</State></GenerateCredentialReportResult></GenerateCredentialReportResponse>`,
+          };
+        }
+
+        if (action === "GetCredentialReport") {
+          if (iam.credentialReportError) {
+            return iam.credentialReportError;
+          }
+
+          return {
+            status: 200,
+            body: `<GetCredentialReportResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/"><GetCredentialReportResult><Content>${Buffer.from(
+              iam.credentialReport || "",
+              "utf8",
+            ).toString(
+              "base64",
+            )}</Content><ReportFormat>text/csv</ReportFormat><GeneratedTime>2026-10-27T11:00:00Z</GeneratedTime></GetCredentialReportResult></GetCredentialReportResponse>`,
+          };
+        }
+
+        if (action !== "ListAccountAliases") {
           return stsError(400, "InvalidAction");
         }
 
@@ -1780,5 +2018,6 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     expiredSignatures,
     s3Calls,
     dataCalls,
+    iamCalls,
   };
 }

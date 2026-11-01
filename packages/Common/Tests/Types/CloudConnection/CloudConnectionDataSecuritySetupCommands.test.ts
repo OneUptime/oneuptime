@@ -83,6 +83,12 @@ const DELETE_ACTION_NAME: RegExp = /:(Delete|Remove|Revoke|Detach)/;
 const PLACEHOLDER: RegExp = /<[A-Z_]+>/;
 const WRITE_ACTION_NAME: RegExp =
   /^(Put|Create|Delete|Update|Modify|Start|Stop|Reboot|Restore|Copy|Attach|Detach|Set|Send|Invoke|Encrypt|GenerateDataKey|Scan|Query)/;
+/*
+ * The one action that is neither Describe, List nor Get: IAM makes the
+ * account's credential report on request - dates and flags of each user's
+ * password and keys, never a secret - for the users' last use.
+ */
+const REPORT_ACTIONS: ReadonlyArray<string> = ["iam:GenerateCredentialReport"];
 
 // The JSON between the first pair of single quotes after a marker.
 function quotedAfter(text: string, marker: string): string {
@@ -571,6 +577,9 @@ describe("AWS, configuration", () => {
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
         "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport",
       ].sort(),
     );
     expect(new Set(AWS_DATA_SECURITY_CONFIGURATION_ACTIONS).size).toBe(
@@ -657,7 +666,9 @@ describe("AWS, every level", () => {
         expect([
           level,
           action,
-          readsContent || READ_ACTION_NAME.test(name),
+          readsContent ||
+            READ_ACTION_NAME.test(name) ||
+            REPORT_ACTIONS.includes(action),
         ]).toEqual([level, action, true]);
         expect(name).not.toMatch(WRITE_ACTION_NAME);
         expect(name).not.toContain("*");
