@@ -50,9 +50,14 @@ function resourceId(index: number): string {
   return `5000000${index}-0000-4000-8000-00000000000${index}`;
 }
 
+// A row's columns to set, an undefined one cleared (exactOptionalPropertyTypes).
+type CloudRowOverrides = {
+  [Column in keyof CloudResource]?: CloudResource[Column] | undefined;
+};
+
 function cloudRow(
   index: number,
-  overrides: Partial<CloudResource> = {},
+  overrides: CloudRowOverrides = {},
 ): CloudResource {
   const row: CloudResource = new CloudResource();
   row.id = new ObjectID(resourceId(index));

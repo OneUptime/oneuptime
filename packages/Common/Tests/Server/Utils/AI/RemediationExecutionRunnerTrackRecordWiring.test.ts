@@ -628,10 +628,11 @@ describe("a proposal, with its track record and its buttons", () => {
     expect(proposalBlocks).toHaveBeenCalledTimes(1);
     expect(
       incidentFeed.mock.calls.some((call: Array<unknown>): boolean => {
-        return (
-          (call[0] as { workspaceNotification: JSONObject })
-            .workspaceNotification["appendMessageBlocks"] === PROPOSAL_BLOCKS
-        );
+        const blocks: unknown = (
+          call[0] as { workspaceNotification: JSONObject }
+        ).workspaceNotification["appendMessageBlocks"];
+
+        return blocks === PROPOSAL_BLOCKS;
       }),
     ).toBe(true);
   });

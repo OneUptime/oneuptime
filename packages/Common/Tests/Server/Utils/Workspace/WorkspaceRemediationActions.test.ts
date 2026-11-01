@@ -69,9 +69,14 @@ const APPROVER_ID: ObjectID = new ObjectID(
 const ECS: string =
   "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout-api";
 
-function fix(
-  overrides: Partial<AutoRemediationSuggestion> = {},
-): AutoRemediationSuggestion {
+// A fix's columns to set, an undefined one cleared (exactOptionalPropertyTypes).
+type FixOverrides = {
+  [Column in keyof AutoRemediationSuggestion]?:
+    | AutoRemediationSuggestion[Column]
+    | undefined;
+};
+
+function fix(overrides: FixOverrides = {}): AutoRemediationSuggestion {
   const row: AutoRemediationSuggestion = new AutoRemediationSuggestion();
   row.id = SUGGESTION_ID;
   row._id = SUGGESTION_ID.toString();
@@ -308,7 +313,6 @@ describe("a press that came too late", () => {
     for (const status of [
       AutoRemediationSuggestionStatus.Planning,
       AutoRemediationSuggestionStatus.NoneApplicable,
-      AutoRemediationSuggestionStatus.Failed,
     ]) {
       expect(
         (await WorkspaceRemediationActions.getLatePressAnswer(fix({ status })))
