@@ -28,6 +28,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 
 /*
@@ -223,11 +224,10 @@ describe("CloudResourceLabelRuleEngineService over each kind of row", () => {
       jest
         .spyOn(CloudResourceService, "getRepository")
         .mockReturnValue(builder as never);
-      const findResource: jest.SpiedFunction<
-        typeof CloudResourceService.findOneById
-      > = jest
-        .spyOn(CloudResourceService, "findOneById")
-        .mockResolvedValue(details(rowKind));
+      const findResource: SpyInstance<typeof CloudResourceService.findOneById> =
+        jest
+          .spyOn(CloudResourceService, "findOneById")
+          .mockResolvedValue(details(rowKind));
 
       await CloudResourceLabelRuleEngineService.applyRulesToExistingResource({
         resource: cloudResource(),

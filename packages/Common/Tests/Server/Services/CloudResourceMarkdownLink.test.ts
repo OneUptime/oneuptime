@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Every feed entry about a CloudResource row - created, labelled, owned,
@@ -45,7 +46,11 @@ function row(data: {
   return resource;
 }
 
-let findOneById: jest.SpiedFunction<typeof CloudResourceService.findOneById>;
+/*
+ * jest-mock's type, the one @jest/globals' jest.spyOn returns: on jest 28,
+ * jest.SpiedFunction is @types/jest's global, which tsc will not take it as.
+ */
+let findOneById: SpyInstance<typeof CloudResourceService.findOneById>;
 
 beforeEach(() => {
   // A fresh URL per call: URL.addRoute mutates.
