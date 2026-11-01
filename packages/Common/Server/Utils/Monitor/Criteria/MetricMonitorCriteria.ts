@@ -39,9 +39,11 @@ import MetricUnitUtil from "../../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../../Utils/Monitor/MetricValueFormatter";
 import MetricFormulaEvaluator from "../../../../Utils/Metrics/MetricFormulaEvaluator";
 import MetricBaselineService, {
+  BaselineBand,
   BaselineSummary,
   MetricBaselineService as MetricBaselineServiceClass,
 } from "../../../Services/MetricBaselineService";
+import MetricHourBaseline from "../MetricHourBaseline";
 
 /**
  * Result of evaluating a single criteria filter against a single metric
@@ -68,6 +70,18 @@ export interface MetricSeriesEvaluationResult {
 export type IsCriteriaInEffect = (
   seriesFingerprint: string | undefined,
 ) => Promise<boolean>;
+
+/*
+ * The baselines one evaluation has read, by getBaselineKey. A metric's cell is
+ * the same for every series of a grouped monitor, so it is read once.
+ */
+type BaselineReads = Map<string, Promise<BaselineSummary | null>>;
+
+// One hour of a window: which hour of the week, and its earliest data point.
+interface HourJudged {
+  hourOfWeek: number;
+  judgedAt: Date;
+}
 
 // The query or formula a criteria's metric alias names.
 interface ResolvedMetricAlias {
@@ -261,6 +275,8 @@ export default class MetricMonitorCriteria {
           )
         : undefined;
 
+    const baselineReads: BaselineReads = new Map();
+
     /*
      * Series-less path: one synthetic "all-series" evaluation over the
      * flat metricResult. Preserves the pre-group-by behavior exactly.
@@ -280,6 +296,7 @@ export default class MetricMonitorCriteria {
           monitorIntervalMs,
           monitorNewestDataPointMs,
           isInEffect: input.isInEffect,
+          baselineReads,
         });
       return [result];
     }
@@ -299,6 +316,7 @@ export default class MetricMonitorCriteria {
           monitorIntervalMs,
           monitorNewestDataPointMs,
           isInEffect: input.isInEffect,
+          baselineReads,
         });
       }),
     );
@@ -494,6 +512,7 @@ export default class MetricMonitorCriteria {
      */
     monitorNewestDataPointMs?: number | null | undefined;
     isInEffect?: IsCriteriaInEffect | undefined;
+    baselineReads: BaselineReads;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
       CompareCriteria.convertMetricThresholdToNumber(
@@ -572,6 +591,7 @@ export default class MetricMonitorCriteria {
         seriesLabels: input.seriesLabels,
         projectId: input.projectId,
         nativeUnitsByMetricName: input.nativeUnitsByMetricName,
+        baselineReads: input.baselineReads,
       });
     }
 
@@ -1354,9 +1374,8 @@ export default class MetricMonitorCriteria {
   /**
    * Evaluate one series against an anomaly criterion. For each sample
    * in the eval window we look up the baseline for its hour-of-week,
-   * compute σ from the baseline (mean+stddev or median+MAD path), and
-   * mark the sample as breaching when it falls outside the configured
-   * direction.
+   * read from the days before it (MetricHourBaseline), and mark the
+   * sample as breaching when it falls outside the configured direction.
    *
    * Returns no breach when:
    *   - The criterion has no metric name (formulas are not supported in
@@ -1375,6 +1394,7 @@ export default class MetricMonitorCriteria {
     seriesLabels: JSONObject;
     projectId: { toString(): string } | undefined;
     nativeUnitsByMetricName?: { [key: string]: string } | undefined;
+    baselineReads: BaselineReads;
   }): Promise<MetricSeriesEvaluationResult> {
     const { criteriaFilter, metricContext } = input;
 
@@ -1440,18 +1460,30 @@ export default class MetricMonitorCriteria {
       criteriaFilter.metricMonitorOptions?.anomalyDetection?.minSamples;
 
     /*
-     * Look up baselines per distinct hour-of-week present in the eval
-     * window. A 5-min window almost always covers a single hour, but
-     * windows that straddle the hour boundary need both baselines.
+     * Look up baselines per distinct hour of the eval window. A 5-min
+     * window almost always covers a single hour, but windows that straddle
+     * the hour boundary need both baselines, and a window of weeks holds an
+     * hour of the week once a week. Each is held to the days before its own,
+     * which is yesterday for an hour that ended at midnight, and a data
+     * point too old for the rollup to reach behind has no baseline and is
+     * left alone, which the newest ones of its hour are not.
      */
-    const hoursInWindow: Set<number> = new Set<number>();
+    const hoursInWindow: Map<string, HourJudged> = new Map();
     for (const sample of samples) {
       const ts: Date =
         sample.timestamp instanceof Date
           ? sample.timestamp
           : new Date(sample.timestamp);
       if (!isNaN(ts.getTime())) {
-        hoursInWindow.add(MetricBaselineServiceClass.computeHourOfWeek(ts));
+        const key: string = MetricMonitorCriteria.getBaselineKey(ts);
+        const hour: HourJudged | undefined = hoursInWindow.get(key);
+
+        if (!hour || ts < hour.judgedAt) {
+          hoursInWindow.set(key, {
+            hourOfWeek: MetricBaselineServiceClass.computeHourOfWeek(ts),
+            judgedAt: ts,
+          });
+        }
       }
     }
 
@@ -1472,19 +1504,26 @@ export default class MetricMonitorCriteria {
     const baselineUnit: string | undefined =
       input.nativeUnitsByMetricName?.[metricContext.metricName.toLowerCase()];
 
-    const baselineByHour: Map<number, BaselineSummary> = new Map();
-    for (const hour of hoursInWindow) {
-      const baseline: BaselineSummary | null =
-        await MetricBaselineService.getBaseline({
+    const baselineByHour: Map<string, BaselineSummary> = new Map();
+    for (const [key, hour] of hoursInWindow) {
+      const reading: Promise<BaselineSummary | null> =
+        input.baselineReads.get(key) ||
+        MetricBaselineService.getBaseline({
           projectId: input.projectId.toString(),
           metricName: metricContext.metricName,
-          hourOfWeek: hour,
+          hourOfWeek: hour.hourOfWeek,
+          judgedAt: hour.judgedAt,
           windowDays,
           minSamples,
         });
+
+      input.baselineReads.set(key, reading);
+
+      const baseline: BaselineSummary | null = await reading;
+
       if (baseline && baseline.isReliable) {
         baselineByHour.set(
-          hour,
+          key,
           MetricMonitorCriteria.convertBaselineToUnit({
             baseline,
             fromUnit: baselineUnit,
@@ -1496,7 +1535,8 @@ export default class MetricMonitorCriteria {
 
     if (baselineByHour.size === 0) {
       // Cold-start: surface state but don't fire.
-      const firstHour: number = Array.from(hoursInWindow)[0]!;
+      const firstHour: number = Array.from(hoursInWindow.values())[0]!
+        .hourOfWeek;
       metricContext.anomalyBaseline = {
         state: "Learning",
         mean: 0,
@@ -1538,27 +1578,31 @@ export default class MetricMonitorCriteria {
       if (isNaN(ts.getTime())) {
         continue;
       }
-      const hour: number = MetricBaselineServiceClass.computeHourOfWeek(ts);
-      const baseline: BaselineSummary | undefined = baselineByHour.get(hour);
+      const baseline: BaselineSummary | undefined = baselineByHour.get(
+        MetricMonitorCriteria.getBaselineKey(ts),
+      );
       if (!baseline) {
         continue;
       }
 
-      const stddevForSigma: number = baseline.stddev;
-      if (!Number.isFinite(stddevForSigma) || stddevForSigma === 0) {
+      const band: BaselineBand | null = MetricBaselineServiceClass.getBand({
+        baseline,
+        sigmaCount,
+      });
+      if (!band) {
         // Zero-variance baseline → we'd alert on every sample. Skip.
         continue;
       }
 
-      const expectedHigh: number = baseline.mean + sigmaCount * stddevForSigma;
-      const expectedLow: number = baseline.mean - sigmaCount * stddevForSigma;
       const observedSigma: number =
-        (sample.value - baseline.mean) / stddevForSigma;
+        baseline.stddev > 0
+          ? (sample.value - baseline.mean) / baseline.stddev
+          : sample.value - baseline.mean;
 
       const breaches: boolean = MetricMonitorCriteria.anomalyBreaches(
         sample.value,
-        expectedHigh,
-        expectedLow,
+        band.expectedHigh,
+        band.expectedLow,
         criteriaFilter.filterType,
       );
 
@@ -1581,8 +1625,9 @@ export default class MetricMonitorCriteria {
 
     if (!firstBreach) {
       // No breach. Mark Normal so the UI can show "baseline ready".
-      const firstHour: number = Array.from(baselineByHour.keys())[0]!;
-      const firstBaseline: BaselineSummary = baselineByHour.get(firstHour)!;
+      const firstBaseline: BaselineSummary = Array.from(
+        baselineByHour.values(),
+      )[0]!;
       metricContext.anomalyBaseline = {
         state: "Normal",
         mean: firstBaseline.mean,
@@ -1591,7 +1636,7 @@ export default class MetricMonitorCriteria {
         expectedLow: firstBaseline.mean - sigmaCount * firstBaseline.stddev,
         sigmaCount,
         sampleCount: firstBaseline.sampleCount,
-        hourOfWeek: firstHour,
+        hourOfWeek: firstBaseline.hourOfWeek,
         windowDays: firstBaseline.windowDays,
       };
       return noBreach();
@@ -1609,7 +1654,7 @@ export default class MetricMonitorCriteria {
       hourOfWeek: baseline.hourOfWeek,
       windowDays: baseline.windowDays,
       observedValue: firstBreach.sample.value,
-      observedSigma: firstBreach.sigma,
+      ...(baseline.stddev > 0 ? { observedSigma: firstBreach.sigma } : {}),
     };
     metricContext.anomalyBaseline = anomaly;
 
@@ -1645,11 +1690,16 @@ export default class MetricMonitorCriteria {
       });
     };
 
+    // A baseline with no spread has no σ to count: it held one value.
     const rootCause: string =
-      `${metricContext.metricName} value ${inMetricUnit(firstBreach.sample.value)} ` +
-      `is ${sigmaAbs.toFixed(2)}σ ${direction} the same-hour baseline ` +
-      `(mean ${inMetricUnit(baseline.mean)}, σ ${inMetricUnit(baseline.stddev)}, ` +
-      `${baseline.sampleCount} samples over ${baseline.windowDays} days, sensitivity ${sensitivity}).`;
+      baseline.stddev > 0
+        ? `${metricContext.metricName} value ${inMetricUnit(firstBreach.sample.value)} ` +
+          `is ${sigmaAbs.toFixed(2)}σ ${direction} the same-hour baseline ` +
+          `(mean ${inMetricUnit(baseline.mean)}, σ ${inMetricUnit(baseline.stddev)}, ` +
+          `${baseline.sampleCount} samples over ${baseline.windowDays} days, sensitivity ${sensitivity}).`
+        : `${metricContext.metricName} value ${inMetricUnit(firstBreach.sample.value)} ` +
+          `is ${direction} the same-hour baseline, which held at ${inMetricUnit(baseline.mean)} ` +
+          `for all ${baseline.sampleCount} samples over ${baseline.windowDays} days (sensitivity ${sensitivity}).`;
 
     return {
       fingerprint: input.seriesFingerprint,
@@ -1657,6 +1707,11 @@ export default class MetricMonitorCriteria {
       rootCause,
       context: metricContext,
     };
+  }
+
+  // Which baseline judges a data point: that of its hour on its own day.
+  private static getBaselineKey(time: Date): string {
+    return `${MetricBaselineServiceClass.computeHourOfWeek(time)} ${MetricHourBaseline.toDayText(time)}`;
   }
 
   /**
