@@ -39429,5 +39429,6 @@
   "Sort by": "مرتب‌سازی بر اساس",
   "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "مسیر"
+  "route": "مسیر",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "این خوشه OpenShift را اجرا می‌کند، بنابراین توصیه‌های زیر هشدارهایی درباره اپراتورهای خوشه و به‌روزرسانی‌های خوشه آن را نیز شامل می‌شوند."
 }

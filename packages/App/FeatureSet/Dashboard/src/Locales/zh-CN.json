@@ -39429,5 +39429,6 @@
   "Sort by": "排序依据",
   "Sorted by {{column}}": "按{{column}}排序",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "路由"
+  "route": "路由",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "此集群运行 OpenShift，因此下方的建议还包括针对其集群 Operator 和集群更新的警报。"
 }

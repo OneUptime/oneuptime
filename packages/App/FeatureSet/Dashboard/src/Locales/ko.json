@@ -39429,5 +39429,6 @@
   "Sort by": "정렬 기준",
   "Sorted by {{column}}": "{{column}} 기준 정렬",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "라우트"
+  "route": "라우트",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "이 클러스터는 OpenShift를 실행하므로 아래 권장 사항에는 클러스터 오퍼레이터와 클러스터 업데이트에 대한 알림도 포함됩니다."
 }

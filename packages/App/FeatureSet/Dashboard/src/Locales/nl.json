@@ -39429,5 +39429,6 @@
   "Sort by": "Sorteren op",
   "Sorted by {{column}}": "Gesorteerd op {{column}}",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "route"
+  "route": "route",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "Dit cluster draait OpenShift, dus de aanbevelingen hieronder bevatten ook waarschuwingen over de clusteroperators en clusterupdates."
 }

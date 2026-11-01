@@ -39429,5 +39429,6 @@
   "Sort by": "Сортировать по",
   "Sorted by {{column}}": "Сортировка: {{column}}",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "маршрут"
+  "route": "маршрут",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "Этот кластер работает на OpenShift, поэтому рекомендации ниже включают оповещения об операторах кластера и его обновлениях."
 }

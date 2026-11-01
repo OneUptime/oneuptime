@@ -39429,5 +39429,6 @@
   "Sort by": "Ordenar por",
   "Sorted by {{column}}": "Ordenado por {{column}}",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "ruta"
+  "route": "ruta",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "Este clúster ejecuta OpenShift, por lo que las recomendaciones de abajo incluyen alertas sobre sus operadores de clúster y sus actualizaciones de clúster."
 }

@@ -39429,5 +39429,6 @@
   "Sort by": "並べ替えの基準",
   "Sorted by {{column}}": "{{column}}で並べ替え",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "ルート"
+  "route": "ルート",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "このクラスターは OpenShift で動作しているため、以下の推奨事項には、クラスターオペレーターとクラスター更新に関するアラートも含まれます。"
 }

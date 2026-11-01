@@ -39429,5 +39429,6 @@
   "Sort by": "इसके अनुसार क्रमबद्ध करें",
   "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध",
   "DeploymentConfig": "DeploymentConfig",
-  "route": "रूट"
+  "route": "रूट",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "यह क्लस्टर OpenShift चलाता है, इसलिए नीचे दिए गए सुझावों में इसके क्लस्टर ऑपरेटरों और क्लस्टर अपडेट पर अलर्ट भी शामिल हैं।"
 }
