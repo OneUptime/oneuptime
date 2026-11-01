@@ -127,6 +127,7 @@ import {
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
+import { isDrawnFromRecordId } from "./ColumnSort";
 import Columns from "./Columns";
 import ColumnCustomizationModal, {
   AddableColumnsConfig,
@@ -2105,7 +2106,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         columns.push({
           ...column,
           id: columnIdByColumn.get(column),
-          disableSort: column.disableSort || shouldDisableSort(key),
+          /*
+           * Nor does a column that draws its own thing from the record's id
+           * (Owners): it would sort by the id (isDrawnFromRecordId).
+           */
+          disableSort:
+            column.disableSort ||
+            shouldDisableSort(key) ||
+            isDrawnFromRecordId<TBaseModel>(column, key),
           key: columnKey,
           /*
            * `key` is only the first declared field, so a cell composed from

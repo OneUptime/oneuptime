@@ -19,8 +19,9 @@ export interface TableFoldedValue {
 
 /*
  * How the cell's own value is laid out above what is folded under it:
- *   - Line: on one line, cut short with "..." of its own when the table
- *     gives way - a title, a name, a state's pill.
+ *   - Line: a title, a name, a state's pill - its words onto a second line
+ *     where the column is narrower than they are, and cut short with "..."
+ *     only after that (TABLE_FOLDED_MAIN_LINE_CLASS_NAME).
  *   - Whole: on one line, never cut short - a date, a number
  *     (CellClassName's VALUE_KINDS_KEPT_WHOLE); the folded values wrap
  *     under it rather than widen it.
@@ -47,26 +48,49 @@ export const TABLE_FOLDED_VALUE_TEST_ID: string = "table-folded-value";
 
 export const TABLE_FOLDED_VALUE_TITLE_TEST_ID: string = "table-folded-title";
 
+/*
+ * A title or a name above what is folded under it: on two lines before it
+ * is cut short. A folded table leaves its row's title little room - 165px
+ * in the incidents list at 1280px beside a side menu - and cut on one line
+ * every title read "Elevated latency on pa..." (fewer letters still in
+ * German), while the row beside it stood two and three lines tall with the
+ * state over the severity; and in a right-to-left page an English title
+ * lost its start ("...tency on payments-db"). Its words wrap from their
+ * start, and what does not fit on two lines ends in "..." (the whole of it
+ * under the pointer, FullValueTitle). A value laid out in boxes of its own -
+ * a state over a line about it, a name beside its pill - is drawn as it
+ * always is: clamped, its own second line would be hidden.
+ */
+export const TABLE_FOLDED_MAIN_LINE_CLASS_NAME: string =
+  "min-w-0 overflow-x-clip whitespace-normal break-words [&:not(:has(>:is(div,p,ul,ol,table,[class*=flex],[class*=grid])))]:line-clamp-2";
+
 // The cell's own value, by its layout (TableFoldedMainLayout).
 export const TABLE_FOLDED_MAIN_CLASS_NAMES: Record<
   TableFoldedMainLayout,
   string
 > = {
-  [TableFoldedMainLayout.Line]:
-    "min-w-0 overflow-x-clip text-ellipsis whitespace-nowrap",
+  [TableFoldedMainLayout.Line]: TABLE_FOLDED_MAIN_LINE_CLASS_NAME,
   [TableFoldedMainLayout.Whole]: "whitespace-nowrap",
   [TableFoldedMainLayout.Wrap]: "min-w-0 whitespace-normal break-words",
 };
 
 /*
+ * What a cell draws while its value is still on its way (OwnersCell's
+ * "Loading..."): folded under another value, it draws no line, so the rows
+ * of a list do not grow by a line of "Loading..." each and shrink back as
+ * the owners come in.
+ */
+export const TABLE_VALUE_LOADING_ATTRIBUTE: string = "data-table-loading";
+
+/*
  * A folded column's value, on a line of its own under the cell's: a quieter
  * grey for its words (a pill or a picture keeps its own colours), and left
- * out when it has nothing to say - the quiet dash, or nothing at all - as a
- * phone's card leaves out an empty field. Its words wrap rather than widen
- * the column it is folded into.
+ * out when it has nothing to say - the quiet dash, nothing at all, or a
+ * value still loading - as a phone's card leaves out an empty field. Its
+ * words wrap rather than widen the column it is folded into.
  */
 export const TABLE_FOLDED_VALUE_CLASS_NAME: string =
-  "min-w-0 whitespace-normal text-gray-500 [&:has(>div>[data-testid=table-empty-value]:only-child)]:hidden [&:has(>div:empty)]:hidden";
+  "min-w-0 whitespace-normal text-gray-500 [&:has(>div>[data-testid=table-empty-value]:only-child)]:hidden [&:has(>div:empty)]:hidden [&:has(>div>[data-table-loading]:only-child)]:hidden";
 
 // The column's name shown before a value that does not say what it is.
 export const TABLE_FOLDED_VALUE_TITLE_CLASS_NAME: string =

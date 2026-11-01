@@ -4,10 +4,12 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import TableFoldedValues, {
   TABLE_FOLDED_MAIN_CLASS_NAMES,
+  TABLE_FOLDED_MAIN_LINE_CLASS_NAME,
   TABLE_FOLDED_VALUES_TEST_ID,
   TABLE_FOLDED_VALUE_CLASS_NAME,
   TABLE_FOLDED_VALUE_TEST_ID,
   TABLE_FOLDED_VALUE_TITLE_TEST_ID,
+  TABLE_VALUE_LOADING_ATTRIBUTE,
   TableFoldedMainLayout,
 } from "../../../../UI/Components/Table/TableFoldedValues";
 import TableEmptyValue from "../../../../UI/Components/Table/TableEmptyValue";
@@ -160,6 +162,98 @@ describe("TableFoldedValues", () => {
     expect(dateBox).not.toHaveAttribute(TABLE_SHRINKABLE_ATTRIBUTE);
     expect(dateBox.firstElementChild).toHaveClass("whitespace-nowrap");
     expect(dateBox.firstElementChild).not.toHaveClass("text-ellipsis");
+  });
+
+  test("a title wraps onto a second line from its start before it is cut short - never one line cut after a few words", () => {
+    render(
+      <TableFoldedValues
+        main={<a href="/incidents/1">Elevated latency on payments-db</a>}
+        folded={[{ title: "Labels", content: <span>production</span> }]}
+      />,
+    );
+
+    const main: Element = screen.getByTestId(TABLE_FOLDED_VALUES_TEST_ID)
+      .firstElementChild as Element;
+
+    expect(TABLE_FOLDED_MAIN_CLASS_NAMES[TableFoldedMainLayout.Line]).toBe(
+      TABLE_FOLDED_MAIN_LINE_CLASS_NAME,
+    );
+    // Its words wrap from their start: no one-line cut, no ellipsis there.
+    expect(main).toHaveClass("min-w-0", "whitespace-normal", "break-words");
+    expect(main).not.toHaveClass("whitespace-nowrap");
+    expect(main).not.toHaveClass("text-ellipsis");
+    // Two lines, then "...": a text value of inline parts is clamped.
+    expect(TABLE_FOLDED_MAIN_LINE_CLASS_NAME).toContain(
+      "[&:not(:has(>:is(div,p,ul,ol,table,[class*=flex],[class*=grid])))]:line-clamp-2",
+    );
+    // Nothing that would clip it on one line is left.
+    const classes: Array<string> = TABLE_FOLDED_MAIN_LINE_CLASS_NAME.split(" ");
+
+    for (const oneLine of ["truncate", "whitespace-nowrap", "line-clamp-1"]) {
+      expect(classes).not.toContain(oneLine);
+    }
+  });
+
+  test("a value laid out in boxes of its own is not clamped: a state over a line about it keeps both", () => {
+    const { container } = render(
+      <TableFoldedValues
+        main={
+          <div>
+            <span>Executed</span>
+            <p>Paged again (2 of 5)</p>
+          </div>
+        }
+        folded={[{ title: "Acknowledged By", content: <span>Ada</span> }]}
+      />,
+    );
+
+    const main: Element = screen.getByTestId(TABLE_FOLDED_VALUES_TEST_ID)
+      .firstElementChild as Element;
+
+    /*
+     * jsdom applies no :has() (nor any layout): what the clamp's variant
+     * reads - a child that is a box of its own - is read here, and the
+     * browser suite (ModelTables) measures the lines.
+     */
+    expect(main.firstElementChild?.tagName).toBe("DIV");
+    expect(TABLE_FOLDED_MAIN_LINE_CLASS_NAME).toContain(
+      ":is(div,p,ul,ol,table,",
+    );
+    expect(container).toHaveTextContent("Paged again (2 of 5)");
+  });
+
+  test("a value still on its way draws no line of its own: a folded 'Loading...' would grow every row and shrink it back", () => {
+    render(
+      <TableFoldedValues
+        main={<span>Checkout API returns 502</span>}
+        folded={[
+          {
+            title: "Owners",
+            content: (
+              <p {...{ [TABLE_VALUE_LOADING_ATTRIBUTE]: "true" }}>Loading...</p>
+            ),
+          },
+        ]}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId(TABLE_FOLDED_VALUE_TEST_ID);
+
+    expect(TABLE_VALUE_LOADING_ATTRIBUTE).toBe("data-table-loading");
+    expect(TABLE_FOLDED_VALUE_CLASS_NAME).toContain(
+      "[&:has(>div>[data-table-loading]:only-child)]:hidden",
+    );
+    /*
+     * The shape the rule's selector picks out (jsdom applies no :has()):
+     * the line's value, a box whose only part is on its way.
+     */
+    const value: Element | null = line.querySelector(":scope > div");
+
+    expect(value?.children).toHaveLength(1);
+    expect(value?.firstElementChild).toHaveAttribute(
+      TABLE_VALUE_LOADING_ATTRIBUTE,
+      "true",
+    );
   });
 
   test("a column of prose keeps wrapping above what is folded under it", () => {

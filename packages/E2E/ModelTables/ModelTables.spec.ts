@@ -1920,7 +1920,8 @@ test.describe("a value too long for its column", () => {
      * The incident's title: a column after the row's name keeps its 20rem.
      * The long list folds at 1280px (TableFit), its labels and owners on
      * lines of their own under the title: the title is the cell's first
-     * line, cut short there.
+     * lines - two of them, from its start, before it is cut short
+     * (TableFoldedValues' TABLE_FOLDED_MAIN_LINE_CLASS_NAME).
      */
     const value: Locator = bodyRows(page, "incidents-table")
       .filter({ hasText: "Checkout requests time out" })
@@ -1933,23 +1934,35 @@ test.describe("a value too long for its column", () => {
 
     const measure: {
       width: number;
+      height: number;
+      scrollHeight: number;
+      clientHeight: number;
       scrollWidth: number;
       clientWidth: number;
-      textOverflow: string;
+      lineClamp: string;
     } = await title.evaluate((element: Element) => {
       const style: CSSStyleDeclaration = getComputedStyle(element);
       return {
         width: element.getBoundingClientRect().width,
+        height: element.getBoundingClientRect().height,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
         scrollWidth: element.scrollWidth,
         clientWidth: element.clientWidth,
-        textOverflow: style.textOverflow,
+        lineClamp: style.getPropertyValue("-webkit-line-clamp"),
       };
     });
 
-    // Capped at 20rem, the rest of the title cut off with an ellipsis.
+    /*
+     * Capped at 20rem, on two of the row's 24px lines - never one line cut
+     * after a few words, never past its column - and the rest of the title
+     * cut off, with an ellipsis, after the second.
+     */
     expect(measure.width).toBeLessThanOrEqual(320);
-    expect(measure.scrollWidth).toBeGreaterThan(measure.clientWidth);
-    expect(measure.textOverflow).toBe("ellipsis");
+    expect(measure.lineClamp).toBe("2");
+    expect(Math.round(measure.height)).toBe(48);
+    expect(measure.scrollHeight).toBeGreaterThan(measure.clientHeight);
+    expect(measure.scrollWidth).toBeLessThanOrEqual(measure.clientWidth);
 
     /*
      * Under the pointer, over its line: the title in full - not its labels

@@ -138,6 +138,37 @@ describe("the band over a list's cards", () => {
     );
   });
 
+  test("a list in no particular order offers its columns, none ticked, and no order until one is picked", () => {
+    const sorted: Mock<
+      (sortBy: keyof Incident | null, order: SortOrder) => void
+    > = jest.fn<(sortBy: keyof Incident | null, order: SortOrder) => void>();
+
+    draw({ sortBy: null, onSortChanged: sorted });
+    openSort();
+
+    expect(
+      screen.getByTestId(`${TABLE_CARDS_SORT_TEST_ID}-title`),
+    ).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByTestId(`${TABLE_CARDS_SORT_TEST_ID}-declaredAt`),
+    ).toHaveAttribute("aria-checked", "false");
+    // No "Ascending" ticked over a list sorted by nothing.
+    expect(
+      screen.queryByTestId(`${TABLE_CARDS_SORT_TEST_ID}-ascending`),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(`${TABLE_CARDS_SORT_TEST_ID}-descending`),
+    ).toBeNull();
+
+    act(() => {
+      fireEvent.click(
+        screen.getByTestId(`${TABLE_CARDS_SORT_TEST_ID}-declaredAt`),
+      );
+    });
+
+    expect(sorted).toHaveBeenLastCalledWith("declaredAt", SortOrder.Descending);
+  });
+
   test("offers the columns that sort, the one sorted by ticked, and the two orders", () => {
     draw();
     openSort();

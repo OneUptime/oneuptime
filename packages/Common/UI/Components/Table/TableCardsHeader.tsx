@@ -202,39 +202,46 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
                 );
               })}
             </MoreMenuSection>,
-            <MoreMenuItem
-              key="ascending"
-              text={TABLE_CARDS_HEADER_TEXT.ascending}
-              icon={
-                props.sortOrder === SortOrder.Ascending
-                  ? IconProp.Check
-                  : undefined
-              }
-              isIconSpaceReserved={true}
-              isChecked={props.sortOrder === SortOrder.Ascending}
-              dataTestId={`${TABLE_CARDS_SORT_TEST_ID}-ascending`}
-              onClick={() => {
-                setSort(sortedColumn?.key || props.sortBy, SortOrder.Ascending);
-              }}
-            />,
-            <MoreMenuItem
-              key="descending"
-              text={TABLE_CARDS_HEADER_TEXT.descending}
-              icon={
-                props.sortOrder === SortOrder.Descending
-                  ? IconProp.Check
-                  : undefined
-              }
-              isIconSpaceReserved={true}
-              isChecked={props.sortOrder === SortOrder.Descending}
-              dataTestId={`${TABLE_CARDS_SORT_TEST_ID}-descending`}
-              onClick={() => {
-                setSort(
-                  sortedColumn?.key || props.sortBy,
-                  SortOrder.Descending,
-                );
-              }}
-            />,
+            /*
+             * Which way the list runs, once it is sorted by a column. A list
+             * in the server's own order is sorted by none: a ticked
+             * "Ascending" there said something untrue, and picking an order
+             * sorted by nothing and changed nothing.
+             */
+            ...(sortedColumn
+              ? [
+                  <MoreMenuItem
+                    key="ascending"
+                    text={TABLE_CARDS_HEADER_TEXT.ascending}
+                    icon={
+                      props.sortOrder === SortOrder.Ascending
+                        ? IconProp.Check
+                        : undefined
+                    }
+                    isIconSpaceReserved={true}
+                    isChecked={props.sortOrder === SortOrder.Ascending}
+                    dataTestId={`${TABLE_CARDS_SORT_TEST_ID}-ascending`}
+                    onClick={() => {
+                      setSort(sortedColumn.key || null, SortOrder.Ascending);
+                    }}
+                  />,
+                  <MoreMenuItem
+                    key="descending"
+                    text={TABLE_CARDS_HEADER_TEXT.descending}
+                    icon={
+                      props.sortOrder === SortOrder.Descending
+                        ? IconProp.Check
+                        : undefined
+                    }
+                    isIconSpaceReserved={true}
+                    isChecked={props.sortOrder === SortOrder.Descending}
+                    dataTestId={`${TABLE_CARDS_SORT_TEST_ID}-descending`}
+                    onClick={() => {
+                      setSort(sortedColumn.key || null, SortOrder.Descending);
+                    }}
+                  />,
+                ]
+              : []),
           ]}
         </MoreMenu>
       ) : (
