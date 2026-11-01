@@ -68,8 +68,10 @@ const {
   packageDirectoryOf,
   parseArguments,
   pruneUnreachablePackages,
+  reachedPackagesNothingKeeps,
   unreachedDependencies,
   walkImports,
+  withDependencies,
   withoutDependencies,
 } = require("../../Scripts/Docker/PruneUnreachablePackages.js");
 
@@ -433,6 +435,165 @@ describe("withoutDependencies", () => {
   });
 });
 
+describe("withDependencies", () => {
+  test("adds the named packages at their versions and keeps every other field", () => {
+    const manifest = {
+      ...packageJson("shared"),
+      dependencies: { alpha: "^1.0.0" },
+      devDependencies: { jest: "^30.0.0" },
+    };
+    expect(
+      withDependencies(manifest, [
+        { name: "supports-color", version: "7.2.0" },
+      ]),
+    ).toEqual({
+      ...packageJson("shared"),
+      dependencies: { alpha: "^1.0.0", "supports-color": "7.2.0" },
+      devDependencies: { jest: "^30.0.0" },
+    });
+    expect(manifest.dependencies).toEqual({ alpha: "^1.0.0" });
+  });
+});
+
+/*
+ * A package's node_modules as npm lays it out, without npm: each package's
+ * package.json says what it depends on.
+ */
+describe("reachedPackagesNothingKeeps", () => {
+  function installedTree() {
+    const root = temporaryDirectory("prune-kept-");
+    const modules = (name, extra) => {
+      return {
+        [`node_modules/${name}/package.json`]: packageJson(name, extra),
+      };
+    };
+    writeTree(root, {
+      "package.json": packageJson("shared"),
+      // logger requires colors in a try, as debug requires supports-color,
+      // and depends only on ms.
+      ...modules("logger", {
+        version: "4.3.7",
+        dependencies: { ms: "^2.1.3", inner: "^1.0.0" },
+        devDependencies: { "dev-tool": "^1.0.0" },
+      }),
+      ...modules("ms", { version: "2.1.3" }),
+      // A copy nested under logger, which depends on it, and one nested
+      // there that nothing depends on.
+      ...modules("logger/node_modules/inner"),
+      ...modules("logger/node_modules/stray"),
+      // colors is installed because unused depends on it; colors needs flag.
+      ...modules("unused", { dependencies: { colors: "^7.0.0" } }),
+      ...modules("colors", {
+        version: "7.2.0",
+        dependencies: { "has-flag": "^4.0.0" },
+      }),
+      ...modules("has-flag", { version: "4.0.0" }),
+      // A peer dependency keeps a package; an optional one does not.
+      ...modules("@scope/host", {
+        peerDependencies: {
+          "@scope/peer": "^1.0.0",
+          "optional-peer": "^1.0.0",
+        },
+        peerDependenciesMeta: { "optional-peer": { optional: true } },
+      }),
+      ...modules("@scope/peer"),
+      ...modules("optional-peer"),
+      // Only a development dependency of logger.
+      ...modules("dev-tool"),
+      // Two that need each other, and nothing else needs.
+      ...modules("ping", { dependencies: { pong: "^1.0.0" } }),
+      ...modules("pong", { dependencies: { ping: "^1.0.0" } }),
+    });
+    return root;
+  }
+
+  function reachedIn(root, names) {
+    return new Set(
+      names.map((name) => {
+        return fs.realpathSync(path.join(root, "node_modules", name));
+      }),
+    );
+  }
+
+  test("names what the program reaches that nothing staying depends on, and only the first of what needs the rest", () => {
+    const root = installedTree();
+    const reached = reachedIn(root, [
+      "logger",
+      "ms",
+      "logger/node_modules/inner",
+      "colors",
+      "has-flag",
+      "@scope/host",
+      "@scope/peer",
+      "optional-peer",
+      "dev-tool",
+      "ping",
+      "pong",
+    ]);
+
+    expect(
+      reachedPackagesNothingKeeps({
+        packageDirectory: root,
+        dependencies: ["logger", "@scope/host", "not-installed"],
+        reached,
+      }),
+    ).toEqual([
+      // colors keeps has-flag; of ping and pong, ping keeps pong.
+      { name: "colors", version: "7.2.0" },
+      { name: "dev-tool", version: "1.0.0" },
+      { name: "optional-peer", version: "1.0.0" },
+      { name: "ping", version: "1.0.0" },
+    ]);
+  });
+
+  test("names nothing a staying package keeps, through its dependencies, a nested copy and a peer", () => {
+    const root = installedTree();
+    expect(
+      reachedPackagesNothingKeeps({
+        packageDirectory: root,
+        dependencies: ["logger", "@scope/host", "unused"],
+        reached: reachedIn(root, [
+          "logger",
+          "ms",
+          "logger/node_modules/inner",
+          "colors",
+          "has-flag",
+          "@scope/host",
+          "@scope/peer",
+        ]),
+      }),
+    ).toEqual([]);
+  });
+
+  test("a nested package is its parent's to keep: it is never named at the top", () => {
+    const root = installedTree();
+    expect(
+      reachedPackagesNothingKeeps({
+        packageDirectory: root,
+        dependencies: ["logger"],
+        reached: reachedIn(root, ["logger", "logger/node_modules/stray"]),
+      }),
+    ).toEqual([]);
+  });
+
+  test("a package outside the package's own node_modules is left alone", () => {
+    const root = installedTree();
+    const elsewhere = temporaryDirectory("prune-elsewhere-");
+    writeTree(elsewhere, {
+      "node_modules/outside/package.json": packageJson("outside"),
+    });
+    expect(
+      reachedPackagesNothingKeeps({
+        packageDirectory: root,
+        dependencies: [],
+        reached: new Set([
+          fs.realpathSync(path.join(elsewhere, "node_modules", "outside")),
+        ]),
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe("unreachedDependencies", () => {
   test("lists the installed dependencies the walk never reached, in package.json's order", () => {
     const root = temporaryDirectory("prune-unreached-");
@@ -793,7 +954,7 @@ describe("pruneUnreachablePackages", () => {
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   }
 
-  test("takes the unreached dependencies out of package.json and runs npm prune there, offline", async () => {
+  test("takes the unreached dependencies out of package.json, names the reached packages nothing else keeps, and runs npm prune there, offline", async () => {
     const root = sidecarLikeProgram();
     withDependencies(root);
     const npm = npmPruneThatRemoves([
@@ -812,6 +973,19 @@ describe("pruneUnreachablePackages", () => {
     });
 
     expect(result.removed).toEqual(["unused"]);
+    /*
+     * The program imports @scope/beta, delta and lazy, alpha requires gamma
+     * and dual's CommonJS file cjs-only, and nothing declares any of them:
+     * npm would remove them all, so package.json names them. epsilon is
+     * nested under delta, so it is delta's to keep.
+     */
+    expect(result.added).toEqual([
+      { name: "@scope/beta", version: "1.0.0" },
+      { name: "cjs-only", version: "1.0.0" },
+      { name: "delta", version: "1.0.0" },
+      { name: "gamma", version: "1.0.0" },
+      { name: "lazy", version: "1.0.0" },
+    ]);
     expect(result.kept).toBe(8);
     expect(result.after).toBeLessThan(result.before);
     expect(sharedManifest(root)).toEqual({
@@ -821,6 +995,11 @@ describe("pruneUnreachablePackages", () => {
         alpha: "^1.0.0",
         dual: "^1.0.0",
         "not-installed": "^1.0.0",
+        "@scope/beta": "1.0.0",
+        "cjs-only": "1.0.0",
+        delta: "1.0.0",
+        gamma: "1.0.0",
+        lazy: "1.0.0",
       },
       devDependencies: { jest: "^30.0.0" },
     });
@@ -835,6 +1014,10 @@ describe("pruneUnreachablePackages", () => {
       "1 of the 4 dependencies of " +
         path.join(root, "shared", "package.json") +
         " are never reached: unused.",
+    );
+    expect(lines.join("\n")).toContain(
+      path.join(root, "shared", "package.json") +
+        " now names, at the version installed, each package it reaches that nothing staying depends on, so npm keeps it: @scope/beta@1.0.0, cjs-only@1.0.0, delta@1.0.0, gamma@1.0.0, lazy@1.0.0.",
     );
   });
 
@@ -856,6 +1039,11 @@ describe("pruneUnreachablePackages", () => {
       log: () => {},
     });
     expect(result.removed).toEqual(["unused"]);
+    expect(
+      result.added.map((item) => {
+        return item.name;
+      }),
+    ).toEqual(["@scope/beta", "cjs-only", "delta", "gamma", "lazy"]);
     expect(npm.calls).toEqual([]);
     expect(
       fs.readFileSync(path.join(root, "shared", "package.json"), "utf8"),
@@ -945,9 +1133,32 @@ describe("pruneUnreachablePackages", () => {
     });
 
     expect(result.removed).toEqual(["open-main-only", "unused"]);
+    /*
+     * This fixture's packages declare no dependencies of their own, so what
+     * closed and the rest require is kept only by being named.
+     */
+    const named = [
+      "by-package",
+      "closed-dep",
+      "deep",
+      "deep-inner-dep",
+      "native",
+      "open",
+      "templated",
+    ];
+    expect(
+      result.added.map((item) => {
+        return item.name;
+      }),
+    ).toEqual(named);
     expect(sharedManifest(root).dependencies).toEqual({
       closed: "^1.0.0",
       "worker-only": "^1.0.0",
+      ...Object.fromEntries(
+        named.map((name) => {
+          return [name, "1.0.0"];
+        }),
+      ),
     });
     expect(npm.calls).toHaveLength(1);
   });
@@ -1158,6 +1369,96 @@ describe("with real npm", () => {
       JSON.parse(fs.readFileSync(path.join(program, "package.json"), "utf8"))
         .dependencies,
     ).toEqual({ used: `file:${tarballs.used}` });
+  }, 120000);
+
+  /*
+   * 14.0.100's image build: debug (through acme-client) requires
+   * supports-color in a try, and depends on nothing that brings it. Only
+   * chalk did, for @elastic/elasticsearch's apache-arrow, which the sidecar
+   * never reaches - so npm removed supports-color and has-flag, and the
+   * build stopped on "npm prune removed packages the program reaches".
+   */
+  test("keeps a package the program reaches that only an unreached package kept installed, with what it needs", async () => {
+    const root = temporaryDirectory("prune-npm-optional-");
+    fs.mkdirSync(path.join(root, "tarballs"));
+    const tarballs = {
+      hasFlag: pack(root, "has-flag", {
+        "package.json": packageJson("has-flag", {
+          version: "4.0.0",
+          main: "index.js",
+        }),
+        "index.js": "module.exports = () => false;\n",
+      }),
+    };
+    tarballs.supportsColor = pack(root, "supports-color", {
+      "package.json": packageJson("supports-color", {
+        version: "7.2.0",
+        main: "index.js",
+        dependencies: { "has-flag": `file:${tarballs.hasFlag}` },
+      }),
+      "index.js": 'module.exports = require("has-flag")();\n',
+    });
+    tarballs.logger = pack(root, "logger", {
+      "package.json": packageJson("logger", { main: "index.js" }),
+      "index.js": [
+        "let colors = null;",
+        'try { colors = require("supports-color"); } catch (error) { colors = null; }',
+        "module.exports = () => colors;",
+        "",
+      ].join("\n"),
+    });
+    tarballs.unused = pack(root, "unused", {
+      "package.json": packageJson("unused", {
+        main: "index.js",
+        dependencies: { "supports-color": `file:${tarballs.supportsColor}` },
+      }),
+      "index.js": 'module.exports = require("supports-color");\n',
+    });
+
+    const program = path.join(root, "program");
+    writeTree(program, {
+      "package.json": {
+        ...packageJson("program"),
+        dependencies: {
+          logger: `file:${tarballs.logger}`,
+          unused: `file:${tarballs.unused}`,
+        },
+      },
+      "Index.ts": 'import logger from "logger";\nexport default logger;\n',
+    });
+    npm(["install", "--offline", "--no-audit", "--no-fund"], program);
+    for (const name of ["logger", "unused", "supports-color", "has-flag"]) {
+      expect(fs.existsSync(path.join(program, "node_modules", name))).toBe(
+        true,
+      );
+    }
+
+    const result = await pruneUnreachablePackages({
+      entry: path.join(program, "Index.ts"),
+      packageDirectory: program,
+      esbuild,
+      typescript,
+      log: () => {},
+    });
+
+    expect(result.removed).toEqual(["unused"]);
+    expect(result.added).toEqual([
+      { name: "supports-color", version: "7.2.0" },
+    ]);
+    const left = fs
+      .readdirSync(path.join(program, "node_modules"))
+      .filter((name) => {
+        return !name.startsWith(".");
+      })
+      .sort();
+    expect(left).toEqual(["has-flag", "logger", "supports-color"]);
+    expect(
+      JSON.parse(fs.readFileSync(path.join(program, "package.json"), "utf8"))
+        .dependencies,
+    ).toEqual({
+      logger: `file:${tarballs.logger}`,
+      "supports-color": "7.2.0",
+    });
   }, 120000);
 });
 
