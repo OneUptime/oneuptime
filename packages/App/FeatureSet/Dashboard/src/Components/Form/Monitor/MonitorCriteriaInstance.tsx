@@ -1,5 +1,9 @@
 import CriteriaFilters from "./CriteriaFilters";
 import {
+  CRITERIA_ACTION_FORM_CLASS_NAME,
+  CRITERIA_SECTION_CLASS_NAME,
+} from "./CriteriaEditorLayout";
+import {
   NetworkDeviceCriteriaCatalogue,
   NetworkDeviceCriteriaCatalogueContext,
   NetworkDeviceOidCatalogueEntry,
@@ -89,15 +93,6 @@ export interface ComponentProps {
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
   onDelete?: undefined | (() => void);
 }
-
-/*
- * The box that opens under an action's switch (the status to change to, the
- * alert or incident to open): set in under the switch's words from sm up,
- * and full width on a phone. Nested in two cards, the criteria's box and
- * the Actions section, the indent left a phone's rule form about 150px wide.
- */
-export const CRITERIA_ACTION_FORM_CLASS_NAME: string =
-  "mt-4 rounded-md border border-gray-100 bg-gray-50 p-3 sm:ml-6";
 
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -441,7 +436,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         badge={filterSummary}
         variant="bordered"
         defaultCollapsed={false}
-        className="mb-4"
+        isFlushOnPhones={true}
+        className={CRITERIA_SECTION_CLASS_NAME}
       >
         <div>
           <NetworkDeviceCriteriaCatalogueContext.Provider
@@ -514,7 +510,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         badge={getActionsSummary()}
         variant="bordered"
         defaultCollapsed={!hasActions}
-        className="mb-4"
+        isFlushOnPhones={true}
+        className={CRITERIA_SECTION_CLASS_NAME}
       >
         <div>
           <div className="mt-2">
@@ -539,7 +536,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           </div>
 
           {showMonitorStatusChangeControl && (
-            <div className={CRITERIA_ACTION_FORM_CLASS_NAME}>
+            <div
+              className={CRITERIA_ACTION_FORM_CLASS_NAME}
+              data-testid="monitor-criteria-status-form"
+            >
               {/*
                * No "(Optional)": the switch above asks for a status change,
                * and this is the status it changes to.
@@ -560,6 +560,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   },
                 )}
                 options={props.monitorStatusDropdownOptions}
+                /*
+                 * The switch above asks for a status change: a status is
+                 * always picked, so there is no clear button to empty it.
+                 */
+                isClearable={false}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
@@ -616,7 +621,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           </div>
 
           {showAlertControl && (
-            <div className={CRITERIA_ACTION_FORM_CLASS_NAME}>
+            <div
+              className={CRITERIA_ACTION_FORM_CLASS_NAME}
+              data-testid="monitor-criteria-alert-form"
+            >
               <FieldLabelElement
                 title="Create Alert"
                 hideOptionalLabel={true}
@@ -678,7 +686,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           </div>
 
           {showIncidentControl && (
-            <div className={CRITERIA_ACTION_FORM_CLASS_NAME}>
+            <div
+              className={CRITERIA_ACTION_FORM_CLASS_NAME}
+              data-testid="monitor-criteria-incident-form"
+            >
               <FieldLabelElement
                 title="Create Incident"
                 hideOptionalLabel={true}
@@ -784,7 +795,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         }
         variant="bordered"
         defaultCollapsed={!showIncidentGrouping}
-        className="mb-4"
+        isFlushOnPhones={true}
+        className={CRITERIA_SECTION_CLASS_NAME}
       >
         <div className="mt-2">
           <Toggle

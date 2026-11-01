@@ -22,6 +22,7 @@ import {
 import { escapeHtml, highlightCode } from "./CodeEditorHighlight";
 import { CodeLanguage, getCodeLanguage } from "./CodeEditorLanguages";
 import Icon from "../Icon/Icon";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import CodeType from "../../../Types/Code/CodeType";
 import {
   JsonSyntaxCheckResult,
@@ -341,11 +342,39 @@ const STATUS_TONE_CLASS: Record<StatusTone, string> = {
 };
 
 const TOOLBAR_BUTTON_CLASS: string =
-  "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 // Copy, while it says the browser refused the copy.
 const TOOLBAR_FAILED_BUTTON_CLASS: string =
-  "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+// A toolbar button under the pointer, while it can be pressed.
+const TOOLBAR_BUTTON_HOVER_CLASS: string =
+  "hover:bg-gray-200 hover:text-gray-900";
+
+// Copy, saying the browser refused the copy, keeps its red under the pointer.
+const TOOLBAR_FAILED_BUTTON_HOVER_CLASS: string = "hover:bg-gray-200";
+
+// A toolbar button that cannot be pressed yet looks locked, as every one does.
+const getToolbarButtonClassName: (data: {
+  isLocked: boolean;
+  hasFailed?: boolean | undefined;
+}) => string = (data: {
+  isLocked: boolean;
+  hasFailed?: boolean | undefined;
+}): string => {
+  const look: string = data.hasFailed
+    ? TOOLBAR_FAILED_BUTTON_CLASS
+    : TOOLBAR_BUTTON_CLASS;
+  const state: string = getHandDrawnButtonStateClassName({
+    isLocked: data.isLocked,
+    hoverClassName: data.hasFailed
+      ? TOOLBAR_FAILED_BUTTON_HOVER_CLASS
+      : TOOLBAR_BUTTON_HOVER_CLASS,
+  });
+
+  return `${look} ${state}`;
+};
 
 /**
  * A code editor for form fields: a native textarea over a highlighted copy
@@ -1088,7 +1117,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               data-testid="code-editor-example-button"
-              className={TOOLBAR_BUTTON_CLASS}
+              className={getToolbarButtonClassName({ isLocked: false })}
               onClick={() => {
                 replaceDocument(example);
               }}
@@ -1107,7 +1136,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                   : "Format is available once the document is valid JSON",
               )}
               disabled={!canFormat}
-              className={TOOLBAR_BUTTON_CLASS}
+              className={getToolbarButtonClassName({ isLocked: !canFormat })}
               onClick={handleFormat}
             >
               <Icon icon={IconProp.Indent} className="h-3.5 w-3.5" />
@@ -1125,9 +1154,10 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               { language: translatableTerm(language.label) },
             )}
             disabled={isEmpty}
-            className={
-              copyFailed ? TOOLBAR_FAILED_BUTTON_CLASS : TOOLBAR_BUTTON_CLASS
-            }
+            className={getToolbarButtonClassName({
+              isLocked: isEmpty,
+              hasFailed: copyFailed,
+            })}
             onClick={handleCopy}
           >
             <Icon

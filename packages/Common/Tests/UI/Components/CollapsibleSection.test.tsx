@@ -2,8 +2,18 @@ import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import CollapsibleSection from "../../../UI/Components/CollapsibleSection/CollapsibleSection";
+import CollapsibleSection, {
+  COLLAPSIBLE_SECTION_BORDERED_FLUSH_ON_PHONES_FRAME_CLASS_NAME,
+  COLLAPSIBLE_SECTION_BORDERED_FRAME_CLASS_NAME,
+  COLLAPSIBLE_SECTION_CARD_FLUSH_ON_PHONES_FRAME_CLASS_NAME,
+  COLLAPSIBLE_SECTION_CARD_FRAME_CLASS_NAME,
+} from "../../../UI/Components/CollapsibleSection/CollapsibleSection";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { resolveFrame } from "../../ResponsiveFrame";
+import {
+  classesWithoutDarkTheme,
+  isRemappedForDarkTheme,
+} from "../Styles/DarkThemeCoverage";
 
 /*
  * The folding group behind every "Advanced Options", "On-Call" and "Filters"
@@ -267,5 +277,133 @@ describe("CollapsibleSection's folded line", () => {
 
     expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
     expect(header()).not.toHaveAttribute("aria-describedby");
+  });
+});
+
+/*
+ * A framed section that is flush on a phone (isFlushOnPhones): a monitor
+ * criteria's Filters, Actions and Settings, inside the criteria's box. On a
+ * phone it has no frame of its own - rules above and below, no sides, no
+ * corners, no shadow - so it can reach out to the sides of the box it is in;
+ * from sm up it is the framed section, class for class. Read the way the
+ * cascade does (ResponsiveFrame), since jsdom has no stylesheet.
+ */
+describe("CollapsibleSection flush on a phone", () => {
+  const PHONE_WIDTHS: Array<number> = [320, 375, 390, 639];
+  const FROM_SM_UP: Array<number> = [640, 768, 1024, 1280];
+
+  function frameOf(): HTMLElement {
+    return header().parentElement!;
+  }
+
+  test.each(["bordered", "card"] as const)(
+    "%s: rules above and below on a phone, nothing at the sides",
+    (variant: "bordered" | "card") => {
+      renderSection({ variant: variant, isFlushOnPhones: true });
+
+      expect(frameOf()).toHaveClass(
+        ...(variant === "card"
+          ? COLLAPSIBLE_SECTION_CARD_FLUSH_ON_PHONES_FRAME_CLASS_NAME
+          : COLLAPSIBLE_SECTION_BORDERED_FLUSH_ON_PHONES_FRAME_CLASS_NAME
+        ).split(" "),
+      );
+
+      for (const width of PHONE_WIDTHS) {
+        expect([width, resolveFrame(frameOf().className, width)]).toEqual([
+          width,
+          {
+            border: { top: 1, right: 0, bottom: 1, left: 0 },
+            radius: {
+              topLeft: 0,
+              topRight: 0,
+              bottomRight: 0,
+              bottomLeft: 0,
+            },
+            shadow: null,
+          },
+        ]);
+      }
+    },
+  );
+
+  test.each(["bordered", "card"] as const)(
+    "%s: from sm up, the framed section it always was",
+    (variant: "bordered" | "card") => {
+      render(
+        <>
+          <div data-testid="framed">
+            <CollapsibleSection title="Filters" variant={variant}>
+              <p>filters</p>
+            </CollapsibleSection>
+          </div>
+          <div data-testid="flush">
+            <CollapsibleSection
+              title="Actions"
+              variant={variant}
+              isFlushOnPhones={true}
+            >
+              <p>actions</p>
+            </CollapsibleSection>
+          </div>
+        </>,
+      );
+
+      const framed: HTMLElement = screen.getByTestId("framed")
+        .firstElementChild as HTMLElement;
+      const flush: HTMLElement = screen.getByTestId("flush")
+        .firstElementChild as HTMLElement;
+
+      expect(framed).toHaveClass(
+        ...(variant === "card"
+          ? COLLAPSIBLE_SECTION_CARD_FRAME_CLASS_NAME
+          : COLLAPSIBLE_SECTION_BORDERED_FRAME_CLASS_NAME
+        ).split(" "),
+      );
+
+      for (const width of FROM_SM_UP) {
+        expect([width, resolveFrame(flush.className, width)]).toEqual([
+          width,
+          resolveFrame(framed.className, width),
+        ]);
+      }
+
+      // The header's band and the body's padding are the same at every width.
+      const framedHeader: HTMLElement = framed.firstElementChild as HTMLElement;
+      const flushHeader: HTMLElement = flush.firstElementChild as HTMLElement;
+
+      expect(flushHeader.className).toBe(framedHeader.className);
+      expect(
+        (flush.lastElementChild!.firstElementChild as HTMLElement).className,
+      ).toBe(
+        (framed.lastElementChild!.firstElementChild as HTMLElement).className,
+      );
+    },
+  );
+
+  test("the classes it is given still apply: the negative margins that take it to the box's sides", () => {
+    renderSection({
+      variant: "bordered",
+      isFlushOnPhones: true,
+      className: "mb-4 -mx-3 sm:mx-0",
+    });
+
+    expect(frameOf()).toHaveClass("mb-4", "-mx-3", "sm:mx-0");
+  });
+
+  test("a section without a frame has nothing to take away", () => {
+    renderSection({ isFlushOnPhones: true });
+
+    expect(frameOf().className.trim()).toBe("");
+  });
+
+  test("flush or framed, its frame keeps the dark theme", () => {
+    for (const className of [
+      COLLAPSIBLE_SECTION_BORDERED_FLUSH_ON_PHONES_FRAME_CLASS_NAME,
+      COLLAPSIBLE_SECTION_CARD_FLUSH_ON_PHONES_FRAME_CLASS_NAME,
+    ]) {
+      expect(classesWithoutDarkTheme(className.split(" "))).toEqual([]);
+    }
+
+    expect(isRemappedForDarkTheme("sm:shadow-sm")).toBe(true);
   });
 });

@@ -2639,7 +2639,13 @@ describe("InvestigationConversation — the composer in the card", () => {
     renderConversation();
     await flush();
 
-    expect(sendButton()).toHaveClass("bg-gray-100", "text-gray-400");
+    // With nothing to send it is locked as every button is: faded, not grey.
+    expect(sendButton()).toHaveClass(
+      "bg-indigo-600",
+      "opacity-50",
+      "cursor-not-allowed",
+    );
+    expect(sendButton()).not.toHaveClass("bg-gray-100");
 
     fireEvent.change(composer(), { target: { value: "  " } });
     expect(sendButton()).toBeDisabled();
@@ -2648,6 +2654,7 @@ describe("InvestigationConversation — the composer in the card", () => {
     expect(sendButton()).toBeEnabled();
     // The page's own primary colour, not the Ask AI dialog's black.
     expect(sendButton()).toHaveClass("bg-indigo-600", "text-white");
+    expect(sendButton()).not.toHaveClass("opacity-50");
 
     fireEvent.click(sendButton());
     await flush();

@@ -117,7 +117,7 @@ const VMwareVCenterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select vCenter Labels (optional)",
+          placeholder: "Select vCenter Labels",
         },
         {
           field: { vmwareVCenterNamePattern: true },

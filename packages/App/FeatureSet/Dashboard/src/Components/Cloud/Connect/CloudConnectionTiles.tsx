@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   CloudConnectionCatalog,
@@ -51,7 +52,12 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 props.onConnect(definition.provider);
               }}
-              className="flex h-full w-full items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-300 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`flex h-full w-full items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                {
+                  isLocked: !props.canConnect,
+                  hoverClassName: "hover:border-indigo-300 hover:shadow",
+                },
+              )}`}
             >
               <CloudConnectionLogo provider={definition.provider} size="lg" />
               {/* A column, so each tile's Connect sits on the same line. */}

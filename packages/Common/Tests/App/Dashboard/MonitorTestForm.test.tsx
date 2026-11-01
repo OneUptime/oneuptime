@@ -19,6 +19,7 @@ import {
 import * as React from "react";
 import Permission from "../../../Types/Permission";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { BoxSpacing, resolveMargin } from "../../ResponsiveSpacing";
 
 /*
  * https://github.com/OneUptime/oneuptime/issues/3867
@@ -669,5 +670,50 @@ describe("the result", () => {
     expect(
       within(resultDialog()).queryByText("Ohio Probe"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Where the button sits. NORMAL Buttons carry md:ml-3, a dialog footer's
+ * gap, from md up; the box round this one took it back with a bare -ml-3,
+ * which on a phone - where the button has no margin - pulled it 12px past
+ * the left edge of everything else on Create Monitor's criteria step (and
+ * of the card header it sits in on the criteria page). Read the way the
+ * cascade does (ResponsiveSpacing): jsdom has no stylesheet.
+ */
+describe("where the button sits", () => {
+  function margins(width: number): { box: BoxSpacing; button: BoxSpacing } {
+    const button: HTMLElement = screen.getByTestId("test-monitor-button");
+    const box: HTMLElement = button.closest("div") as HTMLElement;
+
+    return {
+      box: resolveMargin(box.className, width),
+      button: resolveMargin(button.className, width),
+    };
+  }
+
+  test("on a phone, neither the button nor its box moves it off the gutter", () => {
+    renderForm();
+
+    for (const width of [320, 375, 390, 767]) {
+      const { box, button } = margins(width);
+
+      expect([width, box.left + button.left, box.right]).toEqual([width, 0, 0]);
+    }
+  });
+
+  test("from md up, the box takes back the button's own margin, as before", () => {
+    renderForm();
+
+    for (const width of [768, 1024, 1280]) {
+      const { box, button } = margins(width);
+
+      expect([width, button.left, box.left + button.left, box.right]).toEqual([
+        width,
+        12,
+        0,
+        8,
+      ]);
+    }
   });
 });

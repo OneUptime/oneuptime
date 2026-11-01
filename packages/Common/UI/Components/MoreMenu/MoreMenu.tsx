@@ -824,7 +824,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
           <button
             id={buttonId}
             type="button"
-            className={getMoreMenuBareTriggerClassName(Boolean(text))}
+            className={getMoreMenuBareTriggerClassName(
+              Boolean(text),
+              props.isDisabled,
+            )}
             disabled={props.isDisabled}
             aria-disabled={Boolean(props.isDisabled)}
             data-testid={props.dataTestId}

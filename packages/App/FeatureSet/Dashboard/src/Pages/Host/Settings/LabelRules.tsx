@@ -116,7 +116,7 @@ const HostLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Host Labels (optional)",
+          placeholder: "Select Host Labels",
         },
         {
           field: { hostNamePattern: true },

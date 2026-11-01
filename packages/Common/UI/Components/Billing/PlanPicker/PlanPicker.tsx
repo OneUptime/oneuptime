@@ -17,6 +17,7 @@ import {
   PlanPickerCopy,
   PlanPickerOptionText,
   PlanTermsText,
+  getCurrentPlanText,
   getPlanPickerOptionText,
   getPlanTermsText,
   getSentenceSeparator,
@@ -45,6 +46,16 @@ import React, {
  * The rows are real radio buttons, named by the plan, so arrow keys move
  * between plans and a screen reader reads each one's price and trial. The
  * colours are the shared utilities Theme.css carries into the dark theme.
+ *
+ * The Billing page's Change Plan is the same picker for a plan change
+ * (isPlanChange): it opens at the period the project is billed for, the
+ * plan it is on carries a Current plan pill - at the other period too, with
+ * how it is billed now (getCurrentPlanText) - no plan offers a trial and the
+ * dialog says what happens to a running one, a plan's row says what moving
+ * to it stops (getPlanNote), and a project a marketplace bills month to
+ * month sees one period (periods). It used to be a stack of cards of its
+ * own under a Yearly Plan switch, which said nothing of the plan the
+ * project was on.
  */
 
 export interface ComponentProps {
@@ -56,7 +67,36 @@ export interface ComponentProps {
   initialPeriod?: BillingPeriod | undefined;
   error?: string | undefined;
   dataTestId?: string | undefined;
+  /*
+   * A plan change (the Billing page's Change Plan), not a new project's
+   * first plan: no plan offers its trial - a change keeps a trial the
+   * project is on and never starts one, which the dialog says under the
+   * plans - and the terms of a new project's plan are not drawn.
+   */
+  isPlanChange?: boolean | undefined;
+  /*
+   * The price the project is subscribed to: its plan carries a Current plan
+   * pill, which says how it is billed now while the other period's prices
+   * are shown (getCurrentPlanText).
+   */
+  currentPlanId?: string | undefined;
+  /*
+   * What moving to a plan would stop, said on its row (an API key that
+   * stops working below the plan that sells it), or null.
+   */
+  getPlanNote?: ((plan: SubscriptionPlan) => string | null) | undefined;
+  /*
+   * The periods the plans can be billed for: both, unless something bills
+   * only one - a cloud marketplace bills month to month. One alone draws no
+   * Monthly | Yearly switch.
+   */
+  periods?: Array<BillingPeriod> | undefined;
 }
+
+const ALL_PERIODS: Array<BillingPeriod> = [
+  BillingPeriod.Monthly,
+  BillingPeriod.Yearly,
+];
 
 const periodOf: (
   plans: Array<SubscriptionPlan>,
@@ -78,25 +118,40 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
   const labelId: string = `${id}-label`;
   const errorId: string = `${id}-error`;
 
+  const periods: Array<BillingPeriod> =
+    props.periods && props.periods.length > 0 ? props.periods : ALL_PERIODS;
+
+  // A period the plans can be billed for, or the first that is.
+  const allowedPeriod: (
+    candidate: BillingPeriod | null | undefined,
+  ) => BillingPeriod | null = (
+    candidate: BillingPeriod | null | undefined,
+  ): BillingPeriod | null => {
+    return candidate && periods.includes(candidate) ? candidate : null;
+  };
+
   const [period, setPeriod] = useState<BillingPeriod>(() => {
     return (
-      periodOf(props.plans, props.value) ||
-      props.initialPeriod ||
+      allowedPeriod(periodOf(props.plans, props.value)) ||
+      allowedPeriod(props.initialPeriod) ||
+      allowedPeriod(BillingPeriod.Yearly) ||
+      periods[0] ||
       BillingPeriod.Yearly
     );
   });
 
   // A value set from outside (a form's initial values) brings its period.
   useEffect(() => {
-    const valuePeriod: BillingPeriod | null = periodOf(
-      props.plans,
-      props.value,
+    const valuePeriod: BillingPeriod | null = allowedPeriod(
+      periodOf(props.plans, props.value),
     );
 
     if (valuePeriod && valuePeriod !== period) {
       setPeriod(valuePeriod);
     }
   }, [props.value]);
+
+  const hasPeriodChoice: boolean = periods.length > 1;
 
   const selectedPlan: SubscriptionPlan | undefined = findPlanByPlanId(
     props.plans,
@@ -164,14 +219,27 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
       plan,
       period,
       translator,
+      showsTrial: !props.isPlanChange,
     });
     const optionId: string = `${id}-option-${index}`;
     const isFirst: boolean = index === 0;
     const isLast: boolean = index === props.plans.length - 1;
+    // The plan the project is subscribed to, at either period.
+    const currentPlanText: string | null = getCurrentPlanText({
+      plan,
+      period,
+      currentPlanId: props.currentPlanId,
+      translator,
+    });
+    const note: string | null = props.getPlanNote
+      ? props.getPlanNote(plan)
+      : null;
 
     const describedBy: string = [
+      currentPlanText ? `${optionId}-current` : "",
       text.trialBadge ? `${optionId}-trial` : "",
       text.audience ? `${optionId}-audience` : "",
+      note ? `${optionId}-note` : "",
       `${optionId}-price`,
     ]
       .filter((part: string): boolean => {
@@ -217,6 +285,15 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
               >
                 {text.name}
               </span>
+              {currentPlanText && (
+                <span
+                  id={`${optionId}-current`}
+                  data-testid="plan-picker-current-plan"
+                  className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                >
+                  {currentPlanText}
+                </span>
+              )}
               {text.trialBadge && (
                 <span
                   id={`${optionId}-trial`}
@@ -232,6 +309,23 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
                 className="mt-0.5 block text-sm text-gray-500"
               >
                 {text.audience}
+              </span>
+            )}
+            {/*
+             * What a move to this plan stops, before it is picked - an
+             * amber line under who the plan is for, read with the radio.
+             */}
+            {note && (
+              <span
+                id={`${optionId}-note`}
+                data-testid={`plan-picker-note-${plan.getName()}`}
+                className="mt-1 flex items-start gap-1.5 text-sm text-amber-700"
+              >
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0"
+                />
+                <span className="min-w-0">{note}</span>
               </span>
             )}
           </span>
@@ -278,9 +372,15 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const terms: PlanTermsText | null = selectedPlan
-    ? getPlanTermsText({ plan: selectedPlan, period, translator })
-    : null;
+  /*
+   * A new project's terms - its trial, when it is billed, Compare plans.
+   * A plan change's are said by the dialog: whether a running trial carries
+   * over, or what is billed straight away.
+   */
+  const terms: PlanTermsText | null =
+    selectedPlan && !props.isPlanChange
+      ? getPlanTermsText({ plan: selectedPlan, period, translator })
+      : null;
 
   return (
     <div data-testid={props.dataTestId || "plan-picker"}>
@@ -289,7 +389,7 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
           {translator.translateText(PlanPickerCopy.label)}
         </span>
         <div className="flex items-center gap-2">
-          {savingText && (
+          {savingText && hasPeriodChoice && (
             <span
               data-testid="plan-picker-saving"
               className={`text-xs font-medium ${
@@ -301,14 +401,21 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
               {savingText}
             </span>
           )}
-          <div
-            role="group"
-            aria-label={translator.translateText(PlanPickerCopy.billingPeriod)}
-            className="inline-flex items-center rounded-lg bg-gray-100 p-0.5 ring-1 ring-inset ring-gray-200"
-          >
-            {renderPeriodButton(BillingPeriod.Monthly, PlanPickerCopy.monthly)}
-            {renderPeriodButton(BillingPeriod.Yearly, PlanPickerCopy.yearly)}
-          </div>
+          {hasPeriodChoice && (
+            <div
+              role="group"
+              aria-label={translator.translateText(
+                PlanPickerCopy.billingPeriod,
+              )}
+              className="inline-flex items-center rounded-lg bg-gray-100 p-0.5 ring-1 ring-inset ring-gray-200"
+            >
+              {renderPeriodButton(
+                BillingPeriod.Monthly,
+                PlanPickerCopy.monthly,
+              )}
+              {renderPeriodButton(BillingPeriod.Yearly, PlanPickerCopy.yearly)}
+            </div>
+          )}
         </div>
       </div>
 

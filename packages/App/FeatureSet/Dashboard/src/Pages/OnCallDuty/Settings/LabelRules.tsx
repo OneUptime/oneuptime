@@ -160,7 +160,7 @@ const OnCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select On-Call Policy Labels (optional)",
+          placeholder: "Select On-Call Policy Labels",
         },
         {
           field: { onCallDutyPolicyNamePattern: true },
@@ -273,7 +273,7 @@ const OnCallScheduleLabelRulesTable: FunctionComponent<RulesTableProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select On-Call Schedule Labels (optional)",
+          placeholder: "Select On-Call Schedule Labels",
         },
         {
           field: { onCallDutyPolicyScheduleNamePattern: true },
@@ -385,7 +385,7 @@ const IncomingCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Incoming Call Policy Labels (optional)",
+          placeholder: "Select Incoming Call Policy Labels",
         },
         {
           field: { incomingCallPolicyNamePattern: true },

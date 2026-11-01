@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import VideoCallProvider from "Common/Types/VideoCall/VideoCallProvider";
@@ -84,11 +85,11 @@ const ProviderTile: FunctionComponent<{
       data-testid={`video-call-connect-${definition.provider}`}
       disabled={!props.canConnect}
       onClick={props.onConnect}
-      className={
-        props.canConnect
-          ? "inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          : "inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-400 ring-1 ring-inset ring-gray-200"
-      }
+      className={getHandDrawnLookClassName({
+        className:
+          "inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
+        isLocked: !props.canConnect,
+      })}
     >
       <Icon icon={IconProp.Add} className="h-4 w-4" />
       {props.count > 0

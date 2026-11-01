@@ -47,6 +47,12 @@ const WatchlistRuleSnippet: FunctionComponent<ComponentProps> = (
             })}
             language="yaml"
             showCopyButton={true}
+            /*
+             * A selection of a few lines to copy into a rule, read whole:
+             * on a phone its long lines wrap clear of the copy button,
+             * rather than scrolling sideways under it.
+             */
+            wrapLongLines={true}
           />
         </div>
 

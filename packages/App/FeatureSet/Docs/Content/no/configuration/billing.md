@@ -48,15 +48,15 @@ En person teller som en plass fra du inviterer personen, allerede før den godta
 :::steps
 ### Legg til en betalingsmetode først
 
-Et abonnementsbytte krever en betalingsmetode. Uten en åpner **Change Plan** i stedet **Add a Payment Method**: se [Betalingsmetoder](#betalingsmetoder).
+Et abonnementsbytte krever en betalingsmetode. Uten en åpner **Endre abonnement** i stedet **Add a Payment Method**: se [Betalingsmetoder](#betalingsmetoder).
 
-### Klikk på Change Plan
+### Klikk på Endre abonnement
 
-Klikk på **Change Plan** på kortet **Gjeldende abonnement**. **Årsplan** er slått på fra start: slå den av for å se månedsprisene.
+Klikk på **Endre abonnement** på kortet **Gjeldende abonnement**. Abonnementene åpnes med perioden prosjektet faktureres for; bytt mellom **Månedlig** og **Årlig** for å se de andre prisene.
 
 ### Velg abonnementet
 
-Hvert abonnement viser prisen sin per bruker. Notatet under abonnementene sier hva som skjer med prøveperioden din: **Your free trial carries over** så lenge prosjektet fortsatt er i prøveperioden, og **Changing plan does not start a free trial** når det ikke lenger er det.
+Hvert abonnement viser prisen sin per bruker, og **Gjeldende abonnement** markerer det prosjektet er på. Notatet under abonnementene sier hva som skjer med prøveperioden din: **Den gratis prøveperioden din fortsetter** så lenge prosjektet fortsatt er i prøveperioden, og **Å bytte abonnement starter ingen gratis prøveperiode** når det ikke lenger er det.
 
 ### Lagre endringen
 
@@ -184,7 +184,7 @@ Et prosjekt på Free-abonnementet må ha en betalingsmetode før det oppretter a
 Et prosjekt med ubetalte fakturaer blir inaktivt og slettes hvis de forblir ubetalte. Åpne **Fakturaer**, og klikk på **Betal faktura** på hver som fortsatt er ubetalt.
 :::
 
-:::details Change Plan åpner Add a Payment Method
+:::details Endre abonnement åpner Add a Payment Method
 Prosjektet har ingen betalingsmetode ennå. Legg til en, og endre deretter abonnementet.
 :::
 

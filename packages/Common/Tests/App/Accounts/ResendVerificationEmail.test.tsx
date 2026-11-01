@@ -291,8 +291,7 @@ const expectFixedButtonLabel: ExpectButtonLabelFunction = (): void => {
  * width and margin are what keep it full width and flush with the card on a
  * wide screen, where those md: classes would otherwise win over w-full.
  */
-const ACCOUNTS_BUTTON_CLASSES: string =
-  "w-full justify-center gap-1 disabled:cursor-not-allowed disabled:opacity-60";
+const ACCOUNTS_BUTTON_CLASSES: string = "w-full justify-center gap-1";
 
 // The bordered button's own border and fill.
 const NORMAL_STYLE_CLASSES: Array<string> = ["border-gray-300", "bg-white"];
@@ -1159,6 +1158,23 @@ describe("ResendVerificationEmail", () => {
 
       expect(button()).toBeEnabled();
       expectAccountsButtonStyle(button());
+    });
+
+    /*
+     * While it counts down it is locked, and looks it the way every locked
+     * button does - Button's own fade and not-allowed cursor - with no
+     * disabled: look of its own (it used to fade to 60% on its own classes).
+     */
+    test("locked while it counts down, it fades as every locked button does", () => {
+      renderButton({ initialCooldownSeconds: 5 });
+
+      expect(button()).toBeDisabled();
+      expect(button()).toHaveClass("opacity-50", "cursor-not-allowed");
+      expect(
+        Array.from(button().classList).filter((token: string): boolean => {
+          return token.startsWith("disabled:");
+        }),
+      ).toEqual([]);
     });
 
     test("keeps the same look while it waits and while it sends", async () => {

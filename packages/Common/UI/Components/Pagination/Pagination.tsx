@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "../Button/ButtonStates";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Modal from "../Modal/Modal";
@@ -144,10 +145,10 @@ export const JUMPABLE_INDICATOR_CLASS_NAME: string =
  * than turning a paler grey: the dark theme maps text-gray-300 to a light
  * slate, so a dead arrow drawn that way was brighter than a live one. Its
  * hover classes are left off, not overridden - the dark theme's hover rules
- * are !important and would light a disabled control up anyway.
+ * are !important and would light a disabled control up anyway. It fades as
+ * every locked button does (BUTTON_DISABLED_CLASS_NAME).
  */
-export const DISABLED_CONTROL_CLASS_NAME: string =
-  "cursor-not-allowed opacity-40";
+export const DISABLED_CONTROL_CLASS_NAME: string = BUTTON_DISABLED_CLASS_NAME;
 
 // The same control, dead: its resting colour, faded, with no hover.
 const disabledClassName: (enabledClassName: string) => string = (
