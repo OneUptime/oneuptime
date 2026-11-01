@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39322,
-    "untranslated": 13106
+    "keys": 39389,
+    "untranslated": 13048
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -17,7 +17,9 @@
     "CloudWatch Metric Streams",
     "CrowdStrike",
     "DE",
+    "DeploymentConfigs",
     "Docker Compose",
+    "Edge",
     "Google SecOps",
     "HA: {{state}}",
     "Hello world",
@@ -34,14 +36,19 @@
     "Null",
     "OK",
     "OSD",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Runner",
     "SLI %",
     "SLOs",
     "Slug",
+    "TLS",
     "Top P",
     "UTC",
     "VLAN",

@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-Envie os traços, logs e métricas das suas tarefas do Amazon ECS para o OneUptime, tanto no tipo de inicialização Fargate quanto no EC2. Cada tarefa que reporta `cloud.platform=aws_ecs` entra em um **Cloud Environment** por conta da AWS e região, como _AWS ECS · us-east-1 · 123456789012_, rode ali um serviço ou cinquenta.
+Envie os traços, logs e métricas das suas tarefas do Amazon ECS para o OneUptime, tanto no tipo de inicialização Fargate quanto no EC2. Cada tarefa que reporta `cloud.platform=aws_ecs` entra em um **Ambiente de nuvem** por conta da AWS e região, como _AWS ECS · us-east-1 · 123456789012_, rode ali um serviço ou cinquenta.
 
 :::cards
 - [Como funciona](#como-funciona): O que fazem o detector do ECS e o coletor sidecar.
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-O fluxo de logs do CloudWatch do coletor (`otel/otel-collector/...`) deve dizer `Everything is ready`, sem linhas de `401` ou `connection refused`. Dentro de um minuto após o primeiro span, log ou métrica, o ambiente aparece em **Nuvem → All Environments** como _AWS ECS · us-east-1 · 123456789012_.
+O fluxo de logs do CloudWatch do coletor (`otel/otel-collector/...`) deve dizer `Everything is ready`, sem linhas de `401` ou `connection refused`. Dentro de um minuto após o primeiro span, log ou métrica, o ambiente aparece em **Plataformas de aplicativos → Todos os ambientes** como _AWS ECS · us-east-1 · 123456789012_.
 :::
 
 ## A definição de tarefa completa

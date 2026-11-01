@@ -487,7 +487,7 @@ describe("the labels the translated docs quote", () => {
 describe("the cloud Instances description", () => {
   test("is the one the Instances tab draws, beside its Stale pill", () => {
     const instances: string = fs.readFileSync(
-      path.join(DASHBOARD, "src/Pages/Cloud/View/Instances.tsx"),
+      path.join(DASHBOARD, "src/Pages/AppPlatforms/View/Instances.tsx"),
       "utf8",
     );
 

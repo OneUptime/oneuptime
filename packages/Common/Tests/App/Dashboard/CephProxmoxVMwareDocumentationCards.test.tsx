@@ -54,6 +54,24 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
+/*
+ * The guides are pinned here as an install with no HOST reads them: the key
+ * alone on the run line, and <YOUR_ONEUPTIME_URL> in the addresses. CI's
+ * config.env sets HOST=localhost (from config.example.env), so the setting
+ * is stubbed empty; AgentInstallCommandsOnSelfHosted covers a set HOST.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    __esModule: true,
+    HOST: "",
+  };
+});
+
 const PROJECT_ID: ObjectID = new ObjectID("project-1");
 const SECRET: string = "secret-production";
 

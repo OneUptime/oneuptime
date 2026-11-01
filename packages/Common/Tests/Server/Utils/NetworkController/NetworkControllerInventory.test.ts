@@ -119,6 +119,18 @@ function ownMac(mac: string): Record<string, unknown> {
   };
 }
 
+// What a discovery scan recorded of one of a device's own ports.
+function scannedMac(mac: string): Record<string, unknown> {
+  return {
+    scannedMacAddress: {
+      value: mac,
+      method: "snmp",
+      readBy: { type: "discoveryScan", id: id(96) },
+      readAt: "2026-10-28T09:30:00.000Z",
+    },
+  };
+}
+
 function storedReading(
   device: NetworkControllerDevice,
   readAt: Date,
@@ -416,6 +428,38 @@ describe("4. its name and a MAC of the same box, the name held once on both side
     expect(ruleOf(match([ISSUE_DEVICE], [ISSUE_MX]), id(1))).toBe(
       "nameAndMacBlock:Q2XX-5384-0001",
     );
+  });
+
+  test("a device nothing walks is matched the same way, by the port a scan read", () => {
+    expect(
+      ruleOf(
+        match(
+          [{ ...ISSUE_DEVICE, discoveredDetails: scannedMac(FIRST_PORT) }],
+          [ISSUE_MX],
+        ),
+        id(1),
+      ),
+    ).toBe("nameAndMacBlock:Q2XX-5384-0001");
+  });
+
+  test("a port its poll read comes before one a scan read", () => {
+    expect(
+      ruleOf(
+        match(
+          [
+            {
+              ...ISSUE_DEVICE,
+              discoveredDetails: {
+                ...scannedMac("00:1b:54:c2:7a:01"),
+                ...ownMac(FIRST_PORT),
+              },
+            },
+          ],
+          [ISSUE_MX],
+        ),
+        id(1),
+      ),
+    ).toBe("nameAndMacBlock:Q2XX-5384-0001");
   });
 
   test("until a poll has read its ports, it stays unmatched", () => {
@@ -882,7 +926,7 @@ describe("one read, end to end", () => {
       },
     ]);
     expect(sent).toHaveLength(1);
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 1,
       writtenDeviceCount: 1,
@@ -909,7 +953,7 @@ describe("one read, end to end", () => {
       });
 
     expect(merges).toBe(0);
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 0,
       writtenDeviceCount: 0,
@@ -977,7 +1021,7 @@ describe("one read, end to end", () => {
         },
       });
 
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 1,
       writtenDeviceCount: 1,

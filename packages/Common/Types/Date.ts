@@ -559,6 +559,63 @@ export default class OneUptimeDate {
     );
   }
 
+  /**
+   * A moment as a list's cell writes it: "Oct 22, 7:25 AM" - a date of this
+   * year without its year, and without the zone - or "Oct 22, 2025", the
+   * date alone, for one of another year. With onlyShowDate, "Oct 22" and
+   * "Oct 22, 2025". The whole of it - year, time and zone
+   * (getDateAsUserFriendlyLocalFormattedString) - is what the cell shows
+   * under the pointer (Table/TableDate).
+   *
+   * "Oct 22 2026, 07:25 AM BST" took some 180px in every table's date
+   * column, the widest value left in the lists that still ran past their
+   * card at a laptop's width - incidents, alerts, the on-call logs - and its
+   * year and its zone said the same thing on every row.
+   *
+   * Read in the current timezone (the one the person picked in User
+   * Settings, or the browser's), as every other local date: a year turns
+   * there. The clock follows the person's 12- or 24-hour preference unless
+   * the caller says.
+   */
+  public static getDateAsCompactLocalString(
+    date: Date | string,
+    options?: {
+      onlyShowDate?: boolean | undefined;
+      use12HourFormat?: boolean | undefined;
+      // The moment "this year" is read from: now, unless a caller says.
+      now?: Date | undefined;
+    },
+  ): string {
+    const instant: Date = this.fromString(date);
+    const now: Date = options?.now || this.getCurrentDate();
+    const isThisYear: boolean =
+      this.inCurrentTimezone(instant).year() ===
+      this.inCurrentTimezone(now).year();
+
+    if (isThisYear && !options?.onlyShowDate) {
+      return this.getDateAsLocalShortDateTimeString(instant, {
+        use12HourFormat: options?.use12HourFormat,
+      });
+    }
+
+    const englishFormat: string = isThisYear ? "MMM D" : "MMM D, YYYY";
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return this.inCurrentTimezone(instant).format(englishFormat);
+      },
+      (language: string, locale: string): string | null => {
+        // "22. Okt.", "22. Okt. 2025", "10月22日", "2025年10月22日".
+        return this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: { onlyShowDate: true, hideYear: isThisYear },
+        });
+      },
+    );
+  }
+
   public static getDateAsLocalMonthYearString(date: Date | string): string {
     const instant: Date = this.fromString(date);
 

@@ -840,7 +840,7 @@ describe("the record's own ID on a resource Overview's Details card", () => {
         "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Overview.tsx",
         "packages/App/FeatureSet/Dashboard/src/Pages/Rum/View/Overview.tsx",
         "packages/App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview.tsx",
-        "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview.tsx",
+        "packages/App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Overview.tsx",
         "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview.tsx",
       ]),
     );

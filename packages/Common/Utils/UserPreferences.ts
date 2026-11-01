@@ -9,6 +9,11 @@ export enum UserPreferenceType {
    * (Common/UI/Components/Table/ColumnResize/useColumnWidths).
    */
   TableColumnWidths = "TableColumnWidths",
+  /*
+   * How tall a person likes a table's rows, for every table
+   * (Common/UI/Components/Table/TableDensity).
+   */
+  TableDensity = "TableDensity",
 }
 
 export default class UserPreferences {

@@ -111,6 +111,11 @@ export interface ControllerInventoryCandidate {
   isArchived?: boolean | null | undefined;
   discoveredDetails?: unknown;
   refreshRequestedAt?: Date | string | null | undefined;
+  /*
+   * Its site: not a matching rule, but what the clients and links this device
+   * turns out to have are filed under (NetworkControllerTopology).
+   */
+  siteId?: string | null | undefined;
 }
 
 export interface ControllerInventoryConnection {
@@ -210,7 +215,7 @@ interface CandidateIdentity {
   serial: string;
   // The MACs it is known by: typed, or an ARP table's.
   macs: Array<string>;
-  // One of its own ports, which its poll read. "" until a poll has.
+  // One of its own ports, which its poll or a scan read. "" until one has.
   ownMac: string;
   names: Set<string>;
   address: string;
@@ -253,7 +258,9 @@ function identityOf(
     serial: toSerialKey(candidate.serialNumber),
     macs: macs,
     ownMac:
-      details.values[NetworkDeviceDiscoveredField.OwnMacAddress]?.value || "",
+      details.values[NetworkDeviceDiscoveredField.OwnMacAddress]?.value ||
+      details.values[NetworkDeviceDiscoveredField.ScannedMacAddress]?.value ||
+      "",
     names: names,
     address: IP.isIP(address) ? address : "",
     details: details,
@@ -732,6 +739,13 @@ export interface ControllerInventoryOutcome {
   describedDeviceCount: number;
   // Devices whose details this read wrote (set or cleared).
   writtenDeviceCount: number;
+  /*
+   * Which device each Meraki device is, and the rows that was worked out
+   * from: the topology the same read recorded next hangs from these
+   * (NetworkControllerTopology) rather than matching everything again.
+   */
+  matches: Map<string, ControllerInventoryMatch>;
+  candidates: Array<ControllerInventoryCandidate>;
 }
 
 export default class NetworkControllerInventory {
@@ -821,6 +835,8 @@ export default class NetworkControllerInventory {
       deviceCount: data.devices.length,
       describedDeviceCount: plan.describedDeviceCount,
       writtenDeviceCount: written,
+      matches: plan.matches,
+      candidates,
     };
   }
 }

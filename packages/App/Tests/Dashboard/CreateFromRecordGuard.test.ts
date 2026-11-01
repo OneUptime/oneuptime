@@ -224,6 +224,11 @@ const RECORD_TABS: Array<RecordTabShape> = [
     CreatedRecordKind.Incident,
     CreatedRecordKind.Alert,
   ]),
+  // A cloud environment is a cloud resource row, with App Platforms' tabs.
+  ...kindTabs("AppPlatforms", CreateFromRecordKind.CloudEnvironment, [
+    CreatedRecordKind.Incident,
+    CreatedRecordKind.Alert,
+  ]),
   ...kindTabs("NetworkSite", CreateFromRecordKind.NetworkSite, [
     CreatedRecordKind.ScheduledMaintenance,
   ]),
@@ -725,6 +730,30 @@ describe("the create forms offer every resource they can be opened from", () => 
     },
   );
 
+  /*
+   * A kind the picker offers under another type's name: a cloud
+   * environment is a CloudResource row, picked as a cloud resource into the
+   * same field.
+   */
+  const PICKED_AS: Partial<Record<CreateFromRecordKind, string>> = {
+    [CreateFromRecordKind.CloudEnvironment]: CreateFromRecordKind.CloudResource,
+  };
+
+  test("a kind picked as another is written to that kind's field", () => {
+    for (const created of [
+      CreatedRecordKind.Incident,
+      CreatedRecordKind.Alert,
+    ]) {
+      for (const [kind, pickedAs] of Object.entries(PICKED_AS) as Array<
+        [CreateFromRecordKind, CreateFromRecordKind]
+      >) {
+        expect(getCreateFromRecordField(kind, created)?.key).toBe(
+          getCreateFromRecordField(pickedAs, created)?.key,
+        );
+      }
+    }
+  });
+
   test.each(FORMS)(
     "$file picks, writes back and registers every kind it can be opened from",
     ({
@@ -745,6 +774,8 @@ describe("the create forms offer every resource they can be opened from", () => 
 
       for (const kind of getCreateFromRecordKinds(created)) {
         const key: string = getCreateFromRecordField(kind, created)!.key;
+        // The type the picker offers the record as.
+        const pickedAs: string = PICKED_AS[kind] || kind;
 
         // Its field is a form field...
         expect(
@@ -761,7 +792,7 @@ describe("the create forms offer every resource they can be opened from", () => 
         }
 
         // ...the picker offers the type, and its onChange keeps the pick.
-        expect(offered).toContain(kind);
+        expect(offered).toContain(pickedAs);
         expect(source).toContain(`${key}:payload.${key},`);
       }
     },

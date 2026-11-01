@@ -27,7 +27,7 @@ import { EXCEPTION_LOG_WINDOW_MS } from "../../../../App/FeatureSet/Dashboard/sr
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import { buildDetectionRuleMonitorPrefill } from "../../../../App/FeatureSet/Dashboard/src/Utils/SecurityEventsMonitorPrefill";
 import { describeEvidenceTool } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
-import { summarizeCloudFleet } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudFleetSummary";
+import { summarizeCloudFleet } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudFleetSummary";
 import {
   getVariableNameFormField,
   getWorkflowVariableReference,
@@ -97,7 +97,7 @@ const GERMAN: Record<string, string> = {
     "Beobachtet Detection-Finding-Ereignisse der Erkennungsregel „{{ruleName}}“. Löst bei der Rate der Erkennungen aus, nicht schon bei ihrem Auftreten.",
   // Utils/InvestigationEvidenceFormat.ts
   "Ran {{query}}": "Ausgeführt: {{query}}",
-  // Pages/Cloud/Utils/CloudFleetSummary.ts
+  // Pages/AppPlatforms/Utils/CloudFleetSummary.ts
   "{{percent}}% of environments": "{{percent}} % der Umgebungen",
   // Utils/Workflow/WorkflowVariableUtil.ts
   "Workflows refer to this variable by name, as {{reference}}. Renaming it does not update workflows that already refer to the old name.":

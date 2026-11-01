@@ -191,7 +191,7 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 | 호스트 이름 | `host.name` | 장치 자체의 이름. SNMP `sysName`, 없으면 검색 중에 찾은 NetBIOS 또는 역방향 DNS 이름. IP 주소로만 이름이 붙는 경우에는 빠집니다 |
 | IP 주소 | `host.ip` | OneUptime이 폴링하는 주소(IP 주소인 경우). DNS 이름으로 폴링하는 장치는 프로브가 그 이름을 마지막으로 확인한 주소 |
 | DNS 이름 | `net.device.dns_name` | 검색 중에 찾은 역방향 DNS 이름, 또는 OneUptime이 폴링하는 DNS 이름 |
-| MAC 주소 | `host.mac` | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값. 없으면 SNMP 워크가 읽은 장치의 첫 번째 Ethernet 포트 MAC |
+| MAC 주소 | `host.mac` | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값. 없으면 SNMP 워크나 검색 스캔이 읽은 장치의 첫 번째 Ethernet 포트 MAC |
 | 제조사 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, 없으면 `sysDescr`가 가리키는 제조사, 없으면 `sysObjectID`의 벤더 |
 | 모델 | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, 없으면 `sysDescr`가 가리키는 모델 |
 | 일련 번호 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum`, 없으면 FortiGate, Juniper, MikroTik, Sophos 장치에서는 벤더 자체 MIB |
@@ -204,7 +204,7 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 | 사이트 | `oneuptime.site.name` | 장치가 지정된 Network Site |
 | 폴링 주소 | `net.device.hostname` | OneUptime이 폴링하는 주소. IP 주소 또는 DNS 이름입니다. `host.name`과 `host.ip`가 생기기 전에 작성된 동기화를 위해 남겨 두었습니다 |
 
-ENTITY-MIB 행은 장치의 첫 SNMP 워크 뒤에 채워집니다. ping으로만 모니터링하거나 아직 폴링하지 않아 워크되지 않는 장치도 이름, 제조사, 운영 체제, 위치는 그 주소의 마지막 검색 스캔이 SNMP로 읽은 내용에서, MAC 주소는 순회한 라우터의 ARP 테이블에서 얻습니다. ENTITY-MIB를 구현하지 않은 장치에는 보고할 일련 번호나 펌웨어가 없습니다. 다만 벤더가 OneUptime이 읽는 자체 MIB에 이를 보관하는 경우는 예외이며, FortiGate, Juniper, MikroTik, Sophos가 여기에 해당합니다. 그래도 많은 플랫폼에서 `sysDescr`가 모델과 운영 체제를 알려 줍니다. Cisco Meraki MX는 `Meraki MX85`를 보고하고, 이것으로 제조사, 모델, 운영 체제가 채워집니다. `sysDescr`가 알려진 형식이 아닌 플랫폼은 추측하지 않고 아무것도 추가하지 않습니다.
+ENTITY-MIB 행은 장치의 첫 SNMP 워크 뒤에 채워집니다. ping으로만 모니터링하거나 아직 폴링하지 않아 워크되지 않는 장치도 이름, 제조사, 모델, 일련 번호, 펌웨어, 운영 체제, OS 버전, 위치는 그 주소의 마지막 검색 스캔이 SNMP로 읽은 내용에서, MAC 주소는 순회한 라우터의 ARP 테이블이나 그 스캔에서 얻습니다. ENTITY-MIB를 구현하지 않은 장치에는 보고할 일련 번호나 펌웨어가 없습니다. 다만 벤더가 OneUptime이 읽는 자체 MIB에 이를 보관하는 경우는 예외이며, FortiGate, Juniper, MikroTik, Sophos가 여기에 해당합니다. 그래도 많은 플랫폼에서 `sysDescr`가 모델과 운영 체제를 알려 줍니다. Cisco Meraki MX는 `Meraki MX85`를 보고하고, 이것으로 제조사, 모델, 운영 체제가 채워집니다. `sysDescr`가 알려진 형식이 아닌 플랫폼은 추측하지 않고 아무것도 추가하지 않습니다.
 
 [Meraki 연결](/docs/monitor/network-traffic#netflow-없는-cisco-meraki)이 조직을 읽으면, Meraki 장치는 자체 폴링이 비워 둔 정보를 Meraki 대시보드에서 가져옵니다. 일련 번호, 모델, 펌웨어, 제조사, MAC 주소, 이름, 관리 주소, 등록된 주소, 유형입니다. 모델과 펌웨어에서 운영 체제와 OS 버전도 알 수 있습니다. 일련 번호나 MAC 주소가 Meraki 장치와 같은 장치, 또는 OneUptime이 Meraki 장치의 관리 주소에서 폴링하고 이름도 같은 장치가 조직의 장치로 간주됩니다. Meraki는 MX의 그런 주소를 나열하지 않고, 나열하는 MAC도 MX의 어느 포트에도 없으므로, MX는 이름과 그 MAC 바로 위의 포트 MAC으로 식별됩니다. 장치에 저장된 값과 장치 자체의 폴링이 읽은 값이 우선합니다. 유일한 예외는 MAC 주소입니다. 본체 라벨에 적힌 Meraki의 MAC 주소가 장치 자체 포트에서 읽은 MAC 주소보다 우선합니다.
 

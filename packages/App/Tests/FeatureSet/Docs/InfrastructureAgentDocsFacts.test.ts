@@ -2220,13 +2220,14 @@ describe("the Products menu paths of the task 22 pages", () => {
       "Storage Arrays",
       "Docker Swarm",
       "VMware",
-      "Serverless",
     ]) {
       expect({ product, category: categoryOf[product] }).toEqual({
         product,
         category: "Infrastructure",
       });
     }
+    // What a cloud runs for you has a section of its own, Cloud.
+    expect(categoryOf["Serverless"]).toBe("Cloud");
     const sideMenus: Array<[string, string]> = [
       ["Ceph", "All Clusters"],
       ["StorageArray", "All Storage Arrays"],

@@ -183,7 +183,7 @@ Her vises målene:
 
 - Toppen av saken nevner det neste målet og hvor mye tid som er igjen, eller hvor lenge det er overskredet: grått mens det er tid, ravgult i den siste femtedelen, rødt når det er overskredet.
 - På sakens **Oversikt**, under **Tid til bekreftelse** og **Tid til begrensning**: hvordan saken ligger an mot hvert mål, eller hvor langt over det saken gikk.
-- I køens lister: linjen under hver saks prioritet, og en kolonne **Frist** som du kan slå på og sortere etter. Listene viser dem bare når en av prosjektets prioriteter har et mål.
+- I køens lister: linjen under hver saks prioritet, og en kolonne **Frist** som du kan slå på og sortere etter. Mens kolonnen er slått på, vises ikke linjen under prioriteten. Listene viser dem bare når en av prosjektets prioriteter har et mål.
 
 ## Varslinger
 

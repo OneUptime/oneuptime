@@ -19,7 +19,16 @@ interface ArchivableResource {
 
 const RESOURCES: Array<ArchivableResource> = [
   { resource: "Rum", model: "RumApplication" },
-  { resource: "Cloud", model: "CloudResource" },
+  /*
+   * One CloudResource table, two products: a resource's Settings in Cloud,
+   * an environment's in App Platforms.
+   */
+  {
+    resource: "Cloud",
+    model: "CloudResource",
+    overview: "MonitoredResourceOverview.tsx",
+  },
+  { resource: "AppPlatforms", model: "CloudResource" },
   { resource: "Serverless", model: "ServerlessFunction" },
   { resource: "Kubernetes", model: "KubernetesCluster", overview: "Index.tsx" },
   { resource: "Docker", model: "DockerHost" },
@@ -165,6 +174,12 @@ const NEW_SETTINGS_ROUTES: Array<SettingsRoute> = [
     pageKey: "CLOUD_RESOURCE_VIEW_SETTINGS",
   },
   {
+    router: "AppPlatformsRoutes",
+    resource: "AppPlatforms",
+    component: "AppPlatformEnvironmentSettings",
+    pageKey: "APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS",
+  },
+  {
     router: "ServerlessRoutes",
     resource: "Serverless",
     component: "ServerlessFunctionSettings",
@@ -205,7 +220,9 @@ describe("the new Settings destinations are registered with their resource route
       expect(settingsRoutes).toHaveLength(1);
       expect(settingsRoutes[0]).toContain(`<${component}`);
       expect(settingsRoutes[0]).toMatch(
-        new RegExp(`pageRoute=\\{\\s*RouteMap\\[PageMap\\.${pageKey}\\]`),
+        new RegExp(
+          `pageRoute=\\{\\s*RouteMap\\[\\s*PageMap\\.${pageKey}\\s*\\]`,
+        ),
       );
     },
   );

@@ -240,6 +240,14 @@ Att skapa SCC:erna kräver cluster-admin-behörighet. Utan presetet installeras 
 
 För att få tillbaka dem byter du till `openshift` med `--set preset=openshift` vid en uppgradering, som cluster-admin.
 
+**Det här ser du i OneUptime.** Agenten läser också OpenShifts egna objekt, med enbart läsbehörighet, och visar dem på klustrets sidor:
+
+- Klustrets **Översikt** inleds med kortet **OpenShift**: versionen det kör, om en uppdatering pågår eller misslyckas, och hur många av dess klusteroperatorer som är felfria, med vad var och en av de andra rapporterar. En otillgänglig operator gör klustret **Ej felfri**, och en försämrad operator eller en misslyckad uppdatering gör det **Försämrad**.
+- **Routes** och **Tjänster** under **Nätverk**: var varje Route svarar, hur den terminerar TLS, vilka tjänster den skickar trafik till och med vilken andel, och varför en router avvisade den. En Routes TLS-nyckel lämnar aldrig klustret: agenten ersätter den innan den skickar Routen.
+- **DeploymentConfigs** under **Arbetsbelastningar** visas som Deployments: deras utrullningar, deras poddars CPU och minne samt händelserna för de ReplicationControllers och poddar de kör.
+
+**Larm om operatorer och uppdateringar.** Sidan **Rekommendationer** för ett OpenShift-kluster erbjuder **Cluster Operator Unavailable**, **Cluster Operator Degraded** och **Cluster Update Failing**. Var och en är en loggmonitor över de ögonblicksbilder som agenten skickar varje `resourceSpecs.interval`. Den larmar när två ögonblicksbilder säger det, så en operator som slår om ett ögonblick under en uppdatering utlöser ingenting, och den löser larmet när en ögonblicksbild säger att problemet är över, aldrig för att agenten slutade skicka.
+
 **OpenShifts egna larm.** OpenShift levereras med Prometheus och Alertmanager, med larm för sina operatorer, etcd och noder. För att öppna en incident i OneUptime för vart och ett lägger du till en webhook-mottagare för OneUptime under **Administration → Cluster Settings → Configuration → Alertmanager** i webbkonsolen, som [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) beskriver.
 
 **Spår från din kod.** eBPF-instrumenteringen spårar HTTP, gRPC och SQL utan kodändringar. För att skicka spår från OpenTelemetry-SDK:er, eller från Red Hat build of OpenTelemetry, pekar du deras OTLP-exportör mot OneUptime, som [OpenTelemetry](/docs/telemetry/open-telemetry) beskriver.
@@ -254,6 +262,7 @@ För att få tillbaka dem byter du till `openshift` med `--set preset=openshift`
 | Klustermätvärden | Nodvillkor, allokerbara resurser, antal poddar |
 | Kubernetes-händelser | Varje händelse, Warning och Normal, från varje namespace och varje slags objekt: se [Kubernetes-händelser](#kubernetes-händelser) |
 | Poddloggar | Stdout och stderr från varje container (via `hostPath` på standardkluster, via Kubernetes-API:t på Autopilot och Fargate) |
+| OpenShift-objekt (OpenShift-presetarna) | ClusterOperators, ClusterVersion, Routes, DeploymentConfigs och Services: se [OpenShift](#openshift) |
 | Applikationsspår (eBPF, på som standard) | HTTP-, gRPC-, SQL- och Redis-spans från varje podd, utan SDK eller kodändringar |
 | HTTP RED-mätvärden (eBPF) | `http.server.request.duration`, och storleken på förfrågnings- och svarskroppar, per tjänst |
 | Tjänstegraf (eBPF) | Förfrågningsfrekvens, latens och fel från anropare till anropad, som ritar tjänstekartan |

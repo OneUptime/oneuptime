@@ -1,4 +1,6 @@
+import Icon from "../Icon/Icon";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import IconProp from "../../../Types/Icon/IconProp";
 import { CardMenuExtraItem } from "./CardMenuExtras";
 import React, { ReactElement } from "react";
 
@@ -21,6 +23,17 @@ export const getCardMenuExtraItemElements: (
         icon={item.icon}
         onClick={item.onClick}
         dataTestId={item.dataTestId}
+        isChecked={item.isChecked}
+        isCheckbox={item.isChecked !== undefined}
+        rightElement={
+          item.isChecked ? (
+            <Icon
+              icon={IconProp.Check}
+              className="h-4 w-4 text-indigo-600"
+              data-testid={`${item.dataTestId || item.key}-checked`}
+            />
+          ) : undefined
+        }
       />
     );
   });

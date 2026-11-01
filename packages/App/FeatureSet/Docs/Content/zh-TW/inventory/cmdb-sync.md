@@ -191,7 +191,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 主機名稱 | `host.name` | 裝置自己的名稱：其 SNMP `sysName`，否則為探索時找到的 NetBIOS 或反向 DNS 名稱。只有 IP 位址能命名它時會省略 |
 | IP 位址 | `host.ip` | OneUptime 輪詢的位址（當它是 IP 位址時）。對於以 DNS 名稱輪詢的裝置，為其探測器最近一次將該名稱解析到的位址 |
 | DNS 名稱 | `net.device.dns_name` | 探索時找到的反向 DNS 名稱，或 OneUptime 輪詢的 DNS 名稱 |
-| MAC 位址 | `host.mac` | 在裝置上輸入，或從走訪過的路由器的 ARP 表中得知。否則為其 SNMP 走訪讀取到的第一個乙太網路連接埠的 MAC |
+| MAC 位址 | `host.mac` | 在裝置上輸入，或從走訪過的路由器的 ARP 表中得知。否則為其 SNMP 走訪或探索掃描讀取到的第一個乙太網路連接埠的 MAC |
 | 製造商 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`，否則為 `sysDescr` 指明的廠商，否則為 `sysObjectID` 的供應商 |
 | 型號 | `device.model.name` | ENTITY-MIB `entPhysicalModelName`，否則為 `sysDescr` 指明的型號 |
 | 序號 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum`，否則為 FortiGate、Juniper、MikroTik 和 Sophos 裝置上供應商自己的 MIB |
@@ -204,7 +204,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 站點 | `oneuptime.site.name` | 裝置所指派到的 Network Site |
 | 輪詢位址 | `net.device.hostname` | OneUptime 輪詢的位址：IP 位址或 DNS 名稱。為在 `host.name` 和 `host.ip` 出現之前撰寫的同步而保留 |
 
-ENTITY-MIB 列會在裝置的首次 SNMP 走訪之後填入。未被走訪的裝置（僅透過 ping 監控或尚未輪詢）仍會從對其位址的最近一次探索掃描透過 SNMP 讀取的內容取得名稱、製造商、作業系統和位置，並從走訪過的路由器的 ARP 表取得 MAC 位址。未實作 ENTITY-MIB 的裝置沒有可回報的序號或韌體，除非其供應商將它們保存在 OneUptime 會讀取的自有 MIB 中：FortiGate、Juniper、MikroTik 和 Sophos。不過對許多平台而言，它的 `sysDescr` 仍會指明型號和作業系統：Cisco Meraki MX 回報 `Meraki MX85`，從而填入製造商、型號和作業系統。`sysDescr` 沒有已知格式的平台不會新增任何內容，而不是去猜測。
+ENTITY-MIB 列會在裝置的首次 SNMP 走訪之後填入。未被走訪的裝置（僅透過 ping 監控或尚未輪詢）仍會從對其位址的最近一次探索掃描透過 SNMP 讀取的內容取得名稱、製造商、型號、序號、韌體、作業系統、作業系統版本和位置，並從走訪過的路由器的 ARP 表或該次掃描取得 MAC 位址。未實作 ENTITY-MIB 的裝置沒有可回報的序號或韌體，除非其供應商將它們保存在 OneUptime 會讀取的自有 MIB 中：FortiGate、Juniper、MikroTik 和 Sophos。不過對許多平台而言，它的 `sysDescr` 仍會指明型號和作業系統：Cisco Meraki MX 回報 `Meraki MX85`，從而填入製造商、型號和作業系統。`sysDescr` 沒有已知格式的平台不會新增任何內容，而不是去猜測。
 
 當 [Meraki 連線](/docs/monitor/network-traffic#不用-netflow-的-cisco-meraki) 讀取其組織時，Meraki 裝置會從 Meraki 儀表板取得其自身輪詢留空的資訊：序號、型號、韌體和製造商，MAC 位址，名稱，管理位址，所登記的街道地址，以及類型。其型號和韌體也可得出其作業系統和作業系統版本。如果裝置的序號或 MAC 位址與 Meraki 裝置相同，或者 OneUptime 在 Meraki 裝置的管理位址上輪詢該裝置且名稱相同，該裝置就是該組織的裝置之一。Meraki 沒有列出 MX 的此類位址，而且它列出的 MAC 不在 MX 的任何連接埠上，因此 MX 透過其名稱和一個略高於該 MAC 的連接埠 MAC 進行比對。儲存在裝置上的值以及其自身輪詢讀取的值優先。唯一的例外是 MAC 位址：Meraki 提供的 MAC 位址，即機身標籤上的位址，優先於從裝置自身連接埠讀取的位址。
 

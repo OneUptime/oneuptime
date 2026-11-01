@@ -510,11 +510,11 @@ Dopo il primo walk riuscito, OneUptime legge il gruppo di sistema SNMPv2 e, dove
 
 Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o una scansione di rilevamento. Ciò che il suo polling non ha letto, lo prende dal rilevamento:
 
-- Il nome di sistema, la descrizione, il `sysObjectID`, la posizione e il contatto che l'ultima [scansione di rilevamento](#rilevare-i-dispositivi-con-una-scansione-di-rete) del suo indirizzo ha letto via SNMP, e i nomi DNS inverso e NetBIOS che ha trovato.
-- Il suo indirizzo MAC, dalla tabella ARP di un router percorso del suo sito.
+- Il nome di sistema, la descrizione, il `sysObjectID`, la posizione, il contatto, il modello, il numero di serie, il firmware e la versione del software che l'ultima [scansione di rilevamento](#rilevare-i-dispositivi-con-una-scansione-di-rete) del suo indirizzo ha letto via SNMP, e i nomi DNS inverso e NetBIOS che ha trovato.
+- Il suo indirizzo MAC, dalla tabella ARP di un router percorso del suo sito o, altrimenti, dalla prima porta Ethernet letta da quella scansione.
 - Per un dispositivo interrogato tramite un nome DNS, l'indirizzo in cui la sua sonda ha risolto quel nome.
 
-Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro interno, e ogni scansione, walk di un router o polling che ne rilegge uno lo aggiorna. La panoramica del dispositivo e il suo elemento nell'inventario indicano quale scansione, router o sonda ha letto ogni valore, e quando. Un valore che hai salvato sul dispositivo non viene mai sostituito. Quando una scansione trova un'altra macchina all'indirizzo del dispositivo, per esempio un lease DHCP che si è spostato, la panoramica lo dice, e non si usa nulla di ciò che quella scansione vi ha letto.
+Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro interno, e ogni scansione, walk di un router o polling che ne rilegge uno lo aggiorna. Una scansione legge l'indirizzo MAC, il modello, il numero di serie, il firmware e la versione del software di un host con qualche richiesta in più dopo il suo gruppo di sistema, per al massimo cinque secondi per host. Un host che smette di rispondere a queste richieste conta comunque come un host che ha risposto, e ciò che la scansione non è riuscita a leggere conserva il suo ultimo valore. La panoramica del dispositivo e il suo elemento nell'inventario indicano quale scansione, router o sonda ha letto ogni valore, e quando. Un valore che hai salvato sul dispositivo non viene mai sostituito. Quando una scansione trova un'altra macchina all'indirizzo del dispositivo, per esempio un lease DHCP che si è spostato, la panoramica lo dice, e non si usa nulla di ciò che quella scansione vi ha letto.
 
 Uno switch, un access point o un'appliance Meraki non fornisce via SNMP né numero di serie né firmware: interrogato direttamente, il dispositivo risponde al gruppo di sistema e alle tabelle delle interfacce, che danno il suo modello e il suo indirizzo MAC, e nient'altro. Quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione, il dispositivo prende questi valori, e tutto ciò che il suo polling lascia vuoto, dalla dashboard di Meraki, e la sua scheda **Inventario** nomina la connessione in una riga **Meraki**.
 
@@ -957,6 +957,7 @@ Perché la mappa si riempia:
 - Dai ai dispositivi le credenziali SNMP. Le tabelle dei vicini vengono dal walk, quindi un dispositivo solo ping compare sulla mappa ma non riporta vicini propri.
 - Mantieni **Walk Interfaces** attivo nelle impostazioni di polling dei dispositivi: le tabelle dei vicini vengono sottoposte a walk insieme alle interfacce.
 - Attiva LLDP, o CDP sui dispositivi Cisco, sui dispositivi stessi.
+- Su una rete Meraki, collega la dashboard. Una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) disegna i cavi che Meraki conosce, compresi quelli di un MX che risponde solo al ping.
 
 Fai clic su un peer non gestito e **Add to Monitoring** lo registra come dispositivo interrogato dalla sonda. Prende la sonda su cui concordano i suoi vicini, quindi riceve il ping fin dal suo primo polling, e puoi aggiungere le credenziali più tardi se risulta che ha SNMP.
 
@@ -995,6 +996,8 @@ Per questo la mappa deve sapere quale MAC appreso è quello del dispositivo. Ci 
 - Digitandolo: imposta l'**Indirizzo MAC** sul dispositivo, nella sua pagina **Impostazioni** o nella scheda della panoramica, quando il suo hostname è un nome DNS o nessun router del sito viene sottoposto a walk. Sono accettate tutte le grafie consuete.
 
 Anche lo switch a cui è collegato il dispositivo deve avere **Collect Connected Endpoints** attivo: è da lì che viene la porta. Gli indirizzi vengono abbinati all'interno del sito del dispositivo, perché ogni filiale ha il suo `10.0.0.5`; un MAC corrisponde qualunque sia il sito.
+
+Una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) fa tutto questo senza nulla da attivare. L'elenco dei client di Meraki dice su quale switch e porta si trova ogni client, quindi un dispositivo viene collocato non appena quello switch è un dispositivo di rete qui, nello stesso sito. L'elenco dà al dispositivo anche il suo indirizzo MAC, e il nome che Meraki dà a un client compare nella colonna **Nome host** in **Endpoint**. Viene letto ogni due ore, quindi un nuovo dispositivo può impiegare questo tempo per comparire. Finché Meraki segnala un client, la sua porta prevale su una tabella di forwarding letta da una walk, perché Meraki distingue una porta di accesso da un uplink. Un client Wi-Fi viene collocato sul suo access point solo se è un dispositivo qui: i telefoni di una rete ospiti restano fuori dalla mappa.
 
 La panoramica del dispositivo ha una scheda **Connesso a** che indica lo switch, la porta e la VLAN. Uno switch, un router o un firewall che segnala i propri vicini tramite LLDP o CDP li elenca lì al suo posto: la propria porta, il vicino (un collegamento quando è un dispositivo di qui) e la porta all'altro capo, con **Apri la mappa** accanto. Sulla mappa, il pannello del dispositivo mostra lo stesso sotto **Connesso a**, e il pannello del collegamento dice che è stato appreso dalla tabella di inoltro dello switch. La vista Parent-Child disegna il dispositivo sotto il suo switch. Un collegamento che hai disegnato a mano in **Device Links** per la stessa coppia si fonde con quello appreso invece di raddoppiarlo: la porta appresa sostituisce una digitata male, e un padre che hai impostato sul collegamento disegnato a mano viene mantenuto.
 
@@ -1053,6 +1056,8 @@ La mappa disegna il cavo di un dispositivo solo ping dalla tabella di inoltro de
 - Lo switch raccoglie gli endpoint: **Collect Connected Endpoints** attivo nelle sue impostazioni di polling, con credenziali che permettano al walk di riuscire. La panoramica del dispositivo mostra una scheda **Connesso a** appena uno switch lo ha appreso.
 - Il MAC del dispositivo è noto: il suo **Indirizzo MAC** è impostato, oppure un router del sito raccoglie gli endpoint e l'hostname del dispositivo è l'indirizzo che la tabella ARP di quel router associa. Un dispositivo registrato per nome DNS senza MAC non può essere abbinato, quindi digita il MAC.
 - Lo stesso sito: un indirizzo viene abbinato solo a un dispositivo nello stesso sito dello switch che lo ha appreso. Un dispositivo senza sito viene abbinato per indirizzo solo quando anche quello switch non ha un sito; se lo switch è in un sito, metti il dispositivo nello stesso sito. Un MAC corrisponde qualunque sia il sito.
+
+Il pannello del dispositivo sulla mappa dice quale di questi elementi manca. Su una rete Meraki, l'elenco dei client di Meraki sostituisce i primi due: controlla che lo switch sia un dispositivo di rete qui, nello stesso sito, e calcola due ore perché compaia un nuovo dispositivo.
 
 Se il dispositivo si trova dietro uno switch non gestito o un hub, lo switch gestito apprende su una sola porta ogni MAC che c'è dietro, ed è quella la porta che disegna la mappa: la realtà fisica come la vede lo switch gestito.
 :::

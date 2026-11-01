@@ -120,6 +120,17 @@ export interface RuleRunTypeMetadata {
   resourcePlural: string;
 }
 
+/*
+ * What the page a rule is run from calls the records it acts on, when that
+ * is not the rule model's word: one table of cloud rules serves Cloud, whose
+ * rows are cloud resources, and App Platforms, whose rows are the
+ * environments its apps run in. Lower case, as the nouns read mid-sentence.
+ */
+export interface RuleRunResourceNouns {
+  resourceSingular: string;
+  resourcePlural: string;
+}
+
 function metadata(
   action: RuleRunAction,
   resourceSingular: string,
@@ -484,8 +495,25 @@ export class RuleRunTypeUtil {
     return RuleRunTypeUtil.isRuleRunType(tableName) ? tableName : null;
   }
 
-  public static getMetadata(ruleType: RuleRunType): RuleRunTypeMetadata {
-    return RULE_RUN_TYPE_METADATA[ruleType];
+  /*
+   * A rule type's action and nouns - the page's nouns, when it calls its
+   * records otherwise (RuleRunResourceNouns).
+   */
+  public static getMetadata(
+    ruleType: RuleRunType,
+    nouns?: RuleRunResourceNouns | undefined,
+  ): RuleRunTypeMetadata {
+    const meta: RuleRunTypeMetadata = RULE_RUN_TYPE_METADATA[ruleType];
+
+    if (!nouns) {
+      return meta;
+    }
+
+    return {
+      ...meta,
+      resourceSingular: nouns.resourceSingular,
+      resourcePlural: nouns.resourcePlural,
+    };
   }
 
   public static getAction(ruleType: RuleRunType): RuleRunAction {

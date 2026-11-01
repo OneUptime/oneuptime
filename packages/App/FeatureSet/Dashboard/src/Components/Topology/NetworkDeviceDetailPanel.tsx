@@ -135,6 +135,12 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
       value: node.ipAddress,
     });
   }
+  if (node.hostname && node.hostname !== node.name) {
+    detailRows.push({
+      label: translateString("Hostname") || "Hostname",
+      value: node.hostname,
+    });
+  }
   if (node.classification) {
     detailRows.push({
       label: translateString("Classification") || "Classification",
@@ -285,10 +291,15 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                 .join(" · ")}
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              {translateString(
-                "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to.",
-              ) ||
-                "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to."}
+              {learnedAttachment.reportedBy
+                ? translateString(
+                    "Reported by Meraki, not drawn by hand — it follows this device to whichever port it is re-cabled to.",
+                  ) ||
+                  "Reported by Meraki, not drawn by hand — it follows this device to whichever port it is re-cabled to."
+                : translateString(
+                    "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to.",
+                  ) ||
+                  "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to."}
             </p>
             {learnedAttachment.isSwitchPortDown ? (
               <p className="mt-1 text-xs font-medium text-red-600">

@@ -29,7 +29,7 @@ Se você hospeda o OneUptime por conta própria, use `https://YOUR-ONEUPTIME-HOS
 
 ## O ambiente não aparece
 
-Nada em **Nuvem → All Environments** um minuto depois da primeira requisição. Verifique estes três pontos, nesta ordem.
+Nada em **Plataformas de aplicativos → Todos os ambientes** um minuto depois da primeira requisição. Verifique estes três pontos, nesta ordem.
 
 **`cloud.platform` está ausente, ou não é um valor gerenciado.** O OneUptime arquiva a telemetria em Ambientes de nuvem só quando o recurso traz um destes valores: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` ou `azure_app_service`. As causas mais comuns:
 

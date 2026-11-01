@@ -1,5 +1,9 @@
 import { REDIRECT_PATHS, isRedirectPath } from "../Utils/Sitemap";
 import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
+import {
+  AirGappedTopicPage,
+  AirGappedTopicPages,
+} from "../Utils/AirGappedPages";
 import fs from "fs";
 import path from "path";
 
@@ -510,6 +514,57 @@ describe("OpenShift page", () => {
     expect(sitemapSource).toContain(
       '"/product/openshift": { priority: 0.8, changefreq: "weekly" }',
     );
+  });
+});
+
+describe("Air-gapped product pages", () => {
+  /*
+   * The same agreement between route, SEO entry and sitemap as a product page,
+   * for each page of the family. One template renders them all, so the route
+   * says which page it is: a page handed another's entry would read as that
+   * page under its own address.
+   */
+  const pages: Array<[string, AirGappedTopicPage]> = AirGappedTopicPages.map(
+    (page: AirGappedTopicPage): [string, AirGappedTopicPage] => {
+      return [page.path, page];
+    },
+  );
+
+  test.each(pages)(
+    "%s is registered, and renders its own entry",
+    (pagePath: string, page: AirGappedTopicPage) => {
+      expect(hasGetRoute(pagePath)).toBe(true);
+
+      const body: string = bodyOfGetRoute(pagePath)!;
+
+      expect(body).toContain(`${"${ViewsPath}"}/air-gapped-topic`);
+      expect(body).toContain(`getAirGappedTopicContent("${page.slug}")`);
+      expect(body).toContain(`"${pagePath}"`);
+    },
+  );
+
+  test.each(pages)("%s is a canonical page", (pagePath: string) => {
+    expect(redirectTargetOf(pagePath)).toBeNull();
+    expect(isRedirectPath(pagePath)).toBe(false);
+  });
+
+  test.each(pages)(
+    "%s resolves SEO data typed as an enterprise page",
+    (pagePath: string) => {
+      const seo: PageSEOData | undefined = PageSEOConfig[pagePath];
+
+      expect(seo).toBeDefined();
+      expect(seo!.canonicalPath).toBe(pagePath);
+      expect(seo!.pageType).toBe("enterprise");
+    },
+  );
+
+  test("the template they all render exists", () => {
+    expect(
+      fs.existsSync(
+        path.join(__dirname, "..", "Views", "air-gapped-topic.ejs"),
+      ),
+    ).toBe(true);
   });
 });
 

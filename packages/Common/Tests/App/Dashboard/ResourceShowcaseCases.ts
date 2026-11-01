@@ -126,7 +126,7 @@ export const RESOURCE_SHOWCASE_CASES: Array<ResourceShowcaseCase> = [
     label: "Cloud environments",
     constant: "CLOUD_ENVIRONMENT_SHOWCASE",
     module: "Components/Cloud/CloudEnvironmentShowcase.ts",
-    page: "Pages/Cloud/CloudResources.tsx",
+    page: "Pages/AppPlatforms/Environments.tsx",
     showcase: CLOUD_ENVIRONMENT_SHOWCASE,
   },
   {

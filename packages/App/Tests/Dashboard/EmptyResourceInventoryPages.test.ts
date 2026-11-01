@@ -236,10 +236,10 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     onboarding: "IOT_FLEET_ONBOARDING",
     showcase: "IOT_FLEET_SHOWCASE",
   }),
-  // The cloud environments an app's OpenTelemetry reports.
+  // The cloud environments an app's OpenTelemetry reports, in App Platforms.
   addedByGuide({
-    label: "cloud resources",
-    relativePath: "Cloud/CloudResources.tsx",
+    label: "cloud environments",
+    relativePath: "AppPlatforms/Environments.tsx",
     modelType: "CloudResource",
     onboarding: "CLOUD_ENVIRONMENT_ONBOARDING",
     showcase: "CLOUD_ENVIRONMENT_SHOWCASE",

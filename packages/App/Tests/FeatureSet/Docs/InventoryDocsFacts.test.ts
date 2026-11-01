@@ -136,13 +136,20 @@ import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionSt
 import { EVERY_FIFTEEN_MINUTE, EVERY_THREE_HOURS } from "Common/Utils/CronTime";
 import { INVENTORY_ASSET_FIELDS } from "Common/Utils/Inventory/InventoryAssetDetails";
 import {
+  NetworkDeviceAssetFactKey,
+  NetworkDeviceFactDetails,
   getNetworkDeviceAssetFacts,
   getNetworkDeviceDnsName,
+  getNetworkDeviceFactDetails,
   getNetworkDeviceHostname,
   getNetworkDeviceIpAddress,
   getNetworkDeviceLocation,
   getNetworkDeviceManufacturer,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
+import {
+  DiscoveredDetailsPatch,
+  planDiscoveredDetails,
+} from "Common/Utils/NetworkDiscovery/DiscoveredDetailsPlan";
 import {
   SnmpVendorIdentityRead,
   getSnmpVendorIdentity,
@@ -177,6 +184,7 @@ import "../../../FeatureSet/Workers/Jobs/TelemetryEntity/SyncInventoryEntities";
  * tables of the CMDB page to the asset vocabulary.
  */
 
+const DEVICE_GUIDE: string = "monitor/network-device-monitor";
 const DASHBOARD_APP: string = "App/FeatureSet/Dashboard/src";
 const INVENTORY_MENU: string = `${DASHBOARD_APP}/Pages/Inventory/SideMenu.tsx`;
 const ITEM_MENU: string = `${DASHBOARD_APP}/Pages/Inventory/View/SideMenu.tsx`;
@@ -1412,8 +1420,121 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       }).macAddress,
     ).toBe("00-1B-54-C2-7A-01");
     expect(sourceOf("host.mac")).toBe(
-      "Typed on the device, or learned from a walked router's ARP table. Otherwise the MAC of its first Ethernet port, as its SNMP walk reads it",
+      "Typed on the device, or learned from a walked router's ARP table. Otherwise the MAC of its first Ethernet port, as its SNMP walk or a discovery scan reads it",
     );
+  });
+
+  /*
+   * A device with no SNMP credentials of its own is not walked, so what a
+   * discovery scan reads of it is all it has. The page says it gets these, and
+   * that the scan is where they came from; these read them back the way the
+   * Asset Details card does.
+   */
+  describe("what a discovery scan reads of a device nothing walks", () => {
+    const SCAN: Record<string, unknown> = {
+      type: "discoveryScan",
+      id: "20000000-0000-4000-8000-000000000001",
+      name: "Store subnets",
+    };
+
+    function reading(value: string): Record<string, unknown> {
+      return {
+        value: value,
+        method: "snmp",
+        readBy: SCAN,
+        readAt: "2026-10-23T09:00:00.000Z",
+      };
+    }
+
+    const SCANNED: Record<string, unknown> = {
+      scannedMacAddress: reading("00:1b:54:c2:7a:01"),
+      model: reading("WS-C2960X-48TS-L"),
+      serialNumber: reading("FOC1932X0K1"),
+      firmwareVersion: reading("15.2(7r)E"),
+      softwareVersion: reading("15.2(7)E2"),
+    };
+
+    const SCAN_READING: Array<NetworkDeviceAssetFactKey> = [
+      "macAddress",
+      "model",
+      "serialNumber",
+      "firmwareVersion",
+      "osVersion",
+    ];
+
+    it("gives it the details the page lists, with the scan as their source", () => {
+      const details: NetworkDeviceFactDetails = getNetworkDeviceFactDetails({
+        hostname: "10.20.12.7",
+        discoveredDetails: SCANNED,
+      });
+
+      expect(details.facts.macAddress.value).toBe("00-1B-54-C2-7A-01");
+      expect(details.facts.model.value).toBe("WS-C2960X-48TS-L");
+      expect(details.facts.serialNumber.value).toBe("FOC1932X0K1");
+      expect(details.facts.firmwareVersion.value).toBe("15.2(7r)E");
+      expect(details.facts.osVersion.value).toBe("15.2(7)E2");
+
+      for (const fact of SCAN_READING) {
+        expect(details.facts[fact].source?.readBy).toEqual(SCAN);
+      }
+
+      expect(networkSection()).toContain(
+        "A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, model, serial number, firmware, operating system, OS version and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table or from that scan.",
+      );
+    });
+
+    it("lists them on the device guide, and what the scan could not read keeps its last value", () => {
+      const guide: string = englishPage(DEVICE_GUIDE);
+
+      expect(guide).toContain(
+        "- The system name, description, `sysObjectID`, location, contact, model, serial number, firmware and software version the last [discovery scan](#discovering-devices-with-a-network-scan) of its address read over SNMP, and the reverse-DNS and NetBIOS names it found.",
+      );
+      expect(guide).toContain(
+        "- Its MAC address, from the ARP table of a walked router in its site, or else from the first Ethernet port that scan read.",
+      );
+
+      // A result that read none of them, as a probe older than this one sends.
+      const patch: DiscoveredDetailsPatch = planDiscoveredDetails({
+        projectId: "10000000-0000-4000-8000-000000000001",
+        scan: {
+          id: "20000000-0000-4000-8000-000000000002",
+          completedAt: "2026-10-24T09:00:00.000Z",
+        },
+        hosts: [
+          {
+            ipAddress: "10.20.12.7",
+            sysName: "edge-sw-07",
+            snmpReachable: true,
+          },
+        ],
+        devices: [
+          {
+            deviceId: "40000000-0000-4000-8000-000000000007",
+            projectId: "10000000-0000-4000-8000-000000000001",
+            hostname: "10.20.12.7",
+            discoveredDetails: SCANNED,
+          },
+        ],
+      })[0]!;
+
+      for (const key of Object.keys(SCANNED)) {
+        expect(patch.unset).not.toContain(key);
+        expect(Object.keys(patch.set)).not.toContain(key);
+      }
+
+      expect(guide).toContain(
+        "A host that stops answering them still counts as having answered, and what the scan could not read keeps its last value.",
+      );
+    });
+
+    it("says how long a scan may take over them", () => {
+      expect(
+        readRepoFile("Probe/Utils/Monitors/MonitorTypes/SnmpMonitor.ts"),
+      ).toContain("const HARDWARE_IDENTITY_BUDGET_MS: number = 5000;");
+      expect(englishPage(DEVICE_GUIDE)).toContain(
+        "A scan reads a host's MAC address, model, serial number, firmware and software version with a few more requests after its system group, for at most five seconds per host.",
+      );
+    });
   });
 
   it("names the operating system a platform always runs, whatever its sysDescr says", () => {
@@ -1594,7 +1715,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
    * discovery scan that last read its address; ENTITY-MIB's rows still need
    * its own walk.
    */
-  it("fills a device that is not walked from what a discovery scan read, and only ENTITY-MIB waits for its walk", () => {
+  it("fills a device that is not walked from what a discovery scan read, and a detail no scan read stays unknown", () => {
     const scan: Record<string, unknown> = {
       type: "discoveryScan",
       id: "80000000-0000-4000-8000-000000000001",
@@ -1644,7 +1765,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       serialNumber: undefined,
     });
     expect(networkSection()).toContain(
-      "The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, operating system and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table.",
+      "The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, model, serial number, firmware, operating system, OS version and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table or from that scan.",
     );
   });
 

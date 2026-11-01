@@ -1333,7 +1333,7 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
 
   /*
    * The facts a node's, guest's and storage's page reads beyond a name and
-   * a status (AddProxmoxInventoryFactsAndBackups1808740000000), and each
+   * a status (AddProxmoxInventoryFactsAndBackups1808770000000), and each
    * guest's last backup as the cluster's backup notifications report it.
    */
   describe("inventory facts and backups from notifications", () => {

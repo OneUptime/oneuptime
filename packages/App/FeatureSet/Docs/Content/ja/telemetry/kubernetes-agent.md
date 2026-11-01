@@ -240,6 +240,14 @@ SCC の作成には cluster-admin 権限が必要です。プリセットなし�
 
 これらを取り戻すには、アップグレード時に cluster-admin として `--set preset=openshift` を指定し、`openshift` に移行します。
 
+**OneUptime での表示**。エージェントは OpenShift 自身のオブジェクトも読み取り専用で取得し、クラスターのページに表示します。
+
+- クラスターの **概要** の先頭には **OpenShift** カードが表示されます。実行中のバージョン、更新が進行中か失敗しているか、クラスター Operator のうち正常なものの数、それ以外の各 Operator の報告内容を確認できます。利用不可の Operator があるとクラスターは **異常** になり、機能低下した Operator や失敗している更新があると **機能低下** になります。
+- **ネットワーク** の下の **ルート** と **サービス**: 各ルートの応答先、TLS の終端方法、トラフィックの送信先のサービスとその割合、ルーターが拒否した理由を確認できます。ルートの TLS キーがクラスターの外に出ることはありません。エージェントはルートを送信する前にキーを置き換えます。
+- **ワークロード** の下の **DeploymentConfigs** は Deployment と同じように表示されます。ロールアウト、Pod の CPU とメモリ、実行している ReplicationController と Pod のイベントを確認できます。
+
+**Operator と更新のアラート**。OpenShift クラスターの **推奨事項** ページには **Cluster Operator Unavailable**、**Cluster Operator Degraded**、**Cluster Update Failing** が表示されます。いずれも、エージェントが `resourceSpecs.interval` ごとに送信するスナップショットを対象とするログモニターです。2 つのスナップショットが問題を示すとアラートを出すので、更新中に Operator の状態が一瞬変わっただけでは何も起こりません。また、スナップショットが問題の終了を示すと解決し、エージェントの送信が止まったことを理由に解決することはありません。
+
 **OpenShift 自身のアラート**。OpenShift には Prometheus と Alertmanager が付属しており、Operator、etcd、ノードに関するアラートが用意されています。それぞれについて OneUptime でインシデントを作成するには、Web コンソールの **Administration → Cluster Settings → Configuration → Alertmanager** で OneUptime 用の Webhook レシーバーを追加します。手順は [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) を参照してください。
 
 **コードからのトレース**。eBPF インストルメンテーションは、コードを変更せずに HTTP、gRPC、SQL をトレースします。OpenTelemetry SDK や Red Hat build of OpenTelemetry からトレースを送信するには、それらの OTLP エクスポーターの送信先を OneUptime にします。手順は [OpenTelemetry](/docs/telemetry/open-telemetry) を参照してください。
@@ -254,6 +262,7 @@ SCC の作成には cluster-admin 権限が必要です。プリセットなし�
 | クラスターのメトリクス | ノードの状態、割り当て可能なリソース、Pod 数 |
 | Kubernetes イベント | すべての Namespace とあらゆる種類のオブジェクトのすべてのイベント (Warning と Normal): [Kubernetes イベント](#kubernetes-イベント) を参照 |
 | Pod のログ | すべてのコンテナの stdout と stderr (標準のクラスターでは `hostPath` 経由、Autopilot と Fargate では Kubernetes API 経由) |
+| OpenShift のオブジェクト (OpenShift プリセット) | ClusterOperator、ClusterVersion、Route、DeploymentConfig、Service: [OpenShift](#openshift) を参照 |
 | アプリケーションのトレース (eBPF、デフォルトで有効) | すべての Pod からの HTTP、gRPC、SQL、Redis のスパン (SDK もコードの変更も不要) |
 | HTTP の RED メトリクス (eBPF) | サービスごとの `http.server.request.duration`、およびリクエストとレスポンスのボディサイズ |
 | サービスグラフ (eBPF) | 呼び出し元から呼び出し先へのリクエストレート、レイテンシ、エラーのエッジ。これがサービスマップを描きます |

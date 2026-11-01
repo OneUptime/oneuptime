@@ -29,7 +29,7 @@ Hvis du hoster OneUptime selv, bruker du `https://YOUR-ONEUPTIME-HOST/otlp/v1/va
 
 ## Miljøet vises ikke
 
-Ingenting under **Sky → All Environments** ett minutt etter den første forespørselen. Sjekk disse tre, i denne rekkefølgen.
+Ingenting under **App-plattformer → Alle miljøer** ett minutt etter den første forespørselen. Sjekk disse tre, i denne rekkefølgen.
 
 **`cloud.platform` mangler, eller er ikke en administrert verdi.** OneUptime arkiverer telemetri under Skymiljøer bare når ressursen bærer en av disse verdiene: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` eller `azure_app_service`. De vanlige årsakene:
 

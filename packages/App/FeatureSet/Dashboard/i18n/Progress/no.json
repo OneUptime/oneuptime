@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39322,
-    "untranslated": 13158
+    "keys": 39389,
+    "untranslated": 13100
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -35,11 +35,13 @@
     "DE",
     "Data",
     "Database",
+    "DeploymentConfigs",
     "Desktop",
     "Diagram",
     "Disk",
     "Disk %",
     "Docker Compose",
+    "Edge",
     "Embedding",
     "Endpoint",
     "Failover",
@@ -81,9 +83,11 @@
     "Object Gateway",
     "Object Gateways",
     "Online",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "Pause",
     "Peer",
     "Person",
@@ -100,6 +104,8 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Problem",
     "Prompt",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Region",
     "Runbook",
     "Runbook: {{name}}",
@@ -123,6 +129,7 @@
     "Status",
     "Stratum",
     "System",
+    "TLS",
     "Team",
     "Test",
     "Test {{name}}",

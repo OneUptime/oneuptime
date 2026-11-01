@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39322,
-    "untranslated": 13114
+    "keys": 39389,
+    "untranslated": 13056
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -18,7 +18,9 @@
     "CloudWatch Metric Streams",
     "CrowdStrike",
     "DE",
+    "DeploymentConfigs",
     "Docker Compose",
+    "Edge",
     "Elasticsearch URL",
     "Google SecOps",
     "Goroutines",
@@ -36,16 +38,21 @@
     "MITRE ATT&CK Enterprise v{{version}}",
     "OK",
     "OSD",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Proxmox ID",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Runbook: {{name}}",
     "Runner",
     "SLI %",
     "SLOs",
     "Slug",
+    "TLS",
     "Top P",
     "UTC",
     "VLAN",

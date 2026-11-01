@@ -34,7 +34,7 @@ Le risorse cloud sono uno dei vari posti in cui compare il tuo cloud:
 
 | Esegui | Dove compare | Come |
 | --- | --- | --- |
-| Container su ECS, Cloud Run, Container Apps, App Service, … | **Cloud → All Environments** | La telemetria propria dei tuoi carichi di lavoro, in base alla sua `cloud.platform`. Vedi [Ambienti cloud](/docs/telemetry/cloud-environments) |
+| Container su ECS, Cloud Run, Container Apps, App Service, … | **Piattaforme applicative → Tutti gli ambienti** | La telemetria propria dei tuoi carichi di lavoro, in base alla sua `cloud.platform`. Vedi [Ambienti cloud](/docs/telemetry/cloud-environments) |
 | Qualsiasi risorsa IaaS o PaaS monitorata dal provider | **Cloud → Tutte le risorse** | L'API di monitoraggio del provider, letta da un collector: questa pagina |
 | Macchine virtuali con un OpenTelemetry Collector installato | **Host** | Le metriche e i log propri dell'host. Vedi [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector) |
 | Code e topic usati dalle tue applicazioni | **Queues** | Span, e le stesse metriche cloud. Vedi [Code](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Le installazioni ospitate in autonomia possono cambiare questi valori con variab
 ## Inventario e regole
 
 - **Inventario:** le risorse cloud sono elencate nell'[Inventario](/docs/inventory/overview) come elementi di tipo **Risorsa cloud**, con l'ID del provider come `cloud.resource.id` e il tipo come `cloud.resource.type`. Anche gli strumenti delle risorse dell'agente AI le elencano.
-- **Regole:** **Cloud → Impostazioni → Regole etichette** e **Regole del proprietario** si applicano a esse come agli ambienti cloud.
+- **Regole:** **Cloud → Impostazioni → Regole etichette** e **Regole del proprietario** si applicano a esse. Piattaforme applicative ha le sue per gli ambienti cloud, e una regola creata prima che i due venissero separati vale per entrambi.
 
 ## Risoluzione dei problemi
 

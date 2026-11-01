@@ -45,7 +45,7 @@ Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Enhver und
 
 ### Vælg de undtagelser, der skal tælles
 
-I **Undtagelser at holde øje med** angiver du **Beskeden indeholder**, **Undtagelsestyper** og **Environments**. Et filter, du lader stå tomt, matcher alle undtagelser. **Matchende undtagelser** under filtrene viser de undtagelser, de matcher lige nu.
+I **Undtagelser at holde øje med** angiver du **Beskeden indeholder**, **Undtagelsestyper** og **Miljøer**. Et filter, du lader stå tomt, matcher alle undtagelser. **Matchende undtagelser** under filtrene viser de undtagelser, de matcher lige nu.
 
 ### Indsnævr dem (valgfrit)
 
@@ -70,7 +70,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | --- | --- | --- |
 | **Beskeden indeholder** | Undtagelser, hvis meddelelse indeholder denne tekst, uden forskel på store og små bogstaver. | Tom: alle undtagelser |
 | **Undtagelsestyper** | Undtagelser af en af disse typer, adskilt af kommaer, såsom `TypeError, NullReferenceException`. Typenavnet skal matche præcist. | Tom: alle typer |
-| **Environments** | Undtagelser fra et af disse miljøer, adskilt af kommaer (se [Miljøer](#miljøer)). | Tom: alle miljøer |
+| **Miljøer** | Undtagelser fra et af disse miljøer, adskilt af kommaer (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Tidsvindue** (i **Hvornår der advares**) | Undtagelser fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
 | **Filtrér efter telemetritjeneste** (under **Flere felter**) | Undtagelser fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Undtagelser fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
@@ -160,7 +160,7 @@ Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, milj
 
 ## Gennemgået eksempel: kun produktionsundtagelser
 
-Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og intet for staging. Du vælger **Enhver undtagelse**, sætter **Environments** til `production`, beholder **Tidsvindue** på **Seneste 5 minutter** og vælger **Erklær en hændelse** under **Hvad der sker**. De seneste fem minutter:
+Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og intet for staging. Du vælger **Enhver undtagelse**, sætter **Miljøer** til `production`, beholder **Tidsvindue** på **Seneste 5 minutter** og vælger **Erklær en hændelse** under **Hvad der sker**. De seneste fem minutter:
 
 | Undtagelser | Miljø | Tilstand | Tælles? |
 | --- | --- | --- | --- |
@@ -174,7 +174,7 @@ Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og
 ## Fejlfinding
 
 :::details Undtagelser vises i explorer, men monitoren tæller 0
-Sammenlign værdien i **Environments** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Edit Monitoring Criteria**: **Matchende undtagelser** viser, hvad filtrene matcher.
+Sammenlign værdien i **Miljøer** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Edit Monitoring Criteria**: **Matchende undtagelser** viser, hvad filtrene matcher.
 :::
 
 :::details Hændelsen blev løst, da jeg løste undtagelsen

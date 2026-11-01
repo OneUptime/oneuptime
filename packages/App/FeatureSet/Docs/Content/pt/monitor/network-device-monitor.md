@@ -510,11 +510,11 @@ Depois do primeiro walk bem-sucedido, o OneUptime lê o grupo de sistema SNMPv2 
 
 Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varredura de descoberta, deu a ele. O que a sua própria consulta não leu, ele obtém da descoberta:
 
-- O nome do sistema, a descrição, o `sysObjectID`, a localização e o contato que a última [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) do seu endereço leu por SNMP, e os nomes DNS reverso e NetBIOS que ela encontrou.
-- O endereço MAC, da tabela ARP de um roteador percorrido do seu site.
+- O nome do sistema, a descrição, o `sysObjectID`, a localização, o contato, o modelo, o número de série, o firmware e a versão do software que a última [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) do seu endereço leu por SNMP, e os nomes DNS reverso e NetBIOS que ela encontrou.
+- O endereço MAC, da tabela ARP de um roteador percorrido do seu site ou, senão, da primeira porta Ethernet que essa varredura leu.
 - Para um dispositivo consultado por um nome DNS, o endereço para o qual a sonda resolveu esse nome.
 
-Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
+Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. Uma varredura lê o endereço MAC, o modelo, o número de série, o firmware e a versão do software de um host com mais algumas solicitações depois do grupo de sistema, por no máximo cinco segundos por host. Um host que deixa de responder a elas continua contando como um host que respondeu, e o que a varredura não conseguiu ler mantém o último valor. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
 
 Um switch, ponto de acesso ou appliance Meraki não informa por SNMP número de série nem firmware: consultado diretamente, responde ao grupo de sistema e às tabelas de interfaces, que dão o modelo e o endereço MAC dele, e nada mais. Quando uma [conexão do Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) lê a organização dele, o dispositivo obtém esses dados, e tudo o mais que a sua consulta deixa vazio, do painel do Meraki, e o cartão **Inventário** dele nomeia a conexão em uma linha **Meraki**.
 
@@ -957,6 +957,7 @@ Para o mapa se preencher:
 - Dê credenciais SNMP aos dispositivos. As tabelas de vizinhos vêm do walk, então um dispositivo só com ping aparece no mapa, mas não informa vizinhos próprios.
 - Mantenha **Walk Interfaces** ativado nas configurações de sondagem dos dispositivos: as tabelas de vizinhos passam por walk junto com as interfaces.
 - Ative o LLDP, ou o CDP nos dispositivos Cisco, nos próprios dispositivos.
+- Em uma rede Meraki, conecte o painel. Uma [conexão Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) desenha os cabos que o Meraki conhece, incluindo os de um MX que só responde a ping.
 
 Clique em um par não gerenciado e **Add to Monitoring** o registra como dispositivo consultado pela sonda. Ele assume a sonda em que os vizinhos dele concordam, então recebe ping desde a primeira sondagem, e você pode adicionar credenciais depois se ele tiver SNMP.
 
@@ -995,6 +996,8 @@ Para isso, o mapa precisa saber qual MAC aprendido é o do dispositivo. Há duas
 - Digitando-o: defina o **Endereço MAC** no dispositivo, na página **Configurações** dele ou no cartão da visão geral, quando o nome do host dele é um nome DNS ou nenhum roteador do site passa por walk. Qualquer uma das grafias usuais é aceita.
 
 O switch do qual o dispositivo depende também precisa de **Collect Connected Endpoints** ativado: é de lá que vem a porta. Os endereços são associados dentro do site do dispositivo, já que toda filial tem um `10.0.0.5`; um MAC corresponde seja qual for o site.
+
+Uma [conexão Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) faz tudo isso sem nada para ativar. A lista de clientes do Meraki diz em qual switch e porta cada cliente está, então um dispositivo é posicionado assim que esse switch é um dispositivo de rede aqui, no mesmo site. A lista também dá ao dispositivo seu endereço MAC, e o nome que o Meraki dá a um cliente aparece na coluna **Nome do host** em **Endpoints**. Ela é lida a cada duas horas, então um dispositivo novo pode levar esse tempo para aparecer. Enquanto o Meraki informa um cliente, a porta dele prevalece sobre uma tabela de encaminhamento lida por varredura, porque o Meraki distingue uma porta de acesso de um uplink. Um cliente Wi-Fi só é posicionado no ponto de acesso quando é um dispositivo daqui: os telefones de uma rede de convidados ficam fora do mapa.
 
 A visão geral do dispositivo tem um cartão **Conectado a** que indica o switch, a porta e a VLAN. Um switch, roteador ou firewall que informa seus vizinhos por LLDP ou CDP os lista ali no lugar: a própria porta, o vizinho (um link quando é um dispositivo daqui) e a porta na outra ponta, com **Abrir o mapa** ao lado. No mapa, o painel do dispositivo mostra o mesmo em **Conectado a**, e o painel do enlace diz que ele foi aprendido da tabela de encaminhamento do switch. A visão Parent-Child desenha o dispositivo abaixo do switch dele. Um enlace que você desenhou à mão em **Device Links** para o mesmo par se funde com o aprendido em vez de duplicá-lo: a porta aprendida substitui uma digitada errado, e um pai que você definiu no enlace desenhado à mão é mantido.
 
@@ -1053,6 +1056,8 @@ O mapa desenha o cabo de um dispositivo só com ping a partir da tabela de encam
 - O switch coleta endpoints: **Collect Connected Endpoints** ativado nas configurações de sondagem dele, com credenciais que deixem o walk funcionar. A visão geral do dispositivo mostra um cartão **Conectado a** assim que um switch o aprende.
 - O MAC do dispositivo é conhecido: o **Endereço MAC** dele está definido, ou um roteador do site coleta endpoints e o nome do host do dispositivo é o endereço que a tabela ARP desse roteador associa. Um dispositivo registrado por nome DNS sem MAC não pode ser associado, então digite o MAC.
 - O mesmo site: um endereço só é associado a um dispositivo no mesmo site do switch que o aprendeu. Um dispositivo sem site só é associado pelo endereço quando esse switch também não tem site; se o switch está em um site, coloque o dispositivo no mesmo. Um MAC corresponde seja qual for o site.
+
+O painel do dispositivo no mapa diz qual destes itens está faltando. Em uma rede Meraki, a lista de clientes do Meraki substitui os dois primeiros: verifique se o switch é um dispositivo de rede aqui, no mesmo site, e conte duas horas para um dispositivo novo aparecer.
 
 Se o dispositivo está atrás de um switch não gerenciado ou de um hub, o switch gerenciado aprende cada MAC atrás dele em uma única porta, e é essa a porta que o mapa desenha: a verdade física como o switch gerenciado a vê.
 :::

@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-Stuur de traces, logs en metrieken van je Azure Container Apps naar OneUptime. Elke replica die `cloud.platform=azure_container_apps` meldt, komt terecht in één **Cloud Environment** per Azure-abonnement en regio, zoals _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, met de draaiende replica's vermeld onder **Instanties**.
+Stuur de traces, logs en metrieken van je Azure Container Apps naar OneUptime. Elke replica die `cloud.platform=azure_container_apps` meldt, komt terecht in één **Cloud-omgeving** per Azure-abonnement en regio, zoals _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, met de draaiende replica's vermeld onder **Instanties**.
 
 :::cards
 - [Hoe het werkt](#hoe-het-werkt): Wat de detectors instellen, en de twee attributen die je zelf instelt.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Zoek naar `Everything is ready`, en geen `401` of `connection refused`. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **Cloud → All Environments** als _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Zoek naar `Everything is ready`, en geen `401` of `connection refused`. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **App-platforms → Alle omgevingen** als _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## De beheerde OpenTelemetry-agent van de omgeving gebruiken

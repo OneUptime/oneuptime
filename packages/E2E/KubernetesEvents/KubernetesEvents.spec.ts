@@ -1234,7 +1234,7 @@ test.describe("the Events table at every width", () => {
       });
   }
 
-  for (const width of [1280, 1024]) {
+  for (const width of [1280]) {
     test(`at ${width}px the four columns fit the card, the Event column the widest, every reason on one line`, async ({
       page,
     }: {
@@ -1277,10 +1277,13 @@ test.describe("the Events table at every width", () => {
   /*
    * Beside the cluster's side menu at 768px the card is 478px wide, and the
    * four columns needed 680px: the rows scrolled under the sticky last
-   * column. Below lg, how many times and when go in the Event's own lines,
-   * as on a phone's card, and Event and Object fit the card.
+   * column. In a card narrower than 48rem, how many times and when go in
+   * the Event's own lines, as on a phone's card, and Event and Object fit
+   * the card - at 1024px too, where beside the side menu the card is 682px:
+   * a table folds by its card's width, not the window's (TableFit), and the
+   * four columns unfolded there into a cramped card.
    */
-  for (const width of [768, 900]) {
+  for (const width of [768, 900, 1024]) {
     test(`at ${width}px Count and Last seen go in the Event's lines, and Event and Object fit the card`, async ({
       page,
     }: {

@@ -3,7 +3,12 @@ import Route from "../../../Types/API/Route";
 import Select from "../../../Types/BaseDatabase/Select";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
-import { RuleRunType, RuleRunTypeUtil } from "../../../Types/Rules/RuleRun";
+import {
+  RuleRunResourceNouns,
+  RuleRunType,
+  RuleRunTypeUtil,
+} from "../../../Types/Rules/RuleRun";
+import RuleCriteriaSubject from "../../../Types/Rules/RuleCriteriaSubject";
 import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Navigation from "../../Utils/Navigation";
@@ -35,6 +40,21 @@ import {
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 
+/*
+ * What a page says about each rule of a model it shares with another
+ * product, from the rule as it was read with `select`. A cloud rule made
+ * before Cloud and App Platforms split wears a pill beside its actions on
+ * its own page ("Also in Cloud"), as it does on each product's list, and
+ * Run Now says it runs over the records of both products.
+ */
+export interface RuleWording<TBaseModel extends BaseModel> {
+  select: Select<TBaseModel>;
+  getBadge?: ((rule: TBaseModel) => ReactElement | null) | undefined;
+  getRunNouns?:
+    | ((rule: TBaseModel) => RuleRunResourceNouns | undefined)
+    | undefined;
+}
+
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   ruleId: ObjectID;
@@ -45,6 +65,17 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   listRoute: Route;
   createEditModalWidth?: ModalWidth | undefined;
   modelAPI?: typeof ModelAPI | undefined;
+  /*
+   * What the page calls a rule and its records, where that is not the
+   * model's: App Platforms' rules are Cloud Environment Owner Rules, about
+   * cloud environments, in a table whose model says Cloud Resource. The
+   * edit and delete buttons say the rule's name, its conditions and the
+   * edit form say the records, and Run Now says what it runs over.
+   */
+  singularName?: string | undefined;
+  ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
+  ruleRunNouns?: RuleRunResourceNouns | undefined;
+  ruleWording?: RuleWording<TBaseModel> | undefined;
 }
 
 /*
@@ -68,8 +99,12 @@ const RuleView: <TBaseModel extends BaseModel>(
   const [isRunModalOpen, setIsRunModalOpen] = useState<boolean>(false);
 
   const detail: RuleDetailFields<TBaseModel> = useMemo(() => {
-    return getRuleDetailFields({ model: model, formFields: props.formFields });
-  }, [model, props.formFields]);
+    return getRuleDetailFields({
+      model: model,
+      formFields: props.formFields,
+      subject: props.ruleCriteriaSubject,
+    });
+  }, [model, props.formFields, props.ruleCriteriaSubject]);
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     model,
@@ -77,7 +112,8 @@ const RuleView: <TBaseModel extends BaseModel>(
   );
 
   const translator: Translator = useTranslator();
-  const singularName: string = model.singularName || translationKey("Rule");
+  const singularName: string =
+    props.singularName?.trim() || model.singularName || translationKey("Rule");
   const ruleValues: Record<string, unknown> = (rule || {}) as unknown as Record<
     string,
     unknown
@@ -98,6 +134,29 @@ const RuleView: <TBaseModel extends BaseModel>(
   const addsNothing: boolean = Boolean(
     rule && ruleAction && doesRuleAddNothing(rule, ruleAction),
   );
+
+  const badge: ReactElement | null =
+    rule && props.ruleWording?.getBadge
+      ? props.ruleWording.getBadge(rule)
+      : null;
+
+  // The rule's own nouns once it is read, the page's until then.
+  const runNouns: RuleRunResourceNouns | undefined =
+    (rule && props.ruleWording?.getRunNouns
+      ? props.ruleWording.getRunNouns(rule)
+      : undefined) || props.ruleRunNouns;
+
+  const rightElement: ReactElement | undefined =
+    badge && addsNothing ? (
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        {badge}
+        <RuleAddsNothingPill />
+      </span>
+    ) : badge ? (
+      badge
+    ) : addsNothing ? (
+      <RuleAddsNothingPill />
+    ) : undefined;
 
   const runNowTooltip: string | undefined =
     updateGate.disabledReason ||
@@ -120,8 +179,10 @@ const RuleView: <TBaseModel extends BaseModel>(
             }),
           description:
             "What this rule matches, and what it does to each match.",
-          rightElement: addsNothing ? <RuleAddsNothingPill /> : undefined,
+          rightElement: rightElement,
         }}
+        singularName={props.singularName}
+        ruleCriteriaSubject={props.ruleCriteriaSubject}
         isEditable={true}
         formSteps={props.formSteps}
         formFields={props.formFields}
@@ -135,6 +196,7 @@ const RuleView: <TBaseModel extends BaseModel>(
           showDetailsInNumberOfColumns: 2,
           selectMoreFields: {
             ...detail.selectMoreFields,
+            ...(props.ruleWording?.select || {}),
             name: true,
             isEnabled: true,
           } as Select<TBaseModel>,
@@ -155,7 +217,7 @@ const RuleView: <TBaseModel extends BaseModel>(
       {ruleType && (updateGate.isAllowed || updateGate.disabledReason) ? (
         <Card
           title="Run Now"
-          description={RuleRunSummary.describeRunNowCard(ruleType)}
+          description={RuleRunSummary.describeRunNowCard(ruleType, runNouns)}
           buttons={[
             {
               title: "Run Now",
@@ -181,6 +243,7 @@ const RuleView: <TBaseModel extends BaseModel>(
         modelType={props.modelType}
         modelId={props.ruleId}
         modelAPI={props.modelAPI}
+        singularName={props.singularName}
         onDeleteSuccess={() => {
           Navigation.navigate(props.listRoute);
         }}
@@ -191,6 +254,7 @@ const RuleView: <TBaseModel extends BaseModel>(
           ruleType={ruleType}
           ruleId={props.ruleId.toString()}
           ruleName={ruleName}
+          nouns={runNouns}
           onClose={() => {
             setIsRunModalOpen(false);
           }}

@@ -36,4 +36,14 @@ export function getNetworkControllerProviderTitle(
   }
 }
 
+/*
+ * What a label or a sentence on the map calls a controller, from the value an
+ * edge or an endpoint row carries. Undefined for anything that is not one.
+ */
+export function getNetworkControllerProviderShortTitle(
+  provider: unknown,
+): string | undefined {
+  return provider === NetworkControllerProvider.Meraki ? "Meraki" : undefined;
+}
+
 export default NetworkControllerProvider;

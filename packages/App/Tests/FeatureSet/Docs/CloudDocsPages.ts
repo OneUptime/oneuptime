@@ -67,6 +67,7 @@ export const PERSIAN_PATH_SEPARATOR: string = " > ";
  * at, with the navbar key the menu draws each one's title from.
  */
 export const PRODUCTS_MENU_KEYS: Readonly<Record<string, string>> = {
+  "App Platforms": "appPlatformsTitle",
   Cloud: "cloudTitle",
   "Project Settings": "projectSettingsTitle",
 };

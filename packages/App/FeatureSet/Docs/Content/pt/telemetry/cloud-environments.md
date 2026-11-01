@@ -1,6 +1,8 @@
 # Ambientes de nuvem
 
-Um **Cloud Environment** é o lugar onde seus contêineres rodam em uma plataforma de nuvem gerenciada: a conta e a região de um cluster ECS, o projeto e a região do Cloud Run, a assinatura e a região do Container Apps. O OneUptime o cria na primeira vez que sua telemetria chega com os atributos de recurso certos, e agrupa cada carga de trabalho que roda ali. Não há nada para registrar à mão.
+Um **Ambiente de nuvem** é o lugar onde seus contêineres rodam em uma plataforma de nuvem gerenciada: a conta e a região de um cluster ECS, o projeto e a região do Cloud Run, a assinatura e a região do Container Apps. O OneUptime o cria na primeira vez que sua telemetria chega com os atributos de recurso certos, e agrupa cada carga de trabalho que roda ali. Não há nada para registrar à mão.
+
+Os ambientes são listados em Plataformas de aplicativos, um produto próprio: **Plataformas de aplicativos → Visão geral** os agrupa por plataforma e mostra primeiro os que pararam de enviar dados, e **Plataformas de aplicativos → Todos os ambientes** lista todos eles. Os recursos das suas contas de nuvem, como máquinas virtuais, buckets e bancos de dados gerenciados, ficam em Nuvem: veja [Recursos de nuvem](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tarefas no Fargate ou no EC2, com a CPU e a memória de cada tarefa.
@@ -91,7 +93,7 @@ A identidade própria da plataforma vem primeiro de propósito. Um coletor sidec
 
 ### Adicionar um ambiente
 
-A ingestão cria os ambientes para você, então não há nada para digitar. Abra **Nuvem → All Environments** e clique em **Adicionar ambiente de nuvem**: escolha onde sua aplicação roda, e o guia mostra as configurações do OpenTelemetry dessa plataforma, com a URL do seu OneUptime e a chave de ingestão já preenchidas. A última etapa dele, **Aguardar a conexão**, avisa quando os primeiros dados do ambiente chegaram e traz um link para ele. Para mostrar outro nome, escolha **Editar detalhes** no cartão **Detalhes do recurso** da página **Configurações** do ambiente e digite um **Nome de exibição**.
+A ingestão cria os ambientes para você, então não há nada para digitar. Abra **Plataformas de aplicativos → Todos os ambientes** e clique em **Adicionar ambiente de nuvem**: escolha onde sua aplicação roda, e o guia mostra as configurações do OpenTelemetry dessa plataforma, com a URL do seu OneUptime e a chave de ingestão já preenchidas. A última etapa dele, **Aguardar a conexão**, avisa quando os primeiros dados do ambiente chegaram e traz um link para ele. Para mostrar outro nome, escolha **Editar detalhes** no cartão **Detalhes do ambiente** da página **Configurações** do ambiente e digite um **Nome de exibição**.
 
 ## O que não é um ambiente de nuvem
 
@@ -103,7 +105,7 @@ A ingestão cria os ambientes para você, então não há nada para digitar. Abr
 | Balanceadores de carga, buckets, bancos de dados gerenciados e outros recursos IaaS ou PaaS | **Cloud Resources** | Descobertos a partir das métricas que o Azure Monitor, o CloudWatch e o Cloud Monitoring publicam. Veja [Recursos de nuvem](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> O Cloud Run e o App Engine aparecem em dois lugares de propósito. O detector deles define tanto uma `cloud.platform` gerenciada quanto `faas.name`, então cada serviço também é uma **Função serverless** própria, enquanto o **Cloud Environment** agrupa todos os serviços daquele projeto e daquela região. A mesma telemetria é arquivada nos dois.
+> O Cloud Run e o App Engine aparecem em dois lugares de propósito. O detector deles define tanto uma `cloud.platform` gerenciada quanto `faas.name`, então cada serviço também é uma **Função serverless** própria, enquanto o **Ambiente de nuvem** agrupa todos os serviços daquele projeto e daquela região. A mesma telemetria é arquivada nos dois.
 
 ## Conectar uma carga de trabalho
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` com `"valid": true` significa que o token é aceito. `401` significa que ele é desconhecido, revogado, desativado ou expirado, e a `message` da resposta diz qual. Dentro de um minuto após o primeiro span, log ou métrica, o ambiente aparece em **Nuvem → All Environments**.
+`200` com `"valid": true` significa que o token é aceito. `401` significa que ele é desconhecido, revogado, desativado ou expirado, e a `message` da resposta diz qual. Dentro de um minuto após o primeiro span, log ou métrica, o ambiente aparece em **Plataformas de aplicativos → Todos os ambientes**.
 :::
 
 > [!TIP]
-> As mesmas etapas estão no painel, com seu token já preenchido: em **Nuvem → All Environments**, clique em **Adicionar ambiente de nuvem**. A aba **Documentação** de cada ambiente também as mostra.
+> As mesmas etapas estão no painel, com seu token já preenchido: em **Plataformas de aplicativos → Todos os ambientes**, clique em **Adicionar ambiente de nuvem**. A aba **Documentação** de cada ambiente também as mostra.
 
 ## O que você recebe
 
@@ -190,7 +192,7 @@ Um ambiente cuja telemetria para por 15 minutos mostra **Desconectado**, e o pr�
 ### Rótulos e proprietários
 
 - **A partir da sua telemetria:** um atributo de recurso como `oneuptime.label.team=payments` adiciona o rótulo `team:payments` ao ambiente.
-- **A partir de regras:** **Nuvem → Configurações → Regras de Rótulos** e **Regras de proprietário** adicionam rótulos e proprietários aos ambientes correspondentes. Veja [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules).
+- **A partir de regras:** **Plataformas de aplicativos → Configurações → Regras de Rótulos** e **Regras de proprietário** adicionam rótulos e proprietários aos ambientes correspondentes. As regras de Nuvem são para os recursos das suas contas de nuvem, e uma regra criada antes da separação dos dois se aplica a ambos. Veja [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules).
 
 ## Solução de problemas
 

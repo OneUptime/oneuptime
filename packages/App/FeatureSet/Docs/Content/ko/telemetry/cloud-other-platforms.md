@@ -1,6 +1,6 @@
 # 기타 클라우드 플랫폼
 
-전용 페이지가 없는 관리형 플랫폼을 설정합니다. AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service, Azure Container Instances가 해당합니다. 규칙은 모든 플랫폼에서 같습니다. 관리형 `cloud.platform`과 `cloud.account.id`, `cloud.region`을 가진 텔레메트리는 플랫폼, 계정, 리전마다 하나의 **Cloud Environment**에 들어가고, 인스턴스 식별자에 따라 실행 중인 각 인스턴스가 **인스턴스**에 한 행씩 표시됩니다.
+전용 페이지가 없는 관리형 플랫폼을 설정합니다. AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service, Azure Container Instances가 해당합니다. 규칙은 모든 플랫폼에서 같습니다. 관리형 `cloud.platform`과 `cloud.account.id`, `cloud.region`을 가진 텔레메트리는 플랫폼, 계정, 리전마다 하나의 **클라우드 환경**에 들어가고, 인스턴스 식별자에 따라 실행 중인 각 인스턴스가 **인스턴스**에 한 행씩 표시됩니다.
 
 :::cards
 - [AWS Elastic Beanstalk](#aws-elastic-beanstalk): 각 인스턴스의 Collector와 Beanstalk 및 EC2 감지기.
@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200`과 `"valid": true`는 토큰이 받아들여졌다는 뜻입니다. `401`은 토큰을 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다. 첫 스팬, 로그 또는 메트릭이 도착하고 1분 안에 플랫폼, 리전, 계정을 딴 이름으로 환경이 **클라우드 → All Environments**에 나타납니다.
+`200`과 `"valid": true`는 토큰이 받아들여졌다는 뜻입니다. `401`은 토큰을 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다. 첫 스팬, 로그 또는 메트릭이 도착하고 1분 안에 플랫폼, 리전, 계정을 딴 이름으로 환경이 **앱 플랫폼 → 모든 환경**에 나타납니다.
 
 ## 문제 해결
 

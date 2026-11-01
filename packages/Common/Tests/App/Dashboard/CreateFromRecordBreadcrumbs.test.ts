@@ -68,6 +68,7 @@ import {
 import { getNetworkSiteBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Utils/Breadcrumbs";
 import { getNetworkDeviceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Utils/Breadcrumbs";
 import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
+import { getAppPlatformsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AppPlatformsBreadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -97,6 +98,8 @@ const PRODUCT_BREADCRUMBS: Record<CreateFromRecordKind, GetBreadcrumbs> = {
   [CreateFromRecordKind.IoTFleet]: getIoTBreadcrumbs,
   [CreateFromRecordKind.DatabaseServer]: getDatabaseBreadcrumbs,
   [CreateFromRecordKind.CloudResource]: getCloudBreadcrumbs,
+  // An environment's pages are App Platforms', a cloud resource's Cloud's.
+  [CreateFromRecordKind.CloudEnvironment]: getAppPlatformsBreadcrumbs,
   [CreateFromRecordKind.NetworkSite]: getNetworkSiteBreadcrumbs,
   [CreateFromRecordKind.Service]: getServiceBreadcrumbs,
   [CreateFromRecordKind.StatusPage]: getStatusPagesBreadcrumbs,

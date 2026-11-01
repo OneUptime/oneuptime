@@ -29,7 +29,7 @@ If you host OneUptime yourself, use `https://YOUR-ONEUPTIME-HOST/otlp/v1/validat
 
 ## The environment does not appear
 
-Nothing under **Cloud → All Environments** a minute after the first request. Check these three, in this order.
+Nothing under **App Platforms → All Environments** a minute after the first request. Check these three, in this order.
 
 **`cloud.platform` is missing, or is not a managed value.** OneUptime files telemetry under Cloud Environments only when the resource carries one of these values: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` or `azure_app_service`. The usual causes:
 

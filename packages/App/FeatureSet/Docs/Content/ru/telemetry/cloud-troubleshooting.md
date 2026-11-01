@@ -29,7 +29,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## Среда не появляется
 
-Через минуту после первого запроса в разделе **Облако → All Environments** ничего нет. Проверьте эти три пункта по порядку.
+Через минуту после первого запроса в разделе **Платформы приложений → Все среды** ничего нет. Проверьте эти три пункта по порядку.
 
 **`cloud.platform` отсутствует или не является управляемым значением.** OneUptime относит телеметрию к облачным средам, только если ресурс несёт одно из этих значений: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` или `azure_app_service`. Обычные причины:
 

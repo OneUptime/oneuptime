@@ -5,7 +5,11 @@ import Select from "../../../Types/BaseDatabase/Select";
 import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
-import { RuleRunType, RuleRunTypeUtil } from "../../../Types/Rules/RuleRun";
+import {
+  RuleRunResourceNouns,
+  RuleRunType,
+  RuleRunTypeUtil,
+} from "../../../Types/Rules/RuleRun";
 import Navigation from "../../Utils/Navigation";
 import PermissionGate, {
   ModelAction,
@@ -30,7 +34,7 @@ import {
   hasRuleEnabledColumn,
   withRuleEnabledOnEditOnly,
 } from "./RuleEnabledField";
-import RuleView from "./RuleView";
+import RuleView, { RuleWording } from "./RuleView";
 import RunRuleNowModal from "./RunRuleNowModal";
 import getRunRulesBulkAction from "./RunRulesBulkAction";
 import React, { Fragment, ReactElement, useMemo, useState } from "react";
@@ -50,6 +54,20 @@ export interface ComponentProps<TBaseModel extends BaseModel>
    * deleted. Defaults to the current route minus its last segment.
    */
   listRoute?: Route | undefined;
+  /*
+   * What Run Now calls the records a rule runs over, where the page calls
+   * them otherwise than the model: App Platforms' rules run over its
+   * environments, which the cloud rule models call cloud resources. The
+   * table's singularName and ruleCriteriaSubject name the rule and its
+   * records on its own page too.
+   */
+  ruleRunNouns?: RuleRunResourceNouns | undefined;
+  /*
+   * What the page says about each rule, from the rule itself (RuleWording):
+   * the pill on its own page, and the nouns of its Run Now, which win over
+   * the page's when they name any.
+   */
+  ruleWording?: RuleWording<TBaseModel> | undefined;
 }
 
 function getParentRoute(): Route {
@@ -127,9 +145,17 @@ const RuleTable: <TBaseModel extends BaseModel>(
   const [ruleBeingRun, setRuleBeingRun] = useState<{
     id: string;
     name: string | undefined;
+    nouns: RuleRunResourceNouns | undefined;
   } | null>(null);
 
-  const { viewRuleId, getRuleViewRoute, listRoute, ...tableProps } = props;
+  const {
+    viewRuleId,
+    getRuleViewRoute,
+    listRoute,
+    ruleRunNouns,
+    ruleWording,
+    ...tableProps
+  } = props;
 
   const model: TBaseModel = new props.modelType();
   const ruleType: RuleRunType | null = RuleRunTypeUtil.fromTableName(
@@ -193,6 +219,10 @@ const RuleTable: <TBaseModel extends BaseModel>(
         listRoute={listRoute || getParentRoute()}
         createEditModalWidth={props.createEditModalWidth}
         modelAPI={props.modelAPI}
+        singularName={props.singularName}
+        ruleCriteriaSubject={props.ruleCriteriaSubject}
+        ruleRunNouns={ruleRunNouns}
+        ruleWording={ruleWording}
       />
     );
   }
@@ -235,6 +265,10 @@ const RuleTable: <TBaseModel extends BaseModel>(
             setRuleBeingRun({
               id: id,
               name: typeof name === "string" ? name : undefined,
+              nouns:
+                (ruleWording?.getRunNouns
+                  ? ruleWording.getRunNouns(item)
+                  : undefined) || ruleRunNouns,
             });
           }
 
@@ -253,6 +287,7 @@ const RuleTable: <TBaseModel extends BaseModel>(
         getRunRulesBulkAction<TBaseModel>({
           ruleType: ruleType,
           modelType: props.modelType,
+          nouns: ruleRunNouns,
         }),
       ],
     };
@@ -311,6 +346,7 @@ const RuleTable: <TBaseModel extends BaseModel>(
           ruleType={ruleType}
           ruleId={ruleBeingRun.id}
           ruleName={ruleBeingRun.name}
+          nouns={ruleBeingRun.nouns}
           onClose={() => {
             setRuleBeingRun(null);
           }}

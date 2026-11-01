@@ -8,6 +8,7 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import {
+  VALUE_KINDS_KEPT_WHOLE,
   getTableCellClassName,
   getTableCellContentClassName,
   isFillingNameColumn,
@@ -15,6 +16,10 @@ import {
 } from "./CellClassName";
 import {
   TABLE_ACTIONS_CONTENT_CLASS_NAME,
+  TABLE_CARD_BODY_WITH_CONTROLS_CLASS_NAME,
+  TABLE_CARD_CONTROLS_CLASS_NAME,
+  TABLE_CARD_FIELDS_CLASS_NAME,
+  TABLE_CARD_WIDE_FIELD_CLASS_NAME,
   TABLE_CLICKABLE_ROW_CLASS_NAME,
   TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
   TABLE_END_FILLER_BODY_CELL_CLASS_NAME,
@@ -37,11 +42,19 @@ import TableEmptyValue, { isDashPlaceholder } from "./TableEmptyValue";
 import { showFullValueWhenCutShort } from "./FullValueTitle";
 import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
-import OneUptimeDate from "../../../Types/Date";
+import TableDate from "./TableDate";
+import TableFoldedValues, {
+  TableFoldedMainLayout,
+  TableFoldedValue,
+} from "./TableFoldedValues";
+import { getColumnsFoldedInto } from "./FoldedColumns";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
-import React, { ReactElement, useState, useEffect } from "react";
+import React, { ReactElement, useState } from "react";
+import useIsBelowWidth, {
+  PHONE_BELOW_WIDTH_IN_PX,
+} from "../../Utils/UseIsBelowWidth";
 import {
   Draggable,
   DraggableProvided,
@@ -121,8 +134,27 @@ export interface ComponentProps<T extends GenericObject> {
    */
   hasEndFiller?: boolean | undefined;
 
-  // responsive
+  /*
+   * The columns folded away whose values the row shows under another
+   * column's value (Column.foldInto, FoldedColumns' getColumnsFoldedInto).
+   */
+  foldedColumns?: Columns<T> | undefined;
+
+  /*
+   * Each column's id: a cell is kept by its column, not its place in the
+   * row - a table that folds leaves out columns before it, and what has the
+   * keyboard's focus in the cell (a row's View) stays with its column.
+   */
+  getColumnId?: ((column: Column<T>) => string | undefined) | undefined;
+
+  // responsive: the row drawn as a card (TableFit)
   isMobile?: boolean;
+  /*
+   * A phone's window (below md): a card leaves out the columns marked
+   * hideOnMobile. A tablet's card keeps them. Absent: what isMobile says,
+   * or the window.
+   */
+  isPhone?: boolean | undefined;
 }
 
 type TableRowFunction = <T extends GenericObject>(
@@ -151,36 +183,24 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
    */
   const { translateString } = useTranslateValue();
 
-  // Track mobile view for responsive behavior
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-
-  useEffect(() => {
-    const checkMobile: () => void = (): void => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
+  /*
+   * Whether the window is a phone's, read as the row is first drawn (never
+   * a frame later): for a row drawn without its table saying.
+   */
+  const isPhoneWindow: boolean = useIsBelowWidth(PHONE_BELOW_WIDTH_IN_PX);
 
   /*
-   * The local isMobile state above starts false and is only corrected inside
-   * an effect, i.e. after the first paint. TableBody already knows which
-   * layout it is mounting and says so explicitly, so prefer what it passed:
-   * without this, a mobile card renders its hideOnMobile columns for one frame
-   * and then drops them, which is a visible jump on exactly the narrow screens
-   * the flag exists to protect.
+   * TableBody knows which layout it is mounting and says so: a card, and
+   * whether the window is a phone's. A card in a box too narrow for the
+   * rows on a tablet (TableFit) is no phone's: it keeps every column.
    */
-  const isMobileView: boolean = props.isMobile ?? isMobile;
+  const isMobileView: boolean = props.isMobile ?? isPhoneWindow;
+  const isPhoneView: boolean = props.isPhone ?? isMobileView;
 
   // The columns this row will actually put on screen.
   const renderedColumns: Array<Column<T>> = (props.columns || []).filter(
     (column: Column<T>) => {
-      return !(column.hideOnMobile && isMobileView);
+      return !(column.hideOnMobile && isPhoneView);
     },
   );
 
@@ -285,12 +305,18 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     switch (column.type) {
       case FieldType.Date:
       case FieldType.DateTime:
-        return value
-          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              value as string,
-              column.type === FieldType.Date,
-            )
-          : getNoValue();
+        /*
+         * Short - "Oct 22, 7:25 AM", the year only when it is not this
+         * year's - and whole under the pointer (TableDate).
+         */
+        return value ? (
+          <TableDate
+            value={value as string | Date}
+            onlyShowDate={column.type === FieldType.Date}
+          />
+        ) : (
+          getNoValue()
+        );
       case FieldType.USDCents:
         return value
           ? ((value as number) || 0) / 100 + " USD"
@@ -337,6 +363,67 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     }
   };
 
+  /*
+   * The columns folded away whose values this row shows itself, under
+   * another column's value (Column.foldInto): on a phone, none marked
+   * hideOnMobile - a phone's card shows nothing of those.
+   */
+  const foldedColumns: Columns<T> = (props.foldedColumns || []).filter(
+    (column: Column<T>): boolean => {
+      return !(column.hideOnMobile && isPhoneView);
+    },
+  );
+
+  /*
+   * What keeps a cell (or a card's field) its column's: the column's id,
+   * where the table says it; its place in the row otherwise.
+   */
+  const getCellKey: (column: Column<T>, index: number) => string | number = (
+    column: Column<T>,
+    index: number,
+  ): string | number => {
+    return props.getColumnId?.(column) || index;
+  };
+
+  /*
+   * A cell's value, with the values of the columns folded into it on lines
+   * of their own under it (TableFoldedValues).
+   */
+  const getCellContent: (column: Column<T>) => React.ReactNode = (
+    column: Column<T>,
+  ): React.ReactNode => {
+    const content: React.ReactNode = getColumnContent(column);
+    const foldedHere: Columns<T> = getColumnsFoldedInto<T>({
+      column: column,
+      drawnColumns: renderedColumns,
+      foldedColumns: foldedColumns,
+    });
+
+    if (foldedHere.length === 0) {
+      return content;
+    }
+
+    return (
+      <TableFoldedValues
+        main={content}
+        mainLayout={
+          VALUE_KINDS_KEPT_WHOLE.includes(column.type)
+            ? TableFoldedMainLayout.Whole
+            : column.wrapContent
+              ? TableFoldedMainLayout.Wrap
+              : TableFoldedMainLayout.Line
+        }
+        folded={foldedHere.map((folded: Column<T>): TableFoldedValue => {
+          return {
+            title: folded.title,
+            content: getColumnContent(folded),
+            isTitleShown: folded.showTitleWhenFolded,
+          };
+        })}
+      />
+    );
+  };
+
   const getRow: GetRowFunction = (
     provided?: DraggableProvided,
     snapshot?: DraggableStateSnapshot,
@@ -371,128 +458,158 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               .join(" ")}
           >
             {/*
-             * The card's controls - its grip and its select box - share one
-             * line above its fields rather than stacking a line each.
+             * The card's controls - its grip and its select box - stand at
+             * the start of its first line, beside the row's name
+             * (TABLE_CARD_CONTROLS_CLASS_NAME): a line of their own above
+             * the fields was a card's tallest empty space.
              */}
-            {props.enableDragAndDrop || props.isBulkActionsEnabled ? (
-              /*
-               * -ml-1 lines the grip's dots up with the fields' words, its
-               * hit area being wider than they are; a select box alone
-               * lines up as it is.
-               */
-              <div
-                className={`mb-3 flex items-center gap-2${
-                  props.enableDragAndDrop ? " -ml-1" : ""
-                }`}
-              >
-                {props.enableDragAndDrop ? getDragHandle(provided) : <></>}
-                {props.isBulkActionsEnabled ? getBulkSelectCheckbox() : <></>}
-              </div>
-            ) : (
-              <></>
-            )}
+            <div
+              className={
+                props.enableDragAndDrop || props.isBulkActionsEnabled
+                  ? TABLE_CARD_BODY_WITH_CONTROLS_CLASS_NAME
+                  : ""
+              }
+            >
+              {props.enableDragAndDrop || props.isBulkActionsEnabled ? (
+                /*
+                 * -ml-1 lines the grip's dots up with the card's edge, its hit
+                 * area being wider than they are; a select box alone lines up
+                 * as it is. Centred on the name's 24px line.
+                 */
+                <div
+                  className={`${TABLE_CARD_CONTROLS_CLASS_NAME}${
+                    props.enableDragAndDrop ? " -ml-1" : ""
+                  }`}
+                >
+                  {props.enableDragAndDrop ? getDragHandle(provided) : <></>}
+                  {props.isBulkActionsEnabled ? getBulkSelectCheckbox() : <></>}
+                </div>
+              ) : (
+                <></>
+              )}
 
-            <dl className="space-y-2.5">
-              {renderedColumns.map((column: Column<T>, i: number) => {
-                if (column.type === FieldType.Actions) {
-                  const customAction: ReactElement | null = column.getElement
-                    ? column.getElement(props.item)
-                    : null;
+              <dl className={TABLE_CARD_FIELDS_CLASS_NAME}>
+                {renderedColumns.map((column: Column<T>, i: number) => {
+                  if (column.type === FieldType.Actions) {
+                    const customAction: ReactElement | null = column.getElement
+                      ? column.getElement(props.item)
+                      : null;
+
+                    return (
+                      <div
+                        key={getCellKey(column, i)}
+                        className={`flex flex-wrap items-center gap-2 pt-1 ${TABLE_CARD_WIDE_FIELD_CLASS_NAME}`}
+                      >
+                        {customAction}
+                        <RowActions<T>
+                          item={props.item}
+                          actionButtons={props.actionButtons}
+                          isMobile={true}
+                          className="justify-start"
+                          itemLabel={props.itemLabel}
+                        />
+                      </div>
+                    );
+                  }
+
+                  /*
+                   * A plain yes/no field says nothing when it is no, as the
+                   * table's quiet dash does. A column that draws its own
+                   * element says what it says either way - a rule's Status
+                   * is "Disabled" as surely as "Enabled", and a card that
+                   * left it out drew a disabled rule like an enabled one.
+                   */
+                  const value: React.ReactNode =
+                    column.key &&
+                    column.type === FieldType.Boolean &&
+                    !column.getElement
+                      ? props.item[column.key]
+                        ? getCellContent(column)
+                        : null
+                      : getCellContent(column);
+
+                  // A card leaves out the fields that have nothing to say.
+                  if (
+                    !value ||
+                    (typeof value === "string" && value.trim() === "") ||
+                    (React.isValidElement(value) &&
+                      value.type === TableEmptyValue)
+                  ) {
+                    return null;
+                  }
+
+                  /*
+                   * Two fields to a line on a wide card: the row's name, and a
+                   * column of prose, keep the card's whole width.
+                   */
+                  const isWideField: boolean =
+                    i === 0 || Boolean(column.wrapContent);
+
+                  /*
+                   * The row's name - its first field - says what it is by
+                   * itself, as a card's title: "Name" over every card's name
+                   * was the same word down the whole list. A screen reader
+                   * still hears it (the <dt> stays, visually hidden), as it
+                   * does for a column that says so (hideTitleOnMobile).
+                   */
+                  const isCardTitleHidden: boolean =
+                    i === 0 || Boolean(column.hideTitleOnMobile);
 
                   return (
                     <div
-                      key={i}
-                      className="flex flex-wrap items-center gap-2 pt-1"
+                      key={getCellKey(column, i)}
+                      className={
+                        isWideField
+                          ? `${TABLE_MOBILE_FIELD_CLASS_NAME} ${TABLE_CARD_WIDE_FIELD_CLASS_NAME}`
+                          : TABLE_MOBILE_FIELD_CLASS_NAME
+                      }
+                      onClick={() => {
+                        if (column.tooltipText) {
+                          setTooltipModalText(column.tooltipText(props.item));
+                        }
+                      }}
                     >
-                      {customAction}
-                      <RowActions<T>
-                        item={props.item}
-                        actionButtons={props.actionButtons}
-                        isMobile={true}
-                        className="justify-start"
-                        itemLabel={props.itemLabel}
-                      />
+                      <dt
+                        className={
+                          isCardTitleHidden
+                            ? "sr-only"
+                            : TABLE_MOBILE_FIELD_NAME_CLASS_NAME
+                        }
+                      >
+                        {/*
+                         * A card has no header row, so the (i) a column's
+                         * header carries on a wide screen sits beside the
+                         * field's name here - or what the column's numbers
+                         * mean could not be asked on a phone at all.
+                         */}
+                        {column.headerTooltip?.trim() && !isCardTitleHidden ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span>
+                              {translateString(column.title) ?? column.title}
+                            </span>
+                            <InfoTooltip
+                              label={column.title}
+                              text={column.headerTooltip}
+                            />
+                          </span>
+                        ) : (
+                          translateString(column.title) ?? column.title
+                        )}
+                      </dt>
+                      <dd
+                        className={
+                          i === 0
+                            ? `${TABLE_MOBILE_FIELD_VALUE_CLASS_NAME} font-medium`
+                            : TABLE_MOBILE_FIELD_VALUE_CLASS_NAME
+                        }
+                      >
+                        {value}
+                      </dd>
                     </div>
                   );
-                }
-
-                /*
-                 * A plain yes/no field says nothing when it is no, as the
-                 * table's quiet dash does. A column that draws its own
-                 * element says what it says either way - a rule's Status
-                 * is "Disabled" as surely as "Enabled", and a card that
-                 * left it out drew a disabled rule like an enabled one.
-                 */
-                const value: React.ReactNode =
-                  column.key &&
-                  column.type === FieldType.Boolean &&
-                  !column.getElement
-                    ? props.item[column.key]
-                      ? getColumnContent(column)
-                      : null
-                    : getColumnContent(column);
-
-                // A card leaves out the fields that have nothing to say.
-                if (
-                  !value ||
-                  (typeof value === "string" && value.trim() === "") ||
-                  (React.isValidElement(value) &&
-                    value.type === TableEmptyValue)
-                ) {
-                  return null;
-                }
-
-                return (
-                  <div
-                    key={i}
-                    className={TABLE_MOBILE_FIELD_CLASS_NAME}
-                    onClick={() => {
-                      if (column.tooltipText) {
-                        setTooltipModalText(column.tooltipText(props.item));
-                      }
-                    }}
-                  >
-                    <dt
-                      className={
-                        column.hideTitleOnMobile
-                          ? "sr-only"
-                          : TABLE_MOBILE_FIELD_NAME_CLASS_NAME
-                      }
-                    >
-                      {/*
-                       * A card has no header row, so the (i) a column's
-                       * header carries on a wide screen sits beside the
-                       * field's name here - or what the column's numbers
-                       * mean could not be asked on a phone at all.
-                       */}
-                      {column.headerTooltip?.trim() &&
-                      !column.hideTitleOnMobile ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span>
-                            {translateString(column.title) ?? column.title}
-                          </span>
-                          <InfoTooltip
-                            label={column.title}
-                            text={column.headerTooltip}
-                          />
-                        </span>
-                      ) : (
-                        translateString(column.title) ?? column.title
-                      )}
-                    </dt>
-                    <dd
-                      className={
-                        i === 0
-                          ? `${TABLE_MOBILE_FIELD_VALUE_CLASS_NAME} font-medium`
-                          : TABLE_MOBILE_FIELD_VALUE_CLASS_NAME
-                      }
-                    >
-                      {value}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
+                })}
+              </dl>
+            </div>
           </div>
           {tooltipModalText && (
             <ConfirmModal
@@ -633,7 +750,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 ? column.key && column.getElement
                   ? column.getElement(props.item)
                   : null
-                : getColumnContent(column);
+                : getCellContent(column);
 
               /*
                * The column's own classes, plus the width cap - which has to
@@ -647,7 +764,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
 
               return (
                 <td
-                  key={i}
+                  key={getCellKey(column, i)}
                   className={`${className}${stickyClassName}`}
                   /*
                    * The stuck Actions cell, which a focused cell is kept

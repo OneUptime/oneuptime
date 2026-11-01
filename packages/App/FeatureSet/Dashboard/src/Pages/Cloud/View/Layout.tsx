@@ -1,8 +1,8 @@
 import { getCloudBreadcrumbs } from "../../../Utils/Breadcrumbs/CloudBreadcrumbs";
 import { RouteUtil } from "../../../Utils/RouteMap";
+import { getCloudResourceForwardRoute } from "../../../Utils/CloudResourceViewPages";
 import PageComponentProps from "../../PageComponentProps";
 import SideMenu from "./SideMenu";
-import { CloudResourceViewOutletContext } from "./CloudResourceViewContext";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -19,20 +19,29 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { Outlet, useParams } from "react-router-dom";
+import {
+  Location,
+  Navigate,
+  Outlet,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 
 /*
- * One page for both kinds of Cloud row. The kind is read once, here, and
- * passed to the side menu and to every tab (CloudResourceViewContext): an
- * environment and a resource discovered from cloud monitoring share the
- * route tree but not their tabs. A failed read falls back to an
- * environment - the tabs then load the row themselves and show their own
- * error.
+ * A cloud resource's page in Cloud. The CloudResource table also holds the
+ * environments App Platforms shows, and an environment's id under …/cloud/
+ * is an address from before the two products split - a bookmark, a feed
+ * entry, a message - or a link that could not tell the kinds apart. So the
+ * kind is read first: an environment forwards to the same tab in App
+ * Platforms, keeping the query string and the hash (CloudResourceViewPages),
+ * and only a resource is drawn here. A failed read draws the resource page,
+ * whose tabs load the row themselves and show their own error.
  */
 const CloudResourceViewLayout: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { id } = useParams();
+  const location: Location = useLocation();
   const modelId: ObjectID = new ObjectID(id || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 
@@ -52,8 +61,12 @@ const CloudResourceViewLayout: FunctionComponent<
     })
       .then((item: CloudResource | null): void => {
         if (!ignore) {
+          /*
+           * A row that is not there is drawn as a resource, so its tabs say
+           * it was not found where it was looked for.
+           */
           setCloudResourceKind(
-            isCloudResourceKindResource(item?.cloudResourceKind)
+            !item || isCloudResourceKindResource(item.cloudResourceKind)
               ? CloudResourceKind.Resource
               : CloudResourceKind.Environment,
           );
@@ -61,7 +74,7 @@ const CloudResourceViewLayout: FunctionComponent<
       })
       .catch((): void => {
         if (!ignore) {
-          setCloudResourceKind(CloudResourceKind.Environment);
+          setCloudResourceKind(CloudResourceKind.Resource);
         }
       });
 
@@ -70,31 +83,31 @@ const CloudResourceViewLayout: FunctionComponent<
     };
   }, [id]);
 
-  const isResource: boolean = isCloudResourceKindResource(cloudResourceKind);
-
-  const context: CloudResourceViewOutletContext = {
-    cloudResourceKind: cloudResourceKind || CloudResourceKind.Environment,
-  };
+  if (cloudResourceKind === CloudResourceKind.Environment) {
+    return (
+      <Navigate
+        replace={true}
+        to={getCloudResourceForwardRoute({
+          cloudResourceKind: CloudResourceKind.Environment,
+          modelId: modelId.toString(),
+          pathname: location.pathname,
+          search: location.search,
+          hash: location.hash,
+        })}
+      />
+    );
+  }
 
   return (
     <ModelPage
-      title={isResource ? "Cloud Resource" : "Cloud Environment"}
+      title="Cloud Resource"
       modelType={CloudResource}
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getCloudBreadcrumbs(path)}
-      sideMenu={
-        <SideMenu
-          modelId={modelId}
-          cloudResourceKind={context.cloudResourceKind}
-        />
-      }
+      sideMenu={<SideMenu modelId={modelId} />}
     >
-      {cloudResourceKind ? (
-        <Outlet context={context} />
-      ) : (
-        <PageLoader isVisible={true} />
-      )}
+      {cloudResourceKind ? <Outlet /> : <PageLoader isVisible={true} />}
     </ModelPage>
   );
 };

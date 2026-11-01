@@ -422,6 +422,26 @@ describe("AIDiscovery", () => {
     ).toEqual([]);
   });
 
+  test("the air-gapped pages are listed for machines as enterprise pages, never products", () => {
+    const txt: string = generateLlmsTxt(homeUrl, []);
+    const productsSection: string = txt.slice(
+      txt.indexOf("## Products"),
+      txt.indexOf("## Solutions"),
+    );
+
+    expect(productsSection).not.toContain("/enterprise/air-gapped");
+
+    const products: Array<JSONObject> = generateProductsJson(homeUrl)[
+      "products"
+    ] as Array<JSONObject>;
+
+    expect(
+      products.filter((product: JSONObject): boolean => {
+        return String(product["url"]).includes("/enterprise/air-gapped");
+      }),
+    ).toEqual([]);
+  });
+
   test("the Kubernetes product tells machines about OpenShift", () => {
     const products: Array<JSONObject> = generateProductsJson(homeUrl)[
       "products"

@@ -48,6 +48,9 @@ const CloudResourceInstances: FunctionComponent<
         id="cloud-resource-instances-table"
         userPreferencesKey="cloud-resource-instances-table"
         name="Cloud Environment Instances"
+        // The model's nouns are Cloud's (cloud resource instances).
+        singularName="Instance"
+        pluralName="Instances"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}

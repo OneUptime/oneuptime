@@ -388,7 +388,7 @@ const PAGE_ZOOM_SURFACES: Array<ZoomSurface> = [
   },
   {
     phrase: "cloud resources",
-    sources: [`${DASHBOARD_SRC}/Pages/Cloud/View/Overview.tsx`],
+    sources: [`${DASHBOARD_SRC}/Pages/AppPlatforms/View/Overview.tsx`],
   },
   {
     phrase: "serverless functions",

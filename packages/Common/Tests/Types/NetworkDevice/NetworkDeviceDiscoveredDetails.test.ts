@@ -6,6 +6,7 @@ import {
   MAX_DISCOVERY_READER_ID_LENGTH,
   MAX_DISCOVERY_READER_NAME_LENGTH,
   NETWORK_DEVICE_DISCOVERED_FIELDS,
+  NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS,
   NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS,
   NetworkDeviceDiscoveredDetails,
   NetworkDeviceDiscoveredField,
@@ -88,6 +89,11 @@ const SAMPLE: Readonly<Record<NetworkDeviceDiscoveredField, string>> = {
   [NetworkDeviceDiscoveredField.MacAddress]: "00:1b:54:c2:7a:01",
   [NetworkDeviceDiscoveredField.IpAddress]: "10.20.0.1",
   [NetworkDeviceDiscoveredField.OwnMacAddress]: "00:1b:54:c2:7a:02",
+  [NetworkDeviceDiscoveredField.ScannedMacAddress]: "00:1b:54:c2:7a:03",
+  [NetworkDeviceDiscoveredField.Model]: "WS-C2960X-48TS-L",
+  [NetworkDeviceDiscoveredField.SerialNumber]: "FOC1932X0K1",
+  [NetworkDeviceDiscoveredField.FirmwareVersion]: "15.2(7r)E",
+  [NetworkDeviceDiscoveredField.SoftwareVersion]: "15.2(7)E2",
 };
 
 function entryOf(
@@ -109,7 +115,7 @@ function entryOf(
 }
 
 describe("the fields, and how each one is read", () => {
-  test("ten fields, the five of the SNMP system group first", () => {
+  test("fifteen fields, the five of the SNMP system group first", () => {
     expect([...NETWORK_DEVICE_DISCOVERED_FIELDS]).toEqual([
       "sysName",
       "sysDescr",
@@ -121,10 +127,25 @@ describe("the fields, and how each one is read", () => {
       "macAddress",
       "ipAddress",
       "ownMacAddress",
+      "scannedMacAddress",
+      "model",
+      "serialNumber",
+      "firmwareVersion",
+      "softwareVersion",
     ]);
     expect([...NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS]).toEqual(
       NETWORK_DEVICE_DISCOVERED_FIELDS.slice(0, 5),
     );
+  });
+
+  test("what a host says about its hardware is apart from the system group, whose missing fields are empty", () => {
+    expect([...NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS]).toEqual(
+      NETWORK_DEVICE_DISCOVERED_FIELDS.slice(10),
+    );
+
+    for (const field of NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS) {
+      expect(NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS).not.toContain(field);
+    }
   });
 
   test.each([
@@ -137,6 +158,12 @@ describe("the fields, and how each one is read", () => {
     [NetworkDeviceDiscoveredField.NetbiosName, "netbios", "discoveryScan"],
     [NetworkDeviceDiscoveredField.MacAddress, "arpTable", "networkDevice"],
     [NetworkDeviceDiscoveredField.IpAddress, "dns", "probe"],
+    [NetworkDeviceDiscoveredField.OwnMacAddress, "snmp", "probe"],
+    [NetworkDeviceDiscoveredField.ScannedMacAddress, "snmp", "discoveryScan"],
+    [NetworkDeviceDiscoveredField.Model, "snmp", "discoveryScan"],
+    [NetworkDeviceDiscoveredField.SerialNumber, "snmp", "discoveryScan"],
+    [NetworkDeviceDiscoveredField.FirmwareVersion, "snmp", "discoveryScan"],
+    [NetworkDeviceDiscoveredField.SoftwareVersion, "snmp", "discoveryScan"],
   ])(
     "%s is read by %s, by a %s",
     (
@@ -165,7 +192,7 @@ describe("the fields, and how each one is read", () => {
 
     for (const other of [
       "vendor",
-      "serialNumber",
+      "hardwareRevision",
       "__proto__",
       "constructor",
       "SYSNAME",
@@ -259,6 +286,46 @@ describe("normalizeDiscoveredValue", () => {
     ).toBeUndefined();
   });
 
+  test("a MAC a scan read of the device's own port is read the same way", () => {
+    expect(
+      normalizeDiscoveredValue(
+        NetworkDeviceDiscoveredField.ScannedMacAddress,
+        "00-1B-54-C2-7A-01",
+      ),
+    ).toBe("00:1b:54:c2:7a:01");
+    expect(
+      normalizeDiscoveredValue(
+        NetworkDeviceDiscoveredField.ScannedMacAddress,
+        "not a mac",
+      ),
+    ).toBeUndefined();
+    expect(
+      normalizeDiscoveredValue(
+        NetworkDeviceDiscoveredField.ScannedMacAddress,
+        12,
+      ),
+    ).toBeUndefined();
+  });
+
+  test.each([
+    NetworkDeviceDiscoveredField.Model,
+    NetworkDeviceDiscoveredField.SerialNumber,
+    NetworkDeviceDiscoveredField.FirmwareVersion,
+    NetworkDeviceDiscoveredField.SoftwareVersion,
+  ])(
+    "%s is text out of an agent: cleaned, bounded, and nothing else",
+    (field: NetworkDeviceDiscoveredField) => {
+      expect(normalizeDiscoveredValue(field, "  FOC\u00001932\r\nX0K1  ")).toBe(
+        "FOC 1932 X0K1",
+      );
+      expect(normalizeDiscoveredValue(field, "x".repeat(150))).toBe(
+        "x".repeat(100),
+      );
+      expect(normalizeDiscoveredValue(field, 12)).toBeUndefined();
+      expect(normalizeDiscoveredValue(field, "   ")).toBeUndefined();
+    },
+  );
+
   test("an IP address must be one, v4 or v6", () => {
     expect(
       normalizeDiscoveredValue(
@@ -345,7 +412,7 @@ describe("normalizeDiscoveredValue", () => {
     ).toBeUndefined();
   });
 
-  test("the column widths: sysDescr 500, the rest of the system group 100", () => {
+  test("the column widths: sysDescr 500, the rest of the system group and the hardware 100", () => {
     expect(MAX_DISCOVERED_VALUE_LENGTH).toEqual({
       sysName: 100,
       sysDescr: 500,
@@ -357,6 +424,11 @@ describe("normalizeDiscoveredValue", () => {
       macAddress: 17,
       ipAddress: 45,
       ownMacAddress: 17,
+      scannedMacAddress: 17,
+      model: 100,
+      serialNumber: 100,
+      firmwareVersion: 100,
+      softwareVersion: 100,
     });
   });
 });
@@ -472,6 +544,25 @@ describe("buildDiscoveredValue", () => {
       buildDiscoveredValue({
         field: NetworkDeviceDiscoveredField.DnsName,
         value: SAMPLE.dnsName,
+        readBy: PROBE,
+        readAt: READ_AT,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("a device's own MAC has one reader per key: a poll's is not a scan's, or the other way round", () => {
+    expect(
+      buildDiscoveredValue({
+        field: NetworkDeviceDiscoveredField.OwnMacAddress,
+        value: SAMPLE.ownMacAddress,
+        readBy: SCAN,
+        readAt: READ_AT,
+      }),
+    ).toBeUndefined();
+    expect(
+      buildDiscoveredValue({
+        field: NetworkDeviceDiscoveredField.ScannedMacAddress,
+        value: SAMPLE.scannedMacAddress,
         readBy: PROBE,
         readAt: READ_AT,
       }),

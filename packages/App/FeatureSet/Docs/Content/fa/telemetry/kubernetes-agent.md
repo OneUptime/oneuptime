@@ -240,6 +240,14 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 برای بازگرداندن آن‌ها، هنگام ارتقا و با دسترسی cluster-admin، با `--set preset=openshift` به `openshift` بروید.
 
+**آنچه در OneUptime می‌بینید.** عامل، اشیای خود OpenShift را هم به‌صورت فقط‌خواندنی می‌خواند و در صفحه‌های خوشه نشان می‌دهد:
+
+- **نمای کلی** خوشه با کارت **OpenShift** آغاز می‌شود: نسخه‌ای که اجرا می‌کند، اینکه به‌روزرسانی‌ای در جریان است یا شکست می‌خورد، و اینکه چند تا از اپراتورهای خوشه سالم‌اند، همراه با آنچه هر یک از بقیه گزارش می‌دهد. اپراتوری که در دسترس نیست خوشه را **ناسالم** می‌کند، و اپراتوری با کارایی کاهش‌یافته یا به‌روزرسانی‌ای که شکست می‌خورد آن را به وضعیت **کاهش کارایی** می‌برد.
+- **Routes** و **سرویس‌ها**، زیر **شبکه**: هر Route کجا پاسخ می‌دهد، TLS را چگونه پایان می‌دهد، ترافیک را به کدام سرویس‌ها و با چه سهمی می‌فرستد، و چرا یک مسیریاب آن را رد کرده است. کلید TLS یک Route هرگز از خوشه بیرون نمی‌رود: عامل پیش از فرستادن Route آن را جایگزین می‌کند.
+- **DeploymentConfigها**، زیر **بارهای کاری**، مانند Deploymentها نشان داده می‌شوند: انتشارهایشان، پردازنده و حافظهٔ پادهایشان، و رویدادهای ReplicationControllerها و پادهایی که اجرا می‌کنند.
+
+**هشدارها دربارهٔ اپراتورها و به‌روزرسانی‌ها.** صفحهٔ **توصیه‌ها** یک خوشهٔ OpenShift این موارد را پیشنهاد می‌کند: **Cluster Operator Unavailable**، **Cluster Operator Degraded** و **Cluster Update Failing**. هر کدام یک پایشگر لاگ روی تصویرهای لحظه‌ای است که عامل هر `resourceSpecs.interval` می‌فرستد. وقتی دو تصویر لحظه‌ای مشکل را گزارش کنند هشدار می‌دهد، پس اپراتوری که در حین یک به‌روزرسانی برای لحظه‌ای تغییر وضعیت می‌دهد چیزی را برنمی‌انگیزد، و وقتی حل می‌شود که یک تصویر لحظه‌ای بگوید مشکل تمام شده است، نه هرگز چون عامل دیگر نمی‌فرستد.
+
 **هشدارهای خود OpenShift.** OpenShift همراه با Prometheus و Alertmanager عرضه می‌شود، با هشدارهایی برای اپراتورها، etcd و گره‌هایش. برای اینکه برای هر کدام در OneUptime حادثه‌ای باز شود، در کنسول وب زیر **Administration → Cluster Settings → Configuration → Alertmanager** یک گیرندهٔ وب‌هوک برای OneUptime بیفزایید، همان‌طور که [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) توضیح می‌دهد.
 
 **ترِیس‌ها از کد شما.** ابزارگذاری eBPF بدون تغییر در کد، HTTP، gRPC و SQL را ترِیس می‌کند. برای فرستادن ترِیس از SDKهای OpenTelemetry، یا از Red Hat build of OpenTelemetry، صادرکنندهٔ OTLP آن‌ها را به سوی OneUptime نشانه بگیرید، همان‌طور که [OpenTelemetry](/docs/telemetry/open-telemetry) توضیح می‌دهد.
@@ -254,6 +262,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | متریک‌های خوشه | وضعیت گره‌ها، منابع قابل تخصیص، شمار پادها |
 | رویدادهای Kubernetes | هر رویداد، Warning و Normal، از هر namespace و هر نوع شیء: [رویدادهای Kubernetes](#رویدادهای-kubernetes) را ببینید |
 | لاگ‌های پاد | stdout و stderr هر کانتینر (از راه `hostPath` روی خوشه‌های استاندارد، از راه API در Kubernetes روی Autopilot و Fargate) |
+| اشیای OpenShift (پیش‌تنظیم‌های OpenShift) | ClusterOperatorها، ClusterVersion، Routeها، DeploymentConfigها و Serviceها: [OpenShift](#openshift) را ببینید |
 | ترِیس‌های برنامه (eBPF، به‌طور پیش‌فرض روشن) | اسپن‌های HTTP، gRPC، SQL و Redis از هر پاد، بدون SDK یا تغییر کد |
 | متریک‌های RED برای HTTP (eBPF) | `http.server.request.duration`، و اندازه بدنه درخواست و پاسخ، برای هر سرویس |
 | گراف سرویس (eBPF) | لبه‌های نرخ درخواست، تأخیر و خطا از فراخواننده به فراخوانده، که نقشه سرویس را می‌کشند |

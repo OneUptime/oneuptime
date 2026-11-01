@@ -49,11 +49,17 @@ import ResponseTargetDurationField from "../../../../App/FeatureSet/Dashboard/sr
 import { ResponseTargetUnit } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/ResponseTargetDuration";
 import { RESPONSE_TARGETS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/ResponseTargetsCopy";
 import SecurityCaseTargetChip, {
+  SECURITY_CASE_DUE_COLUMN_ID,
   SECURITY_CASE_DUE_LINE_CLASS_NAME,
   SECURITY_CASE_TARGET_REFRESH_MS,
   SecurityCaseDueCell,
   SecurityCaseDueLine,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/SecurityCaseTargetChip";
+import {
+  TableCellContext,
+  TableColumnsInView,
+  TableColumnsInViewContext,
+} from "../../../UI/Components/Table/TableCellContext";
 import { SecurityCaseTargetCase } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/SecurityCaseTargetDisplay";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import OneUptimeDate from "../../../Types/Date";
@@ -333,6 +339,61 @@ describe("the case lists", () => {
       />,
     );
     expect(screen.queryByTestId(RESPONSE_TARGETS_TEST_IDS.dueLine)).toBeNull();
+  });
+
+  /*
+   * The Due column is one a person turns on (Columns): while a list draws
+   * it, the row says when the next target is due there, and the line under
+   * its priority would say it twice. Folded into another cell, or off, it is
+   * not drawn as a column, and the line says it.
+   */
+  test("the line steps aside while the list draws its Due column, and says it again when the column is not drawn", () => {
+    const drawWith: (inView: TableColumnsInView | null) => void = (
+      inView: TableColumnsInView | null,
+    ): void => {
+      cleanup();
+      // A row's cell of a table, which says which columns it draws.
+      render(
+        <TableCellContext.Provider value={true}>
+          <TableColumnsInViewContext.Provider value={inView}>
+            <SecurityCaseDueLine
+              securityCase={criticalCase()}
+              priorities={PRIORITIES}
+            />
+          </TableColumnsInViewContext.Provider>
+        </TableCellContext.Provider>,
+      );
+    };
+
+    expect(SECURITY_CASE_DUE_COLUMN_ID).toBe("due");
+
+    // The Due column drawn as a column of its own: no line.
+    drawWith({
+      drawnIds: new Set(["priority", SECURITY_CASE_DUE_COLUMN_ID]),
+      foldedIds: new Set(),
+    });
+    expect(screen.queryByTestId(RESPONSE_TARGETS_TEST_IDS.dueLine)).toBeNull();
+
+    // Off (not among the columns at all): the line.
+    drawWith({ drawnIds: new Set(["priority"]), foldedIds: new Set() });
+    expect(
+      screen.getByTestId(RESPONSE_TARGETS_TEST_IDS.dueLine),
+    ).toHaveTextContent("Acknowledge in 10 min");
+
+    // Folded into another cell, it is no column of its own: the line.
+    drawWith({
+      drawnIds: new Set(["priority"]),
+      foldedIds: new Set([SECURITY_CASE_DUE_COLUMN_ID]),
+    });
+    expect(
+      screen.getByTestId(RESPONSE_TARGETS_TEST_IDS.dueLine),
+    ).toBeInTheDocument();
+
+    // Outside a table (a phone's card asks nothing of columns): the line.
+    drawWith(null);
+    expect(
+      screen.getByTestId(RESPONSE_TARGETS_TEST_IDS.dueLine),
+    ).toBeInTheDocument();
   });
 
   /*

@@ -1,6 +1,6 @@
 # Google Cloud Run
 
-Invia a OneUptime le tracce, i log e le metriche dei tuoi servizi e job Cloud Run. Tutto ciò che riporta `cloud.platform=gcp_cloud_run` entra in un **Cloud Environment** per progetto Google Cloud e regione, ad esempio _GCP Cloud Run · us-central1 · my-project_, e ogni servizio compare anche in **Funzioni serverless**.
+Invia a OneUptime le tracce, i log e le metriche dei tuoi servizi e job Cloud Run. Tutto ciò che riporta `cloud.platform=gcp_cloud_run` entra in un **Ambiente cloud** per progetto Google Cloud e regione, ad esempio _GCP Cloud Run · us-central1 · my-project_, e ogni servizio compare anche in **Funzioni serverless**.
 
 :::cards
 - [Come funziona](#come-funziona): Cosa imposta il rilevatore GCP, e perché un servizio compare in due posti.
@@ -33,7 +33,7 @@ Il rilevatore di risorse GCP di OpenTelemetry legge il server dei metadati e le 
 | `faas.instance` | l'ID dell'istanza | Dà il nome a un'istanza in esecuzione: una riga ciascuna in **Istanze** |
 
 > [!NOTE]
-> Cloud Run compare in due posti, di proposito. Poiché il rilevatore imposta `faas.name`, ogni servizio è anche una **Funzione serverless**, con le sue invocazioni, il suo tasso di errore e la sua durata. Il **Cloud Environment** raggruppa ogni servizio di quel progetto e di quella regione. Niente viene salvato due volte: la stessa telemetria viene archiviata in entrambi.
+> Cloud Run compare in due posti, di proposito. Poiché il rilevatore imposta `faas.name`, ogni servizio è anche una **Funzione serverless**, con le sue invocazioni, il suo tasso di errore e la sua durata. L'**Ambiente cloud** raggruppa ogni servizio di quel progetto e di quella regione. Niente viene salvato due volte: la stessa telemetria viene archiviata in entrambi.
 
 La chiave dell'ambiente è `gcp_cloud_run|my-project|us-central1`.
 
@@ -159,7 +159,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` con `"valid": true` significa che il token è accettato. `401` significa che è sconosciuto, revocato, disattivato o scaduto. Poi invia una richiesta al servizio e cerca nei log del collector in Cloud Logging (filtrando sul container `otel-collector`) `401`, `connection refused` o `context deadline exceeded`. Entro un minuto, l'ambiente compare in **Cloud → All Environments** come _GCP Cloud Run · us-central1 · my-project_, e il servizio in **Funzioni serverless**.
+`200` con `"valid": true` significa che il token è accettato. `401` significa che è sconosciuto, revocato, disattivato o scaduto. Poi invia una richiesta al servizio e cerca nei log del collector in Cloud Logging (filtrando sul container `otel-collector`) `401`, `connection refused` o `context deadline exceeded`. Entro un minuto, l'ambiente compare in **Piattaforme applicative → Tutti gli ambienti** come _GCP Cloud Run · us-central1 · my-project_, e il servizio in **Funzioni serverless**.
 :::
 
 ## Lo YAML del servizio con un sidecar

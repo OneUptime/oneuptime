@@ -487,6 +487,14 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       },
       title: "Acknowledged By",
       type: FieldType.Element,
+      /*
+       * Who acknowledged the page, under its status, where the logs do not
+       * fit their card (TableFit): beside the side menu at 1280px the
+       * column ran 300px past the card, under the row's View Timeline.
+       */
+      hideBelowLargeScreen: true,
+      foldInto: "status",
+      showTitleWhenFolded: true,
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
         if (item["acknowledgedByUser"]) {
           return <UserElement user={item["acknowledgedByUser"]} />;

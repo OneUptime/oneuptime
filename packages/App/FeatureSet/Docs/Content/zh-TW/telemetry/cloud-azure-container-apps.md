@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-將 Azure Container Apps 的追蹤、日誌與指標傳送到 OneUptime。每個回報 `cloud.platform=azure_container_apps` 的複本都會進入依 Azure 訂用帳戶與區域劃分的一個 **Cloud Environment**（例如 _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_），執行中的複本會列在 **執行個體** 下。
+將 Azure Container Apps 的追蹤、日誌與指標傳送到 OneUptime。每個回報 `cloud.platform=azure_container_apps` 的複本都會進入依 Azure 訂用帳戶與區域劃分的一個 **雲端環境**（例如 _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_），執行中的複本會列在 **執行個體** 下。
 
 :::cards
 - [運作方式](#運作方式): 偵測器設定了什麼，以及需要你自己設定的兩個屬性。
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-尋找 `Everything is ready`，並確認沒有 `401` 或 `connection refused`。在第一個 span、日誌或指標送達後的 1 分鐘內，環境就會以 _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ 的名稱出現在 **雲端 → All Environments** 中。
+尋找 `Everything is ready`，並確認沒有 `401` 或 `connection refused`。在第一個 span、日誌或指標送達後的 1 分鐘內，環境就會以 _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ 的名稱出現在 **應用程式平台 → 所有環境** 中。
 :::
 
 ## 使用環境的受控 OpenTelemetry 代理程式

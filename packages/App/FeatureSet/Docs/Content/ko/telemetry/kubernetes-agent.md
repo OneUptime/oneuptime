@@ -240,6 +240,14 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 
 이를 되찾으려면 업그레이드할 때 cluster-admin으로 `--set preset=openshift`를 지정해 `openshift`로 옮기세요.
 
+**OneUptime에서 보이는 내용.** 에이전트는 OpenShift 자체 객체도 읽기 전용으로 읽어 클러스터 페이지에 보여 줍니다.
+
+- 클러스터의 **개요** 맨 앞에 **OpenShift** 카드가 표시됩니다. 실행 중인 버전, 업데이트가 진행 중인지 또는 실패하고 있는지, 클러스터 Operator 중 정상인 수와 나머지 각 Operator가 보고하는 내용을 보여 줍니다. 사용할 수 없는 Operator가 있으면 클러스터는 **비정상**이 되고, 저하된 Operator나 실패하는 업데이트가 있으면 **저하됨**이 됩니다.
+- **네트워크** 아래의 **Routes**와 **서비스**: 각 Route가 응답하는 위치, TLS 종료 방식, 트래픽을 보내는 서비스와 그 비율, 라우터가 Route를 거부한 이유를 보여 줍니다. Route의 TLS 키는 클러스터 밖으로 나가지 않습니다. 에이전트가 Route를 보내기 전에 키를 교체합니다.
+- **워크로드** 아래의 **DeploymentConfigs**는 Deployment와 같은 방식으로 표시됩니다. 롤아웃, Pod의 CPU와 메모리, 실행하는 ReplicationController와 Pod의 이벤트를 보여 줍니다.
+
+**Operator 및 업데이트 알림.** OpenShift 클러스터의 **권장 사항** 페이지에서는 **Cluster Operator Unavailable**, **Cluster Operator Degraded**, **Cluster Update Failing**을 제공합니다. 각각은 에이전트가 `resourceSpecs.interval`마다 보내는 스냅샷을 대상으로 하는 로그 모니터입니다. 스냅샷 두 개가 문제를 보고하면 알림을 보내므로, 업데이트 중 Operator 상태가 잠깐 바뀌는 것만으로는 아무 일도 일어나지 않습니다. 또한 스냅샷이 문제가 끝났다고 보고할 때 해결되며, 에이전트가 전송을 멈췄다는 이유로 해결되는 일은 없습니다.
+
 **OpenShift 자체 알림.** OpenShift에는 Prometheus와 Alertmanager가 포함되어 있으며, Operator, etcd, 노드에 대한 알림이 함께 제공됩니다. 각 알림마다 OneUptime에서 인시던트를 열려면 웹 콘솔의 **Administration → Cluster Settings → Configuration → Alertmanager**에서 OneUptime용 웹훅 수신기를 추가하세요. 방법은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요.
 
 **코드에서 보내는 트레이스.** eBPF 계측은 코드를 바꾸지 않고도 HTTP, gRPC, SQL을 트레이스합니다. OpenTelemetry SDK나 Red Hat build of OpenTelemetry에서 트레이스를 보내려면 해당 OTLP 익스포터가 OneUptime을 가리키도록 하세요. 방법은 [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요.
@@ -254,6 +262,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | 클러스터 메트릭 | 노드 상태, 할당 가능한 리소스, Pod 수 |
 | Kubernetes 이벤트 | 모든 네임스페이스와 모든 종류의 객체에서 온 모든 이벤트(Warning과 Normal): [Kubernetes 이벤트](#kubernetes-이벤트) 참고 |
 | Pod 로그 | 모든 컨테이너의 stdout과 stderr (표준 클러스터에서는 `hostPath`를 통해, Autopilot과 Fargate에서는 Kubernetes API를 통해) |
+| OpenShift 객체 (OpenShift 프리셋) | ClusterOperator, ClusterVersion, Route, DeploymentConfig, Service: [OpenShift](#openshift) 참고 |
 | 애플리케이션 트레이스 (eBPF, 기본적으로 켜짐) | 모든 Pod의 HTTP, gRPC, SQL, Redis 스팬 (SDK나 코드 변경 불필요) |
 | HTTP RED 메트릭 (eBPF) | 서비스별 `http.server.request.duration`, 그리고 요청 및 응답 본문 크기 |
 | 서비스 그래프 (eBPF) | 호출자에서 피호출자로의 요청 속도, 지연 시간, 오류 엣지. 서비스 맵을 그립니다 |

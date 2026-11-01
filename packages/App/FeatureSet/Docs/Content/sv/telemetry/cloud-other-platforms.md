@@ -1,6 +1,6 @@
 # Andra molnplattformar
 
-Konfigurera de hanterade plattformar som inte har en egen sida: AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service och Azure Container Instances. Regeln är densamma som på alla plattformar: telemetri som bär en hanterad `cloud.platform`, med `cloud.account.id` och `cloud.region`, hamnar i en **Cloud Environment** per plattform, konto och region, och en instansidentitet ger varje instans som körs en rad under **Instanser**.
+Konfigurera de hanterade plattformar som inte har en egen sida: AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service och Azure Container Instances. Regeln är densamma som på alla plattformar: telemetri som bär en hanterad `cloud.platform`, med `cloud.account.id` och `cloud.region`, hamnar i en **Molnmiljö** per plattform, konto och region, och en instansidentitet ger varje instans som körs en rad under **Instanser**.
 
 :::cards
 - [AWS Elastic Beanstalk](#aws-elastic-beanstalk): En collector på varje instans, med detektorerna för Beanstalk och EC2.
@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyder att din token accepteras. `401` betyder att den är okänd, återkallad, inaktiverad eller har gått ut. Inom en minut efter det första spannet, den första loggen eller det första mätvärdet visas miljön under **Moln → All Environments**, namngiven efter plattformen, regionen och kontot.
+`200` med `"valid": true` betyder att din token accepteras. `401` betyder att den är okänd, återkallad, inaktiverad eller har gått ut. Inom en minut efter det första spannet, den första loggen eller det första mätvärdet visas miljön under **Appplattformar → Alla miljöer**, namngiven efter plattformen, regionen och kontot.
 
 ## Felsökning
 

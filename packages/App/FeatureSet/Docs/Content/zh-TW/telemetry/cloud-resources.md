@@ -34,7 +34,7 @@ flowchart TB
 
 | 你執行的內容 | 出現的位置 | 方式 |
 | --- | --- | --- |
-| ECS、Cloud Run、Container Apps、App Service 等上的容器 | **雲端 → All Environments** | 工作負載本身的遙測資料，依其 `cloud.platform` 區分。請參閱 [雲端環境](/docs/telemetry/cloud-environments) |
+| ECS、Cloud Run、Container Apps、App Service 等上的容器 | **應用程式平台 → 所有環境** | 工作負載本身的遙測資料，依其 `cloud.platform` 區分。請參閱 [雲端環境](/docs/telemetry/cloud-environments) |
 | 提供者監控的任何 IaaS 或 PaaS 資源 | **雲端 → 所有資源** | 由 Collector 讀取的提供者監控 API：也就是本頁 |
 | 裝有 OpenTelemetry Collector 的虛擬機器 | **主機** | 主機本身的指標與日誌。請參閱 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | 你的應用程式使用的佇列與主題 | **Queues** | span，以及相同的雲端指標。請參閱 [佇列](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ stateDiagram-v2
 ## 資產清冊與規則
 
 - **資產清冊：** 雲端資源會以 **雲端資源** 項目列在 [資產清冊](/docs/inventory/overview) 中，提供者的 ID 為 `cloud.resource.id`，類型為 `cloud.resource.type`。AI 代理程式的資源工具也會列出它們。
-- **規則：** **雲端 → 設定 → 標籤規則** 與 **擁有者規則** 對它們的作用與對雲端環境的作用相同。
+- **規則：** **雲端 → 設定 → 標籤規則** 與 **擁有者規則** 適用於它們。應用程式平台 為雲端環境提供自己的規則，在兩者分開之前建立的規則對兩者都適用。
 
 ## 疑難排解
 

@@ -61,7 +61,8 @@ flowchart TB
 :::cards
 - [Телеметрия](/docs/telemetry/open-telemetry): Отправлять логи, метрики и трассировки через OpenTelemetry и искать по ним.
 - [Агенты инфраструктуры](/docs/telemetry/hosts): Добавлять хосты одной командой и устанавливать агенты для Kubernetes, Docker, Proxmox, VMware и многого другого.
-- [Облако](/docs/telemetry/cloud-environments): Наблюдать за ECS, Cloud Run, Azure Container Apps и другими управляемыми платформами.
+- [Платформы приложений](/docs/telemetry/cloud-environments): Отслеживать приложения, которые вы запускаете в ECS и Fargate, Cloud Run, App Service и на других управляемых платформах.
+- [Облако](/docs/telemetry/cloud-accounts): Подключать учётные записи AWS, Azure и Google Cloud и отслеживать каждый ресурс в них.
 - [Наблюдаемость ИИ](/docs/telemetry/ai-llm-observability): Следить за разговорами вашего ИИ и узнавать, когда он отвечает плохо.
 - [Безопасность](/docs/telemetry/security-events): Собирать события безопасности и данные об угрозах.
 - [Безопасность данных](/docs/data-security/index): Находить конфиденциальные данные в ваших бакетах, базах данных и телеметрии и исправлять то, как они хранятся.

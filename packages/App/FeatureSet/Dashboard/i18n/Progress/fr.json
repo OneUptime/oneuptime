@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39322,
-    "untranslated": 7583
+    "keys": 39389,
+    "untranslated": 7532
   },
   "sameAsEnglish": [
     " incidents",
@@ -158,6 +158,7 @@
     "Datastore",
     "Datastores",
     "Date",
+    "DeploymentConfigs",
     "Description",
     "Destination",
     "Diagnostics",
@@ -174,6 +175,7 @@
     "Down · In",
     "EKS Fargate",
     "ERR",
+    "Edge",
     "Embedding",
     "Enterprise Edition",
     "Envoy Proxy",
@@ -338,6 +340,7 @@
     "OpenAI",
     "OpenInference",
     "OpenLLMetry",
+    "OpenShift",
     "OpenTelemetry Collector",
     "OpenTofu",
     "Options",
@@ -347,6 +350,7 @@
     "Page",
     "Page {{page}}",
     "Parent",
+    "Passthrough",
     "Perf",
     "Phase",
     "Pipelines",
@@ -371,6 +375,8 @@
     "Push",
     "Question",
     "Questions",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Restrictions",
     "Rotations",
     "Runbook",
@@ -400,6 +406,7 @@
     "Stack trace",
     "Stacks",
     "Standard",
+    "TLS",
     "Threads",
     "Top",
     "Top P",

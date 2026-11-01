@@ -1563,5 +1563,12 @@
     "note": "Bemærk",
     "tip": "Tip",
     "warning": "Advarsel"
-  }
+  },
+  "Compact rows": "Kompakte rækker",
+  "Sort by": "Sortér efter",
+  "Sorted by {{column}}": "Sorteret efter {{column}}",
+  "Sort": "Sortér",
+  "Ascending": "Stigende",
+  "Descending": "Faldende",
+  "Select all items": "Vælg alle elementer"
 }

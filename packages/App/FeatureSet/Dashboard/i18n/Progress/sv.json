@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39322,
-    "untranslated": 13155
+    "keys": 39389,
+    "untranslated": 13097
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -34,10 +34,12 @@
     "DE",
     "Data",
     "Datacenter",
+    "DeploymentConfigs",
     "Diagram",
     "Disk",
     "Disk %",
     "Docker Compose",
+    "Edge",
     "Embedding",
     "Endpoint",
     "Failover",
@@ -91,9 +93,11 @@
     "Object Gateways",
     "Offline",
     "Online",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "Peer",
     "Person",
     "Plan",
@@ -110,6 +114,8 @@
     "Prompt",
     "Pull request",
     "Pull requests",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Region",
     "Revision",
     "Risk",
@@ -134,6 +140,7 @@
     "Status",
     "Stratum",
     "System",
+    "TLS",
     "Team",
     "Text",
     "Tokens",

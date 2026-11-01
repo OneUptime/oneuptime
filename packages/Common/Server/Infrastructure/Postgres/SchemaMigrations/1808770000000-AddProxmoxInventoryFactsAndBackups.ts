@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * the catalogue, never rewrites a row or holds a long lock. Null means "not
  * reported yet", which the pages draw as unknown.
  */
-export class AddProxmoxInventoryFactsAndBackups1808740000000
+export class AddProxmoxInventoryFactsAndBackups1808770000000
   implements MigrationInterface
 {
-  public name: string = "AddProxmoxInventoryFactsAndBackups1808740000000";
+  public name: string = "AddProxmoxInventoryFactsAndBackups1808770000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -8,6 +8,9 @@ import {
   APPLIANCE_COUNT,
   DESCRIBED_DEVICES_NOTE,
   DEVICE_COUNT,
+  LINKED_DEVICES_NOTE,
+  PLACED_CLIENTS_NOTE,
+  UNPLACED_DEVICES_NOTE,
   MERAKI_CONNECTION_NAME,
   MERAKI_STATUS_WORDS,
   MERAKI_TONE_PILL,
@@ -608,6 +611,41 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                       summary.describedDeviceCount || 0,
                     ),
                     isToActOn: false,
+                  });
+                }
+
+                /*
+                 * And what it did for the map: the clients it put on their
+                 * ports, the links it drew, and the Meraki devices that have
+                 * clients on them and nothing here to hang them from.
+                 */
+                if (summary && (summary.placedClientCount || 0) > 0) {
+                  notes.push({
+                    text: translator.translatePlural(
+                      PLACED_CLIENTS_NOTE,
+                      summary.placedClientCount || 0,
+                    ),
+                    isToActOn: false,
+                  });
+                }
+
+                if (summary && (summary.linkedDeviceCount || 0) > 0) {
+                  notes.push({
+                    text: translator.translatePlural(
+                      LINKED_DEVICES_NOTE,
+                      summary.linkedDeviceCount || 0,
+                    ),
+                    isToActOn: false,
+                  });
+                }
+
+                if (summary && (summary.unplacedDeviceCount || 0) > 0) {
+                  notes.push({
+                    text: translator.translatePlural(
+                      UNPLACED_DEVICES_NOTE,
+                      summary.unplacedDeviceCount || 0,
+                    ),
+                    isToActOn: true,
                   });
                 }
 

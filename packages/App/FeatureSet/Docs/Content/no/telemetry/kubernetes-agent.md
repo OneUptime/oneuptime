@@ -240,6 +240,14 @@ Installer med `--set preset=openshift`, slik fanen **OpenShift** ovenfor gjør. 
 
 For å få dem tilbake bytter du til `openshift` med `--set preset=openshift` ved en oppgradering, som cluster-admin.
 
+**Dette ser du i OneUptime.** Agenten leser også OpenShifts egne objekter, kun med lesetilgang, og viser dem på klyngens sider:
+
+- Klyngens **Oversikt** starter med kortet **OpenShift**: versjonen den kjører, om en oppdatering pågår eller feiler, og hvor mange av klyngeoperatorene som er feilfrie, med det hver av de andre rapporterer. En utilgjengelig operator gjør klyngen **Ikke feilfri**, og en redusert operator eller en oppdatering som feiler, gjør den **Redusert**.
+- **Routes** og **Tjenester** under **Nettverk**: hvor hver Route svarer, hvordan den terminerer TLS, hvilke tjenester den sender trafikk til og med hvilken andel, og hvorfor en ruter avviste den. TLS-nøkkelen til en Route forlater aldri klyngen: agenten erstatter den før den sender Routen.
+- **DeploymentConfigs** under **Arbeidsbelastninger** vises som Deployments: utrullingene deres, CPU og minne for podene deres, og hendelsene til ReplicationControllers og podene de kjører.
+
+**Varsler om operatorer og oppdateringer.** Siden **Anbefalinger** for en OpenShift-klynge tilbyr **Cluster Operator Unavailable**, **Cluster Operator Degraded** og **Cluster Update Failing**. Hver av dem er en loggmonitor på øyeblikksbildene agenten sender hvert `resourceSpecs.interval`. Den varsler når to øyeblikksbilder sier det, så en operator som skifter et øyeblikk under en oppdatering, utløser ingenting, og den lukker varselet når et øyeblikksbilde sier at problemet er over, aldri fordi agenten sluttet å sende.
+
 **OpenShifts egne varsler.** OpenShift leveres med Prometheus og Alertmanager, med varsler for operatorene sine, etcd og nodene. For å åpne en hendelse i OneUptime for hvert av dem legger du til en webhook-mottaker for OneUptime under **Administration → Cluster Settings → Configuration → Alertmanager** i webkonsollen, slik [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) beskriver.
 
 **Spor fra koden din.** eBPF-instrumenteringen sporer HTTP, gRPC og SQL uten kodeendringer. For å sende spor fra OpenTelemetry-SDK-er, eller fra Red Hat build of OpenTelemetry, peker du OTLP-eksportøren deres mot OneUptime, slik [OpenTelemetry](/docs/telemetry/open-telemetry) beskriver.
@@ -254,6 +262,7 @@ For å få dem tilbake bytter du til `openshift` med `--set preset=openshift` ve
 | Klyngemetrikker | Nodetilstander, allokerbare ressurser, antall poder |
 | Kubernetes-hendelser | Hver hendelse, Warning og Normal, fra hvert navnerom og hver slags objekt: se [Kubernetes-hendelser](#kubernetes-hendelser) |
 | Pod-logger | Stdout og stderr fra hver container (gjennom `hostPath` på standardklynger, gjennom Kubernetes-API-et på Autopilot og Fargate) |
+| OpenShift-objekter (OpenShift-forhåndsinnstillingene) | ClusterOperators, ClusterVersion, Routes, DeploymentConfigs og Services: se [OpenShift](#openshift) |
 | Applikasjonsspor (eBPF, på som standard) | HTTP-, gRPC-, SQL- og Redis-spenn fra hver pod, uten SDK eller kodeendringer |
 | HTTP RED-metrikker (eBPF) | `http.server.request.duration`, og størrelsen på forespørsels- og svarkropper, per tjeneste |
 | Tjenestegraf (eBPF) | Forespørselsrate, latens og feil fra kaller til mottaker, som tegner tjenestekartet |

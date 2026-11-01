@@ -510,11 +510,11 @@ Efter det første vellykkede walk læser OneUptime SNMPv2-systemgruppen og, hvor
 
 En enhed kun med ping beholder det navn og den adresse, du, eller en discovery-scanning, gav den. Det, dens egen polling ikke har læst, får den fra discovery:
 
-- Det systemnavn, den beskrivelse, `sysObjectID`, placering og kontakt, som den seneste [discovery-scanning](#find-enheder-med-en-netværksscanning) af dens adresse læste over SNMP, og de reverse-DNS- og NetBIOS-navne, den fandt.
-- Dens MAC-adresse, fra ARP-tabellen i en gennemgået router på dens site.
+- Det systemnavn, den beskrivelse, `sysObjectID`, placering, kontakt, model, serienummer, firmware og softwareversion, som den seneste [discovery-scanning](#find-enheder-med-en-netværksscanning) af dens adresse læste over SNMP, og de reverse-DNS- og NetBIOS-navne, den fandt.
+- Dens MAC-adresse, fra ARP-tabellen i en gennemgået router på dens site, eller ellers fra den første Ethernet-port, som den scanning læste.
 - For en enhed, der polles på et DNS-navn, den adresse, dens sonde slog navnet op til.
 
-De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
+De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. En scanning læser en værts MAC-adresse, model, serienummer, firmware og softwareversion med nogle få anmodninger mere efter dens systemgruppe, i højst fem sekunder pr. vært. En vært, der holder op med at svare på dem, tæller stadig som en, der har svaret, og det, scanningen ikke kunne læse, beholder sin seneste værdi. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
 
 En Meraki-switch, et Meraki-adgangspunkt eller en Meraki-appliance giver hverken serienummer eller firmware over SNMP: når enheden polles direkte, svarer den på systemgruppen og interfacetabellerne, som giver dens model og dens MAC-adresse, og intet andet. Når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation, henter enheden dem, og alt andet, dens polling lader stå tomt, fra Meraki-dashboardet, og dens kort **Inventar** nævner forbindelsen i en række **Meraki**.
 
@@ -957,6 +957,7 @@ For at kortet fyldes ud:
 - Giv enhederne SNMP-loginoplysninger. Nabotabeller kommer fra walket, så en enhed kun med ping vises på kortet, men rapporterer ingen egne naboer.
 - Hold **Walk Interfaces** slået til i enhedernes pollingindstillinger: nabotabellerne walkes sammen med interfaces.
 - Slå LLDP, eller CDP på Cisco-enheder, til på enhederne selv.
+- På et Meraki-netværk skal du forbinde dashboardet. En [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) tegner de kabler, Meraki kender, også dem til en MX, der kun svarer på ping.
 
 Klik på en ikke-administreret peer, og **Add to Monitoring** registrerer den som en sonde-pollet enhed. Den tager den sonde, som dens naboer er enige om, så den pinges fra sin første polling, og du kan tilføje loginoplysninger senere, hvis den viser sig at have SNMP.
 
@@ -995,6 +996,8 @@ For det skal kortet vide, hvilken lært MAC der er enhedens. Der er to måder, o
 - Ved at skrive den: sæt **MAC-adresse** på enheden, på dens side **Indstillinger** eller kortet på oversigten, når dens værtsnavn er et DNS-navn, eller ingen router på lokationen walkes. Alle de sædvanlige skrivemåder accepteres.
 
 Den switch, enheden hænger på, skal også have **Collect Connected Endpoints** slået til: det er derfra, porten kommer. Adresser matches inden for enhedens lokation, da hver filial har en `10.0.0.5`; en MAC matcher uanset lokationen.
+
+En [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) klarer alt dette, uden at noget skal slås til. Merakis klientliste viser, hvilken switch og port hver klient er på, så en enhed placeres, så snart den switch er en netværksenhed her, på samme lokation. Listen giver også enheden dens MAC-adresse, og det, Meraki kalder en klient, vises i kolonnen **Værtsnavn** under **Endepunkter**. Den læses hver anden time, så en ny enhed kan være så længe om at dukke op. Så længe Meraki rapporterer en klient, går dens port forud for en gennemgået forwarding-tabel, fordi Meraki kan skelne en adgangsport fra et uplink. En Wi-Fi-klient placeres kun på sit adgangspunkt, når den er en enhed her: Telefonerne på et gæstenetværk holdes uden for kortet.
 
 Enhedens oversigt har et kort **Forbundet til**, der nævner switchen, porten og VLAN'et. En switch, router eller firewall, der rapporterer sine naboer over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (et link, når den er en enhed her) og porten i den anden ende, med **Åbn kortet** ved siden af. På kortet viser enhedens skuffe det samme under **Forbundet til**, og forbindelsens skuffe siger, at den blev lært fra switchens forwardingtabel. Parent-Child-visningen tegner enheden under dens switch. En forbindelse, du har tegnet i hånden under **Device Links** for det samme par, smelter sammen med den lærte i stedet for at fordoble den: den lærte port erstatter en fejlskrevet, og en forælder, du har sat på den håndtegnede forbindelse, bevares.
 
@@ -1053,6 +1056,8 @@ Kortet tegner en enhed kun med pings kabel ud fra dens switchs forwardingtabel, 
 - Switchen indsamler endepunkter: **Collect Connected Endpoints** slået til i dens pollingindstillinger, med loginoplysninger, der lader walket lykkes. Enhedens oversigt viser et kort **Forbundet til**, så snart en switch har lært den.
 - Enhedens MAC er kendt: dens **MAC-adresse** er sat, eller en router på lokationen indsamler endepunkter, og enhedens værtsnavn er den adresse, som routerens ARP-tabel binder. En enhed, der er registreret efter DNS-navn uden MAC, kan ikke matches, så skriv MAC'en ind.
 - Samme lokation: en adresse matches kun med en enhed i samme lokation som den switch, der lærte den. En enhed uden lokation matches kun efter adresse, når switchen heller ingen lokation har; hvis switchen er i en lokation, så sæt enheden i den samme. En MAC matcher uanset lokationen.
+
+Enhedens panel på kortet viser, hvad af dette der mangler. På et Meraki-netværk træder Merakis klientliste i stedet for de to første: Tjek, at switchen er en netværksenhed her, på samme lokation, og regn med to timer, før en ny enhed dukker op.
 
 Hvis enheden står bag en ikke-administreret switch eller en hub, lærer den administrerede switch hver MAC bag den på én port, og det er den port, kortet tegner: den fysiske sandhed, som den administrerede switch ser den.
 :::

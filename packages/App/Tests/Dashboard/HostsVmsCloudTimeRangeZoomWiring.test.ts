@@ -365,7 +365,7 @@ describe("Proxmox Insights rate charts sit inside the scope", () => {
 });
 
 describe.each([
-  ["Cloud environment overview", "Pages/Cloud/View/Overview.tsx"],
+  ["Cloud environment overview", "Pages/AppPlatforms/View/Overview.tsx"],
   ["Serverless function overview", "Pages/Serverless/View/Overview.tsx"],
 ])("%s", (_name: string, file: string) => {
   const source: string = readSquashed(file);

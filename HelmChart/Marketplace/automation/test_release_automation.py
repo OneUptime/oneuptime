@@ -447,6 +447,27 @@ class AwsCatalogTest(unittest.TestCase):
         self.assertLess(len(notes), aws_catalog.RELEASE_NOTES_LIMIT)
         self.assertTrue(notes.endswith(f"releases/tag/{VERSION}"))
 
+    def test_release_notes_hold_only_what_aws_is_sure_to_take(self) -> None:
+        notes = aws_catalog.release_notes_for(
+            VERSION,
+            "## \u2728 New and improved\n\n"
+            "- Network \u2192 Traffic (#5340)\n\n"
+            "## \u26a0\ufe0f Breaking changes\n\n"
+            "<summary>\U0001f9f0 Maintenance (2)</summary>\n\n"
+            "- `@hono/node-server`\ttabbed",
+        )
+        self.assertEqual(
+            notes,
+            "## New and improved\n\n"
+            "- Network Traffic (#5340)\n\n"
+            "## Breaking changes\n\n"
+            "<summary>Maintenance (2)</summary>\n\n"
+            "- `@hono/node-server`\ttabbed",
+        )
+
+    def test_release_notes_with_nothing_aws_takes_are_the_link(self) -> None:
+        self.assertIn(f"releases/tag/{VERSION}", aws_catalog.release_notes_for(VERSION, "\u2728 "))
+
     def test_a_change_needs_the_product(self) -> None:
         with self.assertRaises(release_common.ReleaseError):
             aws_catalog.change("AddDeliveryOptions", "", {})

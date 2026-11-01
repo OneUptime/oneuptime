@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39322,
-    "untranslated": 13164
+    "keys": 39389,
+    "untranslated": 13106
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -45,10 +45,12 @@
     "Datacenter",
     "Datastore",
     "Datastores",
+    "DeploymentConfigs",
     "Desktop",
     "Directory",
     "Docker Compose",
     "Down · In",
+    "Edge",
     "Embedding",
     "Endpoint",
     "Failover",
@@ -94,9 +96,11 @@
     "Object Gateway",
     "Offline",
     "Online",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "Password",
     "Pattern {{number}}: {{problem}}",
     "Peer",
@@ -117,7 +121,9 @@
     "Pull request #{{number}}",
     "Pull request {{label}}",
     "Query",
+    "Re-encrypt",
     "Record",
+    "Red Hat OpenShift",
     "Report",
     "Repository",
     "Rollback: {{command}}",
@@ -137,6 +143,7 @@
     "Stacks",
     "Standard",
     "Stratum",
+    "TLS",
     "Tablet",
     "Tag",
     "Task · 31% CPU · 380 MB",
