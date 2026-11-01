@@ -37,7 +37,7 @@ Le cluster s'enregistre avec ses premières données, sous le nom que l'agent ap
 | Résultats des sauvegardes, nœuds isolés et réplications en échec, depuis les notifications de Proxmox VE (8.3 ou ultérieure) | Oui | Oui |
 | Agent IA Proxmox | Oui | Non |
 
-Les modèles **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** et **Replication Failing** nécessitent l'agent. Utilisez l'un ou l'autre pour un cluster : exécuter les deux signale chaque ressource deux fois.
+Les modèles **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** et **Replication Failing** nécessitent l'agent. Utilisez l'un ou l'autre pour un cluster : exécuter les deux signale chaque ressource deux fois.
 
 ## Avant de commencer
 
@@ -324,7 +324,7 @@ Le push natif n'envoie que ce que chaque nœud sait de lui-même : une partie de
 | --- | --- |
 | État HA | Non poussé : le modèle **HA Resource in Error State** nécessite l'agent. |
 | Indicateur de démarrage au boot | Non poussé : **Guest Down**, qui n'alerte que pour les invités configurés pour démarrer au boot, nécessite l'agent. |
-| Couverture des sauvegardes et réplication | Non poussées : **Guest Not Backed Up** et **Replication Failing** nécessitent l'agent. |
+| Couverture des sauvegardes et réplication | Non poussées : **Guest Not Backed Up**, **Backup Running Too Long** et **Replication Failing** nécessitent l'agent. |
 
 Si vous en avez besoin, exécutez plutôt l'agent et supprimez le serveur de métriques : exécuter les deux signale chaque ressource deux fois.
 

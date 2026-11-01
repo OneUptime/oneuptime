@@ -37,7 +37,7 @@ flowchart TB
 | Proxmox VE 통지(8.3 이상)에서 오는 백업 결과, 펜싱된 노드, 실패한 복제 | 예 | 예 |
 | Proxmox AI 에이전트 | 예 | 아니요 |
 
-**HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Replication Failing** 템플릿에는 에이전트가 필요합니다. 클러스터에는 둘 중 하나만 사용하세요. 둘 다 실행하면 모든 리소스가 두 번 보고됩니다.
+**HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long**, **Replication Failing** 템플릿에는 에이전트가 필요합니다. 클러스터에는 둘 중 하나만 사용하세요. 둘 다 실행하면 모든 리소스가 두 번 보고됩니다.
 
 ## 시작하기 전에
 
@@ -324,7 +324,7 @@ OneUptime 수집이 중단된 뒤에는, 새로 조용해진 노드는 다른 �
 | --- | --- |
 | HA 상태 | 푸시되지 않음: **HA Resource in Error State** 템플릿에는 에이전트가 필요합니다. |
 | 부팅 시 시작 플래그 | 푸시되지 않음: 부팅 시 시작하도록 설정된 게스트에 대해서만 호출하는 **Guest Down**에는 에이전트가 필요합니다. |
-| 백업 적용 범위와 복제 | 푸시되지 않음: **Guest Not Backed Up**과 **Replication Failing**에는 에이전트가 필요합니다. |
+| 백업 적용 범위와 복제 | 푸시되지 않음: **Guest Not Backed Up**, **Backup Running Too Long**과 **Replication Failing**에는 에이전트가 필요합니다. |
 
 이것들이 필요하다면 대신 에이전트를 실행하고 메트릭 서버를 제거하세요. 둘 다 실행하면 모든 리소스가 두 번 보고됩니다.
 

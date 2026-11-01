@@ -37,7 +37,7 @@ The cluster registers itself with its first data, under the name the agent stamp
 | Backup results, fenced nodes and failed replication, from Proxmox VE's notifications (8.3 or later) | Yes | Yes |
 | Proxmox AI agent | Yes | No |
 
-The **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** and **Replication Failing** templates need the agent. Use one or the other for a cluster: running both reports every resource twice.
+The **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** and **Replication Failing** templates need the agent. Use one or the other for a cluster: running both reports every resource twice.
 
 ## Before you begin
 
@@ -324,7 +324,7 @@ The native push sends only what each node knows about itself, so part of what th
 | --- | --- |
 | HA state | Not pushed: the **HA Resource in Error State** template needs the agent. |
 | Start-on-boot flag | Not pushed: **Guest Down**, which only pages for guests set to start on boot, needs the agent. |
-| Backup coverage and replication | Not pushed: **Guest Not Backed Up** and **Replication Failing** need the agent. |
+| Backup coverage and replication | Not pushed: **Guest Not Backed Up**, **Backup Running Too Long** and **Replication Failing** need the agent. |
 
 If you need those, run the agent instead, and remove the metric server: running both reports every resource twice.
 

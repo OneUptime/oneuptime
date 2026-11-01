@@ -161,7 +161,7 @@ Ogni nodo e ogni job di backup riceve il proprio incidente e il proprio avviso. 
 
 Proxmox VE 9 e successivi possono inviare le metriche tramite il loro server di metriche OpenTelemetry integrato, senza installare nulla: vedete la [guida all'agente Proxmox](/docs/telemetry/proxmox). OneUptime trasforma l'invio nelle stesse serie `pve_*`, quindi il catalogo e i modelli di CPU, memoria e storage funzionano con esso.
 
-Funzionano anche **Node Offline** e **Cluster Quorum at Risk**: ogni nodo invia solo il proprio stato, quindi un nodo che smette di comunicare viene segnalato come giù (`pve_up` = 0) dai nodi ancora vivi; vedete [Quando un nodo smette di comunicare](/docs/telemetry/proxmox#quando-un-nodo-smette-di-inviare-dati). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** e **Replication Failing** hanno bisogno di dati che solo l'agente raccoglie. Anche i due [avvisi sulle notifiche](#avvisi-sulle-notifiche-di-proxmox-ve) funzionano con l'invio nativo: Proxmox VE invia da sé le sue notifiche.
+Funzionano anche **Node Offline** e **Cluster Quorum at Risk**: ogni nodo invia solo il proprio stato, quindi un nodo che smette di comunicare viene segnalato come giù (`pve_up` = 0) dai nodi ancora vivi; vedete [Quando un nodo smette di comunicare](/docs/telemetry/proxmox#quando-un-nodo-smette-di-inviare-dati). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** e **Replication Failing** hanno bisogno di dati che solo l'agente raccoglie. Anche i due [avvisi sulle notifiche](#avvisi-sulle-notifiche-di-proxmox-ve) funzionano con l'invio nativo: Proxmox VE invia da sé le sue notifiche.
 
 ## Metriche raccolte
 

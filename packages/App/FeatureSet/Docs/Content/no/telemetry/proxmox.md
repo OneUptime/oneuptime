@@ -37,7 +37,7 @@ Klyngen registrerer seg med de første dataene sine, under navnet agenten stempl
 | Sikkerhetskopiresultater, isolerte noder og mislykket replikering, fra notifikasjonene i Proxmox VE (8.3 eller nyere) | Ja | Ja |
 | Proxmox-AI-agent | Ja | Nei |
 
-Malene **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** og **Replication Failing** trenger agenten. Bruk det ene eller det andre for en klynge: å kjøre begge rapporterer hver ressurs to ganger.
+Malene **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger agenten. Bruk det ene eller det andre for en klynge: å kjøre begge rapporterer hver ressurs to ganger.
 
 ## Før du begynner
 
@@ -324,7 +324,7 @@ Native push sender bare det hver node vet om seg selv, så en del av det agenten
 | --- | --- |
 | HA-tilstand | Pushes ikke: malen **HA Resource in Error State** trenger agenten. |
 | Flagg for start ved oppstart | Pushes ikke: **Guest Down**, som bare varsler for gjester satt til å starte ved oppstart, trenger agenten. |
-| Sikkerhetskopidekning og replikering | Pushes ikke: **Guest Not Backed Up** og **Replication Failing** trenger agenten. |
+| Sikkerhetskopidekning og replikering | Pushes ikke: **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger agenten. |
 
 Hvis du trenger disse, kjør agenten i stedet, og fjern metrikkserveren: å kjøre begge rapporterer hver ressurs to ganger.
 

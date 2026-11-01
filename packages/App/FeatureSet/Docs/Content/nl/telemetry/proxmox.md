@@ -37,7 +37,7 @@ Het cluster registreert zich met zijn eerste gegevens, onder de naam die de agen
 | Back-upresultaten, geïsoleerde nodes en mislukte replicatie, uit de meldingen van Proxmox VE (8.3 of later) | Ja | Ja |
 | Proxmox-AI-agent | Ja | Nee |
 
-De sjablonen **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** en **Replication Failing** hebben de agent nodig. Gebruik voor een cluster het een of het ander: beide draaien meldt elke resource twee keer.
+De sjablonen **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** en **Replication Failing** hebben de agent nodig. Gebruik voor een cluster het een of het ander: beide draaien meldt elke resource twee keer.
 
 ## Voordat je begint
 
@@ -324,7 +324,7 @@ De native push stuurt alleen wat elke node over zichzelf weet, dus een deel van 
 | --- | --- |
 | HA-status | Niet gepusht: het sjabloon **HA Resource in Error State** heeft de agent nodig. |
 | Vlag voor opstarten bij boot | Niet gepusht: **Guest Down**, dat alleen alarmeert voor gasten die bij het opstarten moeten starten, heeft de agent nodig. |
-| Back-updekking en replicatie | Niet gepusht: **Guest Not Backed Up** en **Replication Failing** hebben de agent nodig. |
+| Back-updekking en replicatie | Niet gepusht: **Guest Not Backed Up**, **Backup Running Too Long** en **Replication Failing** hebben de agent nodig. |
 
 Heb je die nodig, draai dan in plaats daarvan de agent, en verwijder de metricserver: beide draaien meldt elke resource twee keer.
 

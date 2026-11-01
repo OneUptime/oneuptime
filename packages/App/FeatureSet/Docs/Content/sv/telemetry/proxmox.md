@@ -37,7 +37,7 @@ Klustret registrerar sig med sina första data, under det namn som agenten stäm
 | Säkerhetskopieringsresultat, isolerade noder och misslyckad replikering, från Proxmox VE:s aviseringar (8.3 eller senare) | Ja | Ja |
 | Proxmox-AI-agent | Ja | Nej |
 
-Mallarna **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** och **Replication Failing** behöver agenten. Använd det ena eller det andra för ett kluster: att köra båda rapporterar varje resurs två gånger.
+Mallarna **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** och **Replication Failing** behöver agenten. Använd det ena eller det andra för ett kluster: att köra båda rapporterar varje resurs två gånger.
 
 ## Innan du börjar
 
@@ -324,7 +324,7 @@ Den inbyggda pushen skickar bara det som varje nod vet om sig själv, så en del
 | --- | --- |
 | HA-tillstånd | Pushas inte: mallen **HA Resource in Error State** behöver agenten. |
 | Flaggan för start vid uppstart | Pushas inte: **Guest Down**, som bara larmar för gäster som är inställda på att starta vid uppstart, behöver agenten. |
-| Säkerhetskopieringstäckning och replikering | Pushas inte: **Guest Not Backed Up** och **Replication Failing** behöver agenten. |
+| Säkerhetskopieringstäckning och replikering | Pushas inte: **Guest Not Backed Up**, **Backup Running Too Long** och **Replication Failing** behöver agenten. |
 
 Om du behöver dem kör du agenten i stället och tar bort mätvärdesservern: att köra båda rapporterar varje resurs två gånger.
 

@@ -37,7 +37,7 @@ flowchart TB
 | Proxmox VE の通知（8.3 以降）からのバックアップの結果、フェンシングされたノード、失敗したレプリケーション | はい | はい |
 | Proxmox AI エージェント | はい | いいえ |
 
-**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Replication Failing** の各テンプレートにはエージェントが必要です。1 つのクラスターにはどちらか一方を使ってください。両方を実行すると、すべてのリソースが二重に報告されます。
+**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Backup Running Too Long**、**Replication Failing** の各テンプレートにはエージェントが必要です。1 つのクラスターにはどちらか一方を使ってください。両方を実行すると、すべてのリソースが二重に報告されます。
 
 ## 始める前に
 
@@ -324,7 +324,7 @@ OneUptime の取り込みが停止したあとは、新たに沈黙したノー�
 | --- | --- |
 | HA の状態 | プッシュされません: **HA Resource in Error State** テンプレートにはエージェントが必要です。 |
 | 起動時の自動開始のフラグ | プッシュされません: 起動時に自動開始する設定のゲストについてだけ呼び出す **Guest Down** には、エージェントが必要です。 |
-| バックアップの対象範囲とレプリケーション | プッシュされません: **Guest Not Backed Up** と **Replication Failing** にはエージェントが必要です。 |
+| バックアップの対象範囲とレプリケーション | プッシュされません: **Guest Not Backed Up**、**Backup Running Too Long** と **Replication Failing** にはエージェントが必要です。 |
 
 これらが必要な場合は、代わりにエージェントを実行し、メトリクスサーバーを削除してください。両方を実行すると、すべてのリソースが二重に報告されます。
 

@@ -37,7 +37,7 @@ Der Cluster registriert sich mit seinen ersten Daten unter dem Namen, den der Ag
 | Backup-Ergebnisse, Fencing von Knoten und fehlgeschlagene Replikation aus den Benachrichtigungen von Proxmox VE (8.3 oder neuer) | Ja | Ja |
 | Proxmox-KI-Agent | Ja | Nein |
 
-Die Vorlagen **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** und **Replication Failing** brauchen den Agent. Verwenden Sie für einen Cluster das eine oder das andere: Beides zu betreiben meldet jede Ressource doppelt.
+Die Vorlagen **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** und **Replication Failing** brauchen den Agent. Verwenden Sie für einen Cluster das eine oder das andere: Beides zu betreiben meldet jede Ressource doppelt.
 
 ## Bevor Sie beginnen
 
@@ -324,7 +324,7 @@ Der native Push sendet nur, was jeder Knoten über sich selbst weiß; ein Teil d
 | --- | --- |
 | HA-Zustand | Wird nicht gesendet: Die Vorlage **HA Resource in Error State** braucht den Agent. |
 | Flag Start beim Booten | Wird nicht gesendet: **Guest Down**, das nur bei Gästen alarmiert, die beim Booten starten sollen, braucht den Agent. |
-| Backup-Abdeckung und Replikation | Werden nicht gesendet: **Guest Not Backed Up** und **Replication Failing** brauchen den Agent. |
+| Backup-Abdeckung und Replikation | Werden nicht gesendet: **Guest Not Backed Up**, **Backup Running Too Long** und **Replication Failing** brauchen den Agent. |
 
 Brauchen Sie diese, betreiben Sie stattdessen den Agent und entfernen Sie den Metrikserver: Beides zu betreiben meldet jede Ressource doppelt.
 

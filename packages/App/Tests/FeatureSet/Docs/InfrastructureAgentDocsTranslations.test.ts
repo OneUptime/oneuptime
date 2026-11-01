@@ -163,6 +163,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "HA Resource in Error State",
     "Guest Down",
     "Guest Not Backed Up",
+    "Backup Running Too Long",
     "Replication Failing",
     "Node Offline",
     "Cluster Quorum at Risk",

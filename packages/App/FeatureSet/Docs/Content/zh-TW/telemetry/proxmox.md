@@ -37,7 +37,7 @@ flowchart TB
 | 來自 Proxmox VE 通知（8.3 或更新版本）的備份結果、被隔離的節點和失敗的複寫 | 是 | 是 |
 | Proxmox AI 代理程式 | 是 | 否 |
 
-**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up** 和 **Replication Failing** 範本需要代理程式。一個叢集請只使用其中一種方式：同時執行兩者會將每個資源回報兩次。
+**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 範本需要代理程式。一個叢集請只使用其中一種方式：同時執行兩者會將每個資源回報兩次。
 
 ## 開始之前
 
@@ -324,7 +324,7 @@ Proxmox VE 9.0 及更新版本隨附一個 OpenTelemetry 指標伺服器，可�
 | --- | --- |
 | HA 狀態 | 不會推送：**HA Resource in Error State** 範本需要代理程式。 |
 | 開機啟動旗標 | 不會推送：只為設定了開機啟動的客體發出呼叫的 **Guest Down** 需要代理程式。 |
-| 備份涵蓋範圍和複寫 | 不會推送：**Guest Not Backed Up** 和 **Replication Failing** 需要代理程式。 |
+| 備份涵蓋範圍和複寫 | 不會推送：**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 需要代理程式。 |
 
 如果你需要這些，請改為執行代理程式，並移除指標伺服器：同時執行兩者會將每個資源回報兩次。
 

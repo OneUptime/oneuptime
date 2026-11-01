@@ -37,7 +37,7 @@ flowchart TB
 | 来自 Proxmox VE 通知（8.3 或更高版本）的备份结果、被隔离的节点和失败的复制 | 是 | 是 |
 | Proxmox AI 代理 | 是 | 否 |
 
-**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up** 和 **Replication Failing** 模板需要代理。一个集群请只使用其中一种方式：同时运行两者会把每个资源报告两次。
+**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 模板需要代理。一个集群请只使用其中一种方式：同时运行两者会把每个资源报告两次。
 
 ## 开始之前
 
@@ -324,7 +324,7 @@ Proxmox VE 9.0 及更高版本自带一个 OpenTelemetry 指标服务器，可�
 | --- | --- |
 | HA 状态 | 不推送：**HA Resource in Error State** 模板需要代理。 |
 | 开机启动标志 | 不推送：只为设置了开机启动的客户机发出呼叫的 **Guest Down** 需要代理。 |
-| 备份覆盖情况和复制 | 不推送：**Guest Not Backed Up** 和 **Replication Failing** 需要代理。 |
+| 备份覆盖情况和复制 | 不推送：**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 需要代理。 |
 
 如果你需要这些，请改为运行代理，并移除指标服务器：同时运行两者会把每个资源报告两次。
 

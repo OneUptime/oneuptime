@@ -37,7 +37,7 @@ O cluster se registra com os primeiros dados, com o nome que o agente marca em c
 | Resultados de backup, nós isolados e replicação com falha, das notificações do Proxmox VE (8.3 ou posterior) | Sim | Sim |
 | Agente de IA do Proxmox | Sim | Não |
 
-Os modelos **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** e **Replication Failing** precisam do agente. Use um ou outro em um cluster: executar os dois informa cada recurso duas vezes.
+Os modelos **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** e **Replication Failing** precisam do agente. Use um ou outro em um cluster: executar os dois informa cada recurso duas vezes.
 
 ## Antes de começar
 
@@ -324,7 +324,7 @@ O push nativo envia só o que cada nó sabe sobre si mesmo, então parte do que 
 | --- | --- |
 | Estado de HA | Não é enviado: o modelo **HA Resource in Error State** precisa do agente. |
 | Flag de início na inicialização | Não é enviada: **Guest Down**, que só alerta sobre convidados configurados para iniciar na inicialização, precisa do agente. |
-| Cobertura de backups e replicação | Não são enviadas: **Guest Not Backed Up** e **Replication Failing** precisam do agente. |
+| Cobertura de backups e replicação | Não são enviadas: **Guest Not Backed Up**, **Backup Running Too Long** e **Replication Failing** precisam do agente. |
 
 Se você precisa disso, execute o agente em vez do push e remova o servidor de métricas: executar os dois informa cada recurso duas vezes.
 

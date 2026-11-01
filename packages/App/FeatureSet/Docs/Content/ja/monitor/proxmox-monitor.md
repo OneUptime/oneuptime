@@ -161,7 +161,7 @@ flowchart TB
 
 Proxmox VE 9 以降は、組み込みの OpenTelemetry メトリクスサーバーを通じて、何もインストールせずにメトリクスをプッシュできます。[Proxmox エージェントのガイド](/docs/telemetry/proxmox) を参照してください。OneUptime はプッシュを同じ `pve_*` 系列に変換するため、カタログと、CPU、メモリ、ストレージのテンプレートはそのまま使えます。
 
-**Node Offline** と **Cluster Quorum at Risk** も動作します。各ノードは自身のステータスだけをプッシュするため、報告が止まったノードは、まだ動いているノードによって停止（`pve_up` = 0）と報告されます。[ノードの報告が止まったとき](/docs/telemetry/proxmox#ノードの報告が止まったとき) を参照してください。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Replication Failing** には、エージェントだけが収集するデータが必要です。 2 つの [通知のアラート](#proxmox-ve-の通知に対するアラート) もネイティブプッシュで動作します。Proxmox VE が自分で通知を送るためです。
+**Node Offline** と **Cluster Quorum at Risk** も動作します。各ノードは自身のステータスだけをプッシュするため、報告が止まったノードは、まだ動いているノードによって停止（`pve_up` = 0）と報告されます。[ノードの報告が止まったとき](/docs/telemetry/proxmox#ノードの報告が止まったとき) を参照してください。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Backup Running Too Long**、**Replication Failing** には、エージェントだけが収集するデータが必要です。 2 つの [通知のアラート](#proxmox-ve-の通知に対するアラート) もネイティブプッシュで動作します。Proxmox VE が自分で通知を送るためです。
 
 ## 収集されるメトリクス
 

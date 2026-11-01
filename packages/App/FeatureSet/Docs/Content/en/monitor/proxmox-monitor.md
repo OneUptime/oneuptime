@@ -161,7 +161,7 @@ Each node and backup job gets its own incident and alert. A failed backup job's 
 
 Proxmox VE 9 and later can push metrics through its built-in OpenTelemetry metric server, with nothing to install — see the [Proxmox Agent guide](/docs/telemetry/proxmox). OneUptime turns the push into the same `pve_*` series, so the catalog and the CPU, memory and storage templates work with it.
 
-**Node Offline** and **Cluster Quorum at Risk** work too: each node pushes only its own status, so a node that stops reporting is reported down (`pve_up` = 0) by the nodes still alive — see [When a node stops reporting](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** and **Replication Failing** need data only the agent collects. The two [notification alerts](#alerts-on-proxmox-ves-notifications) work with it too: Proxmox VE sends its notifications itself.
+**Node Offline** and **Cluster Quorum at Risk** work too: each node pushes only its own status, so a node that stops reporting is reported down (`pve_up` = 0) by the nodes still alive — see [When a node stops reporting](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** and **Replication Failing** need data only the agent collects. The two [notification alerts](#alerts-on-proxmox-ves-notifications) work with it too: Proxmox VE sends its notifications itself.
 
 ## Collected Metrics
 
