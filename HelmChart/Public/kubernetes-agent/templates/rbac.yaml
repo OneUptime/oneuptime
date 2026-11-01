@@ -148,6 +148,24 @@ rules:
       - cluster
     verbs: ["get"]
 {{- end }}
+{{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+  # For the k8sobjects/openshift receiver (configmap-deployment.yaml):
+  # OpenShift's own objects, read only. A Route's TLS key is replaced before
+  # its record leaves the cluster (transform/openshift-route-tls).
+  - apiGroups: ["config.openshift.io"]
+    resources:
+      - clusteroperators
+      - clusterversions
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["route.openshift.io"]
+    resources:
+      - routes
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps.openshift.io"]
+    resources:
+      - deploymentconfigs
+    verbs: ["get", "list", "watch"]
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

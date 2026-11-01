@@ -257,6 +257,28 @@ override: false leaves an attribute a record already carries as it is. Each
 pipeline runs it right after the resource processor.
 Usage: {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
 */}}
+{{/*
+Whether the cluster collector pulls OpenShift's own objects - Routes,
+DeploymentConfigs, ClusterOperators and the ClusterVersion - on the openshift
+preset, with the other resource specs (resourceSpecs.enabled), for the
+Kubernetes pages and the OpenShift alert templates.
+
+They come from a k8sobjects receiver of their own with error_mode: ignore,
+which collector 0.125.0 added. A cluster that does not serve one of them
+(DeploymentConfigs are an optional capability since OpenShift 4.14) then
+skips it, where a missing object would otherwise stop the receiver that sends
+the events and every other spec. An older collector (a release upgraded with
+--reuse-values keeps its image) leaves them out until it is upgraded.
+Usage: {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.openshiftObjectsEnabled" -}}
+{{- if and (eq (include "kubernetes-agent.openshift" .) "true") .Values.resourceSpecs.enabled (eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.125.0")) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
 {{- define "kubernetes-agent.openshiftDetector" -}}
 resourcedetection/openshift:
   detectors: [openshift]

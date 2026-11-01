@@ -87,3 +87,18 @@ tests:
           pattern: "OpenShift|openshift|SCC"
       - matchRegexRaw:
           pattern: "\\nOneUptime URL: https://oneuptime\\.example\\.com\\n\\nThe agent is now collecting:"
+
+  - it: lists OpenShift's objects among what the agent collects on the openshift preset
+    set:
+      preset: openshift
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Kubernetes events \\(k8sobjects\\)\\n  - OpenShift's cluster operators and version, Routes and DeploymentConfigs \\(k8sobjects/openshift\\)\\n"
+
+  - it: does not list them when resource specs are off
+    set:
+      preset: openshift
+      resourceSpecs.enabled: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "k8sobjects/openshift"
