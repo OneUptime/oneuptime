@@ -53,6 +53,7 @@ import KubernetesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Kubern
 import KubernetesOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index";
 import KubernetesPodDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/PodDetail";
 import KubernetesEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Events";
+import KubernetesRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Recommendations";
 import OpenShiftRoutes from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/OpenShiftRoutes";
 import OpenShiftRouteDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/OpenShiftRouteDetail";
 import KubernetesServices from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Services";
@@ -79,6 +80,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
+import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
 import { storedKubernetesEventLog } from "Common/Tests/Helpers/KubernetesEventRecords";
 
 /*
@@ -964,7 +966,46 @@ const store = {
   DatabaseServer: [],
   // What a Metrics tab's chart reads beside its series: nothing here.
   MetricType: [],
+  /*
+   * What the cluster's Recommendations page reads to build a monitor and fill
+   * its create panel: the project's statuses and severities, and no on-call
+   * policies or labels yet.
+   */
+  MonitorStatus: [
+    {
+      _id: uuid("55000000", 1),
+      name: "Operational",
+      isOperationalState: true,
+      isOfflineState: false,
+      priority: 1,
+    },
+    {
+      _id: uuid("55000000", 2),
+      name: "Offline",
+      isOperationalState: false,
+      isOfflineState: true,
+      priority: 2,
+    },
+  ],
+  IncidentSeverity: [
+    { _id: uuid("56000000", 1), name: "Critical", order: 1 },
+    { _id: uuid("56000000", 2), name: "Major", order: 2 },
+  ],
+  AlertSeverity: [
+    { _id: uuid("57000000", 1), name: "Critical", order: 1 },
+    { _id: uuid("57000000", 2), name: "Warning", order: 2 },
+  ],
+  OnCallDutyPolicy: [],
+  Label: [],
 };
+
+for (const name of ARCHIVABLE_VALUE_TABLE_NAMES) {
+  for (const record of store[name] || []) {
+    if (record.isArchived === undefined) {
+      record.isArchived = false;
+    }
+  }
+}
 
 function rows(modelType, query) {
   const name = tableName(modelType);
@@ -1311,6 +1352,7 @@ function withNavigation(Component, pageKey) {
 const PAGES = [
   [PageMap.KUBERNETES_CLUSTER_VIEW, KubernetesOverview],
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS, KubernetesEventsPage],
+  [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS, KubernetesRecommendations],
   [PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL, KubernetesPodDetail],
   [PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES, OpenShiftRoutes],
   [PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL, OpenShiftRouteDetail],

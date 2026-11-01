@@ -894,6 +894,69 @@ test.describe("the Overview's OpenShift card", () => {
   });
 });
 
+test.describe("the cluster's Recommendations", () => {
+  const OPENSHIFT_ALERTS: Array<string> = [
+    "Cluster Operator Unavailable",
+    "Cluster Operator Degraded",
+    "Cluster Update Failing",
+  ];
+
+  // What the menu's Recommendations entry says is left to do.
+  async function menuCount(page: Page): Promise<number> {
+    const entry: Locator = page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("link", { name: /Recommendations/ });
+
+    await expect(entry).toContainText(/[0-9]+/);
+
+    return Number(((await entry.textContent()) || "").replace(/[^0-9]/g, ""));
+  }
+
+  test("an OpenShift cluster is offered OpenShift's alerts, under their own heading", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "recommendations");
+
+    for (const alert of OPENSHIFT_ALERTS) {
+      await expect(page.getByText(alert, { exact: true })).toBeVisible();
+    }
+
+    await expect(
+      page.getByText("OpenShift", { exact: true }).first(),
+    ).toBeVisible();
+
+    await screenshot(page, "recommendations");
+  });
+
+  test("any other cluster is not", async ({ page }: { page: Page }) => {
+    await page.goto(`${CLUSTER_PATH}/recommendations?cluster=plain`);
+
+    await expect(
+      page.getByText("Warning Events", { exact: true }),
+    ).toBeVisible();
+
+    for (const alert of OPENSHIFT_ALERTS) {
+      await expect(page.getByText(alert, { exact: true })).toHaveCount(0);
+    }
+  });
+
+  test("the menu's count agrees with what each cluster is offered", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(CLUSTER_PATH);
+    const onOpenShift: number = await menuCount(page);
+
+    await page.goto(`${CLUSTER_PATH}?cluster=plain`);
+    const elsewhere: number = await menuCount(page);
+
+    expect(onOpenShift - elsewhere).toBe(OPENSHIFT_ALERTS.length);
+  });
+});
+
 test("a pod of a DeploymentConfig is owned by it, not by a rollout's controller", async ({
   page,
 }: {
