@@ -4,7 +4,7 @@ Ein Proxmox-Monitor überwacht einen Proxmox-VE-Cluster – seine Knoten, VMs un
 
 :::cards
 - [Den Monitor erstellen](#einen-proxmox-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Zwölf fertige Warnungen, ein Vorfall pro Knoten, Gast oder Volume.
+- [Vorlagen](#fertige-warnungsvorlagen): Fünfzehn fertige Warnungen, ein Vorfall pro Knoten, Gast oder Volume, und zwei zu den eigenen Benachrichtigungen von Proxmox VE.
 - [Ressourcenidentität](#ressourcenidentität): Wie Sie einen einzelnen Knoten, Gast oder ein Speicher-Volume ansprechen.
 - [Metriken](#erfasste-metriken): Jede `pve_*`-Reihe, bei der der Monitor warnen kann.
 :::
@@ -109,7 +109,7 @@ Filtern Sie nach `pve.scope` oder `pve.type` für eine Art von Ressource, nach `
 
 ## Fertige Warnungsvorlagen
 
-Die Liste unter **Worüber benachrichtigt wird** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet 15 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und ein Schwellenwert-Kriterium wird 10 % jenseits seines Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
@@ -119,13 +119,16 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 | Node Offline | Kritisch | `pve_up` für `pve.scope = node`, Min pro `id` | Unter 1 | Bei 1 |
 | Guest Down | Warnung | `pve_up` und `pve_onboot_status` für `pve.scope = guest`, Min pro `id` | `pve_up` unter 1 liegt, während `pve_onboot_status` 1 ist | `pve_up` wieder bei 1 ist oder der Start beim Booten ausgeschaltet wird |
 | Cluster Quorum at Risk | Kritisch | `pve_up` ÷ `pve_node_info` × 100 für `pve.scope = node` (beide Summe): der Anteil der Knoten, die online sind | 50 % oder weniger | Über 55 % |
+| Node Restarted | Warnung | `pve_uptime_seconds` und `pve_up` für `pve.scope = node`, Min pro `id` | `pve_uptime_seconds` unter 900 (15 Minuten) liegt, während `pve_up` 1 ist | `pve_uptime_seconds` bei 990 oder mehr liegt oder `pve_up` 0 ist |
 | High Node CPU Usage | Warnung | `pve_cpu_usage_ratio` für `pve.scope = node`, Avg pro `id` | Über 0,9 (90 % der Kerne des Knotens) | Bei oder unter 0,81 |
 | High Node Memory Usage | Warnung | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 für `pve.scope = node`, pro `id` | Über 85 % | Bei oder unter 76,5 % |
 | High Guest CPU Usage | Warnung | `pve_cpu_usage_ratio` für `pve.scope = guest`, Avg pro `id`, letzte 15 Minuten | Über 0,95 (95 % seiner vCPUs) während aller 15 Minuten | Bei oder unter 0,855 |
+| Storage Unavailable | Kritisch | `pve_up` für `pve.scope = storage`, Min pro `id` | Unter 1 | Bei 1 |
 | Storage Near Full | Warnung | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 für `pve.scope = storage`, pro `id` | Über 85 % | Bei oder unter 76,5 % |
 | Container Root Disk Near Full | Warnung | Dasselbe Festplattenverhältnis für `pve.type = lxc`, pro `id` | Über 90 % | Bei oder unter 81 % |
 | HA Resource in Error State | Kritisch | `pve_ha_state` für `state = error`, Max pro `id` | Über 0 | Bei 0 |
 | Guest Not Backed Up | Warnung | `pve_not_backed_up_total`, Max (eine clusterweite Reihe) | Über 0 | Bei 0 |
+| Backup Running Too Long | Warnung | `pve_lock_state` für `pve.scope = guest` und `state = backup`, Min pro `id`, letzte 6 Stunden | Über 0 | Bei 0 |
 | Replication Failing | Kritisch | `pve_replication_failed_syncs`, Max pro `id` (die Job-ID) | Über 0 | Bei 0 |
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
@@ -134,17 +137,31 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 - **Die Ausfall-Vorlagen verwenden Minimum**, sodass eine einzige Abfrage, bei der die Ressource ausgefallen war, sie auslöst, statt von den Abfragen verdeckt zu werden, bei denen sie lief.
 - **Guest Down** betrachtet nur Gäste, die beim Booten starten sollen: Stoppen Sie einen davon absichtlich, alarmiert er trotzdem, schalten Sie also zuerst seinen Start beim Booten ab.
 - **Cluster Quorum at Risk** zählt die Knoten, die online sind. pve-exporter meldet das Quorum auch selbst, als `pve_up` für `cluster/<name>`: 1, solange der Cluster ein Quorum hat.
+- **Node Restarted** löst für einen Knoten aus, der läuft, aber erst seit weniger als 15 Minuten: Er wurde neu gestartet oder ist abgestürzt und wieder hochgekommen. Sie wird aufgelöst, sobald der Knoten 16,5 Minuten läuft, 10 % jenseits des Schwellenwerts; ein ausgefallener Knoten löst stattdessen **Node Offline** aus.
 - **High Guest CPU Usage** ist höher und langsamer als die Knotenvorlage: Ein Gast soll seine vCPUs nutzen, daher alarmiert nur einer, der nie herunterkommt.
 - **Verhältnisformeln** nehmen auf beiden Seiten die **Summe**. Beide stammen aus derselben Abfrage, das Ergebnis ist also ein echter Prozentsatz.
 - **Container Root Disk Near Full** lässt QEMU-VMs aus: Ihre Festplattennutzung liest ohne den QEMU-Gastagenten 0.
+- **Storage Unavailable** löst aus, wenn ein Speicher, den Proxmox VE für einen Knoten aufführt, nicht mehr verfügbar ist: eine Freigabe, die sich nicht einhängen lässt, ein Proxmox Backup Server, der nicht erreichbar ist, ein Pool, den es nicht mehr gibt. Gäste mit Festplatten darauf hängen oder starten nicht, und Backups dorthin schlagen fehl.
 - **Guest Not Backed Up** deckt nur die Mitgliedschaft in Backup-Jobs ab. pve-exporter sagt nicht, ob Backups liefen oder erfolgreich waren; gruppieren Sie `pve_not_backed_up_info` nach `id`, um die Gäste aufzulisten.
+- **Backup Running Too Long** löst aus, wenn eine VM oder ein Container sechs Stunden lang in jeder Abfrage durch ein Backup gesperrt ist: ein hängendes Backup oder ein Ziel, das für den Gast zu langsam ist. Solange die Sperre besteht, kann der Gast weder migriert noch per Snapshot gesichert noch erneut gesichert werden.
 - **Veraltete Replikation** (jetzt minus die letzte Synchronisierung) kann keine Warnung auslösen, weil Kriterien keine Zeitarithmetik kennen. Die Seite **Übersicht** des Clusters zeigt sie an; warnen Sie stattdessen mit **Replication Failing**.
+
+### Warnungen zu den Benachrichtigungen von Proxmox VE
+
+Zwei weitere Warnungen lesen die eigenen Benachrichtigungen von Proxmox VE, die der Cluster als Logs sendet, sobald Sie [sie an OneUptime senden](/docs/telemetry/proxmox#benachrichtigungen-von-proxmox-ve-senden). Es sind Log-Monitore, die auf der Seite **Empfehlungen** des Clusters angeboten werden, und sie funktionieren mit dem Agent wie mit der nativen Übertragung.
+
+| Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | Warnung | Benachrichtigungslogs mit `pve.notification.type = vzdump` und `pve.notification.severity = error`, pro Knoten und Job, letzte 60 Minuten | Ein Backup-Job meldet einen Fehlschlag | Der nächste Lauf desselben Jobs ist erfolgreich |
+| Node Fenced | Kritisch | Benachrichtigungslogs mit `pve.notification.type = fencing`, pro Knoten, letzte 30 Minuten | Proxmox VE isoliert einen Knoten per Fencing | Dieser Knoten wird 30 Minuten lang nicht erneut isoliert |
+
+Jeder Knoten und jeder Backup-Job erhält einen eigenen Vorfall und eine eigene Warnung. Die Warnung eines fehlgeschlagenen Backup-Jobs bleibt offen, bis ein späterer Lauf desselben Jobs erfolgreich ist, wie lange das auch dauert.
 
 ### Die native Übertragung von Proxmox VE
 
 Proxmox VE 9 und neuer kann Metriken über seinen eingebauten OpenTelemetry-Metrikserver übertragen, ohne dass etwas installiert werden muss – siehe die [Anleitung zum Proxmox-Agent](/docs/telemetry/proxmox). OneUptime wandelt die Übertragung in dieselben `pve_*`-Reihen um, sodass der Katalog und die Vorlagen für CPU, Arbeitsspeicher und Speicher damit funktionieren.
 
-**Node Offline** und **Cluster Quorum at Risk** funktionieren ebenfalls: Jeder Knoten überträgt nur seinen eigenen Status, daher wird ein Knoten, der nicht mehr meldet, von den noch lebenden Knoten als ausgefallen gemeldet (`pve_up` = 0) – siehe [Wenn ein Knoten nicht mehr meldet](/docs/telemetry/proxmox#wenn-ein-knoten-nicht-mehr-meldet). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** und **Replication Failing** brauchen Daten, die nur der Agent erfasst.
+**Node Offline** und **Cluster Quorum at Risk** funktionieren ebenfalls: Jeder Knoten überträgt nur seinen eigenen Status, daher wird ein Knoten, der nicht mehr meldet, von den noch lebenden Knoten als ausgefallen gemeldet (`pve_up` = 0) – siehe [Wenn ein Knoten nicht mehr meldet](/docs/telemetry/proxmox#wenn-ein-knoten-nicht-mehr-meldet). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** und **Replication Failing** brauchen Daten, die nur der Agent erfasst. Die beiden [Warnungen zu den Benachrichtigungen](#warnungen-zu-den-benachrichtigungen-von-proxmox-ve) funktionieren ebenfalls damit: Proxmox VE sendet seine Benachrichtigungen selbst.
 
 ## Erfasste Metriken
 
@@ -180,6 +197,7 @@ Die CPU- und Speicherreihen werden auch für jeden Gast gemeldet, unter den IDs 
 | `pve_disk_read_bytes` | bytes | Vom Gast von der Festplatte gelesene Bytes. Ein Zähler über die gesamte Lebensdauer. |
 | `pve_disk_write_bytes` | bytes | Vom Gast auf die Festplatte geschriebene Bytes. Ein Zähler über die gesamte Lebensdauer. |
 | `pve_onboot_status` | count | 1, wenn der Gast beim Booten des Knotens startet. Ein gestoppter Gast mit dieser Einstellung ist meist ein ungeplanter Ausfall. |
+| `pve_lock_state` | — | Die Sperre, die Proxmox VE auf einem Gast hält, während eine Aufgabe ihn ändert, eine Reihe pro Sperre (`backup`, `migrate`, `snapshot`, …), 1 bei der gehaltenen. Filtern Sie nach dem Label `state`. |
 
 ### Speicher
 
@@ -187,6 +205,7 @@ Die CPU- und Speicherreihen werden auch für jeden Gast gemeldet, unter den IDs 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Auf der Festplatte oder dem Speicher belegte Bytes. Bei einem QEMU-Gast liest sie 0, sofern der QEMU-Gastagent nicht installiert ist. |
 | `pve_disk_size_bytes` | bytes | Gesamtgröße der Festplatte oder des Speichers. |
+| `pve_storage_shared` | count | 1, wenn jeder Knoten des Clusters den Speicher nutzen kann, etwa NFS oder Ceph; 0, wenn nur sein eigener Knoten es kann. |
 | `pve_storage_info` | count | Metadaten des Speichers, immer 1, solange der Speicher existiert. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Volumes. |
 
 ### HA

@@ -25,7 +25,7 @@ import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register
  * installation that goes by a name of its own (ProductBranding, carried by
  * env.js as PRODUCT_BRANDING), they show its logo, or its name when it has
  * no logo, and no OneUptime edition pill: the sign-in page is its own. Its
- * master admins still find the license in the Admin Dashboard header.
+ * master admins still find the license in the Admin Dashboard.
  */
 
 /*

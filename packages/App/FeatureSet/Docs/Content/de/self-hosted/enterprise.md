@@ -116,18 +116,18 @@ Die Datei [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE
 
 Eine neue Installation der Enterprise Edition läuft als **14-tägige Testphase**, gezählt ab dem ersten Start der Enterprise Edition durch die Installation. Die Testphase dient der Evaluierung: Der Produktivbetrieb der Enterprise Edition erfordert ein Abonnement unter der OneUptime Enterprise License. Aktivieren Sie vor dem Ende der Testphase eine Lizenz: Danach enden SCIM, Audit-Protokollierung und Aufbewahrungs-Überschreibungen, und die Enterprise-Konfiguration wird schreibgeschützt (siehe [Wenn eine Lizenz abläuft oder fehlt](#wenn-eine-lizenz-abläuft-oder-fehlt)). Für eine Lizenz wenden Sie sich an [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-Die Lizenz wird über das **Editions-Label** verwaltet, das Master-Admins in der Kopfzeile des Admin-Dashboards und in der Fußzeile des Dashboards sehen. Es zeigt den Lizenzstatus, die Platznutzung und, für Master-Admins, die Instanz-ID.
+Die Lizenz wird unter **Admin Dashboard > Einstellungen > Lizenz** verwaltet: Dort fügen Master-Admins sie hinzu, aktualisieren und ersetzen sie, und niemand sonst kann sie ändern. Das **Editions-Label** in der Kopfzeile des Admin-Dashboards und in der Fußzeile des Dashboards zeigt nur den Stand: den Lizenzstatus und, für Master-Admins, die Platznutzung und die Schaltfläche **Lizenz verwalten**, die zu dieser Seite führt.
 
 OneUptime Enterprise, gekauft auf AWS Marketplace, Microsoft Marketplace oder Google Cloud Marketplace, braucht keinen Lizenzschlüssel: Das Marketplace-Abonnement lizenziert es und rechnet jeden Benutzer stundenweise ab. Siehe [Cloud-Marktplätze](/docs/installation/cloud-marketplaces).
 
 ### Online-Aktivierung (Lizenzschlüssel)
 
 :::steps
-1. Melden Sie sich als Master-Admin an und öffnen Sie das Editions-Label.
+1. Melden Sie sich als Master-Admin an und öffnen Sie **Admin Dashboard > Einstellungen > Lizenz**.
 2. Geben Sie Ihren Lizenzschlüssel ein und validieren Sie ihn.
 :::
 
-Die Installation prüft den Schlüssel bei OneUptime und speichert die Lizenz, die sie erhält. Danach hält sie die Lizenz mit einer täglichen Synchronisierung aktuell. Verwenden Sie **Refresh license** im Editions-Label, um Änderungen wie zusätzliche Plätze oder eine Verlängerung sofort abzurufen.
+Die Installation prüft den Schlüssel bei OneUptime und speichert die Lizenz, die sie erhält. Danach hält sie die Lizenz mit einer täglichen Synchronisierung aktuell. Verwenden Sie **Refresh license** auf derselben Seite, um Änderungen wie zusätzliche Plätze oder eine Verlängerung sofort abzurufen.
 
 Die Online-Aktivierung benötigt ausgehendes HTTPS vom OneUptime-Server zu `https://oneuptime.com`. Erreicht der Server das Internet nur über ein Relay, setzen Sie `ENTERPRISE_LICENSE_SERVER_URL` auf die `https://`-Adresse des Relays. Das Relay muss `/api/enterprise-license/` an oneuptime.com weiterleiten.
 
@@ -136,9 +136,9 @@ Die Online-Aktivierung benötigt ausgehendes HTTPS vom OneUptime-Server zu `http
 Eine Installation ohne Route ins Internet kann statt eines Schlüssels ein **signiertes Lizenz-Token** verwenden:
 
 :::steps
-1. Melden Sie sich als Master-Admin an, öffnen Sie das Editions-Label und notieren Sie die **Instanz-ID**.
+1. Melden Sie sich als Master-Admin an, öffnen Sie **Admin Dashboard > Einstellungen > Lizenz**, wechseln Sie zur Offline-Aktivierung und notieren Sie die **Instanz-ID**.
 2. Bitten Sie OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) um ein Offline-Lizenz-Token für diese Instanz-ID.
-3. Fügen Sie das Token in das Token-Feld des Editions-Labels ein und aktivieren Sie es.
+3. Fügen Sie das Token in das Token-Feld ein und aktivieren Sie es.
 :::
 
 Die Installation prüft das Token selbst, gegen die in Ihr Release eingebauten Signaturschlüssel von OneUptime. Sie kontaktiert OneUptime nie. Ein Token, das für eine Instanz-ID ausgestellt wurde, wird von jeder anderen Installation abgelehnt, und ein Token, das für keine Instanz-ID ausgestellt wurde (etwa das Token, das eine online aktivierte Installation erhält), wird ebenfalls abgelehnt. Um zu verlängern oder Plätze hinzuzufügen, aktivieren Sie ein neues Token, bevor das aktuelle abläuft.

@@ -4,7 +4,7 @@ Proxmox 監測器監控一個 Proxmox VE 叢集（它的節點、虛擬機器與
 
 :::cards
 - [建立監測器](#建立-proxmox-監測器): 在儀表板中完成六個步驟。
-- [範本](#現成的警示範本): 十二個現成的警示，每個節點、客體或磁碟區一個事件。
+- [範本](#現成的警示範本): 十五個現成的警示，每個節點、客體或磁碟區一個事件；另有兩個根據 Proxmox VE 自己的通知。
 - [資源識別](#資源識別): 如何指定單一節點、客體或儲存磁碟區。
 - [指標](#收集的指標): 監測器可以據以發出警示的每個 `pve_*` 序列。
 :::
@@ -109,7 +109,7 @@ flowchart TB
 
 ## 現成的警示範本
 
-**告警內容** 清單提供 12 個範本。每個範本都會建立一個完整的監測器：查詢、屬性篩選器、分組、一個觸發的條件和一個恢復的條件。大多數依 `id` 分組，所以每個節點、客體、磁碟區或工作都有自己的事件和警示。閾值只是起點，你可以編輯。
+**告警內容** 清單提供 15 個範本。每個範本都會建立一個完整的監測器：查詢、屬性篩選器、分組、一個觸發的條件和一個恢復的條件。大多數依 `id` 分組，所以每個節點、客體、磁碟區或工作都有自己的事件和警示。閾值只是起點，你可以編輯。
 
 除非表格另有說明，範本會讀取最近 5 分鐘的資料。條件只有在其視窗的每一分鐘都成立時才會觸發，閾值條件會在越過閾值 10% 處恢復，這樣在邊界附近徘徊的值就不會來回跳動。
 
@@ -119,13 +119,16 @@ flowchart TB
 | Node Offline | 嚴重 | `pve.scope = node` 的 `pve_up`，依 `id` 取 Min | 低於 1 | 等於 1 |
 | Guest Down | 警告 | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，依 `id` 取 Min | `pve_onboot_status` 為 1 時 `pve_up` 低於 1 | `pve_up` 回到 1，或關閉開機時啟動 |
 | Cluster Quorum at Risk | 嚴重 | `pve.scope = node` 的 `pve_up` ÷ `pve_node_info` × 100（兩者都取總和）：上線節點的比例 | 50% 以下 | 高於 55% |
+| Node Restarted | 警告 | `pve.scope = node` 的 `pve_uptime_seconds` 和 `pve_up`，依 `id` 取 Min | `pve_up` 為 1 時 `pve_uptime_seconds` 低於 900（15 分鐘） | `pve_uptime_seconds` 達到 990 以上，或 `pve_up` 為 0 |
 | High Node CPU Usage | 警告 | `pve.scope = node` 的 `pve_cpu_usage_ratio`，依 `id` 取 Avg | 高於 0.9（節點核心的 90%） | 不高於 0.81 |
 | High Node Memory Usage | 警告 | `pve.scope = node` 的 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100，依 `id` | 高於 85% | 不高於 76.5% |
 | High Guest CPU Usage | 警告 | `pve.scope = guest` 的 `pve_cpu_usage_ratio`，依 `id` 取 Avg，最近 15 分鐘 | 整整 15 分鐘都高於 0.95（其 vCPU 的 95%） | 不高於 0.855 |
+| Storage Unavailable | 嚴重 | `pve.scope = storage` 的 `pve_up`，依 `id` 取 Min | 低於 1 | 等於 1 |
 | Storage Near Full | 警告 | `pve.scope = storage` 的 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100，依 `id` | 高於 85% | 不高於 76.5% |
 | Container Root Disk Near Full | 警告 | 針對 `pve.type = lxc` 的同一磁碟比率，依 `id` | 高於 90% | 不高於 81% |
 | HA Resource in Error State | 嚴重 | `state = error` 的 `pve_ha_state`，依 `id` 取 Max | 高於 0 | 等於 0 |
 | Guest Not Backed Up | 警告 | `pve_not_backed_up_total`，Max（整個叢集一個序列） | 高於 0 | 等於 0 |
+| Backup Running Too Long | 警告 | `pve.scope = guest` 且 `state = backup` 的 `pve_lock_state`，依 `id` 取 Min，最近 6 小時 | 高於 0 | 等於 0 |
 | Replication Failing | 嚴重 | `pve_replication_failed_syncs`，依 `id`（工作 ID）取 Max | 高於 0 | 等於 0 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
@@ -134,17 +137,31 @@ flowchart TB
 - **停機類範本使用最小值**，所以只要有一次擷取時資源處於停機狀態就會觸發，而不會被資源正常執行的擷取掩蓋。
 - **Guest Down** 範本只關注設為開機時啟動的客體：刻意停止這樣的客體仍會呼叫，所以請先關閉它的開機時啟動。
 - **Cluster Quorum at Risk** 範本計算上線的節點。pve-exporter 也會以 `cluster/<name>` 的 `pve_up` 直接回報仲裁：叢集具備仲裁期間為 1。
+- **Node Restarted** 範本會在節點上線但執行不到 15 分鐘時觸發：它重新開機了，或者當機後又恢復了。節點執行滿 16.5 分鐘（越過閾值 10%）後即會解決；停機的節點則會觸發 **Node Offline**。
 - **High Guest CPU Usage** 範本的閾值比節點範本更高、反應更慢：客體本來就應該用滿它的 vCPU，所以只有一直降不下來的客體才會呼叫人。
 - **比率公式** 對兩邊都取 **總和**。兩邊來自同一次擷取，所以結果是真正的百分比。
 - **Container Root Disk Near Full** 範本不包括 QEMU 虛擬機器：沒有 QEMU 客體代理程式時，它們的磁碟使用量讀數為 0。
+- **Storage Unavailable** 範本會在 Proxmox VE 為某個節點列出的儲存空間變得無法使用時觸發：無法掛載的共用、無法連線的 Proxmox Backup Server、已經消失的儲存集區。磁碟位於其上的客體會停住或無法啟動，備份到它的工作也會失敗。
 - **Guest Not Backed Up** 範本只涵蓋備份工作的成員資格。pve-exporter 不會回報備份是否執行或成功；若要列出這些客體，請依 `id` 將 `pve_not_backed_up_info` 分組。
+- **Backup Running Too Long** 範本會在虛擬機器或容器在六小時內的每次擷取中都被備份鎖定時觸發：備份停住了，或者備份目標對這個客體來說太慢。鎖定期間，該客體無法遷移、無法建立快照，也無法再次備份。
 - **複寫陳舊度**（目前時間減去最後一次同步）無法用於警示，因為條件不支援時間運算。叢集的 **概覽** 頁面會顯示它；請改用 **Replication Failing** 發出警示。
+
+### 根據 Proxmox VE 通知的警示
+
+另有兩個警示讀取 Proxmox VE 自己的通知；你將通知 [傳送到 OneUptime](/docs/telemetry/proxmox#傳送-proxmox-ve-的通知) 後，叢集會將它們作為日誌傳送。它們是日誌監測器，在叢集的 **建議** 頁面上提供，無論使用代理程式還是原生推送都能運作。
+
+| 範本 | 嚴重程度 | 監控內容 | 觸發時機 | 恢復時機 |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | 警告 | `pve.notification.type = vzdump` 且 `pve.notification.severity = error` 的通知日誌，依節點和工作，最近 60 分鐘 | 備份工作回報失敗 | 同一工作的下一次執行成功 |
+| Node Fenced | 嚴重 | `pve.notification.type = fencing` 的通知日誌，依節點，最近 30 分鐘 | Proxmox VE 隔離（fence）了一個節點 | 該節點 30 分鐘內沒有再次被隔離 |
+
+每個節點和每個備份工作都有自己的事件和警示。失敗的備份工作的警示會一直保持開啟，直到同一工作之後的某次執行成功，無論需要多久。
 
 ### Proxmox VE 原生推送
 
 Proxmox VE 9 以上版本可以透過內建的 OpenTelemetry 指標伺服器推送指標，不需安裝任何東西，請參閱 [Proxmox 代理程式指南](/docs/telemetry/proxmox)。OneUptime 會把推送轉換成相同的 `pve_*` 序列，所以目錄以及 CPU、記憶體和儲存空間範本都能搭配它使用。
 
-**Node Offline** 和 **Cluster Quorum at Risk** 同樣可用：每個節點只推送自己的狀態，所以停止回報的節點會被仍然存活的節點回報為停機（`pve_up` = 0），請參閱 [節點停止回報時](/docs/telemetry/proxmox#節點停止回報時)。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up** 和 **Replication Failing** 需要只有代理程式才會收集的資料。
+**Node Offline** 和 **Cluster Quorum at Risk** 同樣可用：每個節點只推送自己的狀態，所以停止回報的節點會被仍然存活的節點回報為停機（`pve_up` = 0），請參閱 [節點停止回報時](/docs/telemetry/proxmox#節點停止回報時)。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 需要只有代理程式才會收集的資料。 兩個 [通知警示](#根據-proxmox-ve-通知的警示) 也能搭配原生推送使用：Proxmox VE 會自己傳送通知。
 
 ## 收集的指標
 
@@ -180,6 +197,7 @@ CPU 和記憶體序列也會針對每個客體回報，使用 `qemu/*` 和 `lxc/
 | `pve_disk_read_bytes` | 位元組 | 客體從磁碟讀取的位元組數。生命週期計數器。 |
 | `pve_disk_write_bytes` | 位元組 | 客體寫入磁碟的位元組數。生命週期計數器。 |
 | `pve_onboot_status` | 計數 | 客體在節點開機時啟動則為 1。設定了此項卻處於停止狀態的客體，通常代表非計畫性停機。 |
+| `pve_lock_state` | — | 工作修改客體期間 Proxmox VE 在客體上持有的鎖定，每種鎖定（`backup`、`migrate`、`snapshot`、…）一個序列，持有的那個為 1。請依 `state` 標籤篩選。 |
 
 ### 儲存空間
 
@@ -187,6 +205,7 @@ CPU 和記憶體序列也會針對每個客體回報，使用 `qemu/*` 和 `lxc/
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | 位元組 | 磁碟或儲存空間上已用的位元組數。對於 QEMU 客體，除非安裝了 QEMU 客體代理程式，否則讀數為 0。 |
 | `pve_disk_size_bytes` | 位元組 | 磁碟或儲存空間的總大小。 |
+| `pve_storage_shared` | 計數 | 叢集的每個節點都能使用該儲存空間（如 NFS 或 Ceph）時為 1；只有其所在節點能使用時為 0。 |
 | `pve_storage_info` | 計數 | 儲存空間中繼資料，存在期間一律為 1。加總會把一分鐘內的每次抓取都加起來，因此無法計算儲存磁碟區的數量。 |
 
 ### HA
@@ -262,7 +281,7 @@ CPU 和記憶體序列也會針對每個客體回報，使用 `qemu/*` 和 `lxc/
 :::
 
 :::details 已從叢集移除的節點持續觸發 Node Offline
-在 Proxmox VE 原生推送下，被移出叢集的節點看起來和停機的節點一樣：它停止了回報，所以仍然存活的節點會一直把它回報為停機。開啟該節點的頁面並按一下 **Remove Node**，節點就會消失，其警示也會解決。否則它會保持離線最多 7 天。代理程式沒有這個問題：它會詢問叢集，而叢集已不再列出該節點。
+在 Proxmox VE 原生推送下，被移出叢集的節點看起來和停機的節點一樣：它停止了回報，所以仍然存活的節點會一直把它回報為停機。開啟該節點的頁面並按一下 **移除節點**，節點就會消失，其警示也會解決。否則它會保持離線最多 7 天。代理程式沒有這個問題：它會詢問叢集，而叢集已不再列出該節點。
 :::
 
 :::details 缺少備份或複寫指標

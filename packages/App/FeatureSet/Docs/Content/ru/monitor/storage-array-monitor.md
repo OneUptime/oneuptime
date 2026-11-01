@@ -128,7 +128,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | Hardware Component Degraded | Оборудование | Предупреждение | `purefa_hw_component_status` с фильтром `component_status=degraded`, Max по `component_name`, последние 5 минут | > 0 — компонент деградировал. Один инцидент на компонент; восстанавливается, когда он сообщает ok |
 | Drive Failed | Оборудование | Критический | `purefa_drive_capacity_bytes` с фильтром `component_status=failed`, Max по `component_name`, последние 5 минут | > 0 — модуль DirectFlash или SSD отказал, и массив перестраивается на остальные. Один инцидент на диск; восстанавливается, когда диск заменят |
 | Host Lost Redundant Paths | Хосты | Предупреждение | `purefa_host_connectivity_info` с фильтром `status=critical`, Max по `host`, последние 5 минут | > 0 — хост достигает массива через один контроллер или ни через какой; переключение контроллеров отключило бы его хранилище. Один инцидент на хост; восстанавливается, когда пути вернутся |
-| Replication Lag Above 1 Minute | Replication | Предупреждение | `purefa_pod_replica_links_lag_max_msec`, Max по `local_pod`, последние 10 минут | > 60000 мс (60 с) — переключение сейчас потеряло бы больше недавних записей, чем запланировано. Один инцидент на под; восстанавливается при ≤ 54000 |
+| Replication Lag Above 1 Minute | Репликация | Предупреждение | `purefa_pod_replica_links_lag_max_msec`, Max по `local_pod`, последние 10 минут | > 60000 мс (60 с) — переключение сейчас потеряло бы больше недавних записей, чем запланировано. Один инцидент на под; восстанавливается при ≤ 54000 |
 
 ### FlashBlade
 

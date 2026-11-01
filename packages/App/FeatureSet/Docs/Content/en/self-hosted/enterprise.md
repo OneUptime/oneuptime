@@ -116,18 +116,18 @@ The repository's root [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/ma
 
 A new Enterprise Edition install runs as a **14-day trial**, counted from the first time the install starts the Enterprise Edition. The trial is for evaluation: production use of the Enterprise Edition needs a subscription under the OneUptime Enterprise License. Activate a license before the trial ends: after it, SCIM, audit logging and retention overrides stop and enterprise configuration becomes read-only (see [When a license expires or is missing](#when-a-license-expires-or-is-missing)). To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-The license is managed from the **edition label**, which master admins see in the Admin Dashboard header and in the footer of the Dashboard. It shows the license status, the seat usage and, for master admins, the instance ID.
+The license is managed on **Admin Dashboard > Settings > License**, where master admins add, refresh and replace it. Nobody else can change it. The **edition label**, in the Admin Dashboard header and in the footer of the Dashboard, only shows where the license stands: its status and, for master admins, the seat usage and a **Manage license** button that leads to that page.
 
 OneUptime Enterprise bought on AWS Marketplace, Microsoft Marketplace or Google Cloud Marketplace needs no license key: the marketplace subscription licenses it, and bills each user by the hour. See [Cloud Marketplaces](/docs/installation/cloud-marketplaces).
 
 ### Online activation (license key)
 
 :::steps
-1. Sign in as a master admin and open the edition label.
+1. Sign in as a master admin and open **Admin Dashboard > Settings > License**.
 2. Enter your license key and validate it.
 :::
 
-The install checks the key with OneUptime and stores the license it receives. From then on it keeps the license current with a daily sync. Use **Refresh license** on the edition label to fetch changes, such as extra seats or a renewal, straight away.
+The install checks the key with OneUptime and stores the license it receives. From then on it keeps the license current with a daily sync. Use **Refresh license** on the same page to fetch changes, such as extra seats or a renewal, straight away.
 
 Online activation needs outbound HTTPS from the OneUptime server to `https://oneuptime.com`. If the server reaches the internet only through a relay, set `ENTERPRISE_LICENSE_SERVER_URL` to the relay's `https://` address. The relay must forward `/api/enterprise-license/` to oneuptime.com.
 
@@ -136,9 +136,9 @@ Online activation needs outbound HTTPS from the OneUptime server to `https://one
 An install with no route to the internet can use a **signed license token** instead of a key:
 
 :::steps
-1. Sign in as a master admin, open the edition label and note the **instance ID**.
+1. Sign in as a master admin, open **Admin Dashboard > Settings > License**, switch to offline activation and note the **instance ID**.
 2. Ask OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) for an offline license token for that instance ID.
-3. Paste the token into the edition label's token field and activate it.
+3. Paste the token into the token field and activate it.
 :::
 
 The install verifies the token itself, against the OneUptime signing keys built into your release. It never contacts OneUptime. A token issued for one instance ID is refused by every other install, and a token issued for no instance ID (such as the token an install activated online receives) is refused too. To renew or add seats, activate a new token before the current one expires.

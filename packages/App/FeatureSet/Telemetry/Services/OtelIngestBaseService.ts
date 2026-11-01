@@ -532,6 +532,7 @@ export default abstract class OtelIngestBaseService {
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
     this.unresolvedCloudMonitoredResourceMemo.clear();
+    this.storedIoTFleetNames.clear();
   }
 
   /*

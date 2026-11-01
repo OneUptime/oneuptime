@@ -263,6 +263,9 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Replication Failing",
     "Node Offline",
     "HA Resource in Error State",
+    "Node Restarted",
+    "Storage Unavailable",
+    "Backup Running Too Long",
     ...CRITERIA_NAMES,
   ],
   [SWARM]: [

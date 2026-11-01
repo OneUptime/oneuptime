@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import yaml from "yaml";
+import { parseYaml } from "Common/Tests/Helpers/Yaml";
 
 /*
  * The Route, Service and DeploymentConfig pages (issue #5477). They compose
@@ -144,7 +144,11 @@ describe("a DeploymentConfig's pods", () => {
       .split('{{- define "kubernetes-agent.deploymentConfigPodLabel" -}}')[1]
       ?.split("{{- end -}}")[0];
     const labels: Array<{ tag_name: string; key: string; from: string }> =
-      yaml.parse(block || "");
+      parseYaml(block || "") as Array<{
+        tag_name: string;
+        key: string;
+        from: string;
+      }>;
 
     expect(labels).toEqual([
       {

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39286,
-    "untranslated": 1137
+    "keys": 39452,
+    "untranslated": 1138
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -99,6 +99,7 @@
     "H2",
     "H3",
     "HA {{state}}",
+    "HA: {{state}}",
     "HH",
     "HTTP {{code}}",
     "HackerBay, Inc.",
@@ -159,6 +160,7 @@
     "Podman Compose",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
+    "Proxmox ID",
     "RTT",
     "RX",
     "Re-encrypt",
@@ -201,12 +203,14 @@
     "V3",
     "VLAN",
     "VLAN ID",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
     "VMID",
+    "VMID {{vmid}}",
     "VMware VM",
     "VMware vCenter",
     "Vertical Pod Autoscalers",

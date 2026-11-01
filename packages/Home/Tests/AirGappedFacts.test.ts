@@ -518,11 +518,11 @@ describe("step 3: probes and webhooks reach the private addresses an air-gapped 
 describe("step 4: license the Enterprise Edition offline", () => {
   const enterprise: string = docsPagePath("self-hosted/enterprise");
 
-  test("the docs give offline activation its own steps, from the instance ID on the edition label", () => {
+  test("the docs give offline activation its own steps, from the instance ID on the license page", () => {
     expectFileToSay(enterprise, "### Offline activation (air-gapped installs)");
     expectFileToSay(
       enterprise,
-      "Sign in as a master admin, open the edition label and note the **instance ID**.",
+      "Sign in as a master admin, open **Admin Dashboard > Settings > License**, switch to offline activation and note the **instance ID**.",
     );
     expectFileToSay(
       enterprise,

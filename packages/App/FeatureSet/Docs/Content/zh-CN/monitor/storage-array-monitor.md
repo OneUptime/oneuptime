@@ -128,7 +128,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | Hardware Component Degraded | 硬件 | 警告 | `purefa_hw_component_status` 过滤到 `component_status=degraded`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个组件已降级。每个组件一个事件；它报告 ok 时恢复 |
 | Drive Failed | 硬件 | 严重 | `purefa_drive_capacity_bytes` 过滤到 `component_status=failed`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个 DirectFlash 模块或 SSD 发生故障，阵列正在其余驱动器上重建。每个驱动器一个事件；更换后恢复 |
 | Host Lost Redundant Paths | 主机 | 警告 | `purefa_host_connectivity_info` 过滤到 `status=critical`，按 `host` 取 Max，过去 5 分钟 | > 0 — 主机只能通过一个控制器访问阵列，或完全无法访问；一次控制器故障切换就会让它的存储离线。每台主机一个事件；路径恢复时恢复 |
-| Replication Lag Above 1 Minute | Replication | 警告 | `purefa_pod_replica_links_lag_max_msec`，按 `local_pod` 取 Max，过去 10 分钟 | > 60000 ms (60 s) — 此时故障切换会丢失比计划更多的近期写入。每个 Pod 一个事件；≤ 54000 时恢复 |
+| Replication Lag Above 1 Minute | 复制 | 警告 | `purefa_pod_replica_links_lag_max_msec`，按 `local_pod` 取 Max，过去 10 分钟 | > 60000 ms (60 s) — 此时故障切换会丢失比计划更多的近期写入。每个 Pod 一个事件；≤ 54000 时恢复 |
 
 ### FlashBlade
 

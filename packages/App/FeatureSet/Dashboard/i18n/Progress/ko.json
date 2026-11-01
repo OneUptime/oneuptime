@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39286,
-    "untranslated": 12773
+    "keys": 39452,
+    "untranslated": 12648
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -27,6 +27,7 @@
     "Gemini for Google Workspace",
     "Google SecOps",
     "Grafana OnCall API URL",
+    "HA: {{state}}",
     "HEC URL",
     "Hello world",
     "INP 120 ms",
@@ -50,6 +51,7 @@
     "Pod · data",
     "Pod · production",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Proxmox ID",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Runner",
@@ -62,6 +64,7 @@
     "UTC",
     "Up · In",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM CPU",
@@ -70,6 +73,7 @@
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware VM",
     "VMware vCenter",
     "[\".customer-name\", \"#invoice-total\"]",

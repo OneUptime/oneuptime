@@ -128,7 +128,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | Hardware Component Degraded | 하드웨어 | 경고 | `purefa_hw_component_status` 를 `component_status=degraded` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — 구성 요소의 성능이 저하됨. 구성 요소마다 인시던트 하나. ok를 보고하면 복구 |
 | Drive Failed | 하드웨어 | 심각 | `purefa_drive_capacity_bytes` 를 `component_status=failed` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — DirectFlash 모듈이나 SSD가 고장 나서 어레이가 나머지 드라이브로 재구성 중. 드라이브마다 인시던트 하나. 교체되면 복구 |
 | Host Lost Redundant Paths | 호스트 | 경고 | `purefa_host_connectivity_info` 를 `status=critical` 로 필터링, `host` 별 Max, 최근 5분 | > 0 — 호스트가 컨트롤러 하나를 통해서만 어레이에 닿거나 전혀 닿지 않음. 컨트롤러 페일오버가 일어나면 스토리지가 오프라인이 됨. 호스트마다 인시던트 하나. 경로가 돌아오면 복구 |
-| Replication Lag Above 1 Minute | Replication | 경고 | `purefa_pod_replica_links_lag_max_msec`, `local_pod` 별 Max, 최근 10분 | > 60000 ms (60 s) — 지금 페일오버하면 계획보다 많은 최근 쓰기를 잃음. 파드마다 인시던트 하나. ≤ 54000에서 복구 |
+| Replication Lag Above 1 Minute | 복제 | 경고 | `purefa_pod_replica_links_lag_max_msec`, `local_pod` 별 Max, 최근 10분 | > 60000 ms (60 s) — 지금 페일오버하면 계획보다 많은 최근 쓰기를 잃음. 파드마다 인시던트 하나. ≤ 54000에서 복구 |
 
 ### FlashBlade
 

@@ -174,7 +174,7 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个
 | FlashArray `/metrics/array` | `purefa_info`、`purefa_alerts_open`、`purefa_array_space_*`、`purefa_array_performance_*`、`purefa_hw_component_status`、`purefa_hw_component_temperature_celsius`、`purefa_hw_controller_info`、`purefa_drive_capacity_bytes`、`purefa_network_interface_*` | 阵列的名称、Purity 版本和系统 ID；容量、已用空间和数据缩减；未关闭的告警数；阵列的健康状况；**硬件** 页面（组件、驱动器、控制器、网络接口） |
 | FlashArray `/metrics/volumes` | `purefa_volume_performance_*`、`purefa_volume_space_*`、`purefa_volume_qos_*` | **卷** 页面：每个卷的预配大小和物理大小、数据缩减、读写延迟、IOPS 和带宽 |
 | FlashArray `/metrics/hosts` | `purefa_host_connectivity_info`、`purefa_host_connections_info`、`purefa_host_performance_*`、`purefa_host_space_*` | **主机** 页面：每台主机的连接性（是否有冗余路径）、已连接的卷、延迟、IOPS 和带宽 |
-| FlashArray `/metrics/pods` | `purefa_pod_performance_*`、`purefa_pod_space_*`、`purefa_pod_replica_links_*`、`purefa_pod_mediator_status` | **Replication** 页面：ActiveCluster 和 ActiveDR Pod、副本链接状态和滞后 |
+| FlashArray `/metrics/pods` | `purefa_pod_performance_*`、`purefa_pod_space_*`、`purefa_pod_replica_links_*`、`purefa_pod_mediator_status` | **复制** 页面：ActiveCluster 和 ActiveDR Pod、副本链接状态和滞后 |
 | FlashArray `/metrics/directories` | `purefa_directory_performance_*`、`purefa_directory_space_*` | **目录** 页面（FlashArray File Services） |
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名称、Purity 版本和系统 ID；容量和数据缩减；未关闭的告警数；阵列的健康状况；**硬件** 页面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **文件系统** 页面：每个文件系统的预配空间和已用空间、数据缩减、延迟、IOPS 和带宽 |

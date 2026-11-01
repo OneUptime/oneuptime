@@ -101,6 +101,22 @@ const RESOURCE_UTILS: string = readCode(
   ),
 );
 
+// The node's name from its id, shared by the node's page and its parts.
+const PART_FACTS: string = readCode(
+  path.join(DASHBOARD_SRC, "Pages", "Proxmox", "Utils", "ProxmoxPartFacts.ts"),
+);
+
+// The node's Overview tab, which draws the Remove Node card last.
+const NODE_OVERVIEW: string = readCode(
+  path.join(
+    DASHBOARD_SRC,
+    "Components",
+    "Proxmox",
+    "Part",
+    "ProxmoxNodeOverview.tsx",
+  ),
+);
+
 describe("the page and the server agree on the route", () => {
   test("the server mounts POST <crud path>/remove-node/:clusterId behind the user middleware", () => {
     expect(SERVER_API).toContain(
@@ -143,11 +159,25 @@ describe("the page and the server agree on the route", () => {
   });
 
   test("the name comes from the node's id (node/<name>), not its display name", () => {
-    expect(NODE_DETAIL).toContain(
-      'const NODE_EXTERNAL_ID_PREFIX: string = "node/";',
+    expect(PART_FACTS).toContain(
+      'export const PROXMOX_NODE_ID_PREFIX: string = "node/";',
     );
+    expect(
+      between(
+        PART_FACTS,
+        "export function getProxmoxNodeName(",
+        "return row?.name",
+      ),
+    ).toContain(
+      "if (id.startsWith(PROXMOX_NODE_ID_PREFIX)) { return id.substring(PROXMOX_NODE_ID_PREFIX.length); }",
+    );
+    /*
+     * The page names the node from the route's id alone (no row), so a
+     * display name is never what it posts: an id that is not a node's
+     * gives "" and no button.
+     */
     expect(NODE_DETAIL).toContain(
-      'const pveNodeName: string = externalId.startsWith(NODE_EXTERNAL_ID_PREFIX) ? externalId.substring(NODE_EXTERNAL_ID_PREFIX.length) : "";',
+      "const pveNodeName: string = getProxmoxNodeName(null, externalId);",
     );
     // The server rebuilds the same id from it.
     expect(SERVER_API).toContain(
@@ -197,7 +227,9 @@ describe("only a native-push node that has stopped reporting offers the button",
         "return result.data[0] || null;",
       ),
     ).toContain("select: INVENTORY_SELECT,");
-    expect(NODE_DETAIL).toContain("await fetchProxmoxInventoryRow({");
+    expect(between(NODE_DETAIL, "await Promise.all([", "]);")).toContain(
+      'fetchProxmoxInventoryRow({ proxmoxClusterId: modelId, kind: "Node", externalId: externalId, }),',
+    );
   });
 
   test("the model lets the users who read the inventory read isNativePush", () => {
@@ -214,18 +246,30 @@ describe("only a native-push node that has stopped reporting offers the button",
   });
 
   test("the card with the button is rendered only under that condition, on the Overview tab", () => {
-    const overview: string = between(
+    const guarded: string = between(
       NODE_DETAIL,
-      'name: "Overview",',
-      'name: "Metrics",',
+      "const removeNodeCard: ReactElement | null = canRemoveNode ? (",
+      ") : null;",
     );
-
-    const guarded: string = between(overview, "{canRemoveNode && (", ")}");
     expect(guarded).toContain('<Card title="Remove Node"');
     expect(guarded).toContain('title: "Remove Node",');
     expect(guarded).toContain("buttonStyle: ButtonStyleType.DANGER_OUTLINE,");
     expect(guarded).toContain("icon: IconProp.Trash,");
     expect(guarded).toContain("setShowRemoveModal(true);");
+
+    // It is the Overview tab's footer, and drawn nowhere else.
+    const overview: string = between(
+      NODE_DETAIL,
+      "name: PROXMOX_NODE_TAB_OVERVIEW,",
+      "name: PROXMOX_NODE_TAB_GUESTS,",
+    );
+    expect(overview).toContain("footer={removeNodeCard}");
+    expect(count(NODE_DETAIL, "removeNodeCard")).toBe(2);
+    /*
+     * The Overview draws it last, also for a node whose details never
+     * arrived - a removed node is often one of those.
+     */
+    expect(count(NODE_OVERVIEW, "{props.footer}")).toBe(2);
 
     // The only button that opens the dialog is the guarded one.
     expect(count(NODE_DETAIL, "setShowRemoveModal(true)")).toBe(1);
@@ -372,24 +416,43 @@ describe("the last CPU and memory reading stays on the page", () => {
   test("the page does not gate the reading on its age", () => {
     expect(NODE_DETAIL).not.toContain("METRIC_STALE_MS");
     expect(NODE_DETAIL).not.toContain("metricsAreFresh");
+    /*
+     * The Overview's tiles read the row as it is; the cutoff only leaves
+     * quiet guests out of its busiest-guests list.
+     */
+    const tiles: string = between(
+      NODE_OVERVIEW,
+      'data-testid="proxmox-node-tiles"',
+      "<ResourcePartOpenEventsCard",
+    );
+    expect(tiles).not.toContain("METRIC_STALE_MS");
+    expect(NODE_OVERVIEW).toContain("staleMs: METRIC_STALE_MS,");
+    expect(count(NODE_OVERVIEW, "METRIC_STALE_MS")).toBe(2);
   });
 
   test("CPU and memory are each shown whenever the inventory has them", () => {
-    const cpu: string = between(
-      NODE_DETAIL,
-      "if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {",
-      "}",
+    expect(NODE_OVERVIEW).toContain(
+      "const cpu: number | null = toProxmoxNumber(row?.latestCpuPercent);",
     );
-    expect(cpu).toContain('title: "CPU",');
-
-    const memory: string = between(
-      NODE_DETAIL,
-      "if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {",
-      "description:",
+    expect(NODE_OVERVIEW).toContain(
+      "const memoryPercent: number | null = row ? getProxmoxMemoryPercent(row) : null;",
     );
-    expect(memory).toContain('title: "Memory (Used / Total)",');
 
-    expect(count(NODE_DETAIL, 'title: "CPU",')).toBe(1);
-    expect(count(NODE_DETAIL, 'title: "Memory (Used / Total)",')).toBe(1);
+    const tiles: string = between(
+      NODE_OVERVIEW,
+      'data-testid="proxmox-node-tiles"',
+      "<ResourcePartOpenEventsCard",
+    );
+    expect(
+      between(tiles, '<GoldenMetricTile title={tx("CPU")}', "/>"),
+    ).toContain("value={formatPercent(cpu)}");
+    expect(
+      between(tiles, '<GoldenMetricTile title={tx("Memory")}', "/>"),
+    ).toContain("value={formatPercent(memoryPercent)}");
+
+    expect(count(NODE_OVERVIEW, '<GoldenMetricTile title={tx("CPU")}')).toBe(1);
+    expect(count(NODE_OVERVIEW, '<GoldenMetricTile title={tx("Memory")}')).toBe(
+      1,
+    );
   });
 });

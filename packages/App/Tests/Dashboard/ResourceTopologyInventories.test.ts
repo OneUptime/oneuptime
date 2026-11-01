@@ -443,6 +443,72 @@ describe("a Proxmox cluster", () => {
     expect(issueIds(graph, "node:node/pve2")).toEqual(["node"]);
     expect(issueIds(graph, "storage:storage/pve1/local")).toEqual(["storage"]);
   });
+
+  /*
+   * The same rules as the cluster's Needs attention (ProxmoxHealth): a
+   * template never runs, a failed last backup needs a look, and a storage
+   * that is unavailable or more than 95% full is critical.
+   */
+  test("health follows the Overview's rules: templates, failed backups, full and missing storage", () => {
+    const rules: ResourceTopologyGraph = buildProxmoxTopology({
+      cluster: { id: "pve-row", name: "pve-prod", lastSeenAt: FRESH },
+      rows: [
+        proxmoxRow({
+          kind: "Node",
+          externalId: "node/pve1",
+          name: "pve1",
+          isUp: true,
+        }),
+        proxmoxRow({
+          kind: "Guest",
+          externalId: "qemu/9000",
+          name: "debian-template",
+          guestType: "qemu",
+          vmid: 9000,
+          parentNodeName: "pve1",
+          isUp: false,
+          isTemplate: true,
+          onboot: true,
+          isBackedUp: false,
+        }),
+        proxmoxRow({
+          kind: "Guest",
+          externalId: "qemu/104",
+          name: "mail",
+          guestType: "qemu",
+          vmid: 104,
+          parentNodeName: "pve1",
+          isUp: true,
+          isBackedUp: true,
+          lastBackupStatus: "failed",
+        }),
+        proxmoxRow({
+          kind: "Storage",
+          externalId: "storage/pve1/full",
+          name: "full",
+          parentNodeName: "pve1",
+          isUp: true,
+          latestDiskBytes: 96,
+          maxDiskBytes: 100,
+        }),
+        proxmoxRow({
+          kind: "Storage",
+          externalId: "storage/pve1/gone",
+          name: "gone",
+          parentNodeName: "pve1",
+          isUp: false,
+          latestDiskBytes: 10,
+          maxDiskBytes: 100,
+        }),
+      ],
+      now: NOW,
+    });
+
+    expect(node(rules, "guest:qemu/9000").health).toBe("off");
+    expect(node(rules, "guest:qemu/104").health).toBe("warning");
+    expect(node(rules, "storage:storage/pve1/full").health).toBe("critical");
+    expect(node(rules, "storage:storage/pve1/gone").health).toBe("critical");
+  });
 });
 
 describe("a Ceph cluster", () => {

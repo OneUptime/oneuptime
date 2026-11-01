@@ -1,7 +1,7 @@
 /*
  * What the edition dialog must say about an Enterprise license lapse. Shared
  * by the core EditionLabel suite and ee/Tests/UI/License, which renders the
- * same dialog with the Enterprise license manager.
+ * same dialog with the Enterprise license details.
  *
  * When the license lapses (after the trial or the grace period), SCIM
  * provisioning and audit logging stop - the Community Edition's behaviour -

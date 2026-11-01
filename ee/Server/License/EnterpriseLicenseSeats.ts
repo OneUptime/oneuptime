@@ -143,8 +143,8 @@ export default class EnterpriseLicenseSeatsUtil {
       `This OneUptime installation has reached the ${data.userLimit.toLocaleString()}-user ` +
       `limit of its enterprise license (${data.seatsInUse.toLocaleString()} in use). New users ` +
       `cannot be invited, signed up or provisioned until a seat is freed up or the license is ` +
-      `expanded. Contact sales@oneuptime.com to add seats, then use "Refresh license" in the ` +
-      `edition dialog to apply the new limit.`
+      `expanded. Contact sales@oneuptime.com to add seats, then use "Refresh license" on ` +
+      `Settings > License in the Admin Dashboard to apply the new limit.`
     );
   }
 

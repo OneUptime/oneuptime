@@ -128,7 +128,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | Hardware Component Degraded | 硬體 | 警告 | `purefa_hw_component_status` 篩選到 `component_status=degraded`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個元件已降級。每個元件一個事件；它回報 ok 時復原 |
 | Drive Failed | 硬體 | 嚴重 | `purefa_drive_capacity_bytes` 篩選到 `component_status=failed`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個 DirectFlash 模組或 SSD 故障，陣列正在其餘磁碟機上重建。每個磁碟機一個事件；更換後復原 |
 | Host Lost Redundant Paths | 主機 | 警告 | `purefa_host_connectivity_info` 篩選到 `status=critical`，依 `host` 取 Max，過去 5 分鐘 | > 0 — 主機只能透過一個控制器連線到陣列，或完全無法連線；一次控制器容錯移轉就會讓它的儲存離線。每台主機一個事件；路徑恢復時復原 |
-| Replication Lag Above 1 Minute | Replication | 警告 | `purefa_pod_replica_links_lag_max_msec`，依 `local_pod` 取 Max，過去 10 分鐘 | > 60000 ms (60 s) — 此時容錯移轉會遺失比計畫更多的近期寫入。每個 Pod 一個事件；≤ 54000 時復原 |
+| Replication Lag Above 1 Minute | 複寫 | 警告 | `purefa_pod_replica_links_lag_max_msec`，依 `local_pod` 取 Max，過去 10 分鐘 | > 60000 ms (60 s) — 此時容錯移轉會遺失比計畫更多的近期寫入。每個 Pod 一個事件；≤ 54000 時復原 |
 
 ### FlashBlade
 

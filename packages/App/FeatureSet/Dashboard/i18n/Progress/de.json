@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39286,
-    "untranslated": 4007
+    "keys": 39452,
+    "untranslated": 3940
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -81,6 +81,7 @@
     "Azure OpenAI",
     "B/s",
     "Backup",
+    "Backups",
     "Bahamas",
     "Bahrain",
     "Ballooned",
@@ -226,6 +227,7 @@
     "H1",
     "H2",
     "H3",
+    "HA: {{state}}",
     "HH",
     "HackerBay, Inc.",
     "Haiti",
@@ -456,6 +458,7 @@
     "Signal",
     "Slot",
     "Slug",
+    "Snippets",
     "Somalia",
     "Source Map",
     "Source Maps",
@@ -539,12 +542,14 @@
     "V2c",
     "V3",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
     "VMID",
+    "VMID {{vmid}}",
     "VMs",
     "VMware vCenter",
     "Vanuatu",
@@ -685,6 +690,7 @@
     "{{count}} MB",
     "{{count}} VM",
     "{{count}} VMs",
+    "{{size}} in {{duration}}",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",

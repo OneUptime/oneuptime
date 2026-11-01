@@ -128,7 +128,7 @@ Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zij
 | Hardware Component Degraded    | Hardware     | Waarschuwing  | `purefa_hw_component_status` gefilterd op `component_status=degraded`, Max per `component_name`, laatste 5 minuten | > 0 — een component is gedegradeerd. Eén incident per component; herstelt als het ok meldt                                     |
 | Drive Failed                   | Hardware     | Kritiek  | `purefa_drive_capacity_bytes` gefilterd op `component_status=failed`, Max per `component_name`, laatste 5 minuten | > 0 — een DirectFlash-module of SSD is uitgevallen en de array herbouwt op de andere. Eén incident per schijf; herstelt als hij is vervangen |
 | Host Lost Redundant Paths      | Hosts        | Waarschuwing  | `purefa_host_connectivity_info` gefilterd op `status=critical`, Max per `host`, laatste 5 minuten | > 0 — de host bereikt de array via één controller of geen; een controller-failover zou zijn opslag offline halen. Eén incident per host; herstelt als zijn paden terug zijn |
-| Replication Lag Above 1 Minute | Replication  | Waarschuwing  | `purefa_pod_replica_links_lag_max_msec`, Max per `local_pod`, laatste 10 minuten                | > 60000 ms (60 s) — een failover nu zou meer recente schrijfacties verliezen dan gepland. Eén incident per pod; herstelt bij ≤ 54000             |
+| Replication Lag Above 1 Minute | Replicatie  | Waarschuwing  | `purefa_pod_replica_links_lag_max_msec`, Max per `local_pod`, laatste 10 minuten                | > 60000 ms (60 s) — een failover nu zou meer recente schrijfacties verliezen dan gepland. Eén incident per pod; herstelt bij ≤ 54000             |
 
 ### FlashBlade
 

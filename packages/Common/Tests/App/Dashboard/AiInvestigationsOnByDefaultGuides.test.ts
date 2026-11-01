@@ -110,6 +110,22 @@ function lastStep(guide: SetupGuideContent): SetupGuideStep {
   return guide.steps[guide.steps.length - 1]!;
 }
 
+/*
+ * The step that checks the install: the last one, or - in Proxmox's guide -
+ * the one before its optional step that sends Proxmox VE's notifications.
+ */
+function verifyStep(guide: SetupGuideContent): SetupGuideStep {
+  const step: SetupGuideStep | undefined = guide.steps.find(
+    (candidate: SetupGuideStep): boolean => {
+      return candidate.title.startsWith("Verify");
+    },
+  );
+  if (!step) {
+    throw new Error("The guide has no step that verifies the install");
+  }
+  return step;
+}
+
 function stepsText(guide: SetupGuideContent): string {
   return guide.steps
     .map((step: SetupGuideStep): string => {
@@ -329,9 +345,12 @@ describe.each<[string, () => Array<[string, SetupGuideContent]>, string]>([
     test.each(guides())(
       "%s: the verify step says AI investigations are on, with what the agent runs",
       (_method: string, guide: SetupGuideContent) => {
-        const verify: SetupGuideStep = lastStep(guide);
+        const verify: SetupGuideStep = verifyStep(guide);
 
-        expect(verify.title).toMatch(/^Verify/);
+        expect([
+          lastStep(guide),
+          guide.steps[guide.steps.length - 2],
+        ]).toContain(verify);
         expect(count(verify.markdown || "", ON_BY_DEFAULT)).toBe(1);
         expect(verify.markdown).toContain(commands);
         expect(verify.markdown).toContain(
