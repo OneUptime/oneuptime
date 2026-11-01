@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { EpisodeMemberRoleAssignment } from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentRoleFormField from "../Incident/IncidentRoleFormField";
@@ -39,7 +40,11 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
       />
 
       {props.error && (
-        <p className="text-sm text-red-500 mt-2">{props.error}</p>
+        <FieldError
+          message={props.error}
+          className="text-sm text-red-500 mt-2"
+          announce="none"
+        />
       )}
     </div>
   );

@@ -1067,6 +1067,21 @@ export interface TemplateAround {
   after: string;
 }
 
+export interface TemplateAroundOptions {
+  /*
+   * Whether the slot is set apart from the words around it in a sentence
+   * read right to left (SentenceOptions' setsSlotsApart): yes, the default,
+   * for halves drawn as text with the slot's element inline between them -
+   * a name in bold in a line of the page. No for halves drawn as boxes of
+   * their own - a flex row, a number box between two labels - where an
+   * isolate's mark at the end of a half is a piece of its own: "Wait
+   * {{minutes}} minutes" is "{{minutes}} دقیقه صبر کن" in Persian, and its
+   * empty first half, holding the mark alone, was drawn as one more item
+   * of the row, a gap before the box.
+   */
+  setsSlotApart?: boolean | undefined;
+}
+
 /*
  * The translated sentence cut in two around one {{slot}}, for a caller that
  * draws the slot's value itself - in bold, say - between the two halves.
@@ -1078,10 +1093,12 @@ export const translateTemplateAround: (
   template: string,
   slot: string,
   values?: TemplateValues,
+  options?: TemplateAroundOptions,
 ) => TemplateAround = (
   template: string,
   slot: string,
   values: TemplateValues = {},
+  options?: TemplateAroundOptions,
 ): TemplateAround => {
   const withMarker: TemplateValues = { ...values, [slot]: SLOT_MARKER };
 
@@ -1100,16 +1117,16 @@ export const translateTemplateAround: (
   /*
    * A translation that lost its slot, or repeated it, cannot be drawn with the
    * name in it - fall back to English rather than drop the name.
-   */
-  /*
+   *
    * Drawn on the page and nothing else: the values, and the slot in a
-   * sentence read right to left, set apart from its words (SentenceOptions).
+   * sentence read right to left unless its halves are boxes of their own
+   * (TemplateAroundOptions), set apart from its words (SentenceOptions).
    */
   return (
     split(
       getGlobalTranslator().translateTemplate(template, withMarker, {
         setsValuesApart: true,
-        setsSlotsApart: true,
+        setsSlotsApart: options?.setsSlotApart !== false,
       }),
     ) ||
     split(fillTemplate(template, englishDateValues(withMarker))) || {

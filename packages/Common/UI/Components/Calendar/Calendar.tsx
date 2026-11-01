@@ -3,6 +3,8 @@ import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
+import { getLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { StyledDayEvent, layoutDayEvents } from "./CalendarDayLayout";
@@ -426,6 +428,37 @@ export const getCalendarMessages: (
 };
 
 /*
+ * The class a block carries when its title reads the other way from the
+ * page (LineDirection): an English maintenance title, a person's name in
+ * Latin letters, on a Persian page. Calendar.css turns the block's words
+ * that way, so a title cut short in a narrow day loses its end ("Database
+ * upg..."), not its start ("...rade"), and a short one still starts where
+ * the page's lines do. A title that reads as the page does carries none.
+ */
+export const EVENT_TITLE_DIRECTION_CLASS_NAMES: Record<
+  ReadingDirection,
+  string
+> = {
+  ltr: "oneuptime-calendar-event--reads-ltr",
+  rtl: "oneuptime-calendar-event--reads-rtl",
+};
+
+export const getEventTitleClassName: (
+  title: string | undefined,
+  pageLanguage: string | undefined,
+) => string | undefined = (
+  title: string | undefined,
+  pageLanguage: string | undefined,
+): string | undefined => {
+  const direction: ReadingDirection | undefined = getLineDirection(
+    title,
+    pageLanguage,
+  );
+
+  return direction ? EVENT_TITLE_DIRECTION_CLASS_NAMES[direction] : undefined;
+};
+
+/*
  * The box react-big-calendar draws each block in. An overlay's block - an
  * event from another calendar - opens nothing, so a keyboard does not stop
  * on it: the week's and the day's blocks are buttons a keyboard reaches
@@ -580,7 +613,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
   const eventStyleGetter: EventPropGetter<any> = (
     event: CalendarEvent,
   ): { className?: string | undefined; style?: React.CSSProperties } => {
-    const className: string | undefined = event.className
+    const ownClassName: string | undefined = event.className
       ? event.className.toString()
       : undefined;
 
@@ -596,10 +629,16 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         ? { backgroundColor: event.color.toString() }
         : {};
 
-      return className
-        ? { style: backgroundStyle, className }
+      return ownClassName
+        ? { style: backgroundStyle, className: ownClassName }
         : { style: backgroundStyle };
     }
+
+    // The block's words read the way its title does (getEventTitleClassName).
+    const className: string | undefined =
+      [ownClassName, getEventTitleClassName(event.title, translator.language)]
+        .filter(Boolean)
+        .join(" ") || undefined;
 
     const backgroundColor: string =
       event.color?.toString() || Blue500.toString();

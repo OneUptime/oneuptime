@@ -906,6 +906,29 @@ test.describe("what a page says back", () => {
     expect(stop.left).toBeGreaterThan(first.right);
   });
 
+  test("fa: a note editor's English error reads left to right under it, its full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const field: Locator = page.getByTestId("error-note-field");
+    const words: Locator = field.getByTestId("error-message").locator("bdi");
+
+    expect(await words.getAttribute("dir")).toBe("ltr");
+    expect(await words.textContent()).toBe("Notes cannot be empty.");
+
+    const first: Box = await boxOfText(words, "N");
+    const stop: Box = await boxOfText(words, ".");
+
+    expect(stop.left).toBeGreaterThan(first.right);
+    // Under the editor, starting at its right as the page's lines do.
+    expect(
+      Math.abs((await boxOf(field)).right - (await boxOf(words)).right),
+    ).toBeLessThan(2);
+  });
+
   test("a value typed into a field in error starts clear of the error's icon", async ({
     page,
   }: {
@@ -1070,6 +1093,108 @@ test.describe("values cut short to their column", () => {
     const summaryStart: Box = await boxOfText(summary, "Polled");
 
     expect(Math.abs(summaryStart.left - summaryBox.left)).toBeLessThan(1);
+  });
+});
+
+/*
+ * A month's events in a narrow calendar, each cut short to its block. On a
+ * Persian page an English title lost its start ("...cluster"), and every
+ * title started at its block's left (react-big-calendar's own text-align:
+ * left). A title now reads its own way where it reads the other way from
+ * the page, cut at its own end, and starts where the page's lines do.
+ */
+test.describe("a narrow month's events", () => {
+  const eventContent: (page: Page, text: string) => Locator = (
+    page: Page,
+    text: string,
+  ): Locator => {
+    return page
+      .getByTestId("section-calendar")
+      .locator(".rbc-event", { hasText: text })
+      .locator(".rbc-event-content");
+  };
+
+  const isCutShort: (locator: Locator) => Promise<boolean> = async (
+    locator: Locator,
+  ): Promise<boolean> => {
+    return locator.evaluate((element: Element): boolean => {
+      return element.scrollWidth > element.clientWidth;
+    });
+  };
+
+  test("fa: an English title is cut at its own end, its first letters in view", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const english: Locator = eventContent(page, "Database upgrade");
+
+    await expect(english).toBeVisible();
+    expect(await styleOf(english, "direction")).toBe("ltr");
+    expect(await isCutShort(english)).toBe(true);
+
+    const box: Box = await boxOf(english);
+    const start: Box = await boxOfText(english, "Database");
+
+    expect(start.left).toBeGreaterThanOrEqual(box.left - 0.5);
+  });
+
+  test("fa: a Persian title starts at its block's right, cut short or whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    for (const [title, firstWord] of [
+      ["به‌روزرسانی سرور", "به‌روزرسانی"],
+      ["ارتقا", "ارتقا"],
+    ]) {
+      const persian: Locator = eventContent(page, title!);
+
+      await expect(persian).toBeVisible();
+      expect(await styleOf(persian, "direction")).toBe("rtl");
+
+      const box: Box = await boxOf(persian);
+      const first: Box = await boxOfText(persian, firstWord!);
+
+      expect({
+        title,
+        startsAtTheRight: box.right - first.right < 1.5,
+      }).toEqual({ title, startsAtTheRight: true });
+    }
+
+    expect(await isCutShort(eventContent(page, "به‌روزرسانی سرور"))).toBe(true);
+  });
+
+  test("en: an English title starts at its block's left as before; a Persian one is cut at its own end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const english: Locator = eventContent(page, "Database upgrade");
+
+    await expect(english).toBeVisible();
+    expect(await styleOf(english, "direction")).toBe("ltr");
+
+    const englishBox: Box = await boxOf(english);
+    const englishStart: Box = await boxOfText(english, "Database");
+
+    expect(Math.abs(englishStart.left - englishBox.left)).toBeLessThan(1.5);
+
+    const persian: Locator = eventContent(page, "به‌روزرسانی سرور");
+
+    expect(await styleOf(persian, "direction")).toBe("rtl");
+    expect(await isCutShort(persian)).toBe(true);
+
+    const persianBox: Box = await boxOf(persian);
+    const persianStart: Box = await boxOfText(persian, "به‌روزرسانی");
+
+    expect(persianBox.right - persianStart.right).toBeLessThan(1.5);
   });
 });
 

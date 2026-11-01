@@ -1,3 +1,4 @@
+import FieldError from "./FieldError";
 import FieldLabelElement from "./FieldLabel";
 import Field, { CustomElementProps } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
@@ -110,13 +111,7 @@ const GeneratedKeyField: FunctionComponent<ComponentProps> = (
 
   const errorElement: ReactElement | null =
     error && !isOpen ? (
-      <p
-        className="mt-1 text-sm text-red-400"
-        role="alert"
-        data-testid={`${dataTestId}-error`}
-      >
-        {error}
-      </p>
+      <FieldError message={error} dataTestId={`${dataTestId}-error`} />
     ) : null;
 
   if (!isOpen) {

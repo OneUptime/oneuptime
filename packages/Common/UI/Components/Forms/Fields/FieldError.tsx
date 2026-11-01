@@ -37,6 +37,12 @@ export interface ComponentProps {
    * for a field whose error is said by the field itself.
    */
   announce?: "alert" | "polite" | "none" | undefined;
+  /*
+   * The line's test id: the one every field's error line shares
+   * (FIELD_ERROR_TEST_ID), or a field's own, where its suites already find
+   * its error by one ("rule-criteria-error").
+   */
+  dataTestId?: string | undefined;
 }
 
 const FieldError: FunctionComponent<ComponentProps> = (
@@ -50,7 +56,7 @@ const FieldError: FunctionComponent<ComponentProps> = (
   return (
     <p
       id={props.id}
-      data-testid={FIELD_ERROR_TEST_ID}
+      data-testid={props.dataTestId || FIELD_ERROR_TEST_ID}
       className={props.className ?? FIELD_ERROR_CLASS_NAME}
       role={announce === "alert" ? "alert" : undefined}
       aria-live={announce === "polite" ? "polite" : undefined}

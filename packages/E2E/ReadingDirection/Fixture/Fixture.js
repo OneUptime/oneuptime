@@ -28,7 +28,9 @@
  * a sentence that puts a time after a name in Latin letters
  * (TranslatedSentence); a field whose popup opens from its start edge
  * (ColorPicker); a React Flow canvas with a node and a line; and a note
- * whose diagrams have labels in English and in Persian.
+ * whose diagrams have labels in English and in Persian. A note's editor
+ * with an English error, and a narrow month whose English and Persian
+ * events are cut short to their blocks (Calendar).
  */
 import "Common/UI/Styles/Theme.css";
 import React, { useState } from "react";
@@ -63,6 +65,7 @@ import KeyboardShortcut, {
   KeyboardKey,
 } from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
+import Calendar from "Common/UI/Components/Calendar/Calendar";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Modal from "Common/UI/Components/Modal/Modal";
 import NavBar from "Common/UI/Components/Navbar/NavBar";
@@ -217,6 +220,35 @@ const FEED_COLUMNS = [
     },
   },
   { title: "Last Poll Summary", type: FieldType.Text, key: "summary" },
+];
+
+/*
+ * A month's events, each longer than its day in a narrow calendar: an
+ * English title and a Persian one, cut short to their blocks.
+ */
+const CALENDAR_EVENTS = [
+  {
+    id: 1,
+    title: "Database upgrade for the payments cluster",
+    start: new Date("2026-10-14T09:00:00.000Z"),
+    end: new Date("2026-10-14T11:00:00.000Z"),
+    color: "#6366f1",
+  },
+  {
+    id: 2,
+    title: "به‌روزرسانی سرور پایگاه داده پرداخت",
+    start: new Date("2026-10-15T09:00:00.000Z"),
+    end: new Date("2026-10-15T11:00:00.000Z"),
+    color: "#059669",
+  },
+  // A title short enough for its day: it starts where the page's lines do.
+  {
+    id: 3,
+    title: "ارتقا",
+    start: new Date("2026-10-21T09:00:00.000Z"),
+    end: new Date("2026-10-21T10:00:00.000Z"),
+    color: "#d97706",
+  },
 ];
 
 // A time after a name in Latin letters, in the page's own words.
@@ -446,6 +478,13 @@ function Page() {
           <div data-testid="error-form">
             <Alert type={AlertType.DANGER} title="Promo code is invalid." />
           </div>
+          <div data-testid="error-note-field">
+            <MarkdownEditor
+              initialValue="Customers cannot pay."
+              onChange={() => {}}
+              error="Notes cannot be empty."
+            />
+          </div>
         </div>
       </Section>
 
@@ -535,6 +574,22 @@ function Page() {
           >
             <Controls showInteractive={false} />
           </ReactFlow>
+        </div>
+      </Section>
+
+      {/* A month's events in a narrow calendar, cut short to their blocks. */}
+      <Section name="calendar">
+        <div
+          className="bg-white"
+          style={{ width: `${Math.min(390, tableWidth)}px` }}
+        >
+          <Calendar
+            events={CALENDAR_EVENTS}
+            defaultDate={WRITTEN_AT}
+            defaultCalendarView="month"
+            views={["month"]}
+            onRangeChange={() => {}}
+          />
         </div>
       </Section>
 

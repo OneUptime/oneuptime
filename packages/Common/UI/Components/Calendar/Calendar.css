@@ -155,6 +155,28 @@
   border-radius: 0.125rem;
 }
 
+/* A title that reads the other way from the page - an English maintenance
+   title, a name in Latin letters, on a Persian page - reads its own way in
+   its block (Calendar's getEventTitleClassName): cut short in a narrow day
+   it loses its end ("Database upg..."), not its start ("...rade"), and a
+   short one still starts where the page's lines do, at the block's end.
+   The block's time, above its title in a week, keeps the page's way. */
+.oneuptime-calendar
+  .rbc-event.oneuptime-calendar-event--reads-ltr
+  .rbc-event-content,
+.rbc-overlay .rbc-event.oneuptime-calendar-event--reads-ltr .rbc-event-content {
+  direction: ltr;
+  text-align: end;
+}
+
+.oneuptime-calendar
+  .rbc-event.oneuptime-calendar-event--reads-rtl
+  .rbc-event-content,
+.rbc-overlay .rbc-event.oneuptime-calendar-event--reads-rtl .rbc-event-content {
+  direction: rtl;
+  text-align: end;
+}
+
 .oneuptime-calendar .rbc-date-cell.rbc-now {
   color: #4f46e5; /* indigo-600 */
   font-weight: 600;
@@ -284,6 +306,8 @@
 }
 
 /* ---------- Events ---------- */
+/* A block's words start where the page's lines do: react-big-calendar's
+   own text-align: left put a Persian title at the left of its block. */
 .oneuptime-calendar .rbc-event,
 .oneuptime-calendar .rbc-day-slot .rbc-background-event {
   border: none;
@@ -291,6 +315,7 @@
   padding: 0.2rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
+  text-align: start;
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.08);
   transition:
     transform 120ms ease,
@@ -404,6 +429,7 @@
   font-size: 0.75rem;
   line-height: 1.25rem;
   font-weight: 500;
+  text-align: start;
 }
 
 .rbc-overlay .rbc-event .oneuptime-calendar-event-link {

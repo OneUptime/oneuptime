@@ -178,3 +178,51 @@ describe("with i18next set up", () => {
     ).toEqual({ before: "Remove ", after: " from this incident." });
   });
 });
+
+/*
+ * In a language read right to left the slot is set apart from its words in
+ * an isolate (FSI ... PDI), so a name in Latin letters drawn in it moves
+ * none of them - for halves drawn as text, with the name inline between
+ * them. Halves drawn as boxes of their own (a row with a number box between
+ * two labels) ask for no isolate: there each half is a box of its own, and a
+ * mark alone in an empty half was one more item of the row.
+ */
+describe("a slot in a sentence read right to left", () => {
+  const WAIT: string = "Wait {{minutes}} minutes";
+  const FSI: string = String.fromCharCode(0x2068);
+  const PDI: string = String.fromCharCode(0x2069);
+
+  beforeAll(async () => {
+    i18next.addResourceBundle("fa", "translation", {
+      [QUESTION]: "آیا مطمئن هستید که می‌خواهید {{name}} را حذف کنید؟",
+      [WAIT]: "{{minutes}} دقیقه صبر کن",
+    });
+    await i18next.changeLanguage("fa");
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test("is set apart from the halves drawn around it as text", () => {
+    expect(translateTemplateAround(QUESTION, "name")).toEqual({
+      before: `آیا مطمئن هستید که می‌خواهید ${FSI}`,
+      after: `${PDI} را حذف کنید؟`,
+    });
+  });
+
+  test("is not, for halves drawn as boxes of their own", () => {
+    expect(
+      translateTemplateAround(QUESTION, "name", {}, { setsSlotApart: false }),
+    ).toEqual({
+      before: "آیا مطمئن هستید که می‌خواهید ",
+      after: " را حذف کنید؟",
+    });
+  });
+
+  test("an empty half stays empty, with no mark to draw", () => {
+    expect(
+      translateTemplateAround(WAIT, "minutes", {}, { setsSlotApart: false }),
+    ).toEqual({ before: "", after: " دقیقه صبر کن" });
+  });
+});

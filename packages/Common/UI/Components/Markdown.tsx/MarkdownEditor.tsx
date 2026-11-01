@@ -1,4 +1,5 @@
 import Icon from "../Icon/Icon";
+import FieldError from "../Forms/Fields/FieldError";
 import KeyboardKey, { KeyboardKeyUtil } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentation";
@@ -2823,11 +2824,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Error Message */}
-      {props.error && (
-        <p id={errorId} role="alert" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
 
       {/*
        * The template variables, collapsed under the editor: each one, when

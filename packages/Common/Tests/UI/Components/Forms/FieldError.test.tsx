@@ -11,6 +11,10 @@ import FieldError, {
 import Input from "../../../../UI/Components/Input/Input";
 import TextArea from "../../../../UI/Components/TextArea/TextArea";
 import Toggle from "../../../../UI/Components/Toggle/Toggle";
+import MarkdownEditor from "../../../../UI/Components/Markdown.tsx/MarkdownEditor";
+import CardSelect from "../../../../UI/Components/CardSelect/CardSelect";
+import PermissionPicker from "../../../../UI/Components/Forms/Fields/PermissionPicker";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
  * Every field draws what is wrong with it with FieldError: red, under the
@@ -112,6 +116,84 @@ describe("on a Persian page", () => {
     expect(line().querySelector("bdi")).toHaveTextContent(
       /^Turn on at least one channel\.$/,
     );
+  });
+});
+
+/*
+ * The fields that drew a red line of their own around their error - a
+ * note's editor, a card picker, the permission list - draw it with
+ * FieldError too (FieldErrorGuard's second shape): under a note's editor an
+ * English answer put its full stop first on a Persian page.
+ */
+describe("the fields that drew their own error line", () => {
+  test("a note's editor: its error reads as written, said at once, named by the editor", () => {
+    draw(
+      "fa",
+      <MarkdownEditor
+        initialValue="Customers cannot pay."
+        error="Notes cannot be empty."
+      />,
+    );
+
+    const alert: HTMLElement = screen.getByRole("alert");
+
+    expect(alert).toBe(line());
+    expect(alert).toHaveTextContent(/^Notes cannot be empty\.$/);
+    expect(alert.querySelector("bdi")).toHaveAttribute("dir", "ltr");
+    expect(
+      document.querySelector(
+        `[aria-describedby~="${alert.getAttribute("id")}"]`,
+      ),
+    ).not.toBeNull();
+  });
+
+  test("a card picker keeps its own spacing and colour", () => {
+    draw(
+      "fa",
+      <CardSelect
+        options={[
+          {
+            value: "Website",
+            title: "Website",
+            description: "Checks a page loads.",
+            icon: IconProp.Globe,
+          },
+        ]}
+        onChange={() => {}}
+        error="Pick a monitor type."
+      />,
+    );
+
+    expect(line()).toHaveAttribute("class", "mt-2 text-sm text-red-600");
+    expect(line()).toHaveAttribute("role", "alert");
+    expect(line().querySelector("bdi")).toHaveAttribute("dir", "ltr");
+  });
+
+  test("the permission list's error is drawn as before on an English page", () => {
+    draw(
+      "en",
+      <PermissionPicker onChange={() => {}} error="Pick a permission." />,
+    );
+
+    expect(line()).toHaveAttribute("class", FIELD_ERROR_CLASS_NAME);
+    expect(line().innerHTML).toBe("Pick a permission.");
+    // Said by the field itself, as it was.
+    expect(line()).not.toHaveAttribute("role");
+  });
+
+  test("a field whose suites find its error by an id of their own keeps it", () => {
+    draw(
+      "en",
+      <FieldError
+        message="Add at least one condition."
+        dataTestId="rule-criteria-error"
+      />,
+    );
+
+    expect(screen.getByTestId("rule-criteria-error")).toHaveTextContent(
+      "Add at least one condition.",
+    );
+    expect(screen.queryByTestId(FIELD_ERROR_TEST_ID)).not.toBeInTheDocument();
   });
 });
 
