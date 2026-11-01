@@ -123,7 +123,10 @@ export const SECURITY_CONNECTION_KIND_NOUNS: Readonly<
   [SecurityConnectionKind.PodmanHost]: "Podman host",
   [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
   [SecurityConnectionKind.NetworkDevice]: "Network device",
+  [SecurityConnectionKind.CloudResource]: "Cloud resource",
+  [SecurityConnectionKind.ServerlessFunction]: "Serverless function",
   [SecurityConnectionKind.Service]: "Service",
+  [SecurityConnectionKind.Monitor]: "Monitor",
   [SecurityConnectionKind.User]: "Member",
   [SecurityConnectionKind.InventoryItem]: "Inventory item",
 };

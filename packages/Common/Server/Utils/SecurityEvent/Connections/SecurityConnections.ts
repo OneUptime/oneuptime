@@ -1,15 +1,19 @@
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import ChangeEvent from "../../../../Models/AnalyticsModels/ChangeEvent";
+import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../../Models/DatabaseModels/Host";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleLayerUser from "../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import ServiceModel from "../../../../Models/DatabaseModels/Service";
 import InventoryItem from "../../../../Models/DatabaseModels/InventoryItem";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
+import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -26,6 +30,8 @@ import {
   SecurityConnectionMatch,
   SecurityConnectionRecordJson,
   SecurityConnectionRecordListJson,
+  SecurityConnectionScheduleJson,
+  SecurityConnectionScheduleListJson,
   SecurityConnectionsJson,
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import {
@@ -56,8 +62,11 @@ import IncidentService from "../../../Services/IncidentService";
 import IncidentStateService from "../../../Services/IncidentStateService";
 import InventoryItemService from "../../../Services/InventoryItemService";
 import MonitorService from "../../../Services/MonitorService";
+import OnCallDutyPolicyScheduleLayerUserService from "../../../Services/OnCallDutyPolicyScheduleLayerUserService";
+import OnCallDutyPolicyScheduleService from "../../../Services/OnCallDutyPolicyScheduleService";
 import SecurityCaseService from "../../../Services/SecurityCaseService";
 import SecurityEventService from "../../../Services/SecurityEventService";
+import TeamMemberService from "../../../Services/TeamMemberService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -71,7 +80,9 @@ import SecurityConnectedRecords, {
 /*
  * CONNECTED SIGNALS: what a security case, event or entity names in the rest
  * of OneUptime, and what is happening on it - the incidents and alerts open
- * on it, the monitors that watch it, what changed on it around the time.
+ * on it, the monitors that watch it (and a monitor's own status), what
+ * changed on it around the time, and for a member the on-call schedules
+ * they are on (on call now or not) and the teams they are in.
  *
  * The records come from SecurityConnectedRecords (the rules are in
  * SecurityConnectionMatch); this reads their facts, for at most
@@ -84,7 +95,11 @@ import SecurityConnectedRecords, {
  * page and OneUptime AI's triage all read it, so they say the same things.
  */
 
-// The relation each kind of record has on incidents, alerts and monitors.
+/*
+ * The relation each kind of record has on incidents, alerts and monitors
+ * (their Affected Resources): what the facts of a record are read through,
+ * and what an incident a case declares is linked to.
+ */
 export const RECORD_RELATION_COLUMNS: Partial<
   Record<SecurityConnectionKind, string>
 > = {
@@ -92,8 +107,65 @@ export const RECORD_RELATION_COLUMNS: Partial<
   [SecurityConnectionKind.DockerHost]: "dockerHosts",
   [SecurityConnectionKind.PodmanHost]: "podmanHosts",
   [SecurityConnectionKind.KubernetesCluster]: "kubernetesClusters",
+  [SecurityConnectionKind.CloudResource]: "cloudResources",
   [SecurityConnectionKind.Service]: "services",
 };
+
+/*
+ * A monitor's own incidents (an incident's Monitors Affected) and alerts
+ * (the alert's monitor). A monitor is never linked to an incident a case
+ * declares: an incident on a monitor can change its status and show on
+ * the status pages that list it, and a security incident is not for them.
+ */
+export const MONITOR_INCIDENTS_COLUMN: string = "monitors";
+export const MONITOR_ALERTS_COLUMN: string = "monitorId";
+
+// How one kind of fact names a kind of record: a list relation, or one id.
+export interface FactRelation {
+  column: string;
+  isList: boolean;
+}
+
+export function incidentRelation(
+  kind: SecurityConnectionKind,
+): FactRelation | null {
+  if (kind === SecurityConnectionKind.Monitor) {
+    return { column: MONITOR_INCIDENTS_COLUMN, isList: true };
+  }
+
+  const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+
+  return column ? { column, isList: true } : null;
+}
+
+export function alertRelation(
+  kind: SecurityConnectionKind,
+): FactRelation | null {
+  if (kind === SecurityConnectionKind.Monitor) {
+    return { column: MONITOR_ALERTS_COLUMN, isList: false };
+  }
+
+  const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+
+  return column ? { column, isList: true } : null;
+}
+
+export function monitorRelation(
+  kind: SecurityConnectionKind,
+): FactRelation | null {
+  const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+
+  return column ? { column, isList: true } : null;
+}
+
+// The kinds whose changes are read: not a person's, a device's or a monitor's.
+export function hasRecentChanges(kind: SecurityConnectionKind): boolean {
+  return (
+    kind !== SecurityConnectionKind.User &&
+    kind !== SecurityConnectionKind.NetworkDevice &&
+    kind !== SecurityConnectionKind.Monitor
+  );
+}
 
 // The most incidents, alerts and monitors read for one kind of record.
 export const MAX_FACT_ROWS_READ: number = 100;
@@ -116,14 +188,38 @@ interface RecordFacts {
   monitors: SecurityConnectionRecordListJson | null;
   recentChanges: Array<SecurityConnectionChangeJson> | null;
   inventoryItemId?: string | undefined;
+  // A member's: null when they could not be read.
+  onCallSchedules?: SecurityConnectionScheduleListJson | null | undefined;
+  teams?: SecurityConnectionRecordListJson | null | undefined;
 }
 
 function recordKey(kind: SecurityConnectionKind, id: string): string {
   return `${kind}:${id}`;
 }
 
-function relatedIds(row: unknown, column: string): Array<string> {
-  const related: unknown = (row as Record<string, unknown>)[column];
+// The records a fact is read for: in a list relation, or one id column.
+export function relationQuery(
+  relation: FactRelation,
+  ids: Array<ObjectID>,
+): unknown {
+  return relation.isList
+    ? QueryHelper.inRelationArray(ids)
+    : QueryHelper.any(ids);
+}
+
+export function relationSelect(relation: FactRelation): unknown {
+  return relation.isList ? { _id: true } : true;
+}
+
+export function relatedIds(
+  row: unknown,
+  relation: FactRelation,
+): Array<string> {
+  const related: unknown = (row as Record<string, unknown>)[relation.column];
+
+  if (!relation.isList) {
+    return related ? [related.toString()] : [];
+  }
 
   if (!Array.isArray(related)) {
     return [];
@@ -196,6 +292,9 @@ export function linkIncidentToConnectedRecords(
   const clusters: Array<ObjectID> = idsOf(
     SecurityConnectionKind.KubernetesCluster,
   );
+  const cloudResources: Array<ObjectID> = idsOf(
+    SecurityConnectionKind.CloudResource,
+  );
   const services: Array<ObjectID> = idsOf(SecurityConnectionKind.Service);
 
   if (hosts.length > 0) {
@@ -220,6 +319,14 @@ export function linkIncidentToConnectedRecords(
     incident.kubernetesClusters = clusters.map(
       (id: ObjectID): KubernetesCluster => {
         return new KubernetesCluster(id);
+      },
+    );
+  }
+
+  if (cloudResources.length > 0) {
+    incident.cloudResources = cloudResources.map(
+      (id: ObjectID): CloudResource => {
+        return new CloudResource(id);
       },
     );
   }
@@ -255,6 +362,14 @@ export function toConnectedResourceJson(
     recentChanges: facts ? facts.recentChanges : null,
     ...(facts?.inventoryItemId
       ? { inventoryItemId: facts.inventoryItemId }
+      : {}),
+    ...(record.status ? { status: record.status } : {}),
+    // A member's schedules and teams, as read (null) or not read at all.
+    ...(record.kind === SecurityConnectionKind.User
+      ? {
+          onCallSchedules: facts?.onCallSchedules ?? null,
+          teams: facts?.teams ?? null,
+        }
       : {}),
   };
 }
@@ -530,51 +645,62 @@ export default class SecurityConnections {
       byKind.set(record.kind, ids);
     }
 
-    const [incidents, alerts, monitors, changes, inventory]: [
+    const memberIds: Array<string> =
+      byKind.get(SecurityConnectionKind.User) || [];
+
+    const [incidents, alerts, monitors, changes, inventory, schedules, teams]: [
       Map<string, SecurityConnectionRecordListJson> | null,
       Map<string, SecurityConnectionRecordListJson> | null,
       Map<string, SecurityConnectionRecordListJson> | null,
       Map<string, Array<SecurityConnectionChangeJson>> | null,
       Map<string, string>,
+      Map<string, SecurityConnectionScheduleListJson> | null,
+      Map<string, SecurityConnectionRecordListJson> | null,
     ] = await Promise.all([
       this.readActiveIncidents({ ...data, byKind }),
       this.readActiveAlerts({ ...data, byKind }),
       this.readMonitors({ ...data, byKind }),
       this.readRecentChanges({ ...data, byKind }),
       this.readInventoryItems(data),
+      this.readMemberSchedules({ ...data, userIds: memberIds }),
+      this.readMemberTeams({ ...data, userIds: memberIds }),
     ]);
 
     for (const record of data.records) {
       const key: string = recordKey(record.kind, record.id);
-      const hasRelation: boolean = Boolean(
-        RECORD_RELATION_COLUMNS[record.kind],
-      );
       const empty: SecurityConnectionRecordListJson = { count: 0, items: [] };
+      const isMember: boolean = record.kind === SecurityConnectionKind.User;
 
       facts.set(key, {
-        activeIncidents: hasRelation
+        activeIncidents: incidentRelation(record.kind)
           ? incidents
             ? incidents.get(key) || empty
             : null
           : null,
-        activeAlerts: hasRelation
+        activeAlerts: alertRelation(record.kind)
           ? alerts
             ? alerts.get(key) || empty
             : null
           : null,
-        monitors: hasRelation
+        monitors: monitorRelation(record.kind)
           ? monitors
             ? monitors.get(key) || empty
             : null
           : null,
-        recentChanges:
-          record.kind === SecurityConnectionKind.User ||
-          record.kind === SecurityConnectionKind.NetworkDevice
-            ? null
-            : changes
-              ? changes.get(key) || []
-              : null,
+        recentChanges: hasRecentChanges(record.kind)
+          ? changes
+            ? changes.get(key) || []
+            : null
+          : null,
         ...(inventory.get(key) ? { inventoryItemId: inventory.get(key) } : {}),
+        ...(isMember
+          ? {
+              onCallSchedules: schedules
+                ? schedules.get(record.id) || { count: 0, items: [] }
+                : null,
+              teams: teams ? teams.get(record.id) || empty : null,
+            }
+          : {}),
       });
     }
 
@@ -589,29 +715,30 @@ export default class SecurityConnections {
   private static async readRelated<T>(data: {
     byKind: Map<SecurityConnectionKind, Array<string>>;
     label: string;
-    read: (column: string, ids: Array<ObjectID>) => Promise<Array<T>>;
+    relationOf: (kind: SecurityConnectionKind) => FactRelation | null;
+    read: (relation: FactRelation, ids: Array<ObjectID>) => Promise<Array<T>>;
     toItem: (row: T) => SecurityConnectionRecordJson;
   }): Promise<Map<string, SecurityConnectionRecordListJson> | null> {
     const lists: Map<string, SecurityConnectionRecordListJson> = new Map();
 
     try {
       for (const [kind, ids] of Array.from(data.byKind.entries())) {
-        const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+        const relation: FactRelation | null = data.relationOf(kind);
 
-        if (!column || ids.length === 0) {
+        if (!relation || ids.length === 0) {
           continue;
         }
 
         const wanted: Set<string> = new Set(ids);
         const rows: Array<T> = await data.read(
-          column,
+          relation,
           ids.map((id: string): ObjectID => {
             return new ObjectID(id);
           }),
         );
 
         for (const row of rows) {
-          for (const id of relatedIds(row, column)) {
+          for (const id of relatedIds(row, relation)) {
             if (wanted.has(id)) {
               addToList(lists, recordKey(kind, id), data.toItem(row));
             }
@@ -656,14 +783,15 @@ export default class SecurityConnections {
     return await this.readRelated<Incident>({
       byKind: data.byKind,
       label: "active incidents",
+      relationOf: incidentRelation,
       read: async (
-        column: string,
+        relation: FactRelation,
         ids: Array<ObjectID>,
       ): Promise<Array<Incident>> => {
         return await IncidentService.findBy({
           query: {
             projectId: data.projectId,
-            [column]: QueryHelper.inRelationArray(ids),
+            [relation.column]: relationQuery(relation, ids),
             currentIncidentStateId: QueryHelper.any(unresolved),
           } as never,
           select: {
@@ -672,7 +800,7 @@ export default class SecurityConnections {
             incidentNumber: true,
             incidentNumberWithPrefix: true,
             currentIncidentState: { name: true, color: true },
-            [column]: { _id: true },
+            [relation.column]: relationSelect(relation),
           } as never,
           sort: { createdAt: SortOrder.Descending },
           limit: MAX_FACT_ROWS_READ,
@@ -728,14 +856,15 @@ export default class SecurityConnections {
     return await this.readRelated<Alert>({
       byKind: data.byKind,
       label: "active alerts",
+      relationOf: alertRelation,
       read: async (
-        column: string,
+        relation: FactRelation,
         ids: Array<ObjectID>,
       ): Promise<Array<Alert>> => {
         return await AlertService.findBy({
           query: {
             projectId: data.projectId,
-            [column]: QueryHelper.inRelationArray(ids),
+            [relation.column]: relationQuery(relation, ids),
             currentAlertStateId: QueryHelper.any(unresolved),
           } as never,
           select: {
@@ -744,7 +873,7 @@ export default class SecurityConnections {
             alertNumber: true,
             alertNumberWithPrefix: true,
             currentAlertState: { name: true, color: true },
-            [column]: { _id: true },
+            [relation.column]: relationSelect(relation),
           } as never,
           sort: { createdAt: SortOrder.Descending },
           limit: MAX_FACT_ROWS_READ,
@@ -780,20 +909,21 @@ export default class SecurityConnections {
     return await this.readRelated<Monitor>({
       byKind: data.byKind,
       label: "monitors",
+      relationOf: monitorRelation,
       read: async (
-        column: string,
+        relation: FactRelation,
         ids: Array<ObjectID>,
       ): Promise<Array<Monitor>> => {
         return await MonitorService.findBy({
           query: {
             projectId: data.projectId,
-            [column]: QueryHelper.inRelationArray(ids),
+            [relation.column]: relationQuery(relation, ids),
           } as never,
           select: {
             _id: true,
             name: true,
             currentMonitorStatus: { name: true, color: true },
-            [column]: { _id: true },
+            [relation.column]: relationSelect(relation),
           } as never,
           sort: { name: SortOrder.Ascending },
           limit: MAX_FACT_ROWS_READ,
@@ -817,6 +947,260 @@ export default class SecurityConnections {
   }
 
   /*
+   * The on-call schedules each member is on - those whose rotation lists
+   * them, and those they are on call for now (an override puts someone on
+   * call without a rotation) - by member id, the ones they are on call for
+   * now first, then by name. With the caller's own permissions: a role that
+   * cannot read schedules is told nothing about them (null), and so is
+   * everyone when a read fails.
+   */
+  private static async readMemberSchedules(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, SecurityConnectionScheduleListJson> | null> {
+    const lists: Map<string, SecurityConnectionScheduleListJson> = new Map();
+
+    if (data.userIds.length === 0) {
+      return lists;
+    }
+
+    const userIds: Array<ObjectID> = data.userIds.map(
+      (id: string): ObjectID => {
+        return new ObjectID(id);
+      },
+    );
+
+    try {
+      const [layerUsers, onCallNow]: [
+        Array<OnCallDutyPolicyScheduleLayerUser>,
+        Array<OnCallDutyPolicySchedule>,
+      ] = await Promise.all([
+        OnCallDutyPolicyScheduleLayerUserService.findBy({
+          query: {
+            projectId: data.projectId,
+            userId: QueryHelper.any(userIds),
+          },
+          select: { userId: true, onCallDutyPolicyScheduleId: true },
+          limit: MAX_FACT_ROWS_READ,
+          skip: 0,
+          props: data.props,
+        }),
+        OnCallDutyPolicyScheduleService.findBy({
+          query: {
+            projectId: data.projectId,
+            currentUserIdOnRoster: QueryHelper.any(userIds),
+          },
+          select: { _id: true, name: true, currentUserIdOnRoster: true },
+          sort: { name: SortOrder.Ascending },
+          limit: MAX_FACT_ROWS_READ,
+          skip: 0,
+          props: data.props,
+        }),
+      ]);
+
+      // Every schedule a member is on: by their rotation, or on call now.
+      const scheduleIdsOf: Map<string, Set<string>> = new Map();
+      const add: (userId: string, scheduleId: string) => void = (
+        userId: string,
+        scheduleId: string,
+      ): void => {
+        const ids: Set<string> = scheduleIdsOf.get(userId) || new Set();
+        ids.add(scheduleId);
+        scheduleIdsOf.set(userId, ids);
+      };
+
+      for (const layerUser of layerUsers) {
+        const userId: string = layerUser.userId?.toString() || "";
+        const scheduleId: string =
+          layerUser.onCallDutyPolicyScheduleId?.toString() || "";
+
+        if (userId && scheduleId) {
+          add(userId, scheduleId);
+        }
+      }
+
+      const names: Map<string, string> = new Map();
+      const onCallFor: Set<string> = new Set();
+
+      for (const schedule of onCallNow) {
+        const scheduleId: string = schedule.id?.toString() || "";
+        const userId: string = schedule.currentUserIdOnRoster?.toString() || "";
+
+        if (scheduleId && userId) {
+          names.set(scheduleId, schedule.name || "");
+          onCallFor.add(`${userId}:${scheduleId}`);
+          add(userId, scheduleId);
+        }
+      }
+
+      // The names of the schedules their rotations list, as the caller may read them.
+      const unnamed: Array<ObjectID> = Array.from(
+        new Set(
+          Array.from(scheduleIdsOf.values()).flatMap(
+            (ids: Set<string>): Array<string> => {
+              return Array.from(ids);
+            },
+          ),
+        ),
+      )
+        .filter((id: string): boolean => {
+          return !names.has(id);
+        })
+        .map((id: string): ObjectID => {
+          return new ObjectID(id);
+        });
+
+      if (unnamed.length > 0) {
+        const schedules: Array<OnCallDutyPolicySchedule> =
+          await OnCallDutyPolicyScheduleService.findBy({
+            query: {
+              projectId: data.projectId,
+              _id: QueryHelper.any(unnamed),
+            },
+            select: { _id: true, name: true },
+            limit: unnamed.length,
+            skip: 0,
+            props: data.props,
+          });
+
+        for (const schedule of schedules) {
+          if (schedule.id) {
+            names.set(schedule.id.toString(), schedule.name || "");
+          }
+        }
+      }
+
+      for (const [userId, scheduleIds] of Array.from(scheduleIdsOf.entries())) {
+        const schedules: Array<SecurityConnectionScheduleJson> = Array.from(
+          scheduleIds,
+        )
+          // A schedule the caller cannot read is not theirs to be told of.
+          .filter((scheduleId: string): boolean => {
+            return names.has(scheduleId);
+          })
+          .map((scheduleId: string): SecurityConnectionScheduleJson => {
+            return {
+              id: scheduleId,
+              name: names.get(scheduleId) || "",
+              isOnCallNow: onCallFor.has(`${userId}:${scheduleId}`),
+            };
+          })
+          .sort(
+            (
+              a: SecurityConnectionScheduleJson,
+              b: SecurityConnectionScheduleJson,
+            ): number => {
+              if (a.isOnCallNow !== b.isOnCallNow) {
+                return a.isOnCallNow ? -1 : 1;
+              }
+
+              return a.name.localeCompare(b.name);
+            },
+          );
+
+        lists.set(userId, {
+          count: schedules.length,
+          items: schedules.slice(0, SECURITY_CONNECTION_MAX_LISTED),
+        });
+      }
+    } catch (error) {
+      if (!isRefusedRead(error)) {
+        logger.error(
+          `Security connections: the members' on-call schedules could not be read: ${error}`,
+        );
+      }
+
+      return null;
+    }
+
+    return lists;
+  }
+
+  /*
+   * The teams each member is in (who to reach about the account), by
+   * member id, by name: only the teams they joined - an invitation not yet
+   * accepted is no membership. With the caller's own permissions.
+   */
+  private static async readMemberTeams(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, SecurityConnectionRecordListJson> | null> {
+    const lists: Map<string, SecurityConnectionRecordListJson> = new Map();
+
+    if (data.userIds.length === 0) {
+      return lists;
+    }
+
+    try {
+      const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+        query: {
+          projectId: data.projectId,
+          userId: QueryHelper.any(
+            data.userIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+          ),
+          hasAcceptedInvitation: true,
+        },
+        select: { userId: true, teamId: true, team: { name: true } },
+        limit: MAX_FACT_ROWS_READ,
+        skip: 0,
+        props: data.props,
+      });
+      const teamsOf: Map<string, Map<string, string>> = new Map();
+
+      for (const membership of memberships) {
+        const userId: string = membership.userId?.toString() || "";
+        const teamId: string = membership.teamId?.toString() || "";
+
+        if (!userId || !teamId) {
+          continue;
+        }
+
+        const teams: Map<string, string> = teamsOf.get(userId) || new Map();
+        teams.set(teamId, membership.team?.name || "");
+        teamsOf.set(userId, teams);
+      }
+
+      for (const [userId, teams] of Array.from(teamsOf.entries())) {
+        const items: Array<SecurityConnectionRecordJson> = Array.from(
+          teams.entries(),
+        )
+          .map(
+            ([id, title]: [string, string]): SecurityConnectionRecordJson => {
+              return { id, title };
+            },
+          )
+          .sort(
+            (
+              a: SecurityConnectionRecordJson,
+              b: SecurityConnectionRecordJson,
+            ): number => {
+              return a.title.localeCompare(b.title);
+            },
+          );
+
+        lists.set(userId, {
+          count: items.length,
+          items: items.slice(0, SECURITY_CONNECTION_MAX_LISTED),
+        });
+      }
+    } catch (error) {
+      if (!isRefusedRead(error)) {
+        logger.error(
+          `Security connections: the members' teams could not be read: ${error}`,
+        );
+      }
+
+      return null;
+    }
+
+    return lists;
+  }
+
+  /*
    * What changed on each record in the window - a service's deploys, a
    * cluster's rollouts, a fix run on a host - the latest first.
    */
@@ -829,10 +1213,7 @@ export default class SecurityConnections {
     const keyOfId: Map<string, string> = new Map();
 
     for (const [kind, ids] of Array.from(data.byKind.entries())) {
-      if (
-        kind === SecurityConnectionKind.User ||
-        kind === SecurityConnectionKind.NetworkDevice
-      ) {
+      if (!hasRecentChanges(kind)) {
         continue;
       }
 

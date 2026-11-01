@@ -60,12 +60,17 @@ import SecurityEventService, {
 } from "../../../Services/SecurityEventService";
 import SecurityPlaybookRunService from "../../../Services/SecurityPlaybookRunService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import SecurityConnections, {
+  FactRelation,
   MAX_CHANGES_READ,
-  RECORD_RELATION_COLUMNS,
+  alertRelation,
+  hasRecentChanges,
+  incidentRelation,
+  relatedIds,
+  relationQuery,
+  relationSelect,
 } from "../../SecurityEvent/Connections/SecurityConnections";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
@@ -546,10 +551,7 @@ export default class SecurityCaseStory {
     const byId: Map<string, SecurityConnectedResourceJson> = new Map();
 
     for (const resource of data.resources) {
-      if (
-        resource.kind !== SecurityConnectionKind.User &&
-        resource.kind !== SecurityConnectionKind.NetworkDevice
-      ) {
+      if (hasRecentChanges(resource.kind)) {
         byId.set(resource.id, resource);
       }
     }
@@ -714,16 +716,17 @@ export default class SecurityCaseStory {
     for (const [kind, ids] of Array.from(
       getRecordIdsByKind(data.resources).entries(),
     )) {
-      const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+      const relation: FactRelation | null = incidentRelation(kind);
 
-      if (!column || ids.length === 0) {
+      if (!relation || ids.length === 0) {
         continue;
       }
 
       const rows: Array<Incident> = await IncidentService.findBy({
         query: {
           projectId: data.projectId,
-          [column]: QueryHelper.inRelationArray(
+          [relation.column]: relationQuery(
+            relation,
             ids.map((id: string): ObjectID => {
               return new ObjectID(id);
             }),
@@ -733,7 +736,10 @@ export default class SecurityCaseStory {
             data.scope.window.end,
           ),
         } as never,
-        select: { ...select, [column]: { _id: true } } as never,
+        select: {
+          ...select,
+          [relation.column]: relationSelect(relation),
+        } as never,
         sort: { createdAt: SortOrder.Ascending },
         limit: SECURITY_CASE_STORY_MAX_INCIDENTS + 1,
         skip: 0,
@@ -747,7 +753,7 @@ export default class SecurityCaseStory {
       for (const incident of rows.slice(0, SECURITY_CASE_STORY_MAX_INCIDENTS)) {
         add(
           incident,
-          findLinkedResource(incident, column, data.resources, kind),
+          findLinkedResource(incident, relation, data.resources, kind),
         );
       }
     }
@@ -768,16 +774,17 @@ export default class SecurityCaseStory {
     for (const [kind, ids] of Array.from(
       getRecordIdsByKind(data.resources).entries(),
     )) {
-      const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+      const relation: FactRelation | null = alertRelation(kind);
 
-      if (!column || ids.length === 0) {
+      if (!relation || ids.length === 0) {
         continue;
       }
 
       const rows: Array<Alert> = await AlertService.findBy({
         query: {
           projectId: data.projectId,
-          [column]: QueryHelper.inRelationArray(
+          [relation.column]: relationQuery(
+            relation,
             ids.map((id: string): ObjectID => {
               return new ObjectID(id);
             }),
@@ -794,7 +801,7 @@ export default class SecurityCaseStory {
           alertNumberWithPrefix: true,
           createdAt: true,
           currentAlertState: { name: true, color: true },
-          [column]: { _id: true },
+          [relation.column]: relationSelect(relation),
         } as never,
         sort: { createdAt: SortOrder.Ascending },
         limit: SECURITY_CASE_STORY_MAX_ALERTS + 1,
@@ -815,7 +822,7 @@ export default class SecurityCaseStory {
         }
 
         const resource: SecurityConnectedResourceJson | undefined =
-          findLinkedResource(alert, column, data.resources, kind);
+          findLinkedResource(alert, relation, data.resources, kind);
 
         items.set(id, {
           key: `alert:${id}`,
@@ -966,33 +973,20 @@ export default class SecurityCaseStory {
   }
 }
 
-// The record an incident or alert names, among the case's.
+/*
+ * The record an incident or alert names, among the case's: through its
+ * list of affected resources, or - an alert on a monitor - its one monitor.
+ */
 function findLinkedResource(
   row: Incident | Alert,
-  column: string,
+  relation: FactRelation,
   resources: Array<SecurityConnectedResourceJson>,
   kind: SecurityConnectionKind,
 ): SecurityConnectedResourceJson | undefined {
-  const related: unknown = (row as unknown as Dictionary<unknown>)[column];
-
-  if (!Array.isArray(related)) {
-    return undefined;
-  }
-
-  const relatedIds: Set<string> = new Set(
-    related
-      .map((item: unknown): string => {
-        const value: unknown =
-          (item as { _id?: unknown; id?: unknown })?._id ||
-          (item as { _id?: unknown; id?: unknown })?.id;
-
-        return value ? String(value) : "";
-      })
-      .filter(Boolean),
-  );
+  const linked: Set<string> = new Set(relatedIds(row, relation));
 
   return resources.find((resource: SecurityConnectedResourceJson): boolean => {
-    return resource.kind === kind && relatedIds.has(resource.id);
+    return resource.kind === kind && linked.has(resource.id);
   });
 }
 

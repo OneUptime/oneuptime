@@ -62,6 +62,7 @@ import {
   SecurityConnectionReason,
   SecurityConnectionRecordJson,
   SecurityConnectionRecordListJson,
+  SecurityConnectionScheduleJson,
   SecurityConnectionsJson,
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import ToolResultSerializer from "../Toolbox/Serializer";
@@ -1071,7 +1072,10 @@ export const CONNECTION_KIND_NOUNS: Readonly<
   [SecurityConnectionKind.PodmanHost]: "Podman host",
   [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
   [SecurityConnectionKind.NetworkDevice]: "network device",
+  [SecurityConnectionKind.CloudResource]: "cloud resource",
+  [SecurityConnectionKind.ServerlessFunction]: "serverless function",
   [SecurityConnectionKind.Service]: "service",
+  [SecurityConnectionKind.Monitor]: "monitor",
   [SecurityConnectionKind.User]: "member",
   [SecurityConnectionKind.InventoryItem]: "inventory item",
 };
@@ -1101,6 +1105,12 @@ export function describeConnectionReason(
       return "only possibly - more than one record holds this address";
     case SecurityConnectionReason.Email:
       return "it is the member with this email";
+    case SecurityConnectionReason.ResourceId:
+      return "it is the cloud resource of this ID";
+    case SecurityConnectionReason.CloudEndpoint:
+      return "it answers on this host name";
+    case SecurityConnectionReason.MonitorTarget:
+      return "it checks this host or address";
     default:
       return "it has this value";
   }
@@ -1113,6 +1123,8 @@ function describeConnectionId(record: SecurityConnectedResourceJson): string {
       return `serviceId "${record.id}"`;
     case SecurityConnectionKind.User:
       return `userId "${record.id}"`;
+    case SecurityConnectionKind.Monitor:
+      return `monitorId "${record.id}"`;
     default:
       return `resourceType "${record.kind}", resourceId "${record.id}"`;
   }
@@ -1159,8 +1171,38 @@ function describeConnectionFacts(
     );
   };
 
+  // A monitor's own status first: whether the check it runs passes now.
+  if (record.status?.name) {
+    parts.push(`Its status now: ${value(record.status.name, 60, false)}`);
+  }
+
   describeList(record.activeIncidents, "incident");
   describeList(record.activeAlerts, "alert");
+
+  // A member's: on call now, and who to reach about the account.
+  if (record.onCallSchedules && record.onCallSchedules.count > 0) {
+    parts.push(
+      `On ${record.onCallSchedules.count} on-call schedule${
+        record.onCallSchedules.count === 1 ? "" : "s"
+      }: ${record.onCallSchedules.items
+        .map((schedule: SecurityConnectionScheduleJson): string => {
+          return `${value(schedule.name, TITLE_LENGTH, false)}${
+            schedule.isOnCallNow ? " (on call now)" : ""
+          }`;
+        })
+        .join("; ")}`,
+    );
+  }
+
+  if (record.teams && record.teams.count > 0) {
+    parts.push(
+      `In ${record.teams.count} team${record.teams.count === 1 ? "" : "s"}: ${record.teams.items
+        .map((team: SecurityConnectionRecordJson): string => {
+          return value(team.title, TITLE_LENGTH, false);
+        })
+        .join("; ")}`,
+    );
+  }
 
   if (record.recentChanges && record.recentChanges.length > 0) {
     parts.push(
