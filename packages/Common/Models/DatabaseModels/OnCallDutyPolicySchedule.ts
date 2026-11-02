@@ -256,8 +256,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Labels to group and filter by.",
+    description: "Labels to group and filter by.",
     example: [{ name: "production" }, { name: "critical" }],
   })
   @ManyToMany(

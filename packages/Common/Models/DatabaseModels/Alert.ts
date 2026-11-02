@@ -1726,8 +1726,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Labels to group and filter by.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {

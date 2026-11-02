@@ -586,8 +586,7 @@ export default class Dashboard extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Labels to group and filter by.",
+    description: "Labels to group and filter by.",
     example: [{ id: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e" }],
   })
   @ManyToMany(
