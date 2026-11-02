@@ -1,17 +1,20 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { getCpuBarColor } from "../../Infrastructure/ResourceTable";
+import { getThresholdBarColor } from "../../Infrastructure/ResourceTable";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
+import { VMWARE_USAGE_BAR_THRESHOLDS } from "../VMwareResourceColumns";
 import {
   VMwareBusyVirtualMachine,
   VMwareHostVirtualMachineSummary,
 } from "../../../Pages/VMware/Utils/VMwareHostData";
+import { getVMwareCpuReadyPercentTone } from "../../../Pages/VMware/Utils/VMwarePartFacts";
 import {
   formatBytes,
   formatPercent,
@@ -26,11 +29,13 @@ import {
  * "View all" sits under the list, as "2 more incidents" does under what is
  * open on the host: as a header button its long label took half the header
  * beside the side menu and squeezed the title onto two lines.
+ *
+ * A VM reads here as it does in the Virtual Machines tab and in Needs
+ * attention just above: its CPU bar amber past 90%, never red, and a CPU
+ * Ready badge once it waits for a free CPU more than 10% of the time, the
+ * line the VM CPU Ready Contention alert fires at - amber, as Needs
+ * attention says it. A red badge at 14% sat under an amber "CPU ready 14%".
  */
-
-// CPU Ready from which a VM is waiting noticeably (the overview's levels).
-export const VM_CPU_READY_WARN_PERCENT: number = 5;
-export const VM_CPU_READY_DANGER_PERCENT: number = 10;
 
 export interface ComponentProps {
   virtualMachines: Array<VMwareBusyVirtualMachine>;
@@ -126,22 +131,27 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          {/*
+                           * A long name breaks after its dots, as the
+                           * vCenter's top consumers do, not at whatever
+                           * letter filled the line (break-all).
+                           */}
                           <Link
                             to={props.getVirtualMachineRoute(vm.externalId)}
-                            className="min-w-0 break-all text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline"
+                            className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere] hover:text-indigo-600 hover:underline"
                           >
-                            {vm.name}
+                            <bdi>
+                              <BreakableName
+                                text={vm.name}
+                                breaksFromLength={0}
+                              />
+                            </bdi>
                           </Link>
-                          {vm.cpuReadyPercent !== null &&
-                          vm.cpuReadyPercent >= VM_CPU_READY_WARN_PERCENT ? (
+                          {getVMwareCpuReadyPercentTone(vm.cpuReadyPercent) ===
+                          "warning" ? (
                             <span
                               data-testid="vmware-host-busy-vm-cpu-ready"
-                              className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                                vm.cpuReadyPercent >=
-                                VM_CPU_READY_DANGER_PERCENT
-                                  ? "bg-red-50 text-red-700 ring-red-200"
-                                  : "bg-amber-50 text-amber-700 ring-amber-200"
-                              }`}
+                              className="inline-flex whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
                             >
                               {translator.translateTemplate(
                                 "CPU Ready {{percent}}",
@@ -186,7 +196,12 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                           aria-hidden="true"
                         >
                           <div
-                            className={`h-1.5 rounded-full ${getCpuBarColor(percent)}`}
+                            data-testid="vmware-host-busy-vm-cpu-bar"
+                            className={`h-1.5 rounded-full ${getThresholdBarColor(
+                              percent,
+                              VMWARE_USAGE_BAR_THRESHOLDS,
+                              "bg-green-500",
+                            )}`}
                             style={{ width: `${percent}%` }}
                           />
                         </div>

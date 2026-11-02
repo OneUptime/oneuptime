@@ -54,7 +54,7 @@ Begränsa regeln under **Which Logs** med telemetritjänster, allvarlighetsgrade
 
 ### Dela upp resultatet och spara
 
-Lägg eventuellt till attribut under **Gruppera efter** och en **Unit**. Kontrollera raden längst ned i redigeraren och spara sedan. Inom några minuter visar regellistan en tid under **Computed Until**.
+Lägg eventuellt till attribut under **Gruppera efter** och en **Enhet**. Kontrollera raden längst ned i redigeraren och spara sedan. Inom några minuter visar regellistan en tid under **Computed Until**.
 :::
 
 | Fält | Vad det gör |
@@ -139,7 +139,7 @@ Skapa en regel under **Loggar → Inställningar → Inspelningsregler**:
 - **Which Logs:** attributfilter `log_type` = `SD-WAN` och `log_component` = `SLA`
 - **Aggregering:** Genomsnitt, **Numeric Attribute:** `latency`
 - **Gruppera efter:** `gw_name` och `profile_name`
-- **Unit:** `ms`
+- **Enhet:** `ms`
 
 Via API:t, MCP eller Terraform är samma regels **definition**:
 

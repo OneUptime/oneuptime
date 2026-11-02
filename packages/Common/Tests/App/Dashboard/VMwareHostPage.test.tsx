@@ -59,6 +59,12 @@ let mockVCenter: Record<string, unknown> | null = null;
 let mockVCenterError: Error | null = null;
 let mockHostRow: Record<string, unknown> | null = null;
 let mockVirtualMachines: Array<Record<string, unknown>> = [];
+// The vCenter's datacenters: a host that reports no usage is told apart by their counts.
+let mockDatacenters: Array<Record<string, unknown>> = [];
+// The host's cluster, whose row carries the id its page is found by.
+let mockClusters: Array<Record<string, unknown>> = [];
+// A failed read of the host's own row.
+let mockHostRowError: Error | null = null;
 let mockIncidents: Array<Record<string, unknown>> = [];
 let mockAlerts: Array<Record<string, unknown>> = [];
 let mockDeniedModels: Array<string> = [];
@@ -103,12 +109,19 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         let records: Array<Record<string, unknown>> = [];
 
         if (modelName === "VMwareResource") {
-          records =
-            request.query["kind"] === "Host"
-              ? mockHostRow
-                ? [mockHostRow]
-                : []
-              : mockVirtualMachines;
+          const kind: unknown = request.query["kind"];
+          if (kind === "Host") {
+            if (mockHostRowError) {
+              return Promise.reject(mockHostRowError);
+            }
+            records = mockHostRow ? [mockHostRow] : [];
+          } else if (kind === "Datacenter") {
+            records = mockDatacenters;
+          } else if (kind === "Cluster") {
+            records = mockClusters;
+          } else {
+            records = mockVirtualMachines;
+          }
         } else if (modelName === "Incident") {
           records = mockIncidents;
         } else if (modelName === "Alert") {
@@ -292,7 +305,8 @@ jest.mock(
 );
 
 import HostDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/HostDetail";
-import { getCpuBarColor } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
+import { getThresholdBarColor } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
+import { VMWARE_USAGE_BAR_THRESHOLDS } from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareResourceColumns";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -321,6 +335,32 @@ function hostRow(
     latestCpuPercent: 41.6,
     metricsUpdatedAt: minutesAgo(2),
     lastSeenAt: minutesAgo(2),
+    ...fields,
+  };
+}
+
+/*
+ * The host's datacenter, as vCenter counts its hosts: every one on and
+ * answering, unless a test says otherwise.
+ */
+function datacenterRow(
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    _id: "43000000-0000-4000-8000-000000000001",
+    kind: "Datacenter",
+    externalId: "datacenter/dc-east",
+    name: "dc-east",
+    datacenterName: "dc-east",
+    metricsUpdatedAt: minutesAgo(2),
+    hostCount: 4,
+    poweredOnHostCount: 4,
+    notRespondingHostCount: 0,
+    standbyHostCount: 0,
+    criticalHostCount: 0,
+    warningHostCount: 0,
+    criticalVmCount: 0,
+    criticalClusterCount: 0,
     ...fields,
   };
 }
@@ -482,7 +522,19 @@ beforeEach(() => {
   };
   mockVCenterError = null;
   mockHostRow = hostRow();
+  mockHostRowError = null;
   mockVirtualMachines = VIRTUAL_MACHINES;
+  mockDatacenters = [datacenterRow()];
+  mockClusters = [
+    {
+      _id: "42000000-0000-4000-8000-000000000001",
+      kind: "Cluster",
+      externalId: "cluster/dc-east/prod-cluster",
+      name: "prod-cluster",
+      clusterName: "prod-cluster",
+      datacenterName: "dc-east",
+    },
+  ];
   mockIncidents = [];
   mockAlerts = [];
   mockDeniedModels = [];
@@ -500,33 +552,34 @@ afterEach(() => {
 });
 
 describe("the hero says which host this is and whether vCenter still reports it", () => {
-  test("a reporting host in a cluster: its name, status, place, capacity and VMs", async () => {
+  test("a reporting host in a cluster: its name, its state in vCenter's words, place, capacity and VMs", async () => {
     await renderPage();
 
     const hero: HTMLElement = screen.getByTestId("vmware-host-hero");
-    expect(hero).toHaveAttribute("data-report-state", "Reporting");
-    expect(within(hero).getByTestId("vmware-host-name")).toHaveTextContent(
+    expect(within(hero).getByTestId("vmware-host-hero-name")).toHaveTextContent(
       HOST,
     );
-    expect(within(hero).getByTestId("vmware-host-status")).toHaveTextContent(
-      "Reporting",
+    // vCenter reports its CPU and memory use, and nothing on it needs a look.
+    const status: HTMLElement = within(hero).getByTestId(
+      "vmware-host-hero-status",
     );
-    expect(within(hero).getByTestId("vmware-host-location")).toHaveTextContent(
+    expect(status).toHaveTextContent(/^Connected$/);
+    expect(status).toHaveAttribute("data-tone", "positive");
+    expect(
+      within(hero).getByTestId("vmware-host-hero-location"),
+    ).toHaveTextContent(
       "ESXi host in cluster prod-cluster, datacenter dc-east",
     );
-    /*
-     * "Last reported", in the status's own words; the exact time is the
-     * line's title.
-     */
+    // When vCenter last reported it; the exact time is the line's title.
     const lastReported: HTMLElement = within(hero).getByTestId(
-      "vmware-host-last-seen",
+      "vmware-host-hero-last-report",
     );
     expect(lastReported).toHaveTextContent(/^Last reported 2 minutes ago$/);
     expect(lastReported.getAttribute("title") || "").not.toBe("");
-    expect(hero).not.toHaveTextContent("Last seen");
-    expect(within(hero).getByTestId("vmware-host-chips")).toHaveTextContent(
-      "76.80 GHz CPU512 GiB memory3 VMs, 2 running",
-    );
+    // Its size, and its VMs - templates left out - powered on of all.
+    expect(
+      within(hero).getByTestId("vmware-host-hero-chips"),
+    ).toHaveTextContent("76.80 GHz CPU512 GiB memory2/3 VMs powered on");
     // The cluster is a link to the cluster's own page.
     const cluster: HTMLElement = within(hero).getByText("prod-cluster");
     expect(cluster.closest("a")).toHaveAttribute(
@@ -537,11 +590,113 @@ describe("the hero says which host this is and whether vCenter still reports it"
     expect(screen.queryByTestId("vmware-host-report-notice")).toBeNull();
   });
 
-  test("a standalone host says so, with no cluster to link", async () => {
-    mockHostRow = hostRow({ clusterName: undefined });
+  test("a busy host is Connected in amber, CPU at 94% its reason in Needs attention", async () => {
+    mockHostRow = hostRow({
+      latestCpuPercent: 94,
+      latestCpuMhz: 72000,
+      latestMemoryBytes: 300 * GIB,
+      latestMemoryPercent: 58,
+    });
     await renderPage();
 
-    expect(screen.getByTestId("vmware-host-location")).toHaveTextContent(
+    expect(screen.getByTestId("vmware-host-hero-status")).toHaveAttribute(
+      "data-tone",
+      "warning",
+    );
+    const own: HTMLElement = within(
+      screen.getByTestId("vmware-host-attention"),
+    ).getAllByTestId("vmware-host-attention-item")[0]!;
+    // Its own row reads "This host", not its name a second time.
+    expect(own).toHaveTextContent("This host");
+    expect(
+      within(own).getByTestId("vmware-host-attention-reason"),
+    ).toHaveTextContent("CPU at 94%");
+  });
+
+  test("a host vCenter has lost: Not responding in red, its zeros no reading, its VMs Disconnected", async () => {
+    mockHostRow = hostRow({
+      latestCpuPercent: 0,
+      latestCpuMhz: 0,
+      latestMemoryBytes: 0,
+      latestMemoryPercent: 0,
+    });
+    mockDatacenters = [
+      datacenterRow({ poweredOnHostCount: 3, notRespondingHostCount: 1 }),
+    ];
+    await renderPage();
+
+    const status: HTMLElement = screen.getByTestId("vmware-host-hero-status");
+    expect(status).toHaveTextContent("Not responding");
+    expect(status).toHaveAttribute("data-tone", "danger");
+    // What it means, for a pointer and a screen reader.
+    expect(status).toHaveAttribute(
+      "title",
+      "vCenter has lost contact with this host: it crashed, lost power or its management network, or was disconnected.",
+    );
+    // The 0% it reports is no reading: the tiles say a dash.
+    expect(tile("CPU")).toHaveTextContent("—");
+    expect(tile("Memory")).toHaveTextContent("—");
+    // Its VMs' 0% ranks nothing: no busiest list.
+    expect(screen.queryByTestId("vmware-host-busiest-vms")).toBeNull();
+    /*
+     * How many VMs it has, never how many run: vCenter repeats their last
+     * power state, and does not know.
+     */
+    const chips: HTMLElement = screen.getByTestId("vmware-host-hero-chips");
+    expect(chips).toHaveTextContent("3 VMs");
+    expect(chips).not.toHaveTextContent("powered on");
+    expect(screen.getByTestId("vmware-host-detail-vms")).toHaveTextContent(
+      /^Virtual machines\s*3$/,
+    );
+    // Needs attention names the host, critical.
+    expect(
+      within(screen.getByTestId("vmware-host-attention")).getByTestId(
+        "vmware-host-attention-reason",
+      ),
+    ).toHaveTextContent("Not responding");
+
+    fireEvent.click(screen.getByRole("tab", { name: /^Virtual Machines/ }));
+    await waitFor(() => {
+      expect(screen.getAllByText("Disconnected").length).toBeGreaterThan(0);
+    });
+    /*
+     * Their CPU Ready is no reading either, as their CPU and memory are
+     * not: db-primary's last 12.4% read as a VM still waiting for a CPU on
+     * a host nobody can reach.
+     */
+    expect(screen.queryByText("12.4%")).toBeNull();
+  });
+
+  test("a host vSphere DPM put in standby is calm: grey In standby, nothing to look at", async () => {
+    mockHostRow = hostRow({
+      latestCpuPercent: 0,
+      latestCpuMhz: 0,
+      latestMemoryBytes: 0,
+      latestMemoryPercent: 0,
+    });
+    mockDatacenters = [
+      datacenterRow({ poweredOnHostCount: 3, standbyHostCount: 1 }),
+    ];
+    // DPM moves a host's VMs away before it sleeps: the ones left are off.
+    mockVirtualMachines = VIRTUAL_MACHINES.map(
+      (row: Record<string, unknown>): Record<string, unknown> => {
+        return { ...row, isPoweredOn: false };
+      },
+    );
+    await renderPage();
+
+    const status: HTMLElement = screen.getByTestId("vmware-host-hero-status");
+    expect(status).toHaveTextContent("In standby");
+    expect(status).toHaveAttribute("data-tone", "neutral");
+    expect(screen.queryByTestId("vmware-host-attention")).toBeNull();
+  });
+
+  test("a standalone host says so, with no cluster to link", async () => {
+    mockHostRow = hostRow({ clusterName: undefined });
+    mockClusters = [];
+    await renderPage();
+
+    expect(screen.getByTestId("vmware-host-hero-location")).toHaveTextContent(
       "Standalone ESXi host in datacenter dc-east",
     );
     expect(
@@ -556,13 +711,10 @@ describe("the hero says which host this is and whether vCenter still reports it"
     mockSeries = {};
     await renderPage();
 
-    expect(screen.getByTestId("vmware-host-hero")).toHaveAttribute(
-      "data-report-state",
-      "NotReporting",
-    );
-    expect(screen.getByTestId("vmware-host-status")).toHaveTextContent(
-      "Not reporting",
-    );
+    const status: HTMLElement = screen.getByTestId("vmware-host-hero-status");
+    expect(status).toHaveTextContent("Not reporting");
+    // Grey: what it last sent is no reading of a host in trouble.
+    expect(status).toHaveAttribute("data-tone", "neutral");
     const notice: HTMLElement = screen.getByTestId("vmware-host-report-notice");
     expect(notice).toHaveTextContent(
       "vCenter last reported this host 2 hours ago",
@@ -571,7 +723,7 @@ describe("the hero says which host this is and whether vCenter still reports it"
       within(notice).getByText("Check the vCenter").closest("a"),
     ).toHaveAttribute("href", BASE);
     // Said once: the notice opens with the time, the hero leaves it out.
-    expect(screen.queryByTestId("vmware-host-last-seen")).toBeNull();
+    expect(screen.queryByTestId("vmware-host-hero-last-report")).toBeNull();
   });
 
   test("no data yet: listed, but no metrics; the notice says they are coming", async () => {
@@ -579,7 +731,7 @@ describe("the hero says which host this is and whether vCenter still reports it"
     mockSeries = {};
     await renderPage();
 
-    expect(screen.getByTestId("vmware-host-status")).toHaveTextContent(
+    expect(screen.getByTestId("vmware-host-hero-status")).toHaveTextContent(
       "No data yet",
     );
     expect(screen.getByTestId("vmware-host-report-notice")).toHaveTextContent(
@@ -593,18 +745,18 @@ describe("the hero says which host this is and whether vCenter still reports it"
     mockSeries = {};
     await renderPage();
 
-    expect(screen.getByTestId("vmware-host-hero")).toHaveAttribute(
-      "data-report-state",
-      "NotInInventory",
+    expect(screen.getByTestId("vmware-host-hero-status")).toHaveTextContent(
+      "Not in inventory",
     );
-    expect(screen.getByTestId("vmware-host-name")).toHaveTextContent(HOST);
-    expect(screen.getByTestId("vmware-host-location")).toHaveTextContent(
+    expect(screen.getByTestId("vmware-host-hero-name")).toHaveTextContent(HOST);
+    // Where it was, from its address: no guess at a cluster.
+    expect(screen.getByTestId("vmware-host-hero-location")).toHaveTextContent(
       "ESXi host in datacenter dc-east",
     );
-    expect(screen.getByTestId("vmware-host-location")).not.toHaveTextContent(
-      "Standalone",
-    );
-    expect(screen.queryByTestId("vmware-host-last-seen")).toBeNull();
+    expect(
+      screen.getByTestId("vmware-host-hero-location"),
+    ).not.toHaveTextContent("Standalone");
+    expect(screen.queryByTestId("vmware-host-hero-last-report")).toBeNull();
     const notice: HTMLElement = screen.getByTestId("vmware-host-report-notice");
     expect(notice).toHaveTextContent(
       "This host is not in the vCenter's inventory",
@@ -729,7 +881,7 @@ describe("the tiles", () => {
     expect(tile("CPU")).not.toHaveTextContent("of 76.80 GHz");
     expect(tile("Memory")).not.toHaveTextContent("of 512 GiB");
     expect(tile("Disk latency")).not.toHaveTextContent("slowest disk");
-    expect(screen.getByTestId("vmware-host-chips")).toHaveTextContent(
+    expect(screen.getByTestId("vmware-host-hero-chips")).toHaveTextContent(
       "76.80 GHz CPU",
     );
   });
@@ -801,19 +953,119 @@ describe("the cards", () => {
     const bars: Array<string> = within(
       screen.getByTestId("vmware-host-busiest-vms"),
     )
-      .getAllByTestId("vmware-host-busy-vm")
-      .map((row: HTMLElement): string => {
-        const bar: Element | null = row.querySelector(
-          "div.h-1\\.5.rounded-full[style]",
-        );
-        return bar?.className || "";
+      .getAllByTestId("vmware-host-busy-vm-cpu-bar")
+      .map((bar: HTMLElement): string => {
+        return bar.className;
       });
 
-    // 78.4% and 31.9%: the VM list's thresholds (60 and 80), not 70 and 90.
-    expect(bars[0]).toContain(getCpuBarColor(78.4));
-    expect(getCpuBarColor(78.4)).toBe("bg-yellow-500");
-    expect(bars[1]).toContain(getCpuBarColor(31.9));
-    expect(getCpuBarColor(31.9)).toBe("bg-green-500");
+    /*
+     * 78.4% and 31.9%: green, as the Virtual Machines tab draws them -
+     * amber only past 90%, where VM CPU Saturation fires, and never red.
+     * The card used the table's own 60 and 80, so 78.4% was amber here and
+     * green in the tab.
+     */
+    expect(bars).toHaveLength(2);
+    expect(bars[0]).toContain(
+      getThresholdBarColor(78.4, VMWARE_USAGE_BAR_THRESHOLDS, "bg-green-500"),
+    );
+    expect(bars[0]).toContain("bg-green-500");
+    expect(bars[1]).toContain("bg-green-500");
+    expect(
+      getThresholdBarColor(94, VMWARE_USAGE_BAR_THRESHOLDS, "bg-green-500"),
+    ).toBe("bg-amber-500");
+    expect(
+      getThresholdBarColor(99.9, VMWARE_USAGE_BAR_THRESHOLDS, "bg-green-500"),
+    ).toBe("bg-amber-500");
+  });
+
+  test("a busy VM's bar is amber past 90%, and its CPU Ready badge amber past 10% as Needs attention says it", async () => {
+    mockVirtualMachines = [
+      vm(1, {
+        name: "batch-01",
+        isPoweredOn: true,
+        latestCpuPercent: 94.2,
+        cpuReadinessPercent: 6.2,
+      }),
+      vm(2, {
+        name: "ci-runner-01",
+        isPoweredOn: true,
+        latestCpuPercent: 64.1,
+        cpuReadinessPercent: 14.2,
+      }),
+    ];
+    await renderPage();
+
+    const rows: Array<HTMLElement> = within(
+      screen.getByTestId("vmware-host-busiest-vms"),
+    ).getAllByTestId("vmware-host-busy-vm");
+    expect(
+      rows.map((row: HTMLElement): string => {
+        return within(row).getByRole("link").textContent || "";
+      }),
+    ).toEqual(["batch-01", "ci-runner-01"]);
+
+    // 94.2% CPU: amber, never red.
+    const busyBar: HTMLElement = within(rows[0]!).getByTestId(
+      "vmware-host-busy-vm-cpu-bar",
+    );
+    expect(busyBar.className).toContain("bg-amber-500");
+    expect(busyBar.className).not.toContain("bg-red-500");
+    // 64.1%: green.
+    expect(
+      within(rows[1]!).getByTestId("vmware-host-busy-vm-cpu-bar").className,
+    ).toContain("bg-green-500");
+
+    // 6.2% CPU Ready is under the alert's 10%: no badge.
+    expect(
+      within(rows[0]!).queryByTestId("vmware-host-busy-vm-cpu-ready"),
+    ).toBeNull();
+    // 14.2% is past it: amber, as Needs attention's "CPU ready 14%" above it.
+    const badge: HTMLElement = within(rows[1]!).getByTestId(
+      "vmware-host-busy-vm-cpu-ready",
+    );
+    expect(badge).toHaveTextContent("CPU Ready 14.2%");
+    expect(badge.className).toContain("bg-amber-50");
+    expect(badge.className).not.toContain("bg-red-50");
+
+    const attentionRow: HTMLElement | undefined = within(
+      screen.getByTestId("vmware-host-attention"),
+    )
+      .getAllByTestId("vmware-host-attention-item")
+      .find((item: HTMLElement): boolean => {
+        return item.getAttribute("data-key") === "VirtualMachine:vm/uuid-2";
+      });
+    expect(attentionRow).toBeDefined();
+    expect(attentionRow).toHaveAttribute("data-severity", "warning");
+  });
+
+  test("a VM's long name breaks after its dots, never at the letter that filled the line", async () => {
+    mockVirtualMachines = [
+      vm(1, {
+        name: "web-frontend-03.prod.acme.example",
+        isPoweredOn: true,
+        latestCpuPercent: 42,
+      }),
+    ];
+    await renderPage();
+
+    const link: HTMLElement = within(
+      within(screen.getByTestId("vmware-host-busiest-vms")).getByTestId(
+        "vmware-host-busy-vm",
+      ),
+    ).getByRole("link");
+    expect(link.textContent).toBe("web-frontend-03.prod.acme.example");
+    // break-all broke it anywhere: "web-frontend-03.prod.a" / "cme.example".
+    expect(link.className).not.toContain("break-all");
+    expect(link.className).toContain("[overflow-wrap:anywhere]");
+    const parts: Array<string> = [""];
+    for (const node of Array.from(link.querySelector("bdi")!.childNodes)) {
+      if (node.nodeName === "WBR") {
+        parts.push("");
+        continue;
+      }
+      parts[parts.length - 1] += node.textContent || "";
+    }
+    expect(parts).toEqual(["web-frontend-03.", "prod.", "acme.", "example"]);
   });
 
   test("a host that runs no VM has no busiest list", async () => {
@@ -992,18 +1244,16 @@ describe("what is open on the host, and the alerts that watch it", () => {
     ];
     await renderPage();
 
-    const card: HTMLElement = await screen.findByTestId(
-      "vmware-host-open-events",
-    );
+    const card: HTMLElement = await screen.findByTestId("vmware-host-open");
     const rows: Array<HTMLElement> = within(card).getAllByTestId(
-      "vmware-host-open-event",
+      "vmware-host-open-item",
     );
     // The incident first, though the alert is newer.
     expect(
       rows.map((row: HTMLElement): string | null => {
         return row.getAttribute("data-kind");
       }),
-    ).toEqual(["Incident", "Alert"]);
+    ).toEqual(["incident", "alert"]);
     expect(within(rows[0]!).getByRole("link")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/incidents/60000000-0000-4000-8000-000000000001`,
@@ -1016,13 +1266,41 @@ describe("what is open on the host, and the alerts that watch it", () => {
     expect(card).not.toHaveTextContent("Another host's incident");
   });
 
+  test("an alert about a VM on this host is open on it too; one about a VM elsewhere is not", async () => {
+    mockAlerts = [
+      {
+        _id: "61000000-0000-4000-8000-000000000002",
+        title: "[VMware] VM CPU Ready Contention (>10%) - vcenter-prod",
+        alertNumber: 4,
+        createdAt: minutesAgo(5),
+        seriesLabels: { "resource.vcenter.vm.name": "db-primary" },
+      },
+      {
+        _id: "61000000-0000-4000-8000-000000000003",
+        title: "Another host's VM",
+        createdAt: minutesAgo(6),
+        seriesLabels: { "resource.vcenter.vm.name": "db-replica" },
+      },
+    ];
+    await renderPage();
+
+    const card: HTMLElement = await screen.findByTestId("vmware-host-open");
+    expect(
+      within(card)
+        .getAllByTestId("vmware-host-open-title")
+        .map((title: HTMLElement): string => {
+          return title.textContent || "";
+        }),
+    ).toEqual(["[VMware] VM CPU Ready Contention (>10%) - vcenter-prod"]);
+  });
+
   test("nothing open: no card", async () => {
     await renderPage();
 
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.queryByTestId("vmware-host-open-events")).toBeNull();
+    expect(screen.queryByTestId("vmware-host-open")).toBeNull();
   });
 
   test("a role that may not read incidents still sees the host's alerts", async () => {
@@ -1037,28 +1315,32 @@ describe("what is open on the host, and the alerts that watch it", () => {
     ];
     await renderPage();
 
-    const card: HTMLElement = await screen.findByTestId(
-      "vmware-host-open-events",
-    );
-    expect(within(card).getAllByTestId("vmware-host-open-event")).toHaveLength(
+    const card: HTMLElement = await screen.findByTestId("vmware-host-open");
+    expect(within(card).getAllByTestId("vmware-host-open-item")).toHaveLength(
       1,
     );
   });
 
-  test("the host alerts: none on, and one link that ticks all five on the Recommendations page", async () => {
+  test("the host alerts: none on, and one link that ticks all six on the Recommendations page", async () => {
     await renderPage();
 
     const card: HTMLElement = await screen.findByTestId("vmware-host-alerts");
-    expect(within(card).getAllByTestId("vmware-host-alert")).toHaveLength(5);
+    const items: Array<HTMLElement> = within(card).getAllByTestId(
+      "vmware-host-alerts-item",
+    );
+    expect(items).toHaveLength(6);
+    // Host Not Responding first: a host that is down before a busy one.
+    expect(items[0]).toHaveTextContent("Host Not Responding");
     const turnOn: HTMLElement = within(card).getByTestId(
       "vmware-host-alerts-turn-on",
     );
-    expect(turnOn).toHaveTextContent("Turn on 5 alerts");
+    expect(turnOn).toHaveTextContent("Turn on 6 alerts");
 
     const href: string = turnOn.getAttribute("href") || "";
     const url: URL = new URL(href, "https://oneuptime.example");
     expect(url.pathname).toBe(`${BASE}/recommendations`);
     expect((url.searchParams.get("select") || "").split(",")).toEqual([
+      "VMware:vmware-host-not-responding",
       "VMware:vmware-host-cpu-saturation",
       "VMware:vmware-host-memory-saturation",
       "VMware:vmware-host-disk-latency-high",
@@ -1093,8 +1375,8 @@ describe("the tabs", () => {
         return (tab.textContent || "").trim();
       }),
     ).toEqual(["Overview", "Virtual Machines3", "Metrics", "Logs"]);
-    expect(screen.getByTestId("vmware-host-chips")).toHaveTextContent(
-      "3 VMs, 2 running",
+    expect(screen.getByTestId("vmware-host-hero-chips")).toHaveTextContent(
+      "2/3 VMs powered on",
     );
   });
 
@@ -1296,5 +1578,54 @@ describe("refreshing and failing", () => {
     render(<HostDetail {...PAGE_PROPS} />);
 
     expect(await screen.findByText("vCenter not found.")).toBeInTheDocument();
+  });
+
+  /*
+   * A host row OneUptime could not read is not a host vCenter dropped: the
+   * page says the read failed, with Try again, and its hero no state -
+   * never "Not in inventory", which would send someone to a vCenter that
+   * was working.
+   */
+  test("a host whose row cannot be read says so with Try again, and reads again on it", async () => {
+    mockHostRowError = new Error("The server could not be reached.");
+    render(<HostDetail {...PAGE_PROPS} />);
+
+    const error: HTMLElement = await screen.findByTestId(
+      "vmware-part-read-error",
+    );
+    expect(error).toHaveTextContent("Couldn't load this ESXi host");
+    expect(error).toHaveTextContent("The server could not be reached.");
+    expect(screen.getByTestId("vmware-host-hero-name")).toHaveTextContent(HOST);
+    expect(screen.queryByTestId("vmware-host-hero-status")).toBeNull();
+    expect(screen.queryByText("Not in inventory")).toBeNull();
+    /*
+     * Nor the notice above the tabs: "This host is not in the vCenter's
+     * inventory" beside "Couldn't load this ESXi host" said two things at
+     * once, the one a guess.
+     */
+    expect(screen.queryByTestId("vmware-host-report-notice")).toBeNull();
+    expect(
+      screen.queryByText("This host is not in the vCenter's inventory"),
+    ).toBeNull();
+    // The Virtual Machines tab says the same in its table, with Refresh.
+    fireEvent.click(screen.getByRole("tab", { name: /^Virtual Machines/ }));
+    expect(
+      await screen.findByText("The server could not be reached."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
+
+    mockHostRowError = null;
+    fireEvent.click(
+      within(await screen.findByTestId("vmware-part-read-error")).getByTestId(
+        "refresh-button",
+      ),
+    );
+    await waitFor(() => {
+      expect(screen.queryByTestId("vmware-part-read-error")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("vmware-host-hero-status"),
+    ).toHaveTextContent("Connected");
+    expect(await screen.findByTestId("vmware-host-tiles")).toBeInTheDocument();
   });
 });

@@ -4,7 +4,7 @@ Ein VMware-Monitor beobachtet ein vCenter - seine Rechenzentren, Cluster, ESXi-H
 
 :::cards
 - [Den Monitor erstellen](#einen-vmware-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Vierundzwanzig fertige Warnungen, ein Vorfall pro Host, VM oder Datenspeicher.
+- [Vorlagen](#fertige-warnungsvorlagen): Fünfundzwanzig fertige Warnungen, ein Vorfall pro Host, VM oder Datenspeicher.
 - [Identitätsattribute](#identitätsattribute): Wie Sie gezielt einen Host, eine VM oder einen Datenspeicher auswählen.
 - [Metriken](#erfasste-metriken): Jede `vcenter.*`-Serie, auf die der Monitor warnen kann.
 :::
@@ -106,14 +106,15 @@ In Monitorfiltern und Gruppierungsschlüsseln beginnen Ressourcenattribute mit `
 
 ## Fertige Warnungsvorlagen
 
-OneUptime liefert 24 Vorlagen für häufige VMware-Probleme, und die Liste unter **Worüber benachrichtigt wird** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+OneUptime liefert 25 Vorlagen für häufige VMware-Probleme, und die Liste unter **Worüber benachrichtigt wird** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung für jede Minute seines Fensters gilt, und ein Schwellenwertkriterium erholt sich erst 10 % jenseits seines Schwellenwerts, sodass ein Wert, der um die Linie pendelt, nicht flattert.
 
 | Template | Kategorie | Schweregrad | Beobachtet | Löst aus, wenn | Erholt sich, wenn |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Verfügbarkeit | Kritisch | `vcenter.datacenter.cpu.limit`, Count über das gesamte vCenter, **letzte 10 Minuten** | Keine Daten im gesamten Fenster: Der Agent oder die Probe läuft nicht mehr, oder das vCenter antwortet nicht mehr | Daten treffen wieder ein |
-| Host CPU Saturation | Host | Warnung | `vcenter.host.cpu.utilization`, Avg pro `resource.vcenter.host.name` | Über 90 %: Jede VM auf dem Host konkurriert um Kerne und zeigt CPU-Ready-Zeit | Bei 81 % oder darunter |
+| Host Not Responding | Host | Kritisch | `vcenter.host.memory.usage`, Max pro `resource.vcenter.host.name` | Bei 0, kein Arbeitsspeicher in Nutzung: vCenter hat den Kontakt zum Host verloren (er ist abgestürzt, hat Strom oder sein Verwaltungsnetz verloren oder wurde getrennt), oder er ist ausgeschaltet oder im Standby. Wo vSphere DPM Hosts in den Standby versetzt, verwenden Sie **Datacenter Hosts Not Responding**, das diese auslässt | Über 0 |
+| Host CPU Saturation | Host | Warnung | `vcenter.host.cpu.utilization`, Avg pro Host | Über 90 %: Jede VM auf dem Host konkurriert um Kerne und zeigt CPU-Ready-Zeit | Bei 81 % oder darunter |
 | Host Memory Saturation | Host | Warnung | `vcenter.host.memory.utilization`, Avg pro Host | Über 90 %: Der Host beginnt, Arbeitsspeicher durch Ballooning, Komprimierung und Swapping zurückzuholen | Bei 81 % oder darunter |
 | Host Disk Latency High | Host | Warnung | `vcenter.host.disk.latency.max`, Max pro Host | Über 50 ms: Jede VM, deren Datenträger auf diesem Pfad liegen, wartet auf den Speicher. Braucht Leistungszählerstufe 3 | Bei 45 ms oder darunter |
 | Host Network Packet Errors | Host | Warnung | `vcenter.host.network.packet.error.rate`, Max pro Host | Über 0: fast immer ein Fehler an Kabel, SFP oder Switch-Port | Bei 0 |
@@ -142,6 +143,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 - **Auslastungsvorlagen verwenden Avg:** Der Receiver meldet für jedes Objekt einen echten Prozentsatz von 0 bis 100, sodass der Durchschnitt in einer Minute die anhaltende Auslastung ist.
 - **Latenzvorlagen verwenden Max:** Die Metrik ist bereits die schlechteste Latenz über die Datenträger des Objekts, sodass ihre höchste Stichprobe die ehrliche ist.
 - **Zähl- und Zustandsvorlagen verwenden Max**, sodass eine einzige Erfassung, die den Zustand zeigt, sie auslöst: Paketfehler, Ballooning, Swapping, roter und gelber Status, Hosts, die nicht effektiv sind, Überlastung.
+- **Host Not Responding verwendet Max und löst bei 0 aus:** Ein laufender ESXi-Host nutzt immer Arbeitsspeicher, also ist eine Erfassung, die genutzten Arbeitsspeicher meldet, ein Host, der antwortet, und nur ein Zeitfenster, in dem keine das tat, löst sie aus.
 - **Jede Vorlage gruppiert nach dem eigenen Identitätsattribut des Objekts**, sodass pro betroffenem Objekt ein Vorfall ausgelöst wird, der das Objekt nennt. Die Ausnahme ist **vCenter Stopped Reporting**, die das gesamte vCenter überwacht: Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Schwellenwerte sind an ihre Einheit gebunden** (`%`, `ms`, `us`), sodass sie ihre Bedeutung behalten, egal welche Einheit ein Diagramm zeigt.
 

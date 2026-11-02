@@ -144,8 +144,17 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Metric Value",
     ...CRITERIA_NAMES,
   ],
-  // A template's name, as the template picker shows it.
-  [VMWARE]: [...FORM_NAMES, "vCenter Stopped Reporting", ...CRITERIA_NAMES],
+  /*
+   * Templates' names, as the template picker shows them: the one every new
+   * monitor starts on, and the one a DPM cluster uses for hosts that stop
+   * answering.
+   */
+  [VMWARE]: [
+    ...FORM_NAMES,
+    "vCenter Stopped Reporting",
+    "Datacenter Hosts Not Responding",
+    ...CRITERIA_NAMES,
+  ],
 };
 
 /*
@@ -284,6 +293,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Utilization templates use Avg:",
     "Latency templates use Max:",
     "Count and state templates use Max",
+    "Host Not Responding uses Max and fires at 0:",
     "Every template groups by the object's own identity attribute",
     "Thresholds are pinned to their unit",
     "microseconds",

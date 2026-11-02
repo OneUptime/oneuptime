@@ -159,6 +159,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 import IncidentNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentNoteTemplates";
 import AlertNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertNoteTemplates";
 import ScheduledMaintenanceNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates";
+import SecurityCaseNoteTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/NoteTemplates";
 import StatusPageAnnouncementTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Settings/StatusPageAnnouncementTemplates";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
@@ -187,6 +188,13 @@ const PAGES: Array<TemplatePage> = [
     name: "Scheduled Maintenance > Settings > Note Templates",
     Page: ScheduledMaintenanceNoteTemplates,
     title: "Create New Scheduled Maintenance Note Template",
+    editorStep: null,
+  },
+  {
+    name: "Security Events > Settings > Note Templates",
+    Page: SecurityCaseNoteTemplates,
+    // The rows are the cases' note templates there: the menu's own name.
+    title: "Create New Note Template",
     editorStep: null,
   },
   {

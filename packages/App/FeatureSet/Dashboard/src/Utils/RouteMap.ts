@@ -864,6 +864,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_CASE_VIEW_TASKS]: `cases/${RouteParams.ModelID}/tasks`,
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]: `cases/${RouteParams.ModelID}/playbook-runs`,
   [PageMap.SECURITY_CASE_VIEW_NOTES]: `cases/${RouteParams.ModelID}/notes`,
+  [PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS]: `cases/${RouteParams.ModelID}/custom-fields`,
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]: `cases/${RouteParams.ModelID}/audit-logs`,
   [PageMap.SECURITY_CASE_VIEW_DELETE]: `cases/${RouteParams.ModelID}/delete`,
   [PageMap.SECURITY_PLAYBOOKS]: "playbooks",
@@ -890,6 +891,10 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
     "settings/response-targets",
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: "settings/risk-scoring",
+  [PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
+  [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
+  [PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING]: "settings/numbering",
 };
 
 /*
@@ -7366,6 +7371,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]
@@ -7459,6 +7470,32 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING]
     }`,
   ),
 

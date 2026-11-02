@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import { JSONObject } from "../../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityLogFormat, {
@@ -367,5 +368,27 @@ describe("AzureActivityLogParser - long lines", () => {
     });
 
     expect(run.inMs).toBeLessThan(2000);
+  });
+});
+
+describe("AzureActivityLogParser: words named after what every object inherits", () => {
+  test("a Defender for Cloud alert whose severity is named after one is a Medium finding", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const event: NormalizedSecurityEvent = only(
+        azureActivityExport({
+          category: "Security",
+          operationName: "Microsoft.Security/locations/alerts/activate/action",
+          properties: {
+            alertName: "Suspicious PowerShell activity detected",
+            severity: name,
+          },
+        }),
+      );
+
+      expect({ name, severity: event.severityName }).toEqual({
+        name,
+        severity: "Medium",
+      });
+    }
   });
 });

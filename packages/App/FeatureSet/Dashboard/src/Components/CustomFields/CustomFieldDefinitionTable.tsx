@@ -9,6 +9,7 @@ import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItem
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
@@ -55,6 +56,7 @@ export type CustomFieldDefinitionModel =
   | MonitorCustomField
   | OnCallDutyPolicyCustomField
   | ScheduledMaintenanceCustomField
+  | SecurityCaseCustomField
   | StatusPageCustomField
   | TeamCustomField
   | TeamMemberCustomField;

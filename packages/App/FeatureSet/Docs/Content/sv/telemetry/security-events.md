@@ -57,6 +57,9 @@ flowchart TB
 | **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
 | **Svarsmål** | Inställningar | Hur snabbt ett ärende med varje prioritet måste tas om hand och begränsas |
 | **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
+| **Anpassade fält** | Inställningar | Fälten ditt team fyller i för varje ärende, till exempel affärsenheten det gäller |
+| **Anteckningsmallar** | Inställningar | Färdig text för anteckningarna ditt team skriver i sina ärenden |
+| **Numrering** | Inställningar | Texten framför ärendenumren och numret som nästa ärende får |
 | **Riskbedömning** | Inställningar | Om en entitets risk öppnar ett ärende, vid vilken risk, och hur mycket varje entitet betyder |
 
 **Detektioner**, **AI**, **Anslutningar** och **Inställningar**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.

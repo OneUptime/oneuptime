@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import {
   EXCHANGE_PERMISSION_CMDLETS,
   MICROSOFT_365_CONTENT_TYPE_ATTRIBUTE,
@@ -458,5 +459,19 @@ describe("Microsoft365AuditNormalizer - helpers", () => {
     );
 
     expect(String(reading.attributes["Parameters.Notes"]).length).toBe(1000);
+  });
+});
+
+describe("Microsoft365AuditNormalizer: words named after what every object inherits", () => {
+  test("an alert whose severity is named after one is a Medium finding", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        severity: read(
+          securityAlert("AlertTriggered", { Severity: name }),
+          "Audit.General",
+        ).severity,
+      }).toEqual({ name, severity: OcsfSeverity.Medium });
+    }
   });
 });

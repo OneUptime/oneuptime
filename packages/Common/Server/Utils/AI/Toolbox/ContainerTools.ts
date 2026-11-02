@@ -45,6 +45,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * query_containers - the containers of one Docker or Podman host, the
@@ -557,14 +558,18 @@ function buildContainersWidget(data: {
     title: `Containers of ${data.hostLabel}`,
     description: data.window,
     columns: [
-      { key: "container", title: "Container" },
-      { key: "status", title: "Status" },
-      { key: "cpuAvg", title: "CPU avg %", type: "number" },
-      { key: "cpuPeak", title: "CPU peak %", type: "number" },
-      { key: "memoryPeak", title: "Memory peak %", type: "number" },
-      { key: "restarts", title: "Restarts", type: "number" },
-      { key: "lastSeen", title: "Last seen", type: "date" },
-      { key: "image", title: "Image" },
+      { key: "container", title: translationKey("Container") },
+      { key: "status", title: translationKey("Status") },
+      { key: "cpuAvg", title: translationKey("CPU avg %"), type: "number" },
+      { key: "cpuPeak", title: translationKey("CPU peak %"), type: "number" },
+      {
+        key: "memoryPeak",
+        title: translationKey("Memory peak %"),
+        type: "number",
+      },
+      { key: "restarts", title: translationKey("Restarts"), type: "number" },
+      { key: "lastSeen", title: translationKey("Last seen"), type: "date" },
+      { key: "image", title: translationKey("Image") },
     ],
     rows: data.containers.map((container: ContainerActivity): JSONObject => {
       return {

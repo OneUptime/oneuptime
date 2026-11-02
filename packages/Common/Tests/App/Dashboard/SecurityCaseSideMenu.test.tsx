@@ -112,6 +112,7 @@ const EXPECTED: Array<[string, Array<[string, PageMap]>]> = [
   [
     "Advanced",
     [
+      ["Custom Fields", PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS],
       ["Audit Logs", PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS],
       ["Delete Case", PageMap.SECURITY_CASE_VIEW_DELETE],
     ],

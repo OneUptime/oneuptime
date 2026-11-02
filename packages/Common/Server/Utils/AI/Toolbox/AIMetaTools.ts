@@ -37,6 +37,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * AI meta tools — make the chat aware of OneUptime's OTHER AI lanes.
@@ -511,10 +512,14 @@ export const GetAIInvestigationTool: ObservabilityTool = {
       widget: WidgetBuilder.table({
         title: `AI investigations — ${subject.label}`,
         columns: [
-          { key: "status", title: "Status" },
-          { key: "analysisTldr", title: "TL;DR" },
-          { key: "startedAt", title: "Started", type: "date" },
-          { key: "completedAt", title: "Completed", type: "date" },
+          { key: "status", title: translationKey("Status") },
+          { key: "analysisTldr", title: translationKey("TL;DR") },
+          { key: "startedAt", title: translationKey("Started"), type: "date" },
+          {
+            key: "completedAt",
+            title: translationKey("Completed"),
+            type: "date",
+          },
         ],
         rows: rows,
         link: {
@@ -705,12 +710,16 @@ export const QueryAIInsightsTool: ObservabilityTool = {
               title: `AI insights (${totalCount})`,
               description: `Preventive findings seen in the last ${lookbackDays}d`,
               columns: [
-                { key: "severity", title: "Severity" },
-                { key: "title", title: "Finding" },
-                { key: "serviceName", title: "Service" },
-                { key: "status", title: "Status" },
-                { key: "classification", title: "Triage" },
-                { key: "lastSeenAt", title: "Last seen", type: "date" },
+                { key: "severity", title: translationKey("Severity") },
+                { key: "title", title: translationKey("Finding") },
+                { key: "serviceName", title: translationKey("Service") },
+                { key: "status", title: translationKey("Status") },
+                { key: "classification", title: translationKey("Triage") },
+                {
+                  key: "lastSeenAt",
+                  title: translationKey("Last seen"),
+                  type: "date",
+                },
               ],
               rows: rows,
             })

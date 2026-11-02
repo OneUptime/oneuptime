@@ -57,6 +57,7 @@ const ALL_ON_HOST: Array<string> = [
 const OTHER_HOST_VM: string = "other-host-vm";
 
 const HOST_ALERTS: Array<string> = [
+  "Host Not Responding",
   "Host CPU Saturation",
   "Host Memory Saturation",
   "Host Disk Latency High",
@@ -163,7 +164,7 @@ async function recorded(page: Page): Promise<Recorded> {
 async function openHost(page: Page, query: string = ""): Promise<void> {
   await page.goto(`${HOST_PAGE}${query ? `?${query}` : ""}`);
   await expect(page.getByTestId("vmware-host-page")).toBeVisible();
-  await expect(page.getByTestId("vmware-host-name")).toHaveText(HOST_NAME);
+  await expect(page.getByTestId("vmware-host-hero-name")).toHaveText(HOST_NAME);
 }
 
 // The Overview once its metrics are in: every tile has its reading.
@@ -216,14 +217,20 @@ function detailRow(page: Page, key: string): Locator {
 
 /*
  * The hero's status: its word, then the sentence a screen reader hears
- * after it and a pointer sees as its title.
+ * after it and a pointer sees as its title - or the word alone, for a
+ * status that needs no sentence (Connected, No data yet).
  */
 async function expectStatus(
   page: Page,
   label: string,
-  description: string,
+  description?: string,
 ): Promise<void> {
-  const status: Locator = page.getByTestId("vmware-host-status");
+  const status: Locator = page.getByTestId("vmware-host-hero-status");
+  if (!description) {
+    await expect(status).toHaveText(label);
+    await expect(status).not.toHaveAttribute("title", /./);
+    return;
+  }
   await expect(status).toHaveText(`${label} ${description}`);
   await expect(status).toHaveAttribute("title", description);
 }
@@ -236,28 +243,27 @@ test.describe("a reporting host at a laptop's width", () => {
   }) => {
     await openHost(page, "open=1&alerts=some");
 
-    await expectStatus(
-      page,
-      "Reporting",
-      "vCenter reported this host's metrics in the last 15 minutes.",
-    );
-    await expect(page.getByTestId("vmware-host-location")).toHaveText(
+    // vCenter reaches it, and it reports what it uses: vCenter's own word.
+    await expectStatus(page, "Connected");
+    await expect(page.getByTestId("vmware-host-hero-location")).toHaveText(
       `ESXi host in cluster ${CLUSTER}, datacenter ${DATACENTER}`,
     );
     await expect(
-      page.getByTestId("vmware-host-location").getByRole("link", {
+      page.getByTestId("vmware-host-hero-location").getByRole("link", {
         name: CLUSTER,
       }),
     ).toHaveAttribute("href", CLUSTER_PAGE);
     // In the status's own words; the exact time is the line's title.
-    const lastReported: Locator = page.getByTestId("vmware-host-last-seen");
+    const lastReported: Locator = page.getByTestId(
+      "vmware-host-hero-last-report",
+    );
     await expect(lastReported).toHaveText("Last reported 2 minutes ago");
     await expect(lastReported).toHaveAttribute("title", /\d/);
 
-    const chips: Locator = page.getByTestId("vmware-host-chips");
+    const chips: Locator = page.getByTestId("vmware-host-hero-chips");
     await expect(chips).toContainText("76.80 GHz CPU");
     await expect(chips).toContainText("512 GiB memory");
-    await expect(chips).toContainText("7 VMs, 6 running");
+    await expect(chips).toContainText("6/7 VMs powered on");
 
     // vCenter reports this host: no notice between the hero and the tabs.
     await expect(page.getByTestId("vmware-host-report-notice")).toHaveCount(0);
@@ -328,7 +334,7 @@ test.describe("a reporting host at a laptop's width", () => {
   }) => {
     await openHost(page, "open=1");
 
-    const events: Locator = page.getByTestId("vmware-host-open-event");
+    const events: Locator = page.getByTestId("vmware-host-open-item");
     await expect(events).toHaveCount(3);
     // The incident first, though both alerts are newer; then the alerts.
     await expect(events.nth(0)).toContainText(
@@ -361,9 +367,7 @@ test.describe("a reporting host at a laptop's width", () => {
       "href",
       `/dashboard/${PROJECT_ID}/alerts/61000000-0000-4000-8000-000000000001`,
     );
-    await expect(page.getByTestId("vmware-host-open-events-more")).toHaveCount(
-      0,
-    );
+    await expect(page.getByTestId("vmware-host-open-more")).toHaveCount(0);
   });
 
   test("lists five open items, and how many more there are", async ({
@@ -374,7 +378,7 @@ test.describe("a reporting host at a laptop's width", () => {
     // Three incidents, and four alerts newer than any of them.
     await openHost(page, "open=many");
 
-    const events: Locator = page.getByTestId("vmware-host-open-event");
+    const events: Locator = page.getByTestId("vmware-host-open-item");
     await expect(events).toHaveCount(5);
     // Every incident is among the five shown, ahead of the fresher alerts.
     const kinds: Array<string | null> = await events.evaluateAll(
@@ -385,14 +389,14 @@ test.describe("a reporting host at a laptop's width", () => {
       },
     );
     expect(kinds).toEqual([
-      "Incident",
-      "Incident",
-      "Incident",
-      "Alert",
-      "Alert",
+      "incident",
+      "incident",
+      "incident",
+      "alert",
+      "alert",
     ]);
 
-    const more: Locator = page.getByTestId("vmware-host-open-events-more");
+    const more: Locator = page.getByTestId("vmware-host-open-more");
     await expect(more).toHaveText("2 more alerts");
     await expect(
       more.getByRole("link", { name: "2 more alerts" }),
@@ -416,9 +420,13 @@ test.describe("a reporting host at a laptop's width", () => {
       ).toBeVisible();
     }
 
-    // CPU Ready from 5%: db-primary (6.2%) and ci-runner-01 (12.4%) only.
+    /*
+     * CPU Ready past 10%, where VM CPU Ready Contention fires and Needs
+     * attention marks a VM: ci-runner-01 (12.4%) only - db-primary's 6.2%
+     * is under it.
+     */
     const ready: Locator = busiest.getByTestId("vmware-host-busy-vm-cpu-ready");
-    await expect(ready).toHaveText(["CPU Ready 6.2%", "CPU Ready 12.4%"]);
+    await expect(ready).toHaveText(["CPU Ready 12.4%"]);
     await expect(rows.nth(0)).toContainText("58.0 GiB of 64.0 GiB memory");
     await expect(rows.nth(0)).toContainText("78.4%");
 
@@ -500,25 +508,26 @@ test.describe("a reporting host at a laptop's width", () => {
   }) => {
     await openHost(page, "alerts=some");
 
-    const alerts: Locator = page.getByTestId("vmware-host-alert");
-    await expect(alerts).toHaveCount(5);
+    const alerts: Locator = page.getByTestId("vmware-host-alerts-item");
+    await expect(alerts).toHaveCount(6);
 
+    // The two saturation alerts are on; Host Not Responding, first, is not.
     for (let index: number = 0; index < HOST_ALERTS.length; index++) {
       await expect(alerts.nth(index)).toContainText(HOST_ALERTS[index]!);
       await expect(alerts.nth(index)).toContainText(
-        index < 2 ? "On" : "Not set up",
+        index === 1 || index === 2 ? "On" : "Not set up",
       );
     }
 
     // An alert that is on opens its monitor.
     await expect(
-      alerts.nth(0).getByRole("link", { name: "On" }),
+      alerts.nth(1).getByRole("link", { name: "On" }),
     ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/monitors/70000000-0000-4000-8000-000000000001`,
     );
     await expect(page.getByTestId("vmware-host-alerts-turn-on")).toHaveText(
-      "Turn on 3 alerts",
+      "Turn on 4 alerts",
     );
 
     await expect(detailRow(page, "host")).toContainText(HOST_NAME);
@@ -572,8 +581,8 @@ test.describe("a reporting host at a laptop's width", () => {
   }) => {
     await openHost(page, "alerts=all");
 
-    const alerts: Locator = page.getByTestId("vmware-host-alert");
-    await expect(alerts).toHaveCount(5);
+    const alerts: Locator = page.getByTestId("vmware-host-alerts-item");
+    await expect(alerts).toHaveCount(6);
     await expect(alerts.filter({ hasText: "Not set up" })).toHaveCount(0);
     await expect(page.getByTestId("vmware-host-alerts-turn-on")).toHaveCount(0);
   });
@@ -593,7 +602,7 @@ test.describe("a reporting host at a laptop's width", () => {
 });
 
 test.describe("from the host to what it needs", () => {
-  test("Turn on 3 alerts opens Recommendations with exactly those selected", async ({
+  test("Turn on 4 alerts opens Recommendations with exactly those selected", async ({
     page,
   }: {
     page: Page;
@@ -614,6 +623,7 @@ test.describe("from the host to what it needs", () => {
       "VMware:vmware-host-disk-latency-high",
       "VMware:vmware-host-network-packet-drops",
       "VMware:vmware-host-network-packet-errors",
+      "VMware:vmware-host-not-responding",
     ]);
 
     for (const id of selected) {
@@ -627,11 +637,9 @@ test.describe("from the host to what it needs", () => {
      * the ticked host alerts out of sight above.
      */
     await expect(
-      page.getByTestId(
-        "recommendation-card-VMware:vmware-host-disk-latency-high",
-      ),
+      page.getByTestId("recommendation-card-VMware:vmware-host-not-responding"),
     ).toBeInViewport();
-    await expect(page.getByText("3 monitors selected")).toBeVisible();
+    await expect(page.getByText("4 monitors selected")).toBeVisible();
     // Nothing else is picked for them.
     await expect(
       page.getByTestId(
@@ -642,7 +650,7 @@ test.describe("from the host to what it needs", () => {
     await screenshot(page, "turn-on-alerts-recommendations");
   });
 
-  test("on a phone, Turn on 3 alerts lands on them, with a selection bar that reads", async ({
+  test("on a phone, Turn on 4 alerts lands on them, with a selection bar that reads", async ({
     page,
   }: {
     page: Page;
@@ -656,9 +664,7 @@ test.describe("from the host to what it needs", () => {
     });
 
     await expect(
-      page.getByTestId(
-        "recommendation-card-VMware:vmware-host-disk-latency-high",
-      ),
+      page.getByTestId("recommendation-card-VMware:vmware-host-not-responding"),
     ).toBeInViewport();
 
     /*
@@ -667,7 +673,7 @@ test.describe("from the host to what it needs", () => {
      * "monitors" ran under Clear - and Create wrapped onto three lines.
      */
     const bar: Locator = page.getByTestId("recommendations-selection-bar");
-    const count: Locator = bar.getByText("3 monitors selected");
+    const count: Locator = bar.getByText("4 monitors selected");
     await expect(count).toBeVisible();
 
     interface Box {
@@ -698,7 +704,7 @@ test.describe("from the host to what it needs", () => {
       bar.getByRole("button", { name: "Clear" }),
     );
     const createBox: Box = await boxOf(
-      bar.getByRole("button", { name: "Create 3 Selected Monitors" }),
+      bar.getByRole("button", { name: "Create 4 Selected Monitors" }),
     );
 
     expect(countBox.height).toBeLessThanOrEqual(24);
@@ -873,7 +879,7 @@ test.describe("the states a host can be in", () => {
     await expectStatus(
       page,
       "Not reporting",
-      "vCenter has sent no metrics for this host for more than 15 minutes.",
+      "vCenter has not reported this for more than 15 minutes.",
     );
     const notice: Locator = page.getByTestId("vmware-host-report-notice");
     await expect(notice).toContainText(
@@ -883,7 +889,9 @@ test.describe("the states a host can be in", () => {
       notice.getByRole("link", { name: "Check the vCenter" }),
     ).toHaveAttribute("href", VCENTER_PATH);
     // Said once: the notice opens with the time, the hero leaves it out.
-    await expect(page.getByTestId("vmware-host-last-seen")).toHaveCount(0);
+    await expect(page.getByTestId("vmware-host-hero-last-report")).toHaveCount(
+      0,
+    );
     await screenshot(page, "state-not-reporting");
   });
 
@@ -894,11 +902,8 @@ test.describe("the states a host can be in", () => {
   }) => {
     await openHost(page, "state=no-data");
 
-    await expectStatus(
-      page,
-      "No data yet",
-      "vCenter lists this host, but has sent no metrics for it yet.",
-    );
+    // The notice under the hero says what it waits for.
+    await expectStatus(page, "No data yet");
     await expect(page.getByTestId("vmware-host-report-notice")).toContainText(
       "Waiting for this host's first metrics",
     );
@@ -913,7 +918,7 @@ test.describe("the states a host can be in", () => {
     await expect(tile(page, "CPU")).not.toContainText("of 76.80 GHz");
     await expect(tile(page, "Memory")).not.toContainText("of 512 GiB");
     await expect(tile(page, "Disk latency")).not.toContainText("slowest disk");
-    await expect(page.getByTestId("vmware-host-chips")).toContainText(
+    await expect(page.getByTestId("vmware-host-hero-chips")).toContainText(
       "76.80 GHz CPU",
     );
     await expect(
@@ -935,7 +940,7 @@ test.describe("the states a host can be in", () => {
     await expectStatus(
       page,
       "Not in inventory",
-      "This host is not in the vCenter's inventory any more.",
+      "vCenter has not reported this for more than 15 minutes, so it left the inventory.",
     );
     const notice: Locator = page.getByTestId("vmware-host-report-notice");
     await expect(notice).toContainText(
@@ -958,7 +963,9 @@ test.describe("the states a host can be in", () => {
     ).toHaveCount(4);
 
     // Nothing is known about it now: no last seen, no cluster row, no VMs.
-    await expect(page.getByTestId("vmware-host-last-seen")).toHaveCount(0);
+    await expect(page.getByTestId("vmware-host-hero-last-report")).toHaveCount(
+      0,
+    );
     await expect(detailRow(page, "cluster")).toHaveCount(0);
     await expect(page.getByTestId("vmware-host-busiest-vms")).toHaveCount(0);
     await expect(detailRow(page, "inventory-id")).toContainText(
@@ -974,7 +981,7 @@ test.describe("the states a host can be in", () => {
   }) => {
     await openHost(page, "standalone=1&devices=0");
 
-    await expect(page.getByTestId("vmware-host-location")).toHaveText(
+    await expect(page.getByTestId("vmware-host-hero-location")).toHaveText(
       `Standalone ESXi host in datacenter ${DATACENTER}`,
     );
     await expect(detailRow(page, "cluster")).toContainText(
@@ -1177,11 +1184,11 @@ test.describe("on a phone, in dark mode and in German", () => {
     await expect(tabs.nth(1)).toContainText(GERMAN["Virtual Machines"]!);
     await expect(tabs.nth(2)).toHaveText(GERMAN["Metrics"]!);
     await expect(tabs.nth(3)).toHaveText(GERMAN["Logs"]!);
-    await expect(page.getByTestId("vmware-host-location")).toHaveText(
+    await expect(page.getByTestId("vmware-host-hero-location")).toHaveText(
       `ESXi-Host im Cluster ${CLUSTER}, Rechenzentrum ${DATACENTER}`,
     );
     await expect(page.getByTestId("vmware-host-alerts-turn-on")).toHaveText(
-      "3 Warnungen einschalten",
+      "4 Warnungen einschalten",
     );
     for (const title of [
       "Busiest virtual machines",
@@ -1195,7 +1202,7 @@ test.describe("on a phone, in dark mode and in German", () => {
     }
 
     // The hero's last report: a German sentence with a German time.
-    await expect(page.getByTestId("vmware-host-last-seen")).toHaveText(
+    await expect(page.getByTestId("vmware-host-hero-last-report")).toHaveText(
       "Zuletzt gemeldet vor 2 Minuten",
     );
 

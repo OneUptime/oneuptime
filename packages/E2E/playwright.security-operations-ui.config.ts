@@ -9,13 +9,14 @@ export default defineConfig({
   testMatch: "*.spec.ts",
   /*
    * Hunts run as a suite of their own (playwright.security-hunts-ui.config.ts),
-   * and so do the five shorter specs below
+   * and so do the six shorter specs below
    * (playwright.security-cases-detections-ui.config.ts). A new spec here runs
    * with this suite until it is listed in one of those.
    */
   testIgnore: [
     "Hunts.spec.ts",
     "CaseWork.spec.ts",
+    "CaseSetup.spec.ts",
     "ConnectedSignals.spec.ts",
     "EntityRisk.spec.ts",
     "RuleExceptions.spec.ts",

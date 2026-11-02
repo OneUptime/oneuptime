@@ -54,7 +54,7 @@ Beperk de regel onder **Which Logs** met telemetrieservices, ernstniveaus, tekst
 
 ### Het resultaat opsplitsen en opslaan
 
-Voeg eventueel attributen toe onder **Groeperen op** en een **Unit**. Controleer de regel onderaan de editor en sla op. Binnen een paar minuten toont de regellijst een tijd onder **Computed Until**.
+Voeg eventueel attributen toe onder **Groeperen op** en een **Eenheid**. Controleer de regel onderaan de editor en sla op. Binnen een paar minuten toont de regellijst een tijd onder **Computed Until**.
 :::
 
 | Veld | Wat het doet |
@@ -139,7 +139,7 @@ Maak onder **Logboeken → Instellingen → Opnameregels** een regel:
 - **Which Logs:** attribuutfilters `log_type` = `SD-WAN` en `log_component` = `SLA`
 - **Aggregatie:** Gemiddelde, **Numeric Attribute:** `latency`
 - **Groeperen op:** `gw_name` en `profile_name`
-- **Unit:** `ms`
+- **Eenheid:** `ms`
 
 Via de API, MCP of Terraform is de **definitie** van dezelfde regel:
 

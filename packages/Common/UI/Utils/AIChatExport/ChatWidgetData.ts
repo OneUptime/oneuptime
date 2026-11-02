@@ -7,6 +7,10 @@ import {
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  TableDateTexts,
+  getTableDateTexts,
+} from "../../Components/Table/TableDate";
 
 /*
  * The formatting rules the AI chat widgets use on screen, factored out so the
@@ -46,7 +50,78 @@ export function toTimeAgo(value: unknown): string {
   }
 }
 
-// DataTableWidget.renderCell
+// What a chat table's cell shows, and what it says under the pointer.
+export interface ChatTableCellText {
+  text: string;
+  fullText: string;
+  // A date's moment, for the cell's <time>; undefined for anything else.
+  dateTime?: string | undefined;
+}
+
+// A value that is not a date the formatters can write is shown as it came.
+function readDate(value: unknown): Date | null {
+  if (typeof value !== "string" && !(value instanceof Date)) {
+    return null;
+  }
+
+  try {
+    const date: Date = OneUptimeDate.fromString(value);
+
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * DataTableWidget's cell. A date is written as every table writes one -
+ * "Oct 14, 11:57 AM", its year only when it is not this year's, no zone
+ * (Table/TableDate) - and whole under the pointer, with how long ago it
+ * was: "Oct 14 2026, 11:57 AM GMT · 3 minutes ago". The whole of it in the
+ * cell took a third of the chat panel, and its year and zone said the same
+ * on every row.
+ */
+export function getChatTableCellText(
+  value: unknown,
+  column: AIChatWidgetColumn,
+): ChatTableCellText {
+  if (value === null || value === undefined || value === "") {
+    return { text: "—", fullText: "—" };
+  }
+
+  if (column.type === "date") {
+    const date: Date | null = readDate(value);
+    const texts: TableDateTexts | null = date
+      ? getTableDateTexts({ value: date })
+      : null;
+
+    if (date && texts) {
+      return {
+        text: texts.text,
+        fullText: `${texts.fullText} · ${OneUptimeDate.fromNow(date)}`,
+        dateTime: texts.isoText,
+      };
+    }
+
+    return { text: String(value), fullText: String(value) };
+  }
+
+  if (column.type === "number" && typeof value === "number") {
+    const text: string = value.toLocaleString();
+
+    return { text, fullText: text };
+  }
+
+  return { text: String(value), fullText: String(value) };
+}
+
+/*
+ * A table cell in the markdown and PDF exports. A date is written whole -
+ * "Oct 14 2026, 11:57 AM GMT" - as the chat says it under the pointer: a
+ * document is read later and elsewhere, so it keeps the year and the zone
+ * the chat's short form leaves out, and drops "3 minutes ago", which was
+ * only true the moment it was exported.
+ */
 export function formatTableCell(
   value: unknown,
   column: AIChatWidgetColumn,
@@ -55,14 +130,12 @@ export function formatTableCell(
     return "—";
   }
   if (column.type === "date") {
-    try {
-      const date: Date = OneUptimeDate.fromString(value as string);
-      return `${OneUptimeDate.getDateAsLocalFormattedString(
-        date,
-      )} · ${OneUptimeDate.fromNow(date)}`;
-    } catch {
-      return String(value);
-    }
+    const date: Date | null = readDate(value);
+    const texts: TableDateTexts | null = date
+      ? getTableDateTexts({ value: date })
+      : null;
+
+    return texts ? texts.fullText : String(value);
   }
   if (column.type === "number" && typeof value === "number") {
     return value.toLocaleString();

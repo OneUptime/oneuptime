@@ -155,6 +155,7 @@ import MonitorCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import OnCallDutyPolicyCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Settings/OnCallDutyPolicyCustomFields";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ScheduledMaintenanceCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCusomFields";
+import SecurityCaseCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CustomFields";
 import StatusPageCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Settings/StatusPageCustomFields";
 import TeamCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/CustomFields";
 import TeamMemberCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/CustomFields";
@@ -163,6 +164,7 @@ import AlertCustomField from "../../../Models/DatabaseModels/AlertCustomField";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import InventoryItemCustomField from "../../../Models/DatabaseModels/InventoryItemCustomField";
+import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCaseCustomField";
 import MonitorCustomField from "../../../Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "../../../Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "../../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -282,6 +284,13 @@ const SETTINGS_PAGES: Array<SettingsPage> = [
     name: "Team Member",
     page: TeamMemberCustomFields,
     modelType: TeamMemberCustomField,
+    canMap: false,
+    isIncident: false,
+  },
+  {
+    name: "Security Case",
+    page: SecurityCaseCustomFields,
+    modelType: SecurityCaseCustomField,
     canMap: false,
     isIncident: false,
   },

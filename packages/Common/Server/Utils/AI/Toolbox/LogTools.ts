@@ -26,6 +26,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 // Keep pivoted histogram rows under the serializer's 50-row cap.
 const MAX_HISTOGRAM_BUCKETS: number = 48;
@@ -169,10 +170,18 @@ export const SearchLogsTool: ObservabilityTool = {
               title: `Logs (${rows.length})`,
               description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
               columns: [
-                { key: "time", title: "Time", type: "date" },
-                { key: "severity", title: "Severity", type: "text" },
-                { key: "body", title: "Message", type: "text" },
-                { key: "traceId", title: "Trace", type: "text" },
+                { key: "time", title: translationKey("Time"), type: "date" },
+                {
+                  key: "severity",
+                  title: translationKey("Severity"),
+                  type: "text",
+                },
+                { key: "body", title: translationKey("Message"), type: "text" },
+                {
+                  key: "traceId",
+                  title: translationKey("Trace"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: logsLink,

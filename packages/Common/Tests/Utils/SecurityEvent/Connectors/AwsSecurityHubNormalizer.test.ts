@@ -1,10 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import AwsSecurityHubNormalizer, {
   AWS_SECURITY_HUB_COMPLIANCE_CLASS_NAME,
   AWS_SECURITY_HUB_COMPLIANCE_CLASS_UID,
   AWS_SECURITY_HUB_DETECTION_CLASS_NAME,
   AWS_SECURITY_HUB_DETECTION_CLASS_UID,
-  AWS_SECURITY_HUB_TACTIC_IDS,
 } from "../../../../Utils/SecurityEvent/Connectors/AwsSecurityHubNormalizer";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
@@ -457,7 +457,26 @@ describe("AwsSecurityHubNormalizer", () => {
         ]);
       }
 
-      expect(Object.keys(AWS_SECURITY_HUB_TACTIC_IDS)).toHaveLength(14);
+      /*
+       * The two tactics ASFF does not list, by the names the current matrix
+       * gives them (Stealth holds Defense Evasion's TA0005), read by the
+       * same table every connector reads.
+       */
+      const currentNames: Array<[string, string]> = [
+        ["Stealth", "TA0005"],
+        ["Defense Impairment", "TA0112"],
+        ["Reconnaissance", "TA0043"],
+        ["Resource Development", "TA0042"],
+      ];
+
+      for (const [name, id] of currentNames) {
+        const named: JSONObject = guardDutyFinding();
+        named["Types"] = [`TTPs/${name}`];
+
+        expect(AwsSecurityHubNormalizer.normalize(named).mitreTactics).toEqual([
+          id,
+        ]);
+      }
 
       const raw: JSONObject = guardDutyFinding();
       raw["Types"] = ["TTPs/Made Up Tactic", "TTPs", "Effects/Data Exposure"];
@@ -651,5 +670,24 @@ describe("AwsSecurityHubNormalizer: the process the finding is about", () => {
 
     expect(event.processName).toBe("");
     expect(event.processPath).toBe("");
+  });
+});
+
+/*
+ * ASFF's TTPs categories were read through a plain object, so a category
+ * named "constructor" went into the event's tactics as Object's
+ * constructor - a function where an id or a name belongs.
+ */
+describe("AwsSecurityHubNormalizer: words named after what every object inherits", () => {
+  test("a TTPs category named after one is kept as the name it is, never read as code", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const raw: JSONObject = guardDutyFinding();
+      raw["Types"] = [`TTPs/${name}/Something`];
+
+      expect({
+        name,
+        tactics: AwsSecurityHubNormalizer.normalize(raw).mitreTactics,
+      }).toEqual({ name, tactics: [name] });
+    }
   });
 });

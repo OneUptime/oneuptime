@@ -35,20 +35,13 @@ export type VMwareMetric =
   | "overviewHostMemory"
   | "overviewDatastores"
   | "overviewVmCpuReady"
-  | "overviewVirtualMachines"
   // Overview: golden chart cards.
   | "overviewHostCpuChart"
   | "overviewHostMemoryChart"
   | "overviewDatastoreUsedChart"
   | "overviewVmCpuReadyChart"
-  // Overview: summary strip.
+  // Overview: the hero's health and connection pills.
   | "overviewVCenterHealth"
-  | "overviewDatacenterCount"
-  | "overviewClusterCount"
-  | "overviewHostCount"
-  | "overviewVirtualMachineCount"
-  | "overviewDatastoreCount"
-  | "overviewResourcePoolCount"
   | "overviewAgentStatus"
   // Overview: Top Resource Consumers sections.
   | "topHostsByCpu"
@@ -81,36 +74,33 @@ export type VMwareMetric =
   | "vmMemorySwapped"
   | "vmDisk"
   // Datastore detail.
-  | "datastoreUsed"
-  | "datastoreCapacity"
   | "datastoreFree"
   | "datastoreUsedPercent"
   | "datastoreGrowthForecast"
   // Cluster detail.
   | "clusterHosts"
-  | "clusterVirtualMachines"
-  | "clusterTemplates"
   | "clusterCpu"
   | "clusterMemory"
+  | "clusterCpuInUse"
+  | "clusterMemoryInUse"
+  | "clusterHostFailure"
   // Hosts list.
+  | "hostListStatus"
   | "hostListCpu"
   | "hostListMemory"
   | "hostListCpuCapacity"
+  // Clusters list.
+  | "clusterListStatus"
   // Virtual machines list.
   | "vmListStatus"
-  | "vmListPowerState"
   | "vmListCpuReady"
   | "vmListCpu"
   | "vmListMemory"
-  | "vmListAge"
   // Datastores list.
   | "datastoreListUsedCapacity"
   // Clusters list.
   | "clusterListHosts"
   | "clusterListVirtualMachines"
-  | "clusterListTemplates"
-  | "clusterListEffectiveCpu"
-  | "clusterListEffectiveMemory"
   // Resource pools list.
   | "resourcePoolListCpu"
   | "resourcePoolListMemory"
@@ -119,7 +109,7 @@ export type VMwareMetric =
 export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   // ---- Overview: hero count chips ---------------------------------------
   overviewInventoryCounts: translationKey(
-    "How many datacenters, clusters, ESXi hosts, VMs (powered on out of all, templates excluded) and datastores this vCenter has, from the latest inventory rather than the selected range. A kind with none is left out.",
+    "How many datacenters, clusters, ESXi hosts (connected out of all), VMs (powered on out of all, templates excluded) and datastores this vCenter has, from the latest inventory rather than the selected range. A kind with none is left out.",
   ),
 
   // ---- Overview: golden tiles -------------------------------------------
@@ -127,10 +117,10 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Clustered ESXi hosts that can run VMs, out of all hosts in clusters, from the latest inventory rather than the selected range. A host in maintenance mode or not responding is not effective, and standalone hosts are not counted.",
   ),
   overviewHostCpu: translationKey(
-    "Share of the combined CPU capacity of all ESXi hosts in use, with bigger hosts counting for more. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data); the chart below covers the whole range.",
+    "Share of the combined CPU capacity of the connected ESXi hosts in use, with bigger hosts counting for more. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data); the chart below covers the whole range.",
   ),
   overviewHostMemory: translationKey(
-    "Share of the combined RAM of all ESXi hosts in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The line below shows used and total RAM at the latest point.",
+    "Share of the combined RAM of the connected ESXi hosts in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The line below shows used and total RAM at the latest point.",
   ),
   overviewDatastores: translationKey(
     "How full your fullest datastore is (used space as a share of capacity) at its latest report, however old, named below; until the inventory loads, the fullest over the last 5 minutes of the range. Amber from 80%, red from 90%: the levels that mark the vCenter Degraded and Unhealthy.",
@@ -138,16 +128,13 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   overviewVmCpuReady: translationKey(
     "CPU Ready is the share of time a VM was ready to run but had to wait for a physical CPU. Averaged across powered-on VMs over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data), with the busiest VM below; amber from 5%, red from 10%.",
   ),
-  overviewVirtualMachines: translationKey(
-    "Powered-on VMs out of all VMs, templates excluded, from the latest inventory; a VM that is off is not treated as a fault. Power state is inferred from which VMs send CPU data, so a suspended VM counts as off.",
-  ),
 
   // ---- Overview: golden chart cards -------------------------------------
   overviewHostCpuChart: translationKey(
-    "CPU in use across all ESXi hosts in each interval of the selected range, as a share of their combined CPU capacity. Hosts with more CPU count for more.",
+    "CPU in use across the connected ESXi hosts in each interval of the selected range, as a share of their combined CPU capacity. Hosts with more CPU count for more.",
   ),
   overviewHostMemoryChart: translationKey(
-    "RAM in use across all ESXi hosts in each interval of the selected range, as a share of their combined RAM.",
+    "RAM in use across the connected ESXi hosts in each interval of the selected range, as a share of their combined RAM.",
   ),
   overviewDatastoreUsedChart: translationKey(
     "Used space added up across all datastores in each interval of the selected range, in bytes.",
@@ -156,27 +143,9 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "CPU Ready over the selected range: Avg is the average across powered-on VMs and Max the highest single VM in each interval. It is the share of time VMs waited for a physical CPU; above 10% they are noticeably slowed.",
   ),
 
-  // ---- Overview: summary strip ------------------------------------------
+  // ---- Overview: the hero's health and connection pills -------------------
   overviewVCenterHealth: translationKey(
-    "Unhealthy if a clustered host is in maintenance mode or not responding, a datastore is at least 90% full, or a VM is swapped to disk; Degraded if a datastore is at least 80% full, a VM is ballooned or above 10% CPU Ready, or hosts are powered off. Unknown while the agent is disconnected.",
-  ),
-  overviewDatacenterCount: translationKey(
-    "Number of vSphere datacenters in this vCenter, from the latest inventory. A datacenter is the top-level folder that holds hosts, clusters, VMs and datastores.",
-  ),
-  overviewClusterCount: translationKey(
-    "Number of vSphere clusters: groups of ESXi hosts that pool their CPU and memory. Clustered hosts in maintenance mode or not responding are counted in red beside the number.",
-  ),
-  overviewHostCount: translationKey(
-    "Number of ESXi hosts (the physical servers that run your VMs) in this vCenter, from the latest inventory, including standalone hosts that are not in a cluster.",
-  ),
-  overviewVirtualMachineCount: translationKey(
-    "Powered-on VMs out of all VMs in this vCenter, templates excluded, from the latest inventory. Only the total is shown until the agent has reported power state.",
-  ),
-  overviewDatastoreCount: translationKey(
-    "Number of datastores, plus used space against total capacity added up across all of them. The bar turns amber at 80% and red at 90% of the combined capacity.",
-  ),
-  overviewResourcePoolCount: translationKey(
-    "Number of resource pools, which group VMs so they can share and cap CPU and memory. Includes the built-in root pool that every cluster and standalone host has.",
+    "Unhealthy while something needs someone now (an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM the host swaps to disk), Degraded while something needs a look. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
   ),
   overviewAgentStatus: translationKey(
     "Whether data is arriving for this vCenter - from the probe that collects it, or from the OneUptime VMware agent; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
@@ -229,7 +198,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- ESXi host page: cards and tables ---------------------------------
   hostPageBusiestVirtualMachines: translationKey(
-    "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).",
+    "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM that waits for a physical CPU more than 10% of the time.",
   ),
   hostPageAdapterThroughput: translationKey(
     "Data the adapter received and sent per second, averaged over the selected range.",
@@ -274,12 +243,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
 
   // ---- Datastore detail -------------------------------------------------
-  datastoreUsed: translationKey(
-    "Space taken up on this datastore by VM disks, snapshots and other files, from the latest report.",
-  ),
-  datastoreCapacity: translationKey(
-    "Total size of this datastore, worked out as used space plus free space from the latest report.",
-  ),
   datastoreFree: translationKey(
     "Space still free on this datastore: its capacity minus the used space, from the latest report.",
   ),
@@ -292,13 +255,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Cluster detail ---------------------------------------------------
   clusterHosts: translationKey(
-    "Hosts in this cluster that can run VMs (effective), out of all its hosts, from the latest report. A host in maintenance mode or not responding is not effective and is flagged in red.",
-  ),
-  clusterVirtualMachines: translationKey(
-    "Powered-on VMs out of all VMs in this cluster, as counted by vCenter itself at the latest report.",
-  ),
-  clusterTemplates: translationKey(
-    "VM templates in this cluster: master copies used to create new VMs. Templates are never powered on, so they use no CPU or memory.",
+    "Hosts in this cluster that vSphere can place VMs on (effective), out of all its hosts, from the latest report. A host in maintenance mode, not responding, powered off or in standby is not effective.",
   ),
   clusterCpu: translationKey(
     "CPU capacity available to run VMs (effective) against the cluster's total CPU capacity, in MHz or GHz, from the latest report. Hosts in maintenance mode or not responding are left out of effective.",
@@ -306,8 +263,20 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   clusterMemory: translationKey(
     "Memory available to run VMs (effective) against the cluster's total memory, from the latest report. Hosts in maintenance mode or not responding are left out of effective.",
   ),
+  clusterCpuInUse: translationKey(
+    "CPU the cluster's running hosts use, against the CPU the cluster can give its VMs (effective), from their latest reports. Amber past 90%.",
+  ),
+  clusterMemoryInUse: translationKey(
+    "Memory the cluster's running hosts use, against the memory the cluster can give its VMs (effective), from their latest reports. Amber past 90%.",
+  ),
+  clusterHostFailure: translationKey(
+    "Whether the cluster's other hosts could take the VMs of its largest host if it failed: the memory its running hosts use, against what the others have. vSphere HA restarts a failed host's VMs on the hosts left, and some may not fit.",
+  ),
 
   // ---- Hosts list -------------------------------------------------------
+  hostListStatus: translationKey(
+    "Connected while vCenter reports the host's CPU and memory use, amber when something on it needs a look. Not responding when vCenter has lost contact with it; Powered off or In standby when someone or vSphere DPM turned it off; No usage reported when vCenter does not say which.",
+  ),
   hostListCpu: translationKey(
     "Share of each host's CPU capacity in use, from its latest report. N/A when the host has sent no data in the last 15 minutes.",
   ),
@@ -320,10 +289,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Virtual machines list --------------------------------------------
   vmListStatus: translationKey(
-    "Running, Powered off or Template: the same inferred power state as the Power State column, shown as a colored label you can filter on.",
-  ),
-  vmListPowerState: translationKey(
-    "Powered on, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection, so a suspended VM shows as Powered off. A dash means the VM has not been collected yet.",
+    "Running, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection. Running turns amber or red, with why under it, while the host swaps, balloons or makes the VM wait for a CPU.",
   ),
   vmListCpuReady: translationKey(
     "Share of time the VM was ready to run but waited for a physical CPU, from its last report, however old; above about 10% busy hosts are slowing it down. A VM that is now off keeps its last reading.",
@@ -334,9 +300,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   vmListMemory: translationKey(
     "Memory the VM's operating system is actively using, as estimated by ESXi, against its configured memory, from its latest report. N/A when nothing arrived in the last 15 minutes.",
   ),
-  vmListAge: translationKey(
-    "The VMware agent does not report when a VM was created or started, so this column is empty for every virtual machine.",
-  ),
 
   // ---- Datastores list --------------------------------------------------
   datastoreListUsedCapacity: translationKey(
@@ -344,20 +307,14 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
 
   // ---- Clusters list ----------------------------------------------------
+  clusterListStatus: translationKey(
+    "Unhealthy when a host of the cluster is not responding; Degraded when hosts are not effective (often maintenance mode) or the cluster could not take the VMs of its largest host; Healthy otherwise.",
+  ),
   clusterListHosts: translationKey(
     "Hosts in the cluster that can run VMs, out of all its hosts, from its latest report. A host in maintenance mode or not responding counts toward the total but is not effective.",
   ),
   clusterListVirtualMachines: translationKey(
     "Powered-on VMs out of all VMs in the cluster, as counted by vCenter itself at its latest report.",
-  ),
-  clusterListTemplates: translationKey(
-    "VM templates in the cluster: master copies used to create new VMs, which are never powered on.",
-  ),
-  clusterListEffectiveCpu: translationKey(
-    "CPU capacity the cluster can use to run VMs, out of its total CPU capacity, in MHz or GHz, from its latest report. Hosts in maintenance mode or not responding do not count toward the effective figure.",
-  ),
-  clusterListEffectiveMemory: translationKey(
-    "Memory the cluster can use to run VMs, out of its total memory, from its latest report. Hosts in maintenance mode or not responding do not count toward the effective figure.",
   ),
 
   // ---- Resource pools list ----------------------------------------------

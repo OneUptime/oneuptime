@@ -30,8 +30,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                   their entry while a run waits for an approval
  *   Notes           what the team wrote (Private Notes, as an incident's
  *                   and an alert's are named: a case has no public side)
- *   Advanced        what most visits never need, folded: the case's Audit
- *                   Logs, and Delete Case
+ *   Advanced        what most visits never need, folded: the case's
+ *                   Custom Fields (the Overview shows them too, while the
+ *                   project has any), its Audit Logs, and Delete Case
  *
  * Every page keeps the case's header on top - its number, priority, status
  * and title, and Assign to Me, Run Playbook, Declare Incident, Close Case
@@ -147,6 +148,15 @@ export const SECURITY_CASE_MENU: Array<SecurityCaseMenuSection> = [
     // Folded by its title, as every record's Advanced section is.
     title: "Advanced",
     items: [
+      {
+        /*
+         * The project's own fields on the case, as an incident's and an
+         * alert's Custom Fields pages sit under their Advanced.
+         */
+        page: PageMap.SECURITY_CASE_VIEW_CUSTOM_FIELDS,
+        title: "Custom Fields",
+        icon: IconProp.ViewColumns,
+      },
       {
         page: PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS,
         title: "Audit Logs",

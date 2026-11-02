@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../Helpers/InheritedNames";
 import OcsfSeverity, {
   OcsfSeverityId,
   normalizeOcsfSeverity,
@@ -107,5 +108,16 @@ describe("OcsfSeverity", () => {
         expect(normalizeOcsfSeverity(input)).toBeNull();
       },
     );
+  });
+});
+
+describe("normalizeOcsfSeverity: words named after what every object inherits", () => {
+  test("a severity named after one is no severity", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({ name, severity: normalizeOcsfSeverity(name) }).toEqual({
+        name,
+        severity: null,
+      });
+    }
   });
 });
