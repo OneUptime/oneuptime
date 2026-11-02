@@ -524,6 +524,20 @@ done < <(find "$TEST_DIR/tests" -name "verify*.sh")
 assert_eq "" "$BAD_SHEBANG" \
     "every verify script is #!/bin/bash (required to inherit the dispatch function)"
 
+# The runner makes a verify script executable before it runs it, so one
+# committed without the executable bit still runs - and leaves a mode change
+# in the working tree after every local run (01-label and 33-team-crud's
+# verify-update.sh did). A checkout carries each file's committed mode, so
+# this reads what git has.
+NOT_EXECUTABLE=""
+while IFS= read -r script; do
+    if [ ! -x "$script" ]; then
+        NOT_EXECUTABLE="$NOT_EXECUTABLE $script"
+    fi
+done < <(find "$TEST_DIR/tests" -name "verify*.sh")
+assert_eq "" "$NOT_EXECUTABLE" \
+    "every verify script is committed executable (mode 755)"
+
 # The fixtures being identical across both runs is the compatibility claim. A
 # fixture that names a binary tests one engine twice.
 HARDCODED="$(grep -rlE '(^|[^a-zA-Z_-])tofu +(init|plan|apply|destroy|output|state|show|import|version)' \
