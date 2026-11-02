@@ -46,6 +46,19 @@ import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import HostCollectorAgentCache from "../Utils/HostCollector/HostCollectorAgentCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import { HostReadingColumns } from "../Utils/Telemetry/HostReadingsScan";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Query from "../Types/Database/Query";
+import Select from "../Types/Database/Select";
+import Sort from "../Types/Database/Sort";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { HostCollectorConfigStatus } from "../../Types/HostCollector/HostCollector";
+import {
+  HOST_DISK_NEAR_FULL_PERCENT,
+  HOST_INODES_NEAR_FULL_PERCENT,
+  HOST_LOAD_PER_CORE_HIGH,
+  HOST_MEMORY_HIGH_PERCENT,
+  HOST_SWAP_HIGH_PERCENT,
+} from "../../Types/Host/HostHealth";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -129,9 +142,188 @@ DiscoveredResourceIdCache.registerLocalLayer(
   },
 );
 
+/*
+ * The columns HostHealth reads, with what a list of hosts shows of each:
+ * what HostService.findHostsThatMayNeedAttention reads, and what the Hosts
+ * list and a host's page select to say the same.
+ */
+export const HOST_HEALTH_SELECT: Select<Model> = {
+  _id: true,
+  name: true,
+  hostIdentifier: true,
+  osType: true,
+  createdAt: true,
+  otelCollectorStatus: true,
+  lastSeenAt: true,
+  cpuCores: true,
+  latestCpuPercent: true,
+  latestMemoryPercent: true,
+  latestSwapPercent: true,
+  latestDiskPercent: true,
+  latestDiskMountpoint: true,
+  latestInodesPercent: true,
+  latestInodesMountpoint: true,
+  latestLoadAverage15m: true,
+  failedSystemdUnitCount: true,
+  failedSystemdUnits: true,
+  readingsUpdatedAt: true,
+  collectorInstanceUid: true,
+  collectorRegisteredAt: true,
+  collectorConfigStatus: true,
+  isCollectorHealthy: true,
+};
+
+/*
+ * How many hosts each of the conditions below reads at most. A fleet with
+ * more hosts than this past one line is told that the list is cut short.
+ */
+export const HOST_NEEDS_ATTENTION_LIMIT_PER_CONDITION: number = 500;
+
+export interface HostsThatMayNeedAttention {
+  hosts: Array<Model>;
+  // A condition matched more hosts than it reads.
+  isTruncated: boolean;
+}
+
+/*
+ * The conditions under which a host may need attention, each one of
+ * HostHealth's lines (the rules decide; these only find the candidates),
+ * and the column its hosts are read in the order of - the worst first.
+ */
+export interface HostNeedsAttentionCondition {
+  name: string;
+  query: Query<Model>;
+  sort: Sort<Model>;
+}
+
+export function getHostNeedsAttentionConditions(): Array<HostNeedsAttentionCondition> {
+  return [
+    {
+      // Stopped reporting.
+      name: "not-reporting",
+      query: { otelCollectorStatus: "disconnected" },
+      sort: { lastSeenAt: SortOrder.Descending },
+    },
+    {
+      // Never reported: starting, or waiting for its first data.
+      name: "no-data",
+      query: { lastSeenAt: QueryHelper.isNull() },
+      sort: { createdAt: SortOrder.Descending },
+    },
+    {
+      name: "disk",
+      query: {
+        latestDiskPercent: QueryHelper.greaterThan(HOST_DISK_NEAR_FULL_PERCENT),
+      },
+      sort: { latestDiskPercent: SortOrder.Descending },
+    },
+    {
+      name: "inodes",
+      query: {
+        latestInodesPercent: QueryHelper.greaterThan(
+          HOST_INODES_NEAR_FULL_PERCENT,
+        ),
+      },
+      sort: { latestInodesPercent: SortOrder.Descending },
+    },
+    {
+      name: "memory",
+      query: {
+        latestMemoryPercent: QueryHelper.greaterThan(HOST_MEMORY_HIGH_PERCENT),
+      },
+      sort: { latestMemoryPercent: SortOrder.Descending },
+    },
+    {
+      name: "swap",
+      query: {
+        latestSwapPercent: QueryHelper.greaterThan(HOST_SWAP_HIGH_PERCENT),
+      },
+      sort: { latestSwapPercent: SortOrder.Descending },
+    },
+    {
+      name: "load",
+      query: {
+        latestLoadAverage15m: QueryHelper.greaterThanOtherColumnTimes({
+          columnName: "cpuCores",
+          factor: HOST_LOAD_PER_CORE_HIGH,
+        }),
+      },
+      sort: { latestLoadAverage15m: SortOrder.Descending },
+    },
+    {
+      name: "failed-units",
+      query: { failedSystemdUnitCount: QueryHelper.greaterThan(0) },
+      sort: { failedSystemdUnitCount: SortOrder.Descending },
+    },
+    {
+      name: "collector-config-failed",
+      query: { collectorConfigStatus: HostCollectorConfigStatus.Failed },
+      sort: { collectorRegisteredAt: SortOrder.Descending },
+    },
+    {
+      name: "collector-error",
+      query: { isCollectorHealthy: false },
+      sort: { collectorRegisteredAt: SortOrder.Descending },
+    },
+  ];
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The hosts of a project that may need attention, for the Hosts list's
+   * Needs attention card: one read per line HostHealth draws, each as the
+   * caller (their read permissions and label access apply), the worst of
+   * each first, and the hosts of all of them once each. HostHealth then
+   * says which do and why - so the card, the list and a host's page agree.
+   * Archived hosts are left out, as the list leaves them out.
+   */
+  @CaptureSpan()
+  public async findHostsThatMayNeedAttention(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<HostsThatMayNeedAttention> {
+    const conditions: Array<HostNeedsAttentionCondition> =
+      getHostNeedsAttentionConditions();
+
+    const results: Array<Array<Model>> = await Promise.all(
+      conditions.map(
+        (condition: HostNeedsAttentionCondition): Promise<Array<Model>> => {
+          return this.findBy({
+            query: {
+              ...condition.query,
+              projectId: data.projectId,
+              isArchived: false,
+            } as Query<Model>,
+            select: HOST_HEALTH_SELECT,
+            sort: condition.sort,
+            limit: HOST_NEEDS_ATTENTION_LIMIT_PER_CONDITION,
+            skip: 0,
+            props: data.props,
+          });
+        },
+      ),
+    );
+
+    const byId: Map<string, Model> = new Map<string, Model>();
+    let isTruncated: boolean = false;
+
+    for (const hosts of results) {
+      if (hosts.length >= HOST_NEEDS_ATTENTION_LIMIT_PER_CONDITION) {
+        isTruncated = true;
+      }
+      for (const host of hosts) {
+        const id: string | undefined = host._id?.toString();
+        if (id && !byId.has(id)) {
+          byId.set(id, host);
+        }
+      }
+    }
+
+    return { hosts: Array.from(byId.values()), isTruncated: isTruncated };
   }
 
   @CaptureSpan()

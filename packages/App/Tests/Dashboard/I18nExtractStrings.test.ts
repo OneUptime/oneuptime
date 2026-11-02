@@ -913,6 +913,57 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  test("HostHealth gives the locales its words, each count as a plural, and nothing else", () => {
+    const file: string = "packages/Common/Types/Host/HostHealth.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+    const plurals: Record<string, string | undefined> = {};
+
+    for (const entry of result.strings) {
+      if (entry.kind === "plural") {
+        plurals[entry.text] = entry.pluralOne;
+      }
+    }
+
+    expect(plurals).toEqual({
+      "Load {{load}} on {{count}} cores": "Load {{load}} on {{count}} core",
+      "{{count}} failed systemd units": "{{count}} failed systemd unit",
+    });
+    expect(textsOf(result)).toEqual(
+      expect.arrayContaining([
+        "Healthy",
+        "Degraded",
+        "Unhealthy",
+        "Not reporting",
+        "Starting",
+        "No data yet",
+        "Reporting",
+        "{{percent}} full",
+        "{{mount}} {{percent}} full",
+        "{{percent}} of inodes used",
+        "{{mount}}: {{percent}} of inodes used",
+        "Memory {{percent}} used",
+        "Swap {{percent}} used",
+        "Failed",
+        "Config failed",
+        "Collector config failed",
+        "Collector error",
+      ]),
+    );
+    // Only what the file marks: no state names, no mount points.
+    for (const unmarked of ["critical", "warning", "filesystem", "host"]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("TraceSpanType gives the locales its sentences and none of its names", () => {
     const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1231,6 +1282,8 @@ describe("the real source roots", () => {
       "ui packages/Common/Utils/AiRemediation/CloudChangeWords.ts",
       // A Kubernetes object's status and reasons - not Kubernetes' own words.
       "keys packages/Common/Types/Kubernetes/KubernetesHealth.ts",
+      // A host's status and reasons - not its mount points or unit names.
+      "keys packages/Common/Types/Host/HostHealth.ts",
     ]);
   });
 
