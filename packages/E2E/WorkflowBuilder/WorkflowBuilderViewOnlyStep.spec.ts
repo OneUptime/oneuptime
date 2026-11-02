@@ -16,7 +16,9 @@ import { expect, Locator, Page, test } from "@playwright/test";
  *   - a code box shows its code to be read: Read-only, no Format, its text
  *     reached by the pointer and the keyboard, and its own Copy copies it;
  *   - More fields opens, to read what it folds away;
- *   - nothing typed anywhere changes a setting, and nothing is saved.
+ *   - nothing typed anywhere changes a setting, and nothing is saved;
+ *   - nothing that only changes a setting is drawn (a header's Add and
+ *     Delete), and an empty value box is as tall as a line.
  *
  * jsdom has no pointer-events, no clipboard and no real focus, so these live
  * here.
@@ -258,6 +260,25 @@ test.describe("Workflow builder, a view: a step's settings are read, its code co
     await expect(moreFields).toHaveAttribute("aria-expanded", "false");
   });
 
+  test("a header's row is read as it is: no Add and no Delete beside it, and its type has nothing to clear", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page, "&role=member");
+
+    const dialog: Locator = await openStep(page, "api-post-1");
+
+    await dialog.getByRole("button", { name: /^More fields/ }).click();
+    await expect(dialog.locator('input[value="Authorization"]')).toBeVisible();
+
+    await expect(
+      dialog.getByRole("button", { name: "Add Request Headers" }),
+    ).toHaveCount(0);
+    await expect(dialog.getByTestId("delete-Authorization")).toHaveCount(0);
+    await expect(dialog.locator(".ou-select__clear-indicator")).toHaveCount(0);
+  });
+
   test("nothing typed into a value box or the identifier changes it, and nothing is saved", async ({
     page,
   }: {
@@ -383,7 +404,7 @@ test.describe("Workflow builder, a view: the editors of their own hold still, an
       });
   }
 
-  test("a Switch / Case's grip picks no case up, and nothing in a case can be changed", async ({
+  test("a Switch / Case has no grip to pick a case up by, nor Remove or Add case, and nothing in a case can be changed", async ({
     page,
   }: {
     page: Page;
@@ -393,28 +414,115 @@ test.describe("Workflow builder, a view: the editors of their own hold still, an
     await expect(dialog.locator("[data-case-id]")).toHaveCount(2);
     expect(await caseOrder(dialog)).toEqual(["case-1", "case-2"]);
 
-    const grip: Locator = dialog
-      .getByTestId("switch-case-0")
-      .getByTestId("drag-handle");
+    // Nothing to move a case by, or to take one out or add one with.
+    await expect(dialog.getByTestId("drag-handle")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Remove case 1" }),
+    ).toHaveCount(0);
+    await expect(dialog.getByTestId(SWITCH_ADD_CASE)).toHaveCount(0);
 
-    // Locked, as every control a view holds still looks.
-    await expect(grip).toHaveAttribute("aria-disabled", "true");
-
-    await grip.focus();
+    // Nor does the keyboard move one, from where its value is read.
+    await dialog.getByTestId("switch-case-value-0").focus();
     await page.keyboard.press("Space");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Space");
 
     expect(await caseOrder(dialog)).toEqual(["case-1", "case-2"]);
-
-    await expect(
-      dialog.getByRole("button", { name: "Remove case 1" }),
-    ).toBeDisabled();
-    await expect(dialog.getByTestId(SWITCH_ADD_CASE)).toBeDisabled();
     await expect(dialog.getByTestId("switch-case-value-0")).toHaveAttribute(
       "contenteditable",
       "false",
     );
+
+    // Each case beside its number, at every width: both read in one frame.
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return dialog.evaluate((element: Element): boolean => {
+          const place: Element | null = element.querySelector(
+            '[data-testid="switch-case-place-0"]',
+          );
+          const fields: Element | null = element.querySelector(
+            '[data-testid="switch-case-fields-0"]',
+          );
+
+          if (!place || !fields) {
+            return false;
+          }
+
+          const placeBox: DOMRect = place.getBoundingClientRect();
+          const fieldsBox: DOMRect = fields.getBoundingClientRect();
+
+          return (
+            placeBox.top < fieldsBox.bottom && fieldsBox.top < placeBox.bottom
+          );
+        });
+      })
+      .toBe(true);
+  });
+
+  test("a Switch / Case and an If / Else open with the focus on the dialog, not in a box that is only read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [scenario, componentId] of [
+      ["switch", "switch-1"],
+      ["record-branch", "if-else-1"],
+    ]) {
+      const dialog: Locator = await openSettings(page, scenario!, componentId!);
+
+      await expect(dialog).toBeFocused();
+      expect(
+        await page.evaluate((): boolean => {
+          const settings: Element | null = document.querySelector(
+            '[data-testid="workflow-component-settings-view-only"]',
+          );
+          return Boolean(settings && settings.contains(document.activeElement));
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("an empty value box is as tall as a line, its placeholder inside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // An If / Else on a record trigger, its Compare with not set yet.
+    await page.goto("/?scenario=record&next=if-else&view=1");
+    await expect(page.locator(".react-flow__node").first()).toBeVisible();
+    await stepCard(page, "if-else-1").focus();
+    await page.keyboard.press("Enter");
+
+    const dialog: Locator = page.locator(SETTINGS_DIALOG);
+    const compareWith: Locator = dialog.getByRole("textbox", {
+      name: "Compare with",
+    });
+
+    await expect(compareWith).toHaveText("");
+    await expect(compareWith).toHaveAttribute("contenteditable", "false");
+
+    /*
+     * A line tall - padding and a 20px line, not 16px of padding alone - with
+     * its placeholder inside it, both read in one frame.
+     */
+    await expect
+      .poll(async (): Promise<{ isLineTall: boolean; isInside: boolean }> => {
+        return compareWith.evaluate(
+          (root: Element): { isLineTall: boolean; isInside: boolean } => {
+            const box: DOMRect = root.getBoundingClientRect();
+            const placeholder: Element | null = root.previousElementSibling;
+            const shown: DOMRect | null = placeholder
+              ? placeholder.getBoundingClientRect()
+              : null;
+
+            return {
+              isLineTall: box.height > 30,
+              isInside: shown ? shown.bottom <= box.bottom + 0.5 : false,
+            };
+          },
+        );
+      })
+      .toEqual({ isLineTall: true, isInside: true });
   });
 
   test("a Switch / Case's Compare as still opens, to read how each case compares", async ({
@@ -471,8 +579,12 @@ test.describe("Workflow builder, a view: the editors of their own hold still, an
     dialog = page.locator(SETTINGS_DIALOG);
 
     await expect(dialog.getByTestId("fields-to-pass-on-chip")).toHaveCount(1);
-    await expect(dialog.getByTestId("fields-to-pass-on-remove")).toBeDisabled();
-    await expect(dialog.getByTestId("fields-to-pass-on-add")).toBeDisabled();
-    await expect(dialog.getByTestId("fields-to-watch-add")).toBeDisabled();
+    // The chips to read, and nothing to take one off, add one or edit as JSON.
+    await expect(dialog.getByTestId("fields-to-pass-on-remove")).toHaveCount(0);
+    await expect(dialog.getByTestId("fields-to-pass-on-add")).toHaveCount(0);
+    await expect(dialog.getByTestId("fields-to-watch-add")).toHaveCount(0);
+    await expect(dialog.getByTestId("fields-to-pass-on-edit-json")).toHaveCount(
+      0,
+    );
   });
 });
