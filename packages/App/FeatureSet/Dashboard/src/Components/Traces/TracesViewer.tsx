@@ -160,18 +160,28 @@ import {
   TRACE_KNOWN_FIELD_KEYS,
   TraceAttributeFilters,
   TraceDurationFilter,
+  TraceExclusions,
   TraceSearchChip,
+  applyTraceExclusionsToPayload,
+  applyTraceExclusionsToQuery,
   compileTraceAttributeFilters,
   getTraceChipFacetKey,
   getTraceChosenFacetKeys,
   isTraceFieldOfFacet,
   parseTraceSearch,
+  readTraceExclusions,
   resolveTraceSearchChip,
   toNumericQueryValue,
   toSpanKind,
   toSpanStatusCode,
   toTraceDurationFilter,
 } from "./TracesSearchCompile";
+import {
+  FacetChoiceState,
+  chooseFacetValueInChips,
+} from "Common/UI/Components/TelemetryViewer/FacetExclusion";
+import { FacetValueState } from "Common/UI/Components/TelemetryViewer/FacetSelection";
+import { isExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 import {
   FacetCountAnswer,
   FacetCountRequestPart,
@@ -1158,6 +1168,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const attributeChipValues: Record<string, Array<string>> = {};
     const attributeSearchChips: Record<string, string> = {};
     for (const filter of activeFilters) {
+      // What a chip leaves out is compiled last (applyTraceExclusionsToQuery).
+      if (isExcludeFacetKey(filter.facetKey)) {
+        continue;
+      }
       /*
        * Chips with the `attributes.` prefix are telemetry attribute filters
        * (a facet click, a span-panel "filter by", or a typed `@key:value`).
@@ -1373,6 +1387,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
+     * The values the chips leave out ("Status is not Error"), once every
+     * filter that keeps rows is on the query: a column kept exactly drops
+     * them, a span name kept as a substring holds both. The aggregation
+     * payload reads the same chips by the same rules
+     * (applyTraceExclusionsToPayload).
+     */
+    const exclusions: TraceExclusions = readTraceExclusions({
+      chips: activeFilters,
+      attributeFacetKeys: ATTRIBUTE_FACET_KEYS,
+    });
+    applyTraceExclusionsToQuery(query as Record<string, unknown>, exclusions);
+
+    /*
      * Attribute filters from every source — chips, the submitted search
      * string, the pre-grammar contains chips and the host page's read-only
      * resource scope — compiled ONCE for both transports. The histogram and
@@ -1383,6 +1410,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const attributeFilters: TraceAttributeFilters =
       compileTraceAttributeFilters({
         chipValues: attributeChipValues,
+        excludedChipValues: exclusions.attributeChipValues,
         parsed: parsed.attributeFilters,
         legacyContainsChips: attributeSearchChips,
         scope: { ...(props.attributeFilters || {}), ...spanScope.attributes },
@@ -1806,6 +1834,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           ) {
             continue;
           }
+          // What a chip leaves out is read below (readTraceExclusions).
+          if (isExcludeFacetKey(filter.facetKey)) {
+            continue;
+          }
           // `attributes.<key>` chips route into `payload.attributes`, not `groups`.
           if (filter.facetKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
             const attrKey: string = filter.facetKey.substring(
@@ -1852,9 +1884,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          * a prefix. `attributeSearches` now carries only the pre-grammar chips a
          * saved view can still hold.
          */
+        // What the chips leave out - all but the counted facet's own.
+        const exclusions: TraceExclusions = readTraceExclusions({
+          chips: activeFilters,
+          attributeFacetKeys: ATTRIBUTE_FACET_KEYS,
+          omitFacetKey: omitFacetKey,
+        });
+
         const attributeFilters: TraceAttributeFilters =
           compileTraceAttributeFilters({
             chipValues: attributeChipValues,
+            excludedChipValues: exclusions.attributeChipValues,
             parsed: omitFacetKey
               ? parsed.attributeFilters.filter(
                   (filter: { key: string }): boolean => {
@@ -2085,6 +2125,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           payload[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
             props.exceptionScope as unknown as JSONObject;
         }
+
+        /*
+         * Last, so a value left out yields to a column the request already
+         * keeps - the same rule the list query applies.
+         */
+        applyTraceExclusionsToPayload(payload, exclusions);
 
         return payload;
       },
@@ -2615,19 +2661,31 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     return map;
   }, [services, translator.language]);
 
-  // Facet interaction
-  const handleFacetInclude: (facetKey: string, value: string) => void =
-    useCallback(
-      (facetKey: string, value: string) => {
-        /*
-         * Span Type is a synthetic facet: choosing Entry, Root or All spans
-         * sets spanType instead of adding a filter chip.
-         */
-        if (facetKey === SPAN_TYPE_FACET_KEY) {
+  /*
+   * Facet interaction: put a value in exactly one state, kept (a click, a
+   * span panel's "Filter by", a picked `key:value`) or left out (a facet
+   * row's minus: "Status is not Error"). A value in the other state moves;
+   * asking for the state it is already in changes nothing. The sidebar takes
+   * a checked or excluded value off through handleRemoveFilter.
+   */
+  const chooseFacetValue: (
+    facetKey: string,
+    value: string,
+    state: FacetChoiceState,
+  ) => void = useCallback(
+    (facetKey: string, value: string, state: FacetChoiceState) => {
+      /*
+       * Span Type is a synthetic facet: choosing Entry, Root or All spans
+       * sets spanType instead of adding a filter chip. It is a choice of
+       * one, so nothing in it can be left out.
+       */
+      if (facetKey === SPAN_TYPE_FACET_KEY) {
+        if (state === FacetValueState.Included) {
           setSpanType(parseTraceSpanType(value) || defaultSpanType);
           setPage(1);
-          return;
         }
+        return;
+      }
         /*
          * Attribute-backed facets (Service Instance / Host Name) filter via
          * the attributes map — store their chips under the same
@@ -2652,43 +2710,57 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          * the row it came from. Callers that already hold a grammar token
          * (the span panel, the search bar) escape at their own call site.
          */
-        const chipValue: string = isAttributeFacet
-          ? buildSearchTokenValue(value)
-          : value;
-        setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-          if (
-            prev.some((f: ActiveFilter): boolean => {
-              return f.facetKey === chipKey && f.value === chipValue;
-            })
-          ) {
-            return prev;
-          }
-          // Attribute chips (`attributes.<key>`) display as just `<key>`.
-          const displayKey: string =
-            config?.title ||
-            (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
-              ? chipKey.substring(ATTRIBUTE_CHIP_PREFIX.length)
-              : chipKey);
-          /*
-           * The server's resolved facet name is the fallback seed: the
-           * sidebar showed it, and the facet list can drop the value once
-           * this very filter narrows the window.
-           */
-          const displayValue: string =
-            config?.valueDisplayMap?.[value] ||
-            (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
-              ? describeSearchValue(chipValue)
-              : facetData[facetKey]?.find((facet: FacetValue): boolean => {
-                  return facet.value === value;
-                })?.displayName || value);
-          return [
-            ...prev,
-            { facetKey: chipKey, value: chipValue, displayKey, displayValue },
-          ];
-        });
-        setPage(1);
+      const chipValue: string = isAttributeFacet
+        ? buildSearchTokenValue(value)
+        : value;
+      // Attribute chips (`attributes.<key>`) display as just `<key>`.
+      const displayKey: string =
+        config?.title ||
+        (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
+          ? chipKey.substring(ATTRIBUTE_CHIP_PREFIX.length)
+          : chipKey);
+      /*
+       * The server's resolved facet name is the fallback seed: the sidebar
+       * showed it, and the facet list can drop the value once this very
+       * filter narrows the window.
+       */
+      const displayValue: string =
+        config?.valueDisplayMap?.[value] ||
+        (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
+          ? describeSearchValue(chipValue)
+          : facetData[facetKey]?.find((facet: FacetValue): boolean => {
+              return facet.value === value;
+            })?.displayName || value);
+      setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+        return chooseFacetValueInChips(
+          prev,
+          chipKey,
+          chipValue,
+          state,
+          (key: string): ActiveFilter => {
+            return { facetKey: key, value: chipValue, displayKey, displayValue };
+          },
+        );
+      });
+      setPage(1);
+    },
+    [facetConfigs, facetData, defaultSpanType],
+  );
+
+  const handleFacetInclude: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string): void => {
+        chooseFacetValue(facetKey, value, FacetValueState.Included);
       },
-      [facetConfigs, facetData, defaultSpanType],
+      [chooseFacetValue],
+    );
+
+  const handleFacetExclude: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string): void => {
+        chooseFacetValue(facetKey, value, FacetValueState.Excluded);
+      },
+      [chooseFacetValue],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -3885,6 +3957,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         void fetchHistogramAndFacets();
       }}
       onFacetInclude={handleFacetInclude}
+      onFacetExclude={handleFacetExclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
           (prev: Record<string, string>): Record<string, string> => {

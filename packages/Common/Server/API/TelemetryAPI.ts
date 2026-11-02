@@ -1119,7 +1119,7 @@ async function resolveResourceScopesFromBody(
       ...(await ResourceEntityFilter.resolveScopes({
         projectId,
         selections,
-        isExcluded,
+        ...(isExcluded ? { isExcluded: true } : {}),
       })),
     );
   }

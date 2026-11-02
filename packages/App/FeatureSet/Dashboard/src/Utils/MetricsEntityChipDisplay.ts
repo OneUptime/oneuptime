@@ -1,5 +1,9 @@
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import { RESOURCE_FACET_CATALOG } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import {
@@ -145,12 +149,14 @@ export const collectMetricsEntityLookup: (data: {
   }
 
   for (const filter of data.filters || []) {
-    if (isMetricsPolymorphicEntityFacetKey(filter.facetKey)) {
+    // An entity left out (`!primaryEntityId`) is named like one kept.
+    const facetKey: string = getBaseFacetKey(filter.facetKey);
+    if (isMetricsPolymorphicEntityFacetKey(facetKey)) {
       addId(filter.value, undefined);
       continue;
     }
     const typedFacetType: ServiceType | undefined =
-      getMetricsTypedEntityFacetType(filter.facetKey);
+      getMetricsTypedEntityFacetType(facetKey);
     if (typedFacetType) {
       addId(filter.value, typedFacetType);
     }
@@ -200,6 +206,25 @@ export const getMetricsAppliedEntityFilterIds: (
     ids.push(id);
   }
   return ids;
+};
+
+/*
+ * The entity ids the user's chips LEAVE OUT of the metric list ("Service is
+ * not checkout"): the `!primaryEntityId` / `!serviceId` chips, read by the
+ * same rules as the ones that keep ids above.
+ */
+export const getMetricsExcludedEntityFilterIds: (
+  filters: Array<ActiveFilter> | undefined,
+) => Array<string> = (filters: Array<ActiveFilter> | undefined): Array<string> => {
+  return getMetricsAppliedEntityFilterIds(
+    (filters || [])
+      .filter((filter: ActiveFilter): boolean => {
+        return isExcludeFacetKey(filter.facetKey);
+      })
+      .map((filter: ActiveFilter): ActiveFilter => {
+        return { ...filter, facetKey: getBaseFacetKey(filter.facetKey) };
+      }),
+  );
 };
 
 /*
@@ -355,6 +380,22 @@ export const resolveMetricsChipDisplay: (data: {
   scopeEntityType?: ServiceType | undefined;
 }): ActiveFilter => {
   const chip: ActiveFilter = data.chip;
+
+  /*
+   * A chip that leaves its value out is named as the chip that keeps it
+   * would be, and keeps its own key: the chip row says it excludes
+   * ("Service is not").
+   */
+  if (isExcludeFacetKey(chip.facetKey)) {
+    return {
+      ...resolveMetricsChipDisplay({
+        ...data,
+        chip: { ...chip, facetKey: getBaseFacetKey(chip.facetKey) },
+      }),
+      facetKey: chip.facetKey,
+    };
+  }
+
   /*
    * The legacy serviceId alias names the same entity as primaryEntityId, so
    * it borrows that facet's config (title, loaded service names) when it has
