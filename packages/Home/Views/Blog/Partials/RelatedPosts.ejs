@@ -1,0 +1,25 @@
+<%
+    // The posts most like this one (Utils/BlogRelatedPosts.ts), linked by their
+    // pages: a way on from a post for readers, crawlers and AI agents. Nothing
+    // when there are none.
+    var related = Array.isArray(relatedPosts) ? relatedPosts : [];
+%>
+<% if (related.length > 0) { %>
+<nav class="mt-16" aria-labelledby="related-posts-title" data-related-posts>
+    <h2 id="related-posts-title" class="text-sm font-semibold uppercase tracking-wider text-gray-500">Related posts</h2>
+    <ul role="list" class="mt-4 divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <% related.forEach(function (post) { %>
+        <li>
+            <a href="<%= post.blogUrl %>" class="group flex items-start justify-between gap-4 px-6 py-5 no-underline transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:px-8">
+                <span class="min-w-0">
+                    <span class="block text-base font-semibold text-gray-900 group-hover:text-blue-600"><%= post.title %></span>
+                    <span class="mt-1 block text-sm leading-6 text-gray-600 line-clamp-2"><%= post.description %></span>
+                    <span class="mt-2 block text-xs text-gray-400"><%= post.formattedPostDate %></span>
+                </span>
+                <svg aria-hidden="true" class="mt-1 h-4 w-4 flex-shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            </a>
+        </li>
+        <% }) %>
+    </ul>
+</nav>
+<% } %>

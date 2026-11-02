@@ -156,6 +156,7 @@ interface SitemapModule {
 interface FakePost {
   postDate: string;
   blogUrl: string;
+  fileName?: string;
 }
 
 const HOME_URL: string = "https://oneuptime.com";
@@ -205,6 +206,10 @@ const REDIRECTING_GET_PATHS: Array<string> = REGISTERED_GET_PATHS.filter(
 type LoadSitemapFunction = (options: {
   posts: Array<FakePost>;
   routes?: Array<string>;
+  // Each post's updated date (BlogPostUtil.getUpdatedDate), by file name.
+  updatedDates?: Record<string, string>;
+  // Stands in for BlogPostUtil.getUpdatedDate, so a test can see how it was asked.
+  getUpdatedDate?: jest.Mock;
 }) => SitemapModule;
 
 /*
@@ -216,6 +221,8 @@ type LoadSitemapFunction = (options: {
 const loadSitemap: LoadSitemapFunction = (options: {
   posts: Array<FakePost>;
   routes?: Array<string>;
+  updatedDates?: Record<string, string>;
+  getUpdatedDate?: jest.Mock;
 }): SitemapModule => {
   jest.resetModules();
 
@@ -230,6 +237,11 @@ const loadSitemap: LoadSitemapFunction = (options: {
         }),
         getBlogPostList: jest.fn().mockResolvedValue(options.posts),
         getTags: jest.fn().mockResolvedValue(["Never", "Read"]),
+        getUpdatedDate:
+          options.getUpdatedDate ||
+          jest.fn().mockImplementation((fileName: unknown): string | null => {
+            return (options.updatedDates || {})[String(fileName)] || null;
+          }),
       },
     };
   });
@@ -408,6 +420,89 @@ describe("the sitemap index", () => {
     });
 
     expect(lastmodOf(blog || "")).toBe("2026-09-30T00:00:00.000Z");
+  });
+
+  test("dates a blog sitemap by its newest change, a post's update included", async () => {
+    const posts: Array<FakePost> = [
+      {
+        postDate: "2026-09-30",
+        blogUrl: "/blog/post/2026-09-30-b/view",
+        fileName: "2026-09-30-b",
+      },
+      {
+        postDate: "2026-01-05",
+        blogUrl: "/blog/post/2026-01-05-a/view",
+        fileName: "2026-01-05-a",
+      },
+    ];
+    const mod: SitemapModule = loadSitemap({
+      posts: posts,
+      // The older post changed after the newer one went out.
+      updatedDates: { "2026-01-05-a": "2026-10-12" },
+    });
+    const blog: string | undefined = elementsOf(
+      await mod.generateSitemapIndexXml(),
+      "sitemap",
+    ).find((entry: string): boolean => {
+      return locOf(entry).endsWith("/sitemap-blog-1.xml");
+    });
+
+    expect(lastmodOf(blog || "")).toBe("2026-10-12T00:00:00.000Z");
+  });
+});
+
+describe("a blog sitemap's dates", () => {
+  test("a post's lastmod is the day its text last changed, or else the day it was published", async () => {
+    const posts: Array<FakePost> = [
+      {
+        postDate: "2026-09-30",
+        blogUrl: "/blog/post/2026-09-30-not-changed/view",
+        fileName: "2026-09-30-not-changed",
+      },
+      {
+        postDate: "2026-03-31",
+        blogUrl: "/blog/post/2026-03-31-validated-and-fixed/view",
+        fileName: "2026-03-31-validated-and-fixed",
+      },
+    ];
+    const mod: SitemapModule = loadSitemap({
+      posts: posts,
+      updatedDates: { "2026-03-31-validated-and-fixed": "2026-04-09" },
+    });
+
+    const lastmods: Record<string, string | null> = {};
+
+    for (const entry of elementsOf(
+      await mod.generateBlogSitemapXml(1),
+      "url",
+    )) {
+      lastmods[locOf(entry)] = lastmodOf(entry);
+    }
+
+    expect(lastmods).toEqual({
+      [`${HOME_URL}/blog/post/2026-09-30-not-changed/view`]:
+        "2026-09-30T00:00:00.000Z",
+      [`${HOME_URL}/blog/post/2026-03-31-validated-and-fixed/view`]:
+        "2026-04-09T00:00:00.000Z",
+    });
+  });
+
+  test("asks for each post's updated date by its file name and publish date", async () => {
+    const getUpdatedDate: jest.Mock = jest.fn().mockReturnValue(null);
+    const mod: SitemapModule = loadSitemap({
+      posts: [
+        {
+          postDate: "2026-09-30",
+          blogUrl: "/blog/post/2026-09-30-a/view",
+          fileName: "2026-09-30-a",
+        },
+      ],
+      getUpdatedDate: getUpdatedDate,
+    });
+
+    await mod.generateBlogSitemapXml(1);
+
+    expect(getUpdatedDate).toHaveBeenCalledWith("2026-09-30-a", "2026-09-30");
   });
 });
 

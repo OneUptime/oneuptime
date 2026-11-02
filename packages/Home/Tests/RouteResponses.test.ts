@@ -29,6 +29,7 @@ import {
   AirGappedTopicPage,
   AirGappedTopicPages,
 } from "../Utils/AirGappedPages";
+import { INDEXNOW_KEY, INDEXNOW_KEY_PATH } from "../Utils/IndexNow";
 
 /*
  * THE ROUTE TABLE, ANSWERING REAL REQUESTS.
@@ -736,6 +737,26 @@ describe("the route table over HTTP", () => {
 
       expect(answer.contentType).toContain("application/rss+xml");
       expect(answer.body).toContain("<rss");
+    });
+
+    // Utils/IndexNow.ts: a search engine reads it to check a notice came from the site.
+    test("IndexNow's key is served as plain text where the notices say it is", async () => {
+      const answer: Answer = await home.request("GET", INDEXNOW_KEY_PATH);
+
+      expect([answer.status, answer.contentType, answer.body]).toEqual([
+        200,
+        "text/plain; charset=utf-8",
+        INDEXNOW_KEY,
+      ]);
+    });
+
+    test("no other .txt address answers with the key", async () => {
+      const answer: Answer = await home.request(
+        "GET",
+        "/0123456789abcdef0123456789abcdef.txt",
+      );
+
+      expect(answer.body).not.toBe(INDEXNOW_KEY);
     });
   });
 

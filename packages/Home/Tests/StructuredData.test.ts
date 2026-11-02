@@ -240,6 +240,8 @@ describe("the blog post's structured data", () => {
       },
       validationStatus: "validated",
       validationDate: "October 08, 2026",
+      updatedDate: null,
+      formattedUpdatedDate: null,
     };
   };
 
