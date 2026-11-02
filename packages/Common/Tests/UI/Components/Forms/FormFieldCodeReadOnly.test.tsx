@@ -21,20 +21,14 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { CodeEditorActions } from "../../../../UI/Components/CodeEditor/CodeEditor";
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { JSONObject } from "../../../../Types/JSON";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 interface TestEntity extends JSONObject {
   config?: string;
@@ -105,10 +99,11 @@ const getInput: () => HTMLTextAreaElement = (): HTMLTextAreaElement => {
   return screen.getByTestId("code-editor-input") as HTMLTextAreaElement;
 };
 
-let writeText: jest.Mock<(text: string) => Promise<void>>;
+let writeText: MockFunction;
 
 beforeEach(() => {
-  writeText = jest.fn((_text: string): Promise<void> => {
+  writeText = getJestMockFunction();
+  writeText.mockImplementation((): Promise<void> => {
     return Promise.resolve();
   });
 
@@ -185,8 +180,7 @@ describe("a code field its form locks", () => {
   });
 
   test("a key pressed in a locked field changes nothing", () => {
-    const setFieldValue: jest.Mock<(name: string, value: unknown) => void> =
-      jest.fn((_name: string, _value: unknown): void => {});
+    const setFieldValue: MockFunction = getJestMockFunction();
 
     renderField({
       fieldType: FormFieldSchemaType.JSON,
