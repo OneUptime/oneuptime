@@ -145,6 +145,30 @@ export default class Attribution {
     return result as UtmAttribution;
   }
 
+  /*
+   * The campaign columns of a row about to be written, each cut to the width
+   * of its column.
+   *
+   * Cut rather than refused: a value wider than its column refuses the whole
+   * create (DatabaseService.checkMaxLengthOfFields), and what is too long here
+   * is the address of the ad the visitor clicked, not anything they can see or
+   * correct. It stays in their browser, so a signup refused for it would be
+   * refused every time they tried. What is cut is the tail of an address; the
+   * click ids and UTM values it carried are stored on their own.
+   */
+  public static boundUtmColumns(row: JSONObject): void {
+    for (const key of [...UtmPropertyKeys, UtmUrlPropertyKey]) {
+      const value: JSONValue = row[key];
+
+      if (
+        typeof value === "string" &&
+        value.length > MaxAttributionValueLength
+      ) {
+        row[key] = value.slice(0, MaxAttributionValueLength);
+      }
+    }
+  }
+
   // True when anything at all identifies where this visitor came from.
   public static hasAnyAttribution(data: {
     clickIds?: JSONObject | undefined;

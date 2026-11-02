@@ -409,6 +409,8 @@ export class Service extends DatabaseService<Model> {
       delete createBy.data.firstTouchAttribution;
     }
 
+    Attribution.boundUtmColumns(createBy.data as unknown as JSONObject);
+
     return { createBy, carryForward: null };
   }
 
