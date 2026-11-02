@@ -1176,6 +1176,73 @@ test.describe("the cluster's side menu", () => {
     });
   }
 
+  /*
+   * The menu works out which list a page is a row of each time it is drawn,
+   * so the light follows the reader around the app, not only on a fresh
+   * load: a node opened from the Overview's attention list lights Nodes,
+   * Nodes leads on to the list (the page itself then), and Back takes the
+   * light back the way it came. None of it reloads the page.
+   */
+  test("the light follows the reader without a reload: the Overview, a node from its attention list, the Nodes list, and Back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+    const current: Locator = desktopMenu(page).locator("a[aria-current]");
+
+    const expectCurrent: (data: {
+      title: string;
+      ariaCurrent: string;
+    }) => Promise<void> = async (data: {
+      title: string;
+      ariaCurrent: string;
+    }): Promise<void> => {
+      await expect(current).toHaveCount(1);
+      await expect(current.getByTestId("side-menu-item-title")).toHaveText(
+        data.title,
+      );
+      await expect(current).toHaveAttribute("aria-current", data.ariaCurrent);
+    };
+
+    await expectCurrent({ title: "Overview", ariaCurrent: "page" });
+
+    // A reload would clear this: every step below must change the page in place.
+    await page.evaluate((): void => {
+      (window as unknown as { __samePage?: boolean }).__samePage = true;
+    });
+
+    await page
+      .locator(
+        '[data-testid="proxmox-needs-attention-item"][data-key="Node:node/pve3"] a',
+      )
+      .click();
+    await expect(page.getByTestId("proxmox-node-hero-name")).toHaveText("pve3");
+    await expectCurrent({ title: "Nodes", ariaCurrent: "true" });
+
+    await current.click();
+    await expect(page).toHaveURL((url: URL): boolean => {
+      return url.pathname === `${CLUSTER_PATH}/nodes`;
+    });
+    await expectCurrent({ title: "Nodes", ariaCurrent: "page" });
+
+    await page.goBack();
+    await expect(page.getByTestId("proxmox-node-hero-name")).toHaveText("pve3");
+    await expectCurrent({ title: "Nodes", ariaCurrent: "true" });
+
+    await page.goBack();
+    await expect(page.getByTestId("proxmox-hero-health")).toBeVisible();
+    await expectCurrent({ title: "Overview", ariaCurrent: "page" });
+
+    expect(
+      await page.evaluate((): boolean => {
+        return Boolean(
+          (window as unknown as { __samePage?: boolean }).__samePage,
+        );
+      }),
+    ).toBe(true);
+  });
+
   test("on a phone, a guest's page names Resources / Guests on the menu's button, and the opened menu lights Guests", async ({
     page,
   }: {
