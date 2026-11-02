@@ -46,7 +46,13 @@ const IMAGE_ROOT = "/usr/src";
 
 const COPY = /^COPY\s+((?:--\S+\s+)*)(\S+)\s+(\S+)$/;
 
-// The COPY instructions of the build stage that take something from agents/ or HelmChart/.
+/*
+ * Where the served folders live in the repository: the agents', the
+ * Kubernetes agent's chart, and the CLI's installer (packages/CLI/Install).
+ */
+const SERVED_SOURCE = /^\.\/(?:agents|HelmChart|packages\/CLI\/Install)(?:\/|$)/;
+
+// The COPY instructions of the build stage that take a served folder or file.
 function agentCopies() {
   return instructions(BUILD_STAGE.body)
     .map((line) => {
@@ -56,7 +62,7 @@ function agentCopies() {
         : null;
     })
     .filter((copy) => {
-      return copy && /^\.\/(?:agents|HelmChart)\//.test(copy.source);
+      return copy && SERVED_SOURCE.test(copy.source);
     });
 }
 
