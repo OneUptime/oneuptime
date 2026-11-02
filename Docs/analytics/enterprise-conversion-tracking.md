@@ -179,7 +179,8 @@ while bookings keep succeeding.
 
 | Key                         | Contents                                                       |
 | --------------------------- | -------------------------------------------------------------- |
-| `metadata[utm_*]`           | Every key in `UtmWireKeyToPropertyKey`                         |
+| `metadata[utm_*]`           | Every UTM key in `UtmWireKeyToPropertyKey`                     |
+| `metadata[gad_*]`           | Google Ads' `gad_source` and `gad_campaignid`                  |
 | `metadata[<click id>]`      | Every key in `AdClickIdKeys` the visitor arrived with          |
 | `metadata[utm_url]`         | The landing URL of the attributed visit                        |
 | `metadata[ou_first_touch]`  | The first attributed visit, one JSON string, bounded at 4000   |

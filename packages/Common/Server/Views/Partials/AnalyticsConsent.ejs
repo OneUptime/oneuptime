@@ -420,14 +420,16 @@
 
     STORAGE MODEL
 
-    - Last-touch UTM values live in the individual utm* localStorage keys, read
-      by the signup page and stored on the User record.
+    - Last-touch campaign values live in individual localStorage keys named
+      as their User columns - the utm* ones, and Google Ads' gadSource and
+      gadCampaignId - read by the signup page and stored on the User record.
     - Last-touch click IDs live as a JSON object under 'clickIds'.
     - The visitor's first attributed visit is preserved as JSON under
       'firstTouch' and never overwritten.
 
-    A visit counts as a new "touch" if it carries ANY utm parameter or ad click
-    ID - Google Ads auto-tagging sends only gclid, no UTMs.
+    A visit counts as a new "touch" if it carries ANY campaign parameter or ad
+    click ID - a Google Ads click carries no UTMs unless its ad adds them, only
+    gclid, gad_source and gad_campaignid.
 
     CONSENT
 
@@ -462,7 +464,10 @@
             'utm_id': 'utmId',
             'utm_source_platform': 'utmSourcePlatform',
             'utm_creative_format': 'utmCreativeFormat',
-            'utm_marketing_tactic': 'utmMarketingTactic'
+            'utm_marketing_tactic': 'utmMarketingTactic',
+            // The campaign parameters Google Ads adds itself, kept beside the UTMs.
+            'gad_source': 'gadSource',
+            'gad_campaignid': 'gadCampaignId'
         };
 
         /*

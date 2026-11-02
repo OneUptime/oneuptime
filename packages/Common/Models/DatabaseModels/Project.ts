@@ -3737,6 +3737,46 @@ export default class Project extends TenantModel {
   @TableColumn({
     type: TableColumnType.LongText,
     hideColumnInDocumentation: true,
+    title: "Google Ads Source",
+    description:
+      "gad_source copied from the user who created this project: which of Google's surfaces showed the ad they clicked.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadSource?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+    title: "Google Ads Campaign ID",
+    description:
+      "gad_campaignid copied from the user who created this project: the Google Ads campaign of the ad they clicked.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gadCampaignId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
   })
   @Column({
     type: ColumnType.LongText,

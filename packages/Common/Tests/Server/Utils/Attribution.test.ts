@@ -298,6 +298,22 @@ describe("Attribution", () => {
       });
     });
 
+    test("reads the campaign parameters Google Ads adds, in either spelling", () => {
+      expect(
+        Attribution.sanitizeUtm({
+          gad_source: "1",
+          gad_campaignid: 23145678901,
+        }),
+      ).toEqual({ gadSource: "1", gadCampaignId: "23145678901" });
+
+      expect(
+        Attribution.sanitizeUtm({
+          gadSource: "1",
+          gadCampaignId: "23145678901",
+        }),
+      ).toEqual({ gadSource: "1", gadCampaignId: "23145678901" });
+    });
+
     test("drops empty, boolean and object values", () => {
       expect(
         Attribution.sanitizeUtm({
