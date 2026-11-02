@@ -422,7 +422,9 @@ describe("UserSessionService.decideRenewal", () => {
         reportedInactivityInSeconds: 0,
       }),
     ).resolves.toEqual(
-      expect.objectContaining({ hasEnded: false }) as SessionRenewalDecision,
+      expect.objectContaining({
+        hasEnded: false,
+      }) as unknown as SessionRenewalDecision,
     );
 
     await expect(

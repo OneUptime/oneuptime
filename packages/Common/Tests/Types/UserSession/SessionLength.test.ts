@@ -167,12 +167,14 @@ describe("the columns the setting is kept in", () => {
 
 describe("what a write may hold", () => {
   test.each(
-    SESSION_LENGTH_COLUMNS.flatMap((column: SessionLengthColumn) => {
-      return [
-        [column, null],
-        [column, undefined],
-      ];
-    }),
+    SESSION_LENGTH_COLUMNS.flatMap(
+      (column: SessionLengthColumn): Array<[SessionLengthColumn, unknown]> => {
+        return [
+          [column, null],
+          [column, undefined],
+        ];
+      },
+    ),
   )(
     "%s: nothing (%p) is the default, and fine",
     (column: SessionLengthColumn, value: unknown) => {
