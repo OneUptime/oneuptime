@@ -26,6 +26,7 @@ import {
   getVMwareAttentionKey,
   hasFreshVMwareReadings,
   isVMwareIssueAbout,
+  isVMwareVirtualMachineDisconnected,
   toVMwareDate,
   toVMwareNumber,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
@@ -62,6 +63,12 @@ export interface ComponentProps {
   vcenterName: string;
   externalId: string;
   row: VMwareResource | null;
+  /*
+   * The ESXi host it runs on and the vCenter's datacenters: on a host
+   * vCenter cannot reach, the VM is Disconnected and its numbers no reading.
+   */
+  hostRow?: VMwareResource | null | undefined;
+  datacenters?: Array<VMwareResource> | undefined;
   routes: VMwarePartRoutes;
   // The page of the ESXi host the VM runs on.
   hostRoute?: Route | undefined;
@@ -93,15 +100,31 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const hosts: Array<VMwareResource> = props.hostRow ? [props.hostRow] : [];
   const isTemplate: boolean = row.isTemplate === true;
+  const isDisconnected: boolean = isVMwareVirtualMachineDisconnected({
+    vm: row,
+    hosts: hosts,
+    datacenters: props.datacenters,
+    now: props.now,
+  });
   const isRunning: boolean =
     !isTemplate &&
     row.isPoweredOn === true &&
-    hasFreshVMwareReadings(row, props.now);
+    hasFreshVMwareReadings(row, props.now) &&
+    !isDisconnected;
 
+  /*
+   * A disconnected VM's trouble is its host's: Needs attention lists the
+   * host vCenter cannot reach, one step from its page.
+   */
   const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems(
     {
-      rows: [row],
+      rows: isDisconnected ? [row, ...hosts] : [row],
+      contextRows: [
+        ...(isDisconnected ? [] : hosts),
+        ...(props.datacenters || []),
+      ],
       now: props.now,
       routeFor: props.routes.getPartRoute,
       listRouteFor: props.routes.getListRoute,

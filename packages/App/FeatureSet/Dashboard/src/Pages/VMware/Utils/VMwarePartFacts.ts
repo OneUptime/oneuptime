@@ -2,16 +2,19 @@ import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID } from "Common/Types/Monitor/VMwareAlertTemplates";
 import { ResourceAttentionSeverity } from "../../../Components/ResourcePart/ResourceAttention";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   VMwareHostState,
   assessVMwareHost,
   findVMwareDatacenter,
   getVMwareClusterName,
+  getVMwareClusterUnexplainedNotEffective,
   getVMwareDisplayName,
   getVMwareHostState,
   getVMwareHostsOfCluster,
   hasFreshVMwareReadings,
   isVMwareHostRunning,
+  reportsNoVMwareHostLoad,
   toVMwareNumber,
 } from "./VMwareHealth";
 
@@ -68,6 +71,31 @@ function sameName(
     return false;
   }
   return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/*
+ * Whether a resource pool is the root pool of its cluster or standalone
+ * host: the one vSphere creates for each, names "Resources" and never shows
+ * (a VM in it is in no pool of anyone's making). Its inventory path ends in
+ * the first "Resources" under the host folder; a pool someone named
+ * "Resources" sits under it ("/dc/host/prod/Resources/Resources").
+ */
+export function isVMwareRootResourcePool(pool: {
+  name: string | null | undefined;
+  path?: string | null | undefined;
+}): boolean {
+  if (pool.name !== "Resources") {
+    return false;
+  }
+  if (!pool.path) {
+    return true;
+  }
+  const segments: Array<string> = pool.path
+    .split("/")
+    .filter((segment: string): boolean => {
+      return segment.length > 0;
+    });
+  return segments.indexOf("Resources") === segments.length - 1;
 }
 
 // The VMs (templates included) that run in a cluster.
@@ -169,6 +197,102 @@ export function getVMwareClusterUsage(data: {
         ? (memoryUsed / memoryEffective) * 100
         : null,
   };
+}
+
+/*
+ * Why a cluster's hosts are not effective - not ones DRS and HA place VMs
+ * on - as the rules read each: vCenter cannot reach it, it is in
+ * maintenance mode (not effective for no reason its row says), it reports
+ * no usage, or it is off or in standby. The Overview's and a cluster's
+ * Effective hosts tile say it, and colour their bar by it: red while vCenter
+ * cannot reach one, amber while one is in maintenance mode or reports no
+ * usage, calm while the rest are only off or in standby (someone, or
+ * vSphere DPM, did that).
+ */
+export interface VMwareNotEffectiveHosts {
+  notResponding: number;
+  inMaintenance: number;
+  noUsage: number;
+  offOrStandby: number;
+}
+
+export type VMwareNotEffectiveHostsTone = "positive" | "warning" | "danger";
+
+// Each reason's words, the most urgent first.
+export const VMWARE_NOT_EFFECTIVE_HOSTS_WORDS: Array<{
+  key: keyof VMwareNotEffectiveHosts;
+  one: string;
+  other: string;
+}> = [
+  {
+    key: "notResponding",
+    one: translationKey("{{count}} not responding"),
+    other: translationKey("{{count}} not responding"),
+  },
+  {
+    key: "inMaintenance",
+    one: translationKey("{{count}} in maintenance mode"),
+    other: translationKey("{{count}} in maintenance mode"),
+  },
+  {
+    key: "noUsage",
+    one: translationKey("{{count}} reporting no usage"),
+    other: translationKey("{{count}} reporting no usage"),
+  },
+  {
+    key: "offOrStandby",
+    one: translationKey("{{count}} off or in standby"),
+    other: translationKey("{{count}} off or in standby"),
+  },
+];
+
+export function countVMwareNotEffectiveHosts(data: {
+  clusters: Array<VMwareResource>;
+  hosts: Array<VMwareResource>;
+  datacenters: Array<VMwareResource>;
+  now: Date;
+}): VMwareNotEffectiveHosts {
+  const counts: VMwareNotEffectiveHosts = {
+    notResponding: 0,
+    inMaintenance: 0,
+    noUsage: 0,
+    offOrStandby: 0,
+  };
+  for (const cluster of data.clusters) {
+    counts.inMaintenance += getVMwareClusterUnexplainedNotEffective({
+      cluster: cluster,
+      hosts: data.hosts,
+      datacenters: data.datacenters,
+      now: data.now,
+    });
+    for (const host of getVMwareHostsOfCluster(data.hosts, cluster)) {
+      const state: VMwareHostState = getVMwareHostState({
+        host: host,
+        datacenter: findVMwareDatacenter(data.datacenters, host.datacenterName),
+        now: data.now,
+      });
+      if (state === VMwareHostState.NotResponding) {
+        counts.notResponding++;
+      } else if (state === VMwareHostState.NoUsage) {
+        counts.noUsage++;
+      } else if (reportsNoVMwareHostLoad(state)) {
+        counts.offOrStandby++;
+      }
+    }
+  }
+  return counts;
+}
+
+export function getVMwareNotEffectiveHostsTone(
+  counts: VMwareNotEffectiveHosts,
+): VMwareNotEffectiveHostsTone {
+  if (counts.notResponding > 0) {
+    return "danger";
+  }
+  if (counts.inMaintenance > 0 || counts.noUsage > 0) {
+    return "warning";
+  }
+  return "positive";
 }
 
 const SEVERITY_RANK: Record<string, number> = {

@@ -32,8 +32,12 @@ import {
 import {
   VMWARE_CLUSTER_ALERT_TEMPLATE_IDS,
   VMwareClusterUsage,
+  VMwareNotEffectiveHosts,
+  countVMwareNotEffectiveHosts,
   getVMwareClusterUsage,
+  getVMwareNotEffectiveHostsTone,
 } from "../../../Pages/VMware/Utils/VMwarePartFacts";
+import { getVMwareNotEffectiveHostsText } from "./VMwareNotEffectiveHosts";
 import {
   formatBytes,
   formatMhz,
@@ -118,6 +122,17 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
     datacenters: props.datacenters,
     now: props.now,
   });
+  // Why its hosts are not effective, and the tile's colour by it.
+  const notEffective: VMwareNotEffectiveHosts = countVMwareNotEffectiveHosts({
+    clusters: [row],
+    hosts: props.hosts,
+    datacenters: props.datacenters,
+    now: props.now,
+  });
+  const notEffectiveText: Array<string> = getVMwareNotEffectiveHostsText(
+    notEffective,
+    translator,
+  );
   const headroom: VMwareClusterHeadroom | null = getVMwareClusterHeadroom({
     cluster: row,
     hosts: props.hosts,
@@ -214,7 +229,8 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
           }
           sublabel={
             total !== null && effective !== null && effective < total
-              ? translator.translatePlural(
+              ? notEffectiveText.join(" · ") ||
+                translator.translatePlural(
                   {
                     one: "{{count}} host not effective",
                     other: "{{count}} hosts not effective",
@@ -228,8 +244,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
               ? (effective / total) * 100
               : null
           }
-          thresholds={{ warn: 100, danger: 0 }}
-          higherIsBetter={true}
+          tone={getVMwareNotEffectiveHostsTone(notEffective)}
           description={VMWARE_METRIC_DESCRIPTIONS.clusterHosts}
         />
         <GoldenMetricTile
@@ -331,7 +346,11 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
         resourceRelation="vmwareVCenters"
         resourceId={props.vcenterId}
         isAbout={(record: OpenIssueRecord): boolean => {
-          return isVMwareIssueAbout(record, row);
+          // On the cluster, its hosts, or the VMs in it this page has read.
+          return isVMwareIssueAbout(record, row, [
+            ...props.hosts,
+            ...props.attentionVirtualMachines,
+          ]);
         }}
         getIncidentRoute={props.routes.getIncidentRoute}
         getAlertRoute={props.routes.getAlertRoute}

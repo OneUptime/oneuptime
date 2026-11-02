@@ -10,10 +10,10 @@ import {
   VMwareResourceKind,
   fetchVMwareInventoryRows,
   formatBytes,
-  formatMhz,
   routeParamFromExternalId,
 } from "../Utils/VMwareResourceUtils";
 import {
+  VMWARE_USAGE_BAR_THRESHOLDS,
   getVMwareClusterHostsTone,
   toVMwareListResources,
 } from "../../../Components/VMware/VMwareResourceColumns";
@@ -45,14 +45,12 @@ const VMwareVCenterClusters: FunctionComponent<
     setIsLoading(true);
     try {
       /*
-       * Postgres inventory read (VMwareResource, kind=Cluster). Host /
-       * VM counts and effective capacity ride additionalAttributes; a
-       * compute cluster has no CPU % or memory usage of its own (those
-       * live on its hosts), so the resource-metric columns are hidden.
-       */
-      /*
-       * A cluster's status reads its hosts (one vCenter cannot reach makes
-       * it Unhealthy) and their datacenters' counts (VMwareHealth).
+       * Postgres inventory reads (VMwareResource): the clusters, with their
+       * host and VM counts, and their hosts and datacenters - a cluster's
+       * status reads its hosts (one vCenter cannot reach makes it
+       * Unhealthy) and their datacenters' counts (VMwareHealth), and its
+       * CPU and Memory are what its running hosts use of what it can give
+       * its VMs (VMwareResourceColumns).
        */
       const [clusterRows, hostRows, datacenterRows]: [
         Array<VMwareResourceModel>,
@@ -121,14 +119,21 @@ const VMwareVCenterClusters: FunctionComponent<
         fetchData().catch(() => {});
       }}
       title="Clusters"
-      description="vSphere compute clusters in this vCenter, whether each one needs attention, its host and VM counts and its effective capacity. A standalone ESXi host has no cluster."
+      description="vSphere compute clusters in this vCenter, whether each one needs attention, its host and VM counts and how much of its effective capacity its hosts use. A standalone ESXi host has no cluster."
       resources={resources}
       showGroupColumn={true}
       groupColumnTitle="Datacenter"
+      groupColumnFoldInto="name"
       showAge={false}
-      showResourceMetrics={false}
+      formatMemory={formatBytes}
       builtInColumnDescriptions={{
         status: VMWARE_METRIC_DESCRIPTIONS.clusterListStatus,
+        cpu: VMWARE_METRIC_DESCRIPTIONS.clusterCpuInUse,
+        memory: VMWARE_METRIC_DESCRIPTIONS.clusterMemoryInUse,
+      }}
+      metricThresholds={{
+        cpu: VMWARE_USAGE_BAR_THRESHOLDS,
+        memory: VMWARE_USAGE_BAR_THRESHOLDS,
       }}
       tableIdPrefix="vmware"
       emptyMessage="No clusters reported yet. Standalone ESXi hosts have no cluster object; otherwise make sure the VMware agent is sending metrics."
@@ -139,7 +144,11 @@ const VMwareVCenterClusters: FunctionComponent<
            * one DRS/HA can schedule on — a host in maintenance mode or
            * disconnected is counted but not effective.
            */
-          title: "Hosts (effective / total)",
+          /*
+           * "3 / 4": effective out of all, as the cluster page's Effective
+           * hosts tile says it (its (i) says which is which).
+           */
+          title: "Hosts",
           key: "hostCount",
           description: VMWARE_METRIC_DESCRIPTIONS.clusterListHosts,
           getTone: getVMwareClusterHostsTone,
@@ -158,7 +167,8 @@ const VMwareVCenterClusters: FunctionComponent<
           },
         },
         {
-          title: "VMs (powered on / total)",
+          // "9 / 10": powered on out of all.
+          title: "VMs",
           key: "vmCount",
           description: VMWARE_METRIC_DESCRIPTIONS.clusterListVirtualMachines,
           getValue: (resource: InfrastructureResource): string => {
@@ -168,48 +178,6 @@ const VMwareVCenterClusters: FunctionComponent<
               return "-";
             }
             return on === null ? String(total) : `${on} / ${total}`;
-          },
-        },
-        {
-          title: "Templates",
-          key: "vmTemplateCount",
-          description: VMWARE_METRIC_DESCRIPTIONS.clusterListTemplates,
-          getValue: (resource: InfrastructureResource): string => {
-            const n: number | null = readCount(resource, "vmTemplateCount");
-            return n === null ? "-" : String(n);
-          },
-        },
-        {
-          title: "Effective CPU",
-          key: "cpuEffectiveMhz",
-          description: VMWARE_METRIC_DESCRIPTIONS.clusterListEffectiveCpu,
-          getValue: (resource: InfrastructureResource): string => {
-            const n: number | null = readCount(resource, "cpuEffectiveMhz");
-            const limit: number | null = readCount(resource, "cpuCapacityMhz");
-            if (n === null) {
-              return "-";
-            }
-            return limit === null
-              ? formatMhz(n)
-              : `${formatMhz(n)} of ${formatMhz(limit)}`;
-          },
-        },
-        {
-          title: "Effective Memory",
-          key: "memoryEffectiveBytes",
-          description: VMWARE_METRIC_DESCRIPTIONS.clusterListEffectiveMemory,
-          getValue: (resource: InfrastructureResource): string => {
-            const n: number | null = readCount(
-              resource,
-              "memoryEffectiveBytes",
-            );
-            if (n === null) {
-              return "-";
-            }
-            const limit: number | null = resource.memoryLimitBytes;
-            return limit === null
-              ? formatBytes(n)
-              : `${formatBytes(n)} of ${formatBytes(limit)}`;
           },
         },
       ]}

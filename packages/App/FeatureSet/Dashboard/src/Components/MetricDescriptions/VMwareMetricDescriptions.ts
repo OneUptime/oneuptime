@@ -35,7 +35,6 @@ export type VMwareMetric =
   | "overviewHostMemory"
   | "overviewDatastores"
   | "overviewVmCpuReady"
-  | "overviewVirtualMachines"
   // Overview: golden chart cards.
   | "overviewHostCpuChart"
   | "overviewHostMemoryChart"
@@ -107,9 +106,6 @@ export type VMwareMetric =
   // Clusters list.
   | "clusterListHosts"
   | "clusterListVirtualMachines"
-  | "clusterListTemplates"
-  | "clusterListEffectiveCpu"
-  | "clusterListEffectiveMemory"
   // Resource pools list.
   | "resourcePoolListCpu"
   | "resourcePoolListMemory"
@@ -136,9 +132,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
   overviewVmCpuReady: translationKey(
     "CPU Ready is the share of time a VM was ready to run but had to wait for a physical CPU. Averaged across powered-on VMs over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data), with the busiest VM below; amber from 5%, red from 10%.",
-  ),
-  overviewVirtualMachines: translationKey(
-    "Powered-on VMs out of all VMs, templates excluded, from the latest inventory; a VM that is off is not treated as a fault. Power state is inferred from which VMs send CPU data, so a suspended VM counts as off.",
   ),
 
   // ---- Overview: golden chart cards -------------------------------------
@@ -342,15 +335,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
   clusterListVirtualMachines: translationKey(
     "Powered-on VMs out of all VMs in the cluster, as counted by vCenter itself at its latest report.",
-  ),
-  clusterListTemplates: translationKey(
-    "VM templates in the cluster: master copies used to create new VMs, which are never powered on.",
-  ),
-  clusterListEffectiveCpu: translationKey(
-    "CPU capacity the cluster can use to run VMs, out of its total CPU capacity, in MHz or GHz, from its latest report. Hosts in maintenance mode or not responding do not count toward the effective figure.",
-  ),
-  clusterListEffectiveMemory: translationKey(
-    "Memory the cluster can use to run VMs, out of its total memory, from its latest report. Hosts in maintenance mode or not responding do not count toward the effective figure.",
   ),
 
   // ---- Resource pools list ----------------------------------------------

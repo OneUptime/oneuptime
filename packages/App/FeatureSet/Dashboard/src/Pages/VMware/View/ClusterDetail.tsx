@@ -502,6 +502,8 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       children: (
         <ClusterVirtualMachinesTab
           rows={vmRows}
+          hosts={clusterHosts}
+          datacenters={datacenterRows}
           onOpen={() => {
             if (vmRows === null) {
               fetchVirtualMachines().catch(() => {});
@@ -575,12 +577,17 @@ const VMwareVCenterClusterDetail: FunctionComponent<
  */
 const ClusterVirtualMachinesTab: FunctionComponent<{
   rows: Array<VMwareResourceModel> | null;
+  // The cluster's hosts and the datacenters: what tells a disconnected VM.
+  hosts: Array<VMwareResourceModel>;
+  datacenters: Array<VMwareResourceModel>;
   onOpen: () => void;
   onRefresh: () => void;
   getViewRoute: (externalId: string) => Route | undefined;
   now: Date;
 }> = (props: {
   rows: Array<VMwareResourceModel> | null;
+  hosts: Array<VMwareResourceModel>;
+  datacenters: Array<VMwareResourceModel>;
   onOpen: () => void;
   onRefresh: () => void;
   getViewRoute: (externalId: string) => Route | undefined;
@@ -593,7 +600,11 @@ const ClusterVirtualMachinesTab: FunctionComponent<{
   return (
     <VMwareVirtualMachinesTable
       rows={props.rows || []}
-      context={{ datacenters: [], hosts: [], now: props.now }}
+      context={{
+        datacenters: props.datacenters,
+        hosts: props.hosts,
+        now: props.now,
+      }}
       scope="cluster"
       isLoading={props.rows === null}
       onRefreshClick={props.onRefresh}

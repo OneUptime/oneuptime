@@ -61,6 +61,11 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
  * in standby, "Powered off" or "In standby" in the opposite case, and "No
  * usage reported" (a warning) when its datacenter's counts cannot tell.
  *
+ * A VM on a host vCenter cannot reach is Disconnected, as vSphere says it:
+ * vCenter does not know what it is doing (it may well run on, its host's
+ * management network down), and its numbers are no readings - the host is
+ * what needs attention.
+ *
  * What is never a problem by itself: a powered-off VM or host (someone did
  * it, on purpose), a template, a host in standby (vSphere DPM saves power),
  * a part vCenter has not reported for a while (it was removed from the
@@ -187,6 +192,7 @@ const STATUS_NO_USAGE: string = translationKey("No usage reported");
 const STATUS_NOT_REPORTING: string = translationKey("Not reporting");
 const STATUS_NO_DATA_YET: string = translationKey("No data yet");
 const STATUS_RUNNING: string = translationKey("Running");
+const STATUS_DISCONNECTED: string = translationKey("Disconnected");
 const STATUS_TEMPLATE: string = translationKey("Template");
 const STATUS_PERCENT_USED: string = translationKey("{{percent}} used");
 const STATUS_HEALTHY: string = translationKey("Healthy");
@@ -210,6 +216,9 @@ const DESCRIPTION_NO_USAGE: string = translationKey(
 );
 const DESCRIPTION_NOT_REPORTING: string = translationKey(
   "vCenter has not reported this for more than 15 minutes.",
+);
+const DESCRIPTION_VM_DISCONNECTED: string = translationKey(
+  "vCenter cannot reach the ESXi host this VM runs on, so it does not know what the VM is doing.",
 );
 
 const KIND_DATACENTER: string = translationKey("Datacenter");
@@ -436,6 +445,23 @@ export function isVMwareHostRunning(state: VMwareHostState): boolean {
   return state === VMwareHostState.Connected;
 }
 
+/*
+ * Whether vCenter's latest report says nothing about how busy a host is: it
+ * is not responding, off or in standby, and the 0% CPU and memory it reports
+ * (on its VMs too) are no reading, never an idle host. A host that has not
+ * reported for a while, or not yet, is not one: what it last sent is still
+ * what it last used.
+ */
+export function reportsNoVMwareHostLoad(state: VMwareHostState): boolean {
+  return (
+    state === VMwareHostState.NotResponding ||
+    state === VMwareHostState.PoweredOff ||
+    state === VMwareHostState.Standby ||
+    state === VMwareHostState.PoweredOffOrStandby ||
+    state === VMwareHostState.NoUsage
+  );
+}
+
 export function assessVMwareHost(data: {
   host: VMwareResource;
   datacenter: VMwareResource | null;
@@ -482,15 +508,69 @@ export function assessVMwareHost(data: {
   };
 }
 
+// The ESXi host a VM runs on, from the hosts' rows.
+export function findVMwareHostOfVirtualMachine(
+  hosts: Array<VMwareResource>,
+  vm: Pick<VMwareResource, "hostName" | "datacenterName">,
+): VMwareResource | null {
+  if (!vm.hostName) {
+    return null;
+  }
+  return (
+    hosts.find((host: VMwareResource): boolean => {
+      return (
+        host.kind === VMwareResourceKind.Host &&
+        sameName(getVMwareHostName(host), vm.hostName) &&
+        (!vm.datacenterName ||
+          !host.datacenterName ||
+          sameName(host.datacenterName, vm.datacenterName))
+      );
+    }) || null
+  );
+}
+
+/*
+ * Whether vCenter has lost contact with the host a VM runs on (see the
+ * header): judged when the page has the host's row and its datacenter's.
+ */
+export function isVMwareVirtualMachineDisconnected(data: {
+  vm: VMwareResource;
+  hosts?: Array<VMwareResource> | undefined;
+  datacenters?: Array<VMwareResource> | undefined;
+  now: Date;
+}): boolean {
+  const host: VMwareResource | null = findVMwareHostOfVirtualMachine(
+    data.hosts || [],
+    data.vm,
+  );
+  if (!host) {
+    return false;
+  }
+  return (
+    getVMwareHostState({
+      host: host,
+      datacenter: findVMwareDatacenter(
+        data.datacenters || [],
+        host.datacenterName,
+      ),
+      now: data.now,
+    }) === VMwareHostState.NotResponding
+  );
+}
+
 export function assessVMwareVirtualMachine(data: {
   vm: VMwareResource;
   now: Date;
+  // The hosts and datacenters the page has: a VM on a host vCenter lost is not judged.
+  hosts?: Array<VMwareResource> | undefined;
+  datacenters?: Array<VMwareResource> | undefined;
 }): VMwareAssessment {
   const vm: VMwareResource = data.vm;
   if (
     vm.isTemplate === true ||
     vm.isPoweredOn !== true ||
-    !hasFreshVMwareReadings(vm, data.now)
+    !hasFreshVMwareReadings(vm, data.now) ||
+    isVMwareVirtualMachineDisconnected(data)
   ) {
     return { severity: null, reasons: [] };
   }
@@ -974,6 +1054,9 @@ export function getVMwareHostStatus(data: {
 export function getVMwareVirtualMachineStatus(data: {
   vm: VMwareResource;
   now: Date;
+  // The hosts and datacenters the page has: what tells a disconnected VM.
+  hosts?: Array<VMwareResource> | undefined;
+  datacenters?: Array<VMwareResource> | undefined;
 }): ResourcePartStatus {
   const vm: VMwareResource = data.vm;
   if (vm.isTemplate === true) {
@@ -984,6 +1067,13 @@ export function getVMwareVirtualMachineStatus(data: {
   }
   if (!hasFreshVMwareReadings(vm, data.now)) {
     return notReportingStatus();
+  }
+  if (isVMwareVirtualMachineDisconnected(data)) {
+    return {
+      label: STATUS_DISCONNECTED,
+      tone: "neutral",
+      description: DESCRIPTION_VM_DISCONNECTED,
+    };
   }
   if (vm.isPoweredOn === false) {
     return { label: STATUS_POWERED_OFF, tone: "neutral" };
@@ -1181,7 +1271,12 @@ export function getVMwareAttentionItems(data: {
         });
         break;
       case VMwareResourceKind.VirtualMachine:
-        assessment = assessVMwareVirtualMachine({ vm: row, now: data.now });
+        assessment = assessVMwareVirtualMachine({
+          vm: row,
+          now: data.now,
+          hosts: hosts,
+          datacenters: datacenters,
+        });
         break;
       case VMwareResourceKind.Datastore:
         assessment = assessVMwareDatastore({ datastore: row, now: data.now });
@@ -1268,16 +1363,32 @@ function readLabel(labels: JSONObject | null, key: string): string | null {
  * a VMware template groups by the object's identity attribute
  * (VMwareGroupByKey - resource.vcenter.host.name, .vm.name, .datastore.name,
  * .cluster.name), and a person's own monitor may group by more of them.
- * The receiver stamps a VM's host and cluster on its series, and a host's
- * cluster on its, so a record about a VM is about its host and its cluster
- * too: a host's page lists what is open on it and on the VMs it runs, a
- * cluster's what is open anywhere in it.
+ *
+ * A record about a part inside this one is about this one too: a host's
+ * page lists what is open on it and on the VMs it runs, a cluster's what is
+ * open on it, its hosts and the VMs in it. A template's labels name only
+ * the part it groups by (a host alert, the host), so a page hands in the
+ * parts it holds (`members`: a host's VMs, a cluster's hosts and VMs) and a
+ * record naming one of them counts; a person's own monitor that groups by
+ * the cluster or the host as well is matched on those labels directly.
  */
 export function isVMwareIssueAbout(
   record: Pick<OpenIssueRecord, "seriesLabels">,
   row: VMwareResource,
+  members?: Array<VMwareResource> | undefined,
 ): boolean {
-  const labels: JSONObject | null = record.seriesLabels;
+  if (isVMwareIssueAboutRow(record.seriesLabels, row)) {
+    return true;
+  }
+  return (members || []).some((member: VMwareResource): boolean => {
+    return member !== row && isVMwareIssueAboutRow(record.seriesLabels, member);
+  });
+}
+
+function isVMwareIssueAboutRow(
+  labels: JSONObject | null,
+  row: VMwareResource,
+): boolean {
   const datacenter: string | null = readLabel(
     labels,
     "vcenter.datacenter.name",

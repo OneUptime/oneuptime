@@ -24,6 +24,7 @@ import {
   toVMwareNumber,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMwareHostVirtualMachineSummary } from "../../../Pages/VMware/Utils/VMwareHostData";
+import { isVMwareRootResourcePool } from "../../../Pages/VMware/Utils/VMwarePartFacts";
 import {
   formatBytes,
   formatMhz,
@@ -122,12 +123,19 @@ export function getVMwarePartHeroStatus(data: {
         datacenter: findVMwareDatacenter(data.datacenters, row.datacenterName),
         now: data.now,
       });
-    case VMwareResourceKind.VirtualMachine:
+    case VMwareResourceKind.VirtualMachine: {
+      const status: ResourcePartStatus = getVMwareVirtualMachineStatus({
+        vm: row,
+        now: data.now,
+        hosts: data.hosts,
+        datacenters: data.datacenters,
+      });
       return {
-        ...getVMwareVirtualMachineStatus({ vm: row, now: data.now }),
+        ...status,
         // What a VM's state is read from: which VMs send CPU data.
-        description: VMWARE_METRIC_DESCRIPTIONS.vmPowerState,
+        description: status.description || VMWARE_METRIC_DESCRIPTIONS.vmPowerState,
       };
+    }
     case VMwareResourceKind.Datastore:
       return getVMwareDatastoreStatus({ datastore: row, now: data.now });
     default:
@@ -308,7 +316,19 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
         }),
       });
     }
-    const pool: string = row?.virtualAppName || row?.resourcePoolName || "";
+    /*
+     * The pool or vApp it runs in; not its cluster's root pool, which
+     * vSphere names "Resources" and never shows.
+     */
+    const pool: string =
+      row?.virtualAppName ||
+      (row?.resourcePoolName &&
+      !isVMwareRootResourcePool({
+        name: row.resourcePoolName,
+        path: row.resourcePoolPath,
+      })
+        ? row.resourcePoolName
+        : "");
     if (pool) {
       chips.push({
         key: "pool",

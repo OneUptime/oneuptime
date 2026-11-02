@@ -347,6 +347,8 @@ const VMwareVCenterHostDetail: FunctionComponent<
       children: (
         <VMwareHostVirtualMachinesTab
           rows={virtualMachineRows}
+          hostRow={row}
+          datacenterRow={datacenterRow}
           isLoading={isLoadingVirtualMachines}
           getVirtualMachineRoute={getVirtualMachineRoute}
           onRefreshClick={refreshInventory}

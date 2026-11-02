@@ -66,9 +66,14 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const [row, setRow] = useState<VMwareResourceModel | null>(null);
   /*
    * The host the VM runs on and its cluster, for the hero's links: their
-   * rows carry the inventory ids their pages are found by.
+   * rows carry the inventory ids their pages are found by. The host's row
+   * and its datacenter's also say whether vCenter can reach the host - on
+   * one it cannot, the VM is Disconnected.
    */
   const [hostRow, setHostRow] = useState<VMwareResourceModel | null>(null);
+  const [datacenterRows, setDatacenterRows] = useState<
+    Array<VMwareResourceModel>
+  >([]);
   const [clusterRow, setClusterRow] = useState<VMwareResourceModel | null>(
     null,
   );
@@ -102,9 +107,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
       setRow(inventoryRow);
       setIsLoadingRow(false);
 
-      // Where it runs: best-effort, for the hero's links only.
+      // Where it runs: best-effort, for the hero's links and its host's state.
       if (inventoryRow?.hostName) {
-        const [hosts, clusters]: [
+        const [hosts, clusters, datacenters]: [
+          Array<VMwareResourceModel>,
           Array<VMwareResourceModel>,
           Array<VMwareResourceModel>,
         ] = await Promise.all([
@@ -122,9 +128,14 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
                 datacenterName: inventoryRow.datacenterName || undefined,
               })
             : Promise.resolve([]),
+          fetchVMwareInventoryRows({
+            vmwareVCenterId: modelId,
+            kind: VMwareResourceKind.Datacenter,
+          }),
         ]);
         setHostRow(hosts[0] || null);
         setClusterRow(clusters[0] || null);
+        setDatacenterRows(datacenters);
       }
     } catch {
       // Graceful degradation — overview tab shows its empty state.
@@ -465,6 +476,8 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
           vcenterName={vcenterName}
           externalId={externalId}
           row={row}
+          hostRow={hostRow}
+          datacenters={datacenterRows}
           routes={routes}
           hostRoute={hostRoute}
           now={now}
@@ -502,7 +515,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
         kind={VMwareResourceKind.VirtualMachine}
         row={isLoadingRow ? null : row}
         externalId={externalId}
-        datacenters={[]}
+        datacenters={datacenterRows}
         hosts={hostRow ? [hostRow] : []}
         hostRoute={hostRoute}
         clusterRoute={clusterRoute}

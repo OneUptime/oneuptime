@@ -9,6 +9,7 @@ import ResourceTable, {
 } from "../Infrastructure/ResourceTable";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/VMwareMetricDescriptions";
 import {
+  formatBytes,
   formatMhz,
   formatPercent,
 } from "../../Pages/VMware/Utils/VMwareResourceUtils";
@@ -18,6 +19,7 @@ import {
   getVMwareCpuReadyTone,
   toVMwareListResources,
 } from "./VMwareResourceColumns";
+import { isVMwareRootResourcePool } from "../../Pages/VMware/Utils/VMwarePartFacts";
 
 /*
  * The ESXi hosts and the virtual machines of a vCenter as a table - on its
@@ -27,6 +29,11 @@ import {
  * columns that are not the same on every row of that list. A host's or a
  * VM's CPU and memory turn amber past 90%, as their alerts and Needs
  * attention do, never red.
+ *
+ * Beside the side menu on a laptop the rows do not fit every column: where
+ * a part sits (its datacenter, cluster, host and pool) moves under its name
+ * and a host's CPU capacity under its CPU bar, so its state and how busy it
+ * is stay in sight without scrolling sideways (ResourceColumn.foldInto).
  *
  * vCenter reports no uptime or creation time, so neither table has an Age
  * column of dashes.
@@ -62,6 +69,7 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
     columns.push({
       title: "Cluster",
       key: "clusterName",
+      foldInto: "name",
       getValue: (resource: InfrastructureResource): string => {
         return resource.additionalAttributes["clusterName"] || standalone;
       },
@@ -71,6 +79,8 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
     title: "CPU Capacity",
     key: "cpuCapacityMhz",
     description: VMWARE_METRIC_DESCRIPTIONS.hostListCpuCapacity,
+    foldInto: "cpuUtilization",
+    showTitleWhenFolded: true,
     getValue: (resource: InfrastructureResource): string => {
       const raw: string = resource.additionalAttributes["cpuCapacityMhz"] || "";
       return raw ? formatMhz(Number(raw)) : "N/A";
@@ -89,7 +99,9 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
       resources={resources}
       showGroupColumn={props.scope === "vcenter"}
       groupColumnTitle="Datacenter"
+      groupColumnFoldInto="name"
       showAge={false}
+      formatMemory={formatBytes}
       tableIdPrefix={props.scope === "vcenter" ? "vmware" : "vmware-cluster"}
       emptyMessage="No ESXi hosts reported yet. Make sure the VMware agent is sending metrics and that its read-only user can see the hosts."
       builtInColumnDescriptions={{
@@ -137,6 +149,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
     columns.push({
       title: "Cluster",
       key: "clusterName",
+      foldInto: "name",
       getValue: (resource: InfrastructureResource): string => {
         return resource.additionalAttributes["clusterName"] || "-";
       },
@@ -144,14 +157,27 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
   }
   columns.push(
     {
+      /*
+       * The pool or vApp the VM runs in. A VM in its cluster's (or host's)
+       * root pool, which vSphere names "Resources" and never shows, is in no
+       * pool of anyone's making: a quiet dash, and no line under its name.
+       */
       title: "Resource Pool",
       key: "resourcePoolName",
+      foldInto: "name",
       getValue: (resource: InfrastructureResource): string => {
-        return (
-          resource.additionalAttributes["resourcePoolName"] ||
-          resource.additionalAttributes["virtualAppName"] ||
-          "-"
-        );
+        const poolName: string =
+          resource.additionalAttributes["resourcePoolName"] || "";
+        if (
+          poolName &&
+          !isVMwareRootResourcePool({
+            name: poolName,
+            path: resource.additionalAttributes["resourcePoolPath"],
+          })
+        ) {
+          return poolName;
+        }
+        return resource.additionalAttributes["virtualAppName"] || "-";
       },
     },
     {
@@ -184,7 +210,9 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
       resources={resources}
       showGroupColumn={props.scope !== "host"}
       groupColumnTitle="Host"
+      groupColumnFoldInto="name"
       showAge={false}
+      formatMemory={formatBytes}
       tableIdPrefix={
         props.scope === "vcenter"
           ? "vmware"

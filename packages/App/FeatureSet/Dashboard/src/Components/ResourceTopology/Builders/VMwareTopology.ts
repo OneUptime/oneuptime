@@ -48,6 +48,7 @@ import {
   getVMwareHostState,
   getVMwareHostStatus,
   getVMwareVirtualMachineStatus,
+  isVMwareVirtualMachineDisconnected,
   isVMwareHostRunning,
   mergeVMwareSeverities,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
@@ -315,11 +316,28 @@ function assessVirtualMachine(
   context: VMwareTopologyContext,
 ): Assessment {
   const status: ResourceTopologyText = toTopologyStatus(
-    getVMwareVirtualMachineStatus({ vm: row, now: context.now }),
+    getVMwareVirtualMachineStatus({
+      vm: row,
+      now: context.now,
+      hosts: context.hosts,
+      datacenters: context.datacenters,
+    }),
   );
 
   if (row.isTemplate || row.isPoweredOn === false) {
     return { health: "off", status: status, reasons: [], facts: [] };
+  }
+
+  // On a host vCenter lost: what it is doing is not known.
+  if (
+    isVMwareVirtualMachineDisconnected({
+      vm: row,
+      now: context.now,
+      hosts: context.hosts,
+      datacenters: context.datacenters,
+    })
+  ) {
+    return { health: "unknown", status: status, reasons: [], facts: [] };
   }
 
   if (

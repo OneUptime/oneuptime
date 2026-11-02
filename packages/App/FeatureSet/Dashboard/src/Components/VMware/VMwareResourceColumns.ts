@@ -24,8 +24,13 @@ import {
   getVMwareHostStatus,
   getVMwareVirtualMachineStatus,
   isVMwareHostRunning,
+  isVMwareVirtualMachineDisconnected,
   toVMwareNumber,
 } from "../../Pages/VMware/Utils/VMwareHealth";
+import {
+  VMwareClusterUsage,
+  getVMwareClusterUsage,
+} from "../../Pages/VMware/Utils/VMwarePartFacts";
 import { toInfrastructureResource } from "../../Pages/VMware/Utils/VMwareResourceUtils";
 
 /*
@@ -100,9 +105,12 @@ export function toVMwareListResource(
       );
       /*
        * A host that is not running reports 0% CPU and no memory: drawn as
-       * no reading, never as an idle host.
+       * no reading, never as an idle host. Its status says what it is ("Not
+       * responding"), with no reason under it to say the same again; a
+       * running host's reason says what on it is busy ("CPU at 94%").
        */
-      const shown: InfrastructureResource = isVMwareHostRunning(state)
+      const isRunning: boolean = isVMwareHostRunning(state);
+      const shown: InfrastructureResource = isRunning
         ? resource
         : { ...resource, cpuUtilization: null, memoryUsageBytes: null };
       return withStatus(
@@ -112,18 +120,60 @@ export function toVMwareListResource(
           datacenter: datacenter,
           now: context.now,
         }),
-        assessVMwareHost({ host: row, datacenter: datacenter, now: context.now }),
+        isRunning
+          ? assessVMwareHost({
+              host: row,
+              datacenter: datacenter,
+              now: context.now,
+            })
+          : null,
       );
     }
-    case VMwareResourceKind.VirtualMachine:
+    case VMwareResourceKind.VirtualMachine: {
+      /*
+       * On a host vCenter cannot reach, its 0% CPU and memory are no
+       * reading: drawn as none, as its host's are.
+       */
+      const vmContext: {
+        vm: VMwareResource;
+        now: Date;
+        hosts: Array<VMwareResource>;
+        datacenters: Array<VMwareResource>;
+      } = {
+        vm: row,
+        now: context.now,
+        hosts: context.hosts,
+        datacenters: context.datacenters,
+      };
+      const shown: InfrastructureResource = isVMwareVirtualMachineDisconnected(
+        vmContext,
+      )
+        ? { ...resource, cpuUtilization: null, memoryUsageBytes: null }
+        : resource;
       return withStatus(
-        resource,
-        getVMwareVirtualMachineStatus({ vm: row, now: context.now }),
-        assessVMwareVirtualMachine({ vm: row, now: context.now }),
+        shown,
+        getVMwareVirtualMachineStatus(vmContext),
+        assessVMwareVirtualMachine(vmContext),
       );
-    case VMwareResourceKind.Cluster:
+    }
+    case VMwareResourceKind.Cluster: {
+      /*
+       * How much of what the cluster can give its VMs its running hosts use,
+       * as the cluster's page says it: the CPU and Memory bars of its row.
+       */
+      const usage: VMwareClusterUsage = getVMwareClusterUsage({
+        cluster: row,
+        hosts: context.hosts,
+        datacenters: context.datacenters,
+        now: context.now,
+      });
       return withStatus(
-        resource,
+        {
+          ...resource,
+          cpuUtilization: usage.cpuPercent,
+          memoryUsageBytes: usage.memoryUsedBytes,
+          memoryLimitBytes: usage.memoryEffectiveBytes,
+        },
         getVMwareClusterStatus({
           cluster: row,
           hosts: context.hosts,
@@ -137,6 +187,7 @@ export function toVMwareListResource(
           now: context.now,
         }),
       );
+    }
     case VMwareResourceKind.ResourcePool: {
       const assessment: VMwareAssessment = assessVMwareResourcePool({
         pool: row,

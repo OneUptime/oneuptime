@@ -42,7 +42,9 @@ import {
   VMWARE_HOST_SATURATION_PERCENT,
   getVMwareAttentionItems,
   getVMwareAttentionKey,
+  getVMwareHostState,
   isVMwareIssueAbout,
+  reportsNoVMwareHostLoad,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMWARE_HOST_ALERT_TEMPLATE_IDS } from "../../../Pages/VMware/Utils/VMwarePartFacts";
 import { getVMwarePartRoutes } from "../Part/VMwarePartRoutes";
@@ -297,6 +299,21 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
       })
     : [];
 
+  /*
+   * A host vCenter cannot reach, or one that is off or in standby, reports
+   * 0% CPU and memory, and its VMs 0% too: the tiles say "—" for it, and
+   * no VM on it is ranked as busy or idle.
+   */
+  const hasNoLoad: boolean = row
+    ? reportsNoVMwareHostLoad(
+        getVMwareHostState({
+          host: row,
+          datacenter: props.datacenterRow,
+          now: OneUptimeDate.getCurrentDate(),
+        }),
+      )
+    : false;
+
   const busiest: Array<VMwareBusyVirtualMachine> =
     getBusiestVMwareVirtualMachines({
       rows: props.virtualMachineRows,
@@ -334,7 +351,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const tiles: VMwareHostOverviewMetrics["tiles"] = metrics.tiles;
+    const reported: VMwareHostOverviewMetrics["tiles"] = metrics.tiles;
+    const tiles: VMwareHostOverviewMetrics["tiles"] = hasNoLoad
+      ? { ...reported, cpuPercent: null, memoryPercent: null }
+      : reported;
     const networkTotal: number | null =
       tiles.networkReceivedBytesPerSecond === null &&
       tiles.networkSentBytesPerSecond === null
@@ -600,7 +620,8 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           resourceRelation="vmwareVCenters"
           resourceId={props.vcenterId}
           isAbout={(record: OpenIssueRecord): boolean => {
-            return isVMwareIssueAbout(record, row);
+            // On the host, or on one of the VMs it runs.
+            return isVMwareIssueAbout(record, row, props.virtualMachineRows);
           }}
           getIncidentRoute={props.getIncidentRoute}
           getAlertRoute={props.getAlertRoute}
@@ -614,12 +635,17 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
 
       {renderCharts()}
 
-      <VMwareHostBusiestVirtualMachines
-        virtualMachines={busiest}
-        summary={props.virtualMachineSummary}
-        getVirtualMachineRoute={props.getVirtualMachineRoute}
-        onShowAll={props.onShowVirtualMachines}
-      />
+      {/* Its VMs' 0% while it reports no load ranks nothing: left out then. */}
+      {hasNoLoad ? (
+        <></>
+      ) : (
+        <VMwareHostBusiestVirtualMachines
+          virtualMachines={busiest}
+          summary={props.virtualMachineSummary}
+          getVirtualMachineRoute={props.getVirtualMachineRoute}
+          onShowAll={props.onShowVirtualMachines}
+        />
+      )}
 
       {/*
        * Whether anyone hears when this host is in trouble, before the

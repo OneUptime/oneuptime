@@ -9,11 +9,15 @@ import { VMwareVirtualMachinesTable } from "../VMwareResourceTables";
  * (VMwareVirtualMachinesTable): its state coloured by what needs attention
  * on it, with why under it, less the Host and Cluster columns (the same for
  * every row here). The rows are the ones the host's page already read for
- * its Overview, so the tab and the Overview's counts never disagree.
+ * its Overview, so the tab and the Overview's counts never disagree. While
+ * vCenter cannot reach the host, its VMs read Disconnected (the host's row
+ * and its datacenter's say so).
  */
 
 export interface ComponentProps {
   rows: Array<VMwareResourceModel>;
+  hostRow: VMwareResourceModel | null;
+  datacenterRow: VMwareResourceModel | null;
   isLoading: boolean;
   getVirtualMachineRoute: (externalId: string) => Route;
   onRefreshClick: () => void;
@@ -26,8 +30,8 @@ const VMwareHostVirtualMachinesTab: FunctionComponent<ComponentProps> = (
     <VMwareVirtualMachinesTable
       rows={props.rows}
       context={{
-        datacenters: [],
-        hosts: [],
+        datacenters: props.datacenterRow ? [props.datacenterRow] : [],
+        hosts: props.hostRow ? [props.hostRow] : [],
         now: OneUptimeDate.getCurrentDate(),
       }}
       scope="host"

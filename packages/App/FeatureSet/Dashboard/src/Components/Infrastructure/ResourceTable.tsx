@@ -140,6 +140,15 @@ export interface ResourceColumn {
     | undefined;
   // What the column's values mean, in an (i) beside the header.
   description?: string | undefined;
+  /*
+   * Where a row shows this column's value while the table runs out of room
+   * (a laptop beside the side menu, a phone): under the value of the column
+   * with this key - "name", "cpuUtilization" - on a line of its own
+   * (Column.foldInto). Left out, the column is always drawn.
+   */
+  foldInto?: string | undefined;
+  // Folded, the value says its column's name first ("CPU Capacity 76.80 GHz").
+  showTitleWhenFolded?: boolean | undefined;
 }
 
 /*
@@ -165,6 +174,12 @@ export interface ComponentProps {
   groupColumnTitle?: string | undefined;
   /* Badge text when `resource.namespace` is empty. Defaults to "-". */
   groupFallbackLabel?: string | undefined;
+  /*
+   * Where the grouping column's badge goes while the table runs out of room
+   * (see ResourceColumn.foldInto): "name" puts an ESXi host's datacenter
+   * under its name. Left out, the column is always drawn.
+   */
+  groupColumnFoldInto?: string | undefined;
   showStatus?: boolean | undefined;
   /*
    * The Age column, beside Status; defaults to true. A list whose rows never
@@ -191,6 +206,12 @@ export interface ComponentProps {
         memory?: ResourceMetricThresholds | undefined;
       }
     | undefined;
+  /*
+   * How the Memory column writes an amount, when the product writes it
+   * otherwise than the table (formatMemoryValue): a vCenter's hosts in GiB
+   * and TiB, as vSphere does.
+   */
+  formatMemory?: ((bytes: number) => string) | undefined;
 }
 
 const PAGE_SIZE: number = 25;
@@ -357,6 +378,13 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
   const groupFallbackLabel: string = props.groupFallbackLabel || "-";
   const showStatus: boolean = props.showStatus !== false;
   const showResourceMetrics: boolean = props.showResourceMetrics !== false;
+  const formatMemory: (bytes: number | null) => string = (
+    bytes: number | null,
+  ): string => {
+    return props.formatMemory && bytes !== null && bytes !== undefined
+      ? props.formatMemory(bytes)
+      : formatMemoryValue(bytes);
+  };
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<string | null>(null);
@@ -545,6 +573,9 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       title: groupColumnTitle,
       type: FieldType.Element,
       key: "namespace",
+      ...(props.groupColumnFoldInto
+        ? { hideBelowLargeScreen: true, foldInto: props.groupColumnFoldInto }
+        : {}),
       getElement: (resource: InfrastructureResource): ReactElement => {
         return (
           <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
@@ -632,6 +663,13 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         key: col.key as keyof InfrastructureResource,
         disableSort: true,
         headerTooltip: col.description,
+        ...(col.foldInto
+          ? {
+              hideBelowLargeScreen: true,
+              foldInto: col.foldInto,
+              showTitleWhenFolded: col.showTitleWhenFolded,
+            }
+          : {}),
         getElement: (resource: InfrastructureResource): ReactElement => {
           const value: string = col.getValue
             ? col.getValue(resource)
@@ -738,7 +776,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  {formatMemoryValue(resource.memoryUsageBytes)}
+                  {formatMemory(resource.memoryUsageBytes)}
                 </div>
               </div>
             );
@@ -778,8 +816,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  {formatMemoryValue(resource.memoryUsageBytes)} /{" "}
-                  {formatMemoryValue(resource.memoryLimitBytes)}
+                  {formatMemory(resource.memoryUsageBytes)} /{" "}
+                  {formatMemory(resource.memoryLimitBytes)}
                 </div>
               </div>
             );
@@ -787,7 +825,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
 
           return (
             <span className="text-sm text-gray-700">
-              {formatMemoryValue(resource.memoryUsageBytes)}
+              {formatMemory(resource.memoryUsageBytes)}
             </span>
           );
         },

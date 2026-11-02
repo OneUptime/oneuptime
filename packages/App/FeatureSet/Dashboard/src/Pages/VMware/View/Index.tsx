@@ -89,6 +89,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import GoldenMetricTile, {
+  GoldenMetricTileTone,
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -115,7 +116,13 @@ import {
   getVMwareHostState,
   isVMwareHostRunning,
 } from "../Utils/VMwareHealth";
-import { getVMwareHostLoad } from "../Utils/VMwarePartFacts";
+import {
+  VMwareNotEffectiveHosts,
+  countVMwareNotEffectiveHosts,
+  getVMwareHostLoad,
+  getVMwareNotEffectiveHostsTone,
+} from "../Utils/VMwarePartFacts";
+import { getVMwareNotEffectiveHostsText } from "../../../Components/VMware/Part/VMwareNotEffectiveHosts";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartRow from "../../../Components/ResourcePart/ResourcePartRow";
@@ -179,6 +186,8 @@ interface InventorySummary {
   /* Σ across Cluster rows (hosts DRS/HA can schedule vs. all). */
   clusterHostsTotal: number;
   clusterHostsEffective: number;
+  // Why clustered hosts are not effective, as the rules read each.
+  clusterHostsNotEffective: VMwareNotEffectiveHosts;
   topHostsByCpu: Array<TopRow>;
   topHostsByMemory: Array<TopRow>;
   topDatastoresByUtilization: Array<TopRow>;
@@ -526,6 +535,12 @@ const VMwareVCenterOverview: FunctionComponent<
         worstDatastoreName,
         clusterHostsTotal,
         clusterHostsEffective,
+        clusterHostsNotEffective: countVMwareNotEffectiveHosts({
+          clusters: clusters,
+          hosts: hosts,
+          datacenters: datacenters,
+          now: now,
+        }),
         topHostsByCpu,
         topHostsByMemory,
         topDatastoresByUtilization,
@@ -1203,6 +1218,20 @@ const VMwareVCenterOverview: FunctionComponent<
       ? (clusterHostsEffective / clusterHostsTotal) * 100
       : null;
 
+  /*
+   * Why clustered hosts are not effective, the most urgent first, and the
+   * bar's colour as the rules read it (VMwareNotEffectiveHosts).
+   */
+  const effectiveHostsReasons: Array<string> = inventory
+    ? getVMwareNotEffectiveHostsText(
+        inventory.clusterHostsNotEffective,
+        translator,
+      )
+    : [];
+  const effectiveHostsTone: GoldenMetricTileTone = inventory
+    ? getVMwareNotEffectiveHostsTone(inventory.clusterHostsNotEffective)
+    : "positive";
+
   const vcenterHealth: VCenterHealth = inventory?.health || "Healthy";
   const attentionItems: Array<ResourceAttentionItem> =
     inventory?.attentionItems || [];
@@ -1584,8 +1613,8 @@ const VMwareVCenterOverview: FunctionComponent<
   const renderGoldenMetrics: () => ReactElement = (): ReactElement => {
     if (isGoldenLoading && !goldenStats) {
       return (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {Array.from({ length: 6 }, (_: unknown, idx: number) => {
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }, (_: unknown, idx: number) => {
             return (
               <div
                 key={`golden-skeleton-${idx}`}
@@ -1615,9 +1644,6 @@ const VMwareVCenterOverview: FunctionComponent<
       return <Fragment />;
     }
 
-    const vmPoweredOnPct: number | null =
-      vmPowerStateKnown && vmTotal > 0 ? (vmPoweredOn / vmTotal) * 100 : null;
-
     /*
      * Datastore tile: the inventory's worst datastore (instant, names the
      * culprit) wins; the ClickHouse worst-per-bucket mean is the fallback
@@ -1626,10 +1652,15 @@ const VMwareVCenterOverview: FunctionComponent<
     const worstDatastorePercent: number | null =
       inventory?.worstDatastorePercent ?? s.datastoreWorstPercent;
 
+    /*
+     * Five tiles: how many hosts can run VMs, how busy they are, the fullest
+     * datastore and how long VMs wait for a CPU. How many VMs run is the
+     * hero's count chip, one step from the list.
+     */
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
-          title="Host Effectiveness"
+          title="Effective hosts"
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
@@ -1638,21 +1669,13 @@ const VMwareVCenterOverview: FunctionComponent<
               : `${clusterHostsEffective}/${clusterHostsTotal}`
           }
           sublabel={
-            hostEffectivenessPct === null
-              ? "clustered hosts DRS/HA can schedule"
-              : clusterHostsEffective < clusterHostsTotal
-                ? translator.translatePlural(
-                    {
-                      one: "{{count}} in maintenance or unresponsive",
-                      other: "{{count}} in maintenance or unresponsive",
-                    },
-                    clusterHostsTotal - clusterHostsEffective,
-                  )
-                : "clustered hosts DRS/HA can schedule"
+            clusterHostsEffective < clusterHostsTotal &&
+            effectiveHostsReasons.length > 0
+              ? effectiveHostsReasons.join(" · ")
+              : "clustered hosts DRS/HA can schedule"
           }
           percent={hostEffectivenessPct}
-          thresholds={{ warn: 99, danger: 51 }}
-          higherIsBetter={true}
+          tone={effectiveHostsTone}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewHostEffectiveness}
         />
         <GoldenMetricTile
@@ -1724,39 +1747,6 @@ const VMwareVCenterOverview: FunctionComponent<
            */
           thresholds={{ warn: 5, danger: VM_CPU_READY_WARN_PERCENT }}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewVmCpuReady}
-        />
-        <GoldenMetricTile
-          title="Virtual Machines"
-          icon={IconProp.Cube}
-          iconColor="slate"
-          value={
-            vmTotal > 0
-              ? vmPowerStateKnown
-                ? `${vmPoweredOn}/${vmTotal}`
-                : String(vmTotal)
-              : "—"
-          }
-          sublabel={
-            vmPowerStateKnown
-              ? inventory && inventory.templateCount > 0
-                ? translator.translatePlural(
-                    {
-                      one: "powered on · {{count}} template",
-                      other: "powered on · {{count}} templates",
-                    },
-                    inventory.templateCount,
-                  )
-                : translator.translateTemplate("powered on")
-              : "power state inferred after the first collection"
-          }
-          percent={vmPoweredOnPct}
-          /*
-           * A powered-off VM is not a fault — the bar only shows the
-           * proportion, it never turns amber or red.
-           */
-          thresholds={{ warn: 0, danger: 0 }}
-          higherIsBetter={true}
-          description={VMWARE_METRIC_DESCRIPTIONS.overviewVirtualMachines}
         />
       </div>
     );
