@@ -289,8 +289,8 @@ describe("HostReadingsScan: memory", () => {
     const readings: HostReadings = scan([
       sum("system.memory.usage", [
         { attributes: { state: "used" }, asInt: 6 * GIB },
-        { attributes: { state: "free" }, asInt: 1 * GIB },
-        { attributes: { state: "cached" }, asInt: 1 * GIB },
+        { attributes: { state: "free" }, asInt: GIB },
+        { attributes: { state: "cached" }, asInt: GIB },
       ]),
     ]);
     expect(readings.memoryPercent).toBe(75);
@@ -298,7 +298,7 @@ describe("HostReadingsScan: memory", () => {
 
   test("prefers the utilization metric whatever order the batch holds them in", () => {
     const usage: JSONObject = sum("system.memory.usage", [
-      { attributes: { state: "used" }, asInt: 1 * GIB },
+      { attributes: { state: "used" }, asInt: GIB },
       { attributes: { state: "free" }, asInt: 3 * GIB },
     ]);
     const utilization: JSONObject = gauge("system.memory.utilization", [
@@ -314,14 +314,14 @@ describe("HostReadingsScan: swap", () => {
     const readings: HostReadings = scan([
       sum("system.paging.usage", [
         { attributes: { device: "/dev/sda2", state: "used" }, asInt: 3 * GIB },
-        { attributes: { device: "/dev/sda2", state: "free" }, asInt: 1 * GIB },
+        { attributes: { device: "/dev/sda2", state: "free" }, asInt: GIB },
         {
           attributes: { device: "/dev/sda2", state: "cached" },
           asInt: 4 * GIB,
         },
         {
           attributes: { device: "/swapfile", state: "used" },
-          asInt: 1 * GIB,
+          asInt: GIB,
         },
         {
           attributes: { device: "/swapfile", state: "free" },
@@ -366,7 +366,7 @@ describe("HostReadingsScan: the fullest filesystem", () => {
         },
         {
           mountpoint: "/boot/efi",
-          used: 1 * GIB,
+          used: GIB,
           free: 9 * GIB,
           reserved: 0,
         },

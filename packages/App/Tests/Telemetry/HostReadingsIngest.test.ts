@@ -150,8 +150,8 @@ function hostmetricsScrape(hostName: string): Array<JSONObject> {
         sum: {
           dataPoints: [
             intPoint({ state: "used" }, 6 * GIB),
-            intPoint({ state: "free" }, 1 * GIB),
-            intPoint({ state: "cached" }, 1 * GIB),
+            intPoint({ state: "free" }, GIB),
+            intPoint({ state: "cached" }, GIB),
           ],
         },
       },
@@ -195,7 +195,7 @@ function hostmetricsScrape(hostName: string): Array<JSONObject> {
         name: "system.paging.usage",
         sum: {
           dataPoints: [
-            intPoint({ device: "/swapfile", state: "used" }, 1 * GIB),
+            intPoint({ device: "/swapfile", state: "used" }, GIB),
             intPoint({ device: "/swapfile", state: "free" }, 3 * GIB),
           ],
         },
