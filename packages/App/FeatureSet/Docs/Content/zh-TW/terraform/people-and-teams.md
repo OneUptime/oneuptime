@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 地址會維持你寫的樣子，所以請依設定中的寫法來寫。成員資格本身的 ID 也能匯入它，此時地址從 OneUptime 讀取，為小寫。
 
+擁有者和待命列也以同樣方式匯入，依它們所屬的內容。監測器的擁有者依監測器的 ID 和此人的地址匯入。指向團隊或排班的列，例如擁有者團隊，或升級規則呼叫的團隊，依兩個 ID 匯入：
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## 有人變更了地址時
 
 在 OneUptime 中變更地址的人，對 Terraform 來說仍是同一個人：在你寫入新地址之前什麼都不會變，寫入後只有 `user_email` 改變。

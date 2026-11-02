@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 アドレスは書いたとおりに残るので、構成と同じように書いてください。メンバーシップ自身の ID でもインポートでき、その場合アドレスは OneUptime から小文字で読み取られます。
 
+オーナーやオンコールの行も同じように、属しているものでインポートします。モニターのオーナーは、モニターの ID とその人のアドレスでインポートします。オーナーチームや、エスカレーションルールが呼び出すチームのように、チームやスケジュールを指す行は、両方の ID でインポートします。
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## アドレスが変わったとき
 
 OneUptime でアドレスを変えた人も、Terraform にとっては同じ人のままです。新しいアドレスを書くまで何も変わらず、書いたときに変わるのは `user_email` だけです。

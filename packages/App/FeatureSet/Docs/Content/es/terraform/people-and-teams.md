@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 La dirección se queda tal como la escribiste, así que escríbela como en tu configuración. El propio ID de la membresía también la importa, y entonces la dirección se lee de OneUptime, en minúsculas.
 
+Los dueños y las filas de guardia se importan del mismo modo, por aquello a lo que pertenecen. El dueño de un monitor toma el ID del monitor y la dirección de la persona. Una fila que nombra un equipo o un calendario, como un equipo dueño o el equipo al que avisa una regla de escalado, toma los dos ID:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## Cuando alguien cambia su dirección
 
 Una persona que cambia su dirección en OneUptime sigue siendo la misma persona para Terraform: nada cambia hasta que escribes la nueva dirección, y entonces solo cambia `user_email`.

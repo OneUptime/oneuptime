@@ -456,6 +456,62 @@ describe("the importing page", () => {
     );
   });
 
+  it("imports a row that joins two records by what it joins too, as the provider does", () => {
+    const section: string = englishSection(
+      IMPORTING_RESOURCES,
+      "### What can be imported",
+    );
+    const joined: Array<string> = [
+      "team_member",
+      "monitor_user_owner",
+      "on_call_schedule_layer_user",
+    ].map((name: string): string => {
+      const type: ProviderType = resourceType(name);
+
+      return `${name}: <${type.importsByParent}>/<${type.importsByEmail ? "email" : type.importsByMember}>`;
+    });
+
+    expect(joined).toEqual([
+      "team_member: <team_id>/<email>",
+      "monitor_user_owner: <monitor_id>/<email>",
+      "on_call_schedule_layer_user: <on_call_duty_policy_schedule_layer_id>/<email>",
+    ]);
+    expect(section).toContain(
+      "Rows that join two records, such as a team's members, a monitor's owners and the people on an on-call layer, have IDs no screen shows.",
+    );
+    expect(codeIn(section)).toContain(
+      "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com",
+    );
+  });
+
+  it("is right that the same value written another way plans no change after an import", () => {
+    const generator: string = readRepoFile(RESOURCE_GENERATOR);
+    const settle: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/importsettle.go",
+    );
+
+    // A timestamp, a number, JSON (getImportSettleModifier), and steps.
+    for (const modifier of [
+      '"RFC3339KeepSameInstant()"',
+      '"NumberKeepSameAPINumber()"',
+      '"JSONSubsetKeepImported()"',
+    ]) {
+      expect(generator).toContain(modifier);
+    }
+    expect(readRepoFile(MONITOR_STEPS_GO)).toContain(
+      "func MonitorStepsKeepImported() planmodifier.List {",
+    );
+    expect(settle).toContain(
+      "a timestamp comes back in UTC with milliseconds",
+    );
+    expect(settle).toContain(
+      "a number comes back as the 64-bit float OneUptime keeps it as",
+    );
+    expect(englishPage(IMPORTING_RESOURCES)).toContain(
+      "- **The same value written another way is no change.** OneUptime keeps a timestamp in UTC with milliseconds, a number as a 64-bit float, and JSON and monitor steps with the keys it fills in itself.",
+    );
+  });
+
   it("stops managing a resource with a removed block that keeps the record", () => {
     const removed: HclBlock = parseHcl(
       sectionBlock(IMPORTING_RESOURCES, "## Stop managing a resource", "hcl")

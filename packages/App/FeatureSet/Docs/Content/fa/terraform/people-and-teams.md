@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 نشانی همان‌طور که نوشته‌اید می‌ماند، پس آن را همان‌گونه بنویسید که پیکربندی‌تان می‌نویسد. ID خود عضویت هم آن را import می‌کند، و آن‌گاه نشانی از OneUptime و با حروف کوچک خوانده می‌شود.
 
+مالکان و ردیف‌های آنکال هم به همین شکل import می‌شوند، با آنچه به آن تعلق دارند. مالک یک مانیتور با ID مانیتور و نشانی آن شخص import می‌شود. ردیفی که یک تیم یا یک برنامهٔ آنکال را نام می‌برد، مانند تیم مالک یا تیمی که یک قاعدهٔ escalation فرا می‌خواند، با هر دو ID import می‌شود:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## وقتی کسی نشانی‌اش را عوض می‌کند
 
 کسی که نشانی‌اش را در OneUptime عوض کند، برای Terraform همان شخص می‌ماند: تا وقتی نشانی تازه را ننوشته‌اید چیزی عوض نمی‌شود، و آن‌گاه فقط `user_email` عوض می‌شود.

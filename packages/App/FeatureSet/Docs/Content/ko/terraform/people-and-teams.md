@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 주소는 쓴 그대로 남으니 구성과 똑같이 쓰세요. 멤버십 자체의 ID로도 가져올 수 있으며, 이때 주소는 OneUptime에서 소문자로 읽어 옵니다.
 
+소유자와 온콜 행도 같은 방식으로, 속한 대상으로 가져옵니다. 모니터의 소유자는 모니터의 ID와 그 사람의 주소로 가져옵니다. 소유자 팀이나 에스컬레이션 규칙이 호출하는 팀처럼 팀이나 일정을 가리키는 행은 두 ID로 가져옵니다.
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## 누군가 주소를 바꿀 때
 
 OneUptime에서 주소를 바꾼 사람도 Terraform에게는 같은 사람입니다. 새 주소를 쓰기 전까지는 아무것도 바뀌지 않으며, 쓰면 `user_email`만 바뀝니다.

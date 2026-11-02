@@ -28,6 +28,8 @@ Schrijf het `resource`-blok zo dat het zegt wat het record al is. Waar ze versch
 
 Elke resource van de provider kan via zijn ID worden geïmporteerd, behalve `oneuptime_file`: de API van OneUptime kan een bestand niet teruglezen, dus de provider antwoordt `Import Not Supported`. Data sources worden nooit geïmporteerd. Om een record in je configuratie te gebruiken zonder het te beheren, lees je het in plaats daarvan met een [data source](/docs/terraform/complete-guide#lezen-wat-al-bestaat).
 
+Rijen die twee records verbinden, zoals de leden van een team, de eigenaren van een monitor en de mensen in een laag van een bereikbaarheidsschema, hebben ID's die geen scherm toont. Ze worden ook geïmporteerd via wat ze verbinden: de ID van het record waar ze bij horen, een schuine streep en het e-mailadres van de persoon of de ID van het andere record, zoals `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com`. Zie [Leden importeren die je al hebt](/docs/terraform/people-and-teams#leden-importeren-die-je-al-hebt).
+
 ## Voordat je begint
 
 - **Terraform 1.5 of later, of OpenTofu 1.6 of later.** De `import`-blokken op deze pagina hebben deze versies nodig. Een oudere Terraform importeert via de [opdrachtregel](#importeren-via-de-opdrachtregel).
@@ -181,6 +183,7 @@ Het plan zegt dat het team niet langer door Terraform wordt beheerd, en vernieti
 ## Goed om te weten
 
 - **Een import wijzigt niets, maar de volgende apply wel.** Een plan toepassen dat een wijziging naast een import toont, wijzigt het record in OneUptime. Zorg eerst dat het plan alleen de import toont.
+- **Dezelfde waarde, anders geschreven, is geen wijziging.** OneUptime bewaart een tijdstempel in UTC met milliseconden, een getal als 64-bit float, en JSON en de stappen van een monitor met de sleutels die het zelf invult. Direct na een import toont het plan van een configuratie die hetzelfde op haar eigen manier zegt geen wijziging.
 - **Geheimen worden niet teruggelezen.** Een geheim dat OneUptime nooit terugstuurt, zoals de `secret_value` van een monitorgeheim, staat na een import niet in de state. Als je configuratie het instelt, toont het eerste plan het als een wijziging, en het toepassen ervan schrijft het geheim opnieuw.
 - **Eén configuratie per record.** Een record dat in twee configuraties is geïmporteerd, wordt bij elke apply teruggezet naar wat elk van beide zegt.
 - **Geïmporteerde records zijn beheerde records.** `terraform destroy` verwijdert ze uit OneUptime, net als de records die Terraform heeft aangemaakt.

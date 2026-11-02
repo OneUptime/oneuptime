@@ -28,6 +28,8 @@ Escreva o bloco `resource` de modo que ele diga o que o registro já é. Onde el
 
 Todo recurso do provider pode ser importado pelo ID, exceto `oneuptime_file`: a API do OneUptime não consegue ler um arquivo de volta, então o provider responde `Import Not Supported`. Fontes de dados nunca são importadas. Para usar um registro na sua configuração sem gerenciá-lo, leia-o com uma [fonte de dados](/docs/terraform/complete-guide#ler-o-que-já-existe).
 
+Linhas que unem dois registros, como os membros de uma equipe, os donos de um monitor e as pessoas de uma camada de plantão, têm IDs que nenhuma tela mostra. Elas também são importadas pelo que unem: o ID do registro a que pertencem, uma barra e o endereço de e-mail da pessoa ou o ID do outro registro, como em `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com`. Veja [Importar os membros que você já tem](/docs/terraform/people-and-teams#importar-os-membros-que-você-já-tem).
+
 ## Antes de começar
 
 - **Terraform 1.5 ou posterior, ou OpenTofu 1.6 ou posterior.** Os blocos `import` desta página precisam dessas versões. Um Terraform mais antigo importa pela [linha de comando](#importar-pela-linha-de-comando).
@@ -181,6 +183,7 @@ O plano diz que a equipe não será mais gerenciada pelo Terraform, e não destr
 ## Bom saber
 
 - **Uma importação não altera nada, mas o próximo apply sim.** Aplicar um plano que mostra uma alteração ao lado de uma importação altera o registro no OneUptime. Primeiro faça o plano mostrar apenas a importação.
+- **O mesmo valor escrito de outro jeito não é uma mudança.** O OneUptime guarda um timestamp em UTC com milissegundos, um número como float de 64 bits, e o JSON e os passos de um monitor com as chaves que ele mesmo preenche. Logo depois de uma importação, o plano de uma configuração que diz a mesma coisa do seu jeito não mostra mudança nenhuma.
 - **Segredos não são lidos de volta.** Um segredo que o OneUptime nunca devolve, como o `secret_value` de um segredo de monitor, não está no estado depois de uma importação. Se a sua configuração o define, o primeiro plano o mostra como uma alteração, e aplicá-lo escreve o segredo de novo.
 - **Uma configuração para cada registro.** Um registro importado em duas configurações volta, a cada apply, ao que cada uma delas diz.
 - **Registros importados são registros gerenciados.** `terraform destroy` os exclui do OneUptime, como os registros que o Terraform criou.

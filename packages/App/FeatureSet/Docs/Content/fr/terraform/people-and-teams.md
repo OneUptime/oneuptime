@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 L'adresse reste telle que vous l'avez écrite : écrivez-la donc comme dans votre configuration. L'ID propre de l'adhésion l'importe aussi, et l'adresse est alors lue depuis OneUptime, en minuscules.
 
+Les propriétaires et les lignes d'astreinte s'importent de la même façon, par ce à quoi ils appartiennent. Le propriétaire d'un moniteur prend l'ID du moniteur et l'adresse de la personne. Une ligne qui nomme une équipe ou un planning, comme une équipe propriétaire ou l'équipe qu'une règle d'escalade alerte, prend les deux ID :
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## Quand quelqu'un change d'adresse
 
 Une personne qui change son adresse dans OneUptime reste la même personne pour Terraform : rien ne change tant que vous n'écrivez pas la nouvelle adresse, et alors seul `user_email` change.

@@ -146,6 +146,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "An API key that can read what you import.",
     "The provider in your configuration",
     "An import changes nothing, but the next apply does.",
+    "The same value written another way is no change.",
     "Secrets are not read back.",
     "One configuration for each record.",
     "Imported records are managed records.",

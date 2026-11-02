@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 Adressen blir slik du skrev den, så skriv den slik konfigurasjonen din gjør. Medlemskapets egen ID importerer det også, og da leses adressen fra OneUptime, med små bokstaver.
 
+Eiere og vaktrader importeres på samme måte, via det de hører til. Eieren av en monitor tar ID-en til monitoren og adressen til personen. En rad som nevner et team eller en vaktplan, som et eierteam eller teamet en eskaleringsregel varsler, tar begge ID-ene:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## Når noen endrer adressen sin
 
 En person som endrer adressen sin i OneUptime, forblir den samme personen for Terraform: Ingenting endres før du skriver den nye adressen, og da endres bare `user_email`.

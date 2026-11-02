@@ -123,6 +123,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 
 Het adres blijft zoals je het schreef, dus schrijf het zoals je configuratie dat doet. De eigen ID van het lidmaatschap importeert het ook, en dan wordt het adres uit OneUptime gelezen, in kleine letters.
 
+Eigenaren en bereikbaarheidsrijen worden op dezelfde manier geïmporteerd, via waar ze bij horen. De eigenaar van een monitor neemt de ID van de monitor en het adres van de persoon. Een rij die een team of een rooster noemt, zoals een eigenaarteam of het team dat een escalatieregel oproept, neemt beide ID's:
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
+
 ## Als iemand zijn adres wijzigt
 
 Iemand die zijn adres in OneUptime wijzigt, blijft voor Terraform dezelfde persoon: er verandert niets tot je het nieuwe adres schrijft, en dan verandert alleen `user_email`.

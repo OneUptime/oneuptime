@@ -3356,8 +3356,69 @@ describe("the people and teams page", () => {
     );
     expect(UUID.test(teamId)).toBe(true);
     expect(address).toBe("alice@example.com");
-    // Any other resource is imported by its own ID only.
-    expect(resourceType("monitor_user_owner").importsByParent).toBeNull();
+    // A record that joins nothing is imported by its own ID only.
+    expect(resourceType("monitor").importsByParent).toBeNull();
+  });
+
+  it("imports owners and on-call rows by what they belong to, an address or an ID after the slash, as the provider does", () => {
+    const section: string = englishSection(
+      PEOPLE_AND_TEAMS,
+      "## Import members you already have",
+    );
+    const commands: Array<string> = (
+      codeBlocks(section).filter((block: CodeBlock): boolean => {
+        return block.lang === "bash";
+      })[1] as CodeBlock
+    ).code
+      .trim()
+      .split("\n");
+
+    // Each command as the provider reads its import ID (people.go).
+    const imports: Array<string> = commands.map((command: string): string => {
+      const [terraform, verb, typeAddress, importId] = command.split(" ") as [
+        string,
+        string,
+        string,
+        string,
+      ];
+      const type: ProviderType = resourceType(
+        shortName(typeAddress.split(".")[0] as string),
+      );
+      const [parentId, member] = importId.split("/") as [string, string];
+      // An address only where the row names a person; else an ID.
+      const takes: string =
+        member.includes("@") && type.importsByEmail
+          ? "<email>"
+          : UUID.test(member)
+            ? `<${type.importsByMember}>`
+            : `not ${member}`;
+      const parent: string =
+        type.canBeImported && type.importsByParent && UUID.test(parentId)
+          ? `<${type.importsByParent}>`
+          : `not ${parentId}`;
+
+      return `${terraform} ${verb} ${type.name} ${parent}/${takes}`;
+    });
+
+    expect(imports).toEqual([
+      "terraform import monitor_user_owner <monitor_id>/<email>",
+      "terraform import escalation_rule_team <on_call_duty_policy_escalation_rule_id>/<team_id>",
+    ]);
+    // Owners, layer users and escalation rule rows are all imported so.
+    for (const name of [
+      "monitor_team_owner",
+      "on_call_schedule_layer_user",
+      "escalation_rule_user",
+      "escalation_rule_schedule",
+    ]) {
+      expect([name, resourceType(name).importsByParent]).not.toEqual([
+        name,
+        null,
+      ]);
+    }
+    expect(section).toContain(
+      "Owners and on-call rows import the same way, by what they belong to.",
+    );
   });
 
   it("looks someone up by email, name or id, and reads their teams and whether they joined", () => {
