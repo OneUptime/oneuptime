@@ -1228,7 +1228,7 @@ describe("vmware.ejs", () => {
       "Every object in your vSphere inventory, monitored",
       "From signup to a monitored vCenter in 10 minutes",
       "The monitoring vSphere deserves, without the suite",
-      "Twenty-three monitors, ready on day one",
+      "Twenty-five monitors, ready on day one",
       "Everything you need for vSphere operations",
       "A VMware dashboard in one click, or build your own",
       "vSphere alerts where your team already works",
@@ -1272,7 +1272,10 @@ describe("vmware.ejs", () => {
      */
     const templates: Array<VMwareAlertTemplate> = getAllVMwareAlertTemplates();
 
-    expect(templates.length).toBe(24);
+    expect(templates.length).toBe(25);
+    // The heading and the section that leads to it say the same count.
+    expect(html).toContain("Twenty-five monitors, ready on day one");
+    expect(html).toContain("Twenty-five ready-made monitor templates");
     for (const template of templates) {
       expect(html).toContain(`<span>${escapeForHtml(template.name)}</span>`);
     }
@@ -3235,7 +3238,8 @@ describe("queues.ejs", () => {
     const labels: Array<string> = [
       ...model
         .slice(labelsStart, model.indexOf("]);", labelsStart))
-        .matchAll(/\["[a-z-]+", "([^"]+)"\]/g),
+        // Each label is written as the reader's language reads it since #5553: translationKey("...").
+        .matchAll(/\["[a-z-]+", (?:translationKey\()?"([^"]+)"\)?\]/g),
     ].map((match: RegExpMatchArray): string => {
       return match[1]!;
     });
