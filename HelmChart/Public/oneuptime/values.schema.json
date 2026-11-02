@@ -1937,6 +1937,18 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "googleAnalytics": {
+                    "type": "object",
+                    "properties": {
+                        "measurementProtocolApiSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
