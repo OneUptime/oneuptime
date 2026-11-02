@@ -4088,6 +4088,7 @@ export default class StatusPage extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     required: false,
     title: "Embedded Overall Status Token",

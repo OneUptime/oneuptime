@@ -862,6 +862,7 @@ export default class Runbook extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Webhook Secret Key",
     description:

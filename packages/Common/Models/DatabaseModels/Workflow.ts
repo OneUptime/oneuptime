@@ -791,6 +791,7 @@ export default class Workflow extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.LongText,
@@ -837,6 +838,7 @@ export default class Workflow extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     isDefaultValueColumn: false,
     required: false,
     unique: true,

@@ -292,6 +292,7 @@ export default class SmsLog extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.ShortText,
     title: "Status Callback Token",

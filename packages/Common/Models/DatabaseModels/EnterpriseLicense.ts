@@ -79,6 +79,7 @@ export default class EnterpriseLicense extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     required: true,
     type: TableColumnType.ShortText,
     title: "License Key",

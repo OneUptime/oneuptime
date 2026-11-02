@@ -782,6 +782,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.VeryLongText,
     title: "OAuth Client Secret",

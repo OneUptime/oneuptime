@@ -259,6 +259,7 @@ class WorkspaceProjectAuthToken extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     title: "Auth Token",
     required: true,
     unique: false,

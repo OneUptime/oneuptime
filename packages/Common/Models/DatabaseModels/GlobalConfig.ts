@@ -200,6 +200,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "SMTP Password",
     description: "Password for your SMTP Server",
@@ -359,6 +360,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "SMTP OAuth Client Secret",
     description:
@@ -449,6 +451,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Twilio Auth Token",
     description: "Auth Token for your Twilio Account",
@@ -619,6 +622,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Gateway Signing Secret",
     description:
@@ -638,6 +642,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Meta WhatsApp Access Token",
     description:
@@ -711,6 +716,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Meta WhatsApp App Secret",
     description: "Facebook App Secret for the WhatsApp Business Platform.",
@@ -728,6 +734,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Meta WhatsApp Webhook Verify Token",
     description:
@@ -747,6 +754,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Telegram Bot Token",
     description:
@@ -784,6 +792,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Telegram Webhook Secret Token",
     description:
@@ -839,6 +848,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Sendgrid API Key",
     description: "Sendgrid API Key",
@@ -909,6 +919,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     computed: true,
     title: "Master API Key",
@@ -968,6 +979,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Enterprise License Key",
     description: "Enterprise license key stored after successful validation.",
@@ -1003,6 +1015,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Enterprise License Token",
     description: "Signed JWT returned from license validation.",

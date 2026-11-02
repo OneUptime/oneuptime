@@ -1264,6 +1264,7 @@ export default class CodeRepository extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,

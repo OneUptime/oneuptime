@@ -608,12 +608,7 @@ export class ModelSchema extends BaseSchema {
       }
 
       // A secret, as getZodTypeForColumn says too.
-      if (
-        column.encrypted &&
-        ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type)
-      ) {
-        zodType = zodType.openapi({ format: "password" });
-      }
+      zodType = ModelSchema.annotateSecret(zodType, column);
 
       shape[key] = zodType;
     }
@@ -1760,20 +1755,61 @@ export class ModelSchema extends BaseSchema {
     }
 
     /*
-     * An encrypted text column holds a secret - a password, a token, a key -
-     * so the spec says so (format: password), as it does for a hashed one:
-     * the Terraform provider marks the attribute Sensitive, and plans and
-     * outputs never print it.
+     * A secret - an encrypted or hashed column, or one its model marks
+     * secret: a password, a token, a key - so the spec says so
+     * (annotateSecret): the Terraform provider marks the attribute
+     * Sensitive, and plans and outputs never print it.
      */
-    if (
-      column.encrypted &&
-      ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type) &&
-      !disableOpenApiSchema
-    ) {
-      zodType = zodType.openapi({ format: "password" });
+    if (!disableOpenApiSchema) {
+      zodType = ModelSchema.annotateSecret(zodType, column);
     }
 
     return zodType;
+  }
+
+  /*
+   * Whether a column's value is a secret: a hashed or password column, an
+   * encrypted text column, or one its model marks `secret` - a key, a
+   * token or a webhook address stored as it is (TableColumnMetadata.secret).
+   */
+  public static isSecretColumn(column: TableColumnMetadata): boolean {
+    return (
+      Boolean(column.secret) ||
+      column.type === TableColumnType.HashedString ||
+      column.type === TableColumnType.Password ||
+      Boolean(
+        column.encrypted && ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type),
+      )
+    );
+  }
+
+  /*
+   * A secret, as the spec says it: x-oneuptime-secret on every one, which
+   * the clients published from the spec read (the Terraform provider marks
+   * the attribute Sensitive), and format: password on an encrypted text
+   * column, as OpenAPI writes a secret string. A secret of another type
+   * keeps its own format - an API key is still a uuid.
+   */
+  private static annotateSecret(
+    zodType: ZodTypes.ZodTypeAny,
+    column: TableColumnMetadata,
+  ): ZodTypes.ZodTypeAny {
+    if (!ModelSchema.isSecretColumn(column)) {
+      return zodType;
+    }
+
+    let annotated: ZodTypes.ZodTypeAny = zodType.openapi({
+      "x-oneuptime-secret": true,
+    } as any);
+
+    if (
+      column.encrypted &&
+      ENCRYPTED_SECRET_COLUMN_TYPES.includes(column.type)
+    ) {
+      annotated = annotated.openapi({ format: "password" });
+    }
+
+    return annotated;
   }
 
   public static getCreateModelSchema(data: {

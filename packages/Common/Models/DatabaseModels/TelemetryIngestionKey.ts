@@ -309,6 +309,7 @@ export default class TelemetryIngestionKey extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     computed: true,

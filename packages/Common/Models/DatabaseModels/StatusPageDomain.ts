@@ -716,7 +716,8 @@ export default class StatusPageDomain extends BaseModel {
       Permission.EditStatusPageDomain,
     ],
   })
-  @TableColumn({ type: TableColumnType.VeryLongText })
+  @TableColumn({
+    secret: true, type: TableColumnType.VeryLongText })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,

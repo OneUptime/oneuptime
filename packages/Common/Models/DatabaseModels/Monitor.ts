@@ -2325,6 +2325,7 @@ export default class Monitor extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
@@ -2373,6 +2374,7 @@ export default class Monitor extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
@@ -2458,6 +2460,7 @@ export default class Monitor extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,

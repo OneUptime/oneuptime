@@ -709,7 +709,8 @@ export default class DashboardDomain extends BaseModel {
       Permission.EditDashboardDomain,
     ],
   })
-  @TableColumn({ type: TableColumnType.VeryLongText })
+  @TableColumn({
+    secret: true, type: TableColumnType.VeryLongText })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,

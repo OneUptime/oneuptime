@@ -310,6 +310,7 @@ export default class Runner extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: true,
     unique: true,
     type: TableColumnType.ShortText,

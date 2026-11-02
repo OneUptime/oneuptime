@@ -361,7 +361,8 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    secret: true, type: TableColumnType.ShortText })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,

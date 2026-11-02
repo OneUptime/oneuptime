@@ -435,7 +435,8 @@ function getSecretKind(
     return TerraformSecretKind.Hashed;
   }
 
-  if (column.encrypted) {
+  // Encrypted, or marked a secret by its model (ModelSchema.isSecretColumn).
+  if (column.encrypted || column.secret) {
     return TerraformSecretKind.Secret;
   }
 

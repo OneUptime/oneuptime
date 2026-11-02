@@ -170,6 +170,7 @@ export default class Probe extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: true,
     unique: true,
     type: TableColumnType.ShortText,

@@ -31,6 +31,19 @@ export interface TableColumnMetadata {
    */
   hashSaltColumn?: string;
   encrypted?: boolean;
+  /*
+   * The value lets whoever has it in: a key, a token, a passphrase, a
+   * private key, a webhook address. Hashed and encrypted text columns are
+   * secrets already; this marks the ones stored as they are, which a
+   * caller with the right permission reads back - an API key's value, a
+   * probe's key, an incoming request monitor's secret key. The OpenAPI spec
+   * says so (x-oneuptime-secret: ModelSchema.isSecretColumn), and the
+   * clients published from it keep the value out of what they print:
+   * Terraform and OpenTofu mark the attribute Sensitive, so plans, logs
+   * and outputs show (sensitive value). Tests/Utils/Schema/SecretColumns
+   * holds every column named like a secret to this.
+   */
+  secret?: boolean;
   manyToOneRelationColumn?: string;
   type: TableColumnType;
   canReadOnRelationQuery?: boolean;

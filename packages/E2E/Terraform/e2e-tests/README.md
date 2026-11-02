@@ -119,6 +119,7 @@ The `scripts/lib.sh` file provides common utility functions for verify.sh script
 | `get_output "name"`                                         | Get a Terraform output value safely (returns empty string if not found)                            |
 | `assert_not_empty "$value" "name"`                          | Assert that a value is not empty                                                                   |
 | `assert_equals "$expected" "$actual" "name"`                | Assert two values are equal                                                                        |
+| `assert_sensitive "oneuptime_api_key.key" "api_key"`         | Assert the state marks an attribute sensitive, so Terraform never prints it                        |
 | `api_get_resource "/api/endpoint" "$id" '{"select": true}'` | Make an API call to get a resource                                                                 |
 | `verify_resource_exists "/api/endpoint" "$id"`              | Verify a resource exists in the API                                                                |
 | `validate_field "$response" "field" "$expected"`            | Validate a field from API response (handles wrapper unwrapping)                                    |

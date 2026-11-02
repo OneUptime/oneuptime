@@ -143,6 +143,7 @@ class UserPush extends BaseModel {
    */
   @OwnerOnlyColumn()
   @TableColumn({
+    secret: true,
     title: "Device Token",
     required: true,
     unique: false,
