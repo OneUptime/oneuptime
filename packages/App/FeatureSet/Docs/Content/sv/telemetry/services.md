@@ -47,7 +47,7 @@ Varje gång telemetri kommer in flyttas tjänstens **Senast sedd** fram, och des
 
 ## Hitta en tjänst
 
-Gå till **Produkter → Resurser → Tjänster**. **Alla tjänster** visar varje tjänst med **Namn**, **Beskrivning**, **Technology**, **Senast sedd**, **Etiketter** och **Ägare**.
+Gå till **Produkter → Resurser → Tjänster**. **Alla tjänster** visar varje tjänst med **Namn**, **Beskrivning**, **Teknik**, **Senast sedd**, **Etiketter** och **Ägare**.
 
 - Sök på namn eller beskrivning, och filtrera på ägare eller etikett med fältet ovanför listan.
 - Markera flera tjänster för att ge alla etiketter eller ägare på en gång, eller för att arkivera dem.

@@ -203,6 +203,7 @@ import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationInterv
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -511,6 +512,18 @@ function matchesCondition(actual, condition) {
   }
   if (condition instanceof NotEqual) {
     return String(comparable(actual)) !== String(comparable(condition.value));
+  }
+  // A value left out ("Service is not ..."): none of them, on a relation too.
+  if (condition instanceof IncludesNone) {
+    const values = condition.values.map((value) => {
+      return idOf(value);
+    });
+    if (Array.isArray(actual)) {
+      return !actual.some((item) => {
+        return values.includes(idOf(item));
+      });
+    }
+    return !values.includes(idOf(actual));
   }
   if (
     condition !== null &&
@@ -1745,8 +1758,8 @@ table(ExceptionSavedView);
 /*
  * The Exceptions explorer's exception groups (Postgres TelemetryException,
  * one row per fingerprint): five, all unresolved and last seen inside the
- * past day. Only classes the default "Issues" lens shows: the fixture does
- * not model the lens's IncludesNone, which matches every row here. The
+ * past day. Only classes the default "Issues" lens shows, so the lens's
+ * IncludesNone (modelled, as a facet's "is not" is) keeps every row. The
  * explorer's chart and facet counts are read off the same rows (see
  * EXPLORER_ENDPOINTS): a group's occurrences fall in the minute it was last
  * seen.
@@ -2079,12 +2092,29 @@ const SPAN_BODY_FILTERS = {
   spanIds: (row, ids) => {
     return ids.includes(row.spanId);
   },
+  // What a facet row's minus leaves out ("Status is not Error").
+  excludedServiceIds: (row, ids) => {
+    return !ids.map(String).includes(String(row.primaryEntityId));
+  },
+  excludedStatusCodes: (row, codes) => {
+    return !codes.map(Number).includes(row.statusCode);
+  },
+  excludedSpanKinds: (row, kinds) => {
+    return !kinds.includes(row.kind);
+  },
+  excludedSpanNames: (row, names) => {
+    return !names.includes(row.name);
+  },
 };
 
 const LOG_BODY_FILTERS = {
   serviceIds: SPAN_BODY_FILTERS.serviceIds,
+  excludedServiceIds: SPAN_BODY_FILTERS.excludedServiceIds,
   severityTexts: (row, severities) => {
     return severities.includes(row.severityText || LogSeverity.Unspecified);
+  },
+  excludedSeverityTexts: (row, severities) => {
+    return !severities.includes(row.severityText || LogSeverity.Unspecified);
   },
   bodySearchText: (row, text) => {
     return contains(row.body, text);
@@ -2433,11 +2463,18 @@ function attributeValuesOf(generated, key) {
 // The exceptions explorer's chart and facet filters, over exception groups.
 const EXCEPTION_BODY_FILTERS = {
   serviceIds: SPAN_BODY_FILTERS.serviceIds,
+  excludedServiceIds: SPAN_BODY_FILTERS.excludedServiceIds,
   exceptionTypes: (row, types) => {
     return types.includes(row.exceptionType);
   },
+  excludedExceptionTypes: (row, types) => {
+    return !types.includes(row.exceptionType);
+  },
   environments: (row, environments) => {
     return environments.includes(row.environment);
+  },
+  excludedEnvironments: (row, environments) => {
+    return !environments.includes(row.environment);
   },
   messageSearchText: (row, text) => {
     return contains(row.message, text);

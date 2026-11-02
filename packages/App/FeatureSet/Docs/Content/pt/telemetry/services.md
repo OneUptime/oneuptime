@@ -47,7 +47,7 @@ Cada vez que a telemetria chega, o **Visto pela última vez** do serviço avanç
 
 ## Encontrar um serviço
 
-Acesse **Produtos → Recursos → Serviços**. **Todos os serviços** lista cada serviço com **Nome**, **Descrição**, **Technology**, **Visto pela última vez**, **Rótulos** e **Proprietários**.
+Acesse **Produtos → Recursos → Serviços**. **Todos os serviços** lista cada serviço com **Nome**, **Descrição**, **Tecnologia**, **Visto pela última vez**, **Rótulos** e **Proprietários**.
 
 - Pesquise por nome ou descrição, e filtre por proprietário ou rótulo com a barra acima da lista.
 - Selecione vários serviços para adicionar rótulos ou proprietários a todos de uma vez, ou para arquivá-los.

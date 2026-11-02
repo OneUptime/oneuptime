@@ -43,7 +43,7 @@ L'explorateur a cinq onglets :
 Ouvrez **Produits → Observabilité → Métriques**. Le **Lecteur** liste chaque métrique que votre projet a reçue, par nom, chacune avec un petit graphique de la plage de temps et sa dernière valeur.
 
 - Cherchez des noms avec des mots seuls ou `name:`, par exemple `name:http.server` trouve `http.server.request.duration`. Voir [Syntaxe de recherche](/docs/telemetry/search-syntax#métriques).
-- Filtrez par **Service** dans la barre latérale pour ne voir que les métriques d'un service.
+- Filtrez par **Service** dans la barre latérale pour ne voir que les métriques d'un service. Cliquez plutôt sur le signe moins à côté d'un service pour masquer les métriques qu'il remonte.
 - Cliquez sur une métrique pour la représenter dans l'explorateur de métriques.
 
 ## Représenter une métrique

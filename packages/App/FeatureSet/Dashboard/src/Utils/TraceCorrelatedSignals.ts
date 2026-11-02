@@ -4,6 +4,7 @@ import {
   isResourceEntityFacetKey,
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import { isExcludeFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
@@ -489,6 +490,16 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
   const resourceFacetSelections: ResourceEntityFacetSelections = {};
 
   for (const filter of input.activeFilters) {
+    /*
+     * A value left out ("Status is not Error") has no field in the scope a
+     * pivot carries, so it is named as not carried - never dropped
+     * silently, and never carried as the value it leaves out.
+     */
+    if (isExcludeFacetKey(filter.facetKey)) {
+      notCarried.add(translationKey("excluded values"));
+      continue;
+    }
+
     if (isServiceFacetKey(filter.facetKey)) {
       addValue(serviceIds, filter.value);
       continue;

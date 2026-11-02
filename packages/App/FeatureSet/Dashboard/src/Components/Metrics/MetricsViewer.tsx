@@ -89,7 +89,14 @@ import {
   buildMetricsIncludedFacetChip,
   collectMetricsEntityLookup,
   getMetricsAppliedEntityFilterIds,
+  getMetricsExcludedEntityFilterIds,
 } from "../../Utils/MetricsEntityChipDisplay";
+import {
+  FacetChoiceState,
+  chooseFacetValueInChips,
+} from "Common/UI/Components/TelemetryViewer/FacetExclusion";
+import { FacetValueState } from "Common/UI/Components/TelemetryViewer/FacetSelection";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
@@ -1262,6 +1269,24 @@ const MetricsViewer: FunctionComponent<Props> = (
       (query as Record<string, unknown>)["services"] = new Includes(
         mergedServiceIds,
       );
+    } else {
+      /*
+       * The services a chip leaves out ("Service is not checkout"): the
+       * metrics none of them reports. A metric's services are a set, and
+       * leaving a service out is the set without it, as every list in the
+       * product reads a many-to-many filter - kept services win, since the
+       * query holds one predicate on the relation.
+       */
+      const excludedServiceIds: Array<string> =
+        getMetricsExcludedEntityFilterIds(activeFilters);
+
+      if (excludedServiceIds.length > 0) {
+        (query as Record<string, unknown>)["services"] = new IncludesNone(
+          excludedServiceIds.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        );
+      }
     }
 
     // Name search (free text, or an explicit `name:`)
@@ -1645,35 +1670,59 @@ const MetricsViewer: FunctionComponent<Props> = (
     void fetchFacets();
   }, [fetchFacets]);
 
-  // Facet interaction
+  /*
+   * Facet interaction: put a value in exactly one state, kept (a click) or
+   * left out (a facet row's minus: "Service is not checkout"). A value in
+   * the other state moves; asking for the state it is already in changes
+   * nothing. The sidebar takes a checked or excluded value off through
+   * handleRemoveFilter.
+   */
+  const chooseFacetValue: (
+    facetKey: string,
+    value: string,
+    state: FacetChoiceState,
+  ) => void = useCallback(
+    (facetKey: string, value: string, state: FacetChoiceState) => {
+      /*
+       * Keep the facet endpoint's resolved name as a fallback: a service
+       * beyond the loaded list would otherwise be chipped as its id.
+       */
+      const chip: ActiveFilter = buildMetricsIncludedFacetChip({
+        facetKey,
+        value,
+        facetConfigs,
+        facetData,
+      });
+      setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+        return chooseFacetValueInChips(
+          prev,
+          facetKey,
+          value,
+          state,
+          (chipKey: string): ActiveFilter => {
+            return { ...chip, facetKey: chipKey };
+          },
+        );
+      });
+      setPage(1);
+    },
+    [facetConfigs, facetData],
+  );
+
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
-      (facetKey: string, value: string) => {
-        setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-          if (
-            prev.some((f: ActiveFilter): boolean => {
-              return f.facetKey === facetKey && f.value === value;
-            })
-          ) {
-            return prev;
-          }
-          /*
-           * Keep the facet endpoint's resolved name as a fallback: a service
-           * beyond the loaded list would otherwise be chipped as its id.
-           */
-          return [
-            ...prev,
-            buildMetricsIncludedFacetChip({
-              facetKey,
-              value,
-              facetConfigs,
-              facetData,
-            }),
-          ];
-        });
-        setPage(1);
+      (facetKey: string, value: string): void => {
+        chooseFacetValue(facetKey, value, FacetValueState.Included);
       },
-      [facetConfigs, facetData],
+      [chooseFacetValue],
+    );
+
+  const handleFacetExclude: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string): void => {
+        chooseFacetValue(facetKey, value, FacetValueState.Excluded);
+      },
+      [chooseFacetValue],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -2108,6 +2157,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         void fetchFacets();
       }}
       onFacetInclude={handleFacetInclude}
+      onFacetExclude={handleFacetExclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
           (prev: Record<string, string>): Record<string, string> => {

@@ -16,10 +16,22 @@
  */
 
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Search from "Common/Types/BaseDatabase/Search";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
-import { isServiceFacetKey } from "Common/Types/Telemetry/ResourceEntityFacet";
+import {
+  EXCLUDED_RESOURCE_FILTERS_FIELD,
+  ResourceEntityFacetSelections,
+  collectResourceEntityFacetSelections,
+  collectServiceFacetSelections,
+  isServiceFacetKey,
+} from "Common/Types/Telemetry/ResourceEntityFacet";
+import {
+  getBaseFacetKey,
+  isExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import {
   SearchQueryValue,
   SearchToken,
@@ -266,6 +278,11 @@ export const resolveTraceSearchChip: ResolveTraceSearchChipFunction = (
 export interface TraceAttributeSources {
   /** `attributes.<key>` chip values, grouped by key. Grammar tokens. */
   chipValues: Record<string, Array<string>>;
+  /*
+   * `!attributes.<key>` chip values - what the reader left out ("Host Name
+   * is not web-01") - grouped by key. Grammar tokens, as the kept ones are.
+   */
+  excludedChipValues?: Record<string, Array<string>> | undefined;
   /** Attribute tokens parsed out of the submitted search string. */
   parsed: Array<TraceAttributeFilter>;
   /** `attributeSearches.<key>` chips — saved views only. Plain literals. */
@@ -309,9 +326,9 @@ type CompileTraceAttributeFiltersFunction = (
  *
  * One function, one precedence order, two renderings of the same predicate —
  * which is what stops the chart and the list disagreeing about a filter the
- * user can see applied. Precedence, weakest first: chips, then the submitted
- * search string, then the legacy contains chips, then the host page's
- * read-only scope.
+ * user can see applied. Precedence, weakest first: chips (the values left
+ * out after the kept ones), then the submitted search string, then the
+ * legacy contains chips, then the host page's read-only scope.
  */
 export const compileTraceAttributeFilters: CompileTraceAttributeFiltersFunction =
   (sources: TraceAttributeSources): TraceAttributeFilters => {
@@ -329,6 +346,37 @@ export const compileTraceAttributeFilters: CompileTraceAttributeFiltersFunction 
 
       queryAttributes[key] = compiled;
       payloadAttributes[key] = serializeQueryValue(compiled);
+    }
+
+    /*
+     * The values left out. An attribute the chips keep values of is
+     * already exact - a span holds one value per attribute - so its
+     * left-out values change nothing and are dropped, in both transports.
+     */
+    for (const [key, values] of Object.entries(
+      sources.excludedChipValues || {},
+    )) {
+      if (queryAttributes[key] !== undefined) {
+        continue;
+      }
+
+      const compiled: SearchQueryValue | Array<SearchQueryValue> | undefined =
+        compileExcludedAttributeChipValues(values);
+
+      if (compiled === undefined) {
+        continue;
+      }
+
+      queryAttributes[key] = compiled;
+
+      /*
+       * Several patterns left out AND together, which the list evaluates
+       * one by one and the aggregate endpoints cannot hold: the chart then
+       * counts more than the list, never fewer.
+       */
+      if (!Array.isArray(compiled)) {
+        payloadAttributes[key] = serializeQueryValue(compiled);
+      }
     }
 
     for (const filter of sources.parsed) {
@@ -360,6 +408,70 @@ export const compileTraceAttributeFilters: CompileTraceAttributeFiltersFunction 
 
     return { queryAttributes, payloadAttributes, payloadAttributeSearches };
   };
+
+/*
+ * An attribute chip's values left out, read as the grammar reads them: the
+ * literals a facet row or a span panel writes are one NOT IN (a single one
+ * a plain `!=`), and a token that is a pattern is negated as the grammar
+ * negates it - the negations AND-ed.
+ */
+const compileExcludedAttributeChipValues: (
+  values: Array<string>,
+) => SearchQueryValue | Array<SearchQueryValue> | undefined = (
+  values: Array<string>,
+): SearchQueryValue | Array<SearchQueryValue> | undefined => {
+  const meaningful: Array<string> = values.filter((value: string): boolean => {
+    return typeof value === "string" && value.length > 0;
+  });
+
+  if (meaningful.length === 0) {
+    return undefined;
+  }
+
+  const predicates: Array<SearchValuePredicate> = meaningful.map(
+    (value: string): SearchValuePredicate => {
+      return parseSearchValue(value);
+    },
+  );
+
+  const isEveryLiteral: boolean = predicates.every(
+    (predicate: SearchValuePredicate): boolean => {
+      return predicate.operator === SearchValueOperator.Equals;
+    },
+  );
+
+  if (isEveryLiteral) {
+    return toExcludedValue(
+      predicates.map((predicate: SearchValuePredicate): string => {
+        return predicate.value;
+      }),
+    );
+  }
+
+  const negated: Array<SearchQueryValue> = meaningful.map(
+    (value: string): SearchQueryValue => {
+      return predicateToQueryValue(parseSearchValue(value, true));
+    },
+  );
+
+  return negated.length === 1 ? negated[0]! : negated;
+};
+
+/*
+ * One value left out is a plain `!=` (the column's skip index stays usable),
+ * several are one NOT IN.
+ */
+const toExcludedValue: <T extends string | number>(
+  values: Array<T>,
+) => NotEqual<T> | IncludesNone = <T extends string | number>(
+  values: Array<T>,
+): NotEqual<T> | IncludesNone => {
+  const unique: Array<T> = Array.from(new Set<T>(values));
+
+  return unique.length === 1
+    ? new NotEqual<T>(unique[0]!)
+    : new IncludesNone(unique as Array<string> | Array<number>);
+};
 
 type ToSpanStatusCodeFunction = (value: string) => number;
 
@@ -481,9 +593,12 @@ export const getTraceChipFacetKey: (
   chipKey: string,
   attributeFacetKeys: ReadonlySet<string>,
 ) => string | null = (
-  chipKey: string,
+  rawChipKey: string,
   attributeFacetKeys: ReadonlySet<string>,
 ): string | null => {
+  // A chip that leaves its value out (`!statusCode`) filters its facet too.
+  const chipKey: string = getBaseFacetKey(rawChipKey);
+
   if (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
     const attributeKey: string = chipKey.substring(
       ATTRIBUTE_CHIP_PREFIX.length,
@@ -530,6 +645,314 @@ export const getTraceChosenFacetKeys: (
   }
 
   return Array.from(keys);
+};
+
+/*
+ * THE VALUES A READER LEFT OUT.
+ *
+ * A facet row's minus leaves its value out: a chip keyed `!<facet>`
+ * (FacetExcludeKey) - `!statusCode: 2`, `!primaryEntityId: <id>`,
+ * `!attributes.resource.host.name: web-01`. They are read apart from the
+ * chips that keep values, and compiled into both transports from that one
+ * reading (applyTraceExclusionsToQuery, applyTraceExclusionsToPayload), so
+ * the list, the chart and the facet counts agree on every one.
+ */
+export interface TraceExclusions {
+  // Column values left out, by column, as the facet answers them.
+  columns: Record<string, Array<string>>;
+  // Attribute values left out, by attribute key. Grammar tokens.
+  attributeChipValues: Record<string, Array<string>>;
+}
+
+export const readTraceExclusions: (data: {
+  chips: ReadonlyArray<{ facetKey: string; value: string }>;
+  attributeFacetKeys: ReadonlySet<string>;
+  // A facet counted without its own selection leaves its chips out too.
+  omitFacetKey?: string | null | undefined;
+}) => TraceExclusions = (data: {
+  chips: ReadonlyArray<{ facetKey: string; value: string }>;
+  attributeFacetKeys: ReadonlySet<string>;
+  omitFacetKey?: string | null | undefined;
+}): TraceExclusions => {
+  const exclusions: TraceExclusions = {
+    columns: {},
+    attributeChipValues: {},
+  };
+
+  const add: (
+    groups: Record<string, Array<string>>,
+    key: string,
+    value: string,
+  ) => void = (
+    groups: Record<string, Array<string>>,
+    key: string,
+    value: string,
+  ): void => {
+    const values: Array<string> = groups[key] || [];
+
+    if (!values.includes(value)) {
+      values.push(value);
+    }
+
+    groups[key] = values;
+  };
+
+  for (const chip of data.chips) {
+    if (
+      !isExcludeFacetKey(chip.facetKey) ||
+      typeof chip.value !== "string" ||
+      chip.value.length === 0
+    ) {
+      continue;
+    }
+
+    if (
+      data.omitFacetKey &&
+      getTraceChipFacetKey(chip.facetKey, data.attributeFacetKeys) ===
+        data.omitFacetKey
+    ) {
+      continue;
+    }
+
+    const baseKey: string = getBaseFacetKey(chip.facetKey);
+
+    // The pre-grammar contains chips have nothing to leave out.
+    if (!baseKey || baseKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
+      continue;
+    }
+
+    if (baseKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
+      const attributeKey: string = baseKey.substring(
+        ATTRIBUTE_CHIP_PREFIX.length,
+      );
+
+      if (attributeKey.length > 0) {
+        add(exclusions.attributeChipValues, attributeKey, chip.value);
+      }
+      continue;
+    }
+
+    add(exclusions.columns, baseKey, chip.value);
+  }
+
+  return exclusions;
+};
+
+// Whether a reading holds anything to leave out.
+export const hasTraceExclusions: (exclusions: TraceExclusions) => boolean = (
+  exclusions: TraceExclusions,
+): boolean => {
+  return (
+    Object.keys(exclusions.columns).length > 0 ||
+    Object.keys(exclusions.attributeChipValues).length > 0
+  );
+};
+
+// Columns compiled through a value mapping, or as a resource, not as written.
+const MAPPED_EXCLUSION_COLUMNS: ReadonlySet<string> = new Set<string>([
+  "statusCode",
+  "kind",
+  "hasException",
+  "name",
+]);
+
+/*
+ * The values left out, onto the span list's query - after everything that
+ * keeps rows (the page's scope, the chips, the typed search) is on it:
+ *
+ *   Service       primaryEntityId != <id> / NOT IN
+ *   Host, ...     excludedResourceFilters (the server negates the group)
+ *   Status        statusCode != 2 / NOT IN
+ *   Span Kind     kind != 'SPAN_KIND_CLIENT' / NOT IN
+ *   Has exception hasException = the other answer
+ *   Span Name     name != 'GET /health' / NOT IN - exactly the value shown
+ *
+ * A column that already keeps values exactly holds one value per span, so
+ * the values left out of it change nothing and are dropped - the query
+ * holds one predicate per column. A span name kept as a SUBSTRING is the
+ * one column where both mean something ("GET, but not GET /health"), so it
+ * holds both, AND-ed. Attributes are compiled with the other attribute
+ * filters (compileTraceAttributeFilters).
+ */
+export const applyTraceExclusionsToQuery: (
+  query: Record<string, unknown>,
+  exclusions: TraceExclusions,
+) => void = (
+  query: Record<string, unknown>,
+  exclusions: TraceExclusions,
+): void => {
+  const columnEntries: Array<[string, Array<string>]> = Object.entries(
+    exclusions.columns,
+  );
+
+  const serviceIds: Array<string> =
+    collectServiceFacetSelections(columnEntries);
+
+  if (serviceIds.length > 0 && query["primaryEntityId"] === undefined) {
+    query["primaryEntityId"] = toExcludedValue(serviceIds);
+  }
+
+  const resourceFilters: ResourceEntityFacetSelections =
+    collectResourceEntityFacetSelections(columnEntries);
+
+  if (Object.keys(resourceFilters).length > 0) {
+    query[EXCLUDED_RESOURCE_FILTERS_FIELD] = resourceFilters;
+  }
+
+  const statusCodes: Array<number> = getExcludedStatusCodes(exclusions);
+
+  if (statusCodes.length > 0 && query["statusCode"] === undefined) {
+    query["statusCode"] = toExcludedValue(statusCodes);
+  }
+
+  const spanKinds: Array<string> = getExcludedSpanKinds(exclusions);
+
+  if (spanKinds.length > 0 && query["kind"] === undefined) {
+    query["kind"] = toExcludedValue(spanKinds);
+  }
+
+  const hasException: boolean | undefined = getHasExceptionLeftOver(exclusions);
+
+  if (hasException !== undefined && query["hasException"] === undefined) {
+    query["hasException"] = hasException;
+  }
+
+  const spanNames: Array<string> = exclusions.columns["name"] || [];
+
+  if (spanNames.length > 0) {
+    const kept: unknown = query["name"];
+
+    if (kept === undefined) {
+      query["name"] = toExcludedValue(spanNames);
+    } else if (kept instanceof Search) {
+      query["name"] = [kept, toExcludedValue(spanNames)];
+    }
+  }
+
+  // Any other column (a hand-written link's): as written, if nothing keeps it.
+  for (const [column, values] of columnEntries) {
+    if (
+      MAPPED_EXCLUSION_COLUMNS.has(column) ||
+      isServiceFacetKey(column) ||
+      Object.prototype.hasOwnProperty.call(resourceFilters, column) ||
+      values.length === 0 ||
+      query[column] !== undefined
+    ) {
+      continue;
+    }
+
+    query[column] = toExcludedValue(values);
+  }
+};
+
+/*
+ * The same values left out, onto a histogram / facets / analytics request
+ * built from the same view - by the same rules, read off what the request
+ * already keeps, so the chart and the counts drop exactly the rows the list
+ * drops. Only the columns the endpoints have a field for: the sidebar's
+ * facets all do.
+ */
+export const applyTraceExclusionsToPayload: (
+  payload: JSONObject,
+  exclusions: TraceExclusions,
+) => void = (payload: JSONObject, exclusions: TraceExclusions): void => {
+  const columnEntries: Array<[string, Array<string>]> = Object.entries(
+    exclusions.columns,
+  );
+
+  const serviceIds: Array<string> =
+    collectServiceFacetSelections(columnEntries);
+
+  if (serviceIds.length > 0 && !hasListValue(payload["serviceIds"])) {
+    payload["excludedServiceIds"] = serviceIds;
+  }
+
+  const resourceFilters: ResourceEntityFacetSelections =
+    collectResourceEntityFacetSelections(columnEntries);
+
+  if (Object.keys(resourceFilters).length > 0) {
+    payload[EXCLUDED_RESOURCE_FILTERS_FIELD] = resourceFilters;
+  }
+
+  const statusCodes: Array<number> = getExcludedStatusCodes(exclusions);
+
+  if (statusCodes.length > 0 && !hasListValue(payload["statusCodes"])) {
+    payload["excludedStatusCodes"] = statusCodes;
+  }
+
+  const spanKinds: Array<string> = getExcludedSpanKinds(exclusions);
+
+  if (spanKinds.length > 0 && !hasListValue(payload["spanKinds"])) {
+    payload["excludedSpanKinds"] = spanKinds;
+  }
+
+  const hasException: boolean | undefined = getHasExceptionLeftOver(exclusions);
+
+  if (hasException !== undefined && payload["hasException"] === undefined) {
+    payload["hasException"] = hasException;
+  }
+
+  const spanNames: Array<string> = Array.from(
+    new Set<string>(exclusions.columns["name"] || []),
+  );
+
+  // Names kept exactly already leave every other name out.
+  if (spanNames.length > 0 && !hasListValue(payload["spanNames"])) {
+    payload["excludedSpanNames"] = spanNames;
+  }
+};
+
+const hasListValue: (value: unknown) => boolean = (value: unknown): boolean => {
+  return Array.isArray(value) && value.length > 0;
+};
+
+// The statuses left out, as the column stores them.
+const getExcludedStatusCodes: (exclusions: TraceExclusions) => Array<number> = (
+  exclusions: TraceExclusions,
+): Array<number> => {
+  return Array.from(
+    new Set<number>(
+      (exclusions.columns["statusCode"] || []).map((value: string): number => {
+        return toSpanStatusCode(value);
+      }),
+    ),
+  );
+};
+
+// The kinds left out, as the column stores them.
+const getExcludedSpanKinds: (exclusions: TraceExclusions) => Array<string> = (
+  exclusions: TraceExclusions,
+): Array<string> => {
+  return Array.from(
+    new Set<string>(
+      (exclusions.columns["kind"] || []).map((value: string): string => {
+        return toSpanKind(value);
+      }),
+    ),
+  );
+};
+
+/*
+ * "Has exception" left out is the spans without one, and the other way
+ * round. Both answers left out leave nothing to say: no filter, rather than
+ * a list of nothing.
+ */
+const getHasExceptionLeftOver: (
+  exclusions: TraceExclusions,
+) => boolean | undefined = (
+  exclusions: TraceExclusions,
+): boolean | undefined => {
+  const leftOut: Set<boolean> = new Set<boolean>(
+    (exclusions.columns["hasException"] || []).map((value: string): boolean => {
+      return value.trim().toLowerCase() === "true" || value.trim() === "1";
+    }),
+  );
+
+  if (leftOut.size !== 1) {
+    return undefined;
+  }
+
+  return !Array.from(leftOut)[0]!;
 };
 
 /*

@@ -870,6 +870,7 @@ router.post(
           modelType: Log,
           props: databaseProps,
           requested: serviceIds,
+          excluded: readExcludedServiceIds(body),
         });
 
       const request: HistogramRequest = {
@@ -881,6 +882,10 @@ router.post(
         entityKeys,
         resourceScopes,
         severityTexts,
+        excludedSeverityTexts: readStringListField(
+          body,
+          "excludedSeverityTexts",
+        ),
         bodySearchText,
         traceIds,
         spanIds,
@@ -1006,7 +1011,13 @@ router.post(
         databaseProps,
       );
       const serviceFilter: TelemetryServiceFilter =
-        TelemetryReadScopeUtil.toServiceFilter(scope, serviceIds);
+        TelemetryReadScopeUtil.toServiceFilter(
+          scope,
+          serviceIds,
+          readExcludedServiceIds(body),
+        );
+      const excludedSeverityTexts: Array<string> | undefined =
+        readStringListField(body, "excludedSeverityTexts");
 
       /*
        * One ClickHouse GROUP BY per facet, in parallel so a slow facet can't
@@ -1042,6 +1053,7 @@ router.post(
             entityKeys,
             resourceScopes,
             severityTexts,
+            excludedSeverityTexts,
             bodySearchText,
             traceIds,
             spanIds,
@@ -1077,6 +1089,10 @@ router.post(
  * Types without such an identity keep an id-only scope (see
  * ResourceEntityFilter).
  *
+ * `excludedResourceFilters` is the same shape for the resources the reader
+ * left out (an explorer's "Host is not web-01"): each compiles to the same
+ * scope, negated as one group (ResourceEntityScope.isExcluded).
+ *
  * Returns undefined when nothing was selected so the request field stays
  * absent rather than becoming an empty array.
  */
@@ -1084,22 +1100,105 @@ async function resolveResourceScopesFromBody(
   body: JSONObject,
   projectId: ObjectID,
 ): Promise<Array<ResourceEntityScope> | undefined> {
-  const selections: ResourceEntityFacetSelections =
-    ResourceEntityFilter.parseSelections(
-      body["resourceFilters"] as JSONObject | undefined,
-    );
+  const scopes: Array<ResourceEntityScope> = [];
 
-  if (Object.keys(selections).length === 0) {
+  for (const [field, isExcluded] of [
+    ["resourceFilters", false],
+    ["excludedResourceFilters", true],
+  ] as Array<[string, boolean]>) {
+    const selections: ResourceEntityFacetSelections =
+      ResourceEntityFilter.parseSelections(
+        body[field] as JSONObject | undefined,
+      );
+
+    if (Object.keys(selections).length === 0) {
+      continue;
+    }
+
+    scopes.push(
+      ...(await ResourceEntityFilter.resolveScopes({
+        projectId,
+        selections,
+        ...(isExcluded ? { isExcluded: true } : {}),
+      })),
+    );
+  }
+
+  return scopes.length > 0 ? scopes : undefined;
+}
+
+/*
+ * A body field that lists strings, read defensively: entries that are not
+ * a non-empty string are dropped, and a list left empty is no list, so it
+ * can never narrow a read to nothing.
+ */
+function readStringListField(
+  body: JSONObject,
+  field: string,
+): Array<string> | undefined {
+  const raw: unknown = body[field];
+
+  if (!Array.isArray(raw)) {
     return undefined;
   }
 
-  const scopes: Array<ResourceEntityScope> =
-    await ResourceEntityFilter.resolveScopes({
-      projectId,
-      selections,
+  const values: Array<string> = Array.from(
+    new Set<string>(
+      (raw as Array<unknown>).filter((value: unknown): value is string => {
+        return typeof value === "string" && value.length > 0;
+      }),
+    ),
+  );
+
+  return values.length > 0 ? values : undefined;
+}
+
+/*
+ * The resources a caller asked to leave out (`excludedServiceIds`, an
+ * explorer's "Service is not checkout"). Ids only: an entry that is not one
+ * is dropped, which leaves out less and so can never show a row the caller's
+ * read scope does not reach - that scope is applied beside it either way
+ * (TelemetryReadScopeUtil.toServiceFilter).
+ */
+function readExcludedServiceIds(body: JSONObject): Array<string> | undefined {
+  const ids: Array<string> = (
+    readStringListField(body, "excludedServiceIds") || []
+  ).filter((id: string): boolean => {
+    return ObjectID.isValidUUID(id);
+  });
+
+  return ids.length > 0 ? ids : undefined;
+}
+
+/*
+ * Numbers a body field lists. Numeric strings are read as numbers, as the
+ * kept status codes are (parseTraceFilterBody); anything else is dropped.
+ */
+function readNumberListField(
+  body: JSONObject,
+  field: string,
+): Array<number> | undefined {
+  const raw: unknown = body[field];
+
+  if (!Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const values: Array<number> = (raw as Array<unknown>)
+    .filter((value: unknown): boolean => {
+      return (
+        typeof value === "number" ||
+        (typeof value === "string" && value.trim().length > 0)
+      );
+    })
+    .map((value: unknown): number => {
+      return typeof value === "number" ? value : Number(value);
+    })
+    .filter((value: number): boolean => {
+      return Number.isFinite(value);
     });
 
-  return scopes.length > 0 ? scopes : undefined;
+  return values.length > 0 ? Array.from(new Set<number>(values)) : undefined;
 }
 
 /*
@@ -1260,12 +1359,28 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
     return Object.fromEntries(entries);
   };
 
+  /*
+   * What the reader left out - "Status is not Error", "Span Name is not GET
+   * /health" - read like the kept lists beside them. The services left out
+   * join the ones a block takes away (scopeTraceFilters).
+   */
+  const excludedServiceIds: Array<string> | undefined =
+    readExcludedServiceIds(body);
+
   return {
     serviceIds,
+    excludedServiceIds: excludedServiceIds
+      ? excludedServiceIds.map((id: string): ObjectID => {
+          return new ObjectID(id);
+        })
+      : undefined,
     entityKeys: stringArray("entityKeys"),
     statusCodes,
     spanKinds: stringArray("spanKinds"),
     spanNames: stringArray("spanNames"),
+    excludedStatusCodes: readNumberListField(body, "excludedStatusCodes"),
+    excludedSpanKinds: readStringListField(body, "excludedSpanKinds"),
+    excludedSpanNames: readStringListField(body, "excludedSpanNames"),
     /*
      * spanNameSearches is the only multiplicative filter (one ILIKE
      * predicate per entry) — cap it. The dashboard sends at most one.
@@ -2364,6 +2479,7 @@ router.post(
           modelType: ExceptionInstance,
           props: databaseProps,
           requested: serviceIds,
+          excluded: readExcludedServiceIds(body),
         });
 
       const request: ExceptionHistogramRequest = {
@@ -2374,6 +2490,11 @@ router.post(
         ...serviceFilter,
         exceptionTypes,
         environments,
+        excludedExceptionTypes: readStringListField(
+          body,
+          "excludedExceptionTypes",
+        ),
+        excludedEnvironments: readStringListField(body, "excludedEnvironments"),
         fingerprints,
         traceIds,
         escaped,
@@ -2483,7 +2604,15 @@ router.post(
         databaseProps,
       );
       const serviceFilter: TelemetryServiceFilter =
-        TelemetryReadScopeUtil.toServiceFilter(scope, serviceIds);
+        TelemetryReadScopeUtil.toServiceFilter(
+          scope,
+          serviceIds,
+          readExcludedServiceIds(body),
+        );
+      const excludedExceptionTypes: Array<string> | undefined =
+        readStringListField(body, "excludedExceptionTypes");
+      const excludedEnvironments: Array<string> | undefined =
+        readStringListField(body, "excludedEnvironments");
 
       /*
        * Per-facet ClickHouse query in parallel; per-facet errors degrade
@@ -2514,6 +2643,8 @@ router.post(
             ...serviceFilter,
             exceptionTypes,
             environments,
+            excludedExceptionTypes,
+            excludedEnvironments,
             fingerprints,
             traceIds,
             escaped,
@@ -2600,7 +2731,11 @@ router.post(
         databaseProps,
       );
       const serviceFilter: TelemetryServiceFilter =
-        TelemetryReadScopeUtil.toServiceFilter(scope, serviceIds);
+        TelemetryReadScopeUtil.toServiceFilter(
+          scope,
+          serviceIds,
+          readExcludedServiceIds(body),
+        );
 
       /*
        * Per-facet ClickHouse GROUP BY in parallel; per-facet errors degrade
@@ -2826,6 +2961,7 @@ router.post(
           modelType: Log,
           props: databaseProps,
           requested: serviceIds,
+          excluded: readExcludedServiceIds(body),
         });
 
       const request: AnalyticsRequest = {
@@ -2840,6 +2976,10 @@ router.post(
         ...serviceFilter,
         resourceScopes,
         severityTexts,
+        excludedSeverityTexts: readStringListField(
+          body,
+          "excludedSeverityTexts",
+        ),
         bodySearchText,
         traceIds,
         spanIds,
@@ -3206,6 +3346,7 @@ router.post(
           modelType: Log,
           props: databaseProps,
           requested: serviceIds,
+          excluded: readExcludedServiceIds(body),
         });
 
       const rows: Array<JSONObject> = await LogAggregationService.getExportLogs(
@@ -3218,6 +3359,10 @@ router.post(
           entityKeys,
           resourceScopes,
           severityTexts,
+          excludedSeverityTexts: readStringListField(
+            body,
+            "excludedSeverityTexts",
+          ),
           bodySearchText,
           traceIds,
           spanIds,
@@ -3453,7 +3598,12 @@ function scopeTraceFilters(
 ): TraceFilters {
   return {
     ...filters,
-    ...TelemetryReadScopeUtil.toServiceFilter(scope, filters.serviceIds),
+    // The services the reader left out, joined to the ones a block takes away.
+    ...TelemetryReadScopeUtil.toServiceFilter(
+      scope,
+      filters.serviceIds,
+      filters.excludedServiceIds,
+    ),
   };
 }
 

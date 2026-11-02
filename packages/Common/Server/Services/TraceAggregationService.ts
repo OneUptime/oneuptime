@@ -83,6 +83,14 @@ export interface TraceFilters {
   spanKinds?: Array<string> | undefined;
   spanNames?: Array<string> | undefined;
   /*
+   * What the reader left out (an explorer's "Status is not Error"): rows
+   * holding one of these are dropped, whatever else matches. Names are left
+   * out exactly - the value a facet row shows - never as a substring.
+   */
+  excludedStatusCodes?: Array<number> | undefined;
+  excludedSpanKinds?: Array<string> | undefined;
+  excludedSpanNames?: Array<string> | undefined;
+  /*
    * Substring name matches (ANDed). The span list compiles a single `name`
    * filter to `name ILIKE '%v%'` (Search) — aggregations must use the same
    * semantics or the histogram/facets disagree with the list. `spanNames`
@@ -1315,6 +1323,44 @@ export class TraceAggregationService {
         SQL` AND name IN (${{
           type: TableColumnType.Text,
           value: new Includes(request.spanNames),
+        }})`,
+      );
+    }
+
+    /*
+     * The values the reader left out. Each is its own NOT IN, applied beside
+     * whatever keeps rows on the same column: a name searched as a substring
+     * and one name left out exactly is a real filter ("GET, but not GET
+     * /health"), and on a column a row holds one value of, the two together
+     * read the same as the kept ones alone.
+     */
+    if (request.excludedStatusCodes && request.excludedStatusCodes.length > 0) {
+      statement.append(
+        SQL` AND statusCode NOT IN (${{
+          type: TableColumnType.Number,
+          value: new Includes(
+            request.excludedStatusCodes.map((code: number) => {
+              return String(code);
+            }),
+          ),
+        }})`,
+      );
+    }
+
+    if (request.excludedSpanKinds && request.excludedSpanKinds.length > 0) {
+      statement.append(
+        SQL` AND toString(kind) NOT IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.excludedSpanKinds),
+        }})`,
+      );
+    }
+
+    if (request.excludedSpanNames && request.excludedSpanNames.length > 0) {
+      statement.append(
+        SQL` AND name NOT IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.excludedSpanNames),
         }})`,
       );
     }
