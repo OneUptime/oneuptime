@@ -56,7 +56,7 @@ Type a query in the search box and press Enter, for example `severity:error serv
 
 ### Narrow it down with filters
 
-Click a value in the **Filters** sidebar to add it as a chip: a severity, a service, or a host, cluster or other resource that sent logs. Each value shows how many logs carry it. On a phone, tap **Filters** to open the sidebar.
+Click a value in the **Filters** sidebar to add it as a chip: a severity, a service, or a host, cluster or other resource that sent logs. Each value shows how many logs carry it. Click the minus beside a value to leave those logs out instead. Click the value again to undo it. On a phone, tap **Filters** to open the sidebar.
 
 ### Open a log
 

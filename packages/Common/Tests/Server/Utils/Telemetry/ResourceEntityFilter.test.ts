@@ -1243,6 +1243,115 @@ describe("ResourceEntityFilter", () => {
       expect(query["resourceEntityScopes"]).toBeUndefined();
     });
 
+    /*
+     * The resources a reader left out ride `excludedResourceFilters`, in
+     * the shape of `resourceFilters`, and resolve to the same scopes marked
+     * isExcluded - compiled to AND NOT (...).
+     */
+    test("resolves the resources left out to scopes marked isExcluded", async () => {
+      kubernetesClusterFindBy.mockResolvedValue([
+        { clusterIdentifier: "prod-eu" },
+      ]);
+
+      const query: Record<string, unknown> = {
+        excludedResourceFilters: { kubernetesClusterId: [CLUSTER_ID] },
+      };
+
+      await ResourceEntityFilter.rewriteAnalyticsQuery({
+        query,
+        projectId: PROJECT_ID,
+      });
+
+      expect(query["excludedResourceFilters"]).toBeUndefined();
+
+      const scopes: Array<ResourceEntityScope> = query[
+        "resourceEntityScopes"
+      ] as Array<ResourceEntityScope>;
+
+      expect(scopes).toHaveLength(1);
+      expect(scopes[0]!.isExcluded).toBe(true);
+      expect(scopes[0]!.entityIds).toEqual([CLUSTER_ID]);
+      expect(scopes[0]!.entityKeys).toEqual([
+        keyForKubernetesCluster(PROJECT_ID.toString(), "prod-eu"),
+      ]);
+    });
+
+    test("kept and left-out resources come back as one list, the kept ones positive", async () => {
+      kubernetesClusterFindBy.mockResolvedValue([
+        { clusterIdentifier: "prod-eu" },
+      ]);
+      hostFindBy.mockResolvedValue([{ hostIdentifier: "web-01" }]);
+
+      const query: Record<string, unknown> = {
+        resourceFilters: { kubernetesClusterId: [CLUSTER_ID] },
+        excludedResourceFilters: { hostId: [HOST_ID] },
+      };
+
+      await ResourceEntityFilter.rewriteAnalyticsQuery({
+        query,
+        projectId: PROJECT_ID,
+      });
+
+      const scopes: Array<ResourceEntityScope> = query[
+        "resourceEntityScopes"
+      ] as Array<ResourceEntityScope>;
+
+      expect(
+        scopes.map((scope: ResourceEntityScope): boolean => {
+          return scope.isExcluded === true;
+        }),
+      ).toEqual([false, true]);
+      expect(scopes[1]!.entityIds).toEqual([HOST_ID]);
+    });
+
+    test("without a tenant a resource left out keeps its id, still left out", async () => {
+      const query: Record<string, unknown> = {
+        excludedResourceFilters: { kubernetesClusterId: [CLUSTER_ID] },
+      };
+
+      await ResourceEntityFilter.rewriteAnalyticsQuery({ query });
+
+      expect(query["resourceEntityScopes"]).toEqual([
+        { entityIds: [CLUSTER_ID], entityKeys: [], isExcluded: true },
+      ]);
+      expect(kubernetesClusterFindBy).not.toHaveBeenCalled();
+    });
+
+    test("a malformed left-out filter leaves nothing out", async () => {
+      const query: Record<string, unknown> = {
+        excludedResourceFilters: { kubernetesClusterId: ["not-an-id"] },
+      };
+
+      await ResourceEntityFilter.rewriteAnalyticsQuery({
+        query,
+        projectId: PROJECT_ID,
+      });
+
+      expect(query["resourceEntityScopes"]).toBeUndefined();
+      expect(query["excludedResourceFilters"]).toBeUndefined();
+    });
+
+    test("resolveScopes marks every scope it resolves for resources left out", async () => {
+      kubernetesClusterFindBy.mockResolvedValue([
+        { clusterIdentifier: "prod-eu" },
+      ]);
+
+      const kept: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { kubernetesClusterId: [CLUSTER_ID] },
+        });
+      const leftOut: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { kubernetesClusterId: [CLUSTER_ID] },
+          isExcluded: true,
+        });
+
+      expect(kept[0]!.isExcluded).toBeUndefined();
+      expect(leftOut[0]).toEqual({ ...kept[0], isExcluded: true });
+    });
+
     test("a query with no resource filter is left alone", async () => {
       const query: Record<string, unknown> = { severityText: "Error" };
 

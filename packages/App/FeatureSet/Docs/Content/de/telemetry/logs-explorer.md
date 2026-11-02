@@ -56,7 +56,7 @@ Geben Sie eine Abfrage in das Suchfeld ein und drücken Sie Enter, zum Beispiel 
 
 ### Mit Filtern eingrenzen
 
-Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzuzufügen: einen Schweregrad, einen Dienst oder einen Host, Cluster oder eine andere Ressource, die Protokolle gesendet hat. Jeder Wert zeigt, wie viele Protokolle ihn tragen. Auf einem Telefon tippen Sie auf **Filter**, um die Seitenleiste zu öffnen.
+Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzuzufügen: einen Schweregrad, einen Dienst oder einen Host, Cluster oder eine andere Ressource, die Protokolle gesendet hat. Jeder Wert zeigt, wie viele Protokolle ihn tragen. Klicken Sie stattdessen auf das Minuszeichen neben einem Wert, um diese Protokolle auszuschließen. Klicken Sie erneut auf den Wert, um das rückgängig zu machen. Auf einem Telefon tippen Sie auf **Filter**, um die Seitenleiste zu öffnen.
 
 ### Ein Protokoll öffnen
 

@@ -36,7 +36,9 @@ configure({ asyncUtilTimeout: 15000 });
  * spans" row could not be cleared, and a Host Name holding `*`, `?` or a
  * space never showed as checked at all. Logs toggled - but its exclude
  * button was an empty placeholder, as it was on every explorer but Security
- * Events (pinned in SecurityEventsViewer.test.tsx).
+ * Events (pinned in SecurityEventsViewer.test.tsx). Every explorer now
+ * leaves a value out for real, and offers the minus on every row it can
+ * (ExplorerFacetExclude.test.tsx follows what an exclusion does).
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -298,8 +300,13 @@ async function expectChosen(
   });
 }
 
-function noExcludeButtons(): void {
-  expect(screen.queryAllByRole("button", { name: /^Exclude / })).toEqual([]);
+const EXCLUDE_BUTTON_NAME: RegExp = /^Exclude /;
+
+// The minus a row offers to leave its value out, on every row that can.
+function hasExcludeButtons(): void {
+  expect(
+    screen.queryAllByRole("button", { name: EXCLUDE_BUTTON_NAME }).length,
+  ).toBeGreaterThan(0);
 }
 
 beforeEach(() => {
@@ -582,10 +589,13 @@ describe("Traces: a facet value clicks on and off", () => {
     });
   });
 
-  test("the sidebar offers no exclude button: the traces chart and counts cannot leave a value out", async () => {
+  test("the sidebar offers the minus: the traces chart and counts leave a value out too", async () => {
     await open();
 
-    noExcludeButtons();
+    hasExcludeButtons();
+    expect(
+      screen.getByRole("button", { name: "Exclude checkout-api" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -617,7 +627,7 @@ describe("Metrics: a Service clicks on and off", () => {
       ).toBeUndefined();
     });
 
-    noExcludeButtons();
+    hasExcludeButtons();
   });
 });
 
@@ -643,7 +653,7 @@ describe("Exceptions: an Exception Type clicks on and off", () => {
       ).toBeUndefined();
     });
 
-    noExcludeButtons();
+    hasExcludeButtons();
   });
 
   test("a value with a wildcard character is a plain value, checked and unchecked as such", async () => {
@@ -698,10 +708,13 @@ describe("Logs: a severity clicks on and off", () => {
     });
   });
 
-  test("the sidebar offers no exclude button: the old one was an empty placeholder", async () => {
+  test("the sidebar offers the minus, and it is no longer an empty placeholder", async () => {
     await open();
 
-    noExcludeButtons();
+    hasExcludeButtons();
+    expect(
+      screen.getByRole("button", { name: "Exclude Error" }),
+    ).toBeInTheDocument();
   });
 
   test("REGRESSION: picking a severity already applied in the search bar keeps its chip", async () => {

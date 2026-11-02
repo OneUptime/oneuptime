@@ -3,6 +3,10 @@ import {
   SERVICE_FACET_KEYS,
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import {
+  getBaseFacetKey,
+  toExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   ActiveFilter,
@@ -88,7 +92,11 @@ export const collectLogsEntityIds: CollectLogsEntityIdsFunction = (data: {
   }
 
   if (data.appliedFacetFilters) {
-    for (const facetKey of LOGS_ENTITY_FACET_KEYS) {
+    // A service left out (`!primaryEntityId`) is named like one kept.
+    for (const facetKey of [
+      ...LOGS_ENTITY_FACET_KEYS,
+      ...LOGS_ENTITY_FACET_KEYS.map(toExcludeFacetKey),
+    ]) {
       for (const value of data.appliedFacetFilters.get(facetKey) || []) {
         const normalized: string = normalizeId(value);
 
@@ -277,7 +285,8 @@ export const applyLogsEntityChipDisplay: ApplyLogsEntityChipDisplayFunction = (
   );
 
   return filters.map((filter: ActiveFilter): ActiveFilter => {
-    if (!isLogsEntityFacetKey(filter.facetKey)) {
+    // A service left out (`!primaryEntityId`) is named like one kept.
+    if (!isLogsEntityFacetKey(getBaseFacetKey(filter.facetKey))) {
       return filter;
     }
 

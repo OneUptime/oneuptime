@@ -1,5 +1,6 @@
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import { isServiceFacetKey } from "Common/Types/Telemetry/ResourceEntityFacet";
+import { getBaseFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 
 /*
  * The Exceptions explorer's facet counts: which facets it asks the server
@@ -34,10 +35,15 @@ const COUNTED_FACET_KEYS: ReadonlySet<string> = new Set<string>(
   EXCEPTIONS_EXPLORER_FACET_KEYS,
 );
 
-// The facet a chip's key counts under, or null for one no facet lists.
+/*
+ * The facet a chip's key counts under, or null for one no facet lists. A
+ * chip that leaves its value out (`!exceptionType`) counts under its facet
+ * too: a value left out is a choice in it.
+ */
 export const getExceptionChipFacetKey: (chipKey: string) => string | null = (
-  chipKey: string,
+  rawChipKey: string,
 ): string | null => {
+  const chipKey: string = getBaseFacetKey(rawChipKey);
   const facetKey: string = isServiceFacetKey(chipKey)
     ? EXCEPTIONS_SERVICE_FACET_KEY
     : chipKey;

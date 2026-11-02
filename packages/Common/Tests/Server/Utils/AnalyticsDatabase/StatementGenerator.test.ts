@@ -1288,6 +1288,73 @@ describe("StatementGenerator", () => {
         );
       });
 
+      /*
+       * A resource the reader left out ("Host is not web-01") negates its
+       * group as a whole, so a row that belongs to it in ANY of the three
+       * ways - primary entity, entity key or resource attribute - is left
+       * out of the list, exactly as the chart's appendResourceScopeFilters
+       * leaves it out.
+       */
+      test("a scope left out negates its whole group", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            {
+              entityIds: [CLUSTER_ID],
+              entityKeys: ["210dac24142f1baa"],
+              attributeKey: "resource.k8s.cluster.name",
+              attributeValues: ["prod-eu"],
+              isExcluded: true,
+            },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND NOT ({p0:Identifier} IN {p1:Array(String)} OR hasAny({p2:Identifier}, {p3:Array(String)}) OR {p4:Identifier}[{p5:String}] IN {p6:Array(String)})",
+        );
+      });
+
+      test("a kept and a left-out scope AND together: in the cluster, not on the host", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            { entityIds: [CLUSTER_ID], entityKeys: ["210dac24142f1baa"] },
+            {
+              entityIds: [HOST_ID],
+              entityKeys: ["9f8e7d6c5b4a3928"],
+              isExcluded: true,
+            },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier} IN {p1:Array(String)} OR hasAny({p2:Identifier}, {p3:Array(String)})) " +
+            "AND NOT ({p4:Identifier} IN {p5:Array(String)} OR hasAny({p6:Identifier}, {p7:Array(String)}))",
+        );
+      });
+
+      test("only `true` negates a scope: anything else keeps it", () => {
+        for (const isExcluded of [false, "true", 1, null]) {
+          const statement: Statement = resourceGenerator.toWhereStatement({
+            resourceEntityScopes: [
+              { entityIds: [CLUSTER_ID], entityKeys: [], isExcluded },
+            ],
+          } as any);
+
+          expect(statement.query).toBe(
+            "AND ({p0:Identifier} IN {p1:Array(String)})",
+          );
+        }
+      });
+
+      test("a left-out scope with nothing to match leaves nothing out", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            { entityIds: [], entityKeys: [], isExcluded: true },
+          ],
+        } as any);
+
+        expect(statement.query).toBe("");
+      });
+
       test("an empty scope emits no predicate rather than an empty IN", () => {
         const statement: Statement = resourceGenerator.toWhereStatement({
           resourceEntityScopes: [{ entityIds: [], entityKeys: [] }],

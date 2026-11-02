@@ -56,7 +56,7 @@ Digitate una query nella casella di ricerca e premete Invio, ad esempio `severit
 
 ### Restringere con i filtri
 
-Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip: una gravità, un servizio, oppure un host, un cluster o un'altra risorsa che ha inviato log. Ogni valore indica quanti log lo riportano. Su un telefono, toccate **Filtri** per aprire la barra laterale.
+Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip: una gravità, un servizio, oppure un host, un cluster o un'altra risorsa che ha inviato log. Ogni valore indica quanti log lo riportano. Fate clic sul segno meno accanto a un valore per escludere invece quei log. Fate di nuovo clic sul valore per annullare. Su un telefono, toccate **Filtri** per aprire la barra laterale.
 
 ### Aprire un log
 

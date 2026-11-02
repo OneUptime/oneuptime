@@ -316,6 +316,40 @@ describe("describeUnappliedScopeFilters", () => {
     );
   });
 
+  /*
+   * A value the Viewer leaves out ("Severity is not debug", "Service is not
+   * checkout") has no "is not" on an Insights page: it rides along, is
+   * named once - never as the raw `!severityText` key - and is never
+   * applied as the value it leaves out.
+   */
+  test("names values the Viewer leaves out once, in words", () => {
+    expect(
+      Scope.describeUnappliedScopeFilters([
+        ["!severityText", ["Debug"]],
+        ["!primaryEntityId", ["svc-1"]],
+        ["!attributes.http.method", ["GET"]],
+      ]),
+    ).toBe("Also filtered in the Viewer, not applied here: excluded values");
+  });
+
+  test("a service or resource left out is never applied as one kept", () => {
+    const split: TelemetryScopeSelection = Scope.splitTelemetryScopeFilters(
+      [
+        ["!primaryEntityId", ["svc-1"]],
+        ["!hostId", ["host-1"]],
+        ["primaryEntityId", ["svc-2"]],
+      ],
+      { supportsResourceEntityFacets: true },
+    );
+
+    expect(split.serviceIds).toEqual(["svc-2"]);
+    expect(split.resourceFilters).toEqual({});
+    expect(split.unsupported).toEqual([
+      ["!primaryEntityId", ["svc-1"]],
+      ["!hostId", ["host-1"]],
+    ]);
+  });
+
   test("says nothing when nothing was carried, so no chip renders", () => {
     expect(Scope.describeUnappliedScopeFilters([])).toBe("");
   });

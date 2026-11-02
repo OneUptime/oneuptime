@@ -45,6 +45,12 @@ import {
   planFacetCountRequests,
   readFacetCountAnswer,
 } from "Common/UI/Components/TelemetryViewer/FacetCountPlan";
+import {
+  FacetChoiceState,
+  chooseFacetValueInMap,
+} from "Common/UI/Components/TelemetryViewer/FacetExclusion";
+import { FacetValueState } from "Common/UI/Components/TelemetryViewer/FacetSelection";
+import { getBaseFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
 import { LOGS_SIGNAL, attachLogsLockedFilterDetails } from "./LogsLockedScope";
 import {
   LockedEntityKeyDisplayMap,
@@ -2273,52 +2279,60 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Add a chip: a facet value clicked in the sidebar, or a `key:value` picked
-   * in the search bar. Adding one that is already there changes nothing. It
-   * used to toggle, so picking `severity:error` in the search bar while an
-   * Error chip was applied took the chip off; the sidebar now takes a
-   * checked value off through handleRemoveFilter, the chip's own x.
+   * Put a value in exactly one state: kept (a facet value clicked, a
+   * `key:value` picked in the search bar) or left out (a facet row's minus,
+   * "Severity is not debug"). A value in the other state moves; asking for
+   * the state it is already in changes nothing. It used to toggle, so
+   * picking `severity:error` in the search bar while an Error chip was
+   * applied took the chip off; the sidebar takes a checked or excluded value
+   * off through handleRemoveFilter, the chip's own x.
+   *
+   * The chart and the facet counts follow a left-out value as the list does:
+   * the aggregate endpoints take what is left out beside what is kept
+   * (excludedSeverityTexts, excludedServiceIds, excludedResourceFilters).
    */
+  const chooseFacetValue: (
+    facetKey: string,
+    value: string,
+    state: FacetChoiceState,
+  ) => void = useCallback(
+    (facetKey: string, value: string, state: FacetChoiceState): void => {
+      const current: Map<string, Set<string>> = appliedFacetFiltersRef.current;
+      const nextFilters: Map<string, Set<string>> = chooseFacetValueInMap(
+        current,
+        facetKey,
+        value,
+        state,
+      );
+
+      if (nextFilters === current) {
+        return;
+      }
+
+      appliedFacetFiltersRef.current = nextFilters;
+      setAppliedFacetFilters(nextFilters);
+      setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
+      setPage(1);
+      disableLiveMode();
+    },
+    [disableLiveMode, rebuildFilterOptionsFromFacets],
+  );
+
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string): void => {
-        const current: Map<
-          string,
-          Set<string>
-        > = appliedFacetFiltersRef.current;
-
-        if (current.get(facetKey)?.has(value)) {
-          return;
-        }
-
-        const nextFilters: Map<string, Set<string>> = new Map(
-          Array.from(current.entries()).map(([k, v]: [string, Set<string>]) => {
-            return [k, new Set(v)] as [string, Set<string>];
-          }),
-        );
-
-        nextFilters.set(
-          facetKey,
-          new Set([...Array.from(nextFilters.get(facetKey) || []), value]),
-        );
-
-        appliedFacetFiltersRef.current = nextFilters;
-        setAppliedFacetFilters(nextFilters);
-        setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
-        setPage(1);
-        disableLiveMode();
+        chooseFacetValue(facetKey, value, FacetValueState.Included);
       },
-      [disableLiveMode, rebuildFilterOptionsFromFacets],
+      [chooseFacetValue],
     );
 
-  /*
-   * No exclude for logs: the list could leave a value out, but the chart
-   * and the facet counts beside it are read through endpoints that take
-   * only values to keep (severityTexts, serviceIds, resourceFilters), so an
-   * exclusion would draw bars and counts for rows the list no longer shows.
-   * Without a handler the sidebar shows no exclude button at all; typing
-   * `-severity:debug` still leaves rows out of the list.
-   */
+  const handleFacetExclude: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string): void => {
+        chooseFacetValue(facetKey, value, FacetValueState.Excluded);
+      },
+      [chooseFacetValue],
+    );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
     useCallback(
@@ -2825,11 +2839,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     for (const [facetKey, values] of appliedFacetFilters.entries()) {
       /*
        * `<key>: <value>` for an attribute chip, the facet's label ("Proxmox
-       * Cluster", "Message contains") for everything else.
+       * Cluster", "Message contains") for everything else - a chip that
+       * leaves its value out included: the chip row says it excludes.
        */
       const displayKey: string = getLogsFacetChipDisplayKey(facetKey);
 
-      const isAttributeFacet: boolean = facetKey.startsWith(
+      const isAttributeFacet: boolean = getBaseFacetKey(facetKey).startsWith(
         ATTRIBUTE_FACET_PREFIX,
       );
 
@@ -3119,6 +3134,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           facetData={facetData}
           facetLoading={facetLoading || awaitsInitialSavedView}
           onFacetInclude={handleFacetInclude}
+          onFacetExclude={handleFacetExclude}
           onFacetSearchChange={(facetKey: string, text: string) => {
             setFacetSearchText(
               (prev: Record<string, string>): Record<string, string> => {

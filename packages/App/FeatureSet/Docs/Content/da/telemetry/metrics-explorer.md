@@ -43,7 +43,7 @@ Udforskeren har fem faner:
 Gå til **Produkter → Observabilitet → Målinger**. **Seer** viser hver metrik, dit projekt har modtaget, efter navn, hver med et lille diagram over tidsintervallet og sin seneste værdi.
 
 - Søg i navne med løse ord eller `name:`, for eksempel finder `name:http.server` metrikken `http.server.request.duration`. Se [Søgesyntaks](/docs/telemetry/search-syntax#metrikker).
-- Filtrér efter **Tjeneste** i sidepanelet for kun at se de metrikker, én tjeneste rapporterer.
+- Filtrér efter **Tjeneste** i sidepanelet for kun at se de metrikker, én tjeneste rapporterer. Klik på minustegnet ved siden af en tjeneste for i stedet at skjule de metrikker, den rapporterer.
 - Klik på en metrik for at vise den i måleudforskeren.
 
 ## Vis en metrik i et diagram
