@@ -171,6 +171,7 @@ export class DocumentationGenerator {
     await this.generateDataSourceDocs();
     await this.generateExamples();
     await this.generateOpenTofuGuide();
+    await this.generatePeopleGuide();
     this.copyModules();
     await this.generateReadme();
   }
@@ -240,6 +241,17 @@ data "${this.config.providerName}_incident_severity" "critical" {
 
 Server-side ids that a resource carries inside it - the ids of a monitor's steps, criteria and incident templates - are the server's to manage. Never write them: the provider sends none, the server gives them, and it keeps them across every apply, so incidents keep pointing at the criteria that raised them.
 ${this.generateRenamedSection()}
+## People by email address
+
+Every resource that names a person takes their email address as well as their user ID - \`user_email\` beside \`user_id\`, \`owner_user_emails\` beside \`owner_users\` - and a team member named by an address that is new to the project invites them. See [Managing people and teams](./guides/people) for onboarding and offboarding as code.
+
+\`\`\`terraform
+resource "${this.config.providerName}_team_member" "alice" {
+  team_id    = ${this.config.providerName}_team.sre.id
+  user_email = "alice@example.com"
+}
+\`\`\`
+
 ## OpenTofu
 
 This provider is published to the OpenTofu Registry as well, and its end-to-end suite runs against both engines on every change. Configuration is identical — see the [OpenTofu guide](./guides/opentofu).
@@ -703,7 +715,27 @@ moved {
 `
       : "";
 
-    const importSection: string = resource.operations?.read
+    const importSection: string = resource.membershipImport
+      ? `## Import
+
+Import an existing ${resource.name.replace(/_/g, " ")} by its ${resource.membershipImport.parentAttribute.replace(/_id$/, "")} and the person's email address (or user ID), with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
+
+\`\`\`terraform
+import {
+  to = ${provider}_${resource.name}.example
+  id = "<${resource.membershipImport.parentAttribute}>/alice@example.com"
+}
+\`\`\`
+
+or on the command line:
+
+\`\`\`shell
+terraform import ${provider}_${resource.name}.example <${resource.membershipImport.parentAttribute}>/alice@example.com
+\`\`\`
+
+Imported by its address, the person's \`user_email\` stays as you wrote it. Its own ID works too.
+`
+      : resource.operations?.read
       ? `## Import
 
 Import an existing ${resource.name.replace(/_/g, " ")} by its id, with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
@@ -760,8 +792,129 @@ ${importSection}`;
       return `\n${this.getOnCallScheduleLayerGuide()}\n`;
     }
 
+    if (resource.membershipImport) {
+      return `\n${this.getTeamMemberGuide()}`;
+    }
+
     return "";
   }
+
+  /*
+   * The team member page's guide: what naming someone by address does -
+   * invite them when they are new - how to put them on call in the same
+   * configuration, what removing a member does, and how addresses compare.
+   */
+  private getTeamMemberGuide(): string {
+    const provider: string = this.config.providerName;
+
+    return `## Invite people by email address
+
+Name the person by \`user_email\`. Someone who is in the project already joins the team at once; someone who is not is invited, as the dashboard's **Invite** does: OneUptime makes them an account if they have none, and emails them. \`has_accepted_invitation\` is \`false\` until they accept, and their accepting is no change to the plan.
+
+To put someone this configuration invites on call, or make them an owner, refer to their membership: Terraform then invites them first.
+
+\`\`\`terraform
+resource "${provider}_monitor_user_owner" "alice" {
+  monitor_id = ${provider}_monitor.example.id
+  user_id    = ${provider}_team_member.example.user_id
+}
+\`\`\`
+
+## Remove someone
+
+Removing a member from the configuration removes them from the team. Out of their last team of the project, they are out of the project: OneUptime takes them off every on-call schedule, escalation rule and override, and off everything they own. Remove those from the configuration in the same change. Their OneUptime account stays theirs. A team that must keep a member refuses to lose its last one who has accepted.
+
+## Email addresses
+
+OneUptime keeps addresses in lower case, and finds a person by theirs in any case. The address stays in state as you wrote it, and a person who changes theirs in OneUptime stays the same person to Terraform: nothing changes until you write the new address, and then only the address does.
+`;
+  }
+
+  /*
+   * Docs guide (docs/guides/people.md): onboarding and offboarding as code -
+   * teams and their members by email address, people on call and owning
+   * things, finding someone, and what removing them does.
+   */
+  private async generatePeopleGuide(): Promise<void> {
+    const provider: string = this.config.providerName;
+
+    const guide: string = `---
+page_title: "Managing people and teams"
+subcategory: "Guides"
+description: |-
+  Teams and their members by email address: invitations, on-call, owners and offboarding as code.
+---
+
+# Managing people and teams
+
+Every resource that names a person takes their email address as well as their user ID: \`user_email\` beside \`user_id\`, \`owner_user_emails\` beside \`owner_users\`, \`assigned_to_user_email\` beside \`assigned_to_user_id\`, and the same everywhere else. Give one of the two. The provider finds the person among the project's members and the people invited to it, and sends their ID. It searches only the API key's project: nobody outside it is ever found.
+
+## Onboarding
+
+A team member named by an address nobody in the project has is invited by it, as the dashboard's **Invite** does: OneUptime makes them an account if they have none, and emails them. Someone in the project already joins the team at once.
+
+\`\`\`terraform
+resource "${provider}_team" "sre" {
+  name = "SRE"
+}
+
+resource "${provider}_team_member" "alice" {
+  team_id    = ${provider}_team.sre.id
+  user_email = "alice@example.com"
+}
+
+# Alice takes turns on call from her first day: invited people can.
+resource "${provider}_on_call_schedule_layer_user" "alice" {
+  on_call_duty_policy_schedule_id       = ${provider}_on_call_policy_schedule.weekly.id
+  on_call_duty_policy_schedule_layer_id = ${provider}_on_call_schedule_layer.weekly.id
+  user_id                               = ${provider}_team_member.alice.user_id
+}
+
+# Bob is in the project already: name him by address anywhere.
+resource "${provider}_monitor_user_owner" "api" {
+  monitor_id = ${provider}_monitor.api.id
+  user_email = "bob@example.com"
+}
+\`\`\`
+
+Refer to a membership this configuration makes (\`user_id = ${provider}_team_member.alice.user_id\`) to name the person it invites: Terraform then invites them before it names them anywhere else. An address nobody in the project has is a warning in the plan, and an error in the apply.
+
+The API key needs a permission that may read the project's team members (Project Member, Project Admin or Read Teams) to find people, and one that may invite them (Project Admin, or Invite New Members) to add them.
+
+## Finding someone
+
+\`data "${provider}_user"\` looks someone up by \`email\`, \`name\` or \`id\`, and gives their ID, name, whether they have joined, and the teams they are in.
+
+\`\`\`terraform
+data "${provider}_user" "alice" {
+  email = "alice@example.com"
+}
+\`\`\`
+
+## Offboarding
+
+Remove the person's memberships from the configuration. Out of their last team, they are out of the project, and OneUptime takes them off every on-call schedule, escalation rule and override, and off everything they own. Remove those resources in the same change. Their OneUptime account stays theirs; only the project is left.
+
+## Importing
+
+A membership no screen shows the ID of is imported by its team and the person's address:
+
+\`\`\`shell
+terraform import ${provider}_team_member.alice <team id>/alice@example.com
+\`\`\`
+
+## When someone changes their address
+
+The address stays in state as you wrote it, and the person stays the same person to Terraform: nothing changes until you write the new address, and then only the address does. OneUptime keeps addresses in lower case and compares them in any case.
+
+## With an identity provider
+
+If your identity provider manages your people over SCIM, let it: while SCIM Push Groups manages a project's teams, OneUptime refuses team member changes from anywhere else, Terraform included. Keep teams, on-call and owners in Terraform, named by address.
+`;
+
+    await this.fileGenerator.writeFileInDir("docs/guides", "people.md", guide);
+  }
+
 
   // The schema lines of the attributes a page's guide covers point at it.
   private withGuideLinks(
@@ -1219,8 +1372,11 @@ resource "${provider}_monitor" "example" {
     const provider: string = this.config.providerName;
     const block: SchemaDumpBlock = this.getDataSourceBlock(dataSource);
     const label: string = dataSource.name.replace(/_/g, " ");
+    // A data source written by hand says what it is itself.
     const description: string = (
-      dataSource.description || `${StringUtils.capitalize(label)} data source.`
+      (dataSource.staticFile && block.description) ||
+      dataSource.description ||
+      `${StringUtils.capitalize(label)} data source.`
     ).trim();
 
     const filters: Array<string> = Object.entries(dataSource.schema)

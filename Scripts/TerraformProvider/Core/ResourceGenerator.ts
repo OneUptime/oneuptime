@@ -260,6 +260,11 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "internal/provider",
     );
     await this.copyStaticFile("acceptance_test.go", "internal/provider");
+    // People named by email address: invitations, on-call, owners, lookups.
+    await this.copyStaticFile(
+      "acceptance_people_test.go",
+      "internal/provider",
+    );
 
     /*
      * Package-level ObjectType registry shared by every resource and the
