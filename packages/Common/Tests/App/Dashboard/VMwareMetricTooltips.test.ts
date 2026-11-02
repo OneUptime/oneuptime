@@ -46,14 +46,20 @@ const OVERVIEW: string = readDashboard("Pages/VMware/View/Index.tsx");
 const DATASTORE_DETAIL: string = readDashboard(
   "Pages/VMware/View/DatastoreDetail.tsx",
 );
-const VM_DETAIL: string = readDashboard(
-  "Pages/VMware/View/VirtualMachineDetail.tsx",
-);
 const RESOURCE_POOLS: string = readDashboard(
   "Pages/VMware/View/ResourcePools.tsx",
 );
 const UTILS: string = readDashboard(
   "Pages/VMware/Utils/VMwareResourceUtils.ts",
+);
+// The rules every VMware page judges its parts by: the levels live here.
+const HEALTH: string = readDashboard("Pages/VMware/Utils/VMwareHealth.ts");
+// A part's Overview: a datastore's and a VM's tiles.
+const DATASTORE_OVERVIEW: string = readDashboard(
+  "Components/VMware/Part/VMwareDatastoreOverview.tsx",
+);
+const VM_OVERVIEW: string = readDashboard(
+  "Components/VMware/Part/VMwareVirtualMachineOverview.tsx",
 );
 // An ESXi host's page: its data module and the parts that draw its numbers.
 const HOST_DATA: string = readDashboard("Pages/VMware/Utils/VMwareHostData.ts");
@@ -111,23 +117,16 @@ const D: Record<VMwareMetric, string> = VMWARE_METRIC_DESCRIPTIONS;
  */
 const TITLES: Record<VMwareMetric, string> = {
   overviewInventoryCounts: "vCenter inventory counts",
-  overviewHostEffectiveness: "Host Effectiveness",
+  overviewHostEffectiveness: "Effective hosts",
   overviewHostCpu: "Host CPU",
   overviewHostMemory: "Host Memory",
   overviewDatastores: "Datastores",
   overviewVmCpuReady: "VM CPU Ready",
-  overviewVirtualMachines: "Virtual Machines",
   overviewHostCpuChart: "Host CPU",
   overviewHostMemoryChart: "Host Memory",
   overviewDatastoreUsedChart: "Datastore Used",
   overviewVmCpuReadyChart: "VM CPU Ready",
   overviewVCenterHealth: "vCenter Health",
-  overviewDatacenterCount: "Datacenters",
-  overviewClusterCount: "Clusters",
-  overviewHostCount: "Hosts",
-  overviewVirtualMachineCount: "Virtual Machines",
-  overviewDatastoreCount: "Datastores",
-  overviewResourcePoolCount: "Resource Pools",
   overviewAgentStatus: "Data Status",
   topHostsByCpu: "Host CPU",
   topHostsByMemory: "Host Memory",
@@ -166,11 +165,15 @@ const TITLES: Record<VMwareMetric, string> = {
   clusterTemplates: "VM Templates",
   clusterCpu: "CPU (Effective / Total)",
   clusterMemory: "Memory (Effective / Total)",
+  clusterCpuInUse: "CPU",
+  clusterMemoryInUse: "Memory",
+  clusterHostFailure: "Host failure",
+  hostListStatus: "Status",
   hostListCpu: "CPU",
   hostListMemory: "Memory",
   hostListCpuCapacity: "CPU Capacity",
+  clusterListStatus: "Status",
   vmListStatus: "Status",
-  vmListPowerState: "Power State",
   vmListCpuReady: "CPU Ready",
   vmListCpu: "CPU",
   vmListMemory: "Memory",
@@ -178,9 +181,6 @@ const TITLES: Record<VMwareMetric, string> = {
   datastoreListUsedCapacity: "Used / Capacity",
   clusterListHosts: "Hosts (effective / total)",
   clusterListVirtualMachines: "VMs (powered on / total)",
-  clusterListTemplates: "Templates",
-  clusterListEffectiveCpu: "Effective CPU",
-  clusterListEffectiveMemory: "Effective Memory",
   resourcePoolListCpu: "CPU Usage",
   resourcePoolListMemory: "Memory Usage",
   resourcePoolListBalloonedSwapped: "Ballooned / Swapped",
@@ -260,8 +260,9 @@ describe("VMware metric descriptions: shape", () => {
         D.topVmsByCpuReady,
       ]).size,
     ).toBe(3);
-    expect(D.overviewDatastores).not.toBe(D.overviewDatastoreCount);
-    expect(D.overviewVirtualMachines).not.toBe(D.overviewVirtualMachineCount);
+    // A cluster's page: its usage tiles and its capacity Details say different numbers.
+    expect(D.clusterCpuInUse).not.toBe(D.clusterCpu);
+    expect(D.clusterMemoryInUse).not.toBe(D.clusterMemory);
   });
 });
 
@@ -405,18 +406,19 @@ describe("VMware metric descriptions: the time window each number covers", () =>
   });
 
   test("the Datastores tile reads every datastore's last report, fresh or not", () => {
-    // The Datastore branch of loadInventory never consults `fresh`.
-    const branch: string = OVERVIEW.slice(
-      OVERVIEW.indexOf(
-        "} else if (row.kind === VMwareResourceKind.Datastore) {",
-      ),
-      OVERVIEW.indexOf(
-        "} else if (row.kind === VMwareResourceKind.ResourcePool) {",
-      ),
+    // The datastore loop of loadInventory never consults freshness.
+    const loop: string = OVERVIEW.slice(
+      OVERVIEW.indexOf("for (const datastore of datastores) {"),
+      OVERVIEW.indexOf("const topHostsByCpu"),
     );
 
-    expect(branch).toContain("toNumber(row.latestDiskBytes)");
-    expect(branch).not.toContain("fresh");
+    expect(loop).toContain("getVMwareDatastorePercent(datastore)");
+    expect(loop).not.toContain("Fresh");
+    expect(loop).not.toContain("fresh");
+    // The share as reported, or worked out from the used and total bytes.
+    expect(squash(HEALTH)).toContain(
+      "const reported: number | null = toVMwareNumber(row.latestDiskPercent);",
+    );
     expect(D.overviewDatastores).toContain("latest report, however old");
   });
 
@@ -436,10 +438,6 @@ describe("VMware metric descriptions: the time window each number covers", () =>
   test.each([
     "overviewInventoryCounts",
     "overviewHostEffectiveness",
-    "overviewVirtualMachines",
-    "overviewDatacenterCount",
-    "overviewHostCount",
-    "overviewVirtualMachineCount",
     "topHostsByCpu",
     "topHostsByMemory",
     "topVmsByCpuReady",
@@ -561,31 +559,47 @@ describe("VMware metric descriptions: stale data", () => {
 });
 
 describe("VMware metric descriptions: thresholds match the code", () => {
-  const warn: number = numericConstant(OVERVIEW, "DATASTORE_WARN_PERCENT");
+  // One set of levels, in the rules every page reads (VMwareHealth).
+  const warn: number = numericConstant(
+    HEALTH,
+    "VMWARE_DATASTORE_WARNING_PERCENT",
+  );
   const critical: number = numericConstant(
-    OVERVIEW,
-    "DATASTORE_CRITICAL_PERCENT",
+    HEALTH,
+    "VMWARE_DATASTORE_CRITICAL_PERCENT",
   );
   const cpuReady: number = numericConstant(
-    OVERVIEW,
-    "VM_CPU_READY_WARN_PERCENT",
+    HEALTH,
+    "VMWARE_CPU_READY_WARNING_PERCENT",
   );
 
-  test("the datastore detail page flags at the same levels as the overview", () => {
-    expect(numericConstant(DATASTORE_DETAIL, "DATASTORE_WARN_PERCENT")).toBe(
-      warn,
-    );
-    expect(
-      numericConstant(DATASTORE_DETAIL, "DATASTORE_CRITICAL_PERCENT"),
-    ).toBe(critical);
+  test("the levels are the alert templates' levels", () => {
+    expect([warn, critical, cpuReady]).toEqual([80, 90, 10]);
   });
 
-  test.each([
-    "overviewDatastores",
-    "overviewDatastoreCount",
-    "overviewVCenterHealth",
-    "datastoreUsedPercent",
-  ] as Array<VMwareMetric>)(
+  test("the overview, a datastore's page and a VM's page read the same levels", () => {
+    expect(OVERVIEW).toContain(
+      "const DATASTORE_WARN_PERCENT: number = VMWARE_DATASTORE_WARNING_PERCENT;",
+    );
+    expect(OVERVIEW).toContain(
+      "const DATASTORE_CRITICAL_PERCENT: number = VMWARE_DATASTORE_CRITICAL_PERCENT;",
+    );
+    expect(OVERVIEW).toContain(
+      "const VM_CPU_READY_WARN_PERCENT: number = VMWARE_CPU_READY_WARNING_PERCENT;",
+    );
+    // A datastore's Used tile and its utilization chart's text.
+    expect(squash(DATASTORE_OVERVIEW)).toContain(
+      "warn: VMWARE_DATASTORE_WARNING_PERCENT, danger: VMWARE_DATASTORE_CRITICAL_PERCENT,",
+    );
+    expect(DATASTORE_DETAIL).toContain(
+      "warnPercent: VMWARE_DATASTORE_WARNING_PERCENT,",
+    );
+    expect(DATASTORE_DETAIL).toContain(
+      "criticalPercent: VMWARE_DATASTORE_CRITICAL_PERCENT,",
+    );
+  });
+
+  test.each(["overviewDatastores", "datastoreUsedPercent"] as Array<VMwareMetric>)(
     "%s names the datastore warning and critical levels",
     (key: VMwareMetric) => {
       expect(D[key]).toContain(`${warn}%`);
@@ -593,10 +607,15 @@ describe("VMware metric descriptions: thresholds match the code", () => {
     },
   );
 
+  test("vCenter Health names the full datastore it calls urgent at the critical level", () => {
+    expect(D.overviewVCenterHealth).toContain(
+      `a datastore more than ${critical}% full`,
+    );
+  });
+
   test.each([
     "overviewVmCpuReady",
     "overviewVmCpuReadyChart",
-    "overviewVCenterHealth",
     "topVmsByCpuReady",
     "vmCpuReady",
     "vmListCpuReady",
@@ -607,8 +626,10 @@ describe("VMware metric descriptions: thresholds match the code", () => {
     },
   );
 
-  test("the VM detail page flags CPU Ready at the same level", () => {
-    expect(VM_DETAIL).toContain(`readiness > ${cpuReady} ?`);
+  test("a VM's page says it waits for a CPU at the same level", () => {
+    expect(squash(VM_OVERVIEW)).toContain(
+      "cpuReady !== null && cpuReady > VMWARE_CPU_READY_WARNING_PERCENT",
+    );
   });
 
   test("the VM CPU Ready tile turns amber where its text says", () => {
@@ -635,7 +656,7 @@ describe("VMware metric descriptions: thresholds match the code", () => {
     expect(D.datastoreGrowthForecast).toContain(`last ${hours} hours`);
     expect(DATASTORE_DETAIL).toContain("daysToFull <= 365");
     expect(D.datastoreGrowthForecast).toContain("within a year");
-    expect(DATASTORE_DETAIL).toContain('"Full now"');
+    expect(DATASTORE_OVERVIEW).toContain('tx("Full now")');
     expect(D.datastoreGrowthForecast).toContain("Full now");
     expect(D.datastoreGrowthForecast).toContain("straight-line");
   });
@@ -751,7 +772,7 @@ describe("VMware metric descriptions: an ESXi host's page", () => {
 
     expect([warn, danger]).toEqual([
       5,
-      numericConstant(OVERVIEW, "VM_CPU_READY_WARN_PERCENT"),
+      numericConstant(HEALTH, "VMWARE_CPU_READY_WARNING_PERCENT"),
     ]);
     expect(D.hostPageBusiestVirtualMachines).toContain(
       `amber from ${warn}%, red from ${danger}%`,
@@ -827,22 +848,21 @@ describe("VMware metric descriptions: what each number is made of", () => {
     },
   );
 
-  test.each([
-    "overviewVirtualMachines",
-    "vmPowerState",
-    "vmListPowerState",
-  ] as Array<VMwareMetric>)(
-    "%s says power state is inferred and a suspended VM reads as off",
-    (key: VMwareMetric) => {
-      expect(D[key]).toContain("CPU data");
-      expect(D[key]).toContain("suspended");
-    },
-  );
+  test("a VM's page says power state is inferred and a suspended VM reads as off", () => {
+    expect(D.vmPowerState).toContain("CPU data");
+    expect(D.vmPowerState).toContain("suspended");
+  });
+
+  test("the VMs list's Status says where Running, Powered off and Template come from", () => {
+    expect(D.vmListStatus).toContain("CPU data");
+    expect(D.vmListStatus).toContain("Running, Powered off or Template");
+  });
 
   test("the power-state inference the texts describe is the one the code does", () => {
     expect(UTILS).toContain('return "Powered off";');
-    expect(OVERVIEW).toContain("if (row.isTemplate) {");
-    expect(D.overviewVirtualMachines).toContain("templates excluded");
+    // The hero's VM count leaves templates out, as the counts text says.
+    expect(INVENTORY_SERVICE).toContain("virtualMachineTemplateCount");
+    expect(D.overviewInventoryCounts).toContain("templates excluded");
   });
 
   test("the VM Age column is empty because the page never fills it", () => {
@@ -856,9 +876,6 @@ describe("VMware metric descriptions: what each number is made of", () => {
     "clusterCpu",
     "clusterMemory",
     "clusterListHosts",
-    "clusterListEffectiveCpu",
-    "clusterListEffectiveMemory",
-    "overviewClusterCount",
   ] as Array<VMwareMetric>)(
     "%s explains what makes a host not effective",
     (key: VMwareMetric) => {
@@ -875,16 +892,15 @@ describe("VMware metric descriptions: what each number is made of", () => {
     );
   });
 
-  test("vCenter Health lists what makes it Unhealthy, Degraded and Unknown", () => {
+  test("vCenter Health lists what makes it Unhealthy, Degraded and unknown, and points at Needs attention", () => {
     for (const phrase of [
       "Unhealthy",
       "Degraded",
-      "Unknown",
-      "maintenance mode",
-      "swapped",
-      "ballooned",
-      "CPU Ready",
-      "powered off",
+      "unknown",
+      "an ESXi host vCenter cannot reach",
+      "a critical alarm",
+      "a VM the host swaps to disk",
+      "Needs attention lists each, the most urgent first",
       "disconnected",
     ]) {
       expect({
@@ -893,6 +909,8 @@ describe("VMware metric descriptions: what each number is made of", () => {
       }).toEqual({ phrase, found: true });
     }
     expect(OVERVIEW).toContain('["connected", "active"].includes(');
+    // The pill is the worst of what Needs attention lists.
+    expect(OVERVIEW).toContain("health: getVMwareHealth(attentionItems),");
   });
 
   test.each([
@@ -911,7 +929,6 @@ describe("VMware metric descriptions: what each number is made of", () => {
     "hostListCpuCapacity",
     "vmCpu",
     "clusterCpu",
-    "clusterListEffectiveCpu",
     "resourcePoolListCpu",
   ] as Array<VMwareMetric>)(
     "%s names the MHz / GHz unit the value is shown in",
@@ -924,13 +941,6 @@ describe("VMware metric descriptions: what each number is made of", () => {
     expect(UTILS).toContain("if (Math.abs(value) >= 1000) {");
     expect(UTILS).toContain("GHz");
     expect(UTILS).toContain("MHz");
-  });
-
-  test("the datastore summary card sums every datastore", () => {
-    expect(OVERVIEW).toContain(
-      "datastoreUsedBytes = (datastoreUsedBytes ?? 0) + used;",
-    );
-    expect(D.overviewDatastoreCount).toContain("added up across all of them");
   });
 
   test("the Host Memory top-5 bar falls back to usage against the top host's usage", () => {
@@ -953,6 +963,10 @@ describe("VMware metric descriptions: what each number is made of", () => {
       ['other: "{{count}} datacenters"', "datacenters"],
       ['other: "{{count}} clusters"', "clusters"],
       ['other: "{{count}} ESXi hosts"', "ESXi hosts"],
+      [
+        'other: "{{connected}}/{{count}} ESXi hosts connected"',
+        "ESXi hosts (connected out of all)",
+      ],
       [
         'other: "{{poweredOn}}/{{count}} VMs powered on"',
         "VMs (powered on out of all, templates excluded)",

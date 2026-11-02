@@ -983,6 +983,13 @@ describe("VMwareSnapshotScan - full-collection fold", () => {
     expect(dc.poweredOnVmCount?.value).toBe(40);
     expect(dc.clusterCount?.value).toBe(2);
     expect(dc.datastoreCount?.value).toBe(4);
+    // Every host is on or off, every VM and cluster green or yellow: no state to tell.
+    expect(dc.notRespondingHostCount?.value).toBe(0);
+    expect(dc.standbyHostCount?.value).toBe(0);
+    expect(dc.criticalHostCount?.value).toBe(0);
+    expect(dc.warningHostCount?.value).toBe(0);
+    expect(dc.criticalVmCount?.value).toBe(0);
+    expect(dc.criticalClusterCount?.value).toBe(0);
 
     const cluster: VMwareResourceBufferEntry = entry(
       b,
@@ -1405,6 +1412,185 @@ describe("VMwareSnapshotScan - summed counts", () => {
     );
     expect(dc.datastoreCount?.value).toBe(3);
     expect(dc.clusterCount?.value).toBe(0);
+  });
+});
+
+/*
+ * What vCenter's own roll-up says per datacenter: the receiver (and the
+ * probe) report vcenter.datacenter.host.count once per (status,
+ * power_state) pair that exists, .vm.count likewise and .cluster.count per
+ * status. A host vCenter has lost contact with reports power_state
+ * "unknown", one vSphere DPM sleeps "standby"; a red status is a critical
+ * alarm, a yellow one a warning. VMwareHealth reads these to tell a host
+ * that reports no usage apart (not responding, off, in standby) and to
+ * list the datacenter's alarms no part's own row says.
+ */
+describe("VMwareSnapshotScan - a datacenter's host states and alarm roll-up", () => {
+  function feedHostCount(
+    b: Buffers,
+    value: number,
+    status: string,
+    powerState: string,
+    atMs: number = BASE_MS,
+  ): void {
+    feed(
+      b,
+      DC,
+      "vcenter.datacenter.host.count",
+      datapoint({
+        value,
+        atMs,
+        labels: { status: status, power_state: powerState },
+      }),
+    );
+  }
+
+  test("hosts are counted by power state and by status, every datapoint into the total", () => {
+    const b: Buffers = buffers();
+    feedHostCount(b, 5, "green", "on");
+    feedHostCount(b, 1, "yellow", "on");
+    // vCenter has lost contact with one: its power state is unknown, its status red.
+    feedHostCount(b, 1, "red", "unknown");
+    // vSphere DPM put one in standby; someone powered one off.
+    feedHostCount(b, 1, "gray", "standby");
+    feedHostCount(b, 1, "gray", "off");
+
+    const dc: VMwareResourceBufferEntry = entry(
+      b,
+      "Datacenter",
+      "datacenter/DC1",
+    );
+    expect(dc.hostCount?.value).toBe(9);
+    expect(dc.poweredOnHostCount?.value).toBe(6);
+    expect(dc.notRespondingHostCount?.value).toBe(1);
+    expect(dc.standbyHostCount?.value).toBe(1);
+    expect(dc.criticalHostCount?.value).toBe(1);
+    expect(dc.warningHostCount?.value).toBe(1);
+  });
+
+  test("a red host that answers counts as critical, not as not responding", () => {
+    const b: Buffers = buffers();
+    feedHostCount(b, 2, "red", "on");
+    feedHostCount(b, 3, "green", "on");
+    const dc: VMwareResourceBufferEntry = entry(
+      b,
+      "Datacenter",
+      "datacenter/DC1",
+    );
+    expect(dc.criticalHostCount?.value).toBe(2);
+    expect(dc.notRespondingHostCount?.value).toBe(0);
+    expect(dc.poweredOnHostCount?.value).toBe(5);
+  });
+
+  test("red VMs and red clusters are counted; yellow ones are not critical", () => {
+    const b: Buffers = buffers();
+    for (const [value, status, powerState] of [
+      [40, "green", "on"],
+      [2, "red", "on"],
+      [1, "red", "off"],
+      [3, "yellow", "on"],
+      [5, "gray", "off"],
+    ] as Array<[number, string, string]>) {
+      feed(
+        b,
+        DC,
+        "vcenter.datacenter.vm.count",
+        datapoint({
+          value,
+          labels: { status: status, power_state: powerState },
+        }),
+      );
+    }
+    for (const [value, status] of [
+      [3, "green"],
+      [1, "red"],
+      [2, "yellow"],
+    ] as Array<[number, string]>) {
+      feed(
+        b,
+        DC,
+        "vcenter.datacenter.cluster.count",
+        datapoint({ value, labels: { status: status } }),
+      );
+    }
+    const dc: VMwareResourceBufferEntry = entry(
+      b,
+      "Datacenter",
+      "datacenter/DC1",
+    );
+    expect(dc.vmCount?.value).toBe(51);
+    expect(dc.poweredOnVmCount?.value).toBe(45);
+    expect(dc.criticalVmCount?.value).toBe(3);
+    expect(dc.clusterCount?.value).toBe(6);
+    expect(dc.criticalClusterCount?.value).toBe(1);
+  });
+
+  test("a newer collection resets each state: a host back in contact is no longer counted", () => {
+    const b: Buffers = buffers();
+    feedHostCount(b, 3, "green", "on", BASE_MS);
+    feedHostCount(b, 1, "red", "unknown", BASE_MS);
+    feedHostCount(b, 1, "gray", "standby", BASE_MS);
+    // Two minutes later every host answers again.
+    feedHostCount(b, 5, "green", "on", BASE_MS + 120_000);
+    // A straggler of the older collection never adds to the newer one.
+    feedHostCount(b, 1, "red", "unknown", BASE_MS);
+
+    const dc: VMwareResourceBufferEntry = entry(
+      b,
+      "Datacenter",
+      "datacenter/DC1",
+    );
+    expect(dc.hostCount?.value).toBe(5);
+    expect(dc.notRespondingHostCount).toEqual({
+      value: 0,
+      observedAt: new Date(BASE_MS + 120_000),
+    });
+    expect(dc.standbyHostCount?.value).toBe(0);
+    expect(dc.criticalHostCount?.value).toBe(0);
+  });
+
+  test("the latest-metric row carries each state as a plain count, and leaves a kind that has none NULL", () => {
+    const b: Buffers = buffers();
+    feedHostCount(b, 4, "green", "on");
+    feedHostCount(b, 2, "red", "unknown");
+    feedHostCount(b, 1, "yellow", "standby");
+    feed(
+      b,
+      DC,
+      "vcenter.datacenter.vm.count",
+      datapoint({ value: 7, labels: { status: "red", power_state: "on" } }),
+    );
+    feed(
+      b,
+      HOST,
+      "vcenter.host.memory.usage",
+      datapoint({ value: 2048 }),
+    );
+
+    const dc: VMwareResourceLatestMetricSnapshot =
+      deriveVMwareResourceLatestMetric(
+        entry(b, "Datacenter", "datacenter/DC1"),
+      );
+    expect(dc.notRespondingHostCount).toBe(2);
+    expect(dc.standbyHostCount).toBe(1);
+    expect(dc.criticalHostCount).toBe(2);
+    expect(dc.warningHostCount).toBe(1);
+    expect(dc.criticalVmCount).toBe(7);
+    // The datacenter sent no cluster count in this collection.
+    expect(dc.criticalClusterCount).toBeNull();
+
+    const host: VMwareResourceLatestMetricSnapshot =
+      deriveVMwareResourceLatestMetric(
+        entry(b, "Host", "host/DC1/esx01.example.com"),
+      );
+    expect([
+      host.notRespondingHostCount,
+      host.standbyHostCount,
+      host.criticalHostCount,
+      host.warningHostCount,
+      host.criticalVmCount,
+      host.criticalClusterCount,
+    ]).toEqual([null, null, null, null, null, null]);
   });
 });
 

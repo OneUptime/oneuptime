@@ -114,7 +114,7 @@ export type VMwareMetric =
 export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   // ---- Overview: hero count chips ---------------------------------------
   overviewInventoryCounts: translationKey(
-    "How many datacenters, clusters, ESXi hosts, VMs (powered on out of all, templates excluded) and datastores this vCenter has, from the latest inventory rather than the selected range. A kind with none is left out.",
+    "How many datacenters, clusters, ESXi hosts (connected out of all), VMs (powered on out of all, templates excluded) and datastores this vCenter has, from the latest inventory rather than the selected range. A kind with none is left out.",
   ),
 
   // ---- Overview: golden tiles -------------------------------------------
@@ -150,7 +150,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Overview: the hero's health and connection pills -------------------
   overviewVCenterHealth: translationKey(
-    "Unhealthy while something in this vCenter needs someone now: an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM the host swaps to disk. Degraded while something needs a look soon. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
+    "Unhealthy while something needs someone now (an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM the host swaps to disk), Degraded while something needs a look. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
   ),
   overviewAgentStatus: translationKey(
     "Whether data is arriving for this vCenter - from the probe that collects it, or from the OneUptime VMware agent; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
@@ -266,7 +266,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Cluster detail ---------------------------------------------------
   clusterHosts: translationKey(
-    "Hosts in this cluster that DRS and HA can place VMs on (effective), out of all its hosts, from the latest report. A host in maintenance mode, not responding, powered off or in standby is not effective.",
+    "Hosts in this cluster that vSphere can place VMs on (effective), out of all its hosts, from the latest report. A host in maintenance mode, not responding, powered off or in standby is not effective.",
   ),
   clusterVirtualMachines: translationKey(
     "Powered-on VMs out of all VMs in this cluster, as counted by vCenter itself at the latest report.",
