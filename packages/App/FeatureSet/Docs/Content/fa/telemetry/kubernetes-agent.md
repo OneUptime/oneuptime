@@ -591,7 +591,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### روشن کردن مشاهده‌پذیری هزینه
 
-ببینید هر namespace، بار کاری و پاد چقدر هزینه دارد، همراه با ظرفیت بیکار و اینکه چه مقدار از هر request مصرف می‌شود، در صفحه **Costs** خوشه:
+ببینید هر namespace، بار کاری و پاد چقدر هزینه دارد، همراه با ظرفیت بیکار و اینکه چه مقدار از هر request مصرف می‌شود، در صفحه **هزینه‌ها** خوشه:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

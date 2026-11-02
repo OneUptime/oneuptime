@@ -21,7 +21,7 @@ Konfigurasjonen av varsler ligger under **Varsler**, ikke i **Prosjektinnstillin
 | **Runbook-regler**    | Starter runbooks for samsvarende varsler.                                                      |
 | **Personvernregler**  | Gjør samsvarende varsler og episoder private.                                                  |
 | **Etikettregler**     | Legger til etiketter på samsvarende varsler og episoder.                                       |
-| **Reminder Rules**    | Minner eiere på med et intervall så lenge et varsel er åpent.                                  |
+| **Påminnelsesregler**    | Minner eiere på med et intervall så lenge et varsel er åpent.                                  |
 
 Seksjonen **Innstillinger** inneholder **Varselsstatus** og **Varselsalvor**, som er beskrevet på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder** og **Nummerering**, som er beskrevet nedenfor.
 
@@ -54,7 +54,7 @@ flowchart TB
 
 Reglene skiller seg i hvordan flere samsvar avgjøres:
 
-- **Grupperingsregler** og **Reminder Rules** kontrolleres ovenfra og ned i listen sin, og det første samsvaret vinner. Dra en regel for å endre plassen; en ny regel havner sist.
+- **Grupperingsregler** og **Påminnelsesregler** kontrolleres ovenfra og ned i listen sin, og det første samsvaret vinner. Dra en regel for å endre plassen; en ny regel havner sist.
 - **Vaktregler**, **Eierregler**, **Etikettregler**, **Personvernregler** og **Runbook-regler** virker alle når de samsvarer. Vaktpolicyer, eiere og etiketter som flere regler legger til, legges til én gang.
 
 **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Alert Rules** for varsler og **Episode Rules**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
@@ -108,7 +108,7 @@ En regel tilkaller så snart et varsel samsvarer med den. For å la den vente p�
 
 ## Påminnelsesregler
 
-**Varsler → Regler → Reminder Rules** minner et varsels eiere på det så lenge det er åpent. Hvert nytt varsel får den første regelen som samsvarer, ovenfra og ned i listen.
+**Varsler → Regler → Påminnelsesregler** minner et varsels eiere på det så lenge det er åpent. Hvert nytt varsel får den første regelen som samsvarer, ovenfra og ned i listen.
 
 :::steps
 ### Velg hvilke varsler det skal minnes om

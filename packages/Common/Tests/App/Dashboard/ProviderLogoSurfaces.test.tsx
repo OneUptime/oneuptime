@@ -305,14 +305,24 @@ describe("the setup checklist", () => {
     };
   }
 
-  test("a Slack step to do shows Slack's logo, not a white glyph on fuchsia", () => {
+  /*
+   * A step to do draws its icon in white on its colour block. Connect
+   * Slack draws Slack's official mark there, as the icon is drawn: one
+   * colour, the icon's white, on the step's own block - not a colour logo
+   * on a white tile of its own beside the other steps' blocks.
+   */
+  test("a Slack step to do shows Slack's mark in white on its colour block, as every step's icon is", () => {
     render(<SetupChecklistTile step={slackStep(SetupStepStatus.Incomplete)} />);
 
     const tile: HTMLElement = screen.getByTestId("setup-checklist-step-slack");
+    const logo: Element | null = logoIn(tile);
 
-    expect(logoIn(tile)).toHaveAttribute("data-provider-logo", "slack");
-    expect(logoIn(tile)).toHaveAttribute("aria-hidden", "true");
-    expect(tile.querySelector(".bg-fuchsia-500")).toBeNull();
+    expect(logo).toHaveAttribute("data-provider-logo", "slack");
+    expect(logo).toHaveAttribute("aria-hidden", "true");
+    expect(logo).toHaveClass("text-white");
+    expect(logo).not.toHaveClass("ring-1");
+    expect(logo!.parentElement).toHaveClass("bg-fuchsia-500", "h-10", "w-10");
+    expect(tile.querySelector("img")).toBeNull();
   });
 
   test("a done step shows the green check, as every done step does", () => {

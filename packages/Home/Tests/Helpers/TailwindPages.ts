@@ -1,5 +1,6 @@
 import Reviews from "../../Utils/Reviews";
 import Pricing from "../../Utils/Pricing";
+import { getCompareMark } from "../../Utils/CompareMark";
 import ProductCompare, {
   getProductCompareSlugs,
 } from "../../Utils/ProductCompare";
@@ -250,6 +251,7 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         blackLogo: false,
         requestDemoCta: false,
         productConfig: ProductCompare(slug),
+        productMark: getCompareMark(ProductCompare(slug)),
         onlyShowCompareTable: false,
         seo: seoFor(`/compare/${slug}`),
       };

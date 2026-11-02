@@ -248,17 +248,21 @@ describe("images below the fold elsewhere", () => {
     ).toHaveLength(1);
   });
 
-  test("the comparison index's product icons", () => {
-    // Its src is an EJS tag, whose %> a tag pattern would stop at: read the line.
-    const lines: Array<string> = source("compare-index.ejs")
-      .split("\n")
-      .filter((line: string): boolean => {
-        return line.includes("<img") && line.includes("iconUrl");
-      });
+  /*
+   * The comparison index and pages used to load a colour logo image per
+   * tool. Their marks are inline now (the integrations' mark partial, in the
+   * page's grey): nothing to load, so nothing to lazy-load.
+   */
+  test("the comparisons load no tool's logo as an image", () => {
+    for (const view of ["compare-index.ejs", "product-compare.ejs"]) {
+      const text: string = source(view);
 
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain('class="h-7 w-7 object-contain"');
-    expect(lines[0]).toContain('width="28" height="28"');
-    expect(lines[0]).toContain('loading="lazy" decoding="async"');
+      expect([view, text.includes("iconUrl")]).toEqual([view, false]);
+      expect([
+        view,
+        text.includes("include('Partials/integrations/mark'"),
+      ]).toEqual([view, true]);
+    }
+    expect(source("Partials/integrations/mark.ejs")).not.toContain("<img");
   });
 });

@@ -1,6 +1,6 @@
 # Kubernetes 비용 옵저버빌리티
 
-모든 Kubernetes 워크로드의 비용(네임스페이스, 워크로드, Pod별 지출, 유휴 용량, 각 request 중 실제로 사용되는 양)을 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)가 이미 수집하는 메트릭, 로그, 트레이스 옆에서 확인하세요. Helm 값 하나로 켜지며 클라우드 자격 증명이 필요 없고, 켜면 클러스터의 **Costs** 페이지가 줄여야 할 request를 알려 줍니다.
+모든 Kubernetes 워크로드의 비용(네임스페이스, 워크로드, Pod별 지출, 유휴 용량, 각 request 중 실제로 사용되는 양)을 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)가 이미 수집하는 메트릭, 로그, 트레이스 옆에서 확인하세요. Helm 값 하나로 켜지며 클라우드 자격 증명이 필요 없고, 켜면 클러스터의 **비용** 페이지가 줄여야 할 request를 알려 줍니다.
 
 :::cards
 - [켜기](#비용-옵저버빌리티-켜기): `helm upgrade` 한 번.
@@ -49,10 +49,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 첫 비용은 첫 1시간이 완전히 마감된 뒤에 나타나며, OpenCost는 시작 후 첫 1시간의 가격을 매기는 데 몇 분이 걸립니다.
 
-### Costs 페이지 열기
+### 비용 페이지 열기
 
-- **제품 → 인프라 → Kubernetes → Costs**는 프로젝트의 모든 클러스터의 지출을 보여 줍니다.
-- 클러스터에서 **Costs**는 지출 추세, CPU·메모리·스토리지로 나눈 **Spend by Namespace**, **Spend by Workload**, 유휴 지출, 효율, **Right-Sizing** 카드를 보여 줍니다.
+- **제품 → 인프라 → Kubernetes → 비용**은 프로젝트의 모든 클러스터의 지출을 보여 줍니다.
+- 클러스터에서 **비용**은 지출 추세, CPU·메모리·스토리지로 나눈 **Spend by Namespace**, **Spend by Workload**, 유휴 지출, 효율, **Right-Sizing** 카드를 보여 줍니다.
 :::
 
 비용 메트릭(`node_total_hourly_cost`, `pv_hourly_cost` 등)은 일반 메트릭이므로 메트릭 탐색기, 사용자 지정 대시보드, 메트릭 모니터에서 사용할 수 있습니다. 미리 만들어진 대시보드를 원하면 **제품 → 대시보드**로 이동해 **대시보드 만들기**를 선택하고 **Kubernetes Cost Dashboard**를 고르세요. 노드 시간당 비용 추세, CPU 및 메모리 단가, 볼륨과 로드 밸런서 지출을 보여 줍니다.
@@ -113,7 +113,7 @@ cost:
 
 ## 적정 크기 조정
 
-클러스터 **Costs** 페이지의 **Right-Sizing** 카드는 충분한 기록이 있는 모든 컨테이너에 대해 CPU와 메모리 request를 권장하며, 각 변경으로 매월 절약되는 금액 순으로 정렬합니다.
+클러스터 **비용** 페이지의 **Right-Sizing** 카드는 충분한 기록이 있는 모든 컨테이너에 대해 CPU와 메모리 request를 권장하며, 각 변경으로 매월 절약되는 금액 순으로 정렬합니다.
 
 권장값은 관찰된 수요에 25% 여유를 더하고, 매니페스트에 붙여 넣을 수 있는 값(CPU는 10m, 메모리는 16Mi 단위)으로 반올림한 것입니다:
 

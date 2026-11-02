@@ -71,7 +71,7 @@ flowchart TB
 
 대화 상자 아래쪽의 **Generate with AI**를 클릭합니다. OneUptime AI가 인시던트(설명, 근본 원인과 해결 조치, 상태 타임라인, 공개 메모와 비공개 메모, Slack 또는 Microsoft Teams 채널의 메시지, [통화](/docs/workspace-connections/video-calls#통화-녹취록)에서 오간 말)를 읽고 개요에 맞춰 포스트모템을 씁니다. 그런 다음 그 결과로 편집기가 열립니다.
 
-생성하려면 **프로젝트 설정 → AI → AI Features**에서 프로젝트의 AI가 켜져 있어야 하고 LLM 공급자가 있어야 합니다. [LLM 공급자](/docs/ai/llm-provider)를 참고하세요. 또한 Project Owner 또는 Project Admin 역할이나, Edit Incident 권한이 있는 사용자 지정 역할이 필요합니다. 다른 역할은 포스트모템을 쓸 수는 있지만 생성할 수는 없습니다.
+생성하려면 **프로젝트 설정 → AI → AI 기능**에서 프로젝트의 AI가 켜져 있어야 하고 LLM 공급자가 있어야 합니다. [LLM 공급자](/docs/ai/llm-provider)를 참고하세요. 또한 Project Owner 또는 Project Admin 역할이나, Edit Incident 권한이 있는 사용자 지정 역할이 필요합니다. 다른 역할은 포스트모템을 쓸 수는 있지만 생성할 수는 없습니다.
 
 ### 인시던트가 해결되면 OneUptime AI가 초안 작성
 
@@ -198,7 +198,7 @@ OneUptime은 세 가지 순간에 포스트모템을 스스로 이동합니다.
 :::
 
 :::details Generate with AI가 AI가 꺼져 있다거나 권한이 없다고 표시함
-**프로젝트 설정 → AI → AI Features**에서 AI를 켜세요. 생성하려면 포스트모템을 편집할 수 있는 사람이라도 Project Owner 또는 Project Admin 역할이나, Edit Incident 권한이 있는 사용자 지정 역할이 필요합니다.
+**프로젝트 설정 → AI → AI 기능**에서 AI를 켜세요. 생성하려면 포스트모템을 편집할 수 있는 사람이라도 Project Owner 또는 Project Admin 역할이나, Edit Incident 권한이 있는 사용자 지정 역할이 필요합니다.
 :::
 
 :::details 포스트모템이 상태 페이지에 없음

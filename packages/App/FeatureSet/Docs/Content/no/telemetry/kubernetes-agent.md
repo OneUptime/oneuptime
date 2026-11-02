@@ -591,7 +591,7 @@ Noen grafer viser metrikker agenten ikke har noen scrape for: **kube-proxy** på
 
 ### Aktiver kostnadsobserverbarhet
 
-Se hva hvert navnerom, hver arbeidsbelastning og hver pod koster, med ledig kapasitet og hvor mye av hver request som brukes, på klyngens side **Costs**:
+Se hva hvert navnerom, hver arbeidsbelastning og hver pod koster, med ledig kapasitet og hvor mye av hver request som brukes, på klyngens side **Kostnader**:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

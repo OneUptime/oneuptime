@@ -103,18 +103,18 @@ Hver kørsel holdes inden for budgetter, som serveren håndhæver: højst **40 L
 
 | Hvor | Klik | Pull requesten |
 | --- | --- | --- |
-| En undtagelses side **AI Assistance** | **Ret med AI** | Retter fejlen bag undtagelsen. |
-| En undtagelses side **AI Assistance** | **Generate Regression Test** | Tilføjer en test, der genskaber undtagelsen og fejler, indtil fejlen er rettet. |
-| En undtagelses side **AI Assistance** | **Forbedr fejlhåndtering** | Til en forventet fejl, som ugyldigt input: fjerner brugerdata fra meddelelsen, validerer inputtet tidligere og markerer fejlen som håndteret uden at ændre adfærden. |
+| En undtagelses side **AI-hjælp** | **Ret med AI** | Retter fejlen bag undtagelsen. |
+| En undtagelses side **AI-hjælp** | **Generate Regression Test** | Tilføjer en test, der genskaber undtagelsen og fejler, indtil fejlen er rettet. |
+| En undtagelses side **AI-hjælp** | **Forbedr fejlhåndtering** | Til en forventet fejl, som ugyldigt input: fjerner brugerdata fra meddelelsen, validerer inputtet tidligere og markerer fejlen som håndteret uden at ændre adfærden. |
 | Trinnet **Afhjælpning** på en hændelses eller advarsels kort **OneUptime AI** | **Åbn pull request med rettelse** | Retter den grundlæggende årsag, som undersøgelsen offentliggjorde (se [Automatiske koderettelser fra undersøgelser](#automatiske-koderettelser-fra-undersøgelser)). |
 | Et spor, der er værd at rette | **Ret ydeevnen med AI** | Retter det langsomme mønster, som knappen nævner, som en N+1-forespørgsel eller kald, der kunne køre parallelt. |
 | En tjenestes side **Protokoller** | **Forbedr logning** | Gør tjenestens logs strukturerede, med den rette alvorlighed og knyttet til dens spor, uden at ændre adfærden. |
 | En tjenestes side **Spor** | **Forbedr sporing** | Tilføjer spans og attributter, hvor tjenestens tracing mangler, uden at ændre adfærden. |
 | En funktion i **Ydeevneprofiler** | **Ret med AI** | Får funktionen til at udføre det samme arbejde med mindre tid eller hukommelse, med dens profil som bevis. |
 
-Disse knapper vises kun, hvor de kan starte en opgave. Er AI slået fra for projektet, vises ingen af dem, og en undtagelses sidemenu har ingen **AI Assistance**. **Forbedr logning** og **Forbedr sporing** vises, så snart et repository er forbundet, og intet forhindrer AI i at arbejde i det (som abonnementet, opbrugte AI-kreditter eller ingen Runner online), og **Ret ydeevnen med AI** kun på et spor, der er værd at rette (se [Sporudforsker](/docs/telemetry/traces-explorer)). En funktions **Ret med AI** vises kun for applikationens egen kode, der tager mindst 5 % af profilens tid eller hukommelse, eller hvis andel er vokset med 3 point eller mere siden det vindue, den sammenlignes med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
+Disse knapper vises kun, hvor de kan starte en opgave. Er AI slået fra for projektet, vises ingen af dem, og en undtagelses sidemenu har ingen **AI-hjælp**. **Forbedr logning** og **Forbedr sporing** vises, så snart et repository er forbundet, og intet forhindrer AI i at arbejde i det (som abonnementet, opbrugte AI-kreditter eller ingen Runner online), og **Ret ydeevnen med AI** kun på et spor, der er værd at rette (se [Sporudforsker](/docs/telemetry/traces-explorer)). En funktions **Ret med AI** vises kun for applikationens egen kode, der tager mindst 5 % af profilens tid eller hukommelse, eller hvis andel er vokset med 3 point eller mere siden det vindue, den sammenlignes med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
 
-For at åbne en undtagelses side **AI Assistance** skal du åbne undtagelsen under **Produkter → Observabilitet → Undtagelser** og vælge **AI Assistance** i dens sidemenu. En løst eller arkiveret undtagelse skal først markeres som uløst.
+For at åbne en undtagelses side **AI-hjælp** skal du åbne undtagelsen under **Produkter → Observabilitet → Undtagelser** og vælge **AI-hjælp** i dens sidemenu. En løst eller arkiveret undtagelse skal først markeres som uløst.
 
 OneUptime AI starter også rettelsesopgaver af sig selv: fra en undersøgelse, der finder en kodeændring, fra en, der ender uden konklusion, fordi telemetri manglede, og fra AI-indsigter om undtagelser og langsomme spor. Hver har sin egen kontakt; se [Automatiske koderettelser](/docs/ai/ai-sre#automatiske-koderettelser).
 
@@ -200,7 +200,7 @@ Kommandoerne er repositorieindstillinger, som dit team skriver, og de kører på
 
 ## Efter en rettelse er flettet
 
-At flette en rettelse retter intet, før den kører. Når en pull request med en rettelse er flettet, venter OneUptime på en registreret udrulning, der indeholder den (se [Udrulninger og ændringer](/docs/telemetry/change-events)), og holder i den udrulning øje med det, rettelsen var til. Opgavens pull request i Code siger, hvordan det gik, og det gør undtagelsens side **AI Assistance**, hændelsens AI-logs og den AI-indsigt, rettelsen kom fra, også:
+At flette en rettelse retter intet, før den kører. Når en pull request med en rettelse er flettet, venter OneUptime på en registreret udrulning, der indeholder den (se [Udrulninger og ændringer](/docs/telemetry/change-events)), og holder i den udrulning øje med det, rettelsen var til. Opgavens pull request i Code siger, hvordan det gik, og det gør undtagelsens side **AI-hjælp**, hændelsens AI-logs og den AI-indsigt, rettelsen kom fra, også:
 
 | En rettelse af | Det, der holdes øje med | Det virkede | Det virkede ikke |
 | --- | --- | --- | --- |
@@ -232,7 +232,7 @@ OneUptime Cloud når kun Git-servere på internettet, aldrig en privat, loopback
 
 ## Før du begynder
 
-En opgave kræver tre ting. Kodes anmodningsfelt og undtagelsens side **AI Assistance** kontrollerer alle tre, før de tilbyder at starte, og fortæller, hvad der mangler.
+En opgave kræver tre ting. Kodes anmodningsfelt og undtagelsens side **AI-hjælp** kontrollerer alle tre, før de tilbyder at starte, og fortæller, hvad der mangler.
 
 | Hvad | OneUptime Cloud | Selvhostet |
 | --- | --- | --- |
@@ -253,7 +253,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 
 Enhver understøttet udbyder virker: se [LLM-udbydere](/docs/ai/llm-provider) for dem alle og hver miljøvariabel.
 
-Du tilknytter ikke repositorier til tjenester. Når en opgave starter, finder OneUptime repositoriet ved at matche filstierne i undtagelsens stack trace mod dine forbundne repositorier. Når intet matcher, falder den tilbage på et repositorie, der hedder som tjenesten, og derefter på projektets eneste repositorie, når der kun er ét. Siden **AI Assistance** viser, hvilket repositorie den fandt.
+Du tilknytter ikke repositorier til tjenester. Når en opgave starter, finder OneUptime repositoriet ved at matche filstierne i undtagelsens stack trace mod dine forbundne repositorier. Når intet matcher, falder den tilbage på et repositorie, der hedder som tjenesten, og derefter på projektets eneste repositorie, når der kun er ét. Siden **AI-hjælp** viser, hvilket repositorie den fandt.
 
 ### Vælg repositoriets Runner
 

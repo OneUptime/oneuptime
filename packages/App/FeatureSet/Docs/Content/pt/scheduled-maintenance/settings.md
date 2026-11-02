@@ -18,7 +18,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. As seç
 | **Regras de proprietário** | Adiciona proprietários aos eventos que correspondem.        |
 | **Regras de runbook** | Inicia runbooks para os eventos que correspondem.                |
 | **Regras de Rótulos** | Adiciona rótulos aos eventos que correspondem.                   |
-| **Reminder Rules** | Lembra os proprietários em intervalos até um evento ser concluído.  |
+| **Regras de lembrete** | Lembra os proprietários em intervalos até um evento ser concluído.  |
 
 A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Campos personalizados**, **Medições**, **Configurações do calendário** e **Numeração**. **Configurações do calendário** é tratado em [Calendário de manutenção](/docs/scheduled-maintenance/calendar#calendários-externos), e o resto abaixo.
 
@@ -37,7 +37,7 @@ flowchart TB
 As regras se diferenciam em como resolvem várias correspondências:
 
 - **Regras de proprietário**, **Regras de Rótulos** e **Regras de runbook** agem todas quando correspondem. Proprietários e rótulos que várias regras adicionam são adicionados uma só vez.
-- **Reminder Rules** são verificadas de cima para baixo na lista, e vence a primeira que corresponde. Arraste uma regra para mudar o lugar dela; uma regra nova vai para o final.
+- **Regras de lembrete** são verificadas de cima para baixo na lista, e vence a primeira que corresponde. Arraste uma regra para mudar o lugar dela; uma regra nova vai para o final.
 
 Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição dela para pausá-la, e a lista mostra para cada regra um **Habilitado** verde ou um **Desabilitado** vermelho. As regras de proprietário, de rótulos e de runbook agem sobre os eventos criados depois que você as salva. Para aplicar uma regra de proprietário ou de rótulos aos eventos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
 
@@ -64,7 +64,7 @@ As **Regras de runbook** iniciam um runbook quando um evento novo corresponde, c
 
 ## Regras de lembrete
 
-**Manutenção programada → Regras → Reminder Rules** lembra os proprietários de um evento até o trabalho ser aprovado. Cada evento recebe a primeira regra que corresponde a ele, de cima para baixo na lista.
+**Manutenção programada → Regras → Regras de lembrete** lembra os proprietários de um evento até o trabalho ser aprovado. Cada evento recebe a primeira regra que corresponde a ele, de cima para baixo na lista.
 
 :::steps
 ### Escolher sobre quais eventos lembrar

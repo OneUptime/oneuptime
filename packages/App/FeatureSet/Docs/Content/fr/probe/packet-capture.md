@@ -130,7 +130,7 @@ Pour fixer sur cette sonde un plafond plus bas que celui que respecte chaque son
 :::steps
 ### Ouvrir la sonde ou l'équipement
 
-Ouvrez **Moniteurs → Paramètres → Sondes** et cliquez sur votre sonde : sa carte **Captures de paquets** liste ses captures. Ou ouvrez un équipement réseau et allez sur sa page **Traffic** : les captures y tournent sur la sonde de l'équipement, et sont d'abord filtrées sur l'adresse de l'équipement.
+Ouvrez **Moniteurs → Paramètres → Sondes** et cliquez sur votre sonde : sa carte **Captures de paquets** liste ses captures. Ou ouvrez un équipement réseau et allez sur sa page **Trafic** : les captures y tournent sur la sonde de l'équipement, et sont d'abord filtrées sur l'adresse de l'équipement.
 
 ### Cliquer sur Démarrer une capture de paquets
 

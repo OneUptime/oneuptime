@@ -18,7 +18,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Règles de propriétaire** | Ajoute des propriétaires aux événements qui correspondent.  |
 | **Règles de runbook** | Démarre des runbooks pour les événements qui correspondent.      |
 | **Règles d'étiquettes** | Ajoute des étiquettes aux événements qui correspondent.        |
-| **Reminder Rules** | Rappelle l'événement aux propriétaires à intervalle régulier jusqu'à ce qu'il soit achevé. |
+| **Règles de rappel** | Rappelle l'événement aux propriétaires à intervalle régulier jusqu'à ce qu'il soit achevé. |
 
 La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
 
@@ -37,7 +37,7 @@ flowchart TB
 Les règles diffèrent dans la façon dont plusieurs correspondances se résolvent :
 
 - **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de runbook** agissent toutes quand elles correspondent. Les propriétaires et étiquettes ajoutés par plusieurs règles sont ajoutés une seule fois.
-- **Reminder Rules** sont vérifiées du haut de leur liste vers le bas, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
+- **Règles de rappel** sont vérifiées du haut de leur liste vers le bas, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
 
 Une nouvelle règle démarre activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche pour chaque règle un **Activé** vert ou un **Désactivé** rouge. Les règles de propriétaire, d'étiquettes et de runbook agissent sur les événements créés après leur enregistrement. Pour appliquer une règle de propriétaire ou d'étiquettes aux événements que vous avez déjà, utilisez **Exécuter maintenant** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
 
@@ -64,7 +64,7 @@ Les **Règles de runbook** démarrent un runbook quand un nouvel événement cor
 
 ## Règles de rappel
 
-**Maintenance planifiée → Règles → Reminder Rules** rappelle l'événement à ses propriétaires jusqu'à ce que les travaux soient validés. Chaque événement reçoit la première règle qui lui correspond, du haut de la liste vers le bas.
+**Maintenance planifiée → Règles → Règles de rappel** rappelle l'événement à ses propriétaires jusqu'à ce que les travaux soient validés. Chaque événement reçoit la première règle qui lui correspond, du haut de la liste vers le bas.
 
 :::steps
 ### Choisir les événements concernés

@@ -1,6 +1,6 @@
 # Observability for Kubernetes-omkostninger
 
-Se, hvad hver Kubernetes-workload koster — forbrug pr. namespace, workload og pod, tomgangskapacitet, og hvor meget af hver request der bruges — ved siden af de metrikker, logs og traces, som [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) allerede indsamler. Én Helm-værdi slår det til, uden cloud-legitimationsoplysninger, og klyngens side **Costs** fortæller dig derefter, hvilke requests du kan skrumpe.
+Se, hvad hver Kubernetes-workload koster — forbrug pr. namespace, workload og pod, tomgangskapacitet, og hvor meget af hver request der bruges — ved siden af de metrikker, logs og traces, som [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) allerede indsamler. Én Helm-værdi slår det til, uden cloud-legitimationsoplysninger, og klyngens side **Omkostninger** fortæller dig derefter, hvilke requests du kan skrumpe.
 
 :::cards
 - [Slå det til](#slå-omkostningsobservability-til): Ét `helm upgrade`.
@@ -51,8 +51,8 @@ De første omkostninger vises, når den første hele time er afsluttet, og OpenC
 
 ### Åbn omkostningssiderne
 
-- **Produkter → Infrastruktur → Kubernetes → Costs** viser forbruget på tværs af alle klynger i projektet.
-- På en klynge viser **Costs** udviklingen i dens forbrug, **Spend by Namespace** med fordelingen på CPU, hukommelse og lager, **Spend by Workload**, tomgangsforbrug, effektivitet og kortet **Right-Sizing**.
+- **Produkter → Infrastruktur → Kubernetes → Omkostninger** viser forbruget på tværs af alle klynger i projektet.
+- På en klynge viser **Omkostninger** udviklingen i dens forbrug, **Spend by Namespace** med fordelingen på CPU, hukommelse og lager, **Spend by Workload**, tomgangsforbrug, effektivitet og kortet **Right-Sizing**.
 :::
 
 Omkostningsmetrikkerne (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er almindelige metrikker: de findes i metrik-explorer, på brugerdefinerede dashboards og i metrikmonitorer. For et færdigt dashboard skal du gå til **Produkter → Dashboards**, vælge **Opret dashboard** og vælge **Kubernetes Cost Dashboard**: udvikling i nodernes timeomkostninger, enhedsomkostninger for CPU og hukommelse samt forbrug på volumener og load balancere.
@@ -113,7 +113,7 @@ cost:
 
 ## Right-sizing
 
-Kortet **Right-Sizing** på en klynges side **Costs** anbefaler en CPU- og en hukommelses-request for hver container, den har nok historik til, sorteret efter, hvor meget hver ændring sparer pr. måned.
+Kortet **Right-Sizing** på en klynges side **Omkostninger** anbefaler en CPU- og en hukommelses-request for hver container, den har nok historik til, sorteret efter, hvor meget hver ændring sparer pr. måned.
 
 En anbefaling er den observerede efterspørgsel plus 25% margin, afrundet til en værdi, du kan indsætte i et manifest (10m CPU, 16Mi hukommelse):
 

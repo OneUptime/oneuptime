@@ -25,7 +25,7 @@ En AI-bedömning läser bara. Den körs på projektets egen AI: **Aktivera AI**,
 
 ## Innan du börjar
 
-- **Aktivera AI** påslaget, under **Projektinställningar → AI → AI Features**. Är det avslaget visar säkerhet ingenting från OneUptime AI, och ingenting körs.
+- **Aktivera AI** påslaget, under **Projektinställningar → AI → AI-funktioner**. Är det avslaget visar säkerhet ingenting från OneUptime AI, och ingenting körs.
 - En LLM-leverantör som OneUptime AI kan använda, under **Projektinställningar → AI → LLM-leverantörer**. OneUptime Cloud tillhandahåller en.
 - En roll som får arbeta med säkerhetsärenden, för att starta en AI-bedömning: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer läser varje AI-bedömning men kan inte starta någon. Se [Roller](/docs/permissions/reference#roller).
 
@@ -112,7 +112,7 @@ När ett ärende deklarerar en incident läser även incidentens AI-utredning ä
 
 ## Kostnader och gränser
 
-En AI-bedömning är arbete för OneUptime AI, precis som utredningen av en incident. På OneUptime Cloud betalas den med projektets AI-krediter, och den räknas in i projektets egna dagliga AI-gränser (**Dagliga gränser**, under **Projektinställningar → AI → AI Features**). De dagliga gränserna för incidenter och larm gäller inte. Ett ärende har en AI-bedömning åt gången, och AI-loggarna (**Projektinställningar → AI → AI-loggar**) listar dess anrop.
+En AI-bedömning är arbete för OneUptime AI, precis som utredningen av en incident. På OneUptime Cloud betalas den med projektets AI-krediter, och den räknas in i projektets egna dagliga AI-gränser (**Dagliga gränser**, under **Projektinställningar → AI → AI-funktioner**). De dagliga gränserna för incidenter och larm gäller inte. Ett ärende har en AI-bedömning åt gången, och AI-loggarna (**Projektinställningar → AI → AI-loggar**) listar dess anrop.
 
 När projektet har slut på AI-krediter eller har nått en daglig AI-gräns bedöms inte nya ärenden: kortet säger varför, och **Bedöm med AI** fungerar igen så fort krediter har lagts till eller gränsen nollställs.
 
@@ -123,7 +123,7 @@ Kontrollera att **Aktivera AI** är påslaget, och **Bedöm nya ärenden** under
 :::
 
 :::details Kortet säger att projektet har slut på AI-krediter, eller har nått sin dagliga AI-gräns
-En projektägare eller någon med Manage Billing kan lägga till krediter under **Projektinställningar → AI → AI-krediter**, eller höja eller ta bort gränsen under **Projektinställningar → AI → AI Features**. Klicka sedan på **Bedöm med AI** på ärendet.
+En projektägare eller någon med Manage Billing kan lägga till krediter under **Projektinställningar → AI → AI-krediter**, eller höja eller ta bort gränsen under **Projektinställningar → AI → AI-funktioner**. Klicka sedan på **Bedöm med AI** på ärendet.
 :::
 
 :::details Kortet säger att text i ärendet låter som instruktioner till en AI

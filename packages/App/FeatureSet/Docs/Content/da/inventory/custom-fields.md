@@ -73,7 +73,7 @@ Angiv værdierne på et elements side **Brugerdefinerede felter**. Ethvert eleme
 
 ## Filtrér listen
 
-Hvert brugerdefineret felt bliver til et filter over listen **All Items**, og filteret tilbyder de sammenligninger, der passer til dets type:
+Hvert brugerdefineret felt bliver til et filter over listen **Alle elementer**, og filteret tilbyder de sammenligninger, der passer til dets type:
 
 | Felttype | Sammenligninger |
 | --- | --- |

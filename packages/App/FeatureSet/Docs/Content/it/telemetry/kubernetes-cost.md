@@ -1,6 +1,6 @@
 # Osservabilità dei costi di Kubernetes
 
-Scopri quanto costa ogni carico di lavoro Kubernetes — la spesa per namespace, carico di lavoro e pod, la capacità inutilizzata e quanto di ogni richiesta viene usato — accanto alle metriche, ai log e alle tracce che l'[agent Kubernetes](/docs/telemetry/kubernetes-agent) raccoglie già. Un solo valore Helm lo attiva, senza credenziali cloud, e la pagina **Costs** del cluster ti dice poi quali richieste ridurre.
+Scopri quanto costa ogni carico di lavoro Kubernetes — la spesa per namespace, carico di lavoro e pod, la capacità inutilizzata e quanto di ogni richiesta viene usato — accanto alle metriche, ai log e alle tracce che l'[agent Kubernetes](/docs/telemetry/kubernetes-agent) raccoglie già. Un solo valore Helm lo attiva, senza credenziali cloud, e la pagina **Costi** del cluster ti dice poi quali richieste ridurre.
 
 :::cards
 - [Attivalo](#attivare-losservabilità-dei-costi): Un solo `helm upgrade`.
@@ -51,8 +51,8 @@ I primi costi compaiono dopo la chiusura della prima ora completa, e OpenCost ha
 
 ### Apri le pagine dei costi
 
-- **Prodotti → Infrastruttura → Kubernetes → Costs** mostra la spesa di tutti i cluster del progetto.
-- Su un cluster, **Costs** mostra l'andamento della sua spesa, **Spend by Namespace** con la ripartizione tra CPU, memoria e storage, **Spend by Workload**, la spesa inutilizzata, l'efficienza e la scheda **Right-Sizing**.
+- **Prodotti → Infrastruttura → Kubernetes → Costi** mostra la spesa di tutti i cluster del progetto.
+- Su un cluster, **Costi** mostra l'andamento della sua spesa, **Spend by Namespace** con la ripartizione tra CPU, memoria e storage, **Spend by Workload**, la spesa inutilizzata, l'efficienza e la scheda **Right-Sizing**.
 :::
 
 Le metriche dei costi (`node_total_hourly_cost`, `pv_hourly_cost` e le altre) sono metriche normali: si trovano nell'esploratore delle metriche, nei dashboard personalizzati e nei monitor delle metriche. Per un dashboard già pronto, vai in **Prodotti → Dashboard**, seleziona **Crea dashboard** e scegli **Kubernetes Cost Dashboard**: l'andamento del costo orario dei nodi, i costi unitari di CPU e memoria, e la spesa per volumi e load balancer.
@@ -113,7 +113,7 @@ cost:
 
 ## Right-sizing
 
-La scheda **Right-Sizing** nella pagina **Costs** di un cluster consiglia una richiesta di CPU e una di memoria per ogni container di cui ha abbastanza cronologia, ordinate in base a quanto fa risparmiare ogni modifica al mese.
+La scheda **Right-Sizing** nella pagina **Costi** di un cluster consiglia una richiesta di CPU e una di memoria per ogni container di cui ha abbastanza cronologia, ordinate in base a quanto fa risparmiare ogni modifica al mese.
 
 Una raccomandazione è la domanda osservata più un margine del 25%, arrotondata a un valore che puoi incollare in un manifest (10m di CPU, 16Mi di memoria):
 

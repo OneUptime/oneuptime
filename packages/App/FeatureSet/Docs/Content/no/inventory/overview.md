@@ -57,8 +57,8 @@ En relasjon OneUptime har oppdaget, fjernes når den ikke er sett igjen på 30 d
 | Side | Hva du finner der |
 | --- | --- |
 | **Oversikt** | Hvor mange elementer du har, hva de er, hvor mange som har blitt stille, og hva som sist ble lagt til. |
-| **All Items** | Alle elementer. Søk etter navn, beskrivelse eller identitetsnøkkel, avgrens listen etter type, kilde, status eller egendefinert felt, og legg til et element manuelt. |
-| **Topology Map** | Hvordan elementene henger sammen: tjenester, hva de kaller, og vertene, podene og enhetene de kjører på. |
+| **Alle elementer** | Alle elementer. Søk etter navn, beskrivelse eller identitetsnøkkel, avgrens listen etter type, kilde, status eller egendefinert felt, og legg til et element manuelt. |
+| **Topologikart** | Hvordan elementene henger sammen: tjenester, hva de kaller, og vertene, podene og enhetene de kjører på. |
 | **Gone Quiet** | De oppdagede elementene som ikke har sendt telemetri på mer enn et døgn. |
 | **By Source** | Elementene fra én kilde: **Discovered**, **Mirrored** eller **Added by You**. |
 | **Innstillinger → Egendefinerte felt** | Feltene prosjektet ditt fører på hvert element. |
@@ -79,7 +79,7 @@ Kortet viser hvor hver opplysning kom fra, og når. Kilden de fleste opplysninge
 
 Kortet til en nettverksenhet har en knapp **Oppdater** for dem som kan redigere nettverksenheter. Den leser enheten på nytt nå: sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten, og elementet kopieres fra enheten så snart avlesningen er kommet inn.
 
-De samme opplysningene er kolonner i listen **All Items**, skjult til du slår dem på, og de blir med i CSV-eksporten. [Eksportere til en CMDB](/docs/inventory/cmdb-sync#eiendelsdetaljer) viser nøklene deres.
+De samme opplysningene er kolonner i listen **Alle elementer**, skjult til du slår dem på, og de blir med i CSV-eksporten. [Eksportere til en CMDB](/docs/inventory/cmdb-sync#eiendelsdetaljer) viser nøklene deres.
 
 ### Tilkoblinger
 
@@ -90,9 +90,9 @@ Et elements side **Tilkoblinger** viser naboene i begge retninger, gruppert i **
 Legg til et element for noe OneUptime aldri vil se på egen hånd, slik at en avhengighet ender et virkelig sted og tingen kan bære de egendefinerte feltene dine.
 
 :::steps
-### Åpne All Items
+### Åpne Alle elementer
 
-Gå til **Produkter → Ressurser → Inventar**, og deretter **All Items**.
+Gå til **Produkter → Ressurser → Inventar**, og deretter **Alle elementer**.
 
 ### Legg til elementet
 
@@ -106,7 +106,7 @@ Klikk på **Legg til Item**. Velg **Type**, gi det et **Navn** og eventuelt en *
 Tre typer kan du legge til manuelt:
 
 - `external.service` (**Ekstern tjeneste**): et tredjeparts-API eller en software-as-a-service-avhengighet.
-- `external.database` (**Ekstern database**): en database som ikke er en server OneUptime kan modellere. En databaseserver, selvdriftet eller administrert, fra PostgreSQL til Snowflake, hører i stedet hjemme under **Databases → Opprett Database** ([Databaser](/docs/telemetry/databases)): den posten kobles til tracene, containerne og motormålingene som nevner samme adresse, noe et inventarelement aldri gjør, og legger du til samme server begge veier, sitter du igjen med to frakoblede poster.
+- `external.database` (**Ekstern database**): en database som ikke er en server OneUptime kan modellere. En databaseserver, selvdriftet eller administrert, fra PostgreSQL til Snowflake, hører i stedet hjemme under **Databaser → Opprett Database** ([Databaser](/docs/telemetry/databases)): den posten kobles til tracene, containerne og motormålingene som nevner samme adresse, noe et inventarelement aldri gjør, og legger du til samme server begge veier, sitter du igjen med to frakoblede poster.
 - `appliance` (**Appliance**): maskinvare eller programvare uten agent.
 
 Begrensningen hindrer duplikater. Et manuelt opprettet element av en type OneUptime kan observere, som en vert, ville fått nøkkel etter navnet du skrev, mens det oppdagede elementet for samme maskin får nøkkel etter attributtene den rapporterer. De to ville aldri smelte sammen, så den samme verten ville stått to ganger i listen din for alltid.
@@ -121,14 +121,14 @@ Arkivering tar et element ut av listen mens det beholder identiteten, historikke
 | **Mirrored** | Forblir arkivert. | Kommer tilbake med neste kopi. Slett den opprinnelige posten i stedet. |
 | **Added by you** | Forblir arkivert. | Borte for godt. |
 
-For å arkivere elementer merker du dem i **All Items** og arkiverer dem på én gang, eller du åpner et element og bruker kortet **Arkiver** på siden **Innstillinger**. Arkiverte elementer ligger under **Inventar → Avansert → Arkivert**, der du kan merke dem og gjenopprette dem.
+For å arkivere elementer merker du dem i **Alle elementer** og arkiverer dem på én gang, eller du åpner et element og bruker kortet **Arkiver** på siden **Innstillinger**. Arkiverte elementer ligger under **Inventar → Avansert → Arkivert**, der du kan merke dem og gjenopprette dem.
 
 > [!NOTE]
 > Når en speilet enhet fjernes fra sin egen post, fjerner OneUptime også elementet, med mindre elementet har verdier i egendefinerte felt som du har lagt inn. De verdiene er den eneste kopien, og det finnes ingen angrefunksjon, så elementet arkiveres i stedet for å bli slettet. Du finner det under **Avansert → Arkivert** med alt du skrev, i behold.
 
 ## Relasjoner og topologi
 
-OneUptime kobler elementer sammen med rettede relasjoner etter hvert som det observerer dem. **Inventar → Topology Map** tegner dem, og et elements side **Tilkoblinger** viser elementets egne. Se [Topologi](/docs/telemetry/topology).
+OneUptime kobler elementer sammen med rettede relasjoner etter hvert som det observerer dem. **Inventar → Topologikart** tegner dem, og et elements side **Tilkoblinger** viser elementets egne. Se [Topologi](/docs/telemetry/topology).
 
 | Relasjon | For eksempel |
 | --- | --- |

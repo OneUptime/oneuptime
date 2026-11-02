@@ -61,10 +61,10 @@ export interface ComponentProps {
  * One subscribe option: a tile with the app's mark, its name and what a
  * click does. The colours are the classes Theme.css remaps for dark mode.
  *
- * The mark is Google Calendar's official logo for Google Calendar, and a
+ * The mark is Google Calendar's official mark for Google Calendar, and a
  * calendar for "the calendar app on this device" - two apps, so no one
- * brand's logo - on the same neutral tile, so the pair reads as one set
- * (Common/UI/Components/ProviderLogo).
+ * brand's mark - on the same neutral tile in the same grey, so the pair
+ * reads as one set (Common/UI/Components/ProviderLogo).
  */
 export const SUBSCRIBE_OPTION_CLASS_NAME: string =
   "group flex min-w-0 items-center gap-3 rounded-lg border border-gray-200 bg-white px-3.5 py-3 shadow-sm transition-colors duration-150 ease-out hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";

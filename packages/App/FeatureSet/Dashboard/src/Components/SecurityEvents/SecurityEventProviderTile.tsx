@@ -30,7 +30,11 @@ export interface ComponentProps {
  * stands upright (logo and plus on top, the name under them at the tile's
  * full width) and every name stays on one line. The same three children are
  * placed on a grid in both, so nothing is duplicated or reordered for
- * either.
+ * either. Upright, the tile's rows keep their own heights at its top
+ * (content-start): a row of tiles is as tall as its tallest, and a tile
+ * whose name takes one line would otherwise share the spare height between
+ * its rows - its name lower than its neighbours', its plus no longer level
+ * with its logo.
  *
  * Colour classes are literal and limited to ones Theme.css re-colours for
  * dark mode. Every hover colour on an icon sits on the icon alone, with the
@@ -49,8 +53,8 @@ const SecurityEventProviderTile: FunctionComponent<ComponentProps> = (
       data-testid={`${props.idPrefix}-provider-${definition.provider}`}
       className={
         props.canConnect
-          ? "group relative grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 rounded-lg border border-gray-200 bg-white p-3 transition-colors duration-150 ease-out hover:border-indigo-300 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start lg:gap-y-3 lg:p-4"
-          : "relative grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 rounded-lg border border-gray-200 bg-white p-3 lg:items-start lg:gap-y-3 lg:p-4"
+          ? "group relative grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 rounded-lg border border-gray-200 bg-white p-3 transition-colors duration-150 ease-out hover:border-indigo-300 lg:grid-cols-[auto_minmax(0,1fr)] lg:content-start lg:items-start lg:gap-y-3 lg:p-4"
+          : "relative grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 rounded-lg border border-gray-200 bg-white p-3 lg:content-start lg:items-start lg:gap-y-3 lg:p-4"
       }
     >
       {/* The name is the button's words, so the logo is not read out. */}

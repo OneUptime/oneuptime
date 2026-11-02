@@ -137,7 +137,7 @@ AI 代理自己的设置见 [AI 代理](#ai-代理)。
 | OSD | `ceph_osd_up`、`ceph_osd_in`、`ceph_osd_apply_latency_ms`、`ceph_osd_commit_latency_ms`、`ceph_osd_stat_bytes`、`ceph_osd_stat_bytes_used`、`ceph_osd_numpg`、`ceph_osd_metadata`，按 OSD 以 `ceph_daemon` 标签区分（例如 `osd.3`） |
 | 存储池 | `ceph_pool_stored`、`ceph_pool_max_avail`、`ceph_pool_objects`、`ceph_pool_rd`、`ceph_pool_wr`、`ceph_pool_rd_bytes`、`ceph_pool_wr_bytes`、`ceph_pool_metadata`。数据序列只带有 `pool_id` 标签；存储池的名称在 `ceph_pool_metadata` 上。 |
 | 归置组 | `ceph_pg_total`、`ceph_pg_active`、`ceph_pg_clean`、`ceph_pg_degraded`、`ceph_pg_undersized`（均按存储池，以 `pool_id` 区分）、`ceph_num_objects_degraded`、`ceph_num_objects_misplaced` |
-| 守护进程 | `ceph_mgr_metadata`、`ceph_mds_metadata` 和 `ceph_rgw_metadata`，加上上面的监视器和 OSD 元数据。每个都指明一个守护进程，并在 `ceph_version` 标签中带有其版本：**Daemons** 页面会列出它们。 |
+| 守护进程 | `ceph_mgr_metadata`、`ceph_mds_metadata` 和 `ceph_rgw_metadata`，加上上面的监视器和 OSD 元数据。每个都指明一个守护进程，并在 `ceph_version` 标签中带有其版本：**守护进程** 页面会列出它们。 |
 
 ### 更多抓取目标
 
@@ -150,7 +150,7 @@ mgr 模块涵盖集群的健康状况和容量。若要深入查看，请在 `ot
 
 ## 可选 — 发送 Ceph 集群日志
 
-代理可以跟踪 `/var/log/ceph/ceph.log` 并将其发送到 OneUptime，从而填充集群的 **Cluster Log** 页面。它默认关闭，因为这时代理必须运行在拥有集群日志的主机上：默认是监视器主机。
+代理可以跟踪 `/var/log/ceph/ceph.log` 并将其发送到 OneUptime，从而填充集群的 **集群日志** 页面。它默认关闭，因为这时代理必须运行在拥有集群日志的主机上：默认是监视器主机。
 
 :::steps
 ### 开启接收器

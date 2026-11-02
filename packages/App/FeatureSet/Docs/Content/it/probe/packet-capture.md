@@ -130,7 +130,7 @@ Per impostare su questa sonda un tetto più basso di quello che rispetta ogni so
 :::steps
 ### Apri la sonda o il dispositivo
 
-Apri **Monitor → Impostazioni → Sonde** e fai clic sulla tua sonda: la sua scheda **Catture di pacchetti** elenca le sue catture. Oppure apri un dispositivo di rete e vai alla sua pagina **Traffic**: lì le catture vengono eseguite sulla sonda del dispositivo e partono filtrate sul suo indirizzo.
+Apri **Monitor → Impostazioni → Sonde** e fai clic sulla tua sonda: la sua scheda **Catture di pacchetti** elenca le sue catture. Oppure apri un dispositivo di rete e vai alla sua pagina **Traffico**: lì le catture vengono eseguite sulla sonda del dispositivo e partono filtrate sul suo indirizzo.
 
 ### Fai clic su Avvia cattura di pacchetti
 

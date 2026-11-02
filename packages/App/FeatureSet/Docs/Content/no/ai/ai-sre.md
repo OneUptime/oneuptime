@@ -93,7 +93,7 @@ Autonome undersøkelser er **slått på som standard for nye prosjekter**. Det e
 
 :::steps
 1. **Konfigurer en LLM-leverandør.** Selvhostede installasjoner bruker sin egen nøkkel (eller kjører helt isolert med en lokal Ollama): se [LLM-leverandører](/docs/ai/llm-provider). Brukere av OneUptime Cloud kan bruke den forhåndskonfigurerte globale leverandøren, fakturert som målte KI-tokener, så prosjektet trenger AI-kreditter: en prosjekteier eller en med **Manage Billing** legger dem til på **Prosjektinnstillinger → KI → AI-kreditter**, der **Automatisk påfylling** sørger for at de ikke går tom.
-2. **Sørg for at KI er slått på for prosjektet** (det er det som standard): **Aktiver AI** på **Prosjektinnstillinger → KI → AI Features**.
+2. **Sørg for at KI er slått på for prosjektet** (det er det som standard): **Aktiver AI** på **Prosjektinnstillinger → KI → AI-funksjoner**.
 3. **Velg for hver signaltype** (begge på for nye prosjekter):
    - Hendelser: **Hendelser → KI → Innstillinger**: slå på _Undersøk nye hendelser_.
    - Varsler: **Varsler → KI → Innstillinger**: slå på _Undersøk nye varsler_.
@@ -178,7 +178,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Erstatt `{web,api}` med navnerommene KI-en får rette. Hvert navnerom i listen må finnes fra før: charten oppretter én RoleBinding i hvert av dem og oppretter aldri et navnerom, så et som mangler, får hele installasjonen eller oppgraderingen (collectoren inkludert) til å feile med `namespaces "api" not found`. Opprett det først, eller ta det ut av listen; ta et navnerom ut av listen før du sletter det. Utelater du flagget ved en oppgradering, beholdes listen som er lagret i releasen, så for å gå tilbake til hele klyngen sender du med `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), slik den andre kommandoen gjør, og ikke `={}`, som Helm leser som ett tomt navn og charten avviser. `--set aiAgent.remediation.namespaces=null` tilbakestiller ikke en lagret liste under `--reuse-values`: Helm beholder den lagrede listen. `aiAgent.remediation.nodeOperations=false` holder rettelser unna noder; sett den til `true` for å la KI-en sperre, åpne, tømme og sette taints på noder (en drain, en taint eller en patch av en node venter fortsatt på et menneske).
 
-Bruk `automatic` eller `bypass-approval` i stedet for `ask-for-approval` for mer selvstendighet, og `--set aiAgent.fixes=off` for å slå av rettelser igjen, noe som også fjerner skrivetilgangen. Rettelser trenger også to prosjektbrytere. **Rett nye hendelser automatisk** (på **Hendelser → KI → Innstillinger**) og **Rett nye varsler automatisk** (på **Varsler → KI → Innstillinger**) starter av: før en av dem er på, rettes ingenting nytt av den typen. **Aktiver AI** (**Prosjektinnstillinger → KI → AI Features**) er på med mindre noen har slått den av; den slår av all KI for prosjektet, uansett hva konfigurasjonen til en agent sier.
+Bruk `automatic` eller `bypass-approval` i stedet for `ask-for-approval` for mer selvstendighet, og `--set aiAgent.fixes=off` for å slå av rettelser igjen, noe som også fjerner skrivetilgangen. Rettelser trenger også to prosjektbrytere. **Rett nye hendelser automatisk** (på **Hendelser → KI → Innstillinger**) og **Rett nye varsler automatisk** (på **Varsler → KI → Innstillinger**) starter av: før en av dem er på, rettes ingenting nytt av den typen. **Aktiver AI** (**Prosjektinnstillinger → KI → AI-funksjoner**) er på med mindre noen har slått den av; den slår av all KI for prosjektet, uansett hva konfigurasjonen til en agent sier.
 
 ### Hvilke hendelser en klynges rettelser virker på
 
@@ -398,7 +398,7 @@ En undersøkelse som mislykkes, utløper eller blir foreldet, frigir likevel utb
 
 Mens utbedringen venter, sier trinnet **Utbedring** det (**Venter**), og viser hva som skjedde når undersøkelsen er avsluttet.
 
-Automatisk utbedring avhenger av to brytere. **Rett nye hendelser automatisk** (eller varsler), av til prosjektet slår den på: når den er av, rettes ingen ny hendelse (eller nytt varsel). Og **Aktiver AI** (**Prosjektinnstillinger → KI → AI Features**), prosjektets hovedbryter for KI: når den er av, kjører ingen AI-regel (heller ikke en som starter en runbook uten KI), og ingen klynge eller ressurs blir rettet.
+Automatisk utbedring avhenger av to brytere. **Rett nye hendelser automatisk** (eller varsler), av til prosjektet slår den på: når den er av, rettes ingen ny hendelse (eller nytt varsel). Og **Aktiver AI** (**Prosjektinnstillinger → KI → AI-funksjoner**), prosjektets hovedbryter for KI: når den er av, kjører ingen AI-regel (heller ikke en som starter en runbook uten KI), og ingen klynge eller ressurs blir rettet.
 
 ## Hva den automatiske utbedringen gjorde
 
@@ -490,7 +490,7 @@ AI-loggene (**Prosjektinnstillinger → KI → AI-logger**) viser hvert kall med
 
 ### Prosjektets egne daglige grenser
 
-Over alle grensene i tabellen kan et prosjekt sette et tak på hva OneUptime AI bruker på et døgn, uansett hva den gjør: Spør AI, undersøkelser, utkast til etteranalyser, pull-forespørsler med rettelser, triage av innsikt, workflows, runbooks og spørsmål i Slack eller Microsoft Teams, alt sammen. Grensene ligger på **Prosjektinnstillinger → KI → AI Features**, slått sammen under **Flere innstillinger**, i delen **Daglige grenser**:
+Over alle grensene i tabellen kan et prosjekt sette et tak på hva OneUptime AI bruker på et døgn, uansett hva den gjør: Spør AI, undersøkelser, utkast til etteranalyser, pull-forespørsler med rettelser, triage av innsikt, workflows, runbooks og spørsmål i Slack eller Microsoft Teams, alt sammen. Grensene ligger på **Prosjektinnstillinger → KI → AI-funksjoner**, slått sammen under **Flere innstillinger**, i delen **Daglige grenser**:
 
 - **Daglig AI-tokengrense**: det høyeste antallet tokener prosjektets KI kan bruke hvert døgn, gjennom en hvilken som helst LLM-leverandør.
 - **Daglig grense for AI-forbruk (USD)**, på OneUptime Cloud: det høyeste antallet AI-kreditter, i hele amerikanske dollar, som prosjektets KI kan bruke hvert døgn. Bare KI som faktureres mot prosjektets AI-kreditter, teller, så den stopper aldri KI som kjører på prosjektets egen LLM-leverandør. Selvhostede installasjoner fakturerer ikke KI, så de tilbyr den ikke.
@@ -501,7 +501,7 @@ Når en grense er nådd, stopper nytt KI-arbeid til midnatt UTC. Et kall som all
 
 #### Når en grense er nådd
 
-**Prosjektets eiere får en e-post.** Første gang en grense stopper OneUptime AI i et UTC-døgn, får hver prosjekteier én e-post: hvilken grense, hvor mye prosjektet har brukt av den i dag, når den tilbakestilles, og en lenke til **Prosjektinnstillinger → KI → AI Features**, der de kan heve eller fjerne den. Den kommer én gang om dagen for hver grense: tokengrensen og forbruksgrensen sender hver sin, og ingenting mer sendes den dagen, uansett hvor mange kall som avvises. Det er den samme e-posten eierne får om fakturering, og den vises som dem i prosjektets e-postlogger.
+**Prosjektets eiere får en e-post.** Første gang en grense stopper OneUptime AI i et UTC-døgn, får hver prosjekteier én e-post: hvilken grense, hvor mye prosjektet har brukt av den i dag, når den tilbakestilles, og en lenke til **Prosjektinnstillinger → KI → AI-funksjoner**, der de kan heve eller fjerne den. Den kommer én gang om dagen for hver grense: tokengrensen og forbruksgrensen sender hver sin, og ingenting mer sendes den dagen, uansett hvor mange kall som avvises. Det er den samme e-posten eierne får om fakturering, og den vises som dem i prosjektets e-postlogger.
 
 **Hendelser og varsler som ble hoppet over, undersøkes etter tilbakestillingen.** En hendelse eller et varsel som ikke ble undersøkt fordi en grense var nådd, undersøkes så snart grensen ikke lenger stopper KI-en: etter midnatt UTC, eller så snart en eier hever eller fjerner grensen. Bare så lenge den fortsatt er åpen og er under ett døgn gammel, og bare én gang. Innstillingene i øyeblikket gjelder, som for en ny hendelse eller et nytt varsel: så lenge Aktiver AI eller automatisk undersøkelse er av, det ikke finnes noen LLM-leverandør eller AI-kreditt, eller den daglige tokengrensen for hendelser eller varsler er nådd, venter den videre; den nedre grensen for alvorlighetsgrad og pausen kan fortsatt hoppe over den, og kortet sier da hvorfor. En post som ble løst i mellomtiden, eller som noen i mellomtiden har bedt OneUptime AI om å undersøke, undersøkes ikke på nytt. Noen få tas opp hvert femte minutt, de nyeste først, og bare så lenge prosjektets undersøkelseskø ikke har noe annet som venter, så nye hendelser og varsler går først; nås grensen igjen, venter resten på neste tilbakestilling.
 

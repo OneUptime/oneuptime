@@ -14,10 +14,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the brand of the product it points at (a pasted Zoom link reads as Zoom);
  * anything else is a plain link mark on the same tile.
  *
- * The logos are the shared ones (Common/UI/Components/ProviderLogo): part of
- * the installation, never fetched from another address, and drawn in the
- * brand's own mark for dark backgrounds where it has one. A Slack huddle is
- * held in Slack, so it shows Slack's logo. The image is named after the call
+ * The marks are the shared ones (Common/UI/Components/ProviderLogo): part of
+ * the installation, never fetched from another address, and drawn in one
+ * colour as icons are, in the light and the dark theme. A Slack huddle is
+ * held in Slack, so it shows Slack's mark. The image is named after the call
  * ("Slack huddle"), not only the brand.
  */
 

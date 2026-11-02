@@ -25,7 +25,7 @@ flowchart TB
     issues --> owners["Email ai proprietari"]
 ```
 
-1. **Discovery** trova gli archivi che OneUptime conosce già: il tuo inventario cloud, i database monitorati dal prodotto Database, i database con cui parlano i tuoi servizi sulla mappa dei servizi e la telemetria di ogni servizio. Aggiungi un archivio a mano solo quando nessuna origine lo elenca.
+1. **Rilevamento** trova gli archivi che OneUptime conosce già: il tuo inventario cloud, i database monitorati dal prodotto Database, i database con cui parlano i tuoi servizi sulla mappa dei servizi e la telemetria di ogni servizio. Aggiungi un archivio a mano solo quando nessuna origine lo elenca.
 2. **La lettura della configurazione** chiede a ogni cloud come è configurato ciascun archivio: chi può raggiungerlo, come è cifrato, sottoposto a backup e registrato nei log. Legge le impostazioni, mai i dati.
 3. **I campioni di contenuto** leggono un po' di ciò che contiene un archivio, dove lo consenti: alcuni oggetti di ogni tipo in un bucket, alcune righe di ogni tabella, i record più recenti della telemetria di ogni servizio.
 4. La **Classificazione** trova i valori sensibili nei campioni e conserva conteggi e campioni mascherati, mai un valore.

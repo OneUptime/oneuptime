@@ -110,8 +110,9 @@ export interface SetupStep {
   icon: IconProp;
   iconBackgroundClassName: string;
   /*
-   * The official logo of the product a step connects (Slack, Microsoft
-   * Teams), drawn in place of the coloured icon while the step is to do.
+   * The official mark of the product a step connects (Slack, Microsoft
+   * Teams), drawn in place of the icon while the step is to do - in the
+   * icon's white, on the step's colour block.
    */
   logo?: ProviderLogo | undefined;
   /**

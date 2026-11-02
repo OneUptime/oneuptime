@@ -62,14 +62,14 @@ Daaronder zegt één regel of er iets een incident opent als een apparaat uitval
 
 Zolang er nog niets is toegevoegd, leidt het overzicht je in plaats daarvan door drie stappen. **Zet een sonde in je netwerk**: een sonde pingt en leest je apparaten uit vanuit hun eigen netwerk, dus **Een sonde toevoegen** geeft er een een naam, toont de opdracht die hem start en kijkt toe hoe hij verbinding maakt. **Voeg je apparaten toe**: **Apparaten ontdekken** scant een adresbereik zodat je kunt kiezen wat je toevoegt, het beste voor een heel netwerk of een nieuwe locatie, en **Eén apparaat toevoegen** voegt er één toe op IP-adres of hostnaam. **Krijg een melding als een apparaat uitvalt**: **Waarschuwingen instellen** opent de [waarschuwingsbeleidsregels](#waarschuwingsbeleid), waar het aanbevolen beleid één klik is. Op OneUptime Cloud vraagt [een sonde toevoegen](/docs/probe/custom-probe) het Growth-abonnement: daaronder zegt de stap dat en verwijst hij in plaats daarvan naar je factureringsinstellingen, en de eigen sondes van OneUptime op internet kunnen nog steeds apparaten met een openbaar adres controleren.
 
-Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparaten**, **Locaties**, **Kaart**, **Traffic**, **Gebeurtenissen** en **Discovery**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
+Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparaten**, **Locaties**, **Kaart**, **Verkeer**, **Gebeurtenissen** en **Detectie**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
 
 | Sectie | Pagina's |
 | --- | --- |
-| **Topologie** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
-| **Regels** | **Auto Import Rules**, **Site Assignment Rules**, **Eigenaarsregels**, **Labelregels**, **Link Rules** |
-| **Instellingen** | **Alert Policies**, **SNMP-inloggegevens**, **Device Roles**, **Site Types**, **Adresnamen**, **OID Collection Templates** |
-| **Geavanceerd** | **Archived Devices** |
+| **Topologie** | **Apparaattopologie**, **Endpoints**, **Latentiematrix**, **Locatiekoppelingen**, **Apparaatkoppelingen** |
+| **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels** |
+| **Instellingen** | **Waarschuwingsbeleid**, **SNMP-inloggegevens**, **Apparaatrollen**, **Locatietypen**, **Adresnamen**, **Sjablonen voor OID-verzameling** |
+| **Geavanceerd** | **Gearchiveerde apparaten** |
 
 ## Een netwerkapparaat toevoegen
 
@@ -144,17 +144,17 @@ Een discovery-scan van het netwerk van een klant brengt tientallen apparaten bin
 
 | Actie | Wat ze doet |
 | --- | --- |
-| **Locatie instellen** / **Locatie wissen** | Verplaatst elk geselecteerd apparaat naar de locatie die je kiest, waar het meetelt voor de gezondheid van de locatie; een apparaat zonder eigen sonde neemt de standaardsonde van de locatie over. **Locatie wissen** haalt ze uit hun locaties. Een apparaat dat aan een locatietoewijzingsregel voldoet, gaat bij zijn volgende poll terug naar de locatie van de regel, dus voeg voor apparaten die discovery blijft vinden liever een regel toe onder **Netwerk → Regels → Site Assignment Rules**; het dialoogvenster **Locatie instellen** linkt ernaar. |
-| **Apparaatrol instellen** / **Apparaatrol wissen** | Geeft elk geselecteerd apparaat dezelfde rol, zoals de twintig switches die allemaal "Access Switch" zijn. Rollen zijn die van het project, onder **Netwerk → Instellingen → Device Roles**, waar het dialoogvenster naar linkt. **Apparaatrol wissen** leidt de rol van elk apparaat opnieuw af uit zijn SNMP-identiteit. |
+| **Locatie instellen** / **Locatie wissen** | Verplaatst elk geselecteerd apparaat naar de locatie die je kiest, waar het meetelt voor de gezondheid van de locatie; een apparaat zonder eigen sonde neemt de standaardsonde van de locatie over. **Locatie wissen** haalt ze uit hun locaties. Een apparaat dat aan een locatietoewijzingsregel voldoet, gaat bij zijn volgende poll terug naar de locatie van de regel, dus voeg voor apparaten die discovery blijft vinden liever een regel toe onder **Netwerk → Regels → Regels voor locatietoewijzing**; het dialoogvenster **Locatie instellen** linkt ernaar. |
+| **Apparaatrol instellen** / **Apparaatrol wissen** | Geeft elk geselecteerd apparaat dezelfde rol, zoals de twintig switches die allemaal "Access Switch" zijn. Rollen zijn die van het project, onder **Netwerk → Instellingen → Apparaatrollen**, waar het dialoogvenster naar linkt. **Apparaatrol wissen** leidt de rol van elk apparaat opnieuw af uit zijn SNMP-identiteit. |
 | **Leverancierssjabloon toepassen** | Voegt de gezondheids-OID's en SNMP-tabellen van een [leverancierssjabloon](#gezondheidssjablonen-van-leveranciers) toe aan elk geselecteerd apparaat. **Per apparaat de leverancier herkennen**, de eerste keuze in het dialoogvenster, kiest het sjabloon van elk apparaat op basis van wat zijn SNMP-walk meldt, zodat een gemengde selectie overal het juiste krijgt; of kies één sjabloon voor allemaal. |
 
 Elke actie is één dialoogvenster en één keer opslaan voor de hele selectie, en elk apparaat doorloopt dezelfde controles als een bewerking op zijn eigen pagina Instellingen: rechten, het label- en eigenaarsbereik van je rol, en de limieten voor wat een apparaat mag verzamelen.
 
-**Leverancierssjabloon toepassen** laat zien wat het gaat doen voordat het iets doet: hoeveel apparaten welk sjabloon krijgen, en hoeveel het met rust laat en waarom. Het voegt toe aan wat elk apparaat al verzamelt en verwijdert niets, en een apparaat dat al alles uit het sjabloon heeft, wordt niet opnieuw weggeschreven. Het laat met rust: een apparaat met een gekoppelde monitor (niets pollt het), een apparaat dat gekoppeld is aan een [OID Collection Template](#oid-collection-templates) (het sjabloon bepaalt wat het verzamelt, dus voeg de OID's van de leverancier daar toe) en, bij herkennen, een apparaat dat nog niet via SNMP is gewalkt of waarvan de leverancier geen sjabloon heeft.
+**Leverancierssjabloon toepassen** laat zien wat het gaat doen voordat het iets doet: hoeveel apparaten welk sjabloon krijgen, en hoeveel het met rust laat en waarom. Het voegt toe aan wat elk apparaat al verzamelt en verwijdert niets, en een apparaat dat al alles uit het sjabloon heeft, wordt niet opnieuw weggeschreven. Het laat met rust: een apparaat met een gekoppelde monitor (niets pollt het), een apparaat dat gekoppeld is aan een [OID Collection Template](#sjablonen-voor-oid-verzameling) (het sjabloon bepaalt wat het verzamelt, dus voeg de OID's van de leverancier daar toe) en, bij herkennen, een apparaat dat nog niet via SNMP is gewalkt of waarvan de leverancier geen sjabloon heeft.
 
 Als een actie klaar is, somt ze op hoeveel apparaten zijn gewijzigd, welke mislukten en waarom — een apparaat dat je rol niet mag bewerken, een lijst boven haar limiet — en welke ze niet heeft gewijzigd en waarom: een apparaat dat al in die locatie of rol zat, of een dat het leverancierssjabloon met rust laat.
 
-De andere bulkacties komen aan bod waar ze thuishoren: **Set OID Collection Template** onder [OID Collection Templates](#oid-collection-templates), **Set SNMP Credential Profile**, **Switch to Probe Polling** en **Create Ping Monitors** onder [In bulk](#in-bulk), en **Shorten Names to Hostname** onder [Hoe ontdekte apparaten hun naam krijgen](#hoe-ontdekte-apparaten-hun-naam-krijgen).
+De andere bulkacties komen aan bod waar ze thuishoren: **Set OID Collection Template** onder [OID Collection Templates](#sjablonen-voor-oid-verzameling), **Set SNMP Credential Profile**, **Switch to Probe Polling** en **Create Ping Monitors** onder [In bulk](#in-bulk), en **Shorten Names to Hostname** onder [Hoe ontdekte apparaten hun naam krijgen](#hoe-ontdekte-apparaten-hun-naam-krijgen).
 
 ## Wat een poll echt doet
 
@@ -326,9 +326,9 @@ Apparaten met **Auto-Apply Vendor Health Template** aan krijgen de OID's en tabe
 
 Een leverancierssjabloon toepassen is een eenmalige kopie, dus niets verspreidt zich als het sjabloon verandert. Gebruik voor alles voorbij één apparaat liever een **OID Collection Template**; de leverancierssjablonen worden als startpunt aangeboden als je er een maakt.
 
-### OID Collection Templates
+### Sjablonen voor OID-verzameling
 
-Een **OID Collection Template** (**Netwerk → Instellingen → OID Collection Templates**) is een benoemde OID-lijst, meestal genoemd naar een apparaattype zoals "Cisco Catalyst 9300", waar zoveel apparaten aan koppelen als je wilt. De koppeling is live, geen kopie: de OID-lijst van een apparaat wordt bij elke poll samengesteld, dus een sjabloon bewerken verandert wat elk gekoppeld apparaat bij zijn volgende poll verzamelt, zonder synchronisatiestap.
+Een **OID Collection Template** (**Netwerk → Instellingen → Sjablonen voor OID-verzameling**) is een benoemde OID-lijst, meestal genoemd naar een apparaattype zoals "Cisco Catalyst 9300", waar zoveel apparaten aan koppelen als je wilt. De koppeling is live, geen kopie: de OID-lijst van een apparaat wordt bij elke poll samengesteld, dus een sjabloon bewerken verandert wat elk gekoppeld apparaat bij zijn volgende poll verzamelt, zonder synchronisatiestap.
 
 Controleer voordat je er een bouwt of je het nodig hebt. Bits in en uit per poort, operationele status, benutting en fouten per seconde worden bij elke poll voor elke poort verzameld zonder enige OID (zie [Interfaces walken](#interfaces-walken)), en zijn al per poort te gebruiken voor waarschuwingen. Sjablonen zijn voor wat niet per poort is: CPU, geheugen, temperatuur, ventilatoren, voedingen, BGP-peers.
 
@@ -414,7 +414,7 @@ Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt a
 
 Sommige kolommen van leverancierssjablonen **passen** ook het getal aan dat ze lezen, voor MIB's die een waarde in een eigen eenheid bewaren: ArubaOS meldt het zendvermogen verdubbeld (gelezen × 0.5), Aruba Instant de ruisvloer zonder teken (× −1), Aerohive de ruisvloer plus 256 (− 256), en de controller van Extreme de kanaalbreedte in stappen van 20 MHz (× 20). Het aangepaste getal is wat wordt getoond, in grafieken gezet en vergeleken, dus **Noise Floor Groter dan -80** betekent bij elke leverancier hetzelfde, en de tabeleditor toont de berekening onder de kolom.
 
-Tabellen komen van een [OID Collection Template](#oid-collection-templates), gedeeld door elk gekoppeld apparaat (tot 10 tabellen), of van het apparaat zelf onder **Device-Specific SNMP Tables** (tot 10 extra). Ze worden bij elke poll op sleutel samengevoegd, sjabloon eerst, en een apparaattabel met dezelfde sleutel vervangt die van het sjabloon. Beide editors bieden **Add a Vendor's Tables**.
+Tabellen komen van een [OID Collection Template](#sjablonen-voor-oid-verzameling), gedeeld door elk gekoppeld apparaat (tot 10 tabellen), of van het apparaat zelf onder **Device-Specific SNMP Tables** (tot 10 extra). Ze worden bij elke poll op sleutel samengevoegd, sjabloon eerst, en een apparaattabel met dezelfde sleutel vervangt die van het sjabloon. Beide editors bieden **Add a Vendor's Tables**.
 
 De sonde walkt elke kolom als subboom, binnen een budget van 30 seconden dat alle tabellen op het apparaat delen. Een tabel die niet gewalkt kan worden, zegt waarom en laat de poll nooit mislukken: de pagina **SNMP-tabellen** van het apparaat houdt haar laatste goede rijen en meldt dat de laatste walk mislukte, terwijl criteria alleen beoordelen wat deze walk opleverde, dus een time-out wordt nooit gelezen als een lege tabel. Elke numerieke cel wordt vastgelegd als de metriek `oneuptime.monitor.snmp.table.value`, met de attributen `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` en `snmpTableRowIndex`, zodat een dashboard de status van elke tunnel of het zendvermogen van elke radio kan tonen, en een metriekenmonitor kan groeperen op `snmpTableRow`.
 
@@ -546,8 +546,8 @@ flowchart TB
 ```
 
 :::steps
-### Discovery openen
-Ga naar **Netwerk → Discovery** en klik op **Scan starten**. **Discover Devices** op het Netwerk-**Overzicht** opent hetzelfde formulier.
+### Detectie openen
+Ga naar **Netwerk → Detectie** en klik op **Scan starten**. **Discover Devices** op het Netwerk-**Overzicht** opent hetzelfde formulier.
 
 ### Zeggen wat er gescand moet worden
 Typ het bereik in **Scandoel**, controleer de **Sonde** en kies de **Scanmethode**: **ICMP (ping)**, waarmee een nieuwe scan begint, of **SNMP**.
@@ -681,7 +681,7 @@ Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-recor
 
 ### Automatisch importeren met auto-importregels
 
-Elke scan met de hand beoordelen schaalt niet voorbij de eerste paar subnetten. **Netwerk → Regels → Auto Import Rules** is waar je de import één keer vastlegt: een regel zegt welke ontdekte hosts hij claimt (een IP-bereik, en optionele patronen voor systeemnaam, beschrijving en `sysObjectID`) en, optioneel, welk monitorsjabloon en welke [OID Collection Template](#oid-collection-templates) de apparaten krijgen die hij importeert. Een regel die als uitsluiting is gemarkeerd, claimt niets en spreekt een veto uit over de andere: zo worden printers en telefoons uit een brede subnetregel gehaald.
+Elke scan met de hand beoordelen schaalt niet voorbij de eerste paar subnetten. **Netwerk → Regels → Regels voor automatisch importeren** is waar je de import één keer vastlegt: een regel zegt welke ontdekte hosts hij claimt (een IP-bereik, en optionele patronen voor systeemnaam, beschrijving en `sysObjectID`) en, optioneel, welk monitorsjabloon en welke [OID Collection Template](#sjablonen-voor-oid-verzameling) de apparaten krijgen die hij importeert. Een regel die als uitsluiting is gemarkeerd, claimt niets en spreekt een veto uit over de andere: zo worden printers en telefoons uit een brede subnetregel gehaald.
 
 In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk apparaat pollt dat de regel importeert, net als **Controleer elke** bij het importeren vanuit **Resultaten bekijken**; leeg is het elke 5 minuten. Een regel met **Include Ping-Only Hosts** aan importeert ook hosts die alleen op ping antwoordden, waaronder elke host die een [ICMP-scan](#icmp-scans) vindt, en geeft ook hun zijn monitorsjabloon: de sonde pingt ze, dus de controles van het sjabloon op of een apparaat bereikbaar is en op de traps die het stuurt, werken meteen voor ze, en zijn controles die een SNMP-walk lezen zodra het apparaat inloggegevens heeft.
 
@@ -722,7 +722,7 @@ Pollen geeft je status, inventaris en grafieken. Incidenten, waarschuwingen en o
 
 ### Waarschuwingsbeleid
 
-**Netwerk → Instellingen → Alert Policies** is waar de waarschuwingen van een vloot één keer worden vastgelegd. Een beleid zegt welke apparaten (een bereik van locaties, apparaatrollen en labels) en waarop ze waarschuwen (een monitorsjabloon voor netwerkapparaten), dus "elke magazijnswitch opent een incident als hij onbereikbaar wordt" is één rij in plaats van tweehonderd monitors.
+**Netwerk → Instellingen → Waarschuwingsbeleid** is waar de waarschuwingen van een vloot één keer worden vastgelegd. Een beleid zegt welke apparaten (een bereik van locaties, apparaatrollen en labels) en waarop ze waarschuwen (een monitorsjabloon voor netwerkapparaten), dus "elke magazijnswitch opent een incident als hij onbereikbaar wordt" is één rij in plaats van tweehonderd monitors.
 
 ```mermaid title="Wat een waarschuwingsbeleid bijhoudt"
 flowchart TB
@@ -950,7 +950,7 @@ leest als "Gi0/1 on core-switch-01 is down". [Sjablonen voor incidenten en waars
 
 ## Netwerktopologie
 
-**Netwerk → Topologie → Device Topology** is een live kaart van je netwerk, opgebouwd uit de LLDP-buren die interfacewalks verzamelen, aangevuld met CDP in Cisco-omgevingen. Beheerde apparaten zijn gevuld en onbeheerde LLDP-peers zijn hol; de kleur van een knooppunt is de status van zijn apparaat, en klikken op een beheerd apparaat opent het.
+**Netwerk → Topologie → Apparaattopologie** is een live kaart van je netwerk, opgebouwd uit de LLDP-buren die interfacewalks verzamelen, aangevuld met CDP in Cisco-omgevingen. Beheerde apparaten zijn gevuld en onbeheerde LLDP-peers zijn hol; de kleur van een knooppunt is de status van zijn apparaat, en klikken op een beheerd apparaat opent het.
 
 Om de kaart te laten vollopen:
 
@@ -963,7 +963,7 @@ Klik op een onbeheerde peer en **Add to Monitoring** registreert hem als door ee
 
 ### De kaart als pdf exporteren
 
-**PDF exporteren**, bovenaan de kaart, downloadt de kaart die je bekijkt als een pdf die je aan een assessment, een wijzigingsverzoek of een incidentreview kunt toevoegen, of offline kunt lezen. Elke weergave van de apparaatkaart heeft het: **Device Topology**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**.
+**PDF exporteren**, bovenaan de kaart, downloadt de kaart die je bekijkt als een pdf die je aan een assessment, een wijzigingsverzoek of een incidentreview kunt toevoegen, of offline kunt lezen. Elke weergave van de apparaatkaart heeft het: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**.
 
 De pdf bevat:
 
@@ -999,7 +999,7 @@ De switch waaraan het apparaat hangt, heeft ook **Collect Connected Endpoints** 
 
 Een [Meraki-verbinding](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) doet dit allemaal zonder dat er iets aan hoeft. De clientlijst van Meraki vertelt op welke switch en poort elke client zit, dus een apparaat wordt geplaatst zodra die switch hier een netwerkapparaat is, op dezelfde locatie. De lijst geeft het apparaat ook zijn MAC-adres, en wat Meraki een client noemt, verschijnt in de kolom **Hostnaam** onder **Endpoints**. Ze wordt elke twee uur gelezen, dus een nieuw apparaat kan er zo lang over doen om te verschijnen. Zolang Meraki een client meldt, gaat zijn poort voor op een doorlopen forwarding-tabel, omdat Meraki een toegangspoort van een uplink kan onderscheiden. Een wifi-client wordt alleen op zijn access point geplaatst als hij hier een apparaat is: de telefoons op een gastennetwerk blijven van de kaart.
 
-Het overzicht van het apparaat heeft een kaart **Verbonden met** die de switch, de poort en de VLAN noemt. Een switch, router of firewall die zijn buren via LLDP of CDP meldt, toont die daar in plaats daarvan: zijn eigen poort, de buur (een link als het hier een apparaat is) en de poort aan de andere kant, met **Open de kaart** ernaast. Op de kaart toont het zijpaneel van het apparaat hetzelfde onder **Verbonden met**, en het paneel van de verbinding zegt dat ze is geleerd uit de forwardingtabel van de switch. De Parent-Child-weergave tekent het apparaat onder zijn switch. Een verbinding die je met de hand onder **Device Links** voor hetzelfde paar hebt getekend, gaat op in de geleerde in plaats van haar te verdubbelen: de geleerde poort vervangt een verkeerd getypte, en een ouder die je op de handgetekende verbinding hebt ingesteld, blijft behouden.
+Het overzicht van het apparaat heeft een kaart **Verbonden met** die de switch, de poort en de VLAN noemt. Een switch, router of firewall die zijn buren via LLDP of CDP meldt, toont die daar in plaats daarvan: zijn eigen poort, de buur (een link als het hier een apparaat is) en de poort aan de andere kant, met **Open de kaart** ernaast. Op de kaart toont het zijpaneel van het apparaat hetzelfde onder **Verbonden met**, en het paneel van de verbinding zegt dat ze is geleerd uit de forwardingtabel van de switch. De Parent-Child-weergave tekent het apparaat onder zijn switch. Een verbinding die je met de hand onder **Apparaatkoppelingen** voor hetzelfde paar hebt getekend, gaat op in de geleerde in plaats van haar te verdubbelen: de geleerde poort vervangt een verkeerd getypte, en een ouder die je op de handgetekende verbinding hebt ingesteld, blijft behouden.
 
 ![Parent-Child-topologieweergave die een kassa met alleen ping onder zijn switch tekent via een geleerde verbinding](/docs/static/images/NetworkTopologyLearnedLink.png)
 

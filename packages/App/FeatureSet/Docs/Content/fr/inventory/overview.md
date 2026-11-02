@@ -58,7 +58,7 @@ Ouvrez **Produits → Ressources → Inventaire**. Son menu latéral contient ce
 | --- | --- |
 | **Vue d'ensemble** | Combien d'éléments vous avez, ce qu'ils sont, combien sont devenus silencieux, et ce qui a été ajouté le plus récemment. |
 | **Tous les éléments** | Chaque élément. Cherchez par nom, description ou clé d'identité, filtrez la liste par type, source, statut ou champ personnalisé, et ajoutez un élément à la main. |
-| **Topology Map** | Comment les éléments sont reliés : les services, ce qu'ils appellent, et les hôtes, pods et équipements sur lesquels ils tournent. |
+| **Carte de topologie** | Comment les éléments sont reliés : les services, ce qu'ils appellent, et les hôtes, pods et équipements sur lesquels ils tournent. |
 | **Devenu silencieux** | Les éléments découverts qui n'ont pas envoyé de télémétrie depuis plus d'une journée. |
 | **Par source** | Les éléments d'une source : **Découvert**, **Répliqué** ou **Ajouté par vous**. |
 | **Paramètres → Champs personnalisés** | Les champs que votre projet tient sur chaque élément. |
@@ -128,7 +128,7 @@ Pour archiver des éléments, sélectionnez-les dans **Tous les éléments** et 
 
 ## Relations et topologie
 
-OneUptime relie les éléments par des relations orientées à mesure qu'il les observe. **Inventaire → Topology Map** les dessine, et la page **Connexions** d'un élément liste les siennes. Voir [Topologie](/docs/telemetry/topology).
+OneUptime relie les éléments par des relations orientées à mesure qu'il les observe. **Inventaire → Carte de topologie** les dessine, et la page **Connexions** d'un élément liste les siennes. Voir [Topologie](/docs/telemetry/topology).
 
 | Relation | Par exemple |
 | --- | --- |

@@ -72,7 +72,7 @@ Detaljpanelen har två flikar:
 | Flik | Vad den visar |
 | --- | --- |
 | **Detaljer** | **Loggkropp**, dess **Spår-ID**, **Span-ID** och **Session** när den har dem, och dess **Attribut**, som lista eller som JSON. |
-| **Context** | Loggen bland sina grannar. **Nearby (service + time)** visar de fem raderna före och efter den från samma tjänst, och **This trace** visar upp till 100 loggar från dess spår. |
+| **Kontext** | Loggen bland sina grannar. **Nearby (service + time)** visar de fem raderna före och efter den från samma tjänst, och **This trace** visar upp till 100 loggar från dess spår. |
 
 - Klicka på spår-ID:t för att öppna hela förfrågan i [Spårutforskare](/docs/telemetry/traces-explorer).
 - Peka på ett attribut och klicka på dess filterikon för att söka efter det värdet, eller kopiera det. Du kan kopiera alla attribut på en gång som JSON.

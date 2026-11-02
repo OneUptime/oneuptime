@@ -77,10 +77,10 @@ Sidans sidomeny samlar det du gör med ett undantag:
 | --- | --- |
 | **Översikt** | Meddelandet, tjänsten, hur ofta det inträffade och när det sågs första och senaste gången, dess utveckling över tid, och dess senaste förekomst: release, miljö, span, spår och användarsession. Högst upp OneUptime AI:s förklaring av vad som hände, när AI är på. |
 | **Stack trace** | Stackens ramar. För webbläsarkod de ursprungliga filerna och raderna, när du har laddat upp [Source maps](/docs/telemetry/source-maps) för releasen. |
-| **Occurrences** | Varje förekomst, med tidpunkt, meddelande och spåret där den inträffade. |
-| **Context** | Den senaste förekomstens attribut, dess sessionsinspelning när en spelades in, och stegen som ledde fram till den. |
+| **Förekomster** | Varje förekomst, med tidpunkt, meddelande och spåret där den inträffade. |
+| **Kontext** | Den senaste förekomstens attribut, dess sessionsinspelning när en spelades in, och stegen som ledde fram till den. |
 | **Loggar** | Loggarna som skrevs runt den senaste förekomsten. |
-| **AI Assistance** | AI-uppgifter som rättar undantaget eller testar det. |
+| **AI-hjälp** | AI-uppgifter som rättar undantaget eller testar det. |
 | **Inställningar** | Lös eller arkivera undantaget. Sidan ligger under **Hantera**, som är hopfällt från början. |
 
 ## Lös, öppna igen och arkivera
@@ -131,7 +131,7 @@ Högst upp på ett undantags **Översikt** frågar **Förklara med OneUptime AI*
 | **Var du ska titta** | De ramar i stack trace som du ska öppna först. |
 | **Nästa steg** | Högst tre steg för att bekräfta eller rätta det. |
 
-Förklaringen sparas på undantaget, så nästa person som öppnar det läser den direkt, och **Förklara igen** ber om en ny. **Öppna en pull request med rättelsen** öppnar undantagets sida **AI Assistance**, och **Ställ en följdfråga** öppnar Ask AI om undantaget.
+Förklaringen sparas på undantaget, så nästa person som öppnar det läser den direkt, och **Förklara igen** ber om en ny. **Öppna en pull request med rättelsen** öppnar undantagets sida **AI-hjälp**, och **Ställ en följdfråga** öppnar Ask AI om undantaget.
 
 ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
 
@@ -141,7 +141,7 @@ Slå ihop ett som OneUptime AI kallar **Troligen samma bugg**, i samma tjänst, 
 
 ## Rätta det med AI
 
-Sidan **AI Assistance** erbjuder tre uppgifter. Var och en körs som en AI-uppgift som öppnar en pull request i ditt kodförråd:
+Sidan **AI-hjälp** erbjuder tre uppgifter. Var och en körs som en AI-uppgift som öppnar en pull request i ditt kodförråd:
 
 | Uppgift | Vad pull requesten gör |
 | --- | --- |
@@ -161,7 +161,7 @@ Var 15:e minut går OneUptime igenom dina undantag efter nya, efter dem som plö
 | **Topp i undantag** | Ett undantag som har inträffat 10 gånger eller fler under den senaste timmen, med 5 gånger eller mer sin timtakt under de 24 timmarna innan. | Rättar undantaget, eller hanterar det bättre. |
 | **Saknad stack trace** | De undantag som en tjänst registrerade under det senaste dygnet saknar stack trace och har tillsammans inträffat 20 gånger eller fler. | Får tjänsten att registrera en stack trace med varje undantag. |
 
-Pull requesten för ett nytt eller ökande undantag är undantagets egen AI-uppgift, den som undantagets sida **AI Assistance** startar, och den väntar tills OneUptime AI har undersökt fyndet. Hittar den den skyldiga koden (`code-fault`), rättar pull requesten den, som **Fix this exception with AI** gör. Hittar den ett förväntat fel (`user-error` eller `expected-denial`), hanterar pull requesten felet bättre, som **Förbättra felhantering** gör. Varje annan slutsats öppnar ingen pull request av sig själv. Med **Arkivera förväntade undantag** påslaget arkiveras ett förväntat nekande i stället och får ingen pull request.
+Pull requesten för ett nytt eller ökande undantag är undantagets egen AI-uppgift, den som undantagets sida **AI-hjälp** startar, och den väntar tills OneUptime AI har undersökt fyndet. Hittar den den skyldiga koden (`code-fault`), rättar pull requesten den, som **Fix this exception with AI** gör. Hittar den ett förväntat fel (`user-error` eller `expected-denial`), hanterar pull requesten felet bättre, som **Förbättra felhantering** gör. Varje annan slutsats öppnar ingen pull request av sig själv. Med **Arkivera förväntade undantag** påslaget arkiveras ett förväntat nekande i stället och får ingen pull request.
 
 OneUptime AI öppnar bara själv en för ett undantag som kastats i din egen kod: ett undantag vars stack trace har en ram från din kod, och inte bara ramar från bibliotek eller körmiljön. En pull request som någon stängde utan att slå ihop den pausar de automatiska för det undantaget. Vem som helst kan ändå be om vilken som helst av dem med **Åtgärda med AI** på fyndet.
 
@@ -187,7 +187,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 - **Undantag → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis, ramarna från din kod i dess stack trace inräknade. **View Exception Group** öppnar undantaget, och för en tjänsts saknade stack traces öppnar **Öppna i Undantag** dess olösta undantag från det senaste dygnet.
 - **Undantag → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
-- Pull requesten säger varför den öppnades, med en länk till dess fynd. Den för ett nytt eller ökande undantag länkar också till undantaget och visas på undantagets sida **AI Assistance**. I Kod nämner dess uppgift undantaget den rättar, eller fyndet den kom från.
+- Pull requesten säger varför den öppnades, med en länk till dess fynd. Den för ett nytt eller ökande undantag länkar också till undantaget och visas på undantagets sida **AI-hjälp**. I Kod nämner dess uppgift undantaget den rättar, eller fyndet den kom från.
 
 ## Insikter i undantag
 

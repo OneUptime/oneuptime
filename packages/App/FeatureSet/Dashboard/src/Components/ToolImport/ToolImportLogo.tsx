@@ -6,13 +6,13 @@ import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOr
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * A tool's official logo on its tile (ToolImportBrand says which), so the
- * tools tell apart at a glance - the same logo on the picker, the connect
+ * A tool's official mark on its tile (ToolImportBrand says which), so the
+ * tools tell apart at a glance - the same mark on the picker, the connect
  * form, the preview, the progress and the earlier imports. The shared
- * logos are part of the installation (never fetched from another address)
- * and drawn in the brand's mark for dark backgrounds where it has one. A
- * tool this build has no logo for is drawn as an import. The tool's name
- * is always written beside it, so the logo is not read out again.
+ * marks are part of the installation (never fetched from another address)
+ * and drawn in one colour as icons are. A tool this build has no mark for
+ * is drawn as an import. The tool's name is always written beside it, so
+ * the mark is not read out again.
  */
 
 export type ToolImportLogoSize = "md" | "lg";

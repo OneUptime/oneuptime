@@ -32,7 +32,7 @@ flowchart LR
 
 ## Topologie openen
 
-Ga naar **Producten → Observability → Topologie**. **Inventaris → Topology Map** opent dezelfde pagina. Die opent op de **Service Map**, voor **Afgelopen dag**.
+Ga naar **Producten → Observability → Topologie**. **Inventaris → Topologiekaart** opent dezelfde pagina. Die opent op de **Service Map**, voor **Afgelopen dag**.
 
 | Weergave | De vraag die ze beantwoordt |
 | --- | --- |
