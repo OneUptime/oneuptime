@@ -888,6 +888,8 @@ describe("pickTypedLogFilter / serializeTypedLogFilter", () => {
       "sessionId",
       "body",
       "resourceFilters",
+      // The resources a chip leaves out ("Host is not web-01").
+      "excludedResourceFilters",
     ]);
 
     const includes: Includes = new Includes(["s-1"]);
