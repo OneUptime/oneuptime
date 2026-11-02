@@ -26,6 +26,8 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { describeResource } from "../Tools/DescribeResource";
+import { getFilterProblem } from "../Tools/FilterCheck";
 import { generatePublicStatusPageTools } from "../Tools/PublicStatusPageTools";
 import { generateAllTools } from "../Tools/ToolGenerator";
 import { McpToolInfo } from "../Types/McpTypes";
@@ -49,6 +51,12 @@ interface Skill {
 interface ToolExample {
   tool: string;
   args: JSONObject;
+}
+
+// A field as oneuptime_describe_resource describes it.
+interface ResourceField {
+  filter?: boolean;
+  sort?: boolean;
 }
 
 const MCP_DIRECTORY: string = path.resolve(__dirname, "..");
@@ -194,6 +202,23 @@ function readSkill(directory: string): Skill {
     frontmatter: YAML.load(match[1]!) as JSONObject,
     text,
   };
+}
+
+/*
+ * Every field of a tool's resource, as oneuptime_describe_resource gives it:
+ * the list tools take any field, so their schemas no longer name them.
+ */
+function fieldsOf(tool: McpToolInfo): Record<string, ResourceField> {
+  return (
+    JSON.parse(
+      describeResource({
+        name: tool.tableName,
+        singularName: tool.singularName,
+        modelType: tool.modelType,
+        tools: {},
+      }),
+    ) as JSONObject
+  )["fields"] as unknown as Record<string, ResourceField>;
 }
 
 function toolExamplesIn(text: string): Array<ToolExample> {
@@ -387,13 +412,32 @@ describe("the coding agent plugin", () => {
   });
 
   describe("across its manifests", () => {
-    test("is the same plugin, at one semantic version", () => {
-      for (const field of ["name", "version", "description", "license"]) {
+    test("is the same plugin, at the release's version, from its own repository", () => {
+      for (const field of [
+        "name",
+        "version",
+        "description",
+        "license",
+        "repository",
+      ]) {
         expect(CURSOR_MANIFEST[field]).toBe(PLUGIN_MANIFEST[field]);
         expect(CLAUDE_MANIFEST[field]).toBe(PLUGIN_MANIFEST[field]);
       }
 
-      expect(PLUGIN_MANIFEST["version"]).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(PLUGIN_MANIFEST["version"]).toBe(
+        readText(REPO_ROOT, "VERSION").trim(),
+      );
+
+      // Scripts/MCP/PublishCodingAgentPlugin.sh pushes to this repository.
+      expect(PLUGIN_MANIFEST["repository"]).toBe(
+        readJson(MCP_DIRECTORY, "CodingAgentPlugin/plugin.json")["repository"],
+      );
+      expect(PLUGIN_MANIFEST["repository"]).toMatch(
+        /^https:\/\/github\.com\/OneUptime\/[A-Za-z0-9_.-]+$/,
+      );
+      expect(PLUGIN_MANIFEST["repository"]).not.toBe(
+        CHATGPT_MANIFEST["repository"],
+      );
     });
   });
 
@@ -657,21 +701,38 @@ describe("the coding agent plugin", () => {
           ]);
         }
 
-        for (const nested of ["query", "sort"]) {
-          const allowed: JSONObject | undefined = (
-            fields[nested] as JSONObject | undefined
-          )?.["properties"] as JSONObject | undefined;
-
-          expect([
-            example.tool,
-            nested,
-            Object.keys((example.args[nested] as JSONObject) || {}).filter(
-              (key: string): boolean => {
-                return !allowed || !(key in allowed);
-              },
-            ),
-          ]).toEqual([example.tool, nested, []]);
+        if (!("query" in example.args) && !("sort" in example.args)) {
+          continue;
         }
+
+        // Filtered and sorted on fields the resource has, as the server reads them.
+        const resourceFields: Record<string, ResourceField> = fieldsOf(tool!);
+        const missing: (
+          nested: string,
+          flag: keyof ResourceField,
+        ) => Array<string> = (
+          nested: string,
+          flag: keyof ResourceField,
+        ): Array<string> => {
+          return Object.keys((example.args[nested] as JSONObject) || {}).filter(
+            (key: string): boolean => {
+              return !resourceFields[key]?.[flag];
+            },
+          );
+        };
+
+        expect([example.tool, missing("query", "filter")]).toEqual([
+          example.tool,
+          [],
+        ]);
+        expect([example.tool, missing("sort", "sort")]).toEqual([
+          example.tool,
+          [],
+        ]);
+        expect([
+          example.tool,
+          getFilterProblem(tool!, example.args["query"]),
+        ]).toEqual([example.tool, null]);
       }
     });
 

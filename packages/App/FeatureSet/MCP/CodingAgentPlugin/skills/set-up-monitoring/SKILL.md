@@ -142,7 +142,7 @@ For the other common types, change the destination and the filters:
 
 The server gives every step and criteria its ID and attaches the project's default probes, so leave those out. `monitoringInterval` is a cron expression, not a label: `*/5 * * * *` is every five minutes. A `Manual` monitor needs only `name` and `monitorType`: nothing checks it, and its status is set by hand.
 
-If a monitor type needs more than this, ask the person to set one up in the dashboard, then read its `monitorSteps` with `get_monitor` and copy them.
+If a monitor type needs more than this, ask the person to set one up in the dashboard, then read its `monitorSteps` with `get_monitor` and copy them. `oneuptime_describe_resource`, with `resource` set to `monitor`, lists every other field a monitor has.
 
 ## 5. Check that it works
 
