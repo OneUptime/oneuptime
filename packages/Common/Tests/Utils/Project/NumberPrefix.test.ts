@@ -322,7 +322,7 @@ describe("NumberPrefixUtil.normalize - what is stored", () => {
 });
 
 describe("NUMBER_PREFIX_COLUMNS", () => {
-  test("lists the five prefixes a project has, with what a new project starts with", () => {
+  test("lists the six prefixes a project has, with what a new project starts with", () => {
     expect(
       NUMBER_PREFIX_COLUMNS.map(
         (info: NumberPrefixColumnInfo): [string, string] => {
@@ -335,6 +335,8 @@ describe("NUMBER_PREFIX_COLUMNS", () => {
       ["alertNumberPrefix", "ALT-"],
       ["alertEpisodeNumberPrefix", "AE-"],
       ["scheduledMaintenanceNumberPrefix", "SM-"],
+      // What every project's cases were numbered with before it could choose.
+      ["securityCaseNumberPrefix", "CASE-"],
     ]);
   });
 
@@ -422,6 +424,7 @@ describe("the server numbers new records with formatNumber", () => {
     ["ScheduledMaintenanceService.ts", "scheduledMaintenanceNumberWithPrefix"],
     ["IncidentEpisodeService.ts", "episodeNumberWithPrefix"],
     ["AlertEpisodeService.ts", "episodeNumberWithPrefix"],
+    ["SecurityCaseService.ts", "caseNumberWithPrefix"],
   ];
 
   function code(file: string): string {

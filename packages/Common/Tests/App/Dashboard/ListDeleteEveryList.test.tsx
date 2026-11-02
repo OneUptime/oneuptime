@@ -178,6 +178,7 @@ import IncidentPostmortemTemplate from "../../../Models/DatabaseModels/IncidentP
 import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceNoteTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import AlertNoteTemplate from "../../../Models/DatabaseModels/AlertNoteTemplate";
+import SecurityCaseNoteTemplate from "../../../Models/DatabaseModels/SecurityCaseNoteTemplate";
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import StatusPageSubscriberNotificationTemplate from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
@@ -257,6 +258,7 @@ import IncidentPostmortemTemplatesPage from "../../../../App/FeatureSet/Dashboar
 import ScheduledMaintenanceTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates";
 import ScheduledMaintenanceNoteTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates";
 import AlertNoteTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertNoteTemplates";
+import SecurityCaseNoteTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/NoteTemplates";
 import StatusPageAnnouncementTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Settings/StatusPageAnnouncementTemplates";
 import SubscriberNotificationTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Settings/SubscriberNotificationTemplates";
 import MonitorTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplates";
@@ -468,6 +470,11 @@ const LISTS: Array<ListCase> = [
     ScheduledMaintenanceNoteTemplate,
   ),
   plain("Alert Note Templates", AlertNoteTemplatesPage, AlertNoteTemplate),
+  plain(
+    "Case Note Templates",
+    SecurityCaseNoteTemplatesPage,
+    SecurityCaseNoteTemplate,
+  ),
   plain(
     "Announcement Templates",
     StatusPageAnnouncementTemplatesPage,

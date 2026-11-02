@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12633
+    "keys": 40302,
+    "untranslated": 12609
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -73,6 +73,7 @@
     "Finland (+358)",
     "Frustration",
     "Gateway",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -155,6 +156,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "Principal",
     "Problem",
     "Profiler",
     "Prompt",
@@ -227,6 +229,7 @@
     "VMID {{vmid}}",
     "Version",
     "Version {{number}}",
+    "Vital",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",
@@ -254,8 +257,11 @@
     "message",
     "name",
     "over budget",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

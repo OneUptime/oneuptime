@@ -50,7 +50,7 @@ import { EntityManager } from "typeorm";
 
 /*
  * The two halves of saving a dropdown custom field whose options changed,
- * for every one of the nine custom field definition services (issue #4564):
+ * for every one of the ten custom field definition services (issue #4564):
  *
  *   - prepareCustomFieldOptionEdit, in onBeforeUpdate: reads the renames the
  *     write carries (RENAMED_DROPDOWN_OPTIONS_KEY in its miscDataProps,

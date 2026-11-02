@@ -15,6 +15,7 @@ import {
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 
 /*
  * The compiler turns user-authored Sigma YAML into SQL that runs with
@@ -159,7 +160,7 @@ describe("Sigma's process fields", () => {
 
   test("no Sigma spelling of a process field reads principalProcess", () => {
     const processSpelling: RegExp = /command|cmd|image|executable|process/;
-    const processSpellings: Array<string> = Object.keys(FIELD_ALIASES).filter(
+    const processSpellings: Array<string> = [...FIELD_ALIASES.keys()].filter(
       (alias: string): boolean => {
         return processSpelling.test(alias);
       },
@@ -168,7 +169,7 @@ describe("Sigma's process fields", () => {
     expect(processSpellings.length).toBeGreaterThanOrEqual(10);
 
     for (const alias of processSpellings) {
-      expect({ alias, column: FIELD_ALIASES[alias] }).not.toEqual({
+      expect({ alias, column: FIELD_ALIASES.get(alias) }).not.toEqual({
         alias,
         column: "principalProcess",
       });
@@ -837,5 +838,16 @@ detection:
 
     expect(withList.query).toBe(plain.query);
     expect(paramValues(withList)).toEqual(paramValues(plain));
+  });
+});
+
+describe("SigmaClickhouseCompiler: fields named after what every object inherits", () => {
+  test("a rule's field named after one is an attribute of that name, never a column named by a function", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({ name, field: resolveSigmaField(name) }).toEqual({
+        name,
+        field: { kind: "attribute", attributeKey: name },
+      });
+    }
   });
 });

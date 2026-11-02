@@ -1289,6 +1289,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
       "keys packages/Common/Models/DatabaseModels/MessageQueue.ts",
       "keys packages/Common/Types/Cloud/CloudResourceCatalog.ts",
+      // The column titles of OneUptime AI's tables - not its prompts.
+      "keys packages/Common/Server/Utils/AI/Toolbox",
     ]);
   });
 

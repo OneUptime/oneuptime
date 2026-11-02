@@ -2279,6 +2279,39 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS,
+            title: "Custom Fields",
+            icon: IconProp.ViewColumns,
+            keywords: [
+              "security case custom fields",
+              "case fields",
+              "case custom field",
+              "business unit",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES,
+            title: "Note Templates",
+            icon: IconProp.Pencil,
+            keywords: [
+              "security case note templates",
+              "case note template",
+              "triage template",
+              "containment checklist",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING,
+            title: "Numbering",
+            icon: IconProp.Hashtag,
+            keywords: [
+              "case number prefix",
+              "case-",
+              "next case number",
+              "case numbers",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
             title: "Risk Scoring",
             icon: IconProp.Gauge,

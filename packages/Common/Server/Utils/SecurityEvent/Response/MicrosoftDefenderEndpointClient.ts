@@ -1,6 +1,7 @@
 import APIException from "../../../../Types/Exception/ApiException";
 import { JSONObject } from "../../../../Types/JSON";
 import { ConnectorTransport } from "../Connectors/Types";
+import lookupTable from "../../../../Utils/LookupTable";
 import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
 
 /*
@@ -25,7 +26,7 @@ interface CloudEndpoints {
   resource: string;
 }
 
-const CLOUDS: Record<string, CloudEndpoints> = {
+const CLOUDS: ReadonlyMap<string, CloudEndpoints> = lookupTable({
   public: {
     loginHost: "https://login.microsoftonline.com",
     apiHost: "https://api.security.microsoft.com",
@@ -36,7 +37,7 @@ const CLOUDS: Record<string, CloudEndpoints> = {
     apiHost: "https://api-gov.securitycenter.microsoft.us",
     resource: "https://api-gov.securitycenter.microsoft.us",
   },
-};
+});
 
 export interface DefenderMachine {
   id: string;
@@ -63,10 +64,7 @@ export default class MicrosoftDefenderEndpointClient {
     cloud: string;
     transport: ConnectorTransport;
   }) {
-    const endpoints: CloudEndpoints | undefined =
-      Object.prototype.hasOwnProperty.call(CLOUDS, options.cloud)
-        ? CLOUDS[options.cloud]
-        : undefined;
+    const endpoints: CloudEndpoints | undefined = CLOUDS.get(options.cloud);
 
     if (!endpoints) {
       throw new APIException(

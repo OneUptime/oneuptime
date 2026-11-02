@@ -32,6 +32,7 @@ const TERRAFORM_ATTRIBUTE_BY_COLUMN: Record<string, string> = {
   alertNumbersStartAt: "alert_numbers_start_at",
   alertEpisodeNumbersStartAt: "alert_episode_numbers_start_at",
   scheduledMaintenanceNumbersStartAt: "scheduled_maintenance_numbers_start_at",
+  securityCaseNumbersStartAt: "security_case_numbers_start_at",
 };
 
 let spec: JSONObject;

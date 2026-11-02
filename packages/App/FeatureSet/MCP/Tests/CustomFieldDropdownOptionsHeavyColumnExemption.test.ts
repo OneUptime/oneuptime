@@ -13,6 +13,7 @@ import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/Schedu
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
+import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -62,6 +63,10 @@ const CUSTOM_FIELD_MODELS: Array<CustomFieldModelUnderTest> = [
   { tableName: "StatusPageCustomField", modelClass: StatusPageCustomField },
   { tableName: "TeamCustomField", modelClass: TeamCustomField },
   { tableName: "TeamMemberCustomField", modelClass: TeamMemberCustomField },
+  {
+    tableName: "SecurityCaseCustomField",
+    modelClass: SecurityCaseCustomField,
+  },
 ];
 
 describe("MCP default select: custom-field dropdownOptions", () => {

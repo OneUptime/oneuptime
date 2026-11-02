@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import lookupTable from "../../LookupTable";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
@@ -72,10 +73,10 @@ const DETECTION_FINDING: number = 2004;
 const FILE_HOSTING_ACTIVITY: number = 6006;
 
 // What Google tells about a sign-in it judged, by event name.
-export const GOOGLE_LOGIN_FINDINGS: Record<
+export const GOOGLE_LOGIN_FINDINGS: ReadonlyMap<
   string,
   { title: string; severity: OcsfSeverity }
-> = {
+> = lookupTable({
   suspicious_login: {
     title: "Suspicious sign-in",
     severity: OcsfSeverity.Medium,
@@ -120,7 +121,7 @@ export const GOOGLE_LOGIN_FINDINGS: Record<
     title: "Risky sensitive action allowed",
     severity: OcsfSeverity.Medium,
   },
-};
+});
 
 // Admin events that grant power, by name.
 export const GOOGLE_ADMIN_GRANTS: ReadonlyArray<string> = [
@@ -140,7 +141,7 @@ const ADMIN_REVOKES: ReadonlyArray<string> = [
 ];
 
 // Admin events about a user account, as OCSF's Account Change activity.
-const ADMIN_ACCOUNT_ACTIVITIES: Record<string, string> = {
+const ADMIN_ACCOUNT_ACTIVITIES: ReadonlyMap<string, string> = lookupTable({
   CREATE_USER: "Create",
   DELETE_USER: "Delete",
   SUSPEND_USER: "Disable",
@@ -153,14 +154,14 @@ const ADMIN_ACCOUNT_ACTIVITIES: Record<string, string> = {
   UNARCHIVE_USER: "Enable",
   TURN_OFF_2_STEP_VERIFICATION: "MFA Factor Disable",
   CHANGE_TWO_STEP_VERIFICATION_ENFORCEMENT: "Update",
-};
+});
 
-const ADMIN_GROUP_ACTIVITIES: Record<string, string> = {
+const ADMIN_GROUP_ACTIVITIES: ReadonlyMap<string, string> = lookupTable({
   ADD_GROUP_MEMBER: "Add User",
   REMOVE_GROUP_MEMBER: "Remove User",
   CREATE_GROUP: "Create",
   DELETE_GROUP: "Delete",
-};
+});
 
 // Drive events read when the connection reads Drive: sharing and downloads.
 export const GOOGLE_DRIVE_EVENTS: ReadonlyArray<string> = [
@@ -277,7 +278,7 @@ function signInEvent(context: WorkspaceEventContext): Classified | null {
   const who: string = parameters["affected_email_address"] || actor;
   const from: string = ip ? ` from ${ip}` : "";
   const finding: { title: string; severity: OcsfSeverity } | undefined =
-    GOOGLE_LOGIN_FINDINGS[name];
+    GOOGLE_LOGIN_FINDINGS.get(name);
 
   if (finding) {
     return {
@@ -395,7 +396,8 @@ function adminEvent(context: WorkspaceEventContext): Classified {
     };
   }
 
-  const accountActivity: string | undefined = ADMIN_ACCOUNT_ACTIVITIES[name];
+  const accountActivity: string | undefined =
+    ADMIN_ACCOUNT_ACTIVITIES.get(name);
 
   if (accountActivity) {
     return {
@@ -412,7 +414,7 @@ function adminEvent(context: WorkspaceEventContext): Classified {
     };
   }
 
-  const groupActivity: string | undefined = ADMIN_GROUP_ACTIVITIES[name];
+  const groupActivity: string | undefined = ADMIN_GROUP_ACTIVITIES.get(name);
 
   if (groupActivity) {
     return {

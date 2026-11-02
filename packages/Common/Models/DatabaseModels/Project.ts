@@ -32,6 +32,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation({
@@ -1064,6 +1065,47 @@ export default class Project extends TenantModel {
   })
   public scheduledMaintenanceNumberPrefix?: string = undefined;
 
+  /*
+   * The text in front of security case numbers (Utils/Project/NumberPrefix).
+   * Cases were numbered CASE-1, CASE-2, ... in every project before a project
+   * could choose, so the column starts at CASE- - its database default - for
+   * the projects from before it too, and no case's number changes until
+   * someone changes the prefix. Cleared, a case number reads #42, as the
+   * other kinds' do.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Security Case Number Prefix",
+    description:
+      "Custom prefix for security case numbers (e.g., 'CASE-', the default). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber security cases that already exist.",
+    defaultValue: SECURITY_CASE_NUMBER_PREFIX,
+    example: "SOC-",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: SECURITY_CASE_NUMBER_PREFIX,
+  })
+  public securityCaseNumberPrefix?: string = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [
@@ -1308,6 +1350,44 @@ export default class Project extends TenantModel {
     nullable: true,
   })
   public scheduledMaintenanceNumbersStartAt?: number = undefined;
+
+  /*
+   * Where security case numbers start (Utils/Project/NextNumber): the next
+   * security case gets the higher of this and the one after the highest
+   * number given out (securityCaseCounter), so it moves the numbers on only
+   * while no security case has reached it. Set from Security Events >
+   * Settings > Numbering's Next Number card, the API or Terraform - a team
+   * moving from another SOAR carries on from its case numbers.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Security Case Numbers Start At",
+    description:
+      "Where security case numbers start: the next security case gets this number if no security case has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every security case number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing security cases keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public securityCaseNumbersStartAt?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

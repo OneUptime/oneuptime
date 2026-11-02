@@ -5,6 +5,8 @@ import OcsfSeverity, {
   normalizeOcsfSeverity,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import { ocsfCategoryForClassUid } from "../../../Types/SecurityEvent/OcsfEventClass";
+import { findMitreTacticIdByName } from "../../../Types/SecurityEvent/MitreAttack";
+import lookupTable from "../../LookupTable";
 import {
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
@@ -60,36 +62,14 @@ const MAX_OBSERVABLES: number = 200;
  * numeric ids). Used only when the export carries the numeric `status`
  * but not the label the `notable` macro would have added.
  */
-const STATUS_LABEL_BY_ID: Record<string, string> = {
+const STATUS_LABEL_BY_ID: ReadonlyMap<string, string> = lookupTable({
   "0": "Unassigned",
   "1": "New",
   "2": "In Progress",
   "3": "Pending",
   "4": "Resolved",
   "5": "Closed",
-};
-
-/*
- * MITRE ATT&CK enterprise tactics by name, for annotations that carry the
- * tactic as prose ("Initial Access") rather than its id.
- * https://attack.mitre.org/tactics/enterprise/
- */
-const TACTIC_ID_BY_NAME: Record<string, string> = {
-  reconnaissance: "TA0043",
-  resourcedevelopment: "TA0042",
-  initialaccess: "TA0001",
-  execution: "TA0002",
-  persistence: "TA0003",
-  privilegeescalation: "TA0004",
-  defenseevasion: "TA0005",
-  credentialaccess: "TA0006",
-  discovery: "TA0007",
-  lateralmovement: "TA0008",
-  collection: "TA0009",
-  commandandcontrol: "TA0011",
-  exfiltration: "TA0010",
-  impact: "TA0040",
-};
+});
 
 const TECHNIQUE_ID_REGEX: RegExp = /^T\d{4}(?:\.\d{3})?$/;
 const TACTIC_ID_REGEX: RegExp = /^TA\d{4}$/;
@@ -273,8 +253,8 @@ function mapTactics(payload: JSONObject): Array<string> {
     if (TACTIC_ID_REGEX.test(upper)) {
       id = upper;
     } else {
-      const key: string = candidate.toLowerCase().replace(/[^a-z]/g, "");
-      id = TACTIC_ID_BY_NAME[key] || "";
+      // An annotation that carries the tactic as prose ("Initial Access").
+      id = findMitreTacticIdByName(candidate) || "";
     }
 
     if (id && !tactics.includes(id)) {
@@ -320,7 +300,7 @@ function statusName(payload: JSONObject): string {
 
   const status: string = field(payload, "status");
 
-  return STATUS_LABEL_BY_ID[status] || status;
+  return STATUS_LABEL_BY_ID.get(status) || status;
 }
 
 export default class SplunkNormalizer {

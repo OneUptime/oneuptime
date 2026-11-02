@@ -1,6 +1,7 @@
 import yaml from "js-yaml";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Dictionary from "../../../Types/Dictionary";
+import lookupTable from "../../LookupTable";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import SigmaRule, {
   SIGMA_DEFAULT_LEVEL,
@@ -47,13 +48,13 @@ import SigmaRuleParser, { extractMitre } from "./SigmaRuleParser";
 export const SIGMA_RULE_SET_MAX_DOCUMENTS: number = 25;
 
 // A timespan's units, as the Sigma specification writes them, in seconds.
-const TIMESPAN_UNITS: Dictionary<number> = {
+const TIMESPAN_UNITS: ReadonlyMap<string, number> = lookupTable({
   s: 1,
   m: 60,
   h: 60 * 60,
   d: 24 * 60 * 60,
   w: 7 * 24 * 60 * 60,
-};
+});
 
 const DIGITS: string = "0123456789";
 
@@ -102,12 +103,7 @@ export function parseSigmaTimespan(value: JSONValue | undefined): number {
   }
 
   const unit: string = text.charAt(text.length - 1);
-  const multiplier: number | undefined = Object.prototype.hasOwnProperty.call(
-    TIMESPAN_UNITS,
-    unit,
-  )
-    ? TIMESPAN_UNITS[unit]
-    : undefined;
+  const multiplier: number | undefined = TIMESPAN_UNITS.get(unit);
   const digits: string = text.slice(0, -1);
 
   let allDigits: boolean = digits.length > 0;

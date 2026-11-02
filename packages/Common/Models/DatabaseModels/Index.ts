@@ -180,6 +180,8 @@ import SecurityCaseTask from "./SecurityCaseTask";
 import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
+import SecurityCaseNoteTemplate from "./SecurityCaseNoteTemplate";
+import SecurityCaseCustomField from "./SecurityCaseCustomField";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
@@ -642,6 +644,8 @@ const AllModelTypes: Array<{
   SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,
+  SecurityCaseNoteTemplate,
+  SecurityCaseCustomField,
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,

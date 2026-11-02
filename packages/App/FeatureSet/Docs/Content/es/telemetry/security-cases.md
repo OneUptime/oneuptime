@@ -91,7 +91,7 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | **Vista general** | **Vista general**, **Cronología** |
 | **Investigación** | **Desarrollo**, **Detecciones**, **Entidades**, **Señales conectadas**, **Evidencias**, **Tareas**, **Playbooks** |
 | **Notas** | **Notas privadas** |
-| **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
+| **Avanzado** | **Campos personalizados**, **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
 Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Asignarme**, **Ejecutar playbook**, **Declarar incidente** y **Cerrar caso**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Asignar a otra persona**, **Cambiar estado**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**. Cuando la prioridad del caso tiene objetivos de respuesta, la cabecera también dice cuándo vence el siguiente ([Objetivos de respuesta](#objetivos-de-respuesta)).
 
@@ -107,7 +107,8 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Evidencias**: los archivos, enlaces y eventos de seguridad guardados en el caso, cada uno con quién lo añadió y cuándo. El botón **Añadir archivo** sube un archivo de hasta 10 MB y guarda el SHA-256 de lo que se subió, para que quien lo descargue después pueda comprobar que es lo que se guardó; el botón **Añadir enlace** apunta a evidencias guardadas en otro lugar. Solo un Security Admin puede quitar una evidencia, y la **Cronología** del caso dice qué se añadió y qué se quitó. Un evento de seguridad se guarda aquí tal como era, con **Añadir al caso** en **Eventos** o en la página de una [cacería](/docs/telemetry/security-events#cacerías), y **Ver evento** lo abre. El paso **Preserve the evidence** de un playbook también guarda aquí los eventos detrás de las detecciones del caso.
 - **Tareas**: lo que hay que hacer en el caso, quién lo hace y si está hecho. Añade una tarea en una línea, entrégasela a alguien y márcala cuando esté hecha. Se avisa a la persona a la que se entrega, salvo que la tomara ella misma, y el menú muestra cuántas tareas quedan abiertas junto a **Tareas**. El paso **Añadir tareas** de un playbook también añade tareas y omite las que el caso ya tiene.
 - **Playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Playbooks**.
-- **Notas privadas**: lo que el equipo escribió sobre el caso.
+- **Notas privadas**: lo que el equipo escribió sobre el caso. El menú **Plantillas** del editor pone una de las plantillas de notas del proyecto en una nota.
+- **Campos personalizados**: los campos propios del proyecto, rellenados para este caso, y **Editar campos** para cambiarlos. En cuanto el proyecto tiene un campo, la **Vista general** también los muestra, en su última tarjeta. Consulta [Campos personalizados, plantillas de notas y numeración](#campos-personalizados-plantillas-de-notas-y-numeración).
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
 - **Eliminar caso**: elimina para siempre el caso, con sus detecciones, notas, cronología y ejecuciones de playbooks. Para conservar el registro, ciérralo con un veredicto.
 
@@ -184,6 +185,16 @@ Dónde se ven los objetivos:
 - La cabecera del caso nombra el siguiente objetivo y cuánto queda, o cuánto lleva vencido: en gris mientras hay tiempo, en ámbar en su último quinto y en rojo una vez incumplido.
 - En la **Vista general** del caso, bajo **Tiempo hasta el reconocimiento** y **Tiempo hasta la contención**: cómo va el caso frente a cada objetivo, o cuánto lo superó.
 - En las listas de la cola: la línea bajo la prioridad de cada caso, y una columna **Vencimiento** que puedes activar y por la que puedes ordenar. Mientras la columna está activada, la línea bajo la prioridad no se muestra. Las listas las muestran solo cuando alguna prioridad del proyecto tiene un objetivo.
+
+## Campos personalizados, plantillas de notas y numeración
+
+Tres ajustes más hacen que los casos sean propios de tu proyecto, en **Productos → Eventos de seguridad → Ajustes**:
+
+- **Campos personalizados**: los campos que tu equipo rellena en cada caso, como la unidad de negocio a la que se refiere o su ticket en otra herramienta. Un campo contiene texto, un número, una fecha, un sí o un no, una opción de una lista o un archivo. La página **Campos personalizados** de un caso, en **Avanzado**, muestra cada campo con el valor del caso, y **Editar campos** los cambia. En las listas de la cola, cada campo es una columna que puedes activar en **Columnas**.
+- **Plantillas de notas**: texto listo para usar en las notas que tu equipo escribe caso tras caso, como una lista de comprobación de contención o un relevo para el siguiente turno. En las **Notas privadas** de un caso, el menú **Plantillas** del editor pone una en la nota, para editarla antes de publicarla, y **Gestionar plantillas** abre la lista.
+- **Numeración**: el texto delante de los números de caso, `CASE-` en `CASE-42` salvo que elijas el tuyo, y el número que recibe el próximo caso. ¿Vienes de otra herramienta? Empieza después de su último número de caso, para que un número nunca designe dos casos. Un prefijo o un inicio nuevo solo se aplica a los casos nuevos, y un inicio debe ser mayor que el número más alto usado hasta ahora.
+
+Un Security Admin gestiona los campos personalizados y las plantillas de notas, y un Security Member rellena los campos de un caso; en OneUptime Cloud requieren el plan Growth o superior. La numeración la define un Project Owner o un Project Admin, como en los incidentes y las alertas.
 
 ## Notificaciones
 

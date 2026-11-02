@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12604
+    "keys": 40302,
+    "untranslated": 12581
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -54,6 +54,7 @@
     "Failover",
     "Feed",
     "Gateway",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -177,6 +178,7 @@
     "VMs",
     "VMware vCenter",
     "Visual",
+    "Vital",
     "Volume",
     "Volumes",
     "Web",
@@ -205,8 +207,11 @@
     "main",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

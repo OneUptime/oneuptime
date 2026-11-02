@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12621
+    "keys": 40302,
+    "untranslated": 12597
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -52,6 +52,7 @@
     "Finland (+358)",
     "Frustration",
     "Gateway",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -118,6 +119,7 @@
     "Plan",
     "Playbook",
     "Playbooks",
+    "Policy",
     "Pool",
     "Pool {{name}}",
     "Pools",
@@ -180,6 +182,7 @@
     "VMware vCenter",
     "Version",
     "Version {{number}}",
+    "Vital",
     "Webhook",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
@@ -202,8 +205,11 @@
     "median",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

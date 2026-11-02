@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import GoogleWorkspaceNormalizer, {
   GOOGLE_ADMIN_GRANTS,
   GOOGLE_LOGIN_FINDINGS,
@@ -99,7 +100,7 @@ describe("GoogleWorkspaceNormalizer - sign-ins", () => {
   });
 
   test("each of Google's findings is a finding at its own severity, for the account it is about", () => {
-    for (const name of Object.keys(GOOGLE_LOGIN_FINDINGS)) {
+    for (const name of GOOGLE_LOGIN_FINDINGS.keys()) {
       const reading: SecurityRecordReading = readOne(
         googleWorkspaceActivity("login", name, [
           { name: "affected_email_address", value: "bob@example.com" },
@@ -115,9 +116,9 @@ describe("GoogleWorkspaceNormalizer - sign-ins", () => {
       }).toEqual({
         name,
         classUid: 2004,
-        severity: GOOGLE_LOGIN_FINDINGS[name]!.severity,
+        severity: GOOGLE_LOGIN_FINDINGS.get(name)!.severity,
         principalUser: "bob@example.com",
-        ruleName: GOOGLE_LOGIN_FINDINGS[name]!.title,
+        ruleName: GOOGLE_LOGIN_FINDINGS.get(name)!.title,
       });
     }
 
@@ -406,5 +407,83 @@ describe("GoogleWorkspaceNormalizer - activities and parameters", () => {
     expect(events[0]!.productName).toBe("Google Workspace");
     expect(events[0]!.className).toBe("Authentication");
     expect(GoogleWorkspaceNormalizer.isRecognized({})).toBe(false);
+  });
+});
+
+/*
+ * The login findings and the admin activities were plain objects read by
+ * the event's name, so a sign-in event named "constructor" became a finding
+ * with no title or severity.
+ */
+describe("GoogleWorkspaceNormalizer: words named after what every object inherits", () => {
+  test("a sign-in event named after one is no finding of Google's: it is read as any sign-in event OneUptime does not know, an account change named as written", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const reading: SecurityRecordReading = readOne(
+        googleWorkspaceActivity("login", name, [
+          { name: "affected_email_address", value: "bob@example.com" },
+        ]),
+      );
+
+      expect({
+        name,
+        classUid: reading.classUid,
+        activityName: reading.activityName,
+        severity: reading.severity,
+        targetUser: reading.targetUser,
+      }).toEqual({
+        name,
+        classUid: 3001,
+        activityName: prettyWorkspaceName(name),
+        severity: OcsfSeverity.Informational,
+        targetUser: "bob@example.com",
+      });
+    }
+  });
+
+  test("an admin event named after one is no account or group change: it is read as any admin event OneUptime does not know, named as written", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const reading: SecurityRecordReading = readOne(
+        googleWorkspaceActivity("admin", name, [
+          { name: "USER_EMAIL", value: "bob@example.com" },
+          { name: "GROUP_EMAIL", value: "admins@example.com" },
+        ]),
+      );
+
+      expect({
+        name,
+        classUid: reading.classUid,
+        activityName: reading.activityName,
+        targetUser: reading.targetUser,
+        targetResource: reading.targetResource,
+      }).toEqual({
+        name,
+        classUid: 3004,
+        activityName: prettyWorkspaceName(name),
+        targetUser: "bob@example.com",
+        targetResource: "admins@example.com",
+      });
+    }
+  });
+
+  test("the account and group changes Google names are still read as theirs", () => {
+    for (const [name, classUid, activityName] of [
+      ["CREATE_USER", 3001, "Create"],
+      ["TURN_OFF_2_STEP_VERIFICATION", 3001, "MFA Factor Disable"],
+      ["ADD_GROUP_MEMBER", 3006, "Add User"],
+      ["DELETE_GROUP", 3006, "Delete"],
+    ] as Array<[string, number, string]>) {
+      const reading: SecurityRecordReading = readOne(
+        googleWorkspaceActivity("admin", name, [
+          { name: "USER_EMAIL", value: "bob@example.com" },
+          { name: "GROUP_EMAIL", value: "admins@example.com" },
+        ]),
+      );
+
+      expect({
+        name,
+        classUid: reading.classUid,
+        activityName: reading.activityName,
+      }).toEqual({ name, classUid, activityName });
+    }
   });
 });

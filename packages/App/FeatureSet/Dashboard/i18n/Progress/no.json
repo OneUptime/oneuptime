@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12627
+    "keys": 40302,
+    "untranslated": 12604
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -56,6 +56,7 @@
     "Flat",
     "Gateway",
     "Gemini for Google Workspace",
+    "Global",
     "Google SecOps",
     "Goroutines",
     "HA: {{state}}",
@@ -170,6 +171,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Vital",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",
@@ -193,8 +195,11 @@
     "median",
     "message",
     "name",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../Helpers/InheritedNames";
 import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
@@ -491,5 +492,27 @@ describe("UdmNormalizer: the process an event is about", () => {
     expect(result.processName).toBe("");
     expect(result.processCommandLine).toBe("");
     expect(result.parentProcessName).toBe("");
+  });
+});
+
+describe("UdmNormalizer: words named after what every object inherits", () => {
+  test("an event type or an action named after one is a generic event with no status", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const event: NormalizedSecurityEvent = UdmNormalizer.normalize({
+        metadata: {
+          event_type: name,
+          event_timestamp: "2026-10-30T10:00:00Z",
+          product_name: "Test",
+        },
+        principal: { hostname: "web-01" },
+        security_result: [{ action: [name] }],
+      });
+
+      expect({
+        name,
+        classUid: event.classUid,
+        status: event.statusName,
+      }).toEqual({ name, classUid: 0, status: "" });
+    }
   });
 });

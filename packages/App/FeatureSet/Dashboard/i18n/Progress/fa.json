@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12561
+    "keys": 40302,
+    "untranslated": 12539
   },
   "sameAsEnglish": [
     "2xx",
@@ -69,6 +69,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Vital",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
