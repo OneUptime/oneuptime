@@ -204,14 +204,32 @@ describe("what makes the note true", () => {
     ]);
   });
 
+  /*
+   * The resource commands are worked out from every model, through
+   * Common's CliResources, which imports the models' index: the module the
+   * old versions died on.
+   */
   it("the module the old versions cannot find is the one the CLI's resource commands import", () => {
     expect(
       fs.readFileSync(
         path.join(CLI_ROOT, "Commands", "ResourceCommands.ts"),
         "utf-8",
       ),
+    ).toContain('} from "Common/Utils/DeveloperDocs/CliResources";');
+    expect(
+      fs.readFileSync(
+        path.join(
+          CLI_ROOT,
+          "..",
+          "Common",
+          "Utils",
+          "DeveloperDocs",
+          "CliResources.ts",
+        ),
+        "utf-8",
+      ),
     ).toContain(
-      'import DatabaseModels from "Common/Models/DatabaseModels/Index";',
+      'import DatabaseModels from "../../Models/DatabaseModels/Index";',
     );
   });
 
