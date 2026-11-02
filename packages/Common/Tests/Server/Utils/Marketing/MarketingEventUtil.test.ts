@@ -125,6 +125,8 @@ describe("MarketingEventUtil", () => {
         utmSourcePlatform: undefined,
         utmCreativeFormat: undefined,
         utmMarketingTactic: undefined,
+        gadSource: undefined,
+        gadCampaignId: undefined,
         utmUrl: "https://oneuptime.com/?gclid=x",
         clickIds: { gclid: "x" },
         firstTouch: { utmSource: "linkedin" },

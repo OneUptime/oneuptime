@@ -43,6 +43,8 @@ export interface AttributionSource {
   utmSourcePlatform?: string | undefined;
   utmCreativeFormat?: string | undefined;
   utmMarketingTactic?: string | undefined;
+  gadSource?: string | undefined;
+  gadCampaignId?: string | undefined;
   utmUrl?: string | undefined;
   clickIds?: JSONObject | undefined;
   firstTouchAttribution?: JSONObject | undefined;
