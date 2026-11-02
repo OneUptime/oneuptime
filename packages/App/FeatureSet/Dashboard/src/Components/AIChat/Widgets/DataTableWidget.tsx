@@ -76,7 +76,8 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                * conversation saved earlier carries the same English names,
                * so its tables read in the reader's language too.
                */
-              const title: string = translator.translateText(column.title);
+              const title: string =
+                translator.translateText(column.title) || column.title;
 
               return (
                 <ResizableHeaderCell

@@ -8,6 +8,7 @@ import InventoryItemCustomField from "../../Models/DatabaseModels/InventoryItemC
 import MonitorCustomField from "../../Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "../../Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import SecurityCaseCustomField from "../../Models/DatabaseModels/SecurityCaseCustomField";
 import StatusPageCustomField from "../../Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "../../Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "../../Models/DatabaseModels/TeamMemberCustomField";
@@ -61,6 +62,7 @@ const DEFINITION_MODELS: Record<string, ModelClass> = {
   MonitorCustomField: MonitorCustomField,
   OnCallDutyPolicyCustomField: OnCallDutyPolicyCustomField,
   ScheduledMaintenanceCustomField: ScheduledMaintenanceCustomField,
+  SecurityCaseCustomField: SecurityCaseCustomField,
   StatusPageCustomField: StatusPageCustomField,
   TeamCustomField: TeamCustomField,
   TeamMemberCustomField: TeamMemberCustomField,

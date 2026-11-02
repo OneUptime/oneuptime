@@ -38,7 +38,10 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Priorities, the Response Targets each sets - how fast
  *                    a case at it must be taken on and contained - and Case
  *                    Statuses, as the Incidents' and Alerts' Settings keep
- *                    their severities and states, and Risk Scoring: when an
+ *                    their severities and states; the Custom Fields it adds
+ *                    to its cases, the Note Templates its notes start from
+ *                    and the Numbering of its cases (CASE-42), as those
+ *                    products have theirs; and Risk Scoring: when an
  *                    entity's risk opens a case, and how much each entity
  *                    matters
  *
@@ -329,6 +332,29 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES,
         title: "Case Statuses",
         icon: IconProp.ArrowCircleRight,
+      },
+      {
+        // The fields a project adds to its cases, filled in on each case.
+        page: PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS,
+        title: "Custom Fields",
+        // Columns: each field is one more of a case's, and of the queue's.
+        icon: IconProp.ViewColumns,
+      },
+      {
+        /*
+         * Ready-made text a case's note composer offers. A template's own
+         * page lights this entry.
+         */
+        page: PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES,
+        title: "Note Templates",
+        icon: IconProp.Pencil,
+        detailPages: [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW],
+      },
+      {
+        // The text in front of case numbers, and the number the next case gets.
+        page: PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING,
+        title: "Numbering",
+        icon: IconProp.Hashtag,
       },
       {
         // When an entity's risk opens a case, and how much each entity matters.

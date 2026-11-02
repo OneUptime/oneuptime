@@ -22,7 +22,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONArray } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -566,6 +566,32 @@ export default class SecurityCase extends BaseModel {
     nullable: true,
   })
   public mitreTechniques?: Array<string> = undefined;
+
+  /*
+   * The values of the project's own case fields (SecurityCaseCustomField),
+   * keyed by each field's name, as every record with custom fields keeps
+   * them: filled in on the case's Custom Fields page, by the API, Terraform
+   * or MCP, and listed as columns of the case queue.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Custom Fields",
+    description:
+      "The values of the project's own security case fields (Security Events > Settings > Custom Fields), by each field's name.",
+    example: { "Business Unit": "Finance" },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public customFields?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

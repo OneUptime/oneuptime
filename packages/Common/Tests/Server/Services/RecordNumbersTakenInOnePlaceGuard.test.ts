@@ -11,8 +11,8 @@ import path from "path";
  * EVERY RECORD NUMBER IS TAKEN IN ONE PLACE.
  *
  * A project chooses where its incident, incident episode, alert, alert
- * episode and scheduled maintenance numbers start, and a number is never
- * given twice, because exactly one statement hands numbers out:
+ * episode, scheduled maintenance and security case numbers start, and a
+ * number is never given twice, because exactly one statement hands numbers out:
  * ProjectService.takeNextNumber moves a kind's counter to the higher of the
  * one after it and the chosen start, and answers what it moved to. A second
  * way in - a service that reads the counter and adds one, a job that sets
@@ -54,6 +54,8 @@ const MAY_NAME_A_COUNTER: Record<string, string> = {
     "names each kind's counter, start and prefix: ProjectService takes the numbers and checks a start through it",
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1770237245070-MigrationName.ts":
     "added the counters and set each to the highest number its records had",
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1802150000000-AddSecurityCases.ts":
+    "added the security case counter with the security cases themselves",
   "packages/App/FeatureSet/Workers/DataMigrations/AddAlertNumber.ts":
     "a local variable of the one-off migration that numbered alerts before there were counters",
   "packages/App/FeatureSet/Workers/DataMigrations/AddIncidentNumber.ts":
@@ -91,6 +93,11 @@ const RECORD_SERVICES: Record<
     file: "packages/Common/Server/Services/ScheduledMaintenanceService.ts",
     method: "incrementAndGetScheduledMaintenanceCounter",
     numberColumn: "scheduledMaintenanceNumber",
+  },
+  [NumberedRecordKind.SecurityCase]: {
+    file: "packages/Common/Server/Services/SecurityCaseService.ts",
+    method: "incrementAndGetSecurityCaseCounter",
+    numberColumn: "caseNumber",
   },
 };
 

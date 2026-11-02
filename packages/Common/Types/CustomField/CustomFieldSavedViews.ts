@@ -73,6 +73,8 @@ export const CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS: Record<
   ],
   // The team members list draws no custom field chips.
   TeamMemberCustomField: [],
+  // The case queue offers no saved views: each of its pages is a view.
+  SecurityCaseCustomField: [],
 };
 
 export type GetCustomFieldSavedViewTableIdsFunction = (

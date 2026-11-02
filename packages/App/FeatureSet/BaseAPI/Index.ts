@@ -724,6 +724,12 @@ import SecurityCasePriorityService, {
 import SecurityCaseStatusService, {
   Service as SecurityCaseStatusServiceType,
 } from "Common/Server/Services/SecurityCaseStatusService";
+import SecurityCaseNoteTemplateService, {
+  Service as SecurityCaseNoteTemplateServiceType,
+} from "Common/Server/Services/SecurityCaseNoteTemplateService";
+import SecurityCaseCustomFieldService, {
+  Service as SecurityCaseCustomFieldServiceType,
+} from "Common/Server/Services/SecurityCaseCustomFieldService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -1770,6 +1776,8 @@ import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySettin
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseNoteTemplate from "Common/Models/DatabaseModels/SecurityCaseNoteTemplate";
+import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -4496,6 +4504,27 @@ const BaseAPIFeatureSet: FeatureSet = {
         SecurityCaseStatus,
         SecurityCaseStatusService,
       ).getRouter(),
+    );
+
+    /*
+     * A project's own note templates and custom fields for its cases
+     * (Security Events > Settings).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseNoteTemplate, SecurityCaseNoteTemplateServiceType>(
+        SecurityCaseNoteTemplate,
+        SecurityCaseNoteTemplateService,
+      ).getRouter(),
+    );
+
+    // A definition table: it answers the option editor's option-usage too.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CustomFieldDefinitionAPI<
+        SecurityCaseCustomField,
+        SecurityCaseCustomFieldServiceType
+      >(SecurityCaseCustomField, SecurityCaseCustomFieldService).getRouter(),
     );
 
     app.use(

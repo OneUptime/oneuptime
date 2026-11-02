@@ -54,8 +54,8 @@ const tableNamesOf: (services: Array<DatabaseService<any>>) => Array<string> = (
 };
 
 describe("the stores of each resource's custom field values", () => {
-  test("there are nine definition tables, and a store for each", () => {
-    expect(definitionModels).toHaveLength(9);
+  test("there are ten definition tables, and a store for each", () => {
+    expect(definitionModels).toHaveLength(10);
 
     expect(
       getCustomFieldValueStores()
