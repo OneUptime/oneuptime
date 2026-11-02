@@ -28,9 +28,11 @@ const dateTime: any = {
   example: { _type: "DateTime", value: "2023-10-01T12:00:00Z" },
 };
 
-// A schedule layer, as the spec writes one: every kind of attribute an
-// import reads in a form of its own, written at create and update, and the
-// ones only OneUptime sets in what it answers.
+/*
+ * A schedule layer, as the spec writes one: every kind of attribute an
+ * import reads in a form of its own, written at create and update, and the
+ * ones only OneUptime sets in what it answers.
+ */
 function buildLayerSpec(): OpenAPISpec {
   const spec: OpenAPISpec = buildFixtureSpec();
   const writable: Record<string, any> = {
@@ -245,8 +247,10 @@ describe("the plan modifiers that keep what an import read", () => {
       block.indexOf("UseStateForUnknown()"),
     );
 
-    // A create-only value: the same thing written another way replaces
-    // nothing either.
+    /*
+     * A create-only value: the same thing written another way replaces
+     * nothing either.
+     */
     const region: string = attributeBlock(monitorGo, "immutable_region");
     expect(region).toContain("RequiresReplace()");
   });

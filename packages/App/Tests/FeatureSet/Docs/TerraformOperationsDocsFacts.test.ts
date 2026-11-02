@@ -529,6 +529,10 @@ describe("the importing page", () => {
 // A link to a section of the same page: "[text](#anchor)".
 const OWN_SECTION_LINK: RegExp = /\]\(#([^)]+)\)/g;
 
+// What ids.go writes for a value that is not an ID, and how it shows one.
+const LOOKS_LIKE_CONSTANT: RegExp = /const looksLike = "([^"]+)"/;
+const NOT_AN_ID_FORMAT: RegExp = /"(%q is not the ID of a %s: %s Refer[^"]+)"/;
+
 describe("the troubleshooting page", () => {
   it("quotes every error as the provider and the server word it, with its status", () => {
     const providerSource: string = readRepoFile(PROVIDER_GENERATOR);
@@ -597,10 +601,10 @@ describe("the troubleshooting page", () => {
     );
     // What the validator writes for team_id = "sre" (recordIDValidator.detail).
     const looksLike: string = (
-      /const looksLike = "([^"]+)"/.exec(ids) as RegExpExecArray
+      LOOKS_LIKE_CONSTANT.exec(ids) as RegExpExecArray
     )[1] as string;
     const format: string = (
-      /"(%q is not the ID of a %s: %s Refer[^"]+)"/.exec(ids) as RegExpExecArray
+      NOT_AN_ID_FORMAT.exec(ids) as RegExpExecArray
     )[1] as string;
     const values: Array<string> = [
       '"sre"',

@@ -62,6 +62,12 @@ function attributes(
   );
 }
 
+// "owns" or "own" as a word, in an owner row's column descriptions.
+const OWNS: RegExp = /\bowns?\b/;
+// The words of a table description, and one with a capital inside it.
+const LETTER_RUNS: RegExp = /[A-Za-z]+/g;
+const CAPITAL_INSIDE_A_WORD: RegExp = /[a-z][A-Z]/;
+
 describe("the address beside a person column", () => {
   test.each([
     ["userId", PersonColumnKind.One, "userEmail"],
@@ -391,8 +397,10 @@ describe("rows imported by what they join", () => {
       expect(rule.parentColumn).not.toBe("projectId");
     }
 
-    // Every <Thing>OwnerUser and <Thing>OwnerTeam, and nothing else, is an
-    // owner row - none left out for want of a parent.
+    /*
+     * Every <Thing>OwnerUser and <Thing>OwnerTeam, and nothing else, is an
+     * owner row - none left out for want of a parent.
+     */
     const ownerTables: Array<string> = Models.map(
       (modelType: DatabaseBaseModelType): string => {
         return new modelType().tableName || "";
@@ -447,7 +455,7 @@ describe("rows imported by what they join", () => {
       // An owner row names its owner and what they own.
       if (rule.kind === MembershipKind.Owner) {
         for (const column of [rule.parentColumn, rule.personColumn]) {
-          if (!/\bowns?\b/.test(columns[column]?.description || "")) {
+          if (!OWNS.test(columns[column]?.description || "")) {
             wrong.push(`${table}.${column} does not say who owns what`);
           }
         }
@@ -460,9 +468,12 @@ describe("rows imported by what they join", () => {
        */
       const tableDescription: string = new modelType().tableDescription || "";
       const codeNames: Array<string> = (
-        tableDescription.match(/[A-Za-z]+/g) || []
+        tableDescription.match(LETTER_RUNS) || []
       ).filter((word: string) => {
-        return /[a-z][A-Z]/.test(word) && !["IoT", "vCenters"].includes(word);
+        return (
+          CAPITAL_INSIDE_A_WORD.test(word) &&
+          !["IoT", "vCenters"].includes(word)
+        );
       });
       if (!tableDescription.endsWith(".") || codeNames.length > 0) {
         wrong.push(`${table}: ${tableDescription}`);

@@ -1,6 +1,9 @@
 import { getOpenApiMetadata } from "@asteasolutions/zod-to-openapi";
 import { ZodType } from "zod";
-import { ModelSchema, ModelSchemaType } from "../../../Utils/Schema/ModelSchema";
+import {
+  ModelSchema,
+  ModelSchemaType,
+} from "../../../Utils/Schema/ModelSchema";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -129,7 +132,9 @@ describe("the spec's column descriptions", () => {
     const createdAt: string | undefined = descriptions.get("createdAt");
     expect(createdAt).toBeDefined();
     expect(createdAt).toMatch(
-      new RegExp("^Date and Time when the object was created\\. Permissions - "),
+      new RegExp(
+        "^Date and Time when the object was created\\. Permissions - ",
+      ),
     );
   });
 

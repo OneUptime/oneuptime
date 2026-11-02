@@ -364,7 +364,9 @@ export default class StatusPagePrivateUser extends BaseModel {
     update: [],
   })
   @TableColumn({
-    secret: true, type: TableColumnType.ShortText })
+    secret: true,
+    type: TableColumnType.ShortText,
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,

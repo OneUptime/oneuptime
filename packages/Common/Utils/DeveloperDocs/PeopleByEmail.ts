@@ -156,8 +156,10 @@ export enum MembershipKind {
 export interface MembershipImport {
   // The column of what the row joins: teamId, monitorId.
   parentColumn: string;
-  // The column of who or what joins it: a person (userId), a team (teamId),
-  // an on-call schedule.
+  /*
+   * The column of who or what joins it: a person (userId), a team (teamId),
+   * an on-call schedule.
+   */
   personColumn: string;
   kind: MembershipKind;
 }

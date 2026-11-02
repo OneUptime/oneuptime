@@ -48,8 +48,10 @@ type ModelType = new () => DatabaseBaseModel;
  * @TableColumn - or goes here.
  */
 const NOT_SECRETS: Readonly<Record<string, string>> = {
-  // Identifiers, not credentials: machine-readable names a person picks or
-  // the server derives from a name.
+  /*
+   * Identifiers, not credentials: machine-readable names a person picks or
+   * the server derives from a name.
+   */
   "AlertMeasurement.key":
     "a measurement's stable name, chosen by the person who adds it",
   "IncidentMeasurement.key":
@@ -192,9 +194,11 @@ describe("secret columns", () => {
 
     expect(unmarked).toEqual([]);
 
-    // A secret the API takes at create says so in the create schema too,
-    // a write-only one included (a Slack incoming webhook address is never
-    // read back).
+    /*
+     * A secret the API takes at create says so in the create schema too,
+     * a write-only one included (a Slack incoming webhook address is never
+     * read back).
+     */
     for (const [modelType, column] of [
       [Probe, "key"],
       [StatusPageSubscriber, "slackIncomingWebhookUrl"],
@@ -248,8 +252,10 @@ describe("secret columns", () => {
     expect(ModelSchema.isSecretColumn({ type: TableColumnType.Password })).toBe(
       true,
     );
-    // An encrypted JSON column holds a map of secrets, which the spec leaves
-    // as it is.
+    /*
+     * An encrypted JSON column holds a map of secrets, which the spec leaves
+     * as it is.
+     */
     expect(
       ModelSchema.isSecretColumn({
         type: TableColumnType.JSON,

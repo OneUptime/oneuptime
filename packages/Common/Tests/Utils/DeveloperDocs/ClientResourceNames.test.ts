@@ -48,8 +48,10 @@ describe("client resource names", () => {
       "oneuptime_monitor_team_owner",
     );
 
-    // Across every model: an owner team's resource ends in _team_owner, and
-    // an owner user's in _user_owner.
+    /*
+     * Across every model: an owner team's resource ends in _team_owner, and
+     * an owner user's in _user_owner.
+     */
     const misnamed: Array<string> = [];
     for (const modelType of Models as Array<DatabaseBaseModelType>) {
       const table: string = new modelType().tableName || "";

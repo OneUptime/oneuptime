@@ -235,8 +235,10 @@ describe("an update's plan", () => {
   });
 
   test("a table's own set-at-create columns are its own", () => {
-    // is_team_editable is a team's; another table's column of that name
-    // would not be kept.
+    /*
+     * is_team_editable is a team's; another table's column of that name
+     * would not be kept.
+     */
     expect(
       ResourceGenerator.isSetAtCreateAttribute(
         "is_team_editable",
