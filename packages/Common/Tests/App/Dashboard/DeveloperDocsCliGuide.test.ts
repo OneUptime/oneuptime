@@ -60,7 +60,10 @@ const INCIDENT_ID: string = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
 const ORIGIN: string = "https://oneuptime.example.com";
 const API_KEYS_URL: string =
   "/dashboard/8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b/settings/api-keys";
-const CRITICAL: string = fixtureRecordId("IncidentSeverity", "Critical Incident");
+const CRITICAL: string = fixtureRecordId(
+  "IncidentSeverity",
+  "Critical Incident",
+);
 const MAJOR: string = fixtureRecordId("IncidentSeverity", "Major Incident");
 const ACKNOWLEDGED: string = fixtureRecordId("IncidentState", "Acknowledged");
 
@@ -261,9 +264,11 @@ describe("the CLI page in every Developer section", () => {
         }),
       );
       const resources: Map<string, CliResource> = new Map(
-        getCliResources().map((resource: CliResource): [string, CliResource] => {
-          return [resource.name, resource];
-        }),
+        getCliResources().map(
+          (resource: CliResource): [string, CliResource] => {
+            return [resource.name, resource];
+          },
+        ),
       );
       const commands: Array<string> = cliCommands(guide);
 
@@ -402,7 +407,9 @@ describe("the Incidents list's CLI page", () => {
       `[\n  {\n    "_id": "${INCIDENT_ID}",\n    "title": "Checkout requests are failing"\n  }\n]`,
     );
     expect(list.markdown).not.toContain("left out");
-    expect(list.markdown).toContain("Shown with the first of your 7 incidents.");
+    expect(list.markdown).toContain(
+      "Shown with the first of your 7 incidents.",
+    );
   });
 
   test("filters with --query, one tab each, filled in from this project", () => {
@@ -426,7 +433,9 @@ describe("the Incidents list's CLI page", () => {
     expect(create.markdown).toContain(
       "- `--incident-severity-id` (required): How bad it is: one of your incident severities.",
     );
-    expect(create.description).toContain("It prints the new one, with its _id.");
+    expect(create.description).toContain(
+      "It prints the new one, with its _id.",
+    );
   });
 
   test("ends with every command for incidents, then paging, counting, agents and scripts folded away", () => {
@@ -463,8 +472,12 @@ describe("the Incidents list's CLI page", () => {
     const agents: SetupGuideTopic = topic(guide, "Use it from an AI agent");
 
     expect(agents.summary).toBe("The CLI or the MCP server");
-    expect(agents.markdown).toContain("Use the MCP server for an assistant you chat with");
-    expect(agents.markdown).toContain("Use the CLI for an agent that runs commands");
+    expect(agents.markdown).toContain(
+      "Use the MCP server for an assistant you chat with",
+    );
+    expect(agents.markdown).toContain(
+      "Use the CLI for an agent that runs commands",
+    );
     expect(agents.markdown).toContain("`--json`");
     expect(agents.markdown).toContain(
       "oneuptime resources --json\noneuptime incident fields --json\noneuptime incident --help",
@@ -643,7 +656,6 @@ describe("other resources' CLI pages", () => {
     expect(guide.notice).toMatch(/^The CLI does not cover /);
     expect(guide.steps).toEqual([]);
   });
-
 });
 
 describe("the CLI card's own words", () => {

@@ -1515,10 +1515,7 @@ function installCliStep(context: DeveloperDocsGuideContext): DeveloperDocsStep {
       {
         label: "Install script",
         markdown: joinParts([
-          codeBlock(
-            "bash",
-            getCliInstallScriptCommands(context.oneuptimeUrl),
-          ),
+          codeBlock("bash", getCliInstallScriptCommands(context.oneuptimeUrl)),
           translateText(INSTALL_SCRIPT_READ_FIRST_NOTE) ||
             INSTALL_SCRIPT_READ_FIRST_NOTE,
         ]),
@@ -1698,9 +1695,7 @@ function cliTaskExample(
     const change: CliStateChange | undefined =
       machine && task.modelType === machine.timelineModelType
         ? machine.changes.find((candidate: CliStateChange): boolean => {
-            return (
-              task.liveFlags[machine.stateColumn] === candidate.stateFlag
-            );
+            return task.liveFlags[machine.stateColumn] === candidate.stateFlag;
           })
         : undefined;
 

@@ -153,7 +153,9 @@ function toPageKind(page: DeveloperDocsPageType): DeveloperDocsPageKind {
  * page's response, and the CLI page's, which prints that JSON as it is.
  */
 function showsApiRecords(page: DeveloperDocsPageType): boolean {
-  return page === DeveloperDocsPageType.Api || page === DeveloperDocsPageType.Cli;
+  return (
+    page === DeveloperDocsPageType.Api || page === DeveloperDocsPageType.Cli
+  );
 }
 
 /*

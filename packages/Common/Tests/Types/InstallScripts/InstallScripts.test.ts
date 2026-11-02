@@ -155,7 +155,9 @@ describe("the list", () => {
       files: [INSTALL_SCRIPT_FILE],
     });
     expect(
-      fs.existsSync(path.join(REPO_ROOT, "packages", "CLI", "Install", INSTALL_SCRIPT_FILE)),
+      fs.existsSync(
+        path.join(REPO_ROOT, "packages", "CLI", "Install", INSTALL_SCRIPT_FILE),
+      ),
     ).toBe(true);
   });
 
@@ -237,7 +239,9 @@ describe("an address names an entry and a file exactly", () => {
     ["ProxmoxAgent"],
     ["agents/ProxmoxAgent"],
     [".."],
-    ["cli"],
+    // The CLI's entry is "cli" (above), in lower case only.
+    ["CLI"],
+    ["cli/"],
     ["constructor"],
     ["__proto__"],
     ["toString"],

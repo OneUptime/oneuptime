@@ -710,7 +710,9 @@ describe("an incident's CLI page", () => {
 
     fireEvent.click(within(tasks).getByRole("tab", { name: "Internal note" }));
 
-    expect(tasks.textContent).toContain(`oneuptime incident add-note ${INCIDENT_ID}`);
+    expect(tasks.textContent).toContain(
+      `oneuptime incident add-note ${INCIDENT_ID}`,
+    );
     expect(tasks.textContent).not.toContain("acknowledge");
   });
 
@@ -738,7 +740,9 @@ describe("an incident's CLI page", () => {
 
     fireEvent.click(within(install).getByRole("tab", { name: "npm" }));
 
-    expect(install.textContent).toContain("npm install -g @oneuptime/cli@14.0.11");
+    expect(install.textContent).toContain(
+      "npm install -g @oneuptime/cli@14.0.11",
+    );
   });
 
   test("says its steps, tabs, sections and topics in the reader's language where it has them", async () => {
