@@ -716,6 +716,46 @@ describe("an incident's CLI page", () => {
     expect(tasks.textContent).not.toContain("acknowledge");
   });
 
+  test("keeps a flag its gray sentences name on one line, as a phone broke --help", async () => {
+    routeId = INCIDENT_ID;
+    getItemMock.mockResolvedValue(incident());
+
+    renderPage({
+      modelType: Incident,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Cli,
+    });
+
+    await screen.findAllByText(/oneuptime incident get/);
+
+    const unbroken: (description: Element | null) => Array<string> = (
+      description: Element | null,
+    ): Array<string> => {
+      return Array.from(
+        description?.querySelectorAll("span.whitespace-nowrap") || [],
+      ).map((span: Element): string => {
+        return span.textContent || "";
+      });
+    };
+    const commands: HTMLElement | undefined = screen
+      .getAllByTestId("developer-docs-section")
+      .find((section: HTMLElement): boolean => {
+        return section.querySelector("h3")?.textContent === "Commands";
+      });
+
+    // A section's description, and a step's.
+    expect(
+      unbroken(commands?.querySelector("p.text-gray-500") || null),
+    ).toEqual(["--help"]);
+    expect(
+      unbroken(
+        screen
+          .getByTestId("setup-guide-step-3")
+          .querySelector("p.text-gray-500"),
+      ),
+    ).toEqual(["--fields"]);
+  });
+
   test("installs with the script or with npm, a tab each", async () => {
     routeId = INCIDENT_ID;
     getItemMock.mockResolvedValue(incident());

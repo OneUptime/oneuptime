@@ -14908,7 +14908,7 @@
   "Read from the newest session's first chunk. Long-lived pages can keep an older recorder until they reload and fetch the latest artifact.": "Read from the newest session's first chunk. Long-lived pages can keep an older recorder until they reload and fetch the latest artifact.",
   "Read from this error's message and the evidence below — no guesswork you cannot trace back.": "Read from this error's message and the evidence below — no guesswork you cannot trace back.",
   "Read from this error's own timeline, sources and surroundings in the selected window.": "Read from this error's own timeline, sources and surroundings in the selected window.",
-  "Read it": "Read it",
+  "Read it": "Le lire",
   "Read it without managing it": "Read it without managing it",
   "Read left to right: the first amber or red step is where recordings stop.": "Read left to right: the first amber or red step is where recordings stop.",
   "Read the OneUptime Synthetic Monitor documentation.": "Read the OneUptime Synthetic Monitor documentation.",
@@ -40181,5 +40181,6 @@
   "Use it in a script": "L'utiliser dans un script",
   "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.": "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.",
   "What people do most with this {{singular}} from the command line, filled in with this project's own records.": "What people do most with this {{singular}} from the command line, filled in with this project's own records.",
-  "npm": "npm"
+  "npm": "npm",
+  "CLI documentation": "Documentation de la CLI"
 }

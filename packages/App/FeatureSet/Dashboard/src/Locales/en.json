@@ -40181,5 +40181,6 @@
   "Use it in a script": "Use it in a script",
   "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.": "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.",
   "What people do most with this {{singular}} from the command line, filled in with this project's own records.": "What people do most with this {{singular}} from the command line, filled in with this project's own records.",
-  "npm": "npm"
+  "npm": "npm",
+  "CLI documentation": "CLI documentation"
 }

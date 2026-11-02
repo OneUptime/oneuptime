@@ -36,6 +36,7 @@ import {
   DeveloperDocsApiBody,
   DeveloperDocsApiFilter,
   DeveloperDocsApiTask,
+  DeveloperDocsClient,
   DeveloperDocsExampleContext,
   DeveloperDocsFieldRow,
   DeveloperDocsTerraformExample,
@@ -1494,7 +1495,8 @@ const CLI_REFERENCE_DOCS_PATH: string = "cli/command-reference";
 
 function cliLinks(context: DeveloperDocsGuideContext): Array<SetupGuideLink> {
   return [
-    { title: "CLI", url: docsUrl(context, CLI_DOCS_PATH) },
+    // As the API page's "API documentation".
+    { title: "CLI documentation", url: docsUrl(context, CLI_DOCS_PATH) },
     {
       title: "Command reference",
       url: docsUrl(context, CLI_REFERENCE_DOCS_PATH),
@@ -1539,7 +1541,7 @@ function connectCliStep(context: DeveloperDocsGuideContext): DeveloperDocsStep {
     description:
       "The CLI signs in with a project API key. The project comes from the key.",
     markdown: joinParts([
-      `Create a key in [Project Settings → Advanced → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}. Then make it and this OneUptime's address available in your shell, and check that OneUptime takes them:`,
+      `Create a key in [Project Settings → Advanced → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}. Then set it and this OneUptime's address in your shell, and check that OneUptime takes the key:`,
       codeBlock("bash", getCliConnectCommands(context.oneuptimeUrl)),
       `To save them on this machine instead, run \`${getCliLoginCommand(context.oneuptimeUrl)}\`.`,
     ]),
@@ -1661,8 +1663,12 @@ function cliCommandsSection(
   };
 
   for (const action of getCliActions(getTableName(modelType))) {
+    // A note is a command only with its text.
+    const note: string =
+      action === CliAction.AddNote ? " --note <markdown>" : "";
+
     lines.push(
-      `- ${actionLabels[action]}: \`oneuptime ${command} ${action} ${id}\``,
+      `- ${actionLabels[action]}: \`oneuptime ${command} ${action} ${id}${note}\``,
     );
   }
 
@@ -1896,7 +1902,11 @@ function getCliResourceGuide(
   const readJson: JSONObject = pickFields(record.json, select);
   const update: { data: JSONObject; description: string } | null =
     operations.includes(CliOperation.Update)
-      ? getApiUpdateExample({ modelType, context: examples })
+      ? getApiUpdateExample({
+          modelType,
+          context: examples,
+          client: DeveloperDocsClient.Cli,
+        })
       : null;
   const steps: Array<DeveloperDocsStep> = [
     installCliStep(context),

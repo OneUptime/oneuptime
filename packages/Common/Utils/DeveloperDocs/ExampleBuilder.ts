@@ -1388,6 +1388,16 @@ export function getApiCreateExample(data: {
 }
 
 /*
+ * What sends an example's request: the API page's curl, or the CLI page's
+ * command. A new description names it, so the CLI page never writes
+ * "Updated with the OneUptime API." with the CLI.
+ */
+export enum DeveloperDocsClient {
+  Api = "API",
+  Cli = "CLI",
+}
+
+/*
  * The `data` of the "Change it" example: the profile's change, or a new
  * description. A field pointing at a record moves to another one than the
  * record has now.
@@ -1395,6 +1405,8 @@ export function getApiCreateExample(data: {
 export function getApiUpdateExample(data: {
   modelType: DatabaseBaseModelType;
   context: DeveloperDocsExampleContext;
+  // The API page's, unless the CLI page asks.
+  client?: DeveloperDocsClient | undefined;
 }): { data: JSONObject; description: string } | null {
   const profile: DeveloperDocsProfile = getDeveloperDocsProfile(data.modelType);
   const updatable: Set<string> = new Set<string>(
@@ -1464,7 +1476,9 @@ export function getApiUpdateExample(data: {
 
   if (updatable.has("description")) {
     return {
-      data: { description: "Updated with the OneUptime API." },
+      data: {
+        description: `Updated with the OneUptime ${data.client || DeveloperDocsClient.Api}.`,
+      },
       description:
         "Send only the fields you want to change. Everything else stays as it is.",
     };

@@ -34,6 +34,7 @@ import {
   DeveloperDocsApiBody,
   DeveloperDocsApiFilter,
   DeveloperDocsApiTask,
+  DeveloperDocsClient,
   DeveloperDocsExampleContext,
   getApiCreateExample,
   getApiFilters,
@@ -328,8 +329,13 @@ describe("the Developer > CLI pages' commands", () => {
         return;
       }
 
+      // As the CLI page asks for it: its new description names the CLI.
       const update: { data: JSONObject; description: string } | null =
-        getApiUpdateExample({ modelType, context: viewContext() });
+        getApiUpdateExample({
+          modelType,
+          context: viewContext(),
+          client: DeveloperDocsClient.Cli,
+        });
 
       if (!update) {
         return;

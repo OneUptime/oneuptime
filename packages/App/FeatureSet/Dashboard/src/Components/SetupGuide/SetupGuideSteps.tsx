@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { withUnbrokenFlags } from "./UnbrokenFlags";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
@@ -144,7 +145,7 @@ const SetupGuideSteps: FunctionComponent<ComponentProps> = (
               </h3>
               {step.description && (
                 <p className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500">
-                  {step.description}
+                  {withUnbrokenFlags(step.description)}
                 </p>
               )}
               {step.content}

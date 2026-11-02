@@ -360,6 +360,9 @@ describe("installing and connecting the CLI", () => {
     );
     expect(connect.markdown).toContain("permission to manage incidents");
     expect(connect.markdown).toContain(
+      "Then set it and this OneUptime's address in your shell, and check that OneUptime takes the key:",
+    );
+    expect(connect.markdown).toContain(
       `export ONEUPTIME_API_KEY="your-api-key"\nexport ONEUPTIME_URL=${ORIGIN}\noneuptime whoami --check`,
     );
     expect(connect.markdown).toContain(
@@ -462,8 +465,13 @@ describe("the Incidents list's CLI page", () => {
         "- Its fields and flags: `oneuptime incident fields`",
         "- Acknowledge one: `oneuptime incident acknowledge <id>`",
         "- Resolve one: `oneuptime incident resolve <id>`",
-        "- Add a note: `oneuptime incident add-note <id>`",
+        // A note is a command only with its text: --note is required.
+        "- Add a note: `oneuptime incident add-note <id> --note <markdown>`",
       ].join("\n"),
+    );
+    // Its flag kept whole in the plain-text description (UnbrokenFlags).
+    expect(section(guide, "Commands").description).toBe(
+      "Every command the CLI has for these. Add --help to any of them for its flags.",
     );
     expect(
       guide.topics.map((item: SetupGuideTopic): string => {
@@ -509,7 +517,8 @@ describe("the Incidents list's CLI page", () => {
 
   test("links to the CLI's docs, its command reference and the page for AI agents", () => {
     expect(guide.links).toEqual([
-      { title: "CLI", url: `${ORIGIN}/docs/cli/index` },
+      // As the API page's "API documentation".
+      { title: "CLI documentation", url: `${ORIGIN}/docs/cli/index` },
       {
         title: "Command reference",
         url: `${ORIGIN}/docs/cli/command-reference`,
@@ -660,6 +669,25 @@ describe("other resources' CLI pages", () => {
 
     expect(JSON.stringify(guide.sections)).toContain(
       "oneuptime team-member list",
+    );
+  });
+
+  test("a change made with the CLI says so, where the API page's says the API", () => {
+    const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+      DeveloperDocsPageType.Cli,
+      context({
+        resource: getDeveloperDocsResource(Team),
+        scope: DeveloperDocsScope.View,
+        record: { id: INCIDENT_ID, displayName: "Platform", json: {} },
+      }),
+    );
+    const change: string = step(guide, "Change it").markdown || "";
+
+    expect(change).toContain(
+      `oneuptime team update ${INCIDENT_ID} \\\n  --description 'Updated with the OneUptime CLI.'`,
+    );
+    expect(JSON.stringify(guide)).not.toContain(
+      "Updated with the OneUptime API.",
     );
   });
 

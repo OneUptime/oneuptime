@@ -2,6 +2,7 @@ import PageComponentProps from "../../Pages/PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SetupGuideMarkdown from "../SetupGuide/SetupGuideMarkdown";
+import { withUnbrokenFlags } from "../SetupGuide/UnbrokenFlags";
 import SetupGuideSteps, {
   SetupGuideStepVariants,
   SetupGuideStepVariantView,
@@ -475,7 +476,7 @@ export const DeveloperDocsSectionView: FunctionComponent<SectionViewProps> = (
       </h3>
       {section.description && (
         <p className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500">
-          {translate(section.description)}
+          {withUnbrokenFlags(translate(section.description))}
         </p>
       )}
       <div className="space-y-3">

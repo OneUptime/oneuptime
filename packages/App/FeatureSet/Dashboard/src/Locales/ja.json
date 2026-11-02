@@ -40181,5 +40181,6 @@
   "Use it in a script": "スクリプトで使う",
   "What people do most with the {{singular}} \"{{name}}\" from the command line, filled in with this project's own records.": "コマンドラインで{{singular}}「{{name}}」に対してよく行われる操作です。このプロジェクトのレコードで入力済みです。",
   "What people do most with this {{singular}} from the command line, filled in with this project's own records.": "コマンドラインでこの{{singular}}に対してよく行われる操作です。このプロジェクトのレコードで入力済みです。",
-  "npm": "npm"
+  "npm": "npm",
+  "CLI documentation": "CLI ドキュメント"
 }

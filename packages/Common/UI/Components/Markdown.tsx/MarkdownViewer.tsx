@@ -14,6 +14,7 @@ import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { sanitizeDiagramSvg } from "./DiagramSanitizer";
 import { setDiagramLabelDirections } from "./DiagramLabelDirection";
+import { PrismLanguageDefinition, withFlagsOfSeveralWords } from "./BashFlags";
 /*
  * @types/react-syntax-highlighter declares every deep subpath below as ambient
  * `declare module` blocks inside its single index.d.ts, and that file only enters the
@@ -57,8 +58,11 @@ SyntaxHighlighter.registerLanguage("ts", typescript);
 SyntaxHighlighter.registerLanguage("jsx", jsx);
 SyntaxHighlighter.registerLanguage("tsx", tsx);
 SyntaxHighlighter.registerLanguage("python", python);
-SyntaxHighlighter.registerLanguage("bash", bash);
-SyntaxHighlighter.registerLanguage("shell", bash);
+// Flags such as --incident-severity-id coloured as --json is (BashFlags).
+const bashWithFlags: PrismLanguageDefinition = withFlagsOfSeveralWords(bash);
+
+SyntaxHighlighter.registerLanguage("bash", bashWithFlags);
+SyntaxHighlighter.registerLanguage("shell", bashWithFlags);
 SyntaxHighlighter.registerLanguage("json", json);
 SyntaxHighlighter.registerLanguage("yaml", yaml);
 SyntaxHighlighter.registerLanguage("yml", yaml);
