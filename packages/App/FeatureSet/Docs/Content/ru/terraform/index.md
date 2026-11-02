@@ -153,6 +153,7 @@ moved {
 | Текст, числа, истина или ложь | Как есть | `is_public_status_page = false` |
 | Ссылка на другую запись | Её ID, обычно `id` другого ресурса | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | Список ссылок | Множество ID, порядок которых не важен | `labels = [oneuptime_label.critical.id]` |
+| Человек | Адрес электронной почты, рядом с ID пользователя: см. [Люди и команды](/docs/terraform/people-and-teams) | `user_email = "alice@example.com"` |
 | Цвет, домен и другие обёрнутые значения | Их простое значение | `color = "#FF5733"` |
 | Дата и время | Текст в формате RFC 3339 | `starts_at = "2030-06-01T02:00:00Z"` |
 | Проверки монитора | Типизированные вложенные атрибуты: см. [Шаги монитора](/docs/terraform/monitor-steps) | `monitor_steps = [{ ... }]` |

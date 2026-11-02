@@ -126,6 +126,7 @@ export default class OpenAPIUtil {
       name: string;
       description: string;
       "x-former-names"?: Array<string>;
+      "x-oneuptime-telemetry"?: boolean;
     }> = [];
 
     // Register schemas and paths for all models
@@ -211,6 +212,12 @@ export default class OpenAPIUtil {
       tags.push({
         name: singularModelName,
         description: `API endpoints for ${singularModelName}`,
+        /*
+         * Records the product keeps for a while (logs, spans, metrics...),
+         * not configuration to manage: the Terraform provider reads them as
+         * data sources and makes no resource of them.
+         */
+        "x-oneuptime-telemetry": true,
       });
 
       // register the analytics model schema
@@ -912,7 +919,7 @@ export default class OpenAPIUtil {
 
     if (canUpdate) {
       const updateSchema: AnalyticsModelSchemaType =
-        AnalyticsModelSchema.getCreateModelSchema({
+        AnalyticsModelSchema.getUpdateModelSchema({
           modelType,
         });
       registry.register(`${tableName}UpdateSchema`, updateSchema);

@@ -3,7 +3,8 @@
  * words they keep as the product writes them. Docs overhaul task 30a
  * rewrote the overview, quick start, complete guide, monitor steps and
  * examples; task 30b the importing, troubleshooting, self-hosted, registry
- * and OpenTofu pages, which complete the nav group.
+ * and OpenTofu pages, which complete the nav group. People and Teams came
+ * with people named by email address (terraform-provider-better).
  *
  * TerraformDocsFacts holds the English pages to the provider
  * (Scripts/TerraformProvider) and to the product, and
@@ -22,6 +23,7 @@ export const TERRAFORM_OVERVIEW: string = "terraform/index";
 export const QUICK_START: string = "terraform/quick-start";
 export const COMPLETE_GUIDE: string = "terraform/complete-guide";
 export const MONITOR_STEPS: string = "terraform/monitor-steps";
+export const PEOPLE_AND_TEAMS: string = "terraform/people-and-teams";
 export const EXAMPLES: string = "terraform/examples";
 export const IMPORTING_RESOURCES: string = "terraform/importing-resources";
 export const TROUBLESHOOTING: string = "terraform/troubleshooting";
@@ -35,6 +37,7 @@ export const TERRAFORM_PAGES: ReadonlyArray<TerraformDocsPageEntry> = [
   { page: QUICK_START, navTitle: "Quick Start" },
   { page: COMPLETE_GUIDE, navTitle: "Complete Guide" },
   { page: MONITOR_STEPS, navTitle: "Monitor Steps" },
+  { page: PEOPLE_AND_TEAMS, navTitle: "People and Teams" },
   { page: EXAMPLES, navTitle: "Examples" },
   { page: IMPORTING_RESOURCES, navTitle: "Importing Resources" },
   { page: TROUBLESHOOTING, navTitle: "Troubleshooting" },
@@ -52,6 +55,7 @@ export const TERRAFORM_GROUP_URLS: ReadonlyArray<string> = [
   "/docs/terraform/quick-start",
   "/docs/terraform/complete-guide",
   "/docs/terraform/monitor-steps",
+  "/docs/terraform/people-and-teams",
   "/docs/terraform/examples",
   "/docs/terraform/importing-resources",
   "/docs/terraform/troubleshooting",
@@ -133,6 +137,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "IDs.",
     "JSON written by hand.",
   ],
+  [PEOPLE_AND_TEAMS]: [
+    "An API key that may read the project's teams.",
+    "To add someone new, a key that may invite people.",
+  ],
   [IMPORTING_RESOURCES]: [
     "Terraform 1.5 or later, or OpenTofu 1.6 or later.",
     "An API key that can read what you import.",
@@ -160,6 +168,7 @@ export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [QUICK_START]: "flowchart TB",
   [COMPLETE_GUIDE]: "flowchart TB",
   [MONITOR_STEPS]: "flowchart TB",
+  [PEOPLE_AND_TEAMS]: "flowchart TB",
   [EXAMPLES]: "flowchart TB",
   [IMPORTING_RESOURCES]: "flowchart TB",
   [TROUBLESHOOTING]: "flowchart TB",

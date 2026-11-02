@@ -153,6 +153,7 @@ moved {
 | टेक्स्ट, संख्याएँ, सही या गलत | जैसे हैं वैसे | `is_public_status_page = false` |
 | किसी दूसरे रिकॉर्ड का संदर्भ | उसका ID, आमतौर पर किसी दूसरे संसाधन का `id` | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | संदर्भों की सूची | ID का एक सेट, जिसके क्रम से कोई फ़र्क नहीं पड़ता | `labels = [oneuptime_label.critical.id]` |
+| एक व्यक्ति | उनका ईमेल पता, उनके यूज़र ID के बगल में: [लोग और टीमें](/docs/terraform/people-and-teams) देखें | `user_email = "alice@example.com"` |
 | रंग, डोमेन और दूसरे लिपटे मान | उनका सादा मान | `color = "#FF5733"` |
 | तारीख और समय | RFC 3339 टेक्स्ट | `starts_at = "2030-06-01T02:00:00Z"` |
 | किसी मॉनिटर की जाँचें | टाइप किए गए नेस्टेड एट्रिब्यूट: [मॉनिटर चरण](/docs/terraform/monitor-steps) देखें | `monitor_steps = [{ ... }]` |

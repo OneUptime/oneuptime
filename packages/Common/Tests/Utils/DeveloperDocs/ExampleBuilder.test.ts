@@ -4,7 +4,9 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
@@ -19,6 +21,7 @@ import {
   DeveloperDocsApiTask,
   DeveloperDocsExampleContext,
   DeveloperDocsExampleError,
+  DeveloperDocsFieldRow,
   DeveloperDocsTerraformExample,
   DeveloperDocsTerraformRecipe,
   getApiCreateExample,
@@ -40,10 +43,13 @@ import {
 } from "../../../Utils/DeveloperDocs/ExampleBuilder";
 import { printHclDocument } from "../../../Utils/DeveloperDocs/Hcl";
 import { DeveloperDocsLiveData } from "../../../Utils/DeveloperDocs/LiveData";
+import { describePersonEmail } from "../../../Utils/DeveloperDocs/PeopleByEmail";
+import { DeveloperDocsField } from "../../../Utils/DeveloperDocs/ResourceProfiles";
 import { TerraformVariableCollector } from "../../../Utils/DeveloperDocs/TerraformValues";
 import {
   FIXTURE_NOW,
   FIXTURE_RECORD_ID,
+  FIXTURE_USER_EMAIL,
   FIXTURE_USER_ID,
   fixtureRecordId,
   getEmptyFixtureLiveData,
@@ -90,6 +96,18 @@ function incidentPage(
       displayName: "Checkout requests are failing",
       json,
       terraformAddress: "oneuptime_incident.checkout_requests_are_failing",
+    },
+  };
+}
+
+function teamPage(): DeveloperDocsExampleContext {
+  return {
+    live: getFixtureLiveData(),
+    record: {
+      id: FIXTURE_RECORD_ID,
+      displayName: "Platform",
+      json: {},
+      terraformAddress: "oneuptime_team.platform",
     },
   };
 }
@@ -515,7 +533,7 @@ describe("recipes", () => {
     expect(recipe.isPlaceholder).toBe(true);
   });
 
-  test("a weekly rotation adds you to it", () => {
+  test("a weekly rotation adds you to it, by your email address", () => {
     const recipe: DeveloperDocsTerraformRecipe = getTerraformRecipes({
       modelType: OnCallDutyPolicySchedule,
       scope: "list",
@@ -523,9 +541,42 @@ describe("recipes", () => {
     })[0] as DeveloperDocsTerraformRecipe;
 
     expect(recipe.hcl).toContain(
-      `user_id                               = "${FIXTURE_USER_ID}" # you`,
+      `user_email                            = "${FIXTURE_USER_EMAIL}"`,
     );
+    expect(recipe.hcl).not.toContain(FIXTURE_USER_ID);
     expect(recipe.hcl).toContain('intervalType = "Week"');
+  });
+
+  test("a team and its first member: you, by your email address", () => {
+    const recipe: DeveloperDocsTerraformRecipe = getTerraformRecipes({
+      modelType: Team,
+      scope: "list",
+      context: project(),
+    })[0] as DeveloperDocsTerraformRecipe;
+
+    expect(recipe.title).toBe("Team with a member");
+    expect(recipe.description).toBe(
+      "A team and its first member, you. Add the others the same way, by their email addresses: anyone not in the project yet is invited.",
+    );
+    expect(recipe.hcl).toContain('resource "oneuptime_team_member" "me" {');
+    expect(recipe.hcl).toContain("team_id    = oneuptime_team.platform.id");
+    expect(recipe.hcl).toContain(`user_email = "${FIXTURE_USER_EMAIL}"`);
+    expect(recipe.hcl).not.toContain("user_id");
+    expect(recipe.hcl).not.toContain("has_accepted_invitation");
+  });
+
+  test("without your address, you are named by your user ID, as before", () => {
+    const live: DeveloperDocsLiveData = getFixtureLiveData();
+    delete live.currentUserEmail;
+
+    const recipe: DeveloperDocsTerraformRecipe = getTerraformRecipes({
+      modelType: Team,
+      scope: "view",
+      context: { ...teamPage(), live },
+    })[0] as DeveloperDocsTerraformRecipe;
+
+    expect(recipe.hcl).toContain(`user_id = "${FIXTURE_USER_ID}" # you`);
+    expect(recipe.hcl).not.toContain("user_email");
   });
 
   test("a data source for a model named by its title is refused", () => {
@@ -572,6 +623,73 @@ describe("blocks", () => {
 
     expect(hcl).toContain('name  = "SEV-1"');
     expect(hcl).toMatch(/color = "/);
+  });
+
+  test("you, named by your address, get the address's line in the field list, not the user ID's", () => {
+    const rowsOf: (
+      modelType: DatabaseBaseModelType,
+      fields: Array<DeveloperDocsField>,
+    ) => Array<DeveloperDocsFieldRow> = (
+      modelType: DatabaseBaseModelType,
+      fields: Array<DeveloperDocsField>,
+    ): Array<DeveloperDocsFieldRow> => {
+      return getDeveloperDocsTerraformBlock({
+        modelType,
+        fields,
+        context: project(),
+        variables: new TerraformVariableCollector(),
+      }).rows;
+    };
+    const emailRow: (
+      rows: Array<DeveloperDocsFieldRow>,
+    ) => DeveloperDocsFieldRow | undefined = (
+      rows: Array<DeveloperDocsFieldRow>,
+    ): DeveloperDocsFieldRow | undefined => {
+      return rows.find((row: DeveloperDocsFieldRow): boolean => {
+        return row.name === "user_email";
+      });
+    };
+
+    const member: Array<DeveloperDocsFieldRow> = rowsOf(TeamMember, [
+      { column: "teamId" },
+      { column: "userId", value: { kind: "me" } },
+    ]);
+    const memberEmail: DeveloperDocsFieldRow | undefined = emailRow(member);
+
+    // Who it is, by address: a team member invites someone new.
+    expect(memberEmail?.about).toBe(
+      describePersonEmail({
+        idName: "user_id",
+        isList: false,
+        invitesByEmail: true,
+      }),
+    );
+    // Not the ID column's line: "ID of the person in the team."
+    expect(memberEmail?.about).not.toContain("ID of");
+    expect(memberEmail?.required).toBe(true);
+    expect(
+      member.map((row: DeveloperDocsFieldRow): string => {
+        return row.name;
+      }),
+    ).not.toContain("user_id");
+
+    // Anyone else is found among the project's people, never invited.
+    const layerUser: Array<DeveloperDocsFieldRow> = rowsOf(
+      OnCallDutyPolicyScheduleLayerUser,
+      [
+        { column: "onCallDutyPolicyScheduleId" },
+        { column: "onCallDutyPolicyScheduleLayerId" },
+        { column: "userId", value: { kind: "me" } },
+      ],
+    );
+
+    expect(emailRow(layerUser)?.about).toBe(
+      describePersonEmail({
+        idName: "user_id",
+        isList: false,
+        invitesByEmail: false,
+      }),
+    );
   });
 
   test("a field that is not an attribute the resource can be created with is refused", () => {

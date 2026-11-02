@@ -45,6 +45,12 @@ export interface DeveloperDocsLiveData {
   namesById: Dictionary<string>;
   // The viewer's own user id.
   currentUserId?: string | undefined;
+  /*
+   * The viewer's own email address. Terraform names a person by it
+   * (user_email beside user_id; Utils/DeveloperDocs/PeopleByEmail.ts), so the
+   * configuration the dashboard writes for "you" does too.
+   */
+  currentUserEmail?: string | undefined;
   // When the page was rendered. Dates in examples are worked out from it.
   now: Date;
 }
