@@ -190,6 +190,8 @@ Query fields accept a direct value or an operator object:
 
 Operators: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween` (with `startValue` and `endValue`), `Search`, `Includes` (with an array). Which a field takes depends on its type. A telemetry map field such as `attributes` is filtered by its keys: `{"attributes": {"http.method": "GET"}}`.
 
+A filter written another way, such as MongoDB's `{"$regex": "..."}` or an operator OneUptime does not have, is refused before it reaches the API, with an error that names the field and says how an operator is written (`Tools/FilterCheck.ts`). The API would pass it on, and the database would compare a text column with the object's JSON and match nothing. A relation filtered by its own fields (`{"currentIncidentState": {"isResolvedState": false}}`) and a map filtered by its keys are filters, and pass.
+
 ### Sort
 
 ```json
