@@ -177,7 +177,11 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
       "--json",
     ]);
 
-    expect(found.map((row: Row) => idOf(row._id))).toEqual([labelId]);
+    expect(
+      found.map((row: Row) => {
+        return idOf(row._id);
+      }),
+    ).toEqual([labelId]);
 
     ok([
       "label",
@@ -201,7 +205,11 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
 
     const all: Array<Row> = ok(["label", "list", "--all", "--json"]);
 
-    expect(all.map((row: Row) => idOf(row._id))).toContain(labelId);
+    expect(
+      all.map((row: Row) => {
+        return idOf(row._id);
+      }),
+    ).toContain(labelId);
     expect(
       ok<number>([
         "label",
@@ -215,7 +223,9 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
 
   it("creates a monitor with a label, by flags", () => {
     const labelId: string = (created.find(
-      ([resource]) => resource === "label",
+      ([resource]: [string, string]): boolean => {
+        return resource === "label";
+      },
     ) || ["", ""])[1];
     const monitor: Row = ok([
       "monitor",
@@ -256,7 +266,9 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
       "--json",
     ]);
     const monitorId: string = (created.find(
-      ([resource]) => resource === "monitor",
+      ([resource]: [string, string]): boolean => {
+        return resource === "monitor";
+      },
     ) || ["", ""])[1];
     const incident: Row = ok([
       "incident",

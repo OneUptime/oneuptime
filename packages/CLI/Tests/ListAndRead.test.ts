@@ -147,10 +147,9 @@ describe("reading records", () => {
 
       expect(run.exitCode).toBeUndefined();
       expect(
-        requests().map((request: ApiRequestOptions) => [
-          request.skip,
-          request.limit,
-        ]),
+        requests().map((request: ApiRequestOptions) => {
+          return [request.skip, request.limit];
+        }),
       ).toEqual([
         [0, LIST_ALL_PAGE_SIZE],
         [LIST_ALL_PAGE_SIZE, LIST_ALL_PAGE_SIZE],

@@ -1119,14 +1119,14 @@ describe("the coding agent plugin", () => {
       })
       .join("\n");
 
+    // The flags Commander gives every command, and the program its version.
+    const COMMANDER_FLAGS: ReadonlyArray<string> = ["--help", "--version"];
+
     /*
      * The flags create and update take for a resource's fields, and the
      * email flags beside the ID flags of people: read from the models as
      * the CLI reads them, not written in its sources.
      */
-    // The flags Commander gives every command, and the program its version.
-    const COMMANDER_FLAGS: ReadonlyArray<string> = ["--help", "--version"];
-
     const fieldFlags: Set<string> = new Set(
       getCliResources().flatMap((resource: CliResource): Array<string> => {
         const modelType: DatabaseBaseModelType | null =

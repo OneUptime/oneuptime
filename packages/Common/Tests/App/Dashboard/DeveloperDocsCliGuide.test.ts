@@ -10,6 +10,7 @@ import {
 import {
   DEVELOPER_DOCS_PAGES,
   DEVELOPER_DOCS_PARENT_PAGES,
+  DeveloperDocsChildPage,
   DeveloperDocsPageDefinition,
   DeveloperDocsPageType,
   DeveloperDocsParentPage,
@@ -19,7 +20,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
 import { getDeveloperDocsResource } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsResources";
 import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
-import { SetupGuideTopic } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import {
+  SetupGuideStepVariant,
+  SetupGuideTopic,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -213,9 +217,11 @@ describe("the CLI page in every Developer section", () => {
   test("hangs under every page that has Developer pages, list and view alike", () => {
     for (const parent of DEVELOPER_DOCS_PARENT_PAGES) {
       expect(
-        getDeveloperDocsChildPages(parent.pageKey).map((child) => {
-          return child.page.type;
-        }),
+        getDeveloperDocsChildPages(parent.pageKey).map(
+          (child: DeveloperDocsChildPage): DeveloperDocsPageType => {
+            return child.page.type;
+          },
+        ),
       ).toContain(DeveloperDocsPageType.Cli);
     }
   });
@@ -318,10 +324,11 @@ describe("installing and connecting the CLI", () => {
   test("installs with the script this OneUptime serves, which matches its version, or with npm at its version", () => {
     const install: DeveloperDocsStep = step(guide, "Install the CLI");
 
-    expect(install.variants?.map((variant) => variant.label)).toEqual([
-      "Install script",
-      "npm",
-    ]);
+    expect(
+      install.variants?.map((variant: SetupGuideStepVariant): string => {
+        return variant.label;
+      }),
+    ).toEqual(["Install script", "npm"]);
     expect(install.variants?.[0]?.markdown).toContain(
       `curl -fsSL ${ORIGIN}/install/cli -o install.sh\nONEUPTIME_URL=${ORIGIN} bash install.sh`,
     );
@@ -439,7 +446,11 @@ describe("the Incidents list's CLI page", () => {
   });
 
   test("ends with every command for incidents, then paging, counting, agents and scripts folded away", () => {
-    expect(guide.sections.map((item) => item.title)).toEqual(["Commands"]);
+    expect(
+      guide.sections.map((item: DeveloperDocsSection): string => {
+        return item.title;
+      }),
+    ).toEqual(["Commands"]);
     expect(section(guide, "Commands").markdown).toBe(
       [
         "- List incidents: `oneuptime incident list`",
@@ -454,7 +465,11 @@ describe("the Incidents list's CLI page", () => {
         "- Add a note: `oneuptime incident add-note <id>`",
       ].join("\n"),
     );
-    expect(guide.topics.map((item) => item.title)).toEqual([
+    expect(
+      guide.topics.map((item: SetupGuideTopic): string => {
+        return item.title;
+      }),
+    ).toEqual([
       "Page through all of them",
       "Count your incidents",
       "Use it from an AI agent",
@@ -556,9 +571,11 @@ describe("an incident's own CLI page", () => {
   test("writes the dashboard's buttons as the CLI's own commands", () => {
     const tasks: DeveloperDocsSection = section(guide, "Common tasks");
     const byLabel: Record<string, string> = Object.fromEntries(
-      (tasks.variants || []).map((variant) => {
-        return [variant.label, variant.markdown];
-      }),
+      (tasks.variants || []).map(
+        (variant: SetupGuideStepVariant): [string, string] => {
+          return [variant.label, variant.markdown];
+        },
+      ),
     );
 
     expect(byLabel["Acknowledge it"]).toContain(
@@ -585,10 +602,11 @@ describe("an incident's own CLI page", () => {
   });
 
   test("tells agents and scripts how to use it, folded away", () => {
-    expect(guide.topics.map((item) => item.title)).toEqual([
-      "Use it from an AI agent",
-      "Use it in a script",
-    ]);
+    expect(
+      guide.topics.map((item: SetupGuideTopic): string => {
+        return item.title;
+      }),
+    ).toEqual(["Use it from an AI agent", "Use it in a script"]);
   });
 });
 

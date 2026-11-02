@@ -22,7 +22,9 @@ import {
   CLI_STATE_MACHINES,
   CliAction,
   CliFieldFlag,
+  CliNoteTarget,
   CliOperation,
+  CliStateMachine,
   CliValueError,
   getCliActions,
   getCliAnalyticsFields,
@@ -383,9 +385,11 @@ describe("the dashboard's buttons as actions", () => {
   });
 
   test.each(
-    CLI_STATE_MACHINES.map((machine) => {
-      return [machine.tableName, machine];
-    }),
+    CLI_STATE_MACHINES.map(
+      (machine: CliStateMachine): [string, CliStateMachine] => {
+        return [machine.tableName, machine];
+      },
+    ),
   )(
     "%s's states are where the action says: the columns and flags exist",
     (_tableName: string, machine: (typeof CLI_STATE_MACHINES)[number]) => {
@@ -418,7 +422,7 @@ describe("the dashboard's buttons as actions", () => {
   );
 
   test.each(
-    CLI_NOTE_TARGETS.map((target) => {
+    CLI_NOTE_TARGETS.map((target: CliNoteTarget): [string, CliNoteTarget] => {
       return [target.tableName, target];
     }),
   )(
@@ -462,9 +466,13 @@ describe("field flags", () => {
 
     for (const modelType of Models) {
       const attributes: Map<string, TerraformAttributeDescriptor> = new Map(
-        getTerraformAttributes(modelType).map((attribute) => {
-          return [attribute.columnName, attribute];
-        }),
+        getTerraformAttributes(modelType).map(
+          (
+            attribute: TerraformAttributeDescriptor,
+          ): [string, TerraformAttributeDescriptor] => {
+            return [attribute.columnName, attribute];
+          },
+        ),
       );
 
       for (const flag of getCliFieldFlags(modelType)) {
@@ -494,9 +502,11 @@ describe("field flags", () => {
   });
 
   test("leave the project, who created and who deleted to the server", () => {
-    const columns: Array<string> = getCliFieldFlags(Incident).map((flag) => {
-      return flag.columnName;
-    });
+    const columns: Array<string> = getCliFieldFlags(Incident).map(
+      (flag: CliFieldFlag): string => {
+        return flag.columnName;
+      },
+    );
 
     expect(columns).not.toContain("projectId");
     expect(columns).not.toContain("createdByUserId");
@@ -674,9 +684,11 @@ describe("telemetry's fields", () => {
     ) as new () => AnalyticsBaseModel;
     const fields: Array<ReturnType<typeof getCliAnalyticsFields>[number]> =
       getCliAnalyticsFields(log);
-    const body: (typeof fields)[number] | undefined = fields.find((field) => {
-      return field.columnName === "body";
-    });
+    const body: (typeof fields)[number] | undefined = fields.find(
+      (field: (typeof fields)[number]): boolean => {
+        return field.columnName === "body";
+      },
+    );
 
     expect(body).toEqual(
       expect.objectContaining({ isReadable: true, inCreate: true }),

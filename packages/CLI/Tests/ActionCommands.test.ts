@@ -217,7 +217,9 @@ describe("the dashboard's buttons as commands", () => {
 
     expect(run.exitCode).toBeUndefined();
     expect(
-      requests().map((request: ApiRequestOptions) => request.operation),
+      requests().map((request: ApiRequestOptions) => {
+        return request.operation;
+      }),
     ).toEqual(["list", "read"]);
     expect(printedJson(run)).toEqual({
       _id: INCIDENT_ID,
@@ -263,9 +265,9 @@ describe("the dashboard's buttons as commands", () => {
     await runCli(["incident", "acknowledge", INCIDENT_ID]);
 
     expect(
-      requests().some(
-        (request: ApiRequestOptions) => request.operation === "create",
-      ),
+      requests().some((request: ApiRequestOptions) => {
+        return request.operation === "create";
+      }),
     ).toBe(false);
   });
 

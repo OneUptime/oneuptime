@@ -154,7 +154,11 @@ describe("the CLI and the API", () => {
   it("reads the spec: thousands of requests, of hundreds of resources", () => {
     expect(requests.length).toBeGreaterThan(2000);
     expect(
-      new Set(requests.map((request: SpecRequest) => request.apiPath)).size,
+      new Set(
+        requests.map((request: SpecRequest) => {
+          return request.apiPath;
+        }),
+      ).size,
     ).toBeGreaterThan(400);
     expect(resources.length).toBeGreaterThan(400);
   });

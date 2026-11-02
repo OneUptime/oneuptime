@@ -7,6 +7,7 @@ import {
   TableColumnMetadata,
 } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
+import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import { getNameColumn } from "Common/Utils/DeveloperDocs/TerraformSchema";
 import { ALWAYS_SELECTABLE_COLUMNS } from "Common/Types/HeldPermissions";
 import Permission from "Common/Types/Permission";
@@ -206,9 +207,11 @@ export function generateSelectFromFields(data: {
         return new Model().tableName === data.tableName;
       });
     const keys: Array<string> = ModelClass
-      ? new ModelClass().getTableColumns().map((column) => {
-          return column.key;
-        })
+      ? new ModelClass()
+          .getTableColumns()
+          .map((column: AnalyticsTableColumn): string => {
+            return column.key;
+          })
       : [];
 
     for (const name of names) {

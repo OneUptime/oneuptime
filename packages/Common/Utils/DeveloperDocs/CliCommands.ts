@@ -20,6 +20,7 @@ import ScheduledMaintenanceInternalNote from "../../Models/DatabaseModels/Schedu
 import ScheduledMaintenancePublicNote from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { ALWAYS_SELECTABLE_COLUMNS } from "../../Types/HeldPermissions";
 import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
@@ -248,6 +249,8 @@ function operationsFrom(
         return operations.canUpdate;
       case CliOperation.Delete:
         return operations.canDelete;
+      default:
+        return false;
     }
   });
 }
@@ -990,21 +993,25 @@ export function getCliAnalyticsFields(
 ): Array<CliAnalyticsField> {
   const model: AnalyticsBaseModel = new modelType();
 
-  return model.getTableColumns().map((column): CliAnalyticsField => {
-    return {
-      columnName: column.key,
-      title: column.title || column.key,
-      type: column.type,
-      description: (column.description || "").replace(LINE_BREAKS, " ").trim(),
-      isRequired: column.required,
-      inCreate: (column.accessControl?.create || []).length > 0,
-      inUpdate: (column.accessControl?.update || []).length > 0,
-      isReadable: isAnalyticsColumnReadable(
-        column.key,
-        column.accessControl?.read,
-      ),
-    };
-  });
+  return model
+    .getTableColumns()
+    .map((column: AnalyticsTableColumn): CliAnalyticsField => {
+      return {
+        columnName: column.key,
+        title: column.title || column.key,
+        type: column.type,
+        description: (column.description || "")
+          .replace(LINE_BREAKS, " ")
+          .trim(),
+        isRequired: column.required,
+        inCreate: (column.accessControl?.create || []).length > 0,
+        inUpdate: (column.accessControl?.update || []).length > 0,
+        isReadable: isAnalyticsColumnReadable(
+          column.key,
+          column.accessControl?.read,
+        ),
+      };
+    });
 }
 
 /*

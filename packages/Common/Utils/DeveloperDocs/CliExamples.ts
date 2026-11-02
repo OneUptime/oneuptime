@@ -191,7 +191,11 @@ function toFlagText(flag: CliFieldFlag, value: JSONValue): string | undefined {
 
       const ids: Array<string | null> = (value as Array<JSONValue>).map(idOf);
 
-      if (ids.some((id: string | null): boolean => !id)) {
+      if (
+        ids.some((id: string | null): boolean => {
+          return !id;
+        })
+      ) {
         return undefined;
       }
 
@@ -204,7 +208,9 @@ function toFlagText(flag: CliFieldFlag, value: JSONValue): string | undefined {
 
       const words: Array<string> = (value as Array<JSONValue>).map(String);
 
-      return words.some((word: string): boolean => word.includes(COMMA))
+      return words.some((word: string): boolean => {
+        return word.includes(COMMA);
+      })
         ? JSON.stringify(words)
         : words.join(COMMA);
     }
