@@ -35490,7 +35490,7 @@
   "Delete Monitor Group": "モニターグループを削除",
   "Delete On-Call Policy": "オンコールポリシーを削除",
   "Delete On-Call Schedule": "オンコールスケジュールを削除",
-  "Deployment Detail": "デプロイメントの詳細",
+  "Deployment Detail": "Deployment の詳細",
   "Device Detail": "デバイスの詳細",
   "Each state this alert has been in, when it began and how long it lasted.": "このアラートがたどった各状態と、その開始時刻と継続時間。",
   "Each state this episode has been in, when it began and how long it lasted.": "このエピソードがたどった各状態と、その開始時刻と継続時間。",
