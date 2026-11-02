@@ -498,7 +498,90 @@ describe("GET /microsoft/callback", () => {
       }),
     );
     expect(UserSessionService.createSession).toHaveBeenCalled();
-    expect(redirect).toHaveBeenCalledWith("/dashboard");
+    // A new account is a sign-up, which the Dashboard reports.
+    expect(redirect).toHaveBeenCalledWith(
+      "/dashboard?signed_up_with=microsoft",
+    );
+  });
+
+  describe("the attribution a new account arrived with", () => {
+    const ATTRIBUTION: Record<string, unknown> = {
+      utm: { utmSource: "google", utmCampaign: "brand" },
+      clickIds: { gclid: "paid-click" },
+      firstTouch: { utmSource: "linkedin" },
+    };
+
+    const withAttributionCookie: (value: string | undefined) => void = (
+      value: string | undefined,
+    ): void => {
+      mocked(CookieUtil.getCookieFromExpressRequest).mockImplementation(
+        (_req: unknown, name: string): string | undefined => {
+          return name === "oneuptime-sign-in-attribution"
+            ? value
+            : JSON.stringify(STATE);
+        },
+      );
+    };
+
+    const withNewAccount: () => void = (): void => {
+      const created: User = existingUser();
+
+      mocked(UserService.findOneBy).mockResolvedValue(null);
+      mocked(UserService.createByEmail).mockResolvedValue(created);
+      mocked(UserService.findOneById).mockResolvedValue(created);
+    };
+
+    it("puts it on the new user", async () => {
+      withAttributionCookie(JSON.stringify(ATTRIBUTION));
+      withNewAccount();
+
+      await runCallback();
+
+      expect(UserService.createByEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ attribution: ATTRIBUTION }),
+      );
+    });
+
+    it("spends the cookie, on the same path the button wrote it", async () => {
+      withAttributionCookie(JSON.stringify(ATTRIBUTION));
+      withNewAccount();
+
+      const { clearCookie } = await runCallback();
+
+      expect(clearCookie).toHaveBeenCalledWith(
+        "oneuptime-sign-in-attribution",
+        expect.objectContaining({ path: "/identity/microsoft" }),
+      );
+    });
+
+    it.each([undefined, "not json", "null", '{"clickIds":"x"}'])(
+      "signs the person in all the same with %p for a cookie",
+      async (value: string | undefined) => {
+        withAttributionCookie(value);
+        withNewAccount();
+
+        const { redirect } = await runCallback();
+
+        expect(UserService.createByEmail).toHaveBeenCalledWith(
+          expect.objectContaining({ attribution: undefined }),
+        );
+        expect(UserSessionService.createSession).toHaveBeenCalled();
+        expect(redirect).toHaveBeenCalledWith(
+          "/dashboard?signed_up_with=microsoft",
+        );
+      },
+    );
+
+    it("changes nothing on an account that already exists, and reports no sign-up", async () => {
+      withAttributionCookie(JSON.stringify(ATTRIBUTION));
+      mocked(UserService.findOneBy).mockResolvedValue(existingUser());
+
+      const { redirect } = await runCallback();
+
+      expect(UserService.createByEmail).not.toHaveBeenCalled();
+      expect(UserService.updateOneById).not.toHaveBeenCalled();
+      expect(redirect).toHaveBeenCalledWith("/dashboard");
+    });
   });
 
   it("creates no one where sign-up is closed", async () => {

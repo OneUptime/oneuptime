@@ -1,3 +1,4 @@
+import { rememberAttributionForSignIn } from "../../Utils/SignInAttribution";
 import SignInOptionLabel from "Common/UI/Components/SignInOption/SignInOptionLabel";
 import {
   getSignInOptionClassName,
@@ -19,6 +20,8 @@ export const MICROSOFT_SIGN_IN_ROUTE: string = "/identity/microsoft/sign-in";
 
 export interface ComponentProps {
   title: string;
+  // Told as the button is pressed, before the browser leaves the page.
+  onPress?: (() => void) | undefined;
 }
 
 const MicrosoftSignInButton: FunctionComponent<ComponentProps> = (
@@ -29,6 +32,11 @@ const MicrosoftSignInButton: FunctionComponent<ComponentProps> = (
       href={MICROSOFT_SIGN_IN_ROUTE}
       data-testid="microsoft-sign-in"
       className={getSignInOptionClassName("ready")}
+      onClick={() => {
+        // A new account is made on the way back, where localStorage is out of reach.
+        rememberAttributionForSignIn();
+        props.onPress?.();
+      }}
     >
       {/*
        * The logo in the box every option's icon has (20px), so it sits on

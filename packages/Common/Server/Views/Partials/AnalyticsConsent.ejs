@@ -556,7 +556,12 @@
                 utmValues: utmValues,
                 clickIds: clickIds,
                 hasClickId: hasClickId,
-                url: window.location.href,
+                /*
+                 * Bounded like every other value: this is stored on the User
+                 * row, in a column as wide as the bound, and a signup carrying
+                 * a wider value is refused.
+                 */
+                url: bound(window.location.href),
                 referrer: document.referrer || '',
                 timestamp: new Date().toISOString()
             };
