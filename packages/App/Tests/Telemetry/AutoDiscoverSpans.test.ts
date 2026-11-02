@@ -41,6 +41,7 @@ jest.mock("Common/Server/Utils/PasswordHash", () => {
 
 import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelIngestBaseService";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import logger from "Common/Server/Utils/Logger";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import {
@@ -238,6 +239,13 @@ beforeEach(() => {
     });
   jest.spyOn(GlobalCache, "setString").mockResolvedValue(undefined);
   jest.spyOn(GlobalCache, "setStringIfNotExists").mockResolvedValue(false);
+  /*
+   * After an IoT fleet is discovered, its stored name is read
+   * (StoredIoTFleetName): a database read of its own, after the discovery,
+   * answered here as the cache answers the discovery - with no stored name,
+   * so the reading keeps the name it was sent with.
+   */
+  jest.spyOn(IoTFleetService, "findOneById").mockResolvedValue(null);
 });
 
 afterEach(() => {

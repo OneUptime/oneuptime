@@ -5,6 +5,7 @@ OneUptime Kubernetes एजेंट एक Helm चार्ट है जो �
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): Helm के साथ चार चरण।
 - [Amazon EKS ऐड-ऑन के रूप में इंस्टॉल करें](#amazon-eks-ऐड-ऑन-के-रूप-में-इंस्टॉल-करें): EKS कंसोल से, Helm के बिना।
+- [OpenShift](#openshift): प्रीसेट, उसके बनाए सिक्योरिटी कॉन्टेक्स्ट कंस्ट्रेंट, और OpenShift के अपने अलर्ट।
 - [कॉन्फ़िगरेशन विकल्प](#कॉन्फ़िगरेशन-विकल्प): फ़िल्टर, सैंपलिंग, कंट्रोल प्लेन, सर्विस मेश, लागत और लेबल।
 - [Kubernetes AI एजेंट](#kubernetes-ai-एजेंट): OneUptime AI के लिए केवल-पढ़ने वाला `kubectl`, और आपकी अनुमति होने पर सुधार।
 - [कम डेटा भेजें](#इकट्ठा-होने-वाले-डेटा-की-मात्रा-कम-करना): लीवर, असर के क्रम में।
@@ -27,7 +28,7 @@ flowchart TB
 | नोड कलेक्टर | DaemonSet | `/var/log/pods` से पॉड लॉग, kubelet और cAdvisor मेट्रिक्स, और नोड के OS मेट्रिक्स। | EKS Fargate को छोड़कर हर जगह |
 | eBPF इंस्ट्रुमेंटेशन (OBI) | DaemonSet | हर पॉड से HTTP, gRPC, SQL और Redis ट्रेस और अनुरोध मेट्रिक्स, और सेवा मैप। | डिफ़ॉल्ट रूप से, GKE Autopilot और EKS Fargate को छोड़कर |
 | Kubernetes AI एजेंट | Deployment | किसी घटना या अलर्ट की जाँच करते समय OneUptime AI के लिए केवल-पढ़ने वाला `kubectl`। | डिफ़ॉल्ट रूप से |
-| लॉग टेलर | Deployment | Kubernetes API के ज़रिए पॉड लॉग, जहाँ नोड कलेक्टर उन्हें नहीं पढ़ सकता। | `gke-autopilot` और `eks-fargate` प्रीसेट के साथ |
+| लॉग टेलर | Deployment | Kubernetes API के ज़रिए पॉड लॉग, जहाँ नोड कलेक्टर उन्हें नहीं पढ़ सकता। | `gke-autopilot`, `eks-fargate` और `openshift-restricted` प्रीसेट के साथ |
 | लागत इंजन और पोलर | Deployments | हर नेमस्पेस, वर्कलोड और पॉड का खर्च। | `cost.enabled=true` के साथ |
 
 हर एजेंट इमेज सिर्फ़ Linux के लिए है, इसलिए हर वर्कलोड Linux नोड पर पिन है।
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,43 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `standard` (डिफ़ॉल्ट) | स्व-प्रबंधित क्लस्टर, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | नोड कलेक्टर `hostPath` के ज़रिए `/var/log/pods` पढ़ता है (सबसे कम ओवरहेड) | Kubelet, cAdvisor और नोड के OS मेट्रिक्स |
 | `gke-autopilot` | **GKE Autopilot** | लॉग टेलर उन्हें Kubernetes API के ज़रिए पढ़ता है (कोई `hostPath` नहीं, होस्ट तक कोई पहुँच नहीं) | Kubelet और cAdvisor, `hostPath` के बिना |
 | `eks-fargate` | **EKS Fargate** | लॉग टेलर उन्हें Kubernetes API के ज़रिए पढ़ता है (कोई `hostPath` नहीं, होस्ट तक कोई पहुँच नहीं) | कोई नहीं: Fargate कोई DaemonSet नहीं चलाता |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | नोड कलेक्टर `hostPath` के ज़रिए `/var/log/pods` पढ़ता है, उस सिक्योरिटी कॉन्टेक्स्ट कंस्ट्रेंट के तहत जिसे चार्ट उसके लिए बनाता है | Kubelet, cAdvisor और नोड के OS मेट्रिक्स |
+| `openshift-restricted` | **OpenShift**, जहाँ कोई एडमिन SCC नहीं जोड़ना चाहता | लॉग टेलर उन्हें Kubernetes API के ज़रिए पढ़ता है (कोई `hostPath` नहीं, होस्ट तक कोई पहुँच नहीं) | Kubelet और cAdvisor, `hostPath` के बिना |
 
-अगर आप निश्चित नहीं हैं, तो `standard` से शुरू करें। अगर इंस्टॉल ऐसी Pod Security त्रुटि के साथ विफल हो जिसमें `hostPath` का नाम हो, तो `preset=gke-autopilot` (या Fargate पर `eks-fargate`) के साथ फिर से इंस्टॉल करें। GKE Autopilot और EKS Fargate विशेषाधिकार वाले पॉड भी अस्वीकार करते हैं, जिनकी eBPF और प्रोफ़ाइलर को ज़रूरत है, इसलिए वे दोनों प्रीसेट दोनों को छोड़ देते हैं।
+अगर आप निश्चित नहीं हैं, तो `standard` से शुरू करें। अगर इंस्टॉल ऐसी Pod Security त्रुटि के साथ विफल हो जिसमें `hostPath` का नाम हो, तो `preset=gke-autopilot` (या Fargate पर `eks-fargate`) के साथ फिर से इंस्टॉल करें। GKE Autopilot और EKS Fargate विशेषाधिकार वाले पॉड भी अस्वीकार करते हैं, जिनकी eBPF और प्रोफ़ाइलर को ज़रूरत है, इसलिए वे दोनों प्रीसेट दोनों को छोड़ देते हैं। OpenShift पर `openshift` का उपयोग करें, या अगर कोई एडमिन SCC नहीं जोड़ना चाहता तो `openshift-restricted` का: [OpenShift](#openshift) देखें।
+
+## OpenShift
+
+`--set preset=openshift` के साथ इंस्टॉल करें, जैसा ऊपर का **OpenShift** टैब करता है। OpenShift किसी पॉड को केवल ऐसे सिक्योरिटी कॉन्टेक्स्ट कंस्ट्रेंट (SCC) के तहत चलने देता है जिसका उपयोग उसका सेवा खाता कर सके, और जब तक कोई एडमिन इससे ज़्यादा अनुमति न दे, वह `restricted-v2` होता है (OpenShift 4.11 और उसके बाद): कोई `hostPath` वॉल्यूम नहीं, कोई विशेषाधिकार वाला कंटेनर नहीं, और नेमस्पेस की अपनी रेंज से एक यूज़र ID। इसलिए प्रीसेट:
+
+- दो SCC बनाता है, जिनमें से हर एक का उपयोग केवल उसके अपने पॉड का सेवा खाता करता है:
+  - एक नोड कलेक्टर के लिए: केवल-पढ़ने वाले `hostPath` माउंट, SELinux टाइप `spc_t` के साथ root के रूप में, बिना विशेषाधिकार के, सभी capabilities हटाकर;
+  - एक eBPF इंस्ट्रुमेंटेशन और प्रोफ़ाइलर के लिए: विशेषाधिकार के साथ, होस्ट के PID नेमस्पेस में। केवल तब तक, जब तक इनमें से कोई एक चालू हो।
+- बाकी हर पॉड की यूज़र ID OpenShift को चुनने देता है, और वे पॉड `restricted-v2` के तहत चलते हैं।
+- एजेंट की टेलीमेट्री पर `oneuptime.kubernetes.distribution=openshift` लगाता है, ताकि क्लस्टर के **प्लेटफ़ॉर्म** में **OpenShift** दिखे, और अगर क्लस्टर किसी क्लाउड पर चलता है तो वह क्लाउड (`cloud.provider`, `cloud.platform`) भी जोड़ता है।
+
+SCC बनाने के लिए cluster-admin अधिकार चाहिए। प्रीसेट के बिना रिलीज़ इंस्टॉल तो हो जाती है, लेकिन OpenShift एजेंट के नोड कलेक्टर और eBPF पॉड कभी शुरू नहीं करता, और इंस्टॉल के बाद Helm जो नोट्स छापता है वे भी यही बताते हैं।
+
+**अगर कोई एडमिन SCC नहीं जोड़ना चाहता,** तो इसके बजाय `--set preset=openshift-restricted` के साथ इंस्टॉल करें। तब चार्ट कोई SCC नहीं बनाता और हर पॉड `gke-autopilot` की तरह `restricted-v2` के तहत चलता है। क्लस्टर फिर भी OpenShift के रूप में दिखता है। बदले में ये चीज़ें नहीं मिलतीं:
+
+- नोड से पॉड लॉग: लॉग टेलर उन्हें Kubernetes API के ज़रिए पढ़ता है, हर कंटेनर के लिए एक लंबे समय तक चलने वाले कनेक्शन के साथ।
+- नोड के OS मेट्रिक्स। नोड, पॉड और कंटेनर मेट्रिक्स बने रहते हैं: नोड कलेक्टर kubelet और cAdvisor को नेटवर्क पर पढ़ता है।
+- eBPF ट्रेस और प्रोफ़ाइलर, चाहे `ebpf.enabled` और `profiling.enabled` कुछ भी कहें। अपनी सेवाओं को ट्रेस करने के लिए उनसे OpenTelemetry SDK के साथ ट्रेस भेजें।
+- ऑडिट लॉग, जो नोड से पढ़े जाते हैं।
+
+इन्हें वापस पाने के लिए, अपग्रेड पर cluster-admin के रूप में `--set preset=openshift` के साथ `openshift` पर जाएँ।
+
+**OneUptime में आप क्या देखते हैं।** एजेंट OpenShift के अपने ऑब्जेक्ट भी केवल-पढ़ने वाली पहुँच से पढ़ता है और उन्हें क्लस्टर के पेजों पर दिखाता है:
+
+- क्लस्टर का **अवलोकन** एक **OpenShift** कार्ड से शुरू होता है: वह कौन-सा संस्करण चलाता है, कोई अपडेट चल रहा है या विफल हो रहा है, और उसके कितने क्लस्टर ऑपरेटर स्वस्थ हैं, साथ में बाकी हर ऑपरेटर क्या रिपोर्ट करता है। कोई अनुपलब्ध ऑपरेटर क्लस्टर को **अस्वस्थ** बना देता है, और गिरावट वाला ऑपरेटर या विफल होता अपडेट उसे **प्रदर्शन में गिरावट** की स्थिति में ले जाता है।
+- **नेटवर्क** के अंतर्गत **Routes** और **सेवाएं**: हर Route कहाँ जवाब देता है, वह TLS को कैसे टर्मिनेट करता है, किन सेवाओं को और किस हिस्से में ट्रैफ़िक भेजता है, और किसी राउटर ने उसे क्यों अस्वीकार किया। किसी Route की TLS कुंजी कभी क्लस्टर से बाहर नहीं जाती: एजेंट Route भेजने से पहले उसे बदल देता है।
+- **वर्कलोड** के अंतर्गत **DeploymentConfigs** Deployments की तरह दिखते हैं: उनके रोलआउट, उनके पॉड का CPU और मेमोरी, और उनके चलाए ReplicationControllers और पॉड के इवेंट।
+
+**ऑपरेटर और अपडेट पर अलर्ट।** किसी OpenShift क्लस्टर का **सुझाव** पेज **Cluster Operator Unavailable**, **Cluster Operator Degraded** और **Cluster Update Failing** पेश करता है। हर एक उन स्नैपशॉट पर एक लॉग मॉनिटर है जो एजेंट हर `resourceSpecs.interval` पर भेजता है। यह तब अलर्ट करता है जब दो स्नैपशॉट ऐसा बताएँ, इसलिए अपडेट के दौरान एक पल के लिए बदलने वाला ऑपरेटर कुछ भी ट्रिगर नहीं करता, और यह तब हल होता है जब कोई स्नैपशॉट बताए कि समस्या खत्म हो गई है, कभी इसलिए नहीं कि एजेंट ने भेजना बंद कर दिया।
+
+**OpenShift के अपने अलर्ट।** OpenShift के साथ Prometheus और Alertmanager आते हैं, जिनमें उसके ऑपरेटर, etcd और नोड के लिए अलर्ट होते हैं। हर अलर्ट के लिए OneUptime में एक घटना खोलने के लिए, वेब कंसोल में **Administration → Cluster Settings → Configuration → Alertmanager** के अंतर्गत OneUptime के लिए एक वेबहुक रिसीवर जोड़ें, जैसा [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) में बताया गया है।
+
+**आपके कोड से ट्रेस।** eBPF इंस्ट्रुमेंटेशन बिना कोड बदले HTTP, gRPC और SQL को ट्रेस करता है। OpenTelemetry SDK से, या Red Hat build of OpenTelemetry से ट्रेस भेजने के लिए, उनके OTLP एक्सपोर्टर को OneUptime की ओर पॉइंट करें, जैसा [OpenTelemetry](/docs/telemetry/open-telemetry) में बताया गया है।
 
 ## क्या इकट्ठा होता है
 
@@ -215,6 +262,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | क्लस्टर मेट्रिक्स | नोड की स्थितियाँ, आवंटन योग्य संसाधन, पॉड की संख्या |
 | Kubernetes इवेंट | हर नेमस्पेस और हर तरह के ऑब्जेक्ट का हर इवेंट, Warning और Normal दोनों: देखें [Kubernetes इवेंट](#kubernetes-इवेंट) |
 | पॉड लॉग | हर कंटेनर का stdout और stderr (मानक क्लस्टर पर `hostPath` के ज़रिए, Autopilot और Fargate पर Kubernetes API के ज़रिए) |
+| OpenShift ऑब्जेक्ट (OpenShift प्रीसेट) | ClusterOperators, ClusterVersion, Routes, DeploymentConfigs और Services: देखें [OpenShift](#openshift) |
 | एप्लिकेशन ट्रेस (eBPF, डिफ़ॉल्ट रूप से चालू) | हर पॉड से HTTP, gRPC, SQL और Redis स्पैन, बिना SDK या कोड बदलाव के |
 | HTTP RED मेट्रिक्स (eBPF) | `http.server.request.duration`, और हर सेवा के अनुरोध और प्रतिक्रिया बॉडी के आकार |
 | सेवा ग्राफ़ (eBPF) | कॉल करने वाले से कॉल पाने वाले तक अनुरोध दर, लेटेंसी और त्रुटि वाले किनारे, जो सेवा मैप बनाते हैं |
@@ -245,7 +293,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 ### इवेंट खोजें और उन पर अलर्ट पाएँ
 
-हर इवेंट एक लॉग भी है। चेतावनी **Warning** गंभीरता के साथ सहेजी जाती है, और इवेंट जो कहता है वह उसके एट्रिब्यूट में होता है:
+हर इवेंट एक लॉग भी है। चेतावनी **चेतावनी** गंभीरता के साथ सहेजी जाती है, और इवेंट जो कहता है वह उसके एट्रिब्यूट में होता है:
 
 | एट्रिब्यूट | उदाहरण |
 | --- | --- |
@@ -488,6 +536,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**OpenShift पर,** शेड्यूलर और कंट्रोलर मैनेजर के लिए `--set controlPlane.enabled=true` काफ़ी है, दोनों OpenShift प्रीसेट पर। OpenShift हर एक की कई प्रतिकृतियाँ एक Service के पीछे चलाता है, इसलिए एजेंट Service के EndpointSlices में हर प्रतिकृति ढूँढता है और उसे अपने सर्विस अकाउंट के टोकन के साथ अलग से स्क्रैप करता है। `controlPlane.scheduler.endpoints` और `controlPlane.controllerManager.endpoints` सेट करने पर वे अब भी प्राथमिकता पाते हैं। etcd क्लाइंट प्रमाणपत्र माँगता है, इसलिए वह तब तक स्क्रैप नहीं होता जब तक `controlPlane.etcd.clientCertSecret` ऐसे Secret का नाम न दे जिसमें वह हो। OpenShift की मॉनिटरिंग के पास एक है: उसे cluster-admin के रूप में ऐसे Secret में कॉपी करें जिसमें वे तीन कुंजियाँ हों जिन्हें चार्ट पढ़ता है:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+यह कॉपी OpenShift द्वारा उस प्रमाणपत्र के रोटेशन का पालन नहीं करती, इसलिए जब etcd के मेट्रिक्स रुक जाएँ तो ये कमांड फिर से चलाएँ। होस्टेड कंट्रोल प्लेन (ROSA with HCP, HyperShift) इन घटकों को क्लस्टर के बाहर चलाता है: एजेंट उनमें से कोई नहीं ढूँढ पाता, और वहाँ वे टैब खाली रहते हैं।
+
 प्रबंधित Kubernetes सेवाएँ (EKS, GKE, AKS) etcd, शेड्यूलर या कंट्रोलर मैनेजर उजागर नहीं करतीं, इसलिए वहाँ वे टैब खाली रहते हैं। जब तक किसी टैब के मेट्रिक्स न आएँ, **कंट्रोल प्लेन** पेज उसके चार्ट की जगह दिखाता है कि क्या सेट करना है, कॉपी करने के लिए कमांड के साथ।
 
 ### CoreDNS मेट्रिक्स चालू करें
@@ -600,7 +668,7 @@ eBPF नेटवर्क कॉल देखता है, आपका को
 
 eBPF तब बंद करें जब:
 
-- आप **GKE Autopilot** या **EKS Fargate** पर इंस्टॉल करते हैं: वे प्लेटफ़ॉर्म विशेषाधिकार वाले पॉड अस्वीकार करते हैं, इसलिए `preset=gke-autopilot` और `preset=eks-fargate` पहले ही आपके लिए eBPF छोड़ देते हैं, और उसके साथ प्रोफ़ाइलर भी।
+- आप **GKE Autopilot** या **EKS Fargate** पर इंस्टॉल करते हैं: वे प्लेटफ़ॉर्म विशेषाधिकार वाले पॉड अस्वीकार करते हैं, इसलिए `preset=gke-autopilot` और `preset=eks-fargate` पहले ही आपके लिए eBPF छोड़ देते हैं, और उसके साथ प्रोफ़ाइलर भी। `preset=openshift-restricted` OpenShift पर यही करता है।
 - नोड BTF बैकपोर्ट के बिना 5.8 से पुराना कर्नेल चलाते हैं।
 - आप पहले से हर ऐप में OpenTelemetry SDK से ट्रेस भेजते हैं और eBPF मेट्रिक्स भी नहीं चाहते। (सिर्फ़ ट्रेस के लिए ज़रूरत नहीं: जिस ऐप को OBI अपने ट्रेस खुद एक्सपोर्ट करते देखता है, उसके लिए वह eBPF ट्रेस भेजना बंद कर देता है, जैसा ऊपर बताया।)
 
@@ -998,9 +1066,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 डायग्नोस्टिक स्क्रिप्ट से शुरू करें। यह पॉड की सेहत जाँचती है, इंजेशन कुंजी को डिकोड और सत्यापित करती है, जाँचती है कि क्लस्टर OneUptime तक पहुँच सकता है, और OneUptime से पूछती है कि वह आपकी कुंजी स्वीकार करता है या नहीं, फिर सबसे संभावित कारण बताने वाला एक निष्कर्ष छापती है:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+हर OneUptime अपनी रिलीज़ की यह स्क्रिप्ट ख़ुद देता है: सेल्फ़-होस्टेड OneUptime पर `https://oneuptime.com` की जगह अपना URL इस्तेमाल करें। स्क्रिप्ट चलाने से पहले उसे पढ़ने के लिए, उसका पता किसी ब्राउज़र में खोलें।
 
 यह सिर्फ़ क्लस्टर की स्थिति पढ़ती है और कुछ प्रोब चलाती है; यह कुछ नहीं बदलती। इग्रेस की सबसे सटीक जाँच के लिए पहले `--set debug.enabled=true` के साथ इंस्टॉल करें: यह एजेंट के पॉड में नेटवर्क टूल वाला एक छोटा साइडकार जोड़ता है, ताकि स्क्रिप्ट कलेक्टर का अपना बाहरी रास्ता जाँचे।
 

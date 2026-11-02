@@ -436,7 +436,12 @@ describe("the overview", () => {
     }
   });
 
-  it("names the template that builds the example, under Incidents, built as the example is", () => {
+  /*
+   * The template is the example without its Log: since a step that fails
+   * with nothing on its Error output fails the run (UnhandledStepFailure),
+   * the templates leave Error outputs empty, and the tip says so.
+   */
+  it("names the template that builds the example, under Incidents, built as the example is but for its Log", () => {
     const start: number = TEMPLATES.indexOf(
       'name: "Forward new incidents to another system"',
     );
@@ -458,19 +463,16 @@ describe("the overview", () => {
     ).toEqual([
       "incident-on-create-1 incident-on-create",
       "api-post-1 ApiPost",
-      "log-failed Log",
     ]);
     expect(template).toContain(
       'fromComponentId: "incident-on-create-1",\n          toComponentId: "api-post-1",\n          fromPort: "success",',
     );
-    expect(template).toContain(
-      'fromComponentId: "api-post-1",\n          toComponentId: "log-failed",\n          fromPort: "error",',
-    );
+    expect(template).not.toContain('fromPort: "error"');
 
     expect(
       section(INDEX, "## Example: send new incidents to a webhook"),
     ).toContain(
-      "> The **Forward new incidents to another system** template builds the same workflow for you. Find it under **Incidents** when you create a workflow.",
+      "> The **Forward new incidents to another system** template builds this workflow for you, without the Log block: with nothing on **Error**, a request that fails fails the run, and the run's **Steps** say why. Find it under **Incidents** when you create a workflow.",
     );
   });
 

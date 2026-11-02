@@ -317,7 +317,7 @@ Når en funktion i din egen kode tager mindst 5 % af profilens tid eller hukomme
 
 Når en profil bærer trace- og span-ID'er (for eksempel som sample-labels `trace_id` / `span_id`), kan du gå direkte fra et langsomt span i et spor til den tilsvarende CPU- eller hukommelsesprofil for at forstå præcis, hvilken kode der kørte, og **Åbn tilknyttet spor** går den anden vej.
 
-Et spans fane **Profil** indeholder også de samples, der er knyttet til de spans, der ligger under det, fordi profilere ofte tilskriver en anmodnings CPU-tid et underordnet span frem for selve anmodningens span.
+Et spans fane **Profilsamples** indeholder også de samples, der er knyttet til de spans, der ligger under det, fordi profilere ofte tilskriver en anmodnings CPU-tid et underordnet span frem for selve anmodningens span.
 
 Et spors side linker også til Profileren for sporets tjeneste i de 15 minutter før og efter, når tjenesten blev profileret dengang, og siden **Ydeevneprofiler** for en tjeneste eller en vært åbner Profileren for den tjeneste eller vært.
 

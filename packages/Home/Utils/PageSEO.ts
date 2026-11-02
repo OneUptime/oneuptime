@@ -13,6 +13,7 @@
 
 import ProductCompare, { Product } from "./ProductCompare";
 import { getOpenTelemetryGuideSEOEntries } from "./Integrations/OpenTelemetry/OpenTelemetryGuides";
+import { AirGappedTopicPage, AirGappedTopicPages } from "./AirGappedPages";
 
 export interface BreadcrumbItem {
   name: string;
@@ -103,6 +104,38 @@ const legalDocumentSEO: (
       { name, url: canonicalPath },
     ],
   };
+};
+
+/*
+ * The air-gapped page of each product: an "enterprise" page, so llms.txt lists
+ * it with the hub, under Air-Gapped in its breadcrumb trail. Its title and
+ * description are its own data (Utils/AirGappedPages.ts), and its markdown
+ * variant is written from the same entry (AIDiscovery.generateAirGappedTopicMarkdown).
+ */
+const getAirGappedTopicSEOEntries: () => Record<
+  string,
+  PageSEOData
+> = (): Record<string, PageSEOData> => {
+  const entries: Record<string, PageSEOData> = {};
+
+  for (const page of AirGappedTopicPages as Array<AirGappedTopicPage>) {
+    entries[page.path] = {
+      title: page.seo.title,
+      description: page.seo.description,
+      canonicalPath: page.path,
+      twitterCard: "summary_large_image",
+      pageType: "enterprise",
+      breadcrumbs: [
+        { name: "Home", url: "/" },
+        { name: "Enterprise", url: "/enterprise/overview" },
+        { name: "Self-Hosted", url: "/enterprise/self-hosted" },
+        { name: "Air-Gapped", url: "/enterprise/air-gapped" },
+        { name: page.name, url: page.path },
+      ],
+    };
+  }
+
+  return entries;
 };
 
 // Page-specific SEO configurations
@@ -526,8 +559,31 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "DaemonSet deployment",
         "Kubelet stats receiver",
         "Logs and traces correlation",
+        "OpenShift Container Platform, ROSA, ARO and OKD clusters",
       ],
     },
+  },
+
+  /*
+   * The Kubernetes product monitors OpenShift; there is no OpenShift product.
+   * So this page is a solution that leads into /product/kubernetes: its page
+   * type keeps it out of the products in llms.txt and products.json, and it
+   * has no softwareApplication. Its address sits with the other infrastructure
+   * pages' and its trail runs through Kubernetes.
+   */
+  "/product/openshift": {
+    title: "OpenShift Monitoring | ROSA, ARO & OKD | OneUptime",
+    description:
+      "Monitor OpenShift beside your EKS, AKS and GKE clusters in the OneUptime Kubernetes product. One helm install with the openshift preset, no oc adm policy step.",
+    canonicalPath: "/product/openshift",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Kubernetes", url: "/product/kubernetes" },
+      { name: "OpenShift", url: "/product/openshift" },
+    ],
   },
 
   "/product/docker": {
@@ -954,7 +1010,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "SIEM and SOAR as part of the same platform as your observability data. Security events arrive through one authenticated ingest endpoint (OCSF, Google SecOps UDM, SecOps detection alerts, and generic security JSON), ten managed connectors, or the logs you already send; every event is normalized to OCSF and stored in the same data lake as your logs, metrics, and traces. Sigma detection rules and Sigma correlations, a library of ready-made rules, threat intel from free blocklists, STIX/TAXII feeds and Google SecOps, and Security Events monitors find threats. Security Cases group detections by the user, host, or IP address they are about and are closed with a verdict; OneUptime AI triages each new case read-only, citing its evidence and suggesting a priority and a playbook, and playbooks enrich, notify, page on-call, declare incidents, or contain through Okta, CrowdStrike Falcon, and Microsoft Defender, with approval before each containment step by default. What OneUptime finds can be sent on to Google SecOps, Splunk, Microsoft Sentinel, or Elastic Security.",
+        "SIEM and SOAR as part of the same platform as your observability data. Security events arrive through one authenticated ingest endpoint (OCSF, Google SecOps UDM, SecOps detection alerts, and generic security JSON), ten managed connectors, or the logs you already send; every event is normalized to OCSF and stored in the same data lake as your logs, metrics, and traces. Sigma detection rules and Sigma correlations, a library of ready-made rules, threat intel from free blocklists, STIX/TAXII feeds and Google SecOps, and Security Events monitors find threats. Security Cases group detections by the user, host, or IP address they are about and are closed with a verdict; OneUptime AI triages each new case read-only, citing its evidence and suggesting a priority and a playbook, and playbooks enrich, notify, page on-call, declare incidents, or contain through Okta, Microsoft Entra ID, Google Workspace, CrowdStrike Falcon, and Microsoft Defender, with approval before each containment step by default. What OneUptime finds can be sent on to Google SecOps, Splunk, Microsoft Sentinel, or Elastic Security.",
       features: [
         "Single ingest endpoint for security events",
         "OCSF normalization across four source dialects, detected per event",
@@ -970,7 +1026,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Security Cases that group detections by user, host or IP address",
         "Case verdicts, and mean time to acknowledge, contain and close",
         "Playbooks with 25 actions, run as a case opens, as detections join it, when AI triage reads it as Likely Malicious, or by hand",
-        "Containment through Okta, CrowdStrike Falcon and Microsoft Defender, with per-step approval",
+        "Containment through Okta, Microsoft Entra ID, Google Workspace, CrowdStrike Falcon and Microsoft Defender, with per-step approval",
         "Deduplicated alerts and optional incidents, or an incident declared from a case",
         "Detection findings written back as searchable events",
         "Security Events monitors over a sliding window",
@@ -1292,7 +1348,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/cloud": {
     title: "Cloud Monitoring | AWS, Google Cloud & Azure | OneUptime",
     description:
-      "Monitor AWS, Google Cloud, and Azure with OpenTelemetry. Auto-discovered cloud environments, real-time resource metrics, logs, traces, and alerting across every region and account. Open source.",
+      "Connect AWS, Google Cloud, and Azure accounts read-only and monitor every resource in them: provider metrics, changes, health events, a topology map, and alerting across every region and account. Open source.",
     canonicalPath: "/product/cloud",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -1306,18 +1362,53 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "Unified multi-cloud monitoring for AWS, Google Cloud, and Azure with OpenTelemetry — auto-discovered environments, real-time resource metrics, logs, traces, and alerting across regions and accounts.",
+        "Unified multi-cloud monitoring for AWS, Google Cloud, and Azure — connect accounts read-only and see every resource in them, with the metrics their provider publishes, what changed, and alerting across regions and accounts.",
       features: [
         "Multi-cloud unified dashboard",
         "AWS, Google Cloud, and Azure",
-        "Auto-discovered cloud environments",
-        "EC2, GCP, and Azure resource detectors",
-        "cloud.platform / account / region metadata",
-        "Real-time CPU and memory utilization",
+        "Read-only account connections",
+        "Every resource in every account",
+        "CloudWatch, Azure Monitor, and Cloud Monitoring metrics",
+        "Changes from each account's activity log",
+        "Provider health events",
+        "A topology map of every account",
         "Multi-account and multi-region rollups",
-        "Correlated logs, metrics, and traces",
-        "Linked hosts, Docker, and Kubernetes",
+        "Linked incidents and alerts",
         "Resource saturation alerting",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/app-platforms": {
+    title: "App Platform Monitoring | ECS, Cloud Run | OneUptime",
+    description:
+      "Monitor the apps you run on AWS ECS and Fargate, Google Cloud Run, Azure App Service and other managed platforms with OpenTelemetry: environments by platform, running instances, logs, traces, and alerting. Open source.",
+    canonicalPath: "/product/app-platforms",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "App Platforms", url: "/product/app-platforms" },
+    ],
+    softwareApplication: {
+      name: "OneUptime App Platforms",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitoring for the apps on managed app and container platforms — AWS ECS and Fargate, App Runner, Elastic Beanstalk, Google Cloud Run and App Engine, Azure Container Apps, Container Instances and App Service — by their own OpenTelemetry.",
+      features: [
+        "AWS ECS, Fargate, App Runner, and Elastic Beanstalk",
+        "Google Cloud Run and App Engine",
+        "Azure Container Apps, Container Instances, and App Service",
+        "Environments created from cloud.platform, account, and region",
+        "An Overview grouped by platform",
+        "Running instances per environment",
+        "Requests, error rate, and p95 latency",
+        "Correlated logs, metrics, and traces",
+        "Owners and labels by rule",
+        "Linked incidents and alerts",
         "OpenTelemetry native",
         "Open source",
       ],
@@ -1951,6 +2042,8 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
    * (Utils/Integrations/OpenTelemetry/Guides).
    */
   ...getOpenTelemetryGuideSEOEntries(),
+
+  ...getAirGappedTopicSEOEntries(),
 };
 
 /*

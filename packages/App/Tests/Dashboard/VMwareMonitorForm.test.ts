@@ -220,13 +220,14 @@ describe("VMwareMonitorStepForm vCenter selection", () => {
      * match nothing.
      */
     expect(stepFormSource).toContain(
-      "ModelAPI.getList<VMwareVCenter>({ modelType: VMwareVCenter,",
+      "useInfrastructureResources<VMwareVCenter>({ modelType: VMwareVCenter,",
     );
     expect(stepFormSource).toContain(
       'return { label: vcenter.name || "Unknown", value: vcenter.name || "", };',
     );
+    expect(stepFormSource).toContain("onChange={changeResource}");
     expect(stepFormSource).toContain(
-      'vcenterIdentifier: (value as string) || ""',
+      "const changeResource: (vcenterIdentifier: string) => void",
     );
   });
 

@@ -8,7 +8,7 @@ A Segurança de dados não tem um sistema de acionamento nem uma fila de seguran
 - [Incidentes](#incidentes): Declare um incidente para uma violação que o seu processo de incidentes deve tratar.
 - [Proprietários](#proprietários): Quem é proprietário de cada repositório, definido manualmente ou por regras, e o e-mail que recebem.
 - [OneUptime AI](#oneuptime-ai): Explique um problema, abra um pull request que o corrige, ou pergunte sobre os seus dados no Pergunte à IA.
-- [Fechar uma exposição](#fechar-uma-exposição): Bloqueie o acesso público ou pare de compartilhar, a partir de um problema ou de um playbook.
+- [Fechar uma exposição](#fechar-uma-exposição): Bloqueie o acesso público ou pare de compartilhar, a partir de um problema ou de um playbook, e ative uma proteção que falta a partir de um problema.
 :::
 
 ## Como funciona
@@ -43,6 +43,8 @@ Todo repositório é uma entidade própria no Security Operations, do tipo **Rep
 - ela é agrupada pelo repositório: um segundo problema Crítico no mesmo repositório entra no caso aberto sobre ele em vez de abrir outro.
 
 A partir daí o caso é tratado como qualquer outro: atribuído, anotado, fechado e respondido pelos playbooks do projeto. As detecções do repositório contam para o risco dele em [Risco de entidades](/docs/telemetry/security-entity-risk), como as de qualquer entidade. Veja [Casos de segurança e playbooks](/docs/telemetry/security-cases).
+
+Qualquer caso de segurança, seja lá o que o tenha aberto, mostra os dados em risco no seu **Impacto**: os repositórios com dados sensíveis de que o caso trata, e cada repositório que os usuários e funções dele podem alcançar, o mais sensível primeiro, com o que cada um contém, cerca de quantos registros, o quão exposto está e quantas identidades podem alcançá-lo. Uma sessão de função assumida que o caso nomeia conta como a função dela, e um endereço de e-mail como os usuários de nuvem a que ele pertence. A leitura usa as próprias permissões de quem lê, então uma função que não pode ler a Segurança de dados vê que essa parte ficou de fora.
 
 ## Alertas e plantão
 
@@ -106,12 +108,15 @@ Elas leem tipos de dados, locais e contagens, nunca as amostras de uma descobert
 
 ## Fechar uma exposição
 
-Duas mudanças fecham a exposição de um repositório de nuvem, cada uma pela conexão de nuvem do repositório com **Resposta de segurança de dados** ativada (veja [Configurar a Segurança de dados](/docs/data-security/setup#deixe-a-segurança-de-dados-fechar-uma-exposição)):
+Duas mudanças fecham a exposição de um repositório de nuvem, cada uma pela conexão de nuvem do repositório com **Resposta de segurança de dados** ativada (veja [Configurar a Segurança de dados](/docs/data-security/setup#deixe-a-segurança-de-dados-fechar-uma-exposição)), e outras seis ativam uma configuração que protege um repositório, só a partir do problema dele:
 
 - **Bloquear acesso público**, em um bucket do S3, uma conta de armazenamento do Azure ou um bucket do Cloud Storage.
 - **Revogar compartilhamento**, em um snapshot do RDS, ou nos snapshots manuais compartilhados de um banco de dados RDS, de um cluster Aurora ou de um cluster DocumentDB.
+- **Ativar o versionamento**, **Ativar a exclusão reversível**, **Desativar as ACLs de objeto**, **Ativar o acesso uniforme**, **Exigir transferência segura** e **Ativar a recuperação pontual**, nos repositórios que [Corrigir daqui](/docs/data-security/checks-and-issues#corrigir-daqui) lista.
 
 Uma pessoa executa uma delas a partir de um problema aberto que ela corrige, com **Corrigir daqui** (veja [Verificações e problemas da Segurança de dados](/docs/data-security/checks-and-issues#corrigir-daqui)). Um playbook do Security Operations as executa como etapas da categoria **Conter**, **Bloquear o acesso público a repositórios de dados** e **Revogar o compartilhamento do repositório de dados**: em cada repositório de dados de que o caso trata, no máximo 10, cada uma uma etapa que começa com **Requer aprovação** ativado. Um repositório marcado como **Público por design** nunca é bloqueado. De qualquer forma, o feed do repositório diz o que foi feito, e o repositório é verificado de novo na hora, então o problema se resolve quando a mudança surte efeito.
+
+O modelo de playbook **Fechar uma exposição de dados** responde aos casos que a Segurança de dados abre: ele envia e-mail aos proprietários do repositório, bloqueia o acesso público e revoga o compartilhamento depois que uma pessoa aprova cada etapa, e adiciona ao caso a checklist da resposta como tarefas - quem leu os dados enquanto estavam expostos, se é uma violação que você precisa notificar, quais segredos trocar e o que escrever quando o caso for fechado. Adicione-o em **Criar a partir de modelo** nos playbooks do projeto.
 
 ## API, Terraform e MCP
 
@@ -119,7 +124,7 @@ Tudo o que a Segurança de dados guarda é um registro da API do OneUptime, lido
 
 | Registros | Caminho da API |
 | --- | --- |
-| Repositórios de dados, as linhas do tempo deles, as descobertas deles e quem pode acessá-los | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Repositórios de dados, as linhas do tempo deles, as descobertas deles, quem pode acessá-los e cada identidade que pode | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemas, as linhas do tempo deles e fluxos de dados | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Varreduras | `/data-security-scan` |
 | Tipos de dados personalizados, configurações das verificações e regras de residência | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | `/data-security-issue/<id>/explain` | **Explicar com IA** em um problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Corrigir com IA** em um problema |
 | `/data-store/<id>/response-actions` | Quais ações de resposta o repositório pode receber agora, e por que não |
-| `/data-store/<id>/respond` | **Bloquear acesso público** ou **Revogar compartilhamento** no repositório, com o problema a partir do qual foi executado |
+| `/data-store/<id>/respond` | Uma ação de resposta no repositório, como **Bloquear acesso público** ou **Ativar o versionamento**, com o problema a partir do qual foi executada |
 
 O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
 
-O [servidor MCP](/docs/ai/mcp-server) tem ferramentas de criar, obter, listar, atualizar, excluir e contar para estes registros: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule e Data Security Setting. Um assistente de IA pode então perguntar quais repositórios guardam números de cartão, ou o que está aberto em um bucket, com as suas permissões.
+O [servidor MCP](/docs/ai/mcp-server) tem ferramentas de criar, obter, listar, atualizar, excluir e contar para estes registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule e Data Security Setting. Um assistente de IA pode então perguntar quais repositórios guardam números de cartão, ou o que está aberto em um bucket, com as suas permissões.
 
 ## Próximos passos
 

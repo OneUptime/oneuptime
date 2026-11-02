@@ -24,11 +24,15 @@ import {
   flattenResourceTopologyView,
   getAutomaticDepth,
   getPartsOpenedWith,
+  getTopologyKeyAction,
+  getTopologyKeyTarget,
   groupKey,
   openTopologyPart,
+  opensByItself,
   revealTopologyPart,
   toggleTopologyGroup,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyView";
+import { SECTION_KIND } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyKinds";
 
 /*
  * What a resource topology shows: how deep it opens by itself, how a large
@@ -161,7 +165,7 @@ function view(
 }
 
 describe("how deep a resource opens by itself", () => {
-  test("a small resource opens all the way down", () => {
+  test("a healthy resource opens what is alone where it sits, and leaves its healthy parts closed", () => {
     const graph: ResourceTopologyGraph = vcenterEstate({
       datacenters: 1,
       clustersPerDatacenter: 1,
@@ -171,10 +175,69 @@ describe("how deep a resource opens by itself", () => {
     });
     const visible: ResourceTopologyVisible = view(graph);
 
-    expect(findCard(visible.top, "dc-0-cl-0-h-1")!.isOpen).toBe(true);
-    // Six virtual machines, and two datastores that have no numbers to show.
-    expect(visible.chipCount).toBe(8);
-    expect(visible.visibleNodeIds.size).toBe(graph.nodes.size);
+    // One datacenter: the only part of the vCenter, so never a lone card.
+    expect(findCard(visible.top, "dc-0")!.isOpen).toBe(true);
+    // Its cluster has datastores beside it, and nothing wrong inside.
+    const cluster: ResourceTopologyCardItem = findCard(
+      visible.top,
+      "dc-0-cl-0",
+    )!;
+
+    expect(cluster.isOpen).toBe(false);
+    expect(cluster.canOpen).toBe(true);
+    expect(visible.visibleNodeIds.has("dc-0-cl-0-h-0")).toBe(false);
+  });
+
+  test("a troubled branch opens down to the trouble; its healthy neighbours stay closed", () => {
+    const graph: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 1,
+      clustersPerDatacenter: 2,
+      hostsPerCluster: 3,
+      vmsPerHost: 4,
+      datastoresPerDatacenter: 2,
+      criticalVms: ["dc-0-cl-0-h-1-vm-2"],
+    });
+    const visible: ResourceTopologyVisible = view(graph);
+
+    for (const open of ["dc-0", "dc-0-cl-0", "dc-0-cl-0-h-1"]) {
+      expect({
+        part: open,
+        isOpen: findCard(visible.top, open)!.isOpen,
+      }).toEqual({ part: open, isOpen: true });
+    }
+
+    for (const closed of ["dc-0-cl-1", "dc-0-cl-0-h-0", "dc-0-cl-0-h-2"]) {
+      expect({
+        part: closed,
+        isOpen: findCard(visible.top, closed)!.isOpen,
+      }).toEqual({ part: closed, isOpen: false });
+    }
+
+    // The critical virtual machine is on the map from the first view.
+    expect(visible.visibleNodeIds.has("dc-0-cl-0-h-1-vm-2")).toBe(true);
+  });
+
+  test("a part opens by itself when something inside needs attention, or it is alone where it sits", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [
+        part("root", null, { kind: "vmware.vcenter" }),
+        part("lonely", "root", { kind: "vmware.datacenter" }),
+        part("calm", "lonely", { kind: "vmware.cluster" }),
+        part("calm-vm", "calm"),
+        part("sick", "lonely", { kind: "vmware.cluster" }),
+        part("sick-vm", "sick", { health: "warning" }),
+        part("bare", "lonely", { kind: "vmware.cluster", health: "critical" }),
+      ],
+    });
+
+    expect(opensByItself(graph, graph.nodes.get("lonely")!)).toBe(true);
+    expect(opensByItself(graph, graph.nodes.get("calm")!)).toBe(false);
+    expect(opensByItself(graph, graph.nodes.get("sick")!)).toBe(true);
+    // Critical itself but holding nothing: there is nothing to open.
+    expect(opensByItself(graph, graph.nodes.get("bare")!)).toBe(false);
+    // The only part of "calm", but it holds nothing.
+    expect(opensByItself(graph, graph.nodes.get("calm-vm")!)).toBe(false);
   });
 
   test("a large resource stops opening before the drawing gets unreadable", () => {
@@ -870,6 +933,437 @@ describe("focus", () => {
 
     expect(visible.visibleNodeIds.has("a-bad")).toBe(true);
     expect(visible.visibleNodeIds.has("b-bad")).toBe(false);
+  });
+});
+
+describe("a first view with room to spare opens healthy parts too", () => {
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 2,
+    clustersPerDatacenter: 2,
+    hostsPerCluster: 2,
+    vmsPerHost: 2,
+    datastoresPerDatacenter: 1,
+  });
+
+  test("with opensAll, every part within the depth opens, healthy or not", () => {
+    const calm: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { maxAutomaticDepth: 2 },
+    );
+    const all: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { maxAutomaticDepth: 2, opensAll: true },
+    );
+
+    expect(findCard(calm.top, "dc-0")!.isOpen).toBe(false);
+    expect(findCard(all.top, "dc-0")!.isOpen).toBe(true);
+    expect(findCard(all.top, "dc-1")!.isOpen).toBe(true);
+    // Only as deep as asked: the clusters stay closed.
+    expect(findCard(all.top, "dc-0-cl-0")!.isOpen).toBe(false);
+  });
+
+  test("the depth a budget allows counts healthy parts when they open too", () => {
+    expect(getAutomaticDepth(graph, "vcenter")).toBe(1);
+    expect(
+      getAutomaticDepth(graph, "vcenter", VIEW_BUDGET, true),
+    ).toBeGreaterThan(1);
+  });
+
+  test("a part a person closed stays closed, room or not", () => {
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      closeTopologyPart(createResourceTopologyViewState(), "dc-1"),
+      { maxAutomaticDepth: 3, opensAll: true },
+    );
+
+    expect(findCard(visible.top, "dc-1")!.isOpen).toBe(false);
+    expect(findCard(visible.top, "dc-0")!.isOpen).toBe(true);
+  });
+});
+
+describe("opening a part opens the way to its trouble with it", () => {
+  test("its troubled parts open with it; its healthy ones stay closed", () => {
+    const graph: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 2,
+      clustersPerDatacenter: 1,
+      hostsPerCluster: 4,
+      vmsPerHost: 3,
+      datastoresPerDatacenter: 0,
+      criticalVms: ["dc-1-cl-0-h-2-vm-1"],
+    });
+    expect(getPartsOpenedWith(graph, "dc-1-cl-0")).toEqual([
+      "dc-1-cl-0",
+      "dc-1-cl-0-h-2",
+    ]);
+
+    // Opening the datacenter opens its cluster and the host in trouble.
+    const state: ResourceTopologyViewState = openTopologyPart(
+      graph,
+      createResourceTopologyViewState(),
+      "dc-1",
+    );
+
+    expect(state.opened).toEqual(
+      new Set<string>(["dc-1", "dc-1-cl-0", "dc-1-cl-0-h-2"]),
+    );
+
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      state,
+      { maxAutomaticDepth: 1 },
+    );
+
+    expect(findCard(visible.top, "dc-1-cl-0-h-2")!.isOpen).toBe(true);
+    expect(findCard(visible.top, "dc-1-cl-0-h-0")!.isOpen).toBe(false);
+    expect(findCard(visible.top, "dc-0")!.isOpen).toBe(false);
+  });
+});
+
+describe("a map about calls: lanes always open, every call's ends shown", () => {
+  function hostGraph(): ResourceTopologyGraph {
+    const nodes: Array<ResourceTopologyNodeInput> = [
+      part("host", null, { kind: "entity:Host" }),
+      part("callers", "host", {
+        kind: SECTION_KIND,
+        isSection: true,
+        name: "Called by",
+      }),
+      part("caller", "callers", { kind: "entity:Service" }),
+    ];
+
+    for (let index: number = 0; index < 12; index++) {
+      nodes.push(
+        part(`container-${index}`, "host", { kind: "entity:Container" }),
+      );
+
+      for (let service: number = 0; service < 3; service++) {
+        nodes.push(
+          part(`service-${index}-${service}`, `container-${index}`, {
+            kind: "entity:Service",
+          }),
+        );
+      }
+    }
+
+    return buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: nodes,
+      relations: [
+        {
+          from: "caller",
+          to: "service-11-2",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+      ],
+    });
+  }
+
+  test("a lane's section is open whatever the depth, and even when closed", () => {
+    const graph: ResourceTopologyGraph = hostGraph();
+    const always: ReadonlySet<string> = new Set<string>(["callers"]);
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      closeTopologyPart(createResourceTopologyViewState(), "callers"),
+      { maxAutomaticDepth: 1, alwaysOpen: always },
+    );
+
+    expect(findCard(visible.top, "callers")!.isOpen).toBe(true);
+    expect(visible.visibleNodeIds.has("caller")).toBe(true);
+    expect(
+      findCard(
+        computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+          maxAutomaticDepth: 1,
+        }).top,
+        "callers",
+      )!.isOpen,
+    ).toBe(false);
+  });
+
+  test("a part at the end of a call is shown, its container opened, even past the preview", () => {
+    const graph: ResourceTopologyGraph = hostGraph();
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { maxAutomaticDepth: 1, reveal: ["caller", "service-11-2"] },
+    );
+
+    // container-11 is past the eight-card preview, yet drawn and open.
+    expect(findCard(visible.top, "container-11")!.isOpen).toBe(true);
+    expect(visible.visibleNodeIds.has("service-11-2")).toBe(true);
+    // A reveal is not a pin a person made.
+    expect(createResourceTopologyViewState().pinned.size).toBe(0);
+  });
+
+  test("a person can still close the part a revealed one is in", () => {
+    const graph: ResourceTopologyGraph = hostGraph();
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      closeTopologyPart(createResourceTopologyViewState(), "container-11"),
+      { reveal: ["service-11-2"] },
+    );
+
+    expect(findCard(visible.top, "container-11")!.isOpen).toBe(false);
+    expect(visible.visibleNodeIds.has("service-11-2")).toBe(false);
+  });
+
+  test("a lane's parts are chips however few, even ones with numbers a card would show", () => {
+    /*
+     * Two services with request rates: in the tree they are cards (a few
+     * parts with numbers), in a lane chips - each call's line carries its
+     * rate, and a narrow lane lets the host's map be drawn larger.
+     */
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: [
+        part("host", null, { kind: "entity:Host" }),
+        part("calls", "host", {
+          kind: SECTION_KIND,
+          isSection: true,
+          name: "Talks to",
+        }),
+        part("db", "calls", {
+          kind: "entity:Service",
+          facts: [{ label: "Requests", value: "600/min" }],
+        }),
+        part("pay", "calls", {
+          kind: "entity:Service",
+          facts: [{ label: "Requests", value: "200/min" }],
+        }),
+      ],
+    });
+    const groupOf: (
+      visible: ResourceTopologyVisible,
+    ) => ResourceTopologyGroupItem = (
+      visible: ResourceTopologyVisible,
+    ): ResourceTopologyGroupItem => {
+      return findCard(visible.top, "calls")!.groups[0]!;
+    };
+    const asLane: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { alwaysOpen: new Set<string>(["calls"]) },
+    );
+    const inTree: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState({ opened: new Set<string>(["calls"]) }),
+    );
+
+    expect(groupOf(asLane).asChips).toBe(true);
+    expect(
+      groupOf(asLane).items.map((item: { type: string }): string => {
+        return item.type;
+      }),
+    ).toEqual(["chip", "chip"]);
+    expect(groupOf(inTree).asChips).toBe(false);
+  });
+
+  test("a lane's part that holds others stays a card that opens", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: [
+        part("host", null, { kind: "entity:Host" }),
+        part("calls", "host", {
+          kind: SECTION_KIND,
+          isSection: true,
+          name: "Talks to",
+        }),
+        part("remote", "calls", { kind: "entity:Container" }),
+        part("remote-svc", "remote", { kind: "entity:Service" }),
+      ],
+    });
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { alwaysOpen: new Set<string>(["calls"]) },
+    );
+    const group: ResourceTopologyGroupItem = findCard(visible.top, "calls")!
+      .groups[0]!;
+
+    expect(group.asChips).toBe(false);
+    expect(findCard(visible.top, "remote")!.canOpen).toBe(true);
+  });
+});
+
+describe("what each card and group tells the map", () => {
+  const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+    rootId: "array",
+    nodes: [
+      part("array", null, { kind: "storage.array" }),
+      part("hardware", "array", {
+        kind: SECTION_KIND,
+        isSection: true,
+        name: "Hardware",
+      }),
+      ...Array.from({ length: 30 }, (_value: unknown, index: number) => {
+        return part(`drive-${index}`, "hardware", {
+          kind: "storage.drive",
+          health: index === 29 ? "critical" : "healthy",
+        });
+      }),
+    ],
+  });
+
+  test("a group lists every part it holds, drawn or folded, in the order it draws them", () => {
+    const visible: ResourceTopologyVisible = view(graph);
+    const drives: ResourceTopologyGroupItem = groupOf(
+      findCard(visible.top, "hardware")!,
+      "storage.drive",
+    );
+
+    expect(drives.memberIds).toHaveLength(30);
+    // The critical drive leads, so the map's line to it is red.
+    expect(drives.memberIds[0]).toBe("drive-29");
+    expect(drives.items.length).toBeLessThan(drives.memberIds.length);
+    expect(drives.memberIds.slice(0, drives.items.length)).toEqual(
+      itemIds(drives),
+    );
+  });
+
+  test("a card says whether it is a section", () => {
+    const visible: ResourceTopologyVisible = view(graph);
+
+    expect(findCard(visible.top, "hardware")!.isSection).toBe(true);
+    expect(visible.top.isSection).toBe(false);
+  });
+});
+
+describe("moving through the map from the keyboard", () => {
+  // One datacenter: open by itself; two clusters, one open; datastores as chips.
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 1,
+    clustersPerDatacenter: 2,
+    hostsPerCluster: 2,
+    vmsPerHost: 2,
+    datastoresPerDatacenter: 14,
+    criticalVms: ["dc-0-cl-0-h-0-vm-0"],
+  });
+  const visible: ResourceTopologyVisible = view(graph);
+  const dc: ResourceTopologyCardItem = findCard(visible.top, "dc-0")!;
+  const datastores: ResourceTopologyGroupItem = groupOf(dc, "vmware.datastore");
+
+  test("down and up go between the parts side by side, group after group", () => {
+    // Clusters first (catalog order), then the datastores.
+    expect(getTopologyKeyAction(visible, "dc-0-cl-0", "next")).toEqual({
+      type: "move",
+      itemId: "dc-0-cl-1",
+    });
+    expect(getTopologyKeyAction(visible, "dc-0-cl-1", "next")).toEqual({
+      type: "move",
+      itemId: "dc-0-ds-0",
+    });
+    expect(getTopologyKeyAction(visible, "dc-0-ds-0", "previous")).toEqual({
+      type: "move",
+      itemId: "dc-0-cl-1",
+    });
+    expect(getTopologyKeyAction(visible, "dc-0-cl-0", "previous")).toBeNull();
+  });
+
+  test("a group's '+ N more' is reached like a part, and nothing is past the last", () => {
+    const more: string = datastores.more!.id;
+    const lastChip: string = itemIds(datastores)[datastores.items.length - 1]!;
+
+    expect(getTopologyKeyAction(visible, lastChip, "next")).toEqual({
+      type: "move",
+      itemId: more,
+    });
+    expect(getTopologyKeyAction(visible, more, "next")).toBeNull();
+    expect(getTopologyKeyAction(visible, "dc-0-cl-0", "last")).toEqual({
+      type: "move",
+      itemId: more,
+    });
+    expect(getTopologyKeyAction(visible, more, "first")).toEqual({
+      type: "move",
+      itemId: "dc-0-cl-0",
+    });
+    expect(getTopologyKeyAction(visible, more, "back")).toEqual({
+      type: "move",
+      itemId: "dc-0",
+    });
+  });
+
+  test("forward opens a closed part, and goes into an open one", () => {
+    expect(findCard(visible.top, "dc-0-cl-1")!.isOpen).toBe(false);
+    expect(getTopologyKeyAction(visible, "dc-0-cl-1", "forward")).toEqual({
+      type: "open",
+      nodeId: "dc-0-cl-1",
+    });
+    expect(getTopologyKeyAction(visible, "dc-0-cl-0", "forward")).toEqual({
+      type: "move",
+      itemId: "dc-0-cl-0-h-0",
+    });
+    expect(getTopologyKeyAction(visible, "vcenter", "forward")).toEqual({
+      type: "move",
+      itemId: "dc-0",
+    });
+    // A datastore holds nothing: forward goes nowhere.
+    expect(getTopologyKeyAction(visible, "dc-0-ds-0", "forward")).toBeNull();
+  });
+
+  test("back closes an open part, then goes out to what holds it; the resource stays", () => {
+    expect(getTopologyKeyAction(visible, "dc-0-cl-0", "back")).toEqual({
+      type: "close",
+      nodeId: "dc-0-cl-0",
+    });
+    expect(getTopologyKeyAction(visible, "dc-0-cl-1", "back")).toEqual({
+      type: "move",
+      itemId: "dc-0",
+    });
+    expect(getTopologyKeyAction(visible, "dc-0-ds-3", "back")).toEqual({
+      type: "move",
+      itemId: "dc-0",
+    });
+    expect(getTopologyKeyAction(visible, "vcenter", "back")).toBeNull();
+    expect(getTopologyKeyAction(visible, "vcenter", "next")).toBeNull();
+  });
+
+  test("a part that is not drawn goes nowhere", () => {
+    expect(getTopologyKeyAction(visible, "dc-0-cl-1-h-0", "next")).toBeNull();
+    expect(getTopologyKeyAction(visible, "gone", "forward")).toBeNull();
+  });
+
+  test("an item the map draws no button for is passed over, on in the same direction", () => {
+    // As if the second cluster and the first datastore were lanes' headings.
+    const noButton: Set<string> = new Set<string>(["dc-0-cl-1", "dc-0-ds-0"]);
+    const hasButton: (id: string) => boolean = (id: string): boolean => {
+      return !noButton.has(id);
+    };
+
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "next", hasButton),
+    ).toEqual({ type: "move", itemId: "dc-0-ds-1" });
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-ds-1", "previous", hasButton),
+    ).toEqual({ type: "move", itemId: "dc-0-cl-0" });
+    // Opening and closing are not moves: nothing to pass over.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "back", hasButton),
+    ).toEqual({ type: "close", nodeId: "dc-0-cl-0" });
+    // With every item drawn, it is the plain move.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "next", (): boolean => {
+        return true;
+      }),
+    ).toEqual(getTopologyKeyAction(visible, "dc-0-cl-0", "next"));
+  });
+
+  test("back out of a part whose holder has no button goes on out", () => {
+    const hasButton: (id: string) => boolean = (id: string): boolean => {
+      return id !== "dc-0";
+    };
+
+    // The datastore's holder, dc-0, has no button: on out to the vCenter.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-ds-3", "back", hasButton),
+    ).toEqual({ type: "move", itemId: "vcenter" });
+    // With nothing drawn at all, a key goes nowhere, and stops.
+    expect(
+      getTopologyKeyTarget(visible, "dc-0-cl-0", "next", (): boolean => {
+        return false;
+      }),
+    ).toBeNull();
   });
 });
 

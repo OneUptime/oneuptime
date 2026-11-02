@@ -34,15 +34,15 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Kubernetes** un
 
 ### Välj klustret
 
-Välj det i **Kubernetes-kluster**. Listan innehåller varje kluster som agenten har rapporterat från.
+Välj det i **Kubernetes-kluster**. Listan innehåller varje kluster som agenten har rapporterat från. När du har valt visar en rad under fältet om data kommer in. **Lägg till Kubernetes-kluster** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Använd en av de tre flikarna:
+En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larmas om**; **Ändra** väljer en annan mall. **Custom Metric** och **Avancerad** finns under **Fler fält**:
 
-| Flik | Vad du väljer |
+| Var | Vad du väljer |
 | --- | --- |
-| **Quick Setup** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
+| **Vad som ska larmas om** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
 | **Custom Metric** | Ett mätvärde från [måttkatalogen](#måttkatalog), sedan dess **Resursomfattning**, filter, **Aggregering** (Genomsnitt, Maximum, Minimum, Summa eller Antal) och **Tidsintervall**. |
 | **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna måttfrågor och formler under **Välj mått**, med ett livediagram över resultatet. |
 
@@ -69,6 +69,8 @@ Slutför formuläret och spara. Monitorn visas under **Monitorer**, och dess sta
 | Nod | En nod i klustret | **Nodnamn** |
 | Podd | En podd | **Namnrymd**, **Pod-namn** |
 
+En containers och en podds mätvärden bär namnen på de arbetsbelastningar som podden hör till (en Deployments podd bär Deploymentens namn och dess ReplicaSets), så omfattningen Arbetsbelastning övervakar den arbetsbelastningens containrar och poddar. En arbetsbelastnings egna mätvärden, som ett Jobs misslyckade poddar, bär bara namnet på sin egen arbetsbelastning: avgränsa dem till den arbetsbelastningens typ.
+
 ### Tidsintervall
 
 **Tidsintervall** är det fönster som måttfrågan täcker varje gång monitorn utvärderas, från **Past 1 Minute** upp till **Past 365 Days**. Korta fönster (1 till 15 minuter) passar för larm; längre fönster jämnar ut brusiga mätvärden.
@@ -85,13 +87,13 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 | --- | --- |
 | Podd | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Nod | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Pod Phase (Code)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Node Ready Condition** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1.
+> **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Pod Phase (Code)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Node Ready Condition** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Container Restarts** är containerns löpande omstartsräknare; **Container Restarts (Increase)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det. Den bär det som **Container Restarts** bär, inklusive arbetsbelastningsnamnen för containerns podd, men inte containerns ID, som ändras vid varje omstart. **Job Failed Pods** är ett Jobs löpande räknare för misslyckade poddar; **Job Failed Pods (Increase)** är det agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet, så summan över ett fönster är felen i det. Den bär det som **Job Failed Pods** bär: Jobbets namn och namnrymd.
 
 ## Övervakningskriterier
 
@@ -122,41 +124,46 @@ Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de 
 | **Anomalously Low** | Sjunker under det förväntade intervallet |
 | **Anomalous** | Lämnar det förväntade intervallet åt något håll |
 
-Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän det finns minst det valda baslinjefönstret av måtthistorik.
+Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän den timmen i veckan har två veckors historik. En summa, ett antal eller en fråga på ett histogram stannar i det tillståndet för alltid: den här monitorn filtrerar sina frågor på attribut, och baslinjen innehåller inga.
 
 **Om ingen data**, under **Fler fält**, avgör vad som händer när frågan inte returnerar något i fönstret: **Ignore** (standard) matchar inte, **Utlösare** behandlar tystnaden som problemet och **Treat As Zero** jämför en nolla. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Färdiga larmmallar
 
-Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje mall fyller i två kriterier: ett som markerar monitorn som offline och öppnar en incident och ett larm medan villkoret gäller, och ett som tar den online igen när villkoret upphör.
+Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter kategori. Varje mall fyller i två kriterier: ett som markerar monitorn som offline och öppnar en incident och ett larm medan villkoret gäller, och ett som tar den online igen när villkoret upphör.
 
 | Mall | Kategori | Utlöses när | Allvarlighetsgrad |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Tillgänglighet | Inga data kommer från klustrets agent på 10 minuter | Kritisk |
 | CrashLoopBackOff Detection | Arbetsbelastning | En container startades om inom 15 minuter och var redo mindre än hälften av dem | Kritisk |
-| Pod Stuck in Pending | Schemaläggning | Någon podd är i fasen Pending i varje mätning under ett fönster på 15 minuter | Warning |
+| Pod Stuck in Pending | Schemaläggning | Någon podd är i fasen Pending i varje mätning under ett fönster på 15 minuter | Varning |
 | Node Not Ready | Nod | En nod rapporterar NotReady eller slutar rapportera sin status (Unknown) | Kritisk |
-| High Node CPU Utilization | Nod | En nods genomsnittliga CPU-användning är över 90 % av dess allokerbara CPU | Warning |
-| High Node Memory Utilization | Nod | En nods genomsnittliga working set-minne är över 85 % av dess allokerbara minne | Warning |
-| Deployment Replica Mismatch | Arbetsbelastning | En deployment har färre tillgängliga repliker än önskat i 15 minuter | Warning |
-| Job Failures | Arbetsbelastning | En podd i ett job misslyckades inom 15 minuter | Warning |
+| High Node CPU Utilization | Nod | En nods genomsnittliga CPU-användning är över 90 % av dess allokerbara CPU | Varning |
+| High Node Memory Utilization | Nod | En nods genomsnittliga working set-minne är över 85 % av dess allokerbara minne | Varning |
+| Deployment Replica Mismatch | Arbetsbelastning | En deployment har färre tillgängliga repliker än önskat i 15 minuter | Varning |
+| Job Failures | Arbetsbelastning | En podd i ett job misslyckades inom 15 minuter | Varning |
 | etcd No Leader | Kontrollplan | etcd har ingen vald ledare | Kritisk |
 | API Server Request Saturation | Kontrollplan | API-servern håller 200 eller fler pågående begäranden under hela fönstret | Kritisk |
-| Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Warning |
-| High Node Disk Usage | Lagring | En nods filsystem är mer än 90 % fullt | Warning |
-| DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Warning |
-| High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Warning |
-| High Node Memory Request Commitment | Nod | En nods summerade minnesförfrågningar från containrar överstiger 90 % av dess allokerbara minne | Warning |
+| Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Varning |
+| High Node Disk Usage | Lagring | En nods filsystem är mer än 90 % fullt | Varning |
+| DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Varning |
+| High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Varning |
+| High Node Memory Request Commitment | Nod | En nods summerade minnesförfrågningar från containrar överstiger 90 % av dess allokerbara minne | Varning |
 | HPA Saturated at Max Replicas | Arbetsbelastning | En HPA som skalats över sin `minReplicas` kör på 90 % eller mer av sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars minnesgräns | Kritisk |
-| Pod CPU Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars CPU-gräns | Warning |
+| Pod CPU Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars CPU-gräns | Varning |
 
 Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, DaemonSet eller HPA för sig, så att ett kluster med flera ohälsosamma poddar får en incident per podd i stället för en för hela klustret.
+
+**High Node CPU Request Commitment** och **High Node Memory Request Commitment** räknar bara requests från poddar som inte är klara, så som schemaläggaren gör. Klustret fortsätter att rapportera requests från en podd som är Succeeded eller Failed, till exempel från ett avslutat Job, tills podden tas bort: de räknas inte.
 
 **Cluster Stopped Reporting** utlöses när ingenting kommer från klustrets agent på tio minuter: agenten har avinstallerats eller kraschar hela tiden, dess API-nyckel har återkallats, den har tappat sin väg till OneUptime, eller klustrets API-server har slutat svara den. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** och **Job Failures** räknar hur mycket en räknare för omstarter eller misslyckade poddar växte i fönstret, inte själva räknaren, så de rensas av sig själva när omstarterna eller felen upphör. Tillväxten syns bara mellan två mätningar i samma minut: vid agentens intervall på 30 sekunder är det ungefär hälften. En kraschloop startar om gång på gång och fångas; en enstaka omstart kan passera obemärkt.
+> **CrashLoopBackOff Detection** summerar `k8s.container.restarts.increase`, som agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern. Så den räknar varje omstart hur långt det än är mellan mätningarna, den rensas av sig själv när omstarterna upphör, och en podd som skapas på nytt börjar en ny räkning i stället för att läsas som omstarter. En äldre agent skickar inte `k8s.container.restarts.increase`: [uppgradera den](/docs/monitor/kubernetes-agent#uppgradering) först. En monitor som skapades från mallen innan dess läser hur mycket `k8s.container.restarts` växte inom varje minut, och missar därmed ungefär hälften av en kraschloops omstarter: ta bort den och skapa mallen igen.
+
+> [!NOTE]
+> **Job Failures** summerar `k8s.job.failed_pods.increase`, som agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet. Så den räknar varje fel hur långt det än är mellan mätningarna, den rensas av sig själv när felen upphör, och ett Job som skapas på nytt under samma namn börjar en ny räkning i stället för att läsas som fel. Felen före agentens första mätning av ett Job är där dess räkning börjar, så ett Job som misslyckas inom sin första halvminut och aldrig försöker igen kan passera obemärkt. En äldre agent skickar inte `k8s.job.failed_pods.increase`: [uppgradera den](/docs/monitor/kubernetes-agent#uppgradering) först. En monitor som skapades från mallen innan dess läser hur mycket `k8s.job.failed_pods` växte inom varje minut, och missar därmed ungefär hälften av felen: ta bort den och skapa mallen igen.
 
 ### Fånga orsaker, inte bara symtom
 
@@ -185,7 +192,11 @@ Kluster registrerar sig själva utifrån agentens data, under det `clusterName` 
 :::
 
 :::details CrashLoopBackOff Detection utlöstes inte vid en omstart
-Mallen utlöses när en containers omstartsräknare växer inom 15 minuter medan containern var redo mindre än hälften av dem, så en container som startade om en gång och kom tillbaka direkt larmar inte. Tillväxten syns bara mellan två mätningar i samma minut, så en enstaka omstart kan passera obemärkt; en kraschloop startar om med några minuters mellanrum och fångas.
+Mallen utlöses när en container startar om inom 15 minuter medan den var redo mindre än hälften av dem, så en container som startade om en gång och kom tillbaka direkt larmar inte. Den läser `k8s.container.restarts.increase`, som en äldre agent inte skickar: [uppgradera agenten](/docs/monitor/kubernetes-agent#uppgradering). En monitor som skapades från mallen innan dess läser hur mycket `k8s.container.restarts` växte mellan två mätningar i samma minut, och missar omstarterna mellan två minuters mätningar: ta bort den och skapa mallen igen. Om `filters.metrics.include` listar de mätvärden agenten skickar, lägg till `k8s.container.restarts.increase`. En monitor som är avgränsad till en arbetsbelastning behöver också arbetsbelastningsnamnen på `k8s.container.restarts.increase`, som en äldre agent skickar utan dem: [uppgradera agenten](/docs/monitor/kubernetes-agent#uppgradering).
+:::
+
+:::details Job Failures utlöstes inte vid ett misslyckat Job
+Mallen utlöses när en podd i ett Job misslyckas inom 15 minuter, och rensas femton minuter efter det senaste felet. Den läser `k8s.job.failed_pods.increase`, som en äldre agent inte skickar: [uppgradera agenten](/docs/monitor/kubernetes-agent#uppgradering). En monitor som skapades från mallen innan dess läser hur mycket `k8s.job.failed_pods` växte mellan två mätningar i samma minut, och missar felen mellan två minuters mätningar: ta bort den och skapa mallen igen. Felen före agentens första mätning av ett Job är där dess räkning börjar, så ett Job vars enda podd misslyckas inom sin första halvminut passerar obemärkt. Om `filters.metrics.include` listar de mätvärden agenten skickar, lägg till `k8s.job.failed_pods.increase`. En monitor som är avgränsad till en arbetsbelastning måste namnge själva Jobbet: ett Jobs misslyckade poddar bär dess namn och namnrymd, inte det CronJob som skapade det.
 :::
 
 ## Nästa steg

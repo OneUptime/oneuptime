@@ -768,6 +768,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          provider: true,
         },
       });
       setCluster(item);
@@ -834,6 +835,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         <KubernetesMetricsSetupEmptyState
           source={args.source}
           clusterName={clusterIdentifier}
+          clusterProvider={cluster.provider}
           isChecking={args.group.isChecking}
           onCheckAgain={() => {
             resolveTimeRangeAgain();

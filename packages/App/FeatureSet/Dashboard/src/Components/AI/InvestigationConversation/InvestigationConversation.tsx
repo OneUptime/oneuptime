@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import ChatActivityFeed, {
   hasRenderableActivity,
 } from "../../AIChat/ChatActivityFeed";
@@ -92,6 +93,13 @@ export interface ComponentProps {
    * the usual suggestions.
    */
   standing?: EventStanding | undefined;
+  /*
+   * Whether the reader may change the record's state, as the header's
+   * state buttons ask it (a private record's scope included): false, and
+   * nothing asks OneUptime AI to acknowledge it for them - it acts within
+   * their permissions, and would only refuse. Left out, it is offered.
+   */
+  mayChangeState?: boolean | undefined;
 }
 
 /*
@@ -206,9 +214,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     findActiveAssistantMessage(view);
   const activityLine: string | null = describeThreadActivity(view, translator);
   const standing: EventStanding | undefined = props.standing;
+  const mayChangeState: boolean | undefined = props.mayChangeState;
   const suggestions: Array<SuggestedPrompt> = useMemo(() => {
-    return getSuggestedPrompts(subjectType, stage, standing);
-  }, [subjectType, stage, standing]);
+    return getSuggestedPrompts(subjectType, stage, standing, mayChangeState);
+  }, [subjectType, stage, standing, mayChangeState]);
 
   const sendBlocker: string | null = getSendBlocker({
     view,
@@ -775,7 +784,13 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             onClick={() => {
               applySuggestion(suggestion);
             }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+              {
+                isLocked: conversation.isSending,
+                hoverClassName:
+                  "hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900",
+              },
+            )}`}
           >
             {/*
               Only a request to change something carries a mark: it is put

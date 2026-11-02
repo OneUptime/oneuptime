@@ -249,7 +249,7 @@ jest.mock(
   },
 );
 
-import CloudResources from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/CloudResources";
+import CloudResources from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Environments";
 import DockerHosts from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/Hosts";
 import Hosts from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Hosts";
 import KubernetesClusters from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Clusters";

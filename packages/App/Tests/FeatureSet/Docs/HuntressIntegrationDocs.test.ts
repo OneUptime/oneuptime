@@ -40,6 +40,12 @@ import ComponentMetadata, {
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import Components from "Common/Types/Workflow/Components";
 import {
+  FROM_ANOTHER_TOOL_ARGUMENT_IDS,
+  FROM_ANOTHER_TOOL_PORT_IDS,
+  FromAnotherToolAction,
+  readWhatHappened,
+} from "Common/Types/Workflow/Components/FromAnotherTool";
+import {
   AllHuntressTriggerEvents,
   HUNTRESS_INCIDENT_SEVERITY_RANK,
   HUNTRESS_INCIDENT_SEVERITY_SETTINGS,
@@ -224,10 +230,12 @@ const ROLE_WORDS: ReadonlyArray<string> = [
 const BUILDER_WORDS: ReadonlyArray<string> = [
   "Huntress Incident Report",
   "Open an incident for each Huntress incident report",
+  // What the create dialog asks who to page by, as the template words it.
+  "Who to page for high and critical reports",
   "Page an On-Call Policy",
+  "Incident From Another Tool",
   "Switch / Case",
   "If / Else",
-  "Create One Incident",
 ];
 
 /*
@@ -979,15 +987,26 @@ describe("the Huntress page states what the trigger and its template do", () => 
 
     expect(rows).toEqual(AllHuntressTriggerEvents);
 
-    const cases: Array<unknown> = (
-      (templateNode("switch-1").args || {})["cases"] as Array<{
-        value: unknown;
-      }>
-    ).map((switchCase: { value: unknown }): unknown => {
-      return switchCase.value;
-    });
-
-    expect(cases).toEqual(AllHuntressTriggerEvents);
+    // Incident From Another Tool reads the trigger's Event, in Huntress's own words.
+    expect(
+      (templateNode("incident-from-another-tool-1").args || {})[
+        FROM_ANOTHER_TOOL_ARGUMENT_IDS.whatHappened
+      ],
+    ).toBe(
+      `{{local.components.huntress-1.returnValues.${HuntressTriggerValue.Event}}}`,
+    );
+    expect(
+      AllHuntressTriggerEvents.map((event: string): FromAnotherToolAction => {
+        return readWhatHappened(event).action;
+      }),
+    ).toEqual([
+      FromAnotherToolAction.Open,
+      FromAnotherToolAction.Note,
+      FromAnotherToolAction.Resolve,
+    ]);
+    expect(sectionOf("en", "What the workflow does")).toContain(
+      "After the trigger, **Incident From Another Tool** does what each **Event** asks, by the report's number:",
+    );
   });
 
   test("the severities it names are Huntress's, and one without is high", () => {
@@ -1059,18 +1078,31 @@ describe("the Huntress page states what the trigger and its template do", () => 
     expect(templateNode("huntress-1").metadataId).toBe(
       ComponentID.HuntressIncidentReport,
     );
-    expect(metadataIds).toContain(ComponentID.PageOnCallPolicy);
-    expect(metadataIds).toContain(ComponentID.Switch);
-    expect(metadataIds).toContain(ComponentID.IfElse);
-    expect(metadataIds).toContain("incident-create-one");
+    expect(metadataIds).toEqual([
+      ComponentID.HuntressIncidentReport,
+      ComponentID.IncidentFromAnotherTool,
+      ComponentID.IfElse,
+      ComponentID.PageOnCallPolicy,
+    ]);
 
     expect(componentById(ComponentID.PageOnCallPolicy).title).toBe(
       "Page an On-Call Policy",
     );
-    expect(componentById(ComponentID.Switch).title).toBe("Switch / Case");
+    expect(componentById(ComponentID.IncidentFromAnotherTool).title).toBe(
+      `${new Incident().singularName} From Another Tool`,
+    );
     expect(componentById(ComponentID.IfElse).title).toBe("If / Else");
-    expect(`Create One ${new Incident().singularName}`).toBe(
-      "Create One Incident",
+    // The page suggests a Switch / Case for routing organizations: a step that exists.
+    expect(componentById(ComponentID.Switch).title).toBe("Switch / Case");
+
+    // The create dialog asks who to page, in the words the page names.
+    expect(
+      template?.whoToPage?.map((ask: { title: string }): string => {
+        return ask.title;
+      }),
+    ).toEqual(["Who to page for high and critical reports"]);
+    expect(sectionOf("en", "Set up the integration")).toContain(
+      "under **Who to page for high and critical reports**, pick the on-call policies to page, or none to page nobody",
     );
   });
 
@@ -1088,11 +1120,15 @@ describe("the Huntress page states what the trigger and its template do", () => 
     expect(sectionOf("en", "What the workflow does")).toContain(
       "For a high or critical report, **Page an On-Call Policy** pages your policy; a low report pages nobody.",
     );
+    // closed resolves: the step moves the incident to a resolved state, and never only notes it here.
+    expect(readWhatHappened("closed").action).toBe(
+      FromAnotherToolAction.Resolve,
+    );
     expect(
-      templateGraph().nodes.map((node: TemplateNodeSpec) => {
-        return node.metadataId;
-      }),
-    ).toContain("incident-state-timeline-create-one");
+      (templateNode("incident-from-another-tool-1").args || {})[
+        FROM_ANOTHER_TOOL_ARGUMENT_IDS.noteInsteadOfResolving
+      ],
+    ).toBeUndefined();
   });
 
   test("one report opens one incident: the template looks for the report's incident first, as the page says", () => {
@@ -1102,34 +1138,28 @@ describe("the Huntress page states what the trigger and its template do", () => 
       fromPort: string;
     }> = templateGraph().edges;
 
-    expect(templateNode("find-incident-0").metadataId).toBe(
-      "incident-find-one",
-    );
-    expect(edges).toEqual(
-      expect.arrayContaining([
-        {
-          fromComponentId: "switch-1",
-          toComponentId: "find-incident-0",
-          fromPort: "case-1",
-        },
-        {
-          fromComponentId: "if-found-0",
-          toComponentId: "create-incident-1",
-          fromPort: "no",
-        },
-        // A lookup that fails still opens one, through a log saying so.
-        {
-          fromComponentId: "find-incident-0",
-          toComponentId: "log-lookup-failed",
-          fromPort: "error",
-        },
-        {
-          fromComponentId: "log-lookup-failed",
-          toComponentId: "create-incident-1",
-          fromPort: "out",
-        },
-      ]),
-    );
+    /*
+     * Incident From Another Tool opens one only when no incident keeps the
+     * report's number, and goes on by Opened only then: the Page step after
+     * it pages for a new report alone.
+     */
+    expect(edges).toEqual([
+      {
+        fromComponentId: "huntress-1",
+        toComponentId: "incident-from-another-tool-1",
+        fromPort: "out",
+      },
+      {
+        fromComponentId: "incident-from-another-tool-1",
+        toComponentId: "if-page-1",
+        fromPort: FROM_ANOTHER_TOOL_PORT_IDS.opened,
+      },
+      {
+        fromComponentId: "if-page-1",
+        toComponentId: "page-on-call-policy-1",
+        fromPort: "yes",
+      },
+    ]);
     expect(sectionOf("en", "What the workflow does")).toContain(
       "A report that has an incident already opens no other.",
     );
@@ -1138,8 +1168,17 @@ describe("the Huntress page states what the trigger and its template do", () => 
   test("the incident keeps the report's number in the custom field the page names", () => {
     expect(HUNTRESS_REPORT_ID_CUSTOM_FIELD).toBe("huntressReportId");
     expect(code.has(HUNTRESS_REPORT_ID_CUSTOM_FIELD)).toBe(true);
-    expect(JSON.stringify(templateNode("create-incident-1").args)).toContain(
-      HUNTRESS_REPORT_ID_CUSTOM_FIELD,
+    expect(
+      (templateNode("incident-from-another-tool-1").args || {})[
+        FROM_ANOTHER_TOOL_ARGUMENT_IDS.outsideIdField
+      ],
+    ).toBe(HUNTRESS_REPORT_ID_CUSTOM_FIELD);
+    expect(
+      (templateNode("incident-from-another-tool-1").args || {})[
+        FROM_ANOTHER_TOOL_ARGUMENT_IDS.outsideId
+      ],
+    ).toBe(
+      `{{local.components.huntress-1.returnValues.${HuntressTriggerValue.ReportId}}}`,
     );
   });
 
@@ -1332,11 +1371,28 @@ describe("the Huntress page's troubleshooting quotes what the trigger says", () 
 
   test("an incident severity missing is told as the run says it, and fixed where the page says", () => {
     expect(sectionOf("en", "Troubleshooting")).toContain(
-      "add one under **Incidents → Settings → Incident Severity**.",
+      "If **Incident From Another Tool** failed with `This project has no incident severities to put the incident at.`, add one under **Incidents → Settings → Incident Severity**.",
     );
-    expect(templateNode("create-incident-1").args).toBeDefined();
-    expect(JSON.stringify(templateNode("create-incident-1").args)).toContain(
-      `returnValues.${HuntressTriggerValue.IncidentSeverityId}`,
+    // The step's own words, for an incident.
+    expect(
+      readSource(
+        "Common",
+        "Server",
+        "Types",
+        "Workflow",
+        "Components",
+        "FromAnotherTool",
+        "RecordFromAnotherTool.ts",
+      ),
+    ).toContain(
+      "`This project has no ${noun} severities to put the ${noun} at.`",
+    );
+    expect(
+      (templateNode("incident-from-another-tool-1").args || {})[
+        FROM_ANOTHER_TOOL_ARGUMENT_IDS.severity
+      ],
+    ).toBe(
+      `{{local.components.huntress-1.returnValues.${HuntressTriggerValue.IncidentSeverityId}}}`,
     );
   });
 

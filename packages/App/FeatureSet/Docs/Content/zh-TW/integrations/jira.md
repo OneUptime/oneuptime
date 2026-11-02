@@ -129,7 +129,7 @@ flowchart TB
 4. 點選 **建立工作流程**。每個工作流程建立時都處於關閉狀態：在它的 **建構器** 頂部開啟 **已啟用**。
 :::
 
-先從 **Create a Jira issue when an incident is declared** 開始，警示則從 **Create a Jira issue when an alert is created** 開始：同類的其他 OneUptime → Jira 範本都透過這個範本新增的標籤找到問題。啟用它，宣告一個測試事件或建立一個測試警示，然後開啟工作流程的 **日誌 → 執行記錄**。這次執行的最後一步應顯示 `✅ Created Jira issue` 並給出新問題。
+先從 **Create a Jira issue when an incident is declared** 開始，警示則從 **Create a Jira issue when an alert is created** 開始：同類的其他 OneUptime → Jira 範本都透過這個範本新增的標籤找到問題。啟用它，宣告一個測試事件或建立一個測試警示，然後開啟工作流程的 **日誌 → 執行記錄**。這次執行應以 **已執行** 結束，其最後一步 `create-issue-1` 的 **Response Body** 會給出新問題。
 
 每個工作流程都儲存這些值的獨立副本。更換權杖時，請在每個詢問過它的 Jira 工作流程的 **工作流程變數** 下更新 `jiraBasicAuthToken`。如果 Jira 換了位址，請用同樣的方式更新 `jiraSiteUrl` 和 `jiraBaseUrl`。
 
@@ -180,14 +180,14 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 
 ### 檢查是否正常工作
 
-每個範本都以一個說明發生了什麼的 **Log** 步驟結束，因此請檢視 **日誌 → 執行記錄** 中這次執行的最後一步：
+每次執行的 **步驟** 都會說明範本做了什麼，因此請在 **日誌 → 執行記錄** 中開啟這次執行，看看它是如何結束的：
 
-- `✅` — 完成了它的工作，並給出問題、事件或警示。
-- `ℹ️` — 有意跳過了該事件，並說明原因：問題沒有關聯到這類記錄、備註來自 Jira、記錄是私人的，或者新狀態沒有對應到任何 Jira 狀態。
-- `❌` — 某個呼叫失敗了。對於 Jira 呼叫，這一行包含 Jira 的回應。
-- `⚠️` — 根據 Jira 問題建立記錄的範本已經建立了記錄，但 Jira 沒有接受關聯標籤，因此其他範本暫時還找不到它。請手動新增這些標籤。
+- **已執行**：完成了工作，最後一步會給出問題、事件或警示。
+- **已執行**，且 **Check With JavaScript** 步驟走了 **No**：有意跳過了該事件，該步驟會說明原因：問題沒有關聯到這類記錄、備註來自 Jira、記錄是私人的，或者新狀態沒有對應到任何 Jira 狀態。
+- **錯誤**：某個步驟失敗了，它在 **步驟** 中的項目會說明原因。對於 Jira 呼叫，其中包含 Jira 的回應。
+- 在 `link-issue-1` 處 **錯誤**：依 Jira 問題建立記錄的範本已建立了記錄，但 Jira 沒有接受關聯標籤，所以其他範本暫時找不到它。請手動新增標籤。
 
-被跳過的執行仍以 **已執行** 結束。跳過是正常的：大多數 Jira 事件都不是某個特定範本要處理的。請參閱 [工作流程執行記錄](/docs/workflows/runs-and-logs)。
+跳過是正常的：大多數 Jira 事件都不是某個特定範本要處理的。請參閱 [工作流程執行記錄](/docs/workflows/runs-and-logs)。
 
 ## 範本的運作方式
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### 更改範本的行為
 
-開啟工作流程的 **建構器**，點選你想更改的區塊。你最可能想改的設定是指令碼頂部附近的常量，位於 **Run Custom JavaScript** 區塊的 **JavaScript Code** 中，就在共享的輔助程式碼區塊下面。範本的事件版本和警示版本在相同的區塊中有相同的常量：
+開啟工作流程的 **建構器**，點選你想更改的區塊。你最可能想改的設定是指令碼頂部附近的常量，位於 **Check With JavaScript** 區塊的 **JavaScript Code** 中，就在共享的輔助程式碼區塊下面。範本的事件版本和警示版本在相同的區塊中有相同的常量：
 
 | 常量 | 範本和區塊 | 控制的內容 |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ const STATE_TO_JIRA_STATUS = {
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | 範本按含義選擇時優先使用的狀態名稱，以及除非 `STATE_TO_JIRA_STATUS` 指定、否則永不選擇的狀態名稱。兩者都是不區分大小寫、與狀態名稱進行符合的正規表示式。 |
 | `SYNC_PRIVATE_INCIDENTS` | 每個事件用的 OneUptime → Jira 範本 — `prepare-issue-1`、`plan-transition-1` 或 `build-comment-1` | `false` 讓標記為 **私人事件** 的事件不進入 Jira：不為它建立問題，不移動它的問題，也不發布它的備註和編輯。設為 `true` 則照樣傳送。每個範本都有自己的副本，所以請在每個應傳送它們的範本中設定。 |
 | `SYNC_PRIVATE_ALERTS` | 每個警示用的 OneUptime → Jira 範本 — `prepare-issue-1`、`plan-transition-1` 或 `build-comment-1` | 對標記為 **私人警示** 的警示作用相同：`false` 以同樣的方式讓它們不進入 Jira，`true` 則照樣傳送。請在每個應傳送它們的警示範本中設定。 |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | 把 Jira 狀態名稱對應到 OneUptime 狀態名稱，例如 `{ 'In Review': 'Monitoring' }`。未列出的狀態按 Jira 的狀態類別處理：In Progress 確認事件或警示，Done 解決它，To Do 不對應到任何狀態。 |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | 把 Jira 狀態名稱對應到 OneUptime 狀態名稱，例如 `{ 'In Review': 'Monitoring' }`。未列出的狀態按 Jira 的狀態類別處理：In Progress 確認事件或警示，Done 解決它，To Do 不對應到任何狀態。 |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`；Create an alert when a Jira issue is created — `prepare-alert-1` | 把用小寫書寫的 Jira 優先順序對應到 `0`（最高的嚴重程度）、`1` 或 `2`（最低的嚴重程度），介於兩者之間的嚴重程度在這個範圍內分配。未列出的優先順序落在中間。對於新專案的兩種警示嚴重程度，`0` 是 High，`1` 和 `2` 都是 Low，所以除非你把它改為 `medium: 0`，否則 Medium 會變成 Low。 |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | 會變成備註的留言事件。新增 `'comment_updated'` 可以同時複製編輯（每次編輯都會成為一條新備註），同時還要在 Jira Webhook 上勾選 **Comment updated**。 |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | 變更不值得記成備註的 Jira 欄位（小寫）。只要欄位 ID 或名稱之一在清單中，該變更就會被忽略，`'rank'` 正是這樣捕獲到 Rank 的——它是一個以 `customfield_10019` 這樣的 ID 到達的自訂欄位。狀態在清單中，因為狀態由狀態範本處理。 |
@@ -271,7 +271,7 @@ const STATE_TO_JIRA_STATUS = {
 ### 限制
 
 - **僅限 Jira Cloud。** 範本使用 Basic 驗證呼叫 Jira Cloud REST API v3。Data Center 沒有 v3，並且以 `Bearer` 方式接受個人存取權杖，因此每個 API 區塊都需要 [Jira Data Center](#jira-data-center) 中的修改：`/rest/api/2/...` 路徑、用純字串代替 Atlassian Document Format 內文，以及標頭。`find-issue-1` 區塊改動最大：Data Center 沒有 `/search/jql`，因此它們必須改為向 `/rest/api/2/search` 傳送 `POST`。
-- **從 Jira 宣告的事件是安靜的。** 它們建立時對狀態頁隱藏，也不通知狀態頁訂閱者，因為問題的文字不是為客戶寫的。要顯示某個事件，請在事件的 **設定** 頁面開啟 **於狀態頁面可見**（請參閱 [不在狀態頁上顯示事件](/docs/incidents/states-and-severities#讓事件不出現在狀態頁面上)），或者修改範本的 `create-incident-1` 區塊中的 `isVisibleOnStatusPage` 和 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`。
+- **從 Jira 宣告的事件是安靜的。** 它們建立時對狀態頁隱藏，也不通知狀態頁訂閱者，因為問題的文字不是為客戶寫的。要顯示某個事件，請在事件的 **設定** 頁面開啟 **於狀態頁面可見**（請參閱 [不在狀態頁上顯示事件](/docs/incidents/states-and-severities#讓事件不出現在狀態頁面上)），或者在範本的 `incident-from-another-tool-1` 區塊中開啟 **更多欄位** 底下的 **Show On Status Pages**。
 - **私人事件和警示留在 OneUptime 中。** OneUptime → Jira 範本會跳過它們，每次跳過都會在 **日誌 → 執行記錄** 中註明。要照樣傳送，請把 `SYNC_PRIVATE_INCIDENTS` 或 `SYNC_PRIVATE_ALERTS` 設為 `true`。之後再把記錄設為私人，會從那時起停止同步，但不會收回 Jira 已有的內容。Jira → OneUptime 範本不做檢查，因此已關聯問題上的留言、編輯和狀態變更仍會到達私人記錄。
 - **一切都不會往回走。** 重新開啟 Jira 問題不會改變 OneUptime 中的任何內容，To Do 類別中的狀態不對應到任何狀態。請參閱 [順序是真正的約束](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好)。轉換範本也從不把問題移到更早的狀態類別。
 - **每個警示都會得到一個問題。** 除私人警示外，警示的建立問題範本會為每個警示建立問題，包括監測器產生的每一個。[警示有何不同](#警示有何不同) 介紹瞭如何新增條件。
@@ -286,7 +286,7 @@ const STATE_TO_JIRA_STATUS = {
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **同一個事件可能到達兩次。** Jira 會重試因伺服器錯誤或超時而失敗的傳遞。如果 OneUptime 已經開始了這次執行，留言範本和問題變更範本會新增第二條備註。建立記錄的範本不會建立第二條記錄：它們會先向 Jira 查詢問題的標籤，而在重試到達時，第一次執行已經為問題加上了標籤。但如果第一次執行建立了記錄而 Jira 拒絕了標籤，這就幫不上忙了：那次執行會以 `⚠️` 行結束，你應該手動新增標籤。
+- **同一個事件可能到達兩次。** Jira 會重試因伺服器錯誤或超時而失敗的傳遞。如果 OneUptime 已經開始了這次執行，留言範本和問題變更範本會新增第二條備註。建立記錄的範本不會建立第二條記錄：它們會先向 Jira 查詢問題的標籤，而在重試到達時，第一次執行已經為問題加上了標籤。但如果第一次執行建立了記錄而 Jira 拒絕了標籤，這就幫不上忙了：那次執行會在 `link-issue-1` 失敗，你應該手動新增標籤。
 
 ## 自己建置
 

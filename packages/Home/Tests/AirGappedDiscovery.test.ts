@@ -189,6 +189,7 @@ describe("/enterprise/air-gapped.md", () => {
     ).toEqual([
       "Who it's for",
       "What runs inside your network",
+      "Air-gapped, product by product",
       "Four steps to an air-gapped install",
       "What reaches out, and what to use instead",
       "OneUptime AI, on a model you run",
@@ -197,6 +198,16 @@ describe("/enterprise/air-gapped.md", () => {
       "Plan your install",
       "Learn More",
     ]);
+  });
+
+  test("lists every product's air-gapped page, by its own markdown", () => {
+    const md: string = markdown();
+
+    for (const topic of getAirGappedContent().topics) {
+      expect(md).toContain(
+        `- [${topic.title}](https://oneuptime.com${topic.path}.md): ${topic.summary}`,
+      );
+    }
   });
 
   test("numbers the four steps with the settings each uses", () => {

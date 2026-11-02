@@ -11,6 +11,20 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import {
+  INSTALL_SCRIPT_READ_FIRST_NOTE,
+  getAgentFileDownloadCommand,
+  getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
+  getTroubleshootScriptDownloadCommand,
+} from "../../../Components/SetupGuide/AgentInstallCommands";
+import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PROXMOX_NOTIFICATION_TARGET_NAME,
+  buildProxmoxNotificationRemoveCommands,
+  buildProxmoxNotificationSetupCommands,
+} from "Common/Utils/Proxmox/ProxmoxNotifications";
 
 /*
  * The in-app guide for connecting a Proxmox VE cluster. Two ways in:
@@ -72,11 +86,13 @@ export type ProxmoxAgentInstallMethod = Exclude<
   "native-push"
 >;
 
-// Where the agent's files are published, and where install.sh puts them.
-export const PROXMOX_AGENT_RAW_URL: string =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent";
-export const PROXMOX_AGENT_SOURCE_URL: string =
-  "https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent";
+/*
+ * Where every OneUptime serves the agent's install script and files, for
+ * its own release (Common/Types/InstallScripts): /install/proxmox-agent on
+ * the reader's OneUptime. And where install.sh puts them.
+ */
+export const PROXMOX_AGENT_INSTALL_NAME: InstallScriptName =
+  InstallScriptName.ProxmoxAgent;
 export const PROXMOX_AGENT_INSTALL_DIR: string = "/opt/oneuptime-proxmox-agent";
 
 /*
@@ -369,7 +385,8 @@ export function getProxmoxPushTarget(oneuptimeUrl: string): ProxmoxPushTarget {
  * install.sh prompts only for the values its environment does not already
  * hold, so the command can carry the reader's URL and key. Only a real key
  * goes there: the script writes whatever it is given into .env, and a
- * placeholder would become the key the agent sends.
+ * placeholder would become the key the agent sends. The script itself comes
+ * from the same OneUptime, which serves the agent of its own release.
  */
 export function getProxmoxInstallScriptCommand(data: {
   oneuptimeUrl: string;
@@ -388,8 +405,11 @@ export function getProxmoxInstallScriptCommand(data: {
   }
 
   return [
-    `curl -sSL ${PROXMOX_AGENT_RAW_URL}/install.sh -o install.sh`,
-    [...environment, "bash install.sh"].join(" "),
+    getInstallScriptDownloadCommand(
+      data.oneuptimeUrl,
+      PROXMOX_AGENT_INSTALL_NAME,
+    ),
+    getInstallScriptRunCommand(environment, "bash install.sh"),
   ].join("\n");
 }
 
@@ -435,18 +455,26 @@ function inAgentFolder(
  * uninstall the agent" topic and the dialog beside an outdated agent
  * version (Components/AgentVersion) both show these.
  */
-export function getProxmoxAgentUpgradeCommand(): string {
+export function getProxmoxAgentUpgradeCommand(oneuptimeUrl: string): string {
   return getProxmoxInstallScriptCommand({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: oneuptimeUrl,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
   });
 }
 
-export function getProxmoxAgentDownloadCommand(): string {
+export function getProxmoxAgentDownloadCommand(oneuptimeUrl: string): string {
   return [
-    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
-    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      PROXMOX_AGENT_INSTALL_NAME,
+      "docker-compose.yml",
+    ),
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      PROXMOX_AGENT_INSTALL_NAME,
+      "otel-collector-config.yaml",
+    ),
   ].join("\n");
 }
 
@@ -522,20 +550,21 @@ function getInstallScriptStep(context: AgentGuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the install script and run it on the machine that will host the agent.",
-    markdown: `${codeBlock(
+    // The command, then right under it that the script can be read first.
+    markdown: codeBlock(
       "bash",
       getProxmoxInstallScriptCommand({
         oneuptimeUrl: context.oneuptimeUrl,
         apiKey: context.apiKey,
         hasApiKey: context.hasApiKey,
       }),
-    )}
-
-${
-  prefilled
-    ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
-    : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
-}
+    ),
+    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
+    details: `${
+      prefilled
+        ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
+        : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
+    }
 
 - ${clusterNamePrompt}
 - **Proxmox VE API host** — any node, e.g. \`192.168.1.10\`, or better a virtual IP that fails over between nodes.
@@ -560,12 +589,12 @@ function getDockerComposeStep(context: AgentGuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the agent's files, write its settings to a .env file and start it with Docker Compose.",
-    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [ProxmoxAgent directory](${PROXMOX_AGENT_SOURCE_URL}) into a new folder:
+    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from this OneUptime into a new folder:
 
 ${codeBlock(
   "bash",
   `mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-${getProxmoxAgentDownloadCommand()}`,
+${getProxmoxAgentDownloadCommand(context.oneuptimeUrl)}`,
 )}
 
 Create a \`.env\` file next to them — it holds the token secret, so keep it private with \`chmod 600 .env\`:
@@ -610,6 +639,92 @@ function getAgentVerifyStep(context: AgentGuideContext): SetupGuideStep {
 \`docker compose ps\` lists the collector (\`${PROXMOX_AGENT_CONTAINER}\`), the bundled exporter (\`${PROXMOX_EXPORTER_CONTAINER}\`, unless you use your own) and the OneUptime AI agent (\`${PROXMOX_AI_AGENT_CONTAINER}\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cluster then appears automatically in the **Proxmox** section.
 
 **OneUptime AI agent (on by default, read-only).** AI investigations are on: it lets OneUptime AI investigate incidents and alerts on this cluster with read-only \`pvesh\` requests, and changes nothing unless you allow fixes — see **OneUptime AI agent** under Advanced.`,
+  };
+}
+
+/*
+ * Proxmox VE's own notifications - each backup job's result, a fenced node,
+ * a failed replication, updates waiting - sent to OneUptime through a
+ * webhook target (Common/Utils/Proxmox/ProxmoxNotifications). The one way
+ * to learn that a backup failed: neither pve-exporter nor the native push
+ * says so. Optional, and the same for both ways of connecting.
+ */
+export const PROXMOX_NOTIFICATIONS_STEP_TITLE: string = translationKey(
+  "Send Proxmox VE's notifications",
+);
+
+/*
+ * The step's place on the guide's page: the Overview's Backups card links
+ * straight to it ("Set up notifications"), rather than to step 1 of an
+ * install the reader has already done.
+ */
+export const PROXMOX_NOTIFICATIONS_STEP_ANCHOR: string = "send-notifications";
+
+/*
+ * Where an unknown cluster's name comes from: the name the agent was given,
+ * or - for the native push - the name the cluster registered under.
+ */
+type ProxmoxNotificationsNameSource = "agent" | "native-push";
+
+function getNotificationsClusterNote(
+  context: GuideContext,
+  source: ProxmoxNotificationsNameSource,
+): string {
+  if (context.isClusterNameKnown) {
+    return ` The command already names **\`${context.clusterName}\`**, so the notifications reach this cluster.`;
+  }
+  if (source === "agent") {
+    return ` Replace \`${context.clusterName}\` with the cluster name you gave the agent, so the notifications reach the same cluster.`;
+  }
+  return ` Replace \`${context.clusterName}\` with the name the cluster appears under in OneUptime: its Proxmox cluster name, or a standalone node's own name.`;
+}
+
+function getNotificationsStep(
+  context: GuideContext,
+  source: ProxmoxNotificationsNameSource,
+): SetupGuideStep {
+  const step: SetupGuideStep = {
+    title: PROXMOX_NOTIFICATIONS_STEP_TITLE,
+    anchor: PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
+    description:
+      "Optional: run these on any node as root. Backup results, fenced nodes and failed replications then reach OneUptime too.",
+  };
+  const results: string =
+    "Each guest's page then shows its last backup, and the cluster's **Recommendations** offer the **Backup Job Failed** and **Node Fenced** alerts.";
+
+  /*
+   * Like the install script, the commands carry only a real key and URL:
+   * Proxmox VE keeps whatever it is given in the target's secrets, and a
+   * placeholder there fails without a word - at the first failed backup.
+   */
+  if (
+    !isPrefilled(context) ||
+    context.oneuptimeUrl === SETUP_GUIDE_URL_PLACEHOLDER
+  ) {
+    return {
+      ...step,
+      markdown: `Needs Proxmox VE 8.3 or later. Pick an ingestion key in step 1 to show the two commands: they carry the key, which Proxmox VE keeps in the webhook target they add.
+
+${results}`,
+    };
+  }
+
+  return {
+    ...step,
+    markdown: `${codeBlock(
+      "bash",
+      buildProxmoxNotificationSetupCommands({
+        oneUptimeUrl: context.oneuptimeUrl,
+        clusterName: context.clusterName,
+        ingestionKey: context.apiKey,
+      }),
+    )}
+
+Needs Proxmox VE 8.3 or later. The first command adds a webhook target named \`${PROXMOX_NOTIFICATION_TARGET_NAME}\`, which sends each notification to OneUptime as a log of this cluster and keeps the key and the cluster's name in its secrets. The second sends every notification to it.${getNotificationsClusterNote(context, source)}
+
+${results} To stop sending them:
+
+${codeBlock("bash", buildProxmoxNotificationRemoveCommands())}`,
   };
 }
 
@@ -795,12 +910,12 @@ function getUpgradeTopic(context: AgentGuideContext): SetupGuideTopic {
     context.method === "install-script"
       ? `**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Run the install script again. It reuses every value in your existing \`.env\` (nothing is asked again), downloads the latest \`docker-compose.yml\` and \`otel-collector-config.yaml\` — a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\` — pulls the images and recreates the agent with them:
 
-${codeBlock("bash", getProxmoxAgentUpgradeCommand())}`
+${codeBlock("bash", getProxmoxAgentUpgradeCommand(context.oneuptimeUrl))}`
       : `Run these in the agent's folder, the one with \`docker-compose.yml\`.
 
 **Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your \`.env\` stays, and a change you made to either file has to be made again:
 
-${codeBlock("bash", getProxmoxAgentDownloadCommand())}
+${codeBlock("bash", getProxmoxAgentDownloadCommand(context.oneuptimeUrl))}
 
 Then pull the images and recreate the agent, so the collector reads its new config:
 
@@ -861,7 +976,7 @@ function getAgentTroubleshootingTopics(
 
 ${codeBlock(
   "bash",
-  `curl -sSL ${PROXMOX_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+  `${getTroubleshootScriptDownloadCommand(context.oneuptimeUrl, PROXMOX_AGENT_INSTALL_NAME)}
 ${runScript}`,
 )}
 
@@ -915,6 +1030,7 @@ function getAgentGuide(context: AgentGuideContext): SetupGuideContent {
         ? getInstallScriptStep(context)
         : getDockerComposeStep(context),
       getAgentVerifyStep(context),
+      getNotificationsStep(context, "agent"),
     ],
     advanced: getAgentAdvancedTopics(context),
     troubleshooting: getAgentTroubleshootingTopics(context),
@@ -1051,7 +1167,11 @@ function getNativePushGuide(context: GuideContext): SetupGuideContent {
     keyStep: keyStep,
     intro: getNativePushIntro(),
     prerequisites: getNativePushPrerequisites(target),
-    steps: [getMetricServerStep(context, target), getNativePushVerifyStep()],
+    steps: [
+      getMetricServerStep(context, target),
+      getNativePushVerifyStep(),
+      getNotificationsStep(context, "native-push"),
+    ],
     advanced: getNativePushAdvancedTopics(context),
     troubleshooting: getNativePushTroubleshootingTopics(target),
     links: getLinks(),

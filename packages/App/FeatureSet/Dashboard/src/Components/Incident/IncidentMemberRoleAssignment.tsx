@@ -1,3 +1,4 @@
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -28,7 +29,14 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
 import { assignIncidentRole } from "../../Utils/EventRoleAssignment";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import {
+  usePrivateRecordGate,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -67,6 +75,14 @@ export interface ComponentProps {
 const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * What the reader holds on the record when it is private: its roles are
+   * given and taken only by a team of theirs that owns it
+   * (PrivateRecordScope).
+   */
+  const privateRecordGate: (
+    model: BaseModel,
+  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
   const [roles, setRoles] = useState<Array<MemberRole>>([]);
   const [assignedMembers, setAssignedMembers] = useState<Array<AssignedMember>>(
     [],
@@ -313,14 +329,20 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       assignGate={PermissionGate.check(
         new IncidentMember(),
         ModelAction.Create,
-        {
-          sentence: INCIDENT_ROLES_LOCKED_SENTENCE,
-        },
+        withPrivateRecordGateOptions(
+          {
+            sentence: INCIDENT_ROLES_LOCKED_SENTENCE,
+          },
+          privateRecordGate(new IncidentMember()),
+        ),
       )}
       unassignGate={PermissionGate.check(
         new IncidentMember(),
         ModelAction.Delete,
-        { sentence: INCIDENT_ROLES_LOCKED_SENTENCE },
+        withPrivateRecordGateOptions(
+          { sentence: INCIDENT_ROLES_LOCKED_SENTENCE },
+          privateRecordGate(new IncidentMember()),
+        ),
       )}
     />
   );

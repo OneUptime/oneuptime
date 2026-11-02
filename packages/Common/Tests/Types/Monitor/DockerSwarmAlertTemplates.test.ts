@@ -446,9 +446,10 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
            * it as `resource.container.name` — the spelling
            * OtelMetricsIngestService.bufferDockerSwarmTaskMetric reads back
            * off these very series. The UNPREFIXED `container.name` matches no
-           * stored attribute: aggregatePerSeriesFromRawMetrics then labels
-           * every datapoint `{"container.name": ""}`, collapsing the whole
-           * cluster into one unnamed series.
+           * stored attribute: the worker's grouped read (GROUP BY
+           * attributes['container.name']) then labels every datapoint
+           * `{"container.name": ""}`, collapsing the whole cluster into one
+           * unnamed series.
            */
           expect(key).toBe("resource.container.name");
         }
@@ -528,8 +529,9 @@ describe("DockerSwarmAlertTemplates - enumerated invariants (every template)", (
    * OtelMetricsIngestService.bufferDockerSwarmTaskMetric reads back off these
    * very series to mirror them onto DockerSwarmResource Task rows. The
    * unprefixed `container.name` matches no stored attribute at all, and
-   * MonitorTelemetryMonitor.aggregatePerSeriesFromRawMetrics writes
-   * `labels[key] = ""` for a missing key. The result was ONE synthetic
+   * the worker's grouped read (MonitorTelemetryMonitor.readQueryDataPoints,
+   * GROUP BY attributes['key'] on a Map) reads a missing key as "". The
+   * result was ONE synthetic
    * cluster-wide series: "one incident per task" deduped to a single incident,
    * an alert naming no container (SeriesLabelDisplay skips empty labels), and
    * an Avg taken across every container in the swarm, so one hot task beside a

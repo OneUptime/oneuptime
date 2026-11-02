@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-Stuur de traces, logs en metrieken van je Amazon ECS-taken naar OneUptime, op zowel het Fargate- als het EC2-starttype. Elke taak die `cloud.platform=aws_ecs` meldt, komt terecht in één **Cloud Environment** per AWS-account en regio, zoals _AWS ECS · us-east-1 · 123456789012_, of er nu één service draait of vijftig.
+Stuur de traces, logs en metrieken van je Amazon ECS-taken naar OneUptime, op zowel het Fargate- als het EC2-starttype. Elke taak die `cloud.platform=aws_ecs` meldt, komt terecht in één **Cloud-omgeving** per AWS-account en regio, zoals _AWS ECS · us-east-1 · 123456789012_, of er nu één service draait of vijftig.
 
 :::cards
 - [Hoe het werkt](#hoe-het-werkt): Wat de ECS-detector en de sidecar-collector doen.
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-De CloudWatch-logstream van de collector (`otel/otel-collector/...`) moet `Everything is ready` tonen, zonder regels met `401` of `connection refused`. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **Cloud → All Environments** als _AWS ECS · us-east-1 · 123456789012_.
+De CloudWatch-logstream van de collector (`otel/otel-collector/...`) moet `Everything is ready` tonen, zonder regels met `401` of `connection refused`. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **App-platforms → Alle omgevingen** als _AWS ECS · us-east-1 · 123456789012_.
 :::
 
 ## De volledige taakdefinitie

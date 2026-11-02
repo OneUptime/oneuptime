@@ -4,7 +4,7 @@ Proxmox 监视器监控一个 Proxmox VE 集群（它的节点、虚拟机和 LX
 
 :::cards
 - [创建监视器](#创建-proxmox-监视器): 在仪表板中完成六个步骤。
-- [模板](#现成的警报模板): 十二个现成的警报，每个节点、来宾或卷一个事件。
+- [模板](#现成的警报模板): 十五个现成的警报，每个节点、来宾或卷一个事件；另有两个基于 Proxmox VE 自己的通知。
 - [资源标识](#资源标识): 如何指定单个节点、来宾或存储卷。
 - [指标](#收集的指标): 监视器可以据以报警的每个 `pve_*` 序列。
 :::
@@ -48,19 +48,19 @@ flowchart TB
 
 ### 选择集群
 
-在 **Proxmox Monitor Configuration** 下，从 **Proxmox 集群** 中选择集群。发送过数据的每个集群都在列表中。
+在 **Proxmox Monitor Configuration** 下，从 **Proxmox 集群** 中选择集群。发送过数据的每个集群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 Proxmox 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监控的内容
 
-选择三个选项卡之一：
+新监视器从 **告警内容** 下的 **Cluster Stopped Reporting** 开始。要监视其他内容：
 
-- **Quick Setup** – 点击一个 [模板](#现成的警报模板)。它会设置指标、过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以更改 **时间范围**。
-- **Custom Metric** – 从 **Proxmox Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把范围缩小到某类资源或单个资源。
-- **高级** – 在 **选择指标** 下自己构建查询和公式，例如由 `pve_memory_usage_bytes / pve_memory_size_bytes` 得出内存百分比。使用 **分组依据** `id` 可以单独评判每个资源。
+- **更改** – 选择另一个 [模板](#现成的警报模板)。它会设置指标、过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以更改 **时间范围**。
+- **Custom Metric**（在 **更多字段** 下） – 从 **Proxmox Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把范围缩小到某类资源或单个资源。
+- **高级**（在 **更多字段** 下） – 在 **选择指标** 下自己构建查询和公式，例如由 `pve_memory_usage_bytes / pve_memory_size_bytes` 得出内存百分比。使用 **分组依据** `id` 可以单独评判每个资源。
 
 ### 检查条件
 
-打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填好这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，这些条件只会注意到指标降到零，所以请设置你自己的阈值。
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填好这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，这些条件只会注意到指标不再发送数据，所以请设置你自己的阈值。
 
 ### 创建监视器
 
@@ -95,7 +95,7 @@ flowchart TB
 | `lxc/<vmid>` | LXC 容器，例如 `lxc/101`。 |
 | `storage/<node>/<storage>` | 节点上的存储卷，例如 `storage/pve1/local`。 |
 
-有两个例外：复制序列（`pve_replication_*`）在 `id` 中携带复制**作业**的 ID（例如 `100-0`），而集群级的 `pve_not_backed_up_total` 根本没有 `id`。
+有一个例外：复制序列（`pve_replication_*`）在 `id` 中携带复制**作业**的 ID（例如 `100-0`）。集群自身的序列，例如仲裁（`pve_up`）和 `pve_not_backed_up_total`，携带 `cluster/<name>`。
 
 过滤器按相等匹配，而不是按前缀匹配，所以代理还会把 `id` 拆成三个可供过滤的属性。模板依赖这些属性：
 
@@ -109,7 +109,7 @@ flowchart TB
 
 ## 现成的警报模板
 
-**Quick Setup** 提供 12 个模板。每个模板都会构建一个完整的监视器：查询、属性过滤器、分组、一个触发的条件和一个恢复的条件。大多数按 `id` 分组，所以每个节点、来宾、卷或作业都有自己的事件和警报。阈值只是起点，你可以编辑。
+**告警内容** 列表提供 15 个模板。每个模板都会构建一个完整的监视器：查询、属性过滤器、分组、一个触发的条件和一个恢复的条件。大多数按 `id` 分组，所以每个节点、来宾、卷或作业都有自己的事件和警报。阈值只是起点，你可以编辑。
 
 除非表中另有说明，模板读取最近 5 分钟的数据。条件只有在其窗口的每一分钟都成立时才会触发，阈值条件在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
@@ -117,34 +117,51 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 严重 | `pve_up`，对整个集群取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
 | Node Offline | 严重 | `pve.scope = node` 的 `pve_up`，按 `id` 取 Min | 低于 1 | 等于 1 |
-| Guest Down | Warning | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，按 `id` 取 Min | `pve_onboot_status` 为 1 时 `pve_up` 低于 1 | `pve_up` 恢复为 1，或关闭开机启动 |
+| Guest Down | 警告 | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，按 `id` 取 Min | `pve_onboot_status` 为 1 时 `pve_up` 低于 1 | `pve_up` 恢复为 1，或关闭开机启动 |
 | Cluster Quorum at Risk | 严重 | `pve.scope = node` 的 `pve_up` ÷ `pve_node_info` × 100（两者都取总和）：在线节点所占比例 | 50% 或更低 | 高于 55% |
-| High Node CPU Usage | Warning | `pve.scope = node` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg | 高于 0.9（节点核心的 90%） | 不高于 0.81 |
-| High Node Memory Usage | Warning | `pve.scope = node` 的 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
-| High Guest CPU Usage | Warning | `pve.scope = guest` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg，最近 15 分钟 | 整整 15 分钟都高于 0.95（其 vCPU 的 95%） | 不高于 0.855 |
-| Storage Near Full | Warning | `pve.scope = storage` 的 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
-| Container Root Disk Near Full | Warning | 针对 `pve.type = lxc` 的同一磁盘比率，按 `id` | 高于 90% | 不高于 81% |
+| Node Restarted | 警告 | `pve.scope = node` 的 `pve_uptime_seconds` 和 `pve_up`，按 `id` 取 Min | `pve_up` 为 1 时 `pve_uptime_seconds` 低于 900（15 分钟） | `pve_uptime_seconds` 达到 990 或更高，或 `pve_up` 为 0 |
+| High Node CPU Usage | 警告 | `pve.scope = node` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg | 高于 0.9（节点核心的 90%） | 不高于 0.81 |
+| High Node Memory Usage | 警告 | `pve.scope = node` 的 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
+| High Guest CPU Usage | 警告 | `pve.scope = guest` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg，最近 15 分钟 | 整整 15 分钟都高于 0.95（其 vCPU 的 95%） | 不高于 0.855 |
+| Storage Unavailable | 严重 | `pve.scope = storage` 的 `pve_up`，按 `id` 取 Min | 低于 1 | 等于 1 |
+| Storage Near Full | 警告 | `pve.scope = storage` 的 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
+| Container Root Disk Near Full | 警告 | 针对 `pve.type = lxc` 的同一磁盘比率，按 `id` | 高于 90% | 不高于 81% |
 | HA Resource in Error State | 严重 | `state = error` 的 `pve_ha_state`，按 `id` 取 Max | 高于 0 | 等于 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`，Max（整个集群一个序列） | 高于 0 | 等于 0 |
+| Guest Not Backed Up | 警告 | `pve_not_backed_up_total`，Max（整个集群一个序列） | 高于 0 | 等于 0 |
+| Backup Running Too Long | 警告 | `pve.scope = guest` 且 `state = backup` 的 `pve_lock_state`，按 `id` 取 Min，最近 6 小时 | 高于 0 | 等于 0 |
 | Replication Failing | 严重 | `pve_replication_failed_syncs`，按 `id`（作业 ID）取 Max | 高于 0 | 等于 0 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
 
 - **Cluster Stopped Reporting** 模板会在集群 10 分钟内没有任何数据到达时触发：Proxmox 代理或它的 pve-exporter 已停止、失去了通往 OneUptime 的路由或令牌被撤销，Proxmox API 不再响应它，或者原生推送的每个节点都停止了报告。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 - **停机类模板使用最小值**，所以只要有一次抓取时资源处于停机状态就会触发，而不会被资源正常运行的那些抓取掩盖。
-- **Guest Down** 模板只关注设置为开机启动的来宾，所以你特意停止的来宾永远不会呼叫任何人。
-- **Cluster Quorum at Risk** 模板是一种近似：pve-exporter 没有 corosync 指标，所以它统计在线的节点。
+- **Guest Down** 模板只关注设置为开机启动的来宾：特意停止这样的来宾仍会呼叫，所以请先关闭它的开机启动。
+- **Cluster Quorum at Risk** 模板统计在线的节点。pve-exporter 也会以 `cluster/<name>` 的 `pve_up` 直接报告仲裁：集群具备仲裁期间为 1。
+- **Node Restarted** 模板会在节点在线但运行不到 15 分钟时触发：它重启了，或者崩溃后又恢复了。节点运行满 16.5 分钟（越过阈值 10%）后即会解决；停机的节点则会触发 **Node Offline**。
 - **High Guest CPU Usage** 模板比节点模板阈值更高、反应更慢：来宾本来就应该用满它的 vCPU，所以只有一直降不下来的来宾才会呼叫人。
 - **比率公式** 对两边都取 **总和**。两边来自同一次抓取，所以结果是真实的百分比。
 - **Container Root Disk Near Full** 模板不包括 QEMU 虚拟机：没有 QEMU 来宾代理时，它们的磁盘使用量读数为 0。
+- **Storage Unavailable** 模板会在 Proxmox VE 为某个节点列出的存储变得不可用时触发：无法挂载的共享、无法访问的 Proxmox Backup Server、已经消失的存储池。磁盘位于其上的来宾会挂起或无法启动，备份到它的任务也会失败。
 - **Guest Not Backed Up** 模板只覆盖备份作业的成员关系。pve-exporter 不报告备份是否运行或成功；要列出这些来宾，请按 `id` 对 `pve_not_backed_up_info` 分组。
+- **Backup Running Too Long** 模板会在虚拟机或容器在六小时内的每次抓取中都被备份锁定时触发：备份挂起了，或者备份目标对这个来宾来说太慢。锁定期间，该来宾无法迁移、无法创建快照，也无法再次备份。
 - **复制陈旧度**（当前时间减去最后一次同步）无法用于报警，因为条件不支持时间运算。集群的 **概览** 页面会显示它；请改用 **Replication Failing** 报警。
+
+### 基于 Proxmox VE 通知的警报
+
+另有两个警报读取 Proxmox VE 自己的通知；你把通知 [发送到 OneUptime](/docs/telemetry/proxmox#发送-proxmox-ve-的通知) 后，集群会把它们作为日志发送。它们是日志监视器，在集群的 **建议** 页面上提供，无论使用代理还是原生推送都能工作。
+
+| 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | 警告 | `pve.notification.type = vzdump` 且 `pve.notification.severity = error` 的通知日志，按节点和作业，最近 60 分钟 | 备份作业报告失败 | 同一作业的下一次运行成功 |
+| Node Fenced | 严重 | `pve.notification.type = fencing` 的通知日志，按节点，最近 30 分钟 | Proxmox VE 隔离（fence）了一个节点 | 该节点 30 分钟内没有再次被隔离 |
+
+每个节点和每个备份作业都有自己的事件和警报。失败的备份作业的警报会一直保持打开，直到同一作业后来的某次运行成功，无论需要多久。
 
 ### Proxmox VE 原生推送
 
 Proxmox VE 9 及更高版本可以通过内置的 OpenTelemetry 指标服务器推送指标，无需安装任何东西，参见 [Proxmox 代理指南](/docs/telemetry/proxmox)。OneUptime 会把推送转换成相同的 `pve_*` 序列，所以目录以及 CPU、内存和存储模板都能配合它使用。
 
-**Node Offline** 和 **Cluster Quorum at Risk** 同样可用：每个节点只推送自己的状态，所以停止报告的节点会被仍然存活的节点报告为停机（`pve_up` = 0），参见 [节点停止报告时](/docs/telemetry/proxmox#节点停止报告时)。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up** 和 **Replication Failing** 需要只有代理才会收集的数据。
+**Node Offline** 和 **Cluster Quorum at Risk** 同样可用：每个节点只推送自己的状态，所以停止报告的节点会被仍然存活的节点报告为停机（`pve_up` = 0），参见 [节点停止报告时](/docs/telemetry/proxmox#节点停止报告时)。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 需要只有代理才会收集的数据。 两个 [通知警报](#基于-proxmox-ve-通知的警报) 也能配合原生推送使用：Proxmox VE 会自己发送通知。
 
 ## 收集的指标
 
@@ -154,7 +171,7 @@ Proxmox VE 9 及更高版本可以通过内置的 OpenTelemetry 指标服务器�
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `pve_up` | — | 节点或来宾处于启动或运行状态时为 1，否则为 0。 |
+| `pve_up` | — | 节点、来宾或存储处于启动状态时为 1，否则为 0。对于 `cluster/<name>`，集群具备仲裁期间为 1。 |
 | `pve_uptime_seconds` | 秒 | 节点或来宾的运行时间。 |
 | `pve_version_info` | 计数 | 标签中的 Proxmox VE 版本。始终为 1。 |
 
@@ -162,7 +179,7 @@ Proxmox VE 9 及更高版本可以通过内置的 OpenTelemetry 指标服务器�
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `pve_node_info` | 计数 | 节点元数据，始终为 1。求和可统计正在报告的节点数。 |
+| `pve_node_info` | 计数 | 节点元数据，节点报告期间始终为 1。求和会把一分钟内的每次抓取都加起来，因此不能统计节点数。 |
 | `pve_cpu_usage_ratio` | 比率 | 已用 CPU 占可用 CPU 的比率（0–1）。 |
 | `pve_cpu_usage_limit` | 核心 | 可用 CPU，单位为核心。对于来宾，是它的 vCPU。 |
 | `pve_memory_usage_bytes` | 字节 | 正在使用的内存。 |
@@ -180,6 +197,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 | `pve_disk_read_bytes` | 字节 | 来宾从磁盘读取的字节数。生命周期计数器。 |
 | `pve_disk_write_bytes` | 字节 | 来宾写入磁盘的字节数。生命周期计数器。 |
 | `pve_onboot_status` | 计数 | 来宾在节点启动时启动则为 1。设置了此项却处于停止状态的来宾，通常意味着计划外停机。 |
+| `pve_lock_state` | — | 任务修改来宾期间 Proxmox VE 在来宾上持有的锁，每种锁（`backup`、`migrate`、`snapshot`、…）一个序列，持有的那个为 1。请按 `state` 标签过滤。 |
 
 ### 存储
 
@@ -187,7 +205,8 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | 字节 | 磁盘或存储上已用的字节数。对于 QEMU 来宾，除非安装了 QEMU 来宾代理，否则读数为 0。 |
 | `pve_disk_size_bytes` | 字节 | 磁盘或存储的总大小。 |
-| `pve_storage_info` | 计数 | 存储元数据，始终为 1。求和可统计存储卷数量。 |
+| `pve_storage_shared` | 计数 | 集群的每个节点都能使用该存储（如 NFS 或 Ceph）时为 1；只有其所在节点能使用时为 0。 |
+| `pve_storage_info` | 计数 | 存储元数据，存储存在期间始终为 1。求和会把一分钟内的每次抓取都加起来，因此不能统计存储卷数量。 |
 
 ### HA
 
@@ -201,7 +220,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | 计数 | 不在任何备份作业中的来宾。整个集群一个序列，没有 `id`。 |
+| `pve_not_backed_up_total` | 计数 | 不在任何备份作业中的来宾。整个集群一个序列，`id` 为 `cluster/<name>`，为 0 时也会报告。 |
 | `pve_not_backed_up_info` | 计数 | 每个未被覆盖的来宾一个序列，始终为 1，带有来宾的 `id` 标签。来宾加入备份作业后它就会消失。 |
 
 ### 复制
@@ -231,7 +250,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 | **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |
 | **如果无数据** | 位于 **更多字段** 下。窗口中没有样本时的处理方式：**Ignore**（默认）、**Treat As Zero** 或 **触发器**。 |
 
-异常条件会把每个值与基线中一周的同一小时进行比较。在基线窗口积累足够的历史之前，它们会保持在“Learning”状态，不产生任何结果。
+异常条件会把每个值与基线中一周的同一小时进行比较。在基线窗口积累足够的历史之前，它们会保持在“Learning”状态，不产生任何结果。 总和、计数或针对直方图的查询会一直保持这个状态：此监视器按属性筛选查询，而基线不保存属性。
 
 每个条件还会说明匹配时要做什么：更改监视器状态、创建警报或宣布事件。条件按从上到下的顺序检查，第一个匹配的条件决定结果。
 
@@ -262,7 +281,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 :::
 
 :::details 已从集群移除的节点仍不断触发 Node Offline
-在 Proxmox VE 原生推送下，被移出集群的节点看起来和宕机的节点一样：它停止了报告，所以仍然存活的节点会一直把它报告为停机。打开该节点的页面并点击 **Remove Node**，节点就会消失，其警报也会解决。否则它会保持离线最多 7 天。代理没有这个问题：它会询问集群，而集群已不再列出该节点。
+在 Proxmox VE 原生推送下，被移出集群的节点看起来和宕机的节点一样：它停止了报告，所以仍然存活的节点会一直把它报告为停机。打开该节点的页面并点击 **移除节点**，节点就会消失，其警报也会解决。否则它会保持离线最多 7 天。代理没有这个问题：它会询问集群，而集群已不再列出该节点。
 :::
 
 :::details 缺少备份或复制指标

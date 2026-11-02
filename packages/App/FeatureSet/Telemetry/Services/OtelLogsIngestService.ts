@@ -8,7 +8,7 @@ import {
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
 import {
@@ -35,6 +35,7 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
 import LogsQueueService from "./Queue/LogsQueueService";
 import { DiscoveredResourceKinds } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import OtelIngestBaseService, {
@@ -107,6 +108,21 @@ import {
   isKubernetesEventLogRecord,
   parseKubernetesEventFromLogBody,
 } from "Common/Types/Kubernetes/KubernetesEvent";
+import { extractObjectFromLogBody } from "Common/Types/Kubernetes/KubernetesObjectParser";
+import {
+  getOpenShiftStatusLogAttributes,
+  isOpenShiftStatusLogRecord,
+} from "Common/Types/Kubernetes/OpenShiftObjectAttributes";
+import {
+  ProxmoxBackupGuestResult,
+  ProxmoxNotificationStamp,
+  isProxmoxNotificationLogRecord,
+  stampProxmoxNotification,
+} from "Common/Utils/Proxmox/ProxmoxNotifications";
+import ProxmoxResourceService, {
+  ProxmoxGuestBackupResult,
+} from "Common/Server/Services/ProxmoxResourceService";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -234,6 +250,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       if (batch.length === 0) {
         continue;
       }
+
+      // Each occurrence stored under its exception's fingerprint (v1 or v2).
+      await ExceptionUtil.assignRowGroupFingerprints(batch);
 
       const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
         ExceptionInstanceService,
@@ -389,6 +408,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         string,
         Array<ParsedDockerSwarmResource>
       > = new Map();
+
+      /*
+       * Proxmox VE's own notifications (ProxmoxNotifications), keyed by
+       * cluster ID: each backup job's guests, written to the inventory as
+       * their last backup, and the newest notification's time.
+       */
+      const proxmoxBackupBuffer: Map<
+        string,
+        Array<ProxmoxGuestBackupResult>
+      > = new Map();
+      const proxmoxNotificationTimes: Map<string, Date> = new Map();
 
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
@@ -783,42 +813,57 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    * pair here, since records normally carry their own
                    * timeUnixNano and the fallback is only for records that
                    * do not.
+                   *
+                   * timeUnixNano is the record's time in whole nanoseconds,
+                   * which the time column's fraction and the timeUnixNano
+                   * column are written from. An integer string - how
+                   * OTLP/protobuf sends it - is read exactly, digits and
+                   * Date alike (OneUptimeDate.readExactUnixNano): a float of
+                   * it was up to 128 ns off and its Date a millisecond early
+                   * or late. A number, any other text and the current time
+                   * stay the float they were read as before, with the Date
+                   * made from that float.
                    */
-                  let timeUnixNanoNumeric: number;
+                  let timeUnixNano: number | string;
                   let timeDate: Date;
                   // Whether the record said when it happened (a time past 0).
                   let hasRecordTime: boolean = false;
 
-                  if (log["timeUnixNano"]) {
+                  const exactTime: ExactUnixNano | null =
+                    OneUptimeDate.readExactUnixNano(log["timeUnixNano"]);
+
+                  if (exactTime !== null) {
+                    timeUnixNano = exactTime.nano;
+                    timeDate = exactTime.date;
+                    hasRecordTime = exactTime.nano !== "0";
+                  } else if (log["timeUnixNano"]) {
                     try {
-                      let timeUnixNano: number;
+                      let floatTimeUnixNano: number;
                       if (typeof log["timeUnixNano"] === "string") {
-                        timeUnixNano = parseFloat(log["timeUnixNano"]);
-                        if (isNaN(timeUnixNano)) {
+                        floatTimeUnixNano = parseFloat(log["timeUnixNano"]);
+                        if (isNaN(floatTimeUnixNano)) {
                           throw new Error(
                             `Invalid timestamp string: ${log["timeUnixNano"]}`,
                           );
                         }
                       } else {
-                        timeUnixNano =
+                        floatTimeUnixNano =
                           (log["timeUnixNano"] as number) ||
                           OneUptimeDate.getCurrentDateAsUnixNano();
                       }
 
-                      timeUnixNanoNumeric = timeUnixNano;
-                      timeDate = OneUptimeDate.fromUnixNano(timeUnixNano);
-                      hasRecordTime = timeUnixNano > 0;
+                      timeUnixNano = floatTimeUnixNano;
+                      timeDate = OneUptimeDate.fromUnixNano(floatTimeUnixNano);
+                      hasRecordTime = floatTimeUnixNano > 0;
                     } catch (timeError) {
                       logger.warn(
                         `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
                       );
-                      timeUnixNanoNumeric =
-                        OneUptimeDate.getCurrentDateAsUnixNano();
+                      timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
                       timeDate = OneUptimeDate.getCurrentDate();
                     }
                   } else {
-                    timeUnixNanoNumeric =
-                      OneUptimeDate.getCurrentDateAsUnixNano();
+                    timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
                     timeDate = OneUptimeDate.getCurrentDate();
                   }
 
@@ -875,8 +920,55 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                       if (kubernetesEventStamp.time) {
                         timeDate = kubernetesEventStamp.time;
-                        timeUnixNanoNumeric =
-                          OneUptimeDate.toUnixNano(timeDate);
+                        timeUnixNano = OneUptimeDate.toUnixNano(timeDate);
+                      }
+                    }
+                  }
+
+                  /*
+                   * A ClusterOperator or ClusterVersion the agent's
+                   * openshift preset pulls: stamp its state and conditions
+                   * onto the record, which the OpenShift alert templates
+                   * filter on. Before the drop filters and the pipelines,
+                   * as for Events. Only those two resource types are read.
+                   */
+                  if (isOpenShiftStatusLogRecord(attributesObject) && body) {
+                    if (
+                      this.stampOpenShiftStatus({
+                        attributes: attributesObject,
+                        body: body,
+                      })
+                    ) {
+                      attributeKeys = Object.keys(attributesObject);
+                    }
+                  }
+
+                  /*
+                   * A notification Proxmox VE sent through the webhook
+                   * target OneUptime's guide sets up: stored with the
+                   * severity Proxmox gave it (the template can only write
+                   * the word), and a backup job's guests remembered as each
+                   * guest's last backup. Any other log costs one attribute
+                   * lookup.
+                   */
+                  if (isProxmoxNotificationLogRecord(attributesObject)) {
+                    const proxmoxStamp: ProxmoxNotificationStamp | null =
+                      stampProxmoxNotification({
+                        attributes: attributesObject,
+                        body: body,
+                      });
+
+                    if (proxmoxStamp) {
+                      logSeverityNumber = proxmoxStamp.severityNumber;
+
+                      if (proxmoxClusterId) {
+                        this.bufferProxmoxNotification({
+                          clusterIdStr: proxmoxClusterId.toString(),
+                          stamp: proxmoxStamp,
+                          at: timeDate,
+                          backupBuffer: proxmoxBackupBuffer,
+                          notificationTimes: proxmoxNotificationTimes,
+                        });
                       }
                     }
                   }
@@ -1082,17 +1174,30 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     log["spanId"] as string | undefined,
                   );
 
-                  // Extract observedTimeUnixNano
-                  let observedTimeUnixNano: number = 0;
+                  /*
+                   * Extract observedTimeUnixNano, read as timeUnixNano is:
+                   * an integer string's own digits, exactly, and anything
+                   * else the float it was read as before.
+                   */
+                  let observedTimeUnixNano: number | string = 0;
                   if (log["observedTimeUnixNano"]) {
                     try {
-                      if (typeof log["observedTimeUnixNano"] === "string") {
-                        observedTimeUnixNano = parseFloat(
+                      const exactObservedTime: ExactUnixNano | null =
+                        OneUptimeDate.readExactUnixNano(
                           log["observedTimeUnixNano"],
                         );
-                        if (isNaN(observedTimeUnixNano)) {
-                          observedTimeUnixNano = 0;
-                        }
+
+                      if (exactObservedTime !== null) {
+                        observedTimeUnixNano = exactObservedTime.nano;
+                      } else if (
+                        typeof log["observedTimeUnixNano"] === "string"
+                      ) {
+                        const floatObservedTimeUnixNano: number = parseFloat(
+                          log["observedTimeUnixNano"],
+                        );
+                        observedTimeUnixNano = isNaN(floatObservedTimeUnixNano)
+                          ? 0
+                          : floatObservedTimeUnixNano;
                       } else {
                         observedTimeUnixNano =
                           (log["observedTimeUnixNano"] as number) || 0;
@@ -1107,11 +1212,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                   const logFlags: number = (log["flags"] as number) || 0;
 
+                  // The time column: its second and fraction from one read.
                   const logTimestamp: string =
                     OneUptimeDate.toClickhouseDateTime64(
                       timeDate,
-                      timeUnixNanoNumeric,
+                      timeUnixNano,
                     );
+
+                  // The timeUnixNano column, and the exception row's.
+                  const timeUnixNanoText: string =
+                    this.toUnixNanoText(timeUnixNano);
 
                   /*
                    * The drop-filter-visible slice of the log row: every
@@ -1133,7 +1243,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     entityKeys: serviceMetadata.entityKeys || [],
                     ...getScalarEntityKeyColumns(serviceMetadata),
                     time: logTimestamp,
-                    timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
+                    timeUnixNano: timeUnixNanoText,
                     severityNumber: logSeverityNumber,
                     severityText: severityText,
                     attributes: attributesObject,
@@ -1149,7 +1259,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       this.getSessionIdFromAttributes(attributesObject),
                     body: body,
                     observedTimeUnixNano:
-                      Math.trunc(observedTimeUnixNano).toString(),
+                      this.toUnixNanoText(observedTimeUnixNano),
                     droppedAttributesCount: droppedAttributesCount,
                     flags: logFlags,
                   };
@@ -1232,7 +1342,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                         severityNumber: logSeverityNumber,
                         severityText,
                         timeDate,
-                        timeUnixNano: timeUnixNanoNumeric,
+                        timeUnixNano: timeUnixNanoText,
                         retentionDateDb,
                         dbExceptions,
                         pendingExceptionUpserts,
@@ -1325,6 +1435,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             ]
           : []),
       ]);
+
+      await this.flushProxmoxNotifications({
+        projectId: projectId,
+        backupBuffer: proxmoxBackupBuffer,
+        notificationTimes: proxmoxNotificationTimes,
+      });
 
       /*
        * Flush the k8s inventory buffer — one upsert per cluster. Failures
@@ -1628,7 +1744,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     severityNumber: number;
     severityText: LogSeverity;
     timeDate: Date;
-    timeUnixNano: number;
+    // The log row's timeUnixNano column, as written.
+    timeUnixNano: string;
     /** Already-formatted ClickHouse DateTime string of the log row's retention date. */
     retentionDateDb: string;
     dbExceptions: Array<JSONObject>;
@@ -1669,6 +1786,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       exceptionType: extracted.exceptionType,
     });
 
+    // Grouping v2's: which of the two it keeps is decided as it is stored.
+    const fingerprintV2: string = ExceptionUtil.getFingerprintV2({
+      projectId: data.projectId,
+      primaryEntityId: data.primaryEntityId,
+      message: extracted.message,
+      stackTrace: extracted.stackTrace,
+      exceptionType: extracted.exceptionType,
+    });
+
     const release: string =
       (finalAttributes["resource.service.version"] as string) || "";
     const environment: string = readDeploymentEnvironment(finalAttributes, {
@@ -1690,7 +1816,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       entityKeys: data.serviceMetadata.entityKeys || [],
       ...getScalarEntityKeyColumns(data.serviceMetadata),
       time: OneUptimeDate.toClickhouseDateTime(data.timeDate),
-      timeUnixNano: Math.trunc(data.timeUnixNano).toString(),
+      timeUnixNano: data.timeUnixNano,
       exceptionType: extracted.exceptionType || "",
       stackTrace: extracted.stackTrace || "",
       message: extracted.message || "",
@@ -1699,7 +1825,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       traceId: traceId,
       spanId: spanId,
       sessionId: sessionId,
+      /*
+       * The user the log record names (Common/Utils/Exceptions/
+       * ExceptionUserId): its own attributes, then its resource's, as stored
+       * after the scrub rules and pipelines. Read here because the row's
+       * attribute bag below deliberately keeps none of the log's.
+       */
+      userId: readExceptionUserId([finalAttributes]),
       fingerprint: fingerprint,
+      fingerprintV2: fingerprintV2,
       spanName: "",
       release: release,
       environment: environment,
@@ -1711,6 +1845,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     data.pendingExceptionUpserts.push({
       fingerprint: fingerprint,
+      fingerprintV2: fingerprintV2,
       projectId: data.projectId,
       primaryEntityId: data.primaryEntityId,
       primaryEntityType: data.serviceMetadata.primaryEntityType,
@@ -1730,6 +1865,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       ...(release ? { release: release } : {}),
       ...(environment ? { environment: environment } : {}),
     });
+  }
+
+  /*
+   * A nanosecond column's text: the digits of an exact read
+   * (OneUptimeDate.readExactUnixNano) as they are, and a float as it was
+   * always written.
+   */
+  private static toUnixNanoText(unixNano: number | string): string {
+    return typeof unixNano === "string"
+      ? unixNano
+      : Math.trunc(unixNano).toString();
   }
 
   /*
@@ -1785,6 +1931,88 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
    * stale value (a namespace the collector stamped from elsewhere) never
    * wins over it.
    */
+  /*
+   * Remembers what one Proxmox VE notification record says for the flush:
+   * the newest notification time per cluster, and each guest of a backup
+   * job with the job's time (the notification is sent when the job ends).
+   * A guest the job never got to is a failure: no backup was made.
+   */
+  public static bufferProxmoxNotification(data: {
+    clusterIdStr: string;
+    stamp: ProxmoxNotificationStamp;
+    at: Date;
+    backupBuffer: Map<string, Array<ProxmoxGuestBackupResult>>;
+    notificationTimes: Map<string, Date>;
+  }): void {
+    if (isNaN(data.at.getTime())) {
+      return;
+    }
+
+    const newest: Date | undefined = data.notificationTimes.get(
+      data.clusterIdStr,
+    );
+    if (!newest || data.at > newest) {
+      data.notificationTimes.set(data.clusterIdStr, data.at);
+    }
+
+    if (data.stamp.backupResults.length === 0) {
+      return;
+    }
+
+    const results: Array<ProxmoxGuestBackupResult> =
+      data.backupBuffer.get(data.clusterIdStr) || [];
+    const guests: Array<ProxmoxBackupGuestResult> = data.stamp.backupResults;
+    for (const guest of guests) {
+      results.push({
+        vmid: guest.vmid,
+        status: guest.status,
+        finishedAt: data.at,
+        bytes: guest.bytes,
+        durationSeconds: guest.durationSeconds,
+      });
+    }
+    data.backupBuffer.set(data.clusterIdStr, results);
+  }
+
+  /*
+   * Writes the batch's Proxmox VE notifications to Postgres: each guest's
+   * last backup, and when the cluster last sent a notification. Like every
+   * inventory write on this path, a failure is logged and never fails the
+   * batch: the logs are already stored.
+   */
+  public static async flushProxmoxNotifications(data: {
+    projectId: ObjectID;
+    backupBuffer: Map<string, Array<ProxmoxGuestBackupResult>>;
+    notificationTimes: Map<string, Date>;
+  }): Promise<void> {
+    for (const [clusterIdStr, results] of data.backupBuffer.entries()) {
+      try {
+        await ProxmoxResourceService.recordBackupResults({
+          projectId: data.projectId,
+          proxmoxClusterId: new ObjectID(clusterIdStr),
+          results: results,
+        });
+      } catch (err) {
+        logger.error(
+          `Error recording Proxmox backup results for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    for (const [clusterIdStr, receivedAt] of data.notificationTimes.entries()) {
+      try {
+        await ProxmoxClusterService.recordNotificationReceived({
+          proxmoxClusterId: new ObjectID(clusterIdStr),
+          receivedAt: receivedAt,
+        });
+      } catch (err) {
+        logger.error(
+          `Error recording a Proxmox notification for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   public static stampKubernetesEvent(data: {
     attributes: Dictionary<AttributeType | Array<AttributeType>>;
     body: string;
@@ -1816,6 +2044,31 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             now: data.now || OneUptimeDate.getCurrentDate(),
           }),
     };
+  }
+
+  /*
+   * Stamps a pulled ClusterOperator's or ClusterVersion's record with its
+   * state, conditions and versions (getOpenShiftStatusLogAttributes),
+   * written over whatever the record carried under the same keys, as
+   * stampKubernetesEvent does: they are read from the object the record IS.
+   * True when anything was stamped; a body that does not parse leaves the
+   * attributes untouched.
+   */
+  public static stampOpenShiftStatus(data: {
+    attributes: Dictionary<AttributeType | Array<AttributeType>>;
+    body: string;
+  }): boolean {
+    const stamped: Record<string, string> = getOpenShiftStatusLogAttributes({
+      attributes: data.attributes as Record<string, unknown>,
+      objectKvList: extractObjectFromLogBody(data.body),
+    });
+
+    if (Object.keys(stamped).length === 0) {
+      return false;
+    }
+
+    Object.assign(data.attributes, stamped);
+    return true;
   }
 
   private static getSeverityText(severityNumber: number): LogSeverity {

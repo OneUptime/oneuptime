@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -34,7 +35,11 @@ import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSc
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -48,6 +53,14 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 const AlertViewIncidents: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * On a private record's page, what the reader holds on it: a change of it
+   * or of a part of it - a link, a member, a role - is offered only when a
+   * team of theirs that owns it may make it (PrivateRecordScope).
+   */
+  const privateRecordGate: (
+    model: BaseModel,
+  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
@@ -135,6 +148,7 @@ const AlertViewIncidents: FunctionComponent<
       },
       new IncidentAlert(),
       ModelAction.Create,
+      privateRecordGate(new IncidentAlert()),
     ),
     PermissionGate.check(new Incident(), ModelAction.Read),
   );
@@ -165,6 +179,7 @@ const AlertViewIncidents: FunctionComponent<
       declareIncidentButton,
       new IncidentAlert(),
       ModelAction.Create,
+      privateRecordGate(new IncidentAlert()),
     );
   }
 

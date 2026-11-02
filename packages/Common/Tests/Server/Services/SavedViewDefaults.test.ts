@@ -1,12 +1,14 @@
 import LogSavedViewService from "../../../Server/Services/LogSavedViewService";
 import MetricSavedViewService from "../../../Server/Services/MetricSavedViewService";
 import TraceSavedViewService from "../../../Server/Services/TraceSavedViewService";
+import ExceptionSavedViewService from "../../../Server/Services/ExceptionSavedViewService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import LogSavedView from "../../../Models/DatabaseModels/LogSavedView";
 import MetricSavedView from "../../../Models/DatabaseModels/MetricSavedView";
 import TraceSavedView from "../../../Models/DatabaseModels/TraceSavedView";
+import ExceptionSavedView from "../../../Models/DatabaseModels/ExceptionSavedView";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -26,7 +28,11 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * included, is driven in ProjectDefaultRowWrites.test.ts.
  */
 
-type SavedViewModel = LogSavedView | MetricSavedView | TraceSavedView;
+type SavedViewModel =
+  | LogSavedView
+  | MetricSavedView
+  | TraceSavedView
+  | ExceptionSavedView;
 
 /*
  * The hooks under test, reached past `protected`. Typed over the union of the
@@ -83,6 +89,14 @@ const cases: Array<ServiceCase> = [
     service: MetricSavedViewService as unknown as SavedViewService,
     buildModel: (): SavedViewModel => {
       return new MetricSavedView();
+    },
+  },
+  // The exceptions list keeps its views apart from the traces explorer.
+  {
+    label: "ExceptionSavedViewService",
+    service: ExceptionSavedViewService as unknown as SavedViewService,
+    buildModel: (): SavedViewModel => {
+      return new ExceptionSavedView();
     },
   },
 ];
@@ -368,18 +382,19 @@ describe.each(cases)(
   },
 );
 
-describe("the three saved-view services", () => {
+describe("the four saved-view services", () => {
   test("are distinct services over distinct models", () => {
     const models: Array<string> = cases.map(({ buildModel }: ServiceCase) => {
       return (buildModel() as BaseModel).tableName as string;
     });
-    expect(new Set(models).size).toBe(3);
+    expect(new Set(models).size).toBe(4);
     expect(
       new Set([
         LogSavedViewService,
         TraceSavedViewService,
         MetricSavedViewService,
+        ExceptionSavedViewService,
       ]).size,
-    ).toBe(3);
+    ).toBe(4);
   });
 });

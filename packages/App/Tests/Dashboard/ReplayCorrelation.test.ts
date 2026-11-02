@@ -598,8 +598,14 @@ describe("replay correlation panel wiring", () => {
   });
 
   test("the exception groups are resolved in one batched lookup", () => {
-    expect(panelSource).toContain("new Includes(fingerprints)");
+    /*
+     * The lookup that answers each fingerprint with the exception it counts
+     * on - a merged one's with the exception it was merged into - indexed
+     * by the fingerprint asked about.
+     */
+    expect(panelSource).toContain("findExceptionsOfFingerprints(fingerprints)");
     expect(panelSource).toContain("indexExceptionGroupsByFingerprint(");
+    expect(panelSource).not.toContain("new Includes(fingerprints)");
     /* Injectable, so the panel renders without a server. */
     expect(panelSource).toContain(
       "resolveExceptionGroups || fetchExceptionGroupsByFingerprint",

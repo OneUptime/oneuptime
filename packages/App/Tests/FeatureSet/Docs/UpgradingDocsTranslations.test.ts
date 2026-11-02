@@ -412,6 +412,7 @@ const PROSE_LEADS: Array<string> = [
   "A permission scoped to Owned reaches what its own team owns.",
   "A team's permission limited to labels is limited to them again, whatever scope it is stored with.",
   "Deleting a label removes the permissions limited to it alone.",
+  "A private incident, alert or episode is changed only through the teams that own it.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

@@ -12,8 +12,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
@@ -98,6 +101,15 @@ const IncidentPostmortem: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const isAiOffered: boolean = useAiOffered();
 
+  /*
+   * What the reader holds on the incident when it is private: writing its
+   * postmortem, moving its status and adding owners are offered only when a
+   * team of theirs that owns it may (PrivateRecordScope).
+   */
+  const privateRecordGate: (
+    model: BaseModel,
+  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
+
   const postmortemTemplates: PostmortemTemplatesState =
     usePostmortemTemplates();
   const postmortemStatuses: PostmortemStatusesState = usePostmortemStatuses();
@@ -153,13 +165,18 @@ const IncidentPostmortem: FunctionComponent<
   const writeGate: PermissionGateResult = PermissionGate.checkFormUpdate(
     incidentModel,
     INCIDENT_POSTMORTEM_FORM_FIELDS,
+    privateRecordGate(incidentModel),
   );
   const statusGate: PermissionGateResult = PermissionGate.check(
     incidentModel,
     ModelAction.Update,
+    privateRecordGate(incidentModel),
   );
   // Adding a person or a team as an owner, as the Owners page does.
-  const addOwners: PostmortemAddOwners | undefined = canAddOwners(ownersTarget)
+  const addOwners: PostmortemAddOwners | undefined = canAddOwners(
+    ownersTarget,
+    privateRecordGate(new IncidentOwnerUser()),
+  )
     ? {
         target: ownersTarget,
         onOwnersChanged: (): void => {

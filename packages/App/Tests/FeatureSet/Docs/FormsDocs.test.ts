@@ -49,18 +49,26 @@ import {
 import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import Form from "Common/Models/DatabaseModels/Form";
+import FormDomain from "Common/Models/DatabaseModels/FormDomain";
 import { UPLOAD_OUTSIDE_PROJECT_MESSAGE } from "Common/Server/Services/FileService";
 import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
 import {
   FORM_FOREIGN_PAGE_MESSAGE,
   FORM_SUBMISSION_BODY_MESSAGE,
 } from "Common/Server/API/FormAPI";
-import {
+import FormRateLimit, {
+  FORM_FILES_RATE_LIMIT_MESSAGE,
   FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
   FORM_READ_RATE_LIMIT_MESSAGE,
   FORM_SUBMIT_RATE_LIMIT_MESSAGE,
   FORM_TOTAL_RATE_LIMIT_MESSAGE,
 } from "Common/Server/Middleware/FormRateLimit";
+import {
+  FORM_FILE_MAX_SIZE_IN_BYTES,
+  FORM_FILE_QUESTION_MAX_FILES,
+  FORM_SUBMISSION_FILES_MAX_TOTAL_SIZE_IN_BYTES,
+  FORM_SUBMISSION_MAX_FILES,
+} from "Common/Types/Form/FormFileAnswer";
 import {
   FORM_NETWORK_NOT_ALLOWED_MESSAGE,
   FORM_NOT_AVAILABLE_MESSAGE,
@@ -921,6 +929,25 @@ describe("Forms docs", () => {
         FORM_SUBMITTER_NAME_MAX_LENGTH,
       );
 
+      // A file question's limits, and a whole submission's files.
+      const megabytes: (bytes: number) => number = (bytes: number): number => {
+        return bytes / (1024 * 1024);
+      };
+
+      expect(limitOf("A file")).toEqual([
+        megabytes(FORM_FILE_MAX_SIZE_IN_BYTES),
+      ]);
+      expect(limitOf("A **Multiple Files** question")).toEqual([
+        FORM_FILE_QUESTION_MAX_FILES,
+      ]);
+      expect(limitOf("The files of one submission")).toEqual([
+        FORM_SUBMISSION_MAX_FILES,
+        megabytes(FORM_SUBMISSION_FILES_MAX_TOTAL_SIZE_IN_BYTES),
+      ]);
+      // And the hourly allowance of files the rate limits table gives.
+      expect(megabytes(FormRateLimit.getFileCeiling().limitInBytes)).toBe(200);
+      expect(FormRateLimit.getFileCeiling().windowSeconds).toBe(3600);
+
       // The same numbers where the fields are listed.
       const fields: string = sectionOf(
         building,
@@ -1143,6 +1170,8 @@ describe("Forms docs", () => {
         FORM_READ_RATE_LIMIT_MESSAGE,
         FORM_SUBMIT_RATE_LIMIT_MESSAGE,
         FORM_TOTAL_RATE_LIMIT_MESSAGE,
+        // A form's hourly allowance of files, used up (Rate limits).
+        FORM_FILES_RATE_LIMIT_MESSAGE,
         FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
         FORM_NO_SEVERITY_MESSAGE,
         FormMessage.CaptchaFailed,
@@ -1167,7 +1196,7 @@ describe("Forms docs", () => {
       }
 
       // What a submitter sees is the page's own copy of the server's words.
-      for (const sentence of quoted.slice(0, 8)) {
+      for (const sentence of quoted.slice(0, 9)) {
         expect(Object.values(FormMessage)).toContain(sentence);
       }
 
@@ -1228,7 +1257,8 @@ describe("Forms docs", () => {
       expect(settings).toHaveLength(
         (source.match(/parsePositiveIntFromEnv\(\s*"/g) || []).length,
       );
-      expect(settings.length).toBe(8);
+      // Two of them, the files ceiling's, since forms took files.
+      expect(settings.length).toBe(10);
       expect(source).toContain("process.env[`FORM_${name}`]");
       expect(source).toContain("process.env[`INCIDENT_FORM_${name}`]");
 
@@ -1310,18 +1340,59 @@ describe("Forms docs", () => {
           new FormSubmission().getDeletePermissions(),
         ],
       ];
+      /*
+       * A form's custom domains (FormDomain): added, checked and removed by
+       * project owners and admins and by Edit Form - which resets the link
+       * the domains stand beside - or by their own permission; seen by
+       * everyone who can read the form.
+       */
+      const domainRows: Array<[Permission, Array<Permission>]> = [
+        [Permission.CreateFormDomain, new FormDomain().getCreatePermissions()],
+        [Permission.EditFormDomain, new FormDomain().getUpdatePermissions()],
+        [Permission.DeleteFormDomain, new FormDomain().getDeletePermissions()],
+        [Permission.ReadFormDomain, new FormDomain().getReadPermissions()],
+      ];
 
       expect(
         rows.map((row: Array<string>): string => {
           return row[0] as string;
         }),
       ).toEqual(
-        expected.map(
+        [...expected, ...domainRows].map(
           ([permission]: [Permission, Array<Permission>]): string => {
             return `**${PermissionHelper.getTitle(permission)}**`;
           },
         ),
       );
+
+      for (const [index, [permission, holders]] of domainRows.entries()) {
+        const who: string = (
+          rows[expected.length + index] as Array<string>
+        )[2] as string;
+
+        if (permission === Permission.ReadFormDomain) {
+          // Everyone who can read a form, and the permission itself.
+          expect([...holders].sort()).toEqual(
+            [...new Form().getReadPermissions(), permission].sort(),
+          );
+          expect(who).toBe(
+            `Everyone with **${PermissionHelper.getTitle(Permission.ReadForm)}**`,
+          );
+          continue;
+        }
+
+        expect([...holders].sort()).toEqual(
+          [
+            permission,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.EditForm,
+          ].sort(),
+        );
+        expect(who).toBe(
+          `Project Owner, Project Admin, and **${PermissionHelper.getTitle(Permission.EditForm)}**`,
+        );
+      }
 
       for (const [index, [permission, holders]] of expected.entries()) {
         const who: string = (rows[index] as Array<string>)[2] as string;
@@ -1653,6 +1724,8 @@ describe("Forms docs: templates, hidden questions and Duplicate Form", () => {
       "**Templates**",
       "**On Submit**",
       "**Share**",
+      // The form's own domains, right after its link.
+      "**Custom Domains**",
       "**Submissions**",
       "**Duplicate Form**",
       "**Delete Form**",

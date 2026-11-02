@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -237,6 +238,15 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   const aggregationType: string =
     props.data?.metricQueryData?.filterData?.aggegationType?.toString() ||
     "Avg";
+
+  /*
+   * The metric a chart draws instead when this query has no data in the
+   * window (MetricQueryConfigData.fallback), named under the query so the
+   * chart's other metric is never a surprise.
+   */
+  const fallbackMetricName: string =
+    props.data?.fallback?.queryConfig?.metricQueryData?.filterData?.metricName?.toString() ||
+    "";
 
   // Remove a single attribute filter
   const handleRemoveAttribute: (key: string) => void = (key: string): void => {
@@ -488,12 +498,21 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                           return m.name === selectedMetricName;
                         });
 
+                      /*
+                       * A fallback stands in for the metric it was written
+                       * for, so another metric drops it.
+                       */
+                      const withoutFallback: MetricQueryConfigData = {
+                        ...props.data,
+                      };
+                      delete withoutFallback.fallback;
+
                       if (metricType) {
                         const currentAlias: MetricAliasData =
                           props.data.metricAliasData || defaultAliasData;
 
                         props.onChange({
-                          ...props.data,
+                          ...withoutFallback,
                           metricQueryData: data,
                           metricAliasData: {
                             ...currentAlias,
@@ -505,6 +524,12 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                         });
                         return;
                       }
+
+                      props.onChange({
+                        ...withoutFallback,
+                        metricQueryData: data,
+                      });
+                      return;
                     }
 
                     props.onChange({ ...props.data, metricQueryData: data });
@@ -539,6 +564,24 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
 
             {/* Attribute filter chips */}
             {getAttributeChips()}
+
+            {fallbackMetricName ? (
+              <div
+                className="flex items-start gap-1.5 text-xs text-gray-500"
+                data-testid="metric-query-fallback-note"
+              >
+                <Icon
+                  icon={IconProp.Info}
+                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                />
+                <span className="min-w-0 break-words">
+                  {translator.translateTemplate(
+                    "When this query has no data in the time range, the chart shows {{metricName}} instead.",
+                    { metricName: fallbackMetricName },
+                  )}
+                </span>
+              </div>
+            ) : null}
 
             {/* Display Settings - collapsible */}
             <div className="border-t border-gray-200 pt-3">
@@ -767,9 +810,11 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
         )}
 
         {props.error && (
-          <p data-testid="error-message" className="mt-3 text-sm text-red-400">
-            {props.error}
-          </p>
+          <FieldError
+            message={props.error}
+            className="mt-3 text-sm text-red-400"
+            announce="none"
+          />
         )}
       </div>
     );

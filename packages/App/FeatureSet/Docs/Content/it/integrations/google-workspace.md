@@ -43,11 +43,12 @@ La connessione accede con la chiave di un account di servizio e la [delega a liv
 ### Consentire la delega a livello di dominio
 
 1. Nella [Console di amministrazione Google](https://admin.google.com), come super amministratore, apri **Security → Access and data control → API controls → Manage domain-wide delegation** e seleziona **Add new**.
-2. Inserisci il **Unique ID** dell'account di servizio come **Client ID**, e `https://www.googleapis.com/auth/admin.reports.audit.readonly` come unico **OAuth scope**. Seleziona **Authorize**. Google può impiegare qualche minuto per applicarlo.
+2. Inserisci il **Unique ID** dell'account di servizio come **Client ID**, e `https://www.googleapis.com/auth/admin.reports.audit.readonly` come **OAuth scope**. Seleziona **Authorize**. Google può impiegare qualche minuto per applicarlo.
+3. Perché i playbook possano sospendere, riattivare e disconnettere utenti (vedi [Contenimento](/docs/telemetry/security-cases#contenimento)), aggiungi `https://www.googleapis.com/auth/admin.directory.user` e `https://www.googleapis.com/auth/admin.directory.user.security` agli ambiti dello stesso client, separati da virgole. L'amministratore che la connessione impersona deve allora gestire quegli utenti.
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Google Workspace** in **Identità** e fai clic su **Avanti**. Inserisci l'**Administrator email**, fai clic su **Avanti** e incolla il contenuto del file della chiave in **JSON dell'account di servizio**. Nel passaggio **Interrogazione**, attiva **Attività di Drive** per leggere anche Drive.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Google Workspace** in **Identità** e fai clic su **Avanti**. Inserisci l'**Administrator email**, fai clic su **Avanti** e incolla il contenuto del file della chiave in **JSON dell'account di servizio**. Nel passaggio **Interrogazione**, attiva **Attività di Drive** per leggere anche Drive.
 
 ### Provarla prima di salvare
 

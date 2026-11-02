@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { joinContinuedLines } from "./InstallCommandLines";
 import {
   afterEach,
   beforeEach,
@@ -54,6 +55,24 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
     default: (props: MarkdownViewerProps): React.ReactElement => {
       return React.createElement("div", {}, props.text);
     },
+  };
+});
+
+/*
+ * The guide is pinned here as an install with no HOST reads it: the quoted
+ * <YOUR_ONEUPTIME_URL> in its addresses. CI's config.env sets
+ * HOST=localhost (from config.example.env), so the setting is stubbed empty;
+ * AgentInstallCommandsOnSelfHosted covers a set HOST.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    __esModule: true,
+    HOST: "",
   };
 });
 
@@ -229,9 +248,11 @@ describe("DatabaseDocumentationCard", () => {
       fireEvent.click(screen.getByRole("tab", { name: "Docker Compose" }));
 
       expect(container.textContent).toContain("docker compose up -d");
+      // From this OneUptime (its address unset here, so the quoted placeholder), never GitHub.
       expect(container.textContent).toContain(
-        "/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml",
+        "curl -fsSL '<YOUR_ONEUPTIME_URL>/install/database-agent/configs/postgresql.yaml' -o otel-collector-config.yaml",
       );
+      expect(container.textContent).not.toContain("githubusercontent");
     });
 
     test("puts the picked key on the install command line once there is one", async () => {
@@ -239,7 +260,7 @@ describe("DatabaseDocumentationCard", () => {
       const container: HTMLElement = renderCard();
 
       await waitFor(() => {
-        expect(container.textContent).toContain(
+        expect(joinContinuedLines(container.textContent || "")).toContain(
           "ONEUPTIME_TELEMETRY_INGESTION_KEY=secret-production DATABASE_SYSTEM=postgresql bash install.sh",
         );
       });
@@ -250,7 +271,7 @@ describe("DatabaseDocumentationCard", () => {
 
       // The key follows the guide across a pick.
       fireEvent.click(screen.getByRole("radio", { name: "Redis" }));
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         "ONEUPTIME_TELEMETRY_INGESTION_KEY=secret-production DATABASE_SYSTEM=redis bash install.sh",
       );
     });
@@ -310,7 +331,7 @@ describe("DatabaseDocumentationCard", () => {
       expect(container.textContent).toContain(
         `| \`DATABASE_SERVER_ID\` | \`${DATABASE_ID}\` |`,
       );
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         `DATABASE_SYSTEM=postgresql DATABASE_SERVER_ADDRESS=db.prod.internal DATABASE_SERVER_PORT=5432 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
       );
       expect(tabLabels()).toEqual(["Install script", "Docker Compose"]);
@@ -339,7 +360,7 @@ describe("DatabaseDocumentationCard", () => {
       expect(container.textContent).toContain(
         "Valkey, KeyDB and Dragonfly take the same ACL.",
       );
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         `DATABASE_SYSTEM=valkey DATABASE_SERVER_ADDRESS=cache.prod.internal DATABASE_SERVER_PORT=6379 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
       );
     });

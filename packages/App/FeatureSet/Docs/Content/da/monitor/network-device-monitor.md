@@ -394,6 +394,8 @@ Hver række fortæller, hvor dens OID er kendt: en værdi, som en leverandørs s
 - **Opret advarsel** vises, når OID'et indsamles, og åbner en ny netværksenheds-monitor for enheden med ét kriterium på OID'et. En tæller starter på **SNMP OID Rate (per second)** og en måler på **SNMP OID Value**, begge over en grænse, du selv sætter; en oppetid advarer under ti minutter (enheden er genstartet), alt andet når det ændrer sig fra den læste værdi.
 - **Kopiér OID**, i rækkens menu, kopierer OID'et.
 
+**Download**, ved siden af walkens opsummering, gemmer det, walken læste, som en fil: **snmpwalk-tekst (.txt)**, ét OID pr. linje, som `snmpwalk -On` skriver det, og som ethvert SNMP-værktøj og enhver leverandørsupport kan læse, eller **CSV-regneark (.csv)** med hvert OID's navn, MIB, type og værdi. Filen rummer hvert OID, walken læste, også fortsatte walks, uanset hvad filteret viser, og er opkaldt efter enheden, undertræet og tidspunktet, den blev gemt. Alle, der kan læse enhedens seneste walk, kan downloade den.
+
 En walk, der fejler, siger hvorfor, og hvad du skal kontrollere: en enhed, der ikke svarer (SNMP slået fra, UDP 161 blokeret eller, ved v1 og v2c, en forkert community-streng, som en agent ignorerer uden et ord), en SNMPv3-bruger, -adgangskode eller -protokol, som enheden afviste, eller en del af træet, som loginoplysningernes SNMP-visning udelader. En walk, der stopper undervejs, beholder det, den har læst. En walk kræver tilladelsen **Create Network Device Diagnostic** og en sonde, der er ny nok til SNMP-walks: med en ældre beder siden dig om at opdatere den.
 
 ### SNMP-tabeller
@@ -504,17 +506,17 @@ En undersøgelse fra OneUptime AI af en hændelse eller advarsel fra en netværk
 
 ### Enhedsidentitet
 
-Efter det første vellykkede walk læser OneUptime SNMPv2-systemgruppen og, hvor enheden understøtter det, ENTITY-MIB og udfylder enhedens post: systemnavn, beskrivelse, placering, kontakt, oppetid, producent, model, serienummer og firmwareversion. Producentens enterprise-OID (`sysObjectID`) er enhedens fingeraftryk: den navngiver producenten og vælger den tilsvarende producentskabelon. De samme oplysninger vises i [inventaret](/docs/inventory/cmdb-sync#aktivattributter-for-netværksenheder) sammen med alle dine andre aktiver.
+Efter det første vellykkede walk læser OneUptime SNMPv2-systemgruppen og, hvor enheden understøtter det, ENTITY-MIB og udfylder enhedens post: systemnavn, beskrivelse, placering, kontakt, oppetid, producent, model, serienummer og firmwareversion. På FortiGate-, Juniper-, MikroTik- og Sophos-enheder læser én ekstra forespørgsel det, ENTITY-MIB lader stå tomt, fra producentens egen MIB. Producentens enterprise-OID (`sysObjectID`) er enhedens fingeraftryk: den navngiver producenten og vælger den tilsvarende producentskabelon. De samme oplysninger vises i [inventaret](/docs/inventory/cmdb-sync#aktivattributter-for-netværksenheder) sammen med alle dine andre aktiver.
 
 En enhed kun med ping beholder det navn og den adresse, du, eller en discovery-scanning, gav den. Det, dens egen polling ikke har læst, får den fra discovery:
 
-- Det systemnavn, den beskrivelse, `sysObjectID`, placering og kontakt, som den seneste [discovery-scanning](#find-enheder-med-en-netværksscanning) af dens adresse læste over SNMP, og de reverse-DNS- og NetBIOS-navne, den fandt.
-- Dens MAC-adresse, fra ARP-tabellen i en gennemgået router på dens site.
+- Det systemnavn, den beskrivelse, `sysObjectID`, placering, kontakt, model, serienummer, firmware og softwareversion, som den seneste [discovery-scanning](#find-enheder-med-en-netværksscanning) af dens adresse læste over SNMP, og de reverse-DNS- og NetBIOS-navne, den fandt.
+- Dens MAC-adresse, fra ARP-tabellen i en gennemgået router på dens site, eller ellers fra den første Ethernet-port, som den scanning læste.
 - For en enhed, der polles på et DNS-navn, den adresse, dens sonde slog navnet op til.
 
-De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
+De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. En scanning læser en værts MAC-adresse, model, serienummer, firmware og softwareversion med nogle få anmodninger mere efter dens systemgruppe, i højst fem sekunder pr. vært. En vært, der holder op med at svare på dem, tæller stadig som en, der har svaret, og det, scanningen ikke kunne læse, beholder sin seneste værdi. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
 
-En Meraki-switch, et Meraki-adgangspunkt eller en Meraki-appliance giver hverken serienummer, model eller firmware over SNMP: Meraki implementerer ingen ENTITY-MIB. Når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation, henter enheden dem, og alt andet, dens polling lader stå tomt, fra Meraki-dashboardet, og dens kort **Inventar** nævner forbindelsen i en række **Meraki**.
+En Meraki-switch, et Meraki-adgangspunkt eller en Meraki-appliance giver hverken serienummer eller firmware over SNMP: når enheden polles direkte, svarer den på systemgruppen og interfacetabellerne, som giver dens model og dens MAC-adresse, og intet andet. Når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation, henter enheden dem, og alt andet, dens polling lader stå tomt, fra Meraki-dashboardet, og dens kort **Inventar** nævner forbindelsen i en række **Meraki**.
 
 For at læse en enhed igen nu trykker du på **Opdater** på dens kort **Inventar**. Dens sonde poller den inden for et minut, og dens Meraki-forbindelse læser organisationen igen. Kortet fortæller, hvornår den nye aflæsning er landet, eller at sonden ikke kunne nå enheden. **Opdater** findes for dem, der må redigere netværksenheder, på en enhed, som en sonde poller, eller som en Meraki-forbindelse beskriver.
 
@@ -688,11 +690,11 @@ Regler har ingen egen tidsplan og behøver ingen. Aktiverede regler kører af si
 At gemme en regel anvender den også på resultater, projektet allerede har: en regel, du skriver eller aktiverer i dag, når værter fundet inden for de seneste 24 timer inden for cirka et minut, så en regel, der skrives efter en enkeltstående scanning, ikke bliver stående og venter på en scanning, der aldrig kører igen. Ældre resultater lades være, fordi det at importere et miljø, der blev fundet i sidste måned, er en beslutning, ikke en bivirkning af at gemme en regel. Reglens to knapper er måden at træffe den beslutning på, og de når hver scanning i projektet, uanset hvor gammel:
 
 - **Dry Run** vurderer hver færdig scanning og rapporterer, hvad reglen ville importere og overvåge. Intet skrives, så det er den sikre måde at se, hvad en regel ville gøre krav på, før du aktiverer den på et miljø i drift. En deaktiveret regel kan få en Dry Run; kun en rigtig kørsel kræver, at den er aktiveret, og derfor starter en regel, der oprettes i dashboardet, med **Aktiveret** slået fra: kør Dry Run, og slå den så til.
-- **Run Rule** udfører den samme vurdering og gennemfører importen.
+- **Kør regel** udfører den samme vurdering og gennemfører importen.
 
-**Hvem må køre en regel.** En kørsel når hver scanning i projektet, så det at trykke på **Dry Run** eller **Run Rule** kræver rettigheder, der når hele projektet: ret til at redigere reglen, til at oprette netværksenheder og - når reglen har en monitorskabelon - til at oprette monitorer, hver med omfang over alle ressourcer i projektet. En rettighed, der er begrænset til etiketter eller til ejede enheder, er ikke nok, og et teams blokering med etiketter på oprettelse af enheder eller monitorer afviser kørslen. **Kør nu** på en lokationstildelingsregel eller en regel for enhedsetiketter kræver ret til at redigere reglen og til at redigere netværksenheder, med omfang over hele projektet på samme måde (se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now#før-du-begynder), som nævner hver rettighed).
+**Hvem må køre en regel.** En kørsel når hver scanning i projektet, så det at trykke på **Dry Run** eller **Kør regel** kræver rettigheder, der når hele projektet: ret til at redigere reglen, til at oprette netværksenheder og - når reglen har en monitorskabelon - til at oprette monitorer, hver med omfang over alle ressourcer i projektet. En rettighed, der er begrænset til etiketter eller til ejede enheder, er ikke nok, og et teams blokering med etiketter på oprettelse af enheder eller monitorer afviser kørslen. **Kør nu** på en lokationstildelingsregel eller en regel for enhedsetiketter kræver ret til at redigere reglen og til at redigere netværksenheder, med omfang over hele projektet på samme måde (se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now#før-du-begynder), som nævner hver rettighed).
 
-Store miljøer importeres i afmålte batches. At oprette en enhed eller en monitor kører hele pipelinen — lokationstildeling, ejere, etiketter og, for monitorer, abonnementet, statussen og arbejdet med statussider —, så en kørsel opretter nogle hundrede af hver ad gangen i stedet for titusinder på én gang. Ét tryk på **Run Rule** driver så mange batches, som miljøet kræver, og rapporterer det samlede antal, så en scanning af 900 routere er ét tryk. Hvis en kørsel stopper med arbejde tilbage, siger rapporten præcis hvor meget ("Stopped at the run cap with 409 active Network Device monitors still to create"), og et nyt tryk på knappen fortsætter: værter, der allerede er importeret, og monitorer, der allerede er oprettet, springes over, så en ny kørsel aldrig tilføjer to gange.
+Store miljøer importeres i afmålte batches. At oprette en enhed eller en monitor kører hele pipelinen — lokationstildeling, ejere, etiketter og, for monitorer, abonnementet, statussen og arbejdet med statussider —, så en kørsel opretter nogle hundrede af hver ad gangen i stedet for titusinder på én gang. Ét tryk på **Kør regel** driver så mange batches, som miljøet kræver, og rapporterer det samlede antal, så en scanning af 900 routere er ét tryk. Hvis en kørsel stopper med arbejde tilbage, siger rapporten præcis hvor meget ("Stopped at the run cap with 409 active Network Device monitors still to create"), og et nyt tryk på knappen fortsætter: værter, der allerede er importeret, og monitorer, der allerede er oprettet, springes over, så en ny kørsel aldrig tilføjer to gange.
 
 Enheder og monitorer er adskilt arbejde med adskilte grænser: en regel, der får en monitorskabelon, efter dens enheder er importeret, opretter slet ingen enheder, kun monitorer, og dens rapport siger det.
 
@@ -745,13 +747,15 @@ OneUptime holder derefter én netværksenheds-monitor pr. matchende enhed, lavet
 > [!IMPORTANT]
 > Hver monitor, en politik opretter, tæller med i dit abonnement. En politik over et stort miljø er mange monitorer fra én gemning, så bekræftelsen af den anbefalede politik nævner projektets antal enheder, før den opretter noget.
 
-Tabellens kolonne **Covered Devices** viser **Endnu ikke talt** indtil politikkens første synkronisering, og **Last Sync** siger, hvornår det var, eller hvorfor den fejlede.
+Tabellens kolonne **Covered Devices** viser **Endnu ikke talt** indtil politikkens første synkronisering, og **Seneste synkronisering** siger, hvornår det var, eller hvorfor den fejlede.
 
 Uden politikker endnu tilbyder siden **Create the recommended policy**: en monitorskabelon **Network device alert pack (recommended)**, der bærer den [anbefalede advarselspakke](#anbefalet-advarselspakke), og en politik **Alert on every device**, der anvender den på hele projektet. Skabelonen findes igen ved en markør i dens beskrivelse, så handlingen aldrig opretter en ekstra kopi, og den er en monitorskabelon, du også kan bruge til monitorer, du selv opretter. Indsnævr politikkens omfang bagefter, hvis hele projektet er for meget.
 
 ### Én enhed ad gangen
 
 Åbn enhedens side, og klik på **Opret monitor** på kortet **Monitors alerting on this device**. Monitorformularen åbner med typen Network Device og enheden valgt og den [anbefalede advarselspakke](#anbefalet-advarselspakke) udfyldt: gennemgå den, sæt alvorsgrader og vagtpolitikker, og gem.
+
+De fleste switche, routere, firewalls og printere har også en webgrænseflade på deres egen adresse. **Overvåg webgrænseflade**, på samme kort, åbner en **Websted**-monitor for den: `https://` på enhedens adresse, med **Tillad selvsignerede certifikater** slået til, da en enheds webgrænseflade næsten altid har et, kontrolleret fra enhedens egen probe og opkaldt efter enheden. Ret URL'en, hvis grænsefladen svarer på `http`, på en anden port eller under en sti, og gem så. Kortet viser monitoren, så længe dens navn indeholder enhedens navn, og dens URL er på enhedens adresse; den ændrer ikke enhedens status.
 
 For at oprette en fra **Monitorer** i stedet:
 
@@ -760,6 +764,8 @@ For at oprette en fra **Monitorer** i stedet:
 3. Vælg den netværksenhed, der skal advares om. Alt om indsamling af data — værtsnavn, loginoplysninger, tidsplan, interface-walks, tilstands-OID'er — kommer fra enheden; monitoren vælger kun, hvad der skal advares om, gennem sine kriterier.
 
 En netværksenheds-monitor har intet eget interval: den vurderes, hver gang enhedens pollingresultater ankommer, og hver gang en trap fra enheden ankommer.
+
+Når pollingen stopper, vurderes monitoren stadig. Når en enhed har været tre pollingintervaller, og mindst ti minutter, uden polling, vurderes dens monitorer hvert femte minut som en polling, der ikke kunne nå den: et kriterium, der matcher, at **SNMP Device Is Online** er False, for eksempel **Device unreachable**, udløses, og hændelsen siger, hvorfor der ikke kom nogen polling, for eksempel at sonden er nede, eller at enheden ingen sonde har. En enhed med polling slået fra eller med [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) lades i fred. Den næste polling vurderer monitoren som normalt.
 
 ### En enheds hændelser og advarsler
 
@@ -951,6 +957,7 @@ For at kortet fyldes ud:
 - Giv enhederne SNMP-loginoplysninger. Nabotabeller kommer fra walket, så en enhed kun med ping vises på kortet, men rapporterer ingen egne naboer.
 - Hold **Walk Interfaces** slået til i enhedernes pollingindstillinger: nabotabellerne walkes sammen med interfaces.
 - Slå LLDP, eller CDP på Cisco-enheder, til på enhederne selv.
+- På et Meraki-netværk skal du forbinde dashboardet. En [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) tegner de kabler, Meraki kender, også dem til en MX, der kun svarer på ping.
 
 Klik på en ikke-administreret peer, og **Add to Monitoring** registrerer den som en sonde-pollet enhed. Den tager den sonde, som dens naboer er enige om, så den pinges fra sin første polling, og du kan tilføje loginoplysninger senere, hvis den viser sig at have SNMP.
 
@@ -989,6 +996,8 @@ For det skal kortet vide, hvilken lært MAC der er enhedens. Der er to måder, o
 - Ved at skrive den: sæt **MAC-adresse** på enheden, på dens side **Indstillinger** eller kortet på oversigten, når dens værtsnavn er et DNS-navn, eller ingen router på lokationen walkes. Alle de sædvanlige skrivemåder accepteres.
 
 Den switch, enheden hænger på, skal også have **Collect Connected Endpoints** slået til: det er derfra, porten kommer. Adresser matches inden for enhedens lokation, da hver filial har en `10.0.0.5`; en MAC matcher uanset lokationen.
+
+En [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) klarer alt dette, uden at noget skal slås til. Merakis klientliste viser, hvilken switch og port hver klient er på, så en enhed placeres, så snart den switch er en netværksenhed her, på samme lokation. Listen giver også enheden dens MAC-adresse, og det, Meraki kalder en klient, vises i kolonnen **Værtsnavn** under **Endepunkter**. Den læses hver anden time, så en ny enhed kan være så længe om at dukke op. Så længe Meraki rapporterer en klient, går dens port forud for en gennemgået forwarding-tabel, fordi Meraki kan skelne en adgangsport fra et uplink. En Wi-Fi-klient placeres kun på sit adgangspunkt, når den er en enhed her: Telefonerne på et gæstenetværk holdes uden for kortet.
 
 Enhedens oversigt har et kort **Forbundet til**, der nævner switchen, porten og VLAN'et. En switch, router eller firewall, der rapporterer sine naboer over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (et link, når den er en enhed her) og porten i den anden ende, med **Åbn kortet** ved siden af. På kortet viser enhedens skuffe det samme under **Forbundet til**, og forbindelsens skuffe siger, at den blev lært fra switchens forwardingtabel. Parent-Child-visningen tegner enheden under dens switch. En forbindelse, du har tegnet i hånden under **Device Links** for det samme par, smelter sammen med den lærte i stedet for at fordoble den: den lærte port erstatter en fejlskrevet, og en forælder, du har sat på den håndtegnede forbindelse, bevares.
 
@@ -1048,13 +1057,15 @@ Kortet tegner en enhed kun med pings kabel ud fra dens switchs forwardingtabel, 
 - Enhedens MAC er kendt: dens **MAC-adresse** er sat, eller en router på lokationen indsamler endepunkter, og enhedens værtsnavn er den adresse, som routerens ARP-tabel binder. En enhed, der er registreret efter DNS-navn uden MAC, kan ikke matches, så skriv MAC'en ind.
 - Samme lokation: en adresse matches kun med en enhed i samme lokation som den switch, der lærte den. En enhed uden lokation matches kun efter adresse, når switchen heller ingen lokation har; hvis switchen er i en lokation, så sæt enheden i den samme. En MAC matcher uanset lokationen.
 
+Enhedens panel på kortet viser, hvad af dette der mangler. På et Meraki-netværk træder Merakis klientliste i stedet for de to første: Tjek, at switchen er en netværksenhed her, på samme lokation, og regn med to timer, før en ny enhed dukker op.
+
 Hvis enheden står bag en ikke-administreret switch eller en hub, lærer den administrerede switch hver MAC bag den på én port, og det er den port, kortet tegner: den fysiske sandhed, som den administrerede switch ser den.
 :::
 
 :::details Kun nogle af de fundne enheder blev importeret
 En import fra **Gennemgå resultater** besvarer det i sit sidste trin: hver vært, den ikke importerede, og hver enhed, den importerede uden dens monitor, står under årsagen, og et nyt forsøg prøver kun de mislykkede værter igen. For at se den senere skal du klikke på **Gennemgå resultater** på scanningen og derefter på **Se resultater**.
 
-For en auto-importregel besvarer kørselsrapporten det, i den dialog, der åbner, når en kørsel er færdig, ikke i en log. En kørsel, der stoppede ved sin batchgrænse, siger det og nævner, hvad der er tilbage: tryk på **Run Rule** igen, og den fortsætter, hvor den stoppede. En kørsel, der blev færdig, men gjorde krav på færre værter, end du forventede, siger, hvor resten blev af: nedlagt veto af en undtagelsesregel, allerede registreret på den adresse eller ikke matchet af reglens kriterier.
+For en auto-importregel besvarer kørselsrapporten det, i den dialog, der åbner, når en kørsel er færdig, ikke i en log. En kørsel, der stoppede ved sin batchgrænse, siger det og nævner, hvad der er tilbage: tryk på **Kør regel** igen, og den fortsætter, hvor den stoppede. En kørsel, der blev færdig, men gjorde krav på færre værter, end du forventede, siger, hvor resten blev af: nedlagt veto af en undtagelsesregel, allerede registreret på den adresse eller ikke matchet af reglens kriterier.
 
 Når enhederne alle er der, men monitorerne ikke er: enheder og monitorer er adskilt arbejde, så en regel, der fik sin monitorskabelon, efter dens enheder blev importeret, rapporterer ingen importerede enheder og kun oprettede monitorer. Det er reglen, der udfører præcis det arbejde, der var tilbage, ikke en mislykket import; se [Importér automatisk med auto-importregler](#importér-automatisk-med-auto-importregler).
 :::

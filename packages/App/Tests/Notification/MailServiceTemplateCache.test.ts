@@ -22,6 +22,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import fsp from "fs/promises";
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import Path from "path";
 
 /*
@@ -103,6 +104,8 @@ function registerTemplateEnvironment(hb: typeof Handlebars): void {
     // @ts-expect-error - Handlebars uses dynamic this context for template helpers
     return v1 !== v2 ? options.fn(this) : options.inverse(this);
   });
+
+  registerEmailLanguageHelpers(hb);
 
   hb.registerHelper("concat", (v1: any, v2: any) => {
     return v1 + v2;

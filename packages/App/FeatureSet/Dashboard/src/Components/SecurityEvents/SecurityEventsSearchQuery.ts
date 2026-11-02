@@ -51,8 +51,19 @@ export const SECURITY_EVENT_SEARCH_SUGGESTIONS: ReadonlyArray<string> = [
   "session",
 ];
 
-export const SECURITY_EVENT_SEARCH_PLACEHOLDER: string =
-  "Search security events — e.g. severity:Critical class:Authentication @threat.matched:true";
+/*
+ * Marks an English sentence as a key of the Dashboard's locales - the same
+ * marker as Common/UI/Utils/TranslateTemplate's translationKey, kept here so
+ * this module stays free of i18next for the App tests that read it. It
+ * returns the text unchanged; the search bar looks the placeholder up.
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
+
+export const SECURITY_EVENT_SEARCH_PLACEHOLDER: string = translationKey(
+  "Search security events — e.g. severity:Critical class:Authentication @threat.matched:true",
+);
 
 export const SECURITY_EVENT_SEARCH_COMBINED_EXAMPLE: string =
   "severity:(High OR Critical) -status:Success @threat.matched:true";

@@ -84,7 +84,7 @@ Start fra malen, som bygger hele arbeidsflyten for deg, eller fra bunnen.
 3. Behold navnet **Notify IRC on new incident** eller endre det, og klikk på **Neste**.
 4. Skriv inn **IRC Server** og **IRC Channel**, og klikk på **Opprett arbeidsflyt**.
 
-Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Incident**; **Send Message to IRC**, som poster hendelsens nummer, tittel, alvorlighetsgrad og tilstand på to linjer; og et **Logg**-trinn på utgangen **Feil**, som noterer hvorfor en melding ikke ble levert. Serveren og kanalen lagres som arbeidsflytens variabler `ircServer` og `ircChannel`. Har du lagret passord i forrige trinn, klikker du på **Send Message to IRC**, åpner **Flere felt** og velger hver variabel med **{ }**-knappen i innstillingen.
+Arbeidsflyten åpnes i **Bygger** med to trinn: **On Create Incident** og **Send Message to IRC**, som poster hendelsens nummer, tittel, alvorlighetsgrad og tilstand på to linjer. En melding som ikke blir levert, får kjøringen til å mislykkes, og kjøringens logg sier hvorfor. Serveren og kanalen lagres som arbeidsflytens variabler `ircServer` og `ircChannel`. Har du lagret passord i forrige trinn, klikker du på **Send Message to IRC**, åpner **Flere felt** og velger hver variabel med **{ }**-knappen i innstillingen.
 @tab Fra bunnen
 1. Åpne **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn og klikk på **Opprett arbeidsflyt**.
 2. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **On Create Incident** under **Populære**. Klikk på triggeren, og velg i **Fields to pass on** feltene fra hendelsen som meldingen din viser, for eksempel tittelen.

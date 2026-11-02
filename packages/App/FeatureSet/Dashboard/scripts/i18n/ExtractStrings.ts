@@ -1,4 +1,8 @@
 import { REPOSITORY_ROOT } from "./LocaleFiles";
+import {
+  FormColumnDescription,
+  FormColumnDescriptionFinder,
+} from "./FormColumnDescriptions";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
@@ -16,7 +20,10 @@ import ts from "typescript";
  *                       translationKey(), any translate*() helper - or the
  *                       text of a translatableTerm(), which is looked up
  *                       when the sentence it goes into is translated;
- *   - "plural":         a PluralTemplate, { one: "...", other: "..." };
+ *   - "plural":         a PluralTemplate, { one: "...", other: "..." },
+ *                       its forms written as literals or marked as keys
+ *                       (translationKey("...")) - its "one" sentence goes
+ *                       under the "other" sentence's key plus "_one";
  *   - "prop":           a JSX attribute or object property whose name says
  *                       it is shown (title, description, placeholder, label,
  *                       noItemsMessage... - USER_FACING_PROPS), a tab's
@@ -27,7 +34,10 @@ import ts from "typescript";
  *   - "setter":         the message given to a state setter such as
  *                       setError("...") or setWarningMessage("...");
  *   - "model":          a model's singularName, pluralName or
- *                       tableDescription, or a column's title.
+ *                       tableDescription, or a column's title;
+ *   - "column":         a model column's description a form field draws
+ *                       because it has none of its own
+ *                       (FormColumnDescriptions).
  *
  * It also lists the strings that are on screen but not looked up at run
  * time (`hardcoded`): element text, text attributes of plain HTML elements,
@@ -41,7 +51,8 @@ export type ExtractedKind =
   | "prop"
   | "jsx-text"
   | "setter"
-  | "model";
+  | "model"
+  | "column";
 
 export interface ExtractedString {
   text: string;
@@ -199,6 +210,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Telemetry/TraceSpanType.ts",
     kind: "keys",
   },
+  /*
+   * What a dashboard template's chart says while it draws its fallback
+   * query - why, and where the fix is. Stored in the dashboard as written
+   * and looked up where the chart draws it; only the hints the file marks
+   * are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
+    kind: "keys",
+  },
 ];
 
 /*
@@ -255,9 +277,12 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "emptyTitle",
   "errorMessage",
   "explanation",
+  "fileHint",
   "heading",
   "helpText",
   "hint",
+  // A telemetry explorer's chart title (TelemetryViewer looks it up).
+  "histogramTitle",
   "label",
   "legend",
   "linkText",
@@ -637,6 +662,78 @@ const unwrap: (expression: ts.Expression) => ts.Expression = (
   }
 
   return current;
+};
+
+/*
+ * A PluralTemplate's form: a string literal, or a literal marked as a key
+ * - one: translationKey("{{count}} request") - as the templates a .ts
+ * module keeps are written. Read either way, so a marked template gets its
+ * "_one" sentence too: without it a translated "other" sentence was all a
+ * language had for a count of one ("1 Anfragen"), so the Campaigns page's
+ * counts stayed English in every language.
+ */
+const getPluralFormText: (
+  expression: ts.Expression,
+  options: { markedOnly: boolean },
+) => string | undefined = (
+  expression: ts.Expression,
+  options: { markedOnly: boolean },
+): string | undefined => {
+  let value: ts.Expression = unwrap(expression);
+  let isMarked: boolean = false;
+
+  if (
+    ts.isCallExpression(value) &&
+    getCalleeName(value.expression) === "translationKey" &&
+    value.arguments.length === 1
+  ) {
+    value = unwrap(value.arguments[0]!);
+    isMarked = true;
+  }
+
+  if (options.markedOnly && !isMarked) {
+    return undefined;
+  }
+
+  return ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)
+    ? value.text
+    : undefined;
+};
+
+/*
+ * { one: "...", other: "..." }: the two forms of a count-dependent sentence,
+ * or null when the object is not one. A "keys" root reads only marked forms.
+ */
+const getPluralForms: (
+  node: ts.ObjectLiteralExpression,
+  options: { markedOnly: boolean },
+) => { one: string; other: string } | null = (
+  node: ts.ObjectLiteralExpression,
+  options: { markedOnly: boolean },
+): { one: string; other: string } | null => {
+  if (node.properties.length !== 2) {
+    return null;
+  }
+
+  const forms: Record<string, string> = {};
+
+  for (const property of node.properties) {
+    if (ts.isPropertyAssignment(property)) {
+      const name: string | undefined = getPropertyName(property.name);
+      const text: string | undefined = getPluralFormText(
+        property.initializer,
+        options,
+      );
+
+      if (name && text !== undefined) {
+        forms[name] = text;
+      }
+    }
+  }
+
+  return forms["one"] !== undefined && forms["other"] !== undefined
+    ? { one: forms["one"], other: forms["other"] }
+    : null;
 };
 
 /*
@@ -1137,27 +1234,15 @@ export const scanSourceText: (
       }
     }
 
-    // { one: "...", other: "..." }
-    if (ts.isObjectLiteralExpression(node) && node.properties.length === 2) {
-      const forms: Record<string, string> = {};
+    // { one: "...", other: "..." }, its forms literal or marked as keys.
+    if (ts.isObjectLiteralExpression(node)) {
+      const forms: { one: string; other: string } | null = getPluralForms(
+        node,
+        { markedOnly: false },
+      );
 
-      for (const property of node.properties) {
-        if (ts.isPropertyAssignment(property)) {
-          const name: string | undefined = getPropertyName(property.name);
-          const value: ts.Expression = unwrap(property.initializer);
-
-          if (
-            name &&
-            (ts.isStringLiteral(value) ||
-              ts.isNoSubstitutionTemplateLiteral(value))
-          ) {
-            forms[name] = value.text;
-          }
-        }
-      }
-
-      if (forms["one"] !== undefined && forms["other"] !== undefined) {
-        add(forms["other"], "plural", node, { pluralOne: forms["one"] });
+      if (forms) {
+        add(forms.other, "plural", node, { pluralOne: forms.one });
       }
     }
 
@@ -1317,6 +1402,18 @@ export const scanSourceText: (
       }
     }
 
+    // A count-dependent sentence whose two forms are marked as keys.
+    if (ts.isObjectLiteralExpression(node)) {
+      const forms: { one: string; other: string } | null = getPluralForms(
+        node,
+        { markedOnly: true },
+      );
+
+      if (forms) {
+        add(forms.other, "plural", node, { pluralOne: forms.one });
+      }
+    }
+
     ts.forEachChild(node, visitKeys);
   };
 
@@ -1411,6 +1508,10 @@ export const scanSourceRoots: (
   const strings: Array<ExtractedString> = [];
   const hardcoded: Array<HardcodedString> = [];
   const nestedKeyReferences: Array<UndefinedNestedKey> = [];
+  // The column descriptions the UI's forms draw (FormColumnDescriptions).
+  const columns: FormColumnDescriptionFinder = new FormColumnDescriptionFinder(
+    rootDirectory,
+  );
 
   for (const root of roots) {
     for (const filePath of listSourceFiles(
@@ -1420,15 +1521,31 @@ export const scanSourceRoots: (
         continue;
       }
 
+      const text: string = fs.readFileSync(filePath, "utf8");
       const result: SourceScanResult = scanSourceText(
         toRepositoryPath(filePath, rootDirectory),
-        fs.readFileSync(filePath, "utf8"),
+        text,
         { kind: root.kind },
       );
 
       strings.push(...result.strings);
       hardcoded.push(...result.hardcoded);
       nestedKeyReferences.push(...result.nestedKeyReferences);
+
+      if (root.kind === "ui") {
+        strings.push(
+          ...columns
+            .find(filePath, text)
+            .map((column: FormColumnDescription): ExtractedString => {
+              return {
+                text: column.text,
+                kind: "column",
+                file: column.file,
+                line: column.line,
+              };
+            }),
+        );
+      }
     }
   }
 

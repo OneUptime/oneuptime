@@ -4,15 +4,31 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { queueDataSecurityEvaluation } from "../Utils/DataSecurity/DataSecurityJobs";
+import DataConfidence from "../../Types/DataSecurity/DataConfidence";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 
 /*
- * Findings are OneUptime's to write. The one thing a person changes is
- * whether a finding is sensitive at all - and that decides the store's
- * sensitivity and so its checks, so the change queues the project's
+ * Findings are OneUptime's to write. What a person changes is whether a
+ * finding is sensitive at all, and whether it holds what the scan - or
+ * OneUptime AI - was not sure it holds: both decide the store's
+ * sensitivity and so its checks, so either change queues the project's
  * evaluation.
+ *
+ * A finding a person confirms counts as High confidence: once the update
+ * is written its confidence is set to High as OneUptime's own write (a
+ * person cannot set a confidence), and to Low when the confirmation is
+ * taken back - only a Low finding is offered to confirm, and the next scan
+ * says again what a detector is sure of. The finding writer keeps a
+ * confirmed finding's High (DataSecurityFindingWriter).
  */
+
+interface FindingUpdateCarry {
+  projectIds: Array<ObjectID>;
+  // The rows a person confirmed, or took the confirmation back from.
+  confirmation?: { ids: Array<ObjectID>; isConfirmed: boolean } | undefined;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -23,9 +39,11 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     const data: JSONObject = updateBy.data as unknown as JSONObject;
+    const isJudged: boolean =
+      data["isSuppressed"] !== undefined || data["isConfirmed"] !== undefined;
 
-    if (data["isSuppressed"] === undefined || updateBy.props.isRoot) {
-      return { updateBy, carryForward: [] };
+    if (!isJudged || updateBy.props.isRoot) {
+      return { updateBy, carryForward: null };
     }
 
     if (data["isSuppressed"] === false) {
@@ -37,9 +55,8 @@ export class Service extends DatabaseService<Model> {
       { _id: true, projectId: true },
     );
 
-    return {
-      updateBy,
-      carryForward: rows
+    const carry: FindingUpdateCarry = {
+      projectIds: rows
         .map((row: Model): ObjectID | undefined => {
           return row.projectId;
         })
@@ -47,6 +64,21 @@ export class Service extends DatabaseService<Model> {
           return Boolean(projectId);
         }),
     };
+
+    if (typeof data["isConfirmed"] === "boolean") {
+      carry.confirmation = {
+        ids: rows
+          .map((row: Model): ObjectID | undefined => {
+            return row.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+        isConfirmed: data["isConfirmed"],
+      };
+    }
+
+    return { updateBy, carryForward: carry };
   }
 
   @CaptureSpan()
@@ -54,11 +86,27 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    const projectIds: Array<ObjectID> =
-      (onUpdate.carryForward as Array<ObjectID> | undefined) || [];
+    const carry: FindingUpdateCarry | null =
+      (onUpdate.carryForward as FindingUpdateCarry | null) || null;
+
+    if (!carry) {
+      return onUpdate;
+    }
+
+    for (const id of carry.confirmation?.ids || []) {
+      await this.updateColumnsByIdWithoutHooks({
+        id,
+        data: {
+          confidence: carry.confirmation?.isConfirmed
+            ? DataConfidence.High
+            : DataConfidence.Low,
+        },
+      });
+    }
+
     const seen: Set<string> = new Set();
 
-    for (const projectId of projectIds) {
+    for (const projectId of carry.projectIds) {
       if (!seen.has(projectId.toString())) {
         seen.add(projectId.toString());
         await queueDataSecurityEvaluation(projectId);

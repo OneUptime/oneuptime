@@ -51,11 +51,11 @@ O incidente guarda o número do relatório nos seus campos personalizados, como 
 :::steps
 ### Criar o workflow
 
-Abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Em **Ou começar a partir de um modelo**, escolha a categoria **Huntress**, escolha **Open an incident for each Huntress incident report**, clique em **Usar este modelo** e crie o workflow. Ele abre no **Construtor**, desativado.
+Abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Em **Ou começar a partir de um modelo**, escolha a categoria **Huntress**, escolha **Open an incident for each Huntress incident report** e clique em **Usar este modelo**.
 
 ### Escolher quem acionar
 
-Clique na etapa **Page an On-Call Policy**, escolha as **Políticas de plantão** a acionar e salve a etapa.
+Em seguida, a caixa de diálogo pergunta quem acionar: em **Who to page for high and critical reports**, escolha as políticas de plantão a acionar, ou nenhuma para não acionar ninguém, e clique em **Criar fluxo de trabalho**. O workflow abre no **Construtor**, desativado. Para mudar depois quem ele aciona, clique na etapa **Page an On-Call Policy** dele e mude as **Políticas de plantão**.
 
 ### Adicionar um endpoint de webhook no Huntress
 
@@ -79,7 +79,7 @@ Ative **Habilitado** no alto do **Construtor**. No Huntress, abra o menu do endp
 
 ## O que o workflow faz
 
-O modelo segue um caminho para cada **Event**, com um **Switch / Case** depois do gatilho:
+Depois do gatilho, **Incident From Another Tool** faz o que cada **Event** pede, pelo número do relatório:
 
 | Event | O que o workflow faz |
 | --- | --- |
@@ -87,7 +87,7 @@ O modelo segue um caminho para cada **Event**, com um **Switch / Case** depois d
 | `comment-added` | Encontra o incidente do relatório e adiciona o comentário a ele como nota privada. |
 | `closed` | Encontra o incidente do relatório e o resolve, a menos que ele já esteja resolvido. O motivo fica na sua linha do tempo: o Huntress fechou o relatório. |
 
-É um workflow como qualquer outro, então você pode mudar o que ele faz: acionar só para relatórios críticos mudando o que o **If / Else** depois de **Create One Incident** compara, publicar cada relatório em um canal de chat com uma etapa do Slack ou do Microsoft Teams, ou mandar cada organização para a própria política de plantão com um **Switch / Case** sobre **Organization**. Cada execução aparece nas execuções do workflow, com o que cada etapa fez.
+É um workflow como qualquer outro, então você pode mudar o que ele faz: acionar só para relatórios críticos mudando o que o **If / Else** depois de **Incident From Another Tool** compara, publicar cada relatório em um canal de chat com uma etapa do Slack ou do Microsoft Teams, ou mandar cada organização para a própria política de plantão com um **Switch / Case** sobre **Organization**. Cada execução aparece nas execuções do workflow, com o que cada etapa fez.
 
 ### Severidades
 
@@ -174,7 +174,7 @@ O workflow foi excluído ou arquivado, o gatilho dele não é mais **Huntress In
 :::
 
 :::details Nenhum incidente foi aberto
-Abra as execuções do workflow e a execução do relatório. Se **Create One Incident** falhou porque a severidade do incidente está vazia, o projeto não tem severidades de incidente: adicione uma em **Incidentes → Configurações → Severidade do incidente**.
+Abra as execuções do workflow e a execução do relatório. Se **Incident From Another Tool** falhou com `This project has no incident severities to put the incident at.`, adicione uma em **Incidentes → Configurações → Severidade do incidente**.
 :::
 
 :::details Ninguém foi acionado

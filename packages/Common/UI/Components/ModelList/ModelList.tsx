@@ -3,7 +3,9 @@ import Query from "../../../Types/BaseDatabase/Query";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import ModelAPI, {
   ListResult,
   RequestOptions,
@@ -90,9 +92,18 @@ const ModelList: <TBaseModel extends BaseModel>(
    * list deleteable for, permission or not. It now stays visible but locked
    * when the viewer cannot delete the model.
    */
+  /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: its changes are offered only when a team of theirs that owns it
+   * may make them (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(new props.modelType());
+
   const deleteGate: PermissionGateResult = PermissionGate.check(
     new props.modelType(),
     ModelAction.Delete,
+    privateRecordOptions,
   );
 
   const { translateString } = useTranslateValue();

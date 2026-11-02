@@ -16,12 +16,20 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
+/*
+ * Read through its episode, as an incident's roles are read through the
+ * incident (IncidentMember): who may read, give or take a role on an episode
+ * is decided by what they may do to the episode - its labels, owners and,
+ * for a private one, its privacy (PrivateRecordPermission).
+ */
+@CanAccessIfCanReadOn("incidentEpisode")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [

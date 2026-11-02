@@ -60,7 +60,7 @@ Tilkoblingen signerer forespørslene sine med en IAM-tilgangsnøkkel. Identitete
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **AWS Security Hub**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn hemmeligheten i **Hemmelig tilgangsnøkkel**.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **AWS Security Hub**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn hemmeligheten i **Hemmelig tilgangsnøkkel**.
 
 ### Test den før du lagrer
 

@@ -616,10 +616,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * The board's card, inset from its sides like the toolbar beside the
+   * side menu (md:mx-3); below md it lines up with the page's own menu.
+   */
   const canvas: ReactElement = (
     <div
       ref={dashboardCanvasRef}
-      className="px-1 pb-4 mx-3 mb-4 rounded-2xl border border-gray-200/60"
+      className="px-1 pb-4 mb-4 rounded-2xl border border-gray-200/60 md:mx-3"
       style={{
         background: "var(--ou-surface-primary, #ffffff)",
         boxShadow: "var(--ou-card-shadow)",
@@ -649,6 +653,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * The dashboard is as wide as the place it is shown in, a phone's screen
+   * included: its board lays its widgets out in that width (Canvas,
+   * DashboardBoardLayout). It used to be at least 1000px wide, so a phone
+   * scrolled the whole page sideways with the toolbar past its right edge,
+   * and beside the side menu even a 1280px window did.
+   */
+
   // A playlist's turn: the board alone, below the player's bar.
   if (isPlayback) {
     return (
@@ -656,7 +668,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         ref={dashboardViewRef}
         className="pt-3"
         style={{
-          minWidth: "1000px",
           background: "var(--ou-background-primary, #f8f9fb)",
         }}
       >
@@ -670,7 +681,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       ref={dashboardViewRef}
       className="min-h-screen"
       style={{
-        minWidth: "1000px",
         background: isEditMode
           ? "linear-gradient(135deg, var(--ou-background-primary, #f8fafc) 0%, var(--ou-surface-secondary, #f1f5f9) 100%)"
           : "var(--ou-background-primary, #f8f9fb)",
@@ -1178,7 +1188,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
       />
       {saveError ? (
-        <div className="mx-3 mb-3">
+        <div className="mb-3 md:mx-3">
           <ErrorMessage message={saveError} />
         </div>
       ) : (

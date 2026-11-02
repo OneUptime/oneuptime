@@ -51,6 +51,8 @@ Per un tipo menu a tendina, aggiungi le sue opzioni in **Opzioni del menu a disc
 | **Data e ora** | Ultimo audit il, dismesso il |
 | **Testo lungo** | Istruzioni di accesso, note: più righe di testo semplice |
 | **Testo formattato (Markdown)** | Note con formattazione e link, scritte nell'editor Markdown |
+| **File** | Un certificato di garanzia, un ordine d'acquisto firmato, una foto dell'etichetta del rack: un file |
+| **Più file** | Manuali, fatture e foto: fino a 10 file |
 
 ## Un vocabolario di asset completo
 
@@ -79,6 +81,9 @@ Ogni campo personalizzato diventa un filtro sopra l'elenco **All Items**, e il f
 | **Numero** | è, non è, è maggiore di, è maggiore o uguale a, è minore di, è minore o uguale a, è vuoto, non è vuoto |
 | **Booleano**, **Menu a tendina (selezione singola)**, **Menu a tendina (selezione multipla)** | è, non è, è vuoto, non è vuoto |
 | **Data**, **Data e ora** | è, è prima di, è dopo, è tra, è vuoto, non è vuoto |
+| **File**, **Più file** | è |
+
+Un chip **File** o **Più file** chiede una cosa sola: se il campo è **Con file** o con **Nessun file**.
 
 I filtri si combinano con E, quindi «Warranty Expiry è prima di 2026-10-01 E Lifecycle Status è In servizio» è un'unica vista dell'elenco. È la domanda a cui un registro di asset esiste per rispondere, e il motivo per usare i tipi data invece di una data in un campo di testo: un campo di testo memorizza volentieri `2026-10-01`, poi non sa dirti cosa scade il prossimo trimestre.
 
@@ -91,6 +96,7 @@ Le colonne dei campi personalizzati partono nascoste: attivale dal selettore di 
 - Niente rende unico un valore. Due elementi possono avere lo stesso numero di serie, e niente te lo impedisce.
 - Le date sono memorizzate come timestamp ISO-8601 in UTC e mostrate nel tuo fuso orario.
 - Eliminare un campo lo toglie dall'elenco e dalla barra dei filtri. I valori già scritti restano sugli elementi.
+- Un campo **File** o **Più file** accetta file di 10 MB al massimo ciascuno, dei tipi elencati in [Campi file](/docs/incidents/settings#campi-file), caricati nel progetto. Solo chi può vedere l'elemento può scaricarli, e un file viene eliminato appena niente lo trattiene più.
 
 ## Passaggi successivi
 

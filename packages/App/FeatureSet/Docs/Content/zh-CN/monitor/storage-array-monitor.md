@@ -32,7 +32,7 @@ flowchart TB
 ## 开始之前
 
 - **安装 Storage Array Agent**，安装在能通过 HTTPS 访问阵列的位置，并使用拥有阵列 **readonly** 角色的用户的 API 令牌。[Storage Array Agent 指南](/docs/telemetry/storage-arrays) 介绍了用户、令牌和安装，涉及 `ONEUPTIME_URL`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`STORAGE_ARRAY_NAME`，以及阵列的地址和令牌(`PURE_FA_ENDPOINT` 和 `PURE_FA_API_TOKEN`，或 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`)。
-- **确认阵列已注册。** 在第一次采集后大约一分钟，它会以代理的 `STORAGE_ARRAY_NAME` 命名，出现在 **产品 → 基础设施 → Storage Arrays → All Storage Arrays** 下。
+- **确认阵列已注册。** 在第一次采集后大约一分钟，它会以代理的 `STORAGE_ARRAY_NAME` 命名，出现在 **产品 → 基础设施 → 存储阵列 → All Storage Arrays** 下。
 
 ## 创建存储阵列监视器
 
@@ -47,19 +47,19 @@ flowchart TB
 
 ### 选择阵列
 
-在 **Storage Array Monitor Configuration** 下，从 **存储阵列** 中选择阵列。每个发送过数据的阵列都在列表中。阵列的平台决定了表单提供哪些指标和模板。
+在 **Storage Array Monitor Configuration** 下，从 **存储阵列** 中选择阵列。每个发送过数据的阵列都在列表中。阵列的平台决定了表单提供哪些指标和模板。选好后，字段下方的一行会显示是否有数据到达。**添加存储阵列** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监视的内容
 
-选择三个选项卡之一：
+新监视器从 **告警内容** 下的 **Array Stopped Reporting** 开始。要监视其他内容：
 
-- **Quick Setup**：点击一个 [模板](#预置告警模板)。它会设置指标、标签过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
-- **Custom Metric**：从 **Storage Array Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把它缩小到一个卷、主机、Pod、组件、文件系统或存储桶。
-- **高级**：在 **选择指标** 下自己构建查询和公式，例如用 `purefa_array_space_bytes` 过滤到 `space=capacity`，减去同一指标过滤到 `space=empty`，得到已用容量。用对象的标签 **分组依据**，即可分别判断每个对象。
+- **更改**：选择另一个 [模板](#预置告警模板)。它会设置指标、标签过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
+- **Custom Metric**（在 **更多字段** 下）：从 **Storage Array Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把它缩小到一个卷、主机、Pod、组件、文件系统或存储桶。
+- **高级**（在 **更多字段** 下）：在 **选择指标** 下自己构建查询和公式，例如用 `purefa_array_space_bytes` 过滤到 `space=capacity`，减去同一指标过滤到 `space=empty`，得到已用容量。用对象的标签 **分组依据**，即可分别判断每个对象。
 
 ### 检查条件
 
-打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标降为零，所以请设置你自己的阈值。
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标不再发送数据，所以请设置你自己的阈值。
 
 ### 创建监视器
 
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 要一次设置多个模板，请从 **产品 → 基础设施 → Storage Arrays** 打开阵列，然后进入 **建议**。选择你需要的模板和要呼叫的人员，OneUptime 会为每个模板创建一个监视器。
+> 要一次设置多个模板，请从 **产品 → 基础设施 → 存储阵列** 打开阵列，然后进入 **建议**。选择你需要的模板和要呼叫的人员，OneUptime 会为每个模板创建一个监视器。
 
 ## 监视器设置
 
@@ -109,9 +109,9 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 ## 预置告警模板
 
-OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**Quick Setup** 会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**告警内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
-只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换；告警和硬件模板会在状态消失时立即恢复。
+只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。告警、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
 
 ### FlashArray
 
@@ -119,16 +119,16 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 严重 | `purefa_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — Storage Array Agent 已停止、失去了通往 OneUptime 的路由或令牌被撤销，或者阵列不再响应它；再次收到数据时恢复 |
 | Critical Array Alert | Array Health | 严重 | `purefa_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的严重告警(组件故障、容量紧急、复制失败)。每个告警一个事件；告警关闭时恢复 |
-| Warning Array Alert | Array Health | Warning | `purefa_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
-| Capacity Above 80% | 容量 | Warning | `purefa_array_space_utilization`，Max，过去 15 分钟 | > 80 — Pure 自己的第一个容量阈值；≤ 72 时恢复 |
+| Warning Array Alert | Array Health | 警告 | `purefa_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — 阵列有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
+| Capacity Above 80% | 容量 | 警告 | `purefa_array_space_utilization`，Max，过去 15 分钟 | > 80 — Pure 自己的第一个容量阈值；≤ 72 时恢复 |
 | Capacity Above 90% | 容量 | 严重 | `purefa_array_space_utilization`，Max，过去 5 分钟 | > 90 — 阵列即将拒绝写入；≤ 81 时恢复 |
-| High Read Latency | 性能 | Warning | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms) — FlashArray 的读取通常远低于 1 ms；≤ 4500 时恢复 |
-| High Write Latency | 性能 | Warning | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_write_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms)；≤ 4500 时恢复 |
+| High Read Latency | 性能 | 警告 | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms) — FlashArray 的读取通常远低于 1 ms；≤ 4500 时恢复 |
+| High Write Latency | 性能 | 警告 | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_write_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms)；≤ 4500 时恢复 |
 | Hardware Component Failed | 硬件 | 严重 | `purefa_hw_component_status` 过滤到 `component_status=critical`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个控制器、电源、风扇、托架或端口处于严重状态，冗余已经丧失。每个组件一个事件；它报告 ok 时恢复 |
-| Hardware Component Degraded | 硬件 | Warning | `purefa_hw_component_status` 过滤到 `component_status=degraded`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个组件已降级。每个组件一个事件；它报告 ok 时恢复 |
+| Hardware Component Degraded | 硬件 | 警告 | `purefa_hw_component_status` 过滤到 `component_status=degraded`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个组件已降级。每个组件一个事件；它报告 ok 时恢复 |
 | Drive Failed | 硬件 | 严重 | `purefa_drive_capacity_bytes` 过滤到 `component_status=failed`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个 DirectFlash 模块或 SSD 发生故障，阵列正在其余驱动器上重建。每个驱动器一个事件；更换后恢复 |
-| Host Lost Redundant Paths | 主机 | Warning | `purefa_host_connectivity_info` 过滤到 `status=critical`，按 `host` 取 Max，过去 5 分钟 | > 0 — 主机只能通过一个控制器访问阵列，或完全无法访问；一次控制器故障切换就会让它的存储离线。每台主机一个事件；路径恢复时恢复 |
-| Replication Lag Above 1 Minute | Replication | Warning | `purefa_pod_replica_links_lag_max_msec`，按 `local_pod` 取 Max，过去 10 分钟 | > 60000 ms (60 s) — 此时故障切换会丢失比计划更多的近期写入。每个 Pod 一个事件；≤ 54000 时恢复 |
+| Host Lost Redundant Paths | 主机 | 警告 | `purefa_host_connectivity_info` 过滤到 `status=critical`，按 `host` 取 Max，过去 5 分钟 | > 0 — 主机只能通过一个控制器访问阵列，或完全无法访问；一次控制器故障切换就会让它的存储离线。每台主机一个事件；路径恢复时恢复 |
+| Replication Lag Above 1 Minute | 复制 | 警告 | `purefa_pod_replica_links_lag_max_msec`，按 `local_pod` 取 Max，过去 10 分钟 | > 60000 ms (60 s) — 此时故障切换会丢失比计划更多的近期写入。每个 Pod 一个事件；≤ 54000 时恢复 |
 
 ### FlashBlade
 
@@ -136,17 +136,17 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 严重 | `purefb_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 代理、其导出器或 FlashBlade 不再响应；再次收到数据时恢复 |
 | Critical Array Alert | Array Health | 严重 | `purefb_alerts_open` 过滤到 `severity=critical`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的严重告警。每个告警一个事件；告警关闭时恢复 |
-| Warning Array Alert | Array Health | Warning | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
-| Capacity Above 80% | 容量 | Warning | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 15 分钟 | > 80；≤ 72 时恢复 |
+| Warning Array Alert | Array Health | 警告 | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
+| Capacity Above 80% | 容量 | 警告 | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 15 分钟 | > 80；≤ 72 时恢复 |
 | Capacity Above 90% | 容量 | 严重 | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 5 分钟 | > 90 — 写满时每个客户端的写入都会失败；≤ 81 时恢复 |
 | Hardware Component Unhealthy | 硬件 | 严重 | `purefb_hardware_health`，按 `name` 取 Min，过去 5 分钟 | < 1 — 某个刀片、交换模块、电源或风扇不健康(未使用的插槽报告 2)。每个组件一个事件；≥ 1 时恢复 |
-| High Read Latency | 性能 | Warning | `purefb_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，过去 10 分钟 | > 10000 µs (10 ms)，跨所有协议；≤ 9000 时恢复 |
-| File System Near Full | 文件系统 | Warning | `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，按 `name` 取 Min，过去 15 分钟 | < 0.1 — 文件系统预配大小的剩余不足 10%。每个文件系统一个事件；≥ 0.11 时恢复 |
+| High Read Latency | 性能 | 警告 | `purefb_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，过去 10 分钟 | > 10000 µs (10 ms)，跨所有协议；≤ 9000 时恢复 |
+| File System Near Full | 文件系统 | 警告 | `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，按 `name` 取 Min，过去 15 分钟 | < 0.1 — 文件系统预配大小的剩余不足 10%。每个文件系统一个事件；≥ 0.11 时恢复 |
 
 **严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。
 
 - **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`)，代理采集的每个端点在每次采集时都会导出该序列。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
-- **未关闭的告警和硬件状态使用 Max**，因为这类序列只在告警未关闭或组件处于该状态时才存在，所以只要有一次采集显示它，就会越过阈值。
+- **未关闭的告警和硬件状态使用 Max**，因为这类序列只在告警未关闭或组件处于该状态时才存在，所以状态在整个 5 分钟窗口内都出现后才会越过阈值。
 - **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
 - **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **最大**。延迟固定以微秒为单位，容量固定以百分比为单位。
 - **Hardware Component Unhealthy 按组件使用 Min**：组件健康时其健康值为 1，不健康时降到 0。
@@ -228,7 +228,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | --- | --- | --- | --- | --- |
 | `purefa_pod_replica_links_lag_max_msec` | — | FlashArray | `ms` | 每条 Pod 副本链接(ActiveDR / 异步)的最大复制滞后，带有标签 `local_pod`、`remote_pod`、`remote`、`direction` 和 `status`——按 `local_pod` 分组 |
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 每条 Pod 副本链接的平均复制滞后 |
-| `purefa_pod_performance_replication_bandwidth_bytes` | — | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
+| `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每个 ActiveCluster Pod 的镜像写平均延迟 |
 
 ### Hardware
@@ -272,7 +272,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | **基线窗口** | 仅限异常条件。14 天(默认)、28、60 或 90 天的历史。 |
 | **如果无数据** | 位于 **更多字段** 下。窗口中没有样本时会发生什么：**Ignore**(默认)、**Treat As Zero** 或 **触发器**。 |
 
-异常条件会把每个值与基线中一周内相同时段的值进行比较。在基线窗口积累足够的历史之前，它们会一直处于 "Learning" 状态，不会发出任何告警。
+异常条件会把每个值与基线中一周内相同时段的值进行比较。在基线窗口积累足够的历史之前，它们会一直处于 "Learning" 状态，不会发出任何告警。 总和、计数或针对直方图的查询会一直保持这个状态：此监视器按属性筛选查询，而基线不保存属性。
 
 一些可以作为起点的条件：
 

@@ -108,7 +108,7 @@ export const IOT_METRIC_CONVENTIONS: Array<IoTMetricConvention> = [
   {
     name: "iot_cpu_usage_ratio",
     meaning:
-      "CPU utilization as a ratio `0`–`1` (OneUptime stores it as a percentage)",
+      "CPU utilization as a ratio `0`–`1` (the device inventory shows it as a percentage)",
   },
   {
     name: "iot_memory_usage_bytes",
@@ -589,7 +589,7 @@ function getLastWillTopic(): SetupGuideTopic {
     title: "Detect offline devices with a Last Will",
     summary:
       "Report a device offline the moment its connection drops, and keep the keepalive under five minutes.",
-    markdown: `Register an MQTT **Last Will** on \`${IOT_MQTT_TOPIC_PREFIX}/<fleet>/<device>/status\` with payload \`offline\` — if the device dies, OneUptime publishes \`iot_device_up = 0\` on its behalf the moment the session drops, which trips the stock Device Offline alert template with no polling. Publish \`online\` to the same topic after connecting so the device shows as up again; the example in step 2 does both. The status topic also accepts \`1\`/\`0\`, \`true\`/\`false\` and \`up\`/\`down\`.
+    markdown: `Register an MQTT **Last Will** on \`${IOT_MQTT_TOPIC_PREFIX}/<fleet>/<device>/status\` with payload \`offline\` — if the device dies, OneUptime publishes \`iot_device_up = 0\` on its behalf the moment the session drops, which trips the stock Device Offline alert template with no polling. Publish \`online\` to the same topic after connecting so the device shows as up again; the example in step 2 does both. Any reading the device publishes counts as up too, so a device that keeps sending readings stays up without publishing its status again. The status topic also accepts \`1\`/\`0\`, \`true\`/\`false\` and \`up\`/\`down\`.
 
 Keep the MQTT keepalive **under 5 minutes** on the WebSocket endpoint (client-library defaults of 60 s are fine) — idle WebSocket connections are closed after 300 seconds, which would fire the Last Will and a false offline alert.`,
   };

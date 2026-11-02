@@ -506,7 +506,12 @@ describe("DetectionRuleEvaluator", () => {
           limit?: unknown;
         };
 
-      expect(args.query).toEqual({ projectId: PROJECT_ID, isEnabled: true });
+      // A real-time rule checks events as they arrive: it is never due.
+      expect(args.query).toEqual({
+        projectId: PROJECT_ID,
+        isEnabled: true,
+        isRealTime: false,
+      });
       expect(args.sort).toEqual({ _id: SortOrder.Ascending });
       // findAllBy pages through in LIMIT_MAX batches; a limit would cap it again.
       expect(args.limit).toBeUndefined();
@@ -654,7 +659,7 @@ describe("DetectionRuleEvaluator", () => {
 
       // Only what the due check reads, in a stable order, with no cap.
       expect(findAll).toHaveBeenCalledWith({
-        query: { isEnabled: true },
+        query: { isEnabled: true, isRealTime: false },
         select: {
           _id: true,
           projectId: true,

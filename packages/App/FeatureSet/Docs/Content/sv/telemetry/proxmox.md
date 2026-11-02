@@ -5,6 +5,7 @@ OneUptime Proxmox-agenten övervakar ett Proxmox VE-kluster: dess noder, QEMU-VM
 :::cards
 - [Välj hur du ansluter](#välj-hur-du-ansluter): Agenten, eller den inbyggda pushen i Proxmox VE 9.
 - [Installera agenten](#installera-agenten): En API-token, sedan installationsskriptet eller Docker Compose.
+- [Säkerhetskopieringsresultat](#skicka-proxmox-ves-aviseringar): Proxmox VE:s egna aviseringar, skickade med två kommandon.
 - [Inbyggd push](#alternativ-utan-installation-inbyggd-opentelemetry-push-i-proxmox-ve-9): Proxmox VE 9 skickar sina mätvärden själv.
 - [Felsökning](#felsökning): Ett diagnosskript, och de vanliga problemen.
 :::
@@ -33,9 +34,10 @@ Klustret registrerar sig med sina första data, under det namn som agenten stäm
 | Att installera | Docker Compose på en maskin | Ingenting: en mätvärdesserver i Proxmox webbgränssnitt |
 | Noder, gäster och lagring | Ja | Ja |
 | HA-tillstånd, start vid uppstart, säkerhetskopieringstäckning och replikering | Ja | Nej |
+| Säkerhetskopieringsresultat, isolerade noder och misslyckad replikering, från Proxmox VE:s aviseringar (8.3 eller senare) | Ja | Ja |
 | Proxmox-AI-agent | Ja | Nej |
 
-Mallarna **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** och **Replication Failing** behöver agenten. Använd det ena eller det andra för ett kluster: att köra båda rapporterar varje resurs två gånger.
+Mallarna **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** och **Replication Failing** behöver agenten. Använd det ena eller det andra för ett kluster: att köra båda rapporterar varje resurs två gånger.
 
 ## Innan du börjar
 
@@ -78,23 +80,25 @@ Rollen läggs på användaren och inte bara på token eftersom en token med priv
 
 ### Installera och starta agenten
 
+Varje OneUptime tillhandahåller agentens installationsskript och filer från sin egen version: Kommandona nedan laddar ned dem från `https://oneuptime.com`, så på en egenvärdad OneUptime ersätter du den adressen med din URL. Installationsskriptet sparas först som `install.sh`, så att du kan läsa det innan du kör det.
+
 :::tabs
 @tab install.sh
 Ladda ned installationsskriptet och kör det på maskinen som ska vara värd för agenten:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Skriptet frågar efter din OneUptime-URL, intagningsnyckeln, ett namn på klustret, Proxmox VE-API-värden, om den medföljande exportören ska köras, token-ID och hemlighet, och varje nods adress (det erbjuder klustrets egen lista så snart det har token) — och om [AI-agenten](#ai-agent) får genomföra åtgärder, och i så fall efter en egen token för det och de gäster den aldrig får ändra. Det installerar till `/opt/oneuptime-proxmox-agent`, skriver en `.env`-fil med `0600` och startar agenten med Docker Compose. Om du kör skriptet igen återanvänder det allt i den `.env` i stället för att fråga igen, och det är så du [uppgraderar agenten](#uppgradera-agenten).
 @tab Docker Compose
-Ladda ned `docker-compose.yml` och `otel-collector-config.yaml` från [ProxmoxAgent-katalogen](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) till en ny mapp:
+Ladda ned `docker-compose.yml` och `otel-collector-config.yaml` från din OneUptime till en ny mapp:
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 Skapa en `.env`-fil bredvid dem. Den innehåller tokenhemligheten, så håll den privat med `chmod 600 .env`:
@@ -169,7 +173,7 @@ Collectorn skrapar exportören var 30:e sekund: dess klustercollectors en gång,
 | Gäst (VM eller LXC) | `pve_guest_info`, och serier för CPU, minne och nätverk på ID:na `qemu/*` och `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Lagring | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Säkerhetskopieringstäckning | `pve_not_backed_up_total` (de gäster som inget säkerhetskopieringsjobb täcker; en serie på klusternivå, utan `id`-etikett) och `pve_not_backed_up_info` (en serie per gäst utan täckning, med dess `id`). Täckt betyder att minst ett jobb väljer gästen: om säkerhetskopieringar har körts nyligen eller lyckats exponeras inte av exportören. |
+| Säkerhetskopieringstäckning | `pve_not_backed_up_total` (de gäster som inget säkerhetskopieringsjobb täcker; en serie på klusternivå, `id` `cluster/<name>`) och `pve_not_backed_up_info` (en serie per gäst utan täckning, med dess `id`). Täckt betyder att minst ett jobb väljer gästen: om säkerhetskopieringar har körts nyligen eller lyckats exponeras inte av exportören. |
 | Start vid uppstart | `pve_onboot_status`, en serie per gäst: 1 när gästen är inställd på att starta vid uppstart. **Guest Down** larmar bara för dessa gäster. |
 | Replikering | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, per jobb för lagringsreplikering. Deras `id`-etikett är jobb-ID:t (till exempel `100-0`), inte en resurs. |
 
@@ -182,6 +186,44 @@ Monitorkriterier och attributfilter matchar på likhet, inte på ett prefix, så
 | `pve.id` | Allt efter det första `/` i `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 Den ursprungliga `id`-etiketten behålls som den är.
+
+## Skicka Proxmox VE:s aviseringar
+
+pve-exporter talar om vilka gäster ett säkerhetskopieringsjobb omfattar, men inte hur en säkerhetskopiering gick. Det talar Proxmox VE om själv, i sina aviseringar: resultatet av varje säkerhetskopieringsjobb, en isolerad nod, en misslyckad replikering, väntande uppdateringar. På Proxmox VE 8.3 eller senare skickar två kommandon, körda som root på valfri nod, varje avisering till OneUptime som en logg från klustret, utan att något behöver installeras, vid sidan av agenten eller den inbyggda pushen. Klustrets installationsguide visar dem med din URL, din nyckel och ditt klusternamn ifyllda.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+Det första kommandot lägger till ett webhook-mål med namnet `oneuptime`, som håller nyckeln och klustrets namn i sina hemligheter; det andra lägger till en matcher utan regler, som Proxmox VE läser som varje avisering. Använd klustrets namn så som OneUptime visar det: agentens `PROXMOX_CLUSTER_NAME`, eller med den inbyggda pushen Proxmox-klustrets eget namn.
+
+Varje avisering kommer med de här attributen:
+
+| Attribut | Värde |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (ett säkerhetskopieringsjobb), `replication`, `fencing`, `package-updates` eller `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` eller `unknown` |
+| `pve.notification.title` | Aviseringens rubrik |
+| `pve.notification.job_id` | Säkerhetskopieringsjobbets id, för ett säkerhetskopieringsjobb |
+| `proxmox.node.name` | Noden som skickade den |
+
+Från ett säkerhetskopieringsjobbs avisering registrerar OneUptime varje gästs senaste säkerhetskopia: om den lyckades, när den blev klar, hur stor den var och hur lång tid den tog. En gästs sida visar den, listan **Gäster** har den i kolumnen Säkerhetskopia, klustrets **Översikt** räknar resultaten, och en misslyckad ligger kvar under **Kräver uppmärksamhet** tills en senare säkerhetskopia av den gästen lyckas. Larmen **Backup Job Failed** och **Node Fenced** läser samma loggar.
+
+Så slutar du skicka dem:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## Valfritt — Skicka Proxmox-tjänstloggar
 
@@ -267,7 +309,7 @@ Det här kan inte täcka:
 
 - En fristående värd, eller ett helt kluster som tystnar på en gång: det finns ingen kvar som kan rapportera det, så inget larm per nod utlöses. Klustret blir i stället **Frånkopplad**, som när agenten stannar.
 - En nod som varit tyst i mer än 7 dagar rapporteras inte längre: dess larm löses och den försvinner från nodsidan. En självhostad OneUptime ändrar de 7 dagarna med `PVE_SILENT_NODE_RETENTION_HOURS`.
-- En nod som du tar ut ur klustret ser likadan ut som en död. Använd **Remove Node** på dess sida: den försvinner och dess larm löses. Annars förblir den Offline i upp till 7 dagar.
+- En nod som du tar ut ur klustret ser likadan ut som en död. Använd **Ta bort nod** på dess sida: den försvinner och dess larm löses. Annars förblir den Offline i upp till 7 dagar.
 - Nodens gäster och lagring: bara själva noden behålls som Offline. Dess VM:ar, containrar och lagring försvinner från sina sidor ungefär 15 minuter efter dess senaste rapport, och gäster som HA startar om på en annan nod kommer tillbaka under den noden.
 
 Efter ett avbrott i OneUptimes intag rapporteras en nod som nyss tystnat först när någon av de andra har pushat igen i 2 minuter, så själva avbrottet larmar aldrig för varje nod. En nod som redan var Offline förblir Offline under ett kort avbrott och behåller sitt larm; efter ett avbrott på mer än 5 minuter rapporteras den igen när de andra har pushat i 2 minuter.
@@ -282,16 +324,18 @@ Den inbyggda pushen skickar bara det som varje nod vet om sig själv, så en del
 | --- | --- |
 | HA-tillstånd | Pushas inte: mallen **HA Resource in Error State** behöver agenten. |
 | Flaggan för start vid uppstart | Pushas inte: **Guest Down**, som bara larmar för gäster som är inställda på att starta vid uppstart, behöver agenten. |
-| Säkerhetskopieringstäckning och replikering | Pushas inte: **Guest Not Backed Up** och **Replication Failing** behöver agenten. |
+| Säkerhetskopieringstäckning och replikering | Pushas inte: **Guest Not Backed Up**, **Backup Running Too Long** och **Replication Failing** behöver agenten. |
 
 Om du behöver dem kör du agenten i stället och tar bort mätvärdesservern: att köra båda rapporterar varje resurs två gånger.
+
+Säkerhetskopieringsresultat, isolerade noder och misslyckade replikeringar når ändå OneUptime: [skicka Proxmox VE:s aviseringar](#skicka-proxmox-ves-aviseringar), som också fungerar med den inbyggda pushen.
 
 ## Kör som en systemd-tjänst
 
 För att starta agenten med maskinen och starta om den när den misslyckas installerar du dess systemd-enhet. Den förutsätter att agenten ligger i `/opt/oneuptime-proxmox-agent`, där installationsskriptet placerar den:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ Agenten rapporterar den collector-version som dess filer låser som sin **Agentv
 Collectorns image är låst i `docker-compose.yml` och dess konfiguration är en fil bredvid den, så att bara hämta images för inte agenten framåt. Kör `install.sh` igen: det återanvänder varje värde i din befintliga `.env` (inget frågas efter igen), förnyar `docker-compose.yml` och `otel-collector-config.yaml` (en fil som du har redigerat sparas som `<file>.bak.<timestamp>`), hämtar imagesen och återskapar agenten så att collectorn läser sin nya konfiguration. En `.env` från före `PVE_NODES` fortsätter att bara läsa `PVE_HOST`, och skriptet anger vilka noder du ska lägga till.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Installerade du den med Docker Compose i stället? I agentens mapp laddar du ned båda filerna igen (och gör om eventuella ändringar du hade gjort i dem), hämtar sedan imagesen och återskapar agenten:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ Vad den får köra, hur åtgärder fungerar och hur du felsöker den: [Infrastru
 ## Felsökning
 
 :::details Kör diagnosskriptet först
-Agenten levereras med ett skript, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh), som kontrollerar hela kedjan: containerkörtiden, exportörens skrapning, det klusternamn som stämplas på varje mätvärde, tokenens format, collectorns egna mätvärden, och om OneUptime godtar intagningsnyckeln. Den sista kontrollen är viktigast. OneUptime nekar en felaktig nyckel med `401` (`422` för en inaktiverad nyckel eller en webbläsarnyckel), och collectorn behandlar båda som permanenta: den släpper batchen och loggar ett enda `Exporting failed`-fel, som är lätt att missa medan containern förblir frisk. Skriptet frågar `GET <url>/otlp/v1/validate` inifrån agentens nätverk för ett direkt `200` (giltig) eller `401` (ogiltig), och faller tillbaka på `POST /fluentd/v1/logs` på äldre servrar.
+Agenten levereras med ett skript, [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh), som kontrollerar hela kedjan: containerkörtiden, exportörens skrapning, det klusternamn som stämplas på varje mätvärde, tokenens format, collectorns egna mätvärden, och om OneUptime godtar intagningsnyckeln. Den sista kontrollen är viktigast. OneUptime nekar en felaktig nyckel med `401` (`422` för en inaktiverad nyckel eller en webbläsarnyckel), och collectorn behandlar båda som permanenta: den släpper batchen och loggar ett enda `Exporting failed`-fel, som är lätt att missa medan containern förblir frisk. Skriptet frågar `GET <url>/otlp/v1/validate` inifrån agentens nätverk för ett direkt `200` (giltig) eller `401` (ogiltig), och faller tillbaka på `POST /fluentd/v1/logs` på äldre servrar.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -373,11 +417,18 @@ OneUptime registrerar ett Proxmox-kluster efter dess `proxmox.cluster.name`, som
 :::
 
 :::details Med inbyggd push visas en nod som Offline
-Den slutade rapportera: en nod som är nere, en `pvestatd` som har hängt sig, en stoppad `pmxcfs` eller ett avbrutet nätverk till OneUptime ser likadana ut. Dess nästa rapport tar tillbaka den. Om du tog ut noden ur klustret använder du **Remove Node** på dess sida; annars förblir den Offline i upp till 7 dagar. Se [När en nod slutar rapportera](#när-en-nod-slutar-rapportera).
+Den slutade rapportera: en nod som är nere, en `pvestatd` som har hängt sig, en stoppad `pmxcfs` eller ett avbrutet nätverk till OneUptime ser likadana ut. Dess nästa rapport tar tillbaka den. Om du tog ut noden ur klustret använder du **Ta bort nod** på dess sida; annars förblir den Offline i upp till 7 dagar. Se [När en nod slutar rapportera](#när-en-nod-slutar-rapportera).
 :::
 
 :::details Med inbyggd push utlöses aldrig Guest Down-, HA- eller säkerhetskopieringslarm
 Den inbyggda pushen skickar inte HA-tillstånd, start vid uppstart, säkerhetskopieringstäckning eller replikering. [Installera agenten](#installera-agenten) för dem, och ta bort mätvärdesservern: att köra båda rapporterar varje resurs två gånger.
+:::
+
+:::details Säkerhetskopieringsresultat dyker aldrig upp
+1. Kontrollera Proxmox VE-versionen: webhook-mål kräver 8.3 eller senare (`pveversion`).
+2. Kontrollera att målet och dess matcher finns: `pvesh get /cluster/notifications/endpoints/webhook` och `pvesh get /cluster/notifications/matchers` visar båda `oneuptime`.
+3. Skicka en testavisering med `pvesh create /cluster/notifications/targets/oneuptime/test`. Den visas på klustrets sida **Loggar** inom en minut; om den inte gör det är nyckeln eller URL:en i målet fel.
+4. Kontrollera klustrets namn i målets hemligheter: ett namn som OneUptime inte känner till registrerar ett andra kluster.
 :::
 
 ## Nästa steg

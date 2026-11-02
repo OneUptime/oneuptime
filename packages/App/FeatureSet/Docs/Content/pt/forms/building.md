@@ -81,10 +81,14 @@ O logotipo mantém a altura do logotipo do OneUptime que ele substitui, e um lar
 | **Caixa de verificação** | Uma caixa para marcar, como uma confirmação. |
 | **Data** | Um dia. |
 | **Data e hora** | Um dia e um horário. |
+| **Arquivo** | Um arquivo, como uma captura de tela ou um documento assinado. |
+| **Vários arquivos** | Até 10 arquivos, como capturas de tela e logs. |
 
 Uma lista suspensa ou de seleção múltipla lista as **Opções** que você der a ela, cada uma com uma cor opcional (o botão ao lado de uma opção abre um conjunto de cores com nome, com **Cor personalizada** para um código exato), de uma a 100. Mudar uma pergunta entre **Lista pendente** e **Seleção múltipla** mantém as opções dela; uma pergunta que passa a ser de um desses tipos começa com duas opções que você pode renomear, e uma que deixa de ser as perde. **Duplicar** copia uma pergunta própria do formulário logo abaixo dela.
 
 As respostas a essas perguntas ficam guardadas com o envio e são listadas na nota privada do que o formulário cria — elas não preenchem nenhum campo. Para preencher um campo, adicione o próprio campo, a partir dos dois grupos seguintes.
+
+Uma pergunta **Arquivo** ou **Vários arquivos** recebe arquivos do computador de quem envia e os anexa à nota privada, onde sua equipe os baixa. Para guardar os arquivos em um campo personalizado do incidente ou do evento, adicione em vez disso um campo personalizado **Arquivo** ou **Vários arquivos**.
 
 ### Campos do que o formulário cria
 
@@ -115,7 +119,7 @@ Cada campo só pode ser perguntado uma vez; a lista marca os que já estão no f
 
 ### Campos personalizados
 
-Os seus campos personalizados de incidente — ou de manutenção programada, em um formulário de manutenção — cada um uma pergunta cuja resposta se torna o valor do campo. A pergunta recebe o tipo e as opções do campo personalizado, e começa com o nome dele como pergunta e a descrição como texto de ajuda, que você pode alterar.
+Os seus campos personalizados de incidente — ou de manutenção programada, em um formulário de manutenção — cada um uma pergunta cuja resposta se torna o valor do campo. A pergunta recebe o tipo e as opções do campo personalizado, e começa com o nome dele como pergunta e a descrição como texto de ajuda, que você pode alterar. Um campo personalizado **Arquivo** ou **Vários arquivos** é perguntado como uma pergunta de arquivos, e os arquivos vão para o campo.
 
 Um formulário só pergunta os campos personalizados que você adicionar a ele, seja o que for que **Mostrar na criação** diga: cada campo que um formulário pergunta mostra o nome, a descrição e as opções dele para qualquer pessoa com o link. Quando um campo personalizado é excluído, a pergunta dele continua no formulário mas deixa de ser feita, e o cartão diz isso — exclua a pergunta. Um campo criado de novo com o mesmo nome é um campo novo: adicione-o de novo.
 
@@ -232,6 +236,9 @@ Depois de enviar, a página diz "Obrigado — sua resposta foi enviada." e dá o
 | Qualquer outra resposta de texto | 10.000 caracteres. |
 | Uma resposta de seleção múltipla | 100 escolhas. |
 | **O seu nome**, **O seu e-mail** | 100 caracteres cada. |
+| Um arquivo | 10 MB, dos tipos que um [campo personalizado de arquivo](/docs/incidents/settings#campos-de-arquivo) aceita. |
+| Uma pergunta **Vários arquivos** | 10 arquivos. |
+| Os arquivos de um envio | 10 arquivos, 20 MB no total. |
 
 Um envio que passa de um limite, deixa de fora uma resposta obrigatória ou dá uma resposta que não se encaixa na pergunta é recusado com uma mensagem que diz qual, e nada é criado. Respostas a perguntas que o formulário não faz são ignoradas.
 

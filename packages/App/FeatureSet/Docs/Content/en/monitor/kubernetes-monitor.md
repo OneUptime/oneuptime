@@ -34,15 +34,15 @@ Go to **Monitors** and click **Create Monitor**. Under **More monitor types**, p
 
 ### Pick the cluster
 
-Select it in **Kubernetes Cluster**. The list holds every cluster the agent has reported from.
+Select it in **Kubernetes Cluster**. The list holds every cluster the agent has reported from. Once picked, a line under the field says whether data is arriving. **Add Kubernetes Cluster** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Use one of the three tabs:
+A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on**; **Change** picks another template. **Custom Metric** and **Advanced** are under **More fields**:
 
-| Tab | What you choose |
+| Where | What you choose |
 | --- | --- |
-| **Quick Setup** | A [pre-built alert template](#pre-built-alert-templates). It fills in the metric, scope, time range and criteria; you can still change the **Time Range**. |
+| **What to alert on** | A [pre-built alert template](#pre-built-alert-templates). It fills in the metric, scope, time range and criteria; you can still change the **Time Range**. |
 | **Custom Metric** | One metric from the [metric catalog](#metric-catalog), then its **Resource Scope**, filters, **Aggregation** (Average, Maximum, Minimum, Sum or Count) and **Time Range**. |
 | **Advanced** | The **Resource Scope**, filters and **Time Range**, and your own metric queries and formulas under **Select Metrics**, with a live chart of the result. |
 
@@ -69,6 +69,8 @@ Finish the form and save. The monitor appears under **Monitors**, and its status
 | Node | A cluster node | **Node Name** |
 | Pod | A pod | **Namespace**, **Pod Name** |
 
+A container's and a pod's metrics carry the names of the workloads the pod belongs to (a Deployment's pod carries the Deployment's name and its ReplicaSet's), so a Workload scope watches that workload's containers and pods. A workload's own metrics, such as a Job's failed pods, carry only their own workload's name: scope them to that workload's kind.
+
 ### Time Range
 
 **Time Range** is the window the metric query covers each time the monitor is evaluated, from **Past 1 Minute** up to **Past 365 Days**. Short windows (1 to 15 minutes) suit alerting; longer ones smooth out noisy metrics.
@@ -85,13 +87,13 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. **Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown, which is what a node that went down reports: alert on less than 1. Control-plane metrics only arrive when the agent's control-plane scrape is on.
+> **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. **Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown, which is what a node that went down reports: alert on less than 1. **Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it. It carries what **Container Restarts** carries, the workload names of the container's pod included, but not the container's ID, which changes with every restart. **Job Failed Pods** is a Job's running count of failed pods; **Job Failed Pods (Increase)** is what the agent sends with every sample, the Job's pods that failed since its previous sample of the Job, so its sum over a window is the failures in it. It carries what **Job Failed Pods** carries: the Job's name and namespace. Control-plane metrics only arrive when the agent's control-plane scrape is on.
 
 ## Monitoring criteria
 
@@ -122,13 +124,13 @@ Baseline anomaly detection needs no threshold. Pick one of these conditions, and
 | **Anomalously Low** | Falls below the expected range |
 | **Anomalous** | Leaves the expected range in either direction |
 
-Each sample is compared with a same-hour-of-week baseline built from the **Baseline Window** (14 days by default; 28, 60 or 90 days). **Sensitivity** sets how wide the expected range is: **Low (4σ — egregious deviations only)**, **Medium (3σ — recommended)**, the default, or **High (2σ — noisier, very stable services)**. Anomaly conditions stay in a "Learning" state and produce no alerts until at least the chosen Baseline Window of metric history exists.
+Each sample is compared with a same-hour-of-week baseline built from the **Baseline Window** (14 days by default; 28, 60 or 90 days). **Sensitivity** sets how wide the expected range is: **Low (4σ — egregious deviations only)**, **Medium (3σ — recommended)**, the default, or **High (2σ — noisier, very stable services)**. Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history. A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes, and the baseline holds none.
 
 **If No Data**, under **More fields**, decides what happens when the query returns nothing in the window: **Ignore** (the default) does not match, **Trigger** treats the silence as the problem, and **Treat As Zero** compares a zero. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Pre-built alert templates
 
-The **Quick Setup** tab lists these templates, grouped by category. Each one fills in two criteria: one that marks the monitor offline and opens an incident and an alert when the condition holds, and one that brings it back online when it clears.
+The **What to alert on** list holds these templates, grouped by category. Each one fills in two criteria: one that marks the monitor offline and opens an incident and an alert when the condition holds, and one that brings it back online when it clears.
 
 | Template | Category | Fires when | Severity |
 | --- | --- | --- | --- |
@@ -153,10 +155,15 @@ The **Quick Setup** tab lists these templates, grouped by category. Each one fil
 
 Templates on per-object metrics evaluate each node, pod, deployment, job, DaemonSet or HPA on its own, so a cluster with several unhealthy pods gets an incident per pod rather than one for the whole cluster.
 
+**High Node CPU Request Commitment** and **High Node Memory Request Commitment** count only the requests of pods that have not finished, as the scheduler does. The cluster keeps reporting the requests of a pod that has Succeeded or Failed, such as a finished Job's, until the pod is deleted: those are left out.
+
 **Cluster Stopped Reporting** fires when nothing arrives from the cluster's agent for ten minutes: the agent was uninstalled or keeps crashing, its API key was revoked, it lost its route to OneUptime, or the cluster's API server stopped answering it. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** and **Job Failures** count how much a restart or failed-pod count grew in the window, not the count itself, so they clear on their own once the restarts or failures stop. The growth is only seen between two samples of the same minute: at the agent's 30-second interval that is about half of it. A crash loop restarts again and again and is caught; a single restart can go unseen.
+> **CrashLoopBackOff Detection** adds up `k8s.container.restarts.increase`, which the agent sends with every sample: the restarts since its previous sample of the container. So it counts every restart however far apart the samples are, it clears on its own once the restarts stop, and a pod that is recreated starts a new count rather than reading as restarts. An older agent does not send `k8s.container.restarts.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first. A monitor made from the template before then reads how much `k8s.container.restarts` grew within each minute, which misses about half of a loop's restarts: delete it and create the template again.
+
+> [!NOTE]
+> **Job Failures** adds up `k8s.job.failed_pods.increase`, which the agent sends with every sample: the Job's pods that failed since its previous sample of the Job. So it counts every failure however far apart the samples are, it clears on its own once the failures stop, and a Job recreated under the same name starts a new count rather than reading as failures. The failures before the agent's first sample of a Job are where its count starts, so a Job that fails within its first half-minute and never retries can go unseen. An older agent does not send `k8s.job.failed_pods.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first. A monitor made from the template before then reads how much `k8s.job.failed_pods` grew within each minute, which misses about half of the failures: delete it and create the template again.
 
 ### Catching causes, not just symptoms
 
@@ -185,7 +192,11 @@ Clusters register themselves from the agent's data, under the `clusterName` the 
 :::
 
 :::details CrashLoopBackOff Detection did not fire for a restart
-The template fires when a container's restart count grows within 15 minutes while the container was ready for less than half of them, so a container that restarted once and came straight back does not page. The growth is only seen between two samples of the same minute, so a single restart can go unseen; a crash loop restarts every few minutes and is caught.
+The template fires when a container restarts within 15 minutes while it was ready for less than half of them, so a container that restarted once and came straight back does not page. It reads `k8s.container.restarts.increase`, which an older agent does not send: [upgrade the agent](/docs/monitor/kubernetes-agent#upgrading). A monitor made from the template before then reads how much `k8s.container.restarts` grew between two samples in the same minute, and misses the restarts between two minutes' samples: delete it and create the template again. If `filters.metrics.include` lists the metrics the agent sends, add `k8s.container.restarts.increase` to it. A monitor scoped to a workload also needs the workload names on `k8s.container.restarts.increase`, which an older agent sends it without: [upgrade the agent](/docs/monitor/kubernetes-agent#upgrading).
+:::
+
+:::details Job Failures did not fire for a failed Job
+The template fires when a pod of a Job fails within 15 minutes, and clears fifteen minutes after the last failure. It reads `k8s.job.failed_pods.increase`, which an older agent does not send: [upgrade the agent](/docs/monitor/kubernetes-agent#upgrading). A monitor made from the template before then reads how much `k8s.job.failed_pods` grew between two samples in the same minute, and misses the failures between two minutes' samples: delete it and create the template again. The failures before the agent's first sample of a Job are where its count starts, so a Job whose only pod fails within its first half-minute goes unseen. If `filters.metrics.include` lists the metrics the agent sends, add `k8s.job.failed_pods.increase` to it. A monitor scoped to a workload must name the Job itself: a Job's failed pods carry its name and namespace, not the CronJob that created it.
 :::
 
 ## Next steps

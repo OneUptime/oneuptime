@@ -106,6 +106,17 @@ export enum SearchTier {
 
 const SCORE_PER_WORD: number = 100;
 const BUILT_IN_BONUS: number = 30;
+
+/*
+ * Hand-written steps named after a resource, which come after that
+ * resource's own steps rather than among them: "incident" lists Create One
+ * Incident to Delete Many Incidents, then Incident From Another Tool. They
+ * take no built-in bonus.
+ */
+export const RANKED_AFTER_RESOURCE_STEPS: ReadonlySet<string> = new Set<string>(
+  [ComponentID.IncidentFromAnotherTool, ComponentID.AlertFromAnotherTool],
+);
+
 const POPULAR_BONUS: number = 20;
 const COMMON_RESOURCE_BONUS: number = 30;
 // For each word of a resource's name the search did not mention.
@@ -190,6 +201,28 @@ const PAGE_KEYWORDS: ReadonlyArray<string> = [
   "opsgenie",
 ];
 
+/*
+ * What people bringing another tool's alerts in call it, and the tools they
+ * bring them from. Not "open", "resolve" or "acknowledge": those mean
+ * Create One and Update One, and would put these steps above them.
+ */
+const FROM_OTHER_TOOL_KEYWORDS: ReadonlyArray<string> = [
+  "external",
+  "outside",
+  "integration",
+  "inbound",
+  "sync",
+  "recovery",
+  "firing",
+  "zabbix",
+  "grafana",
+  "alertmanager",
+  "prometheus",
+  "nagios",
+  "datadog",
+  "huntress",
+];
+
 export const COMPONENT_KEYWORDS: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
@@ -213,6 +246,18 @@ export const COMPONENT_KEYWORDS: Readonly<
     "duty",
   ],
   [ComponentID.Log]: ["print", "console", "debug", "output", "write"],
+  [ComponentID.IncidentFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
+  [ComponentID.AlertFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
+  [ComponentID.ZabbixUpdateProblem]: [
+    "acknowledge",
+    "close",
+    "resolve",
+    "message",
+    "comment",
+    "problem",
+    "event",
+    "monitoring",
+  ],
   [ComponentID.IfElse]: [
     "condition",
     "conditional",
@@ -240,6 +285,15 @@ export const COMPONENT_KEYWORDS: Readonly<
     "several",
   ],
   [ComponentID.ApiGet]: [...HTTP_KEYWORDS, "fetch", "read", "download"],
+  [ComponentID.ApiGetById]: [
+    ...HTTP_KEYWORDS,
+    "fetch",
+    "read",
+    "lookup",
+    "item",
+    "record",
+    "key",
+  ],
   [ComponentID.ApiPost]: [...HTTP_KEYWORDS, "webhook", "send", "submit"],
   [ComponentID.ApiPut]: [...HTTP_KEYWORDS, "replace"],
   [ComponentID.ApiPatch]: [...HTTP_KEYWORDS, "modify"],
@@ -277,6 +331,19 @@ export const COMPONENT_KEYWORDS: Readonly<
     "function",
     "transform",
     "program",
+  ],
+  // A check: what If / Else is found by, and what Run Custom JavaScript is.
+  [ComponentID.JavaScriptCheck]: [
+    "code",
+    "script",
+    "js",
+    "javascript",
+    "condition",
+    "conditional",
+    "branch",
+    "check",
+    "filter",
+    "decide",
   ],
   [ComponentID.JsonToText]: ["stringify", "serialize", "convert", "string"],
   [ComponentID.TextToJson]: ["parse", "deserialize", "convert", "string"],
@@ -564,6 +631,8 @@ interface IndexedComponent {
   // For a database step, the words that name each word of its resource.
   resourceWords: Array<Array<CoveringWord>> | null;
   isBuiltIn: boolean;
+  // A hand-written step outside RANKED_AFTER_RESOURCE_STEPS.
+  takesBuiltInBonus: boolean;
   popularRank: number;
   commonRank: number;
   // Position in A to Z order: resource, then operation, then title.
@@ -839,6 +908,8 @@ export const buildComponentSearchIndex: BuildComponentSearchIndexFunction = (
         titleKey: titleWords.join(" "),
         resourceWords: resourceWords,
         isBuiltIn: isBuiltIn,
+        takesBuiltInBonus:
+          isBuiltIn && !RANKED_AFTER_RESOURCE_STEPS.has(componentMetadata.id),
         popularRank:
           popularRank === undefined ? Number.POSITIVE_INFINITY : popularRank,
         commonRank:
@@ -1055,7 +1126,7 @@ export const searchComponents: SearchComponentsFunction = (
       }
     }
 
-    if (entry.isBuiltIn) {
+    if (entry.takesBuiltInBonus) {
       score += BUILT_IN_BONUS;
     }
 

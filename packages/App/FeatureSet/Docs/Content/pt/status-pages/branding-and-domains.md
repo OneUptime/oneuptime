@@ -63,7 +63,7 @@ O seu CSS e o seu HTML personalizados valem nos dois temas; [HTML, CSS e JavaScr
 ### Título, descrição e favicon
 
 - **Título e descrição**: o nome da página na aba do navegador e nos e-mails aos assinantes, e a descrição que os mecanismos de pesquisa mostram. **Editar** abre **Título da página** (texto de exemplo `e.g., Acme Status`) e **Descrição da página**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
-- **Favicon**: **Edit Favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
+- **Favicon**: **Editar favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
 
 ### Links do cabeçalho
 
@@ -107,7 +107,7 @@ Quantos dias o gráfico cobre não é definido aqui. Isso é o **Histórico de t
 
 | Campo | O que faz |
 | ----- | ------------ |
-| **Idioma Padrão** | O idioma que os visitantes veem na primeira visita, escolhido em uma lista que nomeia cada idioma na própria língua e em inglês (`Deutsch (German)`). O padrão é o inglês, e os visitantes sempre podem trocar pelo rodapé. |
+| **Idioma Padrão** | O idioma que os visitantes veem na primeira visita, escolhido em uma lista que nomeia cada idioma na própria língua e em inglês (`Deutsch (German)`). O padrão é o inglês, e os visitantes sempre podem trocar pelo rodapé. Os assinantes também recebem as mensagens nele, a menos que estivessem lendo a página em outro idioma quando se inscreveram. |
 | **Idiomas habilitados** | Uma seleção múltipla, texto de exemplo `All languages`. Deixe-a vazia e todos os idiomas compatíveis são oferecidos; escolha alguns e o rodapé lista só esses. |
 
 O OneUptime vem com dezessete idiomas: inglês, alemão, francês, espanhol, italiano, português, holandês, dinamarquês, norueguês, sueco, russo, japonês, coreano, chinês (simplificado), chinês (tradicional), hindi e persa. O persa é lido da direita para a esquerda, então uma página exibida em persa é disposta a partir da direita, desde o primeiro momento quando o persa é o seu idioma padrão. As barras de tempo de atividade continuam começando à esquerda pelo dia mais antigo.
@@ -214,7 +214,7 @@ Em **Domínio** (texto de exemplo `Select domain`), escolha um dos seus domínio
 Clique em **Criar: Página de status Domínio**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre, com o registro a adicionar.
 :::
 
-O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo.
+O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo. Um nome que um painel ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.
 
 ### Configuração de DNS e verificação
 

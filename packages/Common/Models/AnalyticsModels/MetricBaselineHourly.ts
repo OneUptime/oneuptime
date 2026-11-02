@@ -15,22 +15,27 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * states (count/avg/stddevPop/quantile/min/max) — finalize at read
  * time via the matching `*Merge()`.
  *
+ * `hourOfWeek` is not the hour the code counts from Monday 00:00. The view's
+ * `toDayOfWeek(time, 1)` makes Monday 0, so Tuesday 00:00 is stored as 0,
+ * Sunday 23:00 as 143 and Monday's hours, wrapped by toUInt8, as 232..255.
+ * Read it through `MetricHourBaseline.toStoredHour`. Changing the view would
+ * split the rows already stored from the ones after it.
+ *
  * Read access goes through `MetricBaselineService`, which folds across
  * a configurable rolling window (default 14 days, max 90 — capped by
  * the table's `day + INTERVAL 90 DAY` TTL) and per `hourOfWeek`. The
  * 168 hour-of-week buckets capture both daily and weekly seasonality
- * (Mon 09:00 → 8, Sun 23:00 → 167) using ISO week numbering.
+ * (Mon 09:00 → 9, Sun 23:00 → 167) as the code numbers them.
  *
- * Cold start: the evaluator refuses to fire when a baseline cell has
- * fewer than `minSamples` samples (default 5). New projects therefore
- * see a "Learning" state for ~14 days after first ingest.
+ * Cold start: the evaluator refuses to fire until a baseline cell has two
+ * earlier weeks of history and `minSamples` samples (default 5). New
+ * projects therefore see a "Learning" state for ~14 days after first ingest.
  *
  * Schema notes:
  *   - `median`, `p95`, `min`, `max` states are emitted from day one so
  *     a future Phase E can switch the evaluator to median+MAD without
  *     a migration.
- *   - `hourOfWeek` is a `UInt8` (range 0..167); ClickHouse rejects
- *     values outside the type so we get a built-in invariant guard.
+ *   - `hourOfWeek` is a `UInt8`, and toUInt8 wraps what does not fit.
  *
  * No CRUD API is exposed (`crudApiPath` and `enableMCP` are unset);
  * this is read-only baseline storage.
@@ -76,7 +81,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       key: "hourOfWeek",
       title: "Hour Of Week",
       description:
-        "(toDayOfWeek(time, 1) - 1) * 24 + toHour(time). Range 0..167 with Mon 00:00 = 0.",
+        "(toDayOfWeek(time, 1) - 1) * 24 + toHour(time), wrapped by toUInt8. Tue 00:00 = 0, Sun 23:00 = 143, Mon 00:00 = 232.",
       required: true,
       type: TableColumnType.UInt8,
     });

@@ -16,10 +16,10 @@ flowchart TB
     fired["Alerte levée"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"Success"| chat["Message dans<br/>votre discussion"]
-    step -->|"Error"| log["Log : pourquoi il<br/>n'a pas été remis"]
+    step -->|"Error"| failed["L'exécution échoue<br/>et dit pourquoi"]
 ```
 
-L'étape envoie le **Message Text** à la discussion, au nom de votre bot, via la Bot API de Telegram. Elle prend sa sortie **Success** quand Telegram accepte le message, et sa sortie **Error**, avec la raison de Telegram, quand Telegram le refuse. Le modèle relie une étape **Log** à **Error**, si bien qu'une exécution qui n'a pas pu envoyer dit pourquoi.
+L'étape envoie le **Message Text** à la discussion, au nom de votre bot, via la Bot API de Telegram. Elle prend sa sortie **Success** quand Telegram accepte le message, et sa sortie **Error**, avec la raison de Telegram, quand Telegram le refuse. Si rien n'est relié à **Error**, comme dans le modèle, une exécution qui n'a pas pu envoyer échoue, et ses **Étapes** disent pourquoi.
 
 ## Avant de commencer
 
@@ -53,7 +53,7 @@ Partez du modèle, qui construit tout le workflow pour les alertes, ou de zéro.
 3. Gardez le nom **Notify Telegram on new alert** ou changez-le, et cliquez sur **Suivant**.
 4. Collez le jeton dans **Telegram Bot Token** et l'ID dans **Telegram Chat ID**, et cliquez sur **Créer un flux de travail**.
 
-Le workflow s'ouvre dans le **Constructeur** avec trois étapes : **On Create Alert** ; **Send Message to Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte ; et une étape **Log** sur sa sortie **Error**. Le jeton est enregistré comme variable secrète `telegramBotToken` du workflow, et l'ID comme `telegramChatId`.
+Le workflow s'ouvre dans le **Constructeur** avec deux étapes : **On Create Alert**, et **Send Message to Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte. Le jeton est enregistré comme variable secrète `telegramBotToken` du workflow, et l'ID comme `telegramChatId`.
 @tab De zéro
 1. Enregistrez le jeton comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `TELEGRAM_BOT_TOKEN`, et cliquez sur **Suivant**. Collez le jeton dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
 2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le workflow, et cliquez sur **Créer un flux de travail**.
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Basculez l'interrupteur **Activé** en haut du **Constructeur**. À partir de là, chaque nouvelle alerte est envoyée dans la discussion.
 
-Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et choisissez une alerte existante sous **Alerte** : les plus récentes sont listées, et saisir son numéro ou une partie de son titre en trouve une autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans la discussion. Si l'étape prend plutôt **Error**, la ligne de l'étape **Log** dit pourquoi : voir [Dépannage](#dépannage).
+Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et choisissez une alerte existante sous **Alerte** : les plus récentes sont listées, et saisir son numéro ou une partie de son titre en trouve une autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans la discussion. Si l'étape prend plutôt **Error**, l'exécution échoue, et l'entrée de l'étape dans **Étapes** dit pourquoi : voir [Dépannage](#dépannage).
 :::
 
 ## Conseils
@@ -85,7 +85,7 @@ Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et
 
 ## Dépannage
 
-Quand l'étape prend **Error**, l'exécution dit pourquoi : l'étape **Log** du modèle écrit `❌ Telegram could not deliver the alert notification:`, la raison de Telegram, et un rappel que le bot doit être dans la discussion.
+Quand l'étape prend **Error**, l'exécution échoue, et l'entrée de l'étape dans les **Étapes** de l'exécution donne la raison de Telegram. Le bot doit être dans la discussion : vérifiez-le d'abord.
 
 :::details Telegram répond "Bad Request: chat not found"
 Le **Chat ID** est faux, ou le bot ne voit pas la discussion : ajoutez le bot au groupe, faites-en un administrateur du canal, ou demandez à la personne de commencer une discussion avec le bot. L'ID d'un groupe commence par `-`.

@@ -61,19 +61,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Host** 
 
 ### Elegir la máquina
 
-En **Configuración del monitor de host**, elija la máquina en **Host**. Cada host que ha enviado datos está en la lista.
+En **Configuración del monitor de host**, elija la máquina en **Host**. Cada host que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir host** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Host Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** – haga clic en una [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** – elija una métrica en **Métrica del host** y luego fije la **Agregación** y el **Intervalo de tiempo**.
-- **Avanzado** – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un filtro sobre `state` o una agrupación por `mountpoint`.
+- **Cambiar** – elija otra [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) – elija una métrica en **Métrica del host** y luego fije la **Agregación** y el **Intervalo de tiempo**.
+- **Avanzado** (en **Más campos**) – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un filtro sobre `state` o una agrupación por `mountpoint`.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que una métrica cae a cero, así que fije su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que fije su propio umbral.
 
 ### Crear el monitor
 
@@ -95,7 +95,7 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
@@ -115,11 +115,11 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 - **Memoria** excluye los búferes y la caché de páginas, así que un host lleno sobre todo de caché no la dispara.
 - **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %: las configuraciones de colector de OneUptime los dejan fuera del scraper `filesystem` con `exclude_fs_types`, y una configuración propia necesita lo mismo.
 - **Promedio de carga** es una longitud bruta de la cola de ejecución, no dividida por el número de núcleos: 4 es saturación en un host de 2 núcleos y rutina en uno de 32, así que súbalo en hosts grandes.
-- **Número de procesos** compara el estado de proceso individual más grande (`running`, `sleeping`, …), no el total del host, así que no coincidirá con una lista de procesos. El scraper de procesos solo informa en Linux.
+- **Número de procesos** compara el estado de proceso individual más grande (`running`, `sleeping`, …), no el total del host, así que no coincidirá con una lista de procesos. El scraper de procesos informa en Linux, macOS y BSD, no en Windows.
 
 ## Métricas recopiladas
 
-La lista **Métrica del host** ofrece estas métricas. Cada una lleva `resource.host.name`, que es como el monitor limita sus consultas a un host.
+La lista **Métrica del host** ofrece estas métricas. Cada una lleva `resource.host.name`, que es como el monitor limita sus consultas a un host. Elegida ahí, la CPU cuenta el estado `user`, el uso de memoria y de sistemas de archivos el estado `used`, y los sistemas de archivos y los procesos dan una serie por punto de montaje y por estado.
 
 > [!IMPORTANT]
 > Las métricas de utilización son una proporción de 0 a 1, no un porcentaje: use `0.8` para el 80 % en un umbral sobre la métrica sin procesar. Las plantillas convierten a porcentaje con una fórmula, así que sus umbrales indican 80, 85 y 90.
@@ -181,7 +181,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
 | **Si no hay datos** | En **Más campos**. Qué ocurre cuando la ventana no tiene muestras: **Ignore** (el predeterminado), **Treat As Zero** o **Disparador**. |
 
-Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en un estado «Learning», y no generan nada, hasta que la ventana de referencia contiene suficiente historial.
+Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en un estado «Learning», y no generan nada, hasta que la ventana de referencia contiene suficiente historial. Una suma, un recuento o una consulta sobre un histograma permanece en ese estado para siempre: este monitor filtra sus consultas por atributos y la línea de referencia no guarda ninguno.
 
 Cada criterio indica también qué hacer cuando coincide: cambiar el estado del monitor, crear una alerta o declarar un incidente. Los criterios se comprueban de arriba abajo, y el primero que coincide decide.
 

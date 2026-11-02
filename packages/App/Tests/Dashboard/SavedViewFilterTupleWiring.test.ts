@@ -78,6 +78,16 @@ function readCode(...relativeParts: Array<string>): string {
 const METRICS_CODE: string = readCode(...METRICS_VIEWER);
 const TRACES_CODE: string = readCode(...TRACES_VIEWER);
 const LOGS_CODE: string = readCode(...LOGS_VIEWER);
+const EXCEPTIONS_CODE: string = readCode(
+  "Components",
+  "Exceptions",
+  "ExceptionsViewer.tsx",
+);
+// The exceptions list reads and writes its saved views in a helper module.
+const EXCEPTION_SAVED_VIEW_CODE: string = readCode(
+  "Utils",
+  "ExceptionSavedView.ts",
+);
 
 describe("the traces explorer reads saved filters defensively", () => {
   test("it imports the shared filter reader", () => {
@@ -110,6 +120,25 @@ describe("the metrics list explorer reads saved filters defensively", () => {
 
   test("it never destructures saved filters directly", () => {
     expect(METRICS_CODE).not.toContain(RAW_DESTRUCTURE);
+  });
+});
+
+describe("the exceptions list reads saved filters defensively", () => {
+  test("its saved-view helper imports the shared filter reader", () => {
+    expect(EXCEPTION_SAVED_VIEW_CODE).toContain(SHARED_FILTER_READER_IMPORT);
+    expect(EXCEPTION_SAVED_VIEW_CODE).toContain(
+      "filters: readSavedViewFilters(state.filters),",
+    );
+  });
+
+  test("applying a view goes through that helper", () => {
+    expect(EXCEPTIONS_CODE).toContain('from "../../Utils/ExceptionSavedView"');
+    expect(EXCEPTIONS_CODE).toContain("readExceptionsSavedViewState(");
+  });
+
+  test("neither destructures saved filters directly", () => {
+    expect(EXCEPTIONS_CODE).not.toContain(RAW_DESTRUCTURE);
+    expect(EXCEPTION_SAVED_VIEW_CODE).not.toContain(RAW_DESTRUCTURE);
   });
 });
 
@@ -215,6 +244,7 @@ describe("every saved-views host reads its filters defensively", () => {
     });
 
     expect(hosts.sort()).toEqual([
+      "ExceptionsViewer.tsx",
       "MetricExplorer.tsx",
       "MetricsViewer.tsx",
       "TracesViewer.tsx",

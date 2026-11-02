@@ -107,7 +107,7 @@ Cuántos días abarca el gráfico no se define aquí. Eso es **Historial de tiem
 
 | Campo | Qué hace |
 | ----- | ------------ |
-| **Idioma predeterminado** | El idioma que ven los visitantes nuevos, elegido de una lista que nombra cada idioma en su propia lengua y en inglés (`Deutsch (German)`). Su valor predeterminado es el inglés, y los visitantes siempre pueden cambiarlo desde el pie de página. |
+| **Idioma predeterminado** | El idioma que ven los visitantes nuevos, elegido de una lista que nombra cada idioma en su propia lengua y en inglés (`Deutsch (German)`). Su valor predeterminado es el inglés, y los visitantes siempre pueden cambiarlo desde el pie de página. Los suscriptores también reciben sus mensajes en él, salvo que leyeran la página en otro idioma al suscribirse. |
 | **Idiomas habilitados** | Una selección múltiple, texto de ejemplo `All languages`. Déjala vacía y se ofrecen todos los idiomas admitidos; elige algunos y el pie de página solo lista esos. |
 
 OneUptime incluye diecisiete idiomas: inglés, alemán, francés, español, italiano, portugués, neerlandés, danés, noruego, sueco, ruso, japonés, coreano, chino (simplificado), chino (tradicional), hindi y persa. El persa se lee de derecha a izquierda, así que una página mostrada en persa se dispone desde la derecha, desde el primer momento si el persa es su idioma predeterminado. Sus barras de tiempo de actividad siguen empezando a la izquierda por el día más antiguo.
@@ -214,7 +214,7 @@ En **Dominio** (texto de ejemplo `Select domain`), elige uno de tus dominios ver
 Haz clic en **Crear Dominio de la página de estado**. El cuadro de diálogo se cierra y se abre la **Configuración de DNS** del nuevo dominio, con el registro que hay que añadir.
 :::
 
-El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otro subdominio, añade ese dominio y elimina el antiguo.
+El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otro subdominio, añade ese dominio y elimina el antiguo. Se rechaza un nombre que ya use un panel o un formulario, en cualquier proyecto: un dominio muestra una sola página de estado, un solo panel o un solo formulario.
 
 ### Configuración de DNS y verificación
 

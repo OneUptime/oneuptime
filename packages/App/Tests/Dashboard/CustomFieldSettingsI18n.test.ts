@@ -66,6 +66,8 @@ const OTHER_LOCALES: Array<string> = [
 const SHARED_WITH_OTHER_FEATURES: Array<string> = ["Text", "Number"];
 const SAME_WORD: Record<string, Array<string>> = {
   fr: ["Date"],
+  // The File type: Italian says "file" too.
+  it: ["File"],
 };
 
 const STRINGS: Array<string> = Array.from(

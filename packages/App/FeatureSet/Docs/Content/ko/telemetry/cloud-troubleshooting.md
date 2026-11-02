@@ -29,7 +29,7 @@ OneUptime을 자체 호스팅한다면 `https://YOUR-ONEUPTIME-HOST/otlp/v1/vali
 
 ## 환경이 나타나지 않음
 
-첫 요청을 보내고 1분이 지나도 **클라우드 → All Environments**에 아무것도 없는 경우입니다. 다음 세 가지를 이 순서대로 확인하세요.
+첫 요청을 보내고 1분이 지나도 **앱 플랫폼 → 모든 환경**에 아무것도 없는 경우입니다. 다음 세 가지를 이 순서대로 확인하세요.
 
 **`cloud.platform`이 없거나 관리형 값이 아닙니다.** OneUptime은 리소스가 다음 값 중 하나를 가질 때만 텔레메트리를 클라우드 환경에 기록합니다: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances`, `azure_app_service`. 흔한 원인은 다음과 같습니다:
 

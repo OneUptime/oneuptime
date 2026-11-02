@@ -41,11 +41,11 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Unntak**
 
 ### Velg hva monitoren skal fortelle deg om
 
-Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv.
+Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Hvilket som helst unntak** eller **For mange unntak**. Hvert valg fyller ut regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette den opp selv. **Et nytt unntak**, **Et løst unntak kommer tilbake** og **Unntakene topper seg** varsler ved et unntak som ses for første gang, ved et som kom tilbake etter at du løste det, og ved en økning langt over det som er normalt for den timen i uken.
 
 ### Velg unntakene som skal telles
 
-I **Unntak å følge med på** angir du **Meldingen inneholder**, **Unntakstyper** og **Environments**. Et filter du lar stå tomt, samsvarer med alle unntak. **Samsvarende unntak** under filtrene viser unntakene de samsvarer med akkurat nå.
+I **Unntak å følge med på** angir du **Meldingen inneholder**, **Unntakstyper** og **Miljøer**. Et filter du lar stå tomt, samsvarer med alle unntak. **Samsvarende unntak** under filtrene viser unntakene de samsvarer med akkurat nå.
 
 ### Snevre dem inn (valgfritt)
 
@@ -53,7 +53,7 @@ I **Unntak å følge med på** angir du **Meldingen inneholder**, **Unntakstyper
 
 ### Si når det skal varsles
 
-I **Når det skal varsles** velger du en **Betingelse**, **Antall unntak** og et **Tidsvindu**. Setningen under dem gjentar regelen med vanlige ord. Diagrammet under den teller de samsvarende unntakene i hvert vindu de siste timene, tegner regelens tall som en linje og forteller hvor ofte regelen ville ha varslet. Knappen der foreslår et tall som regelen ikke ville ha passert i den perioden.
+I **Når det skal varsles** velger du en **Betingelse**, **Antall unntak** og et **Tidsvindu**. Setningen under dem gjentar regelen med vanlige ord. Diagrammet under den teller de samsvarende unntakene i hvert vindu de siste timene, tegner regelens tall som en linje og forteller hvor ofte regelen ville ha varslet. Knappen der foreslår et tall som regelen ikke ville ha passert i den perioden. **Varsle ved** velger hva regelen sammenligner: **Unntak**, **Nye unntak**, **Unntak som kom tilbake** eller **En økning over det vanlige**. Diagrammet tegnes bare for **Unntak**. Med **Uvanlig høy**, som **Unntakene topper seg** setter opp, er det ikke noe tall å skrive inn: Velg heller en **Følsomhet**.
 
 ### Velg hva som skjer
 
@@ -70,7 +70,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | --- | --- | --- |
 | **Meldingen inneholder** | Unntak der meldingen inneholder denne teksten, uten forskjell på store og små bokstaver. | Tom: alle unntak |
 | **Unntakstyper** | Unntak av en av disse typene, atskilt med komma, som `TypeError, NullReferenceException`. Typenavnet må samsvare nøyaktig. | Tom: alle typer |
-| **Environments** | Unntak fra et av disse miljøene, atskilt med komma (se [Miljøer](#miljøer)). | Tom: alle miljøer |
+| **Miljøer** | Unntak fra et av disse miljøene, atskilt med komma (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Tidsvindu** (i **Når det skal varsles**) | Unntak fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 5 minutter** |
 | **Filtrer etter telemetritjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Unntak fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
@@ -116,7 +116,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en unntaksmonitor har én **Filtertype**: **Exception Count**, antallet unntak som samsvarte i vinduet. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst** eller **Nøyaktig**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
+Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Exception Count**, antallet unntak som samsvarte i vinduet, og **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet unntak er… |
 | --- | --- |
@@ -126,8 +126,11 @@ Kriteriene til en unntaksmonitor har én **Filtertype**: **Exception Count**, an
 | **Mindre enn eller lik** | lik verdien eller lavere |
 | **Lik** | nøyaktig verdien |
 | **Ikke lik** | alt annet enn verdien |
+| **Anomalously High** | over det forventede området for denne timen i uken |
+| **Anomalously Low** | under det området |
+| **Anomalous** | utenfor det området, i hvilken som helst retning |
 
-Antall unntak har ingen avviksvilkår: det finnes ingen grunnlinje å sammenligne dem med.
+Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. Bare **Exception Count** har dem: se [Topper sammenlignet med det normale](#topper-sammenlignet-med-det-normale).
 
 En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
 
@@ -135,6 +138,9 @@ En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for de
 | --- | --- | --- |
 | **Hvilket som helst unntak** | **Mer enn** `0` i **Siste 5 minutter** | Oppretter et varsel, som løser seg selv |
 | **For mange unntak** | **Mer enn** `20` i **Siste 5 minutter** | Oppretter et varsel, som løser seg selv |
+| **Et nytt unntak** | **Nye unntak**: **Mer enn** `0` i **Siste 10 minutter** | Oppretter et varsel, som løser seg selv |
+| **Et løst unntak kommer tilbake** | **Unntak som kom tilbake**: **Mer enn** `0` i **Siste 10 minutter** | Oppretter et varsel, som løser seg selv |
+| **Unntakene topper seg** | **Uvanlig høy** i **Siste 15 minutter** | Oppretter et varsel, som løser seg selv |
 
 En unntaksmonitor som er opprettet via API-et eller Terraform uten kriterier, starter med disse kriteriene:
 
@@ -143,9 +149,37 @@ En unntaksmonitor som er opprettet via API-et eller Terraform uten kriterier, st
 | Check if … has exceptions | **Exception Count** **Større enn** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
 | Check if … has no exceptions | **Exception Count** **Lik** `0` | Setter monitoren som tilkoblet |
 
+## Nye, tilbakevendte og stigende unntak
+
+I tillegg til hvor mange unntak som skjedde, kan en unntaksmonitor varsle ved det en feilsporer begynner med. Hvert leses bare når et kriterium sjekker det.
+
+| Filtertype | Hva den teller i vinduet |
+| --- | --- |
+| **New Exceptions** | Samsvarende unntak som ses for første gang og verken er løst eller arkivert. |
+| **Regressed Exceptions** | Samsvarende unntak du har løst, som kom tilbake og fortsatt er åpne. |
+| **Exception Increase (in %)** | Hvor langt antallet samsvarende unntak ligger over det vanlige: dagen før vinduet, per vindu av samme lengde, minst ett. Ti unntak etter en rolig dag gir 900 %. |
+
+Nye og tilbakevendte unntak filtreres etter tjeneste, unntakstype, miljø og melding, og også etter infrastrukturenhet: et unntak telles når en av forekomstene i vinduet kom fra en av de valgte enhetene.
+
+## Topper sammenlignet med det normale
+
+**Unntakene topper seg** sammenligner vinduet med de samme timene i ukene før, ikke med et fast tall. En topp mandag morgen er normal på en mandag morgen, det samme antallet klokken 3 på en søndag er det ikke, og en langsom økning over flere dager vises så snart den forlater forrige ukes område.
+
+| Innstilling | Hva den gjør | Standard |
+| --- | --- | --- |
+| **Følsomhet** | Hvor langt utenfor det vanlige området et vindu må være: 4 standardavvik ved Lav, 3 ved Middels, 2 ved Høy. | Middels |
+| **Grunnlinjevindu** (under **Flere felt**) | Hvor mye historikk det læres av: 14, 28, 60 eller 90 dager. | 14 dager |
+| **Standardavvik** (under **Flere felt**) | Ditt eget tall i stedet for det **Følsomhet** setter. | Tomt |
+| **Minste antall unntak** (under **Flere felt**) | Det minste antallet unntak i et vindu som kan varsle: 20 ved Lav, 10 ved Middels, 5 ved Høy. | Tomt |
+
+- **Den bruker filtrene dine.** Historikken leses med monitorens egne filtre, så en monitor på én unntakstype sammenlignes med historikken til den typen, og løste og arkiverte unntak holdes utenfor begge.
+- **Stille tid teller.** Et vindu uten unntak er en del av det normale, så området til en stille tjeneste forblir lite. De første få unntakene varsler ikke, på grunn av **Minste antall unntak**, og et ekte utbrudd gjør det.
+- **En ny tjeneste venter.** Til en tjeneste har to uker med historikk, lærer kriteriet fortsatt og utløses ikke, uansett hvor mange unntak den kaster. Historikken går bare så langt tilbake som OneUptime tar vare på unntak: 15 dager med mindre du har endret det, og en tjeneste som tas vare på i under to uker, har aldri nok.
+- **Varselet sier hvorfor.** Det nevner det forventede området og hvor langt utenfor vinduet var. Hver sjekk skriver det samme på **Statustidslinje**, eller at den fortsatt lærer.
+
 ## Gjennomgått eksempel: bare produksjonsunntak
 
-Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenting for staging. Du velger **Hvilket som helst unntak**, setter **Environments** til `production`, beholder **Tidsvindu** på **Siste 5 minutter** og velger **Erklær en hendelse** under **Hva som skjer**. De siste fem minuttene:
+Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenting for staging. Du velger **Hvilket som helst unntak**, setter **Miljøer** til `production`, beholder **Tidsvindu** på **Siste 5 minutter** og velger **Erklær en hendelse** under **Hva som skjer**. De siste fem minuttene:
 
 | Unntak | Miljø | Tilstand | Telles? |
 | --- | --- | --- | --- |
@@ -159,7 +193,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 ## Feilsøking
 
 :::details Unntak vises i utforskeren, men monitoren teller 0
-Sammenlign verdien i **Environments** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Edit Monitoring Criteria**: **Samsvarende unntak** viser hva filtrene samsvarer med.
+Sammenlign verdien i **Miljøer** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Edit Monitoring Criteria**: **Samsvarende unntak** viser hva filtrene samsvarer med.
 :::
 
 :::details Hendelsen ble løst da jeg løste unntaket
@@ -168,6 +202,10 @@ Det er forventet. Løste unntak telles ikke, så antallet falt, og kriteriet slu
 
 :::details Et filter på unntakstype samsvarer ikke med noe
 **Unntakstyper** sammenlignes nøyaktig med typenavnet unntaket ble rapportert med, som `TypeError`. Kopier typen fra unntaksutforskeren.
+:::
+
+:::details En regel for topper i unntak varsler aldri
+Se på **Statustidslinje**: Den viser det forventede området, antallet som trengs for å varsle, eller at regelen fortsatt lærer. En tjeneste trenger to uker med historikk, så en oppbevaring på under to uker gjør at den fortsetter å lære. Hvis antallet holder seg under **Minste antall unntak**, senk det under **Flere felt**, eller velg en høyere **Følsomhet**.
 :::
 
 ## Neste steg

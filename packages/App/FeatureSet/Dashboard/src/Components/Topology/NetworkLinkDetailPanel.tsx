@@ -5,6 +5,7 @@ import {
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
   LINK_STATE_COLORS,
@@ -12,6 +13,7 @@ import {
   formatMbps,
   formatUtilization,
   linkStateForEdge,
+  linkSourceLabelsForEdge,
 } from "./NetworkTopologyMeta";
 import {
   FdbEdgeEnds,
@@ -181,10 +183,6 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
     edge.fromInterface,
     edge.fromPort,
   );
-  const toPortLabel: string | undefined = portLabelForEdgeEnd(
-    edge.toInterface,
-    edge.toPort,
-  );
 
   /*
    * Which end LEARNED, for a learned link. Not "the from end": the pair may
@@ -225,13 +223,33 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
         : null;
   const childName: string | null =
     parentName === null ? null : parentName === fromName ? toName : fromName;
+
   /*
-   * The parent's OWN port, for the learned-link sentence — the one it
-   * learned the child's MAC on, whichever way the edge happens to be
-   * stored.
+   * How the learned end was placed, the opening of every sentence below. A
+   * controller's client list says where a client is; nobody learned anything
+   * from a table of theirs, and the drawer must not say so.
    */
-  const parentPortLabel: string | undefined =
-    edge.parentNodeId === edge.fromNodeId ? fromPortLabel : toPortLabel;
+  const reporter: string | undefined = getNetworkControllerProviderShortTitle(
+    edge.reportedBy,
+  );
+  const learnedAttachmentWords: ReactElement = reporter ? (
+    <>
+      {`${reporter} lists `}
+      <span className="font-medium text-gray-900">{learnedName}</span>
+      {" as a client of "}
+      <span className="font-medium text-gray-900">{learnerName}</span>
+      {learnerPortLabel ? ` on ${learnerPortLabel}` : ""}
+    </>
+  ) : (
+    <>
+      <span className="font-medium text-gray-900">{learnerName}</span>
+      {" learned "}
+      <span className="font-medium text-gray-900">{learnedName}</span>
+      {"'s MAC address"}
+      {learnerPortLabel ? ` on ${learnerPortLabel}` : ""}
+      {" in its forwarding or ARP table"}
+    </>
+  );
 
   return (
     <SideOver
@@ -257,13 +275,13 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
           >
             {translateString(STATE_LABELS[state]) || STATE_LABELS[state]}
           </span>
-          {(edge.protocols || []).map((protocol: string): ReactElement => {
+          {linkSourceLabelsForEdge(edge).map((label: string): ReactElement => {
             return (
               <span
-                key={protocol}
+                key={label}
                 className="inline-flex items-center rounded-full border border-gray-300 px-2.5 py-0.5 text-xs font-medium text-gray-600"
               >
-                {protocol.toUpperCase()}
+                {label}
               </span>
             );
           })}
@@ -286,14 +304,8 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
                * statement that the child hangs off it.
                */
               <>
-                <span className="font-medium text-gray-900">{parentName}</span>
-                {" learned "}
-                <span className="font-medium text-gray-900">{childName}</span>
-                {"'s MAC address"}
-                {parentPortLabel ? ` on ${parentPortLabel}` : ""}
-                {
-                  " in its forwarding or ARP table, so the Parent-Child view draws "
-                }
+                {learnedAttachmentWords}
+                {", so the Parent-Child view draws "}
                 {childName}
                 {" beneath it."}
               </>
@@ -305,12 +317,8 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
                * facts are stated, and neither is dressed up as the other.
                */
               <>
-                <span className="font-medium text-gray-900">{learnerName}</span>
-                {" learned "}
-                <span className="font-medium text-gray-900">{learnedName}</span>
-                {"'s MAC address"}
-                {learnerPortLabel ? ` on ${learnerPortLabel}` : ""}
-                {" in its forwarding or ARP table; "}
+                {learnedAttachmentWords}
+                {"; "}
                 <span className="font-medium text-gray-900">{parentName}</span>
                 {" is the declared parent, so the Parent-Child view draws "}
                 {childName}
@@ -340,13 +348,9 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
             className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600"
             data-testid="network-topology-learned-link-note"
           >
-            <span className="font-medium text-gray-900">{learnerName}</span>
-            {" learned "}
-            <span className="font-medium text-gray-900">{learnedName}</span>
-            {"'s MAC address"}
-            {learnerPortLabel ? ` on ${learnerPortLabel}` : ""}
+            {learnedAttachmentWords}
             {
-              " in its forwarding or ARP table. That places the cable on a port without saying which end is upstream — a switch learns a router's MAC on the port that leads towards it — so the Parent-Child view keeps inferring the hierarchy for this pair."
+              ". That places the cable on a port without saying which end is upstream — a switch learns a router's MAC on the port that leads towards it — so the Parent-Child view keeps inferring the hierarchy for this pair."
             }
           </p>
         ) : null}

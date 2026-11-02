@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-Send spor, logger og metrikker fra Azure Container Apps til OneUptime. Hver replika som rapporterer `cloud.platform=azure_container_apps`, havner i ett **Cloud Environment** per Azure-abonnement og region, for eksempel _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, med de kjørende replikaene oppført under **Instanser**.
+Send spor, logger og metrikker fra Azure Container Apps til OneUptime. Hver replika som rapporterer `cloud.platform=azure_container_apps`, havner i ett **Skymiljø** per Azure-abonnement og region, for eksempel _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, med de kjørende replikaene oppført under **Instanser**.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva detektorene setter, og de to attributtene du setter selv.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Se etter `Everything is ready`, og ingen `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **Sky → All Environments** som _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Se etter `Everything is ready`, og ingen `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **App-plattformer → Alle miljøer** som _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## Bruk miljøets administrerte OpenTelemetry-agent

@@ -1,3 +1,7 @@
+import {
+  BUTTON_DISABLED_CURSOR_CLASS_NAME,
+  BUTTON_DISABLED_FADE_CLASS_NAME,
+} from "Common/UI/Components/Button/ButtonStates";
 import { Black } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -87,7 +91,8 @@ export interface ComponentProps {
  * How a row that cannot be picked fades: its box, its title and its line of
  * facts - never its note, which says why.
  */
-export const EPISODE_PICKER_DISABLED_CLASS_NAME: string = "opacity-60";
+export const EPISODE_PICKER_DISABLED_CLASS_NAME: string =
+  BUTTON_DISABLED_FADE_CLASS_NAME;
 
 // A pill on a row's line of facts: a state, a severity, Private.
 const PILL_CLASS_NAME: string =
@@ -191,7 +196,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
     if (isSelected) {
       rowClassName += " bg-indigo-50";
     } else if (isDisabled) {
-      rowClassName += " cursor-not-allowed";
+      rowClassName += ` ${BUTTON_DISABLED_CURSOR_CLASS_NAME}`;
     } else {
       rowClassName += " cursor-pointer hover:bg-gray-50";
     }

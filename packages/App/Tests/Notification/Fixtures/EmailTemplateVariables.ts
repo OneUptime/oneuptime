@@ -43,6 +43,14 @@ const HELPERS: ReadonlySet<string> = new Set<string>([
   "detailCardStart",
   "detailCardDivider",
   "detailCardEnd",
+  // An email's own words in its language (Utils/EmailLanguage).
+  "t",
+  "tHtml",
+  "tt",
+  "ttHtml",
+  "tp",
+  "emailStart",
+  "emailEnd",
 ]);
 
 export interface TemplateVariables {

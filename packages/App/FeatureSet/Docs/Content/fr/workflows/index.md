@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> Le modèle **Forward new incidents to another system** construit ce même workflow pour vous. Vous le trouverez sous **Incidents** quand vous créez un workflow.
+> Le modèle **Forward new incidents to another system** construit ce workflow pour vous, sans le bloc Log : sans rien sur **Error**, une requête qui échoue fait échouer l'exécution, et les **Étapes** de l'exécution disent pourquoi. Vous le trouverez sous **Incidents** quand vous créez un workflow.
 
 :::steps
 ### Créer le workflow

@@ -4,7 +4,7 @@ De Kubernetes-agent van OneUptime is een Helm-chart die de metrieken, events en 
 
 :::cards
 - [De agent installeren](#de-agent-installeren): Vier stappen met Helm.
-- [Een preset kiezen](#een-preset-kiezen): Standaardclusters, GKE Autopilot of EKS Fargate.
+- [Een preset kiezen](#een-preset-kiezen): Standaardclusters, GKE Autopilot, EKS Fargate of OpenShift.
 - [Veelgebruikte opties](#veelgebruikte-opties): De instellingen die de meeste clusters aanpassen.
 - [Problemen oplossen](#problemen-oplossen): Een diagnosescript, en de gebruikelijke problemen.
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | Node-collector | DaemonSet | Podlogs uit `/var/log/pods`, kubelet- en cAdvisor-metrieken, en de besturingssysteemmetrieken van de node. | Ja |
 | eBPF-instrumentatie (OBI) | DaemonSet | HTTP-, gRPC-, SQL- en Redis-traces en verzoekmetrieken van elke pod, en de servicemap. | Ja |
 | Kubernetes AI-agent | Deployment | Laat OneUptime AI alleen-lezen `kubectl` uitvoeren terwijl het een incident of waarschuwing op dit cluster onderzoekt. | Ja |
-| Log-tailer | Deployment | Podlogs via de Kubernetes-API, waar de node-collector ze niet kan lezen. | Met de presets `gke-autopilot` en `eks-fargate` |
+| Log-tailer | Deployment | Podlogs via de Kubernetes-API, waar de node-collector ze niet kan lezen. | Met de presets `gke-autopilot`, `eks-fargate` en `openshift-restricted` |
 | eBPF-profiler | DaemonSet | Doorlopende CPU-flamegraphs van elk proces. | Nee |
 | kube-state-metrics | Deployment | Podfasen, wachtredenen van containers en resourcequota. | Nee |
 
@@ -92,10 +92,14 @@ Sommige Kubernetes-platforms staan niet toe dat een workload een `hostPath`-volu
 | `standard` (standaard) | Zelfbeheerd, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | De node-collector leest `/var/log/pods` | Kubelet-, cAdvisor- en besturingssysteemmetrieken |
 | `gke-autopilot` | **GKE Autopilot** | De log-tailer leest ze via de Kubernetes-API | Kubelet- en cAdvisor-metrieken, zonder `hostPath` |
 | `eks-fargate` | **EKS Fargate** | De log-tailer leest ze via de Kubernetes-API | Niets: Fargate draait geen DaemonSets |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | De node-collector leest `/var/log/pods` | Kubelet-, cAdvisor- en besturingssysteemmetrieken |
+| `openshift-restricted` | **OpenShift**, als een beheerder geen SCC wil toevoegen | De log-tailer leest ze via de Kubernetes-API | Kubelet- en cAdvisor-metrieken, zonder `hostPath` |
 
 Weet je het niet zeker, laat `preset` dan leeg om `standard` te krijgen. Mislukt de installatie met een Pod Security-fout die `hostPath` noemt, installeer dan opnieuw met `gke-autopilot`, of met `eks-fargate` op EKS Fargate.
 
-GKE Autopilot en EKS Fargate weigeren ook geprivilegieerde pods, die de eBPF-instrumentatie en profilering nodig hebben, dus hun presets laten die allebei weg:
+GKE Autopilot en EKS Fargate weigeren ook geprivilegieerde pods, die de eBPF-instrumentatie en profilering nodig hebben, dus hun presets laten die allebei weg.
+
+Op OpenShift geldt standaard de security context constraint (SCC) `restricted-v2`, die de node-collector en de eBPF-pods weigert. De preset `openshift` maakt voor elk van beide een SCC aan die alleen door hun eigen serviceaccount wordt gebruikt, en laat OpenShift de gebruikers-ID van alle andere pods kiezen:
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+Als een beheerder geen SCC wil toevoegen, installeer dan met `--set preset=openshift-restricted`. De chart maakt dan geen SCC aan en elke pod draait onder `restricted-v2`: podlogs komen via de Kubernetes-API binnen, en er zijn geen besturingssysteemmetrieken, eBPF-traces of profielen. Zie [OpenShift](/docs/telemetry/kubernetes-agent#openshift).
 
 ## Het cluster labelen
 
@@ -355,7 +370,7 @@ Profilering vereist **Linux 5.10** of later, en een geprivilegieerde pod met de 
 | `oneuptime.url` | (verplicht) | Je OneUptime-URL. |
 | `oneuptime.apiKey` | (verplicht) | De ingestiesleutel, uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. Wordt verstuurd als de header `x-oneuptime-token`; een project-API-sleutel werkt niet. |
 | `clusterName` | (verplicht) | De naam van het cluster, uniek in het project. Elk record draagt hem als `k8s.cluster.name`. |
-| `preset` | (leeg: `standard`) | `standard`, `gke-autopilot` of `eks-fargate`. Zie [Een preset kiezen](#een-preset-kiezen). |
+| `preset` | (leeg: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift` of `openshift-restricted`. Zie [Een preset kiezen](#een-preset-kiezen). |
 | `oneuptime.labels` | `{}` | Labels voor elk record van deze agent. Zie [Het cluster labelen](#het-cluster-labelen). |
 | `namespaceFilters.rules` | Laat `kube-system` buiten `podLogs` en `ebpfDiscovery` | Regels die namespaces in- of uitsluiten, voor `podLogs`, `ebpfDiscovery`, `metrics` en `traces`. Patronen kunnen `*` gebruiken, en uitsluiten wint altijd. |
 | `filters.logs.minSeverity` | `""` | Verwijdert podlogregels onder dit niveau: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` of `FATAL`. |
@@ -408,9 +423,11 @@ kubectl delete namespace oneuptime-agent
 Draai het diagnosescript van de chart. Het controleert de pods, de ingestiesleutel en de weg naar buiten uit het cluster, vraagt OneUptime of de sleutel wordt geaccepteerd, en toont één oordeel. Het leest alleen, en verandert niets:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Elke OneUptime serveert dit script voor zijn eigen release: gebruik bij een zelf gehoste OneUptime je URL in plaats van `https://oneuptime.com`. Open het adres van het script in een browser om het te lezen voordat je het uitvoert.
 
 De gebruikelijke oorzaak, vooral na een herinstallatie, is een verkeerde of ingetrokken ingestiesleutel: OneUptime weigert hem, en de collector gooit elke batch weg terwijl zijn pods `Running` blijven.
 :::

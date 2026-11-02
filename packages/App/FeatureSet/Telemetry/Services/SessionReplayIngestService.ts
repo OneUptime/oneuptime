@@ -34,6 +34,7 @@ import {
   SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
   SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_SCHEMA_VERSION,
+  SESSION_REPLAY_USER_KEY_PATTERN,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
   SessionReplayDirective,
@@ -168,9 +169,6 @@ const SESSION_START_KEY_PREFIX: string = "replay:session-start:";
  *                                       the chunk rows, which are authoritative.
  */
 const SESSION_CARRY_KEY_PREFIX: string = "replay:session-carry:";
-
-/* What SessionReplayIdentity.buildUserKey yields: a hex SHA-256 HMAC. */
-const USER_KEY_PATTERN: RegExp = /^[0-9a-f]{64}$/;
 
 /*
  * Long enough that a session idle for the finalizer's whole 10-minute
@@ -1691,7 +1689,12 @@ export default class SessionReplayIngestService {
     if (!previous) {
       return {
         ...next,
-        routes: next.routes.slice(0, PROVISIONAL_HEADER_MAX_ROUTES),
+        /* A chunk's list repeats a page it returned to; a header's never does. */
+        routes: this.mergeCappedList(
+          [],
+          next.routes,
+          PROVISIONAL_HEADER_MAX_ROUTES,
+        ),
         traceIds: next.traceIds.slice(0, PROVISIONAL_HEADER_MAX_TRACE_IDS),
       };
     }
@@ -1946,7 +1949,7 @@ export default class SessionReplayIngestService {
 
     if (
       typeof key !== "string" ||
-      !USER_KEY_PATTERN.test(key) ||
+      !SESSION_REPLAY_USER_KEY_PATTERN.test(key) ||
       !SessionReplayIdentity.isUsableUserRef(label)
     ) {
       return {
@@ -2197,12 +2200,15 @@ export default class SessionReplayIngestService {
   }
 
   /*
-   * The distinct, scrubbed URLs this chunk covers.
+   * The scrubbed URLs this chunk covers, in the order they were visited.
    *
-   * Order is chronological, though nothing downstream depends on it: the
-   * finalizer derives exitUrl from the scalar `url` column with argMaxIf,
-   * and sorts the route union in SQL because routes[] is a membership set
-   * that has to be byte-identical across re-finalizations.
+   * The order is what User Flows reads a journey from, so a page the user
+   * came back to stays: A -> B -> A is three entries, and the list ends on
+   * the page the chunk was flushed from. Only a back-to-back repeat is
+   * dropped. The session header takes these as a membership set
+   * (mergeHeaderCarry), and the finalizer sorts the route union in SQL
+   * because routes[] has to be byte-identical across re-finalizations; it
+   * derives exitUrl from the scalar `url` column with argMaxIf.
    *
    * Always non-empty when the chunk has a URL at all, because a route list
    * that omitted the page the chunk was flushed from would make a session
@@ -2212,21 +2218,17 @@ export default class SessionReplayIngestService {
     envelopeRoutes: Array<string> | undefined,
     chunkUrl: string,
   ): Array<string> {
-    const seen: Set<string> = new Set<string>();
     const routes: Array<string> = [];
 
     for (const route of envelopeRoutes || []) {
       const scrubbed: string = UrlScrubber.scrub(route, []);
 
-      if (!scrubbed || seen.has(scrubbed)) {
-        continue;
+      if (scrubbed && routes[routes.length - 1] !== scrubbed) {
+        routes.push(scrubbed);
       }
-
-      seen.add(scrubbed);
-      routes.push(scrubbed);
     }
 
-    if (chunkUrl && !seen.has(chunkUrl)) {
+    if (chunkUrl && routes[routes.length - 1] !== chunkUrl) {
       routes.push(chunkUrl);
     }
 

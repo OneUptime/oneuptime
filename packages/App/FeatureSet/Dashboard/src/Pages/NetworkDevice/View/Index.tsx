@@ -140,6 +140,12 @@ const NetworkDeviceView: FunctionComponent<
     ModelAction.Create,
   ).isAllowed;
 
+  // The same for the Monitors card's "Monitor web UI".
+  const canCreateMonitor: boolean = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  ).isAllowed;
+
   useEffect(() => {
     const fetchMonitors: PromiseVoidFunction = async (): Promise<void> => {
       try {
@@ -416,6 +422,7 @@ const NetworkDeviceView: FunctionComponent<
         error={monitorsError}
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
+        canCreateMonitor={canCreateMonitor}
       />
       {/*
        * What Security Events found about it this week - firewall and

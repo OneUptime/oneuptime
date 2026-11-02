@@ -145,14 +145,23 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
     await expect(
       page.getByText("Docker Swarm Monitor Configuration"),
     ).toBeVisible({ timeout: 30000 });
-    await expect(page.getByText("Quick Setup")).toBeVisible();
+    /*
+     * A new monitor starts on the Stopped Reporting alert, folded under
+     * "What to alert on"; Change opens the list.
+     */
+    await expect(page.getByText("What to alert on")).toBeVisible();
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Cluster Stopped Reporting",
+    );
+    await page.getByTestId("alert-template-change").click();
 
     /*
-     * Every template DockerSwarmTemplatePicker renders — all 4 from
+     * Every template DockerSwarmTemplatePicker renders — all 5 from
      * Common/Types/Monitor/DockerSwarmAlertTemplates.ts across the
      * Availability / Resource / Container categories.
      */
     const expectedTemplateNames: Array<string> = [
+      "Cluster Stopped Reporting",
       "Task Down (Low Uptime)",
       "High Task CPU Usage",
       "High Task Memory Usage",

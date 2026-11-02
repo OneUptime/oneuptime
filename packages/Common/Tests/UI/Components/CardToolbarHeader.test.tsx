@@ -247,14 +247,30 @@ describe("a toolbar whose controls are on a line of their own", () => {
     return "beside";
   };
   const observers: Array<() => void> = [];
+  // The frames the header asks for: it reads its line on the next one.
+  const frames: Map<number, FrameRequestCallback> = new Map();
+  let nextFrame: number = 1;
   const original: typeof Element.prototype.getBoundingClientRect =
     Element.prototype.getBoundingClientRect;
   const originalObserver: typeof ResizeObserver | undefined = (
     window as unknown as { ResizeObserver?: typeof ResizeObserver }
   ).ResizeObserver;
+  const originalRequest: typeof window.requestAnimationFrame =
+    window.requestAnimationFrame;
+  const originalCancel: typeof window.cancelAnimationFrame =
+    window.cancelAnimationFrame;
 
   beforeEach(() => {
     observers.length = 0;
+    frames.clear();
+    window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+      const id: number = nextFrame++;
+      frames.set(id, callback);
+      return id;
+    };
+    window.cancelAnimationFrame = (id: number): void => {
+      frames.delete(id);
+    };
     Element.prototype.getBoundingClientRect = function (
       this: Element,
     ): DOMRect {
@@ -289,16 +305,27 @@ describe("a toolbar whose controls are on a line of their own", () => {
     Element.prototype.getBoundingClientRect = original;
     (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
       originalObserver;
+    window.requestAnimationFrame = originalRequest;
+    window.cancelAnimationFrame = originalCancel;
   });
 
   const titleRow: () => HTMLElement = (): HTMLElement => {
     return screen.getByTestId("card-header-title-row");
   };
 
+  // The observers told of a size, then the frame they ask for run.
   const readAgain: () => void = (): void => {
     act(() => {
       for (const read of observers) {
         read();
+      }
+
+      const pending: Array<FrameRequestCallback> = Array.from(frames.values());
+
+      frames.clear();
+
+      for (const callback of pending) {
+        callback(0);
       }
     });
   };

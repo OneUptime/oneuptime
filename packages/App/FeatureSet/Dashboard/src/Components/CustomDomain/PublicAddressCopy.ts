@@ -22,7 +22,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * same way, under the public choice.
  *
  * Now both list every address the page or dashboard answers at, the same
- * way (PublicAddresses):
+ * way (PublicAddresses) - and so does a form's Share Link card, for a form
+ * on its own domains:
  *
  *   - its custom domains first: each one that is live as a link to
  *     https://<domain>, opened in a new tab, with Copy link; each one that
@@ -95,8 +96,8 @@ export const isCustomDomainLive: (state: CustomDomainState) => boolean = (
 
 /*
  * A live custom domain is served over HTTPS - it is live because it has a
- * certificate - at its root: a status page and a dashboard both answer at
- * the root of their own domain. One the installation issues no certificate
+ * certificate - at its root: a status page, a dashboard and a form all
+ * answer at the root of their own domain. One the installation issues no certificate
  * for is opened as the installation itself is reached - https, or http on
  * an installation without TLS - as the server links to it.
  */
@@ -377,6 +378,16 @@ export const PublicAddressCopy: {
   loading: translationKey("Loading addresses"),
 };
 
+/*
+ * An address reads left to right in every language: on a page written
+ * right to left (Persian) it is still a host, then its path. Set on the
+ * address's own text, so a long one is cut at its end - where a form's key
+ * is - and its host stays in sight. Inheriting the page's direction, it was
+ * cut at its start: a phone showed the last characters of a form's key, and
+ * no host at all.
+ */
+export const PUBLIC_ADDRESS_TEXT_DIRECTION: string = "ltr";
+
 // data-testids of the list and its rows.
 export const PUBLIC_ADDRESS_TEST_IDS: {
   list: string;
@@ -384,6 +395,8 @@ export const PUBLIC_ADDRESS_TEST_IDS: {
   // The tile beside an address, saying what kind it is (not on a phone).
   tile: string;
   link: string;
+  // The address's own text, live or not: host and path.
+  text: string;
   notLive: string;
   reason: string;
   dnsSetup: string;
@@ -395,6 +408,7 @@ export const PUBLIC_ADDRESS_TEST_IDS: {
   row: "public-address",
   tile: "public-address-tile",
   link: "public-address-link",
+  text: "public-address-text",
   notLive: "public-address-not-live",
   reason: "public-address-reason",
   dnsSetup: "public-address-dns-setup",

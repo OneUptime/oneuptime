@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import {
   FormFieldIssue,
   findCustomFieldDefinition,
@@ -90,8 +91,17 @@ const ISSUE_TEXT: Record<FormFieldIssue, string> = {
   [FormFieldIssue.NoLabel]: FormsCopy.issueNoLabel,
 };
 
-const ICON_BUTTON_CLASS_NAME: string =
-  "inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40";
+// Move up and Move down; the first question's Move up looks locked.
+const getIconButtonClassName: (isLocked: boolean) => string = (
+  isLocked: boolean,
+): string => {
+  return `inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+    {
+      isLocked: isLocked,
+      hoverClassName: "hover:bg-gray-100 hover:text-gray-700",
+    },
+  )}`;
+};
 
 const QuestionCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -641,7 +651,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
           >
             <button
               type="button"
-              className={ICON_BUTTON_CLASS_NAME}
+              className={getIconButtonClassName(props.index === 0)}
               aria-label={`${tx(FormsCopy.moveUp)}: ${label}`}
               title={tx(FormsCopy.moveUp)}
               disabled={props.index === 0}
@@ -654,7 +664,9 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             </button>
             <button
               type="button"
-              className={ICON_BUTTON_CLASS_NAME}
+              className={getIconButtonClassName(
+                props.index === props.count - 1,
+              )}
               aria-label={`${tx(FormsCopy.moveDown)}: ${label}`}
               title={tx(FormsCopy.moveDown)}
               disabled={props.index === props.count - 1}

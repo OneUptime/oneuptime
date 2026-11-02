@@ -131,7 +131,16 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de 
 | **Aucune donnée** | absente, car la requête n'a rien envoyé dans la fenêtre |
 | **Données reçues** | présente, car la requête a envoyé quelque chose dans la fenêtre |
 
-Les conditions d'anomalie n'ont pas de seuil. **Quand alerter** affiche à la place **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé –, et les critères personnalisés aussi une **Fenêtre de référence** – 14 jours (la valeur par défaut), 28, 60 ou 90 –, et chaque point de données est comparé à la référence de la même heure de la semaine construite sur cette fenêtre. Tant que cette heure de la semaine n'a pas assez d'historique, le critère est encore en apprentissage et ne produit aucune alerte.
+Les conditions d'anomalie n'ont pas de seuil. **Quand alerter** affiche à la place **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé –, et les critères personnalisés aussi une **Fenêtre de référence** – 14 jours (la valeur par défaut), 28, 60 ou 90 –, et chaque point de données est comparé à la même heure de la semaine les jours précédents, aussi loin que remonte cette fenêtre. Ce qui se passe maintenant n'entre jamais dans cette comparaison : un changement qui dure continue donc d'alerter jusqu'à ce que, une semaine plus tard, il soit entré dans ces jours précédents. Tant que cette heure de la semaine n'a pas deux semaines d'historique, le critère est encore en apprentissage et ne produit aucune alerte.
+
+Ce à quoi un point de données est comparé dépend de la requête :
+
+- **Ses services.** Un moniteur qui nomme des services est comparé à ces seuls services. Un moniteur qui n'en nomme aucun est comparé à tous les services qui remontent la métrique.
+- **Une moyenne, un minimum, un maximum ou un centile d'une métrique simple** est comparé aux échantillons de la métrique, aussi loin que remonte la **Fenêtre de référence**.
+- **Une somme ou un décompte, et toute requête sur un histogramme,** est comparé aux propres points de données de la requête. Ils sont conservés aussi longtemps que vos métriques, la comparaison ne remonte donc pas plus loin : 15 jours, sauf si vous l'avez modifié.
+- **Une requête filtrée ou regroupée par un attribut** est comparée à toutes les séries de ses services, car une référence ne contient aucun attribut. Elle ne remarque donc qu'un changement assez grand pour sortir de la plage de toutes ces séries. S'il s'agit d'une somme, d'un décompte ou d'une requête sur un histogramme, il n'y a rien à quoi la comparer et elle reste en apprentissage. Il en va de même pour un centile d'un histogramme.
+
+Une somme ou un décompte n'est considéré comme bas que sur un point de données complet suivi d'un autre point complet, car les plus récents sont encore en train de se remplir. Une fenêtre d'une minute ne peut donc trouver qu'une valeur haute.
 
 Un moniteur de métriques créé dans « Créer un moniteur » commence avec une règle sur sa première requête : **La moyenne** sur **Dernières 5 minutes**, **Au-dessus de** la **Valeur** saisie, et **Créer une alerte**.
 
@@ -214,7 +223,7 @@ La requête n'a pas de **Regrouper par** : tous les hôtes sont réduits à un s
 :::
 
 :::details Un critère d'anomalie ne se déclenche jamais
-Il est encore en apprentissage : l'heure de la semaine à laquelle il se compare n'a pas encore assez d'historique dans la **Fenêtre de référence**.
+Il est encore en apprentissage : l'heure de la semaine à laquelle il se compare n'a pas encore deux semaines d'historique. Une somme, un décompte ou une requête sur un histogramme filtrés ou regroupés par un attribut restent en apprentissage pour de bon, tout comme un centile d'un histogramme : il n'existe aucun historique auquel les comparer.
 :::
 
 ## Étapes suivantes

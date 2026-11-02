@@ -18,8 +18,10 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import {
   TranslatableTerm,
   Translator,
@@ -298,13 +300,23 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
       ? new IncidentVideoCall()
       : new AlertVideoCall();
 
+  /*
+   * On a private incident or alert, its calls are started, read again and
+   * removed only through a team of the reader's that owns it
+   * (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+
   const createGate: PermissionGateResult = PermissionGate.check(
     model,
     ModelAction.Create,
+    privateRecordOptions,
   );
   const deleteGate: PermissionGateResult = PermissionGate.check(
     model,
     ModelAction.Delete,
+    privateRecordOptions,
   );
 
   // Filled into the sentences below in the reader's language.

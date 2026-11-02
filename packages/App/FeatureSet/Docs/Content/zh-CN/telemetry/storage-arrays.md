@@ -76,24 +76,26 @@ curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization
 
 ### 安装并启动代理
 
+每个 OneUptime 都提供其自身发布版本的代理安装脚本和文件：下面的命令从 `https://oneuptime.com` 下载它们，因此在自托管的 OneUptime 上请把这个地址替换为你的 URL。安装脚本会先保存为 `install.sh`，方便你在运行前先阅读它。
+
 :::tabs
 @tab install.sh
 下载安装脚本，并在将要托管代理的机器上运行它：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
 脚本会询问这是哪种阵列（提供原生指标的 FlashArray、运行较旧 Purity//FA 的 FlashArray，或 FlashBlade），然后询问你的 OneUptime URL、摄取密钥、阵列的名称、阵列的管理地址和只读用户的 API 令牌（读取时不回显）。它安装到 `/opt/oneuptime-storage-array-agent`，下载 Compose 文件和全部三个 Collector 配置，写入一个 `0600` 权限的 `.env` 文件，其中包含匹配的配置和 Compose 配置文件，并用 Docker Compose 启动代理。它会按你输入的原样为 Docker Compose 给每个值加上引号。再次运行它会复用现有 `.env` 中的所有内容，不会再次询问，并在替换你编辑过的文件之前将其保存为 `<file>.bak.<timestamp>`。
 @tab Docker Compose
-从 [StorageArrayAgent 目录](https://github.com/OneUptime/oneuptime/tree/master/agents/StorageArrayAgent) 下载 `docker-compose.yml` 和三个 `otel-collector-config*.yaml` 文件到一个新文件夹中：
+从你的 OneUptime 下载 `docker-compose.yml` 和三个 `otel-collector-config*.yaml` 文件到一个新文件夹中：
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.yaml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flasharray-exporter.yaml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
 ```
 
 在它们旁边创建一个 `.env` 文件。它保存着 API 令牌，因此请用 `chmod 600 .env` 保持其私密。对于提供原生指标的 FlashArray：
@@ -134,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到阵列
 
-打开 **产品 → 基础设施 → Storage Arrays → All Storage Arrays**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的告警和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
+打开 **产品 → 基础设施 → 存储阵列 → All Storage Arrays**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的告警和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量
@@ -172,13 +174,13 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个
 | FlashArray `/metrics/array` | `purefa_info`、`purefa_alerts_open`、`purefa_array_space_*`、`purefa_array_performance_*`、`purefa_hw_component_status`、`purefa_hw_component_temperature_celsius`、`purefa_hw_controller_info`、`purefa_drive_capacity_bytes`、`purefa_network_interface_*` | 阵列的名称、Purity 版本和系统 ID；容量、已用空间和数据缩减；未关闭的告警数；阵列的健康状况；**硬件** 页面（组件、驱动器、控制器、网络接口） |
 | FlashArray `/metrics/volumes` | `purefa_volume_performance_*`、`purefa_volume_space_*`、`purefa_volume_qos_*` | **卷** 页面：每个卷的预配大小和物理大小、数据缩减、读写延迟、IOPS 和带宽 |
 | FlashArray `/metrics/hosts` | `purefa_host_connectivity_info`、`purefa_host_connections_info`、`purefa_host_performance_*`、`purefa_host_space_*` | **主机** 页面：每台主机的连接性（是否有冗余路径）、已连接的卷、延迟、IOPS 和带宽 |
-| FlashArray `/metrics/pods` | `purefa_pod_performance_*`、`purefa_pod_space_*`、`purefa_pod_replica_links_*`、`purefa_pod_mediator_status` | **Replication** 页面：ActiveCluster 和 ActiveDR Pod、副本链接状态和滞后 |
+| FlashArray `/metrics/pods` | `purefa_pod_performance_*`、`purefa_pod_space_*`、`purefa_pod_replica_links_*`、`purefa_pod_mediator_status` | **复制** 页面：ActiveCluster 和 ActiveDR Pod、副本链接状态和滞后 |
 | FlashArray `/metrics/directories` | `purefa_directory_performance_*`、`purefa_directory_space_*` | **目录** 页面（FlashArray File Services） |
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名称、Purity 版本和系统 ID；容量和数据缩减；未关闭的告警数；阵列的健康状况；**硬件** 页面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **文件系统** 页面：每个文件系统的预配空间和已用空间、数据缩减、延迟、IOPS 和带宽 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **存储桶** 页面：每个存储桶的空间、配额、对象数和性能，按帐户分组 |
 
-阵列在其 **概览** 上显示的健康状况：当它报告未关闭的严重告警，或有硬件组件、驱动器或控制器处于严重、故障、缺失或不健康状态时为 **严重**；当它报告未关闭的警告告警，或有降级或状态未知的组件时为 **Warning**；否则为 **OK**。在监控条件中，阵列的属性要加上 `resource.` 前缀（`resource.storage.array.name`、`resource.storage.system`），而数据点标签保持原样（`name`、`host`、`dimension`、`space`）。
+阵列在其 **概览** 上显示的健康状况：当它报告未关闭的严重告警，或有硬件组件、驱动器或控制器处于严重、故障、缺失或不健康状态时为 **严重**；当它报告未关闭的警告告警，或有降级或状态未知的组件时为 **警告**；否则为 **OK**。在监控条件中，阵列的属性要加上 `resource.` 前缀（`resource.storage.array.name`、`resource.storage.system`），而数据点标签保持原样（`name`、`host`、`dimension`、`space`）。
 
 ## 可选 — 发送阵列的 syslog
 
@@ -228,7 +230,7 @@ Collector 只在启动时读取其配置：请运行 `docker compose restart one
 要让代理随机器启动并在失败时重启，请安装它的 systemd 单元。该单元假定代理位于 `/opt/oneuptime-storage-array-agent`，即安装脚本放置它的位置：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/systemd/oneuptime-storage-array-agent.service -o /etc/systemd/system/oneuptime-storage-array-agent.service
+sudo curl -fsSL https://oneuptime.com/install/storage-array-agent/systemd/oneuptime-storage-array-agent.service -o /etc/systemd/system/oneuptime-storage-array-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-storage-array-agent
 ```
@@ -240,17 +242,17 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml` 和三个 Collector 配置（你编辑过的文件会保存为 `<file>.bak.<timestamp>`），并重新创建代理，使 Collector 读取新的配置。安装在 `/opt/oneuptime-storage-array-agent` 之外的代理需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
 如果是用 Docker Compose 安装的，请在代理的文件夹中重新下载 Compose 文件和三个 Collector 配置（并重新做一遍你对它们所做的任何修改），然后拉取镜像并重新创建代理：
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.yaml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flasharray-exporter.yaml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -267,10 +269,10 @@ docker compose down
 ## 故障排查
 
 :::details 先运行诊断脚本
-代理附带一个脚本 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/StorageArrayAgent/troubleshoot.sh)，它会检查整条链路：容器运行时；按 Collector 访问它的方式检查阵列端点（原生端点或 Pure 的导出器：DNS、TLS、FlashArray 是否有原生端点，以及阵列是否接受 API 令牌，脚本通过 stdin 把令牌交给 curl）；打到每个指标上的阵列名称；令牌的格式；Collector 自身的指标；以及 OneUptime 是否接受摄取密钥。最后一项检查最重要。OneUptime 会以 `401` 拒绝错误的密钥（已禁用的密钥或浏览器密钥为 `422`），而 Collector 会把两者都视为永久性错误：它丢弃该批次并记录一条 `Exporting failed` 错误，而容器仍保持健康，这很容易被忽略。该脚本从代理的网络内部请求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（无效），在较旧的服务器上回退到 `POST /fluentd/v1/logs`。
+代理附带一个脚本 [`troubleshoot.sh`](https://oneuptime.com/install/storage-array-agent/troubleshoot.sh)，它会检查整条链路：容器运行时；按 Collector 访问它的方式检查阵列端点（原生端点或 Pure 的导出器：DNS、TLS、FlashArray 是否有原生端点，以及阵列是否接受 API 令牌，脚本通过 stdin 把令牌交给 curl）；打到每个指标上的阵列名称；令牌的格式；Collector 自身的指标；以及 OneUptime 是否接受摄取密钥。最后一项检查最重要。OneUptime 会以 `401` 拒绝错误的密钥（已禁用的密钥或浏览器密钥为 `422`），而 Collector 会把两者都视为永久性错误：它丢弃该批次并记录一条 `Exporting failed` 错误，而容器仍保持健康，这很容易被忽略。该脚本从代理的网络内部请求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（无效），在较旧的服务器上回退到 `POST /fluentd/v1/logs`。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/storage-array-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-storage-array-agent
 ```
 

@@ -4,7 +4,7 @@ OneUptime Kubernetes エージェントは Helm チャートで、クラスタ�
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm を使った四つのステップ。
-- [プリセットを選ぶ](#プリセットを選ぶ): 標準のクラスター、GKE Autopilot、EKS Fargate。
+- [プリセットを選ぶ](#プリセットを選ぶ): 標準のクラスター、GKE Autopilot、EKS Fargate、OpenShift。
 - [よく使うオプション](#よく使うオプション): ほとんどのクラスターで変更する設定。
 - [トラブルシューティング](#トラブルシューティング): 診断スクリプトと、よくある問題。
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | ノードコレクター | DaemonSet | `/var/log/pods` からの Pod ログ、kubelet と cAdvisor のメトリクス、ノードの OS メトリクス。 | はい |
 | eBPF インストルメンテーション (OBI) | DaemonSet | すべての Pod からの HTTP、gRPC、SQL、Redis のトレースとリクエストメトリクス、およびサービスマップ。 | はい |
 | Kubernetes AI エージェント | Deployment | OneUptime AI がこのクラスターのインシデントやアラートを調査するときに、読み取り専用の `kubectl` を実行できるようにします。 | はい |
-| ログテイラー | Deployment | ノードコレクターが読めない場合に、Kubernetes API 経由で Pod ログを取得します。 | `gke-autopilot` と `eks-fargate` のプリセットで有効 |
+| ログテイラー | Deployment | ノードコレクターが読めない場合に、Kubernetes API 経由で Pod ログを取得します。 | `gke-autopilot`、`eks-fargate`、`openshift-restricted` のプリセットで有効 |
 | eBPF プロファイラー | DaemonSet | すべてのプロセスの継続的な CPU フレームグラフ。 | いいえ |
 | kube-state-metrics | Deployment | Pod のフェーズ、コンテナーの待機理由、リソースクォータ。 | いいえ |
 
@@ -92,10 +92,14 @@ Kubernetes プラットフォームによっては、ワークロードが `host
 | `standard` (デフォルト) | セルフマネージド、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | ノードコレクターが `/var/log/pods` を読み取る | kubelet、cAdvisor、OS のメトリクス |
 | `gke-autopilot` | **GKE Autopilot** | ログテイラーが Kubernetes API 経由で読み取る | kubelet と cAdvisor のメトリクス (`hostPath` なし) |
 | `eks-fargate` | **EKS Fargate** | ログテイラーが Kubernetes API 経由で読み取る | なし: Fargate は DaemonSet を実行しません |
+| `openshift` | **OpenShift**: OpenShift Container Platform、ROSA、ARO、OKD | ノードコレクターが `/var/log/pods` を読み取る | kubelet、cAdvisor、OS のメトリクス |
+| `openshift-restricted` | **OpenShift** (管理者が SCC を追加しない場合) | ログテイラーが Kubernetes API 経由で読み取る | kubelet と cAdvisor のメトリクス (`hostPath` なし) |
 
 よくわからない場合は、`preset` を未設定のままにすると `standard` になります。インストールが `hostPath` を挙げた Pod Security エラーで失敗した場合は、`gke-autopilot` で、EKS Fargate では `eks-fargate` でインストールし直してください。
 
 GKE Autopilot と EKS Fargate は、eBPF インストルメンテーションとプロファイリングに必要な特権 Pod も拒否するため、それぞれのプリセットはどちらも含めません。
+
+OpenShift では、デフォルトのセキュリティコンテキスト制約 (SCC) である `restricted-v2` が、ノードコレクターと eBPF の Pod を拒否します。`openshift` プリセットは、それぞれに専用の SCC を作成して各自のサービスアカウントだけが使えるようにし、それ以外のすべての Pod のユーザー ID は OpenShift に選ばせます。
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+管理者が SCC を追加しない場合は、代わりに `--set preset=openshift-restricted` でインストールします。チャートは SCC を作成せず、すべての Pod が `restricted-v2` のもとで動作するため、Pod ログは Kubernetes API 経由で取得され、OS のメトリクス、eBPF トレース、プロファイルはありません。[OpenShift](/docs/telemetry/kubernetes-agent#openshift) を参照してください。
 
 ## クラスターにラベルを付ける
 
@@ -355,7 +370,7 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | `oneuptime.url` | (必須) | あなたの OneUptime URL。 |
 | `oneuptime.apiKey` | (必須) | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。`x-oneuptime-token` ヘッダーとして送信されます。プロジェクトの API キーは使えません。 |
 | `clusterName` | (必須) | クラスターの名前。プロジェクト内で一意です。すべてのレコードが `k8s.cluster.name` としてこれを持ちます。 |
-| `preset` | (空: `standard`) | `standard`、`gke-autopilot`、`eks-fargate` のいずれか。[プリセットを選ぶ](#プリセットを選ぶ) を参照してください。 |
+| `preset` | (空: `standard`) | `standard`、`gke-autopilot`、`eks-fargate`、`openshift`、`openshift-restricted` のいずれか。[プリセットを選ぶ](#プリセットを選ぶ) を参照してください。 |
 | `oneuptime.labels` | `{}` | このエージェントからのすべてのレコードに付けるラベル。[クラスターにラベルを付ける](#クラスターにラベルを付ける) を参照してください。 |
 | `namespaceFilters.rules` | `kube-system` を `podLogs` と `ebpfDiscovery` から除外 | `podLogs`、`ebpfDiscovery`、`metrics`、`traces` で名前空間を含めたり除外したりするルール。パターンには `*` を使え、除外が常に優先されます。 |
 | `filters.logs.minSeverity` | `""` | このレベルより下の Pod ログ行を破棄します: `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL`。 |
@@ -408,9 +423,11 @@ kubectl delete namespace oneuptime-agent
 チャートの診断スクリプトを実行します。Pod、取り込みキー、クラスターから外への経路を確認し、キーが受け付けられるかを OneUptime に問い合わせて、1 つの判定を表示します。読み取るだけで、何も変更しません。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+各 OneUptime は自分のリリースのこのスクリプトを配布します。セルフホストの OneUptime では、`https://oneuptime.com` の代わりに自分の URL を使ってください。実行する前にスクリプトを読むには、そのアドレスをブラウザーで開きます。
 
 特に再インストールの後によくある原因は、間違った、または失効した取り込みキーです。OneUptime がキーを拒否し、コレクターは Pod が `Running` のまま、すべてのバッチを破棄します。
 :::

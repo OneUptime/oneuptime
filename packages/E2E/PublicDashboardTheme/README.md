@@ -14,7 +14,8 @@ one System, one made before the setting, one of each theme behind a password (`o
 sesame`), one the IP allowlist refuses and one whose link answers nobody. The query
 string sets the rest: `board` (the widgets: `kubernetes`, `host`, `slo`, `network`,
 `lists`, `containers`, `infrastructure` or `other`), `data=empty` (every widget's empty
-state), `variables=1` (the toolbar's variable pickers) and `seoTheme` (the theme the
+state), `variables=1` (the toolbar's variable pickers), `darkLogo=1` (a logo for the
+dark theme, `Fixture/logo-dark.svg`, beside the logo) and `seoTheme` (the theme the
 HTML is sent in when its server could not read the dashboard's, `none` for no theme).
 The server's `/hold` and `/release` hold Tailwind and the app's bundle back, so a test
 can look at the page as the browser has it before anything but the template runs.
@@ -28,13 +29,17 @@ theme through the password prompt and back, the password prompt in the dashboard
 theme, Access Denied and not found following the visitor, and the dark theme on every
 widget kind: no light box but the logo's backdrop, every text at 4.5:1 (3:1 when
 large), the HTML widget transparent on the dark card, the empty states, and the
-toolbar's menus and time range picker. Screenshots of every board in both themes, of
-the prompt and of the error pages are under `output/playwright/public-dashboard-theme-ui`.
+toolbar's menus and time range picker, and a dashboard's logo for the dark theme drawn
+instead of the logo while the page is dark, with no backdrop, following a System
+dashboard's device. Screenshots of every board in both themes, of the prompt and of the
+error pages are under `output/playwright/public-dashboard-theme-ui`.
 
 On a phone the page is the screen's width: the dashboard's name has the header's row,
-the toolbar sits under it, and only the board, which keeps the 1000px its twelve
-columns are laid out for, scrolls sideways in its own frame. The spec's `press`
-explains how it reaches a control the visitor scrolls to.
+the toolbar sits under it, and nothing scrolls sideways - the board shows its widgets
+one under another, each the screen's width, in the order its grid is read, and a chart
+tall enough for its plot. At a tablet's 768px the widgets keep the grid's arrangement
+in the screen's width. The spec's `press` explains how it reaches a control the visitor
+scrolls to.
 
 This checks real browser rendering and the app's theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

@@ -48,19 +48,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Podman 
 
 ### Elegir el host
 
-En **Configuración del monitor de Podman**, elija el host en **Host de Podman**. Cada host que ha enviado datos está en la lista.
+En **Configuración del monitor de Podman**, elija el host en **Host de Podman**. Cada host que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir host de Podman** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Host Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** – haga clic en una [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** – elija una métrica en **Métrica de Podman** y luego fije la **Agregación** y el **Intervalo de tiempo**. **Nombre del contenedor** e **Imagen del contenedor** la restringen a algunos contenedores.
-- **Avanzado** – cree usted mismo consultas y fórmulas en **Seleccionar métricas**. Use **Agrupar por** `resource.container.name` para juzgar cada contenedor por separado.
+- **Cambiar** – elija otra [plantilla](#plantillas-de-alerta-listas-para-usar). Fija la métrica, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) – elija una métrica en **Métrica de Podman** y luego fije la **Agregación** y el **Intervalo de tiempo**. **Nombre del contenedor** e **Imagen del contenedor** la restringen a algunos contenedores.
+- **Avanzado** (en **Más campos**) – cree usted mismo consultas y fórmulas en **Seleccionar métricas**. Use **Agrupar por** `resource.container.name` para juzgar cada contenedor por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que una métrica cae a cero, así que fije su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que fije su propio umbral.
 
 ### Crear el monitor
 
@@ -84,7 +84,7 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Host Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada contenedor se juzga por separado y recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece seis plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Host Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada contenedor se juzga por separado y recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
@@ -93,7 +93,7 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 | Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos los contenedores del host, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
 | High Container CPU Usage | Advertencia | `container.cpu.utilization`, Avg por contenedor, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Container Memory Usage | Advertencia | `container.memory.percent`, Avg por contenedor, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
-| Container Restart Loop | Crítico | Crecimiento de `container.restarts` por contenedor, últimos 15 minutos | Más de 3 reinicios en la ventana (Suma) | 2,7 o menos |
+| Container Restart Loop | Crítico | `container.restarts.increase`, Sum por contenedor, últimos 15 minutos | Más de 3 reinicios en la ventana (Suma) | 2,7 o menos |
 | High Container Process Count | Advertencia | `container.pids.count`, Max por contenedor, últimos 5 minutos | Por encima de 2000 | En 1800 o menos |
 | Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contenedor, último 1 minuto | Por debajo de 120 segundos | En 132 segundos o más |
 
@@ -107,7 +107,7 @@ Las dos plantillas de porcentaje usan **Promedio**: sus métricas ya son porcent
 > `container.cpu.utilization` es el número que imprime `podman stats`, promediado en el intervalo de 30 segundos del agente: el 100 % es un núcleo de CPU completo, no toda la asignación de CPU del contenedor. Un contenedor con varios núcleos marca bastante más de 100 cuando está sano, así que suba el umbral en esos casos.
 
 > [!NOTE]
-> `container.restarts` es un total acumulado que lleva Podman, así que **Container Restart Loop** avisa de cuánto creció en la ventana, como en Docker: una consulta Maximum y otra Minimum por minuto, restadas con una fórmula y sumadas. Con el muestreo de 30 segundos del agente se ve aproximadamente la mitad de los reinicios, y el umbral ya lo tiene en cuenta. Además, el agente solo muestrea contenedores en ejecución, así que un contenedor que termina en cuanto arranca casi nunca se muestrea: **Container Restarted (Low Uptime)** se dispara en cada reinicio que el agente sí ve.
+> `container.restarts` es un total acumulado que lleva Podman, hasta que un reinicio manual o un contenedor recreado lo vuelve a empezar en 0, así que el agente también envía `container.restarts.increase` con cada muestra: los reinicios desde su muestra anterior del contenedor. **Container Restart Loop** los suma, como en Docker, así que cuenta cada reinicio por muy separadas que estén las muestras, y un reinicio manual no cuenta como uno. Un agente antiguo no envía `container.restarts.increase`: [actualícelo](/docs/telemetry/podman-host#actualizar-el-agente) primero. Un monitor creado a partir de la plantilla antes de eso lee cuánto creció `container.restarts` dentro de cada minuto, lo que pasa por alto aproximadamente la mitad de los reinicios de un bucle: elimínelo y vuelva a crear la plantilla.
 
 > [!CAUTION]
 > `container.uptime` solo existe para los contenedores en ejecución. Un contenedor que se detiene y sigue detenido no envía datos, así que **Container Restarted (Low Uptime)** detecta reinicios y nuevos despliegues, no una parada definitiva. Un contenedor pensado para ejecutarse menos de dos minutos permanece en estado de alerta durante toda su vida.
@@ -154,6 +154,7 @@ El agente usa el receptor `docker_stats` de OpenTelemetry apuntando al socket co
 | --- | --- |
 | `container.uptime` | Segundos desde que se inició el contenedor. Solo los contenedores en ejecución la informan. |
 | `container.restarts` | Veces que se ha reiniciado el contenedor. Un total acumulado. |
+| `container.restarts.increase` | Reinicios desde la muestra anterior del agente para el contenedor, enviados con cada muestra. Su suma en una ventana son los reinicios de esa ventana, así que alerte sobre esta y no sobre el total acumulado. |
 | `container.pids.count` | Tareas del contenedor. El controlador pids del cgroup cuenta los hilos además de los procesos. |
 
 `container.cpu.throttling_data.throttled_periods` no está en la lista; consúltela desde **Avanzado**.
@@ -172,7 +173,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
 | **Si no hay datos** | En **Más campos**. Qué ocurre cuando la ventana no tiene muestras: **Ignore** (el predeterminado), **Treat As Zero** o **Disparador**. |
 
-Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en un estado «Learning», y no generan nada, hasta que la ventana de referencia contiene suficiente historial.
+Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en un estado «Learning», y no generan nada, hasta que la ventana de referencia contiene suficiente historial. Una suma, un recuento o una consulta sobre un histograma permanece en ese estado para siempre: este monitor filtra sus consultas por atributos y la línea de referencia no guarda ninguno.
 
 Cada criterio indica también qué hacer cuando coincide: cambiar el estado del monitor, crear una alerta o declarar un incidente. Los criterios se comprueban de arriba abajo, y el primero que coincide decide.
 
@@ -290,8 +291,8 @@ OneUptime identifica un host por `resource.host.name`, que el agente toma de `PO
 Agrupe la consulta por `resource.container.name`, como hace la plantilla **High Container CPU Usage**, para que cada contenedor se juzgue por separado. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto. Si la CPU de un contenedor es una línea plana sea cual sea su carga, el host ejecuta un agente antiguo: [actualícelo](/docs/telemetry/podman-host#actualizar-el-agente).
 :::
 
-:::details La alerta del número de reinicios nunca se resuelve
-`container.restarts` es un total acumulado, así que no vuelve a bajar del umbral por sí solo. Corrija la causa y luego vuelva a crear el contenedor para poner el recuento a cero, o suba el umbral.
+:::details La alerta de reinicios nunca se dispara o nunca se resuelve
+Un monitor que compara el propio `container.restarts` con un umbral, como hace uno creado a partir de una versión temprana de la plantilla de reinicios, se dispara por el historial del contenedor y nunca se resuelve: el total solo crece. Uno creado a partir de **Container Restart Loop** antes de que leyera `container.restarts.increase` mide cuánto creció el total dentro de cada minuto y pasa por alto aproximadamente la mitad de los reinicios de un bucle. Un agente antiguo no envía `container.restarts.increase`: [actualice el agente](/docs/telemetry/podman-host#actualizar-el-agente), luego elimine el monitor y vuelva a crear **Container Restart Loop**.
 :::
 
 ## Próximos pasos

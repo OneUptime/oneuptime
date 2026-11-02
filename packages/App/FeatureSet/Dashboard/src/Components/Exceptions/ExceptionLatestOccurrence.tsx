@@ -8,7 +8,10 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
+import {
+  exceptionTimeValue,
+  formatRelativeTime,
+} from "../../Utils/ExceptionDetailPresentation";
 import AppLink from "../AppLink/AppLink";
 import ExceptionDetailList, {
   ExceptionDetailListItem,
@@ -111,7 +114,8 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
           <span>
             {OneUptimeDate.getDateAsLocalShortDateTimeString(occurredAt)}
             <span className="ml-1.5 text-gray-500">
-              ({formatRelativeTime(occurredAt)})
+              ({formatRelativeTime(occurredAt, new Date(), translator.language)}
+              )
             </span>
           </span>
         ) : (
@@ -230,7 +234,7 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
         props.description ||
         (occurredAt
           ? translator.translateTemplate("Captured {{time}}.", {
-              time: formatRelativeTime(occurredAt) || "",
+              time: exceptionTimeValue(occurredAt) || "",
             })
           : "The most recent time this exception was recorded.")
       }

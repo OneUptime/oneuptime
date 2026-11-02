@@ -163,6 +163,61 @@ export default class SameOriginRequest {
   }
 
   /**
+   * The same rule for a page that is served on a custom domain and calls
+   * its routes on that domain (a form on its owner's domain,
+   * Types/Form/FormCustomDomain): the request is the page's own when the
+   * browser says it came from the same origin, or from no page, and an
+   * Origin, when there is one, names the very host the request was sent to.
+   *
+   * hostname is that host as the request's own Host header names it,
+   * normalized (normalizeStatusPageRequestHost) - the name the browser
+   * connected to, which no page can choose for a request to another site.
+   * The Origin's scheme and port are not compared: the ingress forwards
+   * neither, and a page at another port of the customer's own host is the
+   * customer's. A route that answers by the host's own record - the form
+   * the domain shows - so trusts only a page on that host: another site's
+   * page sends its own Origin and is refused, a page on another subdomain
+   * of the same site is "same-site" and refused, and a page the browser
+   * takes for this host's own is on the host, showing what the host shows.
+   * With no host to compare, a request carrying an Origin is refused.
+   */
+  public static isForeignPageRequestToHost(data: {
+    headers: BrowserRequestHeaders;
+    hostname: string | null;
+  }): boolean {
+    const fetchSite: string = headerValue(
+      data.headers["sec-fetch-site"],
+    ).toLowerCase();
+
+    if (fetchSite !== "" && !SAME_ORIGIN_FETCH_SITES.includes(fetchSite)) {
+      return true;
+    }
+
+    const origin: string = headerValue(data.headers.origin);
+
+    if (origin === "") {
+      return false;
+    }
+
+    const requestOrigin: string | null =
+      origin === "null" ? null : originOf(origin);
+
+    if (!requestOrigin || !data.hostname) {
+      return true;
+    }
+
+    let originHostname: string = "";
+
+    try {
+      originHostname = new NodeURL(requestOrigin).hostname.toLowerCase();
+    } catch {
+      return true;
+    }
+
+    return originHostname !== data.hostname.trim().toLowerCase();
+  }
+
+  /**
    * Whether a request carries the header a page's own script adds to its
    * requests, set to exactly the value that script gives it (see above).
    * Only a script can add a header, and only a preflighted one when the

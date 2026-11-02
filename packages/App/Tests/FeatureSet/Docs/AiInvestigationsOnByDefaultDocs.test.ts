@@ -184,6 +184,12 @@ function tabPanel(section: string, label: string): string {
   return panel.join("\n");
 }
 
+/*
+ * The last line of the install step's last tab. With its line's end, as the
+ * page's OpenShift section also names the flag in its prose.
+ */
+const LAST_INSTALL_TAB: string = "--set preset=openshift\n";
+
 const KUBERNETES_LANGUAGES: Array<string> = fs
   .readdirSync(CONTENT_DIR)
   .filter((language: string): boolean => {
@@ -202,21 +208,21 @@ describe("the Kubernetes agent page", () => {
   describe.each(KUBERNETES_LANGUAGES)("in %s", (language: string) => {
     const page: string = read(`${language}/telemetry/kubernetes-agent.md`);
     /*
-     * The install step's three commands sit in tabs, one per preset, the
-     * EKS Fargate one last: from the first `helm install` to the end of the
-     * block that sets the eks-fargate preset.
+     * The install step's four commands sit in tabs, one per preset, the
+     * OpenShift one last: from the first `helm install` to the end of the
+     * block that sets the openshift preset.
      */
-    const lastPreset: number = page.lastIndexOf("--set preset=eks-fargate");
+    const lastPreset: number = page.lastIndexOf(LAST_INSTALL_TAB);
     const install: string = page.slice(
       page.indexOf("helm install"),
       page.indexOf("```", lastPreset) + 3,
     );
     const commands: Array<string> = helmInstallCommands(install);
     // The paragraph right after the commands' tabs.
-    const note: string = paragraphAfter(page, "--set preset=eks-fargate");
+    const note: string = paragraphAfter(page, LAST_INSTALL_TAB);
 
-    it("installs on standard clusters, GKE Autopilot and EKS Fargate, each with AI investigations on", () => {
-      expect(commands).toHaveLength(3);
+    it("installs on standard clusters, GKE Autopilot, EKS Fargate and OpenShift, each with AI investigations on", () => {
+      expect(commands).toHaveLength(4);
 
       for (const command of commands) {
         expect(count(command, ON_FLAG)).toBe(1);
@@ -257,7 +263,7 @@ describe("the Kubernetes agent page", () => {
     it("the commands are the English page's, character for character", () => {
       const english: Array<string> = helmInstallCommands(
         read("en/telemetry/kubernetes-agent.md"),
-      ).slice(0, 3);
+      ).slice(0, 4);
 
       expect(commands).toEqual(english);
     });
@@ -276,7 +282,7 @@ describe("the Kubernetes agent page", () => {
       it("in its own language, not the English note", () => {
         const englishNote: string = paragraphAfter(
           read("en/telemetry/kubernetes-agent.md"),
-          "--set preset=eks-fargate",
+          LAST_INSTALL_TAB,
         );
 
         expect(note).not.toBe(englishNote);
@@ -320,10 +326,11 @@ describe("the Kubernetes agent chart's README", () => {
     "## Kubernetes AI agent",
   );
 
-  it("installs with AI investigations on in the quick start and both presets", () => {
+  it("installs with AI investigations on in the quick start and every preset", () => {
     const commands: Array<string> = helmInstallCommands(quickStartAndPresets);
 
-    expect(commands).toHaveLength(3);
+    // The quick start, then GKE Autopilot, EKS Fargate and the two OpenShift ones.
+    expect(commands).toHaveLength(5);
     for (const command of commands) {
       const lines: Array<string> = linesOf(command);
       const clusterName: number = lines.findIndex((line: string): boolean => {

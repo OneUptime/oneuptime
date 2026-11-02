@@ -129,7 +129,7 @@ Een Atlassian-**serviceaccount** werkt ook. Een organisatiebeheerder maakt het, 
 4. Klik op **Workflow maken**. Elke workflow wordt uitgeschakeld aangemaakt: zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
 :::
 
-Begin met **Create a Jira issue when an incident is declared**, of met **Create a Jira issue when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Jira van dezelfde soort vindt het issue via het label dat dit sjabloon toevoegt. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De laatste stap van de uitvoering hoort `✅ Created Jira issue` te tonen en het nieuwe issue te noemen.
+Begin met **Create a Jira issue when an incident is declared**, of met **Create a Jira issue when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Jira van dezelfde soort vindt het issue via het label dat dit sjabloon toevoegt. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Response Body** van haar laatste stap, `create-issue-1`, noemt het nieuwe issue.
 
 Elke workflow houdt een eigen kopie van deze waarden bij. Wanneer je het token vervangt, werk je `jiraBasicAuthToken` bij onder **Workflow-variabelen** in elke Jira-workflow die erom vroeg. Verhuist Jira naar een ander adres, werk dan `jiraSiteUrl` en `jiraBaseUrl` op dezelfde manier bij.
 
@@ -180,14 +180,14 @@ Voordat je erop vertrouwt:
 
 ### Controleren of het werkt
 
-Elk sjabloon eindigt met een **Log**-stap die zegt wat er gebeurde, dus de laatste stap van een uitvoering in **Logboeken → Uitvoeringen** is de plek om te kijken:
+De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Logboeken → Uitvoeringen** en kijk hoe ze eindigde:
 
-- `✅` — het heeft zijn werk gedaan en noemt het issue, het incident of de waarschuwing.
-- `ℹ️` — het heeft de gebeurtenis bewust overgeslagen en zegt waarom: het issue is niet gekoppeld aan een record van deze soort, de notitie kwam uit Jira, het record is privé, of de nieuwe status heeft geen bijbehorende Jira-status.
-- `❌` — een aanroep is mislukt. Bij een Jira-aanroep bevat de regel het antwoord van Jira.
-- `⚠️` — een sjabloon dat een record aanmaakt vanuit een Jira-issue heeft het aangemaakt, maar Jira heeft de koppelingslabels niet geaccepteerd, dus de andere sjablonen kunnen het nog niet vinden. Voeg de labels met de hand toe.
+- **Uitgevoerd**: het deed zijn werk, en de laatste stap noemt het issue, het incident of de waarschuwing.
+- **Uitgevoerd**, met de stap **Check With JavaScript** op **No**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: het issue is niet gekoppeld aan een record van deze soort, de notitie kwam uit Jira, het record is privé, of de nieuwe status heeft geen bijbehorende Jira-status.
+- **Fout**: een stap is mislukt, en zijn vermelding in **Stappen** zegt waarom. Bij een Jira-aanroep staat het antwoord van Jira erbij.
+- **Fout** bij `link-issue-1`: een sjabloon dat een record maakt uit een Jira-issue heeft het gemaakt, maar Jira nam de koppellabels niet aan, dus de andere sjablonen kunnen het nog niet vinden. Voeg de labels met de hand toe.
 
-Een overgeslagen uitvoering eindigt toch als **Uitgevoerd**. Overslaan is normaal: de meeste Jira-gebeurtenissen zijn niet de gebeurtenissen waarop een bepaald sjabloon reageert. Zie [Workflow-uitvoeringen](/docs/workflows/runs-and-logs).
+Overslaan is normaal: de meeste Jira-gebeurtenissen zijn niet de gebeurtenissen waarop een bepaald sjabloon reageert. Zie [Workflow-uitvoeringen](/docs/workflows/runs-and-logs).
 
 ## Hoe de sjablonen werken
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Wijzigen wat een sjabloon doet
 
-Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript Code** van een **Run Custom JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen van een sjabloon houden dezelfde constanten in dezelfde blokken:
+Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript Code** van een **Check With JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen van een sjabloon houden dezelfde constanten in dezelfde blokken:
 
 | Constante | Sjabloon en blok | Wat het regelt |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De 
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | De statusnamen die het sjabloon verkiest wanneer het op betekenis gaat, en de namen die het nooit kiest tenzij `STATE_TO_JIRA_STATUS` ze noemt. Beide zijn reguliere expressies die met de statusnaam worden vergeleken, zonder op hoofdletters te letten. |
 | `SYNC_PRIVATE_INCIDENTS` | Elk sjabloon voor incidenten van OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` of `build-comment-1` | `false` houdt incidenten die als **Privé-incident** zijn gemarkeerd buiten Jira: er wordt geen issue voor aangemaakt, hun issue wordt niet doorgezet, en noch hun notities noch hun bewerkingen worden geplaatst. Zet hem op `true` om ze toch te sturen. Elk sjabloon heeft een eigen kopie, dus stel hem in elk sjabloon in dat ze moet sturen. |
 | `SYNC_PRIVATE_ALERTS` | Elk sjabloon voor waarschuwingen van OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` of `build-comment-1` | Hetzelfde voor waarschuwingen die als **Privéwaarschuwing** zijn gemarkeerd: `false` houdt ze op dezelfde manieren buiten Jira, en `true` stuurt ze toch. Stel hem in elk sjabloon voor waarschuwingen in dat ze moet sturen. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | Koppelt een Jira-statusnaam aan een OneUptime-statusnaam, zoals `{ 'In Review': 'Monitoring' }`. Statussen die er niet in staan, gaan op de statuscategorie van Jira: In Progress bevestigt het incident of de waarschuwing, Done lost het op, en To Do hoort bij niets. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | Koppelt een Jira-statusnaam aan een OneUptime-statusnaam, zoals `{ 'In Review': 'Monitoring' }`. Statussen die er niet in staan, gaan op de statuscategorie van Jira: In Progress bevestigt het incident of de waarschuwing, Done lost het op, en To Do hoort bij niets. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | Koppelt een Jira-prioriteit, in kleine letters, aan `0` (je zwaarste ernstniveau), `1` of `2` (het lichtste), met de niveaus daartussen over het bereik verdeeld. Prioriteiten die er niet in staan, komen in het midden terecht. Met de twee ernstniveaus voor waarschuwingen die een nieuw project heeft, is `0` High en zijn `1` en `2` allebei Low, dus Medium wordt Low tenzij je het verandert in `medium: 0`. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | De opmerkinggebeurtenissen die notities worden. Voeg `'comment_updated'` toe om ook bewerkingen te kopiëren — elke bewerking wordt een nieuwe notitie — en vink ook **Comment updated** aan op de Jira-webhook. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | De Jira-velden, in kleine letters, waarvan wijzigingen geen notitie waard zijn. Een wijziging valt weg wanneer de veld-ID of de veldnaam in de lijst staat, en zo vangt `'rank'` Rank, een aangepast veld dat binnenkomt met een ID als `customfield_10019`. Status staat in de lijst omdat het statussjabloon die afhandelt. |
@@ -271,7 +271,7 @@ Privénotities en bewerkingsopmerkingen worden als intern gemarkeerd door de `pr
 ### Beperkingen
 
 - **Alleen Jira Cloud.** De sjablonen roepen de REST API v3 van Jira Cloud aan met Basic-authenticatie. Data Center heeft geen v3 en accepteert een persoonlijk toegangstoken als `Bearer`, dus elk API-blok heeft de wijzigingen uit [Jira Data Center](#jira-data-center) nodig: paden `/rest/api/2/...`, gewone strings in plaats van bodies in Atlassian Document Format, en de header. De blokken `find-issue-1` veranderen het meest: Data Center heeft geen `/search/jql`, dus ze moeten in plaats daarvan een `POST` doen naar `/rest/api/2/search`.
-- **Incidenten die vanuit Jira worden gemeld, zijn stil.** Ze worden aangemaakt verborgen voor je statuspagina's, zonder abonnees van statuspagina's te waarschuwen, omdat de tekst van een issue niet voor klanten is geschreven. Om er een te tonen, zet je **Zichtbaar op statuspagina** aan op de pagina **Instellingen** van het incident (zie [Een incident van de statuspagina houden](/docs/incidents/states-and-severities#een-incident-van-de-statuspagina-houden)), of wijzig je `isVisibleOnStatusPage` en `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` in het blok `create-incident-1` van het sjabloon.
+- **Incidenten die vanuit Jira worden gemeld, zijn stil.** Ze worden aangemaakt verborgen voor je statuspagina's, zonder abonnees van statuspagina's te waarschuwen, omdat de tekst van een issue niet voor klanten is geschreven. Om er een te tonen, zet je **Zichtbaar op statuspagina** aan op de pagina **Instellingen** van het incident (zie [Een incident van de statuspagina houden](/docs/incidents/states-and-severities#een-incident-van-de-statuspagina-houden)), of zet je **Show On Status Pages** aan, onder **Meer velden**, in het blok `incident-from-another-tool-1` van het sjabloon.
 - **Privé-incidenten en -waarschuwingen blijven in OneUptime.** De sjablonen van OneUptime → Jira slaan ze over, en elk overslaan staat vermeld in **Logboeken → Uitvoeringen**. Om ze toch te sturen, zet je `SYNC_PRIVATE_INCIDENTS` of `SYNC_PRIVATE_ALERTS` op `true`. Een record later privé maken stopt de synchronisatie vanaf dat moment, maar haalt niet terug wat Jira al heeft. De sjablonen van Jira → OneUptime controleren dit niet, dus opmerkingen, bewerkingen en statuswijzigingen op een gekoppeld issue bereiken een privérecord nog steeds.
 - **Niets gaat achteruit.** Een Jira-issue heropenen verandert niets in OneUptime, en een status in de categorie To Do hoort bij geen enkele status. Zie [Volgorde is een echte beperking](/docs/incidents/states-and-severities#de-volgorde-is-een-echte-beperking-geen-weergavevoorkeur). Ook de transitiesjablonen zetten een issue nooit naar een eerdere statuscategorie.
 - **Elke waarschuwing krijgt een issue.** Behalve privéwaarschuwingen opent het sjabloon voor waarschuwingen dat issues aanmaakt een issue voor elke waarschuwing, ook elke waarschuwing die een monitor afgeeft. [Wat er anders is voor waarschuwingen](#wat-er-anders-is-voor-waarschuwingen) laat zien hoe je een voorwaarde toevoegt.
@@ -286,7 +286,7 @@ Privénotities en bewerkingsopmerkingen worden als intern gemarkeerd door de `pr
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **Dezelfde gebeurtenis kan twee keer aankomen.** Jira probeert een bezorging opnieuw die mislukte door een serverfout of een time-out. Als OneUptime de uitvoering al was begonnen, voegen de sjablonen voor opmerkingen en issuewijzigingen een tweede notitie toe. De sjablonen die een record aanmaken, maken geen tweede aan: ze vragen Jira eerst om de labels van het issue, en tegen de tijd dat een nieuwe poging binnenkomt, heeft de eerste uitvoering het issue al gelabeld. Dat helpt niet wanneer de eerste uitvoering het record aanmaakte maar Jira de labels weigerde: de uitvoering eindigt met een `⚠️`-regel, en je moet de labels met de hand toevoegen.
+- **Dezelfde gebeurtenis kan twee keer aankomen.** Jira probeert een bezorging opnieuw die mislukte door een serverfout of een time-out. Als OneUptime de uitvoering al was begonnen, voegen de sjablonen voor opmerkingen en issuewijzigingen een tweede notitie toe. De sjablonen die een record aanmaken, maken geen tweede aan: ze vragen Jira eerst om de labels van het issue, en tegen de tijd dat een nieuwe poging binnenkomt, heeft de eerste uitvoering het issue al gelabeld. Dat helpt niet wanneer de eerste uitvoering het record aanmaakte maar Jira de labels weigerde: de uitvoering mislukt bij `link-issue-1`, en je moet de labels met de hand toevoegen.
 
 ## Het zelf bouwen
 

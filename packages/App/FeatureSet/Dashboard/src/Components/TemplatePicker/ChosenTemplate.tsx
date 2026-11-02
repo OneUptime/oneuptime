@@ -10,6 +10,7 @@
 import React, { ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import { CATALOG_TEXT_ALIGN_CLASS_NAME } from "./CatalogText";
 
 export interface ComponentProps {
   icon: IconProp;
@@ -35,9 +36,20 @@ const ChosenTemplate: (props: ComponentProps) => ReactElement = (
           className="h-5 w-5 text-indigo-600"
         />
       </div>
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-gray-900">{props.name}</p>
-        <p className="mt-1 text-sm text-gray-600">{props.line}</p>
+      {/* Read the way they are written, on a Persian page too (CatalogText). */}
+      <div className="min-w-0 flex-1">
+        <p
+          dir="auto"
+          className={`text-sm font-semibold text-gray-900 ${CATALOG_TEXT_ALIGN_CLASS_NAME}`}
+        >
+          {props.name}
+        </p>
+        <p
+          dir="auto"
+          className={`mt-1 text-sm text-gray-600 ${CATALOG_TEXT_ALIGN_CLASS_NAME}`}
+        >
+          {props.line}
+        </p>
       </div>
     </div>
   );

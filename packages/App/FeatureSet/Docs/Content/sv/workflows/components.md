@@ -22,10 +22,13 @@ Du behöver sällan ha den öppen medan du bygger. Varje blocks inställningar s
 | Sammanfatta, klassificera eller skriva utkast till text       | [Generate Text with AI](#generate-text-with-ai)                   |
 | Ta den ena eller andra vägen beroende på ett värde            | [Conditions](#conditions)                                         |
 | Ta en av flera vägar beroende på ett värde                    | [Switch / Case](#switch-case)                                     |
+| Fortsätta bara när några rader JavaScript säger det           | [Check With JavaScript](#check-with-javascript)                   |
 | Omforma data mellan två block                                 | [JSON](#json) eller [Custom Code](#custom-code)                   |
 | Vänta före nästa block                                        | [Sleep](#sleep)                                                   |
 | Starta ett annat arbetsflöde                                  | [Execute Workflow](#execute-workflow)                             |
 | Läsa eller ändra incidenter, monitorer och andra poster       | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
+| Öppna, bekräfta och lösa incidenter eller larm för ett annat verktygs problem | [Incidenter och larm från andra verktyg](#incidenter-och-larm-från-andra-verktyg) |
+| Bekräfta eller stänga ett Zabbix-problem                      | [Zabbix](#zabbix)                                                 |
 
 Ett dedikerat block slår ett generiskt: Slack-blocket känner till Slacks gränser och ett postblock känner till postens fält, så du får tydligare fel och loggar än från ett **API**-block som gör samma jobb.
 
@@ -44,7 +47,7 @@ flowchart TB
 - **Outputs** är punkterna på den nedre kanten. De flesta block har **Success** och **Error**; [Conditions](#conditions) har **Yes** och **No**, och [Switch / Case](#switch-case) har en för vart och ett av sina fall, plus **Default**.
 - **Returns** är de värden ett block lämnar vidare till senare block, som ett API:s **Response Body**. Ett senare block läser ett med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en inställning infogar det åt dig. Se [Variabler](/docs/workflows/variables#komponentoutput-data-från-tidigare-block).
 
-Ett block som tar **Error** får inte körningen att misslyckas: körningen följer vägen **Error**, eller slutar där om inget är kopplat till den. En obligatorisk inställning som lämnats tom, eller en inställning som aldrig kan fungera, stoppar däremot körningen med ett fel.
+Ett block som tar **Error** lämnar felet vidare till blocken som är kopplade till **Error**, och körningen fortsätter där. Är inget kopplat till **Error** misslyckas körningen: det den annars höll på med körs vidare, sedan slutar den med statusen **Fel**, och blockets post under körningens **Steg** säger varför. En obligatorisk inställning som lämnats tom, eller en inställning som aldrig kan fungera, stoppar däremot körningen med ett fel.
 
 ## API
 
@@ -64,6 +67,8 @@ Gör en HTTP-förfrågan till valfri URL. Det finns ett block per metod: **API G
 Oavsett vilket returnerar blocket **Response Status**, **Response Headers** och **Response Body**, plus **Error** med orsaken när det misslyckades. Läs ett fält i ett JSON-svar genom att lägga till dess namn i referensen, som i `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Omdirigeringar följs inte, så peka blocket mot adressen som svarar. Förfrågningar skickas från OneUptime: en URL som pekar på en privat nätverksadress avvisas om inte en administratör för en självhostad installation tillåter det, och körningen stoppas med orsaken. Se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
+
+**API Get By ID (JSON)** läser ett objekt utifrån ett ID som kom någon annanstans ifrån, till exempel ärendenyckeln som en webhook skickade. Sätt `{id}` i dess **URL** där ID:t ska stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, och ID:t i **ID**. Blocket sätter bara in ID:t när det är ett enkelt ID, högst 200 bokstäver, siffror, bindestreck och understreck, och procentkodar det ändå: allt annat, till exempel `x/../users`, tar **Error** innan någon förfrågan skickas, så att text utifrån inte kan skicka förfrågan någon annanstans. I övrigt fungerar det som **API Get (JSON)** och returnerar samma värden.
 
 ## AI
 
@@ -219,10 +224,9 @@ Vill du bara larma när något är sant sätter du [If / Else](#conditions) fram
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-När du skapar ett arbetsflöde har mallarna under **Jour** det här färdigt, och ett som larmar efter allvarlighetsgrad med **Switch / Case**. En mall lämnar åt dig vem som larmas: arbetsflödet öppnas i Byggaren, där varje larmblock säger **Click to set up**.
+När du skapar ett arbetsflöde har mallarna under **Jour** det här färdigt, och ett som larmar efter allvarlighetsgrad med **Switch / Case**. Dialogen **Skapa ett arbetsflöde** frågar vem vart och ett av en malls larmblock larmar, så att arbetsflödet öppnas med det valt. Ett larmblock som du lägger till i Byggaren säger **Click to set up** tills du väljer vem det larmar.
 
 | Inställning | Vad den gör |
 | ----------- | ----------- |
@@ -270,6 +274,27 @@ Ett senare block läser den korta titeln som `{{local.components.javascript-1.re
 Koden körs i en sandlåda med `args`, `console.log` (skrivs till körningens logg), `axios` för HTTP-förfrågningar, `crypto` och `sleep`. Den har inget filsystem och ingen process, och dess förfrågningar följer samma adressregler som API-blocket. Den har 5 sekunder som standard; en självhostad installation ändrar det med `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
 **Success** aktiveras med det returnerade **Value**, och **Error** när koden kastar ett fel eller får slut på tid, med meddelandet i **Error**. För tyngre skript använder du i stället en [Runbook](/docs/runbooks/index).
+
+## Check With JavaScript
+
+Kör några rader JavaScript och ta sedan **Yes** eller **No** efter vad de returnerar: ett [Custom Code](#custom-code)-block och ett [If / Else](#conditions) efter det, i ett enda block. Använd det när en enda jämförelse inte räcker för att avgöra, till exempel för att läsa vad ett annat verktyg skickade och hoppa över det som arbetsflödet ska låta vara.
+
+| Inställning         | Vad den gör |
+| ------------------- | ----------- |
+| **JavaScript Code** | Din kod. `return true` tar **Yes**. För att också lämna vidare värden returnerar du ett objekt med `proceed: true`, värdena och en `reason`. |
+| **Arguments**       | Ett JSON-objekt med värden till koden, som läser dem som `args`, som i **Run Custom JavaScript**. |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+Bara `true`, eller ett objekt vars `proceed` är `true`, tar **Yes**: allt annat tar **No**, även ett tal eller en text. Blocket returnerar **Value**, det koden returnerade, som ett senare block läser som `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, och **Reason**, kodens `reason` eller det den returnerade, i en mening, som körningens flik **Steg** visar bredvid utgången som togs.
+
+Koden körs som **Run Custom JavaScript** kör den: i samma sandlåda, med samma `args`, `console.log` och `axios`, och med samma tidsgräns. När den kastar ett fel eller får slut på tid tar blocket **Error**.
 
 ## JSON
 
@@ -358,6 +383,50 @@ Starta ett annat arbetsflöde i samma projekt. Ditt arbetsflöde fortsätter uta
 **Out** aktiveras så snart det andra arbetsflödet står i kö. **Error** aktiveras när det inte går: det finns inte, är avstängt eller arkiverat, eller att starta det skulle ge en loop.
 
 Använd det för att dela gemensam logik: bygg ett ”posta i incidentkanalen”-arbetsflöde en gång och starta det från varje arbetsflöde som behöver det. En kedja av arbetsflöden som startar varandra kan inte gå i cirkel tillbaka till sig själv och är högst 10 led djup. Se [Konfiguration och säkerhet](/docs/workflows/configuration#gräns-för-att-anropa-andra-arbetsflöden).
+
+## Incidenter och larm från andra verktyg
+
+Håll en incident, eller ett larm, för varje problem som ett annat verktyg berättar om, kopplat via verktygets eget ID för det. **Incident From Another Tool** och **Alert From Another Tool** är det som mallarna för Zabbix, Huntress, Jira och Dynamics 365 bygger på, och de fungerar för alla verktyg som kan anropa ett arbetsflödes [Webhook-trigger](/docs/workflows/triggers#webhook). I panelen **Lägg till komponent** ligger de under **From Other Tools**.
+
+Varje körning ger blocket en händelse: **What Happened**, och **Outside ID**, verktygets ID för problemet. Blocket letar efter posten som har det ID:t och gör det som **What Happened** säger:
+
+| What Happened | Vad blocket gör |
+| ------------- | --------------- |
+| `open`, `problem`, `firing`, `triggered` eller `created` | Öppnar en incident, eller skapar ett larm, utifrån **Title**, **Description** och **Severity**, om inte en post redan har ID:t. |
+| `acknowledge` eller `acknowledged` | Flyttar posten till ditt första bekräftade tillstånd, med **Note** som orsak i dess historik. |
+| `resolve`, `resolved`, `recovery`, `ok` eller `closed` | Flyttar posten till ditt första lösta tillstånd, med **Note** som orsak i dess historik. |
+| `note`, `update` eller `comment` | Lägger till **Note** på posten som en privat anteckning. |
+| Namnet på ett av dina tillstånd | Flyttar posten till det tillståndet. Skriv `state:` före ett namn som är ett av de här orden, till exempel `state: Open`. |
+
+| Utgång | När |
+| ------ | --- |
+| **Opened**, eller **Created** på blocket för larm | Det öppnade en ny post. Koppla ett larmblock hit, så att bara ett nytt problem larmar någon. |
+| **Updated** | Det flyttade posten till ett annat tillstånd eller lade till anteckningen. |
+| **Unchanged** | Det fanns inget att göra: ingen post har ID:t, posten är redan i det tillståndet eller längre fram, eller **What Happened** är tomt. |
+| **Error** | Det kunde inte läsa eller ändra posten. Är inget kopplat hit misslyckas körningen. |
+
+En post rör sig bara framåt, och en löst post inte alls, så när båda verktygen ändrar den gör inget av dem om det som det andra gjorde. Den sparar ID:t i ett anpassat fält, `externalId` om inte **Outside ID Field** nämner ett annat, och bara det fältet skrivs, så postens övriga anpassade fält behåller sina värden. Ett ID som en post har öppnas aldrig igen, inte ens när posten är löst: använd ett ID som är nytt för varje problem, som ett Zabbix-händelse-ID eller ett Huntress-rapportnummer är. För att i stället agera på en post utifrån dess eget ID, som Jira-mallarna gör med det ID som ett ärendes etiketter bär, sätter du det i **Incident ID** eller **Alert ID**.
+
+**Severity** nämner en av dina allvarlighetsgrader vid namn eller ID, oavsett skiftläge, eller efter dess plats bland dem: `most severe`, `middle` eller `least severe`. Så fördelas ett verktygs egna nivåer över de allvarlighetsgrader som du själv har namngett. Lämnas den tom, eller nämner den ingen av dem, är det din allvarligaste, och körningens logg säger det. En ny incident hålls borta från dina statussidor, och deras prenumeranter får inget besked, eftersom ett annat verktygs text är skriven för det verktygets användare: slå på **Show On Status Pages** för att visa den.
+
+Under **Fler fält** är **Reason** orsaken i postens historik när den flyttas, och **Note** läggs då till bredvid som en privat anteckning, för ett verktyg som säger något när det bekräftar eller löser. **Custom Fields** ger en ny post fler anpassade fält, som ett JSON-objekt, **Labels** ID:na för dess etiketter, åtskilda med kommatecken, och **Berörda resurser** de resurser den handlar om, som på **Create One Incident**. **Note Instead Of Resolving** lägger till anteckningen och låter ditt team lösa posten. Blocket returnerar **Summary**, det det gjorde, i en mening, och posten, så att ett senare block läser dess ID som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+
+## Zabbix
+
+Bekräfta eller stäng ett problem i Zabbix, eller lägg till ett meddelande på det, via Zabbix API. Blocket heter **Update Zabbix Problem**, och [Zabbix-mallarna](/docs/integrations/zabbix) skickar med det tillbaka det som händer i OneUptime till Zabbix.
+
+| Inställning | Vad den gör |
+| ----------- | ----------- |
+| **Zabbix URL** | Adressen du öppnar Zabbix på, till exempel `https://zabbix.example.com`. Förfrågningar går till dess `api_jsonrpc.php`. |
+| **API Token** | En API-token för en Zabbix-användare som får bekräfta, kommentera och stänga problem. Förvara den i en hemlig variabel. |
+| **Event ID** | Problemets händelse-ID, oftast det som en incident eller ett larm sparar i sina anpassade fält. |
+| **What To Do** | `acknowledge`, `close` eller `message`. Lämnas den tom uppdateras inte Zabbix. |
+| **Message** | Det som Zabbix sparar på problemet, högst 2 048 tecken: ett längre meddelande kortas. |
+| **Zabbix 6.0** | Under **Fler fält**. Zabbix 6.0 läser token från förfrågans body, inte från dess `Authorization`-header: slå på detta för den, och av igen när du uppgraderar, eftersom Zabbix 7.2 och senare avvisar en token i body. |
+
+För att bekräfta eller stänga läser blocket problemet först. Ett problem som Zabbix redan har löst, eller redan har bekräftat när det är allt du ber om, lämnas som det är, och blocket tar **Unchanged**, som det gör för ett problem som Zabbix inte har, eller som tokens användare inte kan se. Ett problem vars trigger inte tillåter att problem stängs manuellt bekräftas i stället, och dess meddelande säger att det förblir öppet tills Zabbix ser att det återhämtar sig.
+
+**Updated** aktiveras när Zabbix tog emot uppdateringen, och **Error** när Zabbix inte gick att nå eller avvisade den, med Zabbix motivering: Zabbix svarar på en avvisad förfrågan med en lyckad status, så blocket läser vad Zabbix svarade i stället för statusen. Det returnerar **Summary**, det det gjorde, i en mening.
 
 ## OneUptime-datakomponenter
 

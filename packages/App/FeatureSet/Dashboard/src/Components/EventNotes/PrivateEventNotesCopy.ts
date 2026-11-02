@@ -28,6 +28,12 @@ export interface PrivateEventNotesCopy {
   // "Add Public Note" locked, and the Public Notes page where its composer was.
   refusal: string;
   /*
+   * The same, for a reader who may not add a private note either - on a
+   * private record's page, their team that owns it may not: why, without
+   * pointing them to a private note they cannot add.
+   */
+  refusalWithoutPrivateNote: string;
+  /*
    * The Public Notes page's description, in place of the status page one:
    * what its notes are, and that no status page shows them while it is
    * private.
@@ -43,6 +49,9 @@ export const PRIVATE_EVENT_NOTES_COPY: Record<string, PrivateEventNotesCopy> = {
     refusal: translationKey(
       "This incident is private, so public notes cannot be added to it. Use a private note.",
     ),
+    refusalWithoutPrivateNote: translationKey(
+      "This incident is private, so public notes cannot be added to it.",
+    ),
     description: translationKey(
       "Customer-facing updates about this incident. While it is private, no status page shows them.",
     ),
@@ -51,6 +60,9 @@ export const PRIVATE_EVENT_NOTES_COPY: Record<string, PrivateEventNotesCopy> = {
   episode: {
     refusal: translationKey(
       "This episode is private, so public notes cannot be added to it. Use a private note.",
+    ),
+    refusalWithoutPrivateNote: translationKey(
+      "This episode is private, so public notes cannot be added to it.",
     ),
     description: translationKey(
       "Customer-facing updates about this episode. While it is private, no status page shows them.",
@@ -73,11 +85,19 @@ export function getPrivateEventNotesCopy(
 }
 
 // "This incident is private, so public notes cannot be added to it. ..."
+/*
+ * `isPrivateNoteOffered` false: the reader may not add a private note
+ * either, so the refusal does not point them to one (refusalWithoutPrivateNote).
+ */
 export function getPrivateEventPublicNoteRefusal(
   eventNoun: string,
   translator: Translator = getGlobalTranslator(),
+  isPrivateNoteOffered: boolean = true,
 ): string {
-  const refusal: string = getPrivateEventNotesCopy(eventNoun).refusal;
+  const copy: PrivateEventNotesCopy = getPrivateEventNotesCopy(eventNoun);
+  const refusal: string = isPrivateNoteOffered
+    ? copy.refusal
+    : copy.refusalWithoutPrivateNote;
 
   return translator.translateText(refusal) || refusal;
 }

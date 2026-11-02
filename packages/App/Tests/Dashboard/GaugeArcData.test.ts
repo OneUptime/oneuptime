@@ -1,12 +1,19 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  GAUGE_CARD_CHROME_HEIGHT_IN_PX,
   GAUGE_END_ANGLE,
+  GAUGE_MIN_SIZE_IN_PX,
   GAUGE_START_ANGLE,
+  GAUGE_VIEW_PADDING_HEIGHT_IN_PX,
   GaugeArcGeometry,
   GaugeArcPoint,
   buildGaugeArcPath,
   computeGaugeArcGeometry,
+  computeGaugeContentHeightInPx,
   computeGaugePercentage,
+  computeGaugeSize,
+  computeGaugeStrokeWidth,
+  computeGaugeValueFontPx,
   gaugeAngleForPercentage,
   gaugePointAtAngle,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/GaugeArcData";
@@ -265,5 +272,144 @@ describe("GaugeArcData dashboard template repros", () => {
       expect(center.x).toBeCloseTo(CENTER, 6);
       expect(center.y).toBeCloseTo(CENTER, 6);
     }
+  });
+});
+
+/*
+ * How large the gauge is drawn in its widget's tile. Across it keeps what it
+ * always had (the tile less 24px); down it is the largest gauge whose title,
+ * arc, value, status and min and max labels fit. The old height rule (1.8px
+ * of gauge per px left after 50px) overflowed a wide, short tile - every
+ * gauge on a phone, where a dashboard shows its widgets one under another,
+ * the board's width wide and 230px tall - and cut its status off.
+ */
+describe("computeGaugeSize", () => {
+  // The old rule, to show what changes and what does not.
+  const oldSize: (width: number, height: number) => number = (
+    width: number,
+    height: number,
+  ): number => {
+    return Math.max(Math.min(width - 24, (height - 50) * 1.8), 96);
+  };
+
+  const room: (height: number) => number = (height: number): number => {
+    return (
+      height - GAUGE_CARD_CHROME_HEIGHT_IN_PX - GAUGE_VIEW_PADDING_HEIGHT_IN_PX
+    );
+  };
+
+  test("a square tile keeps the size it always had", () => {
+    for (const side of [230, 310, 390, 470]) {
+      for (const hasTitle of [true, false]) {
+        expect(
+          computeGaugeSize({ widthInPx: side, heightInPx: side, hasTitle }),
+        ).toBe(oldSize(side, side));
+      }
+    }
+  });
+
+  test("a tall, narrow tile is held by its width, as before", () => {
+    expect(
+      computeGaugeSize({ widthInPx: 230, heightInPx: 470, hasTitle: true }),
+    ).toBe(206);
+    expect(
+      computeGaugeSize({ widthInPx: 150, heightInPx: 390, hasTitle: false }),
+    ).toBe(126);
+  });
+
+  test("a phone's stacked gauge - the board's width, 230px tall - fits its height, status included", () => {
+    for (const width of [300, 358, 374, 480]) {
+      const gaugeSize: number = computeGaugeSize({
+        widthInPx: width,
+        heightInPx: 230,
+        hasTitle: true,
+      });
+
+      expect(
+        computeGaugeContentHeightInPx({ gaugeSize, hasTitle: true }),
+      ).toBeLessThanOrEqual(room(230));
+      // The old rule drew it too big for the tile.
+      expect(
+        computeGaugeContentHeightInPx({
+          gaugeSize: oldSize(width, 230),
+          hasTitle: true,
+        }),
+      ).toBeGreaterThan(room(230));
+    }
+  });
+
+  test("it is the largest size that fits: one px more would not", () => {
+    for (const [width, height, hasTitle] of [
+      [374, 230, true],
+      [374, 230, false],
+      [600, 150, true],
+      [900, 310, true],
+      [150, 150, true],
+    ] as Array<[number, number, boolean]>) {
+      const gaugeSize: number = computeGaugeSize({
+        widthInPx: width,
+        heightInPx: height,
+        hasTitle,
+      });
+
+      if (gaugeSize === width - 24 || gaugeSize === GAUGE_MIN_SIZE_IN_PX) {
+        continue;
+      }
+
+      expect(
+        computeGaugeContentHeightInPx({ gaugeSize, hasTitle }),
+      ).toBeLessThanOrEqual(room(height));
+      expect(
+        computeGaugeContentHeightInPx({ gaugeSize: gaugeSize + 1, hasTitle }),
+      ).toBeGreaterThan(room(height));
+    }
+  });
+
+  test("a gauge without a title has the title's line for itself", () => {
+    expect(
+      computeGaugeSize({ widthInPx: 374, heightInPx: 230, hasTitle: false }),
+    ).toBeGreaterThan(
+      computeGaugeSize({ widthInPx: 374, heightInPx: 230, hasTitle: true }),
+    );
+  });
+
+  test("never under 96px, whatever the tile", () => {
+    for (const [width, height] of [
+      [50, 50],
+      [400, 60],
+      [0, 0],
+      [Number.NaN, 230],
+    ] as Array<[number, number]>) {
+      expect(
+        computeGaugeSize({
+          widthInPx: width,
+          heightInPx: height,
+          hasTitle: true,
+        }),
+      ).toBe(GAUGE_MIN_SIZE_IN_PX);
+    }
+  });
+
+  test("the need only grows with the size, so halving finds the largest fit", () => {
+    for (const hasTitle of [true, false]) {
+      let previous: number = 0;
+
+      for (let gaugeSize: number = 96; gaugeSize <= 600; gaugeSize++) {
+        const need: number = computeGaugeContentHeightInPx({
+          gaugeSize,
+          hasTitle,
+        });
+
+        expect(need).toBeGreaterThan(previous);
+        previous = need;
+      }
+    }
+  });
+
+  test("the value's font and the arc's stroke keep their floors", () => {
+    expect(computeGaugeValueFontPx(40)).toBe(22);
+    expect(computeGaugeValueFontPx(200)).toBeCloseTo(44, 10);
+    expect(computeGaugeStrokeWidth(40)).toBe(7);
+    expect(computeGaugeStrokeWidth(200)).toBeCloseTo(12, 10);
   });
 });

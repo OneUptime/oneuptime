@@ -164,12 +164,15 @@ export function buildIoTMonitorConfig(args: {
    * and sending a 0-1 battery fraction currently satisfies "< 20" forever.
    */
   legendUnit?: string | undefined;
+  // Judge each device on its latest reading (MonitorStepIoTMonitor).
+  judgeLatestReading?: boolean | undefined;
 }): MonitorStepIoTMonitor {
   const legendUnit: string | undefined =
     args.legendUnit ?? getIoTMetricByMetricName(args.metricName)?.unit;
 
   return {
     fleetIdentifier: args.fleetIdentifier,
+    ...(args.judgeLatestReading ? { judgeLatestReading: true } : {}),
     resourceFilters: {},
     metricViewConfig: {
       queryConfigs: [
@@ -342,6 +345,15 @@ const deviceOfflineTemplate: IoTAlertTemplate = {
         aggregationType: MetricsAggregationType.Min,
         attributes: {},
         groupByAttributeKey: "device.id",
+        /*
+         * A down reading is a state: the device is down until it says
+         * otherwise. Judged over every reading in the window, a Last Will's
+         * 0 kept "any value < 1" true - and the incident open - for up to
+         * thirty minutes after the device came back. Each device is judged
+         * on its latest reading instead; a silent device still has no
+         * reading, and its no-data policy decides.
+         */
+        judgeLatestReading: true,
       }),
       offlineCriteriaInstance: buildIoTOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

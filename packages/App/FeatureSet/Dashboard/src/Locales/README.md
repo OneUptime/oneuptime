@@ -44,7 +44,9 @@ a language, and the rules the guard test enforces.
   handed. That is the reader's when their language words the sentence, and
   English otherwise, so a locale that words the pieces but not the sentence
   still reads one English sentence. A list's separators and its "and"/"or"
-  are keys of their own (`"{{first}}, {{second}} or {{third}}"`).
+  are keys of their own (`"{{first}}, {{second}} or {{third}}"`). A list with
+  no "and" or "or", such as what a hint leaves out, goes through `formatList`,
+  which writes each language's own separator ("a, b", "a、b").
 - **Numbers** in a plural `{{count}}` are written the reader's way (`1.234` in
   German). Pass your own `count` value to override.
 - **Dates, times and durations** are written in the reader's language too:

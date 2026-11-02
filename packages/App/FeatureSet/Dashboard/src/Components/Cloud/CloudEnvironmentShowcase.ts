@@ -5,13 +5,23 @@ import {
   ShowcaseStatus,
 } from "../ResourceShowcase/ResourceShowcase";
 
-// What Cloud > All Environments shows while the project has no environment.
+/*
+ * What App Platforms shows - its Overview, All Apps and All Environments -
+ * while the project has no environment. Its eyebrow names the product the
+ * reader is in: the environments were Cloud's until App Platforms split out
+ * of it.
+ *
+ * It sells what the product shows once telemetry arrives: every app and its
+ * deploys, not only the environments they run in. It used to promise "your
+ * fleet at a glance" as connected and quiet environments, a strip the
+ * Overview no longer draws (#5511's UI review).
+ */
 const CLOUD_ENVIRONMENT_SHOWCASE: ResourceShowcase = {
   icon: IconProp.Cloud,
-  eyebrow: translationKey("Cloud monitoring"),
-  title: translationKey("See every cloud environment your apps run in"),
+  eyebrow: translationKey("App Platforms"),
+  title: translationKey("See every app your cloud platforms run"),
   description: translationKey(
-    "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each environment, from ECS to Cloud Run to App Service, shows up with its instances, logs, traces and metrics.",
+    "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.",
   ),
   highlights: [
     translationKey("Appears within a minute"),
@@ -23,14 +33,14 @@ const CLOUD_ENVIRONMENT_SHOWCASE: ResourceShowcase = {
       icon: IconProp.MagnifyingGlass,
       title: translationKey("Found, not configured"),
       description: translationKey(
-        "One environment for each platform, account and region, named after them.",
+        "Each app named as your cloud console names it, in an environment for each platform, account and region.",
       ),
     },
     {
       icon: IconProp.ChartBar,
       title: translationKey("How it is doing"),
       description: translationKey(
-        "CPU, memory, requests, error rate and p95 latency for the whole environment.",
+        "Requests, error rate and p95 latency for each app, CPU and memory for its instances.",
       ),
     },
     {
@@ -41,24 +51,24 @@ const CLOUD_ENVIRONMENT_SHOWCASE: ResourceShowcase = {
       ),
     },
     {
-      icon: IconProp.ArrowTrendingUp,
-      title: translationKey("Busiest instances first"),
+      icon: IconProp.RocketLaunch,
+      title: translationKey("Deploys and rollbacks"),
       description: translationKey(
-        "The instances using the most CPU, so a hot one stands out.",
+        "Every new revision, spotted from your telemetry and marked on the charts.",
       ),
     },
     {
       icon: IconProp.Logs,
       title: translationKey("Logs, traces and metrics"),
       description: translationKey(
-        "Everything an environment sends, already filtered to it.",
+        "Everything an app sends, already filtered to it.",
       ),
     },
     {
       icon: IconProp.Layers,
       title: translationKey("Your fleet at a glance"),
       description: translationKey(
-        "How many environments are connected, how many went quiet, and how many instances are live.",
+        "How many apps run, the deploys of the last day, and how many instances are live.",
       ),
     },
   ],

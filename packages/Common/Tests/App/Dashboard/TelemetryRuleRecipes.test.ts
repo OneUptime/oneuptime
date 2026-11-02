@@ -25,6 +25,7 @@ import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   EvaluateOverTimeType,
@@ -214,16 +215,202 @@ describe("the recipes each telemetry monitor type offers", () => {
     ]);
   });
 
-  test("an Exceptions monitor asks about any exception or too many", () => {
+  test("an Exceptions monitor asks about any exception, too many, a new one, one back, or a spike", () => {
     expect(
       getRecipes(MonitorType.Exceptions).map((recipe: TelemetryRuleRecipe) => {
-        return [recipe.key, recipe.title];
+        return [recipe.key, recipe.title, recipe.measure];
       }),
     ).toEqual([
-      [TelemetryRuleRecipeKey.AnyException, "Any exception"],
-      [TelemetryRuleRecipeKey.ExceptionSpike, "Too many exceptions"],
+      [TelemetryRuleRecipeKey.AnyException, "Any exception", undefined],
+      [TelemetryRuleRecipeKey.ExceptionSpike, "Too many exceptions", undefined],
+      [
+        TelemetryRuleRecipeKey.NewException,
+        "A new exception",
+        CheckOn.NewExceptionCount,
+      ],
+      [
+        TelemetryRuleRecipeKey.RegressedException,
+        "A resolved exception comes back",
+        CheckOn.RegressedExceptionCount,
+      ],
+      [TelemetryRuleRecipeKey.ExceptionRise, "Exceptions spike", undefined],
     ]);
   });
+
+  /*
+   * A spike is the count against what is normal for the hour of the week,
+   * not a percent over the day before: the pick says so, needs no number,
+   * and reads back as itself whatever its sensitivity.
+   */
+  test("Exceptions spike writes an unusually high count, at Medium, over 15 minutes", () => {
+    const recipe: TelemetryRuleRecipe = getRecipe(
+      TelemetryRuleRecipeKey.ExceptionRise,
+    )!;
+    const defaultMonitorStatusId: ObjectID = ObjectID.generate();
+    const step: MonitorStep = applyRecipe({
+      monitorStep: MonitorStep.getDefaultMonitorStep({
+        monitorType: MonitorType.Exceptions,
+        monitorName: "Checkout",
+        onlineMonitorStatusId: defaultMonitorStatusId,
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+      }),
+      recipe,
+      seeds: { monitorName: "Checkout" },
+      translator: ENGLISH,
+    });
+
+    const instances: Array<MonitorCriteriaInstance> =
+      step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || [];
+
+    expect(instances).toHaveLength(1);
+    expect(instances[0]!.data!.filters).toEqual([
+      {
+        checkOn: CheckOn.ExceptionCount,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+        metricMonitorOptions: {
+          anomalyDetection: { sensitivity: AnomalyDetectionSensitivity.Medium },
+        },
+      },
+    ]);
+    expect(step.data?.exceptionMonitor?.lastXSecondsOfExceptions).toBe(900);
+    expect(instances[0]!.data!.alerts[0]!.title).toBe(
+      "Checkout: exceptions spiked",
+    );
+    expect(instances[0]!.data!.alerts[0]!.autoResolveAlert).toBe(true);
+    expect(
+      findRecipe({
+        monitorType: MonitorType.Exceptions,
+        monitorStep: step,
+        defaultMonitorStatusId,
+      }),
+    ).toBe(TelemetryRuleRecipeKey.ExceptionRise);
+
+    // A new sensitivity is still this pick.
+    const rule: TelemetryAlertRule = TelemetryAlertRuleUtil.read({
+      monitorType: MonitorType.Exceptions,
+      monitorStep: step,
+      defaultMonitorStatusId,
+    }).rule!;
+
+    expect(
+      findRecipe({
+        monitorType: MonitorType.Exceptions,
+        monitorStep: TelemetryAlertRuleUtil.write({
+          monitorType: MonitorType.Exceptions,
+          monitorStep: step,
+          rule: {
+            ...rule,
+            anomalyDetection: {
+              sensitivity: AnomalyDetectionSensitivity.High,
+            },
+          },
+        }),
+        defaultMonitorStatusId,
+      }),
+    ).toBe(TelemetryRuleRecipeKey.ExceptionRise);
+  });
+
+  test("a monitor saved on the old percent keeps working, and reads as a rule of its own", () => {
+    const defaultMonitorStatusId: ObjectID = ObjectID.generate();
+    const step: MonitorStep = applyRecipe({
+      monitorStep: MonitorStep.getDefaultMonitorStep({
+        monitorType: MonitorType.Exceptions,
+        monitorName: "Checkout",
+        onlineMonitorStatusId: defaultMonitorStatusId,
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+      }),
+      recipe: getRecipe(TelemetryRuleRecipeKey.AnyException)!,
+      seeds: { monitorName: "Checkout" },
+      translator: ENGLISH,
+    });
+    const rule: TelemetryAlertRule = TelemetryAlertRuleUtil.read({
+      monitorType: MonitorType.Exceptions,
+      monitorStep: step,
+      defaultMonitorStatusId,
+    }).rule!;
+    const percent: MonitorStep = TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Exceptions,
+      monitorStep: step,
+      rule: {
+        ...rule,
+        measure: CheckOn.ExceptionCountIncreasePercent,
+        filterType: FilterType.GreaterThan,
+        threshold: 200,
+        windowInSeconds: 900,
+      },
+    });
+
+    expect(
+      TelemetryAlertRuleUtil.read({
+        monitorType: MonitorType.Exceptions,
+        monitorStep: percent,
+        defaultMonitorStatusId,
+      }).rule,
+    ).toMatchObject({
+      measure: CheckOn.ExceptionCountIncreasePercent,
+      filterType: FilterType.GreaterThan,
+      threshold: 200,
+    });
+    expect(
+      findRecipe({
+        monitorType: MonitorType.Exceptions,
+        monitorStep: percent,
+        defaultMonitorStatusId,
+      }),
+    ).toBe(TelemetryRuleRecipeKey.Custom);
+  });
+
+  /*
+   * A new or a regressed exception is a rule on another measure: the rule
+   * it writes compares that measure, and reads back as the same recipe -
+   * never as Any exception, which has the same condition and number.
+   */
+  test.each([
+    [TelemetryRuleRecipeKey.NewException, CheckOn.NewExceptionCount],
+    [
+      TelemetryRuleRecipeKey.RegressedException,
+      CheckOn.RegressedExceptionCount,
+    ],
+    [TelemetryRuleRecipeKey.ExceptionRise, CheckOn.ExceptionCount],
+  ])(
+    "%s writes criteria on its own measure",
+    (key: TelemetryRuleRecipeKey, measure: CheckOn) => {
+      const recipe: TelemetryRuleRecipe = getRecipes(
+        MonitorType.Exceptions,
+      ).find((candidate: TelemetryRuleRecipe) => {
+        return candidate.key === key;
+      })!;
+      const step: MonitorStep = applyRecipe({
+        monitorStep: MonitorStep.getDefaultMonitorStep({
+          monitorType: MonitorType.Exceptions,
+          monitorName: "Checkout",
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+        }),
+        recipe,
+        seeds: { monitorName: "Checkout" },
+        translator: ENGLISH,
+      });
+
+      const filters: Array<CriteriaFilter> = (
+        step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+      ).flatMap((instance: MonitorCriteriaInstance): Array<CriteriaFilter> => {
+        return instance.data?.filters || [];
+      });
+
+      expect(filters.length).toBeGreaterThan(0);
+      for (const filter of filters) {
+        expect(filter.checkOn).toBe(measure);
+      }
+    },
+  );
 
   test("a Metrics monitor offers no recipe to pick: what is too high depends on the metric", () => {
     expect(getRecipes(MonitorType.Metrics)).toEqual([]);

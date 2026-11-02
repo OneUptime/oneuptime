@@ -294,6 +294,9 @@ enum Permission {
   DeleteDataStoreAccess = "DeleteDataStoreAccess",
   ReadDataStoreAccess = "ReadDataStoreAccess",
 
+  // Data Security Identities: each identity that can reach the stores, and what it reaches
+  ReadDataSecurityIdentity = "ReadDataSecurityIdentity",
+
   // Data Flows: where sensitive data goes, read from traces and scans
   DeleteDataSecurityFlow = "DeleteDataSecurityFlow",
   ReadDataSecurityFlow = "ReadDataSecurityFlow",
@@ -2130,6 +2133,16 @@ enum Permission {
   // Form Submission Permissions
   DeleteFormSubmission = "DeleteFormSubmission",
   ReadFormSubmission = "ReadFormSubmission",
+
+  /*
+   * Form Domain Permissions: a form's own domains (FormDomain), such as
+   * report.acmeinc.com. Edit Form manages them too, as it resets the form's
+   * link.
+   */
+  CreateFormDomain = "CreateFormDomain",
+  DeleteFormDomain = "DeleteFormDomain",
+  EditFormDomain = "EditFormDomain",
+  ReadFormDomain = "ReadFormDomain",
 
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
@@ -8686,6 +8699,18 @@ export class PermissionHelper {
         title: "Read Data Store Access",
         description:
           "This permission can read Data Store Access entries of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security Identity Permissions
+      {
+        permission: Permission.ReadDataSecurityIdentity,
+        title: "Read Data Security Identity",
+        description:
+          "This permission can read the identities that can reach this project's data stores.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17283,7 +17308,7 @@ export class PermissionHelper {
         permission: Permission.EditForm,
         title: "Edit Form",
         description:
-          "This permission can edit forms in this project: their questions, what a submission creates, turning a form off and resetting its link.",
+          "This permission can edit forms in this project: their questions, what a submission creates, turning a form off, resetting its link and the form's own domains.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17316,6 +17341,48 @@ export class PermissionHelper {
         title: "Read Form Submission",
         description:
           "This permission can read the submissions made through forms in this project, including every answer and the submitter's name and email.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form Domain Permissions
+      {
+        permission: Permission.CreateFormDomain,
+        title: "Create Form Domain",
+        description:
+          "This permission can add your own domains to forms in this project, such as report.acmeinc.com, so a form answers on them.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormDomain,
+        title: "Delete Form Domain",
+        description:
+          "This permission can remove the domains of forms in this project. A removed domain stops showing its form.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormDomain,
+        title: "Edit Form Domain",
+        description:
+          "This permission can check the domains of forms in this project, order and reissue their SSL certificates, and change the certificate a domain uses.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormDomain,
+        title: "Read Form Domain",
+        description:
+          "This permission can read the domains of forms in this project, their DNS records and where each one is on its way to HTTPS.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

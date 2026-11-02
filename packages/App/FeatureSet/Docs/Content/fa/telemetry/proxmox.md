@@ -5,6 +5,7 @@
 :::cards
 - [برگزیدن روش اتصال](#برگزیدن-روش-اتصال): عامل، یا ارسال خود Proxmox VE 9.
 - [نصب عامل](#نصب-عامل): یک توکن API، سپس اسکریپت نصب یا Docker Compose.
+- [نتایج پشتیبان‌گیری](#فرستادن-اعلانهای-proxmox-ve): اعلان‌های خود Proxmox VE، فرستاده‌شده با دو فرمان.
 - [ارسال بومی](#جایگزین-بدون-نصب-ارسال-بومی-opentelemetry-در-proxmox-ve-9): Proxmox VE 9 متریک‌هایش را خودش می‌فرستد.
 - [رفع اشکال](#رفع-اشکال): یک اسکریپت تشخیصی، و مشکلات معمول.
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | آنچه نصب می‌شود | Docker Compose روی یک ماشین | هیچ: یک سرور متریک در رابط وب Proxmox |
 | گره‌ها، مهمان‌ها و ذخیره‌سازی | بله | بله |
 | وضعیت HA، شروع هنگام بوت، پوشش پشتیبان‌گیری و همتاسازی | بله | خیر |
+| نتایج پشتیبان‌گیری، گره‌های جداشده و همتاسازی ناموفق، از اعلان‌های Proxmox VE (8.3 یا بعد از آن) | بله | بله |
 | عامل هوش مصنوعی Proxmox | بله | خیر |
 
-الگوهای **HA Resource in Error State**، **Guest Down**، **Guest Not Backed Up** و **Replication Failing** به عامل نیاز دارند. برای یک خوشه یکی از این دو را به کار ببرید: اجرای هر دو هر منبع را دو بار گزارش می‌کند.
+الگوهای **HA Resource in Error State**، **Guest Down**، **Guest Not Backed Up**، **Backup Running Too Long** و **Replication Failing** به عامل نیاز دارند. برای یک خوشه یکی از این دو را به کار ببرید: اجرای هر دو هر منبع را دو بار گزارش می‌کند.
 
 ## پیش از شروع
 
@@ -78,23 +80,25 @@ pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
 
 ### عامل را نصب و اجرا کنید
 
+هر OneUptime اسکریپت نصب و فایل‌های عامل را از انتشار خودش ارائه می‌کند: دستورهای زیر آن‌ها را از `https://oneuptime.com` دانلود می‌کنند، پس در یک OneUptime خودمیزبان این نشانی را با نشانی خودتان جایگزین کنید. اسکریپت نصب اول با نام `install.sh` ذخیره می‌شود تا بتوانید پیش از اجرا آن را بخوانید.
+
 :::tabs
 @tab install.sh
 اسکریپت نصب را دانلود کنید و روی ماشینی که میزبان عامل خواهد بود اجرا کنید:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 اسکریپت نشانی OneUptime شما، کلید دریافت داده، نامی برای خوشه، میزبان API در Proxmox VE، اینکه صادرکننده همراه اجرا شود یا نه، شناسه و راز توکن، و نشانی هر گره را می‌پرسد (به محض داشتن توکن، فهرست خود خوشه را پیشنهاد می‌کند) — و اینکه آیا [عامل هوش مصنوعی](#عامل-هوش-مصنوعی) می‌تواند اصلاح اعمال کند، و اگر آری، یک توکن جداگانه برای آن و مهمان‌هایی که هرگز نباید تغییرشان دهد. در `/opt/oneuptime-proxmox-agent` نصب می‌کند، یک فایل `.env` با `0600` می‌نویسد و عامل را با Docker Compose اجرا می‌کند. اجرای دوباره اسکریپت به‌جای پرسیدن دوباره، همه چیز را از همان `.env` دوباره به کار می‌برد، و [به‌روزرسانی عامل](#بهروزرسانی-عامل) هم همین‌گونه است.
 @tab Docker Compose
-`docker-compose.yml` و `otel-collector-config.yaml` را از [پوشه ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) در یک پوشه تازه دانلود کنید:
+`docker-compose.yml` و `otel-collector-config.yaml` را از OneUptime خودتان در یک پوشه تازه دانلود کنید:
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 یک فایل `.env` کنار آن‌ها بسازید. این فایل راز توکن را دارد، پس آن را با `chmod 600 .env` خصوصی نگه دارید:
@@ -169,7 +173,7 @@ Everything is ready. Begin running and processing data.
 | مهمان (ماشین مجازی یا LXC) | `pve_guest_info`، و سری‌های CPU، حافظه و شبکه روی شناسه‌های `qemu/*` و `lxc/*` (`pve_network_receive_bytes`، `pve_network_transmit_bytes`) |
 | ذخیره‌سازی | `pve_disk_usage_bytes`، `pve_disk_size_bytes`، `pve_storage_info` |
 | HA | `pve_ha_state` |
-| پوشش پشتیبان‌گیری | `pve_not_backed_up_total` (مهمان‌هایی که هیچ کار پشتیبان‌گیری‌ای پوششان نمی‌دهد؛ یک سری در سطح خوشه، بدون برچسب `id`) و `pve_not_backed_up_info` (یک سری برای هر مهمان بی‌پوشش، با `id` آن). پوشش‌یافته یعنی دست‌کم یک کار آن مهمان را برمی‌گزیند: اینکه پشتیبان‌گیری‌ها به‌تازگی اجرا شده یا موفق بوده‌اند را صادرکننده در دسترس نمی‌گذارد. |
+| پوشش پشتیبان‌گیری | `pve_not_backed_up_total` (مهمان‌هایی که هیچ کار پشتیبان‌گیری‌ای پوششان نمی‌دهد؛ یک سری در سطح خوشه، `id` `cluster/<name>`) و `pve_not_backed_up_info` (یک سری برای هر مهمان بی‌پوشش، با `id` آن). پوشش‌یافته یعنی دست‌کم یک کار آن مهمان را برمی‌گزیند: اینکه پشتیبان‌گیری‌ها به‌تازگی اجرا شده یا موفق بوده‌اند را صادرکننده در دسترس نمی‌گذارد. |
 | راه‌اندازی هنگام بوت | `pve_onboot_status`، یک سری برای هر مهمان: ۱ وقتی مهمان برای راه‌اندازی هنگام بوت تنظیم شده باشد. **Guest Down** فقط برای این مهمان‌ها هشدار می‌دهد. |
 | همتاسازی | `pve_replication_failed_syncs`، `pve_replication_duration_seconds`، `pve_replication_last_sync_timestamp_seconds`، `pve_replication_last_try_timestamp_seconds`، `pve_replication_next_sync_timestamp_seconds`، `pve_replication_info`، برای هر کار همتاسازی ذخیره‌سازی. برچسب `id` آن‌ها شناسه کار است (مانند `100-0`)، نه یک منبع. |
 
@@ -182,6 +186,44 @@ Everything is ready. Begin running and processing data.
 | `pve.id` | هر چیزی پس از نخستین `/` در `id` (`pve1`، `100`، `pve1/local`) | `100` |
 
 برچسب اصلی `id` همان‌طور که هست نگه داشته می‌شود.
+
+## فرستادن اعلان‌های Proxmox VE
+
+pve-exporter می‌گوید یک کار پشتیبان‌گیری کدام مهمان‌ها را در بر می‌گیرد، اما نمی‌گوید پشتیبان‌گیری چطور پیش رفت. این را خود Proxmox VE در اعلان‌هایش می‌گوید: نتیجه هر کار پشتیبان‌گیری، گره‌ای که جدا شده، همتاسازی‌ای که شکست خورده، به‌روزرسانی‌هایی که منتظرند. روی Proxmox VE 8.3 یا بعد از آن، دو فرمان که با root روی هر گره‌ای اجرا شوند، هر اعلان را به صورت لاگی از خوشه به OneUptime می‌فرستند، بی‌آنکه چیزی نصب شود، در کنار عامل یا ارسال بومی. راهنمای راه‌اندازی خوشه این فرمان‌ها را با نشانی، کلید و نام خوشه شما پرشده نشان می‌دهد.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+فرمان اول یک مقصد webhook به نام `oneuptime` می‌افزاید که کلید و نام خوشه را در رازهایش نگه می‌دارد؛ فرمان دوم یک matcher بدون قاعده می‌افزاید که Proxmox VE آن را همه اعلان‌ها می‌خواند. نام خوشه را همان‌طور که OneUptime نشان می‌دهد به کار ببرید: `PROXMOX_CLUSTER_NAME` عامل، یا با ارسال بومی نام خود خوشه Proxmox.
+
+هر اعلان با این ویژگی‌ها می‌رسد:
+
+| ویژگی | مقدار |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (یک کار پشتیبان‌گیری)، `replication`، `fencing`، `package-updates` یا `system-mail` |
+| `pve.notification.severity` | `info`، `notice`، `warning`، `error` یا `unknown` |
+| `pve.notification.title` | عنوان اعلان |
+| `pve.notification.job_id` | شناسه کار پشتیبان‌گیری، برای یک کار پشتیبان‌گیری |
+| `proxmox.node.name` | گره‌ای که آن را فرستاده است |
+
+OneUptime از اعلان یک کار پشتیبان‌گیری، آخرین پشتیبان هر مهمان را ثبت می‌کند: موفق بوده یا نه، کی تمام شده، چه اندازه‌ای داشته و چقدر طول کشیده است. صفحه هر مهمان آن را نشان می‌دهد، فهرست **مهمان‌ها** آن را در ستون پشتیبان‌گیری دارد، **نمای کلی** خوشه نتایج را می‌شمارد، و پشتیبانِ ناموفق تا وقتی پشتیبان بعدی همان مهمان موفق شود زیر **نیاز به توجه** می‌ماند. هشدارهای **Backup Job Failed** و **Node Fenced** همین لاگ‌ها را می‌خوانند.
+
+برای قطع فرستادن آن‌ها:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## اختیاری — فرستادن لاگ‌های سرویس Proxmox
 
@@ -267,7 +309,7 @@ Proxmox VE 9.0 و بعد از آن یک سرور متریک OpenTelemetry دار
 
 - یک میزبان تنها، یا کل خوشه‌ای که یکجا ساکت شود: کسی نمی‌ماند که آن را گزارش کند، پس هیچ هشدار گره‌به‌گره‌ای برانگیخته نمی‌شود. به‌جایش خوشه **قطع‌شده** می‌شود، مانند وقتی که عامل متوقف می‌شود.
 - گرهی که بیش از ۷ روز ساکت باشد دیگر گزارش نمی‌شود: هشدارش برطرف می‌شود و از صفحه گره‌ها کنار می‌رود. OneUptime خودمیزبان این ۷ روز را با `PVE_SILENT_NODE_RETENTION_HOURS` تغییر می‌دهد.
-- گرهی که از خوشه بیرون می‌آورید درست مانند گرهی از کار افتاده دیده می‌شود. **Remove Node** را در صفحه آن به کار ببرید: کنار می‌رود و هشدارش برطرف می‌شود. وگرنه تا ۷ روز آفلاین می‌ماند.
+- گرهی که از خوشه بیرون می‌آورید درست مانند گرهی از کار افتاده دیده می‌شود. **حذف گره** را در صفحه آن به کار ببرید: کنار می‌رود و هشدارش برطرف می‌شود. وگرنه تا ۷ روز آفلاین می‌ماند.
 - مهمان‌ها و ذخیره‌سازی گره: فقط خود گره به‌صورت آفلاین نگه داشته می‌شود. ماشین‌های مجازی، کانتینرها و ذخیره‌سازی آن حدود ۱۵ دقیقه پس از واپسین گزارشش از صفحه‌هایشان کنار می‌روند، و مهمان‌هایی که HA روی گره دیگری دوباره راه می‌اندازد زیر همان گره برمی‌گردند.
 
 پس از قطعی دریافت در OneUptime، گرهی که تازه ساکت شده فقط وقتی گزارش می‌شود که یکی از گره‌های دیگر دوباره ۲ دقیقه فرستاده باشد، پس خود قطعی هرگز برای همه گره‌ها هشدار نمی‌دهد. گرهی که از پیش آفلاین بوده در طول یک قطعی کوتاه آفلاین می‌ماند و هشدارش را نگه می‌دارد؛ پس از قطعی بلندتر از ۵ دقیقه، همین که دیگران ۲ دقیقه فرستاده باشند دوباره گزارش می‌شود.
@@ -282,16 +324,18 @@ Proxmox VE 9.0 و بعد از آن یک سرور متریک OpenTelemetry دار
 | --- | --- |
 | وضعیت HA | فرستاده نمی‌شود: الگوی **HA Resource in Error State** به عامل نیاز دارد. |
 | پرچم شروع هنگام بوت | فرستاده نمی‌شود: **Guest Down**، که فقط برای مهمان‌هایی هشدار می‌دهد که برای شروع هنگام بوت تنظیم شده‌اند، به عامل نیاز دارد. |
-| پوشش پشتیبان‌گیری و همتاسازی | فرستاده نمی‌شوند: **Guest Not Backed Up** و **Replication Failing** به عامل نیاز دارند. |
+| پوشش پشتیبان‌گیری و همتاسازی | فرستاده نمی‌شوند: **Guest Not Backed Up**، **Backup Running Too Long** و **Replication Failing** به عامل نیاز دارند. |
 
 اگر به این‌ها نیاز دارید، به‌جایش عامل را اجرا کنید و سرور متریک را بردارید: اجرای هر دو هر منبع را دو بار گزارش می‌کند.
+
+نتایج پشتیبان‌گیری، گره‌های جداشده و همتاسازی‌های ناموفق باز هم به OneUptime می‌رسند: [اعلان‌های Proxmox VE را بفرستید](#فرستادن-اعلانهای-proxmox-ve)، که با ارسال بومی هم کار می‌کنند.
 
 ## اجرا به‌صورت یک سرویس systemd
 
 برای اینکه عامل همراه ماشین شروع شود و اگر از کار افتاد دوباره راه‌اندازی شود، واحد systemd آن را نصب کنید. این واحد فرض می‌کند عامل در `/opt/oneuptime-proxmox-agent` است، جایی که اسکریپت نصب آن را می‌گذارد:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌اش فایلی کنار آن است، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، ایمیج‌ها را می‌کشد و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. یک `.env` از پیش از `PVE_NODES` همچنان فقط `PVE_HOST` را می‌خواند، و اسکریپت گره‌هایی را که باید به آن افزوده شوند نام می‌برد.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 به‌جایش با Docker Compose نصبش کرده‌اید؟ در پوشه عامل، هر دو فایل را دوباره دانلود کنید (و هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را بکشید و عامل را دوباره بسازید:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ docker compose down
 ## رفع اشکال
 
 :::details نخست اسکریپت تشخیصی را اجرا کنید
-عامل با یک اسکریپت، [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: محیط اجرای کانتینر، برداشت صادرکننده، نام خوشه‌ای که روی هر متریک مُهر زده می‌شود، شکل توکن، متریک‌های خود کالکتور، و اینکه آیا OneUptime کلید دریافت داده را می‌پذیرد. این بررسی آخر از همه مهم‌تر است. OneUptime کلید بد را با `401` رد می‌کند (`422` برای کلید غیرفعال یا کلید مرورگر)، و کالکتور هر دو را دائمی می‌داند: دسته را کنار می‌گذارد و یک خطای `Exporting failed` در لاگ می‌نویسد، که در حالی که کانتینر سالم می‌ماند آسان از چشم می‌افتد. اسکریپت از درون شبکه عامل `GET <url>/otlp/v1/validate` را می‌پرسد تا یک `200` (معتبر) یا `401` (نامعتبر) مستقیم بگیرد، و روی سرورهای قدیمی‌تر به `POST /fluentd/v1/logs` برمی‌گردد.
+عامل با یک اسکریپت، [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: محیط اجرای کانتینر، برداشت صادرکننده، نام خوشه‌ای که روی هر متریک مُهر زده می‌شود، شکل توکن، متریک‌های خود کالکتور، و اینکه آیا OneUptime کلید دریافت داده را می‌پذیرد. این بررسی آخر از همه مهم‌تر است. OneUptime کلید بد را با `401` رد می‌کند (`422` برای کلید غیرفعال یا کلید مرورگر)، و کالکتور هر دو را دائمی می‌داند: دسته را کنار می‌گذارد و یک خطای `Exporting failed` در لاگ می‌نویسد، که در حالی که کانتینر سالم می‌ماند آسان از چشم می‌افتد. اسکریپت از درون شبکه عامل `GET <url>/otlp/v1/validate` را می‌پرسد تا یک `200` (معتبر) یا `401` (نامعتبر) مستقیم بگیرد، و روی سرورهای قدیمی‌تر به `POST /fluentd/v1/logs` برمی‌گردد.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -373,11 +417,18 @@ OneUptime یک خوشه Proxmox را بر پایه `proxmox.cluster.name` آن �
 :::
 
 :::details با ارسال بومی، یک گره آفلاین نشان داده می‌شود
-دیگر گزارش نمی‌دهد: گرهی که از کار افتاده، یک `pvestatd` گیرکرده، یک `pmxcfs` متوقف‌شده یا شبکه قطع‌شده به OneUptime همه یک‌جور دیده می‌شوند. گزارش بعدی‌اش آن را برمی‌گرداند. اگر گره را از خوشه بیرون آورده‌اید، **Remove Node** را در صفحه آن به کار ببرید؛ وگرنه تا ۷ روز آفلاین می‌ماند. ببینید [گره‌ای که دیگر گزارش نمی‌دهد](#گرهای-که-دیگر-گزارش-نمیدهد).
+دیگر گزارش نمی‌دهد: گرهی که از کار افتاده، یک `pvestatd` گیرکرده، یک `pmxcfs` متوقف‌شده یا شبکه قطع‌شده به OneUptime همه یک‌جور دیده می‌شوند. گزارش بعدی‌اش آن را برمی‌گرداند. اگر گره را از خوشه بیرون آورده‌اید، **حذف گره** را در صفحه آن به کار ببرید؛ وگرنه تا ۷ روز آفلاین می‌ماند. ببینید [گره‌ای که دیگر گزارش نمی‌دهد](#گرهای-که-دیگر-گزارش-نمیدهد).
 :::
 
 :::details با ارسال بومی، هشدارهای Guest Down، HA یا پشتیبان‌گیری هرگز برانگیخته نمی‌شوند
 ارسال بومی وضعیت HA، شروع هنگام بوت، پوشش پشتیبان‌گیری یا همتاسازی را نمی‌فرستد. برای این‌ها [عامل را نصب کنید](#نصب-عامل) و سرور متریک را بردارید: اجرای هر دو هر منبع را دو بار گزارش می‌کند.
+:::
+
+:::details نتایج پشتیبان‌گیری هرگز دیده نمی‌شوند
+1. نسخه Proxmox VE را بررسی کنید: مقصدهای webhook به 8.3 یا بعد از آن نیاز دارند (`pveversion`).
+2. بررسی کنید که مقصد و matcher آن وجود داشته باشند: `pvesh get /cluster/notifications/endpoints/webhook` و `pvesh get /cluster/notifications/matchers` هر دو `oneuptime` را فهرست می‌کنند.
+3. با `pvesh create /cluster/notifications/targets/oneuptime/test` یک اعلان آزمایشی بفرستید. ظرف یک دقیقه در صفحه **لاگ‌ها** خوشه دیده می‌شود؛ اگر نشد، کلید یا نشانی مقصد نادرست است.
+4. نام خوشه را در رازهای مقصد بررسی کنید: نامی که OneUptime نمی‌شناسد خوشه دومی ثبت می‌کند.
 :::
 
 ## گام‌های بعدی

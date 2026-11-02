@@ -16,10 +16,10 @@ flowchart TB
     fired["Alerta disparado"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"Success"| chat["Mensagem no<br/>seu chat"]
-    step -->|"Error"| log["Log: por que não<br/>foi entregue"]
+    step -->|"Error"| failed["A execução falha<br/>e diz por quê"]
 ```
 
-A etapa envia o **Message Text** para o chat, como o seu bot, pela Bot API do Telegram. Ela segue pela saída **Success** quando o Telegram aceita a mensagem, e pela saída **Error**, com o motivo do Telegram, quando o Telegram a recusa. O modelo conecta uma etapa **Log** a **Error**, para que uma execução que não conseguiu enviar diga por quê.
+A etapa envia o **Message Text** para o chat, como o seu bot, pela Bot API do Telegram. Ela segue pela saída **Success** quando o Telegram aceita a mensagem, e pela saída **Error**, com o motivo do Telegram, quando o Telegram a recusa. Sem nada ligado a **Error**, como no modelo, uma execução que não conseguiu enviar falha, e as suas **Etapas** dizem por quê.
 
 ## Antes de começar
 
@@ -53,7 +53,7 @@ Comece pelo modelo, que monta o workflow inteiro para alertas, ou do zero.
 3. Mantenha o nome **Notify Telegram on new alert** ou mude-o, e clique em **Próximo**.
 4. Cole o token em **Telegram Bot Token** e o ID em **Telegram Chat ID**, e clique em **Criar fluxo de trabalho**.
 
-O workflow abre no **Construtor** com três etapas: **On Create Alert**; **Send Message to Telegram**, que envia o número, o título, a gravidade e o estado do alerta; e uma etapa **Log** na saída **Error** dela. O token é salvo como a variável secreta `telegramBotToken` do workflow, e o ID como `telegramChatId`.
+O workflow abre no **Construtor** com duas etapas: **On Create Alert** e **Send Message to Telegram**, que envia o número, o título, a gravidade e o estado do alerta. O token é salvo como a variável secreta `telegramBotToken` do workflow, e o ID como `telegramChatId`.
 @tab Do zero
 1. Salve o token como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Fluxo de trabalho Variável**, dê o nome `TELEGRAM_BOT_TOKEN` e clique em **Próximo**. Cole o token em **Conteúdo**, ative **Segredo** e clique em **Criar: Fluxo de trabalho Variável**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Ative o interruptor **Habilitado** no topo do **Construtor**. A partir daí, cada novo alerta é enviado para o chat.
 
-Para testar sem disparar um alerta, clique em **Executar fluxo de trabalho** e escolha um alerta que você já tem em **Alerta**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no chat. Se a etapa seguir por **Error**, a linha da etapa **Log** diz por quê: veja [Solução de problemas](#solução-de-problemas).
+Para testar sem disparar um alerta, clique em **Executar fluxo de trabalho** e escolha um alerta que você já tem em **Alerta**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no chat. Se a etapa seguir por **Error**, a execução falha, e a entrada da etapa em **Etapas** diz por quê: veja [Solução de problemas](#solução-de-problemas).
 :::
 
 ## Dicas
@@ -85,7 +85,7 @@ Para testar sem disparar um alerta, clique em **Executar fluxo de trabalho** e e
 
 ## Solução de problemas
 
-Quando a etapa segue por **Error**, a execução diz por quê: a etapa **Log** do modelo escreve `❌ Telegram could not deliver the alert notification:`, o motivo do Telegram e um lembrete de que o bot precisa estar no chat.
+Quando a etapa segue por **Error**, a execução falha, e a entrada da etapa nas **Etapas** da execução traz o motivo do Telegram. O bot precisa estar no chat, então verifique isso primeiro.
 
 :::details O Telegram responde "Bad Request: chat not found"
 O **Chat ID** está errado, ou o bot não consegue ver o chat: adicione o bot ao grupo, torne-o administrador do canal, ou peça à pessoa que inicie um chat com o bot. O ID de um grupo começa com `-`.

@@ -21,6 +21,14 @@ const ingestionKeyEnvLineRegex: RegExp =
   /ONEUPTIME_TELEMETRY_INGESTION_KEY=([0-9a-fA-F-]{36})/;
 
 /*
+ * The install command's last value and the script it runs. With the URL and
+ * the key on it, the command puts each value on a line of its own, every
+ * line but the last ending in a backslash.
+ */
+const collectorConfigRunLineRegex: RegExp =
+  /STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config\.yaml \\\n\s*bash install\.sh/;
+
+/*
  * Storage Arrays product onboarding path (mirrors CephProduct.spec.ts and
  * VMwareProduct.spec.ts).
  *
@@ -119,9 +127,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
       .toMatch(ingestionKeyEnvLineRegex);
 
     let bodyText: string = await page.locator("body").innerText();
-    expect(bodyText).toContain(
-      "STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.yaml bash install.sh",
-    );
+    expect(bodyText).toMatch(collectorConfigRunLineRegex);
     expect(bodyText).toContain("Check the array serves its own metrics");
 
     await page.getByRole("tab", { name: "Docker Compose" }).click();
@@ -197,7 +203,16 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
     ).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("Quick Setup")).toBeVisible();
+    /*
+     * A new monitor starts on the Stopped Reporting alert, folded under
+     * "What to alert on". No array is picked yet, so it is FlashArray's,
+     * and it leaves the platform open; Change opens the list.
+     */
+    await expect(page.getByText("What to alert on")).toBeVisible();
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Array Stopped Reporting (FlashArray)",
+    );
+    await page.getByTestId("alert-template-change").click();
 
     /*
      * No array is picked yet, so its platform is unknown and every
@@ -207,6 +222,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
      */
     const expectedTemplateNames: Array<string> = [
       // FlashArray
+      "Array Stopped Reporting (FlashArray)",
       "Critical Array Alert (FlashArray)",
       "Warning Array Alert (FlashArray)",
       "Capacity Above 80% (FlashArray)",
@@ -219,6 +235,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
       "Host Lost Redundant Paths (FlashArray)",
       "Replication Lag Above 1 Minute (FlashArray)",
       // FlashBlade
+      "Array Stopped Reporting (FlashBlade)",
       "Critical Array Alert (FlashBlade)",
       "Warning Array Alert (FlashBlade)",
       "Capacity Above 80% (FlashBlade)",

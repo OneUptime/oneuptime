@@ -1,4 +1,5 @@
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -22,6 +23,22 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
  * (CEPH_INVENTORY_STALE_MINUTES default).
  */
 export const METRIC_STALE_MS: number = 15 * 60 * 1000;
+
+/*
+ * Whether Ceph places data on an OSD, in Ceph's own words: an OSD is "in"
+ * the cluster, or "out" of it (ceph osd out). Keys of their own, apart from
+ * the bare "In" and "Out" a network chart's legend uses for incoming and
+ * outgoing traffic: the OSD badge, the OSD list's In / Out column and the
+ * topology's status used to borrow those, and read "Eingehend" (incoming)
+ * in German and "受信" (received) in Japanese.
+ */
+export const OSD_IN_CLUSTER: string = translationKey("In cluster");
+export const OSD_OUT_OF_CLUSTER: string = translationKey("Out of cluster");
+
+// The OSD's placement, as its badge, its list and its topology card say it.
+export function getOsdPlacementText(isIn: boolean | undefined): string {
+  return isIn ? OSD_IN_CLUSTER : OSD_OUT_OF_CLUSTER;
+}
 
 export type CephResourceKind = "Osd" | "Pool" | "Mon" | "Mgr" | "Mds" | "Rgw";
 

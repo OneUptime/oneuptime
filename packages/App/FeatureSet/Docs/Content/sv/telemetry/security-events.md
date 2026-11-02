@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Öppna **Produkter → Security Events**, under **Observerbarhet**. Dess meny har ett avsnitt för varje del av säkerheten, och en egen sida för varje sak i den:
+Öppna **Produkter → Säkerhetshändelser**, under **Observerbarhet**. Dess meny har ett avsnitt för varje del av säkerheten, och en egen sida för varje sak i den:
 
 | Sida | Avsnitt | Vad den används till |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ flowchart TB
 | **Alla ärenden** | Säkerhetsärenden | Varje ärende, öppet eller stängt |
 | **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
 | **Hunts** | Händelser | Sökningar sparade från Händelser, öppnade igen med ett klick eller körda enligt ett schema som aviserar personer när de hittar något |
-| **Campaigns** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
+| **Kampanjer** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
 | **Entitetsrisk** | Händelser | Varje användare, värd och adress, poängsatt efter vad som hittats om den den här veckan, de mest riskfyllda först |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detektionsregler** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
@@ -111,7 +111,7 @@ Slutpunkten svarar `200` när händelserna har lagts i kö. En händelse som ski
 
 ### Hitta dem under Händelser
 
-Öppna **Produkter → Security Events → Händelser**. Händelserna visas inom några sekunder, med allvarlighetsgrad, klass, användare, värd och IP-adresser ifyllda.
+Öppna **Produkter → Säkerhetshändelser → Händelser**. Händelserna visas inom några sekunder, med allvarlighetsgrad, klass, användare, värd och IP-adresser ifyllda.
 :::
 
 ### Format
@@ -262,11 +262,11 @@ Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad*
 
 ### Vad som hände sedan
 
-En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Reached App**, **Errored** eller **Reached Database**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
+En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Nådde appen**, **Fel** eller **Nådde databasen**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
 
 ### Campaigns
 
-**Campaigns** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
+**Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
 
 ### Korrelera
 
@@ -313,7 +313,7 @@ Hunts har samma REST-API som resten av OneUptime, under `/security-hunt`, och `P
 
 ## Detektionsregler
 
-En detektionsregel är en [Sigma](https://sigmahq.io/)-regel, ett öppet YAML-format för att beskriva misstänkt aktivitet, som OneUptime kör enligt ett schema mot dina händelser. När den träffar öppnar den ett [ärende](/docs/telemetry/security-cases) eller lägger träffen i ett som redan är öppet, öppnar ett larm, eventuellt en incident, och skriver ett Detection Finding tillbaka bland händelserna. **Regelbibliotek** har färdiga regler att utgå från.
+En detektionsregel är en [Sigma](https://sigmahq.io/)-regel, ett öppet YAML-format för att beskriva misstänkt aktivitet, som OneUptime kör enligt ett schema mot dina händelser, eller på varje händelse så fort den kommer in. När den träffar öppnar den ett [ärende](/docs/telemetry/security-cases) eller lägger träffen i ett som redan är öppet, öppnar ett larm, eventuellt en incident, och skriver ett Detection Finding tillbaka bland händelserna. **Regelbibliotek** har färdiga regler att utgå från.
 
 ```mermaid title="Så löser en detektionsregel ut"
 flowchart TB
@@ -327,12 +327,12 @@ flowchart TB
 ### Skapa en regel
 
 :::steps
-1. Öppna **Produkter → Security Events → Detektioner → Detektionsregler** och klicka på **Skapa Detektionsregel**.
+1. Öppna **Produkter → Säkerhetshändelser → Detektioner → Detektionsregler** och klicka på **Skapa Detektionsregel**.
 2. Klistra in regelns YAML i **Sigma-regel (YAML)** under **Sigma-regel**. Den tolkas när du sparar, så ett fel visas i formuläret.
 3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
 4. Låt **Öppna ett ärende vid matchning** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
 5. Välj under **Larm och incidenter** vad en träff mer ska utlösa: **Skapa ett larm** (standard), **Deklarera en incident**, **Båda** eller **Ingetdera**, med valfri **Larmallvar** eller **Incidentallvar**.
-6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på) och hur träffar räknas; se [Utvärderingsinställningar](#utvärderingsinställningar).
+6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på), **Kör i realtid** (av) och hur träffar räknas; se [Utvärderingsinställningar](#utvärderingsinställningar).
 :::
 
 En första regel, som träffar misslyckade inloggningar utanför `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Fält | Vad det gör |
 | --- | --- |
 | **Utvärderingsintervall (minuter)** | Hur ofta regeln körs: hela minuter, 1 till 1440. Formuläret för en ny regel börjar på 5. |
+| **Kör i realtid** | Av för en ny regel. När den är på kontrollerar regeln varje händelse när den kommer in i stället för vid varje intervall; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfält** | Valfritt. Träffar som delar det här fältets värde, till exempel `principalHost`, räknas, larmas och dedupliceras tillsammans: ett larm per värd i stället för hundratals. |
 | **Fält för unik räkning** | Valfritt. Räkna de olika värdena i det här fältet i stället för de träffande händelserna. Tomma värden räknas inte. |
 | **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom en körning: 1 till 1000000, och 1 löser ut vid varje träff. |
@@ -450,6 +451,16 @@ OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
 - En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
 - Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
+
+### Realtidsregler
+
+En regel som utlöses av en enda händelse kan köras i realtid i stället för enligt sitt intervall: slå på **Kör i realtid** under **Fler fält** i steget **Vid träff**. Varje händelse som OneUptime tar emot, från alla källor, kontrolleras då mot regeln när den kommer in, och en träff öppnar sitt ärende, sitt larm och sitt fynd inom några sekunder.
+
+- Det passar en regel med en **Tröskel för antal träffar** på 1, utan **Fält för unik räkning** och utan modifieraren `re`. En korrelation räknar händelser tillsammans och körs därför enligt sitt intervall. Formuläret anger vad som ska ändras när en regel inte passar.
+- Ett projekt kör högst 50 regler i realtid, eftersom varje händelse kontrolleras mot var och en.
+- I **Detektionsregler** visar **Status** för en realtidsregel **Realtid**, och det gör även dess intervallkolumn. En kontroll som misslyckas visas under **Senaste fel**, precis som för en körning.
+- När den slås på läser regeln först det som kommit in sedan den senaste körningen, så att inget hamnar mellan schemat och realtid. När den slås av går den tillbaka till sitt intervall, från två minuter innan.
+- Undantag och bevakningslistor gäller för den som för alla regler, och **Kör på tidigare händelser** läser den som vilken annan regel som helst.
 
 ### Allvarlighetsgrad
 
@@ -481,7 +492,7 @@ Fynd är vanliga händelser: sök efter dem under **Händelser** och pivotera p�
 
 ### Undantag
 
-Ett undantag är något en regel hoppar över eftersom du väntar dig det, som en sårbarhetsskanner, ett nattligt säkerhetskopieringsjobb eller ett planerat penetrationstest. Det tystar regeln för just den saken utan att stänga av den, och regelns andra träffar utlöses fortfarande. Alla undantag listas under **Produkter → Security Events → Detektioner → Regelundantag**: lägg till ett där med **Lägg till Regelundantag**, med **Lägg till undantag** i en regels rad, eller med **Lägg till undantag** i en detektions rad i ett ärende, som börjar med detektionens regel och det den utlöstes för.
+Ett undantag är något en regel hoppar över eftersom du väntar dig det, som en sårbarhetsskanner, ett nattligt säkerhetskopieringsjobb eller ett planerat penetrationstest. Det tystar regeln för just den saken utan att stänga av den, och regelns andra träffar utlöses fortfarande. Alla undantag listas under **Produkter → Säkerhetshändelser → Detektioner → Regelundantag**: lägg till ett där med **Lägg till Regelundantag**, med **Lägg till undantag** i en regels rad, eller med **Lägg till undantag** i en detektions rad i ett ärende, som börjar med detektionens regel och det den utlöstes för.
 
 | Det regeln hoppar över | Vad det träffar |
 | --- | --- |
@@ -497,7 +508,7 @@ Ett undantag är något en regel hoppar över eftersom du väntar dig det, som e
 
 ### Bevakningslistor
 
-En bevakningslista är en lista som ditt team underhåller en gång och som varje regel kan läsa, som VIP-användare, kritiska värdar, kända skadliga filhashar eller adresserna som administratörer får logga in från. Alla listor finns under **Produkter → Security Events → Detektioner → Bevakningslistor**: Skapa en där med **Skapa Bevakningslista**, som frågar efter dess namn och vad den innehåller, eller lägg till en vanlig från **Börja med en vanlig lista**. En listas sida visar dess värden, och **Använd den i en regel** ger ett urval som läser listan, att kopiera in i en regel.
+En bevakningslista är en lista som ditt team underhåller en gång och som varje regel kan läsa, som VIP-användare, kritiska värdar, kända skadliga filhashar eller adresserna som administratörer får logga in från. Alla listor finns under **Produkter → Säkerhetshändelser → Detektioner → Bevakningslistor**: Skapa en där med **Skapa Bevakningslista**, som frågar efter dess namn och vad den innehåller, eller lägg till en vanlig från **Börja med en vanlig lista**. En listas sida visar dess värden, och **Använd den i en regel** ger ett urval som läser listan, att kopiera in i en regel.
 
 En regel läser en lista med `expand` och listans namn mellan två `%`-tecken. Den här regeln utlöses när en administratör loggar in från en adress som inte finns på den tillåtna listan:
 
@@ -573,6 +584,10 @@ Kontrollera nyckeln i `x-oneuptime-token` och sökvägen, `/security-events/v1/i
 
 :::details En regel träffar aldrig
 Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **Körningen misslyckades** visar **Visa fel** i dess rad varför. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
+:::
+
+:::details Kör i realtid går inte att slå på
+Regeln räknar träffar, räknar unika värden, läser ett reguljärt uttryck eller är en korrelation, och formuläret anger vilket: sätt **Tröskel för antal träffar** till 1, töm **Fält för unik räkning**, eller använd `contains`, `startswith` eller `endswith` i stället för `re`. Ett projekt kör högst 50 regler i realtid: slå av det för en annan regel först.
 :::
 
 :::details En regel träffade, men inget larm öppnades

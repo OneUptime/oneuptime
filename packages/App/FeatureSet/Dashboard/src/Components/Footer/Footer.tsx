@@ -91,19 +91,19 @@ const DashboardFooter: () => JSX.Element = () => {
    * An installation that goes by a name of its own (ProductBranding) is not
    * OneUptime to the people using it: its footer leaves out OneUptime's
    * support desk, OneUptime's legal terms and the OneUptime edition pill
-   * (master admins manage the license from the Admin Dashboard header), and
-   * the copyright line carries its own name.
+   * (master admins manage the license from the Admin Dashboard), and the
+   * copyright line carries its own name.
    */
   const isRenamed: boolean = isProductRenamed();
 
   const editionLinks: Array<FooterLink> = [
     {
       /*
-       * The Enterprise plugin's license manager, read here in render
+       * The Enterprise plugin's license details, read here in render
        * (never at module load); the Community stub has none.
        */
       content: (
-        <EditionLabel licenseManager={getDashboardPlugins().LicenseManager} />
+        <EditionLabel licenseDetails={getDashboardPlugins().LicenseDetails} />
       ),
     },
   ];

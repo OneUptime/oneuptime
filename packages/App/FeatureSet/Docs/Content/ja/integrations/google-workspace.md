@@ -43,7 +43,8 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 ### ドメイン全体の委任を許可する
 
 1. [Google 管理コンソール](https://admin.google.com) で特権管理者として **Security → Access and data control → API controls → Manage domain-wide delegation** を開き、**Add new** を選びます。
-2. **Client ID** にサービスアカウントの **Unique ID** を、唯一の **OAuth scope** に `https://www.googleapis.com/auth/admin.reports.audit.readonly` を入力します。**Authorize** を選びます。Google での反映には数分かかることがあります。
+2. **Client ID** にサービスアカウントの **Unique ID** を、**OAuth scope** に `https://www.googleapis.com/auth/admin.reports.audit.readonly` を入力します。**Authorize** を選びます。Google での反映には数分かかることがあります。
+3. プレイブックでユーザーの停止、停止の解除、サインアウトを行うには ( [封じ込め](/docs/telemetry/security-cases#封じ込め) を参照)、同じクライアントのスコープに `https://www.googleapis.com/auth/admin.directory.user` と `https://www.googleapis.com/auth/admin.directory.user.security` をカンマ区切りで追加します。その場合、接続が代理で動作する管理者は、それらのユーザーを管理する管理者である必要があります。
 
 ### OneUptime で接続を追加する
 

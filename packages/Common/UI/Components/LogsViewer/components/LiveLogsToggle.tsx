@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "../../Button/ButtonStates";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
@@ -16,9 +17,6 @@ const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
   const activeClasses: string = isLive
     ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
     : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50";
-  const disabledClasses: string = isDisabled
-    ? "cursor-not-allowed opacity-50"
-    : "cursor-pointer";
 
   const content: ReactElement = (
     <button
@@ -32,7 +30,10 @@ const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
 
         onToggle(!isLive);
       }}
-      className={`${baseClasses} ${activeClasses} ${disabledClasses}`}
+      className={`${baseClasses} ${getHandDrawnLookClassName({
+        className: `cursor-pointer ${activeClasses}`,
+        isLocked: isDisabled,
+      })}`}
     >
       <span
         className={`h-2 w-2 rounded-full ${

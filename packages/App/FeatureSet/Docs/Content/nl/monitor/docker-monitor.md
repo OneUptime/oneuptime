@@ -48,19 +48,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Docker Container**
 
 ### De host kiezen
 
-Kies onder **Docker-monitorconfiguratie** de host in **Docker-host**. Elke host die gegevens heeft verstuurd, staat in de lijst.
+Kies onder **Docker-monitorconfiguratie** de host in **Docker-host**. Elke host die gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Docker-host toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Host Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** – klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metriek, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
-- **Custom Metric** – kies één metriek in **Docker-metriek** en stel dan **Aggregatie** en **Tijdsbereik** in. **Containernaam** en **Container-image** beperken hem tot bepaalde containers.
-- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**. Gebruik **Groeperen op** `resource.container.name` om elke container afzonderlijk te beoordelen.
+- **Wijzigen** – kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metriek, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
+- **Custom Metric** (onder **Meer velden**) – kies één metriek in **Docker-metriek** en stel dan **Aggregatie** en **Tijdsbereik** in. **Containernaam** en **Container-image** beperken hem tot bepaalde containers.
+- **Geavanceerd** (onder **Meer velden**) – bouw zelf query's en formules onder **Selecteer metrieken**. Gebruik **Groeperen op** `resource.container.name` om elke container afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat de metriek geen gegevens stuurt; stel daarom uw eigen drempel in.
 
 ### De monitor maken
 
@@ -84,18 +84,18 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt zeven sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Host Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke container afzonderlijk wordt beoordeeld, een drukke container geen andere verbergt, en elke container over de drempel een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt zeven sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Host Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke container afzonderlijk wordt beoordeeld, een drukke container geen andere verbergt, en elke container over de drempel een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt het 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers op de host, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`, Max per container, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
-| Container Restart Loop | Kritiek | Groei van `container.restarts` per container, laatste 15 minuten | Meer dan 3 herstarts in het venster (Som) | 2,7 of minder |
-| Container CPU Throttling | Warning | Groei van `container.cpu.throttling_data.throttled_time` in ms per container, laatste 5 minuten | Meer dan 1000 ms in het venster (Som) | 900 ms of minder |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
+| High Container CPU Usage | Waarschuwing | `container.cpu.utilization`, Max per container, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
+| High Container Memory Usage | Waarschuwing | `container.memory.percent`, Max per container, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
+| Container Restart Loop | Kritiek | `container.restarts.increase`, Sum per container, laatste 15 minuten | Meer dan 3 herstarts in het venster (Som) | 2,7 of minder |
+| Container CPU Throttling | Waarschuwing | Groei van `container.cpu.throttling_data.throttled_time` in ms per container, laatste 5 minuten | Meer dan 1000 ms in het venster (Som) | 900 ms of minder |
+| High Container Process Count | Waarschuwing | `container.pids.count`, Max per container, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 | Container Restarted (Low Uptime) | Kritiek | `container.uptime`, Min per container, laatste 1 minuut | Minder dan 120 seconden | 132 seconden of meer |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
@@ -110,7 +110,10 @@ Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde
 > `container.memory.percent` deelt door de geheugenlimiet van de container als die is ingesteld, en anders door het totale geheugen **van de host**. Controleer of de container met `--memory` is gestart voordat u een overschrijding behandelt als een dreigende beëindiging door geheugentekort.
 
 > [!WARNING]
-> `container.restarts` en `container.cpu.throttling_data.throttled_time` groeien alleen, dus die twee sjablonen waarschuwen op hoeveel ze in het venster zijn gegroeid: een Maximum- en een Minimum-query per minuut, door een formule van elkaar afgetrokken en opgeteld. Bij het uitlezen elke 30 seconden door de agent ziet dat ongeveer de helft van de echte activiteit, en de drempels houden daar al rekening mee. Als u het `collection_interval` van de agent op 60 seconden of meer zet, bevat elke minuut één meting en waarschuwen beide sjablonen niet meer. De agent bemonstert bovendien alleen draaiende containers, dus een container die meteen na het starten stopt, wordt zelden bemonsterd: **Container Restarted (Low Uptime)** gaat af bij elke herstart die de agent wel ziet.
+> `container.cpu.throttling_data.throttled_time` groeit alleen, dus **Container CPU Throttling** waarschuwt op hoeveel hij in het venster is gegroeid: een Maximum- en een Minimum-query per minuut, door een formule van elkaar afgetrokken en opgeteld. Bij het uitlezen elke 30 seconden door de agent ziet dat ongeveer de helft van het echte afknijpen, en de drempel houdt daar al rekening mee. Als u het `collection_interval` van de agent op 60 seconden of meer zet, bevat elke minuut één meting en waarschuwt het sjabloon niet meer.
+
+> [!NOTE]
+> Ook `container.restarts` groeit alleen, tot een handmatige herstart of een opnieuw aangemaakte container hem weer bij 0 laat beginnen, dus de agent stuurt met elke meting ook `container.restarts.increase` mee: de herstarts sinds zijn vorige meting van de container. **Container Restart Loop** telt die op, dus telt elke herstart, hoe ver de metingen ook uit elkaar liggen, en een handmatige herstart telt niet mee. Docker meldt een container die het aan het herstarten is als draaiend, dus de agent blijft een container in een herstartlus ook tussen zijn runs bemonsteren. Een oudere agent stuurt `container.restarts.increase` niet: [upgrade die](/docs/telemetry/docker-host#de-agent-upgraden) eerst. Een monitor die daarvoor uit het sjabloon is gemaakt, leest hoeveel `container.restarts` binnen elke minuut groeide, en mist zo ongeveer de helft van de herstarts van een lus: verwijder hem en maak het sjabloon opnieuw aan.
 
 > [!CAUTION]
 > `container.uptime` bestaat alleen voor draaiende containers. Een container die stopt en gestopt blijft, stuurt geen gegevens, dus **Container Restarted (Low Uptime)** vangt herstarts en nieuwe uitrols, geen blijvende uitschakeling. Een container die bedoeld is om minder dan twee minuten te draaien, blijft zijn hele leven in de waarschuwingsstatus. Bewaak voor een service die moet blijven draaien ook wat hij levert – bijvoorbeeld met een [API-monitor](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats` tegen de Docker-socke
 | --- | --- |
 | `container.uptime` | Seconden sinds de container startte. Alleen draaiende containers rapporteren hem. |
 | `container.restarts` | Hoe vaak de container is herstart sinds hij is gemaakt. Een teller over de hele levensduur. |
+| `container.restarts.increase` | Herstarts sinds de vorige meting van de container door de agent, met elke meting meegestuurd. De som ervan over een venster is het aantal herstarts daarin, dus waarschuw op deze en niet op de teller over de hele levensduur. |
 | `container.pids.count` | Taken in de container. De pids-controller van de cgroup telt threads net zo goed als processen. |
 
 `container.cpu.throttling_data.throttled_periods` staat niet in de lijst; vraag hem op via **Geavanceerd**.
@@ -173,7 +177,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen metingen bevat: **Ignore** (de standaard), **Treat As Zero** of **Trigger**. |
 
-Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in een "Learning"-status, en geven niets, tot het baseline-venster genoeg geschiedenis bevat.
+Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in een "Learning"-status, en geven niets, tot het baseline-venster genoeg geschiedenis bevat. Een som, een telling of een query op een histogram blijft voorgoed in die toestand: deze monitor filtert zijn query's op attributen, en de baseline bevat er geen.
 
 Elk criterium zegt ook wat er moet gebeuren als het overeenkomt: de monitorstatus wijzigen, een waarschuwing maken of een incident melden. Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt, beslist.
 
@@ -288,8 +292,12 @@ OneUptime herkent een host aan `resource.host.name`, die de agent uit `DOCKER_HO
 Groepeer de query op `resource.container.name` en aggregeer met **Maximum**, zoals het sjabloon **High Container CPU Usage** doet. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig. Is de CPU van een container een vlakke lijn, wat de belasting ook is, dan draait er een oudere agent op de host: [upgrade die](/docs/telemetry/docker-host#de-agent-upgraden).
 :::
 
-:::details Het sjabloon voor herstartlussen of afknijpen waarschuwt niet meer
-Beide meten hoeveel een teller groeide tussen twee metingen in dezelfde minuut. Als het `collection_interval` van de agent 60 seconden of meer is, bevat elke minuut één meting, staat de groei altijd op 0 en gaat geen van beide sjablonen af. Houd de standaard van de agent van 30 seconden aan.
+:::details Het sjabloon voor afknijpen waarschuwt niet meer
+Het meet hoeveel `container.cpu.throttling_data.throttled_time` groeide tussen twee metingen in dezelfde minuut. Als het `collection_interval` van de agent 60 seconden of meer is, bevat elke minuut één meting, staat de groei altijd op 0 en gaat het sjabloon nooit af. Houd de standaard van de agent van 30 seconden aan.
+:::
+
+:::details Het sjabloon voor herstartlussen gaat nooit af of mist herstarts
+Het leest `container.restarts.increase`, dat een oudere agent niet stuurt: [upgrade de agent](/docs/telemetry/docker-host#de-agent-upgraden). Een monitor die daarvoor uit het sjabloon is gemaakt, leest hoeveel `container.restarts` groeide tussen twee metingen in dezelfde minuut, en mist de herstarts tussen de metingen van twee minuten: verwijder hem en maak het sjabloon opnieuw aan.
 :::
 
 ## Volgende stappen

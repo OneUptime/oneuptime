@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "與此授權關聯的公司名稱。",
+  "Annual contract value (in USD) for this license.": "此授權的年度合約金額（美元）。",
+  "Expiration date of this license.": "此授權的到期日期。",
+  "Something went wrong": "發生了問題",
+  "An unexpected error has occurred. Please reload the page to continue": "發生了未預期的錯誤。請重新載入頁面以繼續",
+  "Error details": "錯誤詳細資料",
+  "Still stuck?": "還是無法解決？",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享給 OneUptime 支援團隊之前請先檢查。",
+  "Download support bundle": "下載支援套件",
+  "Send it to {{email}}": "將它傳送到 {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "支援套件已下載。請檢查後再附加到你的郵件中。",
+  "The support bundle could not be downloaded. Please try again.": "無法下載支援套件。請重試。",
   "common": {
     "save": "儲存",
     "cancel": "取消",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "每位使用者 {{price}}，自今日起按年計費。",
   "{{price}} per user, billed monthly from today.": "每位使用者 {{price}}，自今日起按月計費。",
   "Our sales team will contact you to agree on a price.": "我們的業務團隊會與您聯繫以商定價格。",
+  "Current plan": "目前方案",
+  "Current plan, billed yearly": "目前方案（按年計費）",
+  "Current plan, billed monthly": "目前方案（按月計費）",
   "{{count}}-day free trial": "{{count}} 天免費試用",
   "{{count}}-day free trial_one": "{{count}} 天免費試用",
   "Free for {{count}} days, no card needed to start.": "免費 {{count}} 天，開始時不需信用卡。",
@@ -1560,5 +1575,12 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Compact rows": "緊湊列",
+  "Sort by": "排序依據",
+  "Sorted by {{column}}": "依{{column}}排序",
+  "Sort": "排序",
+  "Ascending": "遞增",
+  "Descending": "遞減",
+  "Select all items": "選取所有項目"
 }

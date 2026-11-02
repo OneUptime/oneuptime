@@ -650,6 +650,77 @@ describe("incident custom fields docs", () => {
       ).toEqual([]);
     });
 
+    /*
+     * What the table says the two file types take: a file's id or
+     * { "fileId": "<id>" }, and for Multiple files a list of them, up to 10,
+     * or one on its own. (That the file is the incident's project's, of a
+     * kind and size a field takes, is the server's check: CustomFieldFiles.)
+     */
+    test("accepts the files the table says the two file types take, and no more than 10", () => {
+      const FILE_DEFINITIONS: Array<CustomFieldDefinition> = [
+        definition("Signed change request", CustomFieldType.File),
+        definition("Evidence", CustomFieldType.MultipleFiles),
+      ];
+      const fileId: (number: number) => string = (number: number): string => {
+        return `f0000000-0000-4000-8000-${String(number).padStart(12, "0")}`;
+      };
+
+      expect(
+        validateCustomFieldValues({
+          definitions: FILE_DEFINITIONS,
+          customFields: {
+            "Signed change request": fileId(1),
+            Evidence: [{ fileId: fileId(2) }, fileId(3)],
+          },
+        }),
+      ).toEqual([]);
+      // { "fileId": "<id>" } for a File field; one on its own for Multiple files.
+      expect(
+        validateCustomFieldValues({
+          definitions: FILE_DEFINITIONS,
+          customFields: {
+            "Signed change request": { fileId: fileId(1) },
+            Evidence: { fileId: fileId(2) },
+          },
+        }),
+      ).toEqual([]);
+
+      const eleven: Array<JSONObject> = Array.from(
+        { length: 11 },
+        (_: unknown, index: number): JSONObject => {
+          return { fileId: fileId(index + 10) };
+        },
+      );
+
+      expect(
+        validateCustomFieldValues({
+          definitions: FILE_DEFINITIONS,
+          customFields: { Evidence: eleven },
+        }).map((error: CustomFieldValueValidationError): string => {
+          return error.fieldName;
+        }),
+      ).toEqual(["Evidence"]);
+      // A File field holds one file, not a list.
+      expect(
+        validateCustomFieldValues({
+          definitions: FILE_DEFINITIONS,
+          customFields: { "Signed change request": [fileId(1)] },
+        }).map((error: CustomFieldValueValidationError): string => {
+          return error.fieldName;
+        }),
+      ).toEqual(["Signed change request"]);
+
+      const table: string = sectionOf(
+        readPage(SETTINGS_PAGE, "en"),
+        API_SUBSECTION["en"] as string,
+      );
+
+      expect(table).toContain(
+        '| **File**                                             | A file\'s id, or `{ "fileId": "<id>" }`',
+      );
+      expect(table).toContain("A list of them, up to 10, or one on its own.");
+    });
+
     test("refuses a value that does not fit, naming the field and the value", () => {
       const errors: Array<CustomFieldValueValidationError> =
         validateCustomFieldValues({

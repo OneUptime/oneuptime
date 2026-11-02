@@ -133,7 +133,7 @@ Dataverse 中沒有類似 Jira 標籤的東西，因此案例和 OneUptime 記�
 4. 點選 **建立工作流程**。每個工作流程建立時都處於關閉狀態：在它的 **建構器** 頂部開啟 **已啟用**。
 :::
 
-先從 **Create a Dynamics 365 case when an incident is declared** 開始，警示則從 **Create a Dynamics 365 case when an alert is created** 開始：同類的其他 OneUptime → Dynamics 365 範本都透過這個範本寫入的關聯找到案例。啟用它，宣告一個測試事件或建立一個測試警示，然後開啟工作流程的 **日誌 → 執行記錄**。這次執行的最後一步應顯示 `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`
+先從 **Create a Dynamics 365 case when an incident is declared** 開始，警示則從 **Create a Dynamics 365 case when an alert is created** 開始：同類的其他 OneUptime → Dynamics 365 範本都透過這個範本寫入的關聯找到案例。啟用它，宣告一個測試事件或建立一個測試警示，然後開啟工作流程的 **日誌 → 執行記錄**。這次執行應以 **已執行** 結束，其最後一步 `create-case-1` 的 **Response Body** 中會有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
 
 ### 連接 Dynamics 365 → OneUptime 範本
 
@@ -156,11 +156,11 @@ Dynamics 365 → OneUptime 範本（3 個事件範本和 3 個警示範本）從
 
 | 範本 | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| 建立案例時宣告事件 / 建立警示 | Added | Cases | | `{"incidentid": "<Case>"}` |
-| 案例被解決時解決事件 / 警示 | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| 把案例備註作為私人備註新增到事件 / 警示 | Added | Notes | | `{"annotationid": "<Note>"}` |
+| 建立案例時宣告事件 / 建立警示 | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| 案例被解決時解決事件 / 警示 | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| 把案例備註作為私人備註新增到事件 / 警示 | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-如果只想傳送部分案例，請使用觸發器的 **Filter rows**，例如對高優先順序案例使用 `prioritycode eq 1`。你也可以發布觸發器的完整輸出：範本會以同樣的方式從中讀取列的 ID 及其 `SdkMessage`。
+如果只想傳送部分案例，請使用觸發器的 **Filter rows**，例如對高優先順序案例使用 `prioritycode eq 1`。本文用 `PrimaryEntityId` 指明這一列，與 Dataverse webhook 的做法相同：範本會從 Dynamics 365 重新讀取這一列本身。
 @tab Dataverse webhook
 用 [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) 註冊該 URL：選擇 **Register New WebHook**，使用 **HttpHeader** 驗證和你自己定義的標頭；URL 本身就是密鑰。然後為下面的每個事件在它上面註冊一個步驟，把 **Event Pipeline Stage of Execution** 設為 **PostOperation**，**Execution Mode** 設為 **Asynchronous**。
 
@@ -181,12 +181,12 @@ Dynamics 365 → OneUptime 範本（3 個事件範本和 3 個警示範本）從
 
 ### 檢查是否正常工作
 
-每個範本都以一個說明發生了什麼的 **Log** 步驟結束，因此請檢視 **日誌 → 執行記錄** 中這次執行的最後一步：
+每次執行的 **步驟** 都會說明範本做了什麼，因此請在 **日誌 → 執行記錄** 中開啟這次執行，看看它是如何結束的：
 
-- `✅` — 完成了它的工作，並給出案例、事件或警示。
-- `ℹ️` — 有意跳過了該事件，並說明原因：案例沒有關聯到這類記錄、備註來自另一邊、記錄是私人的，或者新狀態沒有對應到任何案例狀態。
-- `❌` — 某個呼叫失敗了。對於 Dynamics 365 呼叫，這一行包含 Dynamics 365 的回應。
-- `⚠️` — 根據案例建立記錄的範本已經建立了記錄，但 Dynamics 365 沒有接受關聯，因此其他範本暫時還找不到它。請手動在案例的欄中輸入關聯。
+- **已執行**：完成了工作，最後一步會給出案例、事件或警示。
+- **已執行**，且 **Check With JavaScript** 步驟走了 **No**：有意跳過了該事件，該步驟會說明原因：案例沒有關聯到這類記錄、備註來自另一邊、記錄是私人的，或者新狀態不會關閉案例。
+- **錯誤**：某個步驟失敗了，它在 **步驟** 中的項目會說明原因。對於 Dynamics 365 呼叫，其中包含 Dynamics 365 的回應。
+- 在 `link-case-1` 處 **錯誤**：根據案例建立記錄的範本已經建立了記錄，但 Dynamics 365 沒有接受關聯，因此其他範本暫時還找不到它。請手動在案例的欄中輸入關聯。
 
 如果執行在第一個 Dynamics 365 步驟停止，並顯示 `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`，說明登入設定有誤，訊息中會引用 Microsoft Entra ID 的回應。請參閱 [範本需要的設定](#範本需要的設定)。
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 更改範本的行為
 
-開啟工作流程的 **建構器**，點選你想更改的區塊。你最可能想改的設定是指令碼頂部附近的常量，位於 **Run Custom JavaScript** 區塊的 **JavaScript Code** 中，就在共享的輔助程式碼區塊下面。事件版本和警示版本在相同的區塊中有相同的常量。
+開啟工作流程的 **建構器**，點選你想更改的區塊。你最可能想改的設定是指令碼頂部附近的常量，位於 **Check With JavaScript** 區塊的 **JavaScript Code** 中，就在共享的輔助程式碼區塊下面。事件版本和警示版本在相同的區塊中有相同的常量。
 
 | 常量 | 範本和區塊 | 控制的內容 |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `CASE_ORIGIN`, `CASE_TYPE` | Create a Dynamics 365 case — `prepare-case-1` | 新案例的 `caseorigincode`（`3`，Web）和 `casetypecode`（`2`，Problem）。要設定其他任何欄，請按邏輯名稱把它新增到同一指令碼的 `CASE` 中。 |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | Case 表自身的限制，200 和 2000 個字元。無論截掉多少，描述都會保留連結回 OneUptime 的關聯。如果你的 Case 表允許更多，可以調高它們。 |
 | `RESOLVED_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 已解決的記錄關閉其案例時使用的狀態：`5` 是 Problem Solved，`1000` 是 Information Provided。 |
-| `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 當記錄進入另一個狀態時，按狀態名稱移動案例：`{ Acknowledged: 4 }` 會在事件被確認時把案例移到 Researching。Dynamics 365 的活動狀態有 `1` In Progress、`2` On Hold、`3` Waiting for Details 和 `4` Researching。列在這裡的已解決狀態會以它指定的狀態關閉案例。 |
+| `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 在你自己的已解決狀態下，按狀態名稱以另一個已解決狀態關閉案例：`{ Closed: 1000 }` 會以 Information Provided 關閉它。只有記錄被解決時才會變更它的案例：不會設定 Researching 之類的活動狀態。 |
 | `PRIORITY_RANK` | Create from a Dynamics 365 case — `prepare-incident-1`、`prepare-alert-1` | 把案例優先順序（`1` High、`2` Normal、`3` Low）對應到 `0`（最高的嚴重程度）、`1` 或 `2`（最低的嚴重程度）。未列出的優先順序落在中間。對於新專案的兩種警示嚴重程度，除非你把 `2: 1` 改為 `2: 0`，否則 Normal 會變成 Low。 |
 | `ONLY_PRIORITIES` | Create from a Dynamics 365 case — `prepare-incident-1`、`prepare-alert-1` | 為空時接受流程或 Webhook 傳送的每個案例。`[1]` 只為高優先順序案例建立記錄。 |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Resolve when the Dynamics 365 case is resolved — `decide-state-1` | 按名稱把案例狀態原因對應到 OneUptime 狀態，例如 `{ Researching: 'Acknowledged' }`。否則由案例的狀態決定：Resolved 會解決記錄。新增 `2: 'isResolvedState'` 可以在案例被取消時也解決記錄。 |
-| `MESSAGES` | 每個 Dynamics 365 → OneUptime 範本 — `read-event-1` | 範本會處理的事件。把 `'Update'` 新增到備註範本的清單中，可以同時複製編輯過的備註：每次編輯都會成為一條新備註。 |
+| `MESSAGES` | 每個 Dynamics 365 → OneUptime 範本 — `read-event-1`，或 `prepare-incident-1` 和 `prepare-alert-1` | 範本會處理的事件。把 `'Update'` 新增到備註範本的清單中，可以同時複製編輯過的備註：每次編輯都會成為一條新備註。 |
 | `MAX_NOTE_LENGTH` | 備註範本 — `build-note-1`、`read-note-1` | 每個範本寫入的最長備註：寫入 Dynamics 365 的為 100,000 個字元，這是備註本身的限制；寫入 OneUptime 的為 30,000 個字元。 |
 
 用作鍵的狀態和狀態原因名稱必須與其名稱拼寫完全一致，包括大小寫。不要在程式碼中使用 `{{`：指令碼在執行前會像其他設定一樣被填入，因此連續兩個左大括號會被當作引用讀取。
@@ -242,7 +242,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 限制
 
 - **僅限 Microsoft 商業雲。** 權杖 URL 是 `login.microsoftonline.com`。對於美國政府雲（GCC High、DoD）或中國雲，請開啟 `dynamicsAccessToken`，使用 **編輯設定**，把權杖 URL 改為你所在雲的登入主機，例如 `login.microsoftonline.us`。
-- **Dynamics 365 可能會拒絕解決案例。** 你的 Customer Service 設定可能會在案例有未完成的活動或未關閉的子案例時阻止解決它，商務規則或外掛程式也可能拒絕。執行會以 `❌ Dynamics 365 did not resolve the case` 結束並附上 Dynamics 365 給出的原因，案例保持原樣。
+- **Dynamics 365 可能會拒絕解決案例。** 你的 Customer Service 設定可能會在案例有未完成的活動或未關閉的子案例時阻止解決它，商務規則或外掛程式也可能拒絕。執行會在 `close-case-1` 失敗並附上 Dynamics 365 給出的原因，案例保持原樣。
 - **記錄和案例都不會往回走。** 重新開啟案例不會改變 OneUptime 中的任何內容，已解決的記錄也永遠不會被重新開啟。已經解決或已取消的案例永遠不會為了再次關閉而被重新開啟。
 - **備註和描述都是純文字。** 在 Dynamics 365 富文字編輯器中寫的備註會以它顯示的文字到達 OneUptime，在編輯器中寫的或取自電子郵件的案例描述也是如此：段落和換行會保留，而格式、圖片和電子郵件自身的樣式會丟失。OneUptime 備註會以原始字元到達 Dynamics 365，包括 Markdown 在內。來自 Dynamics 365 的文字（案例的標題和描述、備註，以及狀態、優先順序、客戶和人員的名稱）會按原樣讀取：在其中輸入的圖片、連結、HTML、圖表或聊天提及（例如 `<!channel>`）只會顯示為字元，不起任何作用，因為在本會觸發它的字元之後會插入一個不可見的 word joiner。複製這段文字時 word joiner 也會被保留。工作流程會保留它建立時的指令碼，因此用舊版本範本建立的工作流程會按那個版本的方式寫入文字：要獲得這種行為，請從範本重新建立它。附件保留在 Dynamics 365 中；OneUptime 中的備註會給出檔名。
 - **編輯過的備註不會被複制**，只複製新備註，除非你把 `'Update'` 新增到 `MESSAGES` 中。

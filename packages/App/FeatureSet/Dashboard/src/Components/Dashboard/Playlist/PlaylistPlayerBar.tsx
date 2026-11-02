@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -67,11 +68,14 @@ const PlayerButton: FunctionComponent<PlayerButtonProps> = (
   return (
     <button
       type="button"
-      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-40 ${
-        props.isProminent
-          ? "border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700"
-          : "border-gray-200/60 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-      } ${props.className || ""}`}
+      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${getHandDrawnLookClassName(
+        {
+          className: props.isProminent
+            ? "border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700"
+            : "border-gray-200/60 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700",
+          isLocked: props.isDisabled,
+        },
+      )} ${props.className || ""}`}
       onClick={props.onClick}
       disabled={props.isDisabled}
       title={props.label}

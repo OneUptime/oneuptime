@@ -13,9 +13,11 @@ It is one container of the `oneuptime/resource-ai-agent` image with `ONEUPTIME_A
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+Every OneUptime serves this script and the agent's files for its own release, at `<your OneUptime URL>/install/host-ai-agent`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com` in the commands here. The first line saves the script as `install.sh`, so you can read it before you run it.
 
 It asks for your OneUptime URL, the ingestion key and the host's name (see [HOST_NAME](#host_name-must-match-the-collectors-hostname)), writes `/opt/oneuptime-host-ai-agent/.env` (readable by root only) and `docker-compose.yml`, and starts the container. Every setting can be given in the environment instead of answered:
 

@@ -658,7 +658,9 @@ describe.each(PLATFORMS)("the %s guide", (platform: ManagedCloudPlatform) => {
     );
     expect(verify.markdown).toContain('`"valid": true`');
     expect(verify.markdown).toContain("`401`");
-    expect(verify.markdown).toContain("**Cloud → All Environments**");
+    expect(verify.markdown).toContain("**App Platforms → All Environments**");
+    // Environments moved out of Cloud: the guide never sends anyone there.
+    expect(verify.markdown).not.toContain("**Cloud → All Environments**");
   });
 
   test("has the sidecar and SDK-direct tabs exactly where the platform has both shapes", () => {

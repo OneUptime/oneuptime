@@ -17,6 +17,7 @@ import PublicAddressCopy, {
   isCertificateNeededFor,
   isDnsSetupOffered,
   PUBLIC_ADDRESS_TEST_IDS,
+  PUBLIC_ADDRESS_TEXT_DIRECTION,
   PublicAddress,
   PublicAddressKind,
 } from "./PublicAddressCopy";
@@ -59,10 +60,11 @@ import React, {
 } from "react";
 
 /*
- * Every address a status page or a public dashboard answers at: its custom
- * domains first, then its address on OneUptime's own domain. Drawn the same
- * on a status page's Overview (the Status Page Link card) and under a
- * dashboard's public choice on its Sharing page. The rules - what is live,
+ * Every address a status page, a public dashboard or a form answers at: its
+ * custom domains first, then its address on OneUptime's own domain. Drawn
+ * the same on a status page's Overview (the Status Page Link card), under a
+ * dashboard's public choice on its Sharing page, and on a form's Share page
+ * (the Share Link card). The rules - what is live,
  * the order, what a domain that is not live yet says - are in
  * PublicAddressCopy.
  *
@@ -81,9 +83,9 @@ import React, {
  */
 
 export interface ComponentProps {
-  // Whose custom domains: a status page's or a dashboard's.
+  // Whose custom domains: a status page's, a dashboard's or a form's.
   kind: CustomDomainKind;
-  // The status page or dashboard.
+  // The status page, dashboard or form.
   parentId: ObjectID;
   // Its address on OneUptime's own domain, which always works.
   oneUptimeUrl: URL;
@@ -96,6 +98,15 @@ export interface ComponentProps {
    * a domain, which is the least of what the list says.
    */
   note?: ReactNode | undefined;
+  /*
+   * Told the custom domains after every read of them: what was read, or
+   * none when they were not read or the read failed - so the page can say
+   * what an action does to them (a form's Reset Link leaves them as they
+   * are) only when it knows there are some.
+   */
+  onDomainsRead?:
+    | ((domains: ReadonlyArray<CustomDomainModel>) => void)
+    | undefined;
 }
 
 enum LoadState {
@@ -253,6 +264,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
       setDomains(result.data);
       setCertificates(nextCertificates);
       setLoadState(LoadState.Loaded);
+      props.onDomainsRead?.(result.data);
     } catch {
       if (read !== readRef.current) {
         return;
@@ -261,6 +273,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
       setDomains([]);
       setCertificates(new Map<string, CustomDomainCertificate>());
       setLoadState(LoadState.Failed);
+      props.onDomainsRead?.([]);
     }
   };
 
@@ -272,6 +285,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
       setDomains([]);
       setCertificates(new Map<string, CustomDomainCertificate>());
       setLoadState(LoadState.NotRead);
+      props.onDomainsRead?.([]);
       return;
     }
 
@@ -436,9 +450,15 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
                 >
                   {/*
                    * The whole address on hover: a long one is cut short to
-                   * fit the row.
+                   * fit the row. Left to right in every language
+                   * (PUBLIC_ADDRESS_TEXT_DIRECTION), so it is cut at its end.
                    */}
-                  <span className="min-w-0 truncate" title={address.url}>
+                  <span
+                    className="min-w-0 truncate"
+                    title={address.url}
+                    dir={PUBLIC_ADDRESS_TEXT_DIRECTION}
+                    data-testid={PUBLIC_ADDRESS_TEST_IDS.text}
+                  >
                     {address.host}
                     {address.path ? (
                       <span className="font-normal text-gray-500 group-hover:text-indigo-600">
@@ -463,6 +483,8 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
                 <span
                   className="min-w-0 truncate text-sm font-medium leading-6 text-gray-700"
                   title={address.url}
+                  dir={PUBLIC_ADDRESS_TEXT_DIRECTION}
+                  data-testid={PUBLIC_ADDRESS_TEST_IDS.text}
                 >
                   {addressText}
                 </span>

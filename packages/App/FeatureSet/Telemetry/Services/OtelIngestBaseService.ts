@@ -8,6 +8,7 @@ import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
+import { stampStoredIoTFleetName } from "../Utils/StoredIoTFleetName";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
@@ -22,6 +23,15 @@ import CloudResourceService, {
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService, {
+  RecordCloudAppRevisionResult,
+} from "Common/Server/Services/CloudAppRevisionService";
+import CloudAppChangeRecorder from "Common/Server/Utils/Telemetry/ChangeDetection/CloudAppChangeRecorder";
+import {
+  CloudAppIdentity,
+  resolveCloudAppIdentity,
+} from "Common/Server/Utils/Telemetry/CloudAppIdentity";
 import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
 import DatabaseServerService, {
   DatabaseServerCollectorReport,
@@ -85,6 +95,10 @@ import {
   getCloudProviderForPlatform,
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
+import {
+  KUBERNETES_DISTRIBUTION_ATTRIBUTE,
+  getKubernetesClusterProvider,
+} from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
 import {
   CloudMonitoredResource,
@@ -109,6 +123,12 @@ import { ResourceHeartbeatResult } from "Common/Server/Utils/Telemetry/ResourceH
 type MaintenanceFence = {
   scope: string;
   id: string;
+};
+
+// What keepCloudAppAndRevision leaves: the environment's id after its writes, and the app's id when known.
+type KeptCloudApp = {
+  environmentId: string;
+  appId: ObjectID | null;
 };
 
 /*
@@ -527,6 +547,8 @@ export default abstract class OtelIngestBaseService {
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
     this.unresolvedCloudMonitoredResourceMemo.clear();
+    this.storedIoTFleetNames.clear();
+    this.cloudAppIdMemo.clear();
   }
 
   /*
@@ -1861,8 +1883,19 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "oneuptime.agent.version",
           );
+          const provider: string | null = getKubernetesClusterProvider({
+            distribution: this.getStringAttribute(
+              data.attributes,
+              KUBERNETES_DISTRIBUTION_ATTRIBUTE,
+            ),
+            cloudPlatform: this.getStringAttribute(
+              data.attributes,
+              "cloud.platform",
+            ),
+          });
           return await KubernetesClusterService.updateLastSeen(clusterId, {
             agentVersion: agentVersion || undefined,
+            provider: provider || undefined,
           });
         },
         promoteLabels: async (clusterId: ObjectID): Promise<void> => {
@@ -2233,11 +2266,107 @@ export default abstract class OtelIngestBaseService {
       return null;
     }
 
-    return await this.discoverMatchedIoTFleet({
+    const fleetId: ObjectID | null = await this.discoverMatchedIoTFleet({
       projectId: data.projectId,
       attributes: data.attributes,
       fleetName: fleetName,
     });
+
+    // The rows are built from these attributes next (StoredIoTFleetName).
+    if (fleetId) {
+      await this.stampStoredIoTFleetNameOnAttributes({
+        attributes: data.attributes,
+        fleetId: fleetId,
+      });
+    }
+
+    return fleetId;
+  }
+
+  /*
+   * The fleet's stored name, by id, for a minute - as long as the
+   * discovered-resource ids stay in the in-process cache - so a fleet costs
+   * one read a minute per worker, and a rename shows within a minute.
+   */
+  private static storedIoTFleetNames: Map<
+    string,
+    { name: string; expiresAtMs: number }
+  > = new Map();
+
+  private static readonly STORED_IOT_FLEET_NAME_TTL_MS: number = 60 * 1000;
+  private static readonly STORED_IOT_FLEET_NAME_CACHE_SIZE: number = 10000;
+
+  protected static async getStoredIoTFleetName(
+    fleetId: ObjectID,
+  ): Promise<string | null> {
+    const key: string = fleetId.toString();
+    const cached: { name: string; expiresAtMs: number } | undefined =
+      this.storedIoTFleetNames.get(key);
+
+    if (cached && cached.expiresAtMs > Date.now()) {
+      return cached.name;
+    }
+
+    const fleet: { name?: string | undefined } | null =
+      await IoTFleetService.findOneById({
+        id: fleetId,
+        select: { name: true },
+        props: { isRoot: true },
+      });
+    const name: string = (fleet?.name || "").trim();
+
+    if (!name) {
+      return null;
+    }
+
+    if (
+      !this.storedIoTFleetNames.has(key) &&
+      this.storedIoTFleetNames.size >= this.STORED_IOT_FLEET_NAME_CACHE_SIZE
+    ) {
+      const oldest: string | undefined = this.storedIoTFleetNames
+        .keys()
+        .next().value;
+
+      if (oldest !== undefined) {
+        this.storedIoTFleetNames.delete(oldest);
+      }
+    }
+
+    this.storedIoTFleetNames.set(key, {
+      name,
+      expiresAtMs: Date.now() + this.STORED_IOT_FLEET_NAME_TTL_MS,
+    });
+
+    return name;
+  }
+
+  /*
+   * Writes the fleet's stored name onto a reading whose fleet name differs
+   * from it only in case or spacing (StoredIoTFleetName). Best-effort: a
+   * failed read leaves the name as sent, and never fails the ingest.
+   */
+  protected static async stampStoredIoTFleetNameOnAttributes(data: {
+    attributes: JSONArray;
+    fleetId: ObjectID;
+  }): Promise<void> {
+    try {
+      const storedName: string | null = await this.getStoredIoTFleetName(
+        data.fleetId,
+      );
+
+      if (storedName) {
+        stampStoredIoTFleetName({
+          attributes: data.attributes,
+          storedName: storedName,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        `Could not read the stored name of IoT fleet ${data.fleetId.toString()}; its readings keep the name they were sent with: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverIoTFleet" })
@@ -3298,13 +3427,46 @@ export default abstract class OtelIngestBaseService {
       }
 
       /*
+       * The app this resource belongs to - an ECS task definition family,
+       * a Cloud Run service, a Container App - and the revision it runs
+       * (CloudAppIdentity). The app's row is kept once per app per fence
+       * window, its revision once per revision: a revision the app never
+       * ran is a deploy, and an older one that outlives the current one is
+       * a rollback (CloudAppRevisionService), each written as a change
+       * event and a line in the environment's feed.
+       */
+      const appIdentity: CloudAppIdentity | null = resolveCloudAppIdentity({
+        platform: cloudPlatform,
+        getAttribute: (key: string): string | null => {
+          return this.getStringAttribute(data.attributes, key);
+        },
+      });
+
+      let cloudAppId: ObjectID | null = null;
+
+      if (appIdentity) {
+        const keptApp: KeptCloudApp = await this.keepCloudAppAndRevision({
+          projectId: data.projectId,
+          environmentId: liveIdStr,
+          cloudPlatform,
+          cloudProvider,
+          cloudAccountId,
+          cloudRegion,
+          identity: appIdentity,
+        });
+        liveIdStr = keptApp.environmentId;
+        cloudAppId = keptApp.appId;
+      }
+
+      /*
        * Live inventory: record this instance / task. service.instance.id
        * is preferred, but almost nothing on a managed platform sets it —
        * the ECS detector stamps the task ARN, Cloud Run stamps
        * faas.instance — so the identity walks the shared fallback chain.
        * The metrics snapshot fold (OtelMetricsIngestService) resolves the
        * same chain over the same attributes, which is what lets the CPU /
-       * memory point land on the row this call creates.
+       * memory point land on the row this call creates. The instance names
+       * its app and revision when the resource does.
        */
       const instanceName: string | null = resolveCloudInstanceName(
         (key: string): string | null => {
@@ -3326,10 +3488,22 @@ export default abstract class OtelIngestBaseService {
           kind: DiscoveredResourceKinds.CloudResource,
           id: liveIdStr,
           write: async (cloudResourceId: ObjectID): Promise<void> => {
+            const instanceAppId: ObjectID | null = appIdentity
+              ? cloudAppId ||
+                (await this.resolveCloudAppIdOrNull({
+                  projectId: data.projectId,
+                  cloudResourceId,
+                  cloudPlatform,
+                  identity: appIdentity,
+                }))
+              : null;
+
             await CloudResourceInstanceService.recordInstance({
               projectId: data.projectId,
               cloudResourceId,
               instanceName,
+              cloudAppId: instanceAppId || undefined,
+              revision: appIdentity?.revision || undefined,
             });
           },
         });
@@ -3342,6 +3516,189 @@ export default abstract class OtelIngestBaseService {
       );
       return null;
     }
+  }
+
+  /*
+   * Keeps an environment's app and the revision it runs (see
+   * discoverMatchedCloudResource), each under a fence of its own. A failure
+   * releases this method's fences, is logged, and never fails the batch:
+   * the environment link and the instance row matter more than the app's
+   * row, which the next window writes again. Returns the environment's id
+   * as it stands after the writes (a gone environment is resolved again)
+   * and the app's id, when this window learned it.
+   */
+  private static async keepCloudAppAndRevision(data: {
+    projectId: ObjectID;
+    environmentId: string;
+    cloudPlatform: string;
+    cloudProvider: string | null;
+    cloudAccountId: string | null;
+    cloudRegion: string | null;
+    identity: CloudAppIdentity;
+  }): Promise<KeptCloudApp> {
+    const armedFences: Array<MaintenanceFence> = [];
+    const kept: KeptCloudApp = {
+      environmentId: data.environmentId,
+      appId: null,
+    };
+
+    try {
+      const appFenceId: string = `${kept.environmentId}:${data.identity.appKey}`;
+
+      if (await this.shouldRunMaintenance("cloud-app", appFenceId)) {
+        armedFences.push({ scope: "cloud-app", id: appFenceId });
+        kept.environmentId = await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.CloudResource,
+          id: kept.environmentId,
+          write: async (cloudResourceId: ObjectID): Promise<void> => {
+            const appId: ObjectID = await CloudAppService.recordApp({
+              projectId: data.projectId,
+              cloudResourceId,
+              cloudPlatform: data.cloudPlatform,
+              identity: data.identity,
+            });
+            this.cloudAppIdMemo.set(
+              `${cloudResourceId.toString()}:${data.identity.appKey}`,
+              appId.toString(),
+            );
+            kept.appId = appId;
+          },
+        });
+      }
+
+      const revision: string | null = data.identity.revision;
+
+      if (!revision) {
+        return kept;
+      }
+
+      const revisionFenceId: string = `${kept.environmentId}:${data.identity.appKey}:${revision}`;
+
+      if (
+        !(await this.shouldRunMaintenance(
+          "cloud-app-revision",
+          revisionFenceId,
+        ))
+      ) {
+        return kept;
+      }
+
+      armedFences.push({ scope: "cloud-app-revision", id: revisionFenceId });
+
+      const environmentId: ObjectID = new ObjectID(kept.environmentId);
+      const appId: ObjectID =
+        kept.appId ||
+        (await this.resolveCloudAppId({
+          projectId: data.projectId,
+          cloudResourceId: environmentId,
+          cloudPlatform: data.cloudPlatform,
+          identity: data.identity,
+        }));
+      kept.appId = appId;
+
+      const recorded: RecordCloudAppRevisionResult =
+        await CloudAppRevisionService.recordRevision({
+          projectId: data.projectId,
+          cloudResourceId: environmentId,
+          cloudAppId: appId,
+          revision,
+          serviceVersion: data.identity.serviceVersion,
+          image: data.identity.image,
+        });
+
+      if (recorded.change) {
+        CloudAppChangeRecorder.recordChange({
+          projectId: data.projectId,
+          subject: {
+            appId,
+            appName: data.identity.name,
+            groupName: data.identity.groupName,
+            environmentId,
+            cloudPlatform: data.cloudPlatform,
+            cloudProvider: data.cloudProvider,
+            cloudAccountId: data.cloudAccountId,
+            cloudRegion: data.cloudRegion,
+            serviceVersion: data.identity.serviceVersion,
+          },
+          change: recorded.change,
+        });
+      }
+
+      return kept;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error keeping a Cloud app or its revision: " + (err as Error).message,
+      );
+      return kept;
+    }
+  }
+
+  /*
+   * An app's id for an instance row, or null when it cannot be had right
+   * now: the instance is then recorded without its app (logged), and links
+   * to it on a later window.
+   */
+  private static async resolveCloudAppIdOrNull(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    cloudPlatform: string;
+    identity: CloudAppIdentity;
+  }): Promise<ObjectID | null> {
+    try {
+      return await this.resolveCloudAppId(data);
+    } catch (err) {
+      logger.error(
+        "Error resolving a Cloud app for an instance: " +
+          (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * The ids of the apps this process found or created lately, by
+   * environment and app key. An instance or a revision is recorded more often
+   * than its app's row is kept (each under a fence of its own), and every one
+   * of them needs the app's id. A minute, as the other ingest memos: an app
+   * deleted in that minute is found again by its key (recordApp).
+   */
+  private static readonly cloudAppIdMemo: InProcessMemo<string> =
+    new InProcessMemo<string>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  // An app's id: from the memo, else its row (found by key, or created).
+  protected static async resolveCloudAppId(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    cloudPlatform: string;
+    identity: CloudAppIdentity;
+  }): Promise<ObjectID> {
+    const memoKey: string = `${data.cloudResourceId.toString()}:${data.identity.appKey}`;
+    const remembered: string | undefined = this.cloudAppIdMemo.get(memoKey);
+
+    if (remembered) {
+      return new ObjectID(remembered);
+    }
+
+    const appId: ObjectID =
+      (await CloudAppService.findAppId({
+        projectId: data.projectId,
+        cloudResourceId: data.cloudResourceId,
+        appKey: data.identity.appKey,
+      })) ||
+      (await CloudAppService.recordApp({
+        projectId: data.projectId,
+        cloudResourceId: data.cloudResourceId,
+        cloudPlatform: data.cloudPlatform,
+        identity: data.identity,
+      }));
+
+    this.cloudAppIdMemo.set(memoKey, appId.toString());
+
+    return appId;
   }
 
   protected static async promoteOneuptimeLabelsToCloudResource(data: {

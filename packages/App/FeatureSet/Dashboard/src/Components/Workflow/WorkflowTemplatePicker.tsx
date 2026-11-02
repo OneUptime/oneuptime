@@ -36,6 +36,7 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 import {
   WorkflowTemplate,
   WorkflowTemplateVariable,
+  WorkflowTemplateWhoToPage,
 } from "Common/Types/Workflow/Templates";
 import {
   WORKFLOW_TEMPLATE_PICKER_RULES,
@@ -44,6 +45,7 @@ import {
   WorkflowTemplatePreviewBlock,
   getWorkflowTemplatePreview,
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
+import { CATALOG_TEXT_ALIGN_CLASS_NAME } from "../TemplatePicker/CatalogText";
 import TemplatePicker, {
   getTemplatePickerIds,
   templateOptionDomId,
@@ -105,10 +107,11 @@ interface WorkflowTemplateDetailsProps {
  * shared details rows and chips (TemplatePicker/TemplateDetails), as a
  * dashboard template's are.
  *
- * A template can also leave something for the Builder that no step here can
- * ask for - who a Page step pages is picked from the project's own people.
- * Its details say so (setUpInBuilder) rather than "Nothing to fill in.":
- * the workflow it creates does nothing until that is picked.
+ * A template that pages people lists who it asks to page beside its
+ * settings (whoToPage): the Configure step asks for both. A template can
+ * also leave something for the Builder that no step here can ask for -
+ * Huntress's signing secret, added on its trigger. Its details say so
+ * (setUpInBuilder) rather than "Nothing to fill in.".
  */
 const WorkflowTemplateDetails: FunctionComponent<
   WorkflowTemplateDetailsProps
@@ -169,7 +172,7 @@ const WorkflowTemplateDetails: FunctionComponent<
         label={tx("What you'll need")}
         holds={TemplateDetailsRowHolds.Text}
       >
-        {preview.settings.length > 0 ? (
+        {preview.settings.length > 0 || preview.whoToPage.length > 0 ? (
           <ul
             className="flex flex-wrap gap-x-4 gap-y-1"
             data-testid="workflow-template-details-settings"
@@ -198,10 +201,38 @@ const WorkflowTemplateDetails: FunctionComponent<
                       ) : (
                         <></>
                       )}
+                      {/* After the title as the page reads: on its left on a Persian page. */}
                       {variable.required ? (
                         <></>
                       ) : (
-                        <span className="ml-1 text-gray-400">
+                        <span className="ms-1 text-gray-400">
+                          ({tx("Optional")})
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              },
+            )}
+            {/* Who a Page step pages, picked from the project's own people: a person icon marks it. */}
+            {preview.whoToPage.map(
+              (ask: WorkflowTemplateWhoToPage): ReactElement => {
+                return (
+                  <li
+                    key={ask.componentId}
+                    className="flex items-center gap-1.5 text-sm text-gray-700"
+                    data-testid={`workflow-template-details-who-to-page-${ask.componentId}`}
+                  >
+                    <Icon
+                      icon={IconProp.User}
+                      className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                    />
+                    <span className="min-w-0">
+                      {ask.title}
+                      {ask.required ? (
+                        <></>
+                      ) : (
+                        <span className="ms-1 text-gray-400">
                           ({tx("Optional")})
                         </span>
                       )}
@@ -216,7 +247,8 @@ const WorkflowTemplateDetails: FunctionComponent<
         )}
         {setUpInBuilder ? (
           <p
-            className="text-sm text-gray-600"
+            dir="auto"
+            className={`text-sm text-gray-600 ${CATALOG_TEXT_ALIGN_CLASS_NAME}`}
             data-testid="workflow-template-details-in-builder"
           >
             {setUpInBuilder}
@@ -224,7 +256,9 @@ const WorkflowTemplateDetails: FunctionComponent<
         ) : (
           <></>
         )}
-        {preview.settings.length === 0 && !setUpInBuilder ? (
+        {preview.settings.length === 0 &&
+        preview.whoToPage.length === 0 &&
+        !setUpInBuilder ? (
           <p
             className="text-sm text-gray-600"
             data-testid="workflow-template-details-no-settings"

@@ -461,7 +461,7 @@ SDK 很可能在通过 gRPC 向 HTTP 端点或 `localhost` 导出。设置 `OTEL
 某个批次超过了大小限制。减小批次大小，例如在 `batch` 处理器上设置 `send_batch_max_size: 1000`。如果你在自己的代理后面自托管，也要检查该代理的请求体大小限制。
 :::
 
-:::details 数据进入了错误的服务，或进入了 Unknown Service
+:::details 数据进入了错误的服务，或进入了“未知服务”
 服务来自资源属性 `service.name`。请在每个应用中设置 `OTEL_SERVICE_NAME`。如果密钥设置了 **固定的服务名称**，用该密钥进行的每次 OTLP/HTTP 导出都会改为归入这个名称。
 :::
 

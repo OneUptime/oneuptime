@@ -69,7 +69,9 @@ export const KUBERNETES_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
  * A Kubernetes cluster's Recommendations: Quick Setup's headings, then
  * Events - the cluster's warning events alert, a Logs monitor over the
  * events the agent sends (KubernetesEventAlertTemplates), which a Kubernetes
- * monitor's Quick Setup cannot build and so never lists.
+ * monitor's Quick Setup cannot build and so never lists - and OpenShift,
+ * Logs monitors too, offered on an OpenShift cluster alone
+ * (OpenShiftAlertTemplates).
  */
 export const KUBERNETES_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> =
   [
@@ -78,6 +80,11 @@ export const KUBERNETES_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> 
       category: "Events",
       label: "Events",
       icon: IconProp.Bell,
+    },
+    {
+      category: "OpenShift",
+      label: "OpenShift",
+      icon: IconProp.Kubernetes,
     },
   ];
 
@@ -117,6 +124,22 @@ export const PROXMOX_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
     category: "Replication",
     label: "Replication",
     icon: IconProp.ArrowPath,
+  },
+];
+
+/*
+ * A Proxmox cluster's Recommendations: Quick Setup's headings, then
+ * Notifications - the alerts on what Proxmox VE reports itself (a failed
+ * backup job, a fenced node), Logs monitors over the notifications the
+ * cluster sends (ProxmoxNotificationAlertTemplates), which a Proxmox
+ * monitor's Quick Setup cannot build and so never lists.
+ */
+export const PROXMOX_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> = [
+  ...PROXMOX_TEMPLATE_CATEGORIES,
+  {
+    category: "Notifications",
+    label: "Proxmox VE notifications",
+    icon: IconProp.Bell,
   },
 ];
 
@@ -268,7 +291,8 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
     DOCKER_SWARM_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Kubernetes]:
     KUBERNETES_RECOMMENDATION_CATEGORIES,
-  [MonitorRecommendationResourceType.Proxmox]: PROXMOX_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.Proxmox]:
+    PROXMOX_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.StorageArray]:

@@ -51,6 +51,8 @@ Para um tipo lista suspensa, adicione as opções em **Opções do menu suspenso
 | **Data e hora** | Última auditoria em, desativado em |
 | **Texto longo** | Instruções de acesso, anotações: várias linhas de texto simples |
 | **Texto formatado (Markdown)** | Anotações com formatação e links, escritas no editor Markdown |
+| **Arquivo** | Um certificado de garantia, uma ordem de compra assinada, uma foto da etiqueta do rack: um arquivo |
+| **Vários arquivos** | Manuais, faturas e fotos: até 10 arquivos |
 
 ## Um vocabulário de ativos completo
 
@@ -79,6 +81,9 @@ Cada campo personalizado vira um filtro acima da lista **All Items**, e o filtro
 | **Número** | é, não é, é maior que, é maior ou igual a, é menor que, é menor ou igual a, está vazio, não está vazio |
 | **Booleano**, **Lista suspensa (seleção única)**, **Lista suspensa (seleção múltipla)** | é, não é, está vazio, não está vazio |
 | **Data**, **Data e hora** | é, é antes de, é depois de, está entre, está vazio, não está vazio |
+| **Arquivo**, **Vários arquivos** | é |
+
+Um chip de **Arquivo** ou **Vários arquivos** pergunta uma coisa só: se o campo **Tem arquivos** ou está **Sem arquivos**.
 
 Os filtros se combinam com E, então "Warranty Expiry é antes de 2026-10-01 E Lifecycle Status é Em uso" é uma única visão da lista. Essa é a pergunta que um registro de ativos existe para responder, e o motivo para usar os tipos de data em vez de uma data em um campo de texto: um campo de texto guarda `2026-10-01` sem reclamar e depois não consegue dizer o que vence no próximo trimestre.
 
@@ -91,6 +96,7 @@ As colunas de campos personalizados começam ocultas: ative-as no seletor de col
 - Nada torna um valor único. Dois itens podem ter o mesmo número de série, e nada impede isso.
 - As datas são guardadas como timestamps ISO-8601 em UTC e mostradas no seu próprio fuso horário.
 - Excluir um campo o tira da lista e da barra de filtros. Os valores já gravados continuam nos itens.
+- Um campo **Arquivo** ou **Vários arquivos** aceita arquivos de até 10 MB cada, dos tipos listados em [Campos de arquivo](/docs/incidents/settings#campos-de-arquivo), enviados no projeto. Só quem pode ver o item pode baixá-los, e um arquivo é excluído assim que nada mais o guarda.
 
 ## Próximos passos
 

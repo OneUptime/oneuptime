@@ -16,10 +16,10 @@ flowchart TB
     declared["Vorfall erklärt"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
     step -->|"Success"| channel["Nachricht in<br/>Ihrem Kanal"]
-    step -->|"Error"| log["Log: warum sie<br/>nicht zugestellt<br/>wurde"]
+    step -->|"Error"| failed["Der Lauf schlägt<br/>fehl und sagt,<br/>warum"]
 ```
 
-Der Schritt postet den **Message Text** an den Webhook des Kanals. Er nimmt seinen Ausgang **Success**, wenn Discord die Nachricht annimmt, und seinen Ausgang **Error**, mit dem Grund von Discord, wenn Discord sie ablehnt. Die Vorlage verbindet einen Schritt **Log** mit **Error**, sodass ein Lauf, der nicht posten konnte, sagt, warum.
+Der Schritt postet den **Message Text** an den Webhook des Kanals. Er nimmt seinen Ausgang **Success**, wenn Discord die Nachricht annimmt, und seinen Ausgang **Error**, mit dem Grund von Discord, wenn Discord sie ablehnt. Ist mit **Error** nichts verbunden, wie in der Vorlage, schlägt ein Lauf, der nicht posten konnte, fehl, und seine **Schritte** sagen, warum.
 
 ## Bevor Sie beginnen
 
@@ -48,7 +48,7 @@ Beginnen Sie mit der Vorlage, die den ganzen Arbeitsablauf für Sie baut, oder v
 3. Behalten Sie den Namen **Notify Discord on new incident** oder ändern Sie ihn, und klicken Sie auf **Weiter**.
 4. Fügen Sie die URL in **Discord Webhook URL** ein und klicken Sie auf **Arbeitsablauf erstellen**.
 
-Der Arbeitsablauf öffnet sich im **Editor** mit drei Schritten: **On Create Incident**; **Send Message to Discord**, der Nummer, Titel, Schweregrad und Status des Vorfalls postet; und ein Schritt **Log** an seinem Ausgang **Error**. Die URL wird als geheime Variable `discordWebhookUrl` des Arbeitsablaufs gespeichert.
+Der Arbeitsablauf öffnet sich im **Editor** mit zwei Schritten: **On Create Incident** und **Send Message to Discord**, der Nummer, Titel, Schweregrad und Status des Vorfalls postet. Die URL wird als geheime Variable `discordWebhookUrl` des Arbeitsablaufs gespeichert.
 @tab Von Grund auf
 1. Speichern Sie die URL als geheime globale Variable: Gehen Sie zu **Arbeitsabläufe → Globale Variablen**, klicken Sie auf **Arbeitsablaufvariable erstellen**, nennen Sie sie `DISCORD_WEBHOOK_URL` und klicken Sie auf **Weiter**. Fügen Sie die URL in **Inhalt** ein, schalten Sie **Geheimnis** ein und klicken Sie auf **Arbeitsablaufvariable erstellen**.
 2. Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, wählen Sie **Ohne Vorlage beginnen**, geben Sie dem Arbeitsablauf einen Namen und klicken Sie auf **Arbeitsablauf erstellen**.
@@ -68,7 +68,7 @@ Eine Nachricht von Grund auf liest die Felder des Vorfalls mit Verweisen wie die
 
 Schalten Sie **Aktiviert** oben im **Editor** ein. Von nun an wird jeder neue Vorfall im Kanal gepostet.
 
-Um zu testen, ohne einen Vorfall zu eröffnen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Vorfall** einen vorhandenen Vorfall aus: Die neuesten sind aufgelistet, und wenn Sie seine Nummer oder einen Teil seines Titels eintippen, finden Sie einen anderen. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Kanal. Nimmt der Schritt stattdessen **Error**, sagt die Zeile des Schritts **Log**, warum: siehe [Fehlerbehebung](#fehlerbehebung).
+Um zu testen, ohne einen Vorfall zu eröffnen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Vorfall** einen vorhandenen Vorfall aus: Die neuesten sind aufgelistet, und wenn Sie seine Nummer oder einen Teil seines Titels eintippen, finden Sie einen anderen. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Kanal. Nimmt der Schritt stattdessen **Error**, schlägt der Lauf fehl, und der Eintrag des Schritts unter **Schritte** sagt, warum: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
 ## Tipps
@@ -80,7 +80,7 @@ Um zu testen, ohne einen Vorfall zu eröffnen, klicken Sie auf **Arbeitsablauf a
 
 ## Fehlerbehebung
 
-Nimmt der Schritt **Error**, sagt der Lauf, warum: Der Schritt **Log** der Vorlage schreibt `❌ Discord could not deliver the incident notification:` und den Grund von Discord.
+Nimmt der Schritt **Error**, schlägt der Lauf fehl, und der Eintrag des Schritts im Reiter **Schritte** des Laufs nennt den Grund von Discord.
 
 :::details "Unknown Webhook" oder "Invalid Webhook Token"
 Der Webhook wurde gelöscht, oder die URL wurde falsch kopiert. Erstellen Sie einen neuen Webhook und ersetzen Sie die URL: im Arbeitsablauf der Vorlage die Variable `discordWebhookUrl`, in einem eigenen Arbeitsablauf den Inhalt von `DISCORD_WEBHOOK_URL`.

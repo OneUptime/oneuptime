@@ -108,6 +108,264 @@ Service account name
 {{- end }}
 
 {{/*
+Whether the cluster is OpenShift: the openshift preset or the
+openshift-restricted one. Either way user and group IDs are OpenShift's to
+assign (kubernetes-agent.nonRootPodSecurityContext), and the agent says it is
+on OpenShift: the distribution attribute, the openshift resource detector,
+the k8sobjects/openshift receiver and the RBAC of those two.
+
+What separates the two presets is whether the chart creates SCCs
+(kubernetes-agent.openshiftSccs).
+Usage: {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.openshift" -}}
+{{- $preset := default "" .Values.preset -}}
+{{- if or (eq $preset "openshift") (eq $preset "openshift-restricted") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the chart creates security context constraints: on the openshift
+preset, the recommended one, and not on openshift-restricted.
+
+OpenShift admits a pod only under a security context constraint (SCC) that
+its service account may use, and a service account may use restricted-v2
+and nothing more until an admin grants it: no hostPath volumes, no privileged
+containers, no host PID namespace, and user and group IDs from the
+namespace's own range only. So on the openshift preset the chart creates an
+SCC for each of the two kinds of node pods that need more
+(templates/openshift-scc.yaml), runs them as service accounts of their own,
+which alone may use it, and runs the node collector as root with the SELinux
+type spc_t.
+Usage: {{- if eq (include "kubernetes-agent.openshiftSccs" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.openshiftSccs" -}}
+{{- if eq (default "" .Values.preset) "openshift" -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the release runs under restricted-v2 alone, for an admin who will not
+add an SCC: the openshift-restricted preset. It works like gke-autopilot:
+nothing reads the node's files (kubernetes-agent.hostPathAvailable), nothing
+runs privileged (kubernetes-agent.privilegedPodsAllowed), and pod logs come
+through the Kubernetes API (kubernetes-agent.logMode). The node collector
+still runs, for the kubelet's metrics.
+
+restricted-v2 would fill in what a pod leaves unset, and refuses what it gets
+wrong. So here every pod states it: the pods that state nothing on any other
+preset (the two collectors, and the debug sidecar) take
+kubernetes-agent.nonRootPodSecurityContext and
+kubernetes-agent.restrictedContainerSecurityContext.
+Usage: {{- if eq (include "kubernetes-agent.openshiftRestricted" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.openshiftRestricted" -}}
+{{- if eq (default "" .Values.preset) "openshift-restricted" -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+A container's securityContext that OpenShift's restricted-v2 SCC and the
+restricted Pod Security Standard accept as written: no privilege escalation,
+every capability dropped.
+Usage:
+  securityContext:
+    {{- include "kubernetes-agent.restrictedContainerSecurityContext" . | nindent 12 }}
+*/}}
+{{- define "kubernetes-agent.restrictedContainerSecurityContext" -}}
+allowPrivilegeEscalation: false
+capabilities:
+  drop:
+    - ALL
+{{- end -}}
+
+{{/*
+Whether the node pods run as service accounts of their own: when the chart
+creates SCCs, so that each can be granted to exactly the pods that need it,
+and only when the chart creates service accounts at all. With
+serviceAccount.create=false every pod runs as the service account you made,
+and both SCCs are granted to it.
+*/}}
+{{- define "kubernetes-agent.nodeServiceAccounts" -}}
+{{- if and (eq (include "kubernetes-agent.openshiftSccs" .) "true") .Values.serviceAccount.create -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+The node collector DaemonSet's service account (templates/daemonset.yaml).
+*/}}
+{{- define "kubernetes-agent.nodeCollectorServiceAccountName" -}}
+{{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" -}}
+{{- printf "%s-node-collector" (include "kubernetes-agent.fullname" .) -}}
+{{- else -}}
+{{- include "kubernetes-agent.serviceAccountName" . -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The service account of the eBPF instrumentation and the profiler
+(templates/daemonset-ebpf.yaml, templates/daemonset-profiling.yaml).
+*/}}
+{{- define "kubernetes-agent.ebpfServiceAccountName" -}}
+{{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" -}}
+{{- printf "%s-ebpf" (include "kubernetes-agent.fullname" .) -}}
+{{- else -}}
+{{- include "kubernetes-agent.serviceAccountName" . -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+A node pod's own service account (templates/rbac.yaml), with the labels and
+the annotations (serviceAccount.annotations) the main one has.
+Usage: {{ include "kubernetes-agent.nodeServiceAccount" (dict "root" . "name" "<name>") }}
+*/}}
+{{- define "kubernetes-agent.nodeServiceAccount" -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .name }}
+  namespace: {{ .root.Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" .root | nindent 4 }}
+  {{- with .root.Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+The SELinux label the node collector runs with on the openshift preset, and
+the one its SCC requires: the type spc_t, which RHCOS's enforcing SELinux
+lets read the node's files, as the default container type (container_t)
+cannot.
+*/}}
+{{- define "kubernetes-agent.spcSeLinuxOptions" -}}
+user: system_u
+role: system_r
+type: spc_t
+level: s0
+{{- end -}}
+
+{{/*
+The pod securityContext of a workload that runs as a fixed non-root user:
+non-root, the RuntimeDefault seccomp profile, and the user and group IDs its
+image is built for. OpenShift refuses IDs outside the namespace's range and
+assigns its own, so on the OpenShift presets the IDs are left out and the pod
+runs under restricted-v2. Every such workload mounts a writable emptyDir
+wherever it writes (its root filesystem is read-only), and an emptyDir is
+writable by whatever fsGroup OpenShift gives the pod.
+Usage:
+  securityContext:
+    {{- include "kubernetes-agent.nonRootPodSecurityContext" (dict "root" . "runAsUser" 1000 "runAsGroup" 1000 "fsGroup" 1000) | nindent 8 }}
+*/}}
+{{- define "kubernetes-agent.nonRootPodSecurityContext" -}}
+runAsNonRoot: true
+{{- if ne (include "kubernetes-agent.openshift" .root) "true" }}
+{{- with .runAsUser }}
+runAsUser: {{ . }}
+{{- end }}
+{{- with .runAsGroup }}
+runAsGroup: {{ . }}
+{{- end }}
+{{- with .fsGroup }}
+fsGroup: {{ . }}
+{{- end }}
+{{- end }}
+seccompProfile:
+  type: RuntimeDefault
+{{- end -}}
+
+{{/*
+The resource attribute that names the cluster's Kubernetes distribution, for
+the collectors' resource processors on the OpenShift presets, next to
+oneuptime.agent.version: oneuptime.kubernetes.distribution=openshift. It
+tells OneUptime an OpenShift cluster from any other on every platform,
+on-premises included; the openshift detector below names only the cloud.
+Usage: {{- include "kubernetes-agent.distributionAttribute" (dict "action" "insert") | nindent 10 }}
+*/}}
+{{- define "kubernetes-agent.distributionAttribute" -}}
+- key: oneuptime.kubernetes.distribution
+  value: openshift
+  action: {{ .action }}
+{{- end -}}
+
+{{/*
+The collector's openshift resource detector, for the OpenShift presets. It
+reads the cloud the cluster runs on from the cluster's Infrastructure object
+(config.openshift.io, which templates/rbac.yaml lets the agent read) and sets
+cloud.provider and cloud.platform (aws_openshift, azure_openshift,
+gcp_openshift, ibm_cloud_openshift); an on-premises cluster gets neither.
+Two of its attributes stay off:
+  - k8s.cluster.name, which it would set to the infrastructure name, while
+    clusterName names the cluster in OneUptime (the resource processor);
+  - cloud.region, which before collector 0.165 it sets to Azure's and
+    OpenStack's cloud name, not a region.
+override: false leaves an attribute a record already carries as it is. Each
+pipeline runs it right after the resource processor.
+Usage: {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
+*/}}
+{{/*
+The label that says which DeploymentConfig a pod belongs to, for the
+k8sattributes processors on the OpenShift presets. A DeploymentConfig's pods
+are owned by the ReplicationController of its rollout, which k8sattributes
+does not resolve to a workload as it does a Deployment's, so nothing else on
+their telemetry names it. OpenShift sets this label on every one of them, and
+the DeploymentConfig's Metrics tab filters on it.
+Usage: {{- include "kubernetes-agent.deploymentConfigPodLabel" . | nindent 12 }}
+*/}}
+{{- define "kubernetes-agent.deploymentConfigPodLabel" -}}
+- tag_name: k8s.pod.label.deploymentconfig
+  key: deploymentconfig
+  from: pod
+{{- end -}}
+
+{{/*
+Whether the cluster collector pulls OpenShift's own objects - Routes,
+DeploymentConfigs, ClusterOperators and the ClusterVersion - on the OpenShift
+presets, with the other resource specs (resourceSpecs.enabled), for the
+Kubernetes pages and the OpenShift alert templates.
+
+They come from a k8sobjects receiver of their own with error_mode: ignore,
+which collector 0.125.0 added. A cluster that does not serve one of them
+(DeploymentConfigs are an optional capability since OpenShift 4.14) then
+skips it, where a missing object would otherwise stop the receiver that sends
+the events and every other spec. An older collector (a release upgraded with
+--reuse-values keeps its image) leaves them out until it is upgraded.
+Usage: {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.openshiftObjectsEnabled" -}}
+{{- if and (eq (include "kubernetes-agent.openshift" .) "true") .Values.resourceSpecs.enabled (eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.125.0")) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.openshiftDetector" -}}
+resourcedetection/openshift:
+  detectors: [openshift]
+  override: false
+  openshift:
+    resource_attributes:
+      k8s.cluster.name:
+        enabled: false
+      cloud.region:
+        enabled: false
+{{- end -}}
+
+{{/*
 Pod nodeSelector with the Linux-only pin merged in.
 
 Every image this chart deploys — the OTel collectors, OBI, the profiler,
@@ -816,9 +1074,12 @@ Usage (nindent to the `containers:` list-item column):
   command:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with .Values.debug.securityContext }}
+  {{- if .Values.debug.securityContext }}
   securityContext:
-    {{- toYaml . | nindent 4 }}
+    {{- toYaml .Values.debug.securityContext | nindent 4 }}
+  {{- else if eq (include "kubernetes-agent.openshiftRestricted" .) "true" }}
+  securityContext:
+    {{- include "kubernetes-agent.restrictedContainerSecurityContext" . | nindent 4 }}
   {{- end }}
   resources:
     {{- toYaml .Values.debug.resources | nindent 4 }}
@@ -836,8 +1097,8 @@ Effective log collection mode.
 Resolution order:
   1. Explicit .Values.logs.mode ("daemonset" | "api" | "disabled") always wins.
   2. Otherwise .Values.preset decides:
-       "gke-autopilot" / "eks-fargate" -> api
-       "standard" / "" / unset         -> daemonset
+       "gke-autopilot" / "eks-fargate" / "openshift-restricted" -> api
+       "standard" / "" / unset                                  -> daemonset
   3. Anything else falls back to "daemonset".
 */}}
 {{- define "kubernetes-agent.logMode" -}}
@@ -846,7 +1107,7 @@ Resolution order:
 {{- $explicit -}}
 {{- else -}}
 {{- $preset := default "" .Values.preset -}}
-{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}
+{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") (eq $preset "openshift-restricted") -}}
 api
 {{- else -}}
 daemonset
@@ -904,19 +1165,37 @@ Usage: {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "ve
 {{- end -}}
 
 {{/*
+The type the cumulative-to-delta processor goes by on the collector this
+renders for. Collector 0.157.0 renamed it cumulative_to_delta and keeps
+cumulativetodelta as a deprecated alias; a collector before 0.157.0 knows only
+cumulativetodelta and refuses the whole config for the new name ("unknown type"),
+and 0.96.0 is what `helm upgrade --reuse-values` keeps (_stale-defaults.tpl).
+Both names were validated on 0.96.0, 0.156.0, 0.157.0 and 0.161.0.
+Usage: {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
+*/}}
+{{- define "kubernetes-agent.cumulativeToDeltaProcessor" -}}
+{{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.157.0")) "true" -}}
+cumulative_to_delta
+{{- else -}}
+cumulativetodelta
+{{- end -}}
+{{- end -}}
+
+{{/*
 Platform capabilities, derived from the preset.
 
 hostPath is what separates the presets: GKE Autopilot and EKS Fargate reject it,
-which is why they collect pod logs through the Kubernetes API instead. But only
-SOME of the node collector needs hostPath — filelog needs /var/log/pods and
-hostmetrics needs /proc and /sys, while kubeletstats and the cAdvisor scrape
-just talk to the kubelet over the network. Modelling the capability instead of
-the log mode is what lets those clusters keep their node metrics.
+and OpenShift's restricted-v2 SCC does too, which is why they collect pod logs
+through the Kubernetes API instead. But only SOME of the node collector needs
+hostPath — filelog needs /var/log/pods and hostmetrics needs /proc and /sys,
+while kubeletstats and the cAdvisor scrape just talk to the kubelet over the
+network. Modelling the capability instead of the log mode is what lets those
+clusters keep their node metrics.
 Usage: {{- if eq (include "kubernetes-agent.hostPathAvailable" .) "true" }}
 */}}
 {{- define "kubernetes-agent.hostPathAvailable" -}}
 {{- $preset := default "" .Values.preset -}}
-{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}
+{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") (eq $preset "openshift-restricted") -}}
 false
 {{- else -}}
 true
@@ -942,12 +1221,13 @@ the continuous profiler each need one, with the host's PID namespace, to load
 eBPF programs into the kernel. GKE Autopilot refuses privileged pods: its
 admission rejects them, and the whole install with them. EKS Fargate runs
 neither privileged containers nor DaemonSets, so the two would sit there never
-scheduling. Like hostPath, this is decided by the preset.
+scheduling, and OpenShift's restricted-v2 SCC refuses them, so they would never
+be created. Like hostPath, this is decided by the preset.
 Usage: {{- if eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true" }}
 */}}
 {{- define "kubernetes-agent.privilegedPodsAllowed" -}}
 {{- $preset := default "" .Values.preset -}}
-{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}
+{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") (eq $preset "openshift-restricted") -}}
 false
 {{- else -}}
 true
@@ -980,6 +1260,19 @@ Usage: {{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
 */}}
 {{- define "kubernetes-agent.profilingEnabled" -}}
 {{- if and ((.Values.profiling | default dict).enabled) (eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether either privileged node pod runs: the eBPF instrumentation or the
+profiler. They share a service account and, on OpenShift, an SCC.
+Usage: {{- if eq (include "kubernetes-agent.ebpfPodsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.ebpfPodsEnabled" -}}
+{{- if or (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.profilingEnabled" .) "true") -}}
 true
 {{- else -}}
 false
@@ -1438,11 +1731,11 @@ Usage:
 
 {{/*
 Whether the control-plane scrape has anything to scrape: controlPlane.enabled
-and at least one component with endpoints. A component with none (etcd, the
-scheduler and the controller manager by default: they answer on the
-control-plane nodes, which the pod cannot guess) gets no job, and a
-prometheus receiver with no job at all refuses to start, so the receiver is
-only added when this is "true".
+and at least one component with endpoints, or one found through service
+discovery. A component with neither (etcd, the scheduler and the controller
+manager by default: they answer on the control-plane nodes, which the pod
+cannot guess) gets no job, and a prometheus receiver with no job at all refuses
+to start, so the receiver is only added when this is "true".
 
 Usage: {{- if eq (include "kubernetes-agent.controlPlaneScrapes" .) "true" }}
 */}}
@@ -1456,7 +1749,92 @@ Usage: {{- if eq (include "kubernetes-agent.controlPlaneScrapes" .) "true" }}
 {{- end -}}
 {{- end -}}
 {{- end -}}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" -}}
+{{- $any = true -}}
+{{- end -}}
 {{- $any -}}
+{{- end -}}
+
+{{/*
+Whether a control-plane component's scrape job finds its targets through
+service discovery rather than at the endpoints you list.
+
+OpenShift runs the scheduler, the controller manager and etcd as static pods
+on the control-plane nodes, one replica on each, behind a Service. A fixed
+address would reach whichever replica the Service picks, a different one on
+each scrape, so on the OpenShift presets each replica is found in the Service's
+EndpointSlices and scraped on its own, as OpenShift's own ServiceMonitors do.
+
+  - The scheduler and the controller manager accept the service account's
+    token: they delegate to the API server, and the ClusterRole grants GET on
+    /metrics.
+  - etcd asks for a client certificate, so it has a job only once
+    controlPlane.etcd.clientCertSecret names a Secret that holds one.
+  - The API server is not one of them: it answers at kubernetes.default.svc,
+    which needs no discovery.
+
+Endpoints you list win: the component keeps its job, at your list. A hosted
+control plane (ROSA with HCP, HyperShift) has no such pods in the cluster, so
+discovery finds no target there and nothing else changes. On any other preset
+these jobs do not render at all.
+
+Takes a dict: `root`, and `component`, a key of controlPlane.
+Usage: {{- if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "scheduler")) "true" }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneDiscovered" -}}
+{{- $controlPlane := .root.Values.controlPlane | default dict -}}
+{{- $values := get $controlPlane .component | default dict -}}
+{{- $discoverable := has .component (list "scheduler" "controllerManager") -}}
+{{- if eq .component "etcd" -}}
+{{- $discoverable = not (empty $values.clientCertSecret) -}}
+{{- end -}}
+{{- if and $controlPlane.enabled (eq (include "kubernetes-agent.openshift" .root) "true") $discoverable (not $values.endpoints) -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether any control-plane job uses service discovery, which is what the
+ClusterRole's read of EndpointSlices is for (templates/rbac.yaml) and what the
+notes explain.
+Usage: {{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneDiscovery" -}}
+{{- $root := . -}}
+{{- $any := false -}}
+{{- range $component := list "etcd" "scheduler" "controllerManager" -}}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $root "component" $component)) "true" -}}
+{{- $any = true -}}
+{{- end -}}
+{{- end -}}
+{{- $any -}}
+{{- end -}}
+
+{{/*
+How a scrape job finds a control-plane component's replicas on OpenShift: the
+EndpointSlices of one namespace, each of them a target at its own address, kept
+only for that Service and for its port with that name. A Service lists several
+ports (etcd's lists six), and every endpoint of every port is a target until
+relabelling drops it.
+
+Takes a dict: `namespace`, `service` and `port`, the port's name.
+Usage: {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-etcd" "service" "etcd" "port" "etcd-metrics") | nindent 14 }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneDiscoveryConfig" -}}
+kubernetes_sd_configs:
+  - role: endpointslice
+    namespaces:
+      names:
+        - {{ .namespace }}
+relabel_configs:
+  - source_labels: [__meta_kubernetes_service_name]
+    action: keep
+    regex: {{ .service }}
+  - source_labels: [__meta_kubernetes_endpointslice_port_name]
+    action: keep
+    regex: {{ .port }}
 {{- end -}}
 
 {{/*

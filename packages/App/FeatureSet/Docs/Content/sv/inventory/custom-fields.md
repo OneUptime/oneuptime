@@ -51,6 +51,8 @@ För en rullgardinstyp lägger du till dess alternativ under **Alternativ för r
 | **Datum och tid** | Senast granskad, tagen ur drift |
 | **Lång text** | Åtkomstinstruktioner, anteckningar: flera rader ren text |
 | **Formaterad text (Markdown)** | Anteckningar med formatering och länkar, skrivna i Markdown-redigeraren |
+| **Fil** | Ett garantibevis, en signerad inköpsorder, ett foto av rackets etikett: en fil |
+| **Flera filer** | Handböcker, fakturor och foton: upp till 10 filer |
 
 ## Ett genomarbetat tillgångsordförråd
 
@@ -79,6 +81,9 @@ Varje anpassat fält blir ett filter ovanför listan **All Items**, och filtret 
 | **Tal** | är, är inte, är större än, är större än eller lika med, är mindre än, är mindre än eller lika med, är tom, är inte tom |
 | **Boolesk**, **Rullgardinsmeny (enkelval)**, **Rullgardinsmeny (flerval)** | är, är inte, är tom, är inte tom |
 | **Datum**, **Datum och tid** | är, är före, är efter, är mellan, är tom, är inte tom |
+| **Fil**, **Flera filer** | är |
+
+Ett chip för **Fil** eller **Flera filer** frågar bara om en sak: om fältet **Har filer** eller har **Inga filer**.
 
 Filter kombineras med OCH, så ”Warranty Expiry är före 2026-10-01 OCH Lifecycle Status är I drift” är en vy av listan. Det är frågan som ett tillgångsregister finns för att besvara, och skälet att använda datumtyperna i stället för ett datum i ett textfält: ett textfält sparar gärna `2026-10-01` och kan sedan inte tala om vad som löper ut nästa kvartal.
 
@@ -91,6 +96,7 @@ Kolumner för anpassade fält är dolda från början: slå på dem från kolumn
 - Inget gör ett värde unikt. Två objekt kan ha samma serienummer, och inget hindrar dig.
 - Datum sparas som ISO-8601-tidsstämplar i UTC och visas i din egen tidszon.
 - Att radera ett fält tar bort det från listan och från filterraden. De värden som redan har skrivits ligger kvar på objekten.
+- Ett fält av typen **Fil** eller **Flera filer** tar filer på upp till 10 MB var, av de slag som står under [Filfält](/docs/incidents/settings#filfält), uppladdade i projektet. Bara den som får se objektet kan ladda ned dem, och en fil raderas så snart ingenting längre håller den.
 
 ## Nästa steg
 

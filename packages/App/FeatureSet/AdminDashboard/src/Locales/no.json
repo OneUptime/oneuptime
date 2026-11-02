@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Firmanavn som er knyttet til denne lisensen.",
+  "Annual contract value (in USD) for this license.": "Årlig kontraktsverdi (i USD) for denne lisensen.",
+  "Expiration date of this license.": "Utløpsdato for denne lisensen.",
+  "Something went wrong": "Noe gikk galt",
+  "An unexpected error has occurred. Please reload the page to continue": "Det oppstod en uventet feil. Last inn siden på nytt for å fortsette",
+  "Error details": "Feildetaljer",
+  "Still stuck?": "Står du fortsatt fast?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Last ned en lokal diagnosefil med feilstakken, komponentstakken, den rensede side-URL-en, nettleserdetaljer og OneUptime-bygget. Den leser aldri informasjonskapsler, lagrede nettleserdata eller skjemainnhold. Se gjennom den før du deler den med OneUptime Support.",
+  "Download support bundle": "Last ned støttepakke",
+  "Send it to {{email}}": "Send den til {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Støttepakken er lastet ned. Se gjennom den, og legg den deretter ved e-posten din.",
+  "The support bundle could not be downloaded. Please try again.": "Støttepakken kunne ikke lastes ned. Prøv igjen.",
   "common": {
     "save": "Lagre",
     "cancel": "Avbryt",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "{{price}} per bruker, fakturert årlig fra i dag.",
   "{{price}} per user, billed monthly from today.": "{{price}} per bruker, fakturert månedlig fra i dag.",
   "Our sales team will contact you to agree on a price.": "Salgsteamet vårt kontakter deg for å avtale en pris.",
+  "Current plan": "Gjeldende abonnement",
+  "Current plan, billed yearly": "Gjeldende abonnement, fakturert årlig",
+  "Current plan, billed monthly": "Gjeldende abonnement, fakturert månedlig",
   "{{count}}-day free trial": "{{count}} dagers gratis prøveperiode",
   "{{count}}-day free trial_one": "{{count}} dags gratis prøveperiode",
   "Free for {{count}} days, no card needed to start.": "Gratis i {{count}} dager, uten kort for å komme i gang.",
@@ -1560,5 +1575,12 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  }
+  },
+  "Compact rows": "Kompakte rader",
+  "Sort by": "Sorter etter",
+  "Sorted by {{column}}": "Sortert etter {{column}}",
+  "Sort": "Sorter",
+  "Ascending": "Stigende",
+  "Descending": "Synkende",
+  "Select all items": "Velg alle elementer"
 }

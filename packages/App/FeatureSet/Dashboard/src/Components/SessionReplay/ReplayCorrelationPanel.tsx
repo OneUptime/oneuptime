@@ -7,9 +7,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TelemetryDetailPanel, {
   TelemetryDetailPanelTab,
 } from "Common/UI/Components/TelemetryViewer/components/TelemetryDetailPanel";
@@ -32,6 +29,7 @@ import {
   ExceptionGroupSummary,
   indexExceptionGroupsByFingerprint,
 } from "../../Utils/ExceptionCorrelation";
+import { findExceptionsOfFingerprints } from "../../Utils/ExceptionMerge";
 import {
   ReplayExceptionGroupLink,
   buildReplayExceptionGroupLinks,
@@ -156,28 +154,17 @@ export interface ReplayCorrelationPanelProps {
     | undefined;
 }
 
-/* The default lookup: one request for the whole (<= 50) fingerprint set. */
+/*
+ * The default lookup: one request for the whole (<= 100) fingerprint set,
+ * answered with the exception each counts on - its own, or the one it was
+ * merged into.
+ */
 export async function fetchExceptionGroupsByFingerprint(
   fingerprints: Array<string>,
 ): Promise<Map<string, ExceptionGroupSummary>> {
-  const result: ListResult<TelemetryException> =
-    await ModelAPI.getList<TelemetryException>({
-      modelType: TelemetryException,
-      query: {
-        fingerprint: new Includes(fingerprints),
-      },
-      limit: fingerprints.length,
-      skip: 0,
-      select: {
-        _id: true,
-        fingerprint: true,
-        exceptionType: true,
-        message: true,
-      },
-      sort: {},
-    });
-
-  return indexExceptionGroupsByFingerprint(result.data);
+  return indexExceptionGroupsByFingerprint(
+    await findExceptionsOfFingerprints(fingerprints),
+  );
 }
 
 interface DetailRowProps {

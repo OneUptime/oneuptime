@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -40,6 +41,9 @@ const TEMPLATES_DIR: string = Path.resolve(
 );
 
 const SUBSCRIBER_TEMPLATE_FILE: RegExp = /^Subscriber.*\.hbs$/;
+
+// A raw slot's value written by an email language helper that escapes it.
+const ESCAPING_LANGUAGE_HELPER_CALL: RegExp = /^\((?:tHtml|ttHtml)\s/;
 
 const SUBSCRIBER_TEMPLATES: Array<string> = fs
   .readdirSync(TEMPLATES_DIR)
@@ -88,6 +92,8 @@ const URL_VARIABLES: ReadonlyArray<string> = [
 ];
 
 const handlebars: typeof Handlebars = Handlebars.create();
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(handlebars);
 
 function templateSource(filename: string): string {
   return fs.readFileSync(Path.join(TEMPLATES_DIR, filename), "utf8");
@@ -224,6 +230,19 @@ describe("default subscriber email templates", () => {
           // Text written into the template. Only InfoBlock prose may be raw.
           if (slot !== "info") {
             problems.push(`${slot}=${value} (put literal text on plainText=)`);
+          }
+          continue;
+        }
+
+        /*
+         * Text written into the template, in the email's language
+         * (Utils/EmailLanguage): tHtml and ttHtml escape what they write,
+         * their sentence and every value of it, once. Only InfoBlock prose
+         * may be raw, as above.
+         */
+        if (ESCAPING_LANGUAGE_HELPER_CALL.test(value)) {
+          if (slot !== "info") {
+            problems.push(`${slot}=${value} (put written text on plainText=)`);
           }
           continue;
         }

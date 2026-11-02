@@ -483,7 +483,7 @@ describe("security_entity_activity", () => {
 });
 
 describe("query_security_playbooks", () => {
-  test("the playbooks that are on, each with its steps and which wait for approval", async () => {
+  test("the playbooks that are on, each with its steps, what each waits on, and which wait for approval", async () => {
     const ctx: ToolContext = context();
     const findBy: jest.SpyInstance = jest
       .spyOn(SecurityPlaybookService, "findBy")
@@ -519,8 +519,56 @@ describe("query_security_playbooks", () => {
     expect(callArg(findBy)["props"]).toBe(ctx.props);
     expect(callArg(findBy)["query"]).toEqual({ projectId, isEnabled: true });
     expect(result.dataForLlm).toContain(playbookId.toString());
+    // The step's condition is part of what it does: the AI says when it runs.
     expect(result.dataForLlm).toContain(
-      "Check entities against threat intel, then Contain the host in CrowdStrike (needs approval)",
+      "Check entities against threat intel, then Contain the host in CrowdStrike (only if threat intel matched; needs approval)",
+    );
+  });
+
+  test("a step that waits on an earlier step's result says which step, and which result", async () => {
+    const ctx: ToolContext = context();
+
+    jest.spyOn(SecurityPlaybookService, "findBy").mockResolvedValue([
+      {
+        id: playbookId,
+        name: "Contain or Hand Over",
+        trigger: "Manual",
+        steps: [
+          {
+            id: "s1",
+            action: SecurityPlaybookActionType.CheckThreatIntel,
+            config: {},
+            requiresApproval: false,
+            continueOnFailure: false,
+            onlyIfThreatIntelMatched: false,
+          },
+          {
+            id: "s2",
+            action: SecurityPlaybookActionType.ContainCrowdStrikeHost,
+            config: { connectionId: "66666666-6666-4666-8666-666666666666" },
+            requiresApproval: true,
+            continueOnFailure: false,
+            onlyIfThreatIntelMatched: false,
+            runIf: { stepId: "s1", outcome: "Found" },
+          },
+          {
+            id: "s3",
+            action: SecurityPlaybookActionType.AddCaseNote,
+            config: { note: "Nothing known-bad: check by hand." },
+            requiresApproval: false,
+            continueOnFailure: false,
+            onlyIfThreatIntelMatched: false,
+            runIf: { stepId: "s1", outcome: "Found Nothing" },
+          },
+        ],
+      } as unknown as SecurityPlaybook,
+    ]);
+
+    const result: ToolExecutionResult =
+      await QuerySecurityPlaybooksTool.execute({}, ctx);
+
+    expect(result.dataForLlm).toContain(
+      "Check entities against threat intel, then Contain the host in CrowdStrike (only if step 1 found a known-bad entity; needs approval), then Add a note (only if step 1 found nothing known-bad)",
     );
   });
 

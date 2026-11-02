@@ -3424,3 +3424,106 @@ describe("Incident:SendNotificationToSubscribers subscribers who picked a monito
     expect(emailsSentTo()).toEqual(page.told);
   });
 });
+
+/*
+ * Every message to a subscriber is written in their language: the one they
+ * read the page in when they signed up, else the page's default language
+ * (SubscriberLanguage). OneUptime's own words change; the incident's title,
+ * names and links read as written, and the webhook's payload is the same
+ * machine-readable JSON in every language.
+ */
+describe("Incident:SendNotificationToSubscribers, in the subscriber's language", () => {
+  function germanPage(): StatusPage {
+    const page: StatusPage = statusPage();
+    page.defaultLanguage = "de";
+    return page;
+  }
+
+  test("a page whose default language is German writes its subscribers German", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([germanPage()] as never);
+
+    await runJob();
+
+    expect(sentMail()[0]!["subject"]).toBe(`[Vorfall] ${INCIDENT_TITLE}`);
+    expect(sentMail()[0]!["language"]).toBe("de");
+    expect(sentSms()).toEqual([
+      `Vorfall ${INCIDENT_TITLE} (Critical) auf Acme Status. Betroffen: Checkout API. Details: ${DETAILS_URL}. Abbestellen: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+    expect(sentSlack()[0]).toContain(`Vorfall - ${INCIDENT_TITLE}`);
+    expect(sentSlack()[0]).toContain("Schweregrad:");
+    expect(sentSlack()[0]).toContain("Statusseite ansehen");
+    expect(sentTeams()[0]).toContain("**Betroffene Ressourcen:** Checkout API");
+    expect(sentTeams()[0]).toContain("Abbestellen");
+    expect(sentTeams()[0]).not.toContain("View Status Page");
+  });
+
+  test("a subscriber who read the page in French is written French, on the same page", async () => {
+    const french: StatusPageSubscriber = subscriber();
+    french.language = "fr";
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([germanPage()] as never);
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue([french] as never);
+
+    await runJob();
+
+    expect(sentMail()[0]!["subject"]).toBe(`[Incident] ${INCIDENT_TITLE}`);
+    expect(sentMail()[0]!["language"]).toBe("fr");
+    expect(sentSms()[0]).toContain("sur Acme Status. Impact : Checkout API.");
+    expect(sentSms()[0]).toContain(`Désabonnement : ${SMS_UNSUBSCRIBE_URL}`);
+    expect(sentSlack()[0]).toContain("Voir la page de statut");
+  });
+
+  test("OneUptime's default severity name is written in the subscriber's language", async () => {
+    const majorIncident: Incident = incident();
+    const severity: IncidentSeverity = new IncidentSeverity();
+    severity.name = "Major Incident";
+    majorIncident.incidentSeverity = severity;
+    pendingIncidents = [majorIncident];
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([germanPage()] as never);
+
+    await runJob();
+
+    expect(sentSms()[0]).toContain("(Schwerwiegender Vorfall)");
+    expect(sentSlack()[0]).toContain(
+      "**Schweregrad:** Schwerwiegender Vorfall",
+    );
+    expect((sentMail()[0]!["vars"] as JSONObject)["incidentSeverity"]).toBe(
+      "Schwerwiegender Vorfall",
+    );
+  });
+
+  test("an English page writes as it always has: no language on the email", async () => {
+    await runJob();
+
+    expect(Object.keys(sentMail()[0]!)).not.toContain("language");
+    expect(sentSms()[0]).toContain("Details:");
+    expect(sentSms()[0]).toContain("Unsub:");
+  });
+
+  test("the webhook's payload is the same in every language", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([germanPage()] as never);
+
+    await runJob();
+
+    const payload: JSONObject = sentWebhooks()[0]!;
+
+    expect(payload["eventType"]).toBe("IncidentCreated");
+    expect((payload["data"] as JSONObject)["incidentSeverity"]).toBe(
+      "Critical",
+    );
+    expect((payload["data"] as JSONObject)["incidentTitle"]).toBe(
+      INCIDENT_TITLE,
+    );
+  });
+});

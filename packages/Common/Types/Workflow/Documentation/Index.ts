@@ -12,6 +12,7 @@ import ComponentID from "../ComponentID";
 import { getAIGenerateTextDocumentation } from "./AIDocumentation";
 import {
   getApiDeleteDocumentation,
+  getApiGetByIdDocumentation,
   getApiGetDocumentation,
   getApiPatchDocumentation,
   getApiPostDocumentation,
@@ -19,6 +20,11 @@ import {
 } from "./APIDocumentation";
 import ComponentDocumentation from "./ComponentDocumentation";
 import { getDatabaseDocumentation } from "./DatabaseDocumentation";
+import { getZabbixUpdateProblemDocumentation } from "./ZabbixDocumentation";
+import {
+  getAlertFromAnotherToolDocumentation,
+  getIncidentFromAnotherToolDocumentation,
+} from "./FromAnotherToolDocumentation";
 import {
   ComponentDocumentationBuilder,
   ComponentDocumentationContext,
@@ -48,6 +54,7 @@ import {
 import {
   getExecuteWorkflowDocumentation,
   getIfElseDocumentation,
+  getJavaScriptCheckDocumentation,
   getJavaScriptDocumentation,
   getJsonToTextDocumentation,
   getLogDocumentation,
@@ -75,10 +82,12 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   [ComponentID.IRCSendMessageToChannel]: getIRCDocumentation,
   [ComponentID.MattermostSendMessageToChannel]: getMattermostDocumentation,
   [ComponentID.JavaScriptCode]: getJavaScriptDocumentation,
+  [ComponentID.JavaScriptCheck]: getJavaScriptCheckDocumentation,
   [ComponentID.JsonToText]: getJsonToTextDocumentation,
   [ComponentID.TextToJson]: getTextToJsonDocumentation,
   [ComponentID.MergeJson]: getMergeJsonDocumentation,
   [ComponentID.ApiGet]: getApiGetDocumentation,
+  [ComponentID.ApiGetById]: getApiGetByIdDocumentation,
   [ComponentID.ApiPut]: getApiPutDocumentation,
   [ComponentID.ApiPost]: getApiPostDocumentation,
   [ComponentID.ApiDelete]: getApiDeleteDocumentation,
@@ -89,6 +98,10 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   [ComponentID.WorkflowRun]: getExecuteWorkflowDocumentation,
   [ComponentID.Sleep]: getSleepDocumentation,
   [ComponentID.AIGenerateText]: getAIGenerateTextDocumentation,
+  [ComponentID.IncidentFromAnotherTool]:
+    getIncidentFromAnotherToolDocumentation,
+  [ComponentID.AlertFromAnotherTool]: getAlertFromAnotherToolDocumentation,
+  [ComponentID.ZabbixUpdateProblem]: getZabbixUpdateProblemDocumentation,
   [ComponentID.PageUsers]: getPageUsersDocumentation,
   [ComponentID.PageTeam]: getPageTeamDocumentation,
   [ComponentID.PageOnCall]: getPageOnCallDocumentation,

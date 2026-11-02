@@ -1,6 +1,7 @@
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
 import Dictionary from "Common/Types/Dictionary";
+import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MonitorStepIoTMonitor, {
@@ -76,10 +77,6 @@ const expectedDevices: jest.Mock =
 const monitorId: ObjectID = ObjectID.generate();
 const projectId: ObjectID = ObjectID.generate();
 
-interface QueryArgs {
-  query: { name: string; attributes?: Dictionary<string> };
-}
-
 function iotStep(input: {
   resourceFilters: MonitorStepIoTMonitor["resourceFilters"];
   groupByDevice?: boolean | undefined;
@@ -100,10 +97,36 @@ function iotStep(input: {
   return step;
 }
 
-// The attributes of the one query the worker ran, aggregated or raw.
+/*
+ * The fleet as the query matches it: a Wildcard of the escaped name, which
+ * the analytics query compiles to a case-insensitive exact match (ILIKE).
+ */
+const FLEET_MATCH: string = "ilike:warehouse-sensors";
+
+/*
+ * The attributes of the one query the worker ran, aggregated or raw, with a
+ * Wildcard entry written as its ILIKE patterns.
+ */
 function queriedAttributes(mock: jest.Mock): Dictionary<string> | undefined {
   expect(mock).toHaveBeenCalledTimes(1);
-  return (mock.mock.calls[0]![0] as QueryArgs).query.attributes;
+  const attributes: Dictionary<unknown> | undefined = (
+    mock.mock.calls[0]![0] as { query: { attributes?: Dictionary<unknown> } }
+  ).query.attributes;
+
+  if (!attributes) {
+    return undefined;
+  }
+
+  const written: Dictionary<string> = {};
+
+  for (const [key, value] of Object.entries(attributes)) {
+    written[key] =
+      value instanceof Wildcard
+        ? `ilike:${value.toPatterns().join("|")}`
+        : String(value);
+  }
+
+  return written;
 }
 
 beforeEach(() => {
@@ -138,7 +161,7 @@ describe("monitorIoT: every resource filter that is set must match", () => {
     });
 
     expect(queriedAttributes(metricAggregateBy)).toEqual({
-      "resource.iot.fleet.name": "warehouse-sensors",
+      "resource.iot.fleet.name": FLEET_MATCH,
       "device.id": "sensor-001",
       "iot.device.type": "sensor",
     });
@@ -177,11 +200,22 @@ describe("monitorIoT: every resource filter that is set must match", () => {
       projectId,
     });
 
-    expect(metricAggregateBy).not.toHaveBeenCalled();
-    expect(queriedAttributes(metricFindBy)).toEqual({
-      "resource.iot.fleet.name": "warehouse-sensors",
+    /*
+     * Grouped in SQL by the device (#5281): one aggregate, never a read of
+     * raw rows, with every filter on it.
+     */
+    expect(metricFindBy).not.toHaveBeenCalled();
+    expect(queriedAttributes(metricAggregateBy)).toEqual({
+      "resource.iot.fleet.name": FLEET_MATCH,
       "device.id": "sensor-001",
     });
+    expect(
+      (
+        metricAggregateBy.mock.calls[0]![0] as {
+          groupByAttributeKeys?: Array<string>;
+        }
+      ).groupByAttributeKeys,
+    ).toEqual(["device.id"]);
   });
 
   test("each filter on its own narrows the query by itself", async () => {
@@ -212,7 +246,7 @@ describe("monitorIoT: every resource filter that is set must match", () => {
       });
 
       expect(queriedAttributes(metricAggregateBy)).toEqual({
-        "resource.iot.fleet.name": "warehouse-sensors",
+        "resource.iot.fleet.name": FLEET_MATCH,
         [entry.key]: entry.value,
       });
     }
@@ -226,7 +260,7 @@ describe("monitorIoT: every resource filter that is set must match", () => {
     });
 
     expect(queriedAttributes(metricAggregateBy)).toEqual({
-      "resource.iot.fleet.name": "warehouse-sensors",
+      "resource.iot.fleet.name": FLEET_MATCH,
     });
   });
 
@@ -241,7 +275,7 @@ describe("monitorIoT: every resource filter that is set must match", () => {
       });
 
       expect(queriedAttributes(metricAggregateBy)).toEqual({
-        "resource.iot.fleet.name": "warehouse-sensors",
+        "resource.iot.fleet.name": FLEET_MATCH,
       });
     }
   });
@@ -264,14 +298,20 @@ describe("monitorIoT: every resource filter that is set must match", () => {
       }),
     );
 
-    // One device of the fleet still reports, so the silent ones can be told apart.
-    metricFindBy.mockResolvedValue([
-      {
-        time: new Date(),
-        value: 80,
-        attributes: { "device.id": "sensor-001" },
-      },
-    ]);
+    /*
+     * One device of the fleet still reports, so the silent ones can be told
+     * apart: its minute as the grouped read returns it, grouped in SQL by
+     * the device (#5281).
+     */
+    metricAggregateBy.mockResolvedValue({
+      data: [
+        {
+          timestamp: new Date(),
+          value: 80,
+          attributes: { "device.id": "sensor-001" },
+        },
+      ],
+    });
 
     await monitorIoT({
       monitorStep: step,

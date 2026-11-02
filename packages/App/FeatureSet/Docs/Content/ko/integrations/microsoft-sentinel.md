@@ -60,7 +60,7 @@ Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **Microsoft Sentinel**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿 값을 **클라이언트 시크릿**에 붙여 넣습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **Microsoft Sentinel**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿 값을 **클라이언트 시크릿**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
@@ -174,7 +174,7 @@ Azure Portal에서 작업 영역의 **Tables → Create → New custom log (DCR-
 
 ### 대상 추가하기
 
-**제품 → Security Events → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Microsoft Sentinel을 고른 뒤 **다음** 을 클릭합니다. **디렉터리(테넌트) ID**, **애플리케이션(클라이언트) ID**, **클라이언트 시크릿**, 데이터 수집 엔드포인트(또는 규칙)의 **Overview** 에 있는 **로그 수집 엔드포인트**, 규칙의 **JSON View** 에 있는 **데이터 수집 규칙 변경 불가 ID** 를 입력합니다. **스트림** 은 선택 사항이며, 비워 두면 `Custom-OneUptimeSecurityEvents_CL` 입니다.
+**제품 → 보안 이벤트 → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Microsoft Sentinel을 고른 뒤 **다음** 을 클릭합니다. **디렉터리(테넌트) ID**, **애플리케이션(클라이언트) ID**, **클라이언트 시크릿**, 데이터 수집 엔드포인트(또는 규칙)의 **Overview** 에 있는 **로그 수집 엔드포인트**, 규칙의 **JSON View** 에 있는 **데이터 수집 규칙 변경 불가 ID** 를 입력합니다. **스트림** 은 선택 사항이며, 비워 두면 `Custom-OneUptimeSecurityEvents_CL` 입니다.
 
 ### 테스트 이벤트를 보내고 전송 시작하기
 

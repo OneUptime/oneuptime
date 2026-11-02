@@ -77,6 +77,8 @@ export const EXCEPTION_TREND_COLORS: { unhandled: string; handled: string } = {
 
 export interface ComponentProps {
   fingerprint: string | undefined;
+  // The fingerprints of the exceptions merged into this one: charted with it.
+  mergedFingerprints?: Array<string> | undefined;
   primaryEntityId?: ObjectID | undefined;
 }
 
@@ -223,6 +225,7 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
     const body: JSONObject | null = buildExceptionTrendZoomRequest({
       windowKey,
       fingerprint: props.fingerprint,
+      mergedFingerprints: props.mergedFingerprints,
       primaryEntityId,
       zoomWindow,
     });
@@ -280,7 +283,13 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [windowKey, zoomWindow, props.fingerprint, primaryEntityId]);
+  }, [
+    windowKey,
+    zoomWindow,
+    props.fingerprint,
+    (props.mergedFingerprints || []).join(","),
+    primaryEntityId,
+  ]);
 
   const rows: Array<ExceptionTrendChartRow> = useMemo(() => {
     return buildExceptionTrendRows(buckets, request).map(

@@ -24,7 +24,7 @@ flowchart TB
 
 ## OneUptime 如何对 IoT 建模
 
-- **机群**：一组设备，例如 `building-a-sensors` 或 `field-gateways`。它来自 `iot.fleet.name` 资源属性，在 OneUptime 中显示为遥测服务 `iot/<fleet>`。同时设置 `service.name=iot/<fleet>`，让日志和指标归入同一个服务。
+- **机群**：一组设备，例如 `building-a-sensors` 或 `field-gateways`。它来自 `iot.fleet.name` 资源属性，在 OneUptime 中显示为遥测服务 `iot/<fleet>`。同时设置 `service.name=iot/<fleet>`，让日志和指标归入同一个服务。机群名称匹配时不区分大小写：为 `warehouse` 发送的读数会进入机群 `Warehouse`，并以该名称存储。
 - **设备**：机群中的一台设备，由每个数据点上的 `device.id` 属性命名。机群的清单以 `device.id` 为键。
 
 | 属性 | 设置位置 | 必需 | 说明 |
@@ -195,7 +195,7 @@ OneUptime 在 CONNECT 阶段以返回码 4（bad username or password）拒绝�
 
 ### 使用 Last Will 检测离线
 
-在 `oneuptime/<fleet>/<device>/status` 上注册一个负载为 `offline` 的 MQTT Last Will。如果设备宕掉或从网络中掉线，OneUptime 会在其会话结束的那一刻为它发布 `iot_device_up = 0`，从而触发内置的 Device Offline 警报模板，并在清单中把该设备标记为宕机，无需轮询。连接后向同一主题发布 `online`，设备就会再次显示为在线。
+在 `oneuptime/<fleet>/<device>/status` 上注册一个负载为 `offline` 的 MQTT Last Will。如果设备宕掉或从网络中掉线，OneUptime 会在其会话结束的那一刻为它发布 `iot_device_up = 0`，从而触发内置的 Device Offline 警报模板，并在清单中把该设备标记为宕机，无需轮询。连接后向同一主题发布 `online`，设备就会再次显示为在线。设备发布的任何读数也都算作在线，因此持续发送读数的设备无需再次发布状态即可保持在线。
 
 ### 示例
 
@@ -281,7 +281,7 @@ OneUptime 识别以下 `iot_*` 指标名称。只发送对你的设备有意义�
 | `iot_battery_percent` | 电池电量，`0` 到 `100`（%）。 |
 | `iot_signal_strength_dbm` | 以 dBm 表示的无线信号强度，例如 Wi-Fi、LoRa 或蜂窝网络的 RSSI。 |
 | `iot_temperature_celsius` | 设备或传感器的温度，单位为 °C。 |
-| `iot_cpu_usage_ratio` | 以 `0` 到 `1` 的比率表示的 CPU 使用率。OneUptime 会将其存储并显示为百分比。 |
+| `iot_cpu_usage_ratio` | 以 `0` 到 `1` 的比率表示的 CPU 使用率。OneUptime 按发送时的值存储，设备清单会将其显示为百分比。 |
 | `iot_memory_usage_bytes` | 正在使用的内存，单位为字节。 |
 | `iot_memory_size_bytes` | 设备上的内存总量，单位为字节。 |
 | `iot_uptime_seconds` | 设备自上次启动以来的秒数。 |
@@ -289,7 +289,7 @@ OneUptime 识别以下 `iot_*` 指标名称。只发送对你的设备有意义�
 ## 检查机群是否出现
 
 1. 检查设备、网关上的 Collector 或 MQTT 客户端是否在无错误地发送：在其日志中查找导出失败和 HTTP `401` 或 `422` 响应，或者以返回码 4 被拒绝的连接。
-2. 打开 **产品 → 基础设施 → IoT → All Fleets**。在第一批读数到达后大约一分钟内，机群会以 `iot/<fleet>` 出现。
+2. 打开 **产品 → 基础设施 → IoT → All Fleets**。在第一批读数到达后大约一分钟内，机群会以它的名称出现。
 3. 打开机群的 **设备** 页面。你发送过数据的每台设备都应列在其中，并显示其最新的电量、信号、温度、CPU、内存以及在线或宕机状态。
 4. 打开机群的 **指标** 页面，即可绘制任何 `iot_*` 序列的图表。
 

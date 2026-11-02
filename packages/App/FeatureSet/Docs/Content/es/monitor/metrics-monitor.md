@@ -131,7 +131,16 @@ Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la co
 | **Sin datos** | ausente: la consulta no envió nada en la ventana |
 | **Con datos** | presente: la consulta envió algo en la ventana |
 
-Las condiciones de anomalía no tienen umbral. En su lugar, **Cuándo alertar** muestra **Sensibilidad** (Baja, Media, la predeterminada, o Alta), y los criterios propios también una **Ventana de referencia** (14 días, la predeterminada, 28, 60 o 90), y cada punto de datos se compara con la referencia de la misma hora de la semana construida con esa ventana. Hasta que esa hora de la semana tenga suficiente historial, el criterio sigue aprendiendo y no genera alertas.
+Las condiciones de anomalía no tienen umbral. En su lugar, **Cuándo alertar** muestra **Sensibilidad** (Baja, Media, la predeterminada, o Alta), y los criterios propios también una **Ventana de referencia** (14 días, la predeterminada, 28, 60 o 90), y cada punto de datos se compara con la misma hora de la semana en días anteriores, hasta donde llega esa ventana. Lo que ocurre ahora nunca forma parte de esa comparación, así que un cambio que perdura sigue alertando hasta que, una semana después, ha entrado en esos días anteriores. Hasta que esa hora de la semana tenga dos semanas de historial, el criterio sigue aprendiendo y no genera alertas.
+
+Con qué se compara un punto de datos depende de la consulta:
+
+- **Sus servicios.** Un monitor que nombra servicios se compara solo con esos servicios. Uno que no nombra ninguno se compara con todos los servicios que informan la métrica.
+- **Un promedio, mínimo, máximo o percentil de una métrica simple** se compara con las muestras de la métrica, hasta donde llega la **Ventana de referencia**.
+- **Una suma o un recuento, y cualquier consulta sobre un histograma,** se compara con los propios puntos de datos de la consulta. Estos se conservan tanto como tus métricas, así que la comparación no llega más atrás: 15 días, salvo que lo hayas cambiado.
+- **Una consulta filtrada o agrupada por un atributo** se compara con todas las series de sus servicios, porque una línea de referencia no guarda atributos, así que solo nota un cambio lo bastante grande como para salir del rango de todas ellas. Si es una suma, un recuento o una consulta sobre un histograma, no hay nada con qué compararla y sigue aprendiendo. Lo mismo ocurre con un percentil de un histograma.
+
+Una suma o un recuento solo cuenta como bajo en un punto de datos completo con otro completo después, porque los más recientes aún se están llenando. Por eso una ventana de un minuto solo puede encontrar uno alto.
 
 Un monitor de métricas creado en Crear monitor empieza con una regla sobre su primera consulta: **La media** en **Últimos 5 minutos**, **Por encima de** el **Valor** que indiques, y **Crear una alerta**.
 
@@ -214,7 +223,7 @@ La consulta no tiene **Agrupar por**, así que todos los hosts se reducen a un s
 :::
 
 :::details Un criterio de anomalía nunca se dispara
-Sigue aprendiendo: la hora de la semana con la que compara aún no tiene suficiente historial dentro de la **Ventana de referencia**.
+Sigue aprendiendo: la hora de la semana con la que compara aún no tiene dos semanas de historial. Una suma, un recuento o una consulta sobre un histograma filtrados o agrupados por un atributo siguen aprendiendo para siempre, y lo mismo un percentil de un histograma: no hay historial con el que compararlos.
 :::
 
 ## Próximos pasos

@@ -96,8 +96,16 @@ export const MAX_VALUE_FONT_SIZE_IN_PX: number = 96;
  * take its height from somewhere. That step is deliberate and bounded (the
  * number never goes below MIN_VALUE_FONT_SIZE_IN_PX and is never clipped);
  * making it continuous would mean never showing a title on a short tile.
+ *
+ * The title's gate lets a one-row tile on the board's shortest row keep its
+ * name: rows are 70px on every board 500 to 950px wide and on a phone, where
+ * the widgets are one under another (DASHBOARD_MIN_ROW_HEIGHT_IN_PX in
+ * DashboardBoardLayout). Such a tile has a 44px content box; its 18.5px
+ * title leaves 25.5px for a 20px number. At 26px the title fell half a pixel
+ * short, so the shipped 3x1 tile showed a number with no name on a laptop
+ * beside the side menu and on every phone.
  */
-const TITLE_GATE_VALUE_ROW_IN_PX: number = 26;
+const TITLE_GATE_VALUE_ROW_IN_PX: number = 25;
 const STATUS_GATE_VALUE_ROW_IN_PX: number = 40;
 
 /**

@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-Azure Container Apps의 트레이스, 로그, 메트릭을 OneUptime으로 보냅니다. `cloud.platform=azure_container_apps`를 보고하는 모든 복제본은 Azure 구독과 리전마다 하나의 **Cloud Environment**(예: _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_)에 들어가며, 실행 중인 복제본은 **인스턴스**에 나열됩니다.
+Azure Container Apps의 트레이스, 로그, 메트릭을 OneUptime으로 보냅니다. `cloud.platform=azure_container_apps`를 보고하는 모든 복제본은 Azure 구독과 리전마다 하나의 **클라우드 환경**(예: _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_)에 들어가며, 실행 중인 복제본은 **인스턴스**에 나열됩니다.
 
 :::cards
 - [작동 방식](#작동-방식): 감지기가 설정하는 것과 직접 설정하는 두 가지 속성.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-`Everything is ready`가 있고 `401`이나 `connection refused`가 없는지 확인하세요. 첫 스팬, 로그 또는 메트릭이 도착하고 1분 안에 환경이 **클라우드 → All Environments**에 _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ 라는 이름으로 나타납니다.
+`Everything is ready`가 있고 `401`이나 `connection refused`가 없는지 확인하세요. 첫 스팬, 로그 또는 메트릭이 도착하고 1분 안에 환경이 **앱 플랫폼 → 모든 환경**에 _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ 라는 이름으로 나타납니다.
 :::
 
 ## 환경의 관리형 OpenTelemetry 에이전트 사용하기

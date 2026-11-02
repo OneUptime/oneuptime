@@ -44,6 +44,8 @@ import UserPermissionUtil from "../../../../Server/Utils/UserPermission/UserPerm
 
 const projectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
+// The team a snapshot's rows are granted on: every current row names one.
+const teamId: ObjectID = ObjectID.generate();
 
 type MakePermissionFunction = (
   permissions: Array<Permission>,
@@ -61,6 +63,8 @@ const makePermission: MakePermissionFunction = (
         permission,
         labelIds: [],
         isBlockPermission: false,
+        // ProjectUser is held on no team's behalf; every other row names one.
+        ...(permission === Permission.ProjectUser ? {} : { teamId: teamId }),
         _type: "UserPermission",
       };
     }),

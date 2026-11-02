@@ -57,19 +57,19 @@ Under **Monitor Type**, click **More monitor types** and pick **Ceph** under **I
 
 ### Choose the cluster
 
-Under **Ceph Monitor Configuration**, pick the cluster from **Ceph Cluster**. Every cluster that has sent data is in the list.
+Under **Ceph Monitor Configuration**, pick the cluster from **Ceph Cluster**. Every cluster that has sent data is in the list. Once picked, a line under the field says whether data is arriving. **Add Ceph Cluster** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Pick one of the three tabs:
+A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on**. To watch something else:
 
-- **Quick Setup** — click a [template](#pre-built-alert-templates). It sets the metrics, filters, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** — pick one metric from **Ceph Metric**, then set **Aggregation** and **Time Range**. **OSD** and **Pool ID** narrow it to one daemon or pool.
-- **Advanced** — build queries and formulas yourself under **Select Metrics**, for example a used-capacity ratio from `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Group by** `ceph_daemon` or `pool_id` to judge each daemon or pool on its own.
+- **Change** — pick another [template](#pre-built-alert-templates). It sets the metrics, filters, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** (under **More fields**) — pick one metric from **Ceph Metric**, then set **Aggregation** and **Time Range**. **OSD** and **Pool ID** narrow it to one daemon or pool. A metric kept per pool or per daemon is judged pool by pool or daemon by daemon, with one incident each.
+- **Advanced** (under **More fields**) — build queries and formulas yourself under **Select Metrics**, for example a used-capacity ratio from `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Group by** `ceph_daemon` or `pool_id` to judge each daemon or pool on its own.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -87,7 +87,7 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 | **OSD** | Custom Metric, Advanced | Optional. Exact match on the `ceph_daemon` label, for example `osd.3`. |
 | **Pool ID** | Custom Metric, Advanced | Optional. Exact match on the `pool_id` label, for example `2`. |
 | **Ceph Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). |
-| **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum**, **Minimum**, **Sum** or **Count**. Starts at the metric's usual aggregation. |
+| **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum** or **Minimum**. Starts at the metric's usual aggregation. A Sum or a Count would add up every scrape in a minute, so they are left to **Advanced**. |
 | **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 1 Minute**; templates set their own. |
 | **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
 
@@ -95,11 +95,11 @@ Pool data series carry only the `pool_id` label: the pool's name exists solely o
 
 ### Health-check series
 
-`ceph_health_detail` exports **one series per active health check**, labeled `name` (for example `OSD_NEARFULL` or `RECENT_CRASH`) and `severity`. A series exists only while its check fires, so no series means healthy. To alert on any Ceph health check, filter on its `name`, fire on **Maximum** above `0`, and recover at `0` with **If No Data** set to **Treat As Zero** — exactly how the health-check templates are built. `ceph_daemon_health_metrics` works the same way per daemon, keyed by a `type` label (for example `SLOW_OPS`) and `ceph_daemon`.
+`ceph_health_detail` exports **one series per health check**, labeled `name` (for example `OSD_NEARFULL` or `RECENT_CRASH`) and `severity`. A check's series reads `1` while the check is active and `0` after it clears, and a check that has never fired has no series. To alert on any Ceph health check, filter on its `name`, fire on **Maximum** above `0`, and recover at `0` with **If No Data** set to **Treat As Zero** — exactly how the health-check templates are built. `ceph_daemon_health_metrics` works the same way per daemon, keyed by a `type` label (for example `SLOW_OPS`) and `ceph_daemon`.
 
 ## Pre-built alert templates
 
-**Quick Setup** offers 24 templates covering a silent cluster, cluster health, OSDs, placement groups and capacity. Each builds a complete monitor — queries, label filters, a group-by, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+The **What to alert on** list offers 24 templates covering a silent cluster, cluster health, OSDs, placement groups and capacity. Each builds a complete monitor — queries, label filters, a group-by, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold so a value hovering at the line does not flap. **Severity** is the label the picker shows; the incident and alert a template creates start on your project's most severe incident and alert severity.
 
@@ -175,7 +175,7 @@ The agent scrapes every mgr daemon every 30 seconds and keeps Ceph's own labels,
 | `ceph_healthcheck_slow_ops` | count | Slow OSD and monitor operations reported by the `SLOW_OPS` check. |
 | `ceph_daemon_health_metrics` | count | Per-daemon health metrics, keyed by `type` (for example `SLOW_OPS`) and `ceph_daemon`. |
 | `ceph_mon_quorum_status` | count | 1 when the monitor is in quorum, per `ceph_daemon` (for example `mon.a`). |
-| `ceph_mon_metadata` | count | Monitor metadata, always 1. Sum it to count monitors. |
+| `ceph_mon_metadata` | count | Monitor metadata, always 1 while the monitor reports. A Sum adds every scrape in a minute, so it does not count monitors. |
 | `ceph_cluster_total_bytes` | bytes | Total raw capacity. |
 | `ceph_cluster_total_used_bytes` | bytes | Raw capacity in use. |
 
@@ -190,7 +190,7 @@ The agent scrapes every mgr daemon every 30 seconds and keeps Ceph's own labels,
 | `ceph_osd_stat_bytes` | bytes | Raw capacity of the OSD's device. |
 | `ceph_osd_stat_bytes_used` | bytes | Raw bytes used on the OSD. Compare with the total to spot uneven or nearly full OSDs. |
 | `ceph_osd_numpg` | count | Placement groups on the OSD. |
-| `ceph_osd_metadata` | count | OSD metadata (hostname, device class, version), always 1. Sum it to count OSDs. |
+| `ceph_osd_metadata` | count | OSD metadata (hostname, device class, version), always 1 while the OSD reports. A Sum adds every scrape in a minute, so it does not count OSDs. |
 
 ### Pool metrics
 
@@ -207,7 +207,7 @@ The agent scrapes every mgr daemon every 30 seconds and keeps Ceph's own labels,
 
 ### Placement group metrics
 
-Every `ceph_pg_*` series is per pool, labeled `pool_id`; sum across pools for a cluster-wide count.
+Every `ceph_pg_*` series is per pool, labeled `pool_id`. A Sum adds every scrape in a minute as well as every pool, so compare pool by pool, grouped by `pool_id`, as the PG templates do.
 
 | Metric | Unit | Description |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
 | **If No Data** | Under **More fields**. What happens when the window has no samples: **Ignore** (the default), **Treat As Zero** or **Trigger**. |
 
-Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history. A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes, and the baseline holds none.
 
 Each criteria also says what to do when it matches: change the monitor status, create an alert, or declare an incident. Criteria are checked from top to bottom, and the first one that matches decides.
 
@@ -270,7 +270,7 @@ The templates that watch `ceph_health_detail` — Daemon Crash, Monitor Clock Sk
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-Health-check series, `ceph_daemon_health_metrics` included, exist only while a check fires, so finding none while the cluster is healthy is expected.
+A health check that has never fired has no series, `ceph_daemon_health_metrics` included, and one that has cleared reads `0`, so finding none, or only zeros, while the cluster is healthy is expected.
 :::
 
 :::details Counters like ceph_pool_wr_bytes only ever grow

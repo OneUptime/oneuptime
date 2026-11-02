@@ -225,8 +225,27 @@ Definitions live in their own model; the values live on the incident itself in t
 | **Date and time**            | A date and a time of day                             | Expected resolution                                |
 | **Long text**                | Several lines of plain text                          | Affected users or systems, additional information  |
 | **Rich text (Markdown)**     | Formatted text, in the Markdown editor with its visual mode | A workaround with links and lists           |
+| **File**                     | One file, dropped on the field or chosen             | A signed change request, a screenshot              |
+| **Multiple files**           | Up to 10 files                                       | Screenshots, logs and packet captures              |
 
 **Long text** and **Rich text (Markdown)** are available for the custom fields of every resource, not only incidents. A rich text value is stored as the Markdown it was written in. There is no radio button or checkbox group type: use a **Dropdown (single select)**, a **Dropdown (multi-select)** or a **Boolean**.
+
+### File fields
+
+A **File** field holds one file and a **Multiple files** field up to 10. On the incident's **Custom Fields** page, drop files on the field or click it to choose them: **Replace** swaps the file in a **File** field, and **Remove** takes a file out. The page lists each file by its name and size, and a click on it downloads it. The custom fields of every other resource take files the same way.
+
+| What | Limit |
+| --- | --- |
+| One file | 10 MB |
+| A **Multiple files** field | 10 files, 50 MB together |
+| Kinds of file | PDF, Word, RTF, Excel, PowerPoint and OpenDocument files, pictures (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF and HEIC), plain text, Markdown, CSV and JSON files, ZIP archives and packet captures |
+
+- **Checked by what it holds.** A file must hold what its type says, so a web page renamed `report.pdf` is refused. SVG images are not taken, because they can carry scripts.
+- **Your project's files only.** A field takes only files uploaded in the incident's own project.
+- **Downloaded, never opened in the page.** Only someone who may see the incident and its custom fields can download its files.
+- **Named, not linked, everywhere else.** The incidents list and its CSV export, the feed, note templates and subscriber messages show a file field as the names of its files. The list's filter asks whether the field **Has files** or has **No files**. Slack and Microsoft Teams leave file fields out of the custom fields they let you edit: add files in OneUptime.
+- **Deleted once nothing holds them.** A file that is removed or replaced, and the files of a deleted incident, are deleted, unless something else, such as another incident or a template, still holds them.
+- **Through the API and Terraform.** Upload the file with `POST /api/file` in the incident's project, sending its `name`, its `fileType` and the bytes base64 in `file`, then set the field to the `_id` it returns. The field reads back as the files it holds, each with its `fileId`, `name`, `fileType` and `size`. In Terraform, write each file as `{ fileId = oneuptime_file.contract.id }`, so the plan matches what the field reads back.
 
 ### Required on Create is checked by the dashboard only
 
@@ -271,6 +290,8 @@ When a user or an API key creates or updates an incident, each value the request
 | **Date**, **Date and time**                          | A date, preferably as ISO 8601 text.                          |
 | **Dropdown (single select)**                         | One of its options.                                           |
 | **Dropdown (multi-select)**                          | A list of its options, or a single option on its own.         |
+| **File**                                             | A file's id, or `{ "fileId": "<id>" }`, of a file uploaded in the incident's project. |
+| **Multiple files**                                   | A list of them, up to 10, or one on its own.                  |
 
 For a **Dropdown (multi-select)**, the refusal names the first 10 entries that are not among its options, and then how many more there are.
 

@@ -4,7 +4,7 @@ Een Proxmox-monitor bewaakt één Proxmox VE-cluster – de nodes, VM's en LXC-c
 
 :::cards
 - [De monitor maken](#een-proxmox-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Twaalf kant-en-klare waarschuwingen, één incident per node, gast of volume.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vijftien kant-en-klare waarschuwingen, één incident per node, gast of volume, en twee op de eigen meldingen van Proxmox VE.
 - [Resource-identiteit](#resource-identiteit): Hoe u één node, gast of opslagvolume target.
 - [Metrieken](#verzamelde-metrieken): Elke reeks `pve_*` waarop de monitor kan waarschuwen.
 :::
@@ -48,19 +48,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Proxmox** onder **
 
 ### Het cluster kiezen
 
-Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst.
+Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Proxmox-cluster toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** – klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metrieken, filters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
-- **Custom Metric** – kies één metriek in **Proxmox Metric** en stel dan **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken hem tot een soort resource of tot één resource.
-- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Groeperen op** `id` om elke resource afzonderlijk te beoordelen.
+- **Wijzigen** – kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metrieken, filters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
+- **Custom Metric** (onder **Meer velden**) – kies één metriek in **Proxmox Metric** en stel dan **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken hem tot een soort resource of tot één resource.
+- **Geavanceerd** (onder **Meer velden**) – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Groeperen op** `id` om elke resource afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat de metriek geen gegevens stuurt; stel daarom uw eigen drempel in.
 
 ### De monitor maken
 
@@ -95,7 +95,7 @@ Elke reeks draagt een datapuntlabel `id` dat de Proxmox-resource noemt waartoe z
 | `lxc/<vmid>` | Een LXC-container, bijvoorbeeld `lxc/101`. |
 | `storage/<node>/<storage>` | Een opslagvolume op een node, bijvoorbeeld `storage/pve1/local`. |
 
-Twee uitzonderingen: replicatiereeksen (`pve_replication_*`) dragen de id van de replicatie-**taak** in `id` (bijvoorbeeld `100-0`), en de clusterbrede `pve_not_backed_up_total` heeft helemaal geen `id`.
+Eén uitzondering: replicatiereeksen (`pve_replication_*`) dragen de id van de replicatie-**taak** in `id` (bijvoorbeeld `100-0`). De eigen reeksen van het cluster, zoals het quorum (`pve_up`) en `pve_not_backed_up_total`, dragen `cluster/<name>`.
 
 Filters vergelijken op gelijkheid, niet op een voorvoegsel, dus de agent splitst `id` ook in drie attributen waarop u kunt filteren. De sjablonen steunen erop:
 
@@ -109,7 +109,7 @@ Filter op `pve.scope` of `pve.type` voor één soort resource, op `pve.id` of `i
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt 12 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt 15 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en een drempelcriterium herstelt 10% voorbij zijn drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
@@ -117,34 +117,51 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritiek | `pve_up`, Count over het hele cluster, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | Node Offline | Kritiek | `pve_up` voor `pve.scope = node`, Min per `id` | Onder 1 | Op 1 |
-| Guest Down | Warning | `pve_up` en `pve_onboot_status` voor `pve.scope = guest`, Min per `id` | `pve_up` ligt onder 1 terwijl `pve_onboot_status` 1 is | `pve_up` staat weer op 1, of starten bij het opstarten is uitgezet |
+| Guest Down | Waarschuwing | `pve_up` en `pve_onboot_status` voor `pve.scope = guest`, Min per `id` | `pve_up` ligt onder 1 terwijl `pve_onboot_status` 1 is | `pve_up` staat weer op 1, of starten bij het opstarten is uitgezet |
 | Cluster Quorum at Risk | Kritiek | `pve_up` ÷ `pve_node_info` × 100 voor `pve.scope = node` (beide Som): het aandeel nodes dat online is | 50% of minder | Boven 55% |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` voor `pve.scope = node`, Avg per `id` | Boven 0,9 (90% van de kernen van de node) | Op of onder 0,81 |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 voor `pve.scope = node`, per `id` | Boven 85% | Op of onder 76,5% |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` voor `pve.scope = guest`, Avg per `id`, laatste 15 minuten | Boven 0,95 (95% van zijn vCPU's) gedurende alle 15 minuten | Op of onder 0,855 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 voor `pve.scope = storage`, per `id` | Boven 85% | Op of onder 76,5% |
-| Container Root Disk Near Full | Warning | Dezelfde schijfverhouding voor `pve.type = lxc`, per `id` | Boven 90% | Op of onder 81% |
+| Node Restarted | Waarschuwing | `pve_uptime_seconds` en `pve_up` voor `pve.scope = node`, Min per `id` | `pve_uptime_seconds` ligt onder 900 (15 minuten) terwijl `pve_up` 1 is | `pve_uptime_seconds` staat op 990 of meer, of `pve_up` is 0 |
+| High Node CPU Usage | Waarschuwing | `pve_cpu_usage_ratio` voor `pve.scope = node`, Avg per `id` | Boven 0,9 (90% van de kernen van de node) | Op of onder 0,81 |
+| High Node Memory Usage | Waarschuwing | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 voor `pve.scope = node`, per `id` | Boven 85% | Op of onder 76,5% |
+| High Guest CPU Usage | Waarschuwing | `pve_cpu_usage_ratio` voor `pve.scope = guest`, Avg per `id`, laatste 15 minuten | Boven 0,95 (95% van zijn vCPU's) gedurende alle 15 minuten | Op of onder 0,855 |
+| Storage Unavailable | Kritiek | `pve_up` voor `pve.scope = storage`, Min per `id` | Onder 1 | Op 1 |
+| Storage Near Full | Waarschuwing | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 voor `pve.scope = storage`, per `id` | Boven 85% | Op of onder 76,5% |
+| Container Root Disk Near Full | Waarschuwing | Dezelfde schijfverhouding voor `pve.type = lxc`, per `id` | Boven 90% | Op of onder 81% |
 | HA Resource in Error State | Kritiek | `pve_ha_state` voor `state = error`, Max per `id` | Boven 0 | Op 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (één clusterbrede reeks) | Boven 0 | Op 0 |
+| Guest Not Backed Up | Waarschuwing | `pve_not_backed_up_total`, Max (één clusterbrede reeks) | Boven 0 | Op 0 |
+| Backup Running Too Long | Waarschuwing | `pve_lock_state` voor `pve.scope = guest` en `state = backup`, Min per `id`, laatste 6 uur | Boven 0 | Op 0 |
 | Replication Failing | Kritiek | `pve_replication_failed_syncs`, Max per `id` (de taak-id) | Boven 0 | Op 0 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
 - **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van het cluster binnenkomt: de Proxmox-agent of zijn pve-exporter is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken, de Proxmox-API antwoordt hem niet meer, of elke node van een native push is stilgevallen. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 - **De sjablonen voor uitval gebruiken Minimum**, zodat één uitlezing waarin de resource uit lag ze laat afgaan, in plaats van verborgen te worden door uitlezingen waarin hij draaide.
-- **Guest Down** kijkt alleen naar gasten die bij het opstarten van de node moeten starten, dus een gast die u bewust hebt gestopt, roept nooit iemand op.
-- **Cluster Quorum at Risk** is een benadering: pve-exporter heeft geen corosync-metriek, dus het sjabloon telt de nodes die online zijn.
+- **Guest Down** kijkt alleen naar gasten die bij het opstarten van de node moeten starten: stopt u er bewust een, dan roept die toch iemand op, dus zet eerst het starten bij het opstarten uit.
+- **Cluster Quorum at Risk** telt de nodes die online zijn. pve-exporter meldt het quorum ook zelf, als `pve_up` voor `cluster/<name>`: 1 zolang het cluster quorum heeft.
+- **Node Restarted** gaat af voor een node die draait, maar nog geen 15 minuten: hij is herstart, of hij is gecrasht en teruggekomen. Het wordt opgelost zodra de node 16,5 minuten draait, 10% voorbij de drempel; een node die uitgevallen is, laat in plaats daarvan **Node Offline** afgaan.
 - **High Guest CPU Usage** ligt hoger en reageert trager dan het nodesjabloon: een gast hoort zijn vCPU's te gebruiken, dus alleen een gast die nooit terugzakt, roept iemand op.
 - **Verhoudingsformules** nemen aan beide kanten de **Som**. Beide komen uit dezelfde uitlezing, dus het resultaat is een echt percentage.
 - **Container Root Disk Near Full** laat QEMU-VM's buiten beschouwing: hun schijfgebruik staat zonder de QEMU-gastagent op 0.
+- **Storage Unavailable** gaat af wanneer een opslag die Proxmox VE voor een node vermeldt niet meer beschikbaar is: een share die niet te koppelen is, een Proxmox Backup Server die onbereikbaar is, een pool die verdwenen is. Gasten met schijven erop lopen vast of starten niet, en back-ups ernaartoe mislukken.
 - **Guest Not Backed Up** dekt alleen het lidmaatschap van back-uptaken. pve-exporter zegt niet of back-ups zijn uitgevoerd of geslaagd; groepeer `pve_not_backed_up_info` op `id` om de gasten op te sommen.
+- **Backup Running Too Long** gaat af wanneer een VM of container zes uur lang bij elke uitlezing door een back-up vergrendeld is: een vastgelopen back-up, of een doel dat te traag is voor de gast. Zolang de vergrendeling blijft, kan de gast niet worden gemigreerd, geen snapshot krijgen en niet opnieuw worden geback-upt.
 - **Verouderde replicatie** (nu min de laatste synchronisatie) kan geen waarschuwing geven, omdat criteria niet met de klok kunnen rekenen. De pagina **Overzicht** van het cluster toont het; waarschuw in plaats daarvan met **Replication Failing**.
+
+### Waarschuwingen op de meldingen van Proxmox VE
+
+Nog twee waarschuwingen lezen de eigen meldingen van Proxmox VE, die het cluster als logs verstuurt zodra u [ze naar OneUptime stuurt](/docs/telemetry/proxmox#de-meldingen-van-proxmox-ve-versturen). Het zijn logmonitors, aangeboden op de pagina **Aanbevelingen** van het cluster, en ze werken met de agent en met de native push.
+
+| Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | Waarschuwing | Meldingslogs met `pve.notification.type = vzdump` en `pve.notification.severity = error`, per node en taak, laatste 60 minuten | Een back-uptaak meldt een fout | De volgende run van dezelfde taak slaagt |
+| Node Fenced | Kritiek | Meldingslogs met `pve.notification.type = fencing`, per node, laatste 30 minuten | Proxmox VE isoleert een node (fencing) | Die node wordt 30 minuten lang niet opnieuw geïsoleerd |
+
+Elke node en elke back-uptaak krijgt een eigen incident en een eigen waarschuwing. De waarschuwing van een mislukte back-uptaak blijft open tot een latere run van dezelfde taak slaagt, hoe lang dat ook duurt.
 
 ### De native push van Proxmox VE
 
 Proxmox VE 9 en later kan metrieken pushen via zijn ingebouwde OpenTelemetry-metriekserver, zonder iets te installeren – zie de [handleiding voor de Proxmox-agent](/docs/telemetry/proxmox). OneUptime zet de push om in dezelfde reeksen `pve_*`, dus de catalogus en de sjablonen voor CPU, geheugen en opslag werken ermee.
 
-**Node Offline** en **Cluster Quorum at Risk** werken ook: elke node pusht alleen zijn eigen status, dus een node die niet meer rapporteert, wordt door de nodes die nog leven als uitgevallen gemeld (`pve_up` = 0) – zie [Als een node niet meer rapporteert](/docs/telemetry/proxmox#als-een-node-niet-meer-rapporteert). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** en **Replication Failing** hebben gegevens nodig die alleen de agent verzamelt.
+**Node Offline** en **Cluster Quorum at Risk** werken ook: elke node pusht alleen zijn eigen status, dus een node die niet meer rapporteert, wordt door de nodes die nog leven als uitgevallen gemeld (`pve_up` = 0) – zie [Als een node niet meer rapporteert](/docs/telemetry/proxmox#als-een-node-niet-meer-rapporteert). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** en **Replication Failing** hebben gegevens nodig die alleen de agent verzamelt. De twee [waarschuwingen op meldingen](#waarschuwingen-op-de-meldingen-van-proxmox-ve) werken er ook mee: Proxmox VE stuurt zijn meldingen zelf.
 
 ## Verzamelde metrieken
 
@@ -154,7 +171,7 @@ De agent leest prometheus-pve-exporter elke 30 seconden uit: zijn clustercollect
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_up` | — | 1 als de node of gast actief is of draait, anders 0. |
+| `pve_up` | — | 1 als de node, gast of opslag actief is, anders 0. Voor `cluster/<name>` 1 zolang het cluster quorum heeft. |
 | `pve_uptime_seconds` | seconden | Uptime van de node of gast. |
 | `pve_version_info` | aantal | De Proxmox VE-release, in zijn labels. Altijd 1. |
 
@@ -162,7 +179,7 @@ De agent leest prometheus-pve-exporter elke 30 seconden uit: zijn clustercollect
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_node_info` | aantal | Nodemetadata, altijd 1. Tel ze op om de nodes te tellen die rapporteren. |
+| `pve_node_info` | aantal | Nodemetadata, altijd 1 zolang de node rapporteert. Een som telt elke scrape van een minuut op, dus telt geen nodes. |
 | `pve_cpu_usage_ratio` | verhouding | Gebruikte CPU als verhouding van 0–1 van de beschikbare CPU. |
 | `pve_cpu_usage_limit` | kernen | Beschikbare CPU, in kernen. Voor een gast zijn vCPU's. |
 | `pve_memory_usage_bytes` | bytes | Geheugen in gebruik. |
@@ -180,6 +197,7 @@ De CPU- en geheugenreeksen worden ook voor elke gast gerapporteerd, op id's `qem
 | `pve_disk_read_bytes` | bytes | Door de gast van schijf gelezen bytes. Een teller over de hele levensduur. |
 | `pve_disk_write_bytes` | bytes | Door de gast naar schijf geschreven bytes. Een teller over de hele levensduur. |
 | `pve_onboot_status` | aantal | 1 als de gast start wanneer de node opstart. Een gestopte gast waarvoor dit is ingesteld, is meestal ongeplande uitval. |
+| `pve_lock_state` | — | De vergrendeling die Proxmox VE op een gast houdt terwijl een taak hem wijzigt, één reeks per vergrendeling (`backup`, `migrate`, `snapshot`, …), 1 op de actieve. Filter op het label `state`. |
 
 ### Opslag
 
@@ -187,7 +205,8 @@ De CPU- en geheugenreeksen worden ook voor elke gast gerapporteerd, op id's `qem
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Gebruikte bytes op de schijf of opslag. Voor een QEMU-gast staat dit op 0, tenzij de QEMU-gastagent is geïnstalleerd. |
 | `pve_disk_size_bytes` | bytes | Totale grootte van de schijf of opslag. |
-| `pve_storage_info` | aantal | Opslagmetadata, altijd 1. Tel ze op om de opslagvolumes te tellen. |
+| `pve_storage_shared` | aantal | 1 wanneer elke node van het cluster de opslag kan gebruiken, zoals NFS of Ceph; 0 wanneer alleen de eigen node dat kan. |
+| `pve_storage_info` | aantal | Opslagmetadata, altijd 1 zolang de opslag bestaat. Een som telt elke scrape van een minuut op, dus telt geen volumes. |
 
 ### HA
 
@@ -201,7 +220,7 @@ Uit de collector `backup-info` van de exporter, op clusterniveau. Ze rapporteren
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | aantal | Gasten in geen enkele back-uptaak. Eén clusterbrede reeks zonder `id`. |
+| `pve_not_backed_up_total` | aantal | Gasten in geen enkele back-uptaak. Eén clusterbrede reeks, `id` `cluster/<name>`, die ook bij 0 wordt gemeld. |
 | `pve_not_backed_up_info` | aantal | Eén reeks per niet-gedekte gast, altijd 1, gelabeld met de `id` van de gast. Ze verdwijnt zodra de gast aan een back-uptaak wordt toegevoegd. |
 
 ### Replicatie
@@ -231,7 +250,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen metingen bevat: **Ignore** (de standaard), **Treat As Zero** of **Trigger**. |
 
-Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in een "Learning"-status, en geven niets, tot het baseline-venster genoeg geschiedenis bevat.
+Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in een "Learning"-status, en geven niets, tot het baseline-venster genoeg geschiedenis bevat. Een som, een telling of een query op een histogram blijft voorgoed in die toestand: deze monitor filtert zijn query's op attributen, en de baseline bevat er geen.
 
 Elk criterium zegt ook wat er moet gebeuren als het overeenkomt: de monitorstatus wijzigen, een waarschuwing maken of een incident melden. Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt, beslist.
 
@@ -262,7 +281,7 @@ Het sjabloon middelt `pve_cpu_usage_ratio` per `id`, zodat elke node afzonderlij
 :::
 
 :::details Node Offline blijft afgaan voor een node die u uit het cluster hebt verwijderd
-Bij de native push van Proxmox VE ziet een node die uit het cluster is gehaald er hetzelfde uit als een node die is uitgevallen: hij rapporteert niet meer, dus de nodes die nog leven blijven hem als uitgevallen melden. Open de pagina van de node en klik op **Remove Node** – de node verdwijnt en zijn waarschuwing wordt opgelost. Anders blijft hij tot 7 dagen Offline. De agent heeft dit probleem niet: hij vraagt het aan het cluster, dat de node niet meer vermeldt.
+Bij de native push van Proxmox VE ziet een node die uit het cluster is gehaald er hetzelfde uit als een node die is uitgevallen: hij rapporteert niet meer, dus de nodes die nog leven blijven hem als uitgevallen melden. Open de pagina van de node en klik op **Node verwijderen** – de node verdwijnt en zijn waarschuwing wordt opgelost. Anders blijft hij tot 7 dagen Offline. De agent heeft dit probleem niet: hij vraagt het aan het cluster, dat de node niet meer vermeldt.
 :::
 
 :::details Back-up- of replicatiemetrieken ontbreken

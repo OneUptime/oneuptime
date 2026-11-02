@@ -29,6 +29,7 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "./MonitorStepTraceMonitor";
 import MonitorType from "./MonitorType";
+import { EXCEPTION_MEASURES } from "./ExceptionMonitor/ExceptionMonitorEvaluation";
 import {
   getRecoveryFilterType,
   getRecoveryThreshold,
@@ -112,6 +113,13 @@ export enum TelemetryAlertRuleShapeProblem {
 }
 
 export interface TelemetryAlertRule {
+  /*
+   * What the rule compares, when the monitor type offers more than one
+   * (getMeasureOptions): an Exceptions rule can count new or regressed
+   * exceptions, or the increase over the usual count. Left out, the
+   * monitor type's own (getMeasureCheckOn).
+   */
+  measure?: CheckOn | undefined;
   // The comparison the rule makes.
   filterType: FilterType;
   // The value it compares with; undefined for the anomaly conditions.
@@ -217,6 +225,43 @@ export default class TelemetryAlertRuleUtil {
     }
   }
 
+  /*
+   * What a rule of this monitor type may compare: an Exceptions rule its
+   * count, new exceptions, regressed exceptions or the increase over the
+   * usual count (ExceptionMonitorEvaluation); every other type its one.
+   */
+  public static getMeasureOptions(
+    monitorType: MonitorType,
+  ): ReadonlyArray<CheckOn> {
+    if (monitorType === MonitorType.Exceptions) {
+      return EXCEPTION_MEASURES;
+    }
+
+    const measure: CheckOn | null =
+      TelemetryAlertRuleUtil.getMeasureCheckOn(monitorType);
+
+    return measure ? [measure] : [];
+  }
+
+  // The rule's measure: its own when the type offers it, else the type's.
+  public static getRuleMeasure(data: {
+    monitorType: MonitorType;
+    rule: Pick<TelemetryAlertRule, "measure"> | undefined;
+  }): CheckOn | null {
+    const measure: CheckOn | undefined = data.rule?.measure;
+
+    if (
+      measure &&
+      TelemetryAlertRuleUtil.getMeasureOptions(data.monitorType).includes(
+        measure,
+      )
+    ) {
+      return measure;
+    }
+
+    return TelemetryAlertRuleUtil.getMeasureCheckOn(data.monitorType);
+  }
+
   // Whether the measure is a count of things in the window (not a metric).
   public static isCountMonitorType(monitorType: MonitorType): boolean {
     return (
@@ -228,10 +273,19 @@ export default class TelemetryAlertRuleUtil {
 
   /*
    * The anomaly conditions are offered where the server judges them: log
-   * and span counts against their hourly baselines, metrics against theirs.
-   * Exceptions have no baseline.
+   * and span counts against their hourly baselines, metrics against theirs,
+   * and an exception count against its own earlier weeks
+   * (ExceptionLearnedBaseline). New exceptions, regressed ones and the rise
+   * over the usual have no baseline, so an Exceptions rule on one has none.
    */
-  public static supportsAnomaly(monitorType: MonitorType): boolean {
+  public static supportsAnomaly(
+    monitorType: MonitorType,
+    measure?: CheckOn | null | undefined,
+  ): boolean {
+    if (monitorType === MonitorType.Exceptions) {
+      return !measure || measure === CheckOn.ExceptionCount;
+    }
+
     return (
       monitorType === MonitorType.Logs ||
       monitorType === MonitorType.Traces ||
@@ -245,11 +299,14 @@ export default class TelemetryAlertRuleUtil {
    */
   public static getComparisons(data: {
     monitorType: MonitorType;
+    measure?: CheckOn | null | undefined;
     current?: FilterType | undefined;
   }): Array<FilterType> {
     const comparisons: Array<FilterType> = [...STATIC_COMPARISONS];
 
-    if (TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType)) {
+    if (
+      TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)
+    ) {
       comparisons.push(...ANOMALY_COMPARISONS);
     }
 
@@ -401,12 +458,19 @@ export default class TelemetryAlertRuleUtil {
       return { rule: null, problem: TelemetryAlertRuleShapeProblem.NoCriteria };
     }
 
+    // The rule's own measure, when its monitor type offers it.
+    const ruleMeasure: CheckOn =
+      TelemetryAlertRuleUtil.getRuleMeasure({
+        monitorType: data.monitorType,
+        rule: { measure: ruleInstance.data.filters?.[0]?.checkOn },
+      }) || measure;
+
     const problem: TelemetryAlertRuleShapeProblem | null =
       TelemetryAlertRuleUtil.getRuleInstanceProblem({
         monitorType: data.monitorType,
         monitorStep: data.monitorStep,
         instance: ruleInstance,
-        measure,
+        measure: ruleMeasure,
       });
 
     if (problem) {
@@ -449,6 +513,8 @@ export default class TelemetryAlertRuleUtil {
       ruleFilter.metricMonitorOptions;
 
     const rule: TelemetryAlertRule = {
+      // Only when it is not the type's own: a count rule reads as it did.
+      ...(ruleMeasure !== measure ? { measure: ruleMeasure } : {}),
       filterType: ruleFilter.filterType!,
       threshold: TelemetryAlertRuleUtil.isAnomaly(ruleFilter.filterType)
         ? undefined
@@ -493,8 +559,10 @@ export default class TelemetryAlertRuleUtil {
   }): MonitorStep {
     const { monitorType, rule } = data;
     const step: MonitorStep = MonitorStep.clone(data.monitorStep);
-    const measure: CheckOn | null =
-      TelemetryAlertRuleUtil.getMeasureCheckOn(monitorType);
+    const measure: CheckOn | null = TelemetryAlertRuleUtil.getRuleMeasure({
+      monitorType,
+      rule,
+    });
 
     if (!measure || !step.data) {
       return step;
@@ -604,9 +672,10 @@ export default class TelemetryAlertRuleUtil {
     monitorType: MonitorType;
     rule: TelemetryAlertRule;
   }): MonitorCriteria {
-    const measure: CheckOn | null = TelemetryAlertRuleUtil.getMeasureCheckOn(
-      data.monitorType,
-    );
+    const measure: CheckOn | null = TelemetryAlertRuleUtil.getRuleMeasure({
+      monitorType: data.monitorType,
+      rule: data.rule,
+    });
     const instance: MonitorCriteriaInstance =
       TelemetryAlertRuleUtil.newRuleInstance(data.rule);
 
@@ -716,6 +785,7 @@ export default class TelemetryAlertRuleUtil {
 
   private static isReadableComparison(data: {
     monitorType: MonitorType;
+    measure?: CheckOn | null | undefined;
     current?: FilterType | undefined;
   }): boolean {
     if (!data.current) {
@@ -732,7 +802,7 @@ export default class TelemetryAlertRuleUtil {
 
     return (
       ANOMALY_COMPARISONS.includes(data.current) &&
-      TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType)
+      TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)
     );
   }
 
@@ -766,6 +836,7 @@ export default class TelemetryAlertRuleUtil {
       filter.evaluateOverTime ||
       !TelemetryAlertRuleUtil.isReadableComparison({
         monitorType: data.monitorType,
+        measure: data.measure,
         current: filter.filterType,
       })
     ) {
@@ -1148,7 +1219,14 @@ export default class TelemetryAlertRuleUtil {
   }): CriteriaFilter {
     const { ruleFilter, previousRecoveryFilter } = data;
 
-    const recoveryFilter: CriteriaFilter = { ...previousRecoveryFilter };
+    /*
+     * The recovery compares what the rule compares: a rule moved to new
+     * exceptions recovers when there are none, not when the count drops.
+     */
+    const recoveryFilter: CriteriaFilter = {
+      ...previousRecoveryFilter,
+      checkOn: ruleFilter.checkOn,
+    };
 
     /*
      * A metric's recovery reads the same query, unit and aggregation as the

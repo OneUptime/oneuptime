@@ -3,6 +3,9 @@ import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import { getTableCellClassName } from "./CellClassName";
 import {
+  TABLE_CARD_FIELDS_CLASS_NAME,
+  TABLE_CARD_WIDE_FIELD_CLASS_NAME,
+  TABLE_CARDS_CLASS_NAME,
   TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
   TABLE_END_FILLER_BODY_CELL_CLASS_NAME,
   TABLE_MOBILE_ROW_CLASS_NAME,
@@ -36,6 +39,11 @@ export interface ComponentProps<T extends GenericObject> {
    */
   isMobile: boolean;
   /*
+   * A phone's window: its cards leave out the hideOnMobile columns. A
+   * tablet's cards (TableFit) keep them. Absent: what isMobile says.
+   */
+  isPhone?: boolean | undefined;
+  /*
    * The table is wider than its card: the Actions column's placeholder
    * sticks at the card's edge, ruled off, as the real one will and as the
    * header's Actions cell above it already does.
@@ -62,10 +70,12 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
   const rowCount: number = Math.max(1, Math.min(props.itemsOnPage || 0, 10));
   const rowIndexes: Array<number> = Array.from(Array(rowCount).keys());
 
+  const isPhone: boolean = props.isPhone ?? props.isMobile;
+
   // Same filter as TableHeader / TableRow so cell counts always agree.
   const visibleColumns: Columns<T> = props.columns.filter(
     (column: Column<T>) => {
-      return !(column.hideOnMobile && props.isMobile);
+      return !(column.hideOnMobile && isPhone);
     },
   );
 
@@ -75,7 +85,7 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
         data-testid="table-skeleton-loader"
         role="status"
         aria-live="polite"
-        className="divide-y divide-gray-100 bg-white"
+        className={TABLE_CARDS_CLASS_NAME}
       >
         <span className="sr-only">
           {translator.translateText("Loading...")}
@@ -83,13 +93,23 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
         {rowIndexes.map((rowIndex: number) => {
           return (
             <div key={rowIndex} className={TABLE_MOBILE_ROW_CLASS_NAME}>
-              <div className="space-y-3">
+              {/*
+               * Laid out as the cards' fields are (TableRow): one under
+               * another, or two to a line on a wide card.
+               */}
+              <div className={TABLE_CARD_FIELDS_CLASS_NAME}>
                 {visibleColumns.map(
-                  (_column: Column<T>, columnIndex: number) => {
+                  (column: Column<T>, columnIndex: number) => {
                     return (
                       <div
                         key={columnIndex}
-                        className="flex flex-col space-y-1"
+                        className={`flex flex-col space-y-1${
+                          columnIndex === 0 ||
+                          column.wrapContent ||
+                          column.type === FieldType.Actions
+                            ? ` ${TABLE_CARD_WIDE_FIELD_CLASS_NAME}`
+                            : ""
+                        }`}
                       >
                         <Skeleton className="h-3 w-24" />
                         <Skeleton

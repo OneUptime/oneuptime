@@ -372,6 +372,15 @@ const DETAIL_FIELD_TYPE: RegExp = /^FieldType\./;
 const MODEL_MODULE: RegExp = /Models\/(DatabaseModels|AnalyticsModels)\//;
 // A type parameter (TBaseModel, T), never a model.
 const TYPE_PARAMETER_NAME: RegExp = /^T([A-Z]\w*)?$/;
+/*
+ * A rule form's match step (MATCH_CRITERIA_STEP_ID), whose fields a rule
+ * model draws as one conditions builder; the base every rule model extends;
+ * and how many base classes up a model's class is followed.
+ */
+const MATCH_CRITERIA_STEP: RegExp =
+  /^(?:"match-criteria"|'match-criteria'|MATCH_CRITERIA_STEP_ID)$/;
+const RULE_BASE_MODEL: string = "RuleBaseModel";
+const MAX_BASE_CLASS_DEPTH: number = 8;
 
 interface ImportedName {
   specifier: string;
@@ -404,6 +413,11 @@ export class DescriptionScanner {
   >();
   private readonly columnDescriptions: Map<string, Map<string, ColumnText>> =
     new Map<string, Map<string, ColumnText>>();
+  // Whether each model file's class is a rule model's (isRuleModel).
+  private readonly ruleModels: Map<string, boolean> = new Map<
+    string,
+    boolean
+  >();
   private readonly locales: Map<string, unknown> = new Map<string, unknown>();
 
   public constructor(data: { repoRoot: string; reader?: SourceReader }) {
@@ -560,7 +574,11 @@ export class DescriptionScanner {
      * says it shows none (Field.hideColumnDescription: true), which
      * BasicModelForm honours too, or the column's only restates the field
      * ("Any friendly name of this object"), which BasicModelForm leaves off
-     * (ColumnDescriptionOnForm).
+     * (ColumnDescriptionOnForm). A rule's match condition on a rule model
+     * (stepId "match-criteria") shows none either: the form draws one
+     * conditions builder in place of those fields, naming each condition by
+     * its title alone (Common/UI/Components/RuleCriteria/
+     * RuleCriteriaModelForm).
      */
     const hidesColumnDescription: boolean =
       properties.get("hideColumnDescription")?.kind ===
@@ -587,8 +605,12 @@ export class DescriptionScanner {
         const modelFile: string | null = model
           ? this.modelFile(file, model)
           : null;
+        const isRuleMatchCondition: boolean =
+          Boolean(modelFile) &&
+          MATCH_CRITERIA_STEP.test(properties.get("stepId")?.getText() || "") &&
+          this.isRuleModel(modelFile!);
         const description: ColumnText | null =
-          modelFile && column
+          modelFile && column && !isRuleMatchCondition
             ? this.columnDescription(modelFile, column)
             : null;
 
@@ -1769,6 +1791,61 @@ export class DescriptionScanner {
     }
 
     return this.resolveModule(file, imported.specifier);
+  }
+
+  /*
+   * Whether a model's class extends RuleBaseModel, itself or through a base
+   * of its own (OnCallRuleBaseModel, RelationOnlyRuleBaseModel).
+   */
+  private isRuleModel(modelFile: string, depth: number = 0): boolean {
+    const known: boolean | undefined = this.ruleModels.get(modelFile);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    let isRule: boolean = false;
+
+    if (this.reader.isFile(modelFile) && depth < MAX_BASE_CLASS_DEPTH) {
+      for (const statement of this.parse(modelFile).statements) {
+        if (!ts.isClassDeclaration(statement)) {
+          continue;
+        }
+
+        for (const clause of statement.heritageClauses || []) {
+          if (clause.token !== ts.SyntaxKind.ExtendsKeyword) {
+            continue;
+          }
+
+          for (const type of clause.types) {
+            if (!ts.isIdentifier(type.expression)) {
+              continue;
+            }
+
+            const base: string = type.expression.text;
+            const imported: ImportedName | null = this.findImport(
+              modelFile,
+              base,
+            );
+            const baseFile: string | null =
+              imported && imported.isDefault
+                ? this.resolveModule(modelFile, imported.specifier)
+                : null;
+
+            if (
+              base === RULE_BASE_MODEL ||
+              (baseFile !== null && this.isRuleModel(baseFile, depth + 1))
+            ) {
+              isRule = true;
+            }
+          }
+        }
+      }
+    }
+
+    this.ruleModels.set(modelFile, isRule);
+
+    return isRule;
   }
 
   // A model column's description, from its @TableColumn({ description }).

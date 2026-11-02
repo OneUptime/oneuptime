@@ -142,14 +142,25 @@ test.describe.skip("Ceph Product Onboarding", () => {
     await expect(page.getByText("Ceph Monitor Configuration")).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("Quick Setup")).toBeVisible();
+    /*
+     * A new monitor starts on the Stopped Reporting alert, folded under
+     * "What to alert on"; Change opens the list.
+     */
+    await expect(page.getByText("What to alert on")).toBeVisible();
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Cluster Stopped Reporting",
+    );
+    await page.getByTestId("alert-template-change").click();
 
     /*
      * All templates from Common/Types/Monitor/CephAlertTemplates.ts —
-     * CephTemplatePicker renders every category (Cluster Health, OSD,
-     * Placement Groups, Capacity), so the full catalog must show up.
+     * CephTemplatePicker renders every category (Availability, Cluster
+     * Health, OSD, Placement Groups, Capacity), so the full catalog must
+     * show up.
      */
     const expectedTemplateNames: Array<string> = [
+      // Availability
+      "Cluster Stopped Reporting",
       // Cluster Health
       "Cluster Health Error",
       "Cluster Health Warning",

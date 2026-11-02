@@ -208,7 +208,7 @@ export const getStatusTimelineZoneName: (
   date: Date,
   clock: StatusTimelineClock,
 ) => string = (date: Date, clock: StatusTimelineClock): string => {
-  return getFeedZoneName(date, clock.timezone);
+  return getFeedZoneName(date, clock.timezone, clock.language);
 };
 
 // Whether two instants are on one calendar day of the reader's zone.

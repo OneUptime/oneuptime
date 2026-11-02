@@ -313,11 +313,14 @@ describe("WorkspaceIncidentActions.authorizeForForm: may the member do what a fo
       action: "page someone about this incident",
     });
     expect(canUpdate).not.toHaveBeenCalled();
-    // Read as the member, refusing with why for what the form does.
+    /*
+     * Read as the member, refusing with why for what the form does - and
+     * whether it is private, which only its owners' teams change.
+     */
     expect(found).toHaveBeenCalledWith({
       event: { type: WorkspaceEventType.Incident, id: INCIDENT_ID },
       props: props,
-      select: { title: true },
+      select: { title: true, isPrivate: true },
       action: "page someone about this incident",
     });
   });

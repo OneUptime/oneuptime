@@ -160,6 +160,24 @@ describe("SelfHosted content model", () => {
     }
   });
 
+  test("OpenShift is no agent of its own: the Kubernetes agent covers it", () => {
+    /*
+     * The sentence above lists agents, and OpenShift clusters run the
+     * Kubernetes agent with its openshift preset. Naming OpenShift there
+     * would promise an agent that does not exist.
+     */
+    const agents: ArchitectureComponent | undefined = ArchitectureTiers.flatMap(
+      (tier: ArchitectureTier) => {
+        return tier.components;
+      },
+    ).find((component: ArchitectureComponent) => {
+      return component.name === "Agents";
+    });
+
+    expect(agents!.description).toContain("Kubernetes");
+    expect(agents!.description).not.toContain("OpenShift");
+  });
+
   test("sizing tiers go from evaluation to scale and each is fully specified", () => {
     expect(
       SizingTiers.map((tier: SizingTier) => {
@@ -557,17 +575,17 @@ describe("SelfHosted content model", () => {
     expect(dns.setting).not.toContain("probes.<key>");
   });
 
-  test("the notifications air-gap step names no SMS gateway OneUptime cannot use", () => {
+  test("the notifications air-gap step says what each transport can use inside the network", () => {
     const notifications: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
       return step.title === "Bring your own notification transports";
     })!;
 
-    // SMS and calls go through Twilio alone (Common/Types/Call/CallProviderType).
-    expect(notifications.description).not.toContain("SMS gateway");
+    // SMS and calls can go through the customer's own gateway (Common/Types/CallAndSMS/CallAndSmsProvider).
     expect(notifications.description).toContain("SMTP relay");
     expect(notifications.description).toContain(
-      "SMS, calls and push need their providers",
+      "SMS and calls through a gateway you run",
     );
+    expect(notifications.description).toContain("Push needs its provider");
     // The installation's mail server is set in the Admin Dashboard.
     expect(notifications.setting).toBe("Settings > Notifications > Emails");
   });

@@ -3,15 +3,24 @@ import Model from "../../Models/DatabaseModels/DetectionRule";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
 import BadDataException from "../../Types/Exception/BadDataException";
+import OneUptimeDate from "../../Types/Date";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
   DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
 } from "../../Types/SecurityEvent/DetectionFindingConstants";
+import {
+  DETECTION_REAL_TIME_RULES_MAX,
+  getRealTimeDetectionProblem,
+} from "../../Types/SecurityEvent/RealTimeDetection";
 import { fitDetectionRuleName } from "../../Types/SecurityEvent/DetectionRuleName";
 import {
   ENTITY_RISK_POINTS_MAX,
@@ -33,10 +42,262 @@ import SigmaClickhouseCompiler from "../Utils/SecurityEvent/Sigma/SigmaClickhous
 import SecurityWatchlists from "../Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 import { assertDetectionReadFits } from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
 import { getDetectionRuleWatchlistReferences } from "../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
+import RealTimeJobs, {
+  getRealTimeHandoverWindow,
+} from "../Utils/SecurityEvent/RealTime/RealTimeJobs";
+import logger from "../Utils/Logger";
+
+// A rule that starts to check events as they arrive, and the window its handover reads.
+interface RealTimeStart {
+  id: ObjectID;
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+}
+
+// What an update does to real time, carried from before it to after it.
+interface RealTimeChanges {
+  leavingRealTime?: Array<ObjectID> | undefined;
+  enteringRealTime?: Array<RealTimeStart> | undefined;
+}
+
+// A switch as a write may carry it: true, or Postgres's "true".
+function readSwitch(value: JSONValue | undefined): boolean {
+  return value === true || value === "true";
+}
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * REAL TIME (Types/SecurityEvent/RealTimeDetection): a rule may check
+   * each event as it arrives only when it fires on one event - and a
+   * project runs at most DETECTION_REAL_TIME_RULES_MAX rules so, since
+   * every event it writes is checked against each. Both are asked whenever
+   * a write turns real time on or changes what a real-time rule reads.
+   */
+  private static assertRealTimeFits(data: {
+    ruleYaml: string | undefined;
+    matchCountThreshold: unknown;
+    distinctCountField: unknown;
+  }): void {
+    const problem: string | null = getRealTimeDetectionProblem({
+      definition: SigmaRuleSetParser.parse(data.ruleYaml || ""),
+      matchCountThreshold:
+        typeof data.matchCountThreshold === "number"
+          ? data.matchCountThreshold
+          : Number(data.matchCountThreshold) || undefined,
+      distinctCountField:
+        typeof data.distinctCountField === "string"
+          ? data.distinctCountField
+          : undefined,
+    });
+
+    if (problem) {
+      throw new BadDataException(
+        `This rule cannot run in real time. ${problem}`,
+      );
+    }
+  }
+
+  private async assertRealTimeRoom(
+    projectId: ObjectID,
+    exceptRuleId?: ObjectID | undefined,
+  ): Promise<void> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        projectId,
+        isRealTime: true,
+        ...(exceptRuleId ? { _id: QueryHelper.notEquals(exceptRuleId) } : {}),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (count.toNumber() >= DETECTION_REAL_TIME_RULES_MAX) {
+      throw new BadDataException(
+        `A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time, since every event it receives is checked against each. Turn real time off on another rule first.`,
+      );
+    }
+  }
+
+  /*
+   * Whether an update that leaves real time as it is could still stop a
+   * real-time rule from running so: a rule a correlation or a regular
+   * expression now, a threshold above 1, a distinct count field. Anything
+   * else keeps a real-time rule able to, and reads no row.
+   */
+  private static mayEndRealTime(data: JSONObject): boolean {
+    if (data["sigmaRuleYaml"] !== undefined) {
+      try {
+        if (
+          getRealTimeDetectionProblem({
+            definition: SigmaRuleSetParser.parse(
+              String(data["sigmaRuleYaml"] || ""),
+            ),
+          })
+        ) {
+          return true;
+        }
+      } catch {
+        return true;
+      }
+    }
+
+    if (
+      data["matchCountThreshold"] !== undefined &&
+      data["matchCountThreshold"] !== null &&
+      Number(data["matchCountThreshold"]) > 1
+    ) {
+      return true;
+    }
+
+    return (
+      typeof data["distinctCountField"] === "string" &&
+      data["distinctCountField"].trim().length > 0
+    );
+  }
+
+  /*
+   * An update that turns real time on or off, turns a rule on, or could
+   * stop a real-time rule from running so, held to the rules above for
+   * every row it writes, as the row will be. Returns what changes
+   * (onUpdateSuccess acts on it once the rows are written):
+   *
+   *   - the rows that go back to their schedule, which start it from now:
+   *     from their last scheduled run, they would read again what real
+   *     time already did;
+   *   - the rows that start to check events as they arrive - off their
+   *     schedule, or turned back on - each with the window its handover
+   *     reads (RealTimeJobs): from the last scheduled run, or from now for
+   *     a real-time rule turned back on, until every process screens for it.
+   */
+  private async checkRealTimeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<RealTimeChanges> {
+    const data: JSONObject = updateBy.data as unknown as JSONObject;
+
+    if (
+      data["isRealTime"] === undefined &&
+      !Service.mayEndRealTime(data) &&
+      !readSwitch(data["isEnabled"])
+    ) {
+      return {};
+    }
+
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+        isRealTime: true,
+        isEnabled: true,
+        sigmaRuleYaml: true,
+        matchCountThreshold: true,
+        distinctCountField: true,
+        lastEvaluatedAt: true,
+        evaluationIntervalInMinutes: true,
+      },
+    );
+
+    const leaving: Array<ObjectID> = [];
+    const entering: Array<RealTimeStart> = [];
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    for (const row of rows) {
+      const isRealTime: boolean =
+        data["isRealTime"] !== undefined
+          ? readSwitch(data["isRealTime"])
+          : row.isRealTime === true;
+      const isEnabled: boolean =
+        data["isEnabled"] !== undefined
+          ? readSwitch(data["isEnabled"])
+          : row.isEnabled !== false;
+
+      if (!isRealTime) {
+        if (row.isRealTime === true && row.id) {
+          leaving.push(row.id);
+        }
+
+        continue;
+      }
+
+      if (
+        isEnabled &&
+        (row.isRealTime !== true || row.isEnabled === false) &&
+        row.id &&
+        row.projectId
+      ) {
+        entering.push({
+          id: row.id,
+          projectId: row.projectId,
+          ...getRealTimeHandoverWindow({
+            now,
+            // A real-time rule turned back on reads from now: its schedule stopped long ago.
+            lastEvaluatedAt:
+              row.isRealTime === true
+                ? OneUptimeDate.addRemoveSeconds(
+                    now,
+                    -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+                  )
+                : row.lastEvaluatedAt,
+            evaluationIntervalInMinutes: row.evaluationIntervalInMinutes,
+          }),
+        });
+      }
+
+      Service.assertRealTimeFits({
+        ruleYaml:
+          data["sigmaRuleYaml"] !== undefined
+            ? String(data["sigmaRuleYaml"] || "")
+            : row.sigmaRuleYaml,
+        matchCountThreshold:
+          data["matchCountThreshold"] !== undefined
+            ? data["matchCountThreshold"]
+            : row.matchCountThreshold,
+        distinctCountField:
+          data["distinctCountField"] !== undefined
+            ? data["distinctCountField"]
+            : row.distinctCountField,
+      });
+
+      if (row.isRealTime !== true && row.projectId) {
+        await this.assertRealTimeRoom(row.projectId, row.id || undefined);
+      }
+    }
+
+    return {
+      ...(leaving.length > 0 ? { leavingRealTime: leaving } : {}),
+      ...(entering.length > 0 ? { enteringRealTime: entering } : {}),
+    };
+  }
+
+  /*
+   * The handovers of rules that start to run in real time (RealTimeJobs).
+   * Never throws: the rule is saved, and a handover that cannot be queued
+   * is logged.
+   */
+  private async handOverToRealTime(
+    starts: Array<RealTimeStart>,
+  ): Promise<void> {
+    for (const start of starts) {
+      try {
+        await RealTimeJobs.enqueueHandover({
+          projectId: start.projectId,
+          ruleId: start.id,
+          startTime: start.startTime,
+          endTime: start.endTime,
+        });
+      } catch (error) {
+        logger.error(
+          `DetectionRuleService: the handover of rule ${start.id.toString()} to real time could not be queued:`,
+        );
+        logger.error(error);
+      }
+    }
   }
 
   /*
@@ -225,6 +486,26 @@ export class Service extends ProjectReferencesService<Model> {
     this.validateMatchCountThreshold(createBy.data.matchCountThreshold);
     this.validateRiskScore(createBy.data.riskScore);
 
+    if (
+      readSwitch(
+        (createBy.data as unknown as JSONObject)["isRealTime"] as JSONValue,
+      )
+    ) {
+      Service.assertRealTimeFits({
+        ruleYaml: createBy.data.sigmaRuleYaml,
+        matchCountThreshold: createBy.data.matchCountThreshold,
+        distinctCountField: createBy.data.distinctCountField,
+      });
+
+      const projectId: ObjectID | undefined =
+        createBy.data.projectId ||
+        (createBy.props.tenantId as ObjectID | undefined);
+
+      if (projectId) {
+        await this.assertRealTimeRoom(projectId);
+      }
+    }
+
     /*
      * groupByField / distinctCountField are looked up verbatim: an
      * unknown name silently becomes an attributes[] lookup that yields
@@ -319,7 +600,95 @@ export class Service extends ProjectReferencesService<Model> {
       ).trim();
     }
 
-    return { updateBy, carryForward: null };
+    const changes: RealTimeChanges = await this.checkRealTimeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: Object.keys(changes).length > 0 ? changes : null,
+    };
+  }
+
+  /*
+   * A rule created to run in real time gets its handover: the interval a
+   * scheduled rule's first run reads, until every process screens for it.
+   */
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const created: Model = await super.onCreateSuccess(onCreate, createdItem);
+
+    if (
+      created.isRealTime === true &&
+      created.isEnabled !== false &&
+      created.id &&
+      created.projectId
+    ) {
+      await this.handOverToRealTime([
+        {
+          id: created.id,
+          projectId: created.projectId,
+          ...getRealTimeHandoverWindow({
+            now: OneUptimeDate.getCurrentDate(),
+            evaluationIntervalInMinutes: created.evaluationIntervalInMinutes,
+          }),
+        },
+      ]);
+    }
+
+    return created;
+  }
+
+  /*
+   * A rule back on its schedule starts it from now, two minutes behind the
+   * clock as every run reads: what it would have read since its last
+   * scheduled run, real time already did. Written after the update, as
+   * OneUptime: nobody writes when a rule last ran.
+   *
+   * A rule that starts to run in real time gets its handover.
+   */
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const carried: RealTimeChanges | null =
+      onUpdate.carryForward as RealTimeChanges | null;
+    const leaving: Array<ObjectID> = carried?.leavingRealTime || [];
+    const updated: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    await this.handOverToRealTime(
+      (carried?.enteringRealTime || []).filter(
+        (start: RealTimeStart): boolean => {
+          return updated.has(start.id.toString());
+        },
+      ),
+    );
+
+    if (leaving.length === 0) {
+      return onUpdate;
+    }
+
+    const resumeFrom: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+    );
+
+    for (const id of leaving) {
+      if (updated.has(id.toString())) {
+        await this.updateColumnsByIdWithoutHooks({
+          id,
+          data: {
+            lastEvaluatedAt: resumeFrom,
+          },
+        });
+      }
+    }
+
+    return onUpdate;
   }
 }
 

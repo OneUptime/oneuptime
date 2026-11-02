@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/root",
-    "version": "14.0.99",
+    "version": "14.0.100",
     "private": true,
     "description": "One Complete Observability platform.",
     "main": "ts",
@@ -44,6 +44,7 @@
         "fix-lint": "export NODE_OPTIONS='--max-old-space-size=12288' && node ./Scripts/Lint/LintByProject.js --fix --cache --debug",
         "fix": "npm run fix-lint",
         "i18n:validate": "node ./Scripts/I18n/ValidateLocales.js",
+        "i18n:server-sync": "ts-node --transpile-only ./packages/Common/Scripts/I18n/SyncServerLocales.ts",
         "docs:check-anchors": "cd Scripts && npx ts-node --transpile-only ./Docs/CheckAnchors.ts",
         "docs:localize-anchors": "cd Scripts && npx ts-node --transpile-only ./Docs/LocalizeAnchors.ts",
         "status-check": "bash ./Tests/Scripts/status-check.sh",

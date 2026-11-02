@@ -74,6 +74,22 @@ const LOGS_CODE: string = readCode(...LOGS_VIEWER);
 const METRICS_CODE: string = readCode(...METRICS_VIEWER);
 const EXPLORER_CODE: string = readCode(...METRIC_EXPLORER);
 const TRACES_CODE: string = readCode(...TRACES_VIEWER);
+const EXCEPTIONS_CODE: string = readCode(
+  "Components",
+  "Exceptions",
+  "ExceptionsViewer.tsx",
+);
+const EXCEPTION_SAVED_VIEW: Array<string> = ["Utils", "ExceptionSavedView.ts"];
+const EXCEPTION_SAVED_VIEW_CODE: string = readCode(...EXCEPTION_SAVED_VIEW);
+
+/*
+ * A host that keeps its saved-view state in a module of its own is read
+ * together with it: the exceptions list captures and applies its views
+ * through Utils/ExceptionSavedView.
+ */
+const HOST_HELPERS: Record<string, Array<Array<string>>> = {
+  "ExceptionsViewer.tsx": [EXCEPTION_SAVED_VIEW],
+};
 
 describe("LogSavedView carries the time selection", () => {
   test("the model has a nullable JSON timeRange column", () => {
@@ -194,6 +210,28 @@ describe("the traces explorer saves and restores the selection", () => {
   });
 });
 
+describe("the exceptions list saves and restores the selection", () => {
+  test("it captures the selection into the saved view state", () => {
+    expect(EXCEPTION_SAVED_VIEW_CODE).toContain(SHARED_SERIALIZER_IMPORT);
+    expect(EXCEPTION_SAVED_VIEW_CODE).toContain(
+      squash("timeRange: serializeSavedViewTimeRange(state.timeRange),"),
+    );
+    expect(EXCEPTIONS_CODE).toContain("captureExceptionsSavedViewState({");
+  });
+
+  test("it restores the selection when a view is applied", () => {
+    /*
+     * readSavedViewTimeRange rather than deserializeSavedViewTimeRange: a
+     * view with no window it can use opens the list's own past day, not
+     * the explorers' hour (ExceptionSavedView.test).
+     */
+    expect(EXCEPTION_SAVED_VIEW_CODE).toContain(
+      "readSavedViewTimeRange(state.timeRange) || defaults.timeRange",
+    );
+    expect(EXCEPTIONS_CODE).toContain("setTimeRange(view.timeRange);");
+  });
+});
+
 describe("the metric explorer saves and restores the selection", () => {
   /*
    * The chart builder carries its selection as a `rangeToken` next to the
@@ -255,6 +293,7 @@ describe("every saved-views host persists a selection", () => {
     });
 
     expect(telemetryHosts.sort()).toEqual([
+      "ExceptionsViewer.tsx",
       "MetricExplorer.tsx",
       "MetricsViewer.tsx",
       "TracesViewer.tsx",
@@ -268,7 +307,14 @@ describe("every saved-views host persists a selection", () => {
    */
   test("each host references a time selection, never only a resolved window", () => {
     for (const file of findFilesMounting("TelemetrySavedViewsControl")) {
-      const code: string = readCodeAt(file);
+      const code: string = [
+        readCodeAt(file),
+        ...(HOST_HELPERS[path.basename(file)] || []).map(
+          (helper: Array<string>): string => {
+            return readCode(...helper);
+          },
+        ),
+      ].join(" ");
 
       expect(
         code.includes("serializeSavedViewTimeRange") ||

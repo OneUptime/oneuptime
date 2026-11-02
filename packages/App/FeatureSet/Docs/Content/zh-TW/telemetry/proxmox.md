@@ -5,6 +5,7 @@ OneUptime Proxmox 代理程式會監控 Proxmox VE 叢集：它的節點、QEMU 
 :::cards
 - [選擇連線方式](#選擇連線方式): 代理程式，或 Proxmox VE 9 自己的推送。
 - [安裝代理程式](#安裝代理程式): 一個 API 權杖，然後是安裝指令碼或 Docker Compose。
+- [備份結果](#傳送-proxmox-ve-的通知): Proxmox VE 自己的通知，用兩個命令傳送。
 - [原生推送](#免安裝的替代方案proxmox-ve-9-原生-opentelemetry-推送): Proxmox VE 9 自行傳送其指標。
 - [疑難排解](#疑難排解): 一個診斷指令碼，以及常見問題。
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | 需要安裝 | 一台機器上的 Docker Compose | 無：在 Proxmox 網頁 UI 中加入一個指標伺服器 |
 | 節點、客體和儲存空間 | 是 | 是 |
 | HA 狀態、開機啟動、備份涵蓋範圍和複寫 | 是 | 否 |
+| 來自 Proxmox VE 通知（8.3 或更新版本）的備份結果、被隔離的節點和失敗的複寫 | 是 | 是 |
 | Proxmox AI 代理程式 | 是 | 否 |
 
-**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up** 和 **Replication Failing** 範本需要代理程式。一個叢集請只使用其中一種方式：同時執行兩者會將每個資源回報兩次。
+**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 範本需要代理程式。一個叢集請只使用其中一種方式：同時執行兩者會將每個資源回報兩次。
 
 ## 開始之前
 
@@ -78,23 +80,25 @@ pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
 
 ### 安裝並啟動代理程式
 
+每個 OneUptime 都提供其自身發行版本的代理程式安裝指令碼和檔案：下面的命令從 `https://oneuptime.com` 下載它們，因此在自行架設的 OneUptime 上請把這個位址換成你的 URL。安裝指令碼會先儲存為 `install.sh`，讓你可以在執行前先閱讀它。
+
 :::tabs
 @tab install.sh
 下載安裝指令碼，並在將要裝載代理程式的機器上執行它：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 該指令碼會詢問你的 OneUptime URL、擷取金鑰、叢集名稱、Proxmox VE API 主機、是否執行內建匯出器、權杖 ID 和密鑰，以及每個節點的位址（取得權杖後，它會提供叢集自己的節點清單）——還會詢問是否允許 [AI 代理程式](#ai-代理程式) 套用修正，如果允許，再詢問它自己的權杖以及它絕不能變更的客體。它會安裝到 `/opt/oneuptime-proxmox-agent`，寫入一個權限為 `0600` 的 `.env` 檔案，並使用 Docker Compose 啟動代理程式。再次執行該指令碼會重複使用該 `.env` 中的所有內容而不再詢問，這就是你 [升級代理程式](#升級代理程式) 的方式。
 @tab Docker Compose
-從 [ProxmoxAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) 下載 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一個新資料夾中：
+從你的 OneUptime 下載 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一個新資料夾中：
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 在它們旁邊建立一個 `.env` 檔案。它包含權杖密鑰，因此請用 `chmod 600 .env` 保持其私密：
@@ -169,7 +173,7 @@ Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST` 
 | 客體（VM 或 LXC） | `pve_guest_info`，以及 `qemu/*` 和 `lxc/*` ID 上的 CPU、記憶體和網路序列（`pve_network_receive_bytes`、`pve_network_transmit_bytes`） |
 | 儲存空間 | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
-| 備份涵蓋範圍 | `pve_not_backed_up_total`（沒有任何備份工作涵蓋的客體；單一叢集層級序列，沒有 `id` 標籤）和 `pve_not_backed_up_info`（每個未被涵蓋的客體一個序列，帶有其 `id`）。被涵蓋是指至少有一個工作選擇了該客體：備份最近是否執行過或是否成功，匯出器並不提供。 |
+| 備份涵蓋範圍 | `pve_not_backed_up_total`（沒有任何備份工作涵蓋的客體；單一叢集層級序列，`id` 為 `cluster/<name>`）和 `pve_not_backed_up_info`（每個未被涵蓋的客體一個序列，帶有其 `id`）。被涵蓋是指至少有一個工作選擇了該客體：備份最近是否執行過或是否成功，匯出器並不提供。 |
 | 開機自動啟動 | `pve_onboot_status`，每個客體一個序列：客體設定為開機自動啟動時為 1。**Guest Down** 只針對這些客體發出警示。 |
 | 複寫 | 每個儲存空間複寫工作的 `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。它們的 `id` 標籤是工作 ID（例如 `100-0`），而不是資源。 |
 
@@ -182,6 +186,44 @@ Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST` 
 | `pve.id` | `id` 中第一個 `/` 之後的所有內容（`pve1`、`100`、`pve1/local`） | `100` |
 
 原始的 `id` 標籤會保持不變。
+
+## 傳送 Proxmox VE 的通知
+
+pve-exporter 會告訴你備份工作包含哪些客體，但不會告訴你備份的結果。Proxmox VE 自己會在通知中說明：每個備份工作的結果、被隔離的節點、失敗的複寫、等待安裝的更新。在 Proxmox VE 8.3 或更新版本上，在任一節點上以 root 執行兩個命令，即可將每則通知作為叢集的日誌傳送到 OneUptime，不需要安裝任何東西，可與代理程式或原生推送同時使用。叢集的設定指南會顯示這兩個命令，並已填好你的 URL、金鑰和叢集名稱。
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+第一個命令新增一個名為 `oneuptime` 的 webhook 目標，並將金鑰和叢集名稱保存在它的 secret 中；第二個命令新增一個沒有規則的 matcher，Proxmox VE 會將它視為所有通知。請使用 OneUptime 中顯示的叢集名稱：代理程式的 `PROXMOX_CLUSTER_NAME`，或者在使用原生推送時，Proxmox 叢集自己的名稱。
+
+每則通知都帶有以下屬性：
+
+| 屬性 | 值 |
+| --- | --- |
+| `pve.notification.type` | `vzdump`（備份工作）、`replication`、`fencing`、`package-updates` 或 `system-mail` |
+| `pve.notification.severity` | `info`、`notice`、`warning`、`error` 或 `unknown` |
+| `pve.notification.title` | 通知的標題 |
+| `pve.notification.job_id` | 備份工作的 ID（僅限備份工作） |
+| `proxmox.node.name` | 傳送通知的節點 |
+
+OneUptime 會根據備份工作的通知記錄每個客體的最近一次備份：是否成功、何時完成、大小以及耗時。客體頁面會顯示它，**客體** 清單在「備份」欄中顯示它，叢集的 **概覽** 會統計結果，失敗的備份會一直留在 **需要注意** 中，直到該客體之後的某次備份成功。**Backup Job Failed** 和 **Node Fenced** 警示讀取的也是這些日誌。
+
+若要停止傳送：
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## 選用——傳送 Proxmox 服務日誌
 
@@ -267,7 +309,7 @@ Proxmox VE 9.0 及更新版本隨附一個 OpenTelemetry 指標伺服器，可�
 
 - 獨立主機，或整個叢集同時沉默：沒有任何節點留下來回報，因此不會觸發任何依節點的警示。叢集會改為變成 **已中斷**，就像代理程式停止時一樣。
 - 沉默超過 7 天的節點不再被回報：其警示會解除，它也會從節點頁面上消失。自行託管的 OneUptime 可以用 `PVE_SILENT_NODE_RETENTION_HOURS` 變更這 7 天。
-- 你從叢集中移除的節點看起來與停止運作的節點一樣。請在其頁面上使用 **Remove Node**：它會消失，其警示也會解除。否則它會維持離線狀態最多 7 天。
+- 你從叢集中移除的節點看起來與停止運作的節點一樣。請在其頁面上使用 **移除節點**：它會消失，其警示也會解除。否則它會維持離線狀態最多 7 天。
 - 節點的客體和儲存空間：只有節點本身會保留為離線。它的虛擬機器、容器和儲存空間會在其最後一次回報大約 15 分鐘後從各自的頁面上消失，而被 HA 在另一個節點上重新啟動的客體會重新出現在那個節點下。
 
 在 OneUptime 擷取中斷之後，新近沉默的節點只有在其他某個節點再次推送 2 分鐘後才會被回報，因此中斷本身永遠不會為每個節點都發出呼叫。已經處於離線狀態的節點會在短暫的中斷期間維持離線，並保留其警示；中斷超過 5 分鐘後，一旦其他節點推送了 2 分鐘，它就會再次被回報。
@@ -282,16 +324,18 @@ Proxmox VE 9.0 及更新版本隨附一個 OpenTelemetry 指標伺服器，可�
 | --- | --- |
 | HA 狀態 | 不會推送：**HA Resource in Error State** 範本需要代理程式。 |
 | 開機啟動旗標 | 不會推送：只為設定了開機啟動的客體發出呼叫的 **Guest Down** 需要代理程式。 |
-| 備份涵蓋範圍和複寫 | 不會推送：**Guest Not Backed Up** 和 **Replication Failing** 需要代理程式。 |
+| 備份涵蓋範圍和複寫 | 不會推送：**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 需要代理程式。 |
 
 如果你需要這些，請改為執行代理程式，並移除指標伺服器：同時執行兩者會將每個資源回報兩次。
+
+備份結果、被隔離的節點和失敗的複寫仍然可以送達 OneUptime：[傳送 Proxmox VE 的通知](#傳送-proxmox-ve-的通知)，它同樣適用於原生推送。
 
 ## 以 systemd 服務執行
 
 若要讓代理程式隨機器啟動，並在失敗時重新啟動，請安裝它的 systemd 單元。它假設代理程式位於 `/opt/oneuptime-proxmox-agent`，也就是安裝指令碼放置它的位置：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的一個檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），提取映像檔並重新建立代理程式，讓 Collector 讀取新的設定。早於 `PVE_NODES` 的 `.env` 仍然只讀取 `PVE_HOST`，指令碼會列出需要加入的節點。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 改用 Docker Compose 安裝的？在代理程式的資料夾中重新下載這兩個檔案（並重新做一次你對它們所做的任何修改），然後提取映像檔並重新建立代理程式：
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ docker compose down
 ## 疑難排解
 
 :::details 先執行診斷指令碼
-代理程式隨附一個指令碼 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh)，它會檢查整條鏈路：容器執行階段、匯出器抓取、加到每個指標上的叢集名稱、權杖的格式、Collector 自身的指標，以及 OneUptime 是否接受擷取金鑰。最後一項檢查最重要。OneUptime 會以 `401` 拒絕錯誤的金鑰（已停用的金鑰或瀏覽器金鑰為 `422`），而 Collector 會將兩者都視為永久性錯誤：它會捨棄該批次並記錄一則 `Exporting failed` 錯誤，而容器仍保持正常，這很容易被忽略。該指令碼會從代理程式的網路內部要求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（無效），並在較舊的伺服器上改用 `POST /fluentd/v1/logs`。
+代理程式隨附一個指令碼 [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh)，它會檢查整條鏈路：容器執行階段、匯出器抓取、加到每個指標上的叢集名稱、權杖的格式、Collector 自身的指標，以及 OneUptime 是否接受擷取金鑰。最後一項檢查最重要。OneUptime 會以 `401` 拒絕錯誤的金鑰（已停用的金鑰或瀏覽器金鑰為 `422`），而 Collector 會將兩者都視為永久性錯誤：它會捨棄該批次並記錄一則 `Exporting failed` 錯誤，而容器仍保持正常，這很容易被忽略。該指令碼會從代理程式的網路內部要求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（無效），並在較舊的伺服器上改用 `POST /fluentd/v1/logs`。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -373,11 +417,18 @@ OneUptime 會依 `proxmox.cluster.name` 註冊 Proxmox 叢集，而代理程式�
 :::
 
 :::details 使用原生推送時，節點顯示為離線
-它停止了回報：停止運作的節點、停住的 `pvestatd`、停止的 `pmxcfs` 或到 OneUptime 的網路被切斷，看起來都一樣。它的下一次回報會讓它恢復。如果你將該節點從叢集中移除了，請在其頁面上使用 **Remove Node**；否則它會維持離線狀態最多 7 天。請參閱 [節點停止回報時](#節點停止回報時)。
+它停止了回報：停止運作的節點、停住的 `pvestatd`、停止的 `pmxcfs` 或到 OneUptime 的網路被切斷，看起來都一樣。它的下一次回報會讓它恢復。如果你將該節點從叢集中移除了，請在其頁面上使用 **移除節點**；否則它會維持離線狀態最多 7 天。請參閱 [節點停止回報時](#節點停止回報時)。
 :::
 
 :::details 使用原生推送時，Guest Down、HA 或備份警示從未觸發
 原生推送不會傳送 HA 狀態、開機啟動、備份涵蓋範圍或複寫。如需這些，請 [安裝代理程式](#安裝代理程式)，並移除指標伺服器：同時執行兩者會將每個資源回報兩次。
+:::
+
+:::details 備份結果從未出現
+1. 檢查 Proxmox VE 版本：webhook 目標需要 8.3 或更新版本（`pveversion`）。
+2. 檢查目標及其 matcher 是否存在：`pvesh get /cluster/notifications/endpoints/webhook` 和 `pvesh get /cluster/notifications/matchers` 都應列出 `oneuptime`。
+3. 使用 `pvesh create /cluster/notifications/targets/oneuptime/test` 傳送一則測試通知。它會在一分鐘內出現在叢集的 **日誌** 頁面上；如果沒有出現，表示目標中的金鑰或 URL 有誤。
+4. 檢查目標 secret 中的叢集名稱：OneUptime 不認得的名稱會註冊出第二個叢集。
 :::
 
 ## 後續步驟

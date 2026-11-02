@@ -172,6 +172,8 @@ export function buildVMwareOnlineCriteriaInstance(args: {
   metricAggregationType?: EvaluateOverTimeType | undefined;
   additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
+  // A series that is gone counts as 0 (see recoverWhenAbsent below).
+  treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {
   return buildHealthyCriteriaInstance(args);
 }
@@ -318,6 +320,14 @@ interface ThresholdTemplateSpec {
    * threshold; exactly 0 for the `> 0` / `= 0` count pairs).
    */
   recoverFilterType: FilterType;
+  /*
+   * The datacenter counts are recorded only for the (status, power_state)
+   * pairs that exist: once the last red host turns green, the `status =
+   * red` series is gone, not 0. Its `= 0` recovery then reads no data and
+   * never matches, so the incident would stay open for good. A gone
+   * series counts as 0 here, as on the Ceph health checks.
+   */
+  recoverWhenAbsent?: boolean | undefined;
   incidentTitle: (args: VMwareAlertTemplateArgs) => string;
   incidentDescription: string;
   criteriaName: string;
@@ -364,6 +374,7 @@ function buildThresholdTemplate(
           metricAlias: spec.metricAlias,
           filterType: spec.recoverFilterType,
           value: spec.fireValue,
+          treatNoDataAsZero: spec.recoverWhenAbsent,
         }),
       });
     },
@@ -889,6 +900,7 @@ const datacenterHostsUnhealthyTemplate: VMwareAlertTemplate =
     fireFilterType: FilterType.GreaterThan,
     fireValue: 0,
     recoverFilterType: FilterType.EqualTo,
+    recoverWhenAbsent: true,
     incidentTitle: (args: VMwareAlertTemplateArgs): string => {
       return `[VMware] CRITICAL: Datacenter Hosts Unhealthy - ${args.monitorName}`;
     },
@@ -918,6 +930,7 @@ const datacenterHostsDegradedTemplate: VMwareAlertTemplate =
     fireFilterType: FilterType.GreaterThan,
     fireValue: 0,
     recoverFilterType: FilterType.EqualTo,
+    recoverWhenAbsent: true,
     incidentTitle: (args: VMwareAlertTemplateArgs): string => {
       return `[VMware] Datacenter Hosts Degraded - ${args.monitorName}`;
     },
@@ -928,33 +941,43 @@ const datacenterHostsDegradedTemplate: VMwareAlertTemplate =
       "Triggers when a datacenter reports one or more hosts with yellow status for every minute of the monitoring window.",
   });
 
-const datacenterHostsPoweredOffTemplate: VMwareAlertTemplate =
+/*
+ * vSphere reports a host's power state as `poweredOff` only when someone
+ * powered it off through vCenter, and `standBy` when DPM put it to sleep.
+ * A host that crashed, lost power or lost its management network is
+ * disconnected or not responding, and its power state is `unknown`: that is
+ * the outage this template is for (it used to watch `off`, and paged on
+ * planned shutdowns while missing every crash).
+ */
+const datacenterHostsNotRespondingTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
-    id: "vmware-datacenter-hosts-powered-off",
-    name: "Datacenter Hosts Powered Off",
-    summary: "A datacenter has an ESXi host that is powered off.",
+    id: "vmware-datacenter-hosts-not-responding",
+    name: "Datacenter Hosts Not Responding",
+    summary: "A datacenter has an ESXi host vCenter cannot reach.",
     description:
-      "Alert when a datacenter has one or more ESXi hosts reported as powered off for 5 minutes (vcenter.datacenter.host.count filtered to power_state = off, one incident per datacenter). A host powered off outside a planned maintenance window has usually crashed, lost power, or been fenced by DPM.",
+      "Alert when a datacenter has one or more ESXi hosts whose power state vCenter reports as unknown for 5 minutes (vcenter.datacenter.host.count filtered to power_state = unknown, one incident per datacenter). vCenter reports unknown when it has lost contact with the host: it crashed, lost power or its management network, or was disconnected. A host powered off on purpose (off) or put in standby by DPM (standby) does not count.",
     category: "Datacenter",
-    severity: "Warning",
+    severity: "Critical",
     metricName: "vcenter.datacenter.host.count",
-    metricAlias: "datacenter_hosts_powered_off",
-    // Max — any collection in the minute reporting a powered-off host trips it.
+    metricAlias: "datacenter_hosts_not_responding",
+    // Max — any collection in the minute reporting such a host trips it.
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past5Minutes,
-    attributes: { power_state: "off" },
+    attributes: { power_state: "unknown" },
     groupByAttributeKey: VMwareGroupByKey.Datacenter,
     fireFilterType: FilterType.GreaterThan,
     fireValue: 0,
     recoverFilterType: FilterType.EqualTo,
+    recoverWhenAbsent: true,
     incidentTitle: (args: VMwareAlertTemplateArgs): string => {
-      return `[VMware] Datacenter Hosts Powered Off - ${args.monitorName}`;
+      return `[VMware] CRITICAL: Datacenter Hosts Not Responding - ${args.monitorName}`;
     },
     incidentDescription:
-      "A datacenter has at least one ESXi host that vCenter reports as powered off. Every VM that was running on it is down unless vSphere HA has restarted it elsewhere. See the affected resource on this alert for the datacenter name, then find the host (Hosts and Clusters, filter by power state), check its out-of-band management (iDRAC / iLO / BMC) for a power or hardware fault, confirm whether HA restarted its VMs, and if Distributed Power Management put it to sleep deliberately consider whether this alert should be scoped to exclude DPM-managed clusters.",
-    criteriaName: "Datacenter Hosts Powered Off - Powered-off Hosts > 0",
+      "A datacenter has at least one ESXi host that vCenter cannot reach: its power state reads unknown, so it is disconnected or not responding. Every VM that was running on it is down unless vSphere HA has restarted it elsewhere. See the affected resource on this alert for the datacenter name, then find the host in vCenter (Hosts and Clusters, the host shows Not Responding or Disconnected), check its out-of-band management (iDRAC / iLO / BMC) for a power or hardware fault and its management network, and confirm whether HA restarted its VMs.",
+    criteriaName:
+      "Datacenter Hosts Not Responding - Hosts in an unknown power state > 0",
     criteriaDescription:
-      "Triggers when a datacenter reports one or more powered-off hosts for every minute of the monitoring window.",
+      "Triggers when a datacenter reports one or more hosts in an unknown power state for every minute of the monitoring window.",
   });
 
 const datacenterVmsUnhealthyTemplate: VMwareAlertTemplate =
@@ -976,6 +999,7 @@ const datacenterVmsUnhealthyTemplate: VMwareAlertTemplate =
     fireFilterType: FilterType.GreaterThan,
     fireValue: 0,
     recoverFilterType: FilterType.EqualTo,
+    recoverWhenAbsent: true,
     incidentTitle: (args: VMwareAlertTemplateArgs): string => {
       return `[VMware] Datacenter VMs Unhealthy - ${args.monitorName}`;
     },
@@ -1005,6 +1029,7 @@ const datacenterClustersUnhealthyTemplate: VMwareAlertTemplate =
     fireFilterType: FilterType.GreaterThan,
     fireValue: 0,
     recoverFilterType: FilterType.EqualTo,
+    recoverWhenAbsent: true,
     incidentTitle: (args: VMwareAlertTemplateArgs): string => {
       return `[VMware] CRITICAL: Datacenter Clusters Unhealthy - ${args.monitorName}`;
     },
@@ -1020,15 +1045,22 @@ const datacenterClustersUnhealthyTemplate: VMwareAlertTemplate =
 const vsanLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vsan-latency-high",
   name: "vSAN Latency High",
-  summary: "vSAN latency passes 20 ms for 5 minutes. vSAN clusters only.",
+  summary: "vSAN latency passes 20 ms for 15 minutes. vSAN clusters only.",
   description:
-    "Alert when a cluster's average vSAN latency exceeds 20 ms for 5 minutes (vcenter.cluster.vsan.latency.avg > 20 000 µs, one incident per cluster). Every VM on the vSAN datastore feels this as slow disk. Only vSAN-enabled clusters emit the metric, so this monitor is silent elsewhere.",
+    "Alert when a cluster's average vSAN latency exceeds 20 ms for 15 minutes (vcenter.cluster.vsan.latency.avg > 20 000 µs, one incident per cluster). Every VM on the vSAN datastore feels this as slow disk. Only vSAN-enabled clusters emit the metric, so this monitor is silent elsewhere.",
   category: "vSAN",
   severity: "Warning",
   metricName: "vcenter.cluster.vsan.latency.avg",
   metricAlias: "vsan_latency_avg",
   aggregationType: MetricsAggregationType.Avg,
-  rollingTime: RollingTime.Past5Minutes,
+  /*
+   * vSAN publishes its performance samples every 5 minutes, and each
+   * collection reads the latest one, stamped with vSAN's own sample time.
+   * A 5-minute window holds at most one sample, and none while vSAN lags,
+   * so incidents waited or resolved and reopened. 15 minutes holds two or
+   * three.
+   */
+  rollingTime: RollingTime.Past15Minutes,
   groupByAttributeKey: VMwareGroupByKey.Cluster,
   /*
    * The receiver reports vSAN latency in MICROseconds (unlike the host and
@@ -1055,14 +1087,15 @@ const vsanCongestionTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   name: "vSAN Congestion",
   summary: "vSAN reports congestion. vSAN clusters only.",
   description:
-    "Alert when a cluster's vSAN layer reports any congestion for 5 minutes (vcenter.cluster.vsan.congestions > 0, one incident per cluster). Congestion is vSAN's own back-pressure signal: a disk group cannot keep up and client I/O is being throttled. Only vSAN-enabled clusters emit the metric.",
+    "Alert when a cluster's vSAN layer reports any congestion for 15 minutes (vcenter.cluster.vsan.congestions > 0, one incident per cluster). Congestion is vSAN's own back-pressure signal: a disk group cannot keep up and client I/O is being throttled. Only vSAN-enabled clusters emit the metric.",
   category: "vSAN",
   severity: "Warning",
   metricName: "vcenter.cluster.vsan.congestions",
   metricAlias: "vsan_congestions",
   // Max — any collection in the minute reporting congestion trips it.
   aggregationType: MetricsAggregationType.Max,
-  rollingTime: RollingTime.Past5Minutes,
+  // 15 minutes, for vSAN's 5-minute samples (see vSAN Latency High).
+  rollingTime: RollingTime.Past15Minutes,
   groupByAttributeKey: VMwareGroupByKey.Cluster,
   fireFilterType: FilterType.GreaterThan,
   fireValue: 0,
@@ -1127,7 +1160,7 @@ export function getAllVMwareAlertTemplates(): Array<VMwareAlertTemplate> {
     clusterHostNotEffectiveTemplate,
     datacenterHostsUnhealthyTemplate,
     datacenterHostsDegradedTemplate,
-    datacenterHostsPoweredOffTemplate,
+    datacenterHostsNotRespondingTemplate,
     datacenterVmsUnhealthyTemplate,
     datacenterClustersUnhealthyTemplate,
     vsanLatencyHighTemplate,

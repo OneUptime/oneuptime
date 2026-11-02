@@ -185,6 +185,7 @@ function buildDashboard(
   dashboard.name = `Dashboard ${id.toString()}`;
   dashboard.isPublicDashboard = true;
   dashboard.logoFile = image(bytes, owner);
+  dashboard.darkThemeLogoFile = image(bytes, owner);
   dashboard.faviconFile = image(bytes, owner);
   return dashboard;
 }
@@ -617,6 +618,35 @@ describe("public routes serve only a record's own files", () => {
       expect(
         (viewConfig.body?.["logoFile"] as JSONObject | null)?.["file"],
       ).toBe(base64(OWN_BYTES));
+      // The logo for its dark theme, which the page draws its header from.
+      expect(
+        (viewConfig.body?.["darkThemeLogoFile"] as JSONObject | null)?.["file"],
+      ).toBe(base64(OWN_BYTES));
+      expect(viewConfig.body?.["projectId"]).toBeUndefined();
+      // Not in the metadata, whose logo the page never reads.
+      expect(Object.keys(metadata.body || {})).not.toContain(
+        "darkThemeLogoFile",
+      );
+    });
+
+    it("reads the logos of the view config with their project, to hold them to the dashboard's", async () => {
+      selects = [];
+
+      await send({
+        port,
+        method: "POST",
+        path: `/api/dashboard/view-config/${OWN_PAGE_ID.toString()}`,
+      });
+
+      expect(
+        selects.find((select: Dictionary<unknown>) => {
+          return Boolean(select["dashboardViewConfig"]);
+        }),
+      ).toMatchObject({
+        projectId: true,
+        logoFile: { file: true, projectId: true },
+        darkThemeLogoFile: { file: true, projectId: true },
+      });
     });
 
     it("reads each image with its project, to hold it to the dashboard's", async () => {
@@ -650,6 +680,10 @@ describe("public routes serve only a record's own files", () => {
             route,
             logoFile: null,
           });
+
+          if (route === "view-config") {
+            expect(result.body?.["darkThemeLogoFile"]).toBeNull();
+          }
           expect(result.text).not.toContain(base64(FOREIGN_BYTES));
           expect(result.text).not.toContain(base64(UNOWNED_BYTES));
         }

@@ -5,6 +5,7 @@ OneUptime Proxmox 代理监视 Proxmox VE 集群：它的节点、QEMU 虚拟机
 :::cards
 - [选择连接方式](#选择连接方式): 代理，或 Proxmox VE 9 自己的推送。
 - [安装代理](#安装代理): 一个 API 令牌，然后是安装脚本或 Docker Compose。
+- [备份结果](#发送-proxmox-ve-的通知): Proxmox VE 自己的通知，用两条命令发送。
 - [原生推送](#免安装的替代方案proxmox-ve-9-原生-opentelemetry-推送): Proxmox VE 9 自行发送其指标。
 - [故障排查](#故障排查): 一个诊断脚本，以及常见问题。
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | 需要安装 | 一台机器上的 Docker Compose | 无：在 Proxmox Web UI 中添加一个指标服务器 |
 | 节点、客户机和存储 | 是 | 是 |
 | HA 状态、开机启动、备份覆盖情况和复制 | 是 | 否 |
+| 来自 Proxmox VE 通知（8.3 或更高版本）的备份结果、被隔离的节点和失败的复制 | 是 | 是 |
 | Proxmox AI 代理 | 是 | 否 |
 
-**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up** 和 **Replication Failing** 模板需要代理。一个集群请只使用其中一种方式：同时运行两者会把每个资源报告两次。
+**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 模板需要代理。一个集群请只使用其中一种方式：同时运行两者会把每个资源报告两次。
 
 ## 开始之前
 
@@ -78,23 +80,25 @@ pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
 
 ### 安装并启动代理
 
+每个 OneUptime 都提供其自身发布版本的代理安装脚本和文件：下面的命令从 `https://oneuptime.com` 下载它们，因此在自托管的 OneUptime 上请把这个地址替换为你的 URL。安装脚本会先保存为 `install.sh`，方便你在运行前先阅读它。
+
 :::tabs
 @tab install.sh
 下载安装脚本，并在将要托管代理的机器上运行它：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 该脚本会询问你的 OneUptime URL、摄取密钥、集群名称、Proxmox VE API 主机、是否运行内置导出器、令牌 ID 和密钥，以及每个节点的地址（拿到令牌后，它会给出集群自己的节点列表）——还会询问是否允许 [AI 代理](#ai-代理) 应用修复，如果允许，再询问它自己的令牌以及它绝不能更改的客户机。它会安装到 `/opt/oneuptime-proxmox-agent`，写入一个权限为 `0600` 的 `.env` 文件，并使用 Docker Compose 启动代理。再次运行该脚本会复用该 `.env` 中的所有内容而不再提问，这就是你 [升级代理](#升级代理) 的方式。
 @tab Docker Compose
-从 [ProxmoxAgent 目录](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) 下载 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一个新文件夹中：
+从你的 OneUptime 下载 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一个新文件夹中：
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 在它们旁边创建一个 `.env` 文件。它包含令牌密钥，因此请用 `chmod 600 .env` 保持其私密：
@@ -169,7 +173,7 @@ Collector 每 30 秒抓取一次导出器：其集群收集器在 `PVE_HOST` 上
 | 客户机（VM 或 LXC） | `pve_guest_info`，以及 `qemu/*` 和 `lxc/*` ID 上的 CPU、内存和网络序列（`pve_network_receive_bytes`、`pve_network_transmit_bytes`） |
 | 存储 | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
-| 备份覆盖情况 | `pve_not_backed_up_total`（没有任何备份任务覆盖的客户机；单个集群级序列，没有 `id` 标签）和 `pve_not_backed_up_info`（每个未被覆盖的客户机一个序列，带有其 `id`）。被覆盖是指至少有一个任务选择了该客户机：备份最近是否运行过或是否成功，导出器并不提供。 |
+| 备份覆盖情况 | `pve_not_backed_up_total`（没有任何备份任务覆盖的客户机；单个集群级序列，`id` 为 `cluster/<name>`）和 `pve_not_backed_up_info`（每个未被覆盖的客户机一个序列，带有其 `id`）。被覆盖是指至少有一个任务选择了该客户机：备份最近是否运行过或是否成功，导出器并不提供。 |
 | 开机自启 | `pve_onboot_status`，每个客户机一个序列：客户机设置为开机自启时为 1。**Guest Down** 只针对这些客户机告警。 |
 | 复制 | 每个存储复制任务的 `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。它们的 `id` 标签是任务 ID（例如 `100-0`），而不是资源。 |
 
@@ -182,6 +186,44 @@ Collector 每 30 秒抓取一次导出器：其集群收集器在 `PVE_HOST` 上
 | `pve.id` | `id` 中第一个 `/` 之后的所有内容（`pve1`、`100`、`pve1/local`） | `100` |
 
 原始的 `id` 标签保持不变。
+
+## 发送 Proxmox VE 的通知
+
+pve-exporter 会告诉你备份作业包含哪些客户机，但不会告诉你备份的结果。Proxmox VE 自己会在通知中说明：每个备份作业的结果、被隔离的节点、失败的复制、待安装的更新。在 Proxmox VE 8.3 或更高版本上，在任意节点上以 root 运行两条命令，即可把每条通知作为集群的日志发送到 OneUptime，无需安装任何东西，可与代理或原生推送同时使用。集群的设置指南会显示这两条命令，并已填好你的 URL、密钥和集群名称。
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+第一条命令添加一个名为 `oneuptime` 的 webhook 目标，并把密钥和集群名称保存在它的 secret 中；第二条命令添加一个没有规则的 matcher，Proxmox VE 会把它理解为所有通知。请使用 OneUptime 中显示的集群名称：代理的 `PROXMOX_CLUSTER_NAME`，或者在使用原生推送时，Proxmox 集群自己的名称。
+
+每条通知都带有以下属性：
+
+| 属性 | 值 |
+| --- | --- |
+| `pve.notification.type` | `vzdump`（备份作业）、`replication`、`fencing`、`package-updates` 或 `system-mail` |
+| `pve.notification.severity` | `info`、`notice`、`warning`、`error` 或 `unknown` |
+| `pve.notification.title` | 通知的标题 |
+| `pve.notification.job_id` | 备份作业的 ID（仅限备份作业） |
+| `proxmox.node.name` | 发送通知的节点 |
+
+OneUptime 会根据备份作业的通知记录每个客户机的最近一次备份：是否成功、何时完成、大小以及耗时。客户机页面会显示它，**客户机** 列表在“备份”列中显示它，集群的 **概览** 会统计结果，失败的备份会一直留在 **需要关注** 中，直到该客户机后来的某次备份成功。**Backup Job Failed** 和 **Node Fenced** 警报读取的也是这些日志。
+
+要停止发送：
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## 可选——发送 Proxmox 服务日志
 
@@ -267,7 +309,7 @@ Proxmox VE 9.0 及更高版本自带一个 OpenTelemetry 指标服务器，可�
 
 - 独立主机，或者整个集群同时沉默：没有任何节点留下来报告，因此不会触发任何按节点的警报。集群会改为变成 **已断开**，就像代理停止时一样。
 - 沉默超过 7 天的节点不再被报告：其警报会解除，它也会从节点页面上消失。自托管的 OneUptime 可以用 `PVE_SILENT_NODE_RETENTION_HOURS` 更改这 7 天。
-- 你从集群中移除的节点看起来与宕机的节点一样。请在其页面上使用 **Remove Node**：它会消失，其警报也会解除。否则它会保持离线状态最多 7 天。
+- 你从集群中移除的节点看起来与宕机的节点一样。请在其页面上使用 **移除节点**：它会消失，其警报也会解除。否则它会保持离线状态最多 7 天。
 - 节点的客户机和存储：只有节点本身会保留为离线。它的虚拟机、容器和存储会在其最后一次报告大约 15 分钟后从各自的页面上消失，而被 HA 在另一个节点上重启的客户机会重新出现在那个节点下。
 
 在 OneUptime 摄取中断之后，新近沉默的节点只有在其他某个节点再次推送 2 分钟后才会被报告，因此中断本身永远不会为每个节点都发出呼叫。已经处于离线状态的节点会在短暂的中断期间保持离线，并保留其警报；中断超过 5 分钟后，一旦其他节点推送了 2 分钟，它就会再次被报告。
@@ -282,16 +324,18 @@ Proxmox VE 9.0 及更高版本自带一个 OpenTelemetry 指标服务器，可�
 | --- | --- |
 | HA 状态 | 不推送：**HA Resource in Error State** 模板需要代理。 |
 | 开机启动标志 | 不推送：只为设置了开机启动的客户机发出呼叫的 **Guest Down** 需要代理。 |
-| 备份覆盖情况和复制 | 不推送：**Guest Not Backed Up** 和 **Replication Failing** 需要代理。 |
+| 备份覆盖情况和复制 | 不推送：**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 需要代理。 |
 
 如果你需要这些，请改为运行代理，并移除指标服务器：同时运行两者会把每个资源报告两次。
+
+备份结果、被隔离的节点和失败的复制仍然可以到达 OneUptime：[发送 Proxmox VE 的通知](#发送-proxmox-ve-的通知)，它同样适用于原生推送。
 
 ## 作为 systemd 服务运行
 
 要让代理随机器启动，并在失败时重新启动，请安装它的 systemd 单元。它假定代理位于 `/opt/oneuptime-proxmox-agent`，即安装脚本放置它的位置：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的一个文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml` 和 `otel-collector-config.yaml`（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像并重新创建代理，使 Collector 读取新的配置。早于 `PVE_NODES` 的 `.env` 仍然只读取 `PVE_HOST`，脚本会列出需要添加的节点。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 改用 Docker Compose 安装的？在代理的文件夹中重新下载这两个文件（并重新做一遍你对它们所做的任何修改），然后拉取镜像并重新创建代理：
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ docker compose down
 ## 故障排查
 
 :::details 先运行诊断脚本
-代理附带一个脚本 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh)，它会检查整条链路：容器运行时、导出器抓取、打到每个指标上的集群名称、令牌的格式、Collector 自身的指标，以及 OneUptime 是否接受摄取密钥。最后一项检查最重要。OneUptime 会以 `401` 拒绝错误的密钥（已禁用的密钥或浏览器密钥为 `422`），而 Collector 会把两者都视为永久性错误：它丢弃该批次并记录一条 `Exporting failed` 错误，而容器仍保持健康，这很容易被忽略。该脚本从代理的网络内部请求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（无效），并在较旧的服务器上回退到 `POST /fluentd/v1/logs`。
+代理附带一个脚本 [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh)，它会检查整条链路：容器运行时、导出器抓取、打到每个指标上的集群名称、令牌的格式、Collector 自身的指标，以及 OneUptime 是否接受摄取密钥。最后一项检查最重要。OneUptime 会以 `401` 拒绝错误的密钥（已禁用的密钥或浏览器密钥为 `422`），而 Collector 会把两者都视为永久性错误：它丢弃该批次并记录一条 `Exporting failed` 错误，而容器仍保持健康，这很容易被忽略。该脚本从代理的网络内部请求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（无效），并在较旧的服务器上回退到 `POST /fluentd/v1/logs`。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -373,11 +417,18 @@ OneUptime 按 `proxmox.cluster.name` 注册 Proxmox 集群，而代理从 `PROXM
 :::
 
 :::details 使用原生推送时，节点显示为离线
-它停止了报告：宕机的节点、挂起的 `pvestatd`、停止的 `pmxcfs` 或到 OneUptime 的网络被切断，看起来都一样。它的下一次报告会让它恢复。如果你把该节点从集群中移除了，请在其页面上使用 **Remove Node**；否则它会保持离线状态最多 7 天。见 [节点停止报告时](#节点停止报告时)。
+它停止了报告：宕机的节点、挂起的 `pvestatd`、停止的 `pmxcfs` 或到 OneUptime 的网络被切断，看起来都一样。它的下一次报告会让它恢复。如果你把该节点从集群中移除了，请在其页面上使用 **移除节点**；否则它会保持离线状态最多 7 天。见 [节点停止报告时](#节点停止报告时)。
 :::
 
 :::details 使用原生推送时，Guest Down、HA 或备份警报从不触发
 原生推送不会发送 HA 状态、开机启动、备份覆盖情况或复制。如需这些，请 [安装代理](#安装代理)，并移除指标服务器：同时运行两者会把每个资源报告两次。
+:::
+
+:::details 备份结果从不出现
+1. 检查 Proxmox VE 版本：webhook 目标需要 8.3 或更高版本（`pveversion`）。
+2. 检查目标及其 matcher 是否存在：`pvesh get /cluster/notifications/endpoints/webhook` 和 `pvesh get /cluster/notifications/matchers` 都应列出 `oneuptime`。
+3. 用 `pvesh create /cluster/notifications/targets/oneuptime/test` 发送一条测试通知。它会在一分钟内出现在集群的 **日志** 页面上；如果没有出现，说明目标中的密钥或 URL 有误。
+4. 检查目标 secret 中的集群名称：OneUptime 不认识的名称会注册出第二个集群。
 :::
 
 ## 后续步骤

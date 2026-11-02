@@ -4,7 +4,7 @@ OneUptimes Kubernetes-agent er et Helm-chart, der indsamler dit clusters metrikk
 
 :::cards
 - [Installér agenten](#installér-agenten): Fire trin med Helm.
-- [Vælg et preset](#vælg-et-preset): Standardclustere, GKE Autopilot eller EKS Fargate.
+- [Vælg et preset](#vælg-et-preset): Standardclustere, GKE Autopilot, EKS Fargate eller OpenShift.
 - [Almindelige indstillinger](#almindelige-indstillinger): De indstillinger, de fleste clustere ændrer.
 - [Fejlfinding](#fejlfinding): Et diagnosescript og de sædvanlige problemer.
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | Node-collector | DaemonSet | Pod-logs fra `/var/log/pods`, kubelet- og cAdvisor-metrikker og nodens styresystemmetrikker. | Ja |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-spor og anmodningsmetrikker fra hver pod, og servicekortet. | Ja |
 | Kubernetes AI-agent | Deployment | Lader OneUptime AI køre skrivebeskyttet `kubectl`, mens den undersøger en hændelse eller advarsel på dette cluster. | Ja |
-| Log-tailer | Deployment | Pod-logs gennem Kubernetes-API'et, hvor node-collectoren ikke kan læse dem. | Med presets `gke-autopilot` og `eks-fargate` |
+| Log-tailer | Deployment | Pod-logs gennem Kubernetes-API'et, hvor node-collectoren ikke kan læse dem. | Med presets `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
 | eBPF-profiler | DaemonSet | Løbende CPU-flamegrafer for hver proces. | Nej |
 | kube-state-metrics | Deployment | Pod-faser, containeres venteårsager og ressourcekvoter. | Nej |
 
@@ -92,10 +92,14 @@ Nogle Kubernetes-platforme lader ikke en workload montere et `hostPath`-volume e
 | `standard` (standard) | Selvadministreret, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Node-collectoren læser `/var/log/pods` | Kubelet-, cAdvisor- og styresystemmetrikker |
 | `gke-autopilot` | **GKE Autopilot** | Log-taileren læser dem gennem Kubernetes-API'et | Kubelet- og cAdvisor-metrikker, uden `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Log-taileren læser dem gennem Kubernetes-API'et | Intet: Fargate kører ingen DaemonSets |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Node-collectoren læser `/var/log/pods` | Kubelet-, cAdvisor- og styresystemmetrikker |
+| `openshift-restricted` | **OpenShift**, hvis en administrator ikke vil tilføje en SCC | Log-taileren læser dem gennem Kubernetes-API'et | Kubelet- og cAdvisor-metrikker, uden `hostPath` |
 
 Er du i tvivl, så lad `preset` være tom for at få `standard`. Hvis installationen fejler med en Pod Security-fejl, der nævner `hostPath`, så installér igen med `gke-autopilot`, eller `eks-fargate` på EKS Fargate.
 
-GKE Autopilot og EKS Fargate afviser også privilegerede pods, som eBPF-instrumenteringen og profileringen har brug for, så deres presets udelader begge:
+GKE Autopilot og EKS Fargate afviser også privilegerede pods, som eBPF-instrumenteringen og profileringen har brug for, så deres presets udelader begge.
+
+På OpenShift er `restricted-v2` standard-SCC'en (security context constraint), og den afviser node-collectoren og eBPF-podsene. Presettet `openshift` opretter en SCC til hver af dem, som kun bruges af deres egen tjenestekonto, og lader OpenShift vælge bruger-ID for alle andre pods:
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+Hvis en administrator ikke vil tilføje en SCC, så installer i stedet med `--set preset=openshift-restricted`. Chartet opretter så ingen SCC, og hver pod kører under `restricted-v2`: pod-logs kommer gennem Kubernetes-API'et, og der er ingen styresystemmetrikker, eBPF-traces eller profiler. Se [OpenShift](/docs/telemetry/kubernetes-agent#openshift).
 
 ## Mærk clusteret med labels
 
@@ -355,7 +370,7 @@ Profilering kræver **Linux 5.10** eller nyere og en privilegeret pod med nodens
 | `oneuptime.url` | (påkrævet) | Din OneUptime-URL. |
 | `oneuptime.apiKey` | (påkrævet) | Indtagelsesnøglen, fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. Sendes som headeren `x-oneuptime-token`; en projekt-API-nøgle virker ikke. |
 | `clusterName` | (påkrævet) | Clusterets navn, unikt i projektet. Hver post bærer det som `k8s.cluster.name`. |
-| `preset` | (tom: `standard`) | `standard`, `gke-autopilot` eller `eks-fargate`. Se [Vælg et preset](#vælg-et-preset). |
+| `preset` | (tom: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift` eller `openshift-restricted`. Se [Vælg et preset](#vælg-et-preset). |
 | `oneuptime.labels` | `{}` | Labels for hver post fra denne agent. Se [Mærk clusteret med labels](#mærk-clusteret-med-labels). |
 | `namespaceFilters.rules` | Holder `kube-system` uden for `podLogs` og `ebpfDiscovery` | Regler, der medtager eller udelukker namespaces, for `podLogs`, `ebpfDiscovery`, `metrics` og `traces`. Mønstre kan bruge `*`, og udelukkelse vinder altid. |
 | `filters.logs.minSeverity` | `""` | Smider pod-loglinjer under dette niveau væk: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` eller `FATAL`. |
@@ -408,9 +423,11 @@ kubectl delete namespace oneuptime-agent
 Kør chartets diagnosescript. Det tjekker podsene, indtagelsesnøglen og vejen ud af clusteret, spørger OneUptime, om nøglen accepteres, og skriver én konklusion. Det læser kun og ændrer intet:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Hver OneUptime leverer dette script fra sin egen udgivelse: På en selvhostet OneUptime bruger du din URL i stedet for `https://oneuptime.com`. Åbn scriptets adresse i en browser for at læse det, før du kører det.
 
 Den sædvanlige årsag, især efter en geninstallation, er en forkert eller tilbagekaldt indtagelsesnøgle: OneUptime afviser den, og collectoren smider hver batch væk, mens dens pods forbliver `Running`.
 :::

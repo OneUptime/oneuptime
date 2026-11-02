@@ -195,7 +195,12 @@ import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTem
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
+import {
+  PrivateRecordScope,
+  PrivateRecordScopeContext,
+} from "../../../UI/Utils/PrivateRecordScope";
 
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 const INCIDENT_ID: string = "20000000-0000-4000-8000-000000001042";
@@ -613,6 +618,113 @@ describe("useFeedNoteActions", () => {
       expect(screen.queryByRole("dialog")).toBeNull();
     });
     expect(onPosted).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A private incident takes no public notes, and its locked "Add Public
+   * Note" says to use a private note - unless the reader may not write one
+   * either: a member whose owning team may only view the incident (block
+   * 33) found "Use a private note." over a locked "Add Private Note". The
+   * page's private record scope (PrivateRecordScope) decides both.
+   */
+  describe("on a private incident", () => {
+    const FULL_REFUSAL: string =
+      "This incident is private, so public notes cannot be added to it. Use a private note.";
+    const REFUSAL_ALONE: string =
+      "This incident is private, so public notes cannot be added to it.";
+    const PRIVATE_REASON: string =
+      "This incident is private, so it is changed only with the permissions of the teams that own it, and Checkout SRE, your team that owns it, may not do this.";
+
+    const PrivateHarness: React.FunctionComponent<{
+      scope: PrivateRecordScope | null;
+    }> = (props: { scope: PrivateRecordScope | null }): ReactElement => {
+      return (
+        <PrivateRecordScopeContext.Provider value={props.scope}>
+          <PrivateFeed />
+        </PrivateRecordScopeContext.Provider>
+      );
+    };
+
+    const PrivateFeed: React.FunctionComponent = (): ReactElement => {
+      const noteActions: FeedNoteActions = useFeedNoteActions({
+        keyPrefix: "incident",
+        publicNoteKind: { ...publicKind(), isPrivateEvent: true },
+        privateNoteKind: privateKind(),
+        onPosted: () => {},
+      });
+
+      return <FeedActionsMenu>{noteActions.menuItems}</FeedActionsMenu>;
+    };
+
+    function scopeHolding(permissions: Array<Permission>): PrivateRecordScope {
+      return {
+        tableName: "Incident",
+        held: HeldPermissionsUtil.fromRows({
+          rows: permissions.map((permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          }),
+          globalPermissions: [],
+        }),
+        reason: PRIVATE_REASON,
+      };
+    }
+
+    beforeEach(() => {
+      isMasterAdmin = false;
+      // Another team of theirs may change every incident.
+      currentPermissions = [Permission.ProjectMember];
+    });
+
+    test("Add Public Note points to a private note for a reader who may write one", async () => {
+      render(
+        <PrivateHarness scope={scopeHolding([Permission.IncidentMember])} />,
+      );
+
+      const menu: HTMLElement = await openMenu();
+      const publicItem: HTMLElement = within(menu).getByRole("menuitem", {
+        name: "Add Public Note",
+      });
+
+      expect(publicItem).toHaveAttribute("aria-disabled", "true");
+      expect(publicItem).toHaveAccessibleDescription(FULL_REFUSAL);
+      expect(
+        within(menu).getByRole("menuitem", { name: "Add Private Note" }),
+      ).not.toHaveAttribute("aria-disabled", "true");
+    });
+
+    test("and only says why for one whose owning team may only view it, whose Add Private Note is locked saying why", async () => {
+      render(<PrivateHarness scope={scopeHolding([Permission.Viewer])} />);
+
+      const menu: HTMLElement = await openMenu();
+      const publicItem: HTMLElement = within(menu).getByRole("menuitem", {
+        name: "Add Public Note",
+      });
+      const privateItem: HTMLElement = within(menu).getByRole("menuitem", {
+        name: "Add Private Note",
+      });
+
+      expect(publicItem).toHaveAttribute("aria-disabled", "true");
+      expect(publicItem).toHaveAccessibleDescription(REFUSAL_ALONE);
+      expect(privateItem).toHaveAttribute("aria-disabled", "true");
+      expect(privateItem).toHaveAccessibleDescription(
+        `You do not have permission to create this Incident Internal Note. ${PRIVATE_REASON}`,
+      );
+    });
+
+    test("a page open on no private record words it as before", async () => {
+      render(<PrivateHarness scope={null} />);
+
+      const menu: HTMLElement = await openMenu();
+
+      expect(
+        within(menu).getByRole("menuitem", { name: "Add Public Note" }),
+      ).toHaveAccessibleDescription(FULL_REFUSAL);
+    });
   });
 
   test("a dialog belongs to the event it was opened on", async () => {

@@ -61,23 +61,22 @@ Start with **Declare an incident for each Zabbix problem**, or **Create an alert
 ### What the templates ask for
 
 - **Zabbix URL**: the address you open Zabbix at, such as `https://zabbix.example.com`, or `https://example.com/zabbix` when Zabbix runs under a path. Links to a problem go there, and the templates that call Zabbix send their requests to its `api_jsonrpc.php`. The field refuses the address of a page in Zabbix.
-- **Zabbix API Token**: an API token of the Zabbix user the workflow acts as. [Create the API token](#create-the-api-token) shows how. It is saved as a secret variable, and only ever sent in the `Authorization` header.
+- **Zabbix API Token**: an API token of the Zabbix user the workflow acts as. [Create the API token](#create-the-api-token) shows how. It is saved as a secret variable, and sent only to Zabbix: in the `Authorization` header, or in the request's body on Zabbix 6.0.
 
 ### Receive problems with the template
 
 :::steps
 1. Go to **Workflows** and click **Create Workflow**. Under **Or start from a template**, choose **Zabbix** in the category list, click **Declare an incident for each Zabbix problem**, and click **Use this template**.
-2. Fill in **Zabbix URL**, and click **Create Workflow**. The workflow opens in the **Builder**, switched off.
-3. Click the **Page an On-Call Policy** step, pick the **On-Call Policies** to page, and save it.
-4. Click the **Webhook** trigger, then **Copy URL**, and keep the URL for Zabbix.
-5. Switch **Enabled** on at the top of the **Builder**. A workflow that is off answers Zabbix with `400`.
+2. Fill in **Zabbix URL**. Under **Who to page for High and Disaster problems**, pick the on-call policies to page, or none to page nobody, and click **Create Workflow**. The workflow opens in the **Builder**, switched off.
+3. Click the **Webhook** trigger, then **Copy URL**, and keep the URL for Zabbix.
+4. Switch **Enabled** on at the top of the **Builder**. A workflow that is off answers Zabbix with `400`.
 :::
 
 Then [configure Zabbix](#configure-zabbix) to send its problems to that URL.
 
 ### What the workflow does
 
-After the **Webhook** trigger, a **Switch / Case** block takes a path for each `event` the media type sends:
+After the **Webhook** trigger, the `read-event-1` **Check With JavaScript** step reads the `event` the media type sends, and **Incident From Another Tool**, or **Alert From Another Tool** in the alert template, does what it means, by the problem's event ID:
 
 | Event | What the workflow does |
 | --- | --- |
@@ -85,7 +84,7 @@ After the **Webhook** trigger, a **Switch / Case** block takes a path for each `
 | `recovery` | Resolves the problem's incident, unless it is resolved already. Why is on its timeline. |
 | `update` | Adds what was done in Zabbix to the incident as a private note: who did it, what they did, and what they wrote. When the update acknowledged the problem, it also acknowledges the incident, which stops on-call escalating it. |
 
-Anything else, such as a request from another tool, is left alone, and the run's last step says why. Every run ends in a **Log** step that says what happened: `✅` it did its job, `ℹ️` it skipped the event on purpose, `❌` a step failed and the run log says why.
+Anything else, such as a request from another tool, is left alone: `read-event-1` takes **No**, and the run's **Steps** say why. A step that fails fails the run, and its entry in **Steps** says why.
 
 ### Severities
 
@@ -127,7 +126,7 @@ The state template asks Zabbix about the problem first, so a problem Zabbix ackn
 
 ### On Zabbix 6.0
 
-Zabbix 6.0 reads the API token from the request's body, not from its `Authorization` header. In each API step of the templates that call Zabbix, add `"auth": "{{local.variables.zabbixApiToken}}",` to **Request Body**, after `"jsonrpc": "2.0",`, and remove the header. Zabbix 7.2 and later refuse `auth`, so remove it again when you upgrade.
+Zabbix 6.0 reads the API token from the request's body, not from its `Authorization` header. In the **Update Zabbix Problem** step of each template that calls Zabbix, turn on **Zabbix 6.0**, under **More fields**. Zabbix 7.2 and later refuse a token in the body, so turn it off again when you upgrade.
 
 ## Receive problems with a monitor
 
@@ -346,7 +345,7 @@ The action probably has two operations that send to the same user, such as a fir
 
 - **Treat the URL like a password.** Anyone who has it can open incidents. If it leaks, reset it: **Reset URL** in the workflow's **Webhook** trigger, or **Reset Incoming Request Secret Key** on the monitor's **Settings** page. Then update **Send to** on the Zabbix user's media.
 - **Links go to your Zabbix.** The template links a problem on the site its **Zabbix URL** names, whatever a request says, and writes what Zabbix sent as text.
-- **Keep the API token to what the workflow does.** It is a secret variable, redacted from run logs, and sent only in the `Authorization` header. Give its user a role with nothing more than the actions above, and delete the token in **Users → API tokens** if it leaks.
+- **Keep the API token to what the workflow does.** It is a secret variable, redacted from run logs, and sent only to Zabbix, in the `Authorization` header unless **Zabbix 6.0** is on. Give its user a role with nothing more than the actions above, and delete the token in **Users → API tokens** if it leaks.
 - **Send only what needs an incident.** Use the action's conditions, or the user's media severities, to keep low-severity problems in Zabbix.
 - **Self-hosted?** Let your Zabbix server reach your OneUptime over HTTPS through your firewall. To call a Zabbix on a private network, the workflow needs [outbound network access](/docs/workflows/configuration#outbound-network-access).
 

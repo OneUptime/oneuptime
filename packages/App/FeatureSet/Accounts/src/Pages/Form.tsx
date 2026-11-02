@@ -7,8 +7,10 @@ import {
   getFormFailure,
   getFormFailureMessage,
   loadPublicForm,
+  loadPublicFormOnCustomDomain,
   normalizeFormShareKey,
   submitPublicForm,
+  submitPublicFormOnCustomDomain,
 } from "../Utils/Form";
 import { isKnownFormMessage } from "../Utils/FormMessage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -17,7 +19,10 @@ import {
   findPublicFormTemplate,
   getPublicFormForTemplate,
   getPublicFormStartTemplate,
+  isPublicFormFileField,
   PublicForm,
+  PublicFormField,
+  PublicFormSubmissionRequest,
   PublicFormSubmissionResult,
   PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
@@ -40,6 +45,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import { showPublicFormFavicon } from "Common/UI/Components/PublicForm/PublicFormFavicon";
 import {
   buildPublicFormFields,
+  getPublicFormFilesProblem,
   getPublicFormInitialValues,
 } from "Common/UI/Components/PublicForm/PublicFormFields";
 import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
@@ -63,7 +69,12 @@ import { Params, useParams } from "react-router-dom";
  * The page anybody with a form's link opens to fill it in, with or without a
  * OneUptime account: /accounts/form/:shareKey (and the incident form links
  * shared before Forms replaced them, /accounts/incident-form/:shareKey,
- * which App sends here).
+ * which App sends here) - and the root of a form's own domain, such as
+ * https://report.acme.com/ (isOnCustomDomain), where the page names no key:
+ * it reads and submits the form on that domain, and the server finds the
+ * form by the domain (Utils/FormDomainPage). Everything else is the same on
+ * both, every check included; only the page's chrome is its owner's there -
+ * the form's own logo or none, never OneUptime's.
  *
  * It reads the form's questions, asks them, and sends the answers - all
  * through FormAPI, the one client that never refreshes, signs out or
@@ -109,6 +120,8 @@ interface PageShellProps {
   // The form's own logo and what it says. Without one, the OneUptime logo.
   logo?: PublicFormImage | undefined;
   logoAltText?: string | undefined;
+  // On the form's own domain: the form's logo or none, never OneUptime's.
+  isOnCustomDomain?: boolean | undefined;
   children: ReactNode;
 }
 
@@ -118,15 +131,24 @@ const PageShell: FunctionComponent<PageShellProps> = (
 ): ReactElement => {
   const widthClassName: string = props.isNarrow ? "max-w-md" : "max-w-2xl";
 
+  // Whether a logo is drawn above the heading: the heading leads otherwise.
+  const hasLogo: boolean = !props.isOnCustomDomain || Boolean(props.logo);
+
   return (
     <div className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className={`mx-auto w-full ${widthClassName}`}>
-        <PublicFormLogo logo={props.logo} altText={props.logoAltText} />
+        <PublicFormLogo
+          logo={props.logo}
+          altText={props.logoAltText}
+          showProductLogo={!props.isOnCustomDomain}
+        />
         {props.heading ? (
           <h1
             ref={props.headingRef}
             tabIndex={props.headingRef ? -1 : undefined}
-            className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 [overflow-wrap:anywhere] focus:outline-none sm:mt-6 sm:text-3xl"
+            className={`${
+              hasLogo ? "mt-5 sm:mt-6 " : ""
+            }text-center text-2xl font-semibold tracking-tight text-gray-900 [overflow-wrap:anywhere] focus:outline-none sm:text-3xl`}
           >
             {props.heading}
           </h1>
@@ -144,11 +166,26 @@ const PageShell: FunctionComponent<PageShellProps> = (
   );
 };
 
-const FormPage: () => JSX.Element = () => {
+export interface FormPageProps {
+  /*
+   * The form on its owner's own domain (Utils/FormDomainPage), at its root:
+   * read and submitted on that domain, naming no key.
+   */
+  isOnCustomDomain?: boolean | undefined;
+}
+
+const FormPage: (props: FormPageProps) => JSX.Element = (
+  props: FormPageProps,
+) => {
   const { t, i18n } = useTranslation();
   const params: Readonly<Params<string>> = useParams();
 
-  const shareKey: string | null = normalizeFormShareKey(params["shareKey"]);
+  const isOnCustomDomain: boolean = props.isOnCustomDomain === true;
+
+  // On the form's own domain there is no key: the domain is the form's link.
+  const shareKey: string | null = isOnCustomDomain
+    ? null
+    : normalizeFormShareKey(params["shareKey"]);
 
   const [form, setForm] = useState<PublicForm | null>(null);
   const [loadFailure, setLoadFailure] = useState<FormFailure | null>(null);
@@ -157,6 +194,12 @@ const FormPage: () => JSX.Element = () => {
   const [loadAttempt, setLoadAttempt] = useState<number>(0);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  /*
+   * How much of a submission with files has been sent, 0 to 100, while it is
+   * being sent; null otherwise. Files make a submission long to send.
+   */
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const isSubmittingRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -217,7 +260,7 @@ const FormPage: () => JSX.Element = () => {
      * Not a key at all: say what the server would say about it, without
      * asking - see normalizeFormShareKey for why it must not be.
      */
-    if (!shareKey) {
+    if (!isOnCustomDomain && !shareKey) {
       setForm(null);
       setLoadFailure({
         kind: FormFailureKind.NotAvailable,
@@ -232,7 +275,7 @@ const FormPage: () => JSX.Element = () => {
     setForm(null);
     setLoadFailure(null);
 
-    loadPublicForm(shareKey)
+    (shareKey ? loadPublicForm(shareKey) : loadPublicFormOnCustomDomain())
       .then((loadedForm: PublicForm) => {
         if (isCurrent) {
           const startTemplate: PublicFormTemplate | undefined =
@@ -256,7 +299,7 @@ const FormPage: () => JSX.Element = () => {
     return () => {
       isCurrent = false;
     };
-  }, [shareKey, loadAttempt]);
+  }, [shareKey, isOnCustomDomain, loadAttempt]);
 
   /*
    * The tab is named after the form while it is open - its name and nothing
@@ -408,27 +451,60 @@ const FormPage: () => JSX.Element = () => {
   type SubmitFunction = (values: JSONObject) => Promise<void>;
 
   const submit: SubmitFunction = async (values: JSONObject): Promise<void> => {
-    if (!form || !shareKey || isSubmittingRef.current) {
+    if (!form || (!shareKey && !isOnCustomDomain) || isSubmittingRef.current) {
       return;
     }
+
+    /*
+     * The files of the whole response, before anything is sent: so many, and
+     * so large together, at most - the server's own sentence, shown in the
+     * submitter's language, and no captcha answer spent on it.
+     */
+    const filesProblem: string | null = askedForm
+      ? getPublicFormFilesProblem({ form: askedForm, values: values })
+      : null;
+
+    if (filesProblem) {
+      setSubmitFailure({
+        kind: FormFailureKind.Refused,
+        serverMessage: filesProblem,
+        retryAfterSeconds: 0,
+      });
+      return;
+    }
+
+    const hasFiles: boolean = Boolean(
+      askedForm &&
+        askedForm.fields.some((field: PublicFormField): boolean => {
+          return isPublicFormFileField(field);
+        }),
+    );
 
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     setSubmitFailure(null);
+    setUploadPercent(hasFiles ? 0 : null);
 
     try {
-      const submitted: PublicFormSubmissionResult = await submitPublicForm(
-        shareKey,
-        buildFormSubmissionRequest({
-          form: form,
-          values: values,
-          captchaToken:
-            isCaptchaShown && typeof values[CAPTCHA_TOKEN_KEY] === "string"
-              ? (values[CAPTCHA_TOKEN_KEY] as string)
-              : undefined,
-          templateId: templateId,
-        }),
-      );
+      const request: PublicFormSubmissionRequest = buildFormSubmissionRequest({
+        form: form,
+        values: values,
+        captchaToken:
+          isCaptchaShown && typeof values[CAPTCHA_TOKEN_KEY] === "string"
+            ? (values[CAPTCHA_TOKEN_KEY] as string)
+            : undefined,
+        templateId: templateId,
+      });
+
+      const onProgress: ((percent: number) => void) | undefined = hasFiles
+        ? (percent: number): void => {
+            setUploadPercent(percent);
+          }
+        : undefined;
+
+      const submitted: PublicFormSubmissionResult = shareKey
+        ? await submitPublicForm(shareKey, request, onProgress)
+        : await submitPublicFormOnCustomDomain(request, onProgress);
 
       setResult(submitted);
 
@@ -450,6 +526,7 @@ const FormPage: () => JSX.Element = () => {
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
+      setUploadPercent(null);
     }
   };
 
@@ -484,7 +561,7 @@ const FormPage: () => JSX.Element = () => {
     }
 
     return (
-      <PageShell isNarrow={true}>
+      <PageShell isNarrow={true} isOnCustomDomain={isOnCustomDomain}>
         <div className="text-center" data-testid="form-load-failure">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             <Icon icon={icon} className="h-6 w-6 text-gray-500" />
@@ -535,6 +612,7 @@ const FormPage: () => JSX.Element = () => {
         heading={form.name}
         logo={form.logo}
         logoAltText={form.logoAltText}
+        isOnCustomDomain={isOnCustomDomain}
       >
         <div className="text-center" data-testid="form-success">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
@@ -603,6 +681,7 @@ const FormPage: () => JSX.Element = () => {
       headingRef={pageHeadingRef}
       logo={form.logo}
       logoAltText={form.logoAltText}
+      isOnCustomDomain={isOnCustomDomain}
     >
       {form.description ? (
         <div
@@ -646,7 +725,25 @@ const FormPage: () => JSX.Element = () => {
           void submit(values as JSONObject);
         }}
         footer={
-          submitError ? (
+          isSubmitting && uploadPercent !== null ? (
+            <div
+              className="mt-4"
+              role="status"
+              aria-live="polite"
+              data-testid="form-upload-progress"
+            >
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>{t("form.uploadingFiles")}</span>
+                <span className="tabular-nums">{uploadPercent}%</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                  style={{ width: `${uploadPercent}%` }}
+                ></div>
+              </div>
+            </div>
+          ) : submitError ? (
             <div className="mt-4">
               <Alert
                 type={AlertType.DANGER}

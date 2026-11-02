@@ -102,3 +102,84 @@ describe("HostMetricCatalog", () => {
     expect(getHostMetricByMetricName("system.memory.usage")).toBeDefined();
   });
 });
+
+/*
+ * A Custom Metric reads one query. The hostmetrics receiver splits most of
+ * these metrics by an attribute whose rows add up to the whole (CPU and
+ * memory by state, filesystems by mount and state, processes by status), so
+ * an average over every row reads 1/N of the total whatever the load. Each
+ * entry says what its one query means: a filter on the row it counts, or a
+ * group-by that judges each row on its own.
+ */
+describe("HostMetricCatalog - what a Custom Metric's one query reads", () => {
+  function entry(metricName: string): HostMetricDefinition {
+    const found: HostMetricDefinition | undefined =
+      getHostMetricByMetricName(metricName);
+
+    if (!found) {
+      throw new Error(`${metricName} is not in the catalog`);
+    }
+
+    return found;
+  }
+
+  test("CPU counts the user state, and never one series per state, where idle would pass any busy threshold", () => {
+    const cpu: HostMetricDefinition = entry("system.cpu.utilization");
+
+    expect(cpu.attributes).toEqual({ state: "user" });
+    expect(cpu.groupByAttributeKeys || []).not.toContain("state");
+  });
+
+  test("memory counts the memory in use", () => {
+    for (const name of ["system.memory.utilization", "system.memory.usage"]) {
+      expect(entry(name).attributes).toEqual({ state: "used" });
+    }
+  });
+
+  test("each filesystem is judged on its own, so one full disk is not averaged away", () => {
+    expect(entry("system.filesystem.utilization").groupByAttributeKeys).toEqual(
+      ["mountpoint"],
+    );
+    expect(entry("system.filesystem.usage").groupByAttributeKeys).toEqual([
+      "mountpoint",
+    ]);
+    // Usage is split by state too: the bytes in use, not used + free.
+    expect(entry("system.filesystem.usage").attributes).toEqual({
+      state: "used",
+    });
+  });
+
+  test("processes, network and per-process CPU give one series per status, direction or executable", () => {
+    expect(entry("system.processes.count").groupByAttributeKeys).toEqual([
+      "status",
+    ]);
+    expect(entry("system.network.io").groupByAttributeKeys).toEqual([
+      "direction",
+    ]);
+    expect(entry("process.cpu.utilization").groupByAttributeKeys).toEqual([
+      "resource.process.executable.name",
+    ]);
+  });
+
+  test("no entry groups by a state, and only the load averages read one plain number", () => {
+    for (const metric of allMetricsOf()) {
+      expect({
+        metric: metric.metricName,
+        groupsByState: (metric.groupByAttributeKeys || []).includes("state"),
+      }).toEqual({ metric: metric.metricName, groupsByState: false });
+
+      const decided: boolean =
+        Object.keys(metric.attributes || {}).length > 0 ||
+        (metric.groupByAttributeKeys || []).length > 0;
+
+      expect({ metric: metric.metricName, decided: decided }).toEqual({
+        metric: metric.metricName,
+        decided: !metric.metricName.startsWith("system.cpu.load_average."),
+      });
+    }
+  });
+
+  function allMetricsOf(): Array<HostMetricDefinition> {
+    return getAllHostMetrics();
+  }
+});

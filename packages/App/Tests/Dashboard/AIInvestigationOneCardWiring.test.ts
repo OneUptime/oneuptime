@@ -143,6 +143,31 @@ describe.each(EVENT_PAGES)(
       );
     });
 
+    /*
+     * OneUptime AI acts within the asker's permissions, so the card asks it
+     * to acknowledge the record only for a reader whose own Acknowledge is
+     * offered: the header's gate - a row of the state timeline created -
+     * with what the reader holds on a private record (block 33: a view-only
+     * owning team's member was offered "Acknowledge this incident").
+     */
+    test(`asks OneUptime AI to acknowledge the ${subjectType} only for a reader who may change its state`, () => {
+      const slot: RegExpMatchArray | null = view.match(
+        /renderConversation=\{\(slot: InvestigationConversationSlot\) => \{ return \( (<InvestigationConversation [^>]*\/>) \); \}\}/,
+      );
+      const timeline: string =
+        subjectType === "incident"
+          ? "IncidentStateTimeline"
+          : "AlertStateTimeline";
+
+      expect(slot![1]).toContain("mayChangeState={mayChangeState}");
+      expect(view).toContain(
+        `const mayChangeState: boolean = PermissionGate.check( new ${timeline}(), ModelAction.Create, privateRecordOptions, ).isAllowed;`,
+      );
+      expect(view).toContain(
+        "const privateRecordOptions: PermissionGateOptions | undefined = usePrivateRecordGateOptions(",
+      );
+    });
+
     test("no longer chooses between a card and an embedded conversation", () => {
       // Everything the page hands the panel, up to the end of its element.
       const panelStart: number = view.indexOf("<InvestigationPanel ");

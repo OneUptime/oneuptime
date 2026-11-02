@@ -3,8 +3,13 @@ import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  MAX_EXCEPTION_FINGERPRINT_LENGTH,
+  MAX_EXCEPTION_FINGERPRINT_LOOKUP,
+} from "Common/Types/Telemetry/ExceptionFingerprintLookup";
+import {
   EXCEPTION_CONTEXT_ANCHOR_LOG_ID,
   EXCEPTION_CONTEXT_LOG_COUNT,
+  EXCEPTION_FINGERPRINT_LOOKUP_ROUTE,
   EXCEPTION_FINGERPRINT_SHORT_LENGTH,
   EXCEPTION_GROUP_LABEL_MAX_LENGTH,
   EXCEPTION_LOG_WINDOW_MS,
@@ -16,6 +21,7 @@ import {
   OccurrenceLogsLink,
   REPLAY_CARD_MOMENT_TOLERANCE_MS,
   RumSessionAnchor,
+  buildExceptionFingerprintLookupRequest,
   buildExceptionGroupLink,
   buildOccurrenceLogsContextRequest,
   buildOccurrenceLogsExplorerLink,
@@ -841,15 +847,35 @@ describe("buildExceptionGroupLink (correlation-7)", () => {
   });
 });
 
+/*
+ * The lookup's answer names, for each fingerprint asked about, the
+ * exception it counts on (POST /telemetry-exception/by-fingerprints). The
+ * index is keyed by the fingerprint asked about, never by the exception's
+ * own: the exception a merged fingerprint was merged into carries a
+ * fingerprint of its own.
+ */
 describe("indexExceptionGroupsByFingerprint", () => {
-  test("indexes rows by fingerprint, first row wins, ids read from id or _id", () => {
+  test("indexes the answer by the fingerprint asked about, the first exception of each winning", () => {
     const index: Map<string, ExceptionGroupSummary> =
       indexExceptionGroupsByFingerprint([
-        { _id: "id-1", fingerprint: "fp-1", exceptionType: "A", message: "m" },
-        { id: "id-2", fingerprint: "fp-1", exceptionType: "B" },
-        { id: "id-3", fingerprint: "fp-2" },
-        { id: "id-4", fingerprint: "" },
-        null,
+        {
+          fingerprint: "fp-1",
+          telemetryExceptionId: "id-1",
+          exceptionType: "A",
+          message: "m",
+        },
+        {
+          fingerprint: "fp-1",
+          telemetryExceptionId: "id-2",
+          exceptionType: "B",
+          message: null,
+        },
+        {
+          fingerprint: "fp-2",
+          telemetryExceptionId: "id-3",
+          exceptionType: null,
+          message: null,
+        },
       ]);
 
     expect(index.size).toBe(2);
@@ -867,8 +893,116 @@ describe("indexExceptionGroupsByFingerprint", () => {
     });
   });
 
+  test("an entry without a fingerprint or an exception id is skipped", () => {
+    const index: Map<string, ExceptionGroupSummary> =
+      indexExceptionGroupsByFingerprint([
+        {
+          fingerprint: " ",
+          telemetryExceptionId: "id-1",
+          exceptionType: null,
+          message: null,
+        },
+        {
+          fingerprint: "fp-2",
+          telemetryExceptionId: "",
+          exceptionType: "B",
+          message: null,
+        },
+        {
+          fingerprint: "fp-2",
+          telemetryExceptionId: "id-3",
+          exceptionType: "C",
+          message: null,
+        },
+      ]);
+
+    expect(Array.from(index.keys())).toEqual(["fp-2"]);
+    expect(index.get("fp-2")!.id).toBe("id-3");
+  });
+
   test("tolerates absent input", () => {
     expect(indexExceptionGroupsByFingerprint(null).size).toBe(0);
     expect(indexExceptionGroupsByFingerprint(undefined).size).toBe(0);
+    expect(indexExceptionGroupsByFingerprint([]).size).toBe(0);
+  });
+
+  /*
+   * fp-b's exception was merged into fp-a's. The lookup answers fp-b with
+   * the exception it was merged into, which carries fp-a: keyed by its own
+   * fingerprint, fp-b would find nothing, lose its label and fall back to
+   * the filtered list.
+   */
+  test("a merged exception's fingerprint links straight to the exception it was merged into", () => {
+    const SURVIVOR_ID: string = "0193c0de-4444-4aaa-8bbb-000000000004";
+    const index: Map<string, ExceptionGroupSummary> =
+      indexExceptionGroupsByFingerprint([
+        {
+          fingerprint: "fp-b",
+          telemetryExceptionId: SURVIVOR_ID,
+          exceptionType: "TypeError",
+          message: "x is not a function",
+        },
+      ]);
+
+    const link: ExceptionGroupLink | null = buildExceptionGroupLink({
+      fingerprint: "fp-b",
+      group: index.get("fp-b"),
+      exceptionsListRoute: new Route("/dashboard/p1/exceptions/unresolved"),
+      exceptionViewRouteForId: (id: string): Route => {
+        return new Route(`/dashboard/p1/exceptions/${id}`);
+      },
+    });
+
+    expect(link).not.toBeNull();
+    expect(link!.isDirect).toBe(true);
+    expect(link!.route.toString()).toBe(
+      `/dashboard/p1/exceptions/${SURVIVOR_ID}`,
+    );
+    expect(link!.label).toBe("TypeError: x is not a function");
+  });
+});
+
+describe("buildExceptionFingerprintLookupRequest", () => {
+  test("asks about each fingerprint once, trimmed, without blanks", () => {
+    expect(
+      buildExceptionFingerprintLookupRequest([
+        "fp-1",
+        " fp-2 ",
+        "fp-1",
+        "",
+        "  ",
+        null,
+        undefined,
+      ]),
+    ).toEqual({ fingerprints: ["fp-1", "fp-2"] });
+  });
+
+  test("asks about at most as many as one request takes, and none longer than any", () => {
+    const request: JSONObject | null = buildExceptionFingerprintLookupRequest([
+      "f".repeat(MAX_EXCEPTION_FINGERPRINT_LENGTH + 1),
+      ...Array.from(
+        { length: MAX_EXCEPTION_FINGERPRINT_LOOKUP + 5 },
+        (_value: unknown, index: number): string => {
+          return `fp-${index}`;
+        },
+      ),
+    ]);
+
+    const asked: Array<string> = request!["fingerprints"] as Array<string>;
+    expect(asked).toHaveLength(MAX_EXCEPTION_FINGERPRINT_LOOKUP);
+    expect(asked[0]).toBe("fp-0");
+  });
+
+  test("with nothing to ask about, there is no request", () => {
+    expect(buildExceptionFingerprintLookupRequest([])).toBeNull();
+    expect(buildExceptionFingerprintLookupRequest(["", " "])).toBeNull();
+    expect(buildExceptionFingerprintLookupRequest(null)).toBeNull();
+    expect(buildExceptionFingerprintLookupRequest(undefined)).toBeNull();
+  });
+
+  test("goes to the route that answers with the exception each counts on", () => {
+    expect(EXCEPTION_FINGERPRINT_LOOKUP_ROUTE).toBe(
+      "/telemetry-exception/by-fingerprints",
+    );
   });
 });

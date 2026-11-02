@@ -3,7 +3,9 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import {
   getDisplayNameColumn,
   getRecordDisplayName,
@@ -68,6 +70,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * TypeToConfirmDelete. Without a name to type, the dialog asks as usual.
    */
   requireTypedName?: boolean | undefined;
+  /*
+   * What one record of this kind is called, where the page calls it
+   * otherwise than its model does: an App Platforms environment is a
+   * CloudResource row, whose own noun is Cloud's. Names the card, its
+   * button, the dialog and the sentence without a name. Defaults to the
+   * model's singularName.
+   */
+  singularName?: string | undefined;
 }
 
 /*
@@ -88,6 +98,13 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   const translator: Translator = useTranslator();
   const model: TBaseModel = new props.modelType();
   /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: its changes are offered only when a team of theirs that owns it
+   * may make them (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+  /*
    * The delete card used to be rendered for everybody: a viewer got a live
    * "Delete <X>" button, a confirmation dialog, and then a refusal from the
    * API. It now stays visible but locked, and says which permission is
@@ -96,6 +113,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   const deleteGate: PermissionGateResult = PermissionGate.check(
     model,
     ModelAction.Delete,
+    privateRecordOptions,
   );
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -184,7 +202,9 @@ const ModelDelete: <TBaseModel extends BaseModel>(
 
   const shownName: string = fullName ? shortenDisplayName(fullName) : "";
 
-  const typeLabel: string = model.singularName || "item";
+  const singularName: string =
+    props.singularName?.trim() || model.singularName || "";
+  const typeLabel: string = singularName || "item";
 
   /*
    * What goes with it (DeleteConsequences), on the card and in the dialog:
@@ -239,7 +259,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
       <Card
         title={translateNamedAction(translator, {
           template: "Delete {{itemName}}",
-          itemName: model.singularName || "",
+          itemName: singularName,
         })}
         description={
           <DeleteConfirmationMessage
@@ -255,7 +275,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           {
             title: translateNamedAction(translator, {
               template: "Delete {{itemName}}",
-              itemName: model.singularName || "",
+              itemName: singularName,
             }),
             buttonStyle: ButtonStyleType.DANGER,
             disabled: !deleteGate.isAllowed,
@@ -287,7 +307,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           }
           title={translateNamedAction(translator, {
             template: "Delete {{itemName}}",
-            itemName: model.singularName || "",
+            itemName: singularName,
           })}
           onSubmit={async () => {
             await confirm();
@@ -298,7 +318,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           }}
           submitButtonText={translateNamedAction(translator, {
             template: "Delete {{itemName}}",
-            itemName: model.singularName || "",
+            itemName: singularName,
           })}
           submitButtonType={ButtonStyleType.DANGER}
           disableSubmitButton={!isConfirmed}

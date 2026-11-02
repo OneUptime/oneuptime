@@ -5,6 +5,11 @@ import {
   TelemetryCrossSignalScope,
   toLogsExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
+import {
+  ExceptionOfFingerprint,
+  MAX_EXCEPTION_FINGERPRINT_LENGTH,
+  MAX_EXCEPTION_FINGERPRINT_LOOKUP,
+} from "Common/Types/Telemetry/ExceptionFingerprintLookup";
 
 /*
  * Pure helpers behind the exception page's correlation surfaces: the
@@ -763,69 +768,88 @@ export const buildExceptionGroupLink: BuildExceptionGroupLinkFunction = (
   return { route, label, isDirect: false };
 };
 
+/*
+ * The lookup a batch of bare fingerprints is resolved with: the exception
+ * each counts on, its own or the one it was merged into, read as the viewer
+ * (TelemetryExceptionAPI, ExceptionFingerprintLookup).
+ */
+export const EXCEPTION_FINGERPRINT_LOOKUP_ROUTE: string =
+  "/telemetry-exception/by-fingerprints";
+
+/**
+ * The lookup's body for a batch of fingerprints: each once, trimmed, blanks
+ * dropped, at most as many as one request takes. Null when none is left to
+ * ask about.
+ */
+export function buildExceptionFingerprintLookupRequest(
+  fingerprints: ReadonlyArray<string | null | undefined> | null | undefined,
+): JSONObject | null {
+  const asked: Array<string> = [];
+
+  for (const raw of fingerprints || []) {
+    const fingerprint: string = toTrimmedString(raw);
+
+    if (
+      fingerprint.length === 0 ||
+      fingerprint.length > MAX_EXCEPTION_FINGERPRINT_LENGTH ||
+      asked.includes(fingerprint)
+    ) {
+      continue;
+    }
+
+    asked.push(fingerprint);
+
+    if (asked.length >= MAX_EXCEPTION_FINGERPRINT_LOOKUP) {
+      break;
+    }
+  }
+
+  return asked.length > 0 ? { fingerprints: asked } : null;
+}
+
 type IndexExceptionGroupsByFingerprintFunction = (
-  rows:
-    | Array<
-        | {
-            id?: unknown;
-            _id?: unknown;
-            fingerprint?: unknown;
-            exceptionType?: unknown;
-            message?: unknown;
-          }
-        | null
-        | undefined
-      >
-    | null
-    | undefined,
+  exceptions: ReadonlyArray<ExceptionOfFingerprint> | null | undefined,
 ) => Map<string, ExceptionGroupSummary>;
 
 /**
- * Index a TelemetryException lookup result by fingerprint, so a batch of
+ * Index the lookup's answer by the fingerprint asked about, so a batch of
  * bare fingerprints (a session header's exceptionFingerprints) resolves to
- * labels and ids in one pass. The first row per fingerprint wins; rows
- * without a fingerprint cannot be matched and are skipped.
+ * labels and ids in one pass. The answer names, for each fingerprint, the
+ * exception it counts on: a fingerprint of an exception merged into another
+ * links straight to the one it was merged into, though that one carries a
+ * fingerprint of its own. The first exception per fingerprint wins; an
+ * entry without a fingerprint or an id cannot be matched and is skipped.
  */
 export const indexExceptionGroupsByFingerprint: IndexExceptionGroupsByFingerprintFunction =
   (
-    rows:
-      | Array<
-          | {
-              id?: unknown;
-              _id?: unknown;
-              fingerprint?: unknown;
-              exceptionType?: unknown;
-              message?: unknown;
-            }
-          | null
-          | undefined
-        >
-      | null
-      | undefined,
+    exceptions: ReadonlyArray<ExceptionOfFingerprint> | null | undefined,
   ): Map<string, ExceptionGroupSummary> => {
     const index: Map<string, ExceptionGroupSummary> = new Map<
       string,
       ExceptionGroupSummary
     >();
 
-    if (!rows || !Array.isArray(rows)) {
+    if (!exceptions || !Array.isArray(exceptions)) {
       return index;
     }
 
-    for (const row of rows) {
-      const fingerprint: string = toTrimmedString(row?.fingerprint);
+    for (const exception of exceptions) {
+      const fingerprint: string = toTrimmedString(exception?.fingerprint);
+      const id: string = toTrimmedString(exception?.telemetryExceptionId);
 
-      if (fingerprint.length === 0 || index.has(fingerprint)) {
+      if (
+        fingerprint.length === 0 ||
+        id.length === 0 ||
+        index.has(fingerprint)
+      ) {
         continue;
       }
 
-      const id: string = toTrimmedString(row?.id) || toTrimmedString(row?._id);
-
       index.set(fingerprint, {
-        id: id.length > 0 ? id : null,
+        id,
         fingerprint,
-        exceptionType: toTrimmedString(row?.exceptionType) || null,
-        message: toTrimmedString(row?.message) || null,
+        exceptionType: toTrimmedString(exception.exceptionType) || null,
+        message: toTrimmedString(exception.message) || null,
       });
     }
 

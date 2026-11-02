@@ -8,6 +8,16 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import ExceptionSavedView from "Common/Models/DatabaseModels/ExceptionSavedView";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
+import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import {
+  ExceptionsListViewDefaults,
+  ExceptionsListViewState,
+  buildExceptionsUrlScopeOverrides,
+  captureExceptionsSavedViewState,
+  readExceptionsSavedViewState,
+} from "../../Utils/ExceptionSavedView";
 import TelemetryLoadErrorUtil, {
   TelemetryLoadError,
 } from "Common/UI/Utils/Telemetry/TelemetryLoadError";
@@ -140,6 +150,13 @@ import {
   runExceptionAssignment,
 } from "./ExceptionRowActions";
 import ExceptionAssignModal from "./ExceptionAssignModal";
+import {
+  EXCEPTION_LIST_STATS_ROUTE,
+  ExceptionListStatsById,
+  buildExceptionListStatsRequest,
+  getExceptionRowStats,
+  readExceptionListStatsById,
+} from "../../Utils/ExceptionListStats";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import {
   BulkActionButtonSchema,
@@ -179,6 +196,7 @@ import {
 } from "../../Utils/ExceptionsEntityChipDisplay";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { UNKNOWN_RESOURCE_LABEL } from "Common/UI/Utils/TelemetryService";
 import {
   translatableTerm,
   translationKey,
@@ -364,6 +382,10 @@ interface InitialUrlState {
   assignedToMe: boolean;
   // `sort=`: the list's order (ExceptionListSort), last seen by default.
   sort: ExceptionListSort;
+  // `savedView=`: the saved view a link opens (ExceptionSavedView).
+  savedViewId: string | null;
+  // Whether the link named a window: the list writes one on every change.
+  hasRange: boolean;
 }
 
 /*
@@ -414,6 +436,8 @@ function readInitialUrlState(): InitialUrlState {
   }
 
   let timeRange: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_DAY };
+  // Whether the window above came from the link rather than the default.
+  let hasRange: boolean = false;
   const rangeRaw: string | null = params.get("range");
   if (rangeRaw) {
     const knownRanges: Array<string> = Object.values(TimeRange);
@@ -430,10 +454,12 @@ function readInitialUrlState(): InitialUrlState {
               range: matched,
               startAndEndDate: new InBetween<Date>(startDate, endDate),
             };
+            hasRange = true;
           }
         }
       } else {
         timeRange = { range: matched };
+        hasRange = true;
       }
     }
   }
@@ -465,6 +491,10 @@ function readInitialUrlState(): InitialUrlState {
   const assignedToMe: boolean = params.get("assigned") === "me";
   const sort: ExceptionListSort = readExceptionListSort(params.get("sort"));
 
+  const savedViewRaw: string | null = params.get("savedView");
+  const savedViewId: string | null =
+    savedViewRaw && savedViewRaw.trim().length > 0 ? savedViewRaw.trim() : null;
+
   return {
     search,
     filters,
@@ -475,6 +505,8 @@ function readInitialUrlState(): InitialUrlState {
     classScope,
     assignedToMe,
     sort,
+    savedViewId,
+    hasRange,
   };
 }
 
@@ -600,6 +632,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   );
 
   /*
+   * Saved views belong to the Exceptions list itself, as the traces
+   * explorer keeps its own to its explorer: a service or inventory item
+   * narrows the list to itself, which a view cannot carry, and the
+   * project default would otherwise open on every one of their tabs.
+   */
+  const enableSavedViews: boolean =
+    !hostOwnsView &&
+    !primaryEntityId &&
+    !(entityKeysFilter && entityKeysFilter.length > 0);
+
+  /*
    * Parse filter state from the URL once on first mount so refresh and
    * back-from-exception-detail restore the view.
    */
@@ -615,6 +658,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         classScope: null,
         assignedToMe: false,
         sort: DEFAULT_EXCEPTION_LIST_SORT,
+        savedViewId: null,
+        hasRange: false,
       };
     }
 
@@ -644,6 +689,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   );
   const [sort, setSort] = useState<ExceptionListSort>(initialUrlState.sort);
   /*
+   * The saved view picked in the toolbar, mirrored into the address bar so
+   * the link opens it (ExceptionSavedView).
+   */
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
+    enableSavedViews ? initialUrlState.savedViewId : null,
+  );
+  /*
    * Assign to…, from Bulk Actions, while its dialog is open: the selection
    * the run is for.
    */
@@ -651,6 +703,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     useState<BulkActionOnClickProps<TelemetryException> | null>(null);
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
+  /*
+   * The range the rows above were read for, set with them: the rows'
+   * affected users and trend charts are counted over the same range.
+   */
+  const [listWindow, setListWindow] = useState<InBetween<Date> | null>(null);
+  // Each row's affected users and trend, by exception id, for this page.
+  const [listStats, setListStats] = useState<ExceptionListStatsById | null>(
+    null,
+  );
+  const [isListStatsLoading, setIsListStatsLoading] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
@@ -837,6 +899,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       // As `class`: written only off its default, and cleared explicitly.
       assigned: assignedToMe ? "me" : null,
       sort: sort === DEFAULT_EXCEPTION_LIST_SORT ? null : sort,
+      // The saved view picked, so the link opens it; cleared with it.
+      savedView: selectedSavedViewId || null,
     });
   }, [
     hostOwnsView,
@@ -850,6 +914,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     classScope,
     assignedToMe,
     sort,
+    selectedSavedViewId,
   ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
@@ -1574,6 +1639,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const fetchExceptions: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
     setError("");
+    const readWindow: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
     try {
       const result: ModelListResult<TelemetryException> =
         await ModelAPI.getList({
@@ -1606,6 +1673,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           sort: getExceptionListSortOrder(sort) as never,
         });
       setExceptions(result.data || []);
+      setListWindow(readWindow);
       setTotalCount(result.count);
       setHasListAnswered(true);
     } catch (err) {
@@ -1613,7 +1681,48 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, [query, page, pageSize, sort]);
+  }, [query, page, pageSize, sort, timeRange]);
+
+  /*
+   * The page's affected users and trend charts, in one request once its
+   * rows are in (ExceptionListStatsReader). Best effort: the rows show
+   * without them if it fails.
+   */
+  useEffect(() => {
+    const request: JSONObject | null = listWindow
+      ? buildExceptionListStatsRequest({ exceptions, window: listWindow })
+      : null;
+
+    if (!request) {
+      setListStats(null);
+      setIsListStatsLoading(false);
+      return;
+    }
+
+    let isCancelled: boolean = false;
+    setIsListStatsLoading(true);
+
+    postApi(EXCEPTION_LIST_STATS_ROUTE, request)
+      .then((response: HTTPResponse<JSONObject>): void => {
+        if (!isCancelled) {
+          setListStats(readExceptionListStatsById(response.data));
+        }
+      })
+      .catch((): void => {
+        if (!isCancelled) {
+          setListStats(null);
+        }
+      })
+      .finally((): void => {
+        if (!isCancelled) {
+          setIsListStatsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [exceptions, listWindow]);
 
   useEffect(() => {
     if (holdsReads) {
@@ -1760,11 +1869,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
+    const unknownName: string = translator.translateTerm(
+      UNKNOWN_RESOURCE_LABEL,
+    );
     const serviceNameMap: Record<string, string> = {};
     const serviceColorMap: Record<string, string> = {};
     for (const service of services) {
       if (service.id) {
-        serviceNameMap[service.id.toString()] = service.name || "Unknown";
+        serviceNameMap[service.id.toString()] = service.name || unknownName;
         if (service.serviceColor) {
           serviceColorMap[service.id.toString()] =
             service.serviceColor.toString();
@@ -1776,7 +1888,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const host of hosts) {
       if (host.id) {
         hostNameMap[host.id.toString()] =
-          host.name || host.hostIdentifier || "Unknown";
+          host.name || host.hostIdentifier || unknownName;
       }
     }
 
@@ -1784,7 +1896,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const dockerHost of dockerHosts) {
       if (dockerHost.id) {
         dockerHostNameMap[dockerHost.id.toString()] =
-          dockerHost.name || dockerHost.hostIdentifier || "Unknown";
+          dockerHost.name || dockerHost.hostIdentifier || unknownName;
       }
     }
 
@@ -1792,7 +1904,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const podmanHost of podmanHosts) {
       if (podmanHost.id) {
         podmanHostNameMap[podmanHost.id.toString()] =
-          podmanHost.name || podmanHost.hostIdentifier || "Unknown";
+          podmanHost.name || podmanHost.hostIdentifier || unknownName;
       }
     }
 
@@ -1800,7 +1912,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const cluster of kubernetesClusters) {
       if (cluster.id) {
         clusterNameMap[cluster.id.toString()] =
-          cluster.name || cluster.clusterIdentifier || "Unknown";
+          cluster.name || cluster.clusterIdentifier || unknownName;
       }
     }
 
@@ -1852,7 +1964,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         priority: 8,
       },
     ];
-  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
+  }, [
+    services,
+    hosts,
+    dockerHosts,
+    podmanHosts,
+    kubernetesClusters,
+    translator.language,
+  ]);
 
   /*
    * Fetch facets from the backend. Counts come from ClickHouse aggregation
@@ -2461,8 +2580,139 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     </MoreMenu>
   );
 
+  /*
+   * SAVED VIEWS (ExceptionSavedView, Utils/ExceptionSavedView): the list as
+   * someone left it - search, filters, window, status, lens, Assigned to
+   * me, order, page size - saved for the project, applied from the
+   * toolbar, and opened by its link (`savedView=`), as in the traces
+   * explorer.
+   */
+  const savedViewDefaults: ExceptionsListViewDefaults = useMemo(() => {
+    return {
+      timeRange: { range: TimeRange.PAST_ONE_DAY },
+      pageSize: DEFAULT_PAGE_SIZE,
+      status: defaultStatus,
+      classScope: props.defaultClassScope || DEFAULT_EXCEPTION_CLASS_SCOPE,
+    };
+  }, [defaultStatus, props.defaultClassScope]);
+
+  /*
+   * Whether the list opened somewhere of its own, where the project's
+   * default view must not land over it: a link that said where, or a
+   * page that did - the Resolved and Archived addresses kept from before
+   * the one list name their status.
+   */
+  const hasInitialUrlState: boolean =
+    defaultStatus !== "unresolved" ||
+    initialUrlState.search.length > 0 ||
+    initialUrlState.filters.length > 0 ||
+    initialUrlState.timeRange.range !== TimeRange.PAST_ONE_DAY ||
+    initialUrlState.status !== null ||
+    initialUrlState.classScope !== null ||
+    initialUrlState.assignedToMe ||
+    initialUrlState.sort !== DEFAULT_EXCEPTION_LIST_SORT;
+
+  // What the link said besides the view it named, laid over that view.
+  const savedViewOverrides: Partial<TelemetrySavedViewState> | undefined =
+    useMemo(() => {
+      return buildExceptionsUrlScopeOverrides({
+        search: initialUrlState.search,
+        filters: initialUrlState.filters.map(
+          (filter: ActiveFilter): [string, string] => {
+            return [filter.facetKey, filter.value];
+          },
+        ),
+        timeRange: initialUrlState.timeRange,
+        hasRange: initialUrlState.hasRange,
+        status: initialUrlState.status,
+        classScope: initialUrlState.classScope,
+        assignedToMe: initialUrlState.assignedToMe,
+        sort: initialUrlState.sort,
+      });
+    }, [initialUrlState]);
+
+  const captureSavedViewState: () => TelemetrySavedViewState =
+    useCallback((): TelemetrySavedViewState => {
+      return captureExceptionsSavedViewState({
+        search: submittedSearch,
+        filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
+          return [filter.facetKey, filter.value];
+        }),
+        timeRange,
+        pageSize,
+        status,
+        classScope,
+        assignedToMe,
+        sort,
+      });
+    }, [
+      submittedSearch,
+      activeFilters,
+      timeRange,
+      pageSize,
+      status,
+      classScope,
+      assignedToMe,
+      sort,
+    ]);
+
+  /*
+   * Everything the view says, and the list's own defaults for the rest -
+   * which is also how a cleared view (the empty state) puts the list back.
+   */
+  const applySavedViewState: (saved: TelemetrySavedViewState) => void =
+    useCallback(
+      (saved: TelemetrySavedViewState): void => {
+        const view: ExceptionsListViewState = readExceptionsSavedViewState(
+          saved,
+          savedViewDefaults,
+        );
+
+        setSearchValue(view.search);
+        setSubmittedSearch(view.search);
+        setActiveFilters(
+          view.filters.map(
+            ([facetKey, value]: [string, string]): ActiveFilter => {
+              return {
+                facetKey,
+                value,
+                displayKey: facetKey,
+                displayValue: value,
+              };
+            },
+          ),
+        );
+        setTimeRange(view.timeRange);
+        setPageSize(view.pageSize);
+        setStatus(view.status);
+        setClassScope(view.classScope);
+        setAssignedToMe(view.assignedToMe);
+        setSort(view.sort);
+        setPage(1);
+      },
+      [savedViewDefaults],
+    );
+
+  const savedViewsControl: ReactElement = enableSavedViews ? (
+    <TelemetrySavedViewsControl<ExceptionSavedView>
+      modelType={ExceptionSavedView}
+      savedViewNoun="Exception"
+      explorerLabel="exceptions"
+      hasInitialUrlState={hasInitialUrlState}
+      initialSavedViewId={initialUrlState.savedViewId}
+      initialStateOverrides={savedViewOverrides}
+      onSelectionChange={setSelectedSavedViewId}
+      captureCurrentState={captureSavedViewState}
+      applyState={applySavedViewState}
+      onError={setError}
+    />
+  ) : (
+    <></>
+  );
+
   const leadingActions: ReactElement = (
     <div className="flex flex-wrap items-center gap-2">
+      {savedViewsControl}
       {statusPills}
       {classPills}
       {assignedToMeToggle}
@@ -2556,6 +2806,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
               handleRowClick(exception);
             }}
             actionButtons={exceptionRowActions}
+            stats={getExceptionRowStats(listStats, exception)}
+            isStatsLoading={isListStatsLoading && !listStats}
           />
         );
       }}

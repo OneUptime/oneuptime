@@ -13,9 +13,27 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
+import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
+import {
+  CloudRuleName,
+  getCloudRuleListKind,
+  getCloudRuleWording,
+  withCloudRuleKind,
+} from "../../../Components/Cloud/CloudRuleKind";
+import { RuleWording } from "Common/UI/Components/RuleRun/RuleView";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+
+// Cloud's rules, and those made for both products before they split.
+const cloudResourceKind: EqualToOrNull<string> = getCloudRuleListKind(
+  CloudResourceKind.Resource,
+);
+
+// The pill on a rule's own page, and what its Run Now runs over.
+const RULE_WORDING: RuleWording<CloudResourceOwnerRule> =
+  getCloudRuleWording<CloudResourceOwnerRule>(CloudResourceKind.Resource);
 
 const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
@@ -45,9 +63,20 @@ const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         description:
           "Auto-assign owners when matching cloud resources are created.",
       }}
+      /*
+       * Cloud's rules are for the resources of its accounts; App Platforms
+       * has its own for environments. A rule from before the two products
+       * split is for both, and says so (CloudRuleKind).
+       */
+      query={{ cloudResourceKind: cloudResourceKind }}
+      onBeforeCreate={withCloudRuleKind<CloudResourceOwnerRule>(
+        CloudResourceKind.Resource,
+      )}
+      // A rule made for both products says so on its own page too.
+      ruleWording={RULE_WORDING}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
-      selectMoreFields={{ isEnabled: true }}
+      selectMoreFields={{ isEnabled: true, cloudResourceKind: true }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
@@ -57,7 +86,16 @@ const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
       ]}
       columns={[
-        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { name: true },
+          title: "Name",
+          type: FieldType.Element,
+          getElement: (item: CloudResourceOwnerRule): ReactElement => {
+            return (
+              <CloudRuleName rule={item} kind={CloudResourceKind.Resource} />
+            );
+          },
+        },
         {
           field: { description: true },
           title: "Description",
@@ -92,7 +130,7 @@ const CloudResourceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Labels (optional)",
+          placeholder: "Select Labels",
         },
         {
           field: { nameRegexPattern: true },

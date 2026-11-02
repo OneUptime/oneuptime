@@ -321,8 +321,36 @@ test.describe("Workflow builder: the Huntress trigger", () => {
 
     expect(overlapping).toEqual([]);
 
-    // The Switch / Case has a path for each Huntress event.
-    const switchHandles: Array<string> = await stepCard(page, "switch-1")
+    /*
+     * Four steps, one under the other: the trigger, Incident From Another
+     * Tool, and the If / Else and Page step a new report pages through.
+     */
+    const order: Array<string> = [
+      TRIGGER,
+      "incident-from-another-tool-1",
+      "if-page-1",
+      "page-on-call-policy-1",
+    ];
+
+    expect(counts.nodes).toBe(order.length);
+
+    const orderTops: Array<number> = [];
+
+    for (const componentId of order) {
+      orderTops.push((await boxOf(stepCard(page, componentId))).y);
+    }
+
+    expect(
+      [...orderTops].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(orderTops);
+
+    // Incident From Another Tool has an output for each thing it can do.
+    const recordHandles: Array<string> = await stepCard(
+      page,
+      "incident-from-another-tool-1",
+    )
       .locator(".react-flow__handle.source")
       .evaluateAll((handles: Array<Element>): Array<string> => {
         return handles.map((handle: Element): string => {
@@ -330,8 +358,8 @@ test.describe("Workflow builder: the Huntress trigger", () => {
         });
       });
 
-    expect(switchHandles).toEqual(
-      expect.arrayContaining(["case-1", "case-2", "case-3", "default"]),
+    expect(recordHandles).toEqual(
+      expect.arrayContaining(["opened", "updated", "unchanged", "error"]),
     );
 
     // With the on-call policy picked, no step needs anything more.
@@ -341,11 +369,11 @@ test.describe("Workflow builder: the Huntress trigger", () => {
   });
 
   /*
-   * The template is too big to fit the canvas at the smallest zoom, on a
-   * phone and at a laptop's height alike, and the fit showed its middle,
-   * with the trigger above the top edge - the card the template is opened
-   * for. The canvas opens with the trigger in view, so it is clicked
-   * straight away.
+   * The trigger is the card the template is opened for, so the canvas opens
+   * with it in view and it is clicked straight away. The template used to
+   * be 33 steps, too big to fit the canvas at the smallest zoom, and the fit
+   * showed its middle with the trigger above the top edge; its four steps
+   * now fit whole, on a phone too.
    */
   test("the canvas opens with the trigger in view, and clicking it opens its settings on the Huntress panel", async ({
     page,
@@ -361,6 +389,15 @@ test.describe("Workflow builder: the Huntress trigger", () => {
     expect(card.y).toBeGreaterThanOrEqual(canvas.y);
     expect(card.y + card.height).toBeLessThanOrEqual(canvas.y + canvas.height);
     expect(await isWithinViewport(page, trigger)).toBe(true);
+
+    // The last step, the Page step, is in view under it: the whole workflow is.
+    const last: Box = await boxOf(stepCard(page, "page-on-call-policy-1"));
+
+    expect(last.y).toBeGreaterThan(card.y);
+    expect(last.y + last.height).toBeLessThanOrEqual(canvas.y + canvas.height);
+    expect(
+      await isWithinViewport(page, stepCard(page, "page-on-call-policy-1")),
+    ).toBe(true);
 
     await trigger.click();
 
@@ -388,14 +425,16 @@ test.describe("Workflow builder: the Huntress trigger", () => {
 
     const canvas: Box = await boxOf(page.locator(".react-flow"));
     const trigger: Box = await boxOf(stepCard(page, TRIGGER));
-    const switchCase: Box = await boxOf(stepCard(page, "switch-1"));
+    const record: Box = await boxOf(
+      stepCard(page, "incident-from-another-tool-1"),
+    );
 
     // In view, at the top: the workflow reads down from it.
     expect(trigger.y).toBeGreaterThanOrEqual(canvas.y);
     expect(trigger.y - canvas.y).toBeLessThan(canvas.height / 4);
-    // The Switch / Case it leads to is right under it, in view.
-    expect(switchCase.y).toBeGreaterThan(trigger.y);
-    expect(switchCase.y + switchCase.height).toBeLessThanOrEqual(
+    // Incident From Another Tool, the step it leads to, is right under it, in view.
+    expect(record.y).toBeGreaterThan(trigger.y);
+    expect(record.y + record.height).toBeLessThanOrEqual(
       canvas.y + canvas.height,
     );
 

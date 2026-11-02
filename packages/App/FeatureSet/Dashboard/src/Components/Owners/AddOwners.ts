@@ -10,6 +10,7 @@ import {
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
+  PermissionGateOptions,
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
@@ -117,13 +118,17 @@ const getOwnerTable: (
 export const getAddOwnerKindGate: (
   tables: OwnerTables,
   kind: OwnerKind,
+  // The page's private record scope, when it is open on one.
+  options?: PermissionGateOptions | undefined,
 ) => PermissionGateResult = (
   tables: OwnerTables,
   kind: OwnerKind,
+  options?: PermissionGateOptions | undefined,
 ): PermissionGateResult => {
   const OwnerTable: { new (): BaseModel } = getOwnerTable(tables, kind);
 
   return PermissionGate.check(new OwnerTable(), ModelAction.Create, {
+    ...(options || {}),
     sentence: ADD_OWNER_KIND_REFUSED_SENTENCES[kind],
   });
 };
@@ -133,11 +138,15 @@ export const getAddOwnerKindGate: (
  * permission snapshot: false until it has landed, so a control that adds
  * owners is offered only to someone the server will let add one.
  */
-export const canAddOwners: (tables: OwnerTables) => boolean = (
+export const canAddOwners: (
   tables: OwnerTables,
+  options?: PermissionGateOptions | undefined,
+) => boolean = (
+  tables: OwnerTables,
+  options?: PermissionGateOptions | undefined,
 ): boolean => {
   return OWNER_KINDS.some((kind: OwnerKind): boolean => {
-    return getAddOwnerKindGate(tables, kind).isAllowed;
+    return getAddOwnerKindGate(tables, kind, options).isAllowed;
   });
 };
 
@@ -179,17 +188,21 @@ export const getEitherOwnerTable: (tables: OwnerTables) => BaseModel = (
  * or before the permissions are known (the server decides); locked, with
  * why, when they may add neither.
  */
-export const getAddOwnersGate: (tables: OwnerTables) => PermissionGateResult = (
+export const getAddOwnersGate: (
   tables: OwnerTables,
+  options?: PermissionGateOptions | undefined,
+) => PermissionGateResult = (
+  tables: OwnerTables,
+  options?: PermissionGateOptions | undefined,
 ): PermissionGateResult => {
-  if (canAddOwners(tables)) {
+  if (canAddOwners(tables, options)) {
     return { isAllowed: true };
   }
 
   const gate: PermissionGateResult = PermissionGate.check(
     getEitherOwnerTable(tables),
     ModelAction.Create,
-    { sentence: ADD_OWNERS_REFUSED_SENTENCE },
+    { ...(options || {}), sentence: ADD_OWNERS_REFUSED_SENTENCE },
   );
 
   // Not known yet: nothing honest to say, so the control stays open.
@@ -212,13 +225,21 @@ export interface OwnerKindAccess {
  * is not known yet, for the server to decide - and, locked with the reason,
  * each kind they may not.
  */
-export const getOwnerKindAccess: (tables: OwnerTables) => OwnerKindAccess = (
+export const getOwnerKindAccess: (
   tables: OwnerTables,
+  options?: PermissionGateOptions | undefined,
+) => OwnerKindAccess = (
+  tables: OwnerTables,
+  options?: PermissionGateOptions | undefined,
 ): OwnerKindAccess => {
   const access: OwnerKindAccess = { kinds: [], locked: [] };
 
   for (const kind of OWNER_KINDS) {
-    const gate: PermissionGateResult = getAddOwnerKindGate(tables, kind);
+    const gate: PermissionGateResult = getAddOwnerKindGate(
+      tables,
+      kind,
+      options,
+    );
 
     if (gate.isAllowed || !gate.disabledReason) {
       access.kinds.push(kind);

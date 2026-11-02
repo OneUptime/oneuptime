@@ -2,6 +2,8 @@
 
 Un **Environnement cloud** est l'endroit où vos conteneurs tournent sur une plateforme cloud managée : le compte et la région d'un cluster ECS, le projet et la région de Cloud Run, l'abonnement et la région de Container Apps. OneUptime le crée la première fois que votre télémétrie arrive avec les bons attributs de ressource, et regroupe chaque charge de travail qui y tourne. Rien à enregistrer à la main.
 
+Les environnements sont listés dans Plateformes d'applications, un produit à part entière : **Plateformes d'applications → Vue d'ensemble** les regroupe par plateforme et affiche d'abord ceux qui se sont tus, **Plateformes d'applications → Toutes les applications** liste chaque application qu'ils exécutent, et **Plateformes d'applications → Tous les environnements** les liste tous. Les ressources de vos comptes cloud, comme les machines virtuelles, les buckets et les bases de données managées, sont dans Cloud : voir [Ressources cloud](/docs/telemetry/cloud-resources).
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Des tâches sur Fargate ou EC2, avec le CPU et la mémoire de chaque tâche.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Services et jobs, aussi listés comme fonctions serverless.
@@ -29,6 +31,7 @@ flowchart TB
 - **Un détecteur de ressources dit où tourne la charge de travail.** Un détecteur de ressources OpenTelemetry, dans le SDK ou dans un collecteur, lit les métadonnées de la plateforme et place `cloud.platform`, `cloud.account.id` et `cloud.region` sur tout ce que la charge de travail envoie. Là où aucun détecteur n'existe, vous les définissez vous-même.
 - **L'environnement regroupe tout.** Chaque charge de travail ayant la même plateforme, le même compte et la même région arrive dans un seul environnement. Les services gardent leurs propres lignes sous **Services**.
 - **Chaque tâche en cours est une instance.** L'onglet **Instances** de l'environnement liste ses tâches, instances ou réplicas en cours, avec le CPU et la mémoire en direct quand la plateforme peut les fournir.
+- **Chaque service est une application.** Un service ECS, un service Cloud Run ou une Container App est une application de son environnement, et OneUptime conserve les révisions qu'elle exécute : voir [Applications et déploiements](#applications-et-déploiements).
 
 ## Avant de commencer
 
@@ -91,7 +94,33 @@ L'identité propre de la plateforme vient en premier, exprès. Un collecteur sid
 
 ### Ajouter un environnement
 
-L'ingestion crée les environnements pour vous : il n'y a donc rien à saisir. Ouvrez **Cloud → Tous les environnements** et cliquez sur **Ajouter un environnement cloud** : choisissez où s'exécute votre application, et le guide affiche les paramètres OpenTelemetry de cette plateforme, avec votre URL OneUptime et votre clé d'ingestion déjà renseignées. Sa dernière étape, **Attendre la connexion**, indique quand les premières données de l'environnement sont arrivées et renvoie vers lui. Pour afficher un autre nom, choisissez **Modifier les détails** dans la carte **Détails de la ressource** de la page **Paramètres** de l'environnement et saisissez-le dans **Nom d'affichage**.
+L'ingestion crée les environnements pour vous : il n'y a donc rien à saisir. Ouvrez **Plateformes d'applications → Tous les environnements** et cliquez sur **Ajouter un environnement cloud** : choisissez où s'exécute votre application, et le guide affiche les paramètres OpenTelemetry de cette plateforme, avec votre URL OneUptime et votre clé d'ingestion déjà renseignées. Sa dernière étape, **Attendre la connexion**, indique quand les premières données de l'environnement sont arrivées et renvoie vers lui. Pour afficher un autre nom, choisissez **Modifier les détails** dans la carte **Détails de l'environnement** de la page **Paramètres** de l'environnement et saisissez-le dans **Nom d'affichage**.
+
+## Applications et déploiements
+
+Chaque service qu'un environnement exécute en est une application, nommée comme la console de la plateforme la nomme. **Plateformes d'applications → Toutes les applications** liste chaque application avec la révision qu'elle exécute ainsi que ses requêtes, son taux d'erreur et sa latence p95 sur la dernière heure, et l'onglet **Applications** d'un environnement liste les siennes.
+
+| Plateforme | Application | Séparée par | Révision |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`, sinon `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`, sinon `service.version` ou `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`, sinon `container.image.tag` |
+| Google Cloud Run | `faas.name`, sinon `service.name` | — | `faas.version`, sinon `service.version` |
+| Google App Engine | `faas.name`, sinon `service.name` | — | `faas.version`, sinon `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`, sinon `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`, sinon `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+Le premier attribut que porte la télémétrie nomme l'application, si bien qu'une application sur une plateforme sans détecteur de ressources en est quand même une, par son `service.name`. Le `unknown_service` qu'un SDK signale quand aucun `service.name` n'est défini ne nomme aucune application.
+
+- **Une révision que l'application n'a jamais exécutée est un déploiement.** OneUptime enregistre quelle révision elle a remplacée, et quand. La première révision que OneUptime voit marque le début de l'historique de l'application, pas un déploiement.
+- **Revenir en arrière est un retour arrière.** Quand la révision qu'exécute une application ne signale plus rien pendant 15 minutes alors qu'une révision qu'elle exécutait auparavant continue de tourner, OneUptime enregistre un retour arrière vers celle-ci.
+- **Les deux sont des changements.** Chacun est une ligne pointillée sur les graphiques de l'application et de l'environnement, une ligne dans le **Fil d'activité** de l'environnement et un [événement de changement](/docs/telemetry/change-events) que OneUptime AI lit quand il examine un incident sur l'environnement. **Déploiements récents** dans **Plateformes d'applications → Vue d'ensemble** liste les plus récents.
+- **Au plus 12 nouvelles révisions d'une application sont enregistrées par heure.** Sinon, une `service.version` qui change à chaque build serait un déploiement par minute.
+
+La page d'une application a une **Vue d'ensemble** avec ses requêtes, ses erreurs, sa latence, ses instances et les révisions en cours, un onglet **Révisions** avec les chiffres de chaque révision, et des onglets **Instances**, **Journaux** et **Traces** filtrés sur l'application. **Configurer des alertes** ouvre les moniteurs recommandés du service de l'application, sous **Services**.
+
+Une application qui n'envoie rien pendant 30 jours est supprimée avec ses révisions, de même qu'une révision qu'aucune instance ne signale pendant 30 jours, sauf si l'application l'exécute encore. Sur un OneUptime auto-hébergé, `CLOUD_APP_RETENTION_DAYS` fixe ces 30.
 
 ## Ce qui n'est pas un environnement cloud
 
@@ -170,27 +199,28 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré, et le `message` de la réponse précise lequel. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Cloud → Tous les environnements**.
+`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré, et le `message` de la réponse précise lequel. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Plateformes d'applications → Tous les environnements**.
 :::
 
 > [!TIP]
-> Les mêmes étapes figurent dans le tableau de bord, avec votre jeton déjà renseigné : sous **Cloud → Tous les environnements**, cliquez sur **Ajouter un environnement cloud**. L'onglet **Documentation** de chaque environnement les affiche aussi.
+> Les mêmes étapes figurent dans le tableau de bord, avec votre jeton déjà renseigné : sous **Plateformes d'applications → Tous les environnements**, cliquez sur **Ajouter un environnement cloud**. L'onglet **Documentation** de chaque environnement les affiche aussi.
 
 ## Ce que vous obtenez
 
 La **Vue d'ensemble** d'un environnement affiche :
 
-- **Requêtes**, **Taux d'erreur** et **Latence p95**, issus de vos traces, avec des graphiques des requêtes, des erreurs et de la mémoire sur la période choisie.
+- **Requêtes**, **Taux d'erreur** et **Latence p95**, issus des spans où les requêtes entrent dans vos services, avec des graphiques des requêtes, des erreurs et de la mémoire sur la période choisie et une ligne pointillée à chaque déploiement.
 - **CPU** et **Mémoire** sur les instances actives, et une liste **Principales instances par CPU**. Ils proviennent de métriques `container.cpu.utilization` et `container.memory.usage` qui portent l'identité de l'instance ; sur ECS, de `ecs.task.cpu.utilized` et `ecs.task.memory.utilized` du récepteur `awsecscontainermetrics`.
 - **Instances** : combien ont remonté des données au cours des 15 dernières minutes. L'onglet **Instances** compte une ligne par instance.
+- **Applications** : les applications que l'environnement exécute, celles qui demandent un coup d'œil d'abord, avec leurs requêtes et leurs erreurs sur la dernière heure.
 - Les onglets **Journaux**, **Traces** et **Métriques**, filtrés sur l'environnement.
 
-Un environnement dont la télémétrie s'arrête pendant 15 minutes affiche **Déconnecté**, et le span, log ou métrique suivant le repasse à **Connecté**. Le temps pendant lequel OneUptime lui-même était arrêté ou rattrapait son retard ne compte pas dans les 15 minutes.
+Un environnement qui n'a encore rien envoyé affiche **En attente**. Celui dont la télémétrie s'arrête pendant 15 minutes affiche **Déconnecté**, et le span, log ou métrique suivant le repasse à **Connecté**. Le temps pendant lequel OneUptime lui-même était arrêté ou rattrapait son retard ne compte pas dans les 15 minutes.
 
 ### Étiquettes et propriétaires
 
 - **Depuis votre télémétrie :** un attribut de ressource tel que `oneuptime.label.team=payments` ajoute l'étiquette `team:payments` à l'environnement.
-- **Depuis des règles :** **Cloud → Paramètres → Règles d'étiquettes** et **Règles de propriétaire** ajoutent des étiquettes et des propriétaires aux environnements correspondants. Voir [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules).
+- **Depuis des règles :** **Plateformes d'applications → Paramètres → Règles d'étiquettes** et **Règles de propriétaire** ajoutent des étiquettes et des propriétaires aux environnements correspondants. Les règles de Cloud concernent les ressources de vos comptes cloud, et une règle créée avant la séparation des deux s'applique aux deux. Voir [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules).
 
 ## Dépannage
 

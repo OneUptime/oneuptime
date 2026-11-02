@@ -14,6 +14,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  DEVICE_MONITOR_CHECK_QUERY_PARAM,
+  DeviceMonitorCheck,
+} from "Common/Utils/NetworkDevice/DeviceWebUiUtil";
 
 export interface ComponentProps {
   monitors: Array<Monitor>;
@@ -30,15 +34,40 @@ export interface ComponentProps {
    * has to branch on it — see the note below.
    */
   isMonitorBacked?: boolean | undefined;
+  /*
+   * Whether the reader may create monitors. "Monitor web UI" is offered
+   * only then - hidden, not locked, as the device's other on-demand actions
+   * are (its SNMP Walk page's "Alert on it"): it opens a form that only
+   * saves for someone who may create monitors.
+   */
+  canCreateMonitor: boolean;
 }
+
+/*
+ * Create Monitor on a Website monitor of a device's web UI: the device link
+ * Create Monitor reads, asking for that check (DeviceWebUiUtil).
+ */
+export const getDeviceWebUiMonitorRoute: (networkDeviceId: string) => Route = (
+  networkDeviceId: string,
+): Route => {
+  const createRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.MONITOR_CREATE] as Route,
+  );
+
+  return Route.fromString(
+    `${createRoute.toString()}?networkDeviceId=${encodeURIComponent(
+      networkDeviceId,
+    )}&${DEVICE_MONITOR_CHECK_QUERY_PARAM}=${DeviceMonitorCheck.WebUi}`,
+  );
+};
 
 /*
  * "Monitors alerting on this device" card for the device Overview. The
  * monitor list is resolved by DeviceMonitorLookupUtil (the monitor bound to
  * the device, a client-side filter over the project's Network Device
- * monitors, and the Ping, IP, Port and NTP monitors a discovery import made
- * for it) and passed in by the page so the Health charts can share the same
- * fetch.
+ * monitors, the Ping, IP, Port and NTP monitors a discovery import made for
+ * it, and its web UI monitor) and passed in by the page so the Health charts
+ * can share the same fetch.
  *
  * An empty list means two opposite things depending on the device:
  *
@@ -166,6 +195,28 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * "Monitor web UI": Create Monitor on a Website monitor of the device's
+   * management page (DeviceWebUiUtil), whatever else watches the device -
+   * in the header, so it is there with or without monitors listed. For a
+   * reader who may create monitors.
+   */
+  const webUiButton: ReactElement | null =
+    props.networkDeviceId && props.canCreateMonitor ? (
+      <Button
+        key="monitor-web-ui"
+        title="Monitor web UI"
+        icon={IconProp.Globe}
+        buttonStyle={ButtonStyleType.NORMAL}
+        dataTestId="device-monitors-web-ui"
+        onClick={() => {
+          Navigation.navigate(
+            getDeviceWebUiMonitorRoute(props.networkDeviceId as string),
+          );
+        }}
+      />
+    ) : null;
+
   return (
     <Card
       title={
@@ -173,6 +224,7 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
           ? "Monitors reporting on this device"
           : "Monitors alerting on this device"
       }
+      buttons={webUiButton ? [webUiButton] : undefined}
       /*
        * Every kind of monitor the card lists: Network Device monitors that
        * read the device's polls and traps, and - since a discovery import

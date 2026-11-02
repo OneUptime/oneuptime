@@ -1,6 +1,8 @@
 # Cloud-omgevingen
 
-Een **Cloud Environment** is de plek waar je containers draaien op een beheerd cloudplatform: het account en de regio van een ECS-cluster, het project en de regio van Cloud Run, het abonnement en de regio van Container Apps. OneUptime maakt er een aan de eerste keer dat je telemetrie binnenkomt met de juiste resource-attributen, en bundelt elke workload die daar draait. Je hoeft niets met de hand te registreren.
+Een **Cloud-omgeving** is de plek waar je containers draaien op een beheerd cloudplatform: het account en de regio van een ECS-cluster, het project en de regio van Cloud Run, het abonnement en de regio van Container Apps. OneUptime maakt er een aan de eerste keer dat je telemetrie binnenkomt met de juiste resource-attributen, en bundelt elke workload die daar draait. Je hoeft niets met de hand te registreren.
+
+Omgevingen staan in App-platforms, een eigen product: **App-platforms → Overzicht** groepeert ze per platform en toont eerst de omgevingen die stil zijn gevallen, **App-platforms → Alle apps** toont elke app die erin draait, en **App-platforms → Alle omgevingen** toont ze allemaal. De resources in je cloudaccounts, zoals virtuele machines, buckets en beheerde databases, staan in Cloud: zie [Cloud-resources](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Taken op Fargate of EC2, met CPU en geheugen per taak.
@@ -29,6 +31,7 @@ flowchart TB
 - **Een resource-detector vertelt waar de workload draait.** Een OpenTelemetry-resource-detector, in de SDK of in een collector, leest de metadata van het platform en zet `cloud.platform`, `cloud.account.id` en `cloud.region` op alles wat de workload verstuurt. Waar geen detector bestaat, stel je ze zelf in.
 - **De omgeving bundelt alles.** Elke workload met hetzelfde platform, hetzelfde account en dezelfde regio komt in één omgeving terecht. De services houden hun eigen rijen onder **Services**.
 - **Elke draaiende taak is een instantie.** Het tabblad **Instanties** van de omgeving toont de draaiende taken, instanties of replica's, met live CPU en geheugen waar het platform die kan leveren.
+- **Elke service is een app.** Een ECS-service, een Cloud Run-service of een Container App is een app van zijn omgeving, en OneUptime bewaart de revisies die hij draait: zie [Apps en implementaties](#apps-en-implementaties).
 
 ## Voordat je begint
 
@@ -91,7 +94,33 @@ De eigen identiteit van het platform komt bewust eerst. Een sidecar-collector en
 
 ### Een omgeving toevoegen
 
-De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open **Cloud → All Environments** en klik op **Cloud-omgeving toevoegen**: kies waar je applicatie draait, en de gids toont de OpenTelemetry-instellingen van dat platform, met je OneUptime-URL en ingestiesleutel al ingevuld. De laatste stap, **Wachten op verbinding**, meldt wanneer de eerste gegevens van de omgeving zijn binnengekomen en linkt ernaar. Wil je een andere naam tonen, kies dan **Details bewerken** op de kaart **Resourcedetails** op de pagina **Instellingen** van de omgeving en typ een **Weergavenaam**.
+De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open **App-platforms → Alle omgevingen** en klik op **Cloud-omgeving toevoegen**: kies waar je applicatie draait, en de gids toont de OpenTelemetry-instellingen van dat platform, met je OneUptime-URL en ingestiesleutel al ingevuld. De laatste stap, **Wachten op verbinding**, meldt wanneer de eerste gegevens van de omgeving zijn binnengekomen en linkt ernaar. Wil je een andere naam tonen, kies dan **Details bewerken** op de kaart **Omgevingsdetails** op de pagina **Instellingen** van de omgeving en typ een **Weergavenaam**.
+
+## Apps en implementaties
+
+Elke service die een omgeving draait, is een app ervan, genoemd zoals de console van het platform hem noemt. **App-platforms → Alle apps** toont elke app met de revisie die hij draait en zijn aanvragen, foutpercentage en p95-latentie van het afgelopen uur, en het tabblad **Apps** van een omgeving toont die van haar.
+
+| Platform | App | Gescheiden door | Revisie |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`, anders `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`, anders `service.version` of `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`, anders `container.image.tag` |
+| Google Cloud Run | `faas.name`, anders `service.name` | — | `faas.version`, anders `service.version` |
+| Google App Engine | `faas.name`, anders `service.name` | — | `faas.version`, anders `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`, anders `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`, anders `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+Het eerste attribuut dat de telemetrie draagt, geeft de app zijn naam, dus een app op een platform zonder resourcedetector is er ook een, via zijn `service.name`. De `unknown_service` die een SDK rapporteert als er geen `service.name` is ingesteld, geeft geen app een naam.
+
+- **Een revisie die de app nog nooit heeft gedraaid, is een implementatie.** OneUptime legt vast welke revisie hij verving, en wanneer. De eerste revisie die OneUptime ziet, is waar de geschiedenis van de app begint, geen implementatie.
+- **Teruggaan is een rollback.** Als de revisie die een app draait 15 minuten niets meldt terwijl een die hij eerder draaide blijft draaien, legt OneUptime een rollback naar die revisie vast.
+- **Beide zijn wijzigingen.** Elk is een stippellijn in de grafieken van de app en de omgeving, een regel in de **Feed** van de omgeving en een [wijzigingsgebeurtenis](/docs/telemetry/change-events) die OneUptime AI leest als het een incident in de omgeving onderzoekt. **Recente implementaties** onder **App-platforms → Overzicht** toont de nieuwste.
+- **Per app worden hoogstens 12 nieuwe revisies per uur vastgelegd.** Een `service.version` die bij elke build verandert, zou anders elke minuut een implementatie zijn.
+
+De pagina van een app heeft een **Overzicht** met zijn aanvragen, fouten, latentie, instanties en de revisies die nu draaien, een tabblad **Revisies** met de cijfers van elke revisie, en de tabbladen **Instanties**, **Logboeken** en **Traces**, gefilterd op de app. **Waarschuwingen instellen** opent de aanbevolen monitors van de service van de app, onder **Services**.
+
+Een app die 30 dagen niets stuurt, wordt met zijn revisies verwijderd, net als een revisie die 30 dagen door geen instantie wordt gemeld, tenzij de app hem nog draait. Bij een zelf gehoste OneUptime stelt `CLOUD_APP_RETENTION_DAYS` die 30 in.
 
 ## Wat geen cloud-omgeving is
 
@@ -103,7 +132,7 @@ De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open *
 | Load balancers, buckets, beheerde databases en andere IaaS- of PaaS-resources | **Cloud Resources** | Ontdekt uit de metrieken die Azure Monitor, CloudWatch en Cloud Monitoring publiceren. Zie [Cloud-resources](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> Cloud Run en App Engine verschijnen bewust op twee plekken. Hun detector stelt zowel een beheerde `cloud.platform` als `faas.name` in, dus elke service is ook een eigen **Serverless functie**, terwijl de **Cloud Environment** elke service in dat project en die regio groepeert. Dezelfde telemetrie wordt onder beide gearchiveerd.
+> Cloud Run en App Engine verschijnen bewust op twee plekken. Hun detector stelt zowel een beheerde `cloud.platform` als `faas.name` in, dus elke service is ook een eigen **Serverless functie**, terwijl de **Cloud-omgeving** elke service in dat project en die regio groepeert. Dezelfde telemetrie wordt onder beide gearchiveerd.
 
 ## Een workload koppelen
 
@@ -170,27 +199,28 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` met `"valid": true` betekent dat het token is geaccepteerd. `401` betekent dat het onbekend, ingetrokken, uitgeschakeld of verlopen is, en de `message` van het antwoord zegt welke van deze. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **Cloud → All Environments**.
+`200` met `"valid": true` betekent dat het token is geaccepteerd. `401` betekent dat het onbekend, ingetrokken, uitgeschakeld of verlopen is, en de `message` van het antwoord zegt welke van deze. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **App-platforms → Alle omgevingen**.
 :::
 
 > [!TIP]
-> Dezelfde stappen staan in het dashboard, met je token al ingevuld: klik onder **Cloud → All Environments** op **Cloud-omgeving toevoegen**. Het tabblad **Documentatie** van elke omgeving toont ze ook.
+> Dezelfde stappen staan in het dashboard, met je token al ingevuld: klik onder **App-platforms → Alle omgevingen** op **Cloud-omgeving toevoegen**. Het tabblad **Documentatie** van elke omgeving toont ze ook.
 
 ## Wat je krijgt
 
 Het **Overzicht** van een omgeving toont:
 
-- **Aanvragen**, **Foutpercentage** en **p95-latentie**, uit je traces, met grafieken van aanvragen, fouten en geheugen over het tijdsbereik dat je kiest.
+- **Aanvragen**, **Foutpercentage** en **p95-latentie**, uit de spans waar aanvragen je services binnenkomen, met grafieken van aanvragen, fouten en geheugen over het tijdsbereik dat je kiest en een stippellijn bij elke implementatie.
 - **CPU** en **Geheugen** over de live instanties, en een lijst **Topinstanties op CPU**. Die komen uit de metrieken `container.cpu.utilization` en `container.memory.usage` die de instantie-identiteit meedragen; op ECS uit `ecs.task.cpu.utilized` en `ecs.task.memory.utilized` van de receiver `awsecscontainermetrics`.
 - **Instanties**: hoeveel er in de laatste 15 minuten hebben gerapporteerd. Het tabblad **Instanties** heeft één rij per instantie.
+- **Apps**: de apps die de omgeving draait, eerst die een blik nodig hebben, met hun aanvragen en fouten van het afgelopen uur.
 - De tabbladen **Logboeken**, **Traces** en **Metrieken**, gefilterd op de omgeving.
 
-Een omgeving waarvan de telemetrie 15 minuten stopt, toont **Verbinding verbroken**, en de volgende span, log of metriek brengt haar terug naar **Verbonden**. Tijd waarin OneUptime zelf plat lag of een achterstand inhaalde, telt niet mee voor de 15 minuten.
+Een omgeving die nog niets heeft gestuurd, toont **Wachten**. Een omgeving waarvan de telemetrie 15 minuten stopt, toont **Verbinding verbroken**, en de volgende span, log of metriek brengt haar terug naar **Verbonden**. Tijd waarin OneUptime zelf plat lag of een achterstand inhaalde, telt niet mee voor de 15 minuten.
 
 ### Labels en eigenaren
 
 - **Uit je telemetrie:** een resource-attribuut zoals `oneuptime.label.team=payments` voegt het label `team:payments` toe aan de omgeving.
-- **Uit regels:** **Cloud → Instellingen → Labelregels** en **Eigenaarsregels** voegen labels en eigenaren toe aan omgevingen die overeenkomen. Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules).
+- **Uit regels:** **App-platforms → Instellingen → Labelregels** en **Eigenaarsregels** voegen labels en eigenaren toe aan omgevingen die overeenkomen. De regels in Cloud gelden voor de resources in je cloudaccounts, en een regel die is gemaakt voordat de twee werden gesplitst, geldt voor beide. Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules).
 
 ## Problemen oplossen
 

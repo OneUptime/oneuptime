@@ -3,7 +3,12 @@ import Service from "Common/Models/DatabaseModels/Service";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { SpanSelfTime } from "Common/Utils/Traces/CriticalPath";
 import { SpanTree, WaterfallNode, WaterfallSpan } from "./TraceWaterfall";
 
@@ -14,7 +19,7 @@ import { SpanTree, WaterfallNode, WaterfallSpan } from "./TraceWaterfall";
  */
 
 export const UNKNOWN_SERVICE_COLOR: string = "#94a3b8";
-export const UNKNOWN_SERVICE_NAME: string = "Unknown service";
+export const UNKNOWN_SERVICE_NAME: string = translationKey("Unknown service");
 
 export interface TraceServiceInfo {
   id: string;
@@ -27,8 +32,16 @@ export function getServiceColor(service: Service | undefined): string {
   return color.trim() || UNKNOWN_SERVICE_COLOR;
 }
 
+// The stand-in for a span no service names: in English without a translator.
+function getUnknownServiceName(translator: Translator | undefined): string {
+  return translator
+    ? translator.translateTerm(UNKNOWN_SERVICE_NAME)
+    : UNKNOWN_SERVICE_NAME;
+}
+
 export function buildServiceInfoMap(
   services: Array<Service>,
+  translator?: Translator | undefined,
 ): Map<string, TraceServiceInfo> {
   const map: Map<string, TraceServiceInfo> = new Map();
   for (const service of services) {
@@ -36,9 +49,14 @@ export function buildServiceInfoMap(
     if (!id) {
       continue;
     }
+    const name: string | undefined = service.name?.toString();
+
     map.set(id, {
       id,
-      name: service.name?.toString() || UNKNOWN_SERVICE_NAME,
+      name:
+        (translator
+          ? TelemetryServiceUtil.getServiceDisplayName(name, translator)
+          : name) || getUnknownServiceName(translator),
       color: getServiceColor(service),
     });
   }
@@ -48,11 +66,12 @@ export function buildServiceInfoMap(
 export function getServiceInfo(
   serviceInfoById: Map<string, TraceServiceInfo>,
   serviceId: string,
+  translator?: Translator | undefined,
 ): TraceServiceInfo {
   return (
     serviceInfoById.get(serviceId) || {
       id: serviceId,
-      name: UNKNOWN_SERVICE_NAME,
+      name: getUnknownServiceName(translator),
       color: UNKNOWN_SERVICE_COLOR,
     }
   );
@@ -109,6 +128,36 @@ export function pluralize(
 ): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : plural || `${singular}s`}`;
 }
+
+/*
+ * The counts the trace page draws, as the reader's language words them:
+ * looked up with the page's translator (translatePlural) where each is
+ * drawn. In English they read as pluralize wrote them.
+ */
+export const SPAN_COUNT: PluralTemplate = {
+  one: "{{count}} span",
+  other: "{{count}} spans",
+};
+
+export const ERROR_COUNT: PluralTemplate = {
+  one: "{{count}} error",
+  other: "{{count}} errors",
+};
+
+export const ATTRIBUTE_COUNT: PluralTemplate = {
+  one: "{{count}} attribute",
+  other: "{{count}} attributes",
+};
+
+export const EXCEPTION_COUNT: PluralTemplate = {
+  one: "{{count}} exception",
+  other: "{{count}} exceptions",
+};
+
+export const MATCH_COUNT: PluralTemplate = {
+  one: "{{count}} match",
+  other: "{{count}} matches",
+};
 
 export interface TraceSummary {
   rootSpan: WaterfallSpan | null;
@@ -278,6 +327,7 @@ export function summarizeServices(data: {
   spans: Array<WaterfallSpan>;
   selfTimes: Map<string, SpanSelfTime>;
   serviceInfoById: Map<string, TraceServiceInfo>;
+  translator?: Translator | undefined;
 }): Array<ServiceSummary> {
   const byService: Map<string, ServiceSummary> = new Map();
   let totalSelfTime: number = 0;
@@ -285,7 +335,7 @@ export function summarizeServices(data: {
   for (const span of data.spans) {
     const existing: ServiceSummary | undefined = byService.get(span.serviceId);
     const summary: ServiceSummary = existing || {
-      ...getServiceInfo(data.serviceInfoById, span.serviceId),
+      ...getServiceInfo(data.serviceInfoById, span.serviceId, data.translator),
       spanCount: 0,
       errorCount: 0,
       selfTimeUnixNano: 0,

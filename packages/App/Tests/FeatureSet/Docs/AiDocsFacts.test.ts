@@ -1995,9 +1995,10 @@ describe("MCP Server", () => {
      * Security Case Task and Security Case Evidence with a case's Tasks and
      * Evidence pages; Data Security's ten records - its stores, their
      * findings and access, flows, issues, scans, settings, check settings,
-     * custom data types and residency rules - with the product.
+     * custom data types and residency rules - with the product, and the
+     * identities that reach its stores (Data Security Identity) after it.
      */
-    expect(records()).toHaveLength(42);
+    expect(records()).toHaveLength(43);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [

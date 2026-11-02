@@ -10,6 +10,7 @@ import React, {
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Navigation from "Common/UI/Utils/Navigation";
+import { getPageReadingDirection } from "Common/UI/Utils/PageLanguage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import StatusChipGroup, { StatusChipOption } from "../Filters/StatusChipGroup";
@@ -34,8 +35,11 @@ import {
   toggleTopologyGroup,
 } from "./ResourceTopologyView";
 import {
+  ResourceTopologyDirection,
+  ResourceTopologyHeadingWidth,
   ResourceTopologyLanes,
   ResourceTopologyLayout,
+  ResourceTopologyLayoutRelation,
   layoutResourceTopology,
 } from "./ResourceTopologyLayout";
 import {
@@ -49,10 +53,12 @@ import ResourceTopologyOutline from "./ResourceTopologyOutline";
 import ResourceTopologyDetailPanel from "./ResourceTopologyDetailPanel";
 import {
   ResourceTopologyNodeCallbacks,
+  createTopologyHeadingMeasure,
   topologyNodeName,
   tx,
 } from "./ResourceTopologyNodes";
 import {
+  RESOURCE_TOPOLOGY_BRANCH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_LABELS,
   RESOURCE_TOPOLOGY_LEGEND,
@@ -63,8 +69,13 @@ import {
  * A resource's topology, ready to read: what is in it and how it is doing
  * at the top, then the map (or the list), and the panel of whatever part is
  * picked. Every product's Topology page is this component over the graph its
- * builder made, so they all work the same way:
+ * builder made, so they all work the same way (README.md in this folder says
+ * how a product adds its own):
  *
+ *   - the map is a tree, never a box inside a box: the resource at the top,
+ *     each part's parts in the column after it, joined to it by a line that
+ *     is red or amber when a part that needs attention is that way, and the
+ *     way to trouble open by itself (ResourceTopologyLayout, ...View);
  *   - "Needs attention" narrows the map to what is troubled and the path to
  *     it; a search narrows it to what matches;
  *   - clicking a part opens its panel (its own page one click further),
@@ -146,6 +157,35 @@ function sumTruncations(
     },
     0,
   );
+}
+
+/*
+ * What a map with lanes asks of the view: the lanes' sections always open,
+ * and every part at either end of a relation shown, so a host's map draws
+ * each call from the first view. Nothing for a map without lanes.
+ */
+export function getLaneViewOptions(
+  graph: ResourceTopologyGraph,
+  lanes: ResourceTopologyLanes | undefined,
+): {
+  alwaysOpen: ReadonlySet<string> | undefined;
+  reveal: ReadonlyArray<string> | undefined;
+} {
+  if (!lanes || lanes.left.length + lanes.right.length === 0) {
+    return { alwaysOpen: undefined, reveal: undefined };
+  }
+
+  const reveal: Set<string> = new Set<string>();
+
+  for (const relation of graph.relations) {
+    reveal.add(relation.from);
+    reveal.add(relation.to);
+  }
+
+  return {
+    alwaysOpen: new Set<string>([...lanes.left, ...lanes.right]),
+    reveal: Array.from(reveal),
+  };
 }
 
 export function getResourceTopologyPartCount(
@@ -317,12 +357,74 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     frameWidth > 0
       ? Math.floor(frameWidth / FIT_WIDTH_STEP) * FIT_WIDTH_STEP
       : Math.round(DEFAULT_ASPECT * canvasHeight);
+  /*
+   * A map about calls (a host's) draws every call: its lanes are always
+   * open, and every part at either end of a call is shown.
+   */
+  const laneOptions: {
+    alwaysOpen: ReadonlySet<string> | undefined;
+    reveal: ReadonlyArray<string> | undefined;
+  } = useMemo(() => {
+    return getLaneViewOptions(graph, arrangement.lanes);
+  }, [graph, arrangement.lanes]);
+
+  /*
+   * The page's font may arrive after the map is first laid out: its
+   * headings are then measured again in it, and the view framed again.
+   */
+  const [fontsReady, setFontsReady] = useState<boolean>((): boolean => {
+    return (
+      typeof document === "undefined" ||
+      !document.fonts ||
+      document.fonts.status === "loaded"
+    );
+  });
+
+  useEffect(() => {
+    if (fontsReady) {
+      return undefined;
+    }
+
+    let current: boolean = true;
+
+    document.fonts.ready
+      .then(() => {
+        if (current) {
+          setFontsReady(true);
+          requestFit(null, false);
+        }
+      })
+      .catch(() => {
+        // The fallback font's measure stands.
+      });
+
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  /*
+   * How wide each heading's words are drawn in the reader's language, so
+   * the drawing is laid out around them: none cut short, none wider than
+   * it needs.
+   */
+  const headingWidth: ResourceTopologyHeadingWidth = useMemo(() => {
+    return createTopologyHeadingMeasure(translator, graph);
+  }, [graph, translator.language, fontsReady]);
+
   const fit: ResourceTopologyFit = useMemo(() => {
     return fitResourceTopology(
       graph,
       viewState.focusId,
       { width: fitWidth, height: canvasHeight },
-      { lanes: arrangement.lanes, aspect: aspect },
+      {
+        lanes: arrangement.lanes,
+        aspect: aspect,
+        relations: arrangement.lanes ? graph.relations : undefined,
+        alwaysOpen: laneOptions.alwaysOpen,
+        reveal: laneOptions.reveal,
+        headingWidth: headingWidth,
+      },
     );
   }, [
     graph,
@@ -331,6 +433,8 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     canvasHeight,
     aspect,
     arrangement.lanes,
+    laneOptions,
+    headingWidth,
   ]);
 
   const visible: ResourceTopologyVisible = useMemo(() => {
@@ -338,15 +442,40 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       kindLabel: kindLabel,
       budget: fit.budget,
       maxAutomaticDepth: fit.depth,
+      alwaysOpen: laneOptions.alwaysOpen,
+      reveal: laneOptions.reveal,
+      opensAll: fit.opensAll,
     });
-  }, [graph, viewState, kindLabel, fit]);
+  }, [graph, viewState, kindLabel, fit, laneOptions]);
+
+  // A page read from right to left gets the tree mirrored.
+  const direction: ResourceTopologyDirection =
+    useMemo((): ResourceTopologyDirection => {
+      return getPageReadingDirection();
+    }, [translator.language]);
+  // A lane's parts line up with what they are related to.
+  const laneRelations:
+    | ReadonlyArray<ResourceTopologyLayoutRelation>
+    | undefined = arrangement.lanes ? graph.relations : undefined;
 
   const layout: ResourceTopologyLayout = useMemo(() => {
     return layoutResourceTopology(visible, {
       aspect: aspect,
       lanes: arrangement.lanes,
+      relations: laneRelations,
+      direction: direction,
+      rowLength: fit.rowLength,
+      headingWidth: headingWidth,
     });
-  }, [visible, aspect, arrangement.lanes]);
+  }, [
+    visible,
+    aspect,
+    arrangement.lanes,
+    laneRelations,
+    direction,
+    fit.rowLength,
+    headingWidth,
+  ]);
 
   // A new canvas shape lays the drawing out again: frame it again.
   useEffect(() => {
@@ -876,6 +1005,27 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
               );
             },
           )}
+          {display === "map" ? (
+            <span className="inline-flex items-center gap-1.5">
+              {/* The tree's line, turned the way the map's run on this page. */}
+              <svg
+                aria-hidden={true}
+                width="20"
+                height="12"
+                viewBox="0 0 20 12"
+                className="flex-shrink-0 rtl:-scale-x-100"
+              >
+                <path
+                  d="M1 2 H7 Q10 2 10 5 V7 Q10 10 13 10 H19"
+                  fill="none"
+                  stroke={RESOURCE_TOPOLOGY_BRANCH_COLORS.calm}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {tx("What is inside", translator)}
+            </span>
+          ) : null}
           {display === "map" && arrangement.relationLegend ? (
             <span className="inline-flex items-center gap-1.5">
               <span

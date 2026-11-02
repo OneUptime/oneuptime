@@ -133,7 +133,7 @@ Hvert workflow har sin egen kopi. Når du udskifter klienthemmeligheden, åbner 
 4. Klik på **Opret arbejdsgang**. Hvert workflow oprettes slået fra: slå **Aktiveret** til øverst i dets **Bygger**.
 :::
 
-Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** til advarsler: alle andre skabeloner OneUptime → Dynamics 365 af samme slags finder sagen via den forbindelse, som denne skriver. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn workflowets **Protokoller → Kørsler**. Kørslens sidste trin bør vise `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`
+Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** til advarsler: alle andre skabeloner OneUptime → Dynamics 365 af samme slags finder sagen via den forbindelse, som denne skriver. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn workflowets **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Response Body** i dens sidste trin, `create-case-1`, indeholder den nye sags `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
 
 ### Forbind skabelonerne Dynamics 365 → OneUptime
 
@@ -156,11 +156,11 @@ Opret i [Power Automate](https://make.powerautomate.com) et **Automated cloud fl
 
 | Skabelon | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| Erklær en hændelse / opret en advarsel, når en sag oprettes | Added | Cases | | `{"incidentid": "<Case>"}` |
-| Løs hændelsen / advarslen, når dens sag løses | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| Tilføj sagsnoter til hændelsen / advarslen som private noter | Added | Notes | | `{"annotationid": "<Note>"}` |
+| Erklær en hændelse / opret en advarsel, når en sag oprettes | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| Løs hændelsen / advarslen, når dens sag løses | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| Tilføj sagsnoter til hændelsen / advarslen som private noter | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-For kun at sende nogle sager bruger du triggerens **Filter rows**, f.eks. `prioritycode eq 1` for sager med høj prioritet. Du kan også sende hele triggerens output: skabelonerne læser rækkens ID og dens `SdkMessage` fra det på samme måde.
+For kun at sende nogle sager bruger du triggerens **Filter rows**, f.eks. `prioritycode eq 1` for sager med høj prioritet. Brødteksten nævner rækken som `PrimaryEntityId`, som et Dataverse-webhook gør: skabelonerne læser selve rækken tilbage fra Dynamics 365.
 @tab Dataverse webhook
 Registrer URL'en med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, med **HttpHeader**-godkendelse og en header, du selv vælger; selve URL'en er hemmeligheden. Registrer derefter et trin på den for hver begivenhed nedenfor, med **Event Pipeline Stage of Execution** sat til **PostOperation** og **Execution Mode** til **Asynchronous**.
 
@@ -181,12 +181,12 @@ Før du stoler på en af dem:
 
 ### Kontrollér, at det virker
 
-Hver skabelon slutter med et **Log**-trin, der siger, hvad der skete, så det sidste trin i en kørsel i **Protokoller → Kørsler** er stedet at kigge:
+Hver kørsels **Trin** siger, hvad skabelonen gjorde, så åbn kørslen i **Protokoller → Kørsler** og se, hvordan den sluttede:
 
-- `✅` — den gjorde sit arbejde og nævner sagen, hændelsen eller advarslen.
-- `ℹ️` — den sprang begivenheden over med vilje og siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra den anden side, posten er privat, eller der er ingen sagsstatus knyttet til den nye tilstand.
-- `❌` — et kald mislykkedes. Ved et Dynamics 365-kald indeholder linjen Dynamics 365's svar.
-- `⚠️` — en skabelon, der opretter en post ud fra en sag, oprettede den, men Dynamics 365 tog ikke imod forbindelsen, så de andre skabeloner kan ikke finde den endnu. Skriv forbindelsen i sagens kolonne i hånden.
+- **Udført**: den gjorde sit arbejde, og dens sidste trin nævner sagen, hændelsen eller advarslen.
+- **Udført**, med trinnet **Check With JavaScript** på **No**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra den anden side, posten er privat, eller den nye tilstand lukker ikke sagen.
+- **Fejl**: et trin mislykkedes, og dets post under **Trin** siger hvorfor. Ved et Dynamics 365-kald indeholder den Dynamics 365's svar.
+- **Fejl** ved `link-case-1`: en skabelon, der opretter en post ud fra en sag, oprettede den, men Dynamics 365 tog ikke imod forbindelsen, så de andre skabeloner kan ikke finde den endnu. Skriv forbindelsen i sagens kolonne i hånden.
 
 Hvis en kørsel stopper ved det første Dynamics 365-trin med `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`, er login-indstillingerne forkerte, og meddelelsen citerer svaret fra Microsoft Entra ID. Se [Hvad skabelonerne beder om](#hvad-skabelonerne-beder-om).
 
@@ -221,7 +221,7 @@ Behold markørerne, når du redigerer skabelonerne. De er konstanterne `FROM_ONE
 
 ### Ændr, hvad en skabelon gør
 
-Åbn workflowets **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript Code** i en **Run Custom JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
+Åbn workflowets **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript Code** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
 
 | Konstant | Skabelon og blok | Hvad den styrer |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ Behold markørerne, når du redigerer skabelonerne. De er konstanterne `FROM_ONE
 | `CASE_ORIGIN`, `CASE_TYPE` | Opret en Dynamics 365-sag — `prepare-case-1` | Den nye sags `caseorigincode` (`3`, Web) og `casetypecode` (`2`, Problem). For at sætte en anden kolonne tilføjer du den til `CASE` i samme script under dens logiske navn. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Opret en Dynamics 365-sag — `prepare-case-1` | Tabellen Cases egne grænser, 200 og 2000 tegn. Beskrivelsen beholder linket tilbage til OneUptime, uanset hvor meget der skæres væk. Hæv dem, hvis din tabel Case tillader mere. |
 | `RESOLVED_CASE_STATUS` | Løs Dynamics 365-sagen — `plan-case-1` | Den status, en løst post lukker sin sag med: `5` er Problem Solved, `1000` Information Provided. |
-| `STATE_TO_CASE_STATUS` | Løs Dynamics 365-sagen — `plan-case-1` | Flytter sagen, når posten når en anden tilstand, ud fra tilstandens navn: `{ Acknowledged: 4 }` flytter den til Researching, når hændelsen kvitteres. Dynamics 365's aktive statusser er `1` In Progress, `2` On Hold, `3` Waiting for Details og `4` Researching. En løst tilstand, der står her, lukker sagen med den status, den nævner. |
+| `STATE_TO_CASE_STATUS` | Løs Dynamics 365-sagen — `plan-case-1` | Lukker sagen med en anden løst status ved en løst tilstand, du selv har oprettet, ud fra tilstandens navn: `{ Closed: 1000 }` lukker den som Information Provided. Kun når posten løses, ændres dens sag: en aktiv status som Researching sættes aldrig. |
 | `PRIORITY_RANK` | Opret ud fra en Dynamics 365-sag — `prepare-incident-1`, `prepare-alert-1` | Knytter en sagsprioritet (`1` High, `2` Normal, `3` Low) til `0` (din mest alvorlige alvorlighed), `1` eller `2` (den mindst alvorlige). Prioriteter, der ikke står her, lander i midten. Med de to alvorligheder for advarsler, et nyt projekt har, bliver Normal til Low, medmindre du ændrer `2: 1` til `2: 0`. |
 | `ONLY_PRIORITIES` | Opret ud fra en Dynamics 365-sag — `prepare-incident-1`, `prepare-alert-1` | Tom tager den hver sag, flowet eller webhooken sender. `[1]` opretter kun poster for sager med høj prioritet. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Løs, når Dynamics 365-sagen er løst — `decide-state-1` | En sagsstatus, ved navn, til en OneUptime-tilstand, f.eks. `{ Researching: 'Acknowledged' }`. Ellers afgør sagens tilstand det: Resolved løser posten. Tilføj `2: 'isResolvedState'` for også at løse den, når dens sag annulleres. |
-| `MESSAGES` | Hver skabelon Dynamics 365 → OneUptime — `read-event-1` | De begivenheder, skabelonen handler på. Tilføj `'Update'` til noteskabelonens liste for også at kopiere redigerede noter: hver redigering bliver en ny note. |
+| `MESSAGES` | Hver skabelon Dynamics 365 → OneUptime — `read-event-1`, eller `prepare-incident-1` og `prepare-alert-1` | De begivenheder, skabelonen handler på. Tilføj `'Update'` til noteskabelonens liste for også at kopiere redigerede noter: hver redigering bliver en ny note. |
 | `MAX_NOTE_LENGTH` | Noteskabelonerne — `build-note-1`, `read-note-1` | Den længste note, hver af dem skriver: 100.000 tegn til Dynamics 365, som er en notes egen grænse, og 30.000 til OneUptime. |
 
 Tilstands- og statusnavne, der bruges som nøgler, skal staves præcis, som de hedder, inklusive store bogstaver. Hold `{{` ude af koden: et script udfyldes som enhver anden indstilling, før det kører, så to åbne krøllede parenteser i træk ville blive læst som en reference.
@@ -242,7 +242,7 @@ Tilstands- og statusnavne, der bruges som nøgler, skal staves præcis, som de h
 ### Begrænsninger
 
 - **Microsofts kommercielle sky.** Token-URL'en er `login.microsoftonline.com`. Til skyerne US Government (GCC High, DoD) eller Kina åbner du `dynamicsAccessToken`, bruger **Rediger indstillinger** og ændrer token-URL'en til din skys login-vært, f.eks. `login.microsoftonline.us`.
-- **Dynamics 365 kan nægte at løse en sag.** Dine Customer Service-indstillinger kan forhindre, at en sag løses, mens den har åbne aktiviteter eller åbne undersager, og en forretningsregel eller et plug-in kan også afvise det. Kørslen slutter med `❌ Dynamics 365 did not resolve the case` og Dynamics 365's begrundelse, og sagen forbliver, som den var.
+- **Dynamics 365 kan nægte at løse en sag.** Dine Customer Service-indstillinger kan forhindre, at en sag løses, mens den har åbne aktiviteter eller åbne undersager, og en forretningsregel eller et plug-in kan også afvise det. Kørslen mislykkes ved `close-case-1` med Dynamics 365's begrundelse, og sagen forbliver, som den var.
 - **Poster og sager går aldrig baglæns.** At genåbne en sag ændrer intet i OneUptime, og en løst post genåbnes aldrig. En sag, der allerede er løst eller annulleret, genåbnes aldrig for at blive lukket igen.
 - **Noter og beskrivelser er almindelig tekst.** En note skrevet i Dynamics 365's editor til formateret tekst kommer ind i OneUptime som den tekst, den viser, og det samme gør en sagsbeskrivelse, der er skrevet i editoren eller hentet fra en e-mail: afsnit og linjeskift bevares, mens formatering, billeder og e-mailens egne typografier forsvinder. En OneUptime-note kommer frem i Dynamics 365 som sine rå tegn, Markdown og det hele. Tekst fra Dynamics 365 — en sags titel og beskrivelse, en note, navnene på statusser, prioriteter, kunder og personer — læses præcis, som den blev skrevet: et billede, et link, HTML, et diagram eller en chatomtale som `<!channel>`, der er skrevet i den, vises som sine tegn og gør intet, fordi en usynlig word joiner sættes efter det tegn, der ville starte det. En kopi af teksten beholder word joineren. Et workflow beholder de scripts, det blev oprettet med, så et workflow oprettet ud fra en ældre version af en skabelon skriver tekst, som den version gjorde: opret det igen ud fra skabelonen for at få dette. Vedhæftede filer bliver i Dynamics 365; noten i OneUptime nævner filen.
 - **Redigerede noter kopieres ikke**, kun nye, medmindre du tilføjer `'Update'` til `MESSAGES`.

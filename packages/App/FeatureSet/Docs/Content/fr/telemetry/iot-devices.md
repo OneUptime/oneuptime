@@ -24,7 +24,7 @@ flowchart TB
 
 ## Comment OneUptime modélise l'IoT
 
-- **Flotte** : un groupe d'appareils, comme `building-a-sensors` ou `field-gateways`. Elle provient de l'attribut de ressource `iot.fleet.name` et apparaît dans OneUptime comme le service de télémétrie `iot/<fleet>`. Définissez aussi `service.name=iot/<fleet>`, pour que les journaux et les métriques se retrouvent sous le même service.
+- **Flotte** : un groupe d'appareils, comme `building-a-sensors` ou `field-gateways`. Elle provient de l'attribut de ressource `iot.fleet.name` et apparaît dans OneUptime comme le service de télémétrie `iot/<fleet>`. Définissez aussi `service.name=iot/<fleet>`, pour que les journaux et les métriques se retrouvent sous le même service. Le nom d'une flotte est reconnu sans tenir compte de la casse : un relevé envoyé pour `warehouse` arrive dans la flotte `Warehouse` et est stocké sous ce nom.
 - **Appareil** : un appareil d'une flotte, nommé par l'attribut `device.id` de chaque point de données. L'inventaire de la flotte est indexé sur `device.id`.
 
 | Attribut | Défini sur | Obligatoire | Description |
@@ -195,7 +195,7 @@ Un payload de télémétrie peut aussi contenir `"attributes"`, une map de chaî
 
 ### Détection hors ligne avec Last Will
 
-Enregistrez un Last Will MQTT sur `oneuptime/<fleet>/<device>/status` avec le payload `offline`. Si l'appareil meurt ou disparaît du réseau, OneUptime publie `iot_device_up = 0` pour lui dès la fin de sa session, ce qui déclenche le modèle d'alerte Device Offline fourni et marque l'appareil comme indisponible dans l'inventaire, sans interrogation périodique. Publiez `online` sur le même topic après la connexion, pour que l'appareil apparaisse de nouveau comme disponible.
+Enregistrez un Last Will MQTT sur `oneuptime/<fleet>/<device>/status` avec le payload `offline`. Si l'appareil meurt ou disparaît du réseau, OneUptime publie `iot_device_up = 0` pour lui dès la fin de sa session, ce qui déclenche le modèle d'alerte Device Offline fourni et marque l'appareil comme indisponible dans l'inventaire, sans interrogation périodique. Publiez `online` sur le même topic après la connexion, pour que l'appareil apparaisse de nouveau comme disponible. Toute mesure que l'appareil publie compte aussi comme disponible : un appareil qui continue d'envoyer des mesures reste disponible sans republier son état.
 
 ### Exemples
 
@@ -281,7 +281,7 @@ OneUptime reconnaît ces noms de métriques `iot_*`. N'envoyez que ceux qui ont 
 | `iot_battery_percent` | Charge de la batterie, de `0` à `100` (%). |
 | `iot_signal_strength_dbm` | Force du signal sans fil en dBm, comme le RSSI Wi-Fi, LoRa ou cellulaire. |
 | `iot_temperature_celsius` | Température de l'appareil ou du capteur, en °C. |
-| `iot_cpu_usage_ratio` | Utilisation du CPU sous forme de ratio de `0` à `1`. OneUptime la stocke et l'affiche en pourcentage. |
+| `iot_cpu_usage_ratio` | Utilisation du CPU sous forme de ratio de `0` à `1`. OneUptime la stocke telle qu'elle est envoyée, et l'inventaire des appareils l'affiche en pourcentage. |
 | `iot_memory_usage_bytes` | Mémoire utilisée, en octets. |
 | `iot_memory_size_bytes` | Mémoire totale de l'appareil, en octets. |
 | `iot_uptime_seconds` | Secondes écoulées depuis le dernier démarrage de l'appareil. |
@@ -289,7 +289,7 @@ OneUptime reconnaît ces noms de métriques `iot_*`. N'envoyez que ceux qui ont 
 ## Vérifier que la flotte apparaît
 
 1. Vérifiez que l'appareil, le collecteur de la passerelle ou le client MQTT envoie sans erreur : recherchez dans ses journaux des échecs d'export et des réponses HTTP `401` ou `422`, ou une connexion refusée avec le code de retour 4.
-2. Ouvrez **Produits → Infrastructure → IoT → Toutes les flottes**. La flotte apparaît sous la forme `iot/<fleet>` en une minute environ après ses premiers relevés.
+2. Ouvrez **Produits → Infrastructure → IoT → Toutes les flottes**. La flotte apparaît sous son nom en une minute environ après ses premiers relevés.
 3. Ouvrez la page **Appareils** de la flotte. Chaque appareil que vous avez envoyé doit y figurer avec ses dernières valeurs de batterie, de signal, de température, de CPU, de mémoire et son état disponible ou indisponible.
 4. Ouvrez la page **Métriques** de la flotte pour afficher n'importe laquelle des séries `iot_*` dans un graphique.
 

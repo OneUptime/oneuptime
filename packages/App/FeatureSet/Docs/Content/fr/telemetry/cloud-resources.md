@@ -34,7 +34,7 @@ Ressources cloud est l'un des endroits où votre cloud apparaît :
 
 | Vous exécutez | Où cela apparaît | Comment |
 | --- | --- | --- |
-| Des conteneurs sur ECS, Cloud Run, Container Apps, App Service, … | **Cloud → Tous les environnements** | La télémétrie propre de vos charges de travail, par son `cloud.platform`. Voir [Environnements cloud](/docs/telemetry/cloud-environments) |
+| Des conteneurs sur ECS, Cloud Run, Container Apps, App Service, … | **Plateformes d'applications → Tous les environnements** | La télémétrie propre de vos charges de travail, par son `cloud.platform`. Voir [Environnements cloud](/docs/telemetry/cloud-environments) |
 | Toute ressource IaaS ou PaaS que le fournisseur surveille | **Cloud → Toutes les ressources** | L'API de surveillance du fournisseur, lue par un collecteur : cette page |
 | Des machines virtuelles avec un OpenTelemetry Collector | **Hôtes** | Les métriques et journaux propres de l'hôte. Voir [Collecteur OpenTelemetry sur l'hôte](/docs/telemetry/host-otel-collector) |
 | Les files d'attente et topics que vos applications utilisent | **Files d'attente** | Des spans, et les mêmes métriques cloud. Voir [Files d'attente](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Les installations auto-hébergées peuvent modifier ces valeurs avec des variabl
 ## Inventaire et règles
 
 - **Inventaire :** les ressources cloud sont listées dans l'[Inventaire](/docs/inventory/overview) comme éléments de type **Ressource cloud**, avec l'ID du fournisseur comme `cloud.resource.id` et le type comme `cloud.resource.type`. Les outils de ressources de l'agent IA les listent aussi.
-- **Règles :** **Cloud → Paramètres → Règles d'étiquettes** et **Règles de propriétaire** s'appliquent à elles comme aux environnements cloud.
+- **Règles :** **Cloud → Paramètres → Règles d'étiquettes** et **Règles de propriétaire** s'appliquent à elles. Plateformes d'applications a les siennes pour les environnements cloud, et une règle créée avant la séparation des deux s'applique aux deux.
 
 ## Dépannage
 

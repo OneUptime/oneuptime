@@ -15,6 +15,7 @@ export enum SecurityPlaybookActionType {
   SetCaseStatus = "Set Case Status",
   AddCaseNote = "Add Case Note",
   AddCaseLabels = "Add Case Labels",
+  AddCaseTasks = "Add Case Tasks",
 
   // Investigate
   CheckThreatIntel = "Check Threat Intel",
@@ -37,9 +38,15 @@ export enum SecurityPlaybookActionType {
   EndOktaSessions = "End Okta Sessions",
   ContainCrowdStrikeHost = "Contain CrowdStrike Host",
   IsolateDefenderDevice = "Isolate Defender Device",
+  DisableEntraIdUser = "Disable Entra ID User",
+  SignOutEntraIdUser = "Sign Out Entra ID User",
+  SuspendGoogleWorkspaceUser = "Suspend Google Workspace User",
+  SignOutGoogleWorkspaceUser = "Sign Out Google Workspace User",
   UnsuspendOktaUser = "Unsuspend Okta User",
   LiftCrowdStrikeContainment = "Lift CrowdStrike Containment",
   ReleaseDefenderDevice = "Release Defender Device",
+  EnableEntraIdUser = "Enable Entra ID User",
+  UnsuspendGoogleWorkspaceUser = "Unsuspend Google Workspace User",
   BlockDataStorePublicAccess = "Block Data Store Public Access",
   RevokeDataStoreSharing = "Revoke Data Store Sharing",
 
@@ -132,7 +139,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.AddCaseNote,
       title: "Add a note",
       description:
-        "Write a note on the case: a checklist for the analyst, a reminder, or what to check first.",
+        "Write a note on the case: context for the analyst, a reminder, or what to check first.",
       category: SecurityPlaybookActionCategory.Case,
       icon: IconProp.Book,
       isDisruptive: false,
@@ -146,10 +153,19 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       isDisruptive: false,
     },
     {
+      type: SecurityPlaybookActionType.AddCaseTasks,
+      title: "Add tasks",
+      description:
+        "Add tasks to the case's checklist, one a line: handed to a person, or left for whoever works the case.",
+      category: SecurityPlaybookActionCategory.Case,
+      icon: IconProp.ClipboardDocumentCheck,
+      isDisruptive: false,
+    },
+    {
       type: SecurityPlaybookActionType.CheckThreatIntel,
       title: "Check entities against threat intel",
       description:
-        "Look every entity of the case up in your threat intel feeds and note what is known-bad. Can raise the priority on a match, and later steps can run only when something matched.",
+        "Look every entity of the case up in your threat intel feeds and note what is known-bad. Can raise the priority on a match, and later steps can run only when something matched, or only when nothing did.",
       category: SecurityPlaybookActionCategory.Investigate,
       icon: IconProp.ShieldExclamation,
       isDisruptive: false,
@@ -167,7 +183,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.PreserveEvidence,
       title: "Preserve the evidence",
       description:
-        "Keep the session replays of the requests behind the case past their retention, and note on the case the traces, sessions and exceptions those requests link to.",
+        "Keep the events behind the case's detections on its Evidence page and the session replays of its requests past their retention, and note the traces, sessions and exceptions they link to.",
       category: SecurityPlaybookActionCategory.Investigate,
       icon: IconProp.Archive,
       isDisruptive: false,
@@ -281,6 +297,50 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       entityType: SecurityEntityType.Host,
     },
     {
+      type: SecurityPlaybookActionType.DisableEntraIdUser,
+      title: "Disable the user in Microsoft Entra ID",
+      description:
+        "Disable in Microsoft Entra ID the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks new sign-ins until the account is enabled again.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.Lock,
+      isDisruptive: true,
+      connectionProvider: SecurityEventConnectorProvider.MicrosoftEntraId,
+      entityType: SecurityEntityType.User,
+    },
+    {
+      type: SecurityPlaybookActionType.SignOutEntraIdUser,
+      title: "Sign the user out of Microsoft Entra ID",
+      description:
+        "Sign the user the case is about out of Microsoft Entra ID everywhere, revoking their refresh tokens, without disabling the account.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.Logout,
+      isDisruptive: true,
+      connectionProvider: SecurityEventConnectorProvider.MicrosoftEntraId,
+      entityType: SecurityEntityType.User,
+    },
+    {
+      type: SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+      title: "Suspend the user in Google Workspace",
+      description:
+        "Suspend in Google Workspace the user the case is about: the one its detections are grouped on, or one threat intel knows. Blocks sign-in until they are unsuspended.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.Lock,
+      isDisruptive: true,
+      connectionProvider: SecurityEventConnectorProvider.GoogleWorkspace,
+      entityType: SecurityEntityType.User,
+    },
+    {
+      type: SecurityPlaybookActionType.SignOutGoogleWorkspaceUser,
+      title: "Sign the user out of Google Workspace",
+      description:
+        "Sign the user the case is about out of Google Workspace on every browser and device, without suspending the account.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.Logout,
+      isDisruptive: true,
+      connectionProvider: SecurityEventConnectorProvider.GoogleWorkspace,
+      entityType: SecurityEntityType.User,
+    },
+    {
       type: SecurityPlaybookActionType.UnsuspendOktaUser,
       title: "Unsuspend the user in Okta",
       description:
@@ -315,6 +375,30 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       connectionProvider: SecurityEventConnectorProvider.MicrosoftDefenderXdr,
       entityType: SecurityEntityType.Host,
       undoes: SecurityPlaybookActionType.IsolateDefenderDevice,
+    },
+    {
+      type: SecurityPlaybookActionType.EnableEntraIdUser,
+      title: "Enable the user in Microsoft Entra ID",
+      description:
+        "Enable in Microsoft Entra ID the user the case is about, so they can sign in again: the undo of Disable the user in Microsoft Entra ID.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.LockOpen,
+      isDisruptive: false,
+      connectionProvider: SecurityEventConnectorProvider.MicrosoftEntraId,
+      entityType: SecurityEntityType.User,
+      undoes: SecurityPlaybookActionType.DisableEntraIdUser,
+    },
+    {
+      type: SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
+      title: "Unsuspend the user in Google Workspace",
+      description:
+        "Unsuspend in Google Workspace the user the case is about, so they can sign in again: the undo of Suspend the user in Google Workspace.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.LockOpen,
+      isDisruptive: false,
+      connectionProvider: SecurityEventConnectorProvider.GoogleWorkspace,
+      entityType: SecurityEntityType.User,
+      undoes: SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
     },
     /*
      * A data store's exposure, closed through its cloud connection's "Data

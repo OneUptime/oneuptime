@@ -24,7 +24,7 @@ flowchart TB
 
 ## Slik modellerer OneUptime IoT
 
-- **Flåte**: en gruppe enheter, for eksempel `building-a-sensors` eller `field-gateways`. Den kommer fra ressursattributtet `iot.fleet.name`, og vises i OneUptime som telemetritjenesten `iot/<fleet>`. Sett også `service.name=iot/<fleet>`, slik at logger og metrikker havner under den samme tjenesten.
+- **Flåte**: en gruppe enheter, for eksempel `building-a-sensors` eller `field-gateways`. Den kommer fra ressursattributtet `iot.fleet.name`, og vises i OneUptime som telemetritjenesten `iot/<fleet>`. Sett også `service.name=iot/<fleet>`, slik at logger og metrikker havner under den samme tjenesten. Navnet på en flåte gjenkjennes uansett store og små bokstaver: en måling sendt for `warehouse` havner i flåten `Warehouse` og lagres under det navnet.
 - **Enhet**: én enhet i en flåte, navngitt av attributtet `device.id` på hvert datapunkt. Flåtens inventar er nøklet på `device.id`.
 
 | Attributt | Settes på | Påkrevd | Beskrivelse |
@@ -195,7 +195,7 @@ En telemetrinyttelast kan også ha `"attributes"`, et kart med strenger som stem
 
 ### Frakoblingsdeteksjon med Last Will
 
-Registrer en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med nyttelasten `offline`. Hvis enheten dør eller faller ut av nettverket, publiserer OneUptime `iot_device_up = 0` for den i det øyeblikket økten avsluttes, noe som utløser den innebygde varslingsmalen Device Offline og merker enheten som nede i inventaret, uten polling. Publiser `online` til det samme emnet etter tilkobling, slik at enheten vises som oppe igjen.
+Registrer en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med nyttelasten `offline`. Hvis enheten dør eller faller ut av nettverket, publiserer OneUptime `iot_device_up = 0` for den i det øyeblikket økten avsluttes, noe som utløser den innebygde varslingsmalen Device Offline og merker enheten som nede i inventaret, uten polling. Publiser `online` til det samme emnet etter tilkobling, slik at enheten vises som oppe igjen. Alle målinger enheten publiserer teller også som oppe, så en enhet som fortsetter å sende målinger, forblir oppe uten å publisere statusen sin igjen.
 
 ### Eksempler
 
@@ -281,7 +281,7 @@ OneUptime gjenkjenner disse `iot_*`-metrikknavnene. Send bare dem som gir mening
 | `iot_battery_percent` | Batterilading, `0` til `100` (%). |
 | `iot_signal_strength_dbm` | Trådløs signalstyrke i dBm, for eksempel RSSI for Wi-Fi, LoRa eller mobilnett. |
 | `iot_temperature_celsius` | Temperaturen til enheten eller sensoren i °C. |
-| `iot_cpu_usage_ratio` | CPU-bruk som et forhold fra `0` til `1`. OneUptime lagrer og viser det som en prosentandel. |
+| `iot_cpu_usage_ratio` | CPU-bruk som et forhold fra `0` til `1`. OneUptime lagrer det slik det sendes, og enhetsinventaret viser det som en prosentandel. |
 | `iot_memory_usage_bytes` | Minne i bruk, i byte. |
 | `iot_memory_size_bytes` | Totalt minne på enheten, i byte. |
 | `iot_uptime_seconds` | Sekunder siden enheten sist startet. |
@@ -289,7 +289,7 @@ OneUptime gjenkjenner disse `iot_*`-metrikknavnene. Send bare dem som gir mening
 ## Sjekk at flåten vises
 
 1. Sjekk at enheten, gatewayens collector eller MQTT-klienten sender uten feil: se etter eksportfeil og HTTP-svar `401` eller `422` i loggene, eller en tilkobling som avvises med returkode 4.
-2. Åpne **Produkter → Infrastruktur → IoT → All Fleets**. Flåten vises som `iot/<fleet>` innen et minutt eller så etter de første målingene.
+2. Åpne **Produkter → Infrastruktur → IoT → All Fleets**. Flåten vises under sitt navn innen et minutt eller så etter de første målingene.
 3. Åpne flåtens side **Enheter**. Hver enhet du har sendt fra, skal være oppført med siste batteri, signal, temperatur, CPU, minne og status oppe eller nede.
 4. Åpne flåtens side **Målinger** for å vise en hvilken som helst av `iot_*`-seriene i en graf.
 

@@ -27,15 +27,20 @@ import {
 } from "Common/Types/Workflow/Templates";
 import {
   TemplateVariableEdit,
+  WHO_TO_PAGE_REQUIRED_MESSAGE,
+  WhoToPageQuestion,
   applyTemplateVariableValuesToGraph,
   buildWorkflowFromTemplate,
   buildWorkflowVariables,
   editTemplateVariable,
+  getWhoToPageQuestions,
   referenceForVariable,
   templateVariableNamesAreValid,
   templateVariablesToFill,
   validateTemplateVariableValues,
+  validateWhoToPage,
 } from "../../FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplateCreateUtil";
+import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
@@ -2603,5 +2608,159 @@ describe("Dynamics 365 templates", () => {
         );
       }
     });
+  });
+});
+
+/*
+ * Who a paging template pages, asked in the wizard. A template that pages
+ * people names each Page step it asks about (whoToPage); the Configure step
+ * asks with the people picker for the kind of record the step pages, and
+ * the workflow is built with who was picked - so it opens in the Builder
+ * with no error on the step, where it used to wait with one.
+ */
+describe("who a paging template pages", () => {
+  const POLICY: string = "dddddddd-0000-4000-8000-000000000001";
+  const TEAM: string = "7eae0000-0000-4000-8000-000000000001";
+
+  type PagingTemplateFunction = (templateId: string) => WorkflowTemplate;
+
+  const pagingTemplate: PagingTemplateFunction = (
+    templateId: string,
+  ): WorkflowTemplate => {
+    return getWorkflowTemplate(templateId) as WorkflowTemplate;
+  };
+
+  type ArgumentsOfFunction = (
+    workflow: Workflow,
+    componentId: string,
+  ) => JSONObject | null;
+
+  const argumentsOf: ArgumentsOfFunction = (
+    workflow: Workflow,
+    componentId: string,
+  ): JSONObject | null => {
+    const node: JSONObject | undefined = (
+      (workflow.graph as JSONObject)["nodes"] as Array<JSONObject>
+    ).find((candidate: JSONObject): boolean => {
+      return (candidate["data"] as JSONObject)["id"] === componentId;
+    });
+
+    return node
+      ? ((node["data"] as JSONObject)["arguments"] as JSONObject)
+      : null;
+  };
+
+  test("each Page step's question lists the kind of record the step pages", () => {
+    expect(
+      getWhoToPageQuestions(pagingTemplate("incident-severity-page")).map(
+        (question: WhoToPageQuestion): [string, PeoplePickerKind, boolean] => {
+          return [question.componentId, question.kind, question.required];
+        },
+      ),
+    ).toEqual([
+      ["page-on-call-policy-1", PeoplePickerKind.OnCallPolicy, true],
+      ["page-team-1", PeoplePickerKind.Team, true],
+    ]);
+    expect(
+      getWhoToPageQuestions(pagingTemplate("incident-critical-page-on-call"))[0]
+        ?.kind,
+    ).toBe(PeoplePickerKind.OnCallSchedule);
+    expect(
+      getWhoToPageQuestions(pagingTemplate("webhook-page-users"))[0]?.kind,
+    ).toBe(PeoplePickerKind.User);
+  });
+
+  test("a template that pages nobody, or none at all, asks nothing", () => {
+    expect(getWhoToPageQuestions(slackTemplate)).toEqual([]);
+    expect(getWhoToPageQuestions(null)).toEqual([]);
+  });
+
+  test("every paging template's question finds its Page step", () => {
+    for (const template of getWorkflowTemplates()) {
+      expect(() => {
+        return getWhoToPageQuestions(template);
+      }).not.toThrow();
+    }
+  });
+
+  test("a required question with nobody picked is an error; an optional one is not", () => {
+    expect(
+      validateWhoToPage(pagingTemplate("incident-severity-page"), {
+        "page-on-call-policy-1": [POLICY],
+      }),
+    ).toEqual({ "page-team-1": WHO_TO_PAGE_REQUIRED_MESSAGE });
+    expect(
+      validateWhoToPage(pagingTemplate("incident-severity-page"), {
+        "page-on-call-policy-1": [POLICY],
+        "page-team-1": [TEAM],
+      }),
+    ).toEqual({});
+    expect(
+      validateWhoToPage(
+        pagingTemplate("zabbix-declare-incident-from-problem"),
+        {},
+      ),
+    ).toEqual({});
+    expect(WHO_TO_PAGE_REQUIRED_MESSAGE).toBe("Pick who to page.");
+  });
+
+  test("the workflow is built with who was picked, in each Page step's own setting", () => {
+    const workflow: Workflow = buildWorkflowFromTemplate({
+      name: "Page by severity",
+      description: "",
+      projectId: projectId,
+      template: pagingTemplate("incident-severity-page"),
+      values: {},
+      whoToPage: {
+        "page-on-call-policy-1": [POLICY],
+        "page-team-1": [TEAM],
+      },
+      generateId: generateId,
+    });
+
+    expect(
+      argumentsOf(workflow, "page-on-call-policy-1")?.["on-call-policies"],
+    ).toEqual([POLICY]);
+    expect(argumentsOf(workflow, "page-team-1")?.["teams"]).toEqual([TEAM]);
+  });
+
+  test("picking nobody where nobody may be leaves the Page step out, with the check in front of it", () => {
+    const workflow: Workflow = buildWorkflowFromTemplate({
+      name: "Zabbix problems to incidents",
+      description: "",
+      projectId: projectId,
+      template: pagingTemplate("zabbix-declare-incident-from-problem"),
+      values: { zabbixUrl: "https://zabbix.example.com" },
+      whoToPage: {},
+      generateId: generateId,
+    });
+
+    expect(argumentsOf(workflow, "page-on-call-policy-1")).toBeNull();
+    expect(argumentsOf(workflow, "if-page-1")).toBeNull();
+    expect(
+      ((workflow.graph as JSONObject)["edges"] as Array<JSONObject>).length,
+    ).toBe(2);
+  });
+
+  test("only ids are taken from a pick", () => {
+    const workflow: Workflow = buildWorkflowFromTemplate({
+      name: "Page people",
+      description: "",
+      projectId: projectId,
+      template: pagingTemplate("webhook-page-users"),
+      values: {},
+      whoToPage: {
+        "page-users-1": [
+          "{{local.variables.someone}}",
+          "not an id",
+          "10000000-0000-4000-8000-000000000001",
+        ],
+      },
+      generateId: generateId,
+    });
+
+    expect(argumentsOf(workflow, "page-users-1")?.["users"]).toEqual([
+      "10000000-0000-4000-8000-000000000001",
+    ]);
   });
 });

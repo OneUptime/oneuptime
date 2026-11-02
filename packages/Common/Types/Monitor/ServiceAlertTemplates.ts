@@ -4,7 +4,14 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import FilterCondition from "../Filter/FilterCondition";
-import { CheckOn, EvaluateOverTimeType, FilterType } from "./CriteriaFilter";
+import {
+  AnomalyDetectionSensitivity,
+  CheckOn,
+  CriteriaFilterUtil,
+  EvaluateOverTimeType,
+  FilterType,
+  MetricAnomalyDetectionOptions,
+} from "./CriteriaFilter";
 import MonitorType from "./MonitorType";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -162,10 +169,15 @@ const PER_INSTANCE_GROUP_BY: Array<string> = ["resource.service.instance.id"];
 
 interface CountCriteriaArgs {
   args: ServiceAlertTemplateArgs;
-  checkOn: CheckOn.SpanCount | CheckOn.ExceptionCount;
+  checkOn:
+    | CheckOn.SpanCount
+    | CheckOn.ExceptionCount
+    | CheckOn.NewExceptionCount
+    | CheckOn.RegressedExceptionCount;
   unhealthyFilterType: FilterType;
   healthyFilterType: FilterType;
   threshold: number;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
   unhealthyName: string;
   unhealthyDescription: string;
   incidentTitle: string;
@@ -192,6 +204,10 @@ interface MetricCriteriaArgs {
  * monitor with no healthy criteria never comes back online: it opens an
  * incident, auto-resolves it (the incidents carry `autoResolveIncident`), and
  * then sits in its offline status forever with nothing to move it back.
+ *
+ * An anomaly condition has no mirror to write, and needs none: the first
+ * criteria that matches decides, so its pair matches every count, and so
+ * catches exactly the windows the anomaly did not.
  */
 function buildCriteriaPair(data: {
   args: ServiceAlertTemplateArgs;
@@ -201,6 +217,7 @@ function buildCriteriaPair(data: {
   threshold: number;
   metricAlias?: string | undefined;
   thresholdUnit?: string | undefined;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
   unhealthyName: string;
   unhealthyDescription: string;
   incidentTitle: string;
@@ -231,7 +248,9 @@ function buildCriteriaPair(data: {
       {
         checkOn: data.checkOn,
         filterType: data.unhealthyFilterType,
-        value: data.threshold,
+        value: CriteriaFilterUtil.isAnomalyFilterType(data.unhealthyFilterType)
+          ? undefined
+          : data.threshold,
         /*
          * A copy per filter, not the shared object. `MetricMonitorCriteria`
          * writes its `AnyValue` default straight back through this reference
@@ -240,9 +259,11 @@ function buildCriteriaPair(data: {
          * changes the healthy criteria as a side effect of touching the
          * unhealthy one.
          */
-        metricMonitorOptions: metricMonitorOptions
-          ? { ...metricMonitorOptions }
-          : undefined,
+        metricMonitorOptions: data.anomalyDetection
+          ? { anomalyDetection: { ...data.anomalyDetection } }
+          : metricMonitorOptions
+            ? { ...metricMonitorOptions }
+            : undefined,
       },
     ],
     incidents: [
@@ -313,6 +334,7 @@ function buildCountCriteria(data: CountCriteriaArgs): MonitorCriteria {
     unhealthyFilterType: data.unhealthyFilterType,
     healthyFilterType: data.healthyFilterType,
     threshold: data.threshold,
+    anomalyDetection: data.anomalyDetection,
     unhealthyName: data.unhealthyName,
     unhealthyDescription: data.unhealthyDescription,
     incidentTitle: data.incidentTitle,
@@ -812,6 +834,154 @@ const unhandledExceptionsTemplate: ServiceAlertTemplate = {
     return step;
   },
 };
+
+/*
+ * New, regressed and spiking exceptions (ExceptionMonitorEvaluation): the
+ * alerts an error tracker leads with. A new or a regressed exception is
+ * looked for over ten minutes, so one first seen just before a check is
+ * still in the window of the next; a spike compares fifteen minutes with
+ * the usual fifteen minutes of the day before.
+ */
+const buildExceptionTemplate: (data: {
+  id: string;
+  name: string;
+  description: string;
+  checkOn:
+    | CheckOn.ExceptionCount
+    | CheckOn.NewExceptionCount
+    | CheckOn.RegressedExceptionCount;
+  windowInSeconds: number;
+  // A number to pass, or an anomaly condition judged against the baseline.
+  threshold: number;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
+  unhealthyName: string;
+  unhealthyDescription: string;
+  incidentTitle: (monitorName: string) => string;
+  incidentDescription: string;
+}) => ServiceAlertTemplate = (data: {
+  id: string;
+  name: string;
+  description: string;
+  checkOn:
+    | CheckOn.ExceptionCount
+    | CheckOn.NewExceptionCount
+    | CheckOn.RegressedExceptionCount;
+  windowInSeconds: number;
+  // A number to pass, or an anomaly condition judged against the baseline.
+  threshold: number;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
+  unhealthyName: string;
+  unhealthyDescription: string;
+  incidentTitle: (monitorName: string) => string;
+  incidentDescription: string;
+}): ServiceAlertTemplate => {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    category: "Errors",
+    severity: "Critical",
+    monitorType: MonitorType.Exceptions,
+    getMonitorStep: (args: ServiceAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Exceptions,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setExceptionMonitor({
+        telemetryServiceIds: [new ObjectID(args.serviceId)],
+        entityKeys: [],
+        exceptionTypes: [],
+        message: "",
+        includeResolved: false,
+        includeArchived: false,
+        lastXSecondsOfExceptions: data.windowInSeconds,
+      });
+
+      step.setMonitorCriteria(
+        buildCountCriteria({
+          args: args,
+          checkOn: data.checkOn,
+          unhealthyFilterType: data.anomalyDetection
+            ? FilterType.AnomalouslyHigh
+            : FilterType.GreaterThan,
+          healthyFilterType: data.anomalyDetection
+            ? FilterType.GreaterThanOrEqualTo
+            : FilterType.LessThanOrEqualTo,
+          threshold: data.threshold,
+          anomalyDetection: data.anomalyDetection,
+          unhealthyName: data.unhealthyName,
+          unhealthyDescription: data.unhealthyDescription,
+          incidentTitle: data.incidentTitle(args.monitorName),
+          incidentDescription: data.incidentDescription,
+        }),
+      );
+
+      return step;
+    },
+  };
+};
+
+const newExceptionTemplate: ServiceAlertTemplate = buildExceptionTemplate({
+  id: "service-new-exception",
+  name: "New Exception",
+  description:
+    "Alert when the service throws an exception nobody has seen before, within ten minutes of its first occurrence.",
+  checkOn: CheckOn.NewExceptionCount,
+  windowInSeconds: 600,
+  threshold: 0,
+  unhealthyName: "New exception seen",
+  unhealthyDescription:
+    "Triggers when an exception is seen for the first time in ten minutes.",
+  incidentTitle: (monitorName: string): string => {
+    return `[Service] New exception - ${monitorName}`;
+  },
+  incidentDescription:
+    "The service threw an exception it never threw before. Open it in Exceptions: its stack trace, the release it first appeared in, and OneUptime AI's explanation say what changed.",
+});
+
+const regressedExceptionTemplate: ServiceAlertTemplate = buildExceptionTemplate(
+  {
+    id: "service-regressed-exception",
+    name: "Regressed Exception",
+    description:
+      "Alert when an exception you resolved comes back, so a fix did not hold.",
+    checkOn: CheckOn.RegressedExceptionCount,
+    windowInSeconds: 600,
+    threshold: 0,
+    unhealthyName: "Resolved exception came back",
+    unhealthyDescription:
+      "Triggers when an exception you resolved happens again in ten minutes.",
+    incidentTitle: (monitorName: string): string => {
+      return `[Service] Regressed exception - ${monitorName}`;
+    },
+    incidentDescription:
+      "An exception you marked resolved happened again. Compare the release it came back in with the one you resolved it in, and check whether the fix shipped.",
+  },
+);
+
+const exceptionSpikeTemplate: ServiceAlertTemplate = buildExceptionTemplate({
+  id: "service-exception-spike",
+  name: "Exception Spike",
+  description:
+    "Alert when the service's exceptions rise well above what is normal for this hour of the week, over fifteen minutes.",
+  checkOn: CheckOn.ExceptionCount,
+  windowInSeconds: 900,
+  threshold: 0,
+  anomalyDetection: { sensitivity: AnomalyDetectionSensitivity.Medium },
+  unhealthyName: "Exceptions spiked",
+  unhealthyDescription:
+    "Triggers when the exceptions of fifteen minutes are unusually high for this hour of the week, compared with the weeks before.",
+  incidentTitle: (monitorName: string): string => {
+    return `[Service] Exception spike - ${monitorName}`;
+  },
+  incidentDescription:
+    "The service throws far more exceptions than it usually does. Open Exceptions sorted by Most events to see which ones rose, and check the last deploy.",
+});
 
 /*
  * Latency has to be a metric monitor: trace monitors can only count spans,
@@ -1362,6 +1532,9 @@ const ALL_SERVICE_ALERT_TEMPLATES: Array<ServiceAlertTemplate> = [
   failedOperationsTemplate,
   errorBurstTemplate,
   unhandledExceptionsTemplate,
+  newExceptionTemplate,
+  regressedExceptionTemplate,
+  exceptionSpikeTemplate,
   latencyP95Template,
   latencyP99Template,
   trafficStoppedTemplate,

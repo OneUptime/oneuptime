@@ -48,19 +48,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Docker Contain
 
 ### Vælg værten
 
-Vælg værten i **Docker-vært** under **Docker-monitor-konfiguration**. Hver vært, der har sendt data, er på listen.
+Vælg værten i **Docker-vært** under **Docker-monitor-konfiguration**. Hver vært, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Docker-vært** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Host Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** – klik på en [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** – vælg én metrik i **Docker-måling**, og angiv derefter **Aggregering** og **Tidsinterval**. **Containernavn** og **Container-image** indsnævrer den til bestemte containere.
-- **Avanceret** – byg selv forespørgsler og formler under **Vælg målinger**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver container for sig.
+- **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) – vælg én metrik i **Docker-måling**, og angiv derefter **Aggregering** og **Tidsinterval**. **Containernavn** og **Container-image** indsnævrer den til bestemte containere.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver container for sig.
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at en metrik falder til nul, så angiv din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 
@@ -84,18 +84,18 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder syv skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Host Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver container bedømmes for sig, én travl container ikke skjuler en anden, og hver container over tærsklen får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder syv skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Host Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver container bedømmes for sig, én travl container ikke skjuler en anden, og hver container over tærsklen får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
 
 Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på værten, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Max pr. container, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`, Max pr. container, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
-| Container Restart Loop | Kritisk | Vækst i `container.restarts` pr. container, seneste 15 minutter | Mere end 3 genstarter i vinduet (Sum) | 2,7 eller færre |
-| Container CPU Throttling | Warning | Vækst i `container.cpu.throttling_data.throttled_time` i ms pr. container, seneste 5 minutter | Mere end 1000 ms i vinduet (Sum) | 900 ms eller mindre |
-| High Container Process Count | Warning | `container.pids.count`, Max pr. container, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
+| High Container CPU Usage | Advarsel | `container.cpu.utilization`, Max pr. container, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
+| High Container Memory Usage | Advarsel | `container.memory.percent`, Max pr. container, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
+| Container Restart Loop | Kritisk | `container.restarts.increase`, Sum pr. container, seneste 15 minutter | Mere end 3 genstarter i vinduet (Sum) | 2,7 eller færre |
+| Container CPU Throttling | Advarsel | Vækst i `container.cpu.throttling_data.throttled_time` i ms pr. container, seneste 5 minutter | Mere end 1000 ms i vinduet (Sum) | 900 ms eller mindre |
+| High Container Process Count | Advarsel | `container.pids.count`, Max pr. container, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min pr. container, seneste 1 minut | Under 120 sekunder | Mindst 132 sekunder |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
@@ -110,7 +110,10 @@ Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gæl
 > `container.memory.percent` dividerer med containerens hukommelsesgrænse, når der er sat en, og ellers med **værtens** samlede hukommelse. Kontrollér, om containeren blev startet med `--memory`, før du behandler en overskridelse som et nært forestående drab på grund af hukommelsesmangel.
 
 > [!WARNING]
-> `container.restarts` og `container.cpu.throttling_data.throttled_time` vokser kun, så de to skabeloner advarer på, hvor meget de voksede i vinduet: en Maksimum- og en Minimum-forespørgsel pr. minut, trukket fra hinanden af en formel og summeret. Ved agentens indsamling hvert 30. sekund ser det omkring halvdelen af den reelle aktivitet, og tærsklerne tager allerede højde for det. Hvis du hæver agentens `collection_interval` til 60 sekunder eller mere, indeholder hvert minut én måling, og begge skabeloner holder op med at advare. Agenten måler desuden kun kørende containere, så en container, der stopper i samme øjeblik, den starter, bliver sjældent målt: **Container Restarted (Low Uptime)** udløses ved hver genstart, agenten ser.
+> `container.cpu.throttling_data.throttled_time` vokser kun, så **Container CPU Throttling** advarer på, hvor meget den voksede i vinduet: en Maksimum- og en Minimum-forespørgsel pr. minut, trukket fra hinanden af en formel og summeret. Ved agentens indsamling hvert 30. sekund ser det omkring halvdelen af den reelle drosling, og tærsklen tager allerede højde for det. Hvis du hæver agentens `collection_interval` til 60 sekunder eller mere, indeholder hvert minut én måling, og skabelonen holder op med at advare.
+
+> [!NOTE]
+> `container.restarts` vokser også kun, indtil en manuel genstart eller en genskabt container starter den forfra ved 0, så agenten sender også `container.restarts.increase` med hver måling: genstarterne siden dens forrige måling af containeren. **Container Restart Loop** lægger dem sammen, så den tæller hver genstart, uanset hvor langt der er mellem målingerne, og en manuel genstart tæller ikke med. Docker melder en container, den er ved at genstarte, som kørende, så agenten bliver ved med at måle en container i en genstartsløkke mellem dens kørsler. En ældre agent sender ikke `container.restarts.increase`: [opgradér den](/docs/telemetry/docker-host#opgradering-af-agenten) først. En monitor, der blev lavet ud fra skabelonen før det, læser, hvor meget `container.restarts` voksede inden for hvert minut, hvilket overser omkring halvdelen af en løkkes genstarter: slet den, og opret skabelonen igen.
 
 > [!CAUTION]
 > `container.uptime` findes kun for kørende containere. En container, der stopper og forbliver stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger genstarter og nye udrulninger, ikke en permanent nedlukning. En container, der er beregnet til at køre i under to minutter, forbliver i advarselstilstand hele sin levetid. med en [API-monitor](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ Agenten bruger OpenTelemetry-modtageren `docker_stats` mod Docker-socketten hver
 | --- | --- |
 | `container.uptime` | Sekunder, siden containeren startede. Kun kørende containere rapporterer den. |
 | `container.restarts` | Antal gange, containeren er genstartet, siden den blev oprettet. En tæller over hele levetiden. |
+| `container.restarts.increase` | Genstarter siden agentens forrige måling af containeren, sendt med hver måling. Deres sum over et vindue er genstarterne i det, så advar på denne frem for på tælleren over hele levetiden. |
 | `container.pids.count` | Opgaver i containeren. Cgroup'ens pids-controller tæller tråde lige så vel som processer. |
 
 `container.cpu.throttling_data.throttled_periods` er ikke på listen; forespørg den fra **Avanceret**.
@@ -173,7 +177,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ikke har nogen målinger: **Ignore** (standard), **Treat As Zero** eller **Trigger**. |
 
-Anomalibetingelser sammenligner hver værdi med samme time på ugen i baselinen. De forbliver i en "Learning"-tilstand og giver intet, før baseline-vinduet rummer nok historik.
+Anomalibetingelser sammenligner hver værdi med samme time på ugen i baselinen. De forbliver i en "Learning"-tilstand og giver intet, før baseline-vinduet rummer nok historik. En sum, en optælling eller en forespørgsel på et histogram forbliver i den tilstand for altid: denne monitor filtrerer sine forespørgsler efter attributter, og baselinen indeholder ingen.
 
 Hvert kriterium siger også, hvad der skal ske, når det matcher: ændre monitorens status, oprette en advarsel eller erklære en hændelse. Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør det.
 
@@ -288,8 +292,12 @@ OneUptime identificerer en vært ud fra `resource.host.name`, som agenten tager 
 Gruppér forespørgslen efter `resource.container.name`, og aggregér med **Maksimum**, som skabelonen **High Container CPU Usage** gør. Et gennemsnit over alle containere på en travl vært trækkes ned af de inaktive. Husk, at 100 % betyder én hel kerne, så en container, der må bruge flere kerner, har brug for en højere tærskel. Er en containers CPU en flad linje uanset belastningen, kører værten en ældre agent: [opgradér den](/docs/telemetry/docker-host#opgradering-af-agenten).
 :::
 
-:::details Skabelonen for genstartsløkker eller drosling holdt op med at advare
-Begge måler, hvor meget en tæller voksede mellem to målinger i samme minut. Hvis agentens `collection_interval` er 60 sekunder eller mere, indeholder hvert minut én måling, væksten viser altid 0, og ingen af skabelonerne udløses. Behold agentens standard på 30 sekunder.
+:::details Skabelonen for drosling holdt op med at advare
+Den måler, hvor meget `container.cpu.throttling_data.throttled_time` voksede mellem to målinger i samme minut. Hvis agentens `collection_interval` er 60 sekunder eller mere, indeholder hvert minut én måling, væksten viser altid 0, og skabelonen udløses aldrig. Behold agentens standard på 30 sekunder.
+:::
+
+:::details Skabelonen for genstartsløkker udløses aldrig eller overser genstarter
+Den læser `container.restarts.increase`, som en ældre agent ikke sender: [opgradér agenten](/docs/telemetry/docker-host#opgradering-af-agenten). En monitor, der blev lavet ud fra skabelonen før det, læser, hvor meget `container.restarts` voksede mellem to målinger i samme minut, og overser genstarterne mellem to minutters målinger: slet den, og opret skabelonen igen.
 :::
 
 ## Næste trin

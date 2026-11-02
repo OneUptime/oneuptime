@@ -123,14 +123,10 @@ file_sha256() {
 }
 
 download_agent_file() {
-    local url="$1" dest="$2" tmp backup recorded current name
+    local file="$1" dest="$2" tmp backup recorded current name
     name="${dest#"$INSTALL_DIR"/}"
     tmp="$(mktemp "$dest.download.XXXXXX")"
-    if ! curl -fsSL "$url" -o "$tmp"; then
-        rm -f "$tmp"
-        echo "Error: could not download $url"
-        exit 1
-    fi
+    fetch_agent_file "$file" "$tmp"
     chmod 0644 "$tmp"
     if [ -f "$dest" ] && ! cmp -s "$tmp" "$dest"; then
         recorded=""
@@ -259,13 +255,65 @@ echo ""
 echo "Installing to: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 
-# Download configuration files
-REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent"
+# ----------------------------------------------------------------------------
+# Where the agent's files come from
+# ----------------------------------------------------------------------------
+# The OneUptime this agent reports to serves the files of its own release,
+# and this script, at <ONEUPTIME_URL>/install/<agent>, so the agent always
+# matches its OneUptime. A OneUptime older than that answers with a 404 or a
+# page of its own instead: the files then come from GitHub, as this script
+# downloaded them before. Any other answer (none at all, a server error)
+# stops the install, and every file must arrive as plain text, wherever it
+# comes from. Every agent's install.sh has this same block.
+AGENT_FILES_PATH="install/ceph-agent"
+AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent"
+AGENT_FILES_URL=""
+AGENT_FILE_ANSWER=""
 
+# download_agent_text <url> <destination>: true when the URL answers 200 with
+# plain text; AGENT_FILE_ANSWER holds its status and content type either way.
+download_agent_text() {
+    AGENT_FILE_ANSWER="$(curl -sSL -o "$2" -w '%{http_code} %{content_type}' "$1")" || AGENT_FILE_ANSWER="000"
+    case "$AGENT_FILE_ANSWER" in
+        "200 text/plain"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# fetch_agent_file <file> <destination>: one of the agent's files, from
+# where the first one came from.
+fetch_agent_file() {
+    if [ -z "$AGENT_FILES_URL" ]; then
+        AGENT_FILES_URL="${ONEUPTIME_URL%/}/$AGENT_FILES_PATH"
+        if download_agent_text "$AGENT_FILES_URL/$1" "$2"; then
+            return 0
+        fi
+        case "$AGENT_FILE_ANSWER" in
+            "404 "* | "200 "*)
+                echo "$ONEUPTIME_URL does not serve the agent's files: it runs a OneUptime older"
+                echo "than this installer. Downloading them from GitHub instead."
+                AGENT_FILES_URL="$AGENT_FILES_ON_GITHUB"
+                if download_agent_text "$AGENT_FILES_URL/$1" "$2"; then
+                    return 0
+                fi
+                ;;
+        esac
+    elif download_agent_text "$AGENT_FILES_URL/$1" "$2"; then
+        return 0
+    fi
+    rm -f "$2"
+    case "$AGENT_FILE_ANSWER" in
+        000*) echo "Error: could not reach $AGENT_FILES_URL/$1" ;;
+        *) echo "Error: $AGENT_FILES_URL/$1 answered ${AGENT_FILE_ANSWER%% *}, not the file" ;;
+    esac
+    exit 1
+}
+
+# Download configuration files
 echo "Downloading configuration files..."
 rm -f "$AGENT_FILES_RECORD.new"
-download_agent_file "$REPO_BASE/docker-compose.yml" "$INSTALL_DIR/docker-compose.yml"
-download_agent_file "$REPO_BASE/otel-collector-config.yaml" "$INSTALL_DIR/otel-collector-config.yaml"
+download_agent_file "docker-compose.yml" "$INSTALL_DIR/docker-compose.yml"
+download_agent_file "otel-collector-config.yaml" "$INSTALL_DIR/otel-collector-config.yaml"
 # The record now describes the files just installed (none without a sha256
 # tool: a stale one would read the new files as edited next time).
 if [ -f "$AGENT_FILES_RECORD.new" ]; then

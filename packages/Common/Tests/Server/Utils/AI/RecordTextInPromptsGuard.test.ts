@@ -158,6 +158,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "Explain on a Data Security issue: DataSecurityIssuePrompt, the check's own words, and the store's name, cloud id and the evidence each a field - never a finding's samples.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts":
     "Explain an exception: ExceptionExplanationPrompt cuts its message, stack trace, span names, log bodies and deploy titles to fixed lengths before ExceptionSanitizer scrubs them, and sends only allowlisted span attributes.",
+  "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts":
+    "Are similar exceptions the same bug: ExceptionDuplicateCheckPrompt cuts each message and the stack trace its top frames are read from to fixed lengths before ExceptionSanitizer scrubs them, and names each exception by a reference, never its id.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionDigest.ts":
     "Sum up a day's new and regressed exceptions: ExceptionDigestPrompt cuts each message, release, service name and the stack trace its top frame is read from to fixed lengths before ExceptionSanitizer scrubs them, and names each exception by a reference, never its id.",
   "packages/Common/Server/API/IncidentEpisodeAPI.ts":
@@ -186,6 +188,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The coding agent's own messages: source files, sent as they are (keepEmbeddedData).",
   "packages/Common/Server/Utils/AI/CallSummary/IncidentCallSummary.ts":
     "An incident call's transcript: CallSummaryPrompt, each line redacted through redactAndOmitEmbeddedData, the incident's title and description as fields.",
+  "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts":
+    "Data Security's field suggestions: FieldSuggestionPrompt sends the names of fields no detector placed and of the fields beside them, and the shapes of their values (UnplacedFields: letters as a or A, digits as 9 - never a value), each held to a length, as one JSON value of data under a system message that holds every instruction.",
   "packages/Common/Server/Utils/AI/Security/DetectionRuleDraft.ts":
     "A detection rule from a person's description: the description as a field of DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH, the Rule Library's own examples, and the model's own YAML back with the parser's error.",
 };

@@ -465,7 +465,7 @@ const guestDownTemplate: ProxmoxAlertTemplate = {
   name: "Guest Down",
   summary: "A VM or container set to start on boot stops running.",
   description:
-    "Alert when a VM or container that is configured to start on boot stops running (pve_up = 0 while pve_onboot_status = 1, scoped to guests via pve.scope). One incident per guest. Guests you stopped on purpose are excluded automatically — a guest with onboot disabled never fires.",
+    "Alert when a VM or container that is configured to start on boot stops running (pve_up = 0 while pve_onboot_status = 1, scoped to guests via pve.scope). One incident per guest. A guest with start on boot disabled never fires; one with it enabled fires even when stopped on purpose, so turn start on boot off first.",
   category: "Availability",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -583,7 +583,7 @@ const quorumRiskTemplate: ProxmoxAlertTemplate = {
   name: "Cluster Quorum at Risk",
   summary: "50% or fewer of the cluster's nodes are online.",
   description:
-    "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count) — pve-exporter exposes no corosync metric, so this is the honest quorum proxy: at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops. On the Proxmox VE native OpenTelemetry push, a node that stops reporting counts as offline (the nodes still alive report it); a whole cluster going silent turns the cluster Disconnected instead.",
+    "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count): at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops. pve-exporter also reports quorum itself, as pve_up for the cluster (id cluster/<name>, 1 while quorate), which a metric monitor of your own can watch. On the Proxmox VE native OpenTelemetry push, a node that stops reporting counts as offline (the nodes still alive report it); a whole cluster going silent turns the cluster Disconnected instead.",
   category: "Availability",
   severity: "Critical",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -625,6 +625,97 @@ const quorumRiskTemplate: ProxmoxAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 50,
+      }),
+    });
+  },
+};
+
+/*
+ * How long a node counts as just restarted: Zabbix's Proxmox template uses
+ * the same 15 minutes. Long enough for every scrape of a 5-minute window
+ * after the boot to see it, short enough that the alert ends on its own.
+ */
+export const PROXMOX_NODE_RESTARTED_UPTIME_SECONDS: number = 900;
+
+const nodeRestartedTemplate: ProxmoxAlertTemplate = {
+  id: "pve-node-restarted",
+  name: "Node Restarted",
+  summary: "A node started less than 15 minutes ago.",
+  description:
+    "Alert when a node that is up has been running for less than 15 minutes (pve_uptime_seconds below 900 while pve_up is 1, scoped to nodes): it rebooted, or crashed and came back. One incident per node, which resolves once the node has been up for 16.5 minutes (15 minutes plus the recovery margin). A node that is down raises Node Offline instead.",
+  category: "Node",
+  severity: "Warning",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "node_uptime";
+    // Not node_up: that alias is Node Offline's 0/1 pair (< 1 / >= 1).
+    const upAlias: string = "node_is_up";
+
+    /*
+     * Uptime alone would fire for a node that is down too (Proxmox reports
+     * an offline node's uptime as 0), so the node must also be up in every
+     * scrape of the window: the two queries share the `id` group-by, so
+     * FilterCondition.All holds for one node, never for "some node is up
+     * and some other node has a short uptime" (see Guest Down).
+     */
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: metricAlias,
+            metricName: "pve_uptime_seconds",
+            attributes: { "pve.scope": "node" },
+          },
+          {
+            alias: upAlias,
+            metricName: "pve_up",
+            attributes: { "pve.scope": "node" },
+          },
+        ],
+        rollingTime: RollingTime.Past5Minutes,
+        // Min: the shortest uptime, and up in every scrape.
+        aggregationType: MetricsAggregationType.Min,
+        groupByAttributeKey: "id",
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
+        filterCondition: FilterCondition.All,
+        additionalFilters: [
+          {
+            metricAlias: upAlias,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+        incidentTitle: `[Proxmox] Node Restarted - ${args.monitorName}`,
+        incidentDescription: `A Proxmox node has been up for less than 15 minutes: it rebooted, or it crashed and came back. If nobody restarted it, check the node's journal from the previous boot (journalctl -b -1) for a kernel panic, an out-of-memory kill, a watchdog or HA fence, or a power event, and check whether HA moved its guests away while it was down. The incident resolves once the node has been up for 16.5 minutes.`,
+        criteriaName: "Node Restarted - Uptime < 15 minutes while up",
+        criteriaDescription:
+          "Triggers when a node that is up has been running for less than 15 minutes.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
+        /*
+         * Either clears it: the node has been up for 15 minutes, or it went
+         * down again (Node Offline takes over). The up half is also the
+         * suite invariant's recovering filter for that alias.
+         */
+        additionalFilters: [
+          {
+            metricAlias: upAlias,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
       }),
     });
   },
@@ -846,6 +937,59 @@ const storageNearFullTemplate: ProxmoxAlertTemplate = {
   },
 };
 
+const storageUnavailableTemplate: ProxmoxAlertTemplate = {
+  id: "pve-storage-unavailable",
+  name: "Storage Unavailable",
+  summary: "A storage stops being available on a node.",
+  description:
+    "Alert when a storage Proxmox VE lists for a node stops being available (pve_up = 0, scoped to storage via pve.scope): an NFS or SMB share that cannot be mounted, a Proxmox Backup Server that cannot be reached, a pool or volume group that is gone. One incident per storage on each node. Guests with disks on it hang or fail to start, and backups to it fail.",
+  category: "Storage",
+  severity: "Critical",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "storage_up";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * pve-exporter reports a storage up while Proxmox lists it as
+         * available; the native push maps proxmox_storage_active onto the
+         * same series (ProxmoxNativePush). Min per storage, like the other
+         * down templates: one unavailable scrape trips it.
+         */
+        metricName: "pve_up",
+        metricAlias,
+        rollingTime: RollingTime.Past5Minutes,
+        aggregationType: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "storage" },
+        groupByAttributeKey: "id",
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 1,
+        incidentTitle: `[Proxmox] Storage Unavailable - ${args.monitorName}`,
+        incidentDescription: `A Proxmox storage is no longer available on its node (pve_up = 0 for its id). Guests with disks on it hang or fail to start, and backups and replication to it fail. Check the storage on that node (pvesm status): a network share that cannot be mounted or reached, a Proxmox Backup Server that is down or whose fingerprint or credentials changed, a ZFS pool, LVM volume group or Ceph pool that is missing or degraded.`,
+        criteriaName: "Storage Unavailable - pve_up < 1",
+        criteriaDescription:
+          "Triggers when a storage reports pve_up below 1 over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+        // pve_up is 0 or 1: the 10% recovery dead band would be unreachable.
+        isBinaryMetric: true,
+      }),
+    });
+  },
+};
+
 const lxcDiskNearFullTemplate: ProxmoxAlertTemplate = {
   id: "pve-lxc-disk-near-full",
   name: "Container Root Disk Near Full",
@@ -961,8 +1105,8 @@ const guestNotBackedUpTemplate: ProxmoxAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         /*
          * Cluster-level gauge from the backup-info collector — one
-         * series, no `id` label, so no groupBy: one incident per
-         * cluster. Per-guest naming belongs to the Affected Resources list
+         * series, the cluster's own (`id` cluster/<name>), so no groupBy:
+         * one incident per cluster. Per-guest naming belongs to the Affected Resources list
          * (pve_not_backed_up_info grouped by `id`), not the alert.
          */
         metricName: "pve_not_backed_up_total",
@@ -984,6 +1128,57 @@ const guestNotBackedUpTemplate: ProxmoxAlertTemplate = {
         criteriaName: "Guests Without Backup - Total > 0",
         criteriaDescription:
           "Triggers when any guest is not covered by a backup job over the monitoring window.",
+      }),
+      onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
+const backupRunningTooLongTemplate: ProxmoxAlertTemplate = {
+  id: "pve-backup-running-too-long",
+  name: "Backup Running Too Long",
+  summary: "A VM or container stays locked by a backup for 6 hours.",
+  description:
+    "Alert when a VM or container has been locked by a backup for six hours (pve_lock_state with state backup, in every scrape of the window): a hung vzdump, or a backup target too slow for the guest. While the lock is held the guest cannot be migrated, snapshotted or backed up again. One incident per guest, which resolves when the lock is released.",
+  category: "Backup",
+  severity: "Warning",
+  getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "backup_lock";
+
+    return buildProxmoxMonitorStep({
+      proxmoxMonitor: buildProxmoxMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * pve_lock_state is an enum series like pve_ha_state: one series
+         * per lock, 1 while Proxmox holds that lock on the guest. Min over
+         * six hours is 1 only when the backup lock was held in every scrape:
+         * a long backup of a big disk ends well inside it.
+         */
+        metricName: "pve_lock_state",
+        metricAlias,
+        rollingTime: RollingTime.Past6Hours,
+        aggregationType: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "guest", state: "backup" },
+        groupByAttributeKey: "id",
+      }),
+      offlineCriteriaInstance: buildProxmoxOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[Proxmox] Backup Running Too Long - ${args.monitorName}`,
+        incidentDescription: `A Proxmox guest has been locked by a backup for six hours. Either the backup is still running far longer than it should (a slow or overloaded backup target, a network problem), or vzdump hung and left the lock behind. Check the node's task log for the guest's backup task. If no backup task is running any more, release the lock with qm unlock <vmid> or pct unlock <vmid>. The incident resolves when the lock is released.`,
+        criteriaName: "Backup Running Too Long - backup lock for 6 hours",
+        criteriaDescription:
+          "Triggers when a guest is locked by a backup in every scrape of six hours.",
       }),
       onlineCriteriaInstance: buildProxmoxOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -1052,13 +1247,16 @@ export function getAllProxmoxAlertTemplates(): Array<ProxmoxAlertTemplate> {
     nodeOfflineTemplate,
     guestDownTemplate,
     quorumRiskTemplate,
+    nodeRestartedTemplate,
     nodeHighCpuTemplate,
     nodeHighMemoryTemplate,
     guestHighCpuTemplate,
+    storageUnavailableTemplate,
     storageNearFullTemplate,
     lxcDiskNearFullTemplate,
     haStateErrorTemplate,
     guestNotBackedUpTemplate,
+    backupRunningTooLongTemplate,
     replicationFailingTemplate,
   ];
 }

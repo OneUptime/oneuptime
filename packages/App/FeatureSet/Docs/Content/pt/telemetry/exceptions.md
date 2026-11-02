@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Sim"| count["Contada de novo;<br/>reaberta se resolvida"]
 ```
 
-- **Uma exceção por serviço e erro.** A impressão digital é calculada a partir do serviço, do tipo de exceção, da mensagem e do stack trace. Antes, saem os valores que mudam de uma chamada para outra: UUIDs e outros IDs, timestamps, endereços IP e de e-mail, e números com sete ou mais dígitos. Assim, `Order id=1042 not found` e `Order id=2077 not found` são uma única exceção.
+- **Uma exceção por serviço e erro.** A impressão digital é calculada a partir do serviço, do tipo de exceção, da mensagem e do stack trace. Antes, saem os valores que mudam de uma chamada para outra: UUIDs e outros IDs, timestamps, endereços IP e de e-mail, e números com sete ou mais dígitos. Assim, `Order id=1042 not found` e `Order id=2077 not found` são uma única exceção. Uma exceção nova é agrupada, em vez disso, pelo seu tipo e pelas funções e arquivos do seu próprio código no stack trace: números de linha, frames de bibliotecas e a mensagem ficam de fora, então variantes lançadas pelo mesmo código são uma exceção só. Sem stack trace, é a mensagem que a agrupa, como acima. As exceções registradas antes deste agrupamento mantêm o delas.
 - **Uma nova ocorrência reabre uma exceção resolvida.** Se ela acontecer de novo depois que você a resolveu, a correção não se sustentou, e a exceção é marcada como **Regressão**. Uma ocorrência anterior à resolução que só chega ao OneUptime depois não a reabre.
 - **Uma exceção arquivada continua arquivada.** As novas ocorrências dela continuam sendo contadas, mas deixam de gerar notificações.
 
@@ -52,6 +52,8 @@ Acesse **Produtos → Observabilidade → Exceções**. O selo da aba **Exceçõ
 
 Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gráfico acima da lista mostra quantas ocorrências foram **Não tratado** e quantas **Tratado** ao longo do tempo. Uma linha marcada como **Regressão** voltou depois de ser resolvida, e uma marcada como **Novo** foi vista pela primeira vez nas últimas 24 horas.
 
+Cada linha mostra também quantos usuários a exceção afetou no intervalo escolhido e um pequeno gráfico das suas ocorrências nesse intervalo. Uma ocorrência indica o seu usuário com o atributo `user.id`, `enduser.id` ou `enduser.pseudo.id`, no evento da exceção, no seu span ou registro de log, ou no seu recurso; ocorrências que não indicam nenhum usuário não são contadas.
+
 ### Escolher o que conta como problema
 
 **Problemas**, o padrão, oculta erros de usuário e negações esperadas, para que a lista mostre o que precisa de correção. **User errors** mostra só esses, e **Todos** mostra todas as exceções.
@@ -59,6 +61,8 @@ Alterne entre **Não resolvido**, **Resolvido**, **Arquivado** e **Todos**. O gr
 ### Pesquisar e filtrar
 
 Digite uma consulta como `type:TypeError env:production`, veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax#exceções), ou clique em um valor da barra lateral **Filtros**: um serviço, um host ou outro recurso, um **Tipo de exceção**, um **Ambiente** ou uma **Error Class**. **Atribuídas a mim** mostra só as exceções atribuídas a você, e o menu de ordenação ordena a lista por **Visto pela última vez**, **Visto pela primeira vez** ou **Mais eventos**.
+
+**Visualizações salvas** guarda a lista com um nome, para todos no projeto: a pesquisa, os filtros, o intervalo de tempo, o status, o que conta como problema, **Atribuídas a mim**, a ordenação e o tamanho da página. Uma visualização com **Atribuídas a mim** mostra a cada pessoa as exceções atribuídas a ela, e **Limpar visualização** devolve a lista a como ela abre da primeira vez. O endereço da página nomeia a visualização que você escolheu, então um link que você compartilha a abre. No resto, as visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
 
 ### Abrir uma exceção
 
@@ -97,7 +101,9 @@ Os botões no topo da página da exceção, a página **Configurações** dela e
 
 Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima das linhas para todas as exceções da página, e use as mesmas ações em **Ações em massa**. O resultado diz quais exceções mudaram, quais ficaram como estavam e por quê.
 
-**Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez.
+**Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez. A pessoa a quem ela é atribuída, ou cada membro da equipe, recebe uma notificação conforme a linha **Exceção atribuída a mim** das suas [Configurações de notificação](/docs/notifications/notification-settings); quem a atribuiu não recebe.
+
+**Atividade**, no fim da **Visão geral** da exceção, diz quem a alterou e quando, as mais recentes primeiro: quem a resolveu, reabriu, arquivou ou atribuiu, mesclou outra exceção a ela ou desfez a mesclagem de uma, e quando ela voltou a ocorrer depois de resolvida. Toda alteração está ali, feita na página da exceção, na lista, em **Ações em massa**, pela API ou pela própria OneUptime, e uma alteração feita com uma chave de API leva o nome da chave.
 
 ## Classes de erro
 
@@ -128,6 +134,10 @@ No topo da **Visão geral** de uma exceção, **Explicar com OneUptime AI** perg
 A explicação fica guardada na exceção, então a próxima pessoa que a abre já a lê, e **Explicar novamente** pede uma nova. **Abrir uma pull request com a correção** abre a página **AI Assistance** da exceção, e **Fazer uma pergunta de acompanhamento** abre o Ask AI sobre a exceção.
 
 IDs, endereços de e-mail e IP e tokens são retirados de tudo o que é enviado, e dos atributos de um span só alguns são enviados, como a rota e o código de status. A explicação usa o provedor de LLM e os créditos de IA do projeto, e não é oferecida enquanto **Habilitar IA** estiver desligado. Qualquer pessoa que possa ler a exceção pode pedir uma.
+
+Abaixo dos cartões, **Exceções semelhantes** lista até cinco outras exceções parecidas com esta: a **Mesma mensagem** depois de tirados os valores, o **Mesmo local no código** do seu código, ou uma **Mensagem semelhante** com a maioria das mesmas palavras. Uma mesma causa pode cair em várias exceções, então **Verificar com a OneUptime AI** diz de cada uma se é **Provavelmente o mesmo bug**, **Um bug relacionado** ou **Um bug diferente**, e por quê. A verificação usa os créditos de IA do projeto e não é oferecida enquanto **Habilitar IA** está desligado. A resposta é guardada até a próxima ocorrência.
+
+Mescle a esta exceção uma que a OneUptime AI chame de **Provavelmente o mesmo bug**, do mesmo serviço, com **Mesclar** ao lado: suas ocorrências, as anteriores e cada nova, passam a contar nesta exceção e aparecem na página dela, e ela sai da lista. **Mescladas a esta exceção**, abaixo, lista o que foi mesclado, e **Desfazer mesclagem** ao lado de cada uma, ou na página de uma exceção mesclada, devolve a ela o seu lugar na lista, com as ocorrências desde então. Mesclar e desfazer a mesclagem exigem permissão para editar exceções.
 
 ## Corrigir com IA
 
@@ -183,7 +193,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 
 A aba **Insights** conta suas exceções **Não resolvido**, **Resolvido** e **Arquivado** e sua taxa de resolução, e lista as exceções mais frequentes, os serviços que elas afetam e as vistas mais recentemente.
 
-**Novidades**, no topo da aba, pede à OneUptime AI, com **Resumir com a OneUptime AI**, que resuma as exceções vistas pela primeira vez nas últimas 24 horas e as que voltaram depois de resolvidas: algumas frases sobre todas, depois cada uma em uma linha, a mais urgente primeiro, com um link para a exceção. O resumo é escrito quando você pede e não é guardado, usa os créditos de IA do projeto e não é oferecido enquanto **Habilitar IA** está desligado.
+**Novidades**, no topo da aba, pede à OneUptime AI, com **Resumir com a OneUptime AI**, que resuma as exceções vistas pela primeira vez nas últimas 24 horas e as que voltaram depois de resolvidas: algumas frases sobre todas, depois cada uma em uma linha, a mais urgente primeiro, com um link para a exceção. O resumo é escrito quando você pede e guardado até a próxima ocorrência, então pedir de novo não custa nada; usa os créditos de IA do projeto e não é oferecido enquanto **Habilitar IA** está desligado.
 
 ## Solução de problemas
 
@@ -192,7 +202,7 @@ Verifique primeiro a lente: **Problemas** oculta erros de usuário e negações 
 :::
 
 :::details Um erro aparece como várias exceções
-A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por exemplo quando uma mensagem inclui um número curto ou um nome que muda a cada chamada, cada variante é uma exceção própria.
+A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por exemplo quando uma mensagem inclui um número curto ou um nome que muda a cada chamada, cada variante é uma exceção própria. As exceções novas são agrupadas pelas funções do seu próprio código, então isto afeta sobretudo exceções registradas antes; mescle duas que sejam o mesmo bug em **Exceções semelhantes**.
 :::
 
 :::details Uma exceção resolvida sempre volta

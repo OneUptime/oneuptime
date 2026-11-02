@@ -86,6 +86,7 @@ Haga clic en una flecha para ver su tasa de solicitudes, su tasa de errores y su
 
 Un vCenter, un clúster de Kubernetes, un host, un host de Docker o Podman, un clúster de Docker Swarm, Proxmox o Ceph y una cabina de almacenamiento tienen cada uno su propia página **Topología**. Dibuja ese recurso en detalle, a partir de su propio inventario: qué está dentro de qué, cada parte coloreada según su estado, y cada incidente y alerta abiertos en la parte a la que se refieren.
 
+- **Léala como un árbol.** El recurso está arriba, y las partes de cada parte se dibujan a su derecha, unidas a ella por una línea que se vuelve roja o ámbar donde algo requiere atención. Las partes con problemas dentro se abren solas, el botón redondo de una parte la abre o la cierra, y las teclas de flecha recorren el mapa.
 - **Encuentre lo que requiere atención.** **Requiere atención** deja solo las partes con problemas y el camino hasta cada una, y la búsqueda encuentra una parte en cualquier lugar del recurso.
 - **Mire más de cerca.** Haga clic en una parte para ver qué es y un enlace a su propia página, y en **Enfocar esto** para dibujar solo esa parte, lo que contiene y aquello con lo que se relaciona.
 - **Vaya en ambos sentidos.** **Abrir en Topología** abre el recurso en **Infraestructura**, y su botón **Abrir la topología del vCenter**, **Abrir la topología del clúster**, **Abrir la topología del host** o **Abrir la topología de la cabina de almacenamiento** lleva de vuelta.

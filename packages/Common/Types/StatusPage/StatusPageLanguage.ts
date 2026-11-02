@@ -8,6 +8,18 @@ export interface StatusPageLanguage {
 
 export const DEFAULT_STATUS_PAGE_LANGUAGE: string = "en";
 
+// Where a visitor's language is kept in their browser.
+export const STATUS_PAGE_LANGUAGE_STORAGE_KEY: string = "statusPageLang";
+
+/*
+ * Separate key tracks whether the user explicitly chose a language (vs.
+ * the value being auto-detected from the browser). Without this we cannot
+ * distinguish a stored auto-detection from a real user choice, so the
+ * status page's configured default would be ignored after the first visit.
+ */
+export const STATUS_PAGE_LANGUAGE_USER_CHOICE_KEY: string =
+  "statusPageLangUserChoice";
+
 export const SUPPORTED_STATUS_PAGE_LANGUAGES: Array<StatusPageLanguage> = [
   { code: "en", nativeName: "English", englishName: "English" },
   { code: "de", nativeName: "Deutsch", englishName: "German" },

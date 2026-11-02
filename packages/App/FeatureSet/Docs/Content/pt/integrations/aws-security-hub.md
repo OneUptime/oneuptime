@@ -60,7 +60,7 @@ O `GetFindings` não pode ser limitado a um recurso, então `Resource` fica `*`.
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **AWS Security Hub** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o segredo em **Chave de acesso secreta**.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **AWS Security Hub** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o segredo em **Chave de acesso secreta**.
 
 ### Testar antes de salvar
 

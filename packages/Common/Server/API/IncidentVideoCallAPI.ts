@@ -1,6 +1,9 @@
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentVideoCall from "../../Models/DatabaseModels/IncidentVideoCall";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -16,6 +19,7 @@ import TranscriptText, {
   PreparedTranscript,
 } from "../../Utils/VideoCall/TranscriptText";
 import UserMiddleware from "../Middleware/UserAuthorization";
+import DatabaseService from "../Services/DatabaseService";
 import IncidentService from "../Services/IncidentService";
 import IncidentVideoCallService, {
   Service as IncidentVideoCallServiceType,
@@ -28,6 +32,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import Response from "../Utils/Response";
 import IncidentCallTranscriptSave from "../Utils/VideoCall/Transcripts/IncidentCallTranscriptSave";
@@ -36,6 +41,8 @@ import IncidentVideoCallTranscriptWrite, {
 } from "../Utils/VideoCall/Transcripts/IncidentVideoCallTranscriptWrite";
 import VideoCallTranscriptReader from "../Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
 import { VideoCallTranscriptRead } from "../Utils/VideoCall/Transcripts/VideoCallTranscriptRead";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import PrivateRecordPermission from "../Types/Database/Permissions/PrivateRecordPermission";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 
@@ -175,7 +182,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
   ): Promise<void> {
     const props: DatabaseCommonInteractionProps =
       await this.authorizeCallWork(req);
-    const call: IncidentVideoCall = await this.getCall(req, props);
+    const call: IncidentVideoCall = await this.getCallToWorkOn(req, props);
     const body: JSONObject = IncidentVideoCallAPI.getBody(req);
     const text: JSONValue | undefined = body["text"];
     const fileName: JSONValue | undefined = body["fileName"];
@@ -207,7 +214,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
   ): Promise<void> {
     const props: DatabaseCommonInteractionProps =
       await this.authorizeCallWork(req);
-    const call: IncidentVideoCall = await this.getCall(req, props);
+    const call: IncidentVideoCall = await this.getCallToWorkOn(req, props);
 
     const read: VideoCallTranscriptRead = await VideoCallTranscriptReader.read({
       call: {
@@ -252,7 +259,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
   ): Promise<void> {
     const props: DatabaseCommonInteractionProps =
       await this.authorizeCallWork(req);
-    const call: IncidentVideoCall = await this.getCall(req, props);
+    const call: IncidentVideoCall = await this.getCallToWorkOn(req, props);
 
     await this.writeCall(
       call.id!,
@@ -268,7 +275,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
   ): Promise<void> {
     const props: DatabaseCommonInteractionProps =
       await this.authorizeCallWork(req);
-    const call: IncidentVideoCall = await this.getCall(req, props);
+    const call: IncidentVideoCall = await this.getCallToWorkOn(req, props);
 
     if (!call.transcript || !call.transcript.trim()) {
       throw new BadDataException(
@@ -320,6 +327,31 @@ export default class IncidentVideoCallAPI extends BaseAPI<
     }
 
     const call: IncidentVideoCall = await this.getCall(req, props);
+
+    /*
+     * A call of a private incident is worked on, and its incident edited,
+     * only with the permissions of the teams that own the incident
+     * (PrivateRecordPermission) - the review is written as OneUptime below,
+     * so it is asked here.
+     */
+    if (decision === RootCauseSuggestionStatus.Accepted) {
+      await IncidentVideoCallAPI.assertReachesIncident({
+        call,
+        props,
+        modelType: Incident,
+        type: DatabaseRequestType.Update,
+        action: "edit this incident's root cause",
+      });
+    } else {
+      await IncidentVideoCallAPI.assertReachesIncident({
+        call,
+        props,
+        modelType: IncidentVideoCall,
+        type: DatabaseRequestType.Create,
+        action: "work on this incident's calls",
+      });
+    }
+
     const summary: CallSummary | null = readCallSummary(call.callSummary);
 
     if (
@@ -354,11 +386,20 @@ export default class IncidentVideoCallAPI extends BaseAPI<
        * post to its channels, exactly as editing the root cause anywhere
        * else.
        */
-      await IncidentService.updateOneById({
+      const updatedCount: number = await IncidentService.updateOneById({
         id: call.incidentId!,
         data: { rootCause: rootCause.trim() },
         props,
       });
+
+      // An incident they may read but not change: refused, never marked accepted.
+      if (updatedCount === 0) {
+        throw await IncidentService.getUnwrittenByIdError({
+          id: call.incidentId!,
+          props,
+          type: DatabaseRequestType.Update,
+        });
+      }
     }
 
     await this.writeCall(call.id!, {
@@ -423,6 +464,59 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       errorMessage:
         "You do not have permission to work on this incident's calls. Ask for the Incident Member role, or the Create Incident Video Call permission.",
     });
+  }
+
+  /*
+   * The call the path names (getCall), to add, read again or remove its
+   * transcript: work on a call of a private incident takes the permission of
+   * a team that owns the incident, or of a person named as its owner
+   * (assertReachesIncident) - these routes write as OneUptime, so it is
+   * asked here.
+   */
+  private async getCallToWorkOn(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<IncidentVideoCall> {
+    const call: IncidentVideoCall = await this.getCall(req, props);
+
+    await IncidentVideoCallAPI.assertReachesIncident({
+      call,
+      props,
+      modelType: IncidentVideoCall,
+      type: DatabaseRequestType.Create,
+      action: "work on this incident's calls",
+    });
+
+    return call;
+  }
+
+  /*
+   * Refuses, in so many words, a caller whose permission for `type` on
+   * `modelType` does not reach the call's incident: it is private, and
+   * neither they nor a team of theirs granting it owns it
+   * (PrivateRecordWriteCheck). Anyone may be told: they read the call.
+   */
+  private static async assertReachesIncident(data: {
+    call: IncidentVideoCall;
+    props: DatabaseCommonInteractionProps;
+    modelType: typeof Incident | typeof IncidentVideoCall;
+    type: DatabaseRequestType;
+    action: string;
+  }): Promise<void> {
+    const reaches: boolean = await PrivateRecordWriteCheck.reaches({
+      modelType: data.modelType,
+      type: data.type,
+      recordService:
+        IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
+      recordId: data.call.incidentId!,
+      props: data.props,
+    });
+
+    if (!reaches) {
+      throw new NotAuthorizedException(
+        `You do not have permission to ${data.action}. ${PrivateRecordPermission.getPrivateParentWriteReason("incident")}`,
+      );
+    }
   }
 
   /*

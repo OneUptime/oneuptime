@@ -116,18 +116,18 @@ Community 이미지에서 `IS_ENTERPRISE_EDITION=true`를 설정해도 엔터프
 
 새로운 Enterprise Edition 설치는 그 설치가 처음 Enterprise Edition을 시작한 때부터 세어 **14일 평가판 기간**으로 실행됩니다. 평가판 기간은 평가용입니다. Enterprise Edition을 프로덕션에서 사용하려면 OneUptime Enterprise License에 따른 구독이 필요합니다. 평가판 기간이 끝나기 전에 라이선스를 활성화하십시오. 그 후에는 SCIM, 감사 로깅, 보존 재정의가 멈추고 엔터프라이즈 구성이 읽기 전용이 됩니다([라이선스가 만료되었거나 없을 때](#라이선스가-만료되었거나-없을-때) 참조). 라이선스를 받으려면 [sales@oneuptime.com](mailto:sales@oneuptime.com)으로 문의하십시오.
 
-라이선스는 **에디션 라벨** 에서 관리합니다. 마스터 관리자는 관리자 대시보드 헤더와 Dashboard 바닥글에서 이 라벨을 봅니다. 라벨은 라이선스 상태와 좌석 사용량을 보여 주고, 마스터 관리자에게는 인스턴스 ID도 보여 줍니다.
+라이선스는 **Admin Dashboard > 설정 > 라이선스** 에서 관리합니다. 마스터 관리자는 여기에서 라이선스를 추가, 새로 고침, 교체할 수 있으며 다른 사람은 변경할 수 없습니다. 관리자 대시보드 헤더와 Dashboard 바닥글의 **에디션 라벨** 은 상태만 보여 줍니다. 라이선스 상태를 보여 주고, 마스터 관리자에게는 좌석 사용량과 이 페이지로 이동하는 **라이선스 관리** 버튼도 보여 줍니다.
 
 AWS Marketplace, Microsoft Marketplace 또는 Google Cloud Marketplace에서 구매한 OneUptime Enterprise에는 라이선스 키가 필요하지 않습니다. 마켓플레이스 구독이 라이선스가 되며, 사용자마다 시간 단위로 요금이 청구됩니다. [클라우드 마켓플레이스](/docs/installation/cloud-marketplaces)를 참조하세요.
 
 ### 온라인 활성화(라이선스 키)
 
 :::steps
-1. 마스터 관리자로 로그인하고 에디션 라벨을 엽니다.
+1. 마스터 관리자로 로그인하고 **Admin Dashboard > 설정 > 라이선스** 를(를) 엽니다.
 2. 라이선스 키를 입력하고 검증합니다.
 :::
 
-설치는 OneUptime에서 키를 확인하고 받은 라이선스를 저장합니다. 그 뒤로는 매일 동기화하여 라이선스를 최신 상태로 유지합니다. 추가 좌석이나 갱신 같은 변경 사항을 바로 가져오려면 에디션 라벨의 **Refresh license** 를 사용하십시오.
+설치는 OneUptime에서 키를 확인하고 받은 라이선스를 저장합니다. 그 뒤로는 매일 동기화하여 라이선스를 최신 상태로 유지합니다. 추가 좌석이나 갱신 같은 변경 사항을 바로 가져오려면 같은 페이지의 **Refresh license** 를 사용하십시오.
 
 온라인 활성화에는 OneUptime 서버에서 `https://oneuptime.com`으로 나가는 HTTPS가 필요합니다. 서버가 중계 서버를 통해서만 인터넷에 접속한다면 `ENTERPRISE_LICENSE_SERVER_URL`을 중계 서버의 `https://` 주소로 설정하십시오. 중계 서버는 `/api/enterprise-license/`를 oneuptime.com으로 전달해야 합니다.
 
@@ -136,9 +136,9 @@ AWS Marketplace, Microsoft Marketplace 또는 Google Cloud Marketplace에서 구
 인터넷으로 가는 경로가 없는 설치는 키 대신 **서명된 라이선스 토큰** 을 사용할 수 있습니다.
 
 :::steps
-1. 마스터 관리자로 로그인하고 에디션 라벨을 연 다음 **인스턴스 ID** 를 적어 둡니다.
+1. 마스터 관리자로 로그인하고 **Admin Dashboard > 설정 > 라이선스** 를(를) 연 다음 오프라인 활성화로 전환하고 **인스턴스 ID** 를 적어 둡니다.
 2. OneUptime([sales@oneuptime.com](mailto:sales@oneuptime.com))에 그 인스턴스 ID용 오프라인 라이선스 토큰을 요청합니다.
-3. 토큰을 에디션 라벨의 토큰 필드에 붙여 넣고 활성화합니다.
+3. 토큰을 토큰 필드에 붙여 넣고 활성화합니다.
 :::
 
 설치는 릴리스에 내장된 OneUptime 서명 키로 토큰을 직접 검증합니다. OneUptime에 연결하는 일은 없습니다. 한 인스턴스 ID용으로 발급된 토큰은 다른 모든 설치에서 거부되고, 인스턴스 ID 없이 발급된 토큰(온라인으로 활성화한 설치가 받는 토큰 등)도 거부됩니다. 갱신하거나 좌석을 추가하려면 현재 토큰이 만료되기 전에 새 토큰을 활성화하십시오.

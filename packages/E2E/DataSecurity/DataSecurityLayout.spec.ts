@@ -286,7 +286,7 @@ test.describe("every list fits a laptop's card beside the side menu", () => {
     await expect(first).toContainText("customer-exports");
     await expect(first).toContainText("94");
     await expect(first).toContainText("Critical");
-    await expect(first).toContainText("2 open issues");
+    await expect(first).toContainText("3 open issues");
 
     await screenshot(page, "layout-stores-busy-1280");
   });

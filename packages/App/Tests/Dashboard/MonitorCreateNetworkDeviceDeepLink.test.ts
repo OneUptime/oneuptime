@@ -110,6 +110,15 @@ function pingPreSeed(): string {
   });
 }
 
+/** "Monitor web UI": the Website monitor the form opens on. */
+function webUiPreSeed(): string {
+  return sliceBetween({
+    code: readCode(CREATE_PAGE),
+    from: "const preSeedWebUiMonitorForDevice",
+    to: "const preSeedPingMonitorForMonitorBackedDevice",
+  });
+}
+
 /** The helper onSuccess hands a device-linked monitor to. */
 function bindHelper(): string {
   return sliceBetween({
@@ -385,5 +394,99 @@ describe("the device page's button is the link the create page branches on", () 
 
     expect(card).toContain("binds it to the device for you");
     expect(card).toContain("Create Ping Monitor");
+  });
+});
+
+/*
+ * "Monitor web UI" on a device's Monitors card (#5281, the follow-up of
+ * #5145): the same device link, asking for the web UI check. It opens a
+ * Website monitor of the device's management page - https on the address
+ * its probe polls, self-signed certificates allowed, checked from the
+ * device's own probe - whatever polls the device, and binds nothing: the
+ * device's status stays its own (or its bound monitor's).
+ */
+describe("a device's web UI", () => {
+  test("the link asks for the check by its query parameter, before the device's other branches", () => {
+    const code: string = deepLinkPreSeed();
+    const checkAt: number = code.indexOf(
+      "Navigation.getQueryStringByName(DEVICE_MONITOR_CHECK_QUERY_PARAM) === DeviceMonitorCheck.WebUi",
+    );
+    const webUiAt: number = code.indexOf(
+      "preSeedWebUiMonitorForDevice({ device: device });",
+    );
+    const pingAt: number = code.indexOf(
+      "await preSeedPingMonitorForMonitorBackedDevice(",
+    );
+
+    expect(checkAt).toBeGreaterThan(-1);
+    expect(webUiAt).toBeGreaterThan(checkAt);
+    expect(pingAt).toBeGreaterThan(webUiAt);
+    expect(code.slice(webUiAt, pingAt)).toContain("return;");
+  });
+
+  test("it opens a Website monitor on the device's web UI address", () => {
+    const code: string = webUiPreSeed();
+
+    expect(code).toContain(
+      'DeviceWebUiUtil.getUrl( data.device?.hostname || "", )',
+    );
+    expect(code).toContain(
+      "monitorType: MonitorType.Website, monitorDestination: webUiUrl, allowSelfSignedCertificates: true,",
+    );
+    expect(code).toContain("setSeedStep(");
+    expect(code).toContain("monitorType: MonitorType.Website, });");
+  });
+
+  test("it is named after the device, in the reader's language", () => {
+    const code: string = webUiPreSeed();
+
+    expect(code).toContain(
+      'translator.translateTemplate("{{deviceName}} web UI"',
+    );
+    expect(code).toContain(
+      'translator.translateTemplate( "Checks that the web UI of the {{deviceName}} network device answers."',
+    );
+  });
+
+  test("it is checked from the device's own probe", () => {
+    expect(webUiPreSeed()).toContain(
+      "setDeviceProbeIds( data.device?.probeId ? [data.device.probeId.toString()] : null, );",
+    );
+  });
+
+  test("it binds nothing to the device", () => {
+    expect(webUiPreSeed()).not.toContain("bindToNetworkDeviceId");
+  });
+
+  test("the form seeds the step's criteria and puts the address in it, for that type only", () => {
+    const steps: string = readCode(
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "Form",
+        "Monitor",
+        "MonitorSteps.tsx",
+      ),
+    );
+
+    expect(steps).toContain(
+      "props.seedStep && props.seedStep.monitorType === data.monitorType ? props.seedStep : undefined;",
+    );
+    expect(steps).toContain(
+      "seededFirstStep.setMonitorDestination(stepSeed.monitorDestination);",
+    );
+    expect(steps).toContain(
+      "seededFirstStep.setAllowSelfSignedCertificates( stepSeed.allowSelfSignedCertificates, );",
+    );
+    expect(readCode(CREATE_PAGE)).toContain("seedStep={seedStep}");
+  });
+
+  test("the device's Monitors card links to it", () => {
+    const card: string = readCode(DEVICE_MONITORS_CARD);
+
+    expect(card).toContain('title="Monitor web UI"');
+    expect(card).toContain(
+      "&${DEVICE_MONITOR_CHECK_QUERY_PARAM}=${DeviceMonitorCheck.WebUi}",
+    );
   });
 });

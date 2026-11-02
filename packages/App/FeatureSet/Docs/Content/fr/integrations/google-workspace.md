@@ -43,7 +43,8 @@ La connexion s'authentifie avec la clé d'un compte de service et la [délégati
 ### Autoriser la délégation au niveau du domaine
 
 1. Dans la [console d'administration Google](https://admin.google.com), en tant que super administrateur, ouvrez **Security → Access and data control → API controls → Manage domain-wide delegation**, et sélectionnez **Add new**.
-2. Saisissez l'**Unique ID** du compte de service comme **Client ID**, et `https://www.googleapis.com/auth/admin.reports.audit.readonly` comme seul **OAuth scope**. Sélectionnez **Authorize**. Google peut mettre quelques minutes à l'appliquer.
+2. Saisissez l'**Unique ID** du compte de service comme **Client ID**, et `https://www.googleapis.com/auth/admin.reports.audit.readonly` comme **OAuth scope**. Sélectionnez **Authorize**. Google peut mettre quelques minutes à l'appliquer.
+3. Pour que les playbooks puissent suspendre, réactiver et déconnecter des utilisateurs (voir [Confinement](/docs/telemetry/security-cases#confinement)), ajoutez `https://www.googleapis.com/auth/admin.directory.user` et `https://www.googleapis.com/auth/admin.directory.user.security` aux champs d'application du même client, séparés par des virgules. L'administrateur en tant que lequel la connexion agit doit alors gérer ces utilisateurs.
 
 ### Ajouter la connexion dans OneUptime
 

@@ -16,10 +16,10 @@ flowchart TB
     fired["알림 발생"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"Success"| chat["채팅의 메시지"]
-    step -->|"Error"| log["Log: 전달되지<br/>않은 이유"]
+    step -->|"Error"| failed["실행이 실패하고<br/>이유를 알림"]
 ```
 
-단계는 Telegram의 Bot API를 통해 봇으로서 **Message Text**를 채팅에 보냅니다. Telegram이 메시지를 받으면 **Success** 출력으로, Telegram이 거부하면 Telegram의 이유와 함께 **Error** 출력으로 진행합니다. 템플릿은 **Log** 단계를 **Error**에 연결하므로, 보내지 못한 실행은 그 이유를 알려 줍니다.
+단계는 Telegram의 Bot API를 통해 봇으로서 **Message Text**를 채팅에 보냅니다. Telegram이 메시지를 받으면 **Success** 출력으로, Telegram이 거부하면 Telegram의 이유와 함께 **Error** 출력으로 진행합니다. 템플릿처럼 **Error**에 아무것도 연결되어 있지 않으면, 보내지 못한 실행은 실패하고 그 **단계**에 이유가 나옵니다.
 
 ## 사전 요건
 
@@ -53,7 +53,7 @@ Telegram에서 [@BotFather](https://t.me/BotFather)에게 `/newbot`을 보내고
 3. 이름은 **Notify Telegram on new alert** 그대로 두거나 바꾸고, **다음**을 클릭합니다.
 4. 토큰을 **Telegram Bot Token**에, ID를 **Telegram Chat ID**에 붙여 넣고 **워크플로 생성**을 클릭합니다.
 
-워크플로는 세 단계로 **빌더**에서 열립니다. **On Create Alert**, 알림의 번호, 제목, 심각도, 상태를 보내는 **Send Message to Telegram**, 그 **Error** 출력에 연결된 **Log** 단계입니다. 토큰은 워크플로의 시크릿 변수 `telegramBotToken`으로, ID는 `telegramChatId`로 저장됩니다.
+워크플로는 두 단계로 **빌더**에서 열립니다. **On Create Alert**와, 알림의 번호, 제목, 심각도, 상태를 보내는 **Send Message to Telegram**입니다. 토큰은 워크플로의 시크릿 변수 `telegramBotToken`으로, ID는 `telegramChatId`로 저장됩니다.
 @tab 처음부터
 1. 토큰을 시크릿 전역 변수로 저장합니다. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기**를 클릭하고, 이름을 `TELEGRAM_BOT_TOKEN`으로 지정한 뒤 **다음**을 클릭합니다. 토큰을 **콘텐츠**에 붙여 넣고 **시크릿**을 켠 뒤 **워크플로 변수 만들기**를 클릭합니다.
 2. **워크플로**로 이동해 **워크플로 생성**을 클릭하고 **처음부터 시작**을 고른 뒤, 워크플로 이름을 지정하고 **워크플로 생성**을 클릭합니다.
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 **빌더** 위쪽에서 **활성화됨**을 켭니다. 이제부터 새 알림은 모두 채팅으로 보내집니다.
 
-알림을 발생시키지 않고 테스트하려면 **워크플로 실행**을 클릭하고, **경고**에서 이미 있는 알림을 고릅니다. 최근 알림이 목록에 나오며, 번호나 제목의 일부를 입력하면 다른 알림을 찾을 수 있습니다. **워크플로 수동 실행**을 클릭하고 **실행**으로 확인합니다. **워크플로 실행** 패널이 실행을 따라가며, 메시지가 채팅에 나타납니다. 단계가 대신 **Error**로 진행하면 **Log** 단계의 줄에 이유가 나옵니다. [문제 해결](#문제-해결)을 참고하세요.
+알림을 발생시키지 않고 테스트하려면 **워크플로 실행**을 클릭하고, **경고**에서 이미 있는 알림을 고릅니다. 최근 알림이 목록에 나오며, 번호나 제목의 일부를 입력하면 다른 알림을 찾을 수 있습니다. **워크플로 수동 실행**을 클릭하고 **실행**으로 확인합니다. **워크플로 실행** 패널이 실행을 따라가며, 메시지가 채팅에 나타납니다. 단계가 대신 **Error**로 진행하면 실행이 실패하고, **단계**에 있는 그 단계의 항목에 이유가 나옵니다. [문제 해결](#문제-해결)을 참고하세요.
 :::
 
 ## 팁
@@ -85,7 +85,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 ## 문제 해결
 
-단계가 **Error**로 진행하면 실행이 그 이유를 알려 줍니다. 템플릿의 **Log** 단계가 `❌ Telegram could not deliver the alert notification:`, Telegram의 이유, 그리고 봇이 채팅에 있어야 한다는 안내를 기록합니다.
+단계가 **Error**로 진행하면 실행이 실패하고, 실행의 **단계**에 있는 그 단계의 항목에 Telegram의 이유가 나옵니다. 봇이 채팅에 있어야 하므로 먼저 그것부터 확인하세요.
 
 :::details Telegram이 "Bad Request: chat not found"로 응답함
 **Chat ID**가 잘못되었거나 봇이 채팅을 볼 수 없습니다. 봇을 그룹에 추가하거나, 채널의 관리자로 만들거나, 상대에게 봇과 채팅을 시작해 달라고 하세요. 그룹의 ID는 `-`로 시작합니다.

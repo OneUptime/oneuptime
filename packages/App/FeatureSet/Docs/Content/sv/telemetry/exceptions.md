@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Räknas igen; öppnas<br/>igen om det var löst"]
 ```
 
-- **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag.
+- **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag. Ett nytt undantag grupperas i stället efter sin typ och funktionerna och filerna i din egen kod i sin stack trace: radnummer, biblioteksramar och meddelandet räknas inte, så varianter som kastas från samma kod är ett undantag. Utan stack trace grupperar meddelandet det, som ovan. Undantag som registrerades före den här grupperingen behåller sin.
 - **En ny förekomst öppnar ett löst undantag igen.** Om det händer igen efter att du har löst det höll inte rättelsen, och undantaget markeras som **Regression**. En förekomst från före lösningen som når OneUptime först senare öppnar det inte igen.
 - **Ett arkiverat undantag förblir arkiverat.** Dess nya förekomster räknas fortfarande, men de skickar inte längre aviseringar.
 
@@ -52,6 +52,8 @@ Gå till **Produkter → Observerbarhet → Undantag**. Märket på fliken **Und
 
 Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid. En rad markerad **Regression** kom tillbaka efter att den lösts, och en markerad **Ny** sågs första gången under de senaste 24 timmarna.
 
+Varje rad visar också hur många användare undantaget drabbade under den valda perioden, och ett litet diagram över dess förekomster under perioden. En förekomst anger sin användare med attributet `user.id`, `enduser.id` eller `enduser.pseudo.id`, på undantagshändelsen, dess span eller loggpost eller dess resurs; förekomster som inte anger någon användare räknas inte.
+
 ### Välj vad som räknas som ett problem
 
 **Problem**, som är standard, döljer användarfel och förväntade nekanden, så att listan visar det som behöver rättas. **User errors** visar bara dem, och **Alla** visar alla undantag.
@@ -59,6 +61,8 @@ Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovan
 ### Sök och filtrera
 
 Skriv en fråga som `type:TypeError env:production`, se [Söksyntax](/docs/telemetry/search-syntax#undantag), eller klicka på ett värde i sidopanelen **Filter**: en tjänst, en värd eller en annan resurs, en **Undantagstyp**, en **Miljö** eller en **Error Class**. **Tilldelade till mig** visar bara de undantag som är tilldelade dig, och sorteringsmenyn ordnar listan efter **Senast sedd**, **Först sedd** eller **Flest händelser**.
+
+**Sparade vyer** behåller listan under ett namn, för alla i projektet: sökningen, filtren, tidsintervallet, statusen, vad som räknas som ett problem, **Tilldelade till mig**, sorteringen och sidstorleken. En vy med **Tilldelade till mig** visar var och en de undantag som är tilldelade dem, och **Rensa vy** återställer listan som den öppnas från början. Sidans adress namnger vyn du valde, så en länk du delar öppnar den. I övrigt fungerar sparade vyer som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
 
 ### Öppna ett undantag
 
@@ -97,7 +101,9 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 
 Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
 
-**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång.
+**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång. Personen det tilldelas, eller varje medlem i teamet, får en avisering som raden **Undantag tilldelat mig** i deras [Aviseringsinställningar](/docs/notifications/notification-settings) säger; den som tilldelade det får ingen.
+
+**Aktivitet** längst ned i undantagets **Översikt** visar vem som ändrade det och när, nyaste först: vem som löste, öppnade igen, arkiverade eller tilldelade det, slog ihop ett annat undantag med det eller delade upp ett, och när det kom tillbaka efter att det hade lösts. Varje ändring finns där, gjord på undantagets sida, i listan, under **Massåtgärder**, via API:et eller av OneUptime självt, och en ändring gjord med en API-nyckel bär nyckelns namn.
 
 ## Felklasser
 
@@ -128,6 +134,10 @@ Högst upp på ett undantags **Översikt** frågar **Förklara med OneUptime AI*
 Förklaringen sparas på undantaget, så nästa person som öppnar det läser den direkt, och **Förklara igen** ber om en ny. **Öppna en pull request med rättelsen** öppnar undantagets sida **AI Assistance**, och **Ställ en följdfråga** öppnar Ask AI om undantaget.
 
 ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
+
+Under korten listar **Liknande undantag** upp till fem andra undantag som liknar det här: **Samma meddelande** när värdena tagits bort, **Samma plats i koden** i din kod, eller ett **Liknande meddelande** med de flesta av samma ord. En orsak kan hamna i flera undantag, så **Kontrollera med OneUptime AI** säger om vart och ett om det är **Troligen samma bugg**, **En relaterad bugg** eller **En annan bugg**, och varför. Kontrollen använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt. Svaret sparas till nästa förekomst.
+
+Slå ihop ett som OneUptime AI kallar **Troligen samma bugg**, i samma tjänst, med det här undantaget med **Slå ihop** bredvid: dess förekomster, hittills och varje ny, räknas från och med då på det här undantaget och visas på dess sida, och det lämnar listan. **Ihopslagna med det här undantaget** nedanför listar det som slagits ihop, och **Dela upp** bredvid vart och ett, eller på ett ihopslaget undantags egen sida, ger det tillbaka sin egen plats i listan, med dess förekomster sedan dess. Att slå ihop och dela upp kräver behörighet att redigera undantag.
 
 ## Rätta det med AI
 
@@ -183,7 +193,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 Fliken **Insikter** räknar dina undantag under **Olöst**, **Löst** och **Arkiverad** och din lösningsgrad, och visar de vanligaste undantagen, tjänsterna de påverkar och de som setts senast.
 
-**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas inte, använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
+**Vad är nytt** högst upp på fliken ber OneUptime AI med **Sammanfatta med OneUptime AI** att sammanfatta de undantag som först sågs de senaste 24 timmarna och de som kom tillbaka efter att de lösts: några meningar om alla, sedan vart och ett på en rad, det mest brådskande först, med en länk till undantaget. Sammanfattningen skrivs när du ber om den och sparas till nästa förekomst, så att fråga igen kostar inget; den använder projektets AI-krediter och erbjuds inte medan **Aktivera AI** är avstängt.
 
 ## Felsökning
 
@@ -192,7 +202,7 @@ Kontrollera vyn först: **Problem** döljer användarfel och förväntade nekand
 :::
 
 :::details Ett fel visas som flera undantag
-Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag.
+Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag. Nya undantag grupperas i stället efter funktionerna i din egen kod, så detta gäller mest undantag som registrerades före; slå ihop två som är samma fel från **Liknande undantag**.
 :::
 
 :::details Ett löst undantag kommer tillbaka hela tiden

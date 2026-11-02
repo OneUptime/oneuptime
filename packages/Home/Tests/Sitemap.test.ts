@@ -10,6 +10,7 @@ import {
 } from "../Utils/Sitemap";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
 import { DEMO_PAGE_PATH, DEMO_SHORT_PATHS } from "../Utils/DemoPage";
+import { AIR_GAPPED_TOPIC_PATHS } from "../Utils/AirGappedPages";
 import { ExpressResponse } from "Common/Server/Utils/Express";
 import fs from "fs";
 import path from "path";
@@ -47,6 +48,9 @@ describe("Sitemap isRedirectPath", () => {
       "/product/monitoring",
       "/product/proxmox",
       "/product/vmware",
+      "/product/openshift",
+      "/enterprise/air-gapped/observability",
+      "/enterprise/air-gapped/on-call",
       "/product/databases",
       "/product/queues",
       "/product/incident-management",
@@ -568,6 +572,89 @@ describe("the Resellers page in the sitemap", () => {
     expect(entry).toContain("<priority>0.6</priority>");
     expect(entry).toContain("<changefreq>monthly</changefreq>");
     expect(isRedirectPath("/resellers")).toBe(false);
+  });
+});
+
+describe("the OpenShift page in the sitemap", () => {
+  /*
+   * A solution, not a product, whatever its address reads like: it is
+   * configured as the solutions are, a step below the products it leads to.
+   */
+  test("is configured once, as a weekly page of priority 0.8", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource.split('"/product/openshift"').length - 1).toBe(1);
+    expect(sitemapSource).toContain(
+      '"/product/openshift": { priority: 0.8, changefreq: "weekly" }',
+    );
+  });
+
+  test("is listed once, from the route Routes.ts registers", async () => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const entries: Array<string> = elementsOf(
+      await mod.generatePagesSitemapXml(),
+      "url",
+    ).filter((entry: string): boolean => {
+      return locOf(entry) === `${HOME_URL}/product/openshift`;
+    });
+
+    expect(REGISTERED_GET_PATHS).toContain("/product/openshift");
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toContain("<priority>0.8</priority>");
+    expect(entries[0]).toContain("<changefreq>weekly</changefreq>");
+  });
+});
+
+describe("the air-gapped product pages in the sitemap", () => {
+  /*
+   * Enterprise pages, a step below the hub's self-hosted page: they are listed
+   * as the hub is, from the routes Routes.ts registers, and Utils/Sitemap.ts
+   * reads their addresses from the module that holds the pages.
+   */
+  test.each(
+    AIR_GAPPED_TOPIC_PATHS.map((pagePath: string) => {
+      return [pagePath];
+    }),
+  )("%s is listed once, weekly at priority 0.8", async (pagePath: string) => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const entries: Array<string> = elementsOf(
+      await mod.generatePagesSitemapXml(),
+      "url",
+    ).filter((entry: string): boolean => {
+      return locOf(entry) === `${HOME_URL}${pagePath}`;
+    });
+
+    expect(REGISTERED_GET_PATHS).toContain(pagePath);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toContain("<priority>0.8</priority>");
+    expect(entries[0]).toContain("<changefreq>weekly</changefreq>");
+  });
+
+  test("the hub's short addresses stay out, and no page's markdown is listed", async () => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const locs: Array<string> = elementsOf(
+      await mod.generatePagesSitemapXml(),
+      "url",
+    ).map(locOf);
+
+    expect(locs).not.toContain(`${HOME_URL}/air-gapped`);
+    expect(
+      locs.filter((loc: string): boolean => {
+        return loc.startsWith(`${HOME_URL}/enterprise/air-gapped`);
+      }),
+    ).toHaveLength(AIR_GAPPED_TOPIC_PATHS.length + 1);
   });
 });
 

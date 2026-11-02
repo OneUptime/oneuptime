@@ -63,7 +63,7 @@ Il vostro CSS e il vostro HTML personalizzati si applicano in entrambi i temi; [
 ### Titolo, descrizione e favicon
 
 - **Titolo e descrizione**: il nome della pagina nella scheda del browser e nelle email agli iscritti, e la descrizione che mostrano i motori di ricerca. **Modifica** apre **Titolo della pagina** (segnaposto `e.g., Acme Status`) e **Descrizione della pagina**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
-- **Favicon**: **Edit Favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
+- **Favicon**: **Modifica favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
 
 ### Link dell'intestazione
 
@@ -107,7 +107,7 @@ Quanti giorni copre il grafico non si imposta qui. È **Cronologia uptime** nell
 
 | Campo | Cosa fa |
 | ----- | ------------ |
-| **Lingua predefinita** | La lingua che vedono i visitatori alla prima visita, scelta da un elenco che nomina ogni lingua nella sua grafia e in inglese (`Deutsch (German)`). È l'inglese per impostazione predefinita, e i visitatori possono sempre cambiarla dal footer. |
+| **Lingua predefinita** | La lingua che vedono i visitatori alla prima visita, scelta da un elenco che nomina ogni lingua nella sua grafia e in inglese (`Deutsch (German)`). È l'inglese per impostazione predefinita, e i visitatori possono sempre cambiarla dal footer. Anche gli iscritti ricevono i messaggi in questa lingua, a meno che non leggessero la pagina in un'altra lingua quando si sono iscritti. |
 | **Lingue abilitate** | Una selezione multipla, segnaposto `All languages`. Lasciatela vuota e vengono offerte tutte le lingue supportate; sceglietene alcune e il footer elenca solo quelle. |
 
 OneUptime include diciassette lingue: inglese, tedesco, francese, spagnolo, italiano, portoghese, olandese, danese, norvegese, svedese, russo, giapponese, coreano, cinese (semplificato), cinese (tradizionale), hindi e persiano. Il persiano si legge da destra a sinistra, quindi una pagina mostrata in persiano è disposta a partire da destra, fin dall'apertura se il persiano è la sua lingua predefinita. Le sue barre di uptime partono comunque da sinistra con il giorno più vecchio.
@@ -214,7 +214,7 @@ In **Dominio** (segnaposto `Select domain`), scegliete uno dei vostri domini ver
 Fate clic su **Crea: Pagina di stato Dominio**. La finestra di dialogo si chiude e si apre la **Configurazione DNS** del nuovo dominio, con il record da aggiungere.
 :::
 
-Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungete quel dominio ed eliminate quello vecchio.
+Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungete quel dominio ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
 
 ### Configurazione DNS e verifica
 

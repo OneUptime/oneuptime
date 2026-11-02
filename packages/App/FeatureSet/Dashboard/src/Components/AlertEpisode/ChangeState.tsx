@@ -10,7 +10,14 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import React, {
   FunctionComponent,
@@ -78,10 +85,23 @@ export interface ComponentProps {
   peopleFacts?: Array<EventStatusFact> | undefined;
 }
 
+// What the state buttons' gate asks about: a row of the state timeline.
+const PRIVATE_RECORD_STATE_TIMELINE: AlertEpisodeStateTimeline =
+  new AlertEpisodeStateTimeline();
+
 const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * On a private episode's page, what the reader holds on it: its state is
+   * changed only with the permissions of the teams that own it, so the
+   * state buttons lock, saying why, for a reader whose teams that own it
+   * may not (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_STATE_TIMELINE);
   const episodeIdString: string = props.episodeId.toString();
 
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -477,11 +497,14 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         stateChangeGate={PermissionGate.check(
           new AlertEpisodeStateTimeline(),
           ModelAction.Create,
-          {
-            sentence: translationKey(
-              "You do not have permission to change this episode's state.",
-            ),
-          },
+          withPrivateRecordGateOptions(
+            {
+              sentence: translationKey(
+                "You do not have permission to change this episode's state.",
+              ),
+            },
+            privateRecordOptions,
+          ),
         )}
         identifier={
           episode?.episodeNumberWithPrefix ||
@@ -589,6 +612,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
               noteTemplates: noteTemplates,
               // Offered only to someone who may post a private note.
               noteModel: new AlertEpisodeInternalNote(),
+              noteGateOptions: privateRecordOptions,
             }),
             formType: FormType.Create,
           }}

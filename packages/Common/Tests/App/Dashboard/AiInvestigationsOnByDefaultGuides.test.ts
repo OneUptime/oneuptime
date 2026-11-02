@@ -41,7 +41,7 @@ import {
   DatabaseAgentEngine,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
 import {
-  HOST_AI_AGENT_INSTALL_COMMAND,
+  getHostAiAgentInstallCommand,
   HOST_AI_AGENT_TOPIC_TITLE,
   HOST_INSTALL_METHODS,
   HostInstallMethod,
@@ -108,6 +108,22 @@ function stepTitled(guide: SetupGuideContent, title: string): string {
 
 function lastStep(guide: SetupGuideContent): SetupGuideStep {
   return guide.steps[guide.steps.length - 1]!;
+}
+
+/*
+ * The step that checks the install: the last one, or - in Proxmox's guide -
+ * the one before its optional step that sends Proxmox VE's notifications.
+ */
+function verifyStep(guide: SetupGuideContent): SetupGuideStep {
+  const step: SetupGuideStep | undefined = guide.steps.find(
+    (candidate: SetupGuideStep): boolean => {
+      return candidate.title.startsWith("Verify");
+    },
+  );
+  if (!step) {
+    throw new Error("The guide has no step that verifies the install");
+  }
+  return step;
 }
 
 function stepsText(guide: SetupGuideContent): string {
@@ -329,9 +345,12 @@ describe.each<[string, () => Array<[string, SetupGuideContent]>, string]>([
     test.each(guides())(
       "%s: the verify step says AI investigations are on, with what the agent runs",
       (_method: string, guide: SetupGuideContent) => {
-        const verify: SetupGuideStep = lastStep(guide);
+        const verify: SetupGuideStep = verifyStep(guide);
 
-        expect(verify.title).toMatch(/^Verify/);
+        expect([
+          lastStep(guide),
+          guide.steps[guide.steps.length - 2],
+        ]).toContain(verify);
         expect(count(verify.markdown || "", ON_BY_DEFAULT)).toBe(1);
         expect(verify.markdown).toContain(commands);
         expect(verify.markdown).toContain(
@@ -488,7 +507,7 @@ describe("the host guide", () => {
         /^\*\*AI investigations are on by default\*\* for every host/,
       );
       expect(topic.markdown).toContain(
-        `\`\`\`bash\n${HOST_AI_AGENT_INSTALL_COMMAND}\n\`\`\``,
+        `\`\`\`bash\n${getHostAiAgentInstallCommand(URL)}\n\`\`\``,
       );
       expect(topic.markdown).toContain(
         "changes nothing unless you allow fixes",
@@ -501,8 +520,9 @@ describe("the host guide", () => {
   );
 
   test("the installer it runs is the Host AI agent's, and asks what the topic says", () => {
-    expect(HOST_AI_AGENT_INSTALL_COMMAND).toBe(
-      "curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh\nsudo bash install.sh",
+    // From the reader's own OneUptime, which serves it for its release.
+    expect(getHostAiAgentInstallCommand(URL)).toBe(
+      `curl -fsSL ${URL}/install/host-ai-agent -o install.sh\nsudo bash install.sh`,
     );
 
     const installer: string = fs.readFileSync(

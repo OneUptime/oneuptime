@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" id="air-gapped-topic">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
+  <%#
+    The questions below, for search results (Partials/json-ld.ejs writes every
+    JSON-LD block), in plain words: a search result shows no code, so the
+    backticks around a setting come out (Utils/AirGapped.ts, plainText).
+  -%>
+  <%- include('./Partials/json-ld', {
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: airGappedTopic.faqs.map(function (faq) {
+        return {
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer.split('`').join('') }
+        };
+      })
+    }
+  }) -%>
+  <%# Open Graph and Twitter tags come from head-social.ejs, built from seo. -%>
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+
+  <style>
+    .ag-card {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+    }
+
+    .ag-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.25);
+    }
+
+    .ag-code {
+      font-family: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /*
+     * head-basic.ejs gives every element (*) the site's sans-serif font, so a
+     * span inside code - a value coloured in a settings block - would leave
+     * the monospace font. Inside code it inherits it instead.
+     */
+    .ag-code * {
+      font-family: inherit;
+    }
+
+    .ag-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ag-scroll:focus-visible {
+      outline: 2px solid #10b981;
+      outline-offset: -2px;
+    }
+
+    /* On a dark panel, a browser's own light scrollbar would be a bright bar. */
+    .ag-scroll-dark {
+      scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+    }
+
+    /*
+     * A section the bar's links (or the hero's buttons) jump to starts right
+     * under the sticky bar, 46px tall, rather than below a strip of the
+     * section before it.
+     */
+    section[id] {
+      scroll-margin-top: 2.875rem;
+    }
+  </style>
+  <%- include('./Partials/tailwind-stylesheet') -%>
+</head>
+
+<%
+  /*
+   * airGappedTopic is Utils/AirGapped.ts's getAirGappedTopicContent(): one
+   * product behind an air gap, every fact of it held to the repository by
+   * Tests/AirGappedTopicFacts.test.ts. Every page of the family is this
+   * template, so a change here changes them all.
+   */
+  const topic = airGappedTopic;
+  const icons = topic.icons;
+  const bookingHref = topic.hub.pagePath + '#plan-your-install';
+
+  // What each change's status says, and how it looks.
+  const statusPills = {
+    'change-a-setting': { label: 'Change a setting', pill: 'bg-gray-100 text-gray-700 ring-gray-200' },
+    'use-your-own': { label: 'Use your own', pill: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+    'needs-a-route': { label: 'Needs a route', pill: 'bg-amber-50 text-amber-800 ring-amber-200' }
+  };
+
+  /*
+   * How code inside a sentence looks: on white, on a light grey panel, and on
+   * the dark sections. whitespace-nowrap keeps a setting on one line.
+   */
+  const inlineCode = 'ag-code whitespace-nowrap rounded bg-gray-100 px-1 py-0.5 text-[0.8125rem] text-gray-800';
+  const inlineCodeOnDark = 'ag-code whitespace-nowrap rounded bg-white/10 px-1 py-0.5 text-[0.8125rem] text-gray-200';
+
+  /*
+   * Text whose `backticked` spans are code (Utils/AirGapped.ts, "Code inside
+   * a sentence"): the words between each pair of backticks become a <code>
+   * with codeClass, everything else is written as it is, and both are
+   * escaped like any other output tag.
+   */
+  const drawText = function (text, codeClass) {
+    String(text).split('`').forEach(function (part, index) {
+      if (part === '') {
+        return;
+      }
+      if (index % 2 === 1) {
+%><code class="<%= codeClass %>"><%= part %></code><%
+      } else {
+%><%= part %><%
+      }
+    });
+  };
+
+  /*
+   * A settings block, line by line, each value set off in colour from what
+   * names it. The characters are exactly the file's - the spans add colour,
+   * nothing else - so what a reader copies is what the docs give.
+   */
+  const drawSettingLines = function (source, separator) {
+    source.split('\n').forEach(function (line, lineIndex) {
+      if (lineIndex > 0) {
+%><%= '\n' %><%
+      }
+      const at = line.indexOf(separator);
+      if (at === -1 || at + separator.length >= line.length) {
+%><%= line %><%
+        return;
+      }
+%><%= line.slice(0, at + separator.length) %><span class="text-emerald-400"><%= line.slice(at + separator.length) %></span><%
+    });
+  };
+
+  // One side of the hero's picture: a label over the items on that side.
+  const drawFlowLane = function (lane, laneKey) {
+%>
+              <div data-testid="air-gapped-topic-flow-<%= laneKey %>">
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500" id="air-gapped-topic-flow-<%= laneKey %>-title"><%= lane.title %></p>
+                <ul role="list" aria-labelledby="air-gapped-topic-flow-<%= laneKey %>-title" class="mt-2.5 space-y-2">
+                  <% lane.items.forEach(function (item) { -%>
+                  <li class="flex gap-3 rounded-xl bg-white p-3 text-left shadow-sm ring-1 ring-gray-200">
+                    <svg class="mt-0.5 h-5 w-5 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[item.icon] %>" />
+                    </svg>
+                    <span class="min-w-0">
+                      <span class="block text-sm font-medium text-gray-900"><%= item.label %></span>
+                      <span class="mt-0.5 block text-xs leading-5 text-gray-500"><%= item.detail %></span>
+                    </span>
+                  </li>
+                  <% }); -%>
+                </ul>
+              </div>
+<%
+  };
+
+  // The arrow between two parts of the picture: down on a phone, across from a laptop up.
+  const drawFlowArrow = function () {
+%>
+              <span class="flex items-center justify-center text-emerald-500" aria-hidden="true">
+                <svg class="h-6 w-6 rotate-90 lg:rotate-0" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>" />
+                </svg>
+              </span>
+<%
+  };
+
+-%>
+
+<body class="bg-white antialiased text-gray-900">
+  <%- include('nav') -%>
+
+  <main id="main-content">
+
+    <!-- ============================================================ HERO -->
+    <section class="relative isolate overflow-hidden bg-white" id="air-gapped-topic-hero" aria-labelledby="air-gapped-topic-title">
+      <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
+
+      <div class="mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
+            <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.lock %>" />
+            </svg>
+            <a href="<%= topic.hub.pagePath %>" class="hover:text-gray-900">Air-Gapped</a>
+            <span class="h-1 w-1 rounded-full bg-gray-300" aria-hidden="true"></span>
+            <span><%= topic.name %></span>
+          </p>
+
+          <h1 id="air-gapped-topic-title" class="mt-8 text-balance text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+            <%= topic.headline %>
+            <span class="text-gray-500 sm:block"><%= topic.headlineContinued %></span>
+          </h1>
+
+          <p class="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-gray-600 sm:text-lg sm:leading-8"><% drawText(topic.lead, inlineCode); %></p>
+
+          <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <a href="<%= bookingHref %>" data-ou-cta="cta_request_demo"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">
+              Plan your air-gapped install
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+              </svg>
+            </a>
+            <a href="#what-changes"
+              class="inline-flex w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600 sm:w-auto">
+              See what changes
+            </a>
+          </div>
+        </div>
+
+        <ul role="list" class="mx-auto mt-12 flex max-w-5xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500" data-testid="air-gapped-topic-proof-points">
+          <% topic.proofPoints.forEach(function (proofPoint) { -%>
+          <li class="flex items-center gap-2">
+            <svg class="h-4 w-4 flex-none text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.check %>" />
+            </svg>
+            <span><%= proofPoint %></span>
+          </li>
+          <% }); -%>
+        </ul>
+
+        <%#
+          The picture: inside one dashed boundary - the customer's network -
+          what feeds OneUptime, OneUptime itself, and where the result goes.
+          Nothing is drawn outside the boundary.
+        -%>
+        <div class="mx-auto mt-16 max-w-6xl" data-testid="air-gapped-topic-flow">
+          <div class="rounded-3xl border-2 border-dashed border-emerald-300 bg-emerald-50/40 p-4 sm:p-7">
+            <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-1.5">
+              <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.lock %>" />
+                </svg>
+                Your network
+              </p>
+              <p class="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.offline %>" />
+                </svg>
+                No route to the internet needed
+              </p>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-4">
+              <% drawFlowLane(topic.flow.from, 'from'); %>
+              <% drawFlowArrow(); %>
+              <div class="rounded-2xl bg-gray-900 p-5 shadow-lg" data-testid="air-gapped-topic-flow-oneuptime">
+                <p class="text-base font-semibold text-white">OneUptime</p>
+                <p class="mt-0.5 text-sm leading-6 text-gray-400"><%= topic.flow.oneUptime.detail %></p>
+                <ul role="list" aria-label="Runs in your cluster" class="mt-4 space-y-2">
+                  <% topic.flow.oneUptime.items.forEach(function (item) { -%>
+                  <li class="flex items-center gap-2.5 rounded-lg bg-white/[0.06] px-3 py-2 ring-1 ring-inset ring-white/10">
+                    <svg class="h-4 w-4 flex-none text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[item.icon] %>" />
+                    </svg>
+                    <span class="text-sm text-white"><%= item.label %></span>
+                  </li>
+                  <% }); -%>
+                </ul>
+              </div>
+              <% drawFlowArrow(); %>
+              <% drawFlowLane(topic.flow.to, 'to'); %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <%#
+      Section nav. It follows the reader down the page, so the one thing a
+      visitor comes to do - plan the install - stays a click away (from a
+      tablet up; a phone's bar is all links, and the hero's button leads
+      there). z-10 keeps it under the site's menus (z-20): a phone's menu is
+      taller than the screen, and scrolling it would otherwise slide this bar
+      over its links.
+    -%>
+    <div class="sticky top-0 z-10 border-y border-gray-200 bg-white/90 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center gap-6 px-6 lg:px-8">
+        <nav aria-label="On this page" class="ag-scroll flex min-w-0 flex-1 items-center gap-6 py-3 text-sm text-gray-500 whitespace-nowrap">
+          <a href="#inside" class="hover:text-gray-900">What runs inside</a>
+          <a href="#what-changes" class="hover:text-gray-900">What changes</a>
+          <a href="#configure" class="hover:text-gray-900">Configure</a>
+          <a href="#install" class="hover:text-gray-900">Install</a>
+          <a href="#faq" class="hover:text-gray-900">FAQ</a>
+        </nav>
+        <a href="<%= bookingHref %>" data-ou-cta="cta_request_demo" data-testid="air-gapped-topic-nav-plan"
+          class="max-md:hidden md:inline-flex flex-none items-center gap-1.5 rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+          Plan your install
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- ================================================ WHAT RUNS INSIDE -->
+    <section id="inside" class="bg-white py-20 sm:py-28" aria-labelledby="inside-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">What runs inside</p>
+          <h2 id="inside-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl"><%= topic.inside.title %></h2>
+          <p class="mt-4 text-base leading-7 text-gray-600"><% drawText(topic.inside.lead, inlineCode); %></p>
+        </div>
+
+        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <% topic.inside.capabilities.forEach(function (capability) { -%>
+          <li class="ag-card flex flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-topic-capability" id="capability-<%= capability.key %>">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-100">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[capability.icon] %>" />
+              </svg>
+            </span>
+            <h3 class="mt-5 text-lg font-semibold text-gray-900"><%= capability.title %></h3>
+            <p class="mt-2 flex-1 text-sm leading-6 text-gray-600"><% drawText(capability.description, inlineCode); %></p>
+            <a href="<%= capability.link.href %>" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+              <%= capability.link.label %>
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+              </svg>
+            </a>
+          </li>
+          <% }); -%>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ==================================================== WHAT CHANGES -->
+    <section id="what-changes" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="what-changes-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">What changes</p>
+          <h2 id="what-changes-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl"><%= topic.changes.title %></h2>
+          <p class="mt-4 text-base leading-7 text-gray-600"><% drawText(topic.changes.lead, inlineCode); %></p>
+        </div>
+
+        <%# A phone reads each row as a card, its columns named inline. -%>
+        <div class="mt-12 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div class="max-md:hidden md:grid md:grid-cols-12 md:gap-6 border-b border-gray-200 bg-gray-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500" aria-hidden="true" data-testid="air-gapped-topic-changes-columns">
+            <span class="md:col-span-4">Feature</span>
+            <span class="md:col-span-6">Inside an air gap</span>
+            <span class="md:col-span-2">What it takes</span>
+          </div>
+          <ul role="list" aria-labelledby="what-changes-title" class="divide-y divide-gray-100">
+            <% topic.changes.rows.forEach(function (change) { -%>
+            <% const statusPill = statusPills[change.status]; -%>
+            <li class="px-6 py-5 md:grid md:grid-cols-12 md:gap-6" data-testid="air-gapped-topic-change" id="change-<%= change.key %>">
+              <div class="md:col-span-4">
+                <h3 class="text-sm font-semibold text-gray-900"><%= change.name %></h3>
+                <p class="mt-1 text-xs leading-5 text-gray-500"><% drawText(change.usually, 'ag-code whitespace-nowrap text-gray-600'); %></p>
+              </div>
+              <p class="mt-3 text-sm leading-6 text-gray-900 md:col-span-6 md:mt-0">
+                <span class="font-medium md:hidden">Inside an air gap: </span><% drawText(change.inside, inlineCode); %>
+              </p>
+              <p class="mt-3 md:col-span-2 md:mt-0">
+                <span class="inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset <%= statusPill.pill %>" data-status="<%= change.status %>"><%= statusPill.label %></span>
+              </p>
+            </li>
+            <% }); -%>
+          </ul>
+        </div>
+
+        <p class="mt-6 max-w-3xl text-sm leading-6 text-gray-500" data-testid="air-gapped-topic-changes-more">
+          That is this product. Every connection a self-hosted install makes is listed under
+          <a href="<%= topic.hub.pagePath %>#connections-out" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">what reaches out, and what to use instead</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- ======================================================= CONFIGURE -->
+    <section id="configure" class="relative isolate overflow-hidden bg-gray-900 py-20 sm:py-28" aria-labelledby="configure-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+          <div>
+            <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">Configure</p>
+            <h2 id="configure-title" class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl"><%= topic.configure.title %></h2>
+            <p class="mt-4 text-base leading-7 text-gray-400"><% drawText(topic.configure.lead, inlineCodeOnDark); %></p>
+
+            <ol role="list" class="mt-8 space-y-4">
+              <% topic.configure.steps.forEach(function (step, stepIndex) { -%>
+              <li class="flex gap-3.5 rounded-xl border border-white/10 bg-white/[0.03] p-4" data-testid="air-gapped-topic-configure-step">
+                <span class="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-emerald-400/10 text-xs font-semibold text-emerald-300 ring-1 ring-inset ring-emerald-400/30" aria-hidden="true"><%= stepIndex + 1 %></span>
+                <span class="min-w-0">
+                  <span class="block text-sm font-semibold text-white"><%= step.title %></span>
+                  <span class="mt-0.5 block text-sm leading-6 text-gray-400"><% drawText(step.description, inlineCodeOnDark); %></span>
+                </span>
+              </li>
+              <% }); -%>
+            </ol>
+          </div>
+
+          <div>
+            <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/40" data-testid="air-gapped-topic-configure-code">
+              <div class="border-b border-white/10 px-5 py-3">
+                <span class="ag-code text-xs font-medium text-gray-300"><%= topic.configure.code.label %></span>
+              </div>
+              <div class="ag-scroll ag-scroll-dark px-5 py-5" tabindex="0" role="region" aria-label="<%= topic.configure.code.ariaLabel %>">
+                <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><% drawSettingLines(topic.configure.code.text, topic.configure.code.separator); %></code></pre>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-6 text-gray-400" data-testid="air-gapped-topic-configure-caption"><% drawText(topic.configure.caption, inlineCodeOnDark); %></p>
+            <a href="<%= topic.configure.link.href %>" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-white hover:text-gray-300">
+              <%= topic.configure.link.label %>
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= INSTALL -->
+    <section id="install" class="bg-white py-20 sm:py-28" aria-labelledby="install-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Install</p>
+          <h2 id="install-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">The same four steps as every air-gapped install</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600"><% drawText(topic.installNote, inlineCode); %></p>
+        </div>
+
+        <ol role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <% topic.hub.steps.forEach(function (step, stepIndex) { -%>
+          <li data-testid="air-gapped-topic-install-step">
+            <a href="<%= topic.hub.pagePath %>#step-<%= step.key %>" class="ag-card flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-gray-900 text-sm font-semibold text-white" aria-hidden="true"><%= stepIndex + 1 %></span>
+              <span class="mt-4 text-base font-semibold text-gray-900"><%= step.title %></span>
+            </a>
+          </li>
+          <% }); -%>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============================================================= FAQ -->
+    <section id="faq" class="border-t border-gray-100 bg-white py-20 sm:py-28" aria-labelledby="faq-title">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8">
+        <h2 id="faq-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Questions buyers ask</h2>
+
+        <div class="mt-12 divide-y divide-gray-100 border-y border-gray-100">
+          <% topic.faqs.forEach(function (faq) { -%>
+          <details class="group py-6" data-testid="air-gapped-topic-faq">
+            <summary class="flex cursor-pointer list-none items-start justify-between gap-6">
+              <span class="text-base font-medium text-gray-900"><%= faq.question %></span>
+              <span
+                class="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-transform group-open:rotate-45" aria-hidden="true">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+                </svg>
+              </span>
+            </summary>
+            <p class="mt-4 text-sm leading-7 text-gray-600"><% drawText(faq.answer, inlineCode); %></p>
+          </details>
+          <% }); -%>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= RELATED -->
+    <section id="related" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="related-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <h2 id="related-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">The rest of OneUptime, air-gapped</h2>
+          <a href="<%= topic.hub.pagePath %>" class="inline-flex flex-none items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+            Everything about air-gapped installs
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+            </svg>
+          </a>
+        </div>
+
+        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
+          <% topic.related.forEach(function (related) { -%>
+          <li data-testid="air-gapped-topic-related">
+            <a href="<%= related.path %>" class="ag-card flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= related.iconPath %>" />
+                </svg>
+              </span>
+              <span class="mt-5 text-lg font-semibold text-gray-900"><%= related.title %></span>
+              <span class="mt-2 text-sm leading-6 text-gray-600"><%= related.summary %></span>
+            </a>
+          </li>
+          <% }); -%>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================================================ PLAN YOUR INSTALL -->
+    <section id="plan-your-install" class="relative isolate overflow-hidden bg-gray-900 py-20 sm:py-28" aria-labelledby="plan-your-install-title">
+      <div
+        class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_60%,transparent_110%)]">
+      </div>
+
+      <div class="mx-auto max-w-3xl px-6 text-center lg:px-8">
+        <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">Plan your install</p>
+        <h2 id="plan-your-install-title" class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          Bring us your network. Leave with an install plan.
+        </h2>
+        <p class="mt-5 text-base leading-7 text-gray-400">
+          A working session with the engineers who build the platform, not a sales call. We go through what to mirror,
+          which values to set, how licensing and upgrades work inside your gap, and where each responsibility sits.
+        </p>
+        <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+          <a href="<%= bookingHref %>" data-ou-cta="cta_request_demo"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-900 shadow-sm transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto">
+            Pick a time
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+            </svg>
+          </a>
+          <a href="<%= topic.product.href %>"
+            class="inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-sm font-medium text-gray-300 ring-1 ring-inset ring-white/20 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto">
+            <%= topic.product.label %>
+          </a>
+        </div>
+        <p class="mt-8 text-sm leading-6 text-gray-400">
+          Or write to
+          <a href="mailto:<%= topic.hub.email %>"
+            class="font-medium text-gray-300 underline underline-offset-2 hover:text-white"><%= topic.hub.email %></a>
+          if you would rather start over email.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('footer') -%>
+</body>
+
+</html>

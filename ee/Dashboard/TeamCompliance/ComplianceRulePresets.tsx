@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
@@ -199,7 +200,17 @@ const ComplianceRulePresets: FunctionComponent<ComponentProps> = (
                       setLoadingPresetId("");
                     }
                   }}
-                  className="group flex h-full w-full items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition-colors hover:border-indigo-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-wait"
+                  className={`group flex h-full w-full items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnButtonStateClassName(
+                    {
+                      /*
+                       * Every preset waits while one is read, the one
+                       * pressed with its spinner: busy, not locked.
+                       */
+                      isBusy: Boolean(loadingPresetId),
+                      hoverClassName:
+                        "hover:border-indigo-300 hover:bg-gray-50",
+                    },
+                  )}`}
                 >
                   <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
                     <Icon

@@ -1560,8 +1560,8 @@ describe("the details of a picked template", () => {
     );
 
     expect(preview.trigger.title).toBe("On Create Incident");
-    expect(titles(preview.steps)).toEqual(["Send Message to Slack", "Log"]);
-    expect(preview.blockCount).toBe(3);
+    expect(titles(preview.steps)).toEqual(["Send Message to Slack"]);
+    expect(preview.blockCount).toBe(2);
   });
 
   /*
@@ -1578,16 +1578,25 @@ describe("the details of a picked template", () => {
   });
 
   test("lists each kind of block once, however often it is used", () => {
-    const steps: Array<string> = titles(
-      previewOf("jira-declare-incident-from-issue").steps,
-    );
+    const steps: Array<string> = titles(previewOf("webhook-switch").steps);
 
-    expect(new Set(steps).size).toBe(steps.length);
-    expect(steps).toContain("Run Custom JavaScript");
-    expect(steps[steps.length - 1]).toBe("Log");
-    expect(previewOf("jira-declare-incident-from-issue").blockCount).toBe(
-      getTemplateGraphSpec("jira-declare-incident-from-issue")?.nodes.length,
+    // A Switch / Case and three Log steps, one on each case.
+    expect(steps).toEqual(["Switch / Case", "Log"]);
+    expect(previewOf("webhook-switch").blockCount).toBe(
+      getTemplateGraphSpec("webhook-switch")?.nodes.length,
     );
+  });
+
+  test("names the steps a template from another tool is made of", () => {
+    expect(titles(previewOf("jira-declare-incident-from-issue").steps)).toEqual(
+      [
+        "API Get By ID (JSON)",
+        "Check With JavaScript",
+        "Incident From Another Tool",
+        "API Put (JSON)",
+      ],
+    );
+    expect(previewOf("jira-declare-incident-from-issue").blockCount).toBe(5);
   });
 
   test("a template that only logs shows its Log step", () => {
@@ -1617,6 +1626,27 @@ describe("the details of a picked template", () => {
 
   test("has no settings for a template that asks for none", () => {
     expect(previewOf("jira-status-to-incident-state").settings).toEqual([]);
+    expect(previewOf("jira-status-to-incident-state").whoToPage).toEqual([]);
+  });
+
+  test("lists who a paging template asks to page, in its order", () => {
+    expect(
+      previewOf("incident-severity-page").whoToPage.map(
+        (ask: { componentId: string; required: boolean }) => {
+          return [ask.componentId, ask.required];
+        },
+      ),
+    ).toEqual([
+      ["page-on-call-policy-1", true],
+      ["page-team-1", true],
+    ]);
+    expect(
+      previewOf("zabbix-declare-incident-from-problem").whoToPage.map(
+        (ask: { componentId: string; required: boolean }) => {
+          return [ask.componentId, ask.required];
+        },
+      ),
+    ).toEqual([["page-on-call-policy-1", false]]);
   });
 
   test.each(
@@ -1649,7 +1679,7 @@ describe("the details of a picked template", () => {
     const preview: WorkflowTemplatePreview | null = getWorkflowTemplatePreview(
       template("incident-created-slack"),
       (componentId: string): ComponentMetadata | undefined => {
-        return componentId === ComponentID.Log
+        return componentId === ComponentID.SlackSendMessageToChannel
           ? findWorkflowComponent(componentId)
           : undefined;
       },
@@ -1660,6 +1690,6 @@ describe("the details of a picked template", () => {
       title: "Incident on create",
       icon: IconProp.Cube,
     });
-    expect(preview?.steps[1]?.title).toBe("Log");
+    expect(preview?.steps[0]?.title).toBe("Send Message to Slack");
   });
 });

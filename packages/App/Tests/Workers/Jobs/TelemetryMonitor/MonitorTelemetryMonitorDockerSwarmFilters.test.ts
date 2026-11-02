@@ -2,6 +2,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -11,7 +12,12 @@ import MetricMonitorResponse, {
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
   MonitorStepDockerSwarmMonitorUtil,
+  SWARM_TASK_SERVICE_ATTRIBUTE,
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
+import {
+  DockerSwarmAlertTemplate,
+  getAllDockerSwarmAlertTemplates,
+} from "Common/Types/Monitor/DockerSwarmAlertTemplates";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -159,6 +165,10 @@ function taskMatches(
   return Object.entries(attributes).every(
     ([key, filter]: [string, unknown]): boolean => {
       const stored: unknown = task[key];
+
+      if (filter instanceof NotNull) {
+        return typeof stored === "string" && stored !== "";
+      }
 
       if (filter instanceof Wildcard) {
         return (
@@ -351,14 +361,22 @@ describe("monitorDockerSwarm: every filter is on the resource attribute the task
       projectId,
     });
 
-    expect(metricAggregateBy).not.toHaveBeenCalled();
+    /*
+     * The per-series read, grouped in SQL by the task (#5281), then the
+     * breakdown's scan of raw rows: the same filters on both.
+     */
+    expect(metricAggregateBy).toHaveBeenCalledTimes(1);
+    expect(metricFindBy).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        metricAggregateBy.mock.calls[0]![0] as {
+          groupByAttributeKeys?: Array<string>;
+        }
+      ).groupByAttributeKeys,
+    ).toEqual(["resource.container.name"]);
 
-    // The per-series read, then the breakdown's scan: the same filters.
-    for (const call of [0, 1]) {
-      const attributes: Record<string, unknown> = queriedAttributes(
-        metricFindBy,
-        call,
-      )!;
+    for (const mock of [metricAggregateBy, metricFindBy]) {
+      const attributes: Record<string, unknown> = queriedAttributes(mock)!;
 
       expect(attributes["resource.docker.swarm.service.name"]).toBe("shop_web");
       expect(attributes["resource.docker.swarm.node.name"]).toBe("worker-1");
@@ -417,5 +435,111 @@ describe("monitorDockerSwarm: the affected tasks name their service and node", (
       "resource.docker.swarm.cluster.name": CLUSTER,
       "resource.container.image.name": "nginx:1.27",
     });
+  });
+});
+
+/*
+ * The agent runs as a plain container on every node, and so can anything
+ * started with `docker run`: the templates judged those next to the swarm's
+ * tasks. A step with `tasksOnly` reads only the containers that carry
+ * Swarm's service label, which only a task's container does.
+ */
+describe("monitorDockerSwarm: Swarm tasks only", () => {
+  // The agent's own container on a node: no service label.
+  const AGENT_ATTRIBUTES: JSONObject = {
+    "resource.docker.swarm.cluster.name": CLUSTER,
+    "resource.container.runtime": "docker",
+    "resource.container.name": "oneuptime-docker-swarm-agent",
+    "resource.container.image.name": "otel/opentelemetry-collector-contrib",
+    "resource.docker.swarm.node.name": "worker-1",
+  };
+
+  test("a tasks-only step reads the task and not the agent's own container", async () => {
+    await monitorDockerSwarm({
+      monitorStep: swarmStep({ resourceFilters: { tasksOnly: true } }),
+      monitorId,
+      projectId,
+    });
+
+    const attributes: Record<string, unknown> =
+      queriedAttributes(metricAggregateBy)!;
+
+    expect(attributes[SWARM_TASK_SERVICE_ATTRIBUTE]).toBeInstanceOf(NotNull);
+    expect(taskMatches(attributes, TASK_ATTRIBUTES)).toBe(true);
+    expect(taskMatches(attributes, AGENT_ATTRIBUTES)).toBe(false);
+  });
+
+  test("so does a task-grouped one, on its read and on the breakdown's scan", async () => {
+    await monitorDockerSwarm({
+      monitorStep: swarmStep({
+        resourceFilters: { tasksOnly: true },
+        groupByTask: true,
+      }),
+      monitorId,
+      projectId,
+    });
+
+    for (const mock of [metricAggregateBy, metricFindBy]) {
+      expect(
+        queriedAttributes(mock)![SWARM_TASK_SERVICE_ATTRIBUTE],
+      ).toBeInstanceOf(NotNull);
+    }
+  });
+
+  test("a Service Name filter keeps its own equality", async () => {
+    await monitorDockerSwarm({
+      monitorStep: swarmStep({
+        resourceFilters: { tasksOnly: true, serviceName: "shop_web" },
+      }),
+      monitorId,
+      projectId,
+    });
+
+    expect(queriedAttributes(metricAggregateBy)).toEqual({
+      "resource.docker.swarm.cluster.name": CLUSTER,
+      "resource.docker.swarm.service.name": "shop_web",
+    });
+  });
+
+  test("a step without it reads every container, the agent's too", async () => {
+    await monitorDockerSwarm({
+      monitorStep: swarmStep({ resourceFilters: {} }),
+      monitorId,
+      projectId,
+    });
+
+    const attributes: Record<string, unknown> =
+      queriedAttributes(metricAggregateBy)!;
+
+    expect(attributes[SWARM_TASK_SERVICE_ATTRIBUTE]).toBeUndefined();
+    expect(taskMatches(attributes, AGENT_ATTRIBUTES)).toBe(true);
+  });
+
+  test("every template but Cluster Stopped Reporting watches tasks only", () => {
+    const templates: Array<DockerSwarmAlertTemplate> =
+      getAllDockerSwarmAlertTemplates();
+
+    expect(templates.length).toBeGreaterThan(1);
+
+    for (const template of templates) {
+      const step: MonitorStep = template.getMonitorStep({
+        clusterIdentifier: CLUSTER,
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "Swarm",
+      });
+
+      expect({
+        id: template.id,
+        tasksOnly: Boolean(
+          step.data?.dockerSwarmMonitor?.resourceFilters.tasksOnly,
+        ),
+      }).toEqual({
+        id: template.id,
+        tasksOnly: template.id !== "docker-swarm-cluster-stopped-reporting",
+      });
+    }
   });
 });

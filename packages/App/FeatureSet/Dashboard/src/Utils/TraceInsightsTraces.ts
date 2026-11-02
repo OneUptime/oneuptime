@@ -1,4 +1,5 @@
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Insights page samples the newest spans in the time range (capped at a
@@ -28,7 +29,9 @@ export interface TraceInsightsSpanInput {
 
 export interface TraceInsightsTrace {
   traceId: string;
+  // UNKNOWN_TRACE_NAME, a key of the locales, when `isNameless`.
   name: string;
+  isNameless: boolean;
   primaryEntityId: string;
   startTime: Date;
   statusCode: SpanStatus;
@@ -49,7 +52,7 @@ export interface TraceInsightsTraces {
   errorTraces: Array<TraceInsightsTrace>;
 }
 
-export const UNKNOWN_TRACE_NAME: string = "Unknown";
+export const UNKNOWN_TRACE_NAME: string = translationKey("Unknown");
 
 export function isRootSpan(span: TraceInsightsSpanInput): boolean {
   return !span.parentSpanId;
@@ -122,6 +125,7 @@ export function summarizeTrace(
   return {
     traceId,
     name: representative.name || UNKNOWN_TRACE_NAME,
+    isNameless: !representative.name,
     primaryEntityId: representative.primaryEntityId,
     startTime: representative.startTime || new Date(0),
     statusCode: hasError

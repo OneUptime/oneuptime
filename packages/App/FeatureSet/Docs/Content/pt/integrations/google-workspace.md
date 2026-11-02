@@ -43,11 +43,12 @@ A conexão entra com a chave de uma conta de serviço e a [delegação em todo o
 ### Permitir a delegação em todo o domínio
 
 1. No [Google Admin Console](https://admin.google.com), como superadministrador, abra **Security → Access and data control → API controls → Manage domain-wide delegation** e selecione **Add new**.
-2. Informe o **Unique ID** da conta de serviço como **Client ID**, e `https://www.googleapis.com/auth/admin.reports.audit.readonly` como o único **OAuth scope**. Selecione **Authorize**. O Google pode levar alguns minutos para aplicá-lo.
+2. Informe o **Unique ID** da conta de serviço como **Client ID**, e `https://www.googleapis.com/auth/admin.reports.audit.readonly` como **OAuth scope**. Selecione **Authorize**. O Google pode levar alguns minutos para aplicá-lo.
+3. Para que os playbooks possam suspender, reativar e desconectar usuários (veja [Contenção](/docs/telemetry/security-cases#contenção)), adicione `https://www.googleapis.com/auth/admin.directory.user` e `https://www.googleapis.com/auth/admin.directory.user.security` aos escopos do mesmo cliente, separados por vírgulas. O administrador como o qual a conexão age precisa então gerenciar esses usuários.
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Google Workspace** em **Identidade** e clique em **Próximo**. Informe o **Administrator email**, clique em **Próximo** e cole o conteúdo do arquivo da chave em **JSON da conta de serviço**. Na etapa **Consulta periódica**, ative **Atividade do Drive** para ler também o Drive.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Google Workspace** em **Identidade** e clique em **Próximo**. Informe o **Administrator email**, clique em **Próximo** e cole o conteúdo do arquivo da chave em **JSON da conta de serviço**. Na etapa **Consulta periódica**, ative **Atividade do Drive** para ler também o Drive.
 
 ### Testar antes de salvar
 

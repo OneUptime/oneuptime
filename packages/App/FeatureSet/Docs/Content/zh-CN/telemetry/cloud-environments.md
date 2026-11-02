@@ -1,6 +1,8 @@
 # 云环境
 
-**Cloud Environment** 是你的容器在托管云平台上运行的地方：ECS 集群所在的账户和区域、Cloud Run 的项目和区域、Container Apps 的订阅和区域。当你的遥测数据第一次带着正确的资源属性到达时，OneUptime 就会创建一个环境，并汇总在其中运行的每个工作负载。无需手动注册任何内容。
+**云环境** 是你的容器在托管云平台上运行的地方：ECS 集群所在的账户和区域、Cloud Run 的项目和区域、Container Apps 的订阅和区域。当你的遥测数据第一次带着正确的资源属性到达时，OneUptime 就会创建一个环境，并汇总在其中运行的每个工作负载。无需手动注册任何内容。
+
+环境列在 应用平台 中，这是一个独立的产品：**应用平台 → 概览** 按平台对环境分组，并把已经停止上报的环境排在最前面，**应用平台 → 所有应用** 列出环境中运行的每个应用，**应用平台 → 所有环境** 列出所有环境。云账户中的资源，例如虚拟机、存储桶和托管数据库，位于 云 中：参见 [云资源](/docs/telemetry/cloud-resources)。
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Fargate 或 EC2 上的任务，以及每个任务的 CPU 和内存。
@@ -29,6 +31,7 @@ flowchart TB
 - **资源检测器说明工作负载在哪里运行。** SDK 或 Collector 中的 OpenTelemetry 资源检测器会读取平台的元数据，并在工作负载发送的所有数据上设置 `cloud.platform`、`cloud.account.id` 和 `cloud.region`。没有检测器的地方，需要你自己设置。
 - **环境负责汇总。** 平台、账户和区域都相同的工作负载会进入同一个环境。各个服务仍在 **服务** 中保留各自的行。
 - **每个运行中的任务都是一个实例。** 环境的 **实例** 选项卡会列出运行中的任务、实例或副本，并在平台能提供时显示实时的 CPU 和内存。
+- **每个服务都是一个应用。** ECS 服务、Cloud Run 服务或 Container App 都是其环境的一个应用，OneUptime 会记录它运行的修订版本：参见 [应用与部署](#应用与部署)。
 
 ## 开始之前
 
@@ -91,7 +94,33 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 
 ### 添加环境
 
-摄取过程会为你创建环境，因此无需填写任何内容。打开 **云 → All Environments** 并点击 **添加云环境**：选择你的应用运行的位置，指南就会显示该平台的 OpenTelemetry 设置，并已填好你的 OneUptime URL 和摄取密钥。指南的最后一步 **等待连接** 会在环境的第一批数据到达时告诉你，并给出指向它的链接。要显示其他名称，请在环境的 **设置** 页面上，于 **资源详情** 卡片中选择 **编辑详情**，然后填写 **显示名称**。
+摄取过程会为你创建环境，因此无需填写任何内容。打开 **应用平台 → 所有环境** 并点击 **添加云环境**：选择你的应用运行的位置，指南就会显示该平台的 OpenTelemetry 设置，并已填好你的 OneUptime URL 和摄取密钥。指南的最后一步 **等待连接** 会在环境的第一批数据到达时告诉你，并给出指向它的链接。要显示其他名称，请在环境的 **设置** 页面上，于 **环境详情** 卡片中选择 **编辑详情**，然后填写 **显示名称**。
+
+## 应用与部署
+
+环境运行的每个服务都是该环境的一个应用，名称与平台控制台中的名称一致。**应用平台 → 所有应用** 列出每个应用及其正在运行的修订版本，以及过去一小时的请求、错误率和 p95 延迟；环境的 **应用** 选项卡列出该环境自己的应用。
+
+| 平台 | 应用 | 区分依据 | 修订版本 |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`，否则 `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`，否则 `service.version` 或 `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`，否则 `container.image.tag` |
+| Google Cloud Run | `faas.name`，否则 `service.name` | — | `faas.version`，否则 `service.version` |
+| Google App Engine | `faas.name`，否则 `service.name` | — | `faas.version`，否则 `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`，否则 `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`，否则 `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+遥测数据携带的第一个属性就是应用的名称，因此没有资源检测器的平台上的应用仍然是应用，名称取自它的 `service.name`。未设置 `service.name` 时 SDK 上报的 `unknown_service` 不会成为任何应用的名称。
+
+- **应用从未运行过的修订版本就是一次部署。** OneUptime 会记录它替换了哪个修订版本，以及替换的时间。OneUptime 看到的第一个修订版本是应用历史的起点，而不是一次部署。
+- **退回就是回滚。** 当应用正在运行的修订版本 15 分钟内没有任何上报，而它之前运行过的某个修订版本仍在运行时，OneUptime 会记录一次回滚到该修订版本。
+- **两者都是变更。** 每一次都会成为应用和环境图表上的一条虚线、环境 **动态** 中的一行，以及 OneUptime AI 调查该环境的事件时会读取的一条 [变更事件](/docs/telemetry/change-events)。**应用平台 → 概览** 上的 **近期部署** 列出最新的几次。
+- **每个应用每小时最多记录 12 个新修订版本。** 否则，随每次构建变化的 `service.version` 会变成每分钟一次部署。
+
+应用的页面有显示其请求、错误、延迟、实例和当前运行的修订版本的 **概览**，显示每个修订版本数据的 **修订版本** 选项卡，以及筛选到该应用的 **实例**、**日志** 和 **追踪** 选项卡。**设置警报** 会打开 **服务** 中该应用所属服务的推荐监控器。
+
+30 天内没有发送任何数据的应用会连同其修订版本一起被删除；30 天内没有任何实例上报的修订版本也会被删除，除非应用仍在运行它。在自托管的 OneUptime 上，可以用 `CLOUD_APP_RETENTION_DAYS` 设置这个 30。
 
 ## 哪些不是云环境
 
@@ -103,7 +132,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 | 负载均衡器、存储桶、托管数据库以及其他 IaaS 或 PaaS 资源 | **Cloud Resources** | 根据 Azure Monitor、CloudWatch 和 Cloud Monitoring 发布的指标发现。参见 [云资源](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> Cloud Run 和 App Engine 会有意出现在两个地方。它们的检测器同时设置了托管的 `cloud.platform` 和 `faas.name`，因此每个服务本身也是一个 **无服务器函数**，而 **Cloud Environment** 则汇总了该项目和区域中的所有服务。同一份遥测数据会同时归档到两处。
+> Cloud Run 和 App Engine 会有意出现在两个地方。它们的检测器同时设置了托管的 `cloud.platform` 和 `faas.name`，因此每个服务本身也是一个 **无服务器函数**，而 **云环境** 则汇总了该项目和区域中的所有服务。同一份遥测数据会同时归档到两处。
 
 ## 连接工作负载
 
@@ -170,27 +199,28 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-返回 `200` 且 `"valid": true` 表示令牌已被接受。`401` 表示令牌未知、已吊销、已停用或已过期，响应中的 `message` 会说明是哪一种。在第一个 span、日志或指标到达后的 1 分钟内，环境就会出现在 **云 → All Environments** 中。
+返回 `200` 且 `"valid": true` 表示令牌已被接受。`401` 表示令牌未知、已吊销、已停用或已过期，响应中的 `message` 会说明是哪一种。在第一个 span、日志或指标到达后的 1 分钟内，环境就会出现在 **应用平台 → 所有环境** 中。
 :::
 
 > [!TIP]
-> 同样的步骤也在仪表板中，并已填好你的令牌：在 **云 → All Environments** 中点击 **添加云环境** 即可打开；每个环境的 **文档** 选项卡中也有。
+> 同样的步骤也在仪表板中，并已填好你的令牌：在 **应用平台 → 所有环境** 中点击 **添加云环境** 即可打开；每个环境的 **文档** 选项卡中也有。
 
 ## 你能看到什么
 
 环境的 **概览** 显示：
 
-- 根据追踪计算的 **请求**、**错误率** 和 **p95 延迟**，以及你所选时间范围内的请求、错误和内存图表。
+- 根据请求进入服务的 span 计算的 **请求**、**错误率** 和 **p95 延迟**，以及你所选时间范围内的请求、错误和内存图表，每次部署处都有一条虚线。
 - 所有在线实例的 **CPU** 和 **内存**，以及 **按 CPU 排名的实例** 列表。它们来自带有实例标识的 `container.cpu.utilization` 和 `container.memory.usage` 指标；在 ECS 上则来自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 和 `ecs.task.memory.utilized`。
 - **实例**：最近 15 分钟内上报过的实例数量。**实例** 选项卡中每个实例一行。
+- **应用**：环境运行的应用，需要关注的排在前面，并显示它们过去一小时的请求和错误。
 - 按环境过滤的 **日志**、**追踪** 和 **指标** 选项卡。
 
-遥测数据中断 15 分钟的环境会显示 **已断开**，下一个 span、日志或指标到达后会恢复为 **已连接**。OneUptime 自身停机或追赶积压数据的时间不计入这 15 分钟。
+尚未发送任何数据的环境会显示 **正在等待**。遥测数据中断 15 分钟的环境会显示 **已断开**，下一个 span、日志或指标到达后会恢复为 **已连接**。OneUptime 自身停机或追赶积压数据的时间不计入这 15 分钟。
 
 ### 标签和所有者
 
 - **来自遥测数据：** 像 `oneuptime.label.team=payments` 这样的资源属性会给环境添加标签 `team:payments`。
-- **来自规则：** **云 → 设置 → 标签规则** 和 **所有者规则** 会为匹配的环境添加标签和所有者。参见 [标签与所有者规则](/docs/configuration/label-and-owner-rules)。
+- **来自规则：** **应用平台 → 设置 → 标签规则** 和 **所有者规则** 会为匹配的环境添加标签和所有者。云 中的规则适用于你云账户中的资源，在两者拆分之前创建的规则对两者都适用。参见 [标签与所有者规则](/docs/configuration/label-and-owner-rules)。
 
 ## 故障排除
 

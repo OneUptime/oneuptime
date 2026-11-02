@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "نام شرکت مرتبط با این مجوز.",
+  "Annual contract value (in USD) for this license.": "ارزش سالانه قرارداد (به دلار آمریکا) برای این مجوز.",
+  "Expiration date of this license.": "تاریخ انقضای این مجوز.",
+  "Something went wrong": "مشکلی پیش آمد",
+  "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
+  "Error details": "جزئیات خطا",
+  "Still stuck?": "هنوز مشکل دارید؟",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "یک فایل عیب‌یابی محلی با پشته خطا، پشته اجزا، نشانی پاک‌سازی‌شده صفحه، جزئیات مرورگر و نسخه ساخت OneUptime دانلود کنید. این فایل هرگز کوکی‌ها، داده‌های ذخیره‌شده مرورگر یا محتوای فرم‌ها را نمی‌خواند. پیش از اشتراک با پشتیبانی OneUptime آن را بررسی کنید.",
+  "Download support bundle": "دانلود بسته پشتیبانی",
+  "Send it to {{email}}": "آن را به {{email}} بفرستید",
+  "Support bundle downloaded. Review it, then attach it to your email.": "بسته پشتیبانی دانلود شد. آن را بررسی کنید و سپس به ایمیل خود پیوست کنید.",
+  "The support bundle could not be downloaded. Please try again.": "بسته پشتیبانی دانلود نشد. لطفاً دوباره تلاش کنید.",
   "common": {
     "save": "ذخیره",
     "cancel": "انصراف",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "{{price}} برای هر کاربر، با صورت‌حساب سالانه از امروز.",
   "{{price}} per user, billed monthly from today.": "{{price}} برای هر کاربر، با صورت‌حساب ماهانه از امروز.",
   "Our sales team will contact you to agree on a price.": "تیم فروش ما برای توافق بر سر قیمت با شما تماس می‌گیرد.",
+  "Current plan": "طرح فعلی",
+  "Current plan, billed yearly": "طرح فعلی، صورت‌حساب سالانه",
+  "Current plan, billed monthly": "طرح فعلی، صورت‌حساب ماهانه",
   "{{count}}-day free trial": "{{count}} روز آزمایش رایگان",
   "{{count}}-day free trial_one": "{{count}} روز آزمایش رایگان",
   "Free for {{count}} days, no card needed to start.": "{{count}} روز رایگان، برای شروع کارت لازم نیست.",
@@ -1560,5 +1575,12 @@
     "note": "نکته",
     "tip": "نکته کاربردی",
     "warning": "هشدار"
-  }
+  },
+  "Compact rows": "سطرهای فشرده",
+  "Sort by": "مرتب‌سازی بر اساس",
+  "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}",
+  "Sort": "مرتب‌سازی",
+  "Ascending": "صعودی",
+  "Descending": "نزولی",
+  "Select all items": "انتخاب همه موردها"
 }

@@ -57,19 +57,19 @@ Klikk på **Flere monitortyper** under **Monitortype** og velg **Ceph** under **
 
 ### Velg klyngen
 
-Velg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger som har sendt data, står i listen.
+Velg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Ceph-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg én av de tre fanene:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** — klikk på en [mal](#ferdige-varselmaler). Den setter metrikker, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool ID** snevrer den inn til én daemon eller pool.
-- **Avansert** — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Grupper etter** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
+- **Endre** — velg en annen [mal](#ferdige-varselmaler). Den setter metrikker, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool ID** snevrer den inn til én daemon eller pool. En metrikk som føres per pool eller per daemon, vurderes pool for pool eller daemon for daemon, med én hendelse hver.
+- **Avansert** (under **Flere felt**) — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Grupper etter** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -87,7 +87,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **OSD** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `ceph_daemon`, for eksempel `osd.3`. |
 | **Pool ID** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `pool_id`, for eksempel `2`. |
 | **Ceph Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter med metrikkens vanlige aggregering. |
+| **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum** eller **Minimum**. Starter med metrikkens vanlige aggregering. En sum eller en telling ville legge sammen hver skraping i et minutt, så de er overlatt til **Avansert**. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
@@ -95,11 +95,11 @@ Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_
 
 ### Serier for health checks
 
-`ceph_health_detail` eksporterer **én serie per aktivt health check**, med etikettene `name` (for eksempel `OSD_NEARFULL` eller `RECENT_CRASH`) og `severity`. En serie finnes bare mens checken utløses, så ingen serie betyr frisk. For å varsle på et hvilket som helst Ceph-health check filtrerer du på `name`, utløser på **Maksimum** over `0` og gjenoppretter ved `0` med **Hvis ingen data** satt til **Treat As Zero** — akkurat slik malene for health checks er bygget. `ceph_daemon_health_metrics` fungerer på samme måte per daemon, med en `type`-etikett (for eksempel `SLOW_OPS`) og `ceph_daemon`.
+`ceph_health_detail` eksporterer **én serie per helsesjekk**, merket `name` (for eksempel `OSD_NEARFULL` eller `RECENT_CRASH`) og `severity`. En sjekks serie er `1` mens sjekken er aktiv og `0` etter at den er ryddet, og en sjekk som aldri har slått til, har ingen serie. For å varsle på et hvilket som helst Ceph-health check filtrerer du på `name`, utløser på **Maksimum** over `0` og gjenoppretter ved `0` med **Hvis ingen data** satt til **Treat As Zero** — akkurat slik malene for health checks er bygget. `ceph_daemon_health_metrics` fungerer på samme måte per daemon, med en `type`-etikett (for eksempel `SLOW_OPS`) og `ceph_daemon`.
 
 ## Ferdige varselmaler
 
-**Quick Setup** tilbyr 24 maler som dekker en taus klynge, klyngens helse, OSD-er, placement groups og kapasitet. Hver bygger en komplett monitor — spørringer, etikettfiltre, en gruppering, et kriterium som utløses og et som gjenoppretter. Tersklene er startpunkter du kan endre.
+Listen under **Hva det skal varsles om** tilbyr 24 maler som dekker en taus klynge, klyngens helse, OSD-er, placement groups og kapasitet. Hver bygger en komplett monitor — spørringer, etikettfiltre, en gruppering, et kriterium som utløses og et som gjenoppretter. Tersklene er startpunkter du kan endre.
 
 Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og et terskelkriterium gjenoppretter først 10 % forbi terskelen, slik at en verdi som svinger rundt grensen, ikke flagrer. **Alvorlighetsgrad** er etiketten velgeren viser; hendelsen og varselet en mal oppretter, starter på prosjektets høyeste alvorlighetsgrad for hendelser og varsler.
 
@@ -116,42 +116,42 @@ Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteriu
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | Kritisk | `ceph_health_status`, Max, siste minutt | 2 eller mer: `HEALTH_ERR` | Under 1,8: `HEALTH_WARN` eller bedre |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 eller mer: `HEALTH_WARN` eller verre | Under 0,9: `HEALTH_OK` |
+| Cluster Health Warning | Advarsel | `ceph_health_status`, Max | 1 eller mer: `HEALTH_WARN` eller verre | Under 0,9: `HEALTH_OK` |
 | Monitor Quorum Degraded | Kritisk | `ceph_mon_quorum_status`, Min per `ceph_daemon`, siste minutt | En monitor faller under 1, ute av quorum. Én hendelse per monitor | Tilbake på 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Over 0: Klyngens `SLOW_OPS`-check er aktiv | På 0 |
-| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` for `type = SLOW_OPS`, Max per `ceph_daemon` | Over 0. Én hendelse per OSD eller monitor | Serien forsvinner |
+| Slow Operations | Advarsel | `ceph_healthcheck_slow_ops`, Max | Over 0: Klyngens `SLOW_OPS`-check er aktiv | På 0 |
+| Daemon Slow Operations | Advarsel | `ceph_daemon_health_metrics` for `type = SLOW_OPS`, Max per `ceph_daemon` | Over 0. Én hendelse per OSD eller monitor | Serien forsvinner |
 | Daemon Crash | Kritisk | `ceph_health_detail` for `name = RECENT_CRASH`, Max | Checken er aktiv: Det finnes ikke-arkiverte daemonkrasj. Mgr-en har ingen `ceph_crash_*`-metrikk, så dette er det eneste krasjsignalet | Krasjene arkiveres |
-| Monitor Clock Skew | Warning | `ceph_health_detail` for `name = MON_CLOCK_SKEW`, Max | Checken er aktiv: Monitorenes klokker avviker mer enn tillatt (standard 0,05 s) | Checken forsvinner |
+| Monitor Clock Skew | Advarsel | `ceph_health_detail` for `name = MON_CLOCK_SKEW`, Max | Checken er aktiv: Monitorenes klokker avviker mer enn tillatt (standard 0,05 s) | Checken forsvinner |
 | Monitor Disk Critically Low | Kritisk | `ceph_health_detail` for `name = MON_DISK_CRIT`, Max | Checken er aktiv: Databasedisken til en monitor har under 5 % ledig (standard) | Checken forsvinner |
-| Monitor Disk Space Low | Warning | `ceph_health_detail` for `name = MON_DISK_LOW`, Max | Checken er aktiv: under 30 % ledig (standard) | Checken forsvinner |
+| Monitor Disk Space Low | Advarsel | `ceph_health_detail` for `name = MON_DISK_LOW`, Max | Checken er aktiv: under 30 % ledig (standard) | Checken forsvinner |
 
 ### OSD-maler
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
 | OSD Down | Kritisk | `ceph_osd_up`, Min per `ceph_daemon` | En OSD faller under 1. Én hendelse per OSD | Tilbake på 1 |
-| OSD Out | Warning | `ceph_osd_in`, Min per `ceph_daemon` | En OSD faller under 1: tatt ut av datafordelingen | Tilbake på 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, Avg per `ceph_daemon` | Over 100 ms. Én hendelse per OSD | På eller under 90 ms |
-| OSD Slow Heartbeats | Warning | `ceph_health_detail` for `name = OSD_SLOW_PING_TIME_FRONT` og `name = OSD_SLOW_PING_TIME_BACK`, Max | En av checkene er aktiv: Heartbeats på det offentlige nettet eller klyngenettet er trege. Mgr-en eksporterer ingen måling av pingtid | Begge checkene forsvinner |
+| OSD Out | Advarsel | `ceph_osd_in`, Min per `ceph_daemon` | En OSD faller under 1: tatt ut av datafordelingen | Tilbake på 1 |
+| OSD High Latency | Advarsel | `ceph_osd_apply_latency_ms`, Avg per `ceph_daemon` | Over 100 ms. Én hendelse per OSD | På eller under 90 ms |
+| OSD Slow Heartbeats | Advarsel | `ceph_health_detail` for `name = OSD_SLOW_PING_TIME_FRONT` og `name = OSD_SLOW_PING_TIME_BACK`, Max | En av checkene er aktiv: Heartbeats på det offentlige nettet eller klyngenettet er trege. Mgr-en eksporterer ingen måling av pingtid | Begge checkene forsvinner |
 
 ### Maler for placement groups
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | Kritisk | `ceph_pg_total` − `ceph_pg_active`, Max per `pool_id` | Over 0: PG-er kan ikke betjene I/O, så klientforespørsler til dem henger. Én hendelse per pool | På 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, Max per `pool_id` | Over 0: Objekter har færre replikaer enn konfigurert | På 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, Max per `pool_id` | Over 0: PG-er ligger på færre OSD-er enn antallet replikaer | På 0 |
+| Degraded Placement Groups | Advarsel | `ceph_pg_degraded`, Max per `pool_id` | Over 0: Objekter har færre replikaer enn konfigurert | På 0 |
+| Undersized Placement Groups | Advarsel | `ceph_pg_undersized`, Max per `pool_id` | Over 0: PG-er ligger på færre OSD-er enn antallet replikaer | På 0 |
 | Damaged Placement Groups | Kritisk | `ceph_health_detail` for `name = PG_DAMAGED` og `name = OSD_SCRUB_ERRORS`, Max | En av checkene er aktiv: Scrubbing har funnet skader eller lesefeil | Begge checkene forsvinner |
 
 ### Kapasitetsmaler
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Over 85 %, Cephs standard nearfull-forhold | På eller under 76,5 % |
+| Cluster Near Full | Advarsel | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Over 85 %, Cephs standard nearfull-forhold | På eller under 76,5 % |
 | Cluster Full | Kritisk | Samme forhold | Over 95 %, Cephs standard full-forhold, der skriving stopper i hele klyngen | På eller under 85,5 % |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, per `pool_id` | Over 85 % av det poolen kan romme. Én hendelse per pool | På eller under 76,5 % |
-| OSD Nearfull | Warning | `ceph_health_detail` for `name = OSD_NEARFULL`, Max | Checken er aktiv: En OSD har passert nearfull-terskelen (standard 85 %). Enkelt-OSD-er fylles lenge før klyngens gjennomsnitt | Checken forsvinner |
-| OSD Backfillfull | Warning | `ceph_health_detail` for `name = OSD_BACKFILLFULL`, Max | Checken er aktiv: Backfill til OSD-en avvises (standard 90 %), og gjenopprettingen stopper opp | Checken forsvinner |
+| Pool Near Full | Advarsel | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, per `pool_id` | Over 85 % av det poolen kan romme. Én hendelse per pool | På eller under 76,5 % |
+| OSD Nearfull | Advarsel | `ceph_health_detail` for `name = OSD_NEARFULL`, Max | Checken er aktiv: En OSD har passert nearfull-terskelen (standard 85 %). Enkelt-OSD-er fylles lenge før klyngens gjennomsnitt | Checken forsvinner |
+| OSD Backfillfull | Advarsel | `ceph_health_detail` for `name = OSD_BACKFILLFULL`, Max | Checken er aktiv: Backfill til OSD-en avvises (standard 90 %), og gjenopprettingen stopper opp | Checken forsvinner |
 | OSD Full | Kritisk | `ceph_health_detail` for `name = OSD_FULL`, Max, siste minutt | Checken er aktiv: En OSD har nådd full-terskelen (standard 95 %), og skriving avvises | Checken forsvinner |
 
 - **Maler for nedetid og quorum bruker minimum**, slik at én OSD som er nede eller én monitor utenfor quorum utløser dem i stedet for å skjules av det friske flertallet.
@@ -175,7 +175,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_healthcheck_slow_ops` | antall | Trege OSD- og monitoroperasjoner som checken `SLOW_OPS` rapporterer. |
 | `ceph_daemon_health_metrics` | antall | Helsemetrikker per daemon, med `type` (for eksempel `SLOW_OPS`) og `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antall | 1 når monitoren er i quorum, per `ceph_daemon` (for eksempel `mon.a`). |
-| `ceph_mon_metadata` | antall | Monitorens metadata, alltid 1. Summer dem for å telle monitorer. |
+| `ceph_mon_metadata` | antall | Monitorens metadata, alltid 1 mens monitoren rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke monitorer. |
 | `ceph_cluster_total_bytes` | byte | Samlet rå kapasitet. |
 | `ceph_cluster_total_used_bytes` | byte | Rå kapasitet i bruk. |
 
@@ -190,7 +190,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_osd_stat_bytes` | byte | Rå kapasitet for OSD-ens enhet. |
 | `ceph_osd_stat_bytes_used` | byte | Rå byte brukt på OSD-en. Sammenlign med totalen for å finne skjevt fylte eller nesten fulle OSD-er. |
 | `ceph_osd_numpg` | antall | Placement groups på OSD-en. |
-| `ceph_osd_metadata` | antall | OSD-ens metadata (vertsnavn, enhetsklasse, versjon), alltid 1. Summer dem for å telle OSD-er. |
+| `ceph_osd_metadata` | antall | OSD-ens metadata (vertsnavn, enhetsklasse, versjon), alltid 1 mens OSD-en rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke OSD-er. |
 
 ### Poolmetrikker
 
@@ -207,7 +207,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 
 ### Metrikker for placement groups
 
-Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`; summer på tvers av pooler for et tall for hele klyngen.
+Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`. En sum legger sammen både hver skraping i et minutt og hver pool, så sammenlign pool for pool, gruppert etter `pool_id`, slik PG-malene gjør.
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Grunnlinjevindu** | Bare for anomalibetingelser. 14 dager (standard), 28, 60 eller 90 dager historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
-Anomalibetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i tilstanden "Learning" og varsler ikke før grunnlinjevinduet har nok historikk.
+Anomalibetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i tilstanden "Learning" og varsler ikke før grunnlinjevinduet har nok historikk. En sum, en telling eller en spørring på et histogram blir værende i den tilstanden for alltid: denne monitoren filtrerer spørringene sine etter attributter, og grunnlinjen inneholder ingen.
 
 Hvert kriterium sier også hva som skal skje når det treffer: endre monitorstatusen, opprette et varsel eller erklære en hendelse. Kriteriene sjekkes ovenfra og ned, og det første som treffer, avgjør.
 
@@ -270,7 +270,7 @@ Malene som overvåker `ceph_health_detail` — Daemon Crash, Monitor Clock Skew,
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-Serier for health checks, også `ceph_daemon_health_metrics`, finnes bare mens en check utløses, så det er forventet å ikke finne noen mens klyngen er frisk.
+En helsesjekk som aldri har slått til, har ingen serie, `ceph_daemon_health_metrics` inkludert, og en som er ryddet, er `0`, så det er forventet å finne ingen, eller bare nuller, mens klyngen er frisk.
 :::
 
 :::details Tellere som ceph_pool_wr_bytes bare vokser

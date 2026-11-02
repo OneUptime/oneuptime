@@ -79,6 +79,11 @@ const NetworkSiteLinks: FunctionComponent<
             },
             title: "From Site",
             stepId: "sites",
+            /*
+             * Its column's help ("Relation to the Network Site this link
+             * starts from") is the API's: the title says it.
+             */
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSite,
@@ -94,6 +99,7 @@ const NetworkSiteLinks: FunctionComponent<
             },
             title: "To Site",
             stepId: "sites",
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSite,
@@ -128,7 +134,7 @@ const NetworkSiteLinks: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitor (optional)",
+            placeholder: "Select Monitor",
           },
         ]}
         columns={[

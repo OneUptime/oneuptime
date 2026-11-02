@@ -3,6 +3,10 @@ import ExceptionUtil, {
 } from "../../FeatureSet/Telemetry/Utils/Exception";
 import Entities from "Common/Models/DatabaseModels/Index";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import TelemetryExceptionActivityService, {
+  TelemetryExceptionActivityEntry,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
+import { TelemetryExceptionActivityType } from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -172,6 +176,9 @@ describePostgres("exception regressions against Postgres", () => {
     }
   });
 
+  // The Regressed entries each batch left on the activity timelines.
+  let regressions: Array<[string, string | null | undefined]>;
+
   beforeEach(async () => {
     for (const level of ["debug", "info", "warn"] as const) {
       jest.spyOn(logger, level).mockImplementation(() => {
@@ -181,6 +188,25 @@ describePostgres("exception regressions against Postgres", () => {
     jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
       manager: database.manager,
     } as never);
+
+    regressions = [];
+    jest
+      .spyOn(TelemetryExceptionActivityService, "record")
+      .mockImplementation((async (data: {
+        entries: Array<TelemetryExceptionActivityEntry>;
+      }) => {
+        for (const entry of data.entries) {
+          expect(entry.activityType).toBe(
+            TelemetryExceptionActivityType.Regressed,
+          );
+          regressions.push([
+            entry.telemetryExceptionId.toString(),
+            entry.release,
+          ]);
+        }
+        return data.entries.length;
+      }) as never);
+
     await database.query(`DELETE FROM "${schema}"."TelemetryException"`);
   });
 
@@ -355,5 +381,68 @@ describePostgres("exception regressions against Postgres", () => {
     expect(
       Math.abs(row.regressedAt!.getTime() - minutesAgo(3).getTime()),
     ).toBeLessThan(MINUTE_MS);
+  });
+
+  /*
+   * The activity timeline's Regressed entries: the statement hands back the
+   * rows it reopened itself - those whose regressedAt is its own now() - and
+   * nothing else.
+   */
+  test("a batch hands back exactly the exceptions it reopened, each with the release that brought it back", async () => {
+    await ingest([
+      occurrence("fp-a", { occurredAt: minutesAgo(120) }),
+      occurrence("fp-b", { occurredAt: minutesAgo(120) }),
+      occurrence("fp-c", { occurredAt: minutesAgo(120) }),
+    ]);
+    await resolve("fp-a", { at: minutesAgo(60) });
+    await resolve("fp-b", { at: minutesAgo(60) });
+    expect(regressions).toEqual([]);
+
+    await ingest([
+      // After its resolve: reopened.
+      occurrence("fp-a", { occurredAt: minutesAgo(1), release: "3.0.0" }),
+      // Before its resolve, delivered late: stays resolved.
+      occurrence("fp-b", { occurredAt: minutesAgo(90) }),
+      // Never resolved: nothing to reopen.
+      occurrence("fp-c", { occurredAt: minutesAgo(1) }),
+      // New.
+      occurrence("fp-d", { occurredAt: minutesAgo(1) }),
+    ]);
+
+    expect(regressions).toEqual([[(await read("fp-a"))._id, "3.0.0"]]);
+  });
+
+  test("a comeback is reported once: the batches after it, while it stays open, report nothing", async () => {
+    await ingest([occurrence("fp-once", { occurredAt: minutesAgo(120) })]);
+    await resolve("fp-once", { at: minutesAgo(60) });
+
+    await ingest([occurrence("fp-once", { occurredAt: minutesAgo(5) })]);
+    await ingest([occurrence("fp-once", { occurredAt: minutesAgo(3) })]);
+    await ingest([occurrence("fp-once", { occurredAt: minutesAgo(1) })]);
+
+    expect(regressions).toEqual([[(await read("fp-once"))._id, null]]);
+
+    // Resolved again and back again: a second comeback, a second entry.
+    await resolve("fp-once", { at: minutesAgo(0.5) });
+    await ingest([occurrence("fp-once", { occurredAt: new Date() })]);
+
+    expect(regressions).toHaveLength(2);
+  });
+
+  test("resolved in the next release: the release it waits out reports nothing, the next one reports once", async () => {
+    await ingest([
+      occurrence("fp-rollout", { occurredAt: minutesAgo(120), release: "1.0" }),
+    ]);
+    await resolve("fp-rollout", { at: minutesAgo(60), inReleaseAfter: "1.0" });
+
+    await ingest([
+      occurrence("fp-rollout", { occurredAt: minutesAgo(2), release: "1.0" }),
+    ]);
+    expect(regressions).toEqual([]);
+
+    await ingest([
+      occurrence("fp-rollout", { occurredAt: minutesAgo(1), release: "1.1" }),
+    ]);
+    expect(regressions).toEqual([[(await read("fp-rollout"))._id, "1.1"]]);
   });
 });

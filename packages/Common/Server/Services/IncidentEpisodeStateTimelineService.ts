@@ -1,6 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -43,6 +43,9 @@ import StateMoveCheck from "../Utils/StateMoveCheck";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   /*
@@ -71,6 +74,36 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     this.keepRowsOnDeleteByQuery(
       StateTimelineRowsKept.forTable("IncidentEpisodeStateTimeline"),
     );
+  }
+
+  /*
+   * The state timeline of a private incident episode are read only by those who see the
+   * incident episode: its owners - the people named on it and the members of the
+   * teams named on it - and the project's owners and admins
+   * (applyIncidentEpisodeRelatedRecordPrivacyFilter), as every other part of one is
+   * (PrivateRecordParts.test). Changing or deleting them follows
+   * the private record rule (PrivateRecordPermission).
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<IncidentEpisodeStateTimeline>,
+  ): Promise<OnFind<IncidentEpisodeStateTimeline>> {
+    findBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<IncidentEpisodeStateTimeline>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
   }
 
   /*

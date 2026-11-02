@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> **Forward new incidents to another system** 範本會為你建構同樣的工作流程。建立工作流程時，可以在 **事件** 底下找到它。
+> **Forward new incidents to another system** 範本會為你建構這個工作流程，但不含 Log 區塊： **Error** 上沒有連接任何東西時，失敗的請求會讓執行失敗，執行的 **步驟** 會說明原因。建立工作流程時，可以在 **事件** 底下找到它。
 
 :::steps
 ### 建立工作流程

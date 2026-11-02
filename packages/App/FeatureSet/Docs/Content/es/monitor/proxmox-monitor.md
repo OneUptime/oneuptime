@@ -4,7 +4,7 @@ Un monitor de Proxmox vigila un clúster de Proxmox VE – sus nodos, VM y conte
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-proxmox): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Doce alertas listas para usar, un incidente por nodo, invitado o volumen.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Quince alertas listas para usar, un incidente por nodo, invitado o volumen, y dos sobre las propias notificaciones de Proxmox VE.
 - [Identidad de los recursos](#identidad-de-los-recursos): Cómo apuntar a un solo nodo, invitado o volumen de almacenamiento.
 - [Métricas](#métricas-recopiladas): Cada serie `pve_*` sobre la que el monitor puede alertar.
 :::
@@ -48,19 +48,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Proxmox
 
 ### Elegir el clúster
 
-En **Configuración del monitor de Proxmox**, elija el clúster en **Clúster de Proxmox**. Cada clúster que ha enviado datos está en la lista.
+En **Configuración del monitor de Proxmox**, elija el clúster en **Clúster de Proxmox**. Cada clúster que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir clúster de Proxmox** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Cluster Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** – haga clic en una [plantilla](#plantillas-de-alerta-listas-para-usar). Fija las métricas, los filtros, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** – elija una métrica en **Métrica de Proxmox** y luego fije la **Agregación** y el **Intervalo de tiempo**. Los [filtros](#ajustes-del-monitor) la restringen a un tipo de recurso o a un solo recurso.
-- **Avanzado** – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un porcentaje de memoria a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para juzgar cada recurso por separado.
+- **Cambiar** – elija otra [plantilla](#plantillas-de-alerta-listas-para-usar). Fija las métricas, los filtros, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) – elija una métrica en **Métrica de Proxmox** y luego fije la **Agregación** y el **Intervalo de tiempo**. Los [filtros](#ajustes-del-monitor) la restringen a un tipo de recurso o a un solo recurso.
+- **Avanzado** (en **Más campos**) – cree usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo un porcentaje de memoria a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para juzgar cada recurso por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que una métrica cae a cero, así que fije su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan que la métrica no envía datos, así que fije su propio umbral.
 
 ### Crear el monitor
 
@@ -95,7 +95,7 @@ Cada serie lleva una etiqueta de punto de datos `id` que nombra el recurso de Pr
 | `lxc/<vmid>` | Un contenedor LXC, por ejemplo `lxc/101`. |
 | `storage/<node>/<storage>` | Un volumen de almacenamiento en un nodo, por ejemplo `storage/pve1/local`. |
 
-Dos excepciones: las series de replicación (`pve_replication_*`) llevan el id del **trabajo** de replicación en `id` (por ejemplo `100-0`), y `pve_not_backed_up_total`, de todo el clúster, no tiene ningún `id`.
+Una excepción: las series de replicación (`pve_replication_*`) llevan el id del **trabajo** de replicación en `id` (por ejemplo `100-0`). Las series propias del clúster, como el quórum (`pve_up`) y `pve_not_backed_up_total`, llevan `cluster/<name>`.
 
 Los filtros comparan por igualdad, no por prefijo, así que el agente también divide `id` en tres atributos por los que puede filtrar. Las plantillas se basan en ellos:
 
@@ -109,7 +109,7 @@ Filtre por `pve.scope` o `pve.type` para un tipo de recurso, por `pve.id` o `id`
 
 ## Plantillas de alerta listas para usar
 
-**Quick Setup** ofrece 12 plantillas. Cada una crea un monitor completo: consultas, filtros de atributos, una agrupación, un criterio que se dispara y otro que se recupera. La mayoría agrupan por `id`, así que cada nodo, invitado, volumen o trabajo recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece 15 plantillas. Cada una crea un monitor completo: consultas, filtros de atributos, una agrupación, un criterio que se dispara y otro que se recupera. La mayoría agrupan por `id`, así que cada nodo, invitado, volumen o trabajo recibe su propio incidente y su propia alerta. Los umbrales son puntos de partida que puede editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga lo contrario. Un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y un criterio de umbral se recupera un 10 % más allá de su umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
@@ -119,32 +119,49 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga lo contrario.
 | Node Offline | Crítico | `pve_up` para `pve.scope = node`, Min por `id` | Por debajo de 1 | En 1 |
 | Guest Down | Advertencia | `pve_up` y `pve_onboot_status` para `pve.scope = guest`, Min por `id` | `pve_up` está por debajo de 1 mientras `pve_onboot_status` es 1 | `pve_up` vuelve a 1, o se desactiva el inicio al arrancar |
 | Cluster Quorum at Risk | Crítico | `pve_up` ÷ `pve_node_info` × 100 para `pve.scope = node` (ambos Suma): la proporción de nodos en línea | 50 % o menos | Por encima del 55 % |
+| Node Restarted | Advertencia | `pve_uptime_seconds` y `pve_up` para `pve.scope = node`, Min por `id` | `pve_uptime_seconds` está por debajo de 900 (15 minutos) mientras `pve_up` es 1 | `pve_uptime_seconds` está en 990 o más, o `pve_up` es 0 |
 | High Node CPU Usage | Advertencia | `pve_cpu_usage_ratio` para `pve.scope = node`, Avg por `id` | Por encima de 0,9 (el 90 % de los núcleos del nodo) | En 0,81 o menos |
 | High Node Memory Usage | Advertencia | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 para `pve.scope = node`, por `id` | Por encima del 85 % | En el 76,5 % o menos |
 | High Guest CPU Usage | Advertencia | `pve_cpu_usage_ratio` para `pve.scope = guest`, Avg por `id`, últimos 15 minutos | Por encima de 0,95 (el 95 % de sus vCPU) durante los 15 minutos | En 0,855 o menos |
+| Storage Unavailable | Crítico | `pve_up` para `pve.scope = storage`, Min por `id` | Por debajo de 1 | En 1 |
 | Storage Near Full | Advertencia | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 para `pve.scope = storage`, por `id` | Por encima del 85 % | En el 76,5 % o menos |
 | Container Root Disk Near Full | Advertencia | La misma proporción de disco para `pve.type = lxc`, por `id` | Por encima del 90 % | En el 81 % o menos |
 | HA Resource in Error State | Crítico | `pve_ha_state` para `state = error`, Max por `id` | Por encima de 0 | En 0 |
 | Guest Not Backed Up | Advertencia | `pve_not_backed_up_total`, Max (una sola serie para todo el clúster) | Por encima de 0 | En 0 |
+| Backup Running Too Long | Advertencia | `pve_lock_state` para `pve.scope = guest` y `state = backup`, Min por `id`, últimas 6 horas | Por encima de 0 | En 0 |
 | Replication Failing | Crítico | `pve_replication_failed_syncs`, Max por `id` (el id del trabajo) | Por encima de 0 | En 0 |
 
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan con la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en los criterios.
 
 - **Cluster Stopped Reporting** se dispara cuando no llega nada del clúster durante diez minutos: el agente de Proxmox o su pve-exporter se detuvo, perdió su conexión con OneUptime o le revocaron el token, la API de Proxmox dejó de responderle, o todos los nodos de un envío nativo se quedaron en silencio. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **Las plantillas de caída usan Mínimo**, así que una sola consulta en la que el recurso estaba caído las dispara en lugar de quedar oculta por las consultas en las que funcionaba.
-- **Guest Down** solo mira los invitados configurados para iniciarse al arrancar, así que un invitado que detuvo a propósito nunca avisa a nadie.
-- **Cluster Quorum at Risk** es una aproximación: pve-exporter no tiene ninguna métrica de corosync, así que cuenta los nodos en línea.
+- **Guest Down** solo mira los invitados configurados para iniciarse al arrancar: si detiene uno de ellos a propósito, avisa igualmente, así que desactive antes su inicio al arrancar.
+- **Cluster Quorum at Risk** cuenta los nodos en línea. pve-exporter también informa del propio quórum, como `pve_up` de `cluster/<name>`: 1 mientras el clúster tiene quórum.
+- **Node Restarted** se dispara para un nodo que está en línea pero lleva menos de 15 minutos funcionando: se reinició, o se bloqueó y volvió. Se resuelve cuando el nodo lleva 16,5 minutos en marcha, un 10 % más allá del umbral; un nodo caído dispara **Node Offline** en su lugar.
 - **High Guest CPU Usage** es más alto y más lento que la plantilla de nodos: se espera que un invitado use sus vCPU, así que solo avisa uno que nunca baja.
 - **Las fórmulas de proporción** toman la **Suma** de ambos lados. Ambos proceden de la misma consulta, así que el resultado es un porcentaje real.
 - **Container Root Disk Near Full** deja fuera las VM QEMU: su uso de disco marca 0 sin el agente invitado de QEMU.
+- **Storage Unavailable** se dispara cuando un almacenamiento que Proxmox VE lista para un nodo deja de estar disponible: un recurso compartido que no se puede montar, un Proxmox Backup Server inalcanzable, un pool que ha desaparecido. Los invitados con discos en él se bloquean o no arrancan, y las copias de seguridad hacia él fallan.
 - **Guest Not Backed Up** solo cubre la pertenencia a trabajos de copia de seguridad. pve-exporter no indica si las copias se ejecutaron ni si tuvieron éxito; agrupe `pve_not_backed_up_info` por `id` para listar los invitados.
+- **Backup Running Too Long** se dispara cuando una VM o un contenedor está bloqueado por una copia de seguridad en cada consulta durante seis horas: una copia colgada, o un destino demasiado lento para el invitado. Mientras se mantiene el bloqueo, el invitado no se puede migrar, ni tomar una instantánea, ni volver a copiar.
 - **La obsolescencia de la replicación** (ahora menos la última sincronización) no puede generar alertas, porque los criterios no tienen aritmética de tiempo. La página **Vista general** del clúster la muestra; alerte con **Replication Failing** en su lugar.
+
+### Alertas sobre las notificaciones de Proxmox VE
+
+Otras dos alertas leen las propias notificaciones de Proxmox VE, que el clúster envía como registros una vez que usted [las envía a OneUptime](/docs/telemetry/proxmox#envía-las-notificaciones-de-proxmox-ve). Son monitores de registros, que se ofrecen en la página **Recomendaciones** del clúster, y funcionan tanto con el agente como con el envío nativo.
+
+| Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | Advertencia | Registros de notificación con `pve.notification.type = vzdump` y `pve.notification.severity = error`, por nodo y trabajo, últimos 60 minutos | Un trabajo de copia de seguridad informa de un fallo | La siguiente ejecución del mismo trabajo tiene éxito |
+| Node Fenced | Crítico | Registros de notificación con `pve.notification.type = fencing`, por nodo, últimos 30 minutos | Proxmox VE aísla un nodo (fencing) | Ese nodo no vuelve a aislarse durante 30 minutos |
+
+Cada nodo y cada trabajo de copia de seguridad recibe su propio incidente y su propia alerta. La alerta de un trabajo de copia de seguridad fallido sigue abierta hasta que una ejecución posterior del mismo trabajo tiene éxito, tarde lo que tarde.
 
 ### El envío nativo de Proxmox VE
 
 Proxmox VE 9 y posteriores pueden enviar métricas mediante su servidor de métricas OpenTelemetry integrado, sin instalar nada; consulte la [guía del agente de Proxmox](/docs/telemetry/proxmox). OneUptime convierte ese envío en las mismas series `pve_*`, así que el catálogo y las plantillas de CPU, memoria y almacenamiento funcionan con él.
 
-**Node Offline** y **Cluster Quorum at Risk** también funcionan: cada nodo envía solo su propio estado, así que un nodo que deja de informar aparece como caído (`pve_up` = 0) según los nodos que siguen vivos; consulte [Cuando un nodo deja de informar](/docs/telemetry/proxmox#cuando-un-nodo-deja-de-informar). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** y **Replication Failing** necesitan datos que solo recopila el agente.
+**Node Offline** y **Cluster Quorum at Risk** también funcionan: cada nodo envía solo su propio estado, así que un nodo que deja de informar aparece como caído (`pve_up` = 0) según los nodos que siguen vivos; consulte [Cuando un nodo deja de informar](/docs/telemetry/proxmox#cuando-un-nodo-deja-de-informar). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** y **Replication Failing** necesitan datos que solo recopila el agente. Las dos [alertas sobre notificaciones](#alertas-sobre-las-notificaciones-de-proxmox-ve) también funcionan con el envío nativo: Proxmox VE envía sus notificaciones por sí mismo.
 
 ## Métricas recopiladas
 
@@ -154,7 +171,7 @@ El agente consulta prometheus-pve-exporter cada 30 segundos: sus recopiladores d
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `pve_up` | — | 1 cuando el nodo o el invitado está activo o en ejecución, 0 en caso contrario. |
+| `pve_up` | — | 1 cuando el nodo, el invitado o el almacenamiento está activo, 0 en caso contrario. Para `cluster/<name>`, 1 mientras el clúster tiene quórum. |
 | `pve_uptime_seconds` | seconds | Tiempo de actividad del nodo o del invitado. |
 | `pve_version_info` | count | La versión de Proxmox VE, en sus etiquetas. Siempre 1. |
 
@@ -162,7 +179,7 @@ El agente consulta prometheus-pve-exporter cada 30 segundos: sus recopiladores d
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadatos del nodo, siempre 1. Súmela para contar los nodos que informan. |
+| `pve_node_info` | count | Metadatos del nodo, siempre 1 mientras el nodo informa. Una suma añade cada recogida de un minuto, así que no cuenta nodos. |
 | `pve_cpu_usage_ratio` | ratio | CPU en uso como proporción de 0 a 1 de la CPU disponible. |
 | `pve_cpu_usage_limit` | cores | CPU disponible, en núcleos. Para un invitado, sus vCPU. |
 | `pve_memory_usage_bytes` | bytes | Memoria en uso. |
@@ -180,6 +197,7 @@ Las series de CPU y memoria también se informan para cada invitado, en los id `
 | `pve_disk_read_bytes` | bytes | Bytes leídos del disco por el invitado. Un contador de toda la vida útil. |
 | `pve_disk_write_bytes` | bytes | Bytes escritos en el disco por el invitado. Un contador de toda la vida útil. |
 | `pve_onboot_status` | count | 1 cuando el invitado se inicia al arrancar el nodo. Un invitado detenido con este ajuste suele ser una caída no planificada. |
+| `pve_lock_state` | — | El bloqueo que Proxmox VE mantiene sobre un invitado mientras una tarea lo modifica, una serie por bloqueo (`backup`, `migrate`, `snapshot`, …), a 1 en el que está activo. Filtre por la etiqueta `state`. |
 
 ### Almacenamiento
 
@@ -187,7 +205,8 @@ Las series de CPU y memoria también se informan para cada invitado, en los id `
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Bytes usados en el disco o el almacenamiento. Para un invitado QEMU marca 0 salvo que esté instalado el agente invitado de QEMU. |
 | `pve_disk_size_bytes` | bytes | Tamaño total del disco o del almacenamiento. |
-| `pve_storage_info` | count | Metadatos del almacenamiento, siempre 1. Súmela para contar los volúmenes de almacenamiento. |
+| `pve_storage_shared` | count | 1 cuando todos los nodos del clúster pueden usar el almacenamiento, como NFS o Ceph; 0 cuando solo puede su propio nodo. |
+| `pve_storage_info` | count | Metadatos del almacenamiento, siempre 1 mientras existe. Una suma añade cada recogida de un minuto, así que no cuenta volúmenes. |
 
 ### HA
 
@@ -201,7 +220,7 @@ Proceden del recopilador `backup-info` del exportador, a nivel de clúster. Solo
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | count | Invitados que no están en ningún trabajo de copia de seguridad. Una sola serie para todo el clúster, sin `id`. |
+| `pve_not_backed_up_total` | count | Invitados que no están en ningún trabajo de copia de seguridad. Una sola serie para todo el clúster, `id` `cluster/<name>`, que también se informa en 0. |
 | `pve_not_backed_up_info` | count | Una serie por invitado no cubierto, siempre 1, etiquetada con el `id` del invitado. Desaparece cuando el invitado se une a un trabajo de copia de seguridad. |
 
 ### Replicación
@@ -231,7 +250,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
 | **Si no hay datos** | En **Más campos**. Qué ocurre cuando la ventana no tiene muestras: **Ignore** (el predeterminado), **Treat As Zero** o **Disparador**. |
 
-Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en un estado «Learning», y no generan nada, hasta que la ventana de referencia contiene suficiente historial.
+Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en un estado «Learning», y no generan nada, hasta que la ventana de referencia contiene suficiente historial. Una suma, un recuento o una consulta sobre un histograma permanece en ese estado para siempre: este monitor filtra sus consultas por atributos y la línea de referencia no guarda ninguno.
 
 Cada criterio indica también qué hacer cuando coincide: cambiar el estado del monitor, crear una alerta o declarar un incidente. Los criterios se comprueban de arriba abajo, y el primero que coincide decide.
 

@@ -447,6 +447,15 @@ describe("ProxmoxCephSnapshotScan - WI-24 backup coverage", () => {
       maxMemoryBytes: null,
       latestDiskBytes: null,
       maxDiskBytes: null,
+      isTemplate: null,
+      tags: null,
+      lockState: null,
+      lockObservedAt: null,
+      cpuCount: null,
+      storageType: null,
+      storageContent: null,
+      isShared: null,
+      subscriptionLevel: null,
       observedAt: new Date(BASE_MS),
     };
   }
@@ -1030,5 +1039,401 @@ describe("ProxmoxCephSnapshotScan - Ceph cluster extras derive", () => {
     );
 
     expect(extras).toEqual({ healthStatus: 0 });
+  });
+});
+
+/*
+ * What a Proxmox admin reads on a node's, guest's and storage's page beyond
+ * its name and status: whether a guest is a template, its tags, the lock
+ * Proxmox holds on it, a node's cores and subscription, a storage's type,
+ * content and whether it is shared, and the cluster's own quorum. These
+ * change while the resource lives, so they fold newest-wins, and an empty
+ * label ("no tags") is a reading, never "not reported".
+ */
+describe("ProxmoxCephSnapshotScan - templates, tags, locks, storage and quorum", () => {
+  const LOCK_STATES: Array<string> = [
+    "backup",
+    "clone",
+    "create",
+    "migrate",
+    "rollback",
+    "snapshot",
+    "snapshot-delete",
+    "suspended",
+    "suspending",
+  ];
+
+  // One scrape of pve_lock_state for a guest: 1 on `held`, 0 elsewhere.
+  function feedLockScrape(data: {
+    buffers: ProxmoxBuffers;
+    id: string;
+    held: string | null;
+    atMs: number;
+    heldFirst?: boolean;
+  }): void {
+    const others: Array<string> = LOCK_STATES.filter((state: string) => {
+      return state !== data.held;
+    });
+    const states: Array<string> = data.held
+      ? data.heldFirst
+        ? [data.held, ...others]
+        : [...others, data.held]
+      : others;
+    for (const state of states) {
+      feedProxmox(
+        data.buffers,
+        "pve_lock_state",
+        datapoint({
+          value: state === data.held ? 1 : 0,
+          atMs: data.atMs,
+          labels: { id: data.id, state: state, "pve.scope": "guest" },
+        }),
+      );
+    }
+  }
+
+  test("the new series are allow-listed for the inventory", () => {
+    expect(PVE_SNAPSHOT_METRIC_NAMES.has("pve_lock_state")).toBe(true);
+    expect(PVE_SNAPSHOT_METRIC_NAMES.has("pve_storage_shared")).toBe(true);
+    expect(PVE_SNAPSHOT_METRIC_NAMES.has("pve_cpu_usage_limit")).toBe(true);
+  });
+
+  test("a template guest reads as a template, a VM as not, an old exporter as unknown", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_guest_info",
+      datapoint({
+        value: 1,
+        labels: {
+          id: "qemu/9000",
+          name: "debian-12-template",
+          node: "pve1",
+          type: "qemu",
+          template: "1",
+          tags: "",
+        },
+      }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_guest_info",
+      datapoint({
+        value: 1,
+        labels: {
+          id: "qemu/100",
+          name: "web-01",
+          node: "pve1",
+          type: "qemu",
+          template: "0",
+          tags: "prod;web",
+        },
+      }),
+    );
+    // An exporter older than the template and tags labels.
+    feedProxmox(
+      buffers,
+      "pve_guest_info",
+      datapoint({
+        value: 1,
+        labels: { id: "lxc/101", name: "cache-01", node: "pve2" },
+      }),
+    );
+
+    const template: ProxmoxResourceBufferEntry = proxmoxEntry(
+      buffers,
+      "Guest",
+      "qemu/9000",
+    );
+    const vm: ProxmoxResourceBufferEntry = proxmoxEntry(
+      buffers,
+      "Guest",
+      "qemu/100",
+    );
+    const old: ProxmoxResourceBufferEntry = proxmoxEntry(
+      buffers,
+      "Guest",
+      "lxc/101",
+    );
+
+    expect(template.isTemplate).toBe(true);
+    // An empty tags label is a reading: no tags, which clears old ones.
+    expect(template.tags).toBe("");
+    expect(vm.isTemplate).toBe(false);
+    expect(vm.tags).toBe("prod;web");
+    expect(old.isTemplate).toBeNull();
+    expect(old.tags).toBeNull();
+    expect(old.name).toBe("cache-01");
+  });
+
+  test("an edited tag follows the newest scrape and never an older one", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    const guestInfo: (tags: string, atMs: number) => JSONObject = (
+      tags: string,
+      atMs: number,
+    ): JSONObject => {
+      return datapoint({
+        value: 1,
+        atMs,
+        labels: { id: "qemu/100", name: "web-01", tags: tags, template: "0" },
+      });
+    };
+
+    feedProxmox(buffers, "pve_guest_info", guestInfo("prod", BASE_MS));
+    feedProxmox(
+      buffers,
+      "pve_guest_info",
+      guestInfo("prod;web", BASE_MS + 30_000),
+    );
+    // A late, older scrape arrives after the newer one.
+    feedProxmox(
+      buffers,
+      "pve_guest_info",
+      guestInfo("staging", BASE_MS + 10_000),
+    );
+
+    expect(proxmoxEntry(buffers, "Guest", "qemu/100").tags).toBe("prod;web");
+  });
+
+  test("a held lock wins over the other states of the same scrape, in either order", () => {
+    for (const heldFirst of [true, false]) {
+      const buffers: ProxmoxBuffers = proxmoxBuffers();
+      feedLockScrape({
+        buffers,
+        id: "lxc/105",
+        held: "backup",
+        atMs: BASE_MS,
+        heldFirst,
+      });
+      expect(proxmoxEntry(buffers, "Guest", "lxc/105").lockState).toBe(
+        "backup",
+      );
+    }
+  });
+
+  test("a scrape with every lock state at 0 reads as no lock, and releases an older lock", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedLockScrape({ buffers, id: "qemu/102", held: "migrate", atMs: BASE_MS });
+    expect(proxmoxEntry(buffers, "Guest", "qemu/102").lockState).toBe(
+      "migrate",
+    );
+
+    feedLockScrape({
+      buffers,
+      id: "qemu/102",
+      held: null,
+      atMs: BASE_MS + 30_000,
+    });
+    expect(proxmoxEntry(buffers, "Guest", "qemu/102").lockState).toBe("");
+  });
+
+  test("an older scrape holding a lock never brings back a released one", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedLockScrape({
+      buffers,
+      id: "qemu/102",
+      held: null,
+      atMs: BASE_MS + 30_000,
+    });
+    feedLockScrape({ buffers, id: "qemu/102", held: "backup", atMs: BASE_MS });
+
+    expect(proxmoxEntry(buffers, "Guest", "qemu/102").lockState).toBe("");
+  });
+
+  test("lock series on a node are not guest locks", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_lock_state",
+      datapoint({
+        value: 1,
+        labels: { id: "node/pve1", state: "backup", "pve.scope": "node" },
+      }),
+    );
+    expect(proxmoxEntries(buffers)).toHaveLength(0);
+  });
+
+  test("a storage reads its type, content and whether every node shares it", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_storage_info",
+      datapoint({
+        value: 1,
+        labels: {
+          id: "storage/pve1/ceph-vm",
+          node: "pve1",
+          storage: "ceph-vm",
+          plugintype: "rbd",
+          content: "images,rootdir",
+        },
+      }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_storage_shared",
+      datapoint({
+        value: 1,
+        labels: { id: "storage/pve1/ceph-vm", "pve.scope": "storage" },
+      }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_storage_shared",
+      datapoint({
+        value: 0,
+        labels: { id: "storage/pve1/local-lvm", "pve.scope": "storage" },
+      }),
+    );
+
+    const ceph: ProxmoxResourceBufferEntry = proxmoxEntry(
+      buffers,
+      "Storage",
+      "storage/pve1/ceph-vm",
+    );
+    expect(ceph.name).toBe("ceph-vm");
+    expect(ceph.storageType).toBe("rbd");
+    expect(ceph.storageContent).toBe("images,rootdir");
+    expect(ceph.isShared).toBe(true);
+    expect(
+      proxmoxEntry(buffers, "Storage", "storage/pve1/local-lvm").isShared,
+    ).toBe(false);
+  });
+
+  test("pve_storage_shared on anything but a storage is ignored", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_storage_shared",
+      datapoint({ value: 1, labels: { id: "qemu/100", "pve.scope": "guest" } }),
+    );
+    expect(proxmoxEntries(buffers)).toHaveLength(0);
+  });
+
+  test("a node's cores and a guest's vCPUs come from pve_cpu_usage_limit", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_cpu_usage_limit",
+      datapoint({
+        value: 64,
+        labels: { id: "node/pve1", "pve.scope": "node" },
+      }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_cpu_usage_limit",
+      datapoint({
+        value: 4,
+        asDouble: true,
+        labels: { id: "qemu/100", "pve.scope": "guest" },
+      }),
+    );
+
+    expect(proxmoxEntry(buffers, "Node", "node/pve1").cpuCount).toBe(64);
+    expect(proxmoxEntry(buffers, "Guest", "qemu/100").cpuCount).toBe(4);
+  });
+
+  test("a node's subscription level is read, an empty level means none", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_node_info",
+      datapoint({
+        value: 1,
+        labels: { id: "node/pve1", name: "pve1", level: "c", nodeid: "1" },
+      }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_node_info",
+      datapoint({
+        value: 1,
+        labels: { id: "node/pve2", name: "pve2", level: "", nodeid: "2" },
+      }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_node_info",
+      datapoint({ value: 1, labels: { id: "node/pve3", name: "pve3" } }),
+    );
+
+    expect(proxmoxEntry(buffers, "Node", "node/pve1").subscriptionLevel).toBe(
+      "c",
+    );
+    expect(proxmoxEntry(buffers, "Node", "node/pve2").subscriptionLevel).toBe(
+      "",
+    );
+    expect(
+      proxmoxEntry(buffers, "Node", "node/pve3").subscriptionLevel,
+    ).toBeNull();
+  });
+
+  test("the cluster's own pve_up is its quorum, not an inventory row", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_up",
+      datapoint({
+        value: 1,
+        labels: { id: "cluster/pve-prod", "pve.scope": "cluster" },
+      }),
+    );
+
+    expect(proxmoxEntries(buffers)).toHaveLength(0);
+    expect(buffers.clusterBuffer.get(CLUSTER)?.isQuorate).toBe(true);
+    expect(
+      deriveProxmoxClusterSnapshotExtras(
+        proxmoxEntries(buffers),
+        buffers.clusterBuffer.get(CLUSTER),
+      ).isQuorate,
+    ).toBe(true);
+  });
+
+  test("quorum follows the newest reading, and the id prefix alone is enough", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    // No pve.scope attribute: a hand-written collector config.
+    feedProxmox(
+      buffers,
+      "pve_up",
+      datapoint({
+        value: 0,
+        atMs: BASE_MS + 30_000,
+        labels: { id: "cluster/pve-prod" },
+      }),
+    );
+    feedProxmox(
+      buffers,
+      "pve_up",
+      datapoint({
+        value: 1,
+        atMs: BASE_MS,
+        labels: { id: "cluster/pve-prod" },
+      }),
+    );
+
+    expect(buffers.clusterBuffer.get(CLUSTER)?.isQuorate).toBe(false);
+    expect(
+      deriveProxmoxClusterSnapshotExtras(
+        proxmoxEntries(buffers),
+        buffers.clusterBuffer.get(CLUSTER),
+      ).isQuorate,
+    ).toBe(false);
+  });
+
+  test("a batch without the cluster's pve_up leaves quorum unwritten", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_up",
+      datapoint({ value: 1, labels: { id: "node/pve1", "pve.scope": "node" } }),
+    );
+
+    const extras: ProxmoxClusterSnapshotExtras =
+      deriveProxmoxClusterSnapshotExtras(
+        proxmoxEntries(buffers),
+        buffers.clusterBuffer.get(CLUSTER),
+      );
+    expect("isQuorate" in extras).toBe(false);
   });
 });

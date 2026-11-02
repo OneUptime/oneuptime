@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nei"| shown["Sjekklisten med<br/>stegene som gjenstår"]
 ```
 
-Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Lukk** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**.
+Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Skjul** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**.
 
 ### Krever oppmerksomhet
 
@@ -108,7 +108,7 @@ En episode samler relaterte hendelser eller varsler, så du jobber med dem som �
 
 ## Finn frem
 
-Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Overvåkere, Hendelser, Varsler, Vakttjeneste, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, AI, Kode, Ressurser, Infrastruktur, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
+Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Overvåkere, Hendelser, Varsler, Vakttjeneste, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, AI, Kode, Ressurser, Infrastruktur, Sky, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
 
 - **Søk finner alt.** Skriv i menyens søkefelt for å finne ethvert produkt etter navn, etter hva det gjør, eller etter et kjent ord som `k8s` eller `RUM`. Søket ser også inni de sammenslåtte gruppene.
 - **Du starter der du er.** Gruppen til siden du er på, utvides av seg selv, og produktene du nylig har åpnet, står øverst.

@@ -129,7 +129,7 @@ Atlassian の **サービスアカウント** も使えます。組織の管理�
 4. **ワークフローを作成** をクリックします。ワークフローはすべてオフの状態で作成されます。**ビルダー** の上部で **有効** をオンにしてください。
 :::
 
-まず **Create a Jira issue when an incident is declared** (アラートの場合は **Create a Jira issue when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Jira テンプレートは、このテンプレートが付けるラベルで課題を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行の最後のステップに `✅ Created Jira issue` と表示され、新しい課題が示されるはずです。
+まず **Create a Jira issue when an incident is declared** (アラートの場合は **Create a Jira issue when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Jira テンプレートは、このテンプレートが付けるラベルで課題を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-issue-1` の **Response Body** に新しい課題が示されるはずです。
 
 各ワークフローは、これらの値を個別にコピーして持ちます。トークンを交換するときは、トークンを尋ねたすべての Jira ワークフローの **ワークフロー変数** で `jiraBasicAuthToken` を更新します。Jira のアドレスが変わった場合は、`jiraSiteUrl` と `jiraBaseUrl` を同じように更新します。
 
@@ -180,14 +180,14 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 
 ### 動作を確認する
 
-どのテンプレートも、何が起きたかを示す **Log** ステップで終わるため、**ログ → 実行履歴** の実行の最後のステップを見てください:
+各実行の **ステップ** にはテンプレートが何をしたかが示されるので、 **ログ → 実行履歴** で実行を開き、どう終わったかを見てください:
 
-- `✅` — 処理を完了し、課題、インシデント、またはアラートを示します。
-- `ℹ️` — 意図的にイベントをスキップし、その理由を示します。課題がこの種類のレコードにリンクされていない、メモが Jira から来た、レコードがプライベートである、新しい状態に対応する Jira のステータスがない、のいずれかです。
-- `❌` — 呼び出しが失敗しました。Jira への呼び出しの場合、行には Jira の応答が含まれます。
-- `⚠️` — Jira の課題からレコードを作成するテンプレートがレコードを作成したものの、Jira がリンク用のラベルを受け付けなかったため、ほかのテンプレートがまだ見つけられません。ラベルを手動で追加してください。
+- **実行済み**: 処理を完了しました。最後のステップに課題、インシデント、またはアラートが示されます。
+- **実行済み** で、 **Check With JavaScript** ステップが **No** に進んだ: 意図的にイベントをスキップしました。そのステップに理由が示されます。課題がこの種類のレコードにリンクされていない、メモが Jira から来た、レコードがプライベートである、新しい状態に対応する Jira のステータスがない、のいずれかです。
+- **エラー**: ステップが失敗しました。 **ステップ** にあるその項目に理由が示されます。Jira への呼び出しの場合は、Jira の応答も含まれます。
+- `link-issue-1` で **エラー**: Jira の課題からレコードを作成するテンプレートがレコードを作成したものの、Jira がリンク用のラベルを受け付けなかったため、ほかのテンプレートがまだ見つけられません。ラベルを手動で追加してください。
 
-スキップした実行も **実行済み** で終わります。スキップは正常です。Jira のイベントの大半は、特定のテンプレートが処理する対象ではありません。[ワークフロー 実行履歴](/docs/workflows/runs-and-logs) を参照してください。
+スキップは正常です。Jira のイベントの大半は、特定のテンプレートが処理する対象ではありません。[ワークフロー 実行履歴](/docs/workflows/runs-and-logs) を参照してください。
 
 ## テンプレートの仕組み
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### テンプレートの動作を変更する
 
-ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Run Custom JavaScript** ブロックの **JavaScript Code** の、共有ヘルパーブロックのすぐ下にあります。テンプレートのインシデント版とアラート版は、同じブロックに同じ定数を持っています:
+ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Check With JavaScript** ブロックの **JavaScript Code** の、共有ヘルパーブロックのすぐ下にあります。テンプレートのインシデント版とアラート版は、同じブロックに同じ定数を持っています:
 
 | 定数 | テンプレートとブロック | 制御する内容 |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ const STATE_TO_JIRA_STATUS = {
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | テンプレートが意味で判断するときに優先するステータス名と、`STATE_TO_JIRA_STATUS` で指定しない限り選ばないステータス名。どちらも、大文字と小文字を区別せずにステータス名と照合される正規表現です。 |
 | `SYNC_PRIVATE_INCIDENTS` | OneUptime → Jira のすべてのインシデント用テンプレート — `prepare-issue-1`、`plan-transition-1`、`build-comment-1` | `false` は、**プライベートインシデント** が付いたインシデントを Jira に送りません。課題は作成されず、その課題は進まず、メモも編集も投稿されません。それでも送るには `true` にします。テンプレートごとに個別のコピーがあるため、送るべきすべてのテンプレートで設定してください。 |
 | `SYNC_PRIVATE_ALERTS` | OneUptime → Jira のすべてのアラート用テンプレート — `prepare-issue-1`、`plan-transition-1`、`build-comment-1` | **プライベートアラート** が付いたアラートについて同じことを行います。`false` は同じように Jira に送らず、`true` はそれでも送ります。送るべきすべてのアラート用テンプレートで設定してください。 |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | `{ 'In Review': 'Monitoring' }` のように、Jira のステータス名を OneUptime の状態名に対応付けます。一覧にないステータスは Jira のステータスカテゴリで判断されます。In Progress はインシデントやアラートを確認し、Done は解決し、To Do は何にも対応しません。 |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | `{ 'In Review': 'Monitoring' }` のように、Jira のステータス名を OneUptime の状態名に対応付けます。一覧にないステータスは Jira のステータスカテゴリで判断されます。In Progress はインシデントやアラートを確認し、Done は解決し、To Do は何にも対応しません。 |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | 小文字で書いた Jira の優先度を、`0` (最も重大な重大度)、`1`、`2` (最も軽い重大度) に対応付け、その間の重大度は範囲内に割り振ります。一覧にない優先度は中央になります。新しいプロジェクトにある二つのアラートの重大度では、`0` が High、`1` と `2` はどちらも Low なので、`medium: 0` に変更しない限り Medium は Low になります。 |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | メモになるコメントのイベント。編集もコピーするには `'comment_updated'` を追加し (編集はそれぞれ新しいメモになります)、Jira の Webhook で **Comment updated** にもチェックを入れます。 |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | 変更をメモにする価値のない Jira のフィールド (小文字)。フィールドの ID か名前のどちらかが一覧にあると、その変更は除外されます。これにより、`customfield_10019` のような ID で届くカスタムフィールドの Rank を `'rank'` で捕まえられます。ステータスはステータスのテンプレートが扱うため、一覧に含まれています。 |
@@ -271,7 +271,7 @@ const STATE_TO_JIRA_STATUS = {
 ### 制限事項
 
 - **Jira Cloud のみ。** テンプレートは Basic 認証で Jira Cloud の REST API v3 を呼び出します。Data Center には v3 がなく、個人用アクセストークンを `Bearer` として受け付けるため、すべての API ブロックに [Jira Data Center](#jira-data-center) の変更が必要です。`/rest/api/2/...` のパス、Atlassian Document Format の本文の代わりの単純な文字列、そしてヘッダーです。最も大きく変わるのは `find-issue-1` ブロックです。Data Center には `/search/jql` がないため、代わりに `/rest/api/2/search` に `POST` する必要があります。
-- **Jira から宣言されたインシデントは公開されません。** 課題のテキストは顧客向けに書かれたものではないため、ステータスページから非表示の状態で、ステータスページの購読者に通知せずに作成されます。表示するには、インシデントの **設定** ページで **ステータスページに表示** をオンにするか ([インシデントをステータスページに表示しない](/docs/incidents/states-and-severities#インシデントをステータスページに出さない) を参照)、テンプレートの `create-incident-1` ブロックで `isVisibleOnStatusPage` と `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` を変更します。
+- **Jira から宣言されたインシデントは公開されません。** 課題のテキストは顧客向けに書かれたものではないため、ステータスページから非表示の状態で、ステータスページの購読者に通知せずに作成されます。表示するには、インシデントの **設定** ページで **ステータスページに表示** をオンにするか ([インシデントをステータスページに表示しない](/docs/incidents/states-and-severities#インシデントをステータスページに出さない) を参照)、テンプレートの `incident-from-another-tool-1` ブロックで、 **その他の項目** の下にある **Show On Status Pages** をオンにします。
 - **プライベートなインシデントとアラートは OneUptime に留まります。** OneUptime → Jira のテンプレートはそれらをスキップし、スキップのたびに **ログ → 実行履歴** にその旨が記録されます。それでも送るには、`SYNC_PRIVATE_INCIDENTS` または `SYNC_PRIVATE_ALERTS` を `true` にします。後からレコードをプライベートにすると、その時点から同期は止まりますが、Jira にすでにあるものは取り消されません。Jira → OneUptime のテンプレートはこれを確認しないため、リンクされた課題のコメント、編集、ステータスの変更は、プライベートなレコードにも届きます。
 - **何も後ろに戻りません。** Jira の課題を再オープンしても OneUptime では何も変わらず、To Do カテゴリのステータスはどの状態にも対応しません。[順序は実際の制約です](/docs/incidents/states-and-severities#順序は表示上の好みではなく実際の制約) を参照してください。遷移のテンプレートも、課題を前のステータスカテゴリに移しません。
 - **すべてのアラートに課題が作成されます。** プライベートアラートを除き、課題を作成するアラート用テンプレートは、モニターが発生させるものを含め、すべてのアラートに課題を作成します。条件を追加する方法は [アラートでの違い](#アラートでの違い) にあります。
@@ -286,7 +286,7 @@ const STATE_TO_JIRA_STATUS = {
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **同じイベントが 2 回届くことがあります。** Jira は、サーバーエラーやタイムアウトで失敗した配信を再試行します。OneUptime がすでに実行を開始していた場合、コメントと課題の変更のテンプレートは 2 つ目のメモを追加します。レコードを作成するテンプレートは 2 つ目を作成しません。まず Jira に課題のラベルを問い合わせ、再試行が届くころには最初の実行が課題にラベルを付けているためです。ただし、最初の実行がレコードを作成したものの Jira がラベルを拒否した場合は効果がありません。その実行は `⚠️` の行で終わるので、ラベルを手動で追加してください。
+- **同じイベントが 2 回届くことがあります。** Jira は、サーバーエラーやタイムアウトで失敗した配信を再試行します。OneUptime がすでに実行を開始していた場合、コメントと課題の変更のテンプレートは 2 つ目のメモを追加します。レコードを作成するテンプレートは 2 つ目を作成しません。まず Jira に課題のラベルを問い合わせ、再試行が届くころには最初の実行が課題にラベルを付けているためです。ただし、最初の実行がレコードを作成したものの Jira がラベルを拒否した場合は効果がありません。その実行は `link-issue-1` で失敗するので、ラベルを手動で追加してください。
 
 ## 自分で構築する
 

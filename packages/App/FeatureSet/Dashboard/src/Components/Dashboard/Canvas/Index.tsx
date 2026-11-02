@@ -9,9 +9,6 @@ import React, {
 } from "react";
 import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
-import DefaultDashboardSize, {
-  SpaceBetweenUnitsInPx,
-} from "Common/Types/Dashboard/DashboardSize";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import ObjectID from "Common/Types/ObjectID";
@@ -19,6 +16,12 @@ import ComponentSettingsModal from "./ComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import GridLayoutUtil, { GridRect } from "Common/Utils/Dashboard/GridLayout";
+import DashboardBoardLayoutUtil, {
+  DASHBOARD_BOARD_COLUMNS,
+  DashboardBoardArrangement,
+  DashboardBoardBox,
+  DashboardBoardLayout,
+} from "Common/Utils/Dashboard/DashboardBoardLayout";
 import useDashboardGridDnd, {
   DashboardGridDndResult,
   GRID_ITEM_TRANSITION,
@@ -114,40 +117,62 @@ export function getCanvasComponents(
 /** Minimum rows the edit canvas shows, so an empty-ish board has room. */
 const EDIT_MODE_MIN_ROWS: number = 12;
 
+/*
+ * The room the board keeps around its widgets, on every side: room for a
+ * selected widget's ring and the resize handles that hang past its edges.
+ */
+const BOARD_PADDING_IN_PX: number = 8;
+
+// The board: data-arrangement says how its widgets are laid out.
+export const DASHBOARD_BOARD_TEST_ID: string = "dashboard-board";
+
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const gap: number = SpaceBetweenUnitsInPx;
-  const columns: number = DefaultDashboardSize.widthInDashboardUnits;
+  const columns: number = DASHBOARD_BOARD_COLUMNS;
 
   const components: Array<DashboardBaseComponent> = getCanvasComponents(
     props.dashboardViewConfig,
   );
 
   /*
-   * The positioner is the absolutely-positioned coordinate space widgets
-   * live in. Its real content width — measured, not guessed from the page
-   * width — is the source of truth for the unit size, so widgets get exact
-   * pixel dimensions.
+   * The board fills the width of the place it is drawn in - the dashboard's
+   * page beside the side menu, a public dashboard's page, a playlist's
+   * screen - and that width, measured, decides how its widgets are laid out
+   * (DashboardBoardLayout): on the grid, its units sized to the board so
+   * widgets get exact pixel dimensions, or on a phone one under another. It
+   * is measured on the board's outer box, whose width comes from its place
+   * alone: while editing on a phone, the grid inside it is wider and the
+   * board scrolls sideways.
+   *
+   * The positioner is the coordinate space widgets live in.
    */
+  const boardRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const positionerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
-  const [measuredWidthInPx, setMeasuredWidthInPx] = useState<number>(0);
+  const [boardWidthInPx, setBoardWidthInPx] = useState<number>(0);
 
   useLayoutEffect(() => {
-    const element: HTMLDivElement | null = positionerRef.current;
+    const element: HTMLDivElement | null = boardRef.current;
     if (!element) {
       return undefined;
     }
 
-    setMeasuredWidthInPx(element.clientWidth);
+    const measure: () => void = (): void => {
+      setBoardWidthInPx(
+        Math.max(element.clientWidth - 2 * BOARD_PADDING_IN_PX, 0),
+      );
+    };
+
+    measure();
 
     if (typeof ResizeObserver === "undefined") {
       return undefined;
     }
 
     const observer: ResizeObserver = new ResizeObserver(() => {
-      setMeasuredWidthInPx(element.clientWidth);
+      measure();
     });
     observer.observe(element);
 
@@ -156,20 +181,46 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     };
   }, [components.length === 0]);
 
-  const unitSizeInPx: number = Math.max(
-    (measuredWidthInPx - (columns - 1) * gap) / columns,
-    1,
-  );
-  const cellSizeInPx: number = unitSizeInPx + gap;
+  const layout: DashboardBoardLayout = DashboardBoardLayoutUtil.getLayout({
+    boardWidthInPx,
+    isEditMode: props.isEditMode,
+  });
 
-  type UnitsToSizePxFunction = (units: number) => number;
-  const unitsToSizePx: UnitsToSizePxFunction = (units: number): number => {
-    return units * unitSizeInPx + (units - 1) * gap;
-  };
+  const isStacked: boolean =
+    layout.arrangement === DashboardBoardArrangement.Stacked;
+
+  const gap: number = layout.gapInPx;
+  const columnCellInPx: number = layout.columnWidthInPx + gap;
+  const rowCellInPx: number = layout.rowHeightInPx + gap;
 
   const committedRects: Array<GridRect> = useMemo(() => {
     return GridLayoutUtil.fromDashboardComponents(components);
   }, [components]);
+
+  /*
+   * The widgets in the order they are drawn: on a stacked board, the order
+   * the grid is read in; on the grid, as the dashboard lists them (each is
+   * placed where its rect says).
+   */
+  const drawnComponents: Array<DashboardBaseComponent> = useMemo(() => {
+    if (!isStacked) {
+      return components;
+    }
+
+    const indexByRect: Map<GridRect, number> = new Map<GridRect, number>(
+      committedRects.map((rect: GridRect, index: number) => {
+        return [rect, index];
+      }),
+    );
+
+    return DashboardBoardLayoutUtil.getStackedOrder(committedRects)
+      .map((rect: GridRect) => {
+        return components[indexByRect.get(rect) ?? -1];
+      })
+      .filter((component: DashboardBaseComponent | undefined) => {
+        return Boolean(component);
+      }) as Array<DashboardBaseComponent>;
+  }, [isStacked, components, committedRects]);
 
   const handleCommit: (rects: Array<GridRect>) => void = useCallback(
     (rects: Array<GridRect>): void => {
@@ -195,7 +246,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   const dnd: DashboardGridDndResult = useDashboardGridDnd({
     items: committedRects,
     metrics: {
-      unitSizeInPx,
+      unitSizeInPx: layout.columnWidthInPx,
+      rowUnitSizeInPx: layout.rowHeightInPx,
       gapInPx: gap,
       columns,
     },
@@ -219,10 +271,16 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   const containerRows: number = props.isEditMode
     ? Math.max(contentRows + EDIT_MODE_BUFFER_ROWS, EDIT_MODE_MIN_ROWS)
     : contentRows;
-  const containerHeightInPx: number = Math.max(
-    containerRows * cellSizeInPx - gap,
-    0,
-  );
+  const containerHeightInPx: number = isStacked
+    ? DashboardBoardLayoutUtil.getStackedHeightOfBoardInPx(
+        components.map((component: DashboardBaseComponent, index: number) => {
+          return {
+            heightInUnits: committedRects[index]?.height ?? 1,
+            componentType: component.componentType,
+          };
+        }),
+      )
+    : DashboardBoardLayoutUtil.getGridHeightInPx(containerRows, layout);
 
   // ── modal helpers (unchanged behaviour) ───────────────────────────────
 
@@ -279,8 +337,24 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     const isSelected: boolean = props.selectedComponentId?.toString() === id;
     const isActive: boolean = dnd.activeId === id;
 
-    const widthInPx: number = unitsToSizePx(rect.width);
-    const heightInPx: number = unitsToSizePx(rect.height);
+    /*
+     * On the grid, where its rect sits. Stacked, the board's width and the
+     * height it has on the narrowest grid, under the widget before it.
+     */
+    const box: DashboardBoardBox = isStacked
+      ? {
+          left: 0,
+          top: 0,
+          width: layout.widthInPx,
+          height: DashboardBoardLayoutUtil.getStackedHeightInPx({
+            heightInUnits: rect.height,
+            componentType: component.componentType,
+          }),
+        }
+      : DashboardBoardLayoutUtil.getGridBox(rect, layout);
+
+    const widthInPx: number = box.width;
+    const heightInPx: number = box.height;
 
     return (
       <div
@@ -289,21 +363,32 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         ref={(element: HTMLDivElement | null) => {
           dnd.registerItemElement(id, element);
         }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: `${widthInPx}px`,
-          height: `${heightInPx}px`,
-          transform: `translate(${rect.left * cellSizeInPx}px, ${
-            rect.top * cellSizeInPx
-          }px)`,
-          transition: isActive ? "none" : GRID_ITEM_TRANSITION,
-          zIndex:
-            isSelected && !isActive
-              ? DashboardStackingLayers.canvasSelectedComponent
-              : undefined,
-        }}
+        style={
+          isStacked
+            ? {
+                position: "relative",
+                flex: "none",
+                width: "100%",
+                height: `${heightInPx}px`,
+                zIndex:
+                  isSelected && !isActive
+                    ? DashboardStackingLayers.canvasSelectedComponent
+                    : undefined,
+              }
+            : {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: `${widthInPx}px`,
+                height: `${heightInPx}px`,
+                transform: `translate(${box.left}px, ${box.top}px)`,
+                transition: isActive ? "none" : GRID_ITEM_TRANSITION,
+                zIndex:
+                  isSelected && !isActive
+                    ? DashboardStackingLayers.canvasSelectedComponent
+                    : undefined,
+              }
+        }
       >
         <DashboardBaseComponentElement
           dashboardViewConfig={props.dashboardViewConfig}
@@ -313,7 +398,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           dashboardComponentHeightInPx={heightInPx}
           metricTypes={props.metrics.metricTypes}
           dashboardStartAndEndDate={props.dashboardStartAndEndDate}
-          dashboardCanvasWidthInPx={measuredWidthInPx}
+          dashboardCanvasWidthInPx={layout.widthInPx}
           dashboardCanvasTopInPx={0}
           dashboardCanvasLeftInPx={0}
           totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
@@ -372,17 +457,20 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           ? `${rect.width} × ${rect.height}`
           : `${rect.left + 1}, ${rect.top + 1}`;
 
+      const box: DashboardBoardBox = DashboardBoardLayoutUtil.getGridBox(
+        rect,
+        layout,
+      );
+
       return (
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
-            width: `${unitsToSizePx(rect.width)}px`,
-            height: `${unitsToSizePx(rect.height)}px`,
-            transform: `translate(${rect.left * cellSizeInPx}px, ${
-              rect.top * cellSizeInPx
-            }px)`,
+            width: `${box.width}px`,
+            height: `${box.height}px`,
+            transform: `translate(${box.left}px, ${box.top}px)`,
             transition:
               "transform 0.15s ease, width 0.15s ease, height 0.15s ease",
             borderRadius: "12px",
@@ -421,11 +509,25 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * While editing on a phone the grid keeps the width it can be edited at
+   * (DASHBOARD_MIN_EDIT_GRID_WIDTH_IN_PX), and the board scrolls it
+   * sideways. Only then: a board that can scroll clips what a widget draws
+   * past its edge, a chart's tooltip at the bottom of the board among them.
+   */
   const canvas: ReactElement = (
-    <div>
+    <div
+      ref={boardRef}
+      className={layout.isWiderThanBoard ? "overflow-x-auto" : undefined}
+      data-testid={DASHBOARD_BOARD_TEST_ID}
+      data-arrangement={layout.arrangement}
+    >
       <div
         style={{
-          padding: "8px",
+          padding: `${BOARD_PADDING_IN_PX}px`,
+          width: layout.isWiderThanBoard
+            ? `${layout.widthInPx + 2 * BOARD_PADDING_IN_PX}px`
+            : undefined,
         }}
       >
         <div
@@ -446,25 +548,31 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
              * Common/UI/Utils/DashboardStackingLayers.
              */
             isolation: DASHBOARD_CANVAS_ISOLATION,
-            width: "100%",
-            height: `${containerHeightInPx}px`,
+            width: layout.isWiderThanBoard ? `${layout.widthInPx}px` : "100%",
+            // Stacked, the widgets one under another make the board's height.
+            display: isStacked ? "flex" : undefined,
+            flexDirection: isStacked ? "column" : undefined,
+            gap: isStacked ? `${gap}px` : undefined,
+            height: isStacked ? undefined : `${containerHeightInPx}px`,
             borderRadius: "12px",
-            transition: "height 0.22s cubic-bezier(0.2, 0, 0, 1)",
+            transition: isStacked
+              ? undefined
+              : "height 0.22s cubic-bezier(0.2, 0, 0, 1)",
             backgroundImage: props.isEditMode
               ? "radial-gradient(circle, rgba(148, 163, 184, 0.4) 1.5px, transparent 1.5px)"
               : undefined,
             backgroundSize: props.isEditMode
-              ? `${cellSizeInPx}px ${cellSizeInPx}px`
+              ? `${columnCellInPx}px ${rowCellInPx}px`
               : undefined,
             backgroundPosition: props.isEditMode
-              ? `${-gap / 2 - unitSizeInPx / 2}px ${
-                  -gap / 2 - unitSizeInPx / 2
+              ? `${-gap / 2 - layout.columnWidthInPx / 2}px ${
+                  -gap / 2 - layout.rowHeightInPx / 2
                 }px`
               : undefined,
           }}
         >
           {renderPlaceholder()}
-          {components.map((component: DashboardBaseComponent) => {
+          {drawnComponents.map((component: DashboardBaseComponent) => {
             return renderComponent(component);
           })}
         </div>

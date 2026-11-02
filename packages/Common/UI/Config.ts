@@ -212,6 +212,15 @@ export const StatusPageCNameRecord: string =
 export const DashboardCNameRecord: string = env("DASHBOARD_CNAME_RECORD") || "";
 
 /*
+ * What a form's own domain points its CNAME record to: FORM_CNAME_RECORD,
+ * else the status page CNAME record, as the server reads it
+ * (Server/EnvironmentConfig FormCNameRecord). Empty where forms are not
+ * served on custom domains.
+ */
+export const FormCNameRecord: string =
+  env("FORM_CNAME_RECORD") || StatusPageCNameRecord;
+
+/*
  * Whether this installation issues free (Let's Encrypt) certificates for
  * custom domains - only with a Let's Encrypt account key, which the server
  * derives this from (Server/EnvironmentConfig). Without one, a verified
@@ -250,6 +259,14 @@ export const SlackAppClientId: string | null =
 
 export const MicrosoftTeamsAppClientId: string | null =
   env("MICROSOFT_TEAMS_APP_CLIENT_ID") || null;
+
+/*
+ * The Microsoft cloud this server's Microsoft Teams runs in
+ * (MICROSOFT_TEAMS_CLOUD; Common/Types/Workspace/MicrosoftTeamsCloud.ts):
+ * unset for the commercial cloud. Links to Teams go to that cloud's Teams.
+ */
+export const MicrosoftTeamsCloudSetting: string | null =
+  env("MICROSOFT_TEAMS_CLOUD") || null;
 
 /*
  * The apps behind the one-click Connect of a video call provider. A

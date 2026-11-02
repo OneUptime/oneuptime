@@ -372,6 +372,8 @@ describe("AccessTokenService - a user removed from a project loses access", () =
           teamPermission.permission = permission;
           teamPermission.labels = [];
           teamPermission.isBlockPermission = false;
+          // Every team permission row is a team's (TeamPermission.teamId).
+          teamPermission.teamId = new ObjectID(String(teamId));
           rows.push(teamPermission);
         }
       }

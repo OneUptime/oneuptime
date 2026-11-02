@@ -81,10 +81,14 @@ Das Logo behält die Höhe des Logos von OneUptime, das es ersetzt, und ein brei
 | **Kontrollkästchen** | Ein Kästchen zum Ankreuzen, etwa eine Bestätigung. |
 | **Datum** | Ein Tag. |
 | **Datum und Uhrzeit** | Ein Tag und eine Uhrzeit. |
+| **Datei** | Eine Datei, etwa ein Screenshot oder ein unterschriebenes Dokument. |
+| **Mehrere Dateien** | Bis zu 10 Dateien, etwa Screenshots und Logs. |
 
 Eine Auswahlliste oder Mehrfachauswahl listet die **Optionen**, die Sie ihr geben, jede mit einer optionalen Farbe (die Schaltfläche neben einer Option öffnet eine Reihe benannter Farben, mit **Benutzerdefinierte Farbe** für einen genauen Code), zwischen einer und 100 davon. Eine Frage zwischen **Auswahlliste** und **Mehrfachauswahl** umzuschalten behält ihre Optionen; eine Frage, die zu einer davon wird, beginnt mit zwei, die Sie umbenennen können, und eine, die keine mehr ist, verwirft sie. **Duplizieren** kopiert eine eigene Frage des Formulars direkt darunter.
 
 Die Antworten auf diese Fragen bleiben bei der Einreichung und stehen auf der privaten Notiz dessen, was das Formular erstellt — sie füllen kein Feld davon. Um ein Feld zu füllen, fügen Sie das Feld selbst hinzu, aus den nächsten beiden Gruppen.
+
+Eine Frage vom Typ **Datei** oder **Mehrere Dateien** nimmt Dateien vom Computer der einreichenden Person und hängt sie an die private Notiz, wo Ihr Team sie herunterlädt. Um die Dateien stattdessen in einem benutzerdefinierten Feld des Vorfalls oder Ereignisses zu halten, fügen Sie ein benutzerdefiniertes Feld vom Typ **Datei** oder **Mehrere Dateien** hinzu.
 
 ### Felder dessen, was das Formular erstellt
 
@@ -115,7 +119,7 @@ Jedes Feld kann einmal gefragt werden; die Liste markiert die, die schon im Form
 
 ### Benutzerdefinierte Felder
 
-Ihre benutzerdefinierten Vorfallfelder — oder, bei einem Wartungsformular, die der geplanten Wartung —, jedes eine Frage, deren Antwort zum Wert des Felds wird. Die Frage übernimmt Typ und Optionen vom benutzerdefinierten Feld und beginnt mit seinem Namen als Frage und seiner Beschreibung als Hilfetext, die Sie ändern können.
+Ihre benutzerdefinierten Vorfallfelder — oder, bei einem Wartungsformular, die der geplanten Wartung —, jedes eine Frage, deren Antwort zum Wert des Felds wird. Die Frage übernimmt Typ und Optionen vom benutzerdefinierten Feld und beginnt mit seinem Namen als Frage und seiner Beschreibung als Hilfetext, die Sie ändern können. Ein benutzerdefiniertes Feld vom Typ **Datei** oder **Mehrere Dateien** wird als Dateifrage gestellt, und seine Dateien kommen in das Feld.
 
 Ein Formular fragt nur die benutzerdefinierten Felder, die Sie ihm hinzufügen, was auch immer **Beim Erstellen anzeigen** sagt: Jedes Feld, das ein Formular fragt, zeigt seinen Namen, seine Beschreibung und seine Optionen allen mit dem Link. Wird ein benutzerdefiniertes Feld gelöscht, bleibt seine Frage im Formular, wird aber nicht mehr gefragt, und ihre Karte sagt das — löschen Sie die Frage. Ein mit demselben Namen neu angelegtes Feld ist ein neues Feld: Fügen Sie es erneut hinzu.
 
@@ -232,6 +236,9 @@ Nach dem Einreichen sagt die Seite "Vielen Dank – Ihre Antwort wurde übermitt
 | Jede andere Textantwort | 10.000 Zeichen. |
 | Eine Antwort einer Mehrfachauswahl | 100 Auswahlen. |
 | **Ihr Name**, **Ihre E-Mail-Adresse** | Jeweils 100 Zeichen. |
+| Eine Datei | 10 MB, von den Arten, die ein [benutzerdefiniertes Dateifeld](/docs/incidents/settings#dateifelder) annimmt. |
+| Eine Frage vom Typ **Mehrere Dateien** | 10 Dateien. |
+| Die Dateien einer Einreichung | 10 Dateien, zusammen 20 MB. |
 
 Eine Einreichung, die eine Grenze überschreitet, eine erforderliche Antwort auslässt oder eine Antwort gibt, die nicht zu ihrer Frage passt, wird mit einer Meldung abgelehnt, die sagt, welche, und es wird nichts erstellt. Antworten auf Fragen, die das Formular nicht stellt, werden ignoriert.
 

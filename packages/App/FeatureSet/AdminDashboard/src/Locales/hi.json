@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "इस लाइसेंस से जुड़ी कंपनी का नाम।",
+  "Annual contract value (in USD) for this license.": "इस लाइसेंस का वार्षिक अनुबंध मूल्य (USD में)।",
+  "Expiration date of this license.": "इस लाइसेंस की समाप्ति तिथि।",
+  "Something went wrong": "कुछ गड़बड़ हो गई",
+  "An unexpected error has occurred. Please reload the page to continue": "एक अनपेक्षित त्रुटि हुई। जारी रखने के लिए पेज फिर से लोड करें",
+  "Error details": "त्रुटि विवरण",
+  "Still stuck?": "अब भी अटके हैं?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "त्रुटि स्टैक, कंपोनेंट स्टैक, साफ़ किया गया पेज URL, ब्राउज़र विवरण और OneUptime बिल्ड वाली एक स्थानीय डायग्नोस्टिक फ़ाइल डाउनलोड करें। यह कभी कुकीज़, ब्राउज़र में सहेजा डेटा या फ़ॉर्म की सामग्री नहीं पढ़ती। OneUptime सपोर्ट के साथ साझा करने से पहले इसे देख लें।",
+  "Download support bundle": "सपोर्ट बंडल डाउनलोड करें",
+  "Send it to {{email}}": "इसे {{email}} पर भेजें",
+  "Support bundle downloaded. Review it, then attach it to your email.": "सपोर्ट बंडल डाउनलोड हो गया। इसे देखें, फिर अपने ईमेल में जोड़ें।",
+  "The support bundle could not be downloaded. Please try again.": "सपोर्ट बंडल डाउनलोड नहीं हो सका। कृपया फिर से कोशिश करें।",
   "common": {
     "save": "सहेजें",
     "cancel": "रद्द करें",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "प्रति उपयोगकर्ता {{price}}, आज से वार्षिक बिलिंग।",
   "{{price}} per user, billed monthly from today.": "प्रति उपयोगकर्ता {{price}}, आज से मासिक बिलिंग।",
   "Our sales team will contact you to agree on a price.": "कीमत तय करने के लिए हमारी सेल्स टीम आपसे संपर्क करेगी।",
+  "Current plan": "वर्तमान योजना",
+  "Current plan, billed yearly": "वर्तमान योजना, वार्षिक बिलिंग",
+  "Current plan, billed monthly": "वर्तमान योजना, मासिक बिलिंग",
   "{{count}}-day free trial": "{{count}} दिन का मुफ़्त ट्रायल",
   "{{count}}-day free trial_one": "{{count}} दिन का मुफ़्त ट्रायल",
   "Free for {{count}} days, no card needed to start.": "{{count}} दिन मुफ़्त, शुरू करने के लिए कार्ड की ज़रूरत नहीं।",
@@ -1560,5 +1575,12 @@
     "note": "नोट",
     "tip": "सुझाव",
     "warning": "चेतावनी"
-  }
+  },
+  "Compact rows": "संक्षिप्त पंक्तियाँ",
+  "Sort by": "इसके अनुसार क्रमबद्ध करें",
+  "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध",
+  "Sort": "क्रमबद्ध करें",
+  "Ascending": "आरोही",
+  "Descending": "अवरोही",
+  "Select all items": "सभी आइटम चुनें"
 }

@@ -1,4 +1,7 @@
 {
+  "Something went wrong": "مشکلی پیش آمد",
+  "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
+  "Error details": "جزئیات خطا",
   "a11y": {
     "skipToMainContent": "رفتن به محتوای اصلی",
     "loading": "در حال بارگذاری...",

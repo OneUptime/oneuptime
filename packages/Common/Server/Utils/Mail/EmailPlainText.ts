@@ -17,7 +17,8 @@ import { EMAIL_TRUNCATED_TEXT_NOTE } from "./EmailSize";
  *
  *   - paragraphs, headings, list items, rows and line breaks on lines of
  *     their own, a blank line between blocks;
- *   - a detail card's label and its value on one line, "Severity: Critical";
+ *   - a detail card's or a stat tile's label and its value on one line,
+ *     "Severity: Critical", "Downtime: 21m";
  *   - a data table (one with header cells) a row a line, its cells parted by
  *     " | "; a table that only lays the email out, its cells by a space;
  *   - a link's words, then its address in brackets - once, when the words
@@ -259,11 +260,15 @@ const READ_ATTRIBUTES: ReadonlySet<string> = new Set<string>([
 ]);
 
 /*
- * A detail card's label (Partials/DetailBoxField): its value follows on the
- * same line - "Severity: Critical" - as a text email writes it. A label
- * written without its colon (the status page emails' "Severity") gets one.
+ * A label whose value follows on the same line - "Severity: Critical" - as
+ * a text email writes it: a detail card's (Partials/DetailBoxField), and a
+ * stat tile's ("Downtime: 21m", the uptime report). A label written without
+ * its colon (the status page emails' "Severity") gets one.
  */
-const LABEL_CLASS: string = "st-DetailCard-label";
+const LABEL_CLASSES: ReadonlyArray<string> = [
+  "st-DetailCard-label",
+  "st-Stat-label",
+];
 
 // A label's last character after which it takes a colon: a word's.
 const WORD_ENDING: RegExp = /[\p{L}\p{N})\]"'\u{2019}\u{201D}]/u;
@@ -281,6 +286,13 @@ const hasClass: (tag: StartTag, className: string) => boolean = (
     .some((name: string): boolean => {
       return name.trim() === className;
     });
+};
+
+// Whether an element is a label whose value follows on its line.
+const isLabelTag: (tag: StartTag) => boolean = (tag: StartTag): boolean => {
+  return LABEL_CLASSES.some((className: string): boolean => {
+    return hasClass(tag, className);
+  });
 };
 
 /*
@@ -858,7 +870,7 @@ export default class EmailPlainText {
           continue;
         }
 
-        if (hasClass(tag, LABEL_CLASS)) {
+        if (isLabelTag(tag)) {
           // A detail card's rows are lines, label and value on each.
           breakLine(1);
         } else if (PARAGRAPHS.has(tag.name)) {
@@ -916,7 +928,7 @@ export default class EmailPlainText {
         hasCell: false,
         isDataTable: false,
         isDataCell: isDataCell,
-        isLabel: !hidden && hasClass(tag, LABEL_CLASS),
+        isLabel: !hidden && isLabelTag(tag),
       };
 
       open.push(element);

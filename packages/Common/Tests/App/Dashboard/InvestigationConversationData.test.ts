@@ -831,6 +831,100 @@ describe("what the conversation suggests for where the record stands", () => {
   });
 });
 
+/*
+ * OneUptime AI acts within the permissions of the person who asks it. A
+ * reader who may not change the record's state - its header's Acknowledge
+ * is locked for them, as on a private incident whose owning team of theirs
+ * may only view it (block 33) - used to be offered "Acknowledge this
+ * incident" all the same, a request the AI could only refuse. The chip
+ * follows the header's gate; the questions do not, since anyone may ask.
+ */
+describe("what the conversation offers to do, by what the reader may do", () => {
+  function labelsOf(prompts: Array<SuggestedPrompt>): Array<string> {
+    return prompts.map((prompt: SuggestedPrompt): string => {
+      return prompt.label;
+    });
+  }
+
+  test("a reader who may not change its state is not asked to have OneUptime AI acknowledge it", () => {
+    for (const subjectType of ["incident", "alert"] as Array<
+      "incident" | "alert"
+    >) {
+      for (const stage of [...STAGES, undefined]) {
+        for (const standing of [EventStanding.Open, undefined]) {
+          const prompts: Array<SuggestedPrompt> = getSuggestedPrompts(
+            subjectType,
+            stage,
+            standing,
+            false,
+          );
+
+          expect(
+            prompts.some((prompt: SuggestedPrompt): boolean => {
+              return prompt.isAction === true;
+            }),
+          ).toBe(false);
+          // Every question is still asked, in its place.
+          expect(prompts).toEqual(
+            getSuggestedPrompts(subjectType, stage, standing).filter(
+              (prompt: SuggestedPrompt): boolean => {
+                return prompt.isAction !== true;
+              },
+            ),
+          );
+        }
+      }
+    }
+
+    expect(
+      labelsOf(getSuggestedPrompts("incident", "reported", undefined, false)),
+    ).toEqual([
+      "What should I do right now?",
+      "What changed just before this?",
+      "Is anything else affected?",
+      "Draft a status update",
+    ]);
+  });
+
+  test("a reader who may is asked, as when it is not known", () => {
+    for (const subjectType of ["incident", "alert"] as Array<
+      "incident" | "alert"
+    >) {
+      expect(
+        getSuggestedPrompts(subjectType, "reported", EventStanding.Open, true),
+      ).toEqual(
+        getSuggestedPrompts(subjectType, "reported", EventStanding.Open),
+      );
+    }
+
+    expect(
+      labelsOf(
+        getSuggestedPrompts("alert", "reported", EventStanding.Open, true),
+      ).pop(),
+    ).toBe("Acknowledge this alert");
+  });
+
+  test("what is acknowledged or resolved is not asked to be acknowledged, whatever the reader may do", () => {
+    for (const standing of [
+      EventStanding.Acknowledged,
+      EventStanding.Resolved,
+    ]) {
+      for (const mayChangeState of [true, false, undefined]) {
+        expect(
+          getSuggestedPrompts(
+            "incident",
+            "reported",
+            standing,
+            mayChangeState,
+          ).some((prompt: SuggestedPrompt): boolean => {
+            return prompt.isAction === true;
+          }),
+        ).toBe(false);
+      }
+    }
+  });
+});
+
 describe("describeConversation", () => {
   test("says 'follow-up' only under a report", () => {
     expect(describeConversation("incident", "reported")).toBe(

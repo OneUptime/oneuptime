@@ -44,6 +44,7 @@ import { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Butto
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import TeamsAvailableModal from "./TeamsAvailableModal";
 import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
+import { getMicrosoftTeamsAppLink } from "./MicrosoftTeamsAppLink";
 import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";
 import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -119,16 +120,8 @@ export const TEAMS_NOT_CONNECTED_TO_PROJECT_DESCRIPTION: string =
     "A project admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
   );
 
-/*
- * The OneUptime app in Microsoft Teams: its install dialog, or the app once
- * added. The app's id is the bot's (the manifest's `id`), on OneUptime
- * Cloud and on a self-hosted server alike.
- */
-export const getMicrosoftTeamsAppLink: (clientId: string) => string = (
-  clientId: string,
-): string => {
-  return `https://teams.microsoft.com/l/app/${encodeURIComponent(clientId)}`;
-};
+// The OneUptime app in the server's Microsoft Teams (MicrosoftTeamsAppLink).
+export { getMicrosoftTeamsAppLink };
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -1009,8 +1002,7 @@ The zip file contains the app manifest and required icons for Teams installation
                   icon: IconProp.ExternalLink,
                   onClick: () => {
                     window.open(
-                      "https://teams.microsoft.com/l/app/" +
-                        MicrosoftTeamsAppClientId,
+                      getMicrosoftTeamsAppLink(MicrosoftTeamsAppClientId || ""),
                       "_blank",
                     );
                   },

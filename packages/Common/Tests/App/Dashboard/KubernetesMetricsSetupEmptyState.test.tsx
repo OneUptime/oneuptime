@@ -54,6 +54,7 @@ import KubernetesMetricsSetupEmptyState, {
 import {
   getAllKubernetesMetricsSetups,
   getKubernetesMetricsSetupCommand,
+  getOpenShiftKubernetesMetricsSetups,
   KubernetesMetricsSetup,
   KubernetesMetricsSource,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesMetricsSetup";
@@ -80,12 +81,17 @@ function readLocale(code: string): Record<string, string> {
 
 function renderHint(
   source: KubernetesMetricsSource,
-  props: { isChecking?: boolean; onCheckAgain?: () => void } = {},
+  props: {
+    isChecking?: boolean;
+    onCheckAgain?: () => void;
+    clusterProvider?: string | null | undefined;
+  } = {},
 ): HTMLElement {
   render(
     <KubernetesMetricsSetupEmptyState
       source={source}
       clusterName={CLUSTER}
+      clusterProvider={props.clusterProvider}
       isChecking={props.isChecking || false}
       onCheckAgain={props.onCheckAgain || (() => {})}
     />,
@@ -241,6 +247,140 @@ describe("the actions", () => {
       ];
       expect(route.toString()).toBe(docsRoute);
       expect(options).toEqual({ openInNewTab: true });
+    },
+  );
+});
+
+describe("on an OpenShift cluster", () => {
+  const OPENSHIFT: string = "OpenShift";
+
+  test.each([
+    [KubernetesMetricsSource.Scheduler, "scheduler"],
+    [KubernetesMetricsSource.ControllerManager, "controller manager"],
+  ])(
+    "%s: turning it on is enough, so it asks for no address",
+    (source: KubernetesMetricsSource, name: string) => {
+      const hint: HTMLElement = renderHint(source, {
+        clusterProvider: OPENSHIFT,
+      });
+
+      expect(codes(hint)).toEqual(["controlPlane.enabled"]);
+      expect(hint).toHaveTextContent(
+        `The agent then finds every ${name} on OpenShift by itself and reads each one.`,
+      );
+      expect(hint.textContent).not.toContain("endpoints");
+      expect(hint.textContent).not.toContain("EKS");
+      expect(within(hint).getByTestId(`${SETUP}-command`)).toHaveTextContent(
+        "--set controlPlane.enabled=true",
+        {
+          normalizeWhitespace: true,
+        },
+      );
+    },
+  );
+
+  test("etcd: names the Secret, and the commands that make it, before the upgrade", () => {
+    const hint: HTMLElement = renderHint(KubernetesMetricsSource.Etcd, {
+      clusterProvider: OPENSHIFT,
+    });
+    const command: string = within(hint).getByTestId(`${SETUP}-command`)
+      .textContent as string;
+
+    expect(codes(hint)).toEqual([
+      "controlPlane.enabled",
+      "controlPlane.etcd.clientCertSecret",
+    ]);
+    expect(hint.textContent).not.toContain("endpoints");
+    expect(command.indexOf("oc extract secret/etcd-metric-client")).toBe(0);
+    expect(command.indexOf("oc create secret generic")).toBeLessThan(
+      command.indexOf("helm upgrade"),
+    );
+    expect(command).toContain(
+      "--set controlPlane.etcd.clientCertSecret=etcd-client-cert",
+    );
+  });
+
+  test.each([KubernetesMetricsSource.Scheduler, KubernetesMetricsSource.Etcd])(
+    "%s: says a hosted control plane stays empty",
+    (source: KubernetesMetricsSource) => {
+      const hint: HTMLElement = renderHint(source, {
+        clusterProvider: OPENSHIFT,
+      });
+
+      expect(hint).toHaveTextContent(
+        "A hosted control plane, such as ROSA with HCP",
+      );
+      expect(hint).toHaveTextContent("so this stays empty there");
+    },
+  );
+
+  test("the API server's hint is the same as anywhere", () => {
+    const anywhere: HTMLElement = renderHint(KubernetesMetricsSource.ApiServer);
+    const text: string = anywhere.textContent as string;
+
+    cleanup();
+
+    expect(
+      renderHint(KubernetesMetricsSource.ApiServer, {
+        clusterProvider: OPENSHIFT,
+      }).textContent,
+    ).toBe(text);
+  });
+
+  test.each([undefined, null, "", "unknown", "EKS", "GKE"])(
+    "a cluster whose provider is %j keeps the hint that lists addresses",
+    (clusterProvider: string | null | undefined) => {
+      const hint: HTMLElement = renderHint(KubernetesMetricsSource.Scheduler, {
+        clusterProvider: clusterProvider,
+      });
+
+      expect(codes(hint)).toEqual([
+        "controlPlane.enabled",
+        "controlPlane.scheduler.endpoints",
+      ]);
+      expect(hint).toHaveTextContent(
+        "Managed clusters such as EKS, GKE and AKS",
+      );
+    },
+  );
+
+  test.each([
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ])(
+    "%s: every OpenShift hint reads in the locale, with its values as code",
+    (locale: string) => {
+      dictionary = readLocale(locale);
+
+      for (const setup of getOpenShiftKubernetesMetricsSetups()) {
+        const hint: HTMLElement = renderHint(setup.source, {
+          clusterProvider: OPENSHIFT,
+        });
+
+        expect(dictionary[setup.description]).toBeDefined();
+        expect(dictionary[setup.description]).not.toBe(setup.description);
+        expect(codes(hint).sort()).toEqual(expectedCodes(setup).sort());
+        expect(hint.textContent).not.toContain("{{");
+        // A hosted control plane's name stays as Red Hat writes it.
+        expect(dictionary[setup.description]).toContain("ROSA");
+        expect(dictionary[setup.description]).toContain("HCP");
+
+        cleanup();
+      }
     },
   );
 });

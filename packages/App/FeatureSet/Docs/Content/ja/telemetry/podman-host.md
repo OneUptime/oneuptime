@@ -232,7 +232,7 @@ podman compose down
 
 ## AI エージェント
 
-上のコマンドと Compose ファイル、Podman エージェントの `install.sh`、そして [PodmanAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) にある `docker-compose.yml` は、どれも **Podman AI エージェント** を実行します。これは 2 つ目のコンテナ `oneuptime-podman-ai-agent` (イメージは `oneuptime/resource-ai-agent:release`) で、OneUptime AI がこのホストのインシデントやアラートを調査する際に求める読み取り専用のコマンドを、Podman の Docker 互換 API に対して `docker` CLI で実行し (`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`)、許可した場合に限り、指定したコンテナの再起動などの修正を適用します。Collector と同じ `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN`、`PODMAN_HOST_NAME` を読み取るため、まさにこのホストを担当し、OneUptime ではホストの **AI エージェント** ページに表示されます。
+上のコマンドと Compose ファイル、Podman エージェントの [`install.sh`](https://oneuptime.com/install/podman-agent)、そして [`docker-compose.yml`](https://oneuptime.com/install/podman-agent/docker-compose.yml) は、どれも **Podman AI エージェント** を実行します。これは 2 つ目のコンテナ `oneuptime-podman-ai-agent` (イメージは `oneuptime/resource-ai-agent:release`) で、OneUptime AI がこのホストのインシデントやアラートを調査する際に求める読み取り専用のコマンドを、Podman の Docker 互換 API に対して `docker` CLI で実行し (`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`)、許可した場合に限り、指定したコンテナの再起動などの修正を適用します。Collector と同じ `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN`、`PODMAN_HOST_NAME` を読み取るため、まさにこのホストを担当し、OneUptime ではホストの **AI エージェント** ページに表示されます。
 
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこれを使ってこのホストのインシデントやアラートを調査し、ホストの **概要** にエージェントの状態が表示されます。止めるには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定する (AI エージェントのページの **AI に許可する操作** の下にある **変更** で方法が表示されます) か、エージェントを省きます。
 - `ONEUPTIME_AI_ALLOW_WRITES=true` で起動しない限り、読み取り専用です。`ONEUPTIME_AI_WRITE_TARGETS` (たとえば `web-*,api-*`) で、修正が変更してよいコンテナを制限します。修正の実行方法を指定するには、`ONEUPTIME_AI_FIXES` も付けて起動します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する、AI に許可する操作](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。
@@ -282,6 +282,10 @@ curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost
 
 :::details コンテナの CPU が平らな線になる
 古いエージェントは、`docker_stats` レシーバー自身が計算した CPU 値を送信します。この値には現在の読み取りの 1 つ前の統計値が必要ですが、Podman の Docker 互換 API はそれを送りません。そのためレシーバーは、コンテナが起動してから使ったすべての CPU を、ホストが起動してから使ったすべての CPU で割ります。この線はほとんど動かず負荷にも追従しませんが、`container.cpu.usage.total` は追従します。[エージェントをアップグレードしてください](#エージェントのアップグレード)。2 回目の読み取り以降、各コンテナが 30 秒間隔ごとに使った CPU を送信します。すでに保存された値はそのままです。
+:::
+
+:::details Container Restart Loop が発火しない、または再起動を見逃す
+古いエージェントは `container.restarts.increase` を送信しません。これは各コンテナの前回のサンプル以降の再起動回数で、テンプレートはこれを合計します。[エージェントをアップグレードしてください](#エージェントのアップグレード)。各コンテナの 2 回目のサンプル以降、再起動はすべて数えられます。アップグレード前にこのテンプレートから作成したモニターは、代わりに 1 分ごとに `container.restarts` がどれだけ増えたかを読むため、ループの再起動の約半分を見逃します。そのモニターを削除し、テンプレートからもう一度作成してください。
 :::
 
 :::details メトリクスは届くがコンテナのログが届かない

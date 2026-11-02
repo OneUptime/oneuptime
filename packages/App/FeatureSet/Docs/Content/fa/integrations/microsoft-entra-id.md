@@ -44,7 +44,8 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 1. به **API permissions → Add a permission → Microsoft Graph → Application permissions** بروید، `AuditLog.Read.All` را برگزینید، و **Add permissions** را برگزینید. Microsoft مستند می‌کند که فهرست ورودهایش ممکن است `Directory.Read.All` را هم بخواهد: اگر پس از اعطای رضایت ورودها با `403` رد شدند، آن را اضافه کنید.
 2. برای لاگ ممیزی Microsoft 365، مجوز دومی اضافه کنید: **Add a permission → Office 365 Management APIs → Application permissions**، سپس `ActivityFeed.Read`.
-3. برای مستأجرتان **Grant admin consent for** را برگزینید، و تأیید کنید. وضعیت هر مجوز باید **Granted** باشد: بدون رضایت، هر خواندنی با `403` رد می‌شود.
+3. برای اینکه پلی‌بوک‌ها بتوانند کاربران را غیرفعال، فعال و از حساب خارج کنند ([مهار](/docs/telemetry/security-cases#مهار) را ببینید)، به همین شیوه `User.Read.All`، `User.EnableDisableAccount.All` و `User.RevokeSessions.All` را اضافه کنید. Microsoft فقط به برنامه‌ای که نقش Privileged Authentication Administrator را هم دارد اجازه می‌دهد حساب یک مدیر را تغییر دهد.
+4. برای مستأجرتان **Grant admin consent for** را برگزینید، و تأیید کنید. وضعیت هر مجوز باید **Granted** باشد: بدون رضایت، هر خواندنی با `403` رد می‌شود.
 
 ### ساختن یک رمز کلاینت
 

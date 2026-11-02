@@ -8,7 +8,8 @@ import {
 
 /*
  * Every metric on the Host pages carries a small (i) that explains it: the
- * overview's tiles, charts, Filesystems columns and cached process count;
+ * overview's tiles, charts, Filesystems columns (HostFilesystemsTable, the
+ * product's table the overview draws them in) and cached process count;
  * a process's tiles and charts; a Windows service's and a systemd unit's
  * tiles and timeline; and the metric columns of the three lists.
  *
@@ -62,6 +63,27 @@ function readRaw(file: string): string {
 
 function readCode(file: string): string {
   return squash(stripComments(readRaw(file)));
+}
+
+// The overview's Filesystems, drawn by the product's table (Components/Host).
+const FILESYSTEMS_FILE: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Components",
+  "Host",
+  "HostFilesystemsTable.tsx",
+);
+const FILESYSTEMS_KEYS: Array<HostMetric> = [
+  "filesystemUsedTotal",
+  "filesystemUtilization",
+];
+
+function readFilesystemsCode(): string {
+  return squash(stripComments(fs.readFileSync(FILESYSTEMS_FILE, "utf8")));
 }
 
 function between(source: string, from: string, to: string): string {
@@ -185,8 +207,6 @@ const KEYS_BY_PAGE: Record<string, Array<HostMetric>> = {
     "filesystem",
     "loadAverage",
     "processes",
-    "filesystemUsedTotal",
-    "filesystemUtilization",
     "availabilityChart",
     "cpuChart",
     "memoryChart",
@@ -241,10 +261,21 @@ describe("every Host description is shown, once, on the page it describes", () =
     },
   );
 
+  test("the overview's Filesystems table references exactly its own keys, in column order", () => {
+    const referenced: Array<string> = Array.from(
+      readFilesystemsCode().matchAll(REFERENCE_PATTERN),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(referenced).toEqual(FILESYSTEMS_KEYS);
+  });
+
   test("the pages between them reference every key of the record", () => {
     const all: Array<string> = [
       ...Object.values(KEYS_BY_PAGE).flat(),
       ...HOSTS_LIST_KEYS,
+      ...FILESYSTEMS_KEYS,
     ];
 
     expect([...all].sort()).toEqual(
@@ -364,33 +395,36 @@ describe("Host overview", () => {
   });
 
   test("the Filesystems table explains its two metric columns", () => {
-    const head: string = between(code, "<thead", "</thead>");
     /*
-     * Its columns can be resized, so each header cell is a
-     * ResizableHeaderCell (Common's Table/ColumnResize), which draws the
-     * <th>: a column's (i) sits inside its own cell.
+     * Drawn by the product's table (HostFilesystemsTable): a column's (i)
+     * is its headerTooltip, which the table's header cell draws beside the
+     * column's name - and a phone's card beside the field's.
      */
+    const table: string = readFilesystemsCode();
     const usedTotal: string = between(
-      head,
-      "Used / Total",
-      "</ResizableHeaderCell>",
+      table,
+      'title: "Used / Total",',
+      "getElement:",
     );
     const utilization: string = between(
-      head,
-      "Utilization",
-      "</ResizableHeaderCell>",
+      table,
+      'title: "Utilization",',
+      "getElement:",
     );
 
-    expect(usedTotal).toContain('<InfoTooltip label="Used / Total"');
+    expect(usedTotal).toMatch(HEADER_TOOLTIP_PROPERTY);
     expect(usedTotal).toContain(
-      "text={HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal}",
+      "headerTooltip: HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal,",
     );
-    expect(utilization).toContain('<InfoTooltip label="Utilization"');
     expect(utilization).toContain(
-      "text={HOST_METRIC_DESCRIPTIONS.filesystemUtilization}",
+      "headerTooltip: HOST_METRIC_DESCRIPTIONS.filesystemUtilization,",
     );
     // Mount, Type and Device are names, not metrics.
-    expect(countOf(head, "<InfoTooltip")).toBe(2);
+    expect(countOf(table, "headerTooltip:")).toBe(2);
+
+    // The overview draws the table, and no table of its own.
+    expect(code).toContain("<HostFilesystemsTable");
+    expect(code).not.toContain("<thead");
   });
 
   test("the cached process count carries its caption", () => {

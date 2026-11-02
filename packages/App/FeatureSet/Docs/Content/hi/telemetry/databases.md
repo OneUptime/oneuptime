@@ -300,12 +300,14 @@ Memcached में उपयोगकर्ता नहीं होते: �
 
 ### एजेंट इंस्टॉल करें और शुरू करें
 
+हर OneUptime अपनी रिलीज़ की एजेंट इंस्टॉल स्क्रिप्ट और फ़ाइलें ख़ुद देता है: नीचे दिए कमांड उन्हें `https://oneuptime.com` से डाउनलोड करते हैं, इसलिए सेल्फ़-होस्टेड OneUptime पर इस पते को अपने URL से बदलें। इंस्टॉल स्क्रिप्ट पहले `install.sh` के रूप में सहेजी जाती है, ताकि आप उसे चलाने से पहले पढ़ सकें।
+
 :::tabs
 @tab install.sh
 इंस्टॉल स्क्रिप्ट डाउनलोड करें और उसे उस मशीन पर चलाएँ जो एजेंट को होस्ट करेगी:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ bash install.sh
 
 पासवर्ड में कोई भी अक्षर चल सकता है, सिवाय उन कुछ अक्षरों के जिन्हें SQL Server की कनेक्शन स्ट्रिंग नहीं ले जा सकती ([मॉनिटरिंग उपयोगकर्ता बनाएँ](#मॉनिटरिंग-उपयोगकर्ता-बनाएँ) का SQL Server टैब देखें)। कलेक्टर जिन मानों को पढ़ता है उनके अंदर `$` को एक बार और फैलाता है (`$$` बन जाता है `$` और `${NAME}` कोई दूसरा वेरिएबल बन जाता है), इसलिए स्क्रिप्ट Docker Compose के लिए मानों को उद्धरण चिह्नों में रखने के अलावा `DATABASE_USERNAME` और `DATABASE_PASSWORD` के हर `$` को दोहरा करके लिखती है।
 @tab Docker Compose
-[DatabaseAgent डायरेक्टरी](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) से `docker-compose.yml` और अपने इंजन की कॉन्फ़िग एक फ़ोल्डर में डाउनलोड करें, और कॉन्फ़िग को `otel-collector-config.yaml` के रूप में सहेजें:
+अपने OneUptime से `docker-compose.yml` और अपने इंजन की कॉन्फ़िग एक फ़ोल्डर में डाउनलोड करें, और कॉन्फ़िग को `otel-collector-config.yaml` के रूप में सहेजें:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 उनके बगल में एक `.env` फ़ाइल बनाएँ (`chmod 600 .env`; इसमें एक पासवर्ड है):
@@ -458,7 +460,7 @@ OneUptime Kubernetes एजेंट वाले क्लस्टर मे�
 अपने इंजन की कॉन्फ़िग एक ConfigMap में और सीक्रेट एक Secret में रखें (पासवर्ड में हर `$` को `$$` लिखें; कलेक्टर उसे फैलाता है):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ SQL Server की `sqlserver.*.rate` मेट्रिक्स (बैच अ�
 ### पहले डायग्नोस्टिक स्क्रिप्ट चलाएँ
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

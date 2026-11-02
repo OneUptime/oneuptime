@@ -11,7 +11,10 @@ import {
   ExceptionAIDigest,
   ExceptionDigestKind,
   MAX_DIGEST_EXCEPTIONS,
+  readExceptionAIDigest,
 } from "../../../../Types/Telemetry/ExceptionAIDigest";
+import { JSONObject } from "../../../../Types/JSON";
+import AiAnswerCache from "./AiAnswerCache";
 import AIService, {
   AILogRequest,
   AILogResponse,
@@ -48,6 +51,7 @@ import {
  */
 
 export const EXCEPTION_DIGEST_FEATURE: string = "ExceptionDigest";
+export const EXCEPTION_DIGEST_CACHE_NAMESPACE: string = "exception-ai-digest";
 
 export interface ExceptionDigestResult {
   // Null when nothing is new or regressed: there was nothing to sum up.
@@ -110,6 +114,23 @@ export default class ExceptionDigester {
      */
     await AIService.assertProjectAIEnabled(data.projectId);
 
+    /*
+     * The same exceptions, with the same counts, as the last ask: the same
+     * answer, kept (AiAnswerCache) - asking again spends nothing. A new
+     * occurrence, or a reader who may read other exceptions, is another
+     * key.
+     */
+    const cacheKey: string = ExceptionDigester.getCacheKey({
+      projectId: data.projectId,
+      exceptions,
+    });
+    const cached: ExceptionDigestResult | null =
+      await ExceptionDigester.readCached({ cacheKey, exceptions });
+
+    if (cached) {
+      return cached;
+    }
+
     const request: AILogRequest = {
       projectId: data.projectId,
       feature: EXCEPTION_DIGEST_FEATURE,
@@ -152,10 +173,75 @@ export default class ExceptionDigester {
       );
     }
 
+    const generatedAt: Date = OneUptimeDate.getCurrentDate();
+
+    await AiAnswerCache.set({
+      namespace: EXCEPTION_DIGEST_CACHE_NAMESPACE,
+      key: cacheKey,
+      value: {
+        digest: digest as unknown as JSONObject,
+        generatedAt: generatedAt.toISOString(),
+      },
+      expiresInSeconds: EXCEPTION_DIGEST_WINDOW_HOURS * 60 * 60,
+    });
+
     return {
       digest,
       exceptionCount: exceptions.length,
-      generatedAt: OneUptimeDate.getCurrentDate(),
+      generatedAt,
+      windowHours: EXCEPTION_DIGEST_WINDOW_HOURS,
+    };
+  }
+
+  /*
+   * What a digest is written from: the project, and each exception with
+   * its kind, its occurrence count and when it came back.
+   */
+  public static getCacheKey(data: {
+    projectId: ObjectID;
+    exceptions: Array<DigestException>;
+  }): string {
+    return AiAnswerCache.key([
+      data.projectId.toString(),
+      ...data.exceptions.map((exception: DigestException): string => {
+        return [
+          exception.telemetryExceptionId,
+          exception.kind,
+          String(exception.occurrenceCount),
+          exception.regressedAt
+            ? new Date(exception.regressedAt).toISOString()
+            : "",
+        ].join("|");
+      }),
+    ]);
+  }
+
+  // A kept digest, checked again on the way out, or null.
+  private static async readCached(data: {
+    cacheKey: string;
+    exceptions: Array<DigestException>;
+  }): Promise<ExceptionDigestResult | null> {
+    const cached: JSONObject | null = await AiAnswerCache.get(
+      EXCEPTION_DIGEST_CACHE_NAMESPACE,
+      data.cacheKey,
+    );
+
+    const digest: ExceptionAIDigest | null = cached
+      ? readExceptionAIDigest(cached["digest"])
+      : null;
+
+    if (!cached || !digest) {
+      return null;
+    }
+
+    const generatedAt: Date = new Date(String(cached["generatedAt"] || ""));
+
+    return {
+      digest,
+      exceptionCount: data.exceptions.length,
+      generatedAt: Number.isNaN(generatedAt.getTime())
+        ? OneUptimeDate.getCurrentDate()
+        : generatedAt,
       windowHours: EXCEPTION_DIGEST_WINDOW_HOURS,
     };
   }

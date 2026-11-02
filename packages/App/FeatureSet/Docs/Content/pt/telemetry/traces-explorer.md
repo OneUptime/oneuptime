@@ -60,7 +60,7 @@ Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A b
 
 ### Abrir um span
 
-Clique em uma linha para expandi-la: os atributos dela, e os registros e exceções que ela gravou. Clique em **See full trace** para abrir o traço inteiro.
+Clique em uma linha para expandi-la: os atributos dela, e os registros e exceções que ela gravou. Clique em **Ver traço completo** para abrir o traço inteiro.
 :::
 
 Sua pesquisa, seus chips e o intervalo de tempo ficam no endereço da página, então uma atualização, um favorito ou um link compartilhado abre os mesmos spans.
@@ -81,12 +81,12 @@ Abaixo deles, escolha uma das quatro visualizações:
 
 | Visualização | O que mostra |
 | --- | --- |
-| **Waterfall** | Cada span em uma linha do tempo, aninhado sob o span que o iniciou. Ative **Critical path** para destacar a cadeia de spans que determinou quanto tempo a requisição levou. |
+| **Cascata** | Cada span em uma linha do tempo, aninhado sob o span que o iniciou. Ative **Caminho crítico** para destacar a cadeia de spans que determinou quanto tempo a requisição levou. |
 | **Gráfico de chama** | A mesma árvore em barras empilhadas, em que as barras mais largas levaram mais tempo. |
-| **Service map** | Os serviços por onde a requisição passou e as chamadas entre eles. |
-| **Operations** | Uma linha por serviço e nome de span, com chamadas, erros, tempo próprio e tempo total. Uma operação chamada 10 ou mais vezes a partir de um mesmo span pai é marcada: muitas vezes uma consulta N+1 ou um laço que poderia ser agrupado. |
+| **Mapa de serviços** | Os serviços por onde a requisição passou e as chamadas entre eles. |
+| **Operações** | Uma linha por serviço e nome de span, com chamadas, erros, tempo próprio e tempo total. Uma operação chamada 10 ou mais vezes a partir de um mesmo span pai é marcada: muitas vezes uma consulta N+1 ou um laço que poderia ser agrupado. |
 
-Clique em um span em qualquer visualização para abrir o painel dele, com abas para atributos, eventos, registros, exceções e links, além do perfil ou da chamada de LLM quando ele tiver. Pesquise os spans do traço por nome, ID ou serviço com a caixa de pesquisa ao lado das visualizações (pressione `/`), e ative **Errors only** para manter só os spans que falharam.
+Clique em um span em qualquer visualização para abrir o painel dele, com abas para atributos, eventos, registros, exceções e links, além do perfil ou da chamada de LLM quando ele tiver. Pesquise os spans do traço por nome, ID ou serviço com a caixa de pesquisa ao lado das visualizações (pressione `/`), e ative **Somente erros** para manter só os spans que falharam.
 
 Um traço grande carrega 500 spans por vez. Clique no botão no fim do traço para carregar mais, ou todos.
 
@@ -97,7 +97,7 @@ Um traço grande carrega 500 spans por vez. Clique no botão no fim do traço pa
 
 O gráfico acima da lista mostra o número de spans ao longo do tempo, dividido por status. Escolha outra medida no cabeçalho do gráfico para mostrar o tempo de resposta médio, mediano (P50) ou P95 deles.
 
-Para ir além, mude a lista de **Spans** para **Analytics**. Escolha uma série temporal, uma lista dos principais ou uma tabela; meça contagens de requisições, contagens de erros ou tempos de resposta (média, P50, P90, P95, P99, mínimo ou máximo); e agrupe por nome de span, serviço, status, tipo de span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra de 5 a 100 grupos.
+Para ir além, mude a lista de **Spans** para **Análises**. Escolha uma série temporal, uma lista dos principais ou uma tabela; meça contagens de requisições, contagens de erros ou tempos de resposta (média, P50, P90, P95, P99, mínimo ou máximo); e agrupe por nome de span, serviço, status, tipo de span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra de 5 a 100 grupos.
 
 ## Acompanhar, salvar e compartilhar
 

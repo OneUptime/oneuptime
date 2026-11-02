@@ -518,6 +518,52 @@ describe("PostgreSQL", () => {
     expect(locationOf(result, "public.users.ssn")).toBeUndefined();
   });
 
+  test("describes the columns no detector placed, beside their table's other columns - never a value", async () => {
+    database.tables = [
+      {
+        schema: "public",
+        table: "customers",
+        estimatedRows: 500,
+        columns: [
+          ["kundennr", "text"],
+          ["email", "text"],
+          ["created_at", "text"],
+        ],
+        rows: Array.from({ length: 20 }, (_value: unknown, index: number) => {
+          return {
+            kundennr: `KD-${String(400000 + index * 37)}`,
+            email: `member${index}.lee@acme-corp.com`,
+            created_at: `2026-10-${String(10 + (index % 10))}`,
+          };
+        }),
+      },
+    ];
+
+    const result: ContentScanResult = await sampleDatabase(POSTGRES, options());
+
+    expect(dataTypesAt(result, "public.customers.email")).toEqual([
+      "email-address",
+    ]);
+    expect(result.unplacedFields).toEqual([
+      {
+        location: "public.customers.kundennr",
+        locationKind: DataStoreLocationKind.Column,
+        neighbours: ["email", "created_at"],
+        shapes: [{ shape: "AA-999999", share: 1 }],
+        valueCount: 20,
+        averageLength: 9,
+      },
+    ]);
+    expect(JSON.stringify(result.unplacedFields)).not.toContain("KD-4");
+  });
+
+  test("a password kept as it is, an id and an empty table are not described", async () => {
+    const result: ContentScanResult = await sampleDatabase(POSTGRES, options());
+
+    expect(result.plaintextPasswordFields).toEqual(["public.users.password"]);
+    expect(result.unplacedFields).toEqual([]);
+  });
+
   test("a table that cannot be read is a warning without the password, and the connection is closed", async () => {
     database.failOn = '"public"."users"';
 

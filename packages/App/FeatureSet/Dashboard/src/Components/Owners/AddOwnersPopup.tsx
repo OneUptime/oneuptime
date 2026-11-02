@@ -1,4 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { PermissionGateOptions } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { getOwnersPeoplePickerConfig } from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import {
@@ -214,7 +216,17 @@ const AddOwnersPopup: FunctionComponent<ComponentProps> = (
     return new Set<string>([...props.ownerKeys, ...addedKeys]);
   }, [props.ownerKeys, addedKeys]);
 
-  const access: OwnerKindAccess = getOwnerKindAccess(props.target);
+  /*
+   * On a private record's page, adding owners takes the permission of a
+   * team of the reader's that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(new props.target.ownerUserModelType());
+
+  const access: OwnerKindAccess = getOwnerKindAccess(
+    props.target,
+    privateRecordOptions,
+  );
 
   const onPick: (
     option: PeoplePickerOption,

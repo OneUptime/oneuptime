@@ -36,6 +36,7 @@ import {
   FORM_FOREIGN_PAGE_MESSAGE,
   FORM_SUBMISSION_BODY_MESSAGE,
 } from "Common/Server/API/FormAPI";
+import { getCustomDomainInUseMessage } from "Common/Server/Utils/CustomDomain/CustomDomainConflicts";
 import { getFormSubmissionNote } from "Common/Server/Utils/Form/FormSubmissionNote";
 import MicrosoftTeamsIncidentActions from "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import MicrosoftTeamsOnCallDutyActions from "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
@@ -295,6 +296,8 @@ const PROVIDER_CONSOLES: Array<string> = [
   "Object ID",
   "Users",
   "Accounts in any organizational directory",
+  // The registration a single-tenant Teams meetings app is made with.
+  "Accounts in this organizational directory only",
   "Web",
 ];
 
@@ -452,7 +455,10 @@ const COMPOSED_LABELS: Record<string, Record<string, Array<string | null>>> = {
 const COMPOSED_SEPARATOR: string = " · ";
 
 // A table's create button: the Dashboard draws it from the row's name.
-const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {};
+const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
+  // The form's Custom Domains table, after its model (FormDomain).
+  [SHARING]: ["Create Form Domain"],
+};
 
 // The public form page's labels, by the Accounts locale key it draws them with.
 const ACCOUNTS_LABELS: Record<string, Record<string, string>> = {
@@ -613,6 +619,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Opening a form",
     "Submitting, per address",
     "Submitting, per form",
+    // A form's hourly allowance of files.
+    "Files, per form",
+    // Putting a form on a domain of your own: its three steps.
+    "Add the domain",
+    "Add its CNAME record",
+    "The free SSL certificate is issued automatically",
   ],
 };
 
@@ -669,7 +681,12 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     getFormSubmissionNote({ formName: "Report a Problem" }),
     "Started from the template **Application Outage**.",
   ],
-  [SHARING]: [FORM_FOREIGN_PAGE_MESSAGE, FORM_SUBMISSION_BODY_MESSAGE],
+  [SHARING]: [
+    FORM_FOREIGN_PAGE_MESSAGE,
+    FORM_SUBMISSION_BODY_MESSAGE,
+    // A custom domain whose name a status page, a dashboard or a form has.
+    getCustomDomainInUseMessage("report.acme.com"),
+  ],
 };
 
 /*
@@ -694,6 +711,8 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
     { key: FormMessage.TooManyRequests },
     { key: FormMessage.TooManySubmissions },
     { key: FormMessage.FormBusy },
+    // A form's hourly allowance of files, used up.
+    { key: FormMessage.FilesBusy },
     { key: FormMessage.SubmissionsUnavailable },
     { key: FormMessage.CaptchaFailed },
     { key: "form.successTitle" },
@@ -715,7 +734,11 @@ const NUMBERS: Record<string, Array<string>> = {
   // And the largest transcript file Add transcript takes, in MB.
   [VIDEO]: ["40", "30", "5"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
-  [SHARING]: ["429", "503"],
+  /*
+   * And, for a form's custom domains, how often they are checked, how often
+   * a certificate may be reissued, and the port Let's Encrypt checks.
+   */
+  [SHARING]: ["429", "503", "15", "24", "80"],
 };
 
 // The products a menu path starts with, by their Products menu key.
@@ -941,6 +964,15 @@ function composedPattern(
 }
 
 function isKeptInEnglish(page: string, name: string): boolean {
+  /*
+   * A table's create button is the button the reader clicks, drawn in
+   * their language, even where a permission has the same title ("Create
+   * Form Domain"): a page that names the button never means the permission.
+   */
+  if (listed(TABLE_CREATE_BUTTONS, page).includes(name)) {
+    return false;
+  }
+
   return (
     listed(KEPT_IN_ENGLISH, page).includes(name) ||
     listed(SHOWN_IN_ENGLISH, page).includes(name) ||

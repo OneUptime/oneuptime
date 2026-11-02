@@ -16,6 +16,7 @@ import StorageSystem, {
   StorageSystemUtil,
 } from "../../../Types/StorageArray/StorageSystem";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -443,6 +444,20 @@ describe("StorageArrayMetricCatalog - every entry", () => {
         expect(pinned(metric)["dimension"]).toBeDefined();
       }
     }
+  });
+
+  test("pod replication bandwidth pins direction=total, so a direction is never read as the whole", () => {
+    /*
+     * One series per replication type and per direction: from_remote,
+     * to_remote, and their total. Unpinned, the Max of the twelve was
+     * sometimes one direction and sometimes the total.
+     */
+    const bandwidth: StorageArrayMetricDefinition | undefined =
+      getStorageArrayMetricById("purefa-pod-replication-bandwidth");
+
+    expect(bandwidth).toBeDefined();
+    expect(pinned(bandwidth!)).toEqual({ direction: "total" });
+    expect(bandwidth!.defaultAggregation).toBe(MetricsAggregationType.Max);
   });
 
   test("FlashBlade array performance pins protocol=all, so protocols are never double counted", () => {

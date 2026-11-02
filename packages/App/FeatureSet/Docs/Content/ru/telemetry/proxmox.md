@@ -5,6 +5,7 @@
 :::cards
 - [Выбор способа подключения](#выбор-способа-подключения): Агент или встроенная отправка Proxmox VE 9.
 - [Установка агента](#установка-агента): Токен API, затем скрипт установки или Docker Compose.
+- [Результаты резервного копирования](#отправка-уведомлений-proxmox-ve): Собственные уведомления Proxmox VE, отправленные двумя командами.
 - [Встроенная отправка](#альтернатива-без-установки-встроенная-отправка-opentelemetry-в-proxmox-ve-9): Proxmox VE 9 сам отправляет свои метрики.
 - [Устранение неполадок](#устранение-неполадок): Диагностический скрипт и типичные проблемы.
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | Что установить | Docker Compose на одной машине | Ничего: сервер метрик в веб-интерфейсе Proxmox |
 | Узлы, гости и хранилища | Да | Да |
 | Состояние HA, автозапуск при загрузке, покрытие резервным копированием и репликация | Да | Нет |
+| Результаты резервного копирования, изолированные узлы и сбои репликации из уведомлений Proxmox VE (8.3 или новее) | Да | Да |
 | ИИ-агент Proxmox | Да | Нет |
 
-Шаблонам **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** и **Replication Failing** нужен агент. Используйте для кластера что-то одно: при использовании обоих каждый ресурс отчитывается дважды.
+Шаблонам **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** и **Replication Failing** нужен агент. Используйте для кластера что-то одно: при использовании обоих каждый ресурс отчитывается дважды.
 
 ## Перед началом
 
@@ -78,23 +80,25 @@ pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
 
 ### Установите и запустите агент
 
+Каждый OneUptime раздаёт скрипт установки и файлы агента своего релиза: команды ниже скачивают их с `https://oneuptime.com`, поэтому на самостоятельно размещённом OneUptime замените этот адрес на свой URL. Скрипт установки сначала сохраняется в файл `install.sh`, чтобы вы могли прочитать его перед запуском.
+
 :::tabs
 @tab install.sh
 Скачайте скрипт установки и запустите его на машине, где будет работать агент:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Скрипт спрашивает ваш URL OneUptime, ключ приёма, имя кластера, хост API Proxmox VE, запускать ли встроенный экспортёр, идентификатор и секрет токена, а также адрес каждого узла (скрипт предлагает список самого кластера, как только у него есть токен) — и может ли [ИИ-агент](#ии-агент) применять исправления, а если да, то отдельный токен для этого и гостей, которых он никогда не должен менять. Он устанавливает агент в `/opt/oneuptime-proxmox-agent`, записывает файл `.env` с правами `0600` и запускает агент через Docker Compose. При повторном запуске скрипт использует всё из этого `.env`, а не спрашивает снова, — так и выполняется [обновление агента](#обновление-агента).
 @tab Docker Compose
-Скачайте `docker-compose.yml` и `otel-collector-config.yaml` из [каталога ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) в новую папку:
+Скачайте `docker-compose.yml` и `otel-collector-config.yaml` с вашего OneUptime в новую папку:
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 Создайте рядом с ними файл `.env`. В нём хранится секрет токена, поэтому закройте к нему доступ командой `chmod 600 .env`:
@@ -169,7 +173,7 @@ Everything is ready. Begin running and processing data.
 | Гость (ВМ или LXC) | `pve_guest_info`, а также ряды CPU, памяти и сети с идентификаторами `qemu/*` и `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Хранилище | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Покрытие резервным копированием | `pve_not_backed_up_total` (гости, которых не охватывает ни одно задание резервного копирования; один ряд уровня кластера, без метки `id`) и `pve_not_backed_up_info` (один ряд на каждого непокрытого гостя, с его `id`). Покрытие означает, что хотя бы одно задание выбирает гостя: выполнялось ли резервное копирование недавно и было ли успешным, экспортёр не сообщает. |
+| Покрытие резервным копированием | `pve_not_backed_up_total` (гости, которых не охватывает ни одно задание резервного копирования; один ряд уровня кластера, `id` `cluster/<name>`) и `pve_not_backed_up_info` (один ряд на каждого непокрытого гостя, с его `id`). Покрытие означает, что хотя бы одно задание выбирает гостя: выполнялось ли резервное копирование недавно и было ли успешным, экспортёр не сообщает. |
 | Запуск при загрузке | `pve_onboot_status`, по одному ряду на гостя: 1, когда гость настроен на запуск при загрузке. **Guest Down** оповещает только об этих гостях. |
 | Репликация | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info` для каждого задания репликации хранилища. Их метка `id` — это идентификатор задания (например, `100-0`), а не ресурс. |
 
@@ -182,6 +186,44 @@ Everything is ready. Begin running and processing data.
 | `pve.id` | Всё после первого `/` в `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 Исходная метка `id` сохраняется как есть.
+
+## Отправка уведомлений Proxmox VE
+
+pve-exporter сообщает, какие гости входят в задание резервного копирования, но не то, как прошло копирование. Об этом сообщает сам Proxmox VE в своих уведомлениях: результат каждого задания резервного копирования, изолированный узел, сбой репликации, ожидающие обновления. В Proxmox VE 8.3 и новее две команды, выполненные от root на любом узле, отправляют каждое уведомление в OneUptime как лог кластера, без какой-либо установки, вместе с агентом или встроенной отправкой. Руководство по настройке кластера показывает их с уже подставленными вашим URL, ключом и именем кластера.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+Первая команда добавляет цель webhook с именем `oneuptime`, которая хранит ключ и имя кластера в своих секретах; вторая добавляет matcher без правил, который Proxmox VE понимает как все уведомления. Используйте имя кластера так, как его показывает OneUptime: `PROXMOX_CLUSTER_NAME` агента или, при встроенной отправке, собственное имя кластера Proxmox.
+
+Каждое уведомление приходит с такими атрибутами:
+
+| Атрибут | Значение |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (задание резервного копирования), `replication`, `fencing`, `package-updates` или `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` или `unknown` |
+| `pve.notification.title` | Заголовок уведомления |
+| `pve.notification.job_id` | Идентификатор задания резервного копирования, для задания резервного копирования |
+| `proxmox.node.name` | Узел, который его отправил |
+
+Из уведомления задания резервного копирования OneUptime записывает последнюю резервную копию каждого гостя: успешна ли она, когда завершилась, какого она размера и сколько длилась. Её показывает страница гостя, список **Гостевые системы** выводит её в столбце «Резервная копия», **Обзор** кластера подсчитывает результаты, а неудачная остаётся в **Требует внимания**, пока более поздняя резервная копия этого гостя не пройдёт успешно. Оповещения **Backup Job Failed** и **Node Fenced** читают те же логи.
+
+Чтобы перестать их отправлять:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## Необязательно — отправка логов служб Proxmox
 
@@ -267,7 +309,7 @@ Proxmox VE 9.0 и новее поставляется с сервером мет
 
 - Отдельный хост или весь кластер, замолкший разом: сообщить об этом некому, поэтому оповещения по узлам не срабатывают. Вместо этого кластер переходит в состояние **Отключено**, как при остановке агента.
 - Об узле, молчащем дольше 7 дней, больше не сообщается: его оповещение закрывается, и он исчезает со страницы узлов. В самостоятельно размещённом OneUptime эти 7 дней меняются через `PVE_SILENT_NODE_RETENTION_HOURS`.
-- Узел, который вы выводите из кластера, выглядит так же, как вышедший из строя. Используйте **Remove Node** на его странице: он исчезнет, а его оповещение закроется. Иначе он остаётся Не в сети до 7 дней.
+- Узел, который вы выводите из кластера, выглядит так же, как вышедший из строя. Используйте **Удалить узел** на его странице: он исчезнет, а его оповещение закроется. Иначе он остаётся Не в сети до 7 дней.
 - Гости и хранилища узла: как Не в сети сохраняется только сам узел. Его ВМ, контейнеры и хранилища исчезают со своих страниц примерно через 15 минут после его последнего отчёта, а гости, которых HA перезапускает на другом узле, возвращаются уже под этим узлом.
 
 После сбоя приёма в OneUptime о недавно замолчавшем узле сообщается только после того, как один из остальных снова отправляет данные в течение 2 минут, поэтому сам сбой никогда не поднимает тревогу по каждому узлу. Узел, который уже был Не в сети, остаётся Не в сети во время короткого сбоя и сохраняет своё оповещение; после сбоя длиннее 5 минут о нём снова сообщается, как только остальные отправляют данные в течение 2 минут.
@@ -282,16 +324,18 @@ Proxmox VE 9.0 и новее поставляется с сервером мет
 | --- | --- |
 | Состояние HA | Не отправляется: шаблону **HA Resource in Error State** нужен агент. |
 | Флаг автозапуска при загрузке | Не отправляется: **Guest Down**, который поднимает тревогу только для гостей с автозапуском при загрузке, нужен агент. |
-| Покрытие резервным копированием и репликация | Не отправляются: **Guest Not Backed Up** и **Replication Failing** нужен агент. |
+| Покрытие резервным копированием и репликация | Не отправляются: **Guest Not Backed Up**, **Backup Running Too Long** и **Replication Failing** нужен агент. |
 
 Если это нужно, запустите вместо этого агент и удалите сервер метрик: при использовании обоих каждый ресурс отчитывается дважды.
+
+Результаты резервного копирования, изолированные узлы и сбои репликации всё равно попадают в OneUptime: [отправляйте уведомления Proxmox VE](#отправка-уведомлений-proxmox-ve), это работает и со встроенной отправкой.
 
 ## Запуск как службы systemd
 
 Чтобы агент запускался вместе с машиной и перезапускался при сбое, установите его юнит systemd. Он предполагает, что агент находится в `/opt/oneuptime-proxmox-agent`, куда его помещает скрипт установки:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 Образ коллектора закреплён в `docker-compose.yml`, а его конфигурация — это файл рядом, поэтому одно лишь скачивание образов не продвигает агента вперёд. Снова запустите `install.sh`: он использует все значения из вашего существующего `.env` (ничего не спрашивается повторно), обновляет `docker-compose.yml` и `otel-collector-config.yaml` (изменённый вами файл сохраняется как `<file>.bak.<timestamp>`), скачивает образы и пересоздаёт агента, чтобы коллектор прочитал новую конфигурацию. `.env`, созданный до появления `PVE_NODES`, по-прежнему читает только `PVE_HOST`, и скрипт называет узлы, которые в него нужно добавить.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Устанавливали через Docker Compose? В папке агента снова скачайте оба файла (и повторите изменения, которые в них вносили), затем скачайте образы и пересоздайте агента:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ docker compose down
 ## Устранение неполадок
 
 :::details Сначала запустите диагностический скрипт
-Агент поставляется со скриптом [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh), который проверяет всю цепочку: среду выполнения контейнеров, опрос экспортёра, имя кластера, проставленное на каждую метрику, формат токена, собственные метрики коллектора и то, принимает ли OneUptime ключ приёма. Последняя проверка важнее всего. OneUptime отклоняет неверный ключ с `401` (`422` для отключённого ключа или ключа браузера), и коллектор считает обе ошибки постоянными: он отбрасывает пакет и пишет одну ошибку `Exporting failed`, которую легко пропустить, пока контейнер остаётся исправным. Скрипт запрашивает `GET <url>/otlp/v1/validate` изнутри сети агента, чтобы получить прямой ответ `200` (действителен) или `401` (недействителен), а на старых серверах переходит на `POST /fluentd/v1/logs`.
+Агент поставляется со скриптом [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh), который проверяет всю цепочку: среду выполнения контейнеров, опрос экспортёра, имя кластера, проставленное на каждую метрику, формат токена, собственные метрики коллектора и то, принимает ли OneUptime ключ приёма. Последняя проверка важнее всего. OneUptime отклоняет неверный ключ с `401` (`422` для отключённого ключа или ключа браузера), и коллектор считает обе ошибки постоянными: он отбрасывает пакет и пишет одну ошибку `Exporting failed`, которую легко пропустить, пока контейнер остаётся исправным. Скрипт запрашивает `GET <url>/otlp/v1/validate` изнутри сети агента, чтобы получить прямой ответ `200` (действителен) или `401` (недействителен), а на старых серверах переходит на `POST /fluentd/v1/logs`.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -373,11 +417,18 @@ OneUptime регистрирует кластер Proxmox по его `proxmox.c
 :::
 
 :::details При встроенной отправке узел отображается как Не в сети
-Он перестал отправлять отчёты: выключенный узел, зависший `pvestatd`, остановленный `pmxcfs` или оборванная сеть до OneUptime выглядят одинаково. Его следующий отчёт возвращает его. Если вы вывели узел из кластера, используйте **Remove Node** на его странице; иначе он остаётся Не в сети до 7 дней. См. [Когда узел перестаёт отправлять отчёты](#когда-узел-перестаёт-отправлять-отчёты).
+Он перестал отправлять отчёты: выключенный узел, зависший `pvestatd`, остановленный `pmxcfs` или оборванная сеть до OneUptime выглядят одинаково. Его следующий отчёт возвращает его. Если вы вывели узел из кластера, используйте **Удалить узел** на его странице; иначе он остаётся Не в сети до 7 дней. См. [Когда узел перестаёт отправлять отчёты](#когда-узел-перестаёт-отправлять-отчёты).
 :::
 
 :::details При встроенной отправке оповещения Guest Down, HA или резервного копирования никогда не срабатывают
 Встроенная отправка не передаёт состояние HA, автозапуск при загрузке, покрытие резервным копированием и репликацию. Для них [установите агент](#установка-агента) и удалите сервер метрик: при использовании обоих каждый ресурс отчитывается дважды.
+:::
+
+:::details Результаты резервного копирования не появляются
+1. Проверьте выпуск Proxmox VE: целям webhook нужна версия 8.3 или новее (`pveversion`).
+2. Проверьте, что цель и её matcher существуют: `pvesh get /cluster/notifications/endpoints/webhook` и `pvesh get /cluster/notifications/matchers` оба показывают `oneuptime`.
+3. Отправьте тестовое уведомление командой `pvesh create /cluster/notifications/targets/oneuptime/test`. Оно появляется на странице кластера **Журналы** в течение минуты; если нет, ключ или URL в цели неверны.
+4. Проверьте имя кластера в секретах цели: имя, которого OneUptime не знает, регистрирует второй кластер.
 :::
 
 ## Дальнейшие шаги

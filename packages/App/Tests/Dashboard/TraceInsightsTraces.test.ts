@@ -167,6 +167,7 @@ describe("summarizeTrace", () => {
     expect(summary).toEqual({
       traceId: "trace-a",
       name: "POST /api/checkout",
+      isNameless: false,
       primaryEntityId: "svc-gateway",
       startTime: new Date(BASE),
       statusCode: SpanStatus.Unset,
@@ -370,6 +371,7 @@ describe("getSlowestTraces", () => {
     return {
       traceId,
       name: traceId,
+      isNameless: false,
       primaryEntityId: "svc",
       startTime: new Date(BASE),
       statusCode: SpanStatus.Unset,

@@ -164,6 +164,22 @@ async function widthOf(locator: Locator): Promise<number> {
   return (await box(locator)).width;
 }
 
+/*
+ * After Reset column widths, a column comes back to the width it had. The
+ * table fits its card again only once the widths are gone (the fit measures
+ * the box after a paint), so for a frame the column is drawn as wide as its
+ * values, and a slower machine reads that frame: 14.0.100's gate run read
+ * Affected Resources 156.75px wider, a frame before it came back. So wait
+ * for it, rather than read it once.
+ */
+async function expectWidthBack(header: Locator, before: number): Promise<void> {
+  await expect
+    .poll(async (): Promise<number> => {
+      return Math.abs((await widthOf(header)) - before);
+    })
+    .toBeLessThanOrEqual(1);
+}
+
 // A pointer's drag of an edge, `by` pixels along the line, in steps.
 async function drag(page: Page, edge: Locator, by: number): Promise<void> {
   const at: Box = await box(edge);
@@ -325,13 +341,21 @@ test.describe("a column's edge in the header", () => {
   });
 });
 
+/*
+ * At 1280px the list gives way to fit the fixture's card, Affected
+ * Resources cut short near its least width (useTableScrollState): where a
+ * column is sized from its whole width, the window is wide enough for
+ * every value whole.
+ */
+const WHOLE_WIDTH: number = 1600;
+
 test.describe("dragging an edge", () => {
   test("makes the column narrower and wider, its values following, and the width is there on the next visit", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, INCIDENTS);
+    await open(page, INCIDENTS, WHOLE_WIDTH);
 
     const header: Locator = headerOf(page, "monitors");
     const before: number = await widthOf(header);
@@ -358,7 +382,7 @@ test.describe("dragging an edge", () => {
     );
 
     // The next visit draws it as it was left.
-    await open(page, INCIDENTS);
+    await open(page, INCIDENTS, WHOLE_WIDTH);
 
     expect(Math.abs((await widthOf(header)) - wider)).toBeLessThanOrEqual(1);
   });
@@ -438,7 +462,7 @@ test.describe("dragging an edge", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, INCIDENTS);
+    await open(page, INCIDENTS, WHOLE_WIDTH);
 
     const edge: Locator = edgeOf(page, "monitors");
     const header: Locator = headerOf(page, "monitors");
@@ -505,7 +529,7 @@ test.describe("Reset column widths", () => {
     await screenshot(page, "card-menu");
     await reset.click();
 
-    expect(Math.abs((await widthOf(header)) - before)).toBeLessThanOrEqual(1);
+    await expectWidthBack(header, before);
     expect(await storedWidths(page, INCIDENTS_KEY)).toBeNull();
   });
 });
@@ -557,7 +581,7 @@ test.describe("a table a page draws itself", () => {
 
     await reset.click();
 
-    expect(Math.abs((await widthOf(header)) - before)).toBeLessThanOrEqual(1);
+    await expectWidthBack(header, before);
     expect(await storedWidths(page, INTERFACES_KEY)).toBeNull();
   });
 });
@@ -837,17 +861,21 @@ test.describe("other readers", () => {
     await open(page, `${INCIDENTS}?lang=de`, 1024);
 
     /*
-     * Severity: at 1024px the rows scroll sideways, and the Actions column
-     * stuck at the card's edge covers Affected Resources' end until they do.
+     * State: at 1024px the list folds to fit its card (TableFit) - the
+     * severity under the state, the duration under when it was declared,
+     * the labels and owners under the title - so Severity is no column of
+     * its own to size.
      */
-    const edge: Locator = edgeOf(page, "incidentSeverity");
+    await expect(edgeOf(page, "incidentSeverity")).toHaveCount(0);
+
+    const edge: Locator = edgeOf(page, "currentIncidentState");
 
     await expect(edge).toHaveAttribute(
       "title",
       "Zum Ändern der Breite ziehen. Zum Anpassen an den Inhalt doppelklicken.",
     );
 
-    const header: Locator = headerOf(page, "incidentSeverity");
+    const header: Locator = headerOf(page, "currentIncidentState");
     const before: number = await widthOf(header);
 
     await drag(page, edge, 80);
@@ -939,8 +967,24 @@ test.describe("on a tablet", () => {
     await page.goto(INCIDENTS);
     await expect(page.locator("table tbody tr").first()).toBeVisible();
 
-    // Severity's: Affected Resources' end is under the stuck Actions column.
-    const edge: Locator = edgeOf(page, "incidentSeverity");
+    /*
+     * State's: at 1024px the list is folded, its severity under its state -
+     * once it is measured in its font, with its rules (useTableScrollState):
+     * where the edge is is read after that.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
+    await expect(edgeOf(page, "incidentSeverity")).toHaveCount(0);
+    await page.evaluate(async (): Promise<void> => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+    });
+
+    const edge: Locator = edgeOf(page, "currentIncidentState");
 
     // No pointer to hover with: each edge is drawn, and takes 24px.
     await expect(edge.locator("span").first()).toHaveCSS(
@@ -949,7 +993,7 @@ test.describe("on a tablet", () => {
     );
     expect(Math.round(await widthOf(edge))).toBe(24);
 
-    const header: Locator = headerOf(page, "incidentSeverity");
+    const header: Locator = headerOf(page, "currentIncidentState");
     const before: number = await widthOf(header);
     const at: Box = await box(edge);
     const touch: CDPSession = await context.newCDPSession(page);

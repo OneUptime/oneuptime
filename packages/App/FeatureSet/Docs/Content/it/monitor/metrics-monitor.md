@@ -131,7 +131,16 @@ Questi monitor valutano sempre il **Metric Value**: il valore aggregato della qu
 | **Nessun dato** | assente: la query non ha inviato nulla nella finestra |
 | **Dati presenti** | presente: la query ha inviato qualcosa nella finestra |
 
-Le condizioni di anomalia non hanno soglia. **Quando avvisare** mostra invece **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto), e i criteri personalizzati anche una **Finestra di riferimento** (14 giorni, quella predefinita, 28, 60 o 90), e ogni punto dati viene confrontato con il riferimento della stessa ora della settimana costruito su quella finestra. Finché quell'ora della settimana non ha abbastanza storico, il criterio sta ancora imparando e non genera avvisi.
+Le condizioni di anomalia non hanno soglia. **Quando avvisare** mostra invece **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto), e i criteri personalizzati anche una **Finestra di riferimento** (14 giorni, quella predefinita, 28, 60 o 90), e ogni punto dati viene confrontato con la stessa ora della settimana nei giorni precedenti, fin dove arriva quella finestra. Ciò che accade adesso non fa mai parte di questo confronto, quindi un cambiamento che dura continua ad avvisare finché, una settimana dopo, non è entrato in quei giorni precedenti. Finché quell'ora della settimana non ha due settimane di storico, il criterio sta ancora imparando e non genera avvisi.
+
+Con che cosa viene confrontato un punto dati dipende dalla query:
+
+- **I suoi servizi.** Un monitor che nomina dei servizi viene confrontato solo con quei servizi. Uno che non ne nomina nessuno viene confrontato con tutti i servizi che riportano la metrica.
+- **Una media, un minimo, un massimo o un percentile di una metrica semplice** viene confrontato con i campioni della metrica, fin dove arriva la **Finestra di riferimento**.
+- **Una somma o un conteggio, e qualsiasi query su un istogramma,** viene confrontato con i punti dati della query stessa. Vengono conservati quanto le vostre metriche, quindi il confronto non va più indietro di così: 15 giorni, se non l'avete cambiato.
+- **Una query filtrata o raggruppata per un attributo** viene confrontata con tutte le serie dei suoi servizi, perché una baseline non contiene attributi, quindi nota solo un cambiamento abbastanza grande da uscire dall'intervallo di tutte. Se è una somma, un conteggio o una query su un istogramma, non c'è nulla con cui confrontarla e continua a imparare. Lo stesso vale per un percentile di un istogramma.
+
+Una somma o un conteggio conta come basso solo su un punto dati completo seguito da un altro punto completo, perché i più recenti si stanno ancora riempiendo. Una finestra di un minuto può quindi trovarne solo uno alto.
 
 Un monitor metriche creato in Crea monitor parte con una regola sulla sua prima query: **La media** in **Ultimi 5 minuti**, **Sopra** il **Valore** che inserite, e **Crea un avviso**.
 
@@ -214,7 +223,7 @@ La query non ha **Raggruppa per**, quindi tutti gli host vengono ridotti a un so
 :::
 
 :::details Un criterio di anomalia non scatta mai
-Sta ancora imparando: l'ora della settimana con cui confronta non ha ancora abbastanza storico nella **Finestra di riferimento**.
+Sta ancora imparando: l'ora della settimana con cui confronta non ha ancora due settimane di storico. Una somma, un conteggio o una query su un istogramma filtrati o raggruppati per un attributo continuano a imparare per sempre, e così un percentile di un istogramma: non esiste uno storico con cui confrontarli.
 :::
 
 ## Passaggi successivi

@@ -1,7 +1,9 @@
+import FieldError from "../Forms/Fields/FieldError";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import "react-toggle/style.css";
@@ -25,10 +27,19 @@ export interface ComponentProps {
   ariaDescribedby?: string | undefined;
 }
 
+/*
+ * Choices drawn as cards, one picked: a real radio group. Every element id
+ * is this group's own (useId), so two groups on one page - a form and a
+ * dialog over it, two of them in one form - never share one: the ids were
+ * "server-size-0-label" in every group, and a screen reader on the second
+ * group read the first one's titles. The radios share a name, so the arrow
+ * keys move between them, and each card shows where the keyboard is.
+ */
 const RadioButtons: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [value, setValue] = useState<string>("");
+  const groupId: string = useId();
 
   useEffect(() => {
     if (props.initialValue) {
@@ -58,12 +69,25 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
         <div className="space-y-2 mt-2">
           {props.options &&
             props.options.map((radioButton: RadioButton, i: number) => {
-              let className: string =
-                "relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none sm:flex sm:justify-between";
+              const optionId: string = `${groupId}-option-${i}`;
+              const labelId: string = `${optionId}-label`;
+              const descriptionId: string = `${optionId}-description`;
+              const sideId: string = `${optionId}-side`;
+              const hasSide: boolean = Boolean(
+                radioButton.sideTitle || radioButton.sideDescription,
+              );
+              const isPicked: boolean = value === radioButton.value;
 
-              if (value === radioButton.value) {
+              /*
+               * The keyboard's place is drawn round the card it is on, as
+               * a picked card's ring: the radio itself is out of sight.
+               */
+              let className: string =
+                "relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-500 has-[:focus-visible]:ring-offset-2 sm:flex sm:justify-between";
+
+              if (isPicked) {
                 className =
-                  "relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none sm:flex sm:justify-between border-indigo-500 ring-2 ring-indigo-500";
+                  "relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none has-[:focus-visible]:ring-offset-2 sm:flex sm:justify-between border-indigo-500 ring-2 ring-indigo-500";
               }
 
               return (
@@ -71,29 +95,34 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
                   key={i}
                   className={className}
                   data-testid={`card-select-option-${radioButton.value}`}
-                  onClick={() => {
-                    handleChange(radioButton.value);
-                  }}
                 >
                   <input
                     type="radio"
                     className="sr-only"
-                    aria-labelledby={`server-size-${i}-label`}
-                    aria-describedby={`server-size-${i}-description-0 server-size-${i}-description-1`}
-                    defaultChecked={props.initialValue === radioButton.value}
+                    name={`${groupId}-choice`}
+                    value={radioButton.value}
+                    checked={isPicked}
+                    aria-labelledby={labelId}
+                    aria-describedby={
+                      [
+                        radioButton.description ? descriptionId : "",
+                        hasSide ? sideId : "",
+                      ]
+                        .filter((id: string): boolean => {
+                          return id.length > 0;
+                        })
+                        .join(" ") || undefined
+                    }
+                    onChange={() => {
+                      handleChange(radioButton.value);
+                    }}
                   />
                   <span className="flex items-center">
                     <span className="flex flex-col text-sm">
-                      <span
-                        id={`server-size-${i}-label`}
-                        className="font-medium text-gray-900"
-                      >
+                      <span id={labelId} className="font-medium text-gray-900">
                         {radioButton.title}
                       </span>
-                      <span
-                        id={`server-size-${i}-description-0`}
-                        className="text-gray-500"
-                      >
+                      <span id={descriptionId} className="text-gray-500">
                         <span className="block sm:inline">
                           {" "}
                           {radioButton.description}
@@ -102,7 +131,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
                     </span>
                   </span>
                   <span
-                    id={`server-size-${i}-description-1`}
+                    id={sideId}
                     className="mt-2 flex text-sm sm:mt-0 sm:ml-4 sm:flex-col sm:text-right"
                   >
                     <span className="font-medium text-gray-900">
@@ -122,11 +151,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
             })}
         </div>
       </fieldset>
-      {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </div>
   );
 };

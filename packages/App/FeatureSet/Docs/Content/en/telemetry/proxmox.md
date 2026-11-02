@@ -5,6 +5,7 @@ The OneUptime Proxmox agent monitors a Proxmox VE cluster: its nodes, QEMU VMs, 
 :::cards
 - [Choose how to connect](#choose-how-to-connect): The agent, or Proxmox VE 9's own push.
 - [Install the agent](#install-the-agent): An API token, then the install script or Docker Compose.
+- [Backup results](#send-proxmox-ves-notifications): Proxmox VE's own notifications, sent with two commands.
 - [Native push](#zero-install-alternative-proxmox-ve-9-native-opentelemetry-push): Proxmox VE 9 sends its metrics itself.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -33,9 +34,10 @@ The cluster registers itself with its first data, under the name the agent stamp
 | To install | Docker Compose on one machine | Nothing: a metric server in the Proxmox web UI |
 | Nodes, guests and storage | Yes | Yes |
 | HA state, start-on-boot, backup coverage and replication | Yes | No |
+| Backup results, fenced nodes and failed replication, from Proxmox VE's notifications (8.3 or later) | Yes | Yes |
 | Proxmox AI agent | Yes | No |
 
-The **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** and **Replication Failing** templates need the agent. Use one or the other for a cluster: running both reports every resource twice.
+The **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** and **Replication Failing** templates need the agent. Use one or the other for a cluster: running both reports every resource twice.
 
 ## Before you begin
 
@@ -78,23 +80,25 @@ The role goes on the user as well as the token because a privilege-separated tok
 
 ### Install and start the agent
 
+Every OneUptime serves the agent's install script and files for its own release: the commands below download them from `https://oneuptime.com`, so on a self-hosted OneUptime replace it with your URL. The install script is saved as `install.sh` first, so you can read it before you run it.
+
 :::tabs
 @tab install.sh
 Download the install script and run it on the machine that will host the agent:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 The script asks for your OneUptime URL, the ingestion key, a name for the cluster, the Proxmox VE API host, whether to run the bundled exporter, the token id and secret, and every node's address (it offers the cluster's own list once it has the token) — and whether the [AI agent](#ai-agent) may apply fixes, and if so for a token of its own and the guests it must never change. It installs to `/opt/oneuptime-proxmox-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Running the script again reuses everything in that `.env` instead of prompting again, which is how you [upgrade the agent](#upgrading-the-agent).
 @tab Docker Compose
-Download `docker-compose.yml` and `otel-collector-config.yaml` from the [ProxmoxAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) into a new folder:
+Download `docker-compose.yml` and `otel-collector-config.yaml` from your OneUptime into a new folder:
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 Create a `.env` file next to them. It holds the token secret, so keep it private with `chmod 600 .env`:
@@ -169,7 +173,7 @@ The collector scrapes the exporter every 30 seconds: its cluster collectors once
 | Guest (VM or LXC) | `pve_guest_info`, and CPU, memory and network series on `qemu/*` and `lxc/*` ids (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Storage | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Backup coverage | `pve_not_backed_up_total` (the guests no backup job covers; one cluster-level series, no `id` label) and `pve_not_backed_up_info` (one series per uncovered guest, with its `id`). Covered means at least one job selects the guest: whether backups ran recently or succeeded is not exposed by the exporter. |
+| Backup coverage | `pve_not_backed_up_total` (the guests no backup job covers; one cluster-level series, `id` `cluster/<name>`) and `pve_not_backed_up_info` (one series per uncovered guest, with its `id`). Covered means at least one job selects the guest: whether backups ran recently or succeeded is not exposed by the exporter. |
 | Start-on-boot | `pve_onboot_status`, one series per guest: 1 when the guest is set to start on boot. **Guest Down** pages only for these guests. |
 | Replication | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, per storage replication job. Their `id` label is the job id (such as `100-0`), not a resource. |
 
@@ -182,6 +186,44 @@ Monitor criteria and attribute filters match on equality, not on a prefix, so th
 | `pve.id` | Everything after the first `/` of `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 The original `id` label is kept as it is.
+
+## Send Proxmox VE's notifications
+
+pve-exporter says which guests a backup job includes, but not how a backup went. Proxmox VE says that itself, in its notifications: each backup job's result, a fenced node, a failed replication, updates waiting. On Proxmox VE 8.3 or later, two commands, run as root on any node, send every notification to OneUptime as a log of the cluster, with nothing to install, alongside the agent or the native push. The cluster's setup guide shows them with your URL, key and cluster name filled in.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+The first command adds a webhook target named `oneuptime`, which keeps the key and the cluster's name in its secrets; the second adds a matcher with no rules, which Proxmox VE reads as every notification. Use the cluster's name as OneUptime shows it: the agent's `PROXMOX_CLUSTER_NAME`, or with the native push the Proxmox cluster's own name.
+
+Each notification arrives with these attributes:
+
+| Attribute | Value |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (a backup job), `replication`, `fencing`, `package-updates` or `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` or `unknown` |
+| `pve.notification.title` | The notification's title |
+| `pve.notification.job_id` | The backup job's id, for a backup job |
+| `proxmox.node.name` | The node that sent it |
+
+From a backup job's notification, OneUptime records each guest's last backup: whether it succeeded, when it finished, how big it was and how long it took. A guest's page shows it, the **Guests** list has it in its Backup column, the cluster's **Overview** counts the results, and a failed one stays under **Needs attention** until a later backup of that guest succeeds. The **Backup Job Failed** and **Node Fenced** alerts read the same logs.
+
+To stop sending them:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## Optional — Ship Proxmox service logs
 
@@ -282,16 +324,18 @@ The native push sends only what each node knows about itself, so part of what th
 | --- | --- |
 | HA state | Not pushed: the **HA Resource in Error State** template needs the agent. |
 | Start-on-boot flag | Not pushed: **Guest Down**, which only pages for guests set to start on boot, needs the agent. |
-| Backup coverage and replication | Not pushed: **Guest Not Backed Up** and **Replication Failing** need the agent. |
+| Backup coverage and replication | Not pushed: **Guest Not Backed Up**, **Backup Running Too Long** and **Replication Failing** need the agent. |
 
 If you need those, run the agent instead, and remove the metric server: running both reports every resource twice.
+
+Backup results, fenced nodes and failed replications still reach OneUptime: [send Proxmox VE's notifications](#send-proxmox-ves-notifications), which work with the native push too.
 
 ## Run as a systemd service
 
 To start the agent with the machine and restart it when it fails, install its systemd unit. It assumes the agent lives in `/opt/oneuptime-proxmox-agent`, where the install script puts it:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ The agent reports the collector version its files pin as its **Agent Version**. 
 The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Run `install.sh` again: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and `otel-collector-config.yaml` (a file you edited is kept as `<file>.bak.<timestamp>`), pulls the images and recreates the agent so the collector reads its new config. An `.env` from before `PVE_NODES` keeps reading `PVE_HOST` alone, and the script names the nodes to add to it.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Installed it with Docker Compose instead? In the agent's folder, download both files again (and make again any change you made to them), then pull the images and recreate the agent:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI A
 ## Troubleshooting
 
 :::details Run the diagnostic script first
-The agent ships with a script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh), that checks the whole chain: the container runtime, the exporter scrape, the cluster name stamped on every metric, the token's shape, the collector's own metrics, and whether OneUptime accepts the ingestion key. That last check matters most. OneUptime refuses a bad key with `401` (`422` for a disabled key or a browser key), and the collector treats both as permanent: it drops the batch and logs one `Exporting failed` error, which is easy to miss while the container stays healthy. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network for a direct `200` (valid) or `401` (invalid), and falls back to `POST /fluentd/v1/logs` on older servers.
+The agent ships with a script, [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh), that checks the whole chain: the container runtime, the exporter scrape, the cluster name stamped on every metric, the token's shape, the collector's own metrics, and whether OneUptime accepts the ingestion key. That last check matters most. OneUptime refuses a bad key with `401` (`422` for a disabled key or a browser key), and the collector treats both as permanent: it drops the batch and logs one `Exporting failed` error, which is easy to miss while the container stays healthy. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network for a direct `200` (valid) or `401` (invalid), and falls back to `POST /fluentd/v1/logs` on older servers.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -378,6 +422,13 @@ It stopped reporting: a node that is down, a hung `pvestatd`, a stopped `pmxcfs`
 
 :::details With native push, Guest Down, HA or backup alerts never fire
 The native push does not send HA state, start-on-boot, backup coverage or replication. [Install the agent](#install-the-agent) for those, and remove the metric server: running both reports every resource twice.
+:::
+
+:::details Backup results never appear
+1. Check the Proxmox VE release: webhook targets need 8.3 or later (`pveversion`).
+2. Check that the target and its matcher exist: `pvesh get /cluster/notifications/endpoints/webhook` and `pvesh get /cluster/notifications/matchers` both list `oneuptime`.
+3. Send a test notification with `pvesh create /cluster/notifications/targets/oneuptime/test`. It shows on the cluster's **Logs** page within a minute; if it does not, the key or the URL in the target is wrong.
+4. Check the cluster's name in the target's secrets: a name OneUptime does not know registers a second cluster.
 :::
 
 ## Next steps

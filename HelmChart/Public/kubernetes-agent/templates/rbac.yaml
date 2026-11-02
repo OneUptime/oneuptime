@@ -11,6 +11,23 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
+{{- /*
+Where the chart creates SCCs (the openshift preset), the node pods run as
+service accounts of their own, the only ones that may use the SCCs
+templates/openshift-scc.yaml creates (kubernetes-agent.nodeServiceAccounts).
+They read the cluster as the main one does: the ClusterRoleBinding below binds
+them to the same ClusterRole.
+*/}}
+{{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" }}
+{{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
+---
+{{ include "kubernetes-agent.nodeServiceAccount" (dict "root" . "name" (include "kubernetes-agent.nodeCollectorServiceAccountName" .)) }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.ebpfPodsEnabled" .) "true" }}
+---
+{{ include "kubernetes-agent.nodeServiceAccount" (dict "root" . "name" (include "kubernetes-agent.ebpfServiceAccountName" .)) }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -121,6 +138,44 @@ rules:
       - /metrics
       - /metrics/cadvisor
     verbs: ["get"]
+{{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+  # For the collector's openshift resource detector
+  # (kubernetes-agent.openshiftDetector): which cloud the cluster runs on,
+  # from the status of the cluster's one Infrastructure object.
+  - apiGroups: ["config.openshift.io"]
+    resources:
+      - infrastructures/status
+    resourceNames:
+      - cluster
+    verbs: ["get"]
+{{- end }}
+{{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+  # For the k8sobjects/openshift receiver (configmap-deployment.yaml):
+  # OpenShift's own objects, read only. A Route's TLS key is replaced before
+  # its record leaves the cluster (transform/openshift-route-tls).
+  - apiGroups: ["config.openshift.io"]
+    resources:
+      - clusteroperators
+      - clusterversions
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["route.openshift.io"]
+    resources:
+      - routes
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps.openshift.io"]
+    resources:
+      - deploymentconfigs
+    verbs: ["get", "list", "watch"]
+{{- end }}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
+  # For the control-plane scrapes on OpenShift (configmap-deployment.yaml):
+  # service discovery finds each replica in its Service's EndpointSlices. It
+  # reads the Services and pods beside them through the rules above.
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
+    verbs: ["get", "list", "watch"]
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -136,3 +191,15 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "kubernetes-agent.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
+{{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" }}
+{{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
+  - kind: ServiceAccount
+    name: {{ include "kubernetes-agent.nodeCollectorServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.ebpfPodsEnabled" .) "true" }}
+  - kind: ServiceAccount
+    name: {{ include "kubernetes-agent.ebpfServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

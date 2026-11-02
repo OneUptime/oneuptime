@@ -48,19 +48,19 @@ flowchart TB
 
 ### 選擇主機
 
-在 **Podman Monitor Configuration** 下，從 **Podman 主機** 中選擇主機。傳送過資料的每台主機都在清單中。
+在 **Podman Monitor Configuration** 下，從 **Podman 主機** 中選擇主機。傳送過資料的每台主機都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 Podman 主機** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
 
 ### 選擇要監控的內容
 
-選擇三個分頁之一：
+新監測器從 **告警內容** 下的 **Host Stopped Reporting** 開始。要監測其他內容：
 
-- **Quick Setup** – 按一下一個 [範本](#現成的警示範本)。它會設定指標、彙總、時間範圍和閾值，並用自己的條件取代下方的條件。你仍然可以變更 **時間範圍**。
-- **Custom Metric** – 從 **Podman Metric** 中選擇一個指標，然後設定 **彙總** 和 **時間範圍**。**容器名稱** 和 **容器映像** 可以把範圍縮小到部分容器。
-- **進階** – 在 **選擇指標** 下自行建立查詢和公式。使用 **分組依據** `resource.container.name` 可以個別評判每個容器。
+- **變更** – 選擇另一個 [範本](#現成的警示範本)。它會設定指標、彙總、時間範圍和閾值，並用自己的條件取代下方的條件。你仍然可以變更 **時間範圍**。
+- **Custom Metric**（在 **更多欄位** 下） – 從 **Podman Metric** 中選擇一個指標，然後設定 **彙總** 和 **時間範圍**。**容器名稱** 和 **容器映像** 可以把範圍縮小到部分容器。
+- **進階**（在 **更多欄位** 下） – 在 **選擇指標** 下自行建立查詢和公式。使用 **分組依據** `resource.container.name` 可以個別評判每個容器。
 
 ### 檢查條件
 
-開啟 **監測器條件** 下的每個條件，檢查其 **指標**、**彙總**、**條件** 和 **閾值**。範本會填好這些內容。使用 **Custom Metric** 或 **進階** 時，監測器會從 [預設條件](#預設條件) 開始，這些條件只會注意到指標降到零，所以請設定你自己的閾值。
+開啟 **監測器條件** 下的每個條件，檢查其 **指標**、**彙總**、**條件** 和 **閾值**。範本會填好這些內容。使用 **Custom Metric** 或 **進階** 時，監測器會從 [預設條件](#預設條件) 開始，這些條件只會注意到指標不再傳送資料，所以請設定你自己的閾值。
 
 ### 建立監測器
 
@@ -84,17 +84,17 @@ flowchart TB
 
 ## 現成的警示範本
 
-**Quick Setup** 提供六個範本。每個範本都會建立一個完整的監測器：一個查詢、一個觸發的條件和一個恢復的條件。除了 **Host Stopped Reporting** 之外，每個範本都依 `resource.container.name` 將查詢分組，因此每個容器都個別評判，並有自己的事件和警示。閾值只是起點，你可以編輯。
+**告警內容** 清單提供六個範本。每個範本都會建立一個完整的監測器：一個查詢、一個觸發的條件和一個恢復的條件。除了 **Host Stopped Reporting** 之外，每個範本都依 `resource.container.name` 將查詢分組，因此每個容器都個別評判，並有自己的事件和警示。閾值只是起點，你可以編輯。
 
 條件只有在其視窗的每一分鐘都成立時才會觸發，並在越過閾值 10% 處恢復，這樣在邊界附近徘徊的值就不會來回跳動。
 
 | 範本 | 嚴重程度 | 監控內容 | 觸發時機 | 恢復時機 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 嚴重 | `container.memory.percent`，對主機上所有容器取 Count，最近 10 分鐘 | 整個視窗內都沒有資料 | 資料再次送達 |
-| High Container CPU Usage | Warning | `container.cpu.utilization`，依容器取 Avg，最近 5 分鐘 | 高於 80（單一核心的 %） | 不高於 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`，依容器取 Avg，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
-| Container Restart Loop | 嚴重 | 每個容器 `container.restarts` 的成長，最近 15 分鐘 | 視窗內重新啟動超過 3 次（總和） | 2.7 或更少 |
-| High Container Process Count | Warning | `container.pids.count`，依容器取 Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
+| High Container CPU Usage | 警告 | `container.cpu.utilization`，依容器取 Avg，最近 5 分鐘 | 高於 80（單一核心的 %） | 不高於 72 |
+| High Container Memory Usage | 警告 | `container.memory.percent`，依容器取 Avg，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
+| Container Restart Loop | 嚴重 | `container.restarts.increase`，依容器取 Sum，最近 15 分鐘 | 視窗內重新啟動超過 3 次（總和） | 2.7 或更少 |
+| High Container Process Count | 警告 | `container.pids.count`，依容器取 Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
 | Container Restarted (Low Uptime) | 嚴重 | `container.uptime`，依容器取 Min，最近 1 分鐘 | 低於 120 秒 | 不低於 132 秒 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
@@ -107,7 +107,7 @@ flowchart TB
 > `container.cpu.utilization` 就是 `podman stats` 輸出的數字在代理程式每個 30 秒間隔內的平均值：100% 是一個完整的 CPU 核心，而不是容器的全部 CPU 配額。被分配多個核心的容器在健康時也會遠高於 100，所以請為這類容器調高閾值。
 
 > [!NOTE]
-> `container.restarts` 是 Podman 維護的累計值，因此 **Container Restart Loop** 與 Docker 一樣，依其在視窗內增加了多少來告警：每分鐘一個 Maximum 查詢和一個 Minimum 查詢，用公式相減後加總。在代理程式 30 秒一次的收集下，大約能看到一半的重新啟動，閾值已經考慮到這一點。代理程式也只對正在執行的容器取樣，因此一啟動就結束的容器很少被取樣到：**Container Restarted (Low Uptime)** 會在代理程式看到的每次重新啟動時觸發。
+> `container.restarts` 是 Podman 維護的累計值，直到手動重新啟動或重新建立的容器讓它從 0 重新開始，所以代理程式還會在每個樣本裡傳送 `container.restarts.increase`：自它上一次對該容器取樣以來的重新啟動次數。**Container Restart Loop** 與 Docker 一樣會把它們相加，因此無論樣本相隔多遠，每次重新啟動都會計入，而手動重新啟動不算在內。舊版代理程式不會傳送 `container.restarts.increase`：請先[升級它](/docs/telemetry/podman-host#升級代理程式)。在那之前用該範本建立的監控器讀取的是 `container.restarts` 在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動：請刪除它，再用範本重新建立。
 
 > [!CAUTION]
 > `container.uptime` 只存在於正在執行的容器。停止後一直保持停止的容器不會傳送任何資料，所以 **Container Restarted (Low Uptime)** 範本捕捉的是重新啟動和重新部署，而不是永久關閉。設計為執行不到兩分鐘的容器，在整個生命週期內都會處於警示狀態。
@@ -154,6 +154,7 @@ flowchart TB
 | --- | --- |
 | `container.uptime` | 容器啟動以來的秒數。只有正在執行的容器會回報它。 |
 | `container.restarts` | 容器重新啟動的次數。累計總數。 |
+| `container.restarts.increase` | 自代理程式上一次對該容器取樣以來的重新啟動次數，隨每個樣本傳送。它在一個視窗內的總和就是該視窗內的重新啟動次數，因此請用它而不是累計值來告警。 |
 | `container.pids.count` | 容器中的工作數。cgroup 的 pids 控制器同時計算處理程序和執行緒。 |
 
 `container.cpu.throttling_data.throttled_periods` 不在清單中；請從 **進階** 查詢它。
@@ -172,7 +173,7 @@ flowchart TB
 | **基準視窗** | 僅限異常條件。14 天（預設）、28、60 或 90 天的歷史。 |
 | **如果沒有資料** | 位於 **更多欄位** 下。視窗中沒有樣本時的處理方式：**Ignore**（預設）、**Treat As Zero** 或 **觸發器**。 |
 
-異常條件會把每個值與基準中一週的同一小時比較。在基準視窗累積足夠的歷史之前，它們會停留在「Learning」狀態，不產生任何結果。
+異常條件會把每個值與基準中一週的同一小時比較。在基準視窗累積足夠的歷史之前，它們會停留在「Learning」狀態，不產生任何結果。 總和、計數或針對直方圖的查詢會一直保持這個狀態：此監測器依屬性篩選查詢，而基準不保存屬性。
 
 每個條件也會說明符合時要做什麼：變更監測器狀態、建立警示或宣告事件。條件會由上而下檢查，第一個符合的條件決定結果。
 
@@ -290,8 +291,8 @@ OneUptime 以 `resource.host.name` 識別主機，代理程式從 `PODMAN_HOST_N
 像 **High Container CPU Usage** 範本一樣，依 `resource.container.name` 將查詢分組，以便個別評判每個容器。在忙碌的主機上對所有容器取平均值，會被閒置的容器拉低。請記得 100% 表示一個完整的核心，所以允許使用多個核心的容器需要更高的閾值。如果某個容器的 CPU 無論負載如何都是一條平線，表示主機執行的是舊版代理程式：[請升級它](/docs/telemetry/podman-host#升級代理程式)。
 :::
 
-:::details 重新啟動次數警示一直不會清除
-`container.restarts` 是累計總數，所以它不會自己回落到閾值以下。請先修正根本原因，然後重新建立容器以重設計數，或調高閾值。
+:::details 重新啟動警示從不觸發，或一直不會清除
+直接拿 `container.restarts` 與閾值比較的監控器（例如用重新啟動範本的早期版本建立的監控器）會因容器的歷史而觸發，而且一直不會清除：這個總數只會成長。在 **Container Restart Loop** 改為讀取 `container.restarts.increase` 之前用它建立的監控器，量測的是總數在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動。舊版代理程式不會傳送 `container.restarts.increase`：請[升級代理程式](/docs/telemetry/podman-host#升級代理程式)，然後刪除該監控器，再重新建立 **Container Restart Loop**。
 :::
 
 ## 後續步驟

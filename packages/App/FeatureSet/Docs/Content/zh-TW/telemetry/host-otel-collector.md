@@ -1193,9 +1193,11 @@ exporters:
 Collector 傳送主機回報的內容；**主機 AI 代理程式** 則讓 OneUptime AI 在調查該主機上的事件或警示時，直接詢問主機本身。它會執行唯讀指令（`systemctl status nginx --no-pager -n 50`、`journalctl -u nginx -n 200 --no-pager`、`df -h`、`free -m`、`ps aux --sort=-%cpu`、`ss -tulpn`），而且只有在你允許時才會套用修正，例如重新啟動指定的 systemd 單元。它是一個 Linux 容器（映像檔 `oneuptime/resource-ai-agent:release`），有自己的安裝程式，需要 Docker（系統引擎，而不是 rootless Docker）和 Docker Compose 外掛程式：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+每個 OneUptime 都提供其自身發行版本的這個安裝程式：在自行架設的 OneUptime 上，請從你的 URL 而不是 `https://oneuptime.com` 下載它。它會先儲存為 `install.sh`，讓你可以在執行前先閱讀它。
 
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該主機上的事件和警示，主機的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或移除代理程式。
 - 它以 `HOST_NAME` 註冊；留空則使用主機自己的主機名稱，除非你設定了其他名稱，這也是此 Collector 以 `host.name` 回報的名稱。兩者必須一致，代理程式才能服務此 Collector 建立的主機。它會出現在 OneUptime 中該主機的 **AI 代理程式** 頁面上。

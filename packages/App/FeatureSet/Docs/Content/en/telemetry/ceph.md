@@ -52,23 +52,25 @@ ceph orch ps --daemon-type mgr   # all mgrs (cephadm clusters)
 
 ### Install and start the agent
 
+Every OneUptime serves the agent's install script and files for its own release: the commands below download them from `https://oneuptime.com`, so on a self-hosted OneUptime replace it with your URL. The install script is saved as `install.sh` first, so you can read it before you run it.
+
 :::tabs
 @tab install.sh
 Download the install script and run it on the machine that will host the agent:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/ceph-agent -o install.sh
 bash install.sh
 ```
 
 The script asks for your OneUptime URL, the ingestion key, a name for the cluster and the mgr endpoints, and whether the [AI agent](#ai-agent) may apply fixes. Where `ceph` works with admin rights, it also offers to create the AI agent's own Ceph client. It installs to `/opt/oneuptime-ceph-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Running the script again reuses everything in that `.env` instead of prompting again, which is how you [upgrade the agent](#upgrading-the-agent).
 @tab Docker Compose
-Download `docker-compose.yml` and `otel-collector-config.yaml` from the [CephAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) into a new folder:
+Download `docker-compose.yml` and `otel-collector-config.yaml` from your OneUptime into a new folder:
 
 ```bash
 mkdir oneuptime-ceph-agent && cd oneuptime-ceph-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/ceph-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/ceph-agent/otel-collector-config.yaml
 ```
 
 Create a `.env` file next to them:
@@ -131,7 +133,7 @@ The agent sends everything the mgr `prometheus` module exports. OneUptime's Ceph
 
 | Category | Metrics |
 | --- | --- |
-| Cluster health | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (one series per active health check, labelled `name` and `severity`, from Quincy on; behind the health-check alert templates and the Overview's **Active Health Checks**), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, keyed by `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Cluster health | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (one series per health check, 1 while it is active and 0 after it clears, labelled `name` and `severity`, from Quincy on; behind the health-check alert templates and the Overview's **Active Health Checks**), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, keyed by `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, per OSD by the `ceph_daemon` label (such as `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. The data series carry only a `pool_id` label; the pool's name is on `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (all per pool, by `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -196,7 +198,7 @@ The collector reads its config only when it starts: run `docker compose restart 
 To start the agent with the machine and restart it when it fails, install its systemd unit. It assumes the agent lives in `/opt/oneuptime-ceph-agent`, where the install script puts it:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/systemd/oneuptime-ceph-agent.service -o /etc/systemd/system/oneuptime-ceph-agent.service
+sudo curl -fsSL https://oneuptime.com/install/ceph-agent/systemd/oneuptime-ceph-agent.service -o /etc/systemd/system/oneuptime-ceph-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-ceph-agent
 ```
@@ -208,15 +210,15 @@ The agent reports the collector version its files pin as its **Agent Version**. 
 The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Run `install.sh` again: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and `otel-collector-config.yaml` (a file you edited is kept as `<file>.bak.<timestamp>`), pulls the images and recreates the agent so the collector reads its new config. The AI agent's `ceph/` folder stays as it is.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/ceph-agent -o install.sh
 bash install.sh
 ```
 
 Installed it with Docker Compose instead? In the agent's folder, download both files again (and make again any change you made to them), then pull the images and recreate the agent:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/ceph-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/ceph-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -255,10 +257,10 @@ What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI A
 ## Troubleshooting
 
 :::details Run the diagnostic script first
-The agent ships with a script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/CephAgent/troubleshoot.sh), that checks the whole chain: the container runtime, every mgr endpoint you configured, the cluster name stamped on every metric, the token's shape, the collector's own metrics, and whether OneUptime accepts the ingestion key. It warns when no endpoint returns `ceph_health_status`, or when only one is configured, since only the active mgr serves metrics. The key check matters most. OneUptime refuses a bad key with `401` (`422` for a disabled key or a browser key), and the collector treats both as permanent: it drops the batch and logs one `Exporting failed` error, which is easy to miss while the container stays healthy. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network for a direct `200` (valid) or `401` (invalid), and falls back to `POST /fluentd/v1/logs` on older servers.
+The agent ships with a script, [`troubleshoot.sh`](https://oneuptime.com/install/ceph-agent/troubleshoot.sh), that checks the whole chain: the container runtime, every mgr endpoint you configured, the cluster name stamped on every metric, the token's shape, the collector's own metrics, and whether OneUptime accepts the ingestion key. It warns when no endpoint returns `ceph_health_status`, or when only one is configured, since only the active mgr serves metrics. The key check matters most. OneUptime refuses a bad key with `401` (`422` for a disabled key or a browser key), and the collector treats both as permanent: it drops the batch and logs one `Exporting failed` error, which is easy to miss while the container stays healthy. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network for a direct `200` (valid) or `401` (invalid), and falls back to `POST /fluentd/v1/logs` on older servers.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/ceph-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-ceph-agent
 ```
 

@@ -51,11 +51,11 @@ Hændelsen gemmer rapportens nummer i sine brugerdefinerede felter som `huntress
 :::steps
 ### Opret workflowet
 
-Åbn **Arbejdsgange**, og klik på **Opret arbejdsgang**. Under **Eller start fra en skabelon** vælger du kategorien **Huntress**, vælger **Open an incident for each Huntress incident report**, klikker på **Brug denne skabelon** og opretter workflowet. Det åbner i **Bygger**, slået fra.
+Åbn **Arbejdsgange**, og klik på **Opret arbejdsgang**. Under **Eller start fra en skabelon** vælger du kategorien **Huntress**, vælger **Open an incident for each Huntress incident report** og klikker på **Brug denne skabelon**.
 
 ### Vælg, hvem der tilkaldes
 
-Klik på trinnet **Page an On-Call Policy**, vælg de **Vagtpolitikker**, der skal tilkaldes, og gem trinnet.
+Dialogen spørger derefter, hvem der skal tilkaldes: under **Who to page for high and critical reports** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Workflowet åbner i **Bygger**, slået fra. For senere at ændre, hvem det tilkalder, klikker du på dets trin **Page an On-Call Policy** og ændrer dets **Vagtpolitikker**.
 
 ### Tilføj et webhook-endpoint i Huntress
 
@@ -79,7 +79,7 @@ Slå **Aktiveret** til øverst i **Bygger**. Åbn endpointets menu (⋯) i Huntr
 
 ## Hvad workflowet gør
 
-Skabelonen tager én vej for hver **Event**, med en **Switch / Case** efter triggeren:
+Efter triggeren gør **Incident From Another Tool** det, hver **Event** beder om, ud fra rapportens nummer:
 
 | Event | Hvad workflowet gør |
 | --- | --- |
@@ -87,7 +87,7 @@ Skabelonen tager én vej for hver **Event**, med en **Switch / Case** efter trig
 | `comment-added` | Finder rapportens hændelse og tilføjer kommentaren til den som en privat note. |
 | `closed` | Finder rapportens hændelse og løser den, medmindre den allerede er løst. Årsagen står på dens tidslinje: Huntress lukkede rapporten. |
 
-Det er et workflow som alle andre, så du kan ændre, hvad det gør: tilkald kun ved kritiske rapporter ved at ændre, hvad **If / Else** efter **Create One Incident** sammenligner, post hver rapport i en chatkanal med et Slack- eller Microsoft Teams-trin, eller send hver organisation til dens egen vagtpolitik med en **Switch / Case** på **Organization**. Hver kørsel står blandt workflowets kørsler, med hvad hvert trin gjorde.
+Det er et workflow som alle andre, så du kan ændre, hvad det gør: tilkald kun ved kritiske rapporter ved at ændre, hvad **If / Else** efter **Incident From Another Tool** sammenligner, post hver rapport i en chatkanal med et Slack- eller Microsoft Teams-trin, eller send hver organisation til dens egen vagtpolitik med en **Switch / Case** på **Organization**. Hver kørsel står blandt workflowets kørsler, med hvad hvert trin gjorde.
 
 ### Alvorligheder
 
@@ -174,7 +174,7 @@ Workflowet er slettet eller arkiveret, dets trigger er ikke længere **Huntress 
 :::
 
 :::details Der blev ikke åbnet nogen hændelse
-Åbn workflowets kørsler og rapportens kørsel. Hvis **Create One Incident** mislykkedes, fordi hændelsesalvorligheden er tom, har projektet ingen hændelsesalvorligheder: Tilføj en under **Hændelser → Indstillinger → Hændelsesalvor**.
+Åbn workflowets kørsler og rapportens kørsel. Hvis **Incident From Another Tool** mislykkedes med `This project has no incident severities to put the incident at.`, så tilføj en under **Hændelser → Indstillinger → Hændelsesalvor**.
 :::
 
 :::details Ingen blev tilkaldt

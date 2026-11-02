@@ -299,8 +299,8 @@ histogram.record(metric.value, {
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | ۴۰۰۰ میلی‌ثانیه | **بحرانی** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | ۵۰۰ میلی‌ثانیه | **بحرانی** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | ۰٫۲۵ | **بحرانی** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | ۳۰۰۰ میلی‌ثانیه | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | ۱۸۰۰ میلی‌ثانیه | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | ۳۰۰۰ میلی‌ثانیه | **هشدار** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | ۱۸۰۰ میلی‌ثانیه | **هشدار** |
 
 این مانیتورها فقط نام‌های `web_vital.*` را می‌خوانند. اگر برنامه‌تان شاخصی را با نام دیگری می‌فرستد، متریک مانیتور ساخته‌شده را ویرایش کنید. برای هشدار روی یک مسیر، یک پالایه `app.route` به مانیتور بیفزایید. می‌توانید روی هر کدام از این متریک‌ها مانیتور خودتان را هم بسازید: [مانیتور متریک‌ها](/docs/monitor/metrics-monitor) را ببینید.
 

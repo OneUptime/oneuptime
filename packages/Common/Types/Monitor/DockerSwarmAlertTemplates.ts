@@ -150,10 +150,12 @@ export function buildDockerSwarmMonitorConfig(args: {
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
   groupByAttributeKey?: string | undefined;
+  // Only Swarm's own task containers (DockerSwarmResourceFilters.tasksOnly).
+  tasksOnly?: boolean | undefined;
 }): MonitorStepDockerSwarmMonitor {
   return {
     clusterIdentifier: args.clusterIdentifier,
-    resourceFilters: {},
+    resourceFilters: args.tasksOnly ? { tasksOnly: true } : {},
     metricViewConfig: {
       queryConfigs: [
         {
@@ -190,6 +192,12 @@ export function buildDockerSwarmMonitorConfig(args: {
  * evaluated independently — one incident per task container. The worker
  * always adds the cluster scope (`resource.docker.swarm.cluster.name`)
  * from the step's clusterIdentifier; no container.runtime filter.
+ *
+ * Every template but Cluster Stopped Reporting watches Swarm's tasks only
+ * (`tasksOnly`): the agent runs as a plain container on every node, and so
+ * can anything started with `docker run`, and those are not the swarm's
+ * workloads. Cluster Stopped Reporting reads the agent's own container as
+ * its heartbeat, so it counts every container.
  */
 
 const clusterStoppedReportingTemplate: DockerSwarmAlertTemplate = {
@@ -272,6 +280,7 @@ const highCpuTemplate: DockerSwarmAlertTemplate = {
          */
         aggregationType: MetricsAggregationType.Avg,
         groupByAttributeKey: "resource.container.name",
+        tasksOnly: true,
       }),
       offlineCriteriaInstance: buildDockerSwarmOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -326,6 +335,7 @@ const highMemoryTemplate: DockerSwarmAlertTemplate = {
          */
         aggregationType: MetricsAggregationType.Avg,
         groupByAttributeKey: "resource.container.name",
+        tasksOnly: true,
       }),
       offlineCriteriaInstance: buildDockerSwarmOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -371,6 +381,7 @@ const highProcessCountTemplate: DockerSwarmAlertTemplate = {
         // Max per task — any scrape over the threshold trips it.
         aggregationType: MetricsAggregationType.Max,
         groupByAttributeKey: "resource.container.name",
+        tasksOnly: true,
       }),
       offlineCriteriaInstance: buildDockerSwarmOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -435,6 +446,7 @@ const taskDownTemplate: DockerSwarmAlertTemplate = {
          */
         aggregationType: MetricsAggregationType.Min,
         groupByAttributeKey: "resource.container.name",
+        tasksOnly: true,
       }),
       offlineCriteriaInstance: buildDockerSwarmOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -450,7 +462,8 @@ const taskDownTemplate: DockerSwarmAlertTemplate = {
          * default — see UnhealthyCriteriaArgs.metricAggregationType.
          *
          * Samples are bucketed per MINUTE before the criteria sees them
-         * (aggregatePerSeriesFromRawMetrics), so a Past1Minute window is
+         * (the worker's grouped read, MonitorTelemetryMonitor's
+         * readQueryDataPoints), so a Past1Minute window is
          * one or two buckets. Under AllValues EVERY bucket would have to
          * read under 60s, which stops being true the moment the window
          * straddles uptime crossing 60 — leaving a firing window as

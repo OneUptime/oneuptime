@@ -48,19 +48,19 @@ flowchart TB
 
 ### 选择主机
 
-在 **Podman Monitor Configuration** 下，从 **Podman 主机** 中选择主机。发送过数据的每台主机都在列表中。
+在 **Podman Monitor Configuration** 下，从 **Podman 主机** 中选择主机。发送过数据的每台主机都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 Podman 主机** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监控的内容
 
-选择三个选项卡之一：
+新监视器从 **告警内容** 下的 **Host Stopped Reporting** 开始。要监视其他内容：
 
-- **Quick Setup** – 点击一个 [模板](#现成的警报模板)。它会设置指标、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以更改 **时间范围**。
-- **Custom Metric** – 从 **Podman Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。**容器名称** 和 **容器镜像** 可以把范围缩小到部分容器。
-- **高级** – 在 **选择指标** 下自己构建查询和公式。使用 **分组依据** `resource.container.name` 可以单独评判每个容器。
+- **更改** – 选择另一个 [模板](#现成的警报模板)。它会设置指标、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以更改 **时间范围**。
+- **Custom Metric**（在 **更多字段** 下） – 从 **Podman Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。**容器名称** 和 **容器镜像** 可以把范围缩小到部分容器。
+- **高级**（在 **更多字段** 下） – 在 **选择指标** 下自己构建查询和公式。使用 **分组依据** `resource.container.name` 可以单独评判每个容器。
 
 ### 检查条件
 
-打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填好这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，这些条件只会注意到指标降到零，所以请设置你自己的阈值。
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填好这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，这些条件只会注意到指标不再发送数据，所以请设置你自己的阈值。
 
 ### 创建监视器
 
@@ -84,17 +84,17 @@ flowchart TB
 
 ## 现成的警报模板
 
-**Quick Setup** 提供六个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。除 **Host Stopped Reporting** 外，每个模板都按 `resource.container.name` 对查询分组，因此每个容器都单独评判，并有自己的事件和警报。阈值只是起点，你可以编辑。
+**告警内容** 列表提供六个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。除 **Host Stopped Reporting** 外，每个模板都按 `resource.container.name` 对查询分组，因此每个容器都单独评判，并有自己的事件和警报。阈值只是起点，你可以编辑。
 
 条件只有在其窗口的每一分钟都成立时才会触发，并在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 严重 | `container.memory.percent`，对主机上所有容器取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
-| High Container CPU Usage | Warning | `container.cpu.utilization`，按容器取 Avg，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`，按容器取 Avg，最近 5 分钟 | 高于 85% | 不高于 76.5% |
-| Container Restart Loop | 严重 | 每个容器 `container.restarts` 的增长，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
-| High Container Process Count | Warning | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
+| High Container CPU Usage | 警告 | `container.cpu.utilization`，按容器取 Avg，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
+| High Container Memory Usage | 警告 | `container.memory.percent`，按容器取 Avg，最近 5 分钟 | 高于 85% | 不高于 76.5% |
+| Container Restart Loop | 严重 | `container.restarts.increase`，按容器取 Sum，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
+| High Container Process Count | 警告 | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
 | Container Restarted (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 低于 120 秒 | 不低于 132 秒 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
@@ -107,7 +107,7 @@ flowchart TB
 > `container.cpu.utilization` 就是 `podman stats` 输出的数字在代理每个 30 秒间隔内的平均值：100% 是一个完整的 CPU 核心，而不是容器的全部 CPU 配额。分配了多个核心的容器在健康时也会远高于 100，所以要为这类容器调高阈值。
 
 > [!NOTE]
-> `container.restarts` 是 Podman 维护的累计值，因此 **Container Restart Loop** 与 Docker 一样，按其在窗口内增长了多少来告警：每分钟一个 Maximum 查询和一个 Minimum 查询，用公式相减后求和。在代理 30 秒一次的采集下，大约能看到一半的重启，阈值已经考虑到这一点。代理也只对正在运行的容器采样，因此一启动就退出的容器很少被采到：**Container Restarted (Low Uptime)** 会在代理看到的每次重启时触发。
+> `container.restarts` 是 Podman 维护的累计值，直到手动重启或重新创建的容器让它从 0 重新开始，所以代理还会在每个样本里发送 `container.restarts.increase`：自它上一次对该容器采样以来的重启次数。**Container Restart Loop** 与 Docker 一样把它们相加，因此无论样本相隔多远，每次重启都会计入，而手动重启不算在内。旧版代理不会发送 `container.restarts.increase`：请先[升级它](/docs/telemetry/podman-host#升级代理)。在那之前用该模板创建的监控器读取的是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
 
 > [!CAUTION]
 > `container.uptime` 只存在于正在运行的容器。停止后一直保持停止的容器不发送任何数据，所以 **Container Restarted (Low Uptime)** 模板捕捉的是重启和重新部署，而不是永久关闭。设计为运行不到两分钟的容器，在其整个生命周期内都会处于警报状态。
@@ -154,6 +154,7 @@ flowchart TB
 | --- | --- |
 | `container.uptime` | 容器启动以来的秒数。只有正在运行的容器会报告它。 |
 | `container.restarts` | 容器重启的次数。累计总数。 |
+| `container.restarts.increase` | 自代理上一次对该容器采样以来的重启次数，随每个样本发送。它在一个窗口内的总和就是该窗口内的重启次数，因此请用它而不是累计值来告警。 |
 | `container.pids.count` | 容器中的任务数。cgroup 的 pids 控制器既统计进程也统计线程。 |
 
 `container.cpu.throttling_data.throttled_periods` 不在列表中；请从 **高级** 查询它。
@@ -172,7 +173,7 @@ flowchart TB
 | **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |
 | **如果无数据** | 位于 **更多字段** 下。窗口中没有样本时的处理方式：**Ignore**（默认）、**Treat As Zero** 或 **触发器**。 |
 
-异常条件会把每个值与基线中一周的同一小时进行比较。在基线窗口积累足够的历史之前，它们会保持在“Learning”状态，不产生任何结果。
+异常条件会把每个值与基线中一周的同一小时进行比较。在基线窗口积累足够的历史之前，它们会保持在“Learning”状态，不产生任何结果。 总和、计数或针对直方图的查询会一直保持这个状态：此监视器按属性筛选查询，而基线不保存属性。
 
 每个条件还会说明匹配时要做什么：更改监视器状态、创建警报或宣布事件。条件按从上到下的顺序检查，第一个匹配的条件决定结果。
 
@@ -290,8 +291,8 @@ OneUptime 通过 `resource.host.name` 识别主机，代理从 `PODMAN_HOST_NAME
 像 **High Container CPU Usage** 模板那样，按 `resource.container.name` 对查询分组，以便单独评判每个容器。在繁忙主机上对所有容器取平均值，会被空闲的容器拉低。请记住 100% 表示一个完整的核心，所以允许使用多个核心的容器需要更高的阈值。如果某个容器的 CPU 无论负载如何都是一条平线，说明主机运行的是旧版代理：[请升级它](/docs/telemetry/podman-host#升级代理)。
 :::
 
-:::details 重启次数警报始终不清除
-`container.restarts` 是累计总数，所以它不会自己回落到阈值以下。先修复根本原因，然后重新创建容器以重置计数，或者调高阈值。
+:::details 重启警报从不触发，或始终不清除
+直接拿 `container.restarts` 与阈值比较的监控器（例如用重启模板的早期版本创建的监控器）会因容器的历史而触发，并且始终不会清除：这个总数只会增长。在 **Container Restart Loop** 改为读取 `container.restarts.increase` 之前用它创建的监控器，测量的是总数在每分钟内增长了多少，会漏掉循环中大约一半的重启。旧版代理不会发送 `container.restarts.increase`：请[升级代理](/docs/telemetry/podman-host#升级代理)，然后删除该监控器，再重新创建 **Container Restart Loop**。
 :::
 
 ## 后续步骤

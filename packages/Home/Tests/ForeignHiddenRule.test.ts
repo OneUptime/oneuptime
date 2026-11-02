@@ -1,4 +1,5 @@
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import { getAirGappedTopicContent } from "../Utils/AirGapped";
 import {
   MediaClassRule,
   RenderedElement,
@@ -223,6 +224,31 @@ const PAGES: Array<HomePageCase> = [
       return renderView("vmware.ejs", {
         enableGoogleTagManager: false,
         seo: seoFor("/product/vmware"),
+        homeUrl: HOME_URL,
+      });
+    },
+  },
+  {
+    // A page written from scratch, without the blocks the product pages share.
+    name: "the OpenShift page (openshift.ejs)",
+    render: (): Promise<RenderedPage> => {
+      // Exactly the locals Routes.ts hands the template, plus homeUrl.
+      return renderView("openshift.ejs", {
+        enableGoogleTagManager: false,
+        seo: seoFor("/product/openshift"),
+        homeUrl: HOME_URL,
+      });
+    },
+  },
+  {
+    // One template behind every air-gapped product page, its table and its bar.
+    name: "an air-gapped product page (air-gapped-topic.ejs)",
+    render: (): Promise<RenderedPage> => {
+      // Exactly the locals Routes.ts hands the template, plus homeUrl.
+      return renderView("air-gapped-topic.ejs", {
+        enableGoogleTagManager: false,
+        seo: seoFor("/enterprise/air-gapped/on-call"),
+        airGappedTopic: getAirGappedTopicContent("on-call"),
         homeUrl: HOME_URL,
       });
     },

@@ -128,9 +128,11 @@ Memcached has no users: the receiver runs `stats` over the text protocol, so lea
 ## Quick Start — Install Script
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
+
+Every OneUptime serves this script and the agent's files for its own release, at `<your OneUptime URL>/install/database-agent`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com` in the commands here. The first line saves the script as `install.sh`, so you can read it before you run it.
 
 The script asks for your OneUptime URL and ingestion key, the engine, the endpoint to connect to and the monitoring credentials (the password is read without echo), installs to `/opt/oneuptime-database-agent`, writes a `0600` `.env` file, and starts the agent. When the endpoint is local to the machine (`localhost`, `host.docker.internal`), it also asks for the host name your applications use — that name is the database's identity in OneUptime. When that name only resolves inside one network — a private or link-local IP, a single-label name, a cluster-local, `.internal` or `.local` name — it asks for the database's id in OneUptime (`DATABASE_SERVER_ID`) as well, because such a name never creates a database on its own.
 
@@ -140,7 +142,14 @@ Any character is fine in the password, apart from the few SQL Server's connectio
 
 ## Quick Start — Docker Compose
 
-Download `docker-compose.yml` and the config for your engine from `configs/`, saved as `otel-collector-config.yaml`, into one folder. Create a `.env` file next to them (`chmod 600 .env` — it holds a password):
+Download `docker-compose.yml` and the config for your engine (one of the `configs/` in [Files](#files), here PostgreSQL's) from your OneUptime into one folder, saving the config as `otel-collector-config.yaml`:
+
+```bash
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
+```
+
+Create a `.env` file next to them (`chmod 600 .env` — it holds a password):
 
 ```bash
 # DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.
@@ -359,7 +368,7 @@ Re-run `install.sh` to pick up a new collector pin and config: your `.env` is re
 ## Troubleshooting
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

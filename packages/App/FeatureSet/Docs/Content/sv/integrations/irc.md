@@ -84,7 +84,7 @@ Börja från mallen, som bygger hela arbetsflödet åt dig, eller från grunden.
 3. Behåll namnet **Notify IRC on new incident** eller ändra det, och klicka på **Nästa**.
 4. Ange **IRC Server** och **IRC Channel** och klicka på **Skapa arbetsflöde**.
 
-Arbetsflödet öppnas i **Byggare** med tre steg: **On Create Incident**; **Send Message to IRC**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd på två rader; och ett **Logg**-steg på dess utgång **Fel**, som noterar varför ett meddelande inte levererades. Servern och kanalen sparas som arbetsflödets variabler `ircServer` och `ircChannel`. Om du sparade lösenord i föregående steg klickar du på **Send Message to IRC**, öppnar **Fler fält** och väljer varje variabel med knappen **{ }** i dess inställning.
+Arbetsflödet öppnas i **Byggare** med två steg: **On Create Incident** och **Send Message to IRC**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd på två rader. Ett meddelande som inte levereras får körningen att misslyckas, och körningens logg säger varför. Servern och kanalen sparas som arbetsflödets variabler `ircServer` och `ircChannel`. Om du sparade lösenord i föregående steg klickar du på **Send Message to IRC**, öppnar **Fler fält** och väljer varje variabel med knappen **{ }** i dess inställning.
 @tab Från grunden
 1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
 2. Klicka i **Byggare** på **Välj vad som startar det här arbetsflödet** och välj **On Create Incident** under **Populära**. Klicka på utlösaren och välj i **Fields to pass on** de fält från incidenten som ditt meddelande visar, till exempel dess titel.

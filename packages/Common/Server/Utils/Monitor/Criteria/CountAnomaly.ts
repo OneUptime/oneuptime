@@ -11,13 +11,13 @@ import {
 export const MAD_TO_SIGMA: number = 1.4826;
 
 /**
- * Descriptive statistics of a set of per-minute telemetry counts —
- * one hour-of-week baseline cell aggregated over a rolling window.
- * Computed in app code (not SQL) so the math is pure and unit-testable;
- * the input is at most `60 × ceil(windowDays / 7)` numbers.
+ * Descriptive statistics of a set of telemetry counts — one per window of a
+ * monitor's length, around the same time of the earlier weeks of a rolling
+ * window. Spans and logs read them as a per-minute rate of such a window.
+ * Computed in app code (not SQL) so the math is pure and unit-testable.
  */
 export interface CountBaselineStats {
-  /** Number of non-empty minute cells that contributed. */
+  /** Number of windows that contributed. */
   sampleCount: number;
   mean: number;
   /** Population standard deviation. */
@@ -44,6 +44,13 @@ export interface CountBaselineSummary extends CountBaselineStats {
   /** Window the baseline was computed over (days). */
   windowDays: number;
   hourOfWeek: number;
+  /**
+   * The same statistics over the windows that held something, when empty
+   * windows are part of what is normal. How high a window can go is read
+   * from these (CountWindowBaseline). Absent when every window held
+   * something, as they do for a busy scope, and the two are the same.
+   */
+  nonEmpty?: CountBaselineStats | undefined;
 }
 
 export interface CountAnomalyEvaluation {
@@ -58,9 +65,15 @@ export interface CountAnomalyEvaluation {
   spread: number;
 }
 
+export interface CountWindowBreach extends CountAnomalyEvaluation {
+  /** How many windows the statistics that were breached hold. */
+  sampleCount: number;
+}
+
 /**
  * Pure math for count-based anomaly criteria (CheckOn.SpanCount /
- * CheckOn.LogCount with FilterType.AnomalouslyHigh/Low/Anomalous).
+ * CheckOn.LogCount / CheckOn.ExceptionCount with
+ * FilterType.AnomalouslyHigh/Low/Anomalous).
  * The services compute stats through here so the write-side MV cells
  * and the eval-time comparison agree on what a "sample" is.
  */
@@ -114,13 +127,35 @@ export default class CountAnomaly {
   }
 
   /**
-   * Compare an observed per-minute rate to a baseline cell. Returns
+   * A baseline no narrower than a count is by chance. A count's standard
+   * deviation is at least the square root of its mean (Poisson), so a
+   * service that threw 4, 4 and 4 is not one that can never throw 5: a
+   * measured spread of zero says how few samples there are, not how steady
+   * it is. The mean is taken as at least one, so the baseline of a service
+   * that threw nothing still has a spread, and a burst is judged rather
+   * than skipped.
+   */
+  public static withCountingNoise(
+    stats: CountBaselineStats,
+  ): CountBaselineStats {
+    const noise: number = Math.sqrt(Math.max(stats.mean, 1));
+
+    return {
+      ...stats,
+      stddev: Math.max(stats.stddev, noise),
+      madSigma: Math.max(stats.madSigma, noise),
+    };
+  }
+
+  /**
+   * Compare an observed count, in the unit of the baseline's samples (a
+   * per-minute rate, or a whole window), to a baseline cell. Returns
    * null when the baseline has zero spread — any deviation at all would
    * fire, so the caller must skip rather than alert (mirrors the metric
    * evaluator's zero-variance guard).
    */
   public static evaluate(input: {
-    observedPerMinute: number;
+    observed: number;
     stats: CountBaselineStats;
     sigmaCount: number;
     method: AnomalyDetectionMethod;
@@ -139,10 +174,10 @@ export default class CountAnomaly {
 
     const expectedHigh: number = center + input.sigmaCount * spread;
     const expectedLow: number = center - input.sigmaCount * spread;
-    const observedSigma: number = (input.observedPerMinute - center) / spread;
+    const observedSigma: number = (input.observed - center) / spread;
 
-    const isHighBreach: boolean = input.observedPerMinute > expectedHigh;
-    const isLowBreach: boolean = input.observedPerMinute < expectedLow;
+    const isHighBreach: boolean = input.observed > expectedHigh;
+    const isLowBreach: boolean = input.observed < expectedLow;
 
     let breaches: boolean = false;
     switch (input.filterType) {
@@ -167,6 +202,62 @@ export default class CountAnomaly {
       center,
       spread,
     };
+  }
+
+  /**
+   * Whether a window of a log or span monitor breaches its baseline, and how,
+   * or null if it does not. Unusually low reads every window, unusually high
+   * those that held something (CountWindowBaseline), and needs the minimum
+   * count: a scope that logs almost nothing has almost no range, and its
+   * first few lines are no reason to wake anyone.
+   */
+  public static findBreach(input: {
+    observed: number;
+    count: number;
+    baseline: CountBaselineSummary;
+    sigmaCount: number;
+    method: AnomalyDetectionMethod;
+    filterType: FilterType | undefined;
+    minimumCount: number;
+  }): CountWindowBreach | null {
+    const compare: (
+      stats: CountBaselineStats,
+      filterType: FilterType,
+    ) => CountWindowBreach | null = (
+      stats: CountBaselineStats,
+      filterType: FilterType,
+    ): CountWindowBreach | null => {
+      const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
+        observed: input.observed,
+        stats,
+        sigmaCount: input.sigmaCount,
+        method: input.method,
+        filterType,
+      });
+
+      return evaluation?.breaches
+        ? { ...evaluation, sampleCount: stats.sampleCount }
+        : null;
+    };
+
+    const high: CountWindowBreach | null =
+      (input.filterType === FilterType.AnomalouslyHigh ||
+        input.filterType === FilterType.Anomalous) &&
+      input.count >= input.minimumCount
+        ? compare(
+            input.baseline.nonEmpty || input.baseline,
+            FilterType.AnomalouslyHigh,
+          )
+        : null;
+
+    if (high) {
+      return high;
+    }
+
+    return input.filterType === FilterType.AnomalouslyLow ||
+      input.filterType === FilterType.Anomalous
+      ? compare(input.baseline, FilterType.AnomalouslyLow)
+      : null;
   }
 
   private static medianOf(values: Array<number>): number {

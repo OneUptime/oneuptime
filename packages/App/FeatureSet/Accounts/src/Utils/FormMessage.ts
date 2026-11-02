@@ -31,6 +31,11 @@ enum FormMessage {
   NoSeverity = "This form cannot create an incident because it has no severity. Please let the team that shared it know.",
   // 503: the submit rate limiter's counter is down, so submits are refused.
   SubmissionsUnavailable = "Submissions cannot be accepted right now. Please try again in a few minutes.",
+  // 429 on submit: the form took in as many files as it may this hour.
+  FilesBusy = "This form is receiving too many files right now. Please try again later.",
+  // 400 (and the page's own check): too many files, or too large, together.
+  TooManyFiles = "A response can carry at most 10 files.",
+  FilesTooLarge = "The files of a response can be at most 20 MB together.",
   // 500 on submit, and every other failure this page cannot name.
   SubmitFailed = "Your response could not be submitted. Please try again in a few minutes.",
   // Any failure to read the form other than the refusals above.

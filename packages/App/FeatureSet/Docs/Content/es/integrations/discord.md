@@ -16,10 +16,10 @@ flowchart TB
     declared["Incidente declarado"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
     step -->|"Success"| channel["Mensaje en<br/>tu canal"]
-    step -->|"Error"| log["Log: por qué<br/>no se entregó"]
+    step -->|"Error"| failed["La ejecución falla<br/>y dice por qué"]
 ```
 
-El paso publica el **Message Text** en el webhook del canal. Toma su salida **Success** cuando Discord acepta el mensaje, y su salida **Error**, con el motivo de Discord, cuando Discord lo rechaza. La plantilla conecta un paso **Log** a **Error**, para que una ejecución que no pudo publicar diga por qué.
+El paso publica el **Message Text** en el webhook del canal. Toma su salida **Success** cuando Discord acepta el mensaje, y su salida **Error**, con el motivo de Discord, cuando Discord lo rechaza. Sin nada conectado a **Error**, como en la plantilla, una ejecución que no pudo publicar falla, y sus **Pasos** dicen por qué.
 
 ## Antes de empezar
 
@@ -48,7 +48,7 @@ Empieza desde la plantilla, que crea todo el flujo de trabajo por ti, o desde ce
 3. Deja el nombre **Notify Discord on new incident** o cámbialo, y haz clic en **Siguiente**.
 4. Pega la URL en **Discord Webhook URL** y haz clic en **Crear flujo de trabajo**.
 
-El flujo de trabajo se abre en el **Constructor** con tres pasos: **On Create Incident**; **Send Message to Discord**, que publica el número, el título, la gravedad y el estado del incidente; y un paso **Log** en su salida **Error**. La URL se guarda como la variable secreta `discordWebhookUrl` del flujo de trabajo.
+El flujo de trabajo se abre en el **Constructor** con dos pasos: **On Create Incident** y **Send Message to Discord**, que publica el número, el título, la gravedad y el estado del incidente. La URL se guarda como la variable secreta `discordWebhookUrl` del flujo de trabajo.
 @tab Desde cero
 1. Guarda la URL como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `DISCORD_WEBHOOK_URL` y haz clic en **Siguiente**. Pega la URL en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
 2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
@@ -68,7 +68,7 @@ Un mensaje hecho desde cero lee los campos del incidente con referencias como es
 
 Activa el interruptor **Habilitado** en la parte superior del **Constructor**. A partir de ahí, cada incidente nuevo se publica en el canal.
 
-Para probarlo sin abrir un incidente, haz clic en **Ejecutar flujo de trabajo** y elige un incidente que ya tengas en **Incidente**: se muestran los más recientes, y al escribir su número o parte de su título encuentras otro. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución, y el mensaje aparece en el canal. Si el paso toma **Error** en su lugar, la línea del paso **Log** dice por qué: consulta [Solución de problemas](#solución-de-problemas).
+Para probarlo sin abrir un incidente, haz clic en **Ejecutar flujo de trabajo** y elige un incidente que ya tengas en **Incidente**: se muestran los más recientes, y al escribir su número o parte de su título encuentras otro. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución, y el mensaje aparece en el canal. Si el paso toma **Error** en su lugar, la ejecución falla, y la entrada del paso en **Pasos** dice por qué: consulta [Solución de problemas](#solución-de-problemas).
 :::
 
 ## Consejos
@@ -80,7 +80,7 @@ Para probarlo sin abrir un incidente, haz clic en **Ejecutar flujo de trabajo** 
 
 ## Solución de problemas
 
-Cuando el paso toma **Error**, la ejecución dice por qué: el paso **Log** de la plantilla escribe `❌ Discord could not deliver the incident notification:` y el motivo de Discord.
+Cuando el paso toma **Error**, la ejecución falla, y la entrada del paso en los **Pasos** de la ejecución da el motivo de Discord.
 
 :::details Discord responde "Unknown Webhook" o "Invalid Webhook Token"
 El webhook se eliminó, o la URL se copió mal. Crea un webhook nuevo y sustituye la URL: en el flujo de trabajo de la plantilla, la variable `discordWebhookUrl`; en un flujo de trabajo propio, el contenido de `DISCORD_WEBHOOK_URL`.

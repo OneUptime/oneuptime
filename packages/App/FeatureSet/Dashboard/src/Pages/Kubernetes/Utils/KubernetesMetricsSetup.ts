@@ -1,5 +1,9 @@
+import { isOpenShiftClusterProvider } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { getKubernetesAgentUpgradeCommand } from "./DocumentationMarkdown";
+import {
+  getKubernetesAgentUpgradeCommand,
+  KUBERNETES_AGENT_HELM_NAMESPACE,
+} from "./DocumentationMarkdown";
 
 /*
  * What a Kubernetes cluster's Control Plane and Service Mesh tabs say when
@@ -88,6 +92,8 @@ export interface KubernetesMetricsSetup {
    * installed agent. Empty when no agent value collects these metrics.
    */
   helmFlags: Array<string>;
+  // Commands that come before that upgrade, when it needs something made first.
+  commandsBefore?: Array<string> | undefined;
   // The docs section that explains it.
   docsRoute: string;
 }
@@ -261,10 +267,94 @@ const KUBERNETES_METRICS_SETUPS: Record<
   },
 };
 
+/*
+ * The Secret the etcd hint on OpenShift makes. The name is the agent docs',
+ * and the chart takes any name.
+ */
+export const OPENSHIFT_ETCD_CLIENT_CERT_SECRET: string = "etcd-client-cert";
+
+/*
+ * The three tabs that read differently on an OpenShift cluster, where sending
+ * the reader to list node addresses is wrong. The chart's OpenShift presets
+ * find each replica through service discovery, so controlPlane.enabled is all
+ * the scheduler and the controller manager need, and etcd needs a client
+ * certificate, which OpenShift already has one of. The API server's hint is
+ * the same on every cluster, and every other tab with it.
+ */
+const OPENSHIFT_KUBERNETES_METRICS_SETUPS: Partial<
+  Record<KubernetesMetricsSource, KubernetesMetricsSetup>
+> = {
+  [KubernetesMetricsSource.Etcd]: {
+    source: KubernetesMetricsSource.Etcd,
+    title: translationKey("No etcd metrics from this cluster"),
+    description: translationKey(
+      "Turn on {{enabled}} and set {{secret}} to a Secret that holds etcd's client certificate. The commands below copy OpenShift's own into one, which takes cluster-admin rights. A hosted control plane, such as ROSA with HCP, runs etcd outside the cluster, so this stays empty there.",
+    ),
+    code: {
+      enabled: CONTROL_PLANE_ENABLED,
+      secret: "controlPlane.etcd.clientCertSecret",
+    },
+    commandsBefore: [
+      "oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm",
+      "oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm",
+      `oc create secret generic ${OPENSHIFT_ETCD_CLIENT_CERT_SECRET} \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \\
+  --from-file=tls.crt=etcd-cert/tls.crt \\
+  --from-file=tls.key=etcd-cert/tls.key`,
+      "rm -r etcd-cert",
+    ],
+    helmFlags: [
+      CONTROL_PLANE_FLAG,
+      `--set controlPlane.etcd.clientCertSecret=${OPENSHIFT_ETCD_CLIENT_CERT_SECRET}`,
+    ],
+    docsRoute: KUBERNETES_CONTROL_PLANE_DOCS_ROUTE,
+  },
+  [KubernetesMetricsSource.Scheduler]: {
+    source: KubernetesMetricsSource.Scheduler,
+    title: translationKey("No scheduler metrics from this cluster"),
+    description: translationKey(
+      "Turn on {{enabled}}. The agent then finds every scheduler on OpenShift by itself and reads each one. A hosted control plane, such as ROSA with HCP, runs the scheduler outside the cluster, so this stays empty there.",
+    ),
+    code: {
+      enabled: CONTROL_PLANE_ENABLED,
+    },
+    helmFlags: [CONTROL_PLANE_FLAG],
+    docsRoute: KUBERNETES_CONTROL_PLANE_DOCS_ROUTE,
+  },
+  [KubernetesMetricsSource.ControllerManager]: {
+    source: KubernetesMetricsSource.ControllerManager,
+    title: translationKey("No controller manager metrics from this cluster"),
+    description: translationKey(
+      "Turn on {{enabled}}. The agent then finds every controller manager on OpenShift by itself and reads each one. A hosted control plane, such as ROSA with HCP, runs the controller manager outside the cluster, so this stays empty there.",
+    ),
+    code: {
+      enabled: CONTROL_PLANE_ENABLED,
+    },
+    helmFlags: [CONTROL_PLANE_FLAG],
+    docsRoute: KUBERNETES_CONTROL_PLANE_DOCS_ROUTE,
+  },
+};
+
+/*
+ * A tab's hint, for the cluster it is shown on: `clusterProvider` is the
+ * cluster's KubernetesCluster.provider.
+ */
 export function getKubernetesMetricsSetup(
   source: KubernetesMetricsSource,
+  clusterProvider?: string | null | undefined,
 ): KubernetesMetricsSetup {
-  return KUBERNETES_METRICS_SETUPS[source];
+  const onOpenShift: KubernetesMetricsSetup | undefined =
+    isOpenShiftClusterProvider(clusterProvider)
+      ? OPENSHIFT_KUBERNETES_METRICS_SETUPS[source]
+      : undefined;
+
+  return onOpenShift || KUBERNETES_METRICS_SETUPS[source];
+}
+
+// The hints only an OpenShift cluster sees.
+export function getOpenShiftKubernetesMetricsSetups(): Array<KubernetesMetricsSetup> {
+  return Object.values(OPENSHIFT_KUBERNETES_METRICS_SETUPS);
 }
 
 export function getAllKubernetesMetricsSetups(): Array<KubernetesMetricsSetup> {
@@ -279,16 +369,23 @@ export function getAllKubernetesMetricsSetups(): Array<KubernetesMetricsSetup> {
  * The `helm upgrade` of the installed agent that collects these metrics, or
  * null when no agent value does. --reset-then-reuse-values keeps the
  * install's URL, key, cluster name and every other value it was given, and
- * takes the rest from the chart.
+ * takes the rest from the chart. Whatever it needs made first comes before it.
  */
 export function getKubernetesMetricsSetupCommand(
   source: KubernetesMetricsSource,
+  clusterProvider?: string | null | undefined,
 ): string | null {
-  const setup: KubernetesMetricsSetup = getKubernetesMetricsSetup(source);
+  const setup: KubernetesMetricsSetup = getKubernetesMetricsSetup(
+    source,
+    clusterProvider,
+  );
 
   if (setup.helmFlags.length === 0) {
     return null;
   }
 
-  return getKubernetesAgentUpgradeCommand(setup.helmFlags);
+  return [
+    ...(setup.commandsBefore || []),
+    getKubernetesAgentUpgradeCommand(setup.helmFlags),
+  ].join("\n");
 }

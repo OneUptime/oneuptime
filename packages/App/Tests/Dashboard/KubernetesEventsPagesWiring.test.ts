@@ -143,6 +143,18 @@ const DETAIL_PAGES: Array<{ page: string; scope: string; kind: string }> = [
     kind: "KubernetesWorkloadKind.CronJob",
   },
   { page: "NamespaceDetail", scope: "namespace", kind: "" },
+  // The pages an OpenShift cluster's Services, Routes and DeploymentConfigs have.
+  { page: "ServiceDetail", scope: "object", kind: '"Service"' },
+  {
+    page: "OpenShiftRouteDetail",
+    scope: "object",
+    kind: "OpenShiftKind.Route",
+  },
+  {
+    page: "DeploymentConfigDetail",
+    scope: "workload",
+    kind: "KubernetesWorkloadKind.DeploymentConfig",
+  },
 ];
 
 describe("every Kubernetes detail page's Events tab says how many warnings there are", () => {

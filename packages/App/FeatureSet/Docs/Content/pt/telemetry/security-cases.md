@@ -29,7 +29,7 @@ flowchart TB
     work --> close["Fechado com um veredito"]
 ```
 
-Abra **Produtos → Security Events → Casos de segurança → Casos abertos** para a fila. **Atribuídos a mim**, **Não atribuído**, **Casos fechados** e **Todos os casos** são páginas próprias ao lado, cada uma listando os casos que o nome diz.
+Abra **Produtos → Eventos de segurança → Casos de segurança → Casos abertos** para a fila. **Atribuídos a mim**, **Não atribuído**, **Casos fechados** e **Todos os casos** são páginas próprias ao lado, cada uma listando os casos que o nome diz.
 
 ## Antes de começar
 
@@ -97,15 +97,15 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 
 - **Visão geral**: a descrição, os rótulos e as etapas de status do caso, quem está com ele e o que o abriu, e os números dele: quantas detecções tem, há quanto tempo está aberto e quanto tempo levou para ser reconhecido e contido. Sob **Tempo até a confirmação** e **Tempo até a contenção**, ela mostra como o caso está em relação às suas metas de resposta.
 - **OneUptime AI**, na **Visão geral**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
-- **Impacto**, na **Visão geral**: o que o caso coloca em risco: se o OneUptime viu os registros dele serem alcançados pela internet, quem é dono deles e o que mudou por último neles. Abra-o para ver o que cada registro chama e por quem é chamado, os monitores e páginas de status que o observam e as máquinas com que os endereços do caso conversaram.
+- **Impacto**, na **Visão geral**: o que o caso coloca em risco: se o OneUptime viu os registros dele serem alcançados pela internet, quem é dono deles, o que mudou por último neles, e os dados em risco - os repositórios com dados sensíveis que o caso nomeia ou que os usuários e funções dele podem alcançar (veja [Integrações da Segurança de dados](/docs/data-security/integrations#security-operations)). Abra-o para ver o que cada registro chama e por quem é chamado, os monitores e páginas de status que o observam e as máquinas com que os endereços do caso conversaram.
 - **MITRE ATT&CK**, na **Visão geral**: as táticas e técnicas às quais as detecções dele correspondem, cada uma com um link para a própria página em attack.mitre.org.
 - **Linha do tempo**: tudo o que aconteceu com o caso, com quem fez.
 - **Desenrolar**: o que aconteceu, em ordem, em todo o OneUptime: cada detecção e os eventos de segurança por trás dela, até onde as solicitações chegaram, as exceções que lançaram, as mudanças nos registros que o caso cita, os incidentes e alertas abertos neles e o que a equipe fez. As muitas sondagens de um scanner são uma linha só, e cada linha abre o que cita, como o trace da solicitação ou a exceção.
 - **Detecções**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
 - **Sinais conectados**: os hosts, clusters, serviços e membros que o caso nomeia, como o OneUptime os conhece, e o que acontecia em cada um em torno das detecções dele: os seus registros, traços e métricas, o que está aberto neles e o que mudou. Veja [Sinais conectados](/docs/telemetry/security-connected-signals).
-- **Evidências**: os arquivos, links e eventos de segurança guardados no caso, cada um com quem o adicionou e quando. O botão **Adicionar arquivo** envia um arquivo de até 10 MB e registra o SHA-256 do que foi enviado, para que quem o baixar depois possa conferir que é o que foi guardado; o botão **Adicionar link** aponta para evidências guardadas em outro lugar. Só um Security Admin pode remover uma evidência, e a **Linha do tempo** do caso diz o que foi adicionado e removido. Um evento de segurança é guardado aqui como era, com **Adicionar ao caso** em **Eventos** ou na página de uma [caçada](/docs/telemetry/security-events#caçadas), e **Ver evento** o abre.
-- **Tarefas**: o que precisa ser feito no caso, quem está fazendo e se já foi feito. Adicione uma tarefa em uma linha, entregue-a a alguém e marque-a quando estiver concluída. A pessoa que recebe a tarefa é avisada, a menos que a tenha pegado ela mesma, e o menu mostra quantas tarefas estão abertas ao lado de **Tarefas**.
+- **Evidências**: os arquivos, links e eventos de segurança guardados no caso, cada um com quem o adicionou e quando. O botão **Adicionar arquivo** envia um arquivo de até 10 MB e registra o SHA-256 do que foi enviado, para que quem o baixar depois possa conferir que é o que foi guardado; o botão **Adicionar link** aponta para evidências guardadas em outro lugar. Só um Security Admin pode remover uma evidência, e a **Linha do tempo** do caso diz o que foi adicionado e removido. Um evento de segurança é guardado aqui como era, com **Adicionar ao caso** em **Eventos** ou na página de uma [caçada](/docs/telemetry/security-events#caçadas), e **Ver evento** o abre. A etapa **Preserve the evidence** de um playbook também guarda aqui os eventos por trás das detecções do caso.
+- **Tarefas**: o que precisa ser feito no caso, quem está fazendo e se já foi feito. Adicione uma tarefa em uma linha, entregue-a a alguém e marque-a quando estiver concluída. A pessoa que recebe a tarefa é avisada, a menos que a tenha pegado ela mesma, e o menu mostra quantas tarefas estão abertas ao lado de **Tarefas**. A etapa **Adicionar tarefas** de um playbook também adiciona tarefas e deixa de fora as que o caso já tem.
 - **Playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Playbooks**.
 - **Notas privadas**: o que a equipe escreveu sobre o caso.
 - **Registros de auditoria**: cada alteração feita no caso, e quem a fez. Veja [Registros de auditoria](/docs/configuration/audit-logs).
@@ -142,7 +142,7 @@ Um caso aberto a partir de alertas do Google SecOps também os fecha no Google S
 
 ## Prioridades e status dos casos
 
-Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Security Events → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack e no Microsoft Teams, e nas mensagens dos playbooks.
+Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Eventos de segurança → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack e no Microsoft Teams, e nas mensagens dos playbooks.
 
 Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles podem ser renomeados e mudar de cor, mas não excluídos nem arquivados, e mantêm sua ordem:
 
@@ -161,7 +161,7 @@ Para parar de usar um status ou uma prioridade seus, use **Arquivar** na linha d
 
 ## Metas de resposta
 
-Uma meta de resposta é a rapidez com que um caso deve ser tratado: **Confirmar em até**, quanto tempo um caso novo pode esperar até alguém assumi-lo, e **Conter em até**, quanto tempo pode levar para ser contido ou fechado. Cada prioridade de caso tem as suas, em **Produtos → Security Events → Configurações → Metas de resposta**: o botão **Editar** na linha de uma prioridade define suas duas metas, em minutos, horas ou dias, até um ano, e uma meta vazia significa sem meta. As prioridades de um projeto novo começam com estas:
+Uma meta de resposta é a rapidez com que um caso deve ser tratado: **Confirmar em até**, quanto tempo um caso novo pode esperar até alguém assumi-lo, e **Conter em até**, quanto tempo pode levar para ser contido ou fechado. Cada prioridade de caso tem as suas, em **Produtos → Eventos de segurança → Configurações → Metas de resposta**: o botão **Editar** na linha de uma prioridade define suas duas metas, em minutos, horas ou dias, até um ano, e uma meta vazia significa sem meta. As prioridades de um projeto novo começam com estas:
 
 | Prioridade | Confirmar em até | Conter em até |
 | --- | --- | --- |
@@ -183,7 +183,7 @@ Onde as metas aparecem:
 
 - O cabeçalho do caso nomeia a próxima meta e quanto tempo falta, ou há quanto tempo está vencida: cinza enquanto há tempo, âmbar no último quinto, vermelho depois de perdida.
 - Na **Visão geral** do caso, sob **Tempo até a confirmação** e **Tempo até a contenção**: como o caso está em relação a cada meta, ou quanto passou dela.
-- Nas listas da fila: a linha sob a prioridade de cada caso, e uma coluna **Prazo** que você pode ativar e usar para ordenar. As listas as mostram só quando alguma prioridade do projeto tem uma meta.
+- Nas listas da fila: a linha sob a prioridade de cada caso, e uma coluna **Prazo** que você pode ativar e usar para ordenar. Enquanto a coluna está ativada, a linha sob a prioridade não aparece. As listas as mostram só quando alguma prioridade do projeto tem uma meta.
 
 ## Notificações
 
@@ -222,7 +222,7 @@ Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notifica�
 
 ### Publique em canais do Slack e do Microsoft Teams
 
-Para publicar em um canal, adicione uma regra em **Produtos → Security Events → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
+Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
 
 | Condição | Corresponde a |
 | --- | --- |
@@ -236,7 +236,7 @@ Cada notificação, exceto a de uma tarefa, é publicada nos canais de todas as 
 
 ## Playbooks
 
-Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Security Events → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele. Um projeto sem playbooks vê os modelos no lugar de uma lista vazia; assim que há playbooks, **Criar a partir de modelo** na lista os abre, com **Adicionado** nos que o projeto já tem.
+Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Eventos de segurança → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele. Um projeto sem playbooks vê os modelos no lugar de uma lista vazia; assim que há playbooks, **Criar a partir de modelo** na lista os abre, com **Adicionado** nos que o projeto já tem.
 
 ### Quando um playbook roda
 
@@ -262,11 +262,12 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Caso | Assign the case | Atribui o caso a uma pessoa, a uma equipe ou a ambas |
 | Caso | Set the priority | Aumenta ou diminui a prioridade do caso |
 | Caso | Set the status | Leva o caso para outro status do projeto, com o veredito que você escolher quando esse status o fecha |
-| Caso | Add a note | Escreve uma nota no caso, como uma checklist para o analista |
+| Caso | Add a note | Escreve uma nota no caso, como contexto para o analista |
 | Caso | Add labels | Marca o caso com rótulos |
+| Caso | Add tasks | Adiciona tarefas à checklist do caso, para uma pessoa ou para quem trabalha no caso |
 | Investigação | Check entities against threat intel | Procura cada entidade na sua inteligência de ameaças, e pode aumentar a prioridade quando encontra uma correspondência |
 | Investigação | Look up entity activity | Conta os eventos de segurança de cada entidade em uma janela recente, e registra isso no caso |
-| Investigação | Preserve the evidence | Guarda as gravações de sessão das requisições por trás do caso, e registra no caso seus traces e exceções |
+| Investigação | Preserve the evidence | Guarda os eventos por trás das detecções do caso e as gravações de sessão das requisições dele, e registra no caso seus traces e exceções |
 | Notificação | Email people | Envia por e-mail a usuários e equipes um resumo do caso, com um link para ele |
 | Notificação | Notify data store owners | Envia por e-mail aos proprietários de cada repositório de dados de que o caso trata um link para o caso |
 | Notificação | Post to Slack | Publica um resumo do caso em um canal do Slack |
@@ -278,9 +279,15 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Contenção | End the user's Okta sessions | Desconecta do Okta o usuário de que o caso trata e revoga os tokens dele |
 | Contenção | Contain the host in CrowdStrike | Aplica a contenção de rede ao host de que o caso trata com o CrowdStrike Falcon |
 | Contenção | Isolate the device in Microsoft Defender | Isola o host de que o caso trata com o Microsoft Defender for Endpoint |
+| Contenção | Disable the user in Microsoft Entra ID | Desativa no Microsoft Entra ID a conta do usuário de que o caso trata |
+| Contenção | Sign the user out of Microsoft Entra ID | Desconecta do Microsoft Entra ID em todos os lugares o usuário de que o caso trata e revoga os tokens de atualização dele |
+| Contenção | Suspend the user in Google Workspace | Suspende no Google Workspace o usuário de que o caso trata |
+| Contenção | Sign the user out of Google Workspace | Desconecta do Google Workspace o usuário de que o caso trata em todos os navegadores e dispositivos |
 | Contenção | Unsuspend the user in Okta | Cancela no Okta a suspensão do usuário de que o caso trata |
 | Contenção | Lift containment in CrowdStrike | Retira do host de que o caso trata a contenção de rede do CrowdStrike Falcon |
 | Contenção | Release the device in Microsoft Defender | Libera do isolamento no Microsoft Defender for Endpoint o host de que o caso trata |
+| Contenção | Enable the user in Microsoft Entra ID | Ativa de novo no Microsoft Entra ID a conta do usuário de que o caso trata |
+| Contenção | Unsuspend the user in Google Workspace | Reativa no Google Workspace o usuário de que o caso trata |
 | Contenção | Bloquear o acesso público a repositórios de dados | Bloqueia o acesso público a cada bucket ou conta de armazenamento de que o caso trata, pela conexão de nuvem dele |
 | Contenção | Revogar o compartilhamento do repositório de dados | Para de compartilhar fora das suas contas os snapshots de cada banco de dados de que o caso trata, pela conexão de nuvem dele |
 | Automação | Send a webhook | Envia o caso como JSON para uma URL |
@@ -290,16 +297,28 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 
 Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
 
-- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook**, **Post a status page announcement** e as duas etapas de repositório de dados começam com a aprovação ativada, porque executam comandos nos seus sistemas, falam com os seus clientes ou mudam as configurações de uma nuvem; quem adiciona a etapa pode desativá-la.
-- **Somente se houver correspondência de inteligência de ameaças**: pular a etapa, a menos que uma etapa **Verificar as entidades na inteligência de ameaças** anterior da mesma execução tenha encontrado um indicador conhecido.
-- **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução.
+- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As oito etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook**, **Post a status page announcement** e as duas etapas de repositório de dados começam com a aprovação ativada, porque executam comandos nos seus sistemas, falam com os seus clientes ou mudam as configurações de uma nuvem; quem adiciona a etapa pode desativá-la.
+- **Executar esta etapa**: **Sempre**, ou só depois de um resultado de uma etapa anterior, como **Verificar as entidades na inteligência de ameaças** encontrar uma entidade sabidamente maliciosa; veja [Ramificar pelo resultado de uma etapa](#ramificar-pelo-resultado-de-uma-etapa).
+- **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução. Fica em **Mais campos**, junto com **Executar esta etapa**.
+
+### Ramificar pelo resultado de uma etapa
+
+**Executar esta etapa** faz uma etapa esperar pelo modo como uma etapa anterior terminou. Cada etapa anterior oferece seus resultados:
+
+| Uma etapa anterior | Seus resultados |
+| --- | --- |
+| Verificar as entidades na inteligência de ameaças | Encontrou uma entidade sabidamente maliciosa, ou não encontrou nada sabidamente malicioso |
+| Consultar a atividade das entidades | Encontrou atividade, ou não encontrou atividade |
+| Qualquer outra etapa | Teve sucesso, e falhou quando tem **Continuar se falhar** ativado |
+
+Duas etapas que esperam resultados opostos de uma mesma etapa são um se e um senão: suspender um usuário só quando a inteligência de ameaças o conhece e, senão, adicionar uma tarefa para confirmar o login com ele. Quando a etapa esperada termina de outro jeito, a etapa que espera é pulada, e a execução diz o motivo embaixo dela; o mesmo vale para uma etapa que espera por uma que foi pulada. O cartão de uma etapa diz pelo que ela espera, e uma etapa pela qual outra espera não pode ser movida para baixo dela nem excluída até que essa outra rode de outro jeito. O modelo **Escalonar indicadores maliciosos conhecidos** sobe a prioridade e o status de um caso só quando houve correspondência de inteligência de ameaças, e uma etapa salva com a antiga opção de inteligência de ameaças a mantém como **Somente se uma verificação anterior de inteligência de ameaças encontrou uma entidade sabidamente maliciosa**.
 
 ### Respondendo com o OneUptime
 
 Quatro etapas agem pelo restante do OneUptime, e não por um produto conectado:
 
 - **Run a runbook** inicia um dos seus [runbooks](/docs/runbooks/index) com o caso como entrada, que uma etapa Bash lê como variáveis de ambiente (veja [Chamar o webhook](/docs/runbooks/triggers#chamar-o-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` e `ONEUPTIME_INPUT_HOST` são o endereço, o usuário e o host de que o caso trata, escolhidos pela mesma regra de uma etapa de contenção, e vazios quando ele não trata de nenhum. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` e `ONEUPTIME_INPUT_HOSTS` listam em JSON todos os que o caso cita, e `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` e `ONEUPTIME_INPUT_CASE_URL` dizem qual é o caso. Um usuário ou host protegido nunca está entre eles. A execução do runbook diz que foi iniciada por **Security playbook**, para o caso.
-- **Preserve the evidence** guarda as gravações de sessão das requisições por trás do caso além da retenção delas, e escreve no caso uma nota com links para o trace de cada requisição, cada gravação e cada exceção. Logs e traces não podem ser guardados por mais tempo do que o projeto guarda a telemetria, então exporte antes o que precisar.
+- **Preserve the evidence** guarda na página **Evidências** do caso o evento mais recente de cada uma das detecções dele, até 100, como está agora, guarda as gravações de sessão das requisições por trás do caso além da retenção delas, e escreve no caso uma nota com links para o trace de cada requisição, cada gravação e cada exceção. Logs e traces não podem ser guardados por mais tempo do que o projeto guarda a telemetria, então exporte antes o que precisar.
 - **Post a status page announcement** publica o que você escreveu, exatamente como escreveu, nas páginas de status que escolher. Nada do caso é adicionado. Os assinantes delas só são avisados quando **Notificar assinantes** está ativado.
 - **Fix the code with AI** pede ao OneUptime AI, para cada exceção lançada pelas requisições do caso, até três, um pull request que a corrija. Precisa do OneUptime AI ativado, de um repositório com o código conectado pelo GitHub App e de um runner. Sem eles, a etapa é ignorada e diz o que falta.
 
@@ -312,6 +331,8 @@ As etapas de contenção agem por meio de uma conexão que precisa de mais do qu
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Um token de API com permissão para gerenciar usuários |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Um cliente de API com o escopo Hosts de gravação |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Um app com a permissão Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | Um app com as permissões de aplicativo User.Read.All, User.EnableDisableAccount.All e User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Delegação em todo o domínio com os escopos admin.directory.user e admin.directory.user.security, para um administrador que gerencia o usuário |
 | Bloquear o acesso público a repositórios de dados, Revogar o compartilhamento do repositório de dados | A conexão de nuvem do repositório | **Resposta de segurança de dados** ativada, e o comando de configuração dela executado de novo |
 
 Uma etapa de usuário ou de host age só nos usuários ou hosts de que o caso trata, nunca em todos os que ele cita:
@@ -319,7 +340,7 @@ Uma etapa de usuário ou de host age só nos usuários ou hosts de que o caso tr
 - O valor pelo qual uma detecção do caso é agrupada, como a conta pela qual uma regra de viagem impossível agrupa, ou o host que o alerta de um produto conectado cita.
 - Um usuário ou host do caso que a sua inteligência de ameaças conhece como indicador.
 
-Um caso agrupado por um endereço, como um ataque de força bruta contra a sua VPN, não trata de nenhum dos dois: as etapas de contenção dele são puladas, e a conta tentada e o gateway atingido ficam intactos. Uma etapa age em no máximo 10 usuários ou hosts. Ela encontra cada um no produto pelo nome, e informa na execução o que fez com cada um: feito, já feito, não encontrado, recusado ou protegido.
+Um caso agrupado por um endereço, como um ataque de força bruta contra a sua VPN, não trata de nenhum dos dois: as etapas de contenção dele são puladas, e a conta tentada e o gateway atingido ficam intactos. Uma etapa age em no máximo 10 usuários ou hosts. Ela encontra cada um no produto pelo nome, e informa na execução o que fez com cada um: feito, já feito, não encontrado, recusado ou protegido. O Microsoft Entra ID encontra um usuário pelo nome de login ou endereço de e-mail, e só muda a conta de um administrador para um app que também tenha a função Privileged Authentication Administrator; o Google Workspace o encontra pelo endereço principal ou por um alias.
 
 As duas etapas de repositório de dados agem nos repositórios de dados de que o caso trata, no máximo 10: os dos problemas da Segurança de dados que ele recebeu, e qualquer um pelo qual uma detecção o agrupou. Elas deixam intacto um repositório marcado como **Público por design**, mudam como um repositório é compartilhado mas nunca os dados dele, e informam na execução o que fizeram com cada repositório (veja [Fechar uma exposição](/docs/data-security/integrations#fechar-uma-exposição)).
 
@@ -329,11 +350,11 @@ As duas etapas de repositório de dados agem nos repositórios de dados de que o
 
 #### Aprovação
 
-As quatro etapas que cortam o acesso de alguém aguardam aprovação. Só um Security Admin pode desativar **Requer aprovação** em uma delas, e o OneUptime registra quem fez isso. A aprovação lista em **Agir sobre** os usuários ou hosts em que a etapa agiria, todos marcados: desmarque os que ela deve deixar intactos. Os protegidos não são oferecidos. Quem iniciou uma execução não pode aprovar as etapas dela: outra pessoa faz isso, mas quem a iniciou ainda pode rejeitá-las.
+As oito etapas que cortam o acesso de alguém aguardam aprovação. Só um Security Admin pode desativar **Requer aprovação** em uma delas, e o OneUptime registra quem fez isso. A aprovação lista em **Agir sobre** os usuários ou hosts em que a etapa agiria, todos marcados: desmarque os que ela deve deixar intactos. Os protegidos não são oferecidos. Quem iniciou uma execução não pode aprovar as etapas dela: outra pessoa faz isso, mas quem a iniciou ainda pode rejeitá-las.
 
 #### Desfazer
 
-As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Reativar**, **Suspender a contenção** ou **Liberar**. Uma sessão do Okta encerrada não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto.
+As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Reativar**, **Suspender a contenção**, **Liberar** ou **Ativar**. Uma desconexão não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto.
 
 ### Mensagens
 
@@ -354,7 +375,7 @@ Um e-mail ou uma publicação sem mensagem própria envia um resumo do caso.
 
 ### Execuções e aprovações
 
-Cada execução aparece no caso dela e em **Produtos → Security Events → Playbooks → Execuções**, etapa por etapa:
+Cada execução aparece no caso dela e em **Produtos → Eventos de segurança → Playbooks → Execuções**, etapa por etapa:
 
 | Status da execução | Significado |
 | --- | --- |
@@ -371,7 +392,7 @@ Uma execução que deixa de receber sinais do worker dela, depois de uma reinici
 
 ## A visão geral
 
-**Produtos → Security Events → Visão geral** é onde o produto abre:
+**Produtos → Eventos de segurança → Visão geral** é onde o produto abre:
 
 - Os casos abertos atribuídos a você, os casos abertos que ninguém assumiu, e as etapas de playbooks aguardando aprovação, cada um abrindo a página que os lista.
 - **Tempo médio para reconhecer**, **Tempo médio para conter** e **Tempo médio para fechar**, sobre os casos abertos nos últimos 30 dias: da abertura de um caso até alguém assumi-lo (atribuindo-o a uma pessoa, ou levando-o para um status que conta como reconhecido), até um status que conta como contido e até um que conta como fechado. Um caso que ainda está esperando não entra na média.
@@ -417,6 +438,10 @@ Abra a execução no caso: a etapa diz, para cada usuário ou host, se o produto
 
 :::details Uma etapa de contenção foi pulada
 O caso não trata de nenhum usuário ou host, só de um endereço, por exemplo, ou todos os usuários ou hosts de que ele trata estão protegidos. Abra a execução no caso: a etapa diz qual dos dois.
+:::
+
+:::details Uma etapa que só roda depois de outra foi pulada
+A etapa pela qual ela espera terminou de outro jeito, ou foi pulada também: não encontrou nada sabidamente malicioso, por exemplo, quando a etapa espera uma entidade sabidamente maliciosa. Abra a execução no caso: a etapa pulada diz por qual etapa esperava, e por qual resultado. Para mudar isso, edite a etapa e abra **Mais campos**.
 :::
 
 :::details Um status ou uma prioridade não pode ser excluído nem arquivado

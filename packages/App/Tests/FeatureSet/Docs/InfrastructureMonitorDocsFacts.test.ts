@@ -15,6 +15,8 @@ import {
 import {
   DockerAlertTemplate,
   getAllDockerAlertTemplates,
+  getDockerAlertTemplateById,
+  getDockerDefaultAlertTemplateId,
 } from "Common/Types/Monitor/DockerAlertTemplates";
 import {
   DockerMetricDefinition,
@@ -23,6 +25,8 @@ import {
 import {
   DockerSwarmAlertTemplate,
   getAllDockerSwarmAlertTemplates,
+  getDockerSwarmAlertTemplateById,
+  getDockerSwarmDefaultAlertTemplateId,
 } from "Common/Types/Monitor/DockerSwarmAlertTemplates";
 import {
   DockerSwarmMetricDefinition,
@@ -31,6 +35,8 @@ import {
 import {
   HostAlertTemplate,
   getAllHostAlertTemplates,
+  getHostAlertTemplateById,
+  getHostDefaultAlertTemplateId,
 } from "Common/Types/Monitor/HostAlertTemplates";
 import {
   HostMetricDefinition,
@@ -47,10 +53,14 @@ import {
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepDockerMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerMonitor";
 import { MonitorStepDockerSwarmMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import { MonitorStepHostMonitorUtil } from "Common/Types/Monitor/MonitorStepHostMonitor";
-import { MonitorStepKubernetesMonitorUtil } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
+import {
+  KUBERNETES_WORKLOAD_KINDS,
+  MonitorStepKubernetesMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepPodmanMonitorUtil } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorType, {
@@ -61,19 +71,30 @@ import MonitorType, {
 import {
   PodmanAlertTemplate,
   getAllPodmanAlertTemplates,
+  getPodmanAlertTemplateById,
+  getPodmanDefaultAlertTemplateId,
 } from "Common/Types/Monitor/PodmanAlertTemplates";
 import {
   PodmanMetricDefinition,
   getAllPodmanMetrics,
 } from "Common/Types/Monitor/PodmanMetricCatalog";
 import {
+  PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
   ProxmoxAlertTemplate,
   getAllProxmoxAlertTemplates,
+  getProxmoxAlertTemplateById,
+  getProxmoxDefaultAlertTemplateId,
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
 import {
   ProxmoxMetricDefinition,
   getAllProxmoxMetrics,
 } from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import {
+  PROXMOX_NODE_NAME_LOG_ATTRIBUTE,
+  ProxmoxNotificationAlertTemplate,
+  getAllProxmoxNotificationAlertTemplates,
+} from "Common/Types/Monitor/ProxmoxNotificationAlertTemplates";
+import { ProxmoxNotificationAttribute } from "Common/Utils/Proxmox/ProxmoxNotifications";
 import {
   DefaultRecoveryMarginFraction,
   SustainedEvaluation,
@@ -83,9 +104,16 @@ import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { KUBERNETES_TEMPLATE_CATEGORIES } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 import {
+  ALERT_TEMPLATE_CHANGE,
   ALERT_TEMPLATE_TIME_RANGE,
   AlertTemplateCategory,
 } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
+import {
+  INFRASTRUCTURE_ALERT_SECTION_TITLE,
+  INFRASTRUCTURE_CUSTOM_METRIC_TAB,
+  INFRASTRUCTURE_QUERY_BUILDER_TAB,
+} from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import fs from "fs";
 import path from "path";
 
@@ -125,6 +153,15 @@ const STORAGE_ARRAY: string = "monitor/storage-array-monitor";
 const IOT_DEVICE: string = "monitor/iot-device-monitor";
 const VMWARE: string = "monitor/vmware-monitor";
 
+/*
+ * How the Kubernetes agent's chart names its cumulative-to-delta processor:
+ * as the agent's collector knows it, cumulative_to_delta from collector
+ * 0.157.0 and cumulativetodelta before (_helpers.tpl). The chart's own
+ * tests pin both names.
+ */
+const CUMULATIVE_TO_DELTA: string =
+  '{{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}';
+
 const TELEMETRY_PAGES: Array<string> = [
   KUBERNETES,
   DOCKER,
@@ -146,7 +183,15 @@ const RECEIVING_PAGE_LINK: string =
 const TABLE_DELIMITER_ROW: RegExp = /^\|\s*-/;
 const HEADING_MARKS: RegExp = /^(#{1,6}) /;
 const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
-const PAST_WINDOW: RegExp = /\bpast (\d+) minutes?\b/;
+// "past 15 minutes", "past 6 hours".
+const PAST_WINDOW: RegExp = /\bpast (\d+) (minutes?|hours?)\b/;
+
+// The window a row's "past N minutes" or "past N hours" names, in minutes.
+function pastWindowMinutes(past: RegExpMatchArray): number {
+  const amount: number = parseInt(past[1] as string, 10);
+
+  return (past[2] as string).startsWith("hour") ? amount * 60 : amount;
+}
 const AGGREGATION_WORD: RegExp = /\b(Avg|Max|Min|Sum|Count)\b/;
 const KEY_EQUALS_VALUE: RegExp = /^([\w.]+) = (\S+)$/;
 const SAME_AS_ABOVE: string = "The same";
@@ -243,6 +288,7 @@ const WINDOW_MINUTES: Partial<Record<RollingTime, number>> = {
   [RollingTime.Past10Minutes]: 10,
   [RollingTime.Past15Minutes]: 15,
   [RollingTime.Past30Minutes]: 30,
+  [RollingTime.Past6Hours]: 360,
 };
 
 const AGGREGATION_OF_WORD: Record<string, MetricsAggregationType> = {
@@ -260,6 +306,7 @@ const NUMBER_WORDS: Record<number, string> = {
   7: "seven",
   11: "eleven",
   12: "twelve",
+  15: "fifteen",
   17: "seventeen",
   18: "eighteen",
 };
@@ -649,7 +696,7 @@ function describeTemplateTable(data: {
 
         const past: RegExpMatchArray | null = row.watches.match(PAST_WINDOW);
         const minutes: number | undefined = past
-          ? parseInt(past[1] as string, 10)
+          ? pastWindowMinutes(past)
           : data.defaultWindowMinutes;
 
         expect(minutes).toBe(WINDOW_MINUTES[template.rollingTime]);
@@ -754,8 +801,12 @@ function describeTemplateTable(data: {
         `(#pre-built-alert-templates): ${capitalized} ready-made alerts`,
       );
       expect(
-        lead.includes(`**Quick Setup** offers ${word} templates.`) ||
-          lead.includes(`**Quick Setup** offers ${count} templates.`),
+        lead.includes(
+          `The **${INFRASTRUCTURE_ALERT_SECTION_TITLE}** list offers ${word} templates.`,
+        ) ||
+          lead.includes(
+            `The **${INFRASTRUCTURE_ALERT_SECTION_TITLE}** list offers ${count} templates.`,
+          ),
       ).toBe(true);
     });
   });
@@ -818,7 +869,7 @@ describeTemplateTable({
   heading: "## Pre-built Alert Templates",
   templates: proxmoxTemplates,
   defaultWindowMinutes: 5,
-  specialRows: ["Cluster Stopped Reporting", "Guest Down"],
+  specialRows: ["Cluster Stopped Reporting", "Guest Down", "Node Restarted"],
 });
 
 describe("the Stopped Reporting template each page explains", () => {
@@ -907,31 +958,86 @@ describe("the Docker templates the page explains", () => {
     }) as BuiltTemplate;
   }
 
-  it("alert on how much a lifetime counter grew: a Maximum and a Minimum query per minute, subtracted by a formula", () => {
-    for (const name of ["Container Restart Loop", "Container CPU Throttling"]) {
-      const template: BuiltTemplate = named(name);
+  it("alert on how much throttled time grew: a Maximum and a Minimum query per minute, subtracted by a formula", () => {
+    const template: BuiltTemplate = named("Container CPU Throttling");
 
-      expect(template.queries.map(aggregationOf)).toEqual([
-        MetricsAggregationType.Max,
-        MetricsAggregationType.Min,
-      ]);
-      expect(template.formulas).toHaveLength(1);
-      expect(template.formulas[0]).toContain(" - ");
-    }
-
+    expect(template.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Max,
+      MetricsAggregationType.Min,
+    ]);
+    expect(template.formulas).toHaveLength(1);
+    expect(template.formulas[0]).toContain(" - ");
     // The throttled time is nanoseconds; the row reads it in milliseconds.
-    expect(named("Container CPU Throttling").formulas[0]).toContain(
-      "/ 1000000",
+    expect(template.formulas[0]).toContain("/ 1000000");
+    expect(englishPage(DOCKER)).toContain(
+      "`container.cpu.throttling_data.throttled_time` only ever grows, so **Container CPU Throttling** alerts on how much it grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed.",
     );
   });
 
-  it("watch the 30-second scrape that the delta templates rely on", () => {
+  it("count every restart: Container Restart Loop sums the restarts the agent sends with each sample", () => {
+    const template: BuiltTemplate = named("Container Restart Loop");
+
+    expect(template.queries.map(metricNameOf)).toEqual([
+      "container.restarts.increase",
+    ]);
+    expect(template.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+    ]);
+    expect(template.formulas).toEqual([]);
+    expect(source("agents/DockerAgent/otel-collector-config.yaml")).toContain(
+      'copy_metric(name="container.restarts.increase"',
+    );
+    expect(englishPage(DOCKER)).toContain(
+      "so the agent also sends `container.restarts.increase` with every sample: the restarts since its previous sample of the container. **Container Restart Loop** adds those up, so it counts every restart however far apart the samples are, and a restart by hand is not one.",
+    );
+    // What an older agent and a monitor made from the old query need.
+    expect(englishPage(DOCKER)).toContain(
+      "An older agent does not send `container.restarts.increase`: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent) first.",
+    );
+    expect(englishPage(DOCKER)).toContain(
+      "delete it and create the template again.",
+    );
+  });
+
+  it("watch the 30-second scrape that the throttling template relies on", () => {
     expect(source("agents/DockerAgent/otel-collector-config.yaml")).toContain(
       "collection_interval: 30s",
     );
     expect(englishPage(DOCKER)).toContain(
-      "If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting.",
+      "If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and the template stops alerting.",
     );
+    expect(englishPage(DOCKER)).not.toContain("both templates stop alerting");
+  });
+});
+
+describe("the Podman restart template the page explains", () => {
+  const templates: Array<BuiltTemplate> = podmanTemplates();
+
+  it("counts every restart: Container Restart Loop sums the restarts the agent sends with each sample", () => {
+    const template: BuiltTemplate = templates.find(
+      (candidate: BuiltTemplate): boolean => {
+        return candidate.name === "Container Restart Loop";
+      },
+    ) as BuiltTemplate;
+
+    expect(template.queries.map(metricNameOf)).toEqual([
+      "container.restarts.increase",
+    ]);
+    expect(template.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+    ]);
+    expect(template.formulas).toEqual([]);
+    expect(source("agents/PodmanAgent/otel-collector-config.yaml")).toContain(
+      'copy_metric(name="container.restarts.increase"',
+    );
+    expect(englishPage(PODMAN)).toContain(
+      "**Container Restart Loop** adds those up, as on Docker, so it counts every restart however far apart the samples are, and a restart by hand is not one.",
+    );
+    expect(englishPage(PODMAN)).toContain(
+      "An older agent does not send `container.restarts.increase`: [upgrade it](/docs/telemetry/podman-host#upgrading-the-agent) first.",
+    );
+    // The per-minute growth it read before is gone from the page.
+    expect(englishPage(PODMAN)).not.toContain("about half of the restarts");
   });
 });
 
@@ -975,6 +1081,57 @@ describe("the Proxmox templates the page explains", () => {
     );
   });
 
+  it("Node Restarted pages for a node that is up with a short uptime, and recovers once it has run 16.5 minutes or goes down", () => {
+    const template: BuiltTemplate = named("Node Restarted");
+    const row: TemplateRow = templateRows(
+      PROXMOX,
+      "## Pre-built Alert Templates",
+    ).find((candidate: TemplateRow) => {
+      return candidate.name === "Node Restarted";
+    }) as TemplateRow;
+
+    expect(PROXMOX_NODE_RESTARTED_UPTIME_SECONDS).toBe(15 * 60);
+    expect(template.queries.map(metricNameOf)).toEqual([
+      "pve_uptime_seconds",
+      "pve_up",
+    ]);
+    expect(template.first.data!.filterCondition).toBe(FilterCondition.All);
+    expect(template.first.data!.filters.map(comparisonOf)).toEqual([
+      {
+        filterType: FilterType.LessThan,
+        value: PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
+      },
+      { filterType: FilterType.GreaterThan, value: 0 },
+    ]);
+    expect(template.last.data!.filterCondition).toBe(FilterCondition.Any);
+    expect(template.last.data!.filters.map(comparisonOf)).toEqual([
+      // 10% past the threshold, as every threshold criteria recovers.
+      {
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 990,
+      },
+      { filterType: FilterType.EqualTo, value: 0 },
+    ]);
+    expect(row.fires).toBe(
+      "`pve_uptime_seconds` is below 900 (15 minutes) while `pve_up` is 1",
+    );
+    expect(row.recovers).toBe(
+      "`pve_uptime_seconds` is at 990 or more, or `pve_up` is 0",
+    );
+  });
+
+  it("Backup Running Too Long reads the backup lock over six hours", () => {
+    const template: BuiltTemplate = named("Backup Running Too Long");
+
+    expect(template.rollingTime).toBe(RollingTime.Past6Hours);
+    expect(template.queries.map(attributesOf)).toEqual([
+      { "pve.scope": "guest", state: "backup" },
+    ]);
+    expect(englishPage(PROXMOX)).toContain(
+      "locked by a backup in every scrape of six hours",
+    );
+  });
+
   it("ratio formulas take the Sum of both sides and give a percentage", () => {
     for (const template of templates) {
       if (template.formulas.length === 0) {
@@ -995,7 +1152,7 @@ describe("the Proxmox templates the page explains", () => {
   });
 
   it("the down templates use Minimum", () => {
-    for (const name of ["Node Offline", "Guest Down"]) {
+    for (const name of ["Node Offline", "Guest Down", "Storage Unavailable"]) {
       expect(named(name).queries.map(aggregationOf)).toEqual(
         named(name).queries.map((): MetricsAggregationType => {
           return MetricsAggregationType.Min;
@@ -1008,6 +1165,119 @@ describe("the Proxmox templates the page explains", () => {
     expect(
       named("Container Root Disk Near Full").queries.map(attributesOf),
     ).toEqual([{ "pve.type": "lxc" }, { "pve.type": "lxc" }]);
+  });
+});
+
+/*
+ * The two alerts on Proxmox VE's own notifications: Logs monitors the
+ * cluster's Recommendations offer (ProxmoxNotificationAlertTemplates), in
+ * a table of their own under the metric templates.
+ */
+describe("the Proxmox notification alerts the page explains", () => {
+  const HEADING: string = "### Alerts on Proxmox VE's notifications";
+  const templates: Array<ProxmoxNotificationAlertTemplate> =
+    getAllProxmoxNotificationAlertTemplates();
+  const rows: Array<TemplateRow> = templateRows(PROXMOX, HEADING);
+
+  function stepOf(template: ProxmoxNotificationAlertTemplate): MonitorStep {
+    return template.getMonitorStep({
+      ...IDS,
+      clusterIdentifier: "pve-prod",
+      monitorName: "pve-prod",
+    });
+  }
+
+  it("lists every notification template, in the Recommendations' order, with its severity", () => {
+    expect(
+      rows.map((row: TemplateRow): string => {
+        return row.name;
+      }),
+    ).toEqual(
+      templates.map((template: ProxmoxNotificationAlertTemplate): string => {
+        return template.name;
+      }),
+    );
+
+    for (const template of templates) {
+      expect(
+        (
+          rows.find((row: TemplateRow): boolean => {
+            return row.name === template.name;
+          }) as TemplateRow
+        ).severity,
+      ).toBe(template.severity);
+    }
+  });
+
+  it.each(
+    getAllProxmoxNotificationAlertTemplates().map(
+      (
+        template: ProxmoxNotificationAlertTemplate,
+      ): [string, ProxmoxNotificationAlertTemplate] => {
+        return [template.name, template];
+      },
+    ),
+  )(
+    "%s: the attributes it matches, its window and its group-by",
+    (_name: string, template: ProxmoxNotificationAlertTemplate) => {
+      const row: TemplateRow = rows.find((candidate: TemplateRow) => {
+        return candidate.name === template.name;
+      }) as TemplateRow;
+      const logMonitor: MonitorStepLogMonitor = stepOf(template).data!
+        .logMonitor as MonitorStepLogMonitor;
+      const code: Array<string> = inlineCodeIn(row.watches);
+
+      // Every notification attribute it matches, as `key = value`.
+      for (const [key, value] of Object.entries(logMonitor.attributes || {})) {
+        if (!key.startsWith("pve.notification.")) {
+          continue;
+        }
+        expect({ key, named: true }).toEqual({
+          key,
+          named: code.includes(`${key} = ${value}`),
+        });
+      }
+
+      const past: RegExpMatchArray | null = row.watches.match(PAST_WINDOW);
+      expect(past ? pastWindowMinutes(past) * 60 : null).toBe(
+        logMonitor.lastXSecondsOfLogs,
+      );
+
+      const groupBy: Array<string> = logMonitor.groupByAttributes || [];
+      expect(groupBy[0]).toBe(PROXMOX_NODE_NAME_LOG_ATTRIBUTE);
+      if (groupBy.includes(ProxmoxNotificationAttribute.JobId)) {
+        expect(row.watches).toContain("per node and job");
+      } else {
+        expect(row.watches).toContain("per node,");
+      }
+    },
+  );
+
+  it("a failed backup job stays open until a later run of the same job succeeds", () => {
+    const logMonitor: MonitorStepLogMonitor = stepOf(
+      templates.find((template: ProxmoxNotificationAlertTemplate) => {
+        return template.name === "Backup Job Failed";
+      }) as ProxmoxNotificationAlertTemplate,
+    ).data!.logMonitor as MonitorStepLogMonitor;
+
+    expect(logMonitor.resolvedByAttributes).toEqual(
+      expect.objectContaining({
+        [ProxmoxNotificationAttribute.Type]: "vzdump",
+        [ProxmoxNotificationAttribute.Severity]: "info",
+      }),
+    );
+    expect(englishPage(PROXMOX)).toContain(
+      "A failed backup job's alert stays open until a later run of the same job succeeds",
+    );
+  });
+
+  it("points at the agent page's section that sends the notifications", () => {
+    expect(sectionOf(PROXMOX, HEADING)).toContain(
+      "](/docs/telemetry/proxmox#send-proxmox-ves-notifications)",
+    );
+    expect(englishPage("telemetry/proxmox")).toContain(
+      "## Send Proxmox VE's notifications",
+    );
   });
 });
 
@@ -1211,24 +1481,25 @@ describe(`${KUBERNETES}: the template table`, () => {
     ]);
   });
 
-  it("CrashLoopBackOff Detection and Job Failures count growth in the window, not the lifetime count", () => {
-    function named(name: string): BuiltTemplate {
-      return builtTemplates.find((candidate: BuiltTemplate): boolean => {
-        return candidate.name === name;
-      }) as BuiltTemplate;
-    }
+  function named(name: string): BuiltTemplate {
+    return builtTemplates.find((candidate: BuiltTemplate): boolean => {
+      return candidate.name === name;
+    }) as BuiltTemplate;
+  }
 
+  it("CrashLoopBackOff Detection sums the restarts the agent sends with each sample", () => {
     const crashLoop: BuiltTemplate = named("CrashLoopBackOff Detection");
 
     expect(crashLoop.queries.map(metricNameOf)).toEqual([
-      "k8s.container.restarts",
-      "k8s.container.restarts",
+      "k8s.container.restarts.increase",
       "k8s.container.ready",
     ]);
-    expect(groupByOf(crashLoop)).toContain("resource.k8s.pod.name");
-    expect(crashLoop.formulas).toEqual([
-      "container_restarts_max - container_restarts_min",
+    expect(crashLoop.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+      MetricsAggregationType.Avg,
     ]);
+    expect(groupByOf(crashLoop)).toContain("resource.k8s.pod.name");
+    expect(crashLoop.formulas).toEqual([]);
     expect(comparisonOf(primary(crashLoop.first))).toEqual({
       filterType: FilterType.GreaterThan,
       value: 0,
@@ -1242,15 +1513,211 @@ describe(`${KUBERNETES}: the template table`, () => {
       comparisonOf(crashLoop.first.data!.filters[1] as CriteriaFilter),
     ).toEqual({ filterType: FilterType.LessThan, value: 0.5 });
 
+    // The chart's cluster collector makes it, from its own copy of the count.
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    expect(chart).toContain(
+      'set(name, "k8s.container.restarts.increase") where name == "k8s.container.restarts"',
+    );
+    expect(chart).toContain('delete_key(attributes, "container.id")');
+
+    expect(englishPage(KUBERNETES)).toContain(
+      "**CrashLoopBackOff Detection** adds up `k8s.container.restarts.increase`, which the agent sends with every sample: the restarts since its previous sample of the container. So it counts every restart however far apart the samples are, it clears on its own once the restarts stop, and a pod that is recreated starts a new count rather than reading as restarts.",
+    );
+    // What an older agent and a monitor made from the old query need.
+    expect(englishPage(KUBERNETES)).toContain(
+      "An older agent does not send `k8s.container.restarts.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "which misses about half of a loop's restarts: delete it and create the template again.",
+    );
+    // An allowlist of metrics that leaves it out silences the template.
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.container.restarts.increase` to it.",
+    );
+    // No template has the limits of the per-minute delta any more.
+    expect(englishPage(KUBERNETES)).not.toContain(
+      "count how much a restart or failed-pod count grew",
+    );
+  });
+
+  it("Job Failures sums the failed pods the agent sends with each sample", () => {
     const jobFailures: BuiltTemplate = named("Job Failures");
 
-    expect(jobFailures.formulas).toEqual(["failed_pods_max - failed_pods_min"]);
+    expect(jobFailures.queries.map(metricNameOf)).toEqual([
+      "k8s.job.failed_pods.increase",
+    ]);
+    expect(jobFailures.queries.map(aggregationOf)).toEqual([
+      MetricsAggregationType.Sum,
+    ]);
+    expect(groupByOf(jobFailures)).toEqual([
+      "resource.k8s.namespace.name",
+      "resource.k8s.job.name",
+    ]);
+    expect(jobFailures.formulas).toEqual([]);
+    expect(comparisonOf(primary(jobFailures.first))).toEqual({
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    });
     expect(windowAggregationOf(primary(jobFailures.first))).toBe(
       EvaluateOverTimeType.Sum,
     );
 
+    // The chart's cluster collector makes it, from a copy of the count.
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    expect(chart).toContain(
+      'copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
+    );
+    expect(chart).toContain(
+      `            - transform/job-failures-increase\n            - ${CUMULATIVE_TO_DELTA}/job-failures-increase\n`,
+    );
+
     expect(englishPage(KUBERNETES)).toContain(
-      "count how much a restart or failed-pod count grew in the window, not the count itself",
+      "**Job Failures** adds up `k8s.job.failed_pods.increase`, which the agent sends with every sample: the Job's pods that failed since its previous sample of the Job. So it counts every failure however far apart the samples are, it clears on its own once the failures stop, and a Job recreated under the same name starts a new count rather than reading as failures.",
+    );
+    // What it cannot see: a Job's failures before its first sample.
+    expect(englishPage(KUBERNETES)).toContain(
+      "The failures before the agent's first sample of a Job are where its count starts, so a Job that fails within its first half-minute and never retries can go unseen.",
+    );
+    // What an older agent and a monitor made from the old query need.
+    expect(englishPage(KUBERNETES)).toContain(
+      "An older agent does not send `k8s.job.failed_pods.increase`: [upgrade it](/docs/monitor/kubernetes-agent#upgrading) first.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "reads how much `k8s.job.failed_pods` grew within each minute, which misses about half of the failures: delete it and create the template again.",
+    );
+    // And the troubleshooting entry, with the allowlist that silences it.
+    expect(englishPage(KUBERNETES)).toContain(
+      ":::details Job Failures did not fire for a failed Job\nThe template fires when a pod of a Job fails within 15 minutes, and clears fifteen minutes after the last failure.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.job.failed_pods.increase` to it.",
+    );
+    // The limits of the per-minute delta it no longer has.
+    expect(englishPage(KUBERNETES)).not.toContain(
+      "The growth is only seen between two samples of the same minute",
+    );
+    expect(englishPage(KUBERNETES)).not.toContain(
+      "a single failure can go unseen",
+    );
+  });
+
+  it("names the restarts the agent sends with each sample beside the running count in the metric catalog note", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "**Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it.",
+    );
+  });
+
+  it("names the Job failures the agent sends with each sample beside the running count in the metric catalog note and its table", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "**Job Failed Pods** is a Job's running count of failed pods; **Job Failed Pods (Increase)** is what the agent sends with every sample, the Job's pods that failed since its previous sample of the Job, so its sum over a window is the failures in it.",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |",
+    );
+  });
+
+  /*
+   * The restarts increase used to leave the agent with the receiver's
+   * attributes alone, without the workload names k8sattributes gives the
+   * cluster's other container metrics: a monitor scoped to a workload read
+   * none of its restarts. The chart now hands it to the metrics pipeline,
+   * whose k8sattributes gives it the names (after the conversion).
+   */
+  it("says the restarts the agent sends carry what the running count carries, the pod's workload names included, as the chart's pipelines give them", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "It carries what **Container Restarts** carries, the workload names of the container's pod included, but not the container's ID, which changes with every restart.",
+    );
+
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    // The restarts pipeline hands its increases to the metrics pipeline...
+    expect(chart).toContain(
+      `            - ${CUMULATIVE_TO_DELTA}/restarts-increase\n          exporters:\n            - forward/restarts-increase\n`,
+    );
+    expect(chart).toContain(
+      "          receivers:\n            - k8s_cluster\n            # The restarts since each container's previous sample, made in\n",
+    );
+    // ...whose k8sattributes extracts every workload kind a pod belongs to...
+    for (const kind of KUBERNETES_WORKLOAD_KINDS) {
+      expect(chart).toContain(`            - k8s.${kind.value}.name\n`);
+    }
+    // ...and never the container's ID, which comes off the increase.
+    expect(chart).toContain('delete_key(attributes, "container.id")');
+    expect(chart).not.toContain("            - container.id\n");
+  });
+
+  it("says the Job failures the agent sends carry what the count carries: the Job's name and namespace", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "It carries what **Job Failed Pods** carries: the Job's name and namespace.",
+    );
+    // A copy on the count's own resource, made before anything adds to it.
+    const chart: string = source(
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+    );
+    expect(chart).toContain(
+      "            - memory_limiter\n            # The failures since each Job's previous sample, for Job Failures\n",
+    );
+    expect(chart).toContain(
+      `            - transform/job-failures-increase\n            - ${CUMULATIVE_TO_DELTA}/job-failures-increase\n            - transform/pod-level-mark\n            - k8sattributes\n`,
+    );
+    // A Job scope filters on the Job's own name.
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+        workloadType: "job",
+        workloadName: "nightly-export",
+      }),
+    ).toBe("resource.k8s.job.name");
+  });
+
+  it("says a Workload scope watches the workload's containers and pods, and a workload's own metrics carry only its own name", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "A container's and a pod's metrics carry the names of the workloads the pod belongs to (a Deployment's pod carries the Deployment's name and its ReplicaSet's), so a Workload scope watches that workload's containers and pods. A workload's own metrics, such as a Job's failed pods, carry only their own workload's name: scope them to that workload's kind.",
+    );
+    // Right under the scope table, before the Time Range.
+    const page: string = englishPage(KUBERNETES);
+    expect(
+      page.indexOf("so a Workload scope watches that workload's containers"),
+    ).toBeGreaterThan(
+      page.indexOf("| Pod | A pod | **Namespace**, **Pod Name** |"),
+    );
+    expect(
+      page.indexOf("so a Workload scope watches that workload's containers"),
+    ).toBeLessThan(page.indexOf("### Time Range"));
+
+    /*
+     * Both of the agent's collectors give pod and container telemetry the
+     * same workload names.
+     */
+    for (const config of [
+      "HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      "HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml",
+    ]) {
+      const chart: string = source(config);
+      for (const kind of KUBERNETES_WORKLOAD_KINDS) {
+        expect({
+          config,
+          kind: kind.value,
+          extracted: chart.includes(`            - k8s.${kind.value}.name\n`),
+        }).toEqual({
+          config,
+          kind: kind.value,
+          extracted: true,
+        });
+      }
+    }
+  });
+
+  it("says in the troubleshooting entries what a monitor scoped to a workload needs", () => {
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.container.restarts.increase` to it. A monitor scoped to a workload also needs the workload names on `k8s.container.restarts.increase`, which an older agent sends it without: [upgrade the agent](/docs/monitor/kubernetes-agent#upgrading).\n:::",
+    );
+    expect(englishPage(KUBERNETES)).toContain(
+      "If `filters.metrics.include` lists the metrics the agent sends, add `k8s.job.failed_pods.increase` to it. A monitor scoped to a workload must name the Job itself: a Job's failed pods carry its name and namespace, not the CronJob that created it.\n:::",
     );
   });
 
@@ -1445,6 +1912,13 @@ interface CreateFacts {
   resourceField: string;
   metricField: string;
   searchWord: string | null;
+  // The alert a new monitor starts on, and how the form asks for it.
+  defaultTemplateName: string;
+  defaultTemplateCall: string;
+  // The resource field's Add button, and the file its title comes from.
+  addTitle: string;
+  addTitleReference: string;
+  addTitleFile: string | null;
 }
 
 const CREATE_FACTS: Array<CreateFacts> = [
@@ -1457,6 +1931,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Docker Host",
     metricField: "Docker Metric",
     searchWord: "docker",
+    defaultTemplateName: getDockerAlertTemplateById(
+      getDockerDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getDockerDefaultAlertTemplateId()",
+    addTitle: "Add Docker Host",
+    addTitleReference: "title: DOCKER_HOST_ONBOARDING.addTitle,",
+    addTitleFile: "Components/Docker/DockerHostOnboarding.tsx",
   },
   {
     page: HOST,
@@ -1467,6 +1948,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Host",
     metricField: "Host Metric",
     searchWord: null,
+    defaultTemplateName: getHostAlertTemplateById(
+      getHostDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getHostDefaultAlertTemplateId()",
+    addTitle: "Add Host",
+    addTitleReference: 'title: "Add Host",',
+    addTitleFile: null,
   },
   {
     page: PODMAN,
@@ -1477,6 +1965,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Podman Host",
     metricField: "Podman Metric",
     searchWord: "podman",
+    defaultTemplateName: getPodmanAlertTemplateById(
+      getPodmanDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getPodmanDefaultAlertTemplateId()",
+    addTitle: "Add Podman Host",
+    addTitleReference: "title: PODMAN_HOST_ONBOARDING.addTitle,",
+    addTitleFile: "Components/Podman/PodmanHostOnboarding.tsx",
   },
   {
     page: PROXMOX,
@@ -1487,6 +1982,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Proxmox Cluster",
     metricField: "Proxmox Metric",
     searchWord: "proxmox",
+    defaultTemplateName: getProxmoxAlertTemplateById(
+      getProxmoxDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getProxmoxDefaultAlertTemplateId()",
+    addTitle: "Add Proxmox Cluster",
+    addTitleReference: "title: PROXMOX_CLUSTER_ONBOARDING.addTitle,",
+    addTitleFile: "Components/Proxmox/ProxmoxClusterOnboarding.tsx",
   },
   {
     page: SWARM,
@@ -1497,6 +1999,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Docker Swarm Cluster",
     metricField: "Docker Swarm Metric",
     searchWord: "swarm",
+    defaultTemplateName: getDockerSwarmAlertTemplateById(
+      getDockerSwarmDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getDockerSwarmDefaultAlertTemplateId()",
+    addTitle: "Add Docker Swarm Cluster",
+    addTitleReference: "title: DOCKER_SWARM_CLUSTER_ONBOARDING.addTitle,",
+    addTitleFile: "Components/DockerSwarm/DockerSwarmClusterOnboarding.tsx",
   },
 ];
 
@@ -1536,9 +2045,12 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
   );
 
   it.each(CREATE_FACTS)(
-    "$page names the form's configuration card, resource field, metric field and tabs",
+    "$page names the form's configuration card, resource field and metric field, the alert a new monitor starts on, and what More fields holds",
     (facts: CreateFacts) => {
       const form: string = source(`${FORMS}/${facts.form}`);
+      const setup: string = source(
+        `${FORMS}/InfrastructureMonitorSetup/InfrastructureMonitorSetup.tsx`,
+      );
       const page: string = englishPage(facts.page);
 
       expect(monitorStepForm).toContain(`title="${facts.configurationTitle}"`);
@@ -1548,14 +2060,47 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
       expect(form).toContain(`title="${facts.metricField}"`);
       expect(page).toContain(`| **${facts.metricField}** | Custom Metric |`);
 
-      const tabs: Array<string> = Array.from(
-        form.matchAll(/name: "([^"]+)",\n\s+children: render/g),
-      ).map((match: RegExpMatchArray): string => {
-        return match[1] as string;
-      });
+      // The resource field: whether data is arriving, and its Add button.
+      expect(form).toContain("<InfrastructureResourceField");
+      expect(page).toContain(
+        "Once picked, a line under the field says whether data is arriving.",
+      );
+      expect(form).toContain(facts.addTitleReference);
+      if (facts.addTitleFile) {
+        expect(source(`${DASHBOARD_SRC}/${facts.addTitleFile}`)).toContain(
+          `addTitle: translationKey("${facts.addTitle}"),`,
+        );
+      }
+      expect(page).toContain(
+        `**${facts.addTitle}** opens setup steps with your keys filled in, which wait for the first data.`,
+      );
 
-      expect(tabs).toEqual(["Quick Setup", "Custom Metric", "Advanced"]);
-      expect(page).toContain("Pick one of the three tabs:");
+      // A new monitor starts on the type's default alert; Change picks another.
+      expect(form).toContain(facts.defaultTemplateCall);
+      expect(page).toContain(
+        `A new monitor starts on **${facts.defaultTemplateName}**, under **${INFRASTRUCTURE_ALERT_SECTION_TITLE}**. To watch something else:`,
+      );
+      expect(page).toContain(
+        `- **${ALERT_TEMPLATE_CHANGE}** — pick another [template](#pre-built-alert-templates).`,
+      );
+
+      // Templates first; a metric of your own and the query builder under More fields.
+      expect(form).toContain("<InfrastructureMonitorSetup");
+      for (const slot of [
+        "alertTemplates={",
+        "customMetric={",
+        "queryBuilder={",
+      ]) {
+        expect(form).toContain(slot);
+      }
+      expect(setup).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+      expect(page).toContain(
+        `- **${INFRASTRUCTURE_CUSTOM_METRIC_TAB}** (under **${MORE_FIELDS_SECTION_TITLE}**) — pick one metric from **${facts.metricField}**`,
+      );
+      expect(page).toContain(
+        `- **${INFRASTRUCTURE_QUERY_BUILDER_TAB}** (under **${MORE_FIELDS_SECTION_TITLE}**) — build queries and formulas yourself`,
+      );
+      expect(page).not.toContain("Quick Setup");
     },
   );
 
@@ -2260,6 +2805,18 @@ describe("the agents the pages describe", () => {
       ]) {
         expect(config).toContain(`${metric}:\n        enabled: true`);
       }
+
+      /*
+       * Not a receiver metric: the agent makes it from container.restarts,
+       * in a processor the metrics pipeline runs.
+       */
+      expect(listed).toContain("container.restarts.increase");
+      expect(config).toContain(
+        'copy_metric(name="container.restarts.increase", ',
+      );
+      // Defined, and in the metrics pipeline's processor list.
+      expect(config).toContain("  cumulative_to_delta/restarts-increase:\n");
+      expect(config).toContain("  cumulative_to_delta/restarts-increase,\n");
 
       // Collected, but not offered by the Custom Metric picker.
       expect(listed).not.toContain(

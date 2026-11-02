@@ -233,7 +233,7 @@ docker compose down
 
 ## AI एजेंट
 
-ऊपर के कमांड और Compose फ़ाइल, Docker एजेंट का `install.sh` और उसकी [DockerAgent डायरेक्टरी](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) की `docker-compose.yml`, सभी **Docker AI एजेंट** चलाते हैं: एक दूसरा कंटेनर, `oneuptime-docker-ai-agent` (इमेज `oneuptime/resource-ai-agent:release`), जो वे केवल-पढ़ने वाले `docker` कमांड चलाता है जो OneUptime AI इस होस्ट पर किसी घटना या अलर्ट की जाँच करते समय माँगता है — `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream` — और सिर्फ़ आपकी अनुमति होने पर किसी नामित कंटेनर को फिर से शुरू करने जैसे सुधार लागू करता है। यह कलेक्टर वाले ही `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` और `DOCKER_HOST_NAME` पढ़ता है, इसलिए ठीक इसी होस्ट की सेवा करता है, और OneUptime में होस्ट के **AI एजेंट** पेज पर दिखता है।
+ऊपर के कमांड और Compose फ़ाइल, Docker एजेंट का [`install.sh`](https://oneuptime.com/install/docker-agent) और उसकी [`docker-compose.yml`](https://oneuptime.com/install/docker-agent/docker-compose.yml), सभी **Docker AI एजेंट** चलाते हैं: एक दूसरा कंटेनर, `oneuptime-docker-ai-agent` (इमेज `oneuptime/resource-ai-agent:release`), जो वे केवल-पढ़ने वाले `docker` कमांड चलाता है जो OneUptime AI इस होस्ट पर किसी घटना या अलर्ट की जाँच करते समय माँगता है — `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream` — और सिर्फ़ आपकी अनुमति होने पर किसी नामित कंटेनर को फिर से शुरू करने जैसे सुधार लागू करता है। यह कलेक्टर वाले ही `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` और `DOCKER_HOST_NAME` पढ़ता है, इसलिए ठीक इसी होस्ट की सेवा करता है, और OneUptime में होस्ट के **AI एजेंट** पेज पर दिखता है।
 
 - **AI जाँच डिफ़ॉल्ट रूप से चालू है।** एजेंट के कनेक्ट होते ही OneUptime AI इस होस्ट की घटनाओं और अलर्ट की जाँच इसके साथ करता है, और होस्ट का **अवलोकन** एजेंट की स्थिति दिखाता है। रोकने के लिए, जहाँ एजेंट चलता है वहाँ `ONEUPTIME_AI_INVESTIGATION=false` सेट करें (AI एजेंट पेज पर **AI क्या कर सकता है** के अंतर्गत **बदलें** तरीका दिखाता है), या एजेंट को छोड़ दें।
 - यह केवल-पढ़ने वाला है, जब तक आप इसे `ONEUPTIME_AI_ALLOW_WRITES=true` के साथ शुरू न करें; `ONEUPTIME_AI_WRITE_TARGETS` (उदाहरण के लिए `web-*,api-*`) सीमित करता है कि कोई सुधार किन कंटेनरों को छू सकता है। सुधार कैसे चलें यह बताने के लिए इसे `ONEUPTIME_AI_FIXES` के साथ भी शुरू करें — `ask-for-approval` (हर एक को एक व्यक्ति मंज़ूरी देता है), `automatic` या `bypass-approval` — और AI एजेंट पेज इसे केवल-पढ़ने के रूप में दिखाता है ([AI क्या कर सकता है, एजेंट द्वारा सेट](/docs/ai/infrastructure-ai-agents#ai-क्या-कर-सकता-है-एजेंट-द्वारा-सेट))।
@@ -283,6 +283,10 @@ docker version --format '{{ .Server.APIVersion }}'
 
 :::details कंटेनर का CPU एक सपाट रेखा है
 पुराना एजेंट `docker_stats` रिसीवर का अपना CPU आँकड़ा भेजता है। कलेक्टर 0.150.0 से रिसीवर इसे आँकड़ों की एक ही रीडिंग से निकालता है: किसी कंटेनर ने शुरू होने के बाद से जितना CPU इस्तेमाल किया, उसे होस्ट द्वारा बूट होने के बाद से इस्तेमाल किए गए पूरे CPU से भाग देकर। रेखा मुश्किल से हिलती है और लोड के साथ नहीं बदलती, जबकि `container.cpu.usage.total` बदलता है। [एजेंट अपग्रेड करें](#एजेंट-अपग्रेड-करना): अपनी दूसरी रीडिंग से यह हर कंटेनर द्वारा हर 30 सेकंड के अंतराल में इस्तेमाल किया गया CPU भेजता है। पहले से सहेजी गई रीडिंग जैसी थीं वैसी ही रहती हैं।
+:::
+
+:::details Container Restart Loop कभी ट्रिगर नहीं होता, या रीस्टार्ट छोड़ देता है
+पुराना एजेंट `container.restarts.increase` नहीं भेजता, यानी हर कंटेनर के पिछले नमूने के बाद से हुए रीस्टार्ट, जिन्हें टेम्पलेट जोड़ता है। [एजेंट अपग्रेड करें](#एजेंट-अपग्रेड-करना): हर कंटेनर के उसके दूसरे नमूने से हर रीस्टार्ट गिना जाता है। अपग्रेड से पहले इस टेम्पलेट से बना मॉनिटर इसके बजाय यह पढ़ता है कि हर मिनट के भीतर `container.restarts` कितना बढ़ा, और किसी लूप के लगभग आधे रीस्टार्ट छोड़ देता है: उसे हटाएँ और टेम्पलेट से फिर से बनाएँ।
 :::
 
 :::details मेट्रिक्स आते हैं पर कंटेनर लॉग नहीं आते

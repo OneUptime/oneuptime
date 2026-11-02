@@ -28,6 +28,8 @@ import {
   getStorageArrayMetricById,
   StorageArrayMetricDefinition,
 } from "../Monitor/StorageArrayMetricCatalog";
+import { MetricQueryFallbackHint } from "../Metrics/MetricQueryFallback";
+import { KUBERNETES_RESTARTS_FALLBACK_HINT } from "./DashboardTemplateFallbackHints";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -350,6 +352,19 @@ interface MetricConfig {
    * query matches every series of the metric, as before.
    */
   attributes?: Record<string, string>;
+  /*
+   * Chart widgets only: the query drawn instead when this one has no data
+   * in the window, with the hint the chart shows while it does
+   * (Types/Metrics/MetricQueryFallback). For a metric only newer agents
+   * send: the chart reads it once the agent sends it, and the older metric
+   * until then. Its legend says which one is drawn.
+   */
+  fallback?: MetricConfigFallback;
+}
+
+interface MetricConfigFallback {
+  metricConfig: MetricConfig;
+  hint?: MetricQueryFallbackHint;
 }
 
 /*
@@ -395,6 +410,20 @@ function buildMetricQueryConfig(
       groupByAttributeKeys: config.groupByAttributeKeys,
     },
     transformAsRate: config.transformAsRate,
+    ...(config.fallback
+      ? {
+          fallback: {
+            // Drawn in this query's slot, so under its variable.
+            queryConfig: buildMetricQueryConfig(
+              config.fallback.metricConfig,
+              metricVariable,
+            ),
+            ...(config.fallback.hint
+              ? { hint: { ...config.fallback.hint } }
+              : {}),
+          },
+        }
+      : {}),
   };
 }
 
@@ -2178,7 +2207,17 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 15-17: Restarts and replicas
+    /*
+     * Row 15-17: Restarts and replicas.
+     *
+     * Restarts per interval: the agent sends, with every sample, the
+     * restarts since its previous sample of the container
+     * (k8s.container.restarts.increase, kubernetes-agent chart 0.7.1 and
+     * later), so their Sum is the restarts in each bar. An older agent sends
+     * only the running count (k8s.container.restarts), a line that only
+     * ever steps up; the chart falls back to it, says so in its legend and
+     * links the upgrade, until the agent sends the increase.
+     */
     createChartComponent({
       title: "Container Restarts Over Time",
       chartType: DashboardChartType.Bar,
@@ -2187,9 +2226,18 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 3,
       metricConfig: {
-        metricName: "k8s.container.restarts",
-        aggregationType: MetricsAggregationType.Max,
-        legend: "Restarts",
+        metricName: "k8s.container.restarts.increase",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "Restarts per interval",
+        fallback: {
+          metricConfig: {
+            metricName: "k8s.container.restarts",
+            aggregationType: MetricsAggregationType.Max,
+            legend:
+              "Restart count (older agent: upgrade it for restarts per interval)",
+          },
+          hint: KUBERNETES_RESTARTS_FALLBACK_HINT,
+        },
       },
     }),
     createTableComponent({

@@ -51,6 +51,8 @@ Para un tipo desplegable, añade sus opciones en **Opciones del menú desplegabl
 | **Fecha y hora** | Última auditoría el, retirado del servicio el |
 | **Texto largo** | Instrucciones de acceso, notas: varias líneas de texto sin formato |
 | **Texto enriquecido (Markdown)** | Notas con formato y enlaces, escritas en el editor Markdown |
+| **Archivo** | Un certificado de garantía, una orden de compra firmada, una foto de la etiqueta del rack: un archivo |
+| **Varios archivos** | Manuales, facturas y fotos: hasta 10 archivos |
 
 ## Un vocabulario de activos de ejemplo
 
@@ -79,6 +81,9 @@ Cada campo personalizado se convierte en un filtro sobre la lista **Todos los el
 | **Número** | es, no es, es mayor que, es mayor o igual que, es menor que, es menor o igual que, está vacío, no está vacío |
 | **Booleano**, **Desplegable (selección única)**, **Desplegable (selección múltiple)** | es, no es, está vacío, no está vacío |
 | **Fecha**, **Fecha y hora** | es, es antes de, es después de, está entre, está vacío, no está vacío |
+| **Archivo**, **Varios archivos** | es |
+
+Un chip de **Archivo** o **Varios archivos** pregunta una sola cosa: si el campo **Tiene archivos** o está **Sin archivos**.
 
 Los filtros se combinan con Y, así que «Warranty Expiry es antes de 2026-10-01 Y Lifecycle Status es En servicio» es una sola vista de la lista. Esa es la pregunta que un registro de activos existe para responder, y la razón para usar los tipos de fecha en lugar de una fecha en un campo de texto: un campo de texto guarda `2026-10-01` sin problema y luego no puede decirte qué vence el próximo trimestre.
 
@@ -91,6 +96,7 @@ Las columnas de campos personalizados empiezan ocultas: actívalas desde el sele
 - Nada hace único un valor. Dos elementos pueden llevar el mismo número de serie, y nada te lo impide.
 - Las fechas se guardan como marcas de tiempo ISO-8601 en UTC y se muestran en tu propia zona horaria.
 - Eliminar un campo lo quita de la lista y de la barra de filtros. Los valores ya escritos se quedan en los elementos.
+- Un campo de tipo **Archivo** o **Varios archivos** admite archivos de hasta 10 MB cada uno, de los tipos que se enumeran en [Campos de archivo](/docs/incidents/settings#campos-de-archivo), subidos en el proyecto. Solo quien puede ver el elemento puede descargarlos, y un archivo se elimina en cuanto nada lo conserva.
 
 ## Próximos pasos
 

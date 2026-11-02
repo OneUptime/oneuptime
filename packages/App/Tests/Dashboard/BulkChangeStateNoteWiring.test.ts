@@ -301,7 +301,7 @@ describe("shared bulk change-state modal", () => {
 
   test("shows the note itself only when it may be posted", () => {
     expect(stateChangeFields).toContain(
-      "const isNoteOffered: boolean = !options.noteModel || canPostStateChangeNote(options.noteModel);",
+      "const isNoteOffered: boolean = !options.noteModel || canPostStateChangeNote(options.noteModel, options.noteGateOptions);",
     );
     expect(stateChangeFields).toContain(
       "showIf: (): boolean => { return isNoteOffered; },",

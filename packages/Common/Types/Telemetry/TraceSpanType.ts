@@ -352,9 +352,23 @@ export function getTraceSpanTypeItemLabel(spanType: TraceSpanType): string {
   return spanType === TraceSpanType.Root ? "traces" : "spans";
 }
 
-// The count chart's title, named like the rows it counts.
+/*
+ * The count chart's title, named like the rows it counts. Keys of the
+ * Dashboard's locales: the chart says it in the reader's language
+ * (TelemetryHistogram looks its title up).
+ */
 export function getTraceSpanTypeChartTitle(spanType: TraceSpanType): string {
   return spanType === TraceSpanType.Root
-    ? "Traces over time"
-    : "Spans over time";
+    ? translationKey("Traces over time")
+    : translationKey("Spans over time");
+}
+
+/*
+ * What an empty list says: a whole sentence for each choice that can leave
+ * one empty, so a language words it around the choice's name.
+ */
+export function getTraceSpanTypeEmptyMessage(spanType: TraceSpanType): string {
+  return spanType === TraceSpanType.Root
+    ? translationKey("No root spans found")
+    : translationKey("No entry spans found");
 }

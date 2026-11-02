@@ -63,7 +63,7 @@ Din anpassade CSS och HTML gäller i båda temana; [Anpassad HTML, CSS och JavaS
 ### Titel, beskrivning och favicon
 
 - **Titel och beskrivning**: sidans namn i webbläsarfliken och i e-post till prenumeranter, och beskrivningen som sökmotorer visar. **Redigera** öppnar **Sidtitel** (platshållare `e.g., Acme Status`) och **Sidbeskrivning**. Sökmotorer och länkförhandsvisningar visar dem, så skriv dem för en kund, inte för ditt team.
-- **Favicon**: **Edit Favicon** öppnar uppladdningen **Favicon**: den lilla ikonen i webbläsarfliken.
+- **Favicon**: **Redigera favicon** öppnar uppladdningen **Favicon**: den lilla ikonen i webbläsarfliken.
 
 ### Sidhuvudslänkar
 
@@ -107,7 +107,7 @@ Hur många dagar diagrammet täcker anges inte här. Det är **Upptidshistorik**
 
 | Fält | Vad det gör |
 | ----- | ------------ |
-| **Standardspråk** | Det språk som förstagångsbesökare ser, valt från en lista som namnger varje språk på språket självt och på engelska (`Deutsch (German)`). Standard är engelska, och besökare kan alltid byta från sidfoten. |
+| **Standardspråk** | Det språk som förstagångsbesökare ser, valt från en lista som namnger varje språk på språket självt och på engelska (`Deutsch (German)`). Standard är engelska, och besökare kan alltid byta från sidfoten. Prenumeranter får också allt på det, om de inte läste sidan på ett annat språk när de började prenumerera. |
 | **Aktiverade språk** | En flervalslista, platshållare `All languages`. Lämna den tom så erbjuds alla språk som stöds; välj några så listar sidfoten bara dem. |
 
 OneUptime levereras med sjutton språk: engelska, tyska, franska, spanska, italienska, portugisiska, nederländska, danska, norska, svenska, ryska, japanska, koreanska, kinesiska (förenklad), kinesiska (traditionell), hindi och persiska. Persiska läses från höger till vänster, så en sida som visas på persiska byggs upp från höger, från första stund när persiska är dess standardspråk. Upptidsstaplarna börjar ändå till vänster med den äldsta dagen.
@@ -214,7 +214,7 @@ I **Domän** (platshållare `Select domain`) väljer du en av dina verifierade d
 Klicka på **Skapa Statussida Domän**. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas, med posten som ska läggas till.
 :::
 
-En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan underdomän lägger du till den domänen och tar bort den gamla.
+En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan underdomän lägger du till den domänen och tar bort den gamla. Ett namn som en instrumentpanel eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.
 
 ### DNS-inställning och verifiering
 

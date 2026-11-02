@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` mit `"valid": true` bedeutet, dass OneUptime den Schlüssel annimmt; `401` bedeutet, dass er unbekannt, widerrufen, deaktiviert oder abgelaufen ist. Rufen Sie dann die Funktion auf. Sobald sie einen Span, ein Log oder eine Metrik sendet, erscheint sie unter **Produkte → Infrastruktur → Serverlos → Alle Funktionen**.
+`200` mit `"valid": true` bedeutet, dass OneUptime den Schlüssel annimmt; `401` bedeutet, dass er unbekannt, widerrufen, deaktiviert oder abgelaufen ist. Rufen Sie dann die Funktion auf. Sobald sie einen Span, ein Log oder eine Metrik sendet, erscheint sie unter **Produkte → Cloud → Serverlos → Alle Funktionen**.
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ Ein Ressourcenattribut, das mit `oneuptime.label.` beginnt, wird zu einem Projek
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Um Funktionen stattdessen nach ihren Namen mit Labels zu versehen oder Eigentümer zuzuweisen, öffnen Sie **Produkte → Infrastruktur → Serverlos** und verwenden Sie **Beschriftungsregeln** und **Eigentümerregeln** im Seitenmenü. Regeln laufen, wenn eine Funktion angelegt wird, automatisch erkannte eingeschlossen. Um eine Regel auf die Funktionen anzuwenden, die Sie bereits haben, verwenden Sie ihr **Jetzt ausführen** (siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now)).
+Um Funktionen stattdessen nach ihren Namen mit Labels zu versehen oder Eigentümer zuzuweisen, öffnen Sie **Produkte → Cloud → Serverlos** und verwenden Sie **Beschriftungsregeln** und **Eigentümerregeln** im Seitenmenü. Regeln laufen, wenn eine Funktion angelegt wird, automatisch erkannte eingeschlossen. Um eine Regel auf die Funktionen anzuwenden, die Sie bereits haben, verwenden Sie ihr **Jetzt ausführen** (siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now)).
 
 ## Fehlerbehebung
 

@@ -1,4 +1,6 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { PermissionGateOptions } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -210,7 +212,14 @@ const useEventOwners: (options: UseEventOwnersOptions) => EventOwnersState = (
     options.ownerTeamModelType,
   ]);
 
-  const mayAddOwners: boolean = canAddOwners(target);
+  /*
+   * On a private record's page, adding owners takes the permission of a
+   * team of the reader's that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(new options.ownerUserModelType());
+
+  const mayAddOwners: boolean = canAddOwners(target, privateRecordOptions);
 
   /*
    * Read only while it is the record on screen: the page stays mounted when

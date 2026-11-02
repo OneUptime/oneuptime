@@ -51,6 +51,8 @@ For en rullemenutype tilføjer du dens valgmuligheder under **Rullemenuindstilli
 | **Dato og klokkeslæt** | Senest auditeret den, taget ud af drift den |
 | **Lang tekst** | Adgangsinstruktioner, noter: flere linjer ren tekst |
 | **Formateret tekst (Markdown)** | Noter med formatering og links, skrevet i Markdown-editoren |
+| **Fil** | Et garantibevis, en underskrevet indkøbsordre, et foto af rackets etiket: én fil |
+| **Flere filer** | Manualer, fakturaer og fotos: op til 10 filer |
 
 ## Et gennemarbejdet aktivordforråd
 
@@ -79,6 +81,9 @@ Hvert brugerdefineret felt bliver til et filter over listen **All Items**, og fi
 | **Tal** | er, er ikke, er større end, er større end eller lig med, er mindre end, er mindre end eller lig med, er tom, er ikke tom |
 | **Boolesk**, **Rullemenu (enkeltvalg)**, **Rullemenu (flervalg)** | er, er ikke, er tom, er ikke tom |
 | **Dato**, **Dato og klokkeslæt** | er, er før, er efter, er mellem, er tom, er ikke tom |
+| **Fil**, **Flere filer** | er |
+
+En chip for **Fil** eller **Flere filer** spørger kun om én ting: om feltet **Har filer** eller har **Ingen filer**.
 
 Filtre kombineres med OG, så "Warranty Expiry er før 2026-10-01 OG Lifecycle Status er I drift" er én visning af listen. Det er det spørgsmål, et aktivregister findes for at besvare, og grunden til at bruge datotyperne i stedet for en dato i et tekstfelt: et tekstfelt gemmer gladeligt `2026-10-01` og kan så ikke fortælle dig, hvad der udløber næste kvartal.
 
@@ -91,6 +96,7 @@ Kolonner for brugerdefinerede felter starter skjult: slå dem til fra kolonnevæ
 - Intet gør en værdi unik. To elementer kan have samme serienummer, og intet stopper dig.
 - Datoer gemmes som ISO-8601-tidsstempler i UTC og vises i din egen tidszone.
 - At slette et felt fjerner det fra listen og fra filterbjælken. De værdier, der allerede er skrevet, bliver på elementerne.
+- Et felt af typen **Fil** eller **Flere filer** tager filer på op til 10 MB hver, af de slags, der står under [Filfelter](/docs/incidents/settings#filfelter), uploadet i projektet. Kun den, der må se elementet, kan downloade dem, og en fil slettes, når intet længere holder den.
 
 ## Næste trin
 

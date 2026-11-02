@@ -133,7 +133,7 @@ Ogni workflow conserva la propria copia. Quando sostituisci il client secret, ap
 4. Fai clic su **Crea flusso di lavoro**. Ogni workflow viene creato disattivato: attiva **Abilitato** in cima al suo **Costruttore**.
 :::
 
-Inizia con **Create a Dynamics 365 case when an incident is declared**, o con **Create a Dynamics 365 case when an alert is created** per gli avvisi: ogni altro modello OneUptime → Dynamics 365 dello stesso tipo trova il caso tramite il collegamento che questo scrive. Attivalo, dichiara un incidente di prova o crea un avviso di prova, e apri **Registri → Esecuzioni** del workflow. L'ultimo passaggio dell'esecuzione dovrebbe dire `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`
+Inizia con **Create a Dynamics 365 case when an incident is declared**, o con **Create a Dynamics 365 case when an alert is created** per gli avvisi: ogni altro modello OneUptime → Dynamics 365 dello stesso tipo trova il caso tramite il collegamento che questo scrive. Attivalo, dichiara un incidente di prova o crea un avviso di prova, e apri **Registri → Esecuzioni** del workflow. L'esecuzione dovrebbe terminare come **Eseguito**, e il **Response Body** del suo ultimo passaggio, `create-case-1`, contiene il `ticketnumber` del nuovo caso, come `CAS-01001-X1Y2Z3`.
 
 ### Collegare i modelli Dynamics 365 → OneUptime
 
@@ -156,11 +156,11 @@ In [Power Automate](https://make.powerautomate.com), crea un **Automated cloud f
 
 | Modello | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| Dichiarare un incidente / creare un avviso quando viene creato un caso | Added | Cases | | `{"incidentid": "<Case>"}` |
-| Risolvere l'incidente / l'avviso quando il suo caso viene risolto | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| Aggiungere le note del caso all'incidente / all'avviso come note private | Added | Notes | | `{"annotationid": "<Note>"}` |
+| Dichiarare un incidente / creare un avviso quando viene creato un caso | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| Risolvere l'incidente / l'avviso quando il suo caso viene risolto | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| Aggiungere le note del caso all'incidente / all'avviso come note private | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-Per inviare solo alcuni casi, usa **Filter rows** del trigger, come `prioritycode eq 1` per i casi ad alta priorità. Puoi anche inviare l'intero output del trigger: i modelli ne leggono l'ID della riga e il suo `SdkMessage` allo stesso modo.
+Per inviare solo alcuni casi, usa **Filter rows** del trigger, come `prioritycode eq 1` per i casi ad alta priorità. Il corpo indica la riga come `PrimaryEntityId`, come fa un webhook di Dataverse: i modelli rileggono la riga stessa da Dynamics 365.
 @tab Dataverse webhook
 Registra l'URL con il [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, con autenticazione **HttpHeader** e un'intestazione tua; il segreto è l'URL stesso. Poi registra su di esso un passaggio per ogni evento qui sotto, con **Event Pipeline Stage of Execution** su **PostOperation** ed **Execution Mode** su **Asynchronous**.
 
@@ -181,12 +181,12 @@ Prima di affidarti all'uno o all'altro:
 
 ### Verificare che funzioni
 
-Ogni modello termina con un passaggio **Log** che dice cosa è successo, quindi l'ultimo passaggio di un'esecuzione in **Registri → Esecuzioni** è il posto dove guardare:
+I **Passaggi** di ogni esecuzione dicono cosa ha fatto il modello, quindi apri l'esecuzione in **Registri → Esecuzioni** e guarda come è terminata:
 
-- `✅` — ha fatto il suo lavoro e nomina il caso, l'incidente o l'avviso.
-- `ℹ️` — ha saltato l'evento di proposito e dice perché: il caso non è collegato a un record di questo tipo, la nota viene dall'altro lato, il record è privato, o al nuovo stato non corrisponde alcuno stato del caso.
-- `❌` — una chiamata è fallita. Per una chiamata a Dynamics 365, la riga include la risposta di Dynamics 365.
-- `⚠️` — un modello che crea un record da un caso lo ha creato, ma Dynamics 365 non ha accettato il collegamento, quindi gli altri modelli non possono ancora trovarlo. Scrivi a mano il collegamento nella colonna del caso.
+- **Eseguito**: ha fatto il suo lavoro, e il suo ultimo passaggio nomina il caso, l'incidente o l'avviso.
+- **Eseguito**, con il suo passaggio **Check With JavaScript** su **No**: ha saltato l'evento di proposito, e il passaggio dice perché: il caso non è collegato a un record di questo tipo, la nota viene dall'altro lato, il record è privato, o il nuovo stato non chiude il caso.
+- **Errore**: un passaggio è fallito, e la sua voce in **Passaggi** dice perché. Per una chiamata a Dynamics 365, include la risposta di Dynamics 365.
+- **Errore** a `link-case-1`: un modello che crea un record da un caso lo ha creato, ma Dynamics 365 non ha accettato il collegamento, quindi gli altri modelli non possono ancora trovarlo. Scrivi a mano il collegamento nella colonna del caso.
 
 Se un'esecuzione si ferma al primo passaggio Dynamics 365 con `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`, le impostazioni di accesso sono sbagliate, e il messaggio riporta la risposta di Microsoft Entra ID. Vedi [Cosa chiedono i modelli](#cosa-chiedono-i-modelli).
 
@@ -221,7 +221,7 @@ Mantieni i marcatori quando modifichi i modelli. Sono le costanti `FROM_ONEUPTIM
 
 ### Cambiare cosa fa un modello
 
-Apri il **Costruttore** del workflow e fai clic sul blocco che vuoi cambiare. Le impostazioni che vorrai più probabilmente toccare sono costanti vicino all'inizio di uno script, il **JavaScript Code** di un blocco **Run Custom JavaScript**, subito sotto il blocco di supporto condiviso. Le versioni per incidenti e per avvisi tengono le stesse costanti negli stessi blocchi.
+Apri il **Costruttore** del workflow e fai clic sul blocco che vuoi cambiare. Le impostazioni che vorrai più probabilmente toccare sono costanti vicino all'inizio di uno script, il **JavaScript Code** di un blocco **Check With JavaScript**, subito sotto il blocco di supporto condiviso. Le versioni per incidenti e per avvisi tengono le stesse costanti negli stessi blocchi.
 
 | Costante | Modello e blocco | Cosa controlla |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ Apri il **Costruttore** del workflow e fai clic sul blocco che vuoi cambiare. Le
 | `CASE_ORIGIN`, `CASE_TYPE` | Creare un caso Dynamics 365 — `prepare-case-1` | Il `caseorigincode` (`3`, Web) e il `casetypecode` (`2`, Problem) del nuovo caso. Per impostare qualsiasi altra colonna, aggiungila a `CASE` nello stesso script, con il suo nome logico. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Creare un caso Dynamics 365 — `prepare-case-1` | I limiti propri della tabella Case, 200 e 2000 caratteri. La descrizione mantiene il link di ritorno a OneUptime per quanto venga tagliata. Alzali se la tua tabella Case ne consente di più. |
 | `RESOLVED_CASE_STATUS` | Risolvere il caso Dynamics 365 — `plan-case-1` | Lo stato con cui un record risolto chiude il suo caso: `5` è Problem Solved, `1000` Information Provided. |
-| `STATE_TO_CASE_STATUS` | Risolvere il caso Dynamics 365 — `plan-case-1` | Sposta il caso quando il record raggiunge un altro stato, per nome dello stato: `{ Acknowledged: 4 }` lo sposta a Researching quando l'incidente viene preso in carico. Gli stati attivi di Dynamics 365 sono `1` In Progress, `2` On Hold, `3` Waiting for Details e `4` Researching. Uno stato risolto elencato qui chiude il caso con lo stato che indica. |
+| `STATE_TO_CASE_STATUS` | Risolvere il caso Dynamics 365 — `plan-case-1` | Chiude il caso con un altro stato risolto a uno stato risolto tuo, per nome dello stato: `{ Closed: 1000 }` lo chiude come Information Provided. Solo la risoluzione del record cambia il suo caso: uno stato attivo come Researching non viene mai impostato. |
 | `PRIORITY_RANK` | Creare da un caso Dynamics 365 — `prepare-incident-1`, `prepare-alert-1` | Associa una priorità del caso (`1` High, `2` Normal, `3` Low) a `0` (la tua gravità più alta), `1` o `2` (la più bassa). Le priorità non elencate finiscono nel mezzo. Con le due gravità per gli avvisi di un nuovo progetto, Normal diventa Low a meno che tu non cambi `2: 1` in `2: 0`. |
 | `ONLY_PRIORITIES` | Creare da un caso Dynamics 365 — `prepare-incident-1`, `prepare-alert-1` | Vuota, accetta ogni caso inviato dal flusso o dal webhook. `[1]` crea record solo per i casi ad alta priorità. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Risolvere quando il caso Dynamics 365 viene risolto — `decide-state-1` | Uno stato del caso, per nome, verso uno stato di OneUptime, come `{ Researching: 'Acknowledged' }`. Altrimenti decide lo stato del caso: Resolved risolve il record. Aggiungi `2: 'isResolvedState'` per risolverlo anche quando il suo caso viene annullato. |
-| `MESSAGES` | Ogni modello Dynamics 365 → OneUptime — `read-event-1` | Gli eventi su cui agisce il modello. Aggiungi `'Update'` all'elenco del modello delle note per copiare anche le note modificate: ogni modifica diventa una nuova nota. |
+| `MESSAGES` | Ogni modello Dynamics 365 → OneUptime — `read-event-1`, o `prepare-incident-1` e `prepare-alert-1` | Gli eventi su cui agisce il modello. Aggiungi `'Update'` all'elenco del modello delle note per copiare anche le note modificate: ogni modifica diventa una nuova nota. |
 | `MAX_NOTE_LENGTH` | I modelli delle note — `build-note-1`, `read-note-1` | La nota più lunga che ciascuno scrive: 100.000 caratteri verso Dynamics 365, che è il limite proprio di una nota, e 30.000 verso OneUptime. |
 
 I nomi di stato usati come chiavi vanno scritti esattamente come si chiamano, maiuscole comprese. Evita `{{` nel codice: uno script viene compilato come qualsiasi altra impostazione prima di essere eseguito, quindi due parentesi graffe aperte di seguito verrebbero lette come un riferimento.
@@ -242,7 +242,7 @@ I nomi di stato usati come chiavi vanno scritti esattamente come si chiamano, ma
 ### Limitazioni
 
 - **Il cloud commerciale di Microsoft.** L'URL del token è `login.microsoftonline.com`. Per i cloud US Government (GCC High, DoD) o Cina, apri `dynamicsAccessToken`, usa **Modifica impostazioni** e cambia l'URL del token con l'host di accesso del tuo cloud, come `login.microsoftonline.us`.
-- **Dynamics 365 può rifiutarsi di risolvere un caso.** Le tue impostazioni di Customer Service possono impedire che un caso venga risolto finché ha attività aperte o casi figli aperti, e anche una regola di business o un plug-in possono rifiutarlo. L'esecuzione termina con `❌ Dynamics 365 did not resolve the case`, con il motivo dato da Dynamics 365, e il caso resta com'era.
+- **Dynamics 365 può rifiutarsi di risolvere un caso.** Le tue impostazioni di Customer Service possono impedire che un caso venga risolto finché ha attività aperte o casi figli aperti, e anche una regola di business o un plug-in possono rifiutarlo. L'esecuzione fallisce a `close-case-1`, con il motivo dato da Dynamics 365, e il caso resta com'era.
 - **Record e casi non tornano mai indietro.** Riaprire un caso non cambia nulla in OneUptime, e un record risolto non viene mai riaperto. Un caso già risolto o annullato non viene mai riaperto per essere chiuso di nuovo.
 - **Note e descrizioni sono testo semplice.** Una nota scritta nell'editor di testo formattato di Dynamics 365 arriva in OneUptime come il testo che mostra, e lo stesso vale per la descrizione di un caso scritta nell'editor o presa da un'email: paragrafi e a capo restano, mentre formattazione, immagini e stili propri dell'email si perdono. Una nota di OneUptime arriva in Dynamics 365 con i suoi caratteri grezzi, Markdown compreso. Il testo che viene da Dynamics 365 — il titolo e la descrizione di un caso, una nota, i nomi di stati, priorità, clienti e persone — si legge esattamente com'è stato scritto: un'immagine, un link, HTML, un diagramma o una menzione di chat come `<!channel>` scritti al suo interno compaiono come i loro caratteri e non fanno nulla, perché un word joiner invisibile segue il carattere che li aprirebbe. Una copia del testo conserva il word joiner. Un workflow conserva gli script con cui è stato creato, quindi uno creato da una versione precedente di un modello scrive il testo come faceva quella versione: ricrealo dal suo modello per ottenere questo comportamento. Gli allegati restano in Dynamics 365; la nota in OneUptime nomina il file.
 - **Le note modificate non vengono copiate**, solo quelle nuove, a meno che tu non aggiunga `'Update'` a `MESSAGES`.

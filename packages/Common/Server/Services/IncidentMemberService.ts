@@ -5,7 +5,7 @@ import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import UserService from "./UserService";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import IncidentService from "./IncidentService";
@@ -20,6 +20,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
+import FindBy from "../Types/Database/FindBy";
+import CountBy from "../Types/Database/CountBy";
+import PositiveNumber from "../../Types/PositiveNumber";
+import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import IncidentRoleFeedText, {
   IncidentRoleAssignmentCause,
 } from "../Utils/Incident/IncidentRoleFeedText";
@@ -27,6 +31,36 @@ import IncidentRoleFeedText, {
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The roles of a private incident are read only by those who see the
+   * incident: its owners - the people named on it and the members of the
+   * teams named on it - and the project's owners and admins
+   * (applyIncidentRelatedRecordPrivacyFilter), as every other part of one is
+   * (PrivateRecordParts.test). Changing or deleting them follows
+   * the private record rule (PrivateRecordPermission).
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
   }
 
   @CaptureSpan()

@@ -48,6 +48,12 @@ import path from "path";
  * seams: a suite that can reach the sweep must stub BOTH, a mid-test restore
  * must put BOTH back (installReverseDnsStub installs the NetBIOS stub too),
  * and no test may build a NetbiosNameResolver without injecting its socket.
+ *
+ * The sweep's own follow-up read of each host that answers SNMP. It sits inside
+ * scan(), so a suite that stubs SnmpMonitor.probeSystemInfo into "answering"
+ * would send real datagrams to its fixtures' addresses. installNetbiosStub
+ * installs its stub too, so the two rules above cover it, and the last two
+ * tests below pin that.
  */
 
 const DISCOVERY_TEST_DIRECTORIES: Array<string> = [
@@ -59,6 +65,8 @@ const STUB_INSTALLER: string = "stubReverseDnsAsResolvingNothing";
 const STUB_REINSTALLER: string = "installReverseDnsStub";
 const NETBIOS_STUB_INSTALLER: string = "stubNetbiosAsResolvingNothing";
 const NETBIOS_STUB_REINSTALLER: string = "installNetbiosStub";
+const HARDWARE_IDENTITY_STUB_REINSTALLER: string =
+  "installHardwareIdentityStub";
 const RESTORE_CALL: string = "jest.restoreAllMocks()";
 
 /*
@@ -452,6 +460,45 @@ describe("no discovery unit test can send a real reverse-DNS query", () => {
     expect(netbiosHelper).toContain(
       `export function ${NETBIOS_STUB_INSTALLER}(`,
     );
+  });
+
+  it("the NetBIOS re-installer also installs the hardware identity stub", () => {
+    const helperCode: string = stripComments(
+      fs.readFileSync(
+        path.join(__dirname, "..", "..", "TestingUtils", "StubNetbios.ts"),
+        "utf8",
+      ),
+    );
+
+    const bodyStart: number = helperCode.indexOf(
+      `export function ${NETBIOS_STUB_REINSTALLER}(`,
+    );
+    const bodyEnd: number = helperCode.indexOf(
+      "export function",
+      bodyStart + 1,
+    );
+
+    expect(bodyStart).toBeGreaterThanOrEqual(0);
+    expect(
+      helperCode.substring(bodyStart, bodyEnd === -1 ? undefined : bodyEnd),
+    ).toContain(`${HARDWARE_IDENTITY_STUB_REINSTALLER}()`);
+  });
+
+  it("every suite whose hosts answer SNMP keeps the follow-up read off the wire", () => {
+    const offenders: Array<string> = readDiscoveryTestFiles()
+      .filter((file: TestFile) => {
+        return (
+          file.code.includes('"probeSystemInfo"') &&
+          !file.code.includes(`${STUB_INSTALLER}(`) &&
+          !file.code.includes(`${NETBIOS_STUB_INSTALLER}(`) &&
+          !file.code.includes('"probeHardwareIdentity"')
+        );
+      })
+      .map((file: TestFile) => {
+        return file.name;
+      });
+
+    expect(offenders).toEqual([]);
   });
 
   it("the reverse-DNS re-installer also installs the NetBIOS stub", () => {

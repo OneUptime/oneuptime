@@ -232,7 +232,7 @@ The host stays in OneUptime with the data it sent. If you no longer need it, del
 
 ## AI agent
 
-The commands and the Compose file above, the Podman agent's `install.sh` and the `docker-compose.yml` in its [PodmanAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) all run the **Podman AI agent**: a second container, `oneuptime-podman-ai-agent` (image `oneuptime/resource-ai-agent:release`), that runs the read-only commands OneUptime AI asks for while it investigates an incident or alert on this host — through Podman's Docker-compatible API, with the `docker` CLI: `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web` — and, only if you allow it, applies fixes such as restarting a named container. It reads the same `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` and `PODMAN_HOST_NAME` as the collector, so it serves exactly this host, and it shows up on the host's **AI agent** page in OneUptime.
+The commands and the Compose file above, the Podman agent's [`install.sh`](https://oneuptime.com/install/podman-agent) and its [`docker-compose.yml`](https://oneuptime.com/install/podman-agent/docker-compose.yml) all run the **Podman AI agent**: a second container, `oneuptime-podman-ai-agent` (image `oneuptime/resource-ai-agent:release`), that runs the read-only commands OneUptime AI asks for while it investigates an incident or alert on this host — through Podman's Docker-compatible API, with the `docker` CLI: `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web` — and, only if you allow it, applies fixes such as restarting a named container. It reads the same `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` and `PODMAN_HOST_NAME` as the collector, so it serves exactly this host, and it shows up on the host's **AI agent** page in OneUptime.
 
 - **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this host with it, and the host's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how), or leave the agent out.
 - It is read-only unless you start it with `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (for example `web-*,api-*`) limits which containers a fix may touch. Start it with `ONEUPTIME_AI_FIXES` too, to say how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
@@ -282,6 +282,10 @@ The agent must run as root to read `/run/podman/podman.sock`. Check that `--user
 
 :::details Container CPU is a flat line
 An older agent sends the `docker_stats` receiver's own CPU figure, which needs the stats reading before the current one, and Podman's Docker-compatible API never sends it: the receiver divides all the CPU a container used since it started by all the CPU the host used since it booted. The line barely moves and does not follow the load, while `container.cpu.usage.total` does. [Upgrade the agent](#upgrading-the-agent): from its second reading on, it sends the CPU each container used over each 30-second interval. Readings already stored stay as they were.
+:::
+
+:::details Container Restart Loop never fires, or misses restarts
+An older agent does not send `container.restarts.increase`, the restarts since its previous sample of each container, which the template adds up. [Upgrade the agent](#upgrading-the-agent): from its second sample of each container on, every restart counts. A monitor made from the template before the upgrade reads how much `container.restarts` grew within each minute instead, and misses about half of a loop's restarts: delete it and create it again from the template.
 :::
 
 :::details Metrics arrive but no container logs

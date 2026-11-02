@@ -1193,9 +1193,11 @@ Behind a proxy, the collector uses the standard `HTTPS_PROXY`, `HTTP_PROXY` and 
 The collector sends what a host reports; the **Host AI agent** lets OneUptime AI ask the host itself while it investigates an incident or alert there. It runs read-only commands — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — and, only if you allow it, applies fixes such as restarting a named systemd unit. It is a Linux container (image `oneuptime/resource-ai-agent:release`) with its own installer, which needs Docker (the system engine, not rootless Docker) and the Docker Compose plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+Every OneUptime serves this installer for its own release: on a self-hosted OneUptime, download it from your URL instead of `https://oneuptime.com`. It is saved as `install.sh` first, so you can read it before you run it.
 
 - **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this host with it, and the host's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how), or remove the agent.
 - It registers under `HOST_NAME`; leave it empty to use the host's own hostname, which is what this collector reports as `host.name` unless you set another name. The two must match, so the agent serves the host this collector created. It shows up on the host's **AI agent** page in OneUptime.

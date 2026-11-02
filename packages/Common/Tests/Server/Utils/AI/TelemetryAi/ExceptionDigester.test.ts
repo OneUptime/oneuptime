@@ -17,6 +17,9 @@ import AIService, {
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import AiContextReader from "../../../../../Server/Utils/AI/AiContext/AiContextReader";
+import AiAnswerCache from "../../../../../Server/Utils/AI/TelemetryAi/AiAnswerCache";
+import { DigestException } from "../../../../../Server/Utils/AI/TelemetryAi/ExceptionDigestPrompt";
+import { JSONObject } from "../../../../../Types/JSON";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
 import Service from "../../../../../Models/DatabaseModels/Service";
 import LlmLog from "../../../../../Models/DatabaseModels/LlmLog";
@@ -306,5 +309,100 @@ describe("ExceptionDigester.digest", () => {
     expect(String(aiRequests[0]?.messages[1]?.content)).toContain(
       "Where: unknown resource",
     );
+  });
+});
+
+/*
+ * Asked again about the same exceptions, the same digest - kept, so no
+ * credit is spent twice; a new occurrence is another key, so the digest is
+ * written again.
+ */
+describe("the kept digest", () => {
+  let kept: Map<string, JSONObject>;
+
+  beforeEach(() => {
+    kept = new Map<string, JSONObject>();
+    jest.spyOn(AiAnswerCache, "get").mockImplementation((async (
+      _namespace: string,
+      key: string,
+    ) => {
+      return kept.get(key) || null;
+    }) as never);
+    jest.spyOn(AiAnswerCache, "set").mockImplementation((async (data: {
+      key: string;
+      value: JSONObject;
+    }) => {
+      kept.set(data.key, data.value);
+    }) as never);
+  });
+
+  test("a second ask about the same exceptions spends nothing", async () => {
+    const first: ExceptionDigestResult = await ExceptionDigester.digest({
+      projectId: PROJECT_ID,
+      props: CALLER,
+    });
+    const second: ExceptionDigestResult = await ExceptionDigester.digest({
+      projectId: PROJECT_ID,
+      props: CALLER,
+    });
+
+    expect(aiRequests).toHaveLength(1);
+    expect(second.digest).toEqual(first.digest);
+    expect(second.generatedAt.toISOString()).toBe(
+      first.generatedAt.toISOString(),
+    );
+  });
+
+  test("a new occurrence writes it again", async () => {
+    await ExceptionDigester.digest({ projectId: PROJECT_ID, props: CALLER });
+
+    newRows = [row(NEW_ID, { occuranceCount: 6 })];
+    await ExceptionDigester.digest({ projectId: PROJECT_ID, props: CALLER });
+
+    expect(aiRequests).toHaveLength(2);
+  });
+
+  test("the key is what the digest is written from, and nothing else", () => {
+    const one: DigestException = {
+      telemetryExceptionId: NEW_ID,
+      kind: ExceptionDigestKind.New,
+      exceptionType: "TypeError",
+      message: "m",
+      stackTrace: "",
+      occurrenceCount: 5,
+      unhandled: true,
+    };
+    const key: (exceptions: Array<DigestException>) => string = (
+      exceptions: Array<DigestException>,
+    ): string => {
+      return ExceptionDigester.getCacheKey({
+        projectId: PROJECT_ID,
+        exceptions,
+      });
+    };
+
+    expect(key([one])).toBe(key([{ ...one, message: "another wording" }]));
+    expect(key([one])).not.toBe(key([{ ...one, occurrenceCount: 6 }]));
+    expect(key([one])).not.toBe(
+      key([{ ...one, telemetryExceptionId: REGRESSED_ID }]),
+    );
+    expect(key([one])).not.toBe(
+      ExceptionDigester.getCacheKey({
+        projectId: ObjectID.generate(),
+        exceptions: [one],
+      }),
+    );
+  });
+
+  test("a kept digest that no longer reads as one is written again", async () => {
+    await ExceptionDigester.digest({ projectId: PROJECT_ID, props: CALLER });
+
+    for (const key of kept.keys()) {
+      kept.set(key, { digest: { headline: "" }, generatedAt: "x" });
+    }
+
+    await ExceptionDigester.digest({ projectId: PROJECT_ID, props: CALLER });
+
+    expect(aiRequests).toHaveLength(2);
   });
 });

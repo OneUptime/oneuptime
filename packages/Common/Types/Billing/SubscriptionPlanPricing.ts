@@ -114,6 +114,49 @@ export function isPlanFree(
   return getMonthlyPricePerUserInUSD(plan, period) === 0;
 }
 
+/*
+ * A plan that costs nothing whichever period it is billed for: moving it
+ * from one period to the other changes nothing anybody pays.
+ */
+export function isPlanFreeEitherWay(plan: SubscriptionPlan): boolean {
+  return (
+    isPlanFree(plan, BillingPeriod.Monthly) &&
+    isPlanFree(plan, BillingPeriod.Yearly)
+  );
+}
+
+/*
+ * Whether moving a project from one price to the other would leave it on
+ * what it pays for now: the same price, or the other period of a plan that
+ * costs nothing either way. Another plan, or the other period of a paid one
+ * (Growth billed monthly instead of yearly), is a change.
+ */
+export function isSamePlanChoice(
+  plans: Array<SubscriptionPlan>,
+  planId: string | null | undefined,
+  otherPlanId: string | null | undefined,
+): boolean {
+  if (!planId || !otherPlanId) {
+    return false;
+  }
+
+  if (planId === otherPlanId) {
+    return true;
+  }
+
+  const plan: SubscriptionPlan | undefined = findPlanByPlanId(plans, planId);
+  const otherPlan: SubscriptionPlan | undefined = findPlanByPlanId(
+    plans,
+    otherPlanId,
+  );
+
+  if (!plan || !otherPlan || plan.getName() !== otherPlan.getName()) {
+    return false;
+  }
+
+  return isPlanFreeEitherWay(plan);
+}
+
 // The free days a NEW project on this plan starts with (0 for none).
 export function getTrialDays(plan: SubscriptionPlan): number {
   const days: number = plan.getTrialPeriod();

@@ -134,7 +134,7 @@ Chaque soumission laisse une note privée sur ce qu'elle a créé :
 > **Which office are you in?**\
 > Berlin
 
-Elle nomme le formulaire et la personne qui soumet — "Submitted anonymously through the form **Report a Problem**." quand le formulaire n'a pas demandé qui elle est —, puis, quand la soumission est partie de l'un des modèles du formulaire, dit lequel : "Started from the template **Application Outage**." — et liste enfin les réponses aux questions propres au formulaire, chacune sous sa question, dans l'ordre du formulaire. Les réponses aux questions liées sont déjà sur l'enregistrement : son titre, sa gravité, ses champs personnalisés. Comme elle est privée, la note n'atteint jamais une page de statut, mais elle est publiée dans les canaux Slack et Microsoft Teams de l'enregistrement comme toute autre note.
+Elle nomme le formulaire et la personne qui soumet — "Submitted anonymously through the form **Report a Problem**." quand le formulaire n'a pas demandé qui elle est —, puis, quand la soumission est partie de l'un des modèles du formulaire, dit lequel : "Started from the template **Application Outage**." — et liste enfin les réponses aux questions propres au formulaire, chacune sous sa question, dans l'ordre du formulaire. Les réponses aux questions liées sont déjà sur l'enregistrement : son titre, sa gravité, ses champs personnalisés. Comme elle est privée, la note n'atteint jamais une page de statut, mais elle est publiée dans les canaux Slack et Microsoft Teams de l'enregistrement comme toute autre note. Les fichiers de ses questions **Fichier** et **Plusieurs fichiers** sont joints à la note, où votre équipe les télécharge.
 
 L'adresse est un lien qui écrit exactement à cette adresse — dans le tableau de bord, dans Slack et dans l'e-mail aux propriétaires.
 
@@ -158,6 +158,10 @@ Une soumission va droit à des endroits où du texte peut agir de lui-même — 
 | Une syntaxe d'image ou un bloc de diagramme dans le titre | **Le titre est du texte brut.** Ils reçoivent aussi le caractère invisible, si bien que partout où le titre arrive — un épisode, un message de discussion, un modèle de note — il ne charge rien et ne dessine rien. Les caractères invisibles comptent dans la limite du titre. |
 
 Tout le reste — les liens, le reste du Markdown, les choix de liste déroulante, les nombres, les dates, une case cochée — est stocké tel que la personne qui soumet l'a donné, et la soumission garde le nom et l'e-mail de la personne qui soumet tels que saisis.
+
+## Les fichiers envoyés par la personne qui soumet
+
+Une question de fichiers garde dans le navigateur les fichiers que choisit la personne qui soumet et les envoie avec les réponses : personne n'a besoin d'un compte pour joindre un fichier. Le serveur vérifie chaque fichier comme le fait un [champ personnalisé de fichier](/docs/incidents/settings#champs-de-fichier) — sa taille, son type et ce qu'il contient — et n'enregistre les fichiers dans votre projet, en privé, qu'une fois que la soumission a passé toutes les autres vérifications : rien n'est conservé pour une soumission refusée. Une question de champ personnalisé **Fichier** ou **Plusieurs fichiers** met ses fichiers dans ce champ, et les questions de fichiers propres au formulaire joignent les leurs à la note privée. La soumission garde le nom de chaque fichier. [Limites de taille](/docs/forms/building#limites-de-taille) et [Limites de débit](/docs/forms/sharing-and-security#limites-de-débit) disent combien une soumission et un formulaire peuvent envoyer.
 
 ## Étapes suivantes
 

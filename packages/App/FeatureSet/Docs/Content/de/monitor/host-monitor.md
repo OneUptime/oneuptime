@@ -61,19 +61,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Den Host auswählen
 
-Wählen Sie unter **Host-Monitor-Konfiguration** den Rechner aus **Host**. Jeder Host, der Daten gesendet hat, steht in der Liste.
+Wählen Sie unter **Host-Monitor-Konfiguration** den Rechner aus **Host**. Jeder Host, der Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **Host hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Host Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** – klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie legt Metrik, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** – wählen Sie eine Metrik unter **Host-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest.
-- **Erweitert** – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Filter auf `state` oder eine Gruppierung nach `mountpoint`.
+- **Ändern** – wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie legt Metrik, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) – wählen Sie eine Metrik unter **Host-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest.
+- **Erweitert** (unter **Weitere Felder**) – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Filter auf `state` oder eine Gruppierung nach `mountpoint`.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn eine Metrik auf null fällt; legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet; legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Den Monitor erstellen
 
@@ -95,7 +95,7 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet sechs Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet sechs Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
@@ -115,11 +115,11 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 - **Arbeitsspeicher** schließt Puffer und Seitencache aus, sodass ein Host, der überwiegend Cache enthält, sie nicht auslöst.
 - **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll: Die Collector-Konfigurationen von OneUptime lassen sie mit `exclude_fs_types` im Scraper `filesystem` aus, und eine eigene Konfiguration braucht dasselbe.
 - **Lastdurchschnitt** ist eine rohe Länge der Ausführungswarteschlange, nicht durch die Anzahl der Kerne geteilt: 4 ist auf einem Host mit 2 Kernen Sättigung und auf einem mit 32 Kernen Routine; erhöhen Sie ihn daher auf großen Hosts.
-- **Prozessanzahl** vergleicht den größten einzelnen Prozesszustand (`running`, `sleeping`, …), nicht die Gesamtzahl des Hosts, und stimmt daher nicht mit einer Prozessliste überein. Der Scraper für Prozesse meldet nur unter Linux.
+- **Prozessanzahl** vergleicht den größten einzelnen Prozesszustand (`running`, `sleeping`, …), nicht die Gesamtzahl des Hosts, und stimmt daher nicht mit einer Prozessliste überein. Der Scraper für Prozesse meldet unter Linux, macOS und BSD, nicht unter Windows.
 
 ## Erfasste Metriken
 
-Die Liste **Host-Metrik** bietet diese Metriken an. Jede trägt `resource.host.name`, über den der Monitor seine Abfragen auf einen Host beschränkt.
+Die Liste **Host-Metrik** bietet diese Metriken an. Jede trägt `resource.host.name`, über den der Monitor seine Abfragen auf einen Host beschränkt. Dort gewählt, zählt CPU den Zustand `user`, Speicher- und Dateisystemnutzung den Zustand `used`, und Dateisysteme und Prozesse ergeben eine Serie je Einhängepunkt und Status.
 
 > [!IMPORTANT]
 > Die Auslastungsmetriken sind ein Verhältnis von 0 bis 1, kein Prozentsatz: Verwenden Sie `0.8` für 80 % in einem Schwellenwert auf der rohen Metrik. Die Vorlagen rechnen mit einer Formel in einen Prozentsatz um, daher lauten ihre Schwellenwerte 80, 85 und 90.
@@ -181,7 +181,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
 | **Bei keinen Daten** | Unter **Weitere Felder**. Was geschieht, wenn das Zeitfenster keine Messwerte hat: **Ignore** (der Standard), **Treat As Zero** oder **Auslöser**. |
 
-Anomaliebedingungen vergleichen jeden Wert mit derselben Stunde der Woche in der Baseline. Sie bleiben im Zustand „Learning“ und lösen nichts aus, bis das Baseline-Fenster genug Verlauf enthält.
+Anomaliebedingungen vergleichen jeden Wert mit derselben Stunde der Woche in der Baseline. Sie bleiben im Zustand „Learning“ und lösen nichts aus, bis das Baseline-Fenster genug Verlauf enthält. Eine Summe, eine Anzahl oder eine Abfrage auf einem Histogramm bleibt dauerhaft in diesem Zustand: Dieser Monitor filtert seine Abfragen nach Attributen, und die Baseline enthält keine.
 
 Jedes Kriterium legt außerdem fest, was geschieht, wenn es zutrifft: den Monitorstatus ändern, eine Warnung erstellen oder einen Vorfall melden. Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet.
 

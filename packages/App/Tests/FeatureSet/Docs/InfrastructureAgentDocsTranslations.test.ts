@@ -144,17 +144,31 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
    * (KubernetesEventAlertTemplates): templates are created with English
    * names.
    */
-  [KUBERNETES]: ["Enable AI Command Execution", "Pilot", "Warning Events"],
+  [KUBERNETES]: [
+    "Enable AI Command Execution",
+    "Pilot",
+    "Warning Events",
+    "Cluster Operator Unavailable",
+    "Cluster Operator Degraded",
+    "Cluster Update Failing",
+  ],
   // The dashboard template's name, from the template catalog.
   [COST]: ["Kubernetes Cost Dashboard"],
-  // Alert template names: the templates are created with English names.
+  /*
+   * Alert template names: the templates are created with English names,
+   * the two on Proxmox VE's notifications (ProxmoxNotificationAlertTemplates)
+   * included.
+   */
   [PROXMOX]: [
     "HA Resource in Error State",
     "Guest Down",
     "Guest Not Backed Up",
+    "Backup Running Too Long",
     "Replication Failing",
     "Node Offline",
     "Cluster Quorum at Risk",
+    "Backup Job Failed",
+    "Node Fenced",
   ],
   /*
    * The pod and container pages' link to a database (OPEN_DATABASE_LABEL),
@@ -180,11 +194,15 @@ const PERMISSIONS: Record<string, Array<string>> = {
  * Client, the FlashArray GUI and Azure's role names.
  */
 const OTHER_CONSOLES: Record<string, Array<string>> = {
-  // The Amazon EKS console, where the agent is an add-on.
+  /*
+   * The Amazon EKS console, where the agent is an add-on, and OpenShift's
+   * web console, where its Alertmanager is given a receiver.
+   */
   [KUBERNETES]: [
     "Add-ons",
     "Get more add-ons",
     "Optional configuration settings",
+    "Administration → Cluster Settings → Configuration → Alertmanager",
   ],
   [PROXMOX]: [
     "Add",
@@ -229,6 +247,7 @@ const NAMES: Record<string, Array<string>> = {
     "AKS",
     "GKE Autopilot",
     "EKS Fargate",
+    "OpenShift",
     "etcd",
     "CoreDNS",
     "kube-proxy",
@@ -311,6 +330,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   [HOST]: ["AI investigations are on by default."],
   [KUBERNETES]: [
     "AI investigations are on by default.",
+    "If an admin will not add an SCC,",
+    "On OpenShift,",
+    "What you see in OneUptime.",
+    "Alerts on operators and updates.",
+    "OpenShift's own alerts.",
+    "Traces from your code.",
     "You get whole traces, not fragments.",
     "Your metric-based monitors do not move.",
     "Your span-based monitors do.",
@@ -1040,11 +1065,14 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("know every path on the English pages as a path of Dashboard labels", () => {
+  it("know every path on the English pages as a path of Dashboard labels, or another console's", () => {
     for (const page of PAGE_NAMES) {
       const unknown: Array<string> = menuPaths(englishPage(page)).filter(
         (path: string): boolean => {
-          return !segmentsOf(path).every(isDrawnLabel);
+          return (
+            !listed(OTHER_CONSOLES, page).includes(path) &&
+            !segmentsOf(path).every(isDrawnLabel)
+          );
         },
       );
 
@@ -1317,6 +1345,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     it("gives every menu path, segment by segment, as this language's Dashboard draws it", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
+        // Another console's path is kept as that console writes it (below).
+        .filter((path: string): boolean => {
+          return !listed(OTHER_CONSOLES, entry.page).includes(path);
+        })
         .map((path: string): string => {
           return drawnMenuPath(language, segmentsOf(path));
         })
@@ -1429,10 +1461,18 @@ describe("the helpers, on these pages' shapes", () => {
     expect(
       drawnMenuPath("ru", ["Products", "Resources", "Databases"]),
     ).toContain("Базы данных");
-    // Storage Arrays is drawn in English in the menu, whatever the flat key says.
+    /*
+     * The product from the menu's own key (navbar.items.storageArraysTitle),
+     * which says Speicher-Arrays now, as the product's own pages do.
+     */
     expect(
       drawnMenuPath("de", ["Products", "Infrastructure", "Storage Arrays"]),
-    ).toBe("**Produkte → Infrastruktur → Storage Arrays**");
+    ).toBe(
+      `**Produkte → Infrastruktur → ${navbarValue("de", "items", "storageArraysTitle")}**`,
+    );
+    expect(navbarValue("de", "items", "storageArraysTitle")).toBe(
+      "Speicher-Arrays",
+    );
     // Past the product, the flat keys: the product's own side menu.
     expect(
       drawnMenuPath("de", [
@@ -1442,7 +1482,7 @@ describe("the helpers, on these pages' shapes", () => {
         "All Storage Arrays",
       ]),
     ).toBe(
-      `**Produkte → Infrastruktur → Storage Arrays → ${drawnActionLabel("de", "All Storage Arrays")}**`,
+      `**Produkte → Infrastruktur → Speicher-Arrays → ${drawnActionLabel("de", "All Storage Arrays")}**`,
     );
     // A path that does not start at the Products menu reads the flat keys.
     expect(drawnMenuPath("ru", ["Databases", "Create Database"])).toBe(

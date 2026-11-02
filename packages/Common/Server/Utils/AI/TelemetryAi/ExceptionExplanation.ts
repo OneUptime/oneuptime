@@ -14,6 +14,7 @@ import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { ExceptionAIExplanation } from "../../../../Types/Telemetry/ExceptionAIExplanation";
+import { getOccurrenceFingerprintQuery } from "../../../../Types/Telemetry/ExceptionGroupFingerprints";
 import {
   ChangeEventFields,
   readChangeEventFields,
@@ -58,8 +59,9 @@ import {
  *   - the exception group: its type, message and stack trace, when it was
  *     first and last seen and in which releases, how often, whether it was
  *     handled, and whether it came back after it was resolved;
- *   - its latest occurrence, and the trace that occurrence happened in: the
- *     spans of the request around it, which failed, and how long they took;
+ *   - its latest occurrence - its own, or one of an exception merged into
+ *     it - and the trace that occurrence happened in: the spans of the
+ *     request around it, which failed, and how long they took;
  *   - the logs written in that trace;
  *   - the deploys and changes of its service around the time it started.
  *
@@ -280,6 +282,11 @@ export default class ExceptionExplainer {
     };
   }
 
+  /*
+   * The latest of its occurrences and of those of the exceptions merged
+   * into it, which count on it (TelemetryExceptionService
+   * .getGroupFingerprints), as its page shows the latest.
+   */
   private static async readLatestOccurrence(
     exception: TelemetryException,
     props: DatabaseCommonInteractionProps,
@@ -289,11 +296,20 @@ export default class ExceptionExplainer {
     }
 
     try {
+      const fingerprints: Array<string> =
+        await TelemetryExceptionService.getGroupFingerprintsOf({
+          projectId: exception.projectId!,
+          exception: {
+            id: exception.id?.toString() || exception._id?.toString() || "",
+            fingerprint: exception.fingerprint,
+          },
+        });
+
       const rows: Array<ExceptionInstance> =
         await ExceptionInstanceService.findBy({
           query: {
             projectId: exception.projectId!,
-            fingerprint: exception.fingerprint,
+            fingerprint: getOccurrenceFingerprintQuery(fingerprints),
             ...(exception.primaryEntityId
               ? { primaryEntityId: exception.primaryEntityId }
               : {}),

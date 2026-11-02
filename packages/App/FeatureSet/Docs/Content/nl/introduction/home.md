@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nee"| shown["De checklist met de<br/>overgebleven stappen"]
 ```
 
-De checklist verdwijnt zodra alle vier stappen klaar zijn. Om hem eerder te verbergen, klikt u op **Sluiten**. Dat wordt onthouden in deze browser, voor dit project; alles wat de stappen openen, staat nog steeds in het menu **Producten**.
+De checklist verdwijnt zodra alle vier stappen klaar zijn. Om hem eerder te verbergen, klikt u op **Verbergen**. Dat wordt onthouden in deze browser, voor dit project; alles wat de stappen openen, staat nog steeds in het menu **Producten**.
 
 ### Vraagt aandacht
 
@@ -108,7 +108,7 @@ Een episode groepeert gerelateerde incidenten of waarschuwingen, zodat u ze als 
 
 ## Uw weg vinden
 
-Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheidsdienst, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, AI, Code, Bronnen, Infrastructuur, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
+Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheidsdienst, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
 
 - **Zoeken vindt alles.** Typ in het zoekvak van het menu om elk product te vinden op naam, op wat het doet, of op een bekend woord zoals `k8s` of `RUM`. Zoeken kijkt ook in de ingeklapte groepen.
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.

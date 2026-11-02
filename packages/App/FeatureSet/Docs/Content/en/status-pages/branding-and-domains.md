@@ -107,7 +107,7 @@ How many days the chart covers is not set here. That is **Uptime History** in th
 
 | Field | What it does |
 | ----- | ------------ |
-| **Default Language** | The language first-time visitors see, picked from a list that names each language natively and in English (`Deutsch (German)`). It defaults to English, and visitors can always switch from the footer. |
+| **Default Language** | The language first-time visitors see, picked from a list that names each language natively and in English (`Deutsch (German)`). It defaults to English, and visitors can always switch from the footer. Subscribers are written to in it too, unless they subscribed while reading the page in another language. |
 | **Enabled Languages** | A multi-select, placeholder `All languages`. Leave it empty and every supported language is offered; choose a few and the footer lists only those. |
 
 Seventeen languages ship with OneUptime: English, German, French, Spanish, Italian, Portuguese, Dutch, Danish, Norwegian, Swedish, Russian, Japanese, Korean, Chinese (Simplified), Chinese (Traditional), Hindi and Persian. Persian reads right to left, so a page shown in Persian is laid out from the right, from its first moment when Persian is its default language. Its uptime bars still run from the oldest day on the left.
@@ -214,7 +214,7 @@ In **Domain** (placeholder `Select domain`), pick one of your verified domains. 
 Click **Create Status Page Domain**. The dialog closes and the new domain's **DNS Setup** opens, with the record to add.
 :::
 
-A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one.
+A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one. A name a dashboard or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
 
 ### DNS Setup and verification
 

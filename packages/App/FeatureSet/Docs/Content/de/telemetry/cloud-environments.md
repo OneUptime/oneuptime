@@ -2,6 +2,8 @@
 
 Eine **Cloud-Umgebung** ist der Ort, an dem Ihre Container auf einer verwalteten Cloud-Plattform laufen: Konto und Region eines ECS-Clusters, Projekt und Region von Cloud Run, Abonnement und Region von Container Apps. OneUptime legt sie an, sobald Ihre Telemetrie zum ersten Mal mit den passenden Ressourcenattributen eintrifft, und fasst jeden Workload zusammen, der dort läuft. Sie müssen nichts von Hand registrieren.
 
+Umgebungen stehen in App-Plattformen, einem eigenen Produkt: **App-Plattformen → Übersicht** gruppiert sie nach Plattform und zeigt die zuerst, die verstummt sind, **App-Plattformen → Alle Apps** listet jede App auf, die in ihnen läuft, und **App-Plattformen → Alle Umgebungen** listet alle auf. Die Ressourcen in Ihren Cloud-Konten, etwa virtuelle Maschinen, Buckets und verwaltete Datenbanken, finden Sie in Cloud: siehe [Cloud-Ressourcen](/docs/telemetry/cloud-resources).
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tasks auf Fargate oder EC2, mit CPU und Arbeitsspeicher pro Task.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Dienste und Jobs, auch als Serverless-Funktionen aufgeführt.
@@ -29,6 +31,7 @@ flowchart TB
 - **Ein Ressourcendetektor sagt, wo der Workload läuft.** Ein OpenTelemetry-Ressourcendetektor im SDK oder in einem Collector liest die Metadaten der Plattform und setzt `cloud.platform`, `cloud.account.id` und `cloud.region` auf alles, was der Workload sendet. Wo es keinen Detektor gibt, setzen Sie sie selbst.
 - **Die Umgebung fasst zusammen.** Jeder Workload mit derselben Plattform, demselben Konto und derselben Region landet in einer Umgebung. Die Dienste behalten ihre eigenen Zeilen unter **Dienste**.
 - **Jeder laufende Task ist eine Instanz.** Der Tab **Instanzen** der Umgebung listet ihre laufenden Tasks, Instanzen oder Replikate auf, mit CPU und Arbeitsspeicher in Echtzeit, wo die Plattform sie liefern kann.
+- **Jeder Dienst ist eine App.** Ein ECS-Service, ein Cloud-Run-Dienst oder eine Container App ist eine App ihrer Umgebung, und OneUptime behält die Revisionen, die sie ausführt: siehe [Apps und Deployments](#apps-und-deployments).
 
 ## Bevor Sie beginnen
 
@@ -91,7 +94,33 @@ Die eigene Identität der Plattform steht absichtlich an erster Stelle. Ein Side
 
 ### Eine Umgebung hinzufügen
 
-Die Erfassung legt Umgebungen für Sie an, Sie müssen also nichts eintippen. Öffnen Sie **Cloud → Alle Umgebungen** und klicken Sie auf **Cloud-Umgebung hinzufügen**: Wählen Sie, wo Ihre App läuft, und die Anleitung zeigt die OpenTelemetry-Einstellungen dieser Plattform, mit Ihrer OneUptime-URL und Ihrem Ingestion-Schlüssel bereits eingesetzt. Der letzte Schritt, **Auf die Verbindung warten**, meldet, wann die ersten Daten der Umgebung eingetroffen sind, und verlinkt auf sie. Für einen anderen Namen wählen Sie auf der Karte **Ressourcendetails** der Seite **Einstellungen** der Umgebung **Details bearbeiten** und tragen ihn unter **Anzeigename** ein.
+Die Erfassung legt Umgebungen für Sie an, Sie müssen also nichts eintippen. Öffnen Sie **App-Plattformen → Alle Umgebungen** und klicken Sie auf **Cloud-Umgebung hinzufügen**: Wählen Sie, wo Ihre App läuft, und die Anleitung zeigt die OpenTelemetry-Einstellungen dieser Plattform, mit Ihrer OneUptime-URL und Ihrem Ingestion-Schlüssel bereits eingesetzt. Der letzte Schritt, **Auf die Verbindung warten**, meldet, wann die ersten Daten der Umgebung eingetroffen sind, und verlinkt auf sie. Für einen anderen Namen wählen Sie auf der Karte **Umgebungsdetails** der Seite **Einstellungen** der Umgebung **Details bearbeiten** und tragen ihn unter **Anzeigename** ein.
+
+## Apps und Deployments
+
+Jeder Dienst, den eine Umgebung ausführt, ist eine App von ihr, benannt so, wie die Konsole der Plattform sie nennt. **App-Plattformen → Alle Apps** listet jede App mit der Revision auf, die sie ausführt, und mit ihren Anfragen, ihrer Fehlerrate und ihrer p95-Latenz der letzten Stunde, und der Tab **Apps** einer Umgebung listet ihre eigenen.
+
+| Plattform | App | Getrennt nach | Revision |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`, sonst `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`, sonst `service.version` oder `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`, sonst `container.image.tag` |
+| Google Cloud Run | `faas.name`, sonst `service.name` | — | `faas.version`, sonst `service.version` |
+| Google App Engine | `faas.name`, sonst `service.name` | — | `faas.version`, sonst `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`, sonst `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`, sonst `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+Das erste Attribut, das die Telemetrie trägt, benennt die App, sodass auch eine App auf einer Plattform ohne Ressourcendetektor eine ist, über ihren `service.name`. Der `unknown_service`, den ein SDK meldet, wenn kein `service.name` gesetzt ist, benennt keine App.
+
+- **Eine Revision, die die App noch nie ausgeführt hat, ist ein Deployment.** OneUptime hält fest, welche Revision sie ersetzt hat und wann. Die erste Revision, die OneUptime sieht, ist der Beginn der Geschichte der App, kein Deployment.
+- **Zurückgehen ist ein Rollback.** Wenn die Revision, die eine App ausführt, 15 Minuten lang nichts meldet, während eine, die sie früher ausgeführt hat, weiterläuft, zeichnet OneUptime ein Rollback auf diese auf.
+- **Beides sind Änderungen.** Jedes ist eine gestrichelte Linie in den Diagrammen der App und der Umgebung, eine Zeile im **Feed** der Umgebung und ein [Änderungsereignis](/docs/telemetry/change-events), das OneUptime AI liest, wenn es einen Vorfall in der Umgebung untersucht. **Letzte Deployments** unter **App-Plattformen → Übersicht** listet die neuesten.
+- **Pro App werden höchstens 12 neue Revisionen in einer Stunde aufgezeichnet.** Eine `service.version`, die sich mit jedem Build ändert, wäre sonst ein Deployment pro Minute.
+
+Die Seite einer App hat eine **Übersicht** mit ihren Anfragen, Fehlern, ihrer Latenz, ihren Instanzen und den Revisionen, die gerade laufen, einen Tab **Revisionen** mit den Zahlen jeder Revision und die Tabs **Instanzen**, **Protokolle** und **Traces**, auf die App gefiltert. **Warnungen einrichten** öffnet die empfohlenen Monitore des Dienstes der App unter **Dienste**.
+
+Eine App, die 30 Tage lang nichts sendet, wird mit ihren Revisionen entfernt, ebenso eine Revision, die 30 Tage lang keine Instanz meldet, es sei denn, die App führt sie noch aus. Bei einem selbst gehosteten OneUptime legt `CLOUD_APP_RETENTION_DAYS` die 30 fest.
 
 ## Was keine Cloud-Umgebung ist
 
@@ -170,27 +199,28 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` mit `"valid": true` bedeutet, dass das Token angenommen wird. `401` bedeutet, dass es unbekannt, widerrufen, deaktiviert oder abgelaufen ist, und die `message` der Antwort sagt, was davon. Innerhalb einer Minute nach dem ersten Span, Log oder der ersten Metrik erscheint die Umgebung unter **Cloud → Alle Umgebungen**.
+`200` mit `"valid": true` bedeutet, dass das Token angenommen wird. `401` bedeutet, dass es unbekannt, widerrufen, deaktiviert oder abgelaufen ist, und die `message` der Antwort sagt, was davon. Innerhalb einer Minute nach dem ersten Span, Log oder der ersten Metrik erscheint die Umgebung unter **App-Plattformen → Alle Umgebungen**.
 :::
 
 > [!TIP]
-> Dieselben Schritte stehen auch im Dashboard, mit Ihrem Token bereits eingesetzt: unter **Cloud → Alle Umgebungen** über **Cloud-Umgebung hinzufügen**. Der Tab **Dokumentation** jeder Umgebung zeigt sie ebenfalls.
+> Dieselben Schritte stehen auch im Dashboard, mit Ihrem Token bereits eingesetzt: unter **App-Plattformen → Alle Umgebungen** über **Cloud-Umgebung hinzufügen**. Der Tab **Dokumentation** jeder Umgebung zeigt sie ebenfalls.
 
 ## Was Sie erhalten
 
 Die **Übersicht** einer Umgebung zeigt:
 
-- **Anfragen**, **Fehlerrate** und **p95-Latenz** aus Ihren Traces, mit Diagrammen zu Anfragen, Fehlern und Arbeitsspeicher über den gewählten Zeitraum.
+- **Anfragen**, **Fehlerrate** und **p95-Latenz** aus den Spans, an denen Anfragen in Ihre Dienste eintreten, mit Diagrammen zu Anfragen, Fehlern und Arbeitsspeicher über den gewählten Zeitraum und einer gestrichelten Linie bei jedem Deployment.
 - **CPU** und **Arbeitsspeicher** über die aktiven Instanzen und eine Liste **Top-Instanzen nach CPU**. Sie stammen aus Metriken `container.cpu.utilization` und `container.memory.usage`, die die Instanzidentität tragen; auf ECS aus `ecs.task.cpu.utilized` und `ecs.task.memory.utilized` des `awsecscontainermetrics`-Receivers.
 - **Instanzen**: wie viele in den letzten 15 Minuten gemeldet haben. Der Tab **Instanzen** hat für jede eine Zeile.
+- **Apps**: die Apps, die die Umgebung ausführt, die zuerst, die einen Blick brauchen, mit ihren Anfragen und Fehlern der letzten Stunde.
 - Die Tabs **Protokolle**, **Traces** und **Metriken**, auf die Umgebung gefiltert.
 
-Eine Umgebung, deren Telemetrie 15 Minuten lang ausbleibt, zeigt **Getrennt**, und der nächste Span, Log oder die nächste Metrik setzt sie wieder auf **Verbunden**. Zeit, in der OneUptime selbst ausgefallen war oder aufgeholt hat, zählt nicht zu den 15 Minuten.
+Eine Umgebung, die noch nichts gesendet hat, zeigt **Wartet**. Eine, deren Telemetrie 15 Minuten lang ausbleibt, zeigt **Getrennt**, und der nächste Span, Log oder die nächste Metrik setzt sie wieder auf **Verbunden**. Zeit, in der OneUptime selbst ausgefallen war oder aufgeholt hat, zählt nicht zu den 15 Minuten.
 
 ### Beschriftungen und Eigentümer
 
 - **Aus Ihrer Telemetrie:** Ein Ressourcenattribut wie `oneuptime.label.team=payments` fügt der Umgebung die Beschriftung `team:payments` hinzu.
-- **Aus Regeln:** **Cloud → Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** fügen passenden Umgebungen Beschriftungen und Eigentümer hinzu. Siehe [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules).
+- **Aus Regeln:** **App-Plattformen → Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** fügen passenden Umgebungen Beschriftungen und Eigentümer hinzu. Die Regeln in Cloud gelten für die Ressourcen in Ihren Cloud-Konten, und eine Regel, die vor der Trennung der beiden angelegt wurde, gilt für beide. Siehe [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules).
 
 ## Fehlerbehebung
 

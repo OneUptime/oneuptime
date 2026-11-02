@@ -9,6 +9,21 @@ OneUptime Kubernetes Agent has been installed.
 
 Cluster Name: {{ .Values.clusterName }}
 OneUptime URL: {{ .Values.oneuptime.url }}
+{{- /*
+The release went in without complaint, but OpenShift admits pods later, one
+at a time, so the only sign of a missing preset would be pods that never
+appear. The API server tells Helm it serves security.openshift.io on
+install and upgrade; helm template knows nothing of the cluster and prints
+no notes.
+*/}}
+{{- if and (.Capabilities.APIVersions.Has "security.openshift.io/v1") (ne (include "kubernetes-agent.openshift" .) "true") }}
+
+This cluster is OpenShift, but the preset is not openshift. OpenShift's
+default SCC, restricted-v2, refuses the agent's pods that mount node paths,
+run privileged or run as a fixed user, so some of what is listed below will
+not arrive. Switch to the openshift preset:
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set preset=openshift
+{{- end }}
 
 The agent is now collecting:
 {{- /* The node collector DaemonSet reads these; EKS Fargate runs no DaemonSet. */}}
@@ -26,6 +41,9 @@ The agent is now collecting:
 {{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
   - Kubernetes events (k8sobjects)
+{{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services (k8sobjects/openshift)
+{{- end }}
 {{- if .Values.kubeStateMetrics.enabled }}
 {{- if eq .Values.kubeStateMetrics.mode "bundled" }}
   - Cluster-state metrics from bundled kube-state-metrics: pod phases, container waiting reasons, resource quotas
@@ -34,14 +52,19 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
 {{- if .Values.controlPlane.enabled }}
-{{- /* Only a component with endpoints is scraped (configmap-deployment.yaml):
-       etcd, the scheduler and the controller manager have none by default. */}}
+{{- /* A component is scraped at its endpoints, or, on the OpenShift presets,
+       where service discovery finds it (configmap-deployment.yaml): etcd,
+       the scheduler and the controller manager have no endpoints by default,
+       and on those presets etcd waits for a client certificate instead. */}}
 {{- $scraped := list }}
 {{- $notScraped := list }}
+{{- $etcdWaitsForCertificate := false }}
 {{- range $component := list "apiServer" "etcd" "scheduler" "controllerManager" }}
 {{- $label := get (dict "apiServer" "API server" "etcd" "etcd" "scheduler" "scheduler" "controllerManager" "controller manager") $component }}
-{{- if (get $.Values.controlPlane $component | default dict).endpoints }}
+{{- if or (get $.Values.controlPlane $component | default dict).endpoints (eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" $component)) "true") }}
 {{- $scraped = append $scraped $label }}
+{{- else if and (eq $component "etcd") (eq (include "kubernetes-agent.openshift" $) "true") }}
+{{- $etcdWaitsForCertificate = true }}
 {{- else }}
 {{- $notScraped = append $notScraped $label }}
 {{- end }}
@@ -51,6 +74,9 @@ The agent is now collecting:
 {{- end }}
 {{- if $notScraped }}
   - Control plane, not scraped until you list where it answers: {{ join ", " $notScraped }} (controlPlane.<component>.endpoints, an address this cluster collector's pod can reach)
+{{- end }}
+{{- if $etcdWaitsForCertificate }}
+  - Control plane, not scraped until it has a client certificate: etcd (controlPlane.etcd.clientCertSecret, see below)
 {{- end }}
 {{- end }}
 {{- if .Values.logs.enabled }}
@@ -73,7 +99,8 @@ The agent is now collecting:
 {{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
   - Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average)
 {{- end }}
-{{- if .Values.auditLogs.enabled }}
+{{- /* On openshift-restricted nothing reads the file: the preset says so below. */}}
+{{- if and .Values.auditLogs.enabled (ne (include "kubernetes-agent.openshiftRestricted" .) "true") }}
   - Kubernetes API server audit logs (self-managed clusters)
 {{- end }}
 {{- if .Values.csi.enabled }}
@@ -102,10 +129,53 @@ whatever ebpf.enabled and profiling.enabled say: both need a privileged pod
 {{- if eq .Values.preset "eks-fargate" }}
 on every node, and EKS Fargate runs neither privileged pods nor DaemonSets.
 To trace your services, send traces from them with an OpenTelemetry SDK.
+{{- else if eq .Values.preset "openshift-restricted" }}
+on every node, and OpenShift's restricted-v2 SCC refuses privileged pods. To
+trace your services, send traces from them with an OpenTelemetry SDK.
 {{- else }}
 on every node, and GKE Autopilot refuses privileged pods. To trace your
 services, send traces from them with an OpenTelemetry SDK.
 {{- end }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.openshiftRestricted" .) "true" }}
+Every pod runs under restricted-v2 and this chart created no SCC, so nothing
+reads the nodes: no per-node OS metrics and no audit logs, and pod logs come
+through the Kubernetes API (the log tailer) instead of from the nodes. Node,
+pod and container metrics still arrive, from each node's kubelet.
+To collect the rest, switch to the openshift preset, which creates the SCCs
+its node pods need (creating them takes cluster-admin rights):
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set preset=openshift
+{{- end }}
+{{- if eq (include "kubernetes-agent.openshiftSccs" .) "true" }}
+{{- $fullname := include "kubernetes-agent.fullname" . }}
+{{- $ebpf := eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
+{{- $profiling := eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
+Every pod runs under OpenShift's restricted-v2 SCC, except those that read
+the nodes, which run under SCCs this chart created for them alone:
+{{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
+  - {{ $fullname }}-node-collector: the node collector (read-only node
+    paths, as root with the SELinux type spc_t, no capabilities)
+{{- end }}
+{{- if or $ebpf $profiling }}
+  - {{ $fullname }}-ebpf: {{ if and $ebpf $profiling }}the eBPF instrumentation and the profiler{{ else if $ebpf }}the eBPF instrumentation{{ else }}the profiler{{ end }}
+    (privileged, in the host's PID namespace)
+{{- end }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
+
+The control plane's replicas are found through service discovery, so each is
+scraped on its own. A hosted control plane (ROSA with HCP, HyperShift) has none
+in the cluster: there those stay empty, and nothing else changes.
+{{- end }}
+{{- if and .Values.controlPlane.enabled (eq (include "kubernetes-agent.openshift" .) "true") (not .Values.controlPlane.etcd.endpoints) (not .Values.controlPlane.etcd.clientCertSecret) }}
+
+etcd asks for a client certificate, so it has no scrape job yet. To make one,
+copy OpenShift's certificate into a Secret, as a cluster admin, and name it:
+  oc extract secret/etcd-metric-client -n openshift-etcd-operator --to=etcd-cert --confirm
+  oc extract configmap/etcd-metric-serving-ca -n openshift-etcd-operator --to=etcd-cert --confirm
+  oc create secret generic etcd-client-cert -n {{ .Release.Namespace }} --from-file=ca.crt=etcd-cert/ca-bundle.crt --from-file=tls.crt=etcd-cert/tls.crt --from-file=tls.key=etcd-cert/tls.key
+  rm -r etcd-cert
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set controlPlane.etcd.clientCertSecret=etcd-client-cert
 {{- end }}
 {{- end }}
 
@@ -215,8 +285,9 @@ chart index and upgrade:
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
 ingestion key: OneUptime refuses it with 401/422, and the collector only logs
 "Exporting failed. Dropping data.", which is easy to miss), run the diagnostic
-script for a one-shot root-cause verdict:
-  curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
+script for a one-shot root-cause verdict (your OneUptime serves it for its
+own release; open the address in a browser to read it first):
+  curl -fsSL {{ .Values.oneuptime.url | trimSuffix "/" }}/install/kubernetes-agent/troubleshoot.sh | bash -s -- -n {{ .Release.Namespace }}
 
 Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):
   curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" {{ .Values.oneuptime.url }}/otlp/v1/validate

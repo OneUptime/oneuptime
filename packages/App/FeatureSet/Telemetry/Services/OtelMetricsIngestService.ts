@@ -48,7 +48,7 @@ import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
   MetricRulesForProject,
 } from "./MetricPipelineRuleService";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -3877,6 +3877,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 onboot: e.onboot,
                 isBackedUp: computeProxmoxGuestBackedUp(e, snap),
                 uptimeSeconds: e.uptimeSeconds,
+                isTemplate: e.isTemplate,
+                tags: e.tags,
+                lockState: e.lockState,
+                cpuCount: e.cpuCount,
+                storageType: e.storageType,
+                storageContent: e.storageContent,
+                isShared: e.isShared,
+                subscriptionLevel: e.subscriptionLevel,
                 lastSeenAt: e.observedAt,
               };
             },
@@ -4884,6 +4892,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           const raw: string | number | undefined = (datapoint as JSONObject)?.[
             "timeUnixNano"
           ] as string | number | undefined;
+          /*
+           * A float, for comparisons only: the heartbeat's time is clamped
+           * from it, and up to 128 ns off cannot move it anywhere that
+           * matters. Data points store their own times read exactly
+           * (safeParseUnixNano).
+           */
           let value: number | null = null;
           if (typeof raw === "number") {
             value = raw;
@@ -4908,6 +4922,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     value: string | number | undefined,
     context: string,
   ): MetricTimestamp {
+    /*
+     * An integer string - how OTLP/protobuf sends every time - is read
+     * exactly: the Date, the stored nanoseconds and the DateTime text come
+     * from its digits (OneUptimeDate.readExactUnixNano). A float of it read
+     * them up to 128 ns off, and so the point a millisecond early or late -
+     * one just before a whole second into the second after. Anything else is
+     * read as before, below.
+     */
+    const exact: ExactUnixNano | null = OneUptimeDate.readExactUnixNano(value);
+
+    if (exact !== null) {
+      return {
+        nano: exact.nano,
+        db: OneUptimeDate.toClickhouseDateTime(exact.date),
+        date: exact.date,
+      };
+    }
+
     /*
      * The current-time fallback is derived lazily: this runs per datapoint,
      * and the common case (a valid timeUnixNano on the datapoint) used to

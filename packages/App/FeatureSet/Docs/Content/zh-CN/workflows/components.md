@@ -22,10 +22,13 @@
 | 总结、分类或起草文本                                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | 根据某个值走这条或那条路径                                    | [Conditions](#conditions)                                         |
 | 根据某个值走多条路径中的一条                                   | [Switch / Case](#switch-case)                                     |
+| 只在几行 JavaScript 这样说时才继续                             | [Check With JavaScript](#check-with-javascript)                   |
 | 在两个块之间转换数据                                          | [JSON](#json) 或 [Custom Code](#custom-code)                      |
 | 在下一个块之前等待                                            | [Sleep](#sleep)                                                   |
 | 启动另一个工作流                                              | [Execute Workflow](#execute-workflow)                             |
 | 读取或更改事件、监视器和其他记录                              | [OneUptime 数据组件](#oneuptime-数据组件)                  |
+| 为其他工具的问题打开、确认和解决事件或警报                     | [来自其他工具的事件和警报](#来自其他工具的事件和警报) |
+| 确认或关闭 Zabbix 问题                                         | [Zabbix](#zabbix)                                                 |
 
 专用块胜过通用块：Slack 块知道 Slack 的限制，记录块知道记录的字段，因此你得到的错误和日志比用一个 **API** 块做同样的事更清楚。
 
@@ -44,7 +47,7 @@ flowchart TB
 - **Outputs** 是底部边缘的点。大多数块有 **Success** 和 **Error**；[Conditions](#conditions) 有 **Yes** 和 **No**；[Switch / Case](#switch-case) 每个分支有一个，另有 **Default**。
 - **Returns** 是块传给后续块的值，例如 API 的 **Response Body**。后续块用 `{{local.components.<block ID>.returnValues.<value ID>}}` 读取；设置中的 **{ }** 按钮会替你插入。参见 [变量](/docs/workflows/variables#组件输出来自前面块的数据)。
 
-选择了 **Error** 的块不会让运行失败：运行会沿着 **Error** 路径继续，如果没有连接任何东西就在那里结束。而留空的必填设置，或者永远不可能生效的设置，会以错误停止运行。
+选择了 **Error** 的块会把失败交给连接到 **Error** 的块，运行在那里继续。如果 **Error** 上没有连接任何东西，运行就会失败：它正在做的其他事情照常运行，然后运行以状态 **错误** 结束，运行的 **步骤** 中该块的条目会说明原因。而留空的必填设置，或者永远不可能生效的设置，会以错误停止运行。
 
 ## API
 
@@ -64,6 +67,8 @@ flowchart TB
 无论哪种情况，块都会返回 **Response Status**、**Response Headers** 和 **Response Body**，失败时还会返回带有原因的 **Error**。要读取 JSON 响应中的字段，把它的名称加到引用后面，例如 `{{local.components.api-get-1.returnValues.response-body.id}}`。
 
 重定向不会被跟随，所以请把块指向真正应答的地址。请求从 OneUptime 发出：解析为私有网络地址的 URL 会被拒绝，除非自托管管理员允许，运行会带着原因停止。参见 [出站网络访问](/docs/workflows/configuration#出站网络访问)。
+
+**API Get By ID (JSON)** 按来自别处的 ID 读取一个项目，例如 Webhook 发来的问题键。在它的 **URL** 中 ID 所在的位置放上 `{id}`，如 `https://your-domain.atlassian.net/rest/api/3/issue/{id}`，并把 ID 填入 **ID**。只有当 ID 是简单的 ID，即最多 200 个字母、数字、连字符和下划线时，块才会放入 ID，而且仍会对它做百分号编码：其他任何值，例如 `x/../users`，都会在发出任何请求之前走 **Error**，因此来自外部的文本无法把请求引向别处。除此之外，它的工作方式与 **API Get (JSON)** 相同，返回相同的值。
 
 ## AI
 
@@ -219,10 +224,9 @@ SMTP 服务器接受了消息时触发 **Success**。SMTP 主机被拒绝、无�
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-创建工作流时， **值班** 下的模板里已经备好了这个工作流，还有一个用 **Switch / Case** 按严重程度呼叫的模板。呼叫谁由你来定：工作流会在生成器中打开，每个呼叫块上都显示 **Click to set up**。
+创建工作流时， **值班** 下的模板里已经备好了这个工作流，还有一个用 **Switch / Case** 按严重程度呼叫的模板。 **创建工作流** 对话框会询问模板中每个呼叫块呼叫谁，因此工作流打开时这些都已设置好。你在生成器中添加的呼叫块会显示 **Click to set up**，直到你选择它呼叫谁。
 
 | 设置 | 作用 |
 | ---- | ---- |
@@ -270,6 +274,27 @@ return {
 代码在沙箱中运行，可以使用 `args`、`console.log`（写入运行的日志）、用于 HTTP 请求的 `axios`、`crypto` 和 `sleep`。它没有文件系统，也没有进程，它的请求遵守与 API 块相同的地址规则。它默认有 5 秒时间；自托管安装可以用 `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` 更改。
 
 **Success** 会带着返回的 **Value** 触发；代码抛出异常或超时时触发 **Error**，消息放在 **Error** 中。对于更重的脚本，请改用 [Runbook](/docs/runbooks/index)。
+
+## Check With JavaScript
+
+运行几行 JavaScript，然后根据它们的返回值走 **Yes** 或 **No**：相当于一个 [Custom Code](#custom-code) 块加上其后的 [If / Else](#conditions)，合成一个块。当一次比较不足以做出判断时使用它，例如读取另一个工具发来的内容，并跳过工作流不该处理的部分。
+
+| 设置                | 作用 |
+| ------------------- | ---- |
+| **JavaScript Code** | 你的代码。 `return true` 走 **Yes**。若还要传递值，请返回一个包含 `proceed: true`、这些值和一个 `reason` 的对象。 |
+| **Arguments**       | 要传给代码的值组成的 JSON 对象，代码以 `args` 读取它们，与 **Run Custom JavaScript** 中相同。 |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+只有 `true`，或 `proceed` 为 `true` 的对象，才会走 **Yes**：其他任何值都走 **No**，哪怕是数字或文本。块会返回 **Value**，即代码返回的内容，后续块以 `{{local.components.javascript-check-1.returnValues.returnValue.title}}` 读取它；还会返回 **Reason**，即代码的 `reason`，或用一句话描述的返回内容，运行的 **步骤** 选项卡会把它显示在所走的输出旁边。
+
+代码的运行方式与 **Run Custom JavaScript** 相同：在同一个沙箱中，使用同样的 `args`、 `console.log` 和 `axios`，时间限制也相同。代码抛出异常或超时时，块会走 **Error**。
 
 ## JSON
 
@@ -358,6 +383,50 @@ return {
 另一个工作流一进入队列就触发 **Out**。无法启动时触发 **Error**：它不存在、已关闭或已归档，或者启动它会造成循环。
 
 用它来共享通用逻辑：搭建一个“发帖到事件频道”的工作流，然后从每个需要它的工作流启动它。相互启动的工作流链不能绕回自身，最多 10 层深。参见 [配置与安全](/docs/workflows/configuration#调用其他工作流的限制)。
+
+## 来自其他工具的事件和警报
+
+为另一个工具告诉你的每个问题保留一个事件或一个警报，按该工具自己给这个问题的 ID 对应起来。 **Incident From Another Tool** 和 **Alert From Another Tool** 是 Zabbix、Huntress、Jira 和 Dynamics 365 模板的基础，任何能调用工作流 [Webhook 触发器](/docs/workflows/triggers#webhook) 的工具都可以使用它们。在 **添加组件** 面板中，它们位于 **From Other Tools** 下。
+
+每次运行都会交给块一个事件： **What Happened**，以及 **Outside ID**，即该问题在工具中的 ID。块会查找保存这个 ID 的记录，并执行 **What Happened** 所说的操作：
+
+| What Happened | 块的操作 |
+| ------------- | -------- |
+| `open`、 `problem`、 `firing`、 `triggered` 或 `created` | 根据 **Title**、 **Description** 和 **Severity** 打开一个事件或创建一个警报，除非已有记录保存了这个 ID。 |
+| `acknowledge` 或 `acknowledged` | 把记录移到你的第一个已确认状态，并把 **Note** 作为原因记入其历史。 |
+| `resolve`、 `resolved`、 `recovery`、 `ok` 或 `closed` | 把记录移到你的第一个已解决状态，并把 **Note** 作为原因记入其历史。 |
+| `note`、 `update` 或 `comment` | 把 **Note** 作为私有备注添加到记录。 |
+| 你的某个状态的名称 | 把记录移到该状态。名称与这些词之一相同时，在前面写上 `state:`，例如 `state: Open`。 |
+
+| 输出 | 何时 |
+| ---- | ---- |
+| **Opened**（警报块上为 **Created** ） | 它打开了一条新记录。在这里连接一个呼叫块，这样只有新问题才会呼叫。 |
+| **Updated** | 它把记录移到了另一个状态，或添加了备注。 |
+| **Unchanged** | 没有需要做的事：没有记录保存这个 ID，记录已处于该状态或更靠后的状态，或者 **What Happened** 为空。 |
+| **Error** | 它无法读取或更改记录。如果这里没有连接任何东西，运行就会失败。 |
+
+记录只会向前推进，已解决的记录则完全不再变化，所以当两个工具都更改它时，谁也不会撤销对方的改动。记录把 ID 保存在一个自定义字段中（除非 **Outside ID Field** 指定了其他字段，否则为 `externalId`），并且只写入这个字段，因此记录的其他自定义字段会保留原值。记录保存的 ID 永远不会再次打开新记录，即使那条记录已经解决：请为每个问题使用新的 ID，就像 Zabbix 事件 ID 或 Huntress 报告编号那样。若要改为按记录自身的 ID 操作，就像 Jira 模板使用问题标签中携带的 ID 那样，请把它填入 **Incident ID** 或 **Alert ID**。
+
+**Severity** 按名称或 ID（不区分大小写），或按在其中的位置来指定你的某个严重程度： `most severe`、 `middle` 或 `least severe`。工具自己的级别就是这样分布到你自己命名的严重程度上的。留空或一个都不匹配时，使用你最严重的级别，运行的日志会说明这一点。新事件不会出现在你的状态页面上，也不会通知其订阅者，因为另一个工具的文本是为该工具的用户写的：要显示它，请打开 **Show On Status Pages**。
+
+在 **更多字段** 下， **Reason** 是记录变动时记入其历史的原因，此时 **Note** 会作为私有备注添加在旁边，适用于在确认或解决时会说些什么的工具。 **Custom Fields** 以 JSON 对象为新记录添加更多自定义字段， **Labels** 指定其标签的 ID（以逗号分隔）， **受影响的资源** 指定记录所涉及的资源，与 **Create One Incident** 上相同。 **Note Instead Of Resolving** 会添加备注，并把解决记录的事留给你的团队。块会返回 **Summary**，即用一句话说明它做了什么，还会返回记录本身，因此后续块以 `{{local.components.incident-from-another-tool-1.returnValues.record._id}}` 读取其 ID。
+
+## Zabbix
+
+通过 Zabbix 的 API 确认或关闭 Zabbix 中的问题，或为其添加一条消息。这个块叫 **Update Zabbix Problem**， [Zabbix 模板](/docs/integrations/zabbix) 用它把 OneUptime 中发生的事情回传给 Zabbix。
+
+| 设置 | 作用 |
+| ---- | ---- |
+| **Zabbix URL** | 你打开 Zabbix 的地址，例如 `https://zabbix.example.com`。请求会发往它的 `api_jsonrpc.php`。 |
+| **API Token** | 一个可以确认、评论和关闭问题的 Zabbix 用户的 API 令牌。请把它放在机密变量中。 |
+| **Event ID** | 问题的事件 ID，通常是事件或警报保存在其自定义字段中的那个。 |
+| **What To Do** | `acknowledge`、 `close` 或 `message`。留空时不会更新 Zabbix。 |
+| **Message** | Zabbix 在问题上保存的内容，最多 2,048 个字符：更长的消息会被截断。 |
+| **Zabbix 6.0** | 位于 **更多字段** 下。Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取令牌：为它打开此项，升级后再关闭，因为 Zabbix 7.2 及更高版本会拒绝正文中的令牌。 |
+
+要确认或关闭时，块会先读取问题。Zabbix 已经解决的问题，或在你只要求确认时已经确认的问题，会保持原样，块走 **Unchanged**；对于 Zabbix 中没有的问题，或令牌的用户看不到的问题，也是如此。触发器不允许手动关闭问题的问题会改为被确认，其消息会说明它将保持打开，直到 Zabbix 发现它已恢复。
+
+Zabbix 接受了更新时触发 **Updated**；无法连接 Zabbix 或 Zabbix 拒绝了更新时，触发 **Error**，并附上 Zabbix 给出的原因：Zabbix 对被拒绝的请求也会以成功状态回应，所以块读取的是 Zabbix 的回应内容，而不是状态。块会返回 **Summary**，即用一句话说明它做了什么。
 
 ## OneUptime 数据组件
 

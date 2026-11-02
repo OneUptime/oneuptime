@@ -194,6 +194,22 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Incident Template",
     "Query",
     "Skip",
+    // API Get By ID's setting, and what Check With JavaScript returns.
+    "ID",
+    "Reason",
+    // Incident and Alert From Another Tool: their settings and outputs.
+    "What Happened",
+    "Description",
+    "Note",
+    "Custom Fields",
+    "Labels",
+    "Opened",
+    "Created",
+    "Updated",
+    "Unchanged",
+    // Update Zabbix Problem's settings.
+    "API Token",
+    "Event ID",
   ],
   "workflows/variables": [
     // Settings and outputs of the blocks in the examples.
@@ -658,6 +674,8 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "mattermost",
   "email",
   "customCode",
+  "javascriptCheck",
+  "zabbix",
   "json",
   "conditions",
   "switchCase",
@@ -669,6 +687,8 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
 
 const STEP_HELP_LINKS_TO_TRANSLATED: Array<StepHelpLink> = [
   "eventTriggers",
+  // Incidents and alerts from other tools: two steps, so the section is titled in words.
+  "fromOtherTools",
   "records",
   "componentOutputs",
   "loops",

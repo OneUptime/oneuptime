@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import Route from "Common/Types/API/Route";
@@ -23,7 +24,11 @@ import Button, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -370,7 +375,12 @@ const CallSummaryOfCall: FunctionComponent<{
               type="button"
               data-testid="call-summary-read-again"
               disabled={isRereading}
-              className="rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`rounded-md text-sm font-medium text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                {
+                  isBusy: isRereading,
+                  hoverClassName: "hover:text-indigo-700 hover:underline",
+                },
+              )}`}
               onClick={() => {
                 void readAgain();
               }}
@@ -733,10 +743,20 @@ const CallSummaryOfCall: FunctionComponent<{
   );
 };
 
+// What the section's gates ask about: a call of the incident, a part of it.
+const PRIVATE_RECORD_CALL: IncidentVideoCall = new IncidentVideoCall();
+
 const CallSummarySection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * On a private incident, its calls are read again and their root cause
+   * taken into it only through a team of the reader's that owns it
+   * (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_CALL);
   const readings: Array<{ call: IncidentVideoCall; view: CallTranscriptView }> =
     getCallsWithReadings(props.calls, OneUptimeDate.getCurrentDate());
 
@@ -747,10 +767,12 @@ const CallSummarySection: FunctionComponent<ComponentProps> = (
   const canWorkOnCalls: boolean = PermissionGate.check(
     new IncidentVideoCall(),
     ModelAction.Create,
+    privateRecordOptions,
   ).isAllowed;
   const canEditRootCause: boolean = PermissionGate.checkColumnUpdate(
     new Incident(),
     "rootCause",
+    privateRecordOptions,
   ).isAllowed;
 
   return (

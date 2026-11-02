@@ -1,13 +1,13 @@
 # Controles en problemen van Gegevensbeveiliging
 
-Gegevensbeveiliging voert 32 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt.
+Gegevensbeveiliging voert 33 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt.
 
 :::cards
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
-- [Elke controle](#elke-controle): Alle 32, met wat elke controle nagaat en hoe je het oplost.
+- [Elke controle](#elke-controle): Alle 33, met wat elke controle nagaat en hoe je het oplost.
 - [Risicoscore](#risicoscore): Hoe problemen binnen een ernst worden geordend.
 - [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem.
-- [Hier oplossen](#hier-oplossen): Blokkeer een openbare bucket, of stop het delen van een snapshot, met één klik.
+- [Hier oplossen](#hier-oplossen): Sluit een blootstelling, of zet een ontbrekende bescherming aan, met één klik.
 :::
 
 ## Hoe een controle beslist
@@ -75,6 +75,7 @@ De ernst staat vermeld voor gegevens met Beperkt, Vertrouwelijk, Intern en Openb
 | Iedereen met de accountsleutel kan alles lezen (`shared-key-access`) | Azure Storage Account | Het opslagaccount staat toegang met gedeelde sleutels toe, wat Microsoft Entra ID omzeilt en geen auditspoor per persoon achterlaat. | Gemiddeld / Laag / — / — | Zet applicaties over op Microsoft Entra ID, en zet daarna toegang met de opslagaccountsleutel uit. |
 | Objecten kunnen hun eigen toegangsregels hebben (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | Object-ACL's staan aan, dus één object kan openbaar worden gemaakt terwijl de bucket privé lijkt. | Laag / Laag / — / — | Zet op S3 Object Ownership op Bucket owner enforced. Zet op Cloud Storage uniforme toegang op bucketniveau aan. |
 | Meer dan 25 identiteiten kunnen Beperkte gegevens lezen (`many-readers`) | Elke opslag behalve telemetrie | Meer identiteiten dan de meeste teams kunnen beoordelen, hebben leestoegang tot de opslag. | Gemiddeld / — / — / — | Open de pagina **Wie erbij kan** van de opslag, en verwijder de toegang die ongebruikt is of ruimer dan nodig. |
+| Identiteiten die 90 dagen niet zijn gebruikt, kunnen er nog bij (`unused-access`) | Elke opslag behalve telemetrie | Rollen en gebruikers die 90 dagen niet zijn gebruikt, hebben nog toegang tot de gevoelige gegevens van de opslag. | Gemiddeld / Laag / — / — | Open de pagina **Wie erbij kan** van de opslag, waar ze als **90 dagen niet gebruikt** zijn gemarkeerd, en verwijder de toegang die elk niet meer nodig heeft. |
 
 ### Gegevenshygiëne
 
@@ -160,14 +161,20 @@ Een probleem dat opnieuw opent, behoudt zijn geschiedenis. Geaccepteerde risico'
 
 ## Hier oplossen
 
-Een openstaand probleem over een openbare bucket of een gedeelde snapshot kan vanaf zijn pagina worden opgelost. Boven de stappen in de console biedt **Hier oplossen** de wijziging aan die het oplost:
+Een openstaand probleem dat één wijziging aan de instellingen van een opslag oplost - een openbare bucket, een gedeelde snapshot, een bucket waarvan verwijderde bestanden niet terug te halen zijn - kan vanaf zijn pagina worden opgelost. Boven de stappen in de console biedt **Hier oplossen** de wijziging aan die het oplost:
 
 | Het probleem | De opslag | De knop | Wat het wijzigt |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` of `public-access-not-blocked` | Een S3-bucket, een Azure-opslagaccount of een Cloud Storage-bucket | **Openbare toegang blokkeren** | Zet de vier instellingen van Block Public Access van de bucket aan, zet de anonieme blobtoegang van het opslagaccount uit, of dwingt de preventie van openbare toegang van de bucket af |
 | `snapshot-public` of `snapshot-shared-externally` | Een RDS-snapshot, een RDS-database, of een Aurora- of DocumentDB-cluster | **Delen intrekken** | Stopt het delen van de snapshot, of van elke gedeelde handmatige snapshot van de database, met iedereen en met accounts buiten de accounts die je hebt gekoppeld |
+| `deleted-data-not-recoverable` | Een S3-bucket of een Cloud Storage-bucket | **Versiebeheer inschakelen** | Bewaart de vorige versie van elk object dat wordt overschreven of verwijderd, tot een levenscyclusregel haar verwijdert |
+| `deleted-data-not-recoverable` | Een Azure-opslagaccount | **Voorlopig verwijderen inschakelen** | Bewaart verwijderde blobs en containers 14 dagen, zodat ze kunnen worden hersteld |
+| `object-acls-enabled` | Een S3-bucket | **Object-ACL's uitschakelen** | Zet Object Ownership op Bucket owner enforced, zodat alleen het beleid van de bucket bepaalt wie hem leest |
+| `object-acls-enabled` | Een Cloud Storage-bucket | **Uniforme toegang inschakelen** | Zet uniforme toegang op bucketniveau aan, zodat alleen het IAM-beleid van de bucket bepaalt wie hem leest |
+| `encryption-in-transit-not-enforced` of `weak-tls` | Een Azure-opslagaccount | **Veilige overdracht vereisen** | Zet veilige overdracht aan en stelt de minimale TLS-versie in op 1.2, zodat het account alleen nog HTTPS met TLS 1.2 of later aanneemt |
+| `no-point-in-time-recovery` | Een DynamoDB-tabel | **Herstel naar een tijdstip inschakelen** | Laat de tabel herstellen naar elke seconde van de laatste 35 dagen |
 
-Het vraagt eerst om bevestiging, en zegt wat er verandert en wat ophoudt te werken. Het wijzigt hoe de opslag wordt gedeeld, nooit de gegevens, en wijzigt niets wat al gesloten is. Een opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd.
+Het vraagt eerst om bevestiging, en zegt wat er verandert, wat ophoudt te werken en wat het kost. Het wijzigt de instellingen van de opslag, nooit de gegevens, en wijzigt niets wat al is zoals het hoort. Een opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd.
 
 Het handelt via de cloudkoppeling van de opslag, dus de koppeling moet **Gegevensbeveiligingsrespons** aan hebben staan en de installatieopdracht moet opnieuw zijn uitgevoerd (zie [Gegevensbeveiliging instellen](/docs/data-security/setup#gegevensbeveiliging-een-blootstelling-laten-sluiten)). Tot dan zegt het paneel wat je moet aanzetten. De opslag wordt direct daarna opnieuw gecontroleerd, en het probleem lost zichzelf op zodra de controle slaagt. De **Tijdlijn** van het probleem en de **Tijdlijn** van de opslag zeggen wat er is gedaan, en wie het deed.
 

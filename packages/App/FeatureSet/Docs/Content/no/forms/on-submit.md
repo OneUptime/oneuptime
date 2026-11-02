@@ -134,7 +134,7 @@ Hver innsending legger igjen et privat notat på det den opprettet:
 > **Which office are you in?**\
 > Berlin
 
-Det nevner skjemaet og innsenderen — "Submitted anonymously through the form **Report a Problem**." når skjemaet ikke spurte hvem det er — og sier deretter, når innsendingen startet fra en av skjemaets maler, hvilken: "Started from the template **Application Outage**." — og viser så svarene på skjemaets egne spørsmål, hvert under spørsmålet sitt, i skjemaets rekkefølge. Svarene på koblede spørsmål står allerede på posten: tittelen, alvorlighetsgraden, de egendefinerte feltene. Siden notatet er privat, når det aldri en statusside, men det publiseres i postens Slack- og Microsoft Teams-kanaler som alle andre notater.
+Det nevner skjemaet og innsenderen — "Submitted anonymously through the form **Report a Problem**." når skjemaet ikke spurte hvem det er — og sier deretter, når innsendingen startet fra en av skjemaets maler, hvilken: "Started from the template **Application Outage**." — og viser så svarene på skjemaets egne spørsmål, hvert under spørsmålet sitt, i skjemaets rekkefølge. Svarene på koblede spørsmål står allerede på posten: tittelen, alvorlighetsgraden, de egendefinerte feltene. Siden notatet er privat, når det aldri en statusside, men det publiseres i postens Slack- og Microsoft Teams-kanaler som alle andre notater. Filene fra spørsmålene av typen **Fil** og **Flere filer** legges ved notatet, der teamet ditt laster dem ned.
 
 Adressen er en lenke som skriver til nøyaktig den adressen — i dashbordet, i Slack og i e-posten til eierne.
 
@@ -158,6 +158,10 @@ En innsending går rett til steder der tekst kan virke på egen hånd — Slack-
 | Bildesyntaks eller en diagramblokk i tittelen | **Tittelen er ren tekst.** De får også det usynlige tegnet, så uansett hvor tittelen havner — en episode, en chatmelding, en notatmal — laster den ingenting og tegner ingenting. De usynlige tegnene teller med i tittelens grense. |
 
 Alt annet — lenker, resten av Markdown, valg i nedtrekkslister, tall, datoer, en avkrysset boks — lagres slik innsenderen ga det, og innsendingen beholder innsenderens navn og e-post slik de ble skrevet.
+
+## Filer som en innsender sender
+
+Et filspørsmål holder filene som en innsender velger, i nettleseren og sender dem med svarene, så ingen trenger en konto for å legge ved en fil. Serveren kontrollerer hver fil slik et [egendefinert filfelt](/docs/incidents/settings#filfelt) gjør — størrelsen, slaget og det den inneholder — og lagrer filene privat i prosjektet ditt først når innsendingen har bestått alle andre kontroller: ingenting beholdes for en innsending som avvises. Et spørsmål for et egendefinert felt av typen **Fil** eller **Flere filer** legger filene i det feltet, og skjemaets egne filspørsmål legger sine ved det private notatet. Innsendingen beholder navnet på hver fil. [Størrelsesgrenser](/docs/forms/building#størrelsesgrenser) og [Frekvensgrenser](/docs/forms/sharing-and-security#frekvensgrenser) sier hvor mye en innsending og et skjema kan sende.
 
 ## Neste steg
 

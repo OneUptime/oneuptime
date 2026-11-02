@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "../../Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -551,11 +552,12 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
             <div className="border-t border-gray-100 px-3 py-2">
               <button
                 type="button"
-                className={`w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition-colors ${
-                  props.createDisabledReason
-                    ? "cursor-not-allowed text-gray-400"
-                    : "text-indigo-600 hover:bg-indigo-50"
-                }`}
+                className={`w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition-colors ${getHandDrawnLookClassName(
+                  {
+                    className: "text-indigo-600 hover:bg-indigo-50",
+                    isLocked: Boolean(props.createDisabledReason),
+                  },
+                )}`}
                 disabled={Boolean(props.createDisabledReason)}
                 onClick={() => {
                   props.onCreate?.();

@@ -20,6 +20,9 @@ import { MemoryRouter } from "react-router-dom";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import { ComponentProps as ConfirmModalProps } from "../../../UI/Components/Modal/ConfirmModal";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import splitActionButtons, {
+  SplitActionButtonsResult,
+} from "../../../UI/Components/ActionButton/SplitActionButtons";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
@@ -27,6 +30,7 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
 import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
 import DashboardCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/CustomDomains";
+import FormCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/CustomDomains";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   CUSTOM_DOMAIN_STATUS,
@@ -35,6 +39,7 @@ import {
   CustomDomainState,
   DASHBOARD_CUSTOM_DOMAIN_COPY,
   DNS_SETUP_TEST_IDS,
+  FORM_CUSTOM_DOMAIN_COPY,
   STATUS_PAGE_CUSTOM_DOMAIN_COPY,
   STATUS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
@@ -46,6 +51,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
+import FormDomain from "../../../Models/DatabaseModels/FormDomain";
 import Domain from "../../../Models/DatabaseModels/Domain";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
@@ -72,7 +78,8 @@ import Permission from "../../../Types/Permission";
  * SSL" while the Status column said "Action Required: Please order SSL
  * certificate." for an order the worker placed on its own anyway. The
  * dashboard page kept all of that after the status page lost it. Both pages
- * are one table now, and every test here runs on both:
+ * are one table now - and a form's (Forms > <form> > Custom Domains) is the
+ * same table - and every test here runs on all three:
  *
  *   - adding a domain is one page: Subdomain and Domain - verified domains
  *     only, with a link to add one - and the certificate options folded
@@ -120,6 +127,7 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "FormCNameRecord", cnameRecord);
 
   // Whether the installation issues free certificates: yes unless a test says.
   Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
@@ -241,12 +249,18 @@ interface PageCase {
   name: string;
   Page: React.FunctionComponent<PageComponentProps>;
   modelType: { new (): CustomDomainModel };
-  parentColumn: "statusPageId" | "dashboardId";
+  parentColumn: "statusPageId" | "dashboardId" | "formId";
   cnameRecord: string;
   route: string;
   crudApiPath: string;
   copy: CustomDomainKindCopy;
   cardDescription: string;
+  /*
+   * A role that may change the kind's domains: a member, for a status page's
+   * and a dashboard's; an admin, for a form's, which a member tier never
+   * manages (Models/DatabaseModels/FormDomain).
+   */
+  editorRole: Permission;
   table: {
     id: string;
     name: string;
@@ -267,6 +281,7 @@ const PAGES: Array<PageCase> = [
     copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY,
     cardDescription:
       "Serve this status page on your own domain. Point each domain's CNAME record to statuspage.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    editorRole: Permission.ProjectMember,
     table: {
       id: "domains-table",
       name: "Status Page > Domains",
@@ -285,11 +300,31 @@ const PAGES: Array<PageCase> = [
     copy: DASHBOARD_CUSTOM_DOMAIN_COPY,
     cardDescription:
       "Serve this dashboard on your own domain. Point each domain's CNAME record to dashboards.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    editorRole: Permission.ProjectMember,
     table: {
       id: "dashboard-domains-table",
       name: "Dashboard > Domains",
       userPreferencesKey: "dashboard-domains-table",
       saveFilterTableId: "dashboard-domains-table",
+    },
+  },
+  {
+    name: "a form",
+    Page: FormCustomDomains,
+    modelType: FormDomain,
+    parentColumn: "formId",
+    cnameRecord: "forms.oneuptime.com",
+    route: "/dashboard/forms",
+    crudApiPath: "/form-domain",
+    copy: FORM_CUSTOM_DOMAIN_COPY,
+    cardDescription:
+      "Serve this form on your own domain, at its root. Point each domain's CNAME record to forms.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    editorRole: Permission.ProjectAdmin,
+    table: {
+      id: "form-domains-table",
+      name: "Form > Custom Domains",
+      userPreferencesKey: "form-domains-table",
+      saveFilterTableId: "form-domains-table",
     },
   },
 ];
@@ -389,6 +424,27 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
 
     expect(field).toBeDefined();
     return field!;
+  }
+
+  // The fields the Create or the Edit dialog is given, as ModelTable picks them.
+  function formFieldsOn(
+    modalType: ModalType,
+  ): Array<ModelField<CustomDomainModel>> {
+    return (tableProps().formFields || []).filter(
+      (field: ModelField<CustomDomainModel>) => {
+        return modalType === ModalType.Create
+          ? !field.doNotShowWhenCreating
+          : !field.doNotShowWhenEditing;
+      },
+    );
+  }
+
+  function formKeys(modalType: ModalType): Array<string | undefined> {
+    return formFieldsOn(modalType).map(
+      (field: ModelField<CustomDomainModel>) => {
+        return Object.keys(field.field || {})[0];
+      },
+    );
   }
 
   /*
@@ -775,6 +831,83 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       ).toBeNull();
     });
 
+    /*
+     * The row draws one button and a ⋯ menu (RowActions, SplitActionButtons).
+     * Reissue SSL's plainer style used to win the button wherever both were
+     * offered: a row saying "Could not issue a free certificate yet" offered
+     * to reissue a certificate it never had, with DNS Setup - whose Check now
+     * tries again and says why - in its menu.
+     */
+    test("DNS Setup is the row's button wherever it is offered, Reissue SSL in its menu", async () => {
+      const FAILING_ORDERED: string = "failing-ordered.acme.com";
+
+      renderPage([
+        domain(EXPIRED, {
+          isCnameVerified: true,
+          isSslOrdered: true,
+          isSslProvisioned: true,
+        }),
+        domain(FAILING_ORDERED, { isCnameVerified: true, isSslOrdered: true }),
+      ]);
+      await loadCertificates([
+        {
+          domainId: rowNamed(EXPIRED)._id as string,
+          expiresAt: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          domainId: rowNamed(FAILING_ORDERED)._id as string,
+          lastOrderError: ORDER_ERROR,
+          lastOrderFailedAt: "2026-10-03T11:00:00.000Z",
+        },
+        {
+          domainId: rowNamed(PROVISIONED)._id as string,
+          expiresAt: "2099-01-01T00:00:00.000Z",
+        },
+      ]);
+
+      const rowButtons: (fullDomain: string) => {
+        primary: string | undefined;
+        menu: Array<string>;
+      } = (
+        fullDomain: string,
+      ): { primary: string | undefined; menu: Array<string> } => {
+        const split: SplitActionButtonsResult<CustomDomainModel> =
+          splitActionButtons<CustomDomainModel>({
+            actionButtons: tableProps().actionButtons,
+            item: rowNamed(fullDomain),
+          });
+
+        return {
+          primary: split.primary?.button.title,
+          menu: split.moreMenu.map(
+            (entry: { button: ActionButtonSchema<CustomDomainModel> }) => {
+              return entry.button.title;
+            },
+          ),
+        };
+      };
+
+      for (const fullDomain of [EXPIRED, FAILING_ORDERED]) {
+        expect(rowButtons(fullDomain)).toEqual({
+          primary: "DNS Setup",
+          menu: ["Reissue SSL"],
+        });
+      }
+
+      for (const fullDomain of [UNVERIFIED, VERIFIED]) {
+        expect(rowButtons(fullDomain)).toEqual({
+          primary: "DNS Setup",
+          menu: [],
+        });
+      }
+
+      // A served certificate has nothing to set up: Reissue SSL is the button.
+      expect(rowButtons(PROVISIONED)).toEqual({
+        primary: "Reissue SSL",
+        menu: [],
+      });
+    });
+
     test("DNS Setup on an expired certificate's domain says it has expired", async () => {
       renderWithCertificateTrouble();
       await loadCertificates(certificatesOfTheTroubledRows());
@@ -1011,9 +1144,16 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
           new page.modelType().getUpdatePermissions(),
         )}`,
       );
-      expect(reissue.getAttribute("data-tooltip")).toContain(
-        " You need this permission: ",
-      );
+      /*
+       * One permission of its own for a status page's and a dashboard's
+       * domains; a form's take Edit Form too.
+       */
+      const tooltip: string = reissue.getAttribute("data-tooltip") || "";
+
+      expect(
+        tooltip.includes(" You need this permission: ") ||
+          tooltip.includes(" You need one of these permissions: "),
+      ).toBe(true);
       expect(reissue.getAttribute("data-tooltip")).not.toContain(
         "Project Owner",
       );
@@ -1063,7 +1203,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
     });
 
     test.each([
-      ["an editor role", [Permission.ProjectMember]],
+      ["an editor role", [page.editorRole]],
       ["read and edit on the domain", "own"],
     ])(
       "%s gets Reissue SSL and Check now unlocked",
@@ -1162,19 +1302,146 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
     test("asks for the subdomain and the domain, then the certificate options", () => {
       renderPage();
 
-      expect(
-        (tableProps().formFields || []).map(
-          (field: ModelField<CustomDomainModel>) => {
-            return Object.keys(field.field || {})[0];
-          },
-        ),
-      ).toEqual([
+      expect(formKeys(ModalType.Create)).toEqual([
         "subdomain",
         "domain",
         "isCustomCertificate",
         "customCertificate",
         "customCertificateKey",
       ]);
+    });
+
+    /*
+     * The name is fixed once the domain is added - the subdomain and the
+     * domain's columns take no update - so the certificate is all an edit
+     * can change.
+     */
+    test("Edit asks only for the certificate options", () => {
+      renderPage();
+
+      expect(formKeys(ModalType.Edit)).toEqual([
+        "isCustomCertificate",
+        "customCertificate",
+        "customCertificateKey",
+      ]);
+      expect(fieldOf("domain").doNotShowWhenEditing).toBe(true);
+    });
+
+    /*
+     * Folded under More fields on Edit too, they left the Edit dialog with
+     * nothing in it but the fold's line.
+     */
+    test("Edit shows the certificate options at once, not folded", () => {
+      renderPage();
+
+      const onEdit: Array<ModelField<CustomDomainModel>> = formFieldsOn(
+        ModalType.Edit,
+      );
+
+      expect(onEdit).toHaveLength(3);
+
+      for (const field of onEdit) {
+        expect(field.collapsibleSection).toBeUndefined();
+        expect(field.doNotShowWhenCreating).toBe(true);
+      }
+
+      // The same switch, saying the same, as on Create.
+      const createSwitch: ModelField<CustomDomainModel> = fieldOf(
+        "isCustomCertificate",
+      );
+      const editSwitch: ModelField<CustomDomainModel> = onEdit[0]!;
+
+      expect(Object.keys(editSwitch.field || {})).toEqual([
+        "isCustomCertificate",
+      ]);
+      expect(editSwitch.title).toBe(createSwitch.title);
+      expect(editSwitch.description).toBe(createSwitch.description);
+      expect(editSwitch.fieldType).toBe(createSwitch.fieldType);
+      expect(editSwitch.defaultValue).toBe(false);
+
+      // The certificate and its key, only while the switch is on.
+      for (const field of onEdit.slice(1)) {
+        expect(
+          field.showIf!({
+            isCustomCertificate: false,
+          } as FormValues<CustomDomainModel>),
+        ).toBe(false);
+        expect(
+          (
+            field.required as (values: FormValues<CustomDomainModel>) => boolean
+          )({ isCustomCertificate: true } as FormValues<CustomDomainModel>),
+        ).toBe(true);
+      }
+
+      // And on Create they stay folded, Create only.
+      for (const field of formFieldsOn(ModalType.Create).slice(2)) {
+        expect(field.collapsibleSection).toBeDefined();
+        expect(field.doNotShowWhenEditing).toBe(true);
+      }
+    });
+
+    /*
+     * A form domain's columns describe the certificate and its key for the
+     * API reference ("... while isCustomCertificate is on"), in English; the
+     * form would draw that under the field. The title and the PEM
+     * placeholder say what goes there, on every kind.
+     */
+    test("the certificate and its key show none of the API reference's words", () => {
+      renderPage();
+
+      const certificateFields: Array<ModelField<CustomDomainModel>> = (
+        tableProps().formFields || []
+      ).filter((field: ModelField<CustomDomainModel>) => {
+        return ["customCertificate", "customCertificateKey"].includes(
+          Object.keys(field.field || {})[0] || "",
+        );
+      });
+
+      // Create's and Edit's.
+      expect(certificateFields).toHaveLength(4);
+
+      for (const field of certificateFields) {
+        expect(field.hideColumnDescription).toBe(true);
+        expect(field.description).toBeUndefined();
+      }
+    });
+
+    /*
+     * A name another status page, dashboard or form has already used to be
+     * said over the whole form, in red, while the subdomain to change sat
+     * under it.
+     */
+    test("a refusal about the subdomain or the domain is said under that field", () => {
+      renderPage();
+
+      const subdomainOwns: (message: string) => boolean =
+        fieldOf("subdomain").ownsServerError!;
+      const domainOwns: (message: string) => boolean =
+        fieldOf("domain").ownsServerError!;
+
+      const nameInUse: string =
+        "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first.";
+      const notValid: string =
+        'Subdomain a/b is not valid. Use a plain subdomain such as "report" — schemes, ports, paths and "/" are not allowed.';
+      const notVerified: string =
+        "This domain is not verified. Please verify it in Project Settings > Advanced > Domains.";
+      const noDomain: string = "Please select a valid domain.";
+
+      expect(subdomainOwns(nameInUse)).toBe(true);
+      expect(subdomainOwns(notValid)).toBe(true);
+      expect(subdomainOwns(notVerified)).toBe(false);
+      expect(domainOwns(notVerified)).toBe(true);
+      expect(domainOwns(noDomain)).toBe(true);
+      expect(domainOwns(nameInUse)).toBe(false);
+
+      // Anything else stays over the form.
+      for (const other of [
+        "Custom certificate or private key is missing",
+        "We could not reach OneUptime. Check your connection and try again.",
+      ]) {
+        expect(subdomainOwns(other)).toBe(false);
+        expect(domainOwns(other)).toBe(false);
+      }
     });
 
     test("the subdomain's example is this page's own", () => {

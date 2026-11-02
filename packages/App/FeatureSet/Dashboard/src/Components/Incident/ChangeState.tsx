@@ -6,7 +6,14 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import React, {
@@ -123,10 +130,23 @@ export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
   );
 };
 
+// What the state buttons' gate asks about: a row of the state timeline.
+const PRIVATE_RECORD_STATE_TIMELINE: IncidentStateTimeline =
+  new IncidentStateTimeline();
+
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * On a private incident's page, what the reader holds on it: its state is
+   * changed only with the permissions of the teams that own it, so the
+   * state buttons lock, saying why, for a reader whose teams that own it
+   * may not (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_STATE_TIMELINE);
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const notifySubscribersByDefault: boolean =
@@ -579,11 +599,14 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
         stateChangeGate={PermissionGate.check(
           new IncidentStateTimeline(),
           ModelAction.Create,
-          {
-            sentence: translationKey(
-              "You do not have permission to change this incident's state.",
-            ),
-          },
+          withPrivateRecordGateOptions(
+            {
+              sentence: translationKey(
+                "You do not have permission to change this incident's state.",
+              ),
+            },
+            privateRecordOptions,
+          ),
         )}
         identifier={props.eventNumber}
         title={props.title}
@@ -696,6 +719,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                     ),
                     // Offered only to someone who may post a private note.
                     noteModel: new IncidentInternalNote(),
+                    noteGateOptions: privateRecordOptions,
                   }
                 : {
                     noteType: BulkStateChangeNoteType.Public,
@@ -709,6 +733,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                     },
                     // Offered only to someone who may post a public note.
                     noteModel: new IncidentPublicNote(),
+                    noteGateOptions: privateRecordOptions,
                   }),
               noteTemplates: incidentNoteTemplates.map(
                 toBulkStateChangeNoteTemplate,

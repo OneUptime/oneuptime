@@ -30,7 +30,7 @@
               Your security events, where the rest of your data already lives.
             </h1>
             <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-              POST security events from any source, connect ten security products, or let OneUptime find them in the logs you already send. Every event is normalized to OCSF and stored beside your logs, metrics and traces. Sigma rules, correlations and threat intel find what matters, Security Cases group it by the user, host or address it is about, OneUptime AI triages each new case and cites its evidence, and playbooks respond &mdash; enrich, notify, page on-call, or contain through Okta, CrowdStrike and Microsoft Defender, with approval on by default. Already run a SIEM? Send it what OneUptime finds. Open source.
+              POST security events from any source, connect ten security products, or let OneUptime find them in the logs you already send. Every event is normalized to OCSF and stored beside your logs, metrics and traces. Sigma rules, correlations and threat intel find what matters, Security Cases group it by the user, host or address it is about, OneUptime AI triages each new case and cites its evidence, and playbooks respond &mdash; enrich, notify, page on-call, or contain through Okta, Microsoft Entra ID, Google Workspace, CrowdStrike and Microsoft Defender, with approval on by default. Already run a SIEM? Send it what OneUptime finds. Open source.
             </p>
 
             <div class="mt-10 flex items-center justify-center gap-x-6">
@@ -740,7 +740,7 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Playbooks</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Playbooks that respond, with a person in the loop where it matters</h3>
-              <p class="mt-4 text-lg text-gray-600">A playbook is a list of steps that runs as a case opens, each time a detection joins one, when OneUptime AI triages a case as Likely Malicious, or when someone clicks Run Playbook. Its 28 actions are the work an analyst would otherwise do by hand: assign and prioritize the case, check its entities against threat intel, keep the evidence past its retention, email people, post to Slack, Microsoft Teams or your status pages, page on-call, declare an incident, send a webhook, start a workflow or a runbook, or have OneUptime AI open a pull request that fixes the code behind the exceptions the attack's requests threw. Six of them contain the threat: suspend the user or end their sessions in Okta, network-contain the host in CrowdStrike Falcon, isolate the device in Microsoft Defender for Endpoint, or close a data store&rsquo;s exposure through its cloud connection - block public access to a bucket or storage account, or stop sharing a database&rsquo;s snapshots. Those act outside OneUptime, so by default they wait on the case until someone approves them, as a status page announcement and a runbook do. Three more undo one from the run: unsuspend the user in Okta, lift the containment in CrowdStrike, or release the device in Microsoft Defender - an ended session stays ended.</p>
+              <p class="mt-4 text-lg text-gray-600">A playbook is a list of steps that runs as a case opens, each time a detection joins one, when OneUptime AI triages a case as Likely Malicious, or when someone clicks Run Playbook. Its 35 actions are the work an analyst would otherwise do by hand: assign and prioritize the case, check its entities against threat intel, keep the evidence past its retention, email people, post to Slack, Microsoft Teams or your status pages, page on-call, declare an incident, send a webhook, start a workflow or a runbook, or have OneUptime AI open a pull request that fixes the code behind the exceptions the attack's requests threw. Ten of them contain the threat: suspend the user or end their sessions in Okta, disable the user or sign them out in Microsoft Entra ID, suspend the user or sign them out in Google Workspace, network-contain the host in CrowdStrike Falcon, isolate the device in Microsoft Defender for Endpoint, or close a data store&rsquo;s exposure through its cloud connection - block public access to a bucket or storage account, or stop sharing a database&rsquo;s snapshots. Those act outside OneUptime, so by default they wait on the case until someone approves them, as a status page announcement and a runbook do. Five more undo one from the run: unsuspend the user in Okta or Google Workspace, enable the user in Microsoft Entra ID, lift the containment in CrowdStrike, or release the device in Microsoft Defender - an ended session stays ended.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -752,7 +752,7 @@
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Containment in Okta, CrowdStrike Falcon &amp; Microsoft Defender, and of exposed cloud data stores
+                  Containment in Okta, Microsoft Entra ID, Google Workspace, CrowdStrike Falcon &amp; Microsoft Defender, and of exposed cloud data stores
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1243,7 +1243,7 @@
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                <span>Responding with playbooks that enrich, notify, escalate and contain through Okta, CrowdStrike and Microsoft Defender, with approval on by default before any containment step.</span>
+                <span>Responding with playbooks that enrich, notify, escalate and contain through Okta, Microsoft Entra ID, Google Workspace, CrowdStrike and Microsoft Defender, with approval on by default before any containment step.</span>
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -1299,7 +1299,7 @@
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                <span>Containment beyond Okta, CrowdStrike and Microsoft Defender. To act on any other product, a playbook sends a webhook or starts a workflow that you write.</span>
+                <span>Containment beyond Okta, Microsoft Entra ID, Google Workspace, CrowdStrike and Microsoft Defender. To act on any other product, a playbook sends a webhook or starts a workflow that you write.</span>
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>

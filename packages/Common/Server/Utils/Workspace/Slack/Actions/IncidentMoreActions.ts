@@ -963,10 +963,9 @@ export default class SlackIncidentMoreActions {
     if (form.fields.inputs.length === 0) {
       return await SlackActionAuthorization.sendRefusal({
         requester: data.slackRequest,
-        message:
-          form.fields.copiedFieldNames.length > 0
-            ? WorkspaceIncidentActions.getOnlyCopiedCustomFieldsMessage()
-            : WorkspaceIncidentActions.getNoCustomFieldsMessage(),
+        message: WorkspaceIncidentActions.getNothingToEditCustomFieldsMessage({
+          form: form.fields,
+        }),
       });
     }
 

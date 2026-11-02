@@ -45,7 +45,7 @@ export function getIncidentSelfPrivacyRaw(
       return (
         `(${alias} IS NULL OR ${alias} = FALSE OR ` +
         `"Incident"."_id" IN (SELECT iou."incidentId" FROM "IncidentOwnerUser" iou WHERE iou."userId" = :${uidRid} AND iou."deletedAt" IS NULL) OR ` +
-        `"Incident"."_id" IN (SELECT iot."incidentId" FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm ON tm."teamId" = iot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND iot."deletedAt" IS NULL))`
+        `"Incident"."_id" IN (SELECT iot."incidentId" FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm ON tm."teamId" = iot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND iot."deletedAt" IS NULL))`
       );
     },
     {
@@ -80,7 +80,7 @@ export function getIncidentRelatedRecordPrivacyRaw(
         `(${alias} IN (SELECT i."_id" FROM "Incident" i WHERE i."deletedAt" IS NULL AND (` +
         `i."isPrivate" IS NULL OR i."isPrivate" = FALSE OR ` +
         `i."_id" IN (SELECT iou."incidentId" FROM "IncidentOwnerUser" iou WHERE iou."userId" = :${uidRid} AND iou."deletedAt" IS NULL) OR ` +
-        `i."_id" IN (SELECT iot."incidentId" FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm ON tm."teamId" = iot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND iot."deletedAt" IS NULL))))`
+        `i."_id" IN (SELECT iot."incidentId" FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm ON tm."teamId" = iot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND iot."deletedAt" IS NULL))))`
       );
     },
     {
@@ -162,7 +162,7 @@ export function getOptionalIncidentRelatedRecordPrivacyRaw(
         `(${alias} IS NULL OR ${alias} IN (SELECT i."_id" FROM "Incident" i WHERE i."deletedAt" IS NULL AND (` +
         `i."isPrivate" IS NULL OR i."isPrivate" = FALSE OR ` +
         `i."_id" IN (SELECT iou."incidentId" FROM "IncidentOwnerUser" iou WHERE iou."userId" = :${uidRid} AND iou."deletedAt" IS NULL) OR ` +
-        `i."_id" IN (SELECT iot."incidentId" FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm ON tm."teamId" = iot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND iot."deletedAt" IS NULL))))`
+        `i."_id" IN (SELECT iot."incidentId" FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm ON tm."teamId" = iot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND iot."deletedAt" IS NULL))))`
       );
     },
     {

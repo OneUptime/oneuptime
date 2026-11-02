@@ -188,6 +188,9 @@ function recordCreates(
 function withoutStepIds(playbook: SecurityPlaybook): JSONObject {
   const json: JSONObject = BaseModel.toJSON(playbook, SecurityPlaybook);
   const steps: JSONArray = (json["steps"] as JSONArray) || [];
+  const ids: Array<unknown> = steps.map((step: JSONValue): unknown => {
+    return (step as JSONObject)["id"];
+  });
 
   expect(steps.length).toBeGreaterThan(0);
 
@@ -196,6 +199,18 @@ function withoutStepIds(playbook: SecurityPlaybook): JSONObject {
     steps: steps.map((step: JSONValue): JSONObject => {
       const { id, ...rest } = step as JSONObject;
       expect(typeof id).toBe("string");
+
+      // A step that waits on another names it by id: compared by its place instead.
+      const runIf: JSONObject | undefined = rest["runIf"] as
+        | JSONObject
+        | undefined;
+
+      if (runIf) {
+        const waitedOn: number = ids.indexOf(runIf["stepId"]);
+        expect(waitedOn).toBeGreaterThanOrEqual(0);
+        rest["runIf"] = { ...runIf, stepId: `step ${waitedOn + 1}` };
+      }
+
       return rest;
     }),
   };

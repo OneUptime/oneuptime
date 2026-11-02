@@ -93,6 +93,42 @@ data:
             group: autoscaling.k8s.io
           {{- end }}
           {{- end }}
+      {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+
+      # OpenShift's own objects, on the openshift preset, pulled with the
+      # other resource specs: the cluster's operators and version, Routes and
+      # DeploymentConfigs, and the Services those Routes send traffic to.
+      # Pulled, never watched, as inventory keeps an object only while its
+      # snapshots arrive. A receiver of their own, with error_mode: ignore,
+      # so a cluster that does not serve one of them skips it instead of
+      # stopping the events and every other spec
+      # (kubernetes-agent.openshiftObjectsEnabled). Each names its group:
+      # another API may serve the same name (OpenShift Serverless's
+      # routes.serving.knative.dev and services.serving.knative.dev). A
+      # Service names none: the receiver takes no group as the core one.
+      k8sobjects/openshift:
+        error_mode: ignore
+        objects:
+          - name: clusteroperators
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: config.openshift.io
+          - name: clusterversions
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: config.openshift.io
+          - name: routes
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: route.openshift.io
+          - name: deploymentconfigs
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps.openshift.io
+          - name: services
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+      {{- end }}
 
       {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
       # Scrape metrics via Prometheus endpoints (control plane, service
@@ -103,10 +139,14 @@ data:
             {{- if .Values.controlPlane.enabled }}
             {{- /* Each component is scraped at the endpoints in its own list,
                    from this pod, which has no host network: localhost is the
-                   pod itself. A component with no endpoints gets no job. The
-                   job's scheme comes from the endpoints (http:// is plain
-                   HTTP, anything else HTTPS) and the target is their
-                   host:port (kubernetes-agent.controlPlaneScheme/Target). */}}
+                   pod itself. A component with no endpoints gets no job, but
+                   on the OpenShift presets the scheduler, the controller
+                   manager and, with a client certificate, etcd are found
+                   through service discovery instead
+                   (kubernetes-agent.controlPlaneDiscovered). The job's scheme
+                   comes from the endpoints (http:// is plain HTTP, anything
+                   else HTTPS) and the target is their host:port
+                   (kubernetes-agent.controlPlaneScheme/Target). */}}
             {{- with .Values.controlPlane.etcd }}
             {{- if .endpoints }}
             - job_name: etcd
@@ -127,6 +167,21 @@ data:
                 - targets:
                     - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- else if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "etcd")) "true" }}
+            # OpenShift's etcd members, each on its own, on the metrics port
+            # OpenShift's own ServiceMonitor reads. It asks for a client
+            # certificate: the one in the Secret
+            # controlPlane.etcd.clientCertSecret names, mounted by
+            # templates/deployment.yaml.
+            - job_name: etcd
+              scheme: https
+              metrics_path: /metrics
+              tls_config:
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                ca_file: /etc/oneuptime/etcd-client-cert/ca.crt
+                cert_file: /etc/oneuptime/etcd-client-cert/tls.crt
+                key_file: /etc/oneuptime/etcd-client-cert/tls.key
+              {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-etcd" "service" "etcd" "port" "etcd-metrics") | nindent 14 }}
             {{- end }}
             {{- end }}
             {{- with .Values.controlPlane.apiServer }}
@@ -163,6 +218,22 @@ data:
                 - targets:
                     - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- else if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "scheduler")) "true" }}
+            # OpenShift's schedulers, each on its own, with the service
+            # account's token: the ClusterRole grants GET on /metrics.
+            - job_name: kube-scheduler
+              scheme: https
+              metrics_path: /metrics
+              tls_config:
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                {{- if not .insecureSkipVerify }}
+                # OpenShift's service CA signs the certificate, for the
+                # Service's name: every pod has the CA next to its token.
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+                server_name: scheduler.openshift-kube-scheduler.svc
+                {{- end }}
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-kube-scheduler" "service" "scheduler" "port" "https") | nindent 14 }}
             {{- end }}
             {{- end }}
             {{- with .Values.controlPlane.controllerManager }}
@@ -178,6 +249,19 @@ data:
                 - targets:
                     - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- else if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "controllerManager")) "true" }}
+            # OpenShift's controller managers, the same way.
+            - job_name: kube-controller-manager
+              scheme: https
+              metrics_path: /metrics
+              tls_config:
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                {{- if not .insecureSkipVerify }}
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+                server_name: kube-controller-manager.openshift-kube-controller-manager.svc
+                {{- end }}
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-kube-controller-manager" "service" "kube-controller-manager" "port" "https") | nindent 14 }}
             {{- end }}
             {{- end }}
             {{- end }}
@@ -365,7 +449,11 @@ data:
       {{- end }}
 
     processors:
-      # Enrich all telemetry with Kubernetes metadata
+      # Enrich all telemetry with Kubernetes metadata. In the metrics
+      # pipeline this is also where k8s.container.restarts.increase gets its
+      # workload names (see transform/restarts-increase). No container.id:
+      # the increase is keyed without it, and k8sattributes would put the
+      # running container's ID back on it, a new one with every restart.
       k8sattributes:
         auth_type: serviceAccount
         extract:
@@ -388,6 +476,9 @@ data:
             - tag_name: k8s.pod.label.app.kubernetes.io/name
               key: app.kubernetes.io/name
               from: pod
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            {{- include "kubernetes-agent.deploymentConfigPodLabel" . | nindent 12 }}
+            {{- end }}
         pod_association:
           - sources:
               - from: resource_attribute
@@ -452,7 +543,26 @@ data:
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: insert
+          {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+          {{- include "kubernetes-agent.distributionAttribute" (dict "action" "insert") | nindent 10 }}
+          {{- end }}
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
+      {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+      {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
+      {{- end }}
+      {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+
+      # A Route can carry its TLS private key inline, in spec.tls.key. It never
+      # leaves the cluster: the key is replaced before the record is exported,
+      # and OneUptime's Route parser reads nothing of spec.tls but how the
+      # route terminates TLS. The certificates beside it are public.
+      transform/openshift-route-tls:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(body["spec"]["tls"]["key"], "REDACTED") where IsMap(body) and body["kind"] == "Route" and body["spec"]["tls"]["key"] != nil
+      {{- end }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so
       # Kubernetes events and resource snapshots arrive at OneUptime with
@@ -481,6 +591,142 @@ data:
               - set(severity_number, SEVERITY_NUMBER_WARN) where IsMap(body) and IsMap(body["object"]) and body["object"]["type"] == "Warning"
               - set(severity_text, "WARN") where IsMap(body) and body["kind"] == "Event" and body["type"] == "Warning"
               - set(severity_number, SEVERITY_NUMBER_WARN) where IsMap(body) and body["kind"] == "Event" and body["type"] == "Warning"
+
+      # Container restarts as OneUptime's CrashLoopBackOff Detection template
+      # counts them: k8s.container.restarts.increase, the times a container
+      # restarted since this collector's previous sample of it, which the
+      # metrics/restarts-increase pipeline below makes and hands to the
+      # metrics pipeline. k8s.container.restarts (the container status'
+      # restartCount) goes on unchanged in the metrics pipeline, for the
+      # charts.
+      #
+      # A monitor can only take the difference of samples inside one minute,
+      # so the template used to miss every restart between two samples in
+      # different minutes: about half of a crash loop at a 30-second
+      # interval. These three take it sample by sample instead:
+      #   1. filter/restarts-increase-source keeps k8s.container.restarts
+      #      alone in this pipeline's copy of what k8s_cluster sends;
+      #   2. transform/restarts-increase renames it, makes the receiver's
+      #      gauge a cumulative sum, and takes container.id off its resource.
+      #      The kubelet runs every restart as a new container, with a new ID
+      #      and the count one higher, so a series keyed by the ID never sees
+      #      its count move, and no restart would be counted;
+      #   3. cumulative_to_delta/restarts-increase sends the count minus the
+      #      previous sample's for the same pod (by UID) and container,
+      #      however long ago that was. A container's first sample (the
+      #      agent started, or the pod is new: a recreated pod has a new UID,
+      #      whatever its name) and a sample whose count went down send
+      #      nothing; a container's previous sample is kept for 2 hours.
+      # The receiver reports every container of every pod at each interval,
+      # running or waiting in CrashLoopBackOff, so a crash-looping container
+      # is sampled between its runs too (k8sclusterreceiver
+      # internal/container/containers.go at 0.161.0 and 0.96.0).
+      # The forward/restarts-increase connector then hands the increases to
+      # the metrics pipeline, where k8sattributes gives them the workload
+      # names it gives k8s.container.restarts, found by the pod's UID (its
+      # Deployment, ReplicaSet, StatefulSet, DaemonSet, Job or CronJob, and
+      # its app labels), and resource stamps the cluster. That is after the
+      # conversion, so the names are no part of the series a restart is
+      # counted in: a pod keeps them through every restart of its
+      # containers, and a sample whose pod k8sattributes has not seen yet
+      # still counts its restarts, without them.
+      # tests/restarts-increase_test.yaml pins these, and
+      # Tests/Ops/agent-restarts-increase-behaviour.sh runs them in the
+      # collector the chart pins and in 0.96.0.
+      filter/restarts-increase-source:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'name != "k8s.container.restarts"'
+      transform/restarts-increase:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - delete_key(attributes, "container.id")
+          - context: metric
+            statements:
+              - set(name, "k8s.container.restarts.increase") where name == "k8s.container.restarts"
+              - set(description, "Times the container restarted since the agent's previous sample of it.") where name == "k8s.container.restarts.increase"
+              {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.108.0")) "true" }}
+              - convert_gauge_to_sum("cumulative", true) where name == "k8s.container.restarts.increase"
+              {{- end }}
+          {{- if ne (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.108.0")) "true" }}
+          # Before collector 0.108.0, convert_gauge_to_sum is a datapoint
+          # function (from 0.108.0 a metric one, and only that from 0.113.0):
+          # 0.96.0 is what a --reuse-values upgrade keeps.
+          - context: datapoint
+            statements:
+              - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.container.restarts.increase"
+          {{- end }}
+      {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase:
+        include:
+          metrics:
+            - k8s.container.restarts.increase
+          match_type: strict
+        initial_value: drop
+        max_staleness: 2h
+
+      # Job failures as OneUptime's Job Failures template counts them:
+      # k8s.job.failed_pods.increase, the pods of a Job that failed since this
+      # collector's previous sample of the Job. k8s.job.failed_pods (the Job's
+      # status.failed, a running count that only grows for the Job's life)
+      # goes on unchanged, for the charts. The template used to take the
+      # count's growth within each minute, and missed every failure between
+      # two samples in different minutes: about half of them at a 30-second
+      # interval.
+      #
+      # k8s_cluster sends k8s.job.failed_pods as an int gauge on the Job's own
+      # resource, keyed by k8s.job.uid (with its name and namespace), which
+      # stays the same for the Job's life (k8sclusterreceiver
+      # internal/jobs/jobs.go at 0.161.0 and 0.96.0). So unlike the restarts,
+      # nothing comes off the resource and no pipeline of its own is needed:
+      # the copy rides the metrics pipeline beside the count, two processors
+      # in it:
+      #   1. transform/job-failures-increase copies k8s.job.failed_pods, then
+      #      makes the copy's gauge a cumulative sum (in a group of its own,
+      #      after the copy is made);
+      #   2. cumulative_to_delta/job-failures-increase sends the count minus
+      #      the previous sample's for the same Job (by UID), however long ago
+      #      that was. A Job's first sample (the agent started, or the Job is
+      #      new: a Job recreated under the same name has a new UID and starts
+      #      at 0) and a sample whose count went down send nothing; a Job's
+      #      previous sample is kept for 2 hours.
+      # The receiver reports every Job in the cluster at each interval until
+      # the Job is deleted, so a failing Job is sampled between its retries.
+      # The copy shares the count's resource, so it carries what the count
+      # carries: the Job's name, UID and namespace (the Job is the workload,
+      # and a pod it retries with leaves its resource as it is), then the
+      # cluster's attributes from resource. k8sattributes adds nothing to a
+      # Job's resource, which names no pod to look up.
+      # tests/job-failures-increase_test.yaml pins these, and
+      # Tests/Ops/agent-job-failures-increase-behaviour.sh runs them in the
+      # collector the chart pins and in 0.96.0.
+      transform/job-failures-increase:
+        error_mode: ignore
+        metric_statements:
+          - context: metric
+            statements:
+              - copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent's previous sample of it.") where name == "k8s.job.failed_pods"
+          {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.108.0")) "true" }}
+          - context: metric
+            statements:
+              - convert_gauge_to_sum("cumulative", true) where name == "k8s.job.failed_pods.increase"
+          {{- else }}
+          # Before collector 0.108.0, convert_gauge_to_sum is a datapoint
+          # function (from 0.108.0 a metric one, and only that from 0.113.0):
+          # 0.96.0 is what a --reuse-values upgrade keeps.
+          - context: datapoint
+            statements:
+              - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.job.failed_pods.increase"
+          {{- end }}
+      {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/job-failures-increase:
+        include:
+          metrics:
+            - k8s.job.failed_pods.increase
+          match_type: strict
+        initial_value: drop
+        max_staleness: 2h
 
       {{- /* No "logs" signal here, deliberately. `filters.logs.minSeverity` is a
              POD LOG control, and no pod log flows through this collector — the
@@ -612,6 +858,13 @@ data:
           max_interval: 60s
           max_elapsed_time: 300s
 
+    connectors:
+      # From the metrics/restarts-increase pipeline, which makes the
+      # restarts since each container's previous sample, into the metrics
+      # pipeline, which enriches and sends them with everything else
+      # k8s_cluster reports (see transform/restarts-increase).
+      forward/restarts-increase: {}
+
     service:
       extensions:
         - health_check
@@ -619,6 +872,11 @@ data:
         metrics:
           receivers:
             - k8s_cluster
+            # The restarts since each container's previous sample, made in
+            # metrics/restarts-increase below. From here on they go the way
+            # k8s.container.restarts goes: k8sattributes gives them the same
+            # workload names.
+            - forward/restarts-increase
             {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
             # OBI emits application/network/stats metrics on the same OTLP
             # receiver that handles its traces — pull them into the same
@@ -631,6 +889,11 @@ data:
             {{- end }}
           processors:
             - memory_limiter
+            # The failures since each Job's previous sample, for Job Failures
+            # (see transform/job-failures-increase). First, so filters.metrics
+            # sees the copy under the name it is sent with.
+            - transform/job-failures-increase
+            - {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/job-failures-increase
             - transform/pod-level-mark
             - k8sattributes
             - transform/pod-level-unmark
@@ -638,6 +901,9 @@ data:
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
             # Before batch, so a dropped datapoint never takes a batch slot.
             - filter/ebpf-node-inspector
@@ -648,10 +914,20 @@ data:
         logs:
           receivers:
             - k8sobjects
+            {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+            - k8sobjects/openshift
+            {{- end }}
           processors:
             - memory_limiter
+            {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+            # First, so no other processor holds a Route's key.
+            - transform/openshift-route-tls
+            {{- end }}
             - k8sattributes
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             - transform/severity
             # Intentionally NOT filtered by filters.logs.minSeverity — see the
             # note on $signals above. Kubernetes events are a low-volume,
@@ -685,6 +961,9 @@ data:
             - k8sattributes
             - transform/pod-level-unmark
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
             # Before the user's filters and the sampler, so neither spends
             # work on spans that are about to be dropped anyway.
@@ -711,3 +990,28 @@ data:
           exporters:
             - otlphttp
         {{- end }}
+        # The restarts since each container's previous sample, for
+        # CrashLoopBackOff Detection (see transform/restarts-increase). A
+        # pipeline of its own because its series must not carry container.id,
+        # which the receiver puts on the resource every metric of a container
+        # shares: it comes off this pipeline's copy only. k8s_cluster feeds
+        # both metrics pipelines, each its own copy. Once the increases are
+        # made it hands them to the metrics pipeline, whose k8sattributes
+        # gives them the workload names the cluster's other container metrics
+        # carry - without a k8sattributes of its own, which would list and
+        # watch every pod in the cluster once more - and whose resource, batch
+        # and exporter send them.
+        metrics/restarts-increase:
+          receivers:
+            - k8s_cluster
+          processors:
+            - memory_limiter
+            - filter/restarts-increase-source
+            - transform/restarts-increase
+            {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
+            # After the rename, so filters.metrics sees the name sent.
+            - filter/telemetry
+            {{- end }}
+            - {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
+          exporters:
+            - forward/restarts-increase

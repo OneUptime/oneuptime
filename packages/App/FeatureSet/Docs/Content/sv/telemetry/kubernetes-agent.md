@@ -5,6 +5,7 @@ OneUptime Kubernetes-agenten är ett Helm-chart som samlar in klustrets mätvär
 :::cards
 - [Installera agenten](#installera-agenten): Fyra steg med Helm.
 - [Installera som Amazon EKS-tillägg](#installera-som-amazon-eks-tillägg): Från EKS-konsolen, utan Helm.
+- [OpenShift](#openshift): Presetet, säkerhetskontextbegränsningarna det skapar och OpenShifts egna larm.
 - [Konfigurationsalternativ](#konfigurationsalternativ): Filter, sampling, kontrollplan, service mesh, kostnader och etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivskyddad `kubectl` för OneUptime AI, och åtgärder när du tillåter dem.
 - [Skicka mindre](#minska-mängden-data-som-samlas-in): Spakarna, i ordning efter effekt.
@@ -27,7 +28,7 @@ flowchart TB
 | Nod-collector | DaemonSet | Poddloggar från `/var/log/pods`, kubelet- och cAdvisor-mätvärden och nodens OS-mätvärden. | Överallt utom EKS Fargate |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- och Redis-spår och förfrågningsmätvärden från varje podd, och tjänstekartan. | Som standard, utom på GKE Autopilot och EKS Fargate |
 | Kubernetes-AI-agent | Deployment | Skrivskyddad `kubectl` för OneUptime AI medan den undersöker en incident eller ett larm. | Som standard |
-| Loggläsare | Deployment | Poddloggar via Kubernetes-API:t, där nod-collectorn inte kan läsa dem. | Med presetarna `gke-autopilot` och `eks-fargate` |
+| Loggläsare | Deployment | Poddloggar via Kubernetes-API:t, där nod-collectorn inte kan läsa dem. | Med presetarna `gke-autopilot`, `eks-fargate` och `openshift-restricted` |
 | Kostnadsmotor och poller | Deployments | Utgifter per namespace, arbetsbelastning och podd. | Med `cost.enabled=true` |
 
 Alla agentimages finns bara för Linux, så varje arbetsbelastning är fäst vid Linux-noder.
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,43 @@ En uppdatering ersätter hela konfigurationen: ett värde som du utelämnar åte
 | `standard` (standard) | Självförvaltade kluster, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Nod-collectorn läser `/var/log/pods` via `hostPath` (lägst overhead) | Kubelet, cAdvisor och nodens OS-mätvärden |
 | `gke-autopilot` | **GKE Autopilot** | Loggläsaren läser dem via Kubernetes-API:t (ingen `hostPath`, ingen värdåtkomst) | Kubelet och cAdvisor, utan `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Loggläsaren läser dem via Kubernetes-API:t (ingen `hostPath`, ingen värdåtkomst) | Inga: Fargate kör inga DaemonSets |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Nod-collectorn läser `/var/log/pods` via `hostPath`, under en säkerhetskontextbegränsning som chartet skapar åt den | Kubelet, cAdvisor och nodens OS-mätvärden |
+| `openshift-restricted` | **OpenShift**, om en administratör inte vill lägga till en SCC | Loggläsaren läser dem via Kubernetes-API:t (ingen `hostPath`, ingen värdåtkomst) | Kubelet och cAdvisor, utan `hostPath` |
 
-Om du är osäker, börja med `standard`. Om installationen misslyckas med ett Pod Security-fel som nämner `hostPath`, installera igen med `preset=gke-autopilot` (eller `eks-fargate` på Fargate). GKE Autopilot och EKS Fargate nekar också privilegierade poddar, som eBPF och profileraren behöver, så de två presetarna utelämnar båda.
+Om du är osäker, börja med `standard`. Om installationen misslyckas med ett Pod Security-fel som nämner `hostPath`, installera igen med `preset=gke-autopilot` (eller `eks-fargate` på Fargate). GKE Autopilot och EKS Fargate nekar också privilegierade poddar, som eBPF och profileraren behöver, så de två presetarna utelämnar båda. På OpenShift använder du `openshift`, eller `openshift-restricted` om en administratör inte vill lägga till en SCC: se [OpenShift](#openshift).
+
+## OpenShift
+
+Installera med `--set preset=openshift`, som fliken **OpenShift** ovan gör. OpenShift släpper bara in en podd under en säkerhetskontextbegränsning (SCC) som dess tjänstekonto får använda, och tills en administratör ger mer är det `restricted-v2` (OpenShift 4.11 och senare): inga `hostPath`-volymer, inga privilegierade containrar och ett användar-ID från namespacets eget intervall. Därför gör presetet följande:
+
+- Det skapar två SCC:er, som var och en bara används av tjänstekontot som dess egna poddar kör med:
+  - en för nod-collectorn: skrivskyddade `hostPath`-monteringar, som root med SELinux-typen `spc_t`, oprivilegierad, med alla capabilities borttagna;
+  - en för eBPF-instrumenteringen och profileraren: privilegierad, i värdens PID-namespace. Bara medan någon av dem är på.
+- Det låter OpenShift välja användar-ID för alla andra poddar, som körs under `restricted-v2`.
+- Det stämplar agentens telemetri med `oneuptime.kubernetes.distribution=openshift`, så att klustrets **Plattform** visar **OpenShift**, och lägger till molnet som klustret körs i (`cloud.provider`, `cloud.platform`) där det finns ett.
+
+Att skapa SCC:erna kräver cluster-admin-behörighet. Utan presetet installeras releasen, men OpenShift startar aldrig agentens nod-collector- och eBPF-poddar, och installationsanteckningarna säger det.
+
+**Om en administratör inte vill lägga till en SCC** installerar du i stället med `--set preset=openshift-restricted`. Chartet skapar då ingen SCC och varje podd körs under `restricted-v2`, som med `gke-autopilot`. Klustret visas fortfarande som OpenShift. I gengäld förlorar du:
+
+- Poddloggar från noderna: loggläsaren läser dem via Kubernetes-API:t, med en långlivad anslutning per container.
+- Nodens OS-mätvärden. Nod-, podd- och containermätvärden finns kvar: nod-collectorn läser kubelet och cAdvisor över nätverket.
+- eBPF-spår och profileraren, oavsett vad `ebpf.enabled` och `profiling.enabled` säger. För att spåra dina tjänster skickar du spår från dem med ett OpenTelemetry-SDK.
+- Granskningsloggar, som läses från noden.
+
+För att få tillbaka dem byter du till `openshift` med `--set preset=openshift` vid en uppgradering, som cluster-admin.
+
+**Det här ser du i OneUptime.** Agenten läser också OpenShifts egna objekt, med enbart läsbehörighet, och visar dem på klustrets sidor:
+
+- Klustrets **Översikt** inleds med kortet **OpenShift**: versionen det kör, om en uppdatering pågår eller misslyckas, och hur många av dess klusteroperatorer som är felfria, med vad var och en av de andra rapporterar. En otillgänglig operator gör klustret **Ej felfri**, och en försämrad operator eller en misslyckad uppdatering gör det **Försämrad**.
+- **Routes** och **Tjänster** under **Nätverk**: var varje Route svarar, hur den terminerar TLS, vilka tjänster den skickar trafik till och med vilken andel, och varför en router avvisade den. En Routes TLS-nyckel lämnar aldrig klustret: agenten ersätter den innan den skickar Routen.
+- **DeploymentConfigs** under **Arbetsbelastningar** visas som Deployments: deras utrullningar, deras poddars CPU och minne samt händelserna för de ReplicationControllers och poddar de kör.
+
+**Larm om operatorer och uppdateringar.** Sidan **Rekommendationer** för ett OpenShift-kluster erbjuder **Cluster Operator Unavailable**, **Cluster Operator Degraded** och **Cluster Update Failing**. Var och en är en loggmonitor över de ögonblicksbilder som agenten skickar varje `resourceSpecs.interval`. Den larmar när två ögonblicksbilder säger det, så en operator som slår om ett ögonblick under en uppdatering utlöser ingenting, och den löser larmet när en ögonblicksbild säger att problemet är över, aldrig för att agenten slutade skicka.
+
+**OpenShifts egna larm.** OpenShift levereras med Prometheus och Alertmanager, med larm för sina operatorer, etcd och noder. För att öppna en incident i OneUptime för vart och ett lägger du till en webhook-mottagare för OneUptime under **Administration → Cluster Settings → Configuration → Alertmanager** i webbkonsolen, som [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) beskriver.
+
+**Spår från din kod.** eBPF-instrumenteringen spårar HTTP, gRPC och SQL utan kodändringar. För att skicka spår från OpenTelemetry-SDK:er, eller från Red Hat build of OpenTelemetry, pekar du deras OTLP-exportör mot OneUptime, som [OpenTelemetry](/docs/telemetry/open-telemetry) beskriver.
 
 ## Vad som samlas in
 
@@ -215,6 +262,7 @@ Om du är osäker, börja med `standard`. Om installationen misslyckas med ett P
 | Klustermätvärden | Nodvillkor, allokerbara resurser, antal poddar |
 | Kubernetes-händelser | Varje händelse, Warning och Normal, från varje namespace och varje slags objekt: se [Kubernetes-händelser](#kubernetes-händelser) |
 | Poddloggar | Stdout och stderr från varje container (via `hostPath` på standardkluster, via Kubernetes-API:t på Autopilot och Fargate) |
+| OpenShift-objekt (OpenShift-presetarna) | ClusterOperators, ClusterVersion, Routes, DeploymentConfigs och Services: se [OpenShift](#openshift) |
 | Applikationsspår (eBPF, på som standard) | HTTP-, gRPC-, SQL- och Redis-spans från varje podd, utan SDK eller kodändringar |
 | HTTP RED-mätvärden (eBPF) | `http.server.request.duration`, och storleken på förfrågnings- och svarskroppar, per tjänst |
 | Tjänstegraf (eBPF) | Förfrågningsfrekvens, latens och fel från anropare till anropad, som ritar tjänstekartan |
@@ -245,7 +293,7 @@ På en skärm som är smalare än 1024 pixlar visar kolumnen **Händelse** även
 
 ### Sök bland händelser och få larm
 
-Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **Warning**, och det händelsen säger står i dess attribut:
+Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **Varning**, och det händelsen säger står i dess attribut:
 
 | Attribut | Exempel |
 | --- | --- |
@@ -488,6 +536,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**På OpenShift** räcker `--set controlPlane.enabled=true` för schemaläggaren och kontrollerhanteraren, på båda OpenShift-presetarna. OpenShift kör flera repliker av var och en bakom en Service, så agenten hittar varje replik i Servicens EndpointSlices och skrapar den för sig, med tokenen för sitt tjänstkonto. `controlPlane.scheduler.endpoints` och `controlPlane.controllerManager.endpoints` går fortfarande före när du sätter dem. etcd begär ett klientcertifikat, så det skrapas först när `controlPlane.etcd.clientCertSecret` namnger en Secret som innehåller ett. OpenShifts övervakning har ett: kopiera det som cluster-admin till en Secret med de tre nycklar som chartet läser:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+Kopian följer inte OpenShifts rotation av certifikatet, så kör de här kommandona igen när etcd:s mätvärden upphör. Ett värdbaserat kontrollplan (ROSA med HCP, HyperShift) kör de här komponenterna utanför klustret: agenten hittar ingen av dem, och de flikarna förblir tomma där.
+
 Hanterade Kubernetes-tjänster (EKS, GKE, AKS) exponerar inte etcd, schemaläggaren eller kontrollerhanteraren, så de flikarna förblir tomma där. Tills en fliks mätvärden kommer in visar sidan **Kontrollplan** vad som ska sättas i stället för dess diagram, med kommandot att kopiera.
 
 ### Aktivera CoreDNS-mätvärden
@@ -600,7 +668,7 @@ Om en app redan exporterar spår med en OpenTelemetry SDK märker OBI det och sl
 
 Stäng av eBPF när:
 
-- Du installerar på **GKE Autopilot** eller **EKS Fargate**: de plattformarna nekar privilegierade poddar, så `preset=gke-autopilot` och `preset=eks-fargate` utelämnar redan eBPF åt dig, och profileraren med den.
+- Du installerar på **GKE Autopilot** eller **EKS Fargate**: de plattformarna nekar privilegierade poddar, så `preset=gke-autopilot` och `preset=eks-fargate` utelämnar redan eBPF åt dig, och profileraren med den. `preset=openshift-restricted` gör samma sak på OpenShift.
 - Noderna kör en kärna äldre än 5.8 utan BTF-bakåtporteringar.
 - Du redan skickar spår från OpenTelemetry SDK:er i varje app och inte heller vill ha eBPF-mätvärdena. (För enbart spår behöver du inte det: OBI slutar skicka eBPF-spår för en app som den ser exportera sina egna, som ovan.)
 
@@ -998,9 +1066,11 @@ Telemetrianvändning räknas per dag, så kontrollera trenden under **Projektins
 Börja med diagnosskriptet. Det kontrollerar poddarnas hälsa, avkodar och validerar intagningsnyckeln, kontrollerar att klustret kan nå OneUptime och frågar OneUptime om den godtar din nyckel, och skriver sedan ut en enda bedömning som anger den mest sannolika orsaken:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Varje OneUptime tillhandahåller det här skriptet från sin egen version: På en egenvärdad OneUptime använder du din URL i stället för `https://oneuptime.com`. Öppna skriptets adress i en webbläsare för att läsa det innan du kör det.
 
 Det läser bara klustrets tillstånd och kör ett par sonder; det ändrar ingenting. För det mest exakta testet av utgående trafik installerar du först med `--set debug.enabled=true`: det lägger till en liten sidecar med nätverksverktyg i agentens poddar, så att skriptet testar collectorns egen väg ut.
 

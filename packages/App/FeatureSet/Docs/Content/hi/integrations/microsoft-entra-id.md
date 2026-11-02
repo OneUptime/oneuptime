@@ -44,7 +44,8 @@ flowchart TB
 
 1. **API permissions → Add a permission → Microsoft Graph → Application permissions** पर जाएं, `AuditLog.Read.All` चुनें, और **Add permissions** चुनें। Microsoft बताता है कि उसकी साइन-इन सूची `Directory.Read.All` भी मांग सकती है: सहमति देने के बाद भी अगर साइन-इन `403` से अस्वीकार हों, तो इसे जोड़ें।
 2. Microsoft 365 ऑडिट लॉग के लिए दूसरी अनुमति जोड़ें: **Add a permission → Office 365 Management APIs → Application permissions**, फिर `ActivityFeed.Read`।
-3. अपने टेनेंट के लिए **Grant admin consent for** चुनें, और पुष्टि करें। हर अनुमति की स्थिति **Granted** होनी चाहिए: सहमति के बिना हर रीड `403` से अस्वीकार होता है।
+3. प्लेबुक को उपयोगकर्ताओं को अक्षम, सक्षम और साइन आउट करने देने के लिए (देखें [रोकथाम](/docs/telemetry/security-cases#रोकथाम)), इसी तरह `User.Read.All`, `User.EnableDisableAccount.All` और `User.RevokeSessions.All` जोड़ें। Microsoft किसी व्यवस्थापक का खाता सिर्फ़ ऐसे ऐप को बदलने देता है जिसके पास Privileged Authentication Administrator भूमिका भी हो।
+4. अपने टेनेंट के लिए **Grant admin consent for** चुनें, और पुष्टि करें। हर अनुमति की स्थिति **Granted** होनी चाहिए: सहमति के बिना हर रीड `403` से अस्वीकार होता है।
 
 ### एक क्लाइंट सीक्रेट बनाएं
 
@@ -52,7 +53,7 @@ flowchart TB
 
 ### OneUptime में कनेक्शन जोड़ें
 
-**उत्पाद → Security Events → कनेक्शन** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **पहचान** के नीचे **Microsoft Entra ID** चुनें, और **अगला** पर क्लिक करें। नीचे की तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और सीक्रेट का मान **क्लाइंट सीक्रेट** में पेस्ट करें। **पोलिंग** चरण में उसे भी पढ़ने के लिए **Microsoft 365 ऑडिट लॉग** चालू करें।
+**उत्पाद → सुरक्षा इवेंट → कनेक्शन** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **पहचान** के नीचे **Microsoft Entra ID** चुनें, और **अगला** पर क्लिक करें। नीचे की तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और सीक्रेट का मान **क्लाइंट सीक्रेट** में पेस्ट करें। **पोलिंग** चरण में उसे भी पढ़ने के लिए **Microsoft 365 ऑडिट लॉग** चालू करें।
 
 ### सहेजने से पहले इसे टेस्ट करें
 

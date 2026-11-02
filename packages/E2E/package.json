@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.99",
+  "version": "14.0.100",
   "description": "",
   "repository": {
     "type": "git",
@@ -25,6 +25,7 @@
     "test-value-picker-ui": "playwright test --config playwright.value-picker-ui.config.ts",
     "test-color-picker-ui": "playwright test --config playwright.color-picker-ui.config.ts",
     "test-custom-field-options-ui": "playwright test --config playwright.custom-field-options-ui.config.ts",
+    "test-custom-field-files-ui": "playwright test --config playwright.custom-field-files-ui.config.ts",
     "test-diagrams-ui": "playwright test --config playwright.diagrams-ui.config.ts",
     "test-topology-ui": "playwright test --config playwright.topology.config.ts",
     "test-workflow-builder-ui": "playwright test --config playwright.workflow-builder-ui.config.ts",
@@ -90,6 +91,7 @@
     "test-backups-ui": "playwright test --config playwright.backups-ui.config.ts",
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
     "test-cloud-connect-ui": "playwright test --config playwright.cloud-connect-ui.config.ts",
+    "test-app-platforms-ui": "playwright test --config playwright.app-platforms-ui.config.ts",
     "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",
     "test-traces-ai-ui": "playwright test --config playwright.traces-ai-ui.config.ts",
     "test-exceptions-ai-ui": "playwright test --config playwright.exceptions-ai-ui.config.ts",
@@ -110,11 +112,13 @@
     "test-first-on-call-policy-ui": "playwright test --config playwright.first-on-call-policy-ui.config.ts",
     "test-owner-filters-ui": "playwright test --config playwright.owner-filters-ui.config.ts",
     "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts",
+    "test-openshift-pages-ui": "playwright test --config playwright.openshift-pages-ui.config.ts",
     "test-snmp-walk-ui": "playwright test --config playwright.snmp-walk-ui.config.ts",
     "test-asset-details-ui": "playwright test --config playwright.asset-details-ui.config.ts",
     "test-docker-swarm-pages-ui": "playwright test --config playwright.docker-swarm-pages-ui.config.ts",
     "test-side-by-side-pages-ui": "playwright test --config playwright.side-by-side-pages-ui.config.ts",
-    "test-resource-overviews-ui": "playwright test --config playwright.resource-overviews-ui.config.ts"
+    "test-resource-overviews-ui": "playwright test --config playwright.resource-overviews-ui.config.ts",
+    "test-proxmox-pages-ui": "playwright test --config playwright.proxmox-pages-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

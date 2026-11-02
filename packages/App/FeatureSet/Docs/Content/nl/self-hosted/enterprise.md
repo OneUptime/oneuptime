@@ -116,18 +116,18 @@ Het bestand [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICEN
 
 Een nieuwe installatie van de Enterprise Edition draait als **proefperiode van 14 dagen**, geteld vanaf de eerste keer dat de installatie de Enterprise Edition start. De proefperiode is bedoeld voor evaluatie: productiegebruik van de Enterprise Edition vereist een abonnement onder de OneUptime Enterprise License. Activeer een licentie voordat de proefperiode afloopt: daarna stoppen SCIM, auditlogging en bewaar-overschrijvingen, en wordt de enterpriseconfiguratie alleen-lezen (zie [Als een licentie verloopt of ontbreekt](#als-een-licentie-verloopt-of-ontbreekt)). Neem voor een licentie contact op met [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-De licentie wordt beheerd vanuit het **editielabel**, dat hoofdbeheerders zien in de kop van het Admin-dashboard en in de voettekst van het Dashboard. Het toont de licentiestatus, het gebruik van plaatsen en, voor hoofdbeheerders, de instantie-ID.
+De licentie wordt beheerd op **Admin Dashboard > Instellingen > Licentie**: daar voegen hoofdbeheerders haar toe, vernieuwen en vervangen ze haar, en niemand anders kan haar wijzigen. Het **editielabel**, in de kop van het Admin-dashboard en in de voettekst van het Dashboard, toont alleen de stand van zaken: de licentiestatus en, voor hoofdbeheerders, het gebruik van plaatsen en een knop **Licentie beheren** die naar die pagina leidt.
 
 OneUptime Enterprise dat via AWS Marketplace, Microsoft Marketplace of Google Cloud Marketplace is gekocht, heeft geen licentiesleutel nodig: het marketplace-abonnement is de licentie en rekent elke gebruiker per uur af. Zie [Cloudmarktplaatsen](/docs/installation/cloud-marketplaces).
 
 ### Online activeren (licentiesleutel)
 
 :::steps
-1. Meld u aan als hoofdbeheerder en open het editielabel.
+1. Meld u aan als hoofdbeheerder en open **Admin Dashboard > Instellingen > Licentie**.
 2. Voer uw licentiesleutel in en valideer hem.
 :::
 
-De installatie controleert de sleutel bij OneUptime en slaat de licentie op die ze ontvangt. Daarna houdt ze de licentie actueel met een dagelijkse synchronisatie. Gebruik **Refresh license** in het editielabel om wijzigingen, zoals extra plaatsen of een verlenging, meteen op te halen.
+De installatie controleert de sleutel bij OneUptime en slaat de licentie op die ze ontvangt. Daarna houdt ze de licentie actueel met een dagelijkse synchronisatie. Gebruik **Refresh license** op dezelfde pagina om wijzigingen, zoals extra plaatsen of een verlenging, meteen op te halen.
 
 Online activeren vereist uitgaand HTTPS van de OneUptime-server naar `https://oneuptime.com`. Bereikt de server het internet alleen via een relay, stel dan `ENTERPRISE_LICENSE_SERVER_URL` in op het `https://`-adres van de relay. De relay moet `/api/enterprise-license/` doorsturen naar oneuptime.com.
 
@@ -136,9 +136,9 @@ Online activeren vereist uitgaand HTTPS van de OneUptime-server naar `https://on
 Een installatie zonder route naar het internet kan een **ondertekend licentietoken** gebruiken in plaats van een sleutel:
 
 :::steps
-1. Meld u aan als hoofdbeheerder, open het editielabel en noteer de **instantie-ID**.
+1. Meld u aan als hoofdbeheerder, open **Admin Dashboard > Instellingen > Licentie**, schakel over naar offline activeren en noteer de **instantie-ID**.
 2. Vraag OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) om een offline licentietoken voor die instantie-ID.
-3. Plak het token in het tokenveld van het editielabel en activeer het.
+3. Plak het token in het tokenveld en activeer het.
 :::
 
 De installatie verifieert het token zelf, tegen de ondertekeningssleutels van OneUptime die in uw release zijn ingebouwd. Ze neemt nooit contact op met OneUptime. Een token dat voor een instantie-ID is uitgegeven, wordt door elke andere installatie geweigerd, en een token dat voor geen enkele instantie-ID is uitgegeven (zoals het token dat een online geactiveerde installatie ontvangt), wordt ook geweigerd. Om te verlengen of plaatsen toe te voegen, activeert u een nieuw token voordat het huidige verloopt.

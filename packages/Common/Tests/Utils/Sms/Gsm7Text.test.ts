@@ -2,9 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import {
   GSM_7_LOOK_ALIKES,
+  isGsm7OutsideLinks,
   toGsm7Message,
   toGsm7Text,
   toOneLine,
+  toUcs2Message,
+  toUcs2Text,
 } from "../../../Utils/Sms/Gsm7Text";
 import {
   GSM_7_BASIC_CHARACTERS,
@@ -503,6 +506,107 @@ describe("toGsm7Message", () => {
 
     expect(written.result).toBe(worst.trimEnd());
     expect(written.inMs).toBeLessThan(2000);
+  });
+});
+
+/*
+ * A TEXT THAT GOES OUT IN UCS-2 WHATEVER ITS PUNCTUATION (toUcs2Text): a
+ * status page's text to a subscriber who reads Chinese, Japanese or
+ * Persian. Its punctuation costs the same as a look-alike there, so it
+ * stays as written; what says nothing is still left out.
+ */
+describe("toUcs2Text", () => {
+  test.each([
+    [
+      "Chinese full-width punctuation",
+      "\u{4E8B}\u{4EF6}\u{FF1A}\u{652F}\u{4ED8}\u{5931}\u{8D25}\u{FF08}\u{6B27}\u{6D32}\u{FF09}\u{FF0C}\u{8BF7}\u{7A0D}\u{5019}\u{3002}",
+    ],
+    [
+      "curly quotes and a dash around Cyrillic",
+      "\u{0421}\u{0431}\u{043E}\u{0439} \u{201C}\u{043E}\u{043F}\u{043B}\u{0430}\u{0442}\u{044B}\u{201D} \u{2013} API",
+    ],
+    [
+      "a Persian word written with its joiner",
+      "\u{0645}\u{06CC}\u{200C}\u{0634}\u{0648}\u{062F}",
+    ],
+    [
+      "the isolates around an English title in a Persian sentence",
+      "\u{062D}\u{0627}\u{062F}\u{062B}\u{0647} \u{2068}Payments (EU)\u{2069} \u{0628}\u{0631}\u{0637}\u{0631}\u{0641} \u{0634}\u{062F}",
+    ],
+    ["a sign GSM-7 writes as a look-alike", "\u{00A9} 2026 Acme \u{2122}"],
+    ["a line break", "\u{4E00}\n\u{4E8C}"],
+  ])("keeps %s as written", (_name: string, text: string) => {
+    expect(toUcs2Text(text)).toBe(text);
+  });
+
+  test.each([
+    [
+      "an emoji and its selector",
+      "\u{652F}\u{4ED8}\u{1F525}\u{2764}\u{FE0F}",
+      "\u{652F}\u{4ED8}",
+    ],
+    ["a flag", "\u{652F}\u{1F1EA}\u{1F1FA}\u{4ED8}", "\u{652F}\u{4ED8}"],
+    ["a private-use glyph", "\u{652F}\u{E000}\u{4ED8}", "\u{652F}\u{4ED8}"],
+    ["a zero-width space", "\u{652F}\u{200B}\u{4ED8}", "\u{652F}\u{4ED8}"],
+    ["a joiner between two Latin letters", "a\u{200C}b", "ab"],
+    ["a control character", "\u{652F}\u{0007}\u{4ED8}", "\u{652F}\u{4ED8}"],
+  ])(
+    "leaves out %s, as toGsm7Text does",
+    (_name: string, text: string, written: string) => {
+      expect(toUcs2Text(text)).toBe(written);
+    },
+  );
+
+  test("writes a tab and a space of any kind as a space", () => {
+    expect(
+      toUcs2Text("\u{652F}\t\u{4ED8}\u{3000}\u{5931}\u{00A0}\u{8D25}"),
+    ).toBe("\u{652F} \u{4ED8} \u{5931} \u{8D25}");
+  });
+});
+
+describe("toUcs2Message", () => {
+  test("writes the words as toUcs2Text does and the links exactly as written", () => {
+    const link: string = "https://status.acme.example/i/42?t=a\u{2013}b";
+
+    expect(
+      toUcs2Message(
+        `\u{8BE6}\u{60C5}\u{FF1A} ${link} \u{3002}\u{1F525}  \u{9000}\u{8BA2}`,
+      ),
+    ).toBe(`\u{8BE6}\u{60C5}\u{FF1A} ${link} \u{3002} \u{9000}\u{8BA2}`);
+  });
+
+  test("400,000 characters of emoji, isolates, full-width punctuation and spaces take well under two seconds", () => {
+    const worst: string = "\u{1F525}\u{2068}\u{FF1A} \u{4E00}\u{2069} ".repeat(
+      50000,
+    );
+    const written: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return toUcs2Message(worst);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(
+      written.result.startsWith("\u{2068}\u{FF1A} \u{4E00}\u{2069} "),
+    ).toBe(true);
+    expect(written.result).not.toContain("  ");
+    expect(written.inMs).toBeLessThan(2000);
+  });
+});
+
+describe("isGsm7OutsideLinks", () => {
+  test("reads a message's words, never its links", () => {
+    expect(
+      isGsm7OutsideLinks("Details: https://acme.example/caf\u{2013}1"),
+    ).toBe(true);
+    expect(isGsm7OutsideLinks("Details:\nhttps://acme.example")).toBe(true);
+    expect(isGsm7OutsideLinks("\u{8BE6}\u{60C5}: https://acme.example")).toBe(
+      false,
+    );
+    expect(isGsm7OutsideLinks("Details:\u{3000}https://acme.example")).toBe(
+      false,
+    );
+    expect(isGsm7OutsideLinks("")).toBe(true);
   });
 });
 

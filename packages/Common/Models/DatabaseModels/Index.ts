@@ -105,6 +105,8 @@ import RumApplicationLabelRule from "./RumApplicationLabelRule";
 import RumApplicationOwnerRule from "./RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "./ServerlessFunctionInstance";
 import CloudResourceInstance from "./CloudResourceInstance";
+import CloudApp from "./CloudApp";
+import CloudAppRevision from "./CloudAppRevision";
 import RumApplicationClient from "./RumApplicationClient";
 import RumSessionReplayView from "./RumSessionReplayView";
 import RumSessionErasureRequest from "./RumSessionErasureRequest";
@@ -148,6 +150,7 @@ import IncidentState from "./IncidentState";
 import IncidentStateTimeline from "./IncidentStateTimeline";
 import Form from "./Form";
 import FormSubmission from "./FormSubmission";
+import FormDomain from "./FormDomain";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -156,6 +159,7 @@ import Label from "./Label";
 import LogSavedView from "./LogSavedView";
 import MetricSavedView from "./MetricSavedView";
 import TraceSavedView from "./TraceSavedView";
+import ExceptionSavedView from "./ExceptionSavedView";
 import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
@@ -182,6 +186,7 @@ import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import DataStore from "./DataStore";
 import DataStoreFinding from "./DataStoreFinding";
 import DataStoreAccess from "./DataStoreAccess";
+import DataSecurityIdentity from "./DataSecurityIdentity";
 import DataStoreFeed from "./DataStoreFeed";
 import DataStoreOwnerUser from "./DataStoreOwnerUser";
 import DataStoreOwnerTeam from "./DataStoreOwnerTeam";
@@ -429,6 +434,7 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
+import TelemetryExceptionActivity from "./TelemetryExceptionActivity";
 import TelemetrySourceMap from "./TelemetrySourceMap";
 import InventoryItem from "./InventoryItem";
 import InventoryItemCustomField from "./InventoryItemCustomField";
@@ -615,6 +621,7 @@ const AllModelTypes: Array<{
   LogSavedView,
   MetricSavedView,
   TraceSavedView,
+  ExceptionSavedView,
   LogPipeline,
   LogPipelineProcessor,
   LogDropFilter,
@@ -643,6 +650,7 @@ const AllModelTypes: Array<{
   DataStore,
   DataStoreFinding,
   DataStoreAccess,
+  DataSecurityIdentity,
   DataStoreFeed,
   DataStoreOwnerUser,
   DataStoreOwnerTeam,
@@ -724,6 +732,7 @@ const AllModelTypes: Array<{
   IncidentPostmortemStatus,
   Form,
   FormSubmission,
+  FormDomain,
 
   AlertState,
   Alert,
@@ -1035,6 +1044,7 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+  TelemetryExceptionActivity,
   TelemetrySourceMap,
   InventoryItem,
   InventoryItemCustomField,
@@ -1185,6 +1195,8 @@ const AllModelTypes: Array<{
   RumApplicationOwnerRule,
   ServerlessFunctionInstance,
   CloudResourceInstance,
+  CloudApp,
+  CloudAppRevision,
   RumApplicationClient,
   RumSessionReplayView,
   RumSessionErasureRequest,

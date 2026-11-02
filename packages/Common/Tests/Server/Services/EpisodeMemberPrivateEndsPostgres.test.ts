@@ -125,6 +125,8 @@ interface Seeded {
   recordTeamOwnerUserId: ObjectID;
   // Owns the private episode, directly.
   episodeOwnerUserId: ObjectID;
+  // The team that owns the private record, the one above is on.
+  recordOwnerTeamId: ObjectID;
 }
 
 // The people every fixture names: see Seeded.
@@ -136,10 +138,16 @@ type People = Pick<
   | "episodeOwnerUserId"
 >;
 
+/*
+ * A member's props: the permission on a team of theirs, the row naming it
+ * as the API's rows do (UserPermission.teamId) - a private record is
+ * changed only with the permissions of the teams that own it.
+ */
 function userProps(
   projectId: ObjectID,
   userId: ObjectID,
   permission: Permission,
+  teamId?: ObjectID | undefined,
 ): DatabaseCommonInteractionProps {
   return {
     tenantId: projectId,
@@ -155,6 +163,7 @@ function userProps(
             permission: permission,
             labelIds: [],
             isBlockPermission: false,
+            ...(teamId ? { teamId: teamId } : {}),
           },
         ],
       },
@@ -363,7 +372,8 @@ describePostgres(
         [teamId, projectId, `s${teamId}`],
       );
       await database.query(
-        `INSERT INTO "TeamMember" ("_id","projectId","teamId","userId","version") VALUES ($1,$2,$3,$4,1)`,
+        // An accepted member: a pending invitation shows no private record.
+        `INSERT INTO "TeamMember" ("_id","projectId","teamId","userId","hasAcceptedInvitation","version") VALUES ($1,$2,$3,$4,TRUE,1)`,
         [id(), projectId, teamId, people.recordTeamOwnerUserId.toString()],
       );
       await database.query(
@@ -387,6 +397,7 @@ describePostgres(
         privateEpisodeId: new ObjectID(privateEpisodeId),
         publicRecordId: new ObjectID(publicRecordId),
         privateRecordId: new ObjectID(privateRecordId),
+        recordOwnerTeamId: new ObjectID(teamId),
         ...people,
       };
     }
@@ -527,7 +538,15 @@ describePostgres(
               s,
               s.publicEpisodeId,
               s.privateRecordId,
-              userProps(s.projectId, s[owner], Permission.ProjectMember),
+              userProps(
+                s.projectId,
+                s[owner],
+                Permission.ProjectMember,
+                // Through the team that owns it, with that team's permission.
+                owner === "recordTeamOwnerUserId"
+                  ? s.recordOwnerTeamId
+                  : undefined,
+              ),
             ),
           ).toBeNull();
 

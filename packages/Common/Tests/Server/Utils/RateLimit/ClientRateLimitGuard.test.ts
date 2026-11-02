@@ -73,6 +73,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
     "OneUptime AI's live reads per cloud account and minute",
+  "packages/Common/Server/Utils/Form/FormFileAllowance.ts":
+    "megabytes of files a form takes in per hour, every address together",
 };
 
 /*
@@ -110,6 +112,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a sign-in from Vercel Marketplace",
   "packages/Common/Server/API/FormAPI.ts":
     "checks the form's IP allowlist; its requests are counted by FormRateLimit",
+  "packages/App/FeatureSet/Frontend/Index.ts":
+    "checks a form's IP allowlist before its own domain's page is titled with the form's name",
   "packages/Common/Server/API/TelemetryAPI.ts":
     "records who watched a session replay",
   "packages/Common/Server/Services/DashboardService.ts":

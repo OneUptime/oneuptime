@@ -1,13 +1,13 @@
 # Controlli e problemi di Sicurezza dei dati
 
-Sicurezza dei dati esegue 32 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita.
+Sicurezza dei dati esegue 33 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita.
 
 :::cards
 - [Come decide un controllo](#come-decide-un-controllo): Superato, non superato o non può stabilirlo, e quanto è grave un fallimento.
-- [Tutti i controlli](#tutti-i-controlli): Tutti i 32, con cosa verifica ciascuno e come correggerlo.
+- [Tutti i controlli](#tutti-i-controlli): Tutti i 33, con cosa verifica ciascuno e come correggerlo.
 - [Punteggio di rischio](#punteggio-di-rischio): Come vengono ordinati i problemi all'interno di una gravità.
 - [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema.
-- [Correggi da qui](#correggi-da-qui): Blocca un bucket pubblico, o interrompi la condivisione di uno snapshot, con un clic.
+- [Correggi da qui](#correggi-da-qui): Chiudi un'esposizione, o attiva una protezione mancante, con un clic.
 :::
 
 ## Come decide un controllo
@@ -75,6 +75,7 @@ La gravità è indicata per i dati di livello Ristretto, Confidenziale, Interno 
 | Chiunque abbia la chiave dell'account può leggere tutto (`shared-key-access`) | Azure Storage Account | L'account di archiviazione consente l'accesso con chiave condivisa, che aggira Microsoft Entra ID e non lascia una traccia di audit per persona. | Medio / Basso / — / — | Sposta le applicazioni su Microsoft Entra ID, poi disattiva l'accesso con chiave dell'account di archiviazione. |
 | Gli oggetti possono avere regole di accesso proprie (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | Le ACL degli oggetti sono attive, quindi un oggetto può essere reso pubblico mentre il bucket sembra privato. | Basso / Basso / — / — | Su S3, imposta Object Ownership su Bucket owner enforced. Su Cloud Storage, attiva l'accesso uniforme a livello di bucket. |
 | Più di 25 identità possono leggere dati di livello Ristretto (`many-readers`) | Ogni archivio tranne la telemetria | Più identità di quante la maggior parte dei team riesca a esaminare hanno accesso in lettura all'archivio. | Medio / — / — / — | Apri la pagina **Chi può accedervi** dell'archivio, e rimuovi gli accessi inutilizzati o più ampi del necessario. |
+| Identità inutilizzate da 90 giorni possono ancora raggiungerlo (`unused-access`) | Ogni archivio tranne la telemetria | Ruoli e utenti non usati da 90 giorni hanno ancora accesso ai dati sensibili dell'archivio. | Medio / Basso / — / — | Apri la pagina **Chi può accedervi** dell'archivio, dove sono contrassegnati **Non usata da 90 giorni**, e rimuovi l'accesso che a ciascuno non serve più. |
 
 ### Igiene dei dati
 
@@ -160,14 +161,20 @@ Un problema che si riapre mantiene la sua cronologia. I rischi accettati vengono
 
 ## Correggi da qui
 
-Un problema aperto su un bucket pubblico o su uno snapshot condiviso può essere corretto dalla sua pagina. Sopra i passaggi della console, **Correggi da qui** propone la modifica che lo corregge:
+Un problema aperto che una sola modifica alle impostazioni di un archivio corregge - un bucket pubblico, uno snapshot condiviso, un bucket i cui file eliminati non si possono recuperare - può essere corretto dalla sua pagina. Sopra i passaggi della console, **Correggi da qui** propone la modifica che lo corregge:
 
 | Il problema | Il suo archivio | Il pulsante | Cosa cambia |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` o `public-access-not-blocked` | Un bucket S3, un account di archiviazione Azure o un bucket Cloud Storage | **Blocca l'accesso pubblico** | Attiva le quattro impostazioni di Block Public Access del bucket, disattiva l'accesso anonimo ai blob dell'account di archiviazione, o applica la prevenzione dell'accesso pubblico del bucket |
 | `snapshot-public` o `snapshot-shared-externally` | Uno snapshot RDS, un database RDS, o un cluster Aurora o DocumentDB | **Revoca la condivisione** | Interrompe la condivisione dello snapshot, o di ogni snapshot manuale condiviso del database, con tutti e con gli account esterni a quelli che hai collegato |
+| `deleted-data-not-recoverable` | Un bucket S3 o un bucket Cloud Storage | **Attiva il controllo delle versioni** | Conserva la versione precedente di ogni oggetto sovrascritto o eliminato, finché una regola del ciclo di vita non la rimuove |
+| `deleted-data-not-recoverable` | Un account di archiviazione Azure | **Attiva l'eliminazione temporanea** | Conserva i blob e i contenitori eliminati per 14 giorni, così da poterli ripristinare |
+| `object-acls-enabled` | Un bucket S3 | **Disattiva le ACL degli oggetti** | Imposta Object Ownership su Bucket owner enforced, così solo la policy del bucket decide chi lo legge |
+| `object-acls-enabled` | Un bucket Cloud Storage | **Attiva l'accesso uniforme** | Attiva l'accesso uniforme a livello di bucket, così solo la policy IAM del bucket decide chi lo legge |
+| `encryption-in-transit-not-enforced` o `weak-tls` | Un account di archiviazione Azure | **Richiedi il trasferimento sicuro** | Attiva il trasferimento sicuro e imposta la versione minima di TLS a 1.2, così l'account accetta solo HTTPS con TLS 1.2 o successivo |
+| `no-point-in-time-recovery` | Una tabella DynamoDB | **Attiva il ripristino point-in-time** | Permette di ripristinare la tabella a qualsiasi secondo degli ultimi 35 giorni |
 
-Prima chiede conferma, dicendo cosa cambia e cosa smette di funzionare. Cambia il modo in cui l'archivio è condiviso, mai i suoi dati, e non cambia nulla che sia già chiuso. Un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato.
+Prima chiede conferma, dicendo cosa cambia, cosa smette di funzionare e quanto costa. Cambia le impostazioni dell'archivio, mai i suoi dati, e non cambia nulla che sia già come dovrebbe. Un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato.
 
 Agisce tramite la connessione cloud dell'archivio, quindi la connessione deve avere **Risposta di sicurezza dei dati** attivata e il suo comando di configurazione eseguito di nuovo (vedi [Configurare Sicurezza dei dati](/docs/data-security/setup#lasciare-che-sicurezza-dei-dati-chiuda-unesposizione)). Fino ad allora il pannello dice cosa attivare. L'archivio viene controllato di nuovo subito dopo, e il problema si risolve da solo quando il suo controllo viene superato. La **Cronologia** del problema e la **Cronologia** dell'archivio dicono cosa è stato fatto, e chi l'ha fatto.
 

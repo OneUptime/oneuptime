@@ -36,9 +36,16 @@ export type ResizeDirection = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 export type GridDndMode = "move" | "resize";
 
 export interface GridDndMetrics {
-  /** Width (= height) of one dashboard unit, in px. */
+  /** Width of one dashboard unit, in px: a twelfth of the board, less the gaps. */
   unitSizeInPx: number;
-  /** Gap between units, in px. */
+  /*
+   * Height of one row of units, in px, when it is not the unit's width: a
+   * board narrower than its square grid narrows its columns and keeps its
+   * rows (Common/Utils/Dashboard/DashboardBoardLayout). Left out, a row is
+   * as tall as a unit is wide.
+   */
+  rowUnitSizeInPx?: number | undefined;
+  /** Gap between units, in px, across and down. */
   gapInPx: number;
   columns: number;
 }
@@ -192,28 +199,48 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
 
   // ── px helpers ────────────────────────────────────────────────────────
 
-  type CellSizeFunction = () => number;
-  const getCellSize: CellSizeFunction = (): number => {
+  /*
+   * Across, a unit is a column's width; down, a row's height. They are the
+   * same on a wide board, and a row is taller on a narrow one.
+   */
+  type Axis = "x" | "y";
+
+  type UnitSizeFunction = (axis: Axis) => number;
+  const getUnitSize: UnitSizeFunction = (axis: Axis): number => {
     const m: GridDndMetrics = propsRef.current.metrics;
-    return m.unitSizeInPx + m.gapInPx;
+    return axis === "y" && m.rowUnitSizeInPx !== undefined
+      ? m.rowUnitSizeInPx
+      : m.unitSizeInPx;
   };
 
-  type UnitsToPxFunction = (units: number) => number;
-  const unitsToPositionPx: UnitsToPxFunction = (units: number): number => {
-    return units * getCellSize();
+  type CellSizeFunction = (axis: Axis) => number;
+  const getCellSize: CellSizeFunction = (axis: Axis): number => {
+    return getUnitSize(axis) + propsRef.current.metrics.gapInPx;
   };
-  const unitsToSizePx: UnitsToPxFunction = (units: number): number => {
-    const m: GridDndMetrics = propsRef.current.metrics;
-    return units * m.unitSizeInPx + (units - 1) * m.gapInPx;
+
+  type UnitsToPxFunction = (units: number, axis: Axis) => number;
+  const unitsToPositionPx: UnitsToPxFunction = (
+    units: number,
+    axis: Axis,
+  ): number => {
+    return units * getCellSize(axis);
+  };
+  const unitsToSizePx: UnitsToPxFunction = (
+    units: number,
+    axis: Axis,
+  ): number => {
+    return (
+      units * getUnitSize(axis) + (units - 1) * propsRef.current.metrics.gapInPx
+    );
   };
 
   type RectToPxFunction = (rect: GridRect) => PxRect;
   const rectToPx: RectToPxFunction = (rect: GridRect): PxRect => {
     return {
-      x: unitsToPositionPx(rect.left),
-      y: unitsToPositionPx(rect.top),
-      width: unitsToSizePx(rect.width),
-      height: unitsToSizePx(rect.height),
+      x: unitsToPositionPx(rect.left, "x"),
+      y: unitsToPositionPx(rect.top, "y"),
+      width: unitsToSizePx(rect.width, "x"),
+      height: unitsToSizePx(rect.height, "y"),
     };
   };
 
@@ -340,7 +367,7 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
       : session.latestClientY;
 
     const origin: PxRect = rectToPx(session.originRect);
-    const boardWidth: number = unitsToSizePx(metrics.columns);
+    const boardWidth: number = unitsToSizePx(metrics.columns, "x");
 
     if (session.mode === "move") {
       const grabOffsetX: number = session.grabFracX * origin.width;
@@ -352,7 +379,7 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
       let x: number = pointerCanvasX - grabOffsetX;
       let y: number = pointerCanvasY - grabOffsetY;
       x = Math.min(Math.max(x, 0), Math.max(boardWidth - origin.width, 0));
-      y = Math.min(Math.max(y, 0), unitsToPositionPx(maxTopUnits));
+      y = Math.min(Math.max(y, 0), unitsToPositionPx(maxTopUnits, "y"));
       return { x, y, width: origin.width, height: origin.height };
     }
 
@@ -364,8 +391,12 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
 
     const minWidthPx: number = unitsToSizePx(
       Math.min(session.originRect.minWidth, metrics.columns),
+      "x",
     );
-    const minHeightPx: number = unitsToSizePx(session.originRect.minHeight);
+    const minHeightPx: number = unitsToSizePx(
+      session.originRect.minHeight,
+      "y",
+    );
 
     let x: number = origin.x;
     let y: number = origin.y;
@@ -384,6 +415,7 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
           session.maxBottomUnits - session.originRect.top,
           session.originRect.minHeight,
         ),
+        "y",
       );
       height = Math.min(Math.max(origin.height + dy, minHeightPx), maxHeightPx);
     }
@@ -406,9 +438,13 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
     raw: PxRect,
   ): GridRect => {
     const metrics: GridDndMetrics = propsRef.current.metrics;
-    const cell: number = getCellSize();
+    const columnCell: number = getCellSize("x");
+    const rowCell: number = getCellSize("y");
 
-    const sizeToUnits: (px: number) => number = (px: number): number => {
+    const sizeToUnits: (px: number, cell: number) => number = (
+      px: number,
+      cell: number,
+    ): number => {
       return Math.max(1, Math.round((px + metrics.gapInPx) / cell));
     };
 
@@ -420,8 +456,8 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
       return GridLayoutUtil.clampRect(
         {
           ...session.originRect,
-          left: Math.round(raw.x / cell),
-          top: Math.min(Math.round(raw.y / cell), maxTopUnits),
+          left: Math.round(raw.x / columnCell),
+          top: Math.min(Math.round(raw.y / rowCell), maxTopUnits),
         },
         metrics.columns,
       );
@@ -440,17 +476,17 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
       session.originRect.top + session.originRect.height;
 
     if (direction.includes("e")) {
-      width = sizeToUnits(raw.width);
+      width = sizeToUnits(raw.width, columnCell);
     }
     if (direction.includes("s")) {
-      height = sizeToUnits(raw.height);
+      height = sizeToUnits(raw.height, rowCell);
     }
     if (direction.includes("w")) {
-      width = sizeToUnits(raw.width);
+      width = sizeToUnits(raw.width, columnCell);
       left = rightEdge - width;
     }
     if (direction.includes("n")) {
-      height = sizeToUnits(raw.height);
+      height = sizeToUnits(raw.height, rowCell);
       top = bottomEdge - height;
     }
 

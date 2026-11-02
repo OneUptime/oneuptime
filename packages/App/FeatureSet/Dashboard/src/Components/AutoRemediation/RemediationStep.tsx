@@ -59,8 +59,10 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import {
   InvestigationCodeFixSuggestion,
   parseInvestigationCodeFixSuggestion,
@@ -938,6 +940,10 @@ const CODE_FIX_POLL_INTERVAL_MS: number = 15 * 1000;
  * - when nothing was fixed and the record is open - Try again, which decides
  * again with the project's settings of now.
  */
+// What Try again's gate asks about: the record itself.
+const PRIVATE_RECORD_INCIDENT: Incident = new Incident();
+const PRIVATE_RECORD_ALERT: Alert = new Alert();
+
 const RemediationStep: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -1008,6 +1014,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   const signal: RemediationDecisionSignal = incidentIdString
     ? "incident"
     : "alert";
+  /*
+   * On a private incident's or alert's page, what the reader holds on it
+   * (PrivateRecordScope): Try again changes the record, which the server
+   * allows only through a team of theirs that owns it.
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(
+      incidentIdString ? PRIVATE_RECORD_INCIDENT : PRIVATE_RECORD_ALERT,
+    );
   const currentSubjectIdRef: React.MutableRefObject<string> =
     useRef<string>(subjectIdString);
   currentSubjectIdRef.current = subjectIdString;
@@ -2170,6 +2185,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   const updateGate: PermissionGateResult = PermissionGate.check(
     incidentIdString ? new Incident() : new Alert(),
     ModelAction.Update,
+    privateRecordOptions,
   );
   const isTryAgainOffered: boolean =
     updateGate.isAllowed &&

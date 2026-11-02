@@ -51,6 +51,8 @@ Pour un type liste déroulante, ajoutez ses options sous **Options de la liste d
 | **Date et heure** | Dernier audit le, mis hors service le |
 | **Texte long** | Instructions d'accès, notes : plusieurs lignes de texte brut |
 | **Texte enrichi (Markdown)** | Notes avec mise en forme et liens, rédigées dans l'éditeur Markdown |
+| **Fichier** | Un certificat de garantie, un bon de commande signé, une photo de l'étiquette de la baie : un fichier |
+| **Plusieurs fichiers** | Manuels, factures et photos : jusqu'à 10 fichiers |
 
 ## Un vocabulaire d'actifs pas à pas
 
@@ -79,6 +81,9 @@ Chaque champ personnalisé devient un filtre au-dessus de la liste **Tous les é
 | **Nombre** | est, n'est pas, est supérieur à, est supérieur ou égal à, est inférieur à, est inférieur ou égal à, est vide, n'est pas vide |
 | **Booléen**, **Liste déroulante (choix unique)**, **Liste déroulante (choix multiple)** | est, n'est pas, est vide, n'est pas vide |
 | **Date**, **Date et heure** | est, est avant, est après, est entre, est vide, n'est pas vide |
+| **Fichier**, **Plusieurs fichiers** | est |
+
+Une puce **Fichier** ou **Plusieurs fichiers** ne demande qu'une chose : si le champ **Contient des fichiers** ou n'en a **Aucun fichier**.
 
 Les filtres se combinent avec ET, donc « Warranty Expiry est avant 2026-10-01 ET Lifecycle Status est En service » est une seule vue de la liste. C'est précisément la question à laquelle un registre d'actifs répond, et la raison d'utiliser les types date plutôt qu'une date dans un champ texte : un champ texte stocke volontiers `2026-10-01`, puis ne sait pas dire ce qui expire le trimestre prochain.
 
@@ -91,6 +96,7 @@ Les colonnes de champs personnalisés sont masquées au départ : activez-les de
 - Rien ne rend une valeur unique. Deux éléments peuvent porter le même numéro de série, et rien ne vous en empêche.
 - Les dates sont stockées sous forme d'horodatages ISO-8601 en UTC et affichées dans votre propre fuseau horaire.
 - Supprimer un champ le retire de la liste et de la barre de filtres. Les valeurs déjà écrites restent sur les éléments.
+- Un champ **Fichier** ou **Plusieurs fichiers** prend des fichiers de 10 Mo au plus chacun, des types listés dans [Champs de fichier](/docs/incidents/settings#champs-de-fichier), envoyés dans le projet. Seule une personne qui peut voir l'élément peut les télécharger, et un fichier est supprimé dès que plus rien ne le garde.
 
 ## Prochaines étapes
 

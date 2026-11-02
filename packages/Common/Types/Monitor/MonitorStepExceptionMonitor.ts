@@ -55,10 +55,11 @@ export class MonitorStepExceptionMonitorUtil {
 
     // Compiles to hasAny(entityKeys, [...]) server-side. Undefined/empty is a no-op.
     if (
-      monitorStepExceptionMonitor.entityKeys &&
-      monitorStepExceptionMonitor.entityKeys.length > 0
+      MonitorStepExceptionMonitorUtil.hasEntityFilter(
+        monitorStepExceptionMonitor,
+      )
     ) {
-      query.entityKeys = new Includes(monitorStepExceptionMonitor.entityKeys);
+      query.entityKeys = new Includes(monitorStepExceptionMonitor.entityKeys!);
     }
 
     const environments: Array<string> =
@@ -93,6 +94,26 @@ export class MonitorStepExceptionMonitorUtil {
     }
 
     return query;
+  }
+
+  /*
+   * Whether the monitor is scoped to infrastructure entities: its occurrence
+   * query then keeps only the occurrences that carry one of them
+   * (toAnalyticsQuery). An entity is a property of each occurrence, not of
+   * the exception group, so the new and regressed exceptions such a monitor
+   * counts are the groups of those occurrences
+   * (ExceptionMonitorMeasureReader).
+   */
+  public static hasEntityFilter(
+    monitorStepExceptionMonitor: Pick<
+      MonitorStepExceptionMonitor,
+      "entityKeys"
+    >,
+  ): boolean {
+    return Boolean(
+      monitorStepExceptionMonitor.entityKeys &&
+        monitorStepExceptionMonitor.entityKeys.length > 0,
+    );
   }
 
   /*

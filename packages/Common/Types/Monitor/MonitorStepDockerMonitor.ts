@@ -10,6 +10,11 @@ export interface DockerContainerFilters {
 
 export default interface MonitorStepDockerMonitor {
   hostIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   containerFilters: DockerContainerFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;

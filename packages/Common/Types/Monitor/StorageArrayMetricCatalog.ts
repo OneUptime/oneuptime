@@ -479,14 +479,23 @@ const storageArrayMetricCatalog: Array<StorageArrayMetricDefinition> = [
   {
     id: "purefa-pod-replication-bandwidth",
     friendlyName: "Pod Replication Bandwidth",
+    /*
+     * The exporter sends one series per replication type (dimension:
+     * continuous, resync, sync, periodic) and direction (from_remote,
+     * to_remote, and their total). Unpinned, the Max of all twelve was
+     * sometimes one direction and sometimes the total. Pinned to the total,
+     * Max is the replication type carrying the most: a pod replicates one
+     * way at a time.
+     */
     description:
-      "Replication traffic of each pod in bytes per second, with direction and dimension labels.",
+      "Replication traffic of each pod in bytes per second, both directions together (direction total), for the replication type (dimension) that carries the most.",
     metricName: "purefa_pod_performance_replication_bandwidth_bytes",
     category: "Replication",
     storageSystems: FA,
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: StorageArrayResourceScope.Pod,
     unit: "bytes/s",
+    attributes: { direction: "total" },
   },
   {
     id: "purefa-pod-write-latency",

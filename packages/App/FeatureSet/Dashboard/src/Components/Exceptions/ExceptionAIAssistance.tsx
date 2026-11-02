@@ -56,7 +56,7 @@ import {
   parseAIAgentTasksResponse,
   parseAIFixReadinessResponse,
 } from "../../Utils/ExceptionAIAssistance";
-import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
+import { exceptionTimeValue } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
@@ -65,6 +65,7 @@ import FixProductionVerdict from "../AI/FixProductionVerdict";
 import { CodeTaskBlockerType } from "Common/Types/AI/CodeTask";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ComposedValue,
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -448,9 +449,10 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
       isBlockedBySetup,
       startRefusedReason,
     });
-    const startedAgo: string | null = task
-      ? formatRelativeTime(task.createdAt)
-      : null;
+    // In the sentence's own language (exceptionTimeValue).
+    const startedAgo: ComposedValue | undefined = task
+      ? exceptionTimeValue(task.createdAt)
+      : undefined;
 
     return (
       <section

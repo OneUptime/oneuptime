@@ -12,6 +12,12 @@
  *   &template=<id>        the graph a workflow template builds, as Create
  *                         Workflow saves it: the Builder opens on it right
  *                         after the dialog closes
+ *     &picked=1           with someone picked for each of its Page steps, as
+ *                         the dialog's who-to-page question fills them in
+ *     &picked=none        with nobody picked: a Page step that may page
+ *                         nobody is left out, with the steps only it needs
+ *                         Without &picked, the template's own graph: its Page
+ *                         steps wait for who to page.
  *   &enabled=1            a workflow that is on
  *   &column=430           the width, in pixels, of the column the page is
  *                         drawn in: 430 is the Builder's column on a tablet,
@@ -29,7 +35,10 @@ import Permission from "Common/Types/Permission";
 import { ComponentType, NodeType } from "Common/Types/Workflow/Component";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import { buildGraphForTemplate } from "Common/Types/Workflow/Templates";
+import {
+  buildGraphForTemplate,
+  getWorkflowTemplate,
+} from "Common/Types/Workflow/Templates";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
@@ -47,6 +56,33 @@ export const BUILDER_WORKFLOW_ID = "55555555-5555-4555-8555-555555555555";
 const BUILDER_USER_ID = "66666666-6666-4666-8666-666666666666";
 
 const params = new URLSearchParams(window.location.search);
+
+// Whoever the create dialog's who-to-page question picked: one on-call policy, team or person.
+export const PICKED_TO_PAGE_ID = "77777777-7777-4777-8777-777777777777";
+
+/*
+ * Who was picked for each of a template's Page steps (&picked), as the
+ * create dialog hands them to buildGraphForTemplate.
+ */
+function whoToPagePicks(templateId) {
+  const picked = params.get("picked");
+
+  if (picked === "none") {
+    return {};
+  }
+
+  if (picked !== "1") {
+    return undefined;
+  }
+
+  const picks = {};
+
+  for (const ask of getWorkflowTemplate(templateId)?.whoToPage || []) {
+    picks[ask.componentId] = [PICKED_TO_PAGE_ID];
+  }
+
+  return picks;
+}
 
 // A step as a saved graph stores it: the Builder fills in its metadata.
 function savedStep(metadataId, componentType, y, args) {
@@ -74,10 +110,14 @@ function savedGraph() {
   if (templateId) {
     let counter = 0;
 
-    const built = buildGraphForTemplate(templateId, () => {
-      counter++;
-      return `template-${counter}`;
-    });
+    const built = buildGraphForTemplate(
+      templateId,
+      () => {
+        counter++;
+        return `template-${counter}`;
+      },
+      whoToPagePicks(templateId),
+    );
 
     if (!built) {
       throw new Error(`No workflow template ${templateId}`);

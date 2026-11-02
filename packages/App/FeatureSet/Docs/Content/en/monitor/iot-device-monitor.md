@@ -50,19 +50,19 @@ Under **Monitor Type**, click **More monitor types** and pick **IoT Device** und
 
 ### Choose the fleet
 
-Under **IoT Monitor Configuration**, pick the fleet from **IoT Fleet**. Every fleet that has sent data is in the list.
+Under **IoT Monitor Configuration**, pick the fleet from **IoT Fleet**. Every fleet that has sent data is in the list. Once picked, a line under the field says whether data is arriving. **Add IoT Fleet** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Pick one of the three tabs:
+A new monitor starts on **Device Offline**, under **What to alert on**. To watch something else:
 
-- **Quick Setup** - click a [template](#pre-built-alert-templates). It sets the metric, the aggregation, the time range, a group-by on `device.id` and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** - pick one metric from **IoT Metric**, then set **Aggregation** and **Time Range**. The [filters](#monitor-settings) narrow it to one device or one type of device. A custom metric is not grouped: it judges the fleet as a whole.
-- **Advanced** - build queries and formulas yourself under **Select Metrics**, including over metric names of your own, for example memory in use as a percentage of a device's memory size. Use **Group by** `device.id` to judge each device on its own.
+- **Change** - pick another [template](#pre-built-alert-templates). It sets the metric, the aggregation, the time range, a group-by on `device.id` and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** (under **More fields**) - pick one metric from **IoT Metric**, then set **Aggregation** and **Time Range**. The [filters](#monitor-settings) narrow it to one device or one type of device. A custom metric is not grouped: it judges the fleet as a whole.
+- **Advanced** (under **More fields**) - build queries and formulas yourself under **Select Metrics**, including over metric names of your own, for example memory in use as a percentage of a device's memory size. Use **Group by** `device.id` to judge each device on its own.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Select Metric Variable**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Select Metric Variable**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -88,7 +88,7 @@ The filters work together: with a **Device ID** and a **Device Type**, a device 
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers 5 templates. Each builds a complete monitor: the metric query, a group-by on `device.id`, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+The **What to alert on** list offers 5 templates. Each builds a complete monitor: the metric query, a group-by on `device.id`, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for every minute of its window - except **Device Offline**, which fires on the first reading below 1. A threshold criteria recovers 10% past its threshold, so a value hovering at the line does not flap.
 
@@ -117,6 +117,8 @@ A criteria fires only when the condition holds for every minute of its window - 
 | **The device is registered** | A device in the fleet's **Device Registry** is expected. When it sends nothing for the whole window, the monitor treats it as reporting `0`, so it gets an incident of its own, which resolves itself when the device reports again. |
 
 A registered device is also kept in the fleet's inventory as offline, where an unregistered one is removed after 15 minutes of silence. Silence detection needs the **Treat As Zero** no-data policy on the `iot_device_up` criteria, which Device Offline monitors created from the template have. A Device Offline monitor created before device registration existed needs it set by hand, or must be created again from the template.
+
+**Device Offline** judges each device on its latest reading, so a device that reported down and then up again is up at the next check. A Device Offline monitor that stays offline until the down reading is 30 minutes old was created before the template did this: pick the template again under **What to alert on** to update it.
 
 > [!NOTE]
 > An unregistered device that goes silent, without a Last Will or a gateway report, only stops sending data, and a monitor grouped per device cannot single it out. Register your devices, or give a critical device a monitor of its own (**Custom Metric**, with its **Device ID**) and set **If No Data** to **Trigger**. Silence detection also needs at least one other device of the fleet still reporting: a fleet that goes completely dark, during a gateway outage for example, raises one incident for the monitor, not one per device.
@@ -150,7 +152,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
 | **If No Data** | Under **More fields**. What happens when a series has no samples in the window: **Ignore** (the default) skips it, **Treat As Zero** reads it as `0`, and **Trigger** makes the criteria match. |
 
-Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history. A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes, and the baseline holds none.
 
 ### Default criteria
 

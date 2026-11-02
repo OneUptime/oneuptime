@@ -4,6 +4,7 @@ import {
   getDateLocale,
   isEnglishDateLanguage,
   rememberEnglishOf,
+  writeDigitsInLocale,
 } from "../../../Types/DateLanguage";
 import Timezone from "../../../Types/Timezone";
 
@@ -260,14 +261,26 @@ export const formatFeedTime: (date: Date, clock: FeedClock) => string = (
 /*
  * The zone's name at that instant - "EDT" in summer and "EST" in winter, or
  * "GMT+8" where the zone has no abbreviation - as every other date in the
- * product names it (OneUptimeDate.getZoneAbbrByTimezone).
+ * product names it (OneUptimeDate.getZoneAbbrByTimezone). Given the
+ * reader's language, its digits are the ones the feed's times are written
+ * in: "GMT+۰۳۳۰" beside a Persian time, not "GMT+0330".
  */
-export const getFeedZoneName: (date: Date, timezone: string) => string = (
+export const getFeedZoneName: (
   date: Date,
   timezone: string,
+  language?: string | undefined,
+) => string = (
+  date: Date,
+  timezone: string,
+  language?: string | undefined,
 ): string => {
   try {
-    return OneUptimeDate.getZoneAbbrByTimezone(timezone as Timezone, date);
+    const zone: string = OneUptimeDate.getZoneAbbrByTimezone(
+      timezone as Timezone,
+      date,
+    );
+
+    return language ? writeDigitsInLocale(zone, getFeedLocale(language)) : zone;
   } catch {
     return "";
   }
@@ -312,7 +325,11 @@ const writeFeedFullTime: (date: Date, clock: FeedClock) => string = (
     },
   });
 
-  const zoneName: string = getFeedZoneName(date, clock.timezone);
+  const zoneName: string = getFeedZoneName(
+    date,
+    clock.timezone,
+    clock.language,
+  );
 
   const written: string = format
     ? format.format(date)

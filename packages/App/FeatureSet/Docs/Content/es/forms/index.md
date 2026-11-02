@@ -94,6 +94,7 @@ En **Compartir**, copia el enlace y envíalo a las personas que deben usar el fo
 | **Plantillas** | Conjuntos de respuestas con nombre desde los que se puede empezar el formulario, cómo hace las preguntas cada uno, el que se abre por defecto y el enlace propio de cada uno. |
 | **Al enviar** | Qué crea cada envío y cómo se rellena cada uno de sus campos. **Editar configuración** cambia los valores predeterminados y lo que se aplica siempre. |
 | **Compartir** | **Acepta envíos**, el **Enlace para compartir**, el mensaje que se muestra tras enviar y, en **Más ajustes**, la **Lista de IP permitidas**. |
+| **Dominios personalizados** | Los dominios propios del formulario, como `report.acme.com`, con sus registros DNS y sus certificados. Consulta [Dominios personalizados](/docs/forms/sharing-and-security#dominios-personalizados). |
 | **Envíos** | Cada envío hecho con el formulario, el más reciente primero, con sus respuestas y lo que creó. |
 | **Duplicar formulario** | En **Avanzado**: una copia del formulario, con nombre puesto por ti, con sus preguntas, plantillas, ajustes de Al enviar, marca, mensaje de agradecimiento y lista de IP permitidas, y un enlace propio. La copia empieza desactivada y se abre en su editor. |
 | **Eliminar formulario** | La eliminación del formulario, en **Avanzado**. Sus envíos se eliminan con él; los incidentes y eventos que creó, no. |
@@ -135,6 +136,10 @@ Los formularios permiten que personas ajenas a tu equipo creen incidentes y even
 | **Read Form** | Ver los formularios, sus preguntas, sus ajustes y sus enlaces. | Los anteriores, más Project Member, Viewer y los roles de incidentes y de mantenimiento programado |
 | **Read Form Submission** | Ver los envíos y sus respuestas. | Project Owner, Project Admin |
 | **Delete Form Submission** | Eliminar envíos. | Project Owner, Project Admin |
+| **Create Form Domain** | Añadir un [dominio personalizado](/docs/forms/sharing-and-security#dominios-personalizados) a un formulario. | Project Owner, Project Admin y **Edit Form** |
+| **Edit Form Domain** | Comprobar los dominios personalizados de un formulario, y pedir, volver a emitir o cambiar sus certificados. | Project Owner, Project Admin y **Edit Form** |
+| **Delete Form Domain** | Quitar los dominios personalizados de un formulario. | Project Owner, Project Admin y **Edit Form** |
+| **Read Form Domain** | Ver los dominios personalizados de un formulario, sus registros DNS y en qué punto está cada uno camino de HTTPS. | Cualquiera con **Read Form** |
 
 Los envíos contienen lo que escribieron desconocidos (nombres, direcciones de correo y respuestas que quizá nunca lleguen al registro), así que solo los ven los propietarios y administradores del proyecto, salvo que concedas **Read Form Submission**. Quien puede leer un formulario puede ver y compartir su enlace. Enviar un formulario no necesita ningún permiso. Para ver cómo se combinan los roles y los permisos granulares, consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ En OneUptime Cloud, los formularios necesitan el plan **Growth** o superior, y l
 
 ## Formularios mediante la API
 
-Los formularios son un recurso normal de la API en `/api/form`, y sus envíos en `/api/form-submission`, que puedes leer y eliminar pero no crear ni editar. La [referencia de la API](/reference) contiene la forma completa de las solicitudes y las respuestas.
+Los formularios son un recurso normal de la API en `/api/form`, y sus envíos en `/api/form-submission`, que puedes leer y eliminar pero no crear ni editar. La [referencia de la API](/reference) contiene la forma completa de las solicitudes y las respuestas. Los dominios personalizados de un formulario están en `/api/form-domain`.
 
 ### Preguntas y ajustes
 
@@ -190,7 +195,7 @@ Cada pregunta tiene su propio `id` (letras, dígitos, `-` y `_`), una `source`, 
 
 | `source` | Qué pregunta |
 | --- | --- |
-| `Question` | Una pregunta propia del formulario, que se responde según su `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` o `DateTime`. Un desplegable enumera sus `dropdownOptions`, una por línea. |
+| `Question` | Una pregunta propia del formulario, que se responde según su `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` o `MultipleFiles`. Un desplegable enumera sus `dropdownOptions`, una por línea. |
 | `TargetField` | Un campo de lo que crea el formulario, nombrado por `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` para un incidente; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` y `labels` para un evento de mantenimiento. Un campo que se responde eligiendo enumera los registros que ofrece en `allowedOptionIds`. |
 | `TargetCustomField` | Uno de los campos personalizados del incidente o del evento, nombrado por `customFieldId`. |
 | `Submitter` | El `Name` o el `Email` de quien envía, nombrado por `submitterField`. |
@@ -247,13 +252,15 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   }'
 ```
 
+La respuesta a una pregunta de archivos son los archivos tal como se guardaron, cada uno con su `fileId`, `name`, `fileType` y `size`. Los archivos en sí están en lo que creó el envío: en su campo personalizado de archivo, o adjuntos a su nota privada.
+
 ### Workflows
 
 Los formularios tienen los componentes de workflow generados: **On Create Form**, **On Update Form**, etc. Para actuar sobre lo que creó un formulario, usa **On Create Incident** u **On Create Scheduled Maintenance Event**.
 
 ### Los endpoints propios de la página pública
 
-La página pública habla con dos rutas que no necesitan clave de API: `GET /api/form/public/<shareKey>`, que devuelve el nombre, la descripción y las preguntas del formulario (y su logotipo, el texto alternativo del logotipo y su favicon, las imágenes en base64, cuando los tiene, y sus plantillas, con sus respuestas a las preguntas que hace la página), y `POST /api/form/public/<shareKey>/submit`, que lo envía, nombrando en `templateId` la plantilla desde la que empezó quien envía. Son los endpoints propios de la página, no una API sobre la que construir: cada llamada pasa por las protecciones del formulario (consulta [Compartir y seguridad](/docs/forms/sharing-and-security)) y cambian con la página. Para crear incidentes desde tu propio código, usa `POST /api/incident` con una clave de API: consulta [Declarar un incidente](/docs/incidents/declaring-incidents).
+La página pública habla con dos rutas que no necesitan clave de API: `GET /api/form/public/<shareKey>`, que devuelve el nombre, la descripción y las preguntas del formulario (y su logotipo, el texto alternativo del logotipo y su favicon, las imágenes en base64, cuando los tiene, y sus plantillas, con sus respuestas a las preguntas que hace la página), y `POST /api/form/public/<shareKey>/submit`, que lo envía, nombrando en `templateId` la plantilla desde la que empezó quien envía. Son los endpoints propios de la página, no una API sobre la que construir: cada llamada pasa por las protecciones del formulario (consulta [Compartir y seguridad](/docs/forms/sharing-and-security)) y cambian con la página. Para crear incidentes desde tu propio código, usa `POST /api/incident` con una clave de API: consulta [Declarar un incidente](/docs/incidents/declaring-incidents). En un [dominio personalizado](/docs/forms/sharing-and-security#dominios-personalizados) de un formulario, la página usa en su lugar `GET /api/form/custom-domain` y `POST /api/form/custom-domain/submit` en ese dominio, que no llevan clave: el dominio indica el formulario.
 
 ## Dónde están tus formularios de incidentes
 

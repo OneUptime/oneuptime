@@ -41,6 +41,10 @@ import { DetailValueContext } from "./DetailValueContext";
 import EmptyValue from "./EmptyValue";
 import Field from "./Field";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
+import CustomFieldFileList, {
+  readCustomFieldFileEntries,
+} from "../CustomFields/CustomFieldFileList";
+import { CustomFieldFile } from "../../../Types/CustomField/CustomFieldFile";
 import Color from "../../../Types/Color";
 import DatabaseProperty from "../../../Types/Database/DatabaseProperty";
 import OneUptimeDate from "../../../Types/Date";
@@ -823,6 +827,23 @@ const Detail: DetailFunction = <T extends GenericObject>(
       } else {
         data = "";
       }
+    }
+
+    /*
+     * A file field's value - a custom field's file references, or what a
+     * file picker holds - as its files' names (CustomFieldFileList). A field
+     * that can link each file to its download says so with getElement.
+     */
+    if (
+      field.fieldType === FieldType.File ||
+      field.fieldType === FieldType.MultipleFiles
+    ) {
+      const files: Array<CustomFieldFile> = readCustomFieldFileEntries(
+        props.item[fieldKey],
+      );
+
+      // No file is an empty value, drawn as every other (EmptyValue).
+      data = files.length > 0 ? <CustomFieldFileList files={files} /> : "";
     }
 
     if (field.fieldType === FieldType.Markdown) {

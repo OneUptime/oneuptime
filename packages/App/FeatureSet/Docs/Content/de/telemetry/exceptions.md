@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Erneut gezählt; wieder<br/>geöffnet, wenn behoben"]
 ```
 
-- **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme.
+- **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme. Eine neue Ausnahme wird stattdessen nach ihrem Typ und den Funktionen und Dateien Ihres eigenen Codes im Stack-Trace gruppiert: Zeilennummern, Bibliotheks-Frames und die Nachricht bleiben außen vor, sodass Varianten aus demselben Code eine Ausnahme sind. Ohne Stack-Trace gruppiert sie ihre Nachricht, wie oben. Ausnahmen, die vor dieser Gruppierung erfasst wurden, behalten ihre.
 - **Ein neues Vorkommen öffnet eine behobene Ausnahme wieder.** Tritt sie erneut auf, nachdem Sie sie als behoben markiert haben, hat die Korrektur nicht gehalten, und die Ausnahme wird als **Regression** markiert. Ein Vorkommen von vor der Behebung, das OneUptime erst später erreicht, öffnet sie nicht wieder.
 - **Eine archivierte Ausnahme bleibt archiviert.** Ihre neuen Vorkommen werden weiter gezählt, lösen aber keine Benachrichtigungen mehr aus.
 
@@ -52,6 +52,8 @@ flowchart TB
 
 Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle**. Das Diagramm über der Liste zeigt, wie viele Vorkommen im Zeitverlauf **Nicht behandelt** und wie viele **Behandelt** waren. Eine mit **Regression** markierte Zeile ist nach der Behebung wieder aufgetreten, und eine mit **Neu** markierte wurde in den letzten 24 Stunden zum ersten Mal gesehen.
 
+Jede Zeile zeigt außerdem, wie viele Benutzer die Ausnahme im gewählten Zeitraum betroffen hat, und ein kleines Diagramm ihrer Vorkommen in diesem Zeitraum. Ein Vorkommen nennt seinen Benutzer mit dem Attribut `user.id`, `enduser.id` oder `enduser.pseudo.id`, am Ausnahme-Ereignis, an seinem Span oder Log-Eintrag oder an seiner Ressource; Vorkommen, die keinen Benutzer nennen, werden nicht gezählt.
+
 ### Festlegen, was als Problem zählt
 
 **Probleme**, der Standard, blendet Benutzerfehler und erwartete Ablehnungen aus, sodass die Liste zeigt, was eine Korrektur braucht. **User errors** zeigt nur diese, und **Alle** zeigt jede Ausnahme.
@@ -59,6 +61,8 @@ Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle*
 ### Suchen und filtern
 
 Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**. **Mir zugewiesen** zeigt nur die Ihnen zugewiesenen Ausnahmen, und das Sortiermenü ordnet die Liste nach **Zuletzt gesehen**, **Zuerst gesehen** oder **Meiste Ereignisse**.
+
+**Gespeicherte Ansichten** behält die Liste unter einem Namen, für alle im Projekt: die Suche, die Filter, den Zeitraum, den Status, was als Problem zählt, **Mir zugewiesen**, die Sortierung und die Seitengröße. Eine Ansicht mit **Mir zugewiesen** zeigt jeder Person die Ausnahmen, die ihr zugewiesen sind, und **Ansicht zurücksetzen** stellt die Liste so wieder her, wie sie sich zuerst öffnet. Die Adresse der Seite nennt die gewählte Ansicht, sodass ein geteilter Link sie öffnet. Ansonsten funktionieren gespeicherte Ansichten wie im [Protokoll-Explorer](/docs/telemetry/logs-explorer#eine-ansicht-speichern).
 
 ### Eine Ausnahme öffnen
 
@@ -97,7 +101,9 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 
-**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu.
+**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu. Die Person, der sie zugewiesen wird, oder jedes Mitglied des Teams wird benachrichtigt, wie es die Zeile **Mir zugewiesene Ausnahme** in ihren [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorgibt; wer sie zugewiesen hat, wird es nicht.
+
+**Aktivität** unten in der **Übersicht** der Ausnahme zeigt, wer sie wann geändert hat, das Neueste zuerst: wer sie gelöst, wieder geöffnet, archiviert oder zugewiesen, eine andere Ausnahme mit ihr zusammengeführt oder eine getrennt hat, und wann sie nach der Lösung erneut auftrat. Jede Änderung steht dort, ob auf der Seite der Ausnahme, in der Liste, unter **Massenaktionen**, über die API oder von OneUptime selbst gemacht, und eine Änderung mit einem API-Schlüssel trägt den Namen des Schlüssels.
 
 ## Fehlerklassen
 
@@ -128,6 +134,10 @@ Oben auf der **Übersicht** einer Ausnahme fragt **Mit OneUptime AI erklären** 
 Die Erklärung wird an der Ausnahme gespeichert, sodass die nächste Person, die sie öffnet, sie sofort liest, und **Erneut erklären** fordert eine neue an. **Pull Request mit Korrektur öffnen** öffnet die Seite **KI-Unterstützung** der Ausnahme, und **Nachfrage stellen** öffnet Ask AI zu der Ausnahme.
 
 IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesendet wird, und von den Attributen eines Spans werden nur wenige gesendet, etwa seine Route und sein Statuscode. Die Erklärung nutzt den LLM-Anbieter und die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Jeder, der die Ausnahme lesen kann, kann eine anfordern.
+
+Unter den Karten listet **Ähnliche Ausnahmen** bis zu fünf andere Ausnahmen, die dieser ähneln: die **Gleiche Meldung**, sobald die Werte entfernt sind, die **Gleiche Codestelle** in Ihrem Code oder eine **Ähnliche Meldung** mit größtenteils denselben Wörtern. Eine Ursache kann in mehreren Ausnahmen landen, daher sagt **Mit OneUptime AI prüfen** zu jeder, ob sie **Wahrscheinlich derselbe Fehler**, **Ein verwandter Fehler** oder **Ein anderer Fehler** ist, und warum. Die Prüfung nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Ihre Antwort wird bis zum nächsten Auftreten gespeichert.
+
+Eine, die OneUptime AI **Wahrscheinlich derselbe Fehler** nennt und die zum selben Dienst gehört, führen Sie mit **Zusammenführen** daneben mit dieser Ausnahme zusammen: Ihre Vorkommen, die bisherigen und jedes neue, zählen von da an bei dieser Ausnahme und erscheinen auf ihrer Seite, und sie verschwindet aus der Liste. **Mit dieser Ausnahme zusammengeführt** darunter listet, was zusammengeführt wurde, und **Trennen** daneben, oder auf der eigenen Seite einer zusammengeführten Ausnahme, gibt ihr ihren eigenen Platz in der Liste zurück, samt ihrer Vorkommen seither. Zusammenführen und Trennen erfordern die Berechtigung, Ausnahmen zu bearbeiten.
 
 ## Mit KI beheben
 
@@ -183,7 +193,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 Der Tab **Einblicke** zählt Ihre Ausnahmen unter **Nicht behoben**, **Behoben** und **Archiviert** sowie Ihre Behebungsquote und listet die häufigsten Ausnahmen, die Dienste, die sie betreffen, und die zuletzt gesehenen.
 
-**Was ist neu** oben im Tab lässt OneUptime AI mit **Mit OneUptime AI zusammenfassen** die Ausnahmen zusammenfassen, die in den letzten 24 Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen: ein paar Sätze über alle, dann jede in einer Zeile, die dringendste zuerst, mit einem Link zur Ausnahme. Die Zusammenfassung wird geschrieben, wenn Sie darum bitten, und nicht gespeichert, nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
+**Was ist neu** oben im Tab lässt OneUptime AI mit **Mit OneUptime AI zusammenfassen** die Ausnahmen zusammenfassen, die in den letzten 24 Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen: ein paar Sätze über alle, dann jede in einer Zeile, die dringendste zuerst, mit einem Link zur Ausnahme. Die Zusammenfassung wird geschrieben, wenn Sie darum bitten, und bis zum nächsten Auftreten gespeichert, sodass erneutes Fragen nichts kostet; sie nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
 
 ## Fehlerbehebung
 
@@ -192,7 +202,7 @@ Prüfen Sie zuerst die Ansicht: **Probleme** blendet Benutzerfehler und erwartet
 :::
 
 :::details Ein Fehler erscheint als mehrere Ausnahmen
-Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme.
+Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme. Neue Ausnahmen werden stattdessen nach den Funktionen Ihres eigenen Codes gruppiert, das betrifft also vor allem früher erfasste Ausnahmen; führen Sie zwei, die derselbe Fehler sind, über **Ähnliche Ausnahmen** zusammen.
 :::
 
 :::details Eine behobene Ausnahme kommt immer wieder

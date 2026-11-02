@@ -1,6 +1,7 @@
 import APIReferenceRoutes from "./FeatureSet/APIReference/Index";
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 import DocsRoutes from "./FeatureSet/Docs/Index";
+import InstallRoutes from "./FeatureSet/Install/Index";
 import FrontendRoutes from "./FeatureSet/Frontend/Index";
 // import FeatureSets.
 import IdentityRoutes from "./FeatureSet/Identity/Index";
@@ -269,6 +270,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await MCPRoutes.init();
     await FrontendRoutes.init();
     await DocsRoutes.init();
+    // The agents' install scripts, at /install/<agent>.
+    await InstallRoutes.init();
     await APIReferenceRoutes.init();
     await WorkersRoutes.init();
     await TelemetryRoutes.init();

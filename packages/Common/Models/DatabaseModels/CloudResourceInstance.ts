@@ -1,3 +1,4 @@
+import CloudApp from "./CloudApp";
 import CloudResource from "./CloudResource";
 import Project from "./Project";
 import User from "./User";
@@ -21,7 +22,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * Live inventory of a single managed-compute instance / task
  * (service.instance.id) of a CloudResource, upserted from the telemetry
  * ingest pipeline; not user-editable. CPU / memory are populated when the
- * collector emits container.cpu.utilization / container.memory.usage.
+ * collector emits container.cpu.utilization / container.memory.usage. An
+ * instance names the app it runs (CloudApp) and that app's revision when
+ * its telemetry says which they are.
  */
 
 const READ_PERMISSIONS: Array<Permission> = [
@@ -133,6 +136,59 @@ export default class CloudResourceInstance extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public cloudResourceId?: ObjectID = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    manyToOneRelationColumn: "cloudAppId",
+    type: TableColumnType.Entity,
+    modelType: CloudApp,
+    title: "App",
+    description: "The app this instance runs, when its telemetry names one.",
+  })
+  @ManyToOne(
+    () => {
+      return CloudApp;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "cloudAppId" })
+  public cloudApp?: CloudApp = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "App ID",
+    description: "ID of the app this instance runs.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public cloudAppId?: ObjectID = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Revision",
+    description: "The revision of its app this instance runs.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public revision?: string = undefined;
 
   @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
   @TableColumn({

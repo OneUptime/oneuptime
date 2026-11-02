@@ -153,6 +153,19 @@ export function summarizeSecurityPlaybookStep(
           );
         })
         .join(", ");
+    case SecurityPlaybookActionType.AddCaseTasks: {
+      const tasks: number = ids(config, "tasks").length;
+      const count: string = translator.translatePlural(
+        { one: "{{count}} task", other: "{{count}} tasks" },
+        tasks,
+      );
+
+      return text(config, "assigneeUserId")
+        ? translator.translateTemplate("{{tasks}} for a person", {
+            tasks: count,
+          })
+        : count;
+    }
     case SecurityPlaybookActionType.CheckThreatIntel: {
       const raiseId: string = text(config, "raisePriorityToId");
 
@@ -229,9 +242,15 @@ export function summarizeSecurityPlaybookStep(
     case SecurityPlaybookActionType.EndOktaSessions:
     case SecurityPlaybookActionType.ContainCrowdStrikeHost:
     case SecurityPlaybookActionType.IsolateDefenderDevice:
+    case SecurityPlaybookActionType.DisableEntraIdUser:
+    case SecurityPlaybookActionType.SignOutEntraIdUser:
+    case SecurityPlaybookActionType.SuspendGoogleWorkspaceUser:
+    case SecurityPlaybookActionType.SignOutGoogleWorkspaceUser:
     case SecurityPlaybookActionType.UnsuspendOktaUser:
     case SecurityPlaybookActionType.LiftCrowdStrikeContainment:
-    case SecurityPlaybookActionType.ReleaseDefenderDevice: {
+    case SecurityPlaybookActionType.ReleaseDefenderDevice:
+    case SecurityPlaybookActionType.EnableEntraIdUser:
+    case SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser: {
       const connection: string = named(
         lookup.connections,
         text(config, "connectionId"),
@@ -271,7 +290,7 @@ export function summarizeSecurityPlaybookStep(
     case SecurityPlaybookActionType.PreserveEvidence:
       return (
         translator.translateText(
-          "Keeps session replays, notes traces and exceptions",
+          "Keeps events and session replays, notes traces and exceptions",
         ) || ""
       );
     case SecurityPlaybookActionType.PostStatusPageAnnouncement: {

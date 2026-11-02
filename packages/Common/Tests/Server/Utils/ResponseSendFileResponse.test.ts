@@ -66,6 +66,44 @@ describe("Response.sendFileResponse", () => {
     expect(captured.statusCode).toBe(200);
   });
 
+  test("a file asked to download downloads, a picture too", async () => {
+    /*
+     * A file custom field's file is a download wherever it is opened from,
+     * never drawn in the page that asked for it (CustomFieldFileAPI).
+     */
+    for (const fileType of [MimeType.png, MimeType.jpeg, MimeType.pdf]) {
+      captured.headers = {};
+
+      await ResponseUtil.sendFileResponse(
+        {} as ExpressRequest,
+        response,
+        {
+          fileType: fileType,
+          file: Buffer.from("bytes"),
+          name: "report",
+        } as FileModel,
+        { disposition: "attachment" },
+      );
+
+      expect(
+        captured.headers["Content-Disposition"]!.startsWith("attachment;"),
+      ).toBe(true);
+      expect(captured.headers["X-Content-Type-Options"]).toBe("nosniff");
+      expect(captured.headers["Content-Security-Policy"]).toContain("sandbox");
+    }
+  });
+
+  test("without it, a picture is still shown inline", async () => {
+    await ResponseUtil.sendFileResponse(
+      {} as ExpressRequest,
+      response,
+      { fileType: MimeType.png, file: Buffer.from("png") } as FileModel,
+      {},
+    );
+
+    expect(captured.headers["Content-Disposition"]).toContain("inline");
+  });
+
   test("still serves image types written before the picker normalised them", async () => {
     /*
      * Until Nov 2025 the file picker stored the browser's MIME string as-is,

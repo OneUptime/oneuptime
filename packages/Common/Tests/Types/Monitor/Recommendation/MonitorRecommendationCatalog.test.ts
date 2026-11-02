@@ -18,6 +18,8 @@ import { getAllHostAlertTemplates } from "../../../../Types/Monitor/HostAlertTem
 import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
+import { getAllOpenShiftAlertTemplates } from "../../../../Types/Monitor/OpenShiftAlertTemplates";
+import { getAllProxmoxNotificationAlertTemplates } from "../../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
 import {
@@ -118,9 +120,11 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
      * (KubernetesEventAlertTemplates): a Logs monitor scoped to the cluster.
      */
     monitorTypes: [MonitorType.Kubernetes, MonitorType.Logs],
+    // OpenShift's are offered on an OpenShift cluster alone.
     templateCount:
       getAllKubernetesAlertTemplates().length +
-      getAllKubernetesEventAlertTemplates().length,
+      getAllKubernetesEventAlertTemplates().length +
+      getAllOpenShiftAlertTemplates().length,
     contextFreeTemplateCount:
       getAllKubernetesAlertTemplates().length +
       getAllKubernetesEventAlertTemplates().length,
@@ -156,9 +160,18 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.Proxmox,
-    monitorTypes: [MonitorType.Proxmox],
-    templateCount: getAllProxmoxAlertTemplates().length,
-    contextFreeTemplateCount: getAllProxmoxAlertTemplates().length,
+    /*
+     * The metric templates, and what Proxmox VE reports itself - a failed
+     * backup job, a fenced node - which are logs of the cluster once its
+     * notifications reach OneUptime (ProxmoxNotificationAlertTemplates).
+     */
+    monitorTypes: [MonitorType.Proxmox, MonitorType.Logs],
+    templateCount:
+      getAllProxmoxAlertTemplates().length +
+      getAllProxmoxNotificationAlertTemplates().length,
+    contextFreeTemplateCount:
+      getAllProxmoxAlertTemplates().length +
+      getAllProxmoxNotificationAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
   },
   {

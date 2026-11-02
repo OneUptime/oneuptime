@@ -5,6 +5,7 @@ OneUptime の Proxmox エージェントは、Proxmox VE クラスターのノ�
 :::cards
 - [接続方法を選ぶ](#接続方法を選ぶ): エージェント、または Proxmox VE 9 自身のプッシュ。
 - [エージェントをインストールする](#エージェントをインストールする): API トークンを作成し、インストールスクリプトまたは Docker Compose を使います。
+- [バックアップの結果](#proxmox-ve-の通知を送信する): Proxmox VE 自身の通知を、2 つのコマンドで送信します。
 - [ネイティブプッシュ](#インストール不要の代替策-proxmox-ve-9-以降のネイティブ-opentelemetry-プッシュ): Proxmox VE 9 が自身でメトリクスを送信します。
 - [トラブルシューティング](#トラブルシューティング): 診断スクリプトと、よくある問題。
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | インストールするもの | 単一のマシン上の Docker Compose | なし: Proxmox の Web UI でのメトリクスサーバーの追加 |
 | ノード、ゲスト、ストレージ | はい | はい |
 | HA の状態、起動時の自動開始、バックアップの対象範囲、レプリケーション | はい | いいえ |
+| Proxmox VE の通知（8.3 以降）からのバックアップの結果、フェンシングされたノード、失敗したレプリケーション | はい | はい |
 | Proxmox AI エージェント | はい | いいえ |
 
-**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Replication Failing** の各テンプレートにはエージェントが必要です。1 つのクラスターにはどちらか一方を使ってください。両方を実行すると、すべてのリソースが二重に報告されます。
+**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Backup Running Too Long**、**Replication Failing** の各テンプレートにはエージェントが必要です。1 つのクラスターにはどちらか一方を使ってください。両方を実行すると、すべてのリソースが二重に報告されます。
 
 ## 始める前に
 
@@ -78,23 +80,25 @@ pveum acl modify / --roles PVEAuditor --tokens 'monitoring@pam!oneuptime'
 
 ### エージェントをインストールして起動する
 
+各 OneUptime は、自分のリリースのエージェントのインストールスクリプトとファイルを配布します。以下のコマンドは `https://oneuptime.com` からダウンロードするので、セルフホストの OneUptime ではこのアドレスを自分の URL に置き換えてください。インストールスクリプトはまず `install.sh` として保存されるので、実行する前に内容を読めます。
+
 :::tabs
 @tab install.sh
 インストールスクリプトをダウンロードし、エージェントを置くマシンで実行します:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 スクリプトは、OneUptime の URL、取り込みキー、クラスターの名前、Proxmox VE API のホスト、同梱のエクスポーターを実行するかどうか、トークン ID とシークレット、各ノードのアドレス (トークンを得た時点でクラスター自身のノード一覧を提示します) を尋ねます。さらに、[AI エージェント](#ai-エージェント) に修正の適用を許可するかどうかと、許可する場合はその専用のトークンと、決して変更してはならないゲストも尋ねます。`/opt/oneuptime-proxmox-agent` にインストールし、`0600` の `.env` ファイルを書き込み、Docker Compose でエージェントを起動します。スクリプトを再実行すると、再び尋ねる代わりにその `.env` の内容をすべて再利用します。これが [エージェントのアップグレード](#エージェントのアップグレード) の方法です。
 @tab Docker Compose
-[ProxmoxAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) から、`docker-compose.yml` と `otel-collector-config.yaml` を新しいフォルダーにダウンロードします:
+お使いの OneUptime から、`docker-compose.yml` と `otel-collector-config.yaml` を新しいフォルダーにダウンロードします:
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 その横に `.env` ファイルを作成します。トークンのシークレットを含むため、`chmod 600 .env` で非公開にしてください:
@@ -169,7 +173,7 @@ Collector は 30 秒ごとにエクスポーターをスクレイプします。
 | ゲスト (VM または LXC) | `pve_guest_info` と、`qemu/*` と `lxc/*` の ID での CPU、メモリ、ネットワークの系列 (`pve_network_receive_bytes`、`pve_network_transmit_bytes`) |
 | ストレージ | `pve_disk_usage_bytes`、`pve_disk_size_bytes`、`pve_storage_info` |
 | HA | `pve_ha_state` |
-| バックアップの対象範囲 | `pve_not_backed_up_total` (どのバックアップジョブの対象にもなっていないゲスト。クラスターレベルの単一の系列で、`id` ラベルなし) と `pve_not_backed_up_info` (対象外のゲストごとの系列で、その `id` 付き)。対象範囲内とは、少なくともいずれかのジョブがゲストを選択していることを意味します。バックアップが最近実行されたか、成功したかは、エクスポーターでは公開されません。 |
+| バックアップの対象範囲 | `pve_not_backed_up_total` (どのバックアップジョブの対象にもなっていないゲスト。クラスターレベルの単一の系列で、`id` は `cluster/<name>`) と `pve_not_backed_up_info` (対象外のゲストごとの系列で、その `id` 付き)。対象範囲内とは、少なくともいずれかのジョブがゲストを選択していることを意味します。バックアップが最近実行されたか、成功したかは、エクスポーターでは公開されません。 |
 | ブート時起動 | ゲストごとの系列 `pve_onboot_status`。ゲストがブート時に起動する設定のとき 1 です。**Guest Down** はこれらのゲストについてのみ通知します。 |
 | レプリケーション | ストレージのレプリケーションジョブごとの `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。その `id` ラベルはリソースではなくジョブ ID (`100-0` など) です。 |
 
@@ -182,6 +186,44 @@ Collector は 30 秒ごとにエクスポーターをスクレイプします。
 | `pve.id` | `id` の最初の `/` より後ろのすべて (`pve1`、`100`、`pve1/local`) | `100` |
 
 元の `id` ラベルはそのまま残ります。
+
+## Proxmox VE の通知を送信する
+
+pve-exporter はバックアップジョブにどのゲストが含まれるかを示しますが、バックアップがどうなったかは示しません。それを伝えるのは Proxmox VE 自身の通知です。各バックアップジョブの結果、フェンシングされたノード、失敗したレプリケーション、保留中の更新などです。Proxmox VE 8.3 以降では、任意のノードで root として 2 つのコマンドを実行すると、何もインストールせずに、エージェントやネイティブプッシュと並行して、すべての通知がクラスターのログとして OneUptime に送信されます。クラスターのセットアップガイドには、URL、キー、クラスター名が入力済みのコマンドが表示されます。
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+1 つ目のコマンドは `oneuptime` という名前の Webhook ターゲットを追加し、キーとクラスター名をそのシークレットに保持します。2 つ目のコマンドはルールのない matcher を追加し、Proxmox VE はこれをすべての通知として扱います。クラスター名は OneUptime に表示されるとおりに使ってください。エージェントの `PROXMOX_CLUSTER_NAME`、またはネイティブプッシュでは Proxmox クラスター自身の名前です。
+
+各通知には次の属性が付いて届きます:
+
+| 属性 | 値 |
+| --- | --- |
+| `pve.notification.type` | `vzdump`（バックアップジョブ）、`replication`、`fencing`、`package-updates`、または `system-mail` |
+| `pve.notification.severity` | `info`、`notice`、`warning`、`error`、または `unknown` |
+| `pve.notification.title` | 通知のタイトル |
+| `pve.notification.job_id` | バックアップジョブの場合は、そのジョブの ID |
+| `proxmox.node.name` | 通知を送信したノード |
+
+バックアップジョブの通知から、OneUptime は各ゲストの最後のバックアップを記録します。成功したかどうか、いつ終わったか、サイズ、かかった時間です。ゲストのページにはそれが表示され、**ゲスト** の一覧ではバックアップ列に表示され、クラスターの **概要** では結果が集計されます。失敗したバックアップは、そのゲストの後のバックアップが成功するまで **対応が必要** に残ります。**Backup Job Failed** と **Node Fenced** のアラートも同じログを読み取ります。
+
+送信を止めるには:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## 任意 — Proxmox のサービスログを送信する
 
@@ -282,16 +324,18 @@ OneUptime の取り込みが停止したあとは、新たに沈黙したノー�
 | --- | --- |
 | HA の状態 | プッシュされません: **HA Resource in Error State** テンプレートにはエージェントが必要です。 |
 | 起動時の自動開始のフラグ | プッシュされません: 起動時に自動開始する設定のゲストについてだけ呼び出す **Guest Down** には、エージェントが必要です。 |
-| バックアップの対象範囲とレプリケーション | プッシュされません: **Guest Not Backed Up** と **Replication Failing** にはエージェントが必要です。 |
+| バックアップの対象範囲とレプリケーション | プッシュされません: **Guest Not Backed Up**、**Backup Running Too Long** と **Replication Failing** にはエージェントが必要です。 |
 
 これらが必要な場合は、代わりにエージェントを実行し、メトリクスサーバーを削除してください。両方を実行すると、すべてのリソースが二重に報告されます。
+
+バックアップの結果、フェンシングされたノード、失敗したレプリケーションは、それでも OneUptime に届けられます。[Proxmox VE の通知を送信](#proxmox-ve-の通知を送信する) してください。ネイティブプッシュでも動作します。
 
 ## systemd サービスとして実行する
 
 マシンの起動時にエージェントを起動し、失敗したときに再起動するには、その systemd ユニットをインストールします。インストールスクリプトが配置する `/opt/oneuptime-proxmox-agent` にエージェントがあることを前提としています:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、イメージをプルしてエージェントを作り直すため、Collector は新しい設定を読み込みます。`PVE_NODES` より前の `.env` は引き続き `PVE_HOST` だけを読み取り、スクリプトが追加すべきノードを示します。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Docker Compose でインストールした場合は、エージェントのフォルダーで両方のファイルを再度ダウンロードし (それらに加えた変更があれば、もう一度行います)、イメージをプルしてエージェントを作り直します:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ docker compose down
 ## トラブルシューティング
 
 :::details まず診断スクリプトを実行する
-エージェントには、経路全体を確認するスクリプト [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh) が付属しています。コンテナランタイム、エクスポーターのスクレイプ、すべてのメトリクスに付与されたクラスター名、トークンの形式、Collector 自身のメトリクス、そして OneUptime が取り込みキーを受け付けるかどうかを確認します。最も重要なのは最後の確認です。OneUptime は不正なキーを `401` で拒否し (無効化されたキーやブラウザーキーでは `422`)、Collector はどちらも恒久的なエラーとして扱います。バッチを破棄して `Exporting failed` のエラーを 1 つログに出すだけなので、コンテナが正常なままだと見落としやすくなります。スクリプトはエージェントのネットワーク内から `GET <url>/otlp/v1/validate` を問い合わせて、`200` (有効) または `401` (無効) を直接受け取り、古いサーバーでは `POST /fluentd/v1/logs` にフォールバックします。
+エージェントには、経路全体を確認するスクリプト [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh) が付属しています。コンテナランタイム、エクスポーターのスクレイプ、すべてのメトリクスに付与されたクラスター名、トークンの形式、Collector 自身のメトリクス、そして OneUptime が取り込みキーを受け付けるかどうかを確認します。最も重要なのは最後の確認です。OneUptime は不正なキーを `401` で拒否し (無効化されたキーやブラウザーキーでは `422`)、Collector はどちらも恒久的なエラーとして扱います。バッチを破棄して `Exporting failed` のエラーを 1 つログに出すだけなので、コンテナが正常なままだと見落としやすくなります。スクリプトはエージェントのネットワーク内から `GET <url>/otlp/v1/validate` を問い合わせて、`200` (有効) または `401` (無効) を直接受け取り、古いサーバーでは `POST /fluentd/v1/logs` にフォールバックします。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -378,6 +422,13 @@ OneUptime は Proxmox クラスターを `proxmox.cluster.name` で登録し、�
 
 :::details ネイティブプッシュで Guest Down、HA、バックアップのアラートが発生しない
 ネイティブプッシュは、HA の状態、起動時の自動開始、バックアップの対象範囲、レプリケーションを送信しません。これらが必要な場合は [エージェントをインストール](#エージェントをインストールする) し、メトリクスサーバーを削除してください。両方を実行すると、すべてのリソースが二重に報告されます。
+:::
+
+:::details バックアップの結果が表示されない
+1. Proxmox VE のリリースを確認します。Webhook ターゲットには 8.3 以降が必要です（`pveversion`）。
+2. ターゲットとその matcher が存在することを確認します。`pvesh get /cluster/notifications/endpoints/webhook` と `pvesh get /cluster/notifications/matchers` の両方に `oneuptime` が表示されるはずです。
+3. `pvesh create /cluster/notifications/targets/oneuptime/test` でテスト通知を送信します。1 分以内にクラスターの **ログ** ページに表示されます。表示されない場合は、ターゲットのキーまたは URL が誤っています。
+4. ターゲットのシークレットにあるクラスター名を確認します。OneUptime が知らない名前を使うと、2 つ目のクラスターが登録されます。
 :::
 
 ## 次のステップ

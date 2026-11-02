@@ -27,6 +27,7 @@ import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import ExternalStatusPageMonitorView, {
   EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID,
+  EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID,
   EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
   getWatchedComponentNames,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
@@ -233,12 +234,20 @@ describe("a component's status", () => {
   test("each status is announced as a status", () => {
     renderView();
 
+    const list: HTMLElement = screen.getByTestId(
+      "external-status-page-components",
+    );
+
     expect(
-      screen.getByRole("status", { name: "Status: Under Maintenance" }),
+      within(list).getByRole("status", { name: "Status: Under Maintenance" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("status", { name: "Status: Operational" }),
+      within(list).getByRole("status", { name: "Status: Operational" }),
     ).toBeInTheDocument();
+    // The page's overall status is announced the same way, once.
+    expect(
+      screen.getAllByRole("status", { name: "Status: Under Maintenance" }),
+    ).toHaveLength(2);
   });
 });
 
@@ -368,18 +377,59 @@ describe("the facts", () => {
     );
   });
 
-  test("the overall status is the value the criteria compare, free to wrap after an underscore", () => {
+  /*
+   * The overall status reads like the components' statuses under it (#5281):
+   * it was the value the probe reports - "under_maintenance" - above a
+   * component that read "Under Maintenance". The value the criteria compare
+   * stays on the element (data-status), as on each component's.
+   */
+  test("the overall status reads in the components' words and colour, never the value a check reports", () => {
     renderView(pageResponse({ overallStatus: "degraded_performance" }));
 
     const value: HTMLElement = factValue("external-status-page-page-facts", 1);
+    const overall: HTMLElement = within(value).getByTestId(
+      EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID,
+    );
 
-    // Copied, it is the value as it is: <wbr> adds no character.
-    expect(value.textContent).toBe("degraded_performance");
-    expect(value.querySelectorAll("wbr")).toHaveLength(1);
-    expect(value.innerHTML.indexOf("_<wbr>")).toBeGreaterThan(0);
+    expect(value).toHaveTextContent("Degraded Performance");
+    expect(value.textContent).not.toContain("_");
+    expect(overall).toHaveAttribute("data-status", "degraded_performance");
+    expect(within(overall).getByRole("status")).toHaveAttribute(
+      "aria-label",
+      "Status: Degraded Performance",
+    );
+    expect(
+      within(overall).getByTestId("status-bubble-dot"),
+    ).toBeInTheDocument();
   });
 
-  test("an overall status without an underscore, such as a Statuspage's, reads as it is", () => {
+  test("the overall status and a component with the same status read alike", () => {
+    renderView();
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 1);
+    const maintenance: HTMLElement = screen
+      .getAllByTestId("external-status-page-component-status")
+      .find((element: HTMLElement): boolean => {
+        return element.getAttribute("data-status") === "under_maintenance";
+      })!;
+
+    expect(value).toHaveTextContent("Under Maintenance");
+    expect(maintenance).toHaveTextContent("Under Maintenance");
+    // The same dot colour: the overall status is a status bubble too.
+    const dotColor: (element: HTMLElement) => string = (
+      element: HTMLElement,
+    ): string => {
+      return (
+        within(element)
+          .getByTestId("status-bubble-dot")
+          .querySelector("span") as HTMLElement
+      ).style.backgroundColor;
+    };
+    expect(dotColor(value)).toBe(dotColor(maintenance));
+    expect(dotColor(value)).not.toBe("");
+  });
+
+  test("an overall status in a page's own words, such as a Statuspage's, reads as written", () => {
     renderView(
       pageResponse({
         overallStatus: "All Systems Operational",
@@ -389,8 +439,27 @@ describe("the facts", () => {
 
     const value: HTMLElement = factValue("external-status-page-page-facts", 1);
 
-    expect(value.textContent).toBe("All Systems Operational");
-    expect(value.querySelectorAll("wbr")).toHaveLength(0);
+    expect(value).toHaveTextContent("All Systems Operational");
+    expect(
+      within(value).getByTestId(EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID),
+    ).toHaveAttribute("data-status", "All Systems Operational");
+  });
+
+  test("the reachability check's answer reads Reachable, and no overall status reads a dash", () => {
+    renderView(pageResponse({ overallStatus: "reachable" }));
+
+    expect(factValue("external-status-page-page-facts", 1)).toHaveTextContent(
+      "Reachable",
+    );
+
+    cleanup();
+    renderView(pageResponse({ overallStatus: "" }));
+
+    const empty: HTMLElement = factValue("external-status-page-page-facts", 1);
+    expect(empty.textContent).toBe("-");
+    expect(
+      within(empty).queryByTestId(EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID),
+    ).toBeNull();
   });
 
   test.each([
@@ -852,6 +921,24 @@ describe("in German", () => {
     );
     expect(value).toHaveTextContent("Core › 2 ausgewählte Komponenten");
     expect(value.querySelector("bdi")).toHaveTextContent("Core");
+  });
+
+  test("the page's overall status reads in German too, never the value a check reports", () => {
+    renderView();
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 1);
+
+    expect(value).toHaveTextContent(DE["Under Maintenance"]!);
+    expect(value).toHaveTextContent("In Wartung");
+    expect(value.textContent).not.toContain("under_maintenance");
+
+    cleanup();
+    renderView(pageResponse({ overallStatus: "reachable" }));
+
+    expect(factValue("external-status-page-page-facts", 1)).toHaveTextContent(
+      DE["Reachable"]!,
+    );
+    expect(DE["Reachable"]).toBe("Erreichbar");
   });
 
   test("a whole page in scope says so in German", () => {

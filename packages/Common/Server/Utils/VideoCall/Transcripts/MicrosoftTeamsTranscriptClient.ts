@@ -12,7 +12,7 @@ import TranscriptText, {
 } from "../../../../Utils/VideoCall/TranscriptText";
 import MicrosoftTeamsMeetingsOAuthApp from "../OAuth/MicrosoftTeamsMeetingsOAuthApp";
 import {
-  MICROSOFT_GRAPH_BASE_URL,
+  getMicrosoftGraphBaseUrl,
   MicrosoftTeamsMeetingOrganizer,
 } from "../Providers/MicrosoftTeamsMeetingClient";
 import VideoCallHttpClient, {
@@ -125,7 +125,7 @@ export default class MicrosoftTeamsTranscriptClient {
       );
     }
 
-    const meetingUrl: string = `${MICROSOFT_GRAPH_BASE_URL}${request.organizer.path}/onlineMeetings/${encodeURIComponent(meetingId)}`;
+    const meetingUrl: string = `${getMicrosoftGraphBaseUrl()}${request.organizer.path}/onlineMeetings/${encodeURIComponent(meetingId)}`;
 
     const transcriptsOrRefusal:
       | Array<TranscriptRecord>
@@ -308,7 +308,7 @@ export default class MicrosoftTeamsTranscriptClient {
 
       if (
         typeof next !== "string" ||
-        !next.startsWith(`${MICROSOFT_GRAPH_BASE_URL}/`)
+        !next.startsWith(`${getMicrosoftGraphBaseUrl()}/`)
       ) {
         break;
       }

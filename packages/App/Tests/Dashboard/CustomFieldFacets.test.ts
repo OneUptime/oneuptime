@@ -704,6 +704,8 @@ const NON_DATE_TYPES: Array<CustomFieldType | undefined> = [
   CustomFieldType.Boolean,
   CustomFieldType.Dropdown,
   CustomFieldType.MultiSelectDropdown,
+  CustomFieldType.File,
+  CustomFieldType.MultipleFiles,
   undefined,
 ];
 

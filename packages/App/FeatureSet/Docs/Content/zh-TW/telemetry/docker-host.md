@@ -233,7 +233,7 @@ docker compose down
 
 ## AI 代理程式
 
-上面的指令和 Compose 檔案、Docker 代理程式的 `install.sh`，以及其 [DockerAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) 中的 `docker-compose.yml`，都會執行 **Docker AI 代理程式**：第二個容器 `oneuptime-docker-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`），它會在 OneUptime AI 調查此主機上的事件或警示時，執行 OneUptime AI 要求的唯讀 `docker` 指令——`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`、`docker stats --no-stream`——而且只有在你允許時才會套用修正，例如重新啟動指定的容器。它會讀取與 Collector 相同的 `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN` 和 `DOCKER_HOST_NAME`，因此它服務的正是這台主機，並會出現在 OneUptime 中該主機的 **AI 代理程式** 頁面上。
+上面的指令和 Compose 檔案、Docker 代理程式的 [`install.sh`](https://oneuptime.com/install/docker-agent)，以及其 [`docker-compose.yml`](https://oneuptime.com/install/docker-agent/docker-compose.yml)，都會執行 **Docker AI 代理程式**：第二個容器 `oneuptime-docker-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`），它會在 OneUptime AI 調查此主機上的事件或警示時，執行 OneUptime AI 要求的唯讀 `docker` 指令——`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`、`docker stats --no-stream`——而且只有在你允許時才會套用修正，例如重新啟動指定的容器。它會讀取與 Collector 相同的 `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN` 和 `DOCKER_HOST_NAME`，因此它服務的正是這台主機，並會出現在 OneUptime 中該主機的 **AI 代理程式** 頁面上。
 
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該主機上的事件和警示，主機的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或不安裝代理程式。
 - 除非你以 `ONEUPTIME_AI_ALLOW_WRITES=true` 啟動它，否則它是唯讀的；`ONEUPTIME_AI_WRITE_TARGETS`（例如 `web-*,api-*`）會限制修正可以觸及哪些容器。啟動時也要帶上 `ONEUPTIME_AI_FIXES`，以指定修正的執行方式——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。
@@ -283,6 +283,10 @@ docker version --format '{{ .Server.APIVersion }}'
 
 :::details 容器 CPU 是一條平線
 舊版代理程式傳送的是 `docker_stats` 接收器自己算出的 CPU 值。從 Collector 0.150.0 起，接收器只根據一次統計讀數來計算它：容器自啟動以來用掉的全部 CPU，除以主機自開機以來用掉的全部 CPU。這條線幾乎不動，也不隨負載變化，而 `container.cpu.usage.total` 會隨負載變化。[升級代理程式](#升級代理程式)：從第二次讀數起，它會傳送每個容器在每個 30 秒間隔內用掉的 CPU。已儲存的讀數保持不變。
+:::
+
+:::details Container Restart Loop 從不觸發，或漏掉重新啟動
+舊版代理程式不會傳送 `container.restarts.increase`，也就是自它上一次對每個容器取樣以來的重新啟動次數，範本會把它們相加。[升級代理程式](#升級代理程式)：從它對每個容器的第二次取樣起，每次重新啟動都會計入。升級之前用該範本建立的監控器讀取的則是 `container.restarts` 在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動：請刪除它，再用範本重新建立。
 :::
 
 :::details 指標有送達，但沒有容器日誌

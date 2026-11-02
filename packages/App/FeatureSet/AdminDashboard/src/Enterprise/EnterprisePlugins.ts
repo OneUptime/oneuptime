@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import { LicenseManagerComponent } from "Common/UI/Components/EditionLabel/LicenseManager";
+import { LicenseDetailsComponent } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import { ComponentType, ExoticComponent } from "react";
 
 /*
@@ -96,14 +96,15 @@ export interface AdminDashboardEnterprisePlugins {
   EnterpriseLicenseView?: EnterprisePluginComponent | undefined;
 
   /*
-   * License management (activation, refresh, seat usage, the instances on
-   * the license) in the edition dialog of the header's edition pill - on a
-   * self-hosted Enterprise install, unlike the license server screens above.
-   * The one key with props: Header passes it to EditionLabel, which keeps the
-   * read-only license status. Not a page and never lazy: see
-   * Common/UI/Components/EditionLabel/LicenseManager.ts.
+   * The seat usage and the instances on the license, in the read-only edition
+   * dialog of the header's edition pill - on a self-hosted Enterprise install,
+   * unlike the license server screens above. The license itself is managed on
+   * Settings > License, one of the SettingsPages below. The one key with
+   * props: Header passes it to EditionLabel, which keeps the license status.
+   * Not a page and never lazy: see
+   * Common/UI/Components/EditionLabel/LicenseDetails.ts.
    */
-  LicenseManager?: LicenseManagerComponent | undefined;
+  LicenseDetails?: LicenseDetailsComponent | undefined;
 
   /*
    * Settings pages (see EnterpriseSettingsPage), and their entries in the
@@ -140,7 +141,7 @@ const PLUGIN_KEY_SET: Record<AdminDashboardEnterprisePluginKey, true> = {
   HealthClickhouseCluster: true,
   EnterpriseLicensesList: true,
   EnterpriseLicenseView: true,
-  LicenseManager: true,
+  LicenseDetails: true,
   SettingsPages: true,
   SettingsSideMenuItems: true,
   SettingsNotificationSideMenuItems: true,

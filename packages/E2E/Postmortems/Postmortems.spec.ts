@@ -77,10 +77,21 @@ async function screenshot(
   });
 }
 
+/*
+ * The list's first rows: as a table's rows, or - in a card narrower than
+ * 48rem, beside the side menu at 768px - as cards (TableFit).
+ */
 async function openList(page: Page, query: string = ""): Promise<void> {
   await page.goto(`${PROJECT}/incidents/postmortems?page=list${query}`);
-  await expect(page.locator("tbody tr").first()).toBeVisible();
+  await expect(
+    page
+      .locator("#postmortems-table-body > tr, #postmortems-table-body > div")
+      .first(),
+  ).toBeVisible();
 }
+
+// A day as a list writes it: "Oct 19", or "Oct 19, 2025" for another year's.
+const DECLARED_DAY: RegExp = /^\S+ \d{1,2}(,? \d{4})?$/;
 
 function row(page: Page, title: string): Locator {
   return page
@@ -550,12 +561,14 @@ test.describe("Incidents -> Postmortems", () => {
 
     /*
      * The rows fit the card beside the side menu: with the time in Declared,
-     * German ran 57px past it, the dates under the sticky View.
+     * German ran 57px past it, the dates under the sticky View. A day, short
+     * as every list's date is: its year only when it is not this year's
+     * (TableDate).
      */
     expect(await tableOverflow(page)).toBeLessThanOrEqual(0);
     await expect(
       row(page, "Payments webhook delays").locator("td").nth(6),
-    ).toHaveText(/^\S+ \d{1,2},? \d{4}$/);
+    ).toHaveText(DECLARED_DAY);
 
     await screenshot(page, "list-german");
   });

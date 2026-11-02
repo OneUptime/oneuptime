@@ -140,14 +140,14 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | --- | --- | --- | --- |
 | 호스트 이름 | `host.name` | 호스트의 이름. 호스트의 식별 정보이므로 `identifyingAttributes`에 있습니다 | 장치 자체의 이름. SNMP `sysName`, 없으면 검색 중에 찾은 NetBIOS 또는 DNS 이름. IP 주소가 되는 일은 없습니다 |
 | IP 주소 | `host.ip` | 수집기가 보고하는 모든 주소 | OneUptime이 폴링하는 주소(IP 주소인 경우). 그렇지 않으면 프로브가 그 DNS 이름을 확인한 주소 |
-| MAC 주소 | `host.mac` | 감지됨 | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값 |
-| 일련 번호 | `host.serial_number` | 지정함 | ENTITY-MIB |
+| MAC 주소 | `host.mac` | 감지됨 | 장치에 입력한 값, 순회한 라우터의 ARP 테이블에서 알아낸 값, 또는 장치 자체의 포트에서 읽은 값 |
+| 일련 번호 | `host.serial_number` | 지정함 | ENTITY-MIB, 없으면 벤더 자체 MIB |
 | 제조업체 | `device.manufacturer` | 지정함 | ENTITY-MIB, 없으면 `sysDescr` 또는 `sysObjectID`가 가리키는 것 |
 | 모델 | `device.model.name` | 지정함 | ENTITY-MIB, 없으면 `sysDescr`가 가리키는 것 |
 | 펌웨어 버전 | `device.firmware.version` | 지정함 | ENTITY-MIB, 없으면 `sysDescr`가 가리키는 것 |
 | 운영 체제 | `os.name` | `os.description`(또는 `os.type`) | `sysDescr`가 가리키는 것: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS 버전 | `os.version` | 감지됨 | ENTITY-MIB, 없으면 `sysDescr`가 가리키는 것 |
-| Device Type | `device.type` | 지정함. 없으면 카드가 OS와 이름으로 분류합니다(서버, 방화벽, ...) | 장치의 역할. 지정한 역할, 없으면 토폴로지 맵이 그리는 역할 |
+| 디바이스 유형 | `device.type` | 지정함. 없으면 카드가 OS와 이름으로 분류합니다(서버, 방화벽, ...) | 장치의 역할. 지정한 역할, 없으면 토폴로지 맵이 그리는 역할 |
 | 위치 | `device.location` | 지정함. 없으면 카드가 클라우드 영역을 보여 줍니다 | `sysLocation`. 카드는 사이트를 먼저 보여 줍니다 |
 
 각 값의 출처는 아래의 [호스트 표](#호스트-자산-속성)와 [네트워크 장치 표](#네트워크-장치-자산-속성)에 자세히 나와 있습니다.
@@ -191,22 +191,22 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 | 호스트 이름 | `host.name` | 장치 자체의 이름. SNMP `sysName`, 없으면 검색 중에 찾은 NetBIOS 또는 역방향 DNS 이름. IP 주소로만 이름이 붙는 경우에는 빠집니다 |
 | IP 주소 | `host.ip` | OneUptime이 폴링하는 주소(IP 주소인 경우). DNS 이름으로 폴링하는 장치는 프로브가 그 이름을 마지막으로 확인한 주소 |
 | DNS 이름 | `net.device.dns_name` | 검색 중에 찾은 역방향 DNS 이름, 또는 OneUptime이 폴링하는 DNS 이름 |
-| MAC 주소 | `host.mac` | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값 |
+| MAC 주소 | `host.mac` | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값. 없으면 SNMP 워크나 검색 스캔이 읽은 장치의 첫 번째 Ethernet 포트 MAC |
 | 제조사 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, 없으면 `sysDescr`가 가리키는 제조사, 없으면 `sysObjectID`의 벤더 |
 | 모델 | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, 없으면 `sysDescr`가 가리키는 모델 |
-| 일련 번호 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| 펌웨어 버전 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, 없으면 Ubiquiti, HPE, Aruba 장치에서 `sysDescr`가 가리키는 펌웨어 |
-| 운영 체제 | `os.name` | `sysDescr`가 가리키는 운영 체제 |
-| 소프트웨어 또는 OS 버전 | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, 없으면 `sysDescr`가 가리키는 릴리스 |
+| 일련 번호 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum`, 없으면 FortiGate, Juniper, MikroTik, Sophos 장치에서는 벤더 자체 MIB |
+| 펌웨어 버전 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, 없으면 FortiGate, MikroTik, Sophos 장치에서는 벤더 자체 MIB, 없으면 Ubiquiti, HPE, Aruba 장치에서 `sysDescr`가 가리키는 펌웨어 |
+| 운영 체제 | `os.name` | `sysDescr`가 가리키는 운영 체제, 또는 플랫폼이 항상 실행하는 운영 체제: FortiGate에서는 FortiOS, MX에서는 Meraki의 MX 펌웨어 |
+| 소프트웨어 또는 OS 버전 | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, 없으면 벤더 자체 MIB, 없으면 `sysDescr`가 가리키는 릴리스 |
 | 시스템 설명 | `os.description` | `sysDescr` |
 | 장치 유형 | `device.type` | 장치에 지정한 역할, 없으면 토폴로지 맵이 분류한 역할. 프로젝트에서 부르는 이름으로 들어갑니다 |
 | 위치 | `device.location` | `sysLocation`. 단, Net-SNMP의 "Sitting on the Dock of the Bay" 같은 에이전트 기본값은 제외합니다 |
 | 사이트 | `oneuptime.site.name` | 장치가 지정된 Network Site |
 | 폴링 주소 | `net.device.hostname` | OneUptime이 폴링하는 주소. IP 주소 또는 DNS 이름입니다. `host.name`과 `host.ip`가 생기기 전에 작성된 동기화를 위해 남겨 두었습니다 |
 
-ENTITY-MIB 행은 장치의 첫 SNMP 워크 뒤에 채워집니다. ping으로만 모니터링하거나 아직 폴링하지 않아 워크되지 않는 장치도 이름, 제조사, 운영 체제, 위치는 그 주소의 마지막 검색 스캔이 SNMP로 읽은 내용에서, MAC 주소는 순회한 라우터의 ARP 테이블에서 얻습니다. ENTITY-MIB를 구현하지 않은 장치에는 보고할 일련 번호나 펌웨어가 없습니다. 그래도 많은 플랫폼에서 `sysDescr`가 모델과 운영 체제를 알려 줍니다. Cisco Meraki MX는 `Meraki MX85`를 보고하고, 이것으로 제조사와 모델이 채워집니다. `sysDescr`가 알려진 형식이 아닌 플랫폼은 추측하지 않고 아무것도 추가하지 않습니다.
+ENTITY-MIB 행은 장치의 첫 SNMP 워크 뒤에 채워집니다. ping으로만 모니터링하거나 아직 폴링하지 않아 워크되지 않는 장치도 이름, 제조사, 모델, 일련 번호, 펌웨어, 운영 체제, OS 버전, 위치는 그 주소의 마지막 검색 스캔이 SNMP로 읽은 내용에서, MAC 주소는 순회한 라우터의 ARP 테이블이나 그 스캔에서 얻습니다. ENTITY-MIB를 구현하지 않은 장치에는 보고할 일련 번호나 펌웨어가 없습니다. 다만 벤더가 OneUptime이 읽는 자체 MIB에 이를 보관하는 경우는 예외이며, FortiGate, Juniper, MikroTik, Sophos가 여기에 해당합니다. 그래도 많은 플랫폼에서 `sysDescr`가 모델과 운영 체제를 알려 줍니다. Cisco Meraki MX는 `Meraki MX85`를 보고하고, 이것으로 제조사, 모델, 운영 체제가 채워집니다. `sysDescr`가 알려진 형식이 아닌 플랫폼은 추측하지 않고 아무것도 추가하지 않습니다.
 
-[Meraki 연결](/docs/monitor/network-traffic#netflow-없는-cisco-meraki)이 조직을 읽으면, Meraki 장치는 자체 폴링이 비워 둔 정보를 Meraki 대시보드에서 가져옵니다. 일련 번호, 모델, 펌웨어, 제조사, MAC 주소, 이름, 관리 주소, 등록된 주소, 유형입니다. 일련 번호나 MAC 주소가 Meraki 장치와 같은 장치, 또는 OneUptime이 Meraki 장치의 관리 주소에서 폴링하고 이름도 같은 장치가 조직의 장치로 간주됩니다. 장치에 저장된 값과 장치 자체의 폴링이 읽은 값이 우선합니다.
+[Meraki 연결](/docs/monitor/network-traffic#netflow-없는-cisco-meraki)이 조직을 읽으면, Meraki 장치는 자체 폴링이 비워 둔 정보를 Meraki 대시보드에서 가져옵니다. 일련 번호, 모델, 펌웨어, 제조사, MAC 주소, 이름, 관리 주소, 등록된 주소, 유형입니다. 모델과 펌웨어에서 운영 체제와 OS 버전도 알 수 있습니다. 일련 번호나 MAC 주소가 Meraki 장치와 같은 장치, 또는 OneUptime이 Meraki 장치의 관리 주소에서 폴링하고 이름도 같은 장치가 조직의 장치로 간주됩니다. Meraki는 MX의 그런 주소를 나열하지 않고, 나열하는 MAC도 MX의 어느 포트에도 없으므로, MX는 이름과 그 MAC 바로 위의 포트 MAC으로 식별됩니다. 장치에 저장된 값과 장치 자체의 폴링이 읽은 값이 우선합니다. 유일한 예외는 MAC 주소입니다. 본체 라벨에 적힌 Meraki의 MAC 주소가 장치 자체 포트에서 읽은 MAC 주소보다 우선합니다.
 
 장치에 저장된 값(직접 입력했거나 API로 설정한 값)은 검색이 읽은 내용으로 바뀌지 않습니다. 장치 자체의 워크가 읽은 값과 스캔이 읽은 값 중에서는 더 새로운 값이 쓰입니다. 스캔이 읽은 내용은 스캔이 그 주소에서 같은 기계를 찾았을 때만 쓰입니다. 읽은 시스템 이름, `sysObjectID` 또는 NetBIOS 이름이 장치의 것과 어긋나면 그곳에서 읽은 내용은 하나도 쓰이지 않습니다. 항목의 **자산 세부 정보** 카드는 각 값의 출처와 시각을 보여 줍니다.
 

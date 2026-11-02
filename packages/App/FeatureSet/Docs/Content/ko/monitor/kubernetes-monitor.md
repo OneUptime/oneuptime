@@ -34,15 +34,15 @@ flowchart TB
 
 ### 클러스터 선택
 
-**Kubernetes 클러스터** 에서 선택합니다. 목록에는 에이전트가 보고한 모든 클러스터가 있습니다.
+**Kubernetes 클러스터** 에서 선택합니다. 목록에는 에이전트가 보고한 모든 클러스터가 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **Kubernetes 클러스터 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
 
 ### 감시할 대상 선택
 
-세 탭 중 하나를 사용합니다.
+새 모니터는 **알림 대상** 아래의 **Cluster Stopped Reporting** 에서 시작하며, **변경** 으로 다른 템플릿을 고릅니다. **Custom Metric** 과 **고급** 은 **추가 필드** 아래에 있습니다.
 
-| 탭 | 선택하는 내용 |
+| 위치 | 선택하는 내용 |
 | --- | --- |
-| **Quick Setup** | [미리 만들어진 알림 템플릿](#미리-만들어진-알림-템플릿). 메트릭, 범위, 시간 범위, 기준을 채웁니다. **시간 범위** 는 계속 바꿀 수 있습니다. |
+| **알림 대상** | [미리 만들어진 알림 템플릿](#미리-만들어진-알림-템플릿). 메트릭, 범위, 시간 범위, 기준을 채웁니다. **시간 범위** 는 계속 바꿀 수 있습니다. |
 | **Custom Metric** | [메트릭 카탈로그](#메트릭-카탈로그)의 메트릭 하나와 그 **리소스 범위**, 필터, **집계**(평균, 최대, 최소, 합계, 개수), **시간 범위**. |
 | **고급** | **리소스 범위**, 필터, **시간 범위**, 그리고 **메트릭 선택** 아래의 직접 만든 메트릭 쿼리와 수식. 결과의 실시간 차트가 함께 표시됩니다. |
 
@@ -69,6 +69,8 @@ flowchart TB
 | 노드 | 클러스터 노드 | **노드 이름** |
 | Pod | Pod | **네임스페이스**, **Pod 이름** |
 
+컨테이너와 Pod의 메트릭에는 그 Pod가 속한 워크로드의 이름이 붙습니다(Deployment의 Pod에는 Deployment의 이름과 그 ReplicaSet의 이름이 붙습니다). 그래서 범위를 워크로드로 하면 그 워크로드의 컨테이너와 Pod를 감시합니다. Job의 실패 Pod처럼 워크로드 자체의 메트릭에는 그 워크로드 자신의 이름만 붙으므로, 그 워크로드의 종류로 범위를 지정하세요.
+
 ### 시간 범위
 
 **시간 범위** 는 모니터를 평가할 때마다 메트릭 쿼리가 다루는 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 짧은 기간(1~15분)은 알림에 알맞고, 긴 기간은 잡음이 많은 메트릭을 부드럽게 합니다.
@@ -85,13 +87,13 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| 컨테이너 | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| 컨테이너 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 컨트롤 플레인 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요.
+> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요. **Container Restarts**는 컨테이너의 누적 재시작 수이고, **Container Restarts (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **Container Restarts**가 가진 것을 그대로 가지며, 컨테이너가 속한 Pod의 워크로드 이름도 포함하지만 재시작할 때마다 바뀌는 컨테이너 ID는 포함하지 않습니다. **Job Failed Pods**는 Job의 누적 실패 Pod 수이고, **Job Failed Pods (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다. **Job Failed Pods**와 마찬가지로 Job의 이름과 네임스페이스를 가집니다.
 
 ## 모니터링 기준
 
@@ -122,41 +124,46 @@ flowchart TB
 | **Anomalously Low** | 예상 범위보다 내려감 |
 | **Anomalous** | 어느 방향으로든 예상 범위를 벗어남 |
 
-각 샘플은 **기준선 기간**(기본 14일, 그 밖에 28, 60, 90일)으로 만든, 같은 요일·같은 시간대의 기준선과 비교됩니다. **민감도** 는 예상 범위의 폭을 정합니다. **낮음 (4σ — 심각한 편차만)**, 기본값인 **중간 (3σ — 권장)**, **높음 (2σ — 노이즈가 많음, 매우 안정적인 서비스)** 중에서 고릅니다. 이상 조건은 선택한 기준선 기간 이상의 메트릭 기록이 쌓일 때까지 "Learning" 상태로 남으며 알림을 만들지 않습니다.
+각 샘플은 **기준선 기간**(기본 14일, 그 밖에 28, 60, 90일)으로 만든, 같은 요일·같은 시간대의 기준선과 비교됩니다. **민감도** 는 예상 범위의 폭을 정합니다. **낮음 (4σ — 심각한 편차만)**, 기본값인 **중간 (3σ — 권장)**, **높음 (2σ — 노이즈가 많음, 매우 안정적인 서비스)** 중에서 고릅니다. 이상 조건은 같은 요일·같은 시간대에 2주 분량의 기록이 쌓일 때까지 "Learning" 상태로 남으며 알림을 만들지 않습니다. 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남습니다. 이 모니터는 쿼리를 속성으로 필터링하는데 기준선에는 속성이 없기 때문입니다.
 
 **추가 필드** 아래의 **데이터가 없는 경우** 는 기간 동안 쿼리가 아무것도 반환하지 않을 때의 동작을 정합니다. **Ignore**(기본값)는 일치하지 않고, **트리거** 는 무응답을 문제로 취급하며, **Treat As Zero** 는 0으로 비교합니다. OneUptime 자체가 데이터를 받지 못한 시간은 절대 데이터 없음으로 취급되지 않습니다. 그런 시간이 포함된 기간의 확인은 대신 기다리며, 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)에서 설명합니다.
 
 ## 미리 만들어진 알림 템플릿
 
-**Quick Setup** 탭은 다음 템플릿을 범주별로 보여 줍니다. 각 템플릿은 두 개의 기준을 채웁니다. 하나는 조건이 유지되는 동안 모니터를 오프라인으로 표시하고 인시던트와 알림을 열며, 다른 하나는 조건이 해소되면 모니터를 다시 온라인으로 돌립니다.
+**알림 대상** 목록은 다음 템플릿을 범주별로 보여 줍니다. 각 템플릿은 두 개의 기준을 채웁니다. 하나는 조건이 유지되는 동안 모니터를 오프라인으로 표시하고 인시던트와 알림을 열며, 다른 하나는 조건이 해소되면 모니터를 다시 온라인으로 돌립니다.
 
 | 템플릿 | 범주 | 작동 조건 | 심각도 |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 가용성 | 클러스터의 에이전트에서 10분 동안 데이터가 들어오지 않음 | 심각 |
 | CrashLoopBackOff Detection | 워크로드 | 컨테이너가 15분 안에 다시 시작되었고 그중 절반 미만 동안만 준비됨 | 심각 |
-| Pod Stuck in Pending | 예약 중 | 15분 기간의 모든 샘플에서 어떤 Pod가 Pending 단계에 있음 | Warning |
+| Pod Stuck in Pending | 예약 중 | 15분 기간의 모든 샘플에서 어떤 Pod가 Pending 단계에 있음 | 경고 |
 | Node Not Ready | 노드 | 노드가 NotReady를 보고하거나 상태 보고를 멈춤(Unknown) | 심각 |
-| High Node CPU Utilization | 노드 | 노드의 평균 CPU 사용량이 할당 가능한 CPU의 90%를 넘음 | Warning |
-| High Node Memory Utilization | 노드 | 노드의 평균 메모리 워킹 셋이 할당 가능한 메모리의 85%를 넘음 | Warning |
-| Deployment Replica Mismatch | 워크로드 | Deployment의 사용 가능한 레플리카가 15분 동안 원하는 수보다 적음 | Warning |
-| Job Failures | 워크로드 | Job의 Pod가 15분 안에 실패함 | Warning |
+| High Node CPU Utilization | 노드 | 노드의 평균 CPU 사용량이 할당 가능한 CPU의 90%를 넘음 | 경고 |
+| High Node Memory Utilization | 노드 | 노드의 평균 메모리 워킹 셋이 할당 가능한 메모리의 85%를 넘음 | 경고 |
+| Deployment Replica Mismatch | 워크로드 | Deployment의 사용 가능한 레플리카가 15분 동안 원하는 수보다 적음 | 경고 |
+| Job Failures | 워크로드 | Job의 Pod가 15분 안에 실패함 | 경고 |
 | etcd No Leader | 컨트롤 플레인 | etcd에 선출된 리더가 없음 | 심각 |
 | API Server Request Saturation | 컨트롤 플레인 | API 서버가 기간 내내 처리 중인 요청을 200개 이상 보유함 | 심각 |
-| Scheduler Backlog | 예약 중 | 스케줄러의 대기 중인 Pod 큐가 5분 동안 비지 않음 | Warning |
-| High Node Disk Usage | 스토리지 | 노드의 파일 시스템이 90% 넘게 참 | Warning |
-| DaemonSet Misscheduled Nodes | 워크로드 | DaemonSet이 노드 셀렉터, 어피니티, 톨러레이션에 더 이상 맞지 않는 노드에서 Pod를 실행함 | Warning |
-| High Node CPU Request Commitment | 노드 | 노드의 컨테이너 CPU 요청 합계가 할당 가능한 CPU의 90%를 넘음 | Warning |
-| High Node Memory Request Commitment | 노드 | 노드의 컨테이너 메모리 요청 합계가 할당 가능한 메모리의 90%를 넘음 | Warning |
+| Scheduler Backlog | 예약 중 | 스케줄러의 대기 중인 Pod 큐가 5분 동안 비지 않음 | 경고 |
+| High Node Disk Usage | 스토리지 | 노드의 파일 시스템이 90% 넘게 참 | 경고 |
+| DaemonSet Misscheduled Nodes | 워크로드 | DaemonSet이 노드 셀렉터, 어피니티, 톨러레이션에 더 이상 맞지 않는 노드에서 Pod를 실행함 | 경고 |
+| High Node CPU Request Commitment | 노드 | 노드의 컨테이너 CPU 요청 합계가 할당 가능한 CPU의 90%를 넘음 | 경고 |
+| High Node Memory Request Commitment | 노드 | 노드의 컨테이너 메모리 요청 합계가 할당 가능한 메모리의 90%를 넘음 | 경고 |
 | HPA Saturated at Max Replicas | 워크로드 | `minReplicas`보다 크게 스케일된 HPA가 `maxReplicas`의 90% 이상으로 실행됨 | 심각 |
 | Pod Memory Saturating Container Limit | 워크로드 | Pod가 컨테이너 메모리 한도의 90% 넘게 사용함 | 심각 |
-| Pod CPU Saturating Container Limit | 워크로드 | Pod가 컨테이너 CPU 한도의 90% 넘게 사용함 | Warning |
+| Pod CPU Saturating Container Limit | 워크로드 | Pod가 컨테이너 CPU 한도의 90% 넘게 사용함 | 경고 |
 
 객체별 메트릭을 쓰는 템플릿은 노드, Pod, Deployment, Job, DaemonSet, HPA를 각각 따로 평가합니다. 그래서 비정상 Pod가 여러 개인 클러스터는 클러스터 전체에 하나가 아니라 Pod마다 인시던트를 받습니다.
+
+**High Node CPU Request Commitment** 와 **High Node Memory Request Commitment** 는 스케줄러처럼 끝나지 않은 Pod 의 요청(request)만 셉니다. 클러스터는 Succeeded 또는 Failed 상태인 Pod(끝난 Job 의 Pod 등)의 요청을 Pod 가 삭제될 때까지 계속 보고하지만, 이는 세지 않습니다.
 
 **Cluster Stopped Reporting** 템플릿은 클러스터의 에이전트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 에이전트가 제거되었거나 계속 충돌하는 경우, API 키가 취소된 경우, OneUptime으로 가는 경로를 잃은 경우, 또는 클러스터의 API 서버가 에이전트에 더 이상 응답하지 않는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection**과 **Job Failures**는 재시작 수나 실패한 Pod 수 자체가 아니라 창 안에서 그 수가 얼마나 늘었는지를 세므로, 재시작이나 실패가 멈추면 저절로 해제됩니다. 증가는 같은 분의 두 샘플 사이에서만 보이며, 에이전트의 30초 간격에서는 약 절반입니다. 크래시 루프는 계속 재시작하므로 잡히지만, 한 번의 재시작은 놓칠 수 있습니다.
+> **CrashLoopBackOff Detection**은 에이전트가 샘플마다 보내는 `k8s.container.restarts.increase`, 즉 그 컨테이너의 이전 샘플 이후 재시작 수를 더합니다. 그래서 샘플 간격이 얼마나 벌어지든 모든 재시작을 세고, 재시작이 멈추면 저절로 해제되며, 다시 만들어진 Pod는 재시작으로 읽히지 않고 새로 세기 시작합니다. 이전 에이전트는 `k8s.container.restarts.increase`를 보내지 않으므로 먼저 [업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.container.restarts`가 각 분 안에서 얼마나 늘었는지를 읽어 크래시 루프 재시작의 약 절반을 놓칩니다. 삭제하고 템플릿으로 다시 만드세요.
+
+> [!NOTE]
+> **Job Failures**는 에이전트가 샘플마다 보내는 `k8s.job.failed_pods.increase`, 즉 그 Job의 이전 샘플 이후 실패한 Pod 수를 더합니다. 그래서 샘플 간격이 얼마나 벌어지든 모든 실패를 세고, 실패가 멈추면 저절로 해제되며, 같은 이름으로 다시 만들어진 Job은 실패로 읽히지 않고 새로 세기 시작합니다. 에이전트가 Job을 처음 샘플링하기 전의 실패는 그 Job을 세기 시작하는 값이 되므로, 처음 30초 안에 실패하고 다시 시도하지 않는 Job은 놓칠 수 있습니다. 이전 에이전트는 `k8s.job.failed_pods.increase`를 보내지 않으므로 먼저 [업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.job.failed_pods`가 각 분 안에서 얼마나 늘었는지를 읽어 실패의 약 절반을 놓칩니다. 삭제하고 템플릿으로 다시 만드세요.
 
 ### 증상이 아니라 원인을 잡기
 
@@ -185,7 +192,11 @@ flowchart TB
 :::
 
 :::details 재시작에 CrashLoopBackOff Detection이 발생하지 않음
-이 템플릿은 컨테이너의 재시작 수가 15분 안에 늘어나고 컨테이너가 그중 절반 미만 동안만 준비되었을 때 발생하므로, 한 번 재시작하고 곧바로 돌아온 컨테이너는 알림을 보내지 않습니다. 증가는 같은 분의 두 샘플 사이에서만 보이므로 한 번의 재시작은 놓칠 수 있고, 몇 분마다 재시작하는 크래시 루프는 잡힙니다.
+이 템플릿은 컨테이너가 15분 안에 재시작하고 그중 절반 미만 동안만 준비되었을 때 발생하므로, 한 번 재시작하고 곧바로 돌아온 컨테이너는 알림을 보내지 않습니다. 이 템플릿은 `k8s.container.restarts.increase`를 읽는데, 이전 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.container.restarts`가 같은 분의 두 샘플 사이에서 얼마나 늘었는지를 읽으므로, 두 분에 걸친 샘플 사이의 재시작을 놓칩니다. 삭제하고 템플릿으로 다시 만드세요. `filters.metrics.include`에 에이전트가 보내는 메트릭을 나열했다면 `k8s.container.restarts.increase`를 추가하세요. 워크로드로 범위를 지정한 모니터에는 `k8s.container.restarts.increase`의 워크로드 이름도 필요한데, 이전 에이전트는 이를 붙이지 않고 보냅니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드).
+:::
+
+:::details 실패한 Job에 Job Failures가 발생하지 않음
+이 템플릿은 Job의 Pod가 15분 안에 실패하면 발생하고, 마지막 실패 15분 뒤에 해제됩니다. 이 템플릿은 `k8s.job.failed_pods.increase`를 읽는데, 이전 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.job.failed_pods`가 같은 분의 두 샘플 사이에서 얼마나 늘었는지를 읽으므로, 두 분에 걸친 샘플 사이의 실패를 놓칩니다. 삭제하고 템플릿으로 다시 만드세요. 에이전트가 Job을 처음 샘플링하기 전의 실패는 그 Job을 세기 시작하는 값이 되므로, 유일한 Pod가 처음 30초 안에 실패한 Job은 놓칩니다. `filters.metrics.include`에 에이전트가 보내는 메트릭을 나열했다면 `k8s.job.failed_pods.increase`를 추가하세요. 워크로드로 범위를 지정한 모니터는 Job 자체를 지정해야 합니다. Job의 실패 Pod에는 Job의 이름과 네임스페이스가 붙고, 그 Job을 만든 CronJob의 이름은 붙지 않습니다.
 :::
 
 ## 다음 단계

@@ -16,10 +16,10 @@ flowchart TB
     declared["Incident declared"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
     step -->|"Success"| channel["Message in<br/>your channel"]
-    step -->|"Error"| log["Log: why it<br/>was not delivered"]
+    step -->|"Error"| failed["The run fails,<br/>and says why"]
 ```
 
-The step posts the **Message Text** to the channel's webhook. It takes its **Success** output when Discord takes the message, and its **Error** output, with Discord's reason, when Discord refuses it. The template connects a **Log** step to **Error**, so a run that could not post says why.
+The step posts the **Message Text** to the channel's webhook. It takes its **Success** output when Discord takes the message, and its **Error** output, with Discord's reason, when Discord refuses it. With nothing connected to **Error**, as in the template, a run that could not post fails, and its **Steps** say why.
 
 ## Before you begin
 
@@ -48,7 +48,7 @@ Start from the template, which builds the whole workflow for you, or from scratc
 3. Keep the name, **Notify Discord on new incident**, or change it, and click **Next**.
 4. Paste the URL into **Discord Webhook URL**, and click **Create Workflow**.
 
-The workflow opens in the **Builder** with three steps: **On Create Incident**; **Send Message to Discord**, which posts the incident's number, title, severity and state; and a **Log** step on its **Error** output. The URL is saved as the workflow's secret variable `discordWebhookUrl`.
+The workflow opens in the **Builder** with two steps: **On Create Incident**, and **Send Message to Discord**, which posts the incident's number, title, severity and state. The URL is saved as the workflow's secret variable `discordWebhookUrl`.
 @tab From scratch
 1. Save the URL as a secret global variable: go to **Workflows → Global Variables**, click **Create Workflow Variable**, name it `DISCORD_WEBHOOK_URL`, and click **Next**. Paste the URL into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
 2. Go to **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
@@ -68,7 +68,7 @@ A message from scratch reads the incident's fields with references such as these
 
 Switch **Enabled** on at the top of the **Builder**. From now on, every new incident is posted in the channel.
 
-To test it without opening an incident, click **Run Workflow** and pick an incident you already have under **Incident**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the channel. If the step takes **Error** instead, the **Log** step's line says why: see [Troubleshooting](#troubleshooting).
+To test it without opening an incident, click **Run Workflow** and pick an incident you already have under **Incident**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the channel. If the step takes **Error** instead, the run fails, and the step's entry in **Steps** says why: see [Troubleshooting](#troubleshooting).
 :::
 
 ## Tips
@@ -80,7 +80,7 @@ To test it without opening an incident, click **Run Workflow** and pick an incid
 
 ## Troubleshooting
 
-When the step takes **Error**, the run says why: the template's **Log** step writes `❌ Discord could not deliver the incident notification:` and Discord's reason.
+When the step takes **Error**, the run fails, and the step's entry in the run's **Steps** gives Discord's reason.
 
 :::details "Unknown Webhook" or "Invalid Webhook Token"
 The webhook was deleted, or the URL was copied wrong. Create a new webhook, and replace the URL: in the template's workflow, the `discordWebhookUrl` variable; in a workflow of your own, the content of `DISCORD_WEBHOOK_URL`.

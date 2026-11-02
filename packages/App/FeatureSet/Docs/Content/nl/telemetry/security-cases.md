@@ -29,7 +29,7 @@ flowchart TB
     work --> close["Gesloten met<br/>een oordeel"]
 ```
 
-Open **Producten → Security Events → Beveiligingszaken → Open zaken** voor de wachtrij. **Mijn zaken**, **Niet toegewezen**, **Gesloten zaken** en **Alle zaken** zijn eigen pagina's ernaast, die elk de zaken tonen die hun naam zegt.
+Open **Producten → Beveiligingsgebeurtenissen → Beveiligingszaken → Open zaken** voor de wachtrij. **Mijn zaken**, **Niet toegewezen**, **Gesloten zaken** en **Alle zaken** zijn eigen pagina's ernaast, die elk de zaken tonen die hun naam zegt.
 
 ## Voordat je begint
 
@@ -97,15 +97,15 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 
 - **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was. Onder **Tijd tot bevestiging** en **Tijd tot indamming** staat hoe de zaak ervoor staat ten opzichte van haar reactiedoelen.
 - **OneUptime AI**, op het **Overzicht**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
-- **Impact**, op het **Overzicht**: wat de zaak in gevaar brengt: of OneUptime heeft gezien dat haar records vanaf het internet werden bereikt, wie de eigenaar is en wat er het laatst aan veranderde. Klap het open om te zien wat elk record aanroept en waardoor het wordt aangeroepen, welke monitors en statuspagina's het in de gaten houden en met welke machines de adressen van de zaak praatten.
+- **Impact**, op het **Overzicht**: wat de zaak in gevaar brengt: of OneUptime heeft gezien dat haar records vanaf het internet werden bereikt, wie de eigenaar is, wat er het laatst aan veranderde, en de gegevens in gevaar - de opslagen met gevoelige gegevens die de zaak noemt of waar haar gebruikers en rollen bij kunnen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#security-operations)). Klap het open om te zien wat elk record aanroept en waardoor het wordt aangeroepen, welke monitors en statuspagina's het in de gaten houden en met welke machines de adressen van de zaak praatten.
 - **MITRE ATT&CK**, op het **Overzicht**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
 - **Tijdlijn**: alles wat er met de zaak gebeurde, met wie het deed.
 - **Verloop**: wat er gebeurde, op volgorde, in heel OneUptime: elke detectie en de beveiligingsgebeurtenissen erachter, hoe ver hun verzoeken kwamen, de uitzonderingen die ze opwierpen, de wijzigingen aan de records die de zaak noemt, de incidenten en meldingen die daarop ontstonden, en wat het team deed. De vele probes van een scanner zijn één regel, en elke regel opent wat hij noemt, zoals de trace van het verzoek of de uitzondering.
 - **Detecties**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
-- **Bewijs**: de bestanden, koppelingen en beveiligingsgebeurtenissen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Security Admin kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd. Een beveiligingsgebeurtenis wordt hier bewaard zoals ze was, met **Aan zaak toevoegen** op **Gebeurtenissen** of op de pagina van een [hunt](/docs/telemetry/security-events#hunts), en **Gebeurtenis bekijken** opent haar.
-- **Taken**: wat er in de zaak moet gebeuren, wie het doet en of het af is. Voeg een taak toe als één regel, geef hem aan iemand en vink hem af als hij af is. Wie de taak krijgt, krijgt bericht, tenzij die hem zelf nam, en het menu toont naast **Taken** hoeveel taken open staan.
+- **Bewijs**: de bestanden, koppelingen en beveiligingsgebeurtenissen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Security Admin kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd. Een beveiligingsgebeurtenis wordt hier bewaard zoals ze was, met **Aan zaak toevoegen** op **Gebeurtenissen** of op de pagina van een [hunt](/docs/telemetry/security-events#hunts), en **Gebeurtenis bekijken** opent haar. Ook de stap **Preserve the evidence** van een playbook bewaart hier de gebeurtenissen achter de detecties van de zaak.
+- **Taken**: wat er in de zaak moet gebeuren, wie het doet en of het af is. Voeg een taak toe als één regel, geef hem aan iemand en vink hem af als hij af is. Wie de taak krijgt, krijgt bericht, tenzij die hem zelf nam, en het menu toont naast **Taken** hoeveel taken open staan. Ook de stap **Taken toevoegen** van een playbook voegt taken toe en laat weg wat de zaak al heeft.
 - **Playbooks**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbooks**.
 - **Privénotities**: wat het team over de zaak schreef.
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
@@ -142,7 +142,7 @@ Een zaak die uit Google SecOps-waarschuwingen is geopend, sluit die ook in Googl
 
 ## Zaakprioriteiten en zaakstatussen
 
-Elk project heeft zijn eigen zaakprioriteiten en zaakstatussen, onder **Producten → Security Events → Instellingen → Zaakprioriteiten** en **Zaakstatussen**. Hernoem ze, geef ze een andere kleur, sleep ze in een andere volgorde en voeg je eigen toe, zoals een status "Triage" of een prioriteit "Noodgeval" boven **Kritiek**. Een nieuwe naam verschijnt overal tegelijk: in de wachtrij, op de zaakpagina's en het overzicht, in meldingen, in Slack en Microsoft Teams, en in playbookberichten.
+Elk project heeft zijn eigen zaakprioriteiten en zaakstatussen, onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Zaakprioriteiten** en **Zaakstatussen**. Hernoem ze, geef ze een andere kleur, sleep ze in een andere volgorde en voeg je eigen toe, zoals een status "Triage" of een prioriteit "Noodgeval" boven **Kritiek**. Een nieuwe naam verschijnt overal tegelijk: in de wachtrij, op de zaakpagina's en het overzicht, in meldingen, in Slack en Microsoft Teams, en in playbookberichten.
 
 Sommige zijn ingebouwd, omdat OneUptime leest wat ze betekenen. Je kunt ze hernoemen en een andere kleur geven, maar niet verwijderen of archiveren, en ze houden hun volgorde:
 
@@ -161,7 +161,7 @@ Wil je een eigen status of prioriteit niet meer gebruiken, gebruik dan **Archive
 
 ## Reactiedoelen
 
-Een reactiedoel bepaalt hoe snel een zaak moet worden afgehandeld: **Bevestigen binnen**, hoe lang een nieuwe zaak mag wachten tot iemand haar oppakt, en **Indammen binnen**, hoe lang het mag duren tot ze is ingedamd of gesloten. Elke zaakprioriteit heeft haar eigen doelen, onder **Producten → Security Events → Instellingen → Reactiedoelen**: met **Bewerken** op de rij van een prioriteit stel je haar twee doelen in, in minuten, uren of dagen, tot een jaar, en een leeg doel betekent geen doel. De prioriteiten van een nieuw project beginnen met deze:
+Een reactiedoel bepaalt hoe snel een zaak moet worden afgehandeld: **Bevestigen binnen**, hoe lang een nieuwe zaak mag wachten tot iemand haar oppakt, en **Indammen binnen**, hoe lang het mag duren tot ze is ingedamd of gesloten. Elke zaakprioriteit heeft haar eigen doelen, onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Reactiedoelen**: met **Bewerken** op de rij van een prioriteit stel je haar twee doelen in, in minuten, uren of dagen, tot een jaar, en een leeg doel betekent geen doel. De prioriteiten van een nieuw project beginnen met deze:
 
 | Prioriteit | Bevestigen binnen | Indammen binnen |
 | --- | --- | --- |
@@ -183,7 +183,7 @@ Waar de doelen te zien zijn:
 
 - De kop van de zaak noemt het volgende doel en hoeveel tijd er nog is, of hoe lang het al is verlopen: grijs zolang er tijd is, amber in het laatste vijfde, rood zodra het is gemist.
 - In het **Overzicht** van de zaak, onder **Tijd tot bevestiging** en **Tijd tot indamming**: hoe de zaak ervoor staat ten opzichte van elk doel, of hoe ver ze erover ging.
-- In de lijsten van de wachtrij: de regel onder de prioriteit van elke zaak, en een kolom **Termijn** die je kunt inschakelen en waarop je kunt sorteren. De lijsten tonen ze alleen als een prioriteit van het project een doel heeft.
+- In de lijsten van de wachtrij: de regel onder de prioriteit van elke zaak, en een kolom **Termijn** die je kunt inschakelen en waarop je kunt sorteren. Zolang de kolom aan staat, vervalt de regel onder de prioriteit. De lijsten tonen ze alleen als een prioriteit van het project een doel heeft.
 
 ## Meldingen
 
@@ -222,7 +222,7 @@ Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding
 
 ### Plaatsen in kanalen van Slack en Microsoft Teams
 
-Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Security Events → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
+Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
 
 | Voorwaarde | Matcht op |
 | --- | --- |
@@ -236,7 +236,7 @@ Elke melding behalve die van een taak wordt geplaatst in de kanalen van elke reg
 
 ## Playbooks
 
-Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan onder **Producten → Security Events → Playbooks**, vanuit een sjabloon of leeg, en voeg de stappen toe op de pagina ervan. Een project zonder playbooks ziet de sjablonen in plaats van een lege lijst; zodra er playbooks zijn, opent **Maken op basis van sjabloon** bij de lijst ze, met **Toegevoegd** bij de sjablonen die het project al heeft.
+Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan onder **Producten → Beveiligingsgebeurtenissen → Playbooks**, vanuit een sjabloon of leeg, en voeg de stappen toe op de pagina ervan. Een project zonder playbooks ziet de sjablonen in plaats van een lege lijst; zodra er playbooks zijn, opent **Maken op basis van sjabloon** bij de lijst ze, met **Toegevoegd** bij de sjablonen die het project al heeft.
 
 ### Wanneer een playbook draait
 
@@ -262,11 +262,12 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Zaak | Assign the case | Geeft de zaak aan een persoon, een team of beide |
 | Zaak | Set the priority | Verhoogt of verlaagt de prioriteit van de zaak |
 | Zaak | Set the status | Zet de zaak op een andere status van het project, met het oordeel dat je kiest als die status haar sluit |
-| Zaak | Add a note | Schrijft een notitie bij de zaak, zoals een checklist voor de analist |
+| Zaak | Add a note | Schrijft een notitie bij de zaak, zoals context voor de analist |
 | Zaak | Add labels | Voorziet de zaak van labels |
+| Zaak | Add tasks | Voegt taken toe aan de checklist van de zaak, voor een persoon of voor wie de zaak behandelt |
 | Onderzoeken | Check entities against threat intel | Zoekt elke entiteit op in je threat intelligence, en kan bij een match de prioriteit verhogen |
 | Onderzoeken | Look up entity activity | Telt de beveiligingsgebeurtenissen van elke entiteit over een recent venster, en noteert dat bij de zaak |
-| Onderzoeken | Preserve the evidence | Bewaart de sessie-opnames van de verzoeken achter de zaak, en noteert hun traces en exceptions bij de zaak |
+| Onderzoeken | Preserve the evidence | Bewaart de gebeurtenissen achter de detecties van de zaak en de sessie-opnames van haar verzoeken, en noteert hun traces en exceptions bij de zaak |
 | Informeren | Email people | Mailt gebruikers en teams een samenvatting van de zaak, met een link ernaartoe |
 | Informeren | Notify data store owners | Mailt de eigenaars van elke gegevensopslag waar de zaak over gaat, met een link naar de zaak |
 | Informeren | Post to Slack | Plaatst een samenvatting van de zaak in een Slack-kanaal |
@@ -278,9 +279,15 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Inperken | End the user's Okta sessions | Meldt de gebruiker waar de zaak over gaat af bij Okta en trekt zijn tokens in |
 | Inperken | Contain the host in CrowdStrike | Isoleert de host waar de zaak over gaat van het netwerk met CrowdStrike Falcon |
 | Inperken | Isolate the device in Microsoft Defender | Isoleert de host waar de zaak over gaat met Microsoft Defender for Endpoint |
+| Inperken | Disable the user in Microsoft Entra ID | Schakelt in Microsoft Entra ID het account uit van de gebruiker waar de zaak over gaat |
+| Inperken | Sign the user out of Microsoft Entra ID | Meldt de gebruiker waar de zaak over gaat overal af bij Microsoft Entra ID en trekt de vernieuwingstokens in |
+| Inperken | Suspend the user in Google Workspace | Schort in Google Workspace de gebruiker op waar de zaak over gaat |
+| Inperken | Sign the user out of Google Workspace | Meldt de gebruiker waar de zaak over gaat af bij Google Workspace, in elke browser en op elk apparaat |
 | Inperken | Unsuspend the user in Okta | Heft in Okta de schorsing op van de gebruiker waar de zaak over gaat |
 | Inperken | Lift containment in CrowdStrike | Heft voor de host waar de zaak over gaat de netwerkisolatie van CrowdStrike Falcon op |
 | Inperken | Release the device in Microsoft Defender | Haalt in Microsoft Defender for Endpoint de host waar de zaak over gaat uit isolatie |
+| Inperken | Enable the user in Microsoft Entra ID | Schakelt in Microsoft Entra ID het account weer in van de gebruiker waar de zaak over gaat |
+| Inperken | Unsuspend the user in Google Workspace | Heft in Google Workspace de opschorting op van de gebruiker waar de zaak over gaat |
 | Inperken | Openbare toegang tot gegevensopslagen blokkeren | Blokkeert de openbare toegang tot elke bucket of elk opslagaccount waar de zaak over gaat, via de cloudkoppeling ervan |
 | Inperken | Delen van gegevensopslag intrekken | Stopt het delen buiten je accounts van de snapshots van elke database waar de zaak over gaat, via de cloudkoppeling ervan |
 | Automatiseren | Send a webhook | Post de zaak als JSON naar een URL |
@@ -290,16 +297,28 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
-- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
-- **Alleen bij treffer in dreigingsinformatie**: de stap overslaan, tenzij een eerdere stap **Entiteiten controleren in dreigingsinformatie** van dezelfde uitvoering een bekende indicator vond.
-- **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering.
+- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De acht stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
+- **Deze stap uitvoeren**: **Altijd**, of alleen na een resultaat van een stap ervoor, zoals **Entiteiten controleren in dreigingsinformatie** die een bekende kwaadaardige entiteit vindt; zie [Vertakken op het resultaat van een stap](#vertakken-op-het-resultaat-van-een-stap).
+- **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering. Dit staat onder **Meer velden**, samen met **Deze stap uitvoeren**.
+
+### Vertakken op het resultaat van een stap
+
+**Deze stap uitvoeren** laat een stap wachten op hoe een stap ervoor eindigde. Elke stap ervoor biedt zijn resultaten aan:
+
+| Een stap ervoor | Zijn resultaten |
+| --- | --- |
+| Entiteiten controleren in dreigingsinformatie | Vond een bekende kwaadaardige entiteit, of vond niets bekend kwaadaardigs |
+| Activiteit van entiteiten opzoeken | Vond activiteit, of vond geen activiteit |
+| Elke andere stap | Geslaagd, en mislukt als **Doorgaan bij fout** erbij aan staat |
+
+Twee stappen die op tegengestelde resultaten van dezelfde stap wachten, zijn een als en een anders: een gebruiker alleen opschorten als dreigingsinformatie hem kent, en anders een taak toevoegen om de aanmelding met hem te bevestigen. Als de stap waarop gewacht wordt anders eindigt, wordt de wachtende stap overgeslagen, en de uitvoering zegt eronder waarom; hetzelfde geldt voor een stap die wacht op een overgeslagen stap. De kaart van een stap zegt waarop hij wacht, en een stap waarop een andere wacht, kan niet onder die andere worden gezet of verwijderd totdat die andere anders wordt uitgevoerd. De sjabloon **Bekende kwaadaardige indicatoren escaleren** verhoogt de prioriteit en status van een zaak alleen bij een treffer in dreigingsinformatie, en een stap die met de oude schakelaar voor dreigingsinformatie is opgeslagen, houdt die als **Alleen als een eerdere controle in dreigingsinformatie een bekende kwaadaardige entiteit vond**.
 
 ### Reageren via OneUptime
 
 Vier stappen werken via de rest van OneUptime in plaats van via een verbonden product:
 
 - **Run a runbook** start een van uw [runbooks](/docs/runbooks/index) met de zaak als invoer, die een Bash-stap als omgevingsvariabelen leest (zie [De webhook aanroepen](/docs/runbooks/triggers#de-webhook-aanroepen)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` en `ONEUPTIME_INPUT_HOST` zijn het adres, de gebruiker en de host waar de zaak over gaat, gekozen volgens dezelfde regel als bij een inperkingsstap, en leeg als het over geen ervan gaat. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` en `ONEUPTIME_INPUT_HOSTS` geven als JSON alle adressen, gebruikers en hosts die de zaak noemt, en `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` en `ONEUPTIME_INPUT_CASE_URL` zeggen om welke zaak het gaat. Een beschermde gebruiker of host zit er nooit bij. De uitvoering van het runbook vermeldt dat **Security playbook** haar voor de zaak heeft gestart.
-- **Preserve the evidence** bewaart de sessie-opnames van de verzoeken achter de zaak langer dan hun bewaartermijn, en schrijft een notitie bij de zaak die naar de trace van elk verzoek, elke opname en elke exception linkt. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart, dus exporteer vóór die tijd wat u nodig hebt.
+- **Preserve the evidence** bewaart de nieuwste gebeurtenis van elke detectie van de zaak, tot 100, zoals ze nu is, op de pagina **Bewijs** van de zaak, bewaart de sessie-opnames van de verzoeken achter de zaak langer dan hun bewaartermijn, en schrijft een notitie bij de zaak die naar de trace van elk verzoek, elke opname en elke exception linkt. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart, dus exporteer vóór die tijd wat u nodig hebt.
 - **Post a status page announcement** plaatst wat u schreef, zoals u het schreef, op de statuspagina's die u kiest. Er wordt niets uit de zaak aan toegevoegd. Hun abonnees worden alleen ingelicht als **Abonnees op de hoogte stellen** aan staat.
 - **Fix the code with AI** vraagt OneUptime AI om voor elke exception die de verzoeken van de zaak veroorzaakten, tot drie, een pull request die haar oplost. De stap vereist dat OneUptime AI aan staat, een repository met de code die via de GitHub App is verbonden, en een runner. Zonder deze wordt de stap overgeslagen en zegt hij wat er ontbreekt.
 
@@ -312,6 +331,8 @@ De inperkingsstappen werken via een verbinding die meer dan leestoegang nodig he
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Een API-token dat gebruikers mag beheren |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Een API-client met schrijfrechten in de scope Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Een app met de machtiging Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | Een app met de toepassingsmachtigingen User.Read.All, User.EnableDisableAccount.All en User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Domeinbrede delegatie met de scopes admin.directory.user en admin.directory.user.security, voor een beheerder die de gebruiker beheert |
 | Openbare toegang tot gegevensopslagen blokkeren, Delen van gegevensopslag intrekken | De cloudkoppeling van de opslag | **Gegevensbeveiligingsrespons** aangezet, en de installatieopdracht ervan opnieuw uitgevoerd |
 
 Een stap voor gebruikers of hosts werkt alleen op de gebruikers of hosts waar de zaak over gaat, nooit op alle gebruikers en hosts die ze noemt:
@@ -319,7 +340,7 @@ Een stap voor gebruikers of hosts werkt alleen op de gebruikers of hosts waar de
 - De waarde waarop een detectie van de zaak is gegroepeerd, zoals het account waarop een regel voor onmogelijke reizen groepeert, of de host die de waarschuwing van een gekoppeld product noemt.
 - Een gebruiker of host van de zaak die je threat intelligence als indicator kent.
 
-Een zaak die op een adres is gegroepeerd, zoals een brute-forceaanval op je VPN, gaat over geen van beide: haar inperkingsstappen worden overgeslagen, en het geprobeerde account en de geraakte gateway blijven ongemoeid. Een stap werkt op hoogstens 10 gebruikers of hosts. Hij zoekt elk ervan op naam op in het product, en meldt op de uitvoering wat hij met elk deed: uitgevoerd, al uitgevoerd, niet gevonden, geweigerd of beschermd.
+Een zaak die op een adres is gegroepeerd, zoals een brute-forceaanval op je VPN, gaat over geen van beide: haar inperkingsstappen worden overgeslagen, en het geprobeerde account en de geraakte gateway blijven ongemoeid. Een stap werkt op hoogstens 10 gebruikers of hosts. Hij zoekt elk ervan op naam op in het product, en meldt op de uitvoering wat hij met elk deed: uitgevoerd, al uitgevoerd, niet gevonden, geweigerd of beschermd. Microsoft Entra ID vindt een gebruiker op aanmeldnaam of e-mailadres, en wijzigt het account van een beheerder alleen voor een app die ook de rol Privileged Authentication Administrator heeft; Google Workspace vindt hem op primair adres of alias.
 
 De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak over gaat, hoogstens 10: die van de problemen van Gegevensbeveiliging die ze opnam, en elke opslag waarop een detectie haar groepeerde. Ze laten een opslag die als **Bewust openbaar** is gemarkeerd ongemoeid, wijzigen hoe een opslag wordt gedeeld maar nooit de gegevens ervan, en melden op de uitvoering wat ze met elke opslag deden (zie [Een blootstelling sluiten](/docs/data-security/integrations#een-blootstelling-sluiten)).
 
@@ -329,11 +350,11 @@ De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak
 
 #### Goedkeuring
 
-De vier stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Security Admin kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
+De acht stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Security Admin kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
 
 #### Ongedaan maken
 
-De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen** of **Vrijgeven**. Een beëindigde Okta-sessie kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
+De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Opschorting opheffen**, **Indamming opheffen**, **Vrijgeven** of **Inschakelen**. Een afmelding kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
 
 ### Berichten
 
@@ -354,7 +375,7 @@ Een e-mail of bericht zonder eigen tekst stuurt een samenvatting van de zaak.
 
 ### Uitvoeringen en goedkeuringen
 
-Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbooks → Uitvoeringen**:
+Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Beveiligingsgebeurtenissen → Playbooks → Uitvoeringen**:
 
 | Status van de uitvoering | Betekenis |
 | --- | --- |
@@ -371,7 +392,7 @@ Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstar
 
 ## Het overzicht
 
-**Producten → Security Events → Overzicht** is de pagina waarop het product opent:
+**Producten → Beveiligingsgebeurtenissen → Overzicht** is de pagina waarop het product opent:
 
 - De open zaken die aan jou zijn toegewezen, de open zaken die nog niemand heeft opgepakt, en de playbookstappen die op goedkeuring wachten; elk getal opent de pagina die ze toont.
 - **Gemiddelde tijd tot bevestiging**, **Gemiddelde tijd tot indamming** en **Gemiddelde tijd tot sluiting**, over de zaken die in de afgelopen 30 dagen zijn geopend: van het openen van een zaak tot iemand haar oppakt (een persoon toewijst, of haar in een status zet die als bevestigd telt), tot een status die als ingeperkt telt, en tot een die als gesloten telt. Een zaak die nog wacht, telt niet mee in een gemiddelde.
@@ -417,6 +438,10 @@ Open de uitvoering op de zaak: de stap meldt voor elke gebruiker of host of het 
 
 :::details Een inperkingsstap is overgeslagen
 De zaak gaat over geen enkele gebruiker of host, bijvoorbeeld alleen over een adres, of elke gebruiker of host waar ze over gaat, is beschermd. Open de uitvoering op de zaak: de stap meldt welke van de twee.
+:::
+
+:::details Een stap die pas na een andere draait, werd overgeslagen
+De stap waarop hij wacht, eindigde anders of werd zelf overgeslagen: hij vond bijvoorbeeld niets bekend kwaadaardigs, terwijl de stap op een bekende kwaadaardige entiteit wacht. Open de uitvoering op de zaak: de overgeslagen stap zegt op welke stap hij wachtte, en op welk resultaat. Om dat te veranderen, bewerk je de stap en open je **Meer velden**.
 :::
 
 :::details Een status of prioriteit kan niet worden verwijderd of gearchiveerd

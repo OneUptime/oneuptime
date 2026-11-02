@@ -412,6 +412,61 @@ describe("public dashboard allowlists vs the shipped templates", () => {
     );
   });
 
+  /*
+   * A chart query's fallback (MetricQueryConfigData.fallback) is asked for
+   * on its own when the query has no data: the Kubernetes restarts chart
+   * asks for the running count when an older agent sends no restarts per
+   * interval. A published dashboard serves it as it serves the query, from
+   * the stored config, so an older agent's cluster still gets its chart.
+   */
+  describe("a chart's fallback query on a published dashboard", () => {
+    it("serves the restarts chart's fallback with the cluster and namespace a viewer picked", async () => {
+      const config: JSONObject = loadTemplate(DashboardTemplateType.Kubernetes);
+
+      dashboard.dashboardViewConfig = config as unknown as DashboardViewConfig;
+
+      // The fixture still ships it: the restarts chart falls back to the count.
+      expect(JSON.stringify(config)).toContain(
+        '"fallback":{"queryConfig":{"metricAliasData":{"metricVariable":"a"',
+      );
+
+      for (const metricName of [
+        "k8s.container.restarts.increase",
+        "k8s.container.restarts",
+      ]) {
+        jest.clearAllMocks();
+
+        await callAggregate({
+          aggregationType: metricName.endsWith(".increase") ? "Sum" : "Max",
+          query: {
+            name: metricName,
+            attributes: {
+              "resource.k8s.cluster.name": "prod-eu",
+              "resource.k8s.namespace.name": {
+                _type: "Includes",
+                value: ["payments"],
+              },
+            },
+          },
+        });
+
+        expectNoError(`restarts chart metric "${metricName}"`);
+        expect(MetricService.aggregateBy).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it("still refuses a metric no query or fallback names", async () => {
+      dashboard.dashboardViewConfig = loadTemplate(
+        DashboardTemplateType.Kubernetes,
+      ) as unknown as DashboardViewConfig;
+
+      await callAggregate({ query: { name: "k8s.job.failed_pods" } });
+
+      expect(nextFunction).toHaveBeenCalled();
+      expect(MetricService.aggregateBy).not.toHaveBeenCalled();
+    });
+  });
+
   describe("templates do not become readers for anything else", () => {
     it("refuses a sensitive attribute key on every template", async () => {
       for (const templateType of TEMPLATE_TYPES) {

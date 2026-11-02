@@ -17,6 +17,23 @@ import {
   getEventDurationParts,
 } from "../../Utils/EventDuration";
 
+/*
+ * A number and the unit after it, in a table's compact duration: kept on one
+ * line together ("27 days, 7 hours" breaks after its comma, never between
+ * the 7 and its hours). A list that does not fit its card folds the
+ * duration under when the incident was declared (Table's TableFit), in a
+ * column as wide as the date, and "27 days, 7 hours" broke there as "27
+ * days, 7" over a line of "hours". Any digit, so Persian's are kept with
+ * their unit too.
+ */
+export const DURATION_NUMBER_BEFORE_UNIT: RegExp = /(\p{Nd}) (?=\p{L})/gu;
+
+export const keepDurationUnitsWhole: (text: string) => string = (
+  text: string,
+): string => {
+  return text.replace(DURATION_NUMBER_BEFORE_UNIT, "$1\u{00A0}");
+};
+
 export interface ComponentProps {
   startDate: Date;
   endDate?: Date | undefined; // when undefined, ticks live against "now".
@@ -86,7 +103,7 @@ const LiveDuration: FunctionComponent<ComponentProps> = (
         title={compactText === text ? undefined : text}
         data-testid="live-duration"
       >
-        {compactText}
+        {keepDurationUnitsWhole(compactText)}
       </span>
     );
   }

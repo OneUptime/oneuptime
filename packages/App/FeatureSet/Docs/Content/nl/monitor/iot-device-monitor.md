@@ -50,19 +50,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **IoT-apparaat** ond
 
 ### De vloot kiezen
 
-Kies onder **IoT Monitor Configuration** de vloot uit **IoT Fleet**. Elke vloot die gegevens heeft gestuurd, staat in de lijst.
+Kies onder **IoT Monitor Configuration** de vloot uit **IoT Fleet**. Elke vloot die gegevens heeft gestuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **IoT-vloot toevoegen** opent installatiestappen met je sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat je in de gaten houdt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Device Offline**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de aggregatie, het tijdsbereik, een groepering op `device.id` en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
-- **Custom Metric** - kies één metriek uit **IoT Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één apparaat of één apparaattype. Een eigen metriek wordt niet gegroepeerd: ze beoordeelt de vloot als geheel.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, ook over eigen metrieknamen, bijvoorbeeld het gebruikte geheugen als percentage van de geheugengrootte van een apparaat. Gebruik **Groeperen op** `device.id` om elk apparaat afzonderlijk te beoordelen.
+- **Wijzigen** - kies een andere [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de aggregatie, het tijdsbereik, een groepering op `device.id` en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
+- **Custom Metric** (onder **Meer velden**) - kies één metriek uit **IoT Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één apparaat of één apparaattype. Een eigen metriek wordt niet gegroepeerd: ze beoordeelt de vloot als geheel.
+- **Geavanceerd** (onder **Meer velden**) - bouw zelf queries en formules onder **Selecteer metrieken**, ook over eigen metrieknamen, bijvoorbeeld het gebruikte geheugen als percentage van de geheugengrootte van een apparaat. Gebruik **Groeperen op** `device.id` om elk apparaat afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Select Metric Variable**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Select Metric Variable**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metriek geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -78,27 +78,27 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | --- | --- | --- |
 | **IoT Fleet** | Alle | Verplicht. Beperkt elke query tot `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Geavanceerd | Optioneel. Eén apparaat, via zijn `device.id`, zoals `sensor-001`. |
-| **Device Type** | Custom Metric, Geavanceerd | Optioneel. De apparaten die deze `iot.device.type` melden, zoals `sensor` of `gateway`. |
+| **Apparaattype** | Custom Metric, Geavanceerd | Optioneel. De apparaten die deze `iot.device.type` melden, zoals `sensor` of `gateway`. |
 | **IoT Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; templates stellen hun eigen venster in. |
 | **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
-De filters werken samen: met een **Device ID** en een **Device Type** komt een apparaat van een ander type met niets overeen.
+De filters werken samen: met een **Device ID** en een **Apparaattype** komt een apparaat van een ander type met niets overeen.
 
 ## Kant-en-klare waarschuwingstemplates
 
-**Quick Setup** biedt 5 templates. Elk template bouwt een volledige monitor: de metriekquery, een groepering op `device.id`, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt 5 templates. Elk template bouwt een volledige monitor: de metriekquery, een groepering op `device.id`, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn venster - behalve **Device Offline**, dat afgaat bij de eerste meting onder 1. Een drempelcriterium herstelt 10 % voorbij zijn drempel, zodat een waarde die rond de lijn schommelt niet heen en weer springt.
 
 | Template | Categorie | Ernst | Houdt in de gaten | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Beschikbaarheid | Kritiek | `iot_device_up`, Min per `device.id`, laatste 30 minuten | Een meting ligt onder 1, of een geregistreerd apparaat stuurt het hele venster niets | Weer op 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
-| Weak Signal | Connectiviteit | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
+| Low Battery | Power | Waarschuwing | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
+| Weak Signal | Connectiviteit | Waarschuwing | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
 | High Temperature | Omgeving | Kritiek | `iot_temperature_celsius`, Max per `device.id`, laatste 5 minuten | Boven 70 °C | Op 63 °C of lager |
-| High CPU Usage | Systeem | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
+| High CPU Usage | Systeem | Waarschuwing | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een template maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project; wijzig ze in het criterium.
 
@@ -117,6 +117,8 @@ Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn v
 | **Het apparaat is geregistreerd** | Een apparaat in het **Device Registry** van de vloot wordt verwacht. Als het het hele venster niets stuurt, behandelt de monitor het alsof het `0` meldt, dus krijgt het een eigen incident, dat vanzelf wordt opgelost als het apparaat weer rapporteert. |
 
 Een geregistreerd apparaat blijft ook als offline in de inventaris van de vloot staan, terwijl een niet-geregistreerd apparaat na 15 minuten stilte wordt verwijderd. Stiltedetectie vereist het beleid **Treat As Zero** voor ontbrekende gegevens op het criterium voor `iot_device_up`, dat Device Offline-monitoren die vanuit het template zijn gemaakt al hebben. Een Device Offline-monitor die is gemaakt voordat apparaatregistratie bestond, moet het met de hand ingesteld krijgen, of opnieuw vanuit het template worden gemaakt.
+
+**Device Offline** beoordeelt elk apparaat op zijn laatste meting, dus een apparaat dat uitval en daarna weer beschikbaarheid meldde, is bij de volgende controle beschikbaar. Een Device Offline-monitor die offline blijft tot de uitvalmeting 30 minuten oud is, is gemaakt voordat het sjabloon dit deed: kies het sjabloon opnieuw onder **Waarover te waarschuwen** om hem bij te werken.
 
 > [!NOTE]
 > Een niet-geregistreerd apparaat dat stil wordt, zonder Last Will of gatewaymelding, stopt alleen met het sturen van gegevens, en een monitor die per apparaat groepeert, kan het er niet uitpikken. Registreer je apparaten, of geef een kritiek apparaat een eigen monitor (**Custom Metric**, met zijn **Device ID**) en stel **Als geen gegevens** in op **Trigger**. Stiltedetectie vereist ook dat ten minste één ander apparaat van de vloot nog rapporteert: een vloot die volledig op zwart gaat, bijvoorbeeld tijdens een gatewaystoring, geeft één incident voor de monitor, niet één per apparaat.
@@ -150,7 +152,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als een reeks geen monsters in het venster heeft: **Ignore** (de standaard) slaat haar over, **Treat As Zero** leest haar als `0`, en **Trigger** laat het criterium overeenkomen. |
 
-Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in de toestand "Learning", en geven niets, tot het baseline-venster genoeg geschiedenis bevat.
+Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in de toestand "Learning", en geven niets, tot het baseline-venster genoeg geschiedenis bevat. Een som, een telling of een query op een histogram blijft voorgoed in die toestand: deze monitor filtert zijn query's op attributen, en de baseline bevat er geen.
 
 ### Standaardcriteria
 

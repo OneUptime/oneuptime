@@ -30,6 +30,7 @@ import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { findExceptionGroupFingerprints } from "../../../../Utils/ExceptionMerge";
 
 /*
  * Preview-only cap on the fingerprints fetched per status and embedded in
@@ -39,6 +40,13 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
  * that the monitor itself will not count.
  */
 const PREVIEW_EXCLUDED_FINGERPRINT_LIMIT: number = 1000;
+
+/*
+ * The most fingerprints the preview leaves out in all, those of the
+ * exceptions merged into the resolved and archived ones included - as many
+ * as the monitor's own count leaves out (EXCLUDED_FINGERPRINT_LIMIT).
+ */
+export const PREVIEW_EXCLUDED_GROUP_FINGERPRINT_LIMIT: number = 5000;
 
 export interface ComponentProps {
   monitorStepExceptionMonitor: MonitorStepExceptionMonitor;
@@ -319,6 +327,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
                     limit: PREVIEW_EXCLUDED_FINGERPRINT_LIMIT,
                     skip: 0,
                     select: {
+                      _id: true,
                       fingerprint: true,
                     },
                     sort: {
@@ -330,13 +339,44 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             );
 
           const fingerprints: Set<string> = new Set<string>();
+          const excludedIds: Array<string> = [];
 
           for (const result of results) {
             for (const telemetryException of result.data) {
               if (telemetryException.fingerprint) {
                 fingerprints.add(telemetryException.fingerprint);
               }
+
+              if (telemetryException.id) {
+                excludedIds.push(telemetryException.id.toString());
+              }
             }
+          }
+
+          /*
+           * An exception merged into one of these is part of it: its
+           * occurrences keep their own fingerprint, so they are left out
+           * too, as the monitor leaves them out of its count
+           * (getResolvedOrArchivedFingerprints). The fingerprints merged
+           * into each come with it (findExceptionGroupFingerprints). If
+           * they cannot be read, the preview leaves out what it did before.
+           */
+          try {
+            for (const group of await findExceptionGroupFingerprints(
+              excludedIds,
+            )) {
+              for (const fingerprint of group.fingerprints) {
+                if (
+                  fingerprints.size >= PREVIEW_EXCLUDED_GROUP_FINGERPRINT_LIMIT
+                ) {
+                  break;
+                }
+
+                fingerprints.add(fingerprint);
+              }
+            }
+          } catch {
+            // Best effort: the exceptions' own fingerprints are left out still.
           }
 
           if (!isCancelled) {

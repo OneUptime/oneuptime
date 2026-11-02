@@ -1,4 +1,7 @@
-import { KubernetesResourceScope } from "./MonitorStepKubernetesMonitor";
+import {
+  KubernetesResourceScope,
+  KubernetesWorkloadKind,
+} from "./MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type KubernetesMetricCategory =
@@ -17,6 +20,15 @@ export interface KubernetesMetricDefinition {
   category: KubernetesMetricCategory;
   defaultAggregation: MetricsAggregationType;
   defaultResourceScope: KubernetesResourceScope;
+  /*
+   * The kind of workload the metric is about, when it is about one: its
+   * series carry only that kind's name (`k8s.job.name` on a Job's). The
+   * monitor form's Workload Kind starts on it, so a Workload Name is read
+   * as that kind's - a Job's name for Job Failed Pods, not a Deployment's;
+   * an HPA's for the HPA metrics. Unset for pod, container, node and
+   * cluster metrics.
+   */
+  workloadKind?: KubernetesWorkloadKind | undefined;
   unit?: string;
 }
 
@@ -198,6 +210,31 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Cluster,
     unit: "count",
   },
+  /*
+   * What to alert on for restarts: the agent sends, with each sample, the
+   * restarts since its previous sample of the container (the chart's
+   * metrics/restarts-increase pipeline), so their Sum over a window is the
+   * restarts in it - what CrashLoopBackOff Detection reads.
+   * k8s.container.restarts above is the running total, for the charts.
+   *
+   * The increase carries what the running total carries but container.id:
+   * the pod's namespace, name, UID and node, the container's name, and the
+   * workload names the agent's k8sattributes gives every container metric
+   * (resource.k8s.deployment.name and the rest), after the conversion. So
+   * a Workload scope, or a group-by on a workload's name, reads it as it
+   * reads the other container metrics.
+   */
+  {
+    id: "container-restarts-increase",
+    friendlyName: "Container Restarts (Increase)",
+    description:
+      "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it. Carries its pod's workload names, so it can be scoped to a workload.",
+    metricName: "k8s.container.restarts.increase",
+    category: "Container",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: "count",
+  },
   {
     id: "container-cpu-limit",
     friendlyName: "Container CPU Limit",
@@ -268,6 +305,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "deployment",
     unit: "count",
   },
   {
@@ -278,6 +316,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "deployment",
     unit: "count",
   },
   {
@@ -289,6 +328,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "daemonset",
     unit: "count",
   },
   {
@@ -299,6 +339,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "daemonset",
     unit: "count",
   },
   {
@@ -309,6 +350,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "statefulset",
     unit: "count",
   },
   {
@@ -319,6 +361,31 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "job",
+    unit: "count",
+  },
+  /*
+   * What to alert on for Job failures: the agent sends, with each sample,
+   * the Job's pods that failed since its previous sample of the Job (the
+   * chart's transform/job-failures-increase), so their Sum over a window is
+   * the failures in it - what Job Failures reads. k8s.job.failed_pods above
+   * is the Job's running count, for the charts.
+   *
+   * A copy on the count's own resource, so it carries what the count
+   * carries: the Job's name, UID and namespace. The Job is the workload, so
+   * a Workload scope of kind Job reads it; the receiver puts no CronJob on a
+   * Job's metrics.
+   */
+  {
+    id: "job-failed-pods-increase",
+    friendlyName: "Job Failed Pods (Increase)",
+    description:
+      "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it. Carries the Job's name and namespace, so it can be scoped to a Job.",
+    metricName: "k8s.job.failed_pods.increase",
+    category: "Workload",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "job",
     unit: "count",
   },
   {
@@ -329,10 +396,14 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "job",
     unit: "count",
   },
 
-  // HPA Metrics
+  /*
+   * HPA Metrics. They carry the HPA's own name, not the name of what it
+   * scales (KUBERNETES_HPA_KIND), so a Workload Name is read as the HPA's.
+   */
   {
     id: "hpa-current-replicas",
     friendlyName: "HPA Current Replicas",
@@ -341,6 +412,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
   {
@@ -351,6 +423,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
   {
@@ -361,6 +434,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
   {
@@ -371,6 +445,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "hpa",
     unit: "count",
   },
 

@@ -38,12 +38,12 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
              * with it. Help and the profile button stay at every width.
              */}
             {/*
-             * The Enterprise plugin's license manager, read here in render
+             * The Enterprise plugin's license details, read here in render
              * (never at module load); the Community stub has none.
              */}
             <EditionLabel
               className="mr-3 max-md:hidden md:inline-flex"
-              licenseManager={getAdminDashboardPlugins().LicenseManager}
+              licenseDetails={getAdminDashboardPlugins().LicenseDetails}
             />
             <div className="max-lg:hidden items-center lg:flex">
               <Button

@@ -5,6 +5,7 @@ OneUptime Proxmox-agenten overvåker en Proxmox VE-klynge: nodene, QEMU-VM-ene, 
 :::cards
 - [Velg hvordan du kobler til](#velg-hvordan-du-kobler-til): Agenten, eller den innebygde pushen i Proxmox VE 9.
 - [Installer agenten](#installer-agenten): Et API-token, deretter installasjonsskriptet eller Docker Compose.
+- [Sikkerhetskopiresultater](#send-notifikasjonene-fra-proxmox-ve): Notifikasjonene fra Proxmox VE selv, sendt med to kommandoer.
 - [Native push](#alternativ-uten-installasjon-native-opentelemetry-push-i-proxmox-ve-9): Proxmox VE 9 sender metrikkene sine selv.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
@@ -33,9 +34,10 @@ Klyngen registrerer seg med de første dataene sine, under navnet agenten stempl
 | Å installere | Docker Compose på én maskin | Ingenting: en metrikkserver i Proxmox-webgrensesnittet |
 | Noder, gjester og lagring | Ja | Ja |
 | HA-tilstand, start ved oppstart, sikkerhetskopidekning og replikering | Ja | Nei |
+| Sikkerhetskopiresultater, isolerte noder og mislykket replikering, fra notifikasjonene i Proxmox VE (8.3 eller nyere) | Ja | Ja |
 | Proxmox-AI-agent | Ja | Nei |
 
-Malene **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** og **Replication Failing** trenger agenten. Bruk det ene eller det andre for en klynge: å kjøre begge rapporterer hver ressurs to ganger.
+Malene **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger agenten. Bruk det ene eller det andre for en klynge: å kjøre begge rapporterer hver ressurs to ganger.
 
 ## Før du begynner
 
@@ -78,23 +80,25 @@ Rollen legges på brukeren i tillegg til tokenet, fordi et token med privilegies
 
 ### Installer og start agenten
 
+Hver OneUptime leverer agentens installasjonsskript og filer fra sin egen utgivelse: Kommandoene nedenfor laster dem ned fra `https://oneuptime.com`, så på en selvdriftet OneUptime erstatter du den adressen med URL-en din. Installasjonsskriptet lagres først som `install.sh`, slik at du kan lese det før du kjører det.
+
 :::tabs
 @tab install.sh
 Last ned installasjonsskriptet og kjør det på maskinen som skal være vert for agenten:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Skriptet spør etter OneUptime-URL-en din, inntaksnøkkelen, et navn på klyngen, Proxmox VE-API-verten, om den medfølgende eksportøren skal kjøres, token-ID-en og secreten, og adressen til hver node (det tilbyr klyngens egen liste så snart det har tokenet) — og om [AI-agenten](#ai-agent) kan utføre rettelser, og i så fall etter et eget token for det og gjestene den aldri må endre. Det installerer til `/opt/oneuptime-proxmox-agent`, skriver en `.env`-fil med `0600` og starter agenten med Docker Compose. Kjører du skriptet igjen, gjenbruker det alt i den `.env`-filen i stedet for å spørre på nytt, og det er slik du [oppgraderer agenten](#oppgradere-agenten).
 @tab Docker Compose
-Last ned `docker-compose.yml` og `otel-collector-config.yaml` fra [ProxmoxAgent-mappen](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) til en ny mappe:
+Last ned `docker-compose.yml` og `otel-collector-config.yaml` fra din OneUptime til en ny mappe:
 
 ```bash
 mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 ```
 
 Opprett en `.env`-fil ved siden av dem. Den inneholder tokenets secret, så hold den privat med `chmod 600 .env`:
@@ -169,7 +173,7 @@ Collectoren scraper eksportøren hvert 30. sekund: klyngecollectorene én gang, 
 | Gjest (VM eller LXC) | `pve_guest_info`, og CPU-, minne- og nettverksserier på ID-ene `qemu/*` og `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Lagring | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Sikkerhetskopidekning | `pve_not_backed_up_total` (gjestene ingen sikkerhetskopijobb dekker; én serie på klyngenivå, uten `id`-etikett) og `pve_not_backed_up_info` (én serie per udekket gjest, med sin `id`). Dekket betyr at minst én jobb velger gjesten: om sikkerhetskopier har kjørt nylig eller lyktes, eksponeres ikke av eksportøren. |
+| Sikkerhetskopidekning | `pve_not_backed_up_total` (gjestene ingen sikkerhetskopijobb dekker; én serie på klyngenivå, `id` `cluster/<name>`) og `pve_not_backed_up_info` (én serie per udekket gjest, med sin `id`). Dekket betyr at minst én jobb velger gjesten: om sikkerhetskopier har kjørt nylig eller lyktes, eksponeres ikke av eksportøren. |
 | Start ved oppstart | `pve_onboot_status`, én serie per gjest: 1 når gjesten er satt til å starte ved oppstart. **Guest Down** varsler bare for disse gjestene. |
 | Replikering | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, per lagringsreplikeringsjobb. `id`-etiketten deres er jobb-ID-en (for eksempel `100-0`), ikke en ressurs. |
 
@@ -182,6 +186,44 @@ Monitorkriterier og attributtfiltre samsvarer på likhet, ikke på et prefiks, s
 | `pve.id` | Alt etter den første `/` i `id` (`pve1`, `100`, `pve1/local`) | `100` |
 
 Den opprinnelige `id`-etiketten beholdes som den er.
+
+## Send notifikasjonene fra Proxmox VE
+
+pve-exporter sier hvilke gjester en sikkerhetskopijobb omfatter, men ikke hvordan en sikkerhetskopi gikk. Det sier Proxmox VE selv, i notifikasjonene sine: resultatet av hver sikkerhetskopijobb, en isolert node, en mislykket replikering, ventende oppdateringer. På Proxmox VE 8.3 eller nyere sender to kommandoer, kjørt som root på en hvilken som helst node, hver notifikasjon til OneUptime som en logg fra klyngen, uten å installere noe, ved siden av agenten eller native push. Klyngens oppsettsveiledning viser dem med URL-en din, nøkkelen din og klyngenavnet ditt fylt inn.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+Den første kommandoen legger til et webhook-mål kalt `oneuptime`, som holder nøkkelen og klyngens navn i sine secrets; den andre legger til en matcher uten regler, som Proxmox VE leser som hver notifikasjon. Bruk klyngens navn slik OneUptime viser det: agentens `PROXMOX_CLUSTER_NAME`, eller med native push Proxmox-klyngens eget navn.
+
+Hver notifikasjon kommer med disse attributtene:
+
+| Attributt | Verdi |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (en sikkerhetskopijobb), `replication`, `fencing`, `package-updates` eller `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` eller `unknown` |
+| `pve.notification.title` | Tittelen på notifikasjonen |
+| `pve.notification.job_id` | ID-en til sikkerhetskopijobben, for en sikkerhetskopijobb |
+| `proxmox.node.name` | Noden som sendte den |
+
+Fra notifikasjonen til en sikkerhetskopijobb registrerer OneUptime hver gjests siste sikkerhetskopi: om den lyktes, når den ble ferdig, hvor stor den var og hvor lang tid den tok. Siden til en gjest viser den, listen **Gjester** har den i kolonnen Sikkerhetskopi, klyngens **Oversikt** teller resultatene, og en mislykket blir stående under **Krever oppmerksomhet** til en senere sikkerhetskopi av den gjesten lykkes. Varslene **Backup Job Failed** og **Node Fenced** leser de samme loggene.
+
+Slik slutter du å sende dem:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
 
 ## Valgfritt — Send Proxmox-tjenestelogger
 
@@ -267,7 +309,7 @@ Det dette ikke kan dekke:
 
 - En frittstående vert, eller en hel klynge som blir stille på én gang: det er ingen igjen til å rapportere det, så ingen varsler per node utløses. Klyngen blir i stedet **Frakoblet**, som når agenten stopper.
 - En node som har vært stille i mer enn 7 dager, rapporteres ikke lenger: varselet løses, og den forsvinner fra nodesiden. En selvhostet OneUptime endrer de 7 dagene med `PVE_SILENT_NODE_RETENTION_HOURS`.
-- En node du tar ut av klyngen, ser lik ut som en død node. Bruk **Remove Node** på siden dens: den forsvinner, og varselet løses. Ellers forblir den Frakoblet i opptil 7 dager.
+- En node du tar ut av klyngen, ser lik ut som en død node. Bruk **Fjern node** på siden dens: den forsvinner, og varselet løses. Ellers forblir den Frakoblet i opptil 7 dager.
 - Nodens gjester og lagring: bare selve noden beholdes som Frakoblet. VM-ene, containerne og lagringen forsvinner fra sidene sine omtrent 15 minutter etter den siste rapporten, og gjester som HA starter på nytt på en annen node, kommer tilbake under den noden.
 
 Etter et inntaksbrudd i OneUptime rapporteres en node som nylig ble stille, først når en av de andre har pushet igjen i 2 minutter, så selve bruddet varsler aldri for hver node. En node som allerede var Frakoblet, forblir Frakoblet gjennom et kort brudd og beholder varselet sitt; etter et brudd på mer enn 5 minutter rapporteres den igjen når de andre har pushet i 2 minutter.
@@ -282,16 +324,18 @@ Native push sender bare det hver node vet om seg selv, så en del av det agenten
 | --- | --- |
 | HA-tilstand | Pushes ikke: malen **HA Resource in Error State** trenger agenten. |
 | Flagg for start ved oppstart | Pushes ikke: **Guest Down**, som bare varsler for gjester satt til å starte ved oppstart, trenger agenten. |
-| Sikkerhetskopidekning og replikering | Pushes ikke: **Guest Not Backed Up** og **Replication Failing** trenger agenten. |
+| Sikkerhetskopidekning og replikering | Pushes ikke: **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger agenten. |
 
 Hvis du trenger disse, kjør agenten i stedet, og fjern metrikkserveren: å kjøre begge rapporterer hver ressurs to ganger.
+
+Sikkerhetskopiresultater, isolerte noder og mislykkede replikeringer når likevel OneUptime: [send notifikasjonene fra Proxmox VE](#send-notifikasjonene-fra-proxmox-ve), som også virker med native push.
 
 ## Kjør som en systemd-tjeneste
 
 For å starte agenten sammen med maskinen og starte den på nytt når den feiler, installer systemd-enheten dens. Den forutsetter at agenten ligger i `/opt/oneuptime-proxmox-agent`, der installasjonsskriptet legger den:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
+sudo curl -fsSL https://oneuptime.com/install/proxmox-agent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
@@ -303,15 +347,15 @@ Agenten rapporterer collector-versjonen filene dens fester, som sin **Agentversj
 Collector-imaget er festet i `docker-compose.yml`, og konfigurasjonen er en fil ved siden av, så å hente nye images alene flytter ikke agenten fremover. Kjør `install.sh` igjen: det gjenbruker hver verdi i den eksisterende `.env`-filen din (ingenting spørres om igjen), fornyer `docker-compose.yml` og `otel-collector-config.yaml` (en fil du har redigert, beholdes som `<file>.bak.<timestamp>`), henter imagene og oppretter agenten på nytt, slik at collectoren leser den nye konfigurasjonen. En `.env` fra før `PVE_NODES` fortsetter å lese bare `PVE_HOST`, og skriptet nevner nodene du bør legge til.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh
 bash install.sh
 ```
 
 Installerte du den med Docker Compose i stedet? I agentens mappe, last ned begge filene på nytt (og gjør eventuelle endringer du hadde gjort i dem, på nytt), hent deretter imagene og opprett agenten på nytt:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/proxmox-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -340,10 +384,10 @@ Hva den kan kjøre, hvordan rettelser fungerer og hvordan du feilsøker den: [In
 ## Feilsøking
 
 :::details Kjør diagnoseskriptet først
-Agenten leveres med et skript, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, eksportørens scrape, klyngenavnet som er stemplet på hver metrikk, tokenets form, collectorens egne metrikker, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), og faller tilbake til `POST /fluentd/v1/logs` på eldre servere.
+Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, eksportørens scrape, klyngenavnet som er stemplet på hver metrikk, tokenets form, collectorens egne metrikker, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), og faller tilbake til `POST /fluentd/v1/logs` på eldre servere.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 
@@ -373,11 +417,18 @@ OneUptime registrerer en Proxmox-klynge etter sitt `proxmox.cluster.name`, som a
 :::
 
 :::details Med native push vises en node som Frakoblet
-Den sluttet å rapportere: en node som er nede, en `pvestatd` som henger, en stoppet `pmxcfs` eller et brutt nettverk til OneUptime ser like ut. Neste rapport bringer den tilbake. Hvis du tok noden ut av klyngen, bruk **Remove Node** på siden dens; ellers forblir den Frakoblet i opptil 7 dager. Se [Når en node slutter å rapportere](#når-en-node-slutter-å-rapportere).
+Den sluttet å rapportere: en node som er nede, en `pvestatd` som henger, en stoppet `pmxcfs` eller et brutt nettverk til OneUptime ser like ut. Neste rapport bringer den tilbake. Hvis du tok noden ut av klyngen, bruk **Fjern node** på siden dens; ellers forblir den Frakoblet i opptil 7 dager. Se [Når en node slutter å rapportere](#når-en-node-slutter-å-rapportere).
 :::
 
 :::details Med native push utløses aldri Guest Down-, HA- eller sikkerhetskopivarsler
 Native push sender ikke HA-tilstand, start ved oppstart, sikkerhetskopidekning eller replikering. [Installer agenten](#installer-agenten) for dem, og fjern metrikkserveren: å kjøre begge rapporterer hver ressurs to ganger.
+:::
+
+:::details Sikkerhetskopiresultater dukker aldri opp
+1. Sjekk Proxmox VE-utgivelsen: webhook-mål krever 8.3 eller nyere (`pveversion`).
+2. Sjekk at målet og matcheren finnes: `pvesh get /cluster/notifications/endpoints/webhook` og `pvesh get /cluster/notifications/matchers` viser begge `oneuptime`.
+3. Send en testnotifikasjon med `pvesh create /cluster/notifications/targets/oneuptime/test`. Den vises på klyngens side **Logger** innen et minutt; gjør den ikke det, er nøkkelen eller URL-en i målet feil.
+4. Sjekk klyngens navn i målets secrets: et navn OneUptime ikke kjenner, registrerer en ny klynge.
 :::
 
 ## Neste trinn

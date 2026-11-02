@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem uma seção para cada parte da segurança, e uma página própria para cada coisa nela:
+Abra **Produtos → Eventos de segurança**, em **Observabilidade**. O menu dele tem uma seção para cada parte da segurança, e uma página própria para cada coisa nela:
 
 | Página | Seção | Para que serve |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
 | **Caçadas** | Eventos | Pesquisas salvas a partir de Eventos, abertas de novo com um clique ou executadas em um agendamento que avisa pessoas quando encontram algo |
-| **Campaigns** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
+| **Campanhas** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
 | **Regras de detecção** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
@@ -111,7 +111,7 @@ O endpoint responde `200` assim que os eventos entram na fila. Um evento enviado
 
 ### Encontre-os em Eventos
 
-Abra **Produtos → Security Events → Eventos**. Os eventos aparecem em poucos segundos, com gravidade, classe, usuário, host e endereços IP preenchidos.
+Abra **Produtos → Eventos de segurança → Eventos**. Os eventos aparecem em poucos segundos, com gravidade, classe, usuário, host e endereços IP preenchidos.
 :::
 
 ### Formatos
@@ -262,11 +262,11 @@ A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Requ
 
 ### O que aconteceu depois
 
-Um evento lido de uma linha de log escrita dentro de uma requisição rastreada é acompanhado até essa requisição. O painel dele mostra até onde a requisição chegou (**Rejeitado**, **Reached App**, **Errored** ou **Reached Database**), quem a enviou, e leva ao trace, à exceção, ao replay da sessão e à própria linha de log. Uma linha de log, um trace e uma exceção que fazem parte de um ataque também dizem isso nas próprias páginas.
+Um evento lido de uma linha de log escrita dentro de uma requisição rastreada é acompanhado até essa requisição. O painel dele mostra até onde a requisição chegou (**Rejeitado**, **Chegou ao app**, **Com erro** ou **Chegou ao banco de dados**), quem a enviou, e leva ao trace, à exceção, ao replay da sessão e à própria linha de log. Uma linha de log, um trace e uma exceção que fazem parte de um ataque também dizem isso nas próprias páginas.
 
 ### Campaigns
 
-**Campaigns** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro.
+**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro.
 
 ### Correlacionar
 
@@ -313,7 +313,7 @@ As caçadas têm a mesma API REST que o resto do OneUptime, em `/security-hunt`,
 
 ## Regras de detecção
 
-Uma regra de detecção é uma regra [Sigma](https://sigmahq.io/), um formato YAML aberto para descrever atividade suspeita, que o OneUptime roda em uma programação sobre os seus eventos. Quando corresponde, ela abre um [caso](/docs/telemetry/security-cases) ou entra em um já aberto, abre um alerta, opcionalmente um incidente, e grava um Detection Finding de volta nos eventos. A **Biblioteca de regras** tem regras prontas para começar.
+Uma regra de detecção é uma regra [Sigma](https://sigmahq.io/), um formato YAML aberto para descrever atividade suspeita, que o OneUptime roda em uma programação sobre os seus eventos, ou sobre cada evento assim que ele chega. Quando corresponde, ela abre um [caso](/docs/telemetry/security-cases) ou entra em um já aberto, abre um alerta, opcionalmente um incidente, e grava um Detection Finding de volta nos eventos. A **Biblioteca de regras** tem regras prontas para começar.
 
 ```mermaid title="Como uma regra de detecção dispara"
 flowchart TB
@@ -327,12 +327,12 @@ flowchart TB
 ### Crie uma regra
 
 :::steps
-1. Abra **Produtos → Security Events → Detecções → Regras de detecção** e clique em **Criar: Regra de detecção**.
+1. Abra **Produtos → Eventos de segurança → Detecções → Regras de detecção** e clique em **Criar: Regra de detecção**.
 2. Em **Regra Sigma**, cole o YAML da regra em **Regra Sigma (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
 3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
 4. Em **Ao corresponder**, deixe **Abrir um caso ao corresponder** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
 5. Em **Alertas e incidentes**, escolha o que mais uma correspondência gera: **Criar um alerta** (o padrão), **Declarar um incidente**, **Ambos** ou **Nenhum**, com uma **Severidade do alerta** ou uma **Severidade do incidente** opcionais.
-6. **Mais campos** guarda a **Descrição**, **Gravar Detection Finding ao corresponder** (ativado) e como as correspondências são contadas; veja [Configurações de avaliação](#configurações-de-avaliação).
+6. **Mais campos** guarda a **Descrição**, **Gravar Detection Finding ao corresponder** (ativado), **Executar em tempo real** (desativado) e como as correspondências são contadas; veja [Configurações de avaliação](#configurações-de-avaliação).
 :::
 
 Uma primeira regra, que corresponde a logins com falha vindos de fora de `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Campo | O que faz |
 | --- | --- |
 | **Intervalo de avaliação (minutos)** | Com que frequência a regra roda: minutos inteiros, de 1 a 1440. O formulário de uma regra nova começa em 5. |
+| **Executar em tempo real** | Desativado em uma regra nova. Ativado, a regra verifica cada evento assim que ele chega, em vez de a cada intervalo; veja [Regras em tempo real](#regras-em-tempo-real). |
 | **Campo de agrupamento** | Opcional. As correspondências que compartilham o valor deste campo, como `principalHost`, são contadas, alertadas e deduplicadas juntas: um alerta por host em vez de centenas. |
 | **Campo de contagem distinta** | Opcional. Conta os valores diferentes deste campo em vez dos eventos correspondentes. Valores vazios não contam. |
 | **Limite de correspondências** | Um grupo só dispara quando a contagem dele atinge este número dentro de uma execução: de 1 a 1000000, e 1 dispara em qualquer correspondência. |
@@ -450,6 +451,16 @@ O OneUptime verifica a cada minuto quais regras habilitadas já passaram do inte
 - Depois de uma lacuna, como uma queda do worker ou uma regra reativada, a próxima execução cobre a lacuna inteira, até as últimas 24 horas.
 - Um evento que chega com mais de dois minutos de atraso, depois que uma execução já cobriu o seu horário, é salvo e pode ser pesquisado, mas essa regra nunca o lê.
 - Cada grupo que atinge o limite vira um Detection Finding, até 10.000 por execução. Alertas, incidentes e casos abrem para os 100 com as contagens mais altas; o restante compartilha um caso sobre a regra, e o **Último erro** da regra diz quantos grupos corresponderam.
+
+### Regras em tempo real
+
+Uma regra que dispara com um só evento pode rodar em tempo real em vez de no seu intervalo: ative **Executar em tempo real**, em **Mais campos** da etapa **Ao corresponder**. Cada evento que o OneUptime recebe, de qualquer fonte, é então verificado pela regra assim que chega, e uma correspondência abre seu caso, seu alerta e seu achado em segundos.
+
+- Serve para uma regra com um **Limite de correspondências** de 1, sem **Campo de contagem distinta** e sem o modificador `re`. Uma correlação conta eventos juntos, então roda no seu intervalo. O formulário diz o que mudar quando uma regra não serve.
+- Um projeto roda no máximo 50 regras em tempo real, já que cada evento é verificado por cada uma.
+- Em **Regras de detecção**, o **Status** de uma regra em tempo real diz **Tempo real**, e a coluna de intervalo também. Uma verificação que falha aparece no **Último erro** dela, como a de uma execução.
+- Ao ser ativada, a regra lê primeiro o que chegou desde a última execução, então nada fica entre a programação e o tempo real. Ao ser desativada, ela volta ao seu intervalo, a partir de dois minutos antes.
+- Exceções e listas de observação valem para ela como para qualquer regra, e **Executar em eventos passados** a lê como qualquer outra.
 
 ### Gravidade
 
@@ -481,7 +492,7 @@ Os achados são eventos comuns: pesquise-os em **Eventos** e faça pivô sobre e
 
 ### Exceções
 
-Uma exceção é algo que uma regra ignora porque você já espera, como um scanner de vulnerabilidades, um job de backup noturno ou um teste de invasão planejado. Ela silencia a regra para essa única coisa sem desativá-la, e as outras correspondências da regra continuam disparando. Toda exceção fica listada em **Produtos → Security Events → Detecções → Exceções de regra**: adicione uma ali com **Adicionar: Exceção de regra**, com **Adicionar exceção** na linha de uma regra, ou com **Adicionar exceção** na linha de uma detecção de um caso, que já começa com a regra da detecção e aquilo para o que ela disparou.
+Uma exceção é algo que uma regra ignora porque você já espera, como um scanner de vulnerabilidades, um job de backup noturno ou um teste de invasão planejado. Ela silencia a regra para essa única coisa sem desativá-la, e as outras correspondências da regra continuam disparando. Toda exceção fica listada em **Produtos → Eventos de segurança → Detecções → Exceções de regra**: adicione uma ali com **Adicionar: Exceção de regra**, com **Adicionar exceção** na linha de uma regra, ou com **Adicionar exceção** na linha de uma detecção de um caso, que já começa com a regra da detecção e aquilo para o que ela disparou.
 
 | O que a regra ignora | Com o que corresponde |
 | --- | --- |
@@ -497,7 +508,7 @@ Uma exceção é algo que uma regra ignora porque você já espera, como um scan
 
 ### Listas de observação
 
-Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Security Events → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Use-a em uma regra** dá uma seleção que lê a lista, para copiar em uma regra.
+Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Eventos de segurança → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Use-a em uma regra** dá uma seleção que lê a lista, para copiar em uma regra.
 
 Uma regra lê uma lista com `expand` e o nome da lista entre sinais `%`. Esta regra dispara quando um administrador entra a partir de um endereço que não está na lista permitida:
 
@@ -573,6 +584,10 @@ Confira a chave em `x-oneuptime-token` e o caminho, `/security-events/v1/ingest`
 
 :::details Uma regra nunca corresponde
 Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com **Falha na execução**, **Ver erro** na linha dela mostra o motivo. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
+:::
+
+:::details Não dá para ativar Executar em tempo real
+A regra conta correspondências, conta valores distintos, lê uma expressão regular ou é uma correlação, e o formulário diz qual: defina **Limite de correspondências** como 1, esvazie **Campo de contagem distinta**, ou use `contains`, `startswith` ou `endswith` no lugar de `re`. Um projeto roda no máximo 50 regras em tempo real: desative em outra regra primeiro.
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu

@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "../Button/ButtonStates";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import { Placement } from "tippy.js";
 import Color from "../../../Types/Color";
@@ -50,6 +51,11 @@ export interface ComponentProps {
    * ordinary menuitem.
    */
   isChecked?: boolean | undefined;
+  /*
+   * With isChecked: an item that is on or off on its own (a table's "Compact
+   * rows"), a menuitemcheckbox, rather than one choice of several.
+   */
+  isCheckbox?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -100,7 +106,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
    * reached with the arrow keys looks exactly as active as one under the mouse.
    */
   const stateClassName: string = isDisabled
-    ? "cursor-not-allowed opacity-50 focus-visible:outline-none focus-visible:bg-gray-100"
+    ? `${BUTTON_DISABLED_CLASS_NAME} focus-visible:outline-none focus-visible:bg-gray-100`
     : isDestructive
       ? "cursor-pointer hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:bg-red-50 focus-visible:text-red-700"
       : "cursor-pointer hover:bg-indigo-50 hover:text-gray-900 focus-visible:outline-none focus-visible:bg-indigo-50 focus-visible:text-gray-900";
@@ -116,7 +122,13 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-start text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
         props.className || ""
       }`}
-      role={props.isChecked === undefined ? "menuitem" : "menuitemradio"}
+      role={
+        props.isChecked === undefined
+          ? "menuitem"
+          : props.isCheckbox
+            ? "menuitemcheckbox"
+            : "menuitemradio"
+      }
       aria-checked={props.isChecked}
       tabIndex={-1}
       disabled={isDisabled && !isExplainedLock}

@@ -64,7 +64,11 @@
  *                         what the dialog would create is kept in
  *                         window.__createdRecords for the spec to read.
  *                         ?failVariables=true makes writing a template's
- *                         settings fail, as a server error would.
+ *                         settings fail, as a server error would. Who to
+ *                         page is picked from the Page steps' project
+ *                         (PageScenarios.js). ?dir=rtl lays the page out
+ *                         right to left, as a Persian page is; its words
+ *                         stay English, as the templates' own do there.
  *
  * ?page=builder-page      the Dashboard's real Builder page around the
  *                         canvas: its toolbar and the notice shown while
@@ -766,6 +770,12 @@ function CreateWorkflowPage() {
 }
 
 if (fixturePage === "create-workflow") {
+  if (params.get("dir") === "rtl") {
+    document.documentElement.dir = "rtl";
+  }
+
+  // The project the who-to-page questions pick from (PageScenarios.js).
+  installPageProject(params);
   installServerStandIns();
   createRoot(document.getElementById("root")).render(<CreateWorkflowPage />);
 } else if (fixturePage === "on-call-logs") {

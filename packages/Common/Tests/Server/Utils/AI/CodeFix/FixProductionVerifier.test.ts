@@ -27,6 +27,7 @@ import logger from "../../../../../Server/Utils/Logger";
 import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../../Types/BaseDatabase/Includes";
 import IsNull from "../../../../../Types/BaseDatabase/IsNull";
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
 import LIMIT_MAX from "../../../../../Types/Database/LimitMax";
@@ -1024,5 +1025,196 @@ describe("watching the deployed fix", () => {
     expect(lastUpdate()["productionStatus"]).toBe(FixProductionStatus.Verified);
     expect(lastUpdate()["deployedVersion"]).toBe("2.3.2");
     expect(lastUpdate()["deployedCommitSha"]).toBe(FIX_SHA);
+  });
+});
+
+/*
+ * An exception others were merged into counts their occurrences too
+ * (TelemetryExceptionMerge): its fix is watched over its group's - its own
+ * fingerprint and those merged into it (TelemetryExceptionService
+ * .getGroupFingerprints) - so a duplicate the fix did not stop is not a fix.
+ */
+describe("watching the fix of an exception others were merged into", () => {
+  const MERGED_FINGERPRINT: string = "fp-checkout-total-typeerror-v2";
+  let merged: Array<string>;
+  let memberReads: Array<Array<unknown>>;
+
+  function watching(): AIAgentTaskPullRequest {
+    return fix({
+      productionStatus: FixProductionStatus.Watching,
+      productionSummary:
+        "Version 2.3.2 shipped the fix, and the exception has not happened since; before the fix it happened 21 times in 7 days.",
+      deployedAt: hoursAfterMerge(2),
+      deployedVersion: "2.3.2",
+    });
+  }
+
+  function baseline(count: number, fingerprint: string = FINGERPRINT): void {
+    for (let index: number = 0; index < count; index++) {
+      occurrences.push({
+        time: hoursAfterMerge(-1 - index),
+        release: "2.3.1",
+        fingerprint,
+      });
+    }
+  }
+
+  // A count's fingerprint: one, or any of an Includes.
+  function matches(value: unknown, fingerprint: string): boolean {
+    return value instanceof Includes
+      ? (value.values as Array<unknown>).includes(fingerprint)
+      : value === fingerprint;
+  }
+
+  function countedFingerprints(): Array<unknown> {
+    return (ExceptionInstanceService.countBy as jest.Mock).mock.calls.map(
+      (call: Array<unknown>) => {
+        return ((call[0] as JSONObject)["query"] as JSONObject)["fingerprint"];
+      },
+    );
+  }
+
+  beforeEach(() => {
+    merged = [MERGED_FINGERPRINT];
+    memberReads = [];
+    TelemetryExceptionService.clearGroupFingerprints();
+
+    // What was merged into the exception, as Postgres answers the read.
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, params: Array<unknown>) => {
+          if (!sql.includes("ROW_NUMBER()")) {
+            return [];
+          }
+
+          memberReads.push(params);
+
+          return merged.map((fingerprint: string) => {
+            return { survivorId: EXCEPTION_ID.toString(), fingerprint };
+          });
+        },
+      },
+    } as never);
+
+    jest
+      .spyOn(ExceptionInstanceService, "countBy")
+      .mockImplementation((async (data: { query: JSONObject }) => {
+        const query: JSONObject = data.query;
+        const window: InBetween<Date> = query[
+          "time"
+        ] as unknown as InBetween<Date>;
+
+        return new PositiveNumber(
+          occurrences.filter((occurrence: Occurrence) => {
+            return (
+              matches(
+                query["fingerprint"],
+                occurrence.fingerprint || FINGERPRINT,
+              ) &&
+              occurrence.time.getTime() >= window.startValue.getTime() &&
+              occurrence.time.getTime() <= window.endValue.getTime() &&
+              (query["release"] === undefined ||
+                occurrence.release === query["release"])
+            );
+          }).length,
+        );
+      }) as never);
+  });
+
+  afterEach(() => {
+    TelemetryExceptionService.clearGroupFingerprints();
+  });
+
+  test("a duplicate merged into it that the fix did not stop is a regression, and reopens it", async () => {
+    baseline(21);
+    // Its own fingerprint is quiet since the deploy; the merged one is not.
+    occurrences.push({
+      time: hoursAfterMerge(5),
+      release: "2.3.2",
+      fingerprint: MERGED_FINGERPRINT,
+    });
+
+    await FixProductionVerifier.verifyFix(watching(), newRun());
+
+    expect(lastUpdate()).toEqual({
+      productionStatus: FixProductionStatus.Regressed,
+      productionSummary:
+        "The exception happened once after version 2.3.2 shipped the fix, so the fix did not stop it.",
+      productionStatusAt: NOW,
+    });
+    expect(exceptionUpdates).toEqual([
+      {
+        id: EXCEPTION_ID,
+        data: { isResolved: false, regressedAt: NOW },
+        props: { isRoot: true },
+      },
+    ]);
+  });
+
+  test("the occurrences of the merged ones before the merge are its baseline too", async () => {
+    baseline(9);
+    baseline(12, MERGED_FINGERPRINT);
+    exceptionRow!["isResolved"] = false;
+
+    await FixProductionVerifier.verifyFix(watching(), newRun());
+
+    expect(lastUpdate()).toEqual({
+      productionStatus: FixProductionStatus.Verified,
+      productionSummary:
+        "No occurrence in the 46 hours since version 2.3.2 shipped the fix; before the fix it happened 21 times in 7 days.",
+      productionStatusAt: NOW,
+    });
+  });
+
+  test("its group is read once for both counts, by its id in its project, and both count it", async () => {
+    baseline(21);
+
+    await FixProductionVerifier.verifyFix(watching(), newRun());
+
+    expect(memberReads).toEqual([
+      [PROJECT_ID.toString(), [EXCEPTION_ID.toString()], 100, 10000],
+    ]);
+
+    const counted: Array<unknown> = countedFingerprints();
+
+    expect(counted).toHaveLength(2);
+    for (const fingerprint of counted) {
+      expect(fingerprint).toBeInstanceOf(Includes);
+      expect((fingerprint as Includes).values).toEqual([
+        FINGERPRINT,
+        MERGED_FINGERPRINT,
+      ]);
+    }
+  });
+
+  test("nothing merged into it: both counts ask for its own fingerprint alone, exactly as before any merge", async () => {
+    merged = [];
+    baseline(21);
+
+    await FixProductionVerifier.verifyFix(watching(), newRun());
+
+    expect(countedFingerprints()).toEqual([FINGERPRINT, FINGERPRINT]);
+    expect(lastUpdate()["productionStatus"]).toBe(FixProductionStatus.Verified);
+  });
+
+  test("when what was merged cannot be read, its own fingerprint is watched, as before any merge", async () => {
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async () => {
+          throw new Error("Postgres is down");
+        },
+      },
+    } as never);
+    baseline(21);
+    occurrences.push({
+      time: hoursAfterMerge(5),
+      release: "2.3.2",
+      fingerprint: MERGED_FINGERPRINT,
+    });
+
+    await FixProductionVerifier.verifyFix(watching(), newRun());
+
+    expect(countedFingerprints()).toEqual([FINGERPRINT, FINGERPRINT]);
+    expect(lastUpdate()["productionStatus"]).toBe(FixProductionStatus.Verified);
   });
 });

@@ -225,8 +225,27 @@ Definitionerna finns i en egen modell; värdena finns på själva incidenten i k
 | **Datum och tid**                          | Ett datum och en tid på dagen                         | Förväntad lösning                                  |
 | **Lång text**                              | Flera rader oformaterad text                          | Påverkade användare eller system, ytterligare information |
 | **Formaterad text (Markdown)**             | Formaterad text, i Markdown-redigeraren med dess visuella läge | En tillfällig lösning med länkar och listor |
+| **Fil** | En fil, släppt på fältet eller vald | En signerad ändringsbegäran, en skärmbild |
+| **Flera filer** | Upp till 10 filer | Skärmbilder, loggar och paketinspelningar |
 
 **Lång text** och **Formaterad text (Markdown)** finns för de anpassade fälten på varje resurs, inte bara incidenter. Ett värde med formaterad text lagras som den Markdown som det skrevs i. Det finns ingen typ med alternativknappar eller en grupp av kryssrutor: använd en **Rullgardinsmeny (enkelval)**, en **Rullgardinsmeny (flerval)** eller en **Boolesk**.
+
+### Filfält
+
+Ett fält av typen **Fil** rymmer en fil och ett fält av typen **Flera filer** upp till 10. På incidentens sida **Anpassade fält** släpper du filer på fältet eller klickar på det för att välja dem: **Ersätt** byter filen i ett fält av typen **Fil**, och **Ta bort** tar ut en fil. Sidan visar varje fil med namn och storlek, och ett klick på den laddar ned den. De anpassade fälten på alla andra resurser tar emot filer på samma sätt.
+
+| Vad | Gräns |
+| --- | --- |
+| En fil | 10 MB |
+| Ett fält av typen **Flera filer** | 10 filer, 50 MB totalt |
+| Filtyper | PDF-, Word-, RTF-, Excel-, PowerPoint- och OpenDocument-filer, bilder (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF och HEIC), ren text, Markdown-, CSV- och JSON-filer, ZIP-arkiv och paketinspelningar |
+
+- **Kontrolleras efter innehållet.** En fil måste innehålla det som dess typ säger, så en webbsida som döpts om till `report.pdf` avvisas. SVG-bilder tas inte emot, eftersom de kan innehålla skript.
+- **Bara ditt projekts filer.** Ett fält tar bara emot filer som laddats upp i incidentens eget projekt.
+- **Laddas ned, öppnas aldrig på sidan.** Bara den som får se incidenten och dess anpassade fält kan ladda ned dess filer.
+- **Namngivna, inte länkade, överallt annars.** Incidentlistan och dess CSV-export, flödet, anteckningsmallar och prenumerantmeddelanden visar ett filfält som namnen på dess filer. Listans filter frågar om fältet **Har filer** eller har **Inga filer**. Slack och Microsoft Teams utelämnar filfält bland de anpassade fält som de låter dig redigera: lägg till filer i OneUptime.
+- **Raderas så snart ingenting håller dem.** En fil som tas bort eller ersätts, och filerna i en raderad incident, raderas, om inte något annat, till exempel en annan incident eller en mall, fortfarande håller dem.
+- **Via API:et och Terraform.** Ladda upp filen med `POST /api/file` i incidentens projekt med dess `name`, dess `fileType` och byten i base64 i `file`, och sätt sedan fältet till det `_id` som returneras. Fältet läses tillbaka som filerna det rymmer, var och en med sin `fileId`, `name`, `fileType` och `size`. I Terraform skriver du varje fil som `{ fileId = oneuptime_file.contract.id }`, så att planen stämmer med det fältet läses tillbaka som.
 
 ### Obligatoriskt vid skapande kontrolleras bara av instrumentpanelen
 
@@ -271,6 +290,8 @@ När en användare eller en API-nyckel skapar eller uppdaterar en incident måst
 | **Datum**, **Datum och tid**                                       | Ett datum, helst som ISO 8601-text.                            |
 | **Rullgardinsmeny (enkelval)**                                     | Ett av dess alternativ.                                        |
 | **Rullgardinsmeny (flerval)**                                      | En lista över dess alternativ, eller ett enda alternativ för sig. |
+| **Fil** | En fils id, eller `{ "fileId": "<id>" }`, för en fil som laddats upp i incidentens projekt. |
+| **Flera filer** | En lista med dem, upp till 10, eller en ensam. |
 
 För en **Rullgardinsmeny (flerval)** nämner avvisningen de första 10 posterna som inte finns bland dess alternativ, och sedan hur många fler det finns.
 

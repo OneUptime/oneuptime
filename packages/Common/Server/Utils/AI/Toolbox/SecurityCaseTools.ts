@@ -28,6 +28,7 @@ import {
   parseSecurityPlaybookSteps,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { getSecurityPlaybookAction } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import { describeSecurityPlaybookStepOutcome } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import IncidentService from "../../../Services/IncidentService";
 import SecurityCaseNoteService from "../../../Services/SecurityCaseNoteService";
@@ -748,8 +749,9 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
 
 /*
  * One playbook's steps in a line: "Check threat intel, then Contain
- * CrowdStrike host (needs approval)". Steps that cannot be read say so,
- * rather than keep every other playbook from being listed.
+ * CrowdStrike host (only if step 1 found a known-bad entity; needs
+ * approval)". Steps that cannot be read say so, rather than keep every
+ * other playbook from being listed.
  */
 export function describePlaybookSteps(steps: unknown): string {
   let parsed: Array<SecurityPlaybookStep>;
@@ -764,8 +766,28 @@ export function describePlaybookSteps(steps: unknown): string {
     .map((step: SecurityPlaybookStep): string => {
       const title: string =
         getSecurityPlaybookAction(step.action)?.title || step.action;
+      const notes: Array<string> = [];
+      const waitedOn: number = step.runIf
+        ? parsed.findIndex((candidate: SecurityPlaybookStep): boolean => {
+            return candidate.id === step.runIf?.stepId;
+          })
+        : -1;
 
-      return doesStepNeedApproval(step) ? `${title} (needs approval)` : title;
+      if (step.runIf && waitedOn >= 0) {
+        notes.push(
+          `only if step ${waitedOn + 1} ${describeSecurityPlaybookStepOutcome(parsed[waitedOn]!.action, step.runIf.outcome)}`,
+        );
+      }
+
+      if (step.onlyIfThreatIntelMatched) {
+        notes.push("only if threat intel matched");
+      }
+
+      if (doesStepNeedApproval(step)) {
+        notes.push("needs approval");
+      }
+
+      return notes.length > 0 ? `${title} (${notes.join("; ")})` : title;
     })
     .join(", then ");
 }

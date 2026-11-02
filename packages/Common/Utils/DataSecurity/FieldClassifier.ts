@@ -64,6 +64,14 @@ export interface FieldClassification extends DataTypeTallyJSON {
   nameHinted: boolean;
   // Found from the name alone (a name-found type).
   foundByName: boolean;
+  /*
+   * Suggested by OneUptime AI for a field the detectors could not place
+   * (Server/Utils/AI/DataSecurity/FieldSuggestion): it counts only once a
+   * person confirms it.
+   */
+  isAiSuggested?: boolean | undefined;
+  // Why OneUptime AI suggested it, in a sentence.
+  aiReason?: string | undefined;
 }
 
 export interface FieldClassifierOptions extends TextScanOptions {

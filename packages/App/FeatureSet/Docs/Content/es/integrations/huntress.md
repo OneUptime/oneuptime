@@ -51,11 +51,11 @@ El incidente guarda el número del informe en sus campos personalizados, como `h
 :::steps
 ### Crear el flujo de trabajo
 
-Abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**. En **O empieza con una plantilla**, elige la categoría **Huntress**, elige **Open an incident for each Huntress incident report**, haz clic en **Usar esta plantilla** y crea el flujo de trabajo. Se abre en el **Constructor**, desactivado.
+Abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**. En **O empieza con una plantilla**, elige la categoría **Huntress**, elige **Open an incident for each Huntress incident report** y haz clic en **Usar esta plantilla**.
 
 ### Elegir a quién avisar
 
-Haz clic en el paso **Page an On-Call Policy**, elige las **Políticas de guardia** a las que avisar y guarda el paso.
+Después, el diálogo pregunta a quién avisar: en **Who to page for high and critical reports**, elige las políticas de guardia a las que avisar, o ninguna para no avisar a nadie, y haz clic en **Crear flujo de trabajo**. El flujo de trabajo se abre en el **Constructor**, desactivado. Para cambiar más adelante a quién avisa, haz clic en su paso **Page an On-Call Policy** y cambia sus **Políticas de guardia**.
 
 ### Añadir un endpoint de webhook en Huntress
 
@@ -79,7 +79,7 @@ Activa **Habilitado** en la parte superior del **Constructor**. En Huntress, abr
 
 ## Qué hace el flujo de trabajo
 
-La plantilla toma un camino para cada **Event**, con un **Switch / Case** después del disparador:
+Tras el disparador, **Incident From Another Tool** hace lo que pide cada **Event**, por el número del informe:
 
 | Event | Qué hace el flujo de trabajo |
 | --- | --- |
@@ -87,7 +87,7 @@ La plantilla toma un camino para cada **Event**, con un **Switch / Case** despu�
 | `comment-added` | Busca el incidente del informe y le añade el comentario como nota privada. |
 | `closed` | Busca el incidente del informe y lo resuelve, salvo que ya esté resuelto. El motivo queda en su cronología: Huntress cerró el informe. |
 
-Es un flujo de trabajo como cualquier otro, así que puedes cambiar lo que hace: avisar solo por informes críticos cambiando lo que compara el **If / Else** después de **Create One Incident**, publicar cada informe en un canal de chat con un paso de Slack o de Microsoft Teams, o enviar cada organización a su propia política de guardia con un **Switch / Case** sobre **Organization**. Cada ejecución aparece en las ejecuciones del flujo de trabajo, con lo que hizo cada paso.
+Es un flujo de trabajo como cualquier otro, así que puedes cambiar lo que hace: avisar solo por informes críticos cambiando lo que compara el **If / Else** después de **Incident From Another Tool**, publicar cada informe en un canal de chat con un paso de Slack o de Microsoft Teams, o enviar cada organización a su propia política de guardia con un **Switch / Case** sobre **Organization**. Cada ejecución aparece en las ejecuciones del flujo de trabajo, con lo que hizo cada paso.
 
 ### Gravedades
 
@@ -174,7 +174,7 @@ El flujo de trabajo se eliminó o se archivó, su disparador ya no es **Huntress
 :::
 
 :::details No se abrió ningún incidente
-Abre las ejecuciones del flujo de trabajo y la ejecución del informe. Si **Create One Incident** falló porque la gravedad del incidente está vacía, el proyecto no tiene gravedades de incidente: añade una en **Incidentes → Ajustes → Gravedad del incidente**.
+Abre las ejecuciones del flujo de trabajo y la ejecución del informe. Si **Incident From Another Tool** falló con `This project has no incident severities to put the incident at.`, añade una en **Incidentes → Ajustes → Gravedad del incidente**.
 :::
 
 :::details No se avisó a nadie

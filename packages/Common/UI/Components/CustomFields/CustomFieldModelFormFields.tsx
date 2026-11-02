@@ -7,10 +7,13 @@ import {
   buildCustomFieldFormFields,
   CUSTOM_FIELD_NO_VALUE_PLACEHOLDER,
   CustomFieldFormDefinition,
+  fromCustomFieldFileFormValue,
   getCustomFieldDetailContentClassName,
   getCustomFieldDisplayValue,
   getCustomFieldDropdownOptions,
+  toCustomFieldFileFormValue,
 } from "./CustomFieldFormFields";
+import { isCustomFieldFileType } from "../../../Types/CustomField/CustomFieldFile";
 
 export { CUSTOM_FIELD_NO_VALUE_PLACEHOLDER } from "./CustomFieldFormFields";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -243,12 +246,21 @@ export const getCustomFieldFormInitialValues: GetCustomFieldFormInitialValuesFun
         continue;
       }
 
-      // A text field's number or yes/no as text: its input takes a string.
-      initialValues[getCustomFieldFormKey(definition.name)] =
-        getCustomFieldDisplayValue({
-          customFieldType: definition.customFieldType,
-          value: value,
-        }) as JSONObject["value"];
+      /*
+       * A text field's number or yes/no as text: its input takes a string.
+       * A file field's files as its picker lists them.
+       */
+      initialValues[getCustomFieldFormKey(definition.name)] = (
+        isCustomFieldFileType(definition.customFieldType)
+          ? toCustomFieldFileFormValue({
+              customFieldType: definition.customFieldType,
+              value: value,
+            })
+          : getCustomFieldDisplayValue({
+              customFieldType: definition.customFieldType,
+              value: value,
+            })
+      ) as JSONObject["value"];
     }
 
     return initialValues;
@@ -344,7 +356,16 @@ export const packCustomFieldFormValues: PackCustomFieldFormValuesFunction =
         continue;
       }
 
-      const value: unknown = normalizeFormValue(formValues[formKey]);
+      /*
+       * A file field's picker holds File models: each goes as the file it
+       * names, and the server reads the rest from the file itself.
+       */
+      const value: unknown = isCustomFieldFileType(definition.customFieldType)
+        ? fromCustomFieldFileFormValue({
+            customFieldType: definition.customFieldType,
+            value: formValues[formKey],
+          })
+        : normalizeFormValue(formValues[formKey]);
 
       if (isCustomFieldValueEmpty(value)) {
         delete result[definition.name];

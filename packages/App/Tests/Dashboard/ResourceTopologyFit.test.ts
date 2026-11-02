@@ -5,14 +5,18 @@ import {
   buildResourceTopologyGraph,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyModel";
 import {
+  ResourceTopologyVisible,
   VIEW_BUDGET,
   computeResourceTopologyView,
   createResourceTopologyViewState,
   getAutomaticDepth,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyView";
 import {
+  ROW_LENGTHS_TRIED,
   ResourceTopologyLayout,
   ResourceTopologyPlaced,
+  getTopologyFrameIds,
+  getTopologySubtreeIds,
   layoutResourceTopology,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLayout";
 import {
@@ -20,11 +24,17 @@ import {
   MIN_VIEW_BUDGET,
   READABLE_ZOOM,
   REFERENCE_CANVAS_AREA,
+  SPARE_ROOM_ZOOM,
   RESOURCE_TOPOLOGY_FIT_PADDING,
+  RESOURCE_TOPOLOGY_TOP_GAP,
   ResourceTopologyCanvasSize,
   ResourceTopologyFit,
+  ResourceTopologyViewport,
   fitResourceTopology,
+  getDrawingBounds,
   getFitZoom,
+  getTopAlignedViewport,
+  getTopologyOpenFrameIds,
   getViewBudgetFor,
   holdsResourceTopologyDrawing,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyFit";
@@ -50,12 +60,16 @@ function part(
   };
 }
 
-/* A vCenter of datacenters, clusters, hosts and virtual machines. */
+/*
+ * A vCenter of datacenters, clusters, hosts and virtual machines; the
+ * virtual machines named in `critical` are critical.
+ */
 function vcenter(
   datacenters: number,
   clusters: number,
   hosts: number,
   vms: number,
+  critical: Array<string> = [],
 ): ResourceTopologyGraph {
   const nodes: Array<ResourceTopologyNodeInput> = [
     part("vc", null, { kind: "vmware.vcenter" }),
@@ -77,8 +91,12 @@ function vcenter(
         );
 
         for (let v: number = 0; v < vms; v++) {
+          const vmId: string = `${clusterId}-h-${h}-vm-${v}`;
+
           nodes.push(
-            part(`${clusterId}-h-${h}-vm-${v}`, `${clusterId}-h-${h}`),
+            part(vmId, `${clusterId}-h-${h}`, {
+              health: critical.includes(vmId) ? "critical" : "healthy",
+            }),
           );
         }
       }
@@ -125,17 +143,29 @@ describe("the zoom a drawing is framed at", () => {
 });
 
 describe("how deep the first view opens", () => {
-  test("a small resource opens all the way down on any canvas", () => {
-    const graph: ResourceTopologyGraph = vcenter(1, 1, 2, 3);
+  test("a small resource opens as far as its parts open by themselves", () => {
+    // Healthy: the lone datacenter and cluster open, the two hosts stay shut.
+    const healthy: ResourceTopologyGraph = vcenter(1, 1, 2, 3);
 
-    expect(fitResourceTopology(graph, null, LAPTOP).depth).toBe(
-      getAutomaticDepth(graph, "vc", getViewBudgetFor(LAPTOP)),
+    expect(fitResourceTopology(healthy, null, LAPTOP).depth).toBe(
+      getAutomaticDepth(healthy, "vc", getViewBudgetFor(LAPTOP)),
     );
-    expect(fitResourceTopology(graph, null, LAPTOP).depth).toBe(4);
+    expect(fitResourceTopology(healthy, null, LAPTOP).depth).toBe(3);
+
+    // A critical virtual machine opens its host too: one level more.
+    const troubled: ResourceTopologyGraph = vcenter(1, 1, 2, 3, [
+      "dc-0-cl-0-h-1-vm-2",
+    ]);
+
+    expect(getAutomaticDepth(troubled, "vc", getViewBudgetFor(WIDE))).toBe(4);
+    expect(fitResourceTopology(troubled, null, WIDE).depth).toBe(4);
   });
 
   test("the level it stops at fits the canvas at a readable zoom", () => {
-    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12);
+    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12, [
+      "dc-0-cl-0-h-0-vm-0",
+      "dc-1-cl-3-h-7-vm-11",
+    ]);
 
     // The wide screen opens past the top, so the check below is not empty.
     expect(fitResourceTopology(graph, null, WIDE).depth).toBeGreaterThan(1);
@@ -162,7 +192,9 @@ describe("how deep the first view opens", () => {
   });
 
   test("a wide screen opens at least as deep as a laptop, a phone no deeper", () => {
-    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12);
+    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12, [
+      "dc-0-cl-0-h-0-vm-0",
+    ]);
     const laptop: number = fitResourceTopology(graph, null, LAPTOP).depth;
 
     expect(fitResourceTopology(graph, null, WIDE).depth).toBeGreaterThanOrEqual(
@@ -177,6 +209,99 @@ describe("how deep the first view opens", () => {
     const graph: ResourceTopologyGraph = vcenter(30, 2, 2, 2);
 
     expect(fitResourceTopology(graph, null, SMALL).depth).toBe(1);
+  });
+
+  test("hands back the row length of the first view, for the map to keep", () => {
+    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12, [
+      "dc-0-cl-0-h-0-vm-0",
+    ]);
+
+    for (const canvas of [LAPTOP, WIDE, SMALL]) {
+      const fit: ResourceTopologyFit = fitResourceTopology(graph, null, canvas);
+      const layout: ResourceTopologyLayout = layoutResourceTopology(
+        computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+          budget: fit.budget,
+          maxAutomaticDepth: fit.depth,
+        }),
+        { aspect: Math.max(0.5, canvas.width / canvas.height) },
+      );
+
+      expect(ROW_LENGTHS_TRIED).toContain(fit.rowLength);
+      expect(fit.rowLength).toBe(layout.rowLength);
+    }
+  });
+
+  test("a calm resource with room to spare opens its healthy parts too", () => {
+    // Two healthy datacenters: alone, two closed cards on a wide canvas.
+    const graph: ResourceTopologyGraph = vcenter(2, 1, 2, 2);
+    const troubledOnly: ResourceTopologyLayout = layoutResourceTopology(
+      computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+        budget: getViewBudgetFor(WIDE),
+        maxAutomaticDepth: 1,
+      }),
+      { aspect: WIDE.width / WIDE.height },
+    );
+
+    expect(getFitZoom(troubledOnly, WIDE)).toBeGreaterThanOrEqual(
+      SPARE_ROOM_ZOOM,
+    );
+
+    const fit: ResourceTopologyFit = fitResourceTopology(graph, null, WIDE);
+
+    expect(fit.opensAll).toBe(true);
+    expect(fit.depth).toBeGreaterThan(1);
+
+    // The healthy datacenters open, and the drawing still reads.
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      {
+        budget: fit.budget,
+        maxAutomaticDepth: fit.depth,
+        opensAll: fit.opensAll,
+      },
+    );
+    const layout: ResourceTopologyLayout = layoutResourceTopology(visible, {
+      aspect: WIDE.width / WIDE.height,
+      rowLength: fit.rowLength,
+    });
+
+    expect(visible.top.groups[0]!.items[0]!.type).toBe("card");
+    expect(
+      (visible.top.groups[0]!.items[0] as { isOpen: boolean }).isOpen,
+    ).toBe(true);
+    expect(getFitZoom(layout, WIDE)).toBeGreaterThanOrEqual(READABLE_ZOOM);
+  });
+
+  test("a resource whose trouble fills the canvas keeps to its trouble", () => {
+    const graph: ResourceTopologyGraph = vcenter(2, 4, 8, 12, [
+      "dc-0-cl-0-h-0-vm-0",
+    ]);
+
+    for (const canvas of [LAPTOP, SMALL]) {
+      expect(fitResourceTopology(graph, null, canvas).opensAll).toBe(false);
+    }
+  });
+
+  test("healthy parts open only where they still read; never past the readable zoom", () => {
+    // Too much to open on a phone: the calm view stays as it is.
+    const graph: ResourceTopologyGraph = vcenter(2, 3, 6, 10);
+    const fit: ResourceTopologyFit = fitResourceTopology(graph, null, SMALL);
+
+    if (fit.opensAll) {
+      const layout: ResourceTopologyLayout = layoutResourceTopology(
+        computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+          budget: fit.budget,
+          maxAutomaticDepth: fit.depth,
+          opensAll: true,
+        }),
+        { aspect: Math.max(0.5, SMALL.width / SMALL.height) },
+      );
+
+      expect(getFitZoom(layout, SMALL)).toBeGreaterThanOrEqual(READABLE_ZOOM);
+    } else {
+      expect(fit.depth).toBe(1);
+    }
   });
 
   test("a resource with nothing inside opens nothing", () => {
@@ -204,6 +329,162 @@ describe("how deep the first view opens", () => {
     expect(fitResourceTopology(graph, "gone", LAPTOP)).toEqual(
       fitResourceTopology(graph, null, LAPTOP),
     );
+  });
+});
+
+describe("where a whole drawing is framed: at the top of the canvas", () => {
+  /*
+   * A tree reads from the resource down. Framed in the middle of a tall
+   * canvas, a short drawing left its resource floating halfway down with
+   * empty canvas above it (a host's map, a vCenter on a tablet or a phone);
+   * it now sits at the top, centred across, with room below to grow into.
+   */
+  test("a drawing shorter than its canvas sits at its top, centred across", () => {
+    const drawing: { x: number; y: number; width: number; height: number } = {
+      x: 0,
+      y: 0,
+      width: 1000,
+      height: 300,
+    };
+    const canvas: ResourceTopologyCanvasSize = { width: 880, height: 640 };
+    const viewport: ResourceTopologyViewport = getTopAlignedViewport(
+      drawing,
+      canvas,
+    );
+
+    // React Flow's own zoom for it.
+    expect(viewport.zoom).toBeCloseTo(getFitZoom(drawing, canvas));
+    // At the top, the gap above it no more than RESOURCE_TOPOLOGY_TOP_GAP ...
+    expect(viewport.y).toBe(RESOURCE_TOPOLOGY_TOP_GAP);
+    // ... and centred across.
+    expect(viewport.x).toBeCloseTo(
+      (canvas.width - drawing.width * viewport.zoom) / 2,
+    );
+  });
+
+  test("one that fills the canvas's height is centred, as React Flow centres it", () => {
+    const drawing: { x: number; y: number; width: number; height: number } = {
+      x: 0,
+      y: 0,
+      width: 400,
+      height: 1200,
+    };
+    const canvas: ResourceTopologyCanvasSize = { width: 880, height: 640 };
+    const viewport: ResourceTopologyViewport = getTopAlignedViewport(
+      drawing,
+      canvas,
+    );
+    const drawn: number = drawing.height * viewport.zoom;
+
+    expect(viewport.y).toBeCloseTo((canvas.height - drawn) / 2);
+    expect(viewport.y).toBeLessThan(RESOURCE_TOPOLOGY_TOP_GAP);
+  });
+
+  test("a small drawing is never drawn larger than life, and an offset one lands the same", () => {
+    const small: { x: number; y: number; width: number; height: number } = {
+      x: 0,
+      y: 0,
+      width: 300,
+      height: 200,
+    };
+    const viewport: ResourceTopologyViewport = getTopAlignedViewport(
+      small,
+      LAPTOP,
+      { maxZoom: 1 },
+    );
+
+    expect(viewport.zoom).toBe(1);
+    expect(viewport.y).toBe(RESOURCE_TOPOLOGY_TOP_GAP);
+    expect(viewport.x).toBe((LAPTOP.width - 300) / 2);
+
+    // A drawing that starts away from the origin is moved, not mis-framed.
+    const moved: ResourceTopologyViewport = getTopAlignedViewport(
+      { ...small, x: -150, y: 40 },
+      LAPTOP,
+      { maxZoom: 1 },
+    );
+
+    expect(moved.x).toBe(viewport.x + 150);
+    expect(moved.y).toBe(viewport.y - 40);
+    // And never further out than the map zooms.
+    expect(
+      getTopAlignedViewport(
+        { x: 0, y: 0, width: 100000, height: 100 },
+        LAPTOP,
+        { minZoom: 0.05 },
+      ).zoom,
+    ).toBe(0.05);
+  });
+
+  test("the bounds of a drawing are the box around everything placed", () => {
+    expect(
+      getDrawingBounds([
+        { x: -20, y: 10, width: 100, height: 50 },
+        { x: 200, y: -5, width: 40, height: 20 },
+      ]),
+    ).toEqual({ x: -20, y: -5, width: 260, height: 65 });
+    expect(getDrawingBounds([])).toEqual({ x: 0, y: 0, width: 0, height: 0 });
+  });
+});
+
+describe("what a part that opens is framed with", () => {
+  /*
+   * Opening a part opens its troubled parts with it (a namespace, its
+   * failing workload's pods). Framing only the part and its own parts cut
+   * those off at the canvas's edge; the map now frames everything that
+   * opened, as long as that still reads.
+   */
+  function opened(graph: ResourceTopologyGraph): ResourceTopologyLayout {
+    return layoutResourceTopology(
+      computeResourceTopologyView(
+        graph,
+        createResourceTopologyViewState({
+          opened: new Set<string>(graph.nodes.keys()),
+        }),
+      ),
+    );
+  }
+
+  test("everything that opened with it, when that reads on this canvas", () => {
+    const layout: ResourceTopologyLayout = opened(vcenter(1, 1, 2, 3));
+    const ids: Array<string> = getTopologyOpenFrameIds(
+      layout,
+      ["dc-0-cl-0"],
+      LAPTOP,
+    );
+
+    expect(ids).toEqual(getTopologySubtreeIds(layout, ["dc-0-cl-0"]));
+    // Its hosts' virtual machines, a level further in, are framed too.
+    expect(ids).toContain("dc-0-cl-0-h-0-vm-0");
+    expect(ids.length).toBeGreaterThan(
+      getTopologyFrameIds(layout, ["dc-0-cl-0"]).length,
+    );
+  });
+
+  test("only the part and its own parts when all of it would not read", () => {
+    const layout: ResourceTopologyLayout = opened(vcenter(1, 1, 8, 12));
+    const ids: Array<string> = getTopologyOpenFrameIds(
+      layout,
+      ["dc-0-cl-0"],
+      SMALL,
+    );
+    const all: Array<string> = getTopologySubtreeIds(layout, ["dc-0-cl-0"]);
+    const bounds: { width: number; height: number } = getDrawingBounds(
+      layout.placed.filter((item: ResourceTopologyPlaced): boolean => {
+        return all.includes(item.id);
+      }),
+    );
+
+    // All of it would be framed below the readable zoom on a phone.
+    expect(getFitZoom(bounds, SMALL)).toBeLessThan(READABLE_ZOOM);
+    expect(ids).toEqual(getTopologyFrameIds(layout, ["dc-0-cl-0"]));
+    // A canvas not measured yet, or a part with nothing open below it.
+    expect(
+      getTopologyOpenFrameIds(layout, ["dc-0-cl-0"], { width: 0, height: 0 }),
+    ).toEqual(getTopologyFrameIds(layout, ["dc-0-cl-0"]));
+    expect(
+      getTopologyOpenFrameIds(layout, ["dc-0-cl-0-h-0-vm-0"], LAPTOP),
+    ).toEqual(getTopologyFrameIds(layout, ["dc-0-cl-0-h-0-vm-0"]));
   });
 });
 

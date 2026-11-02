@@ -2,8 +2,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import CountAnomaly, {
-  CountAnomalyEvaluation,
   CountBaselineSummary,
+  CountWindowBreach,
 } from "./CountAnomaly";
 import {
   AnomalyDetectionMethod,
@@ -12,6 +12,7 @@ import {
   CriteriaFilter,
   CriteriaFilterUtil,
 } from "../../../../Types/Monitor/CriteriaFilter";
+import { getExceptionAnomalySettings } from "../../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import LogMonitorResponse from "../../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import LogMonitorGroupResult, {
   LogMonitorGroupResultUtil,
@@ -53,8 +54,7 @@ export default class LogMonitorCriteria {
       /*
        * Anomaly filters skip the static threshold entirely: the
        * observed log rate is compared to this monitor's scope in the
-       * same-hour-of-week LogCountBaseline, mirroring the metric
-       * monitor's baseline path.
+       * earlier weeks of LogCountBaseline (CountWindowBaseline).
        */
       if (
         CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
@@ -132,14 +132,13 @@ export default class LogMonitorCriteria {
 
   /*
    * Anomaly path for log counts: normalizes the observed count to a
-   * per-minute rate (the baseline's sample unit) and compares it to the
-   * rolling same-hour-of-week baseline of the monitor's scope (services
-   * and severities; body/attribute filters are not baselined — the
-   * baseline is that scope's full volume, a documented superset).
+   * per-minute rate (the baseline's unit) and compares it to windows of
+   * its length around the same time of the earlier weeks, in the monitor's
+   * scope (services and severities; body/attribute filters are not baselined
+   * — the baseline is that scope's full volume, a documented superset).
    *
    * Missing or unreliable baselines mean the rule is still learning —
-   * never alert from a thin baseline. Zero-variance baselines are
-   * skipped too: any deviation at all would fire.
+   * never alert from a thin baseline.
    */
   private static async evaluateLogCountAnomaly(input: {
     logResponse: LogMonitorResponse;
@@ -179,9 +178,11 @@ export default class LogMonitorCriteria {
           },
         ),
         severityTexts: logMonitorStep?.severityTexts,
-        hourOfWeek: MetricBaselineServiceClass.computeHourOfWeek(
-          OneUptimeDate.getCurrentDate(),
-        ),
+        // The window judged, which a late ingest queue holds back from now.
+        windowEnd: input.logResponse.evaluatedUntil
+          ? new Date(input.logResponse.evaluatedUntil)
+          : OneUptimeDate.getCurrentDate(),
+        windowSeconds,
         windowDays:
           input.criteriaFilter.metricMonitorOptions?.anomalyDetection
             ?.windowDays,
@@ -200,27 +201,31 @@ export default class LogMonitorCriteria {
       return null;
     }
 
-    const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute,
-      stats: baseline,
+    const breach: CountWindowBreach | null = CountAnomaly.findBreach({
+      observed: observedPerMinute,
+      count: logCount,
+      baseline,
       sigmaCount,
       method,
       filterType: input.criteriaFilter.filterType,
+      minimumCount: getExceptionAnomalySettings(
+        input.criteriaFilter.metricMonitorOptions?.anomalyDetection,
+      ).minimumCount,
     });
 
-    if (!evaluation || !evaluation.breaches) {
+    if (!breach) {
       return null;
     }
 
-    const direction: string = evaluation.observedSigma >= 0 ? "above" : "below";
+    const direction: string = breach.observedSigma >= 0 ? "above" : "below";
 
     return (
       `Log count ${logCount} over the last ${windowSeconds} seconds ` +
       `(${observedPerMinute.toFixed(2)} logs/min) is ` +
-      `${Math.abs(evaluation.observedSigma).toFixed(2)}σ ${direction} the same-hour baseline ` +
+      `${Math.abs(breach.observedSigma).toFixed(2)}σ ${direction} the same-hour baseline ` +
       `(${method === AnomalyDetectionMethod.MedianMad ? "median" : "mean"} ` +
-      `${evaluation.center.toFixed(2)} logs/min, σ ${evaluation.spread.toFixed(2)}, ` +
-      `${baseline.sampleCount} samples over ${baseline.windowDays} days, ` +
+      `${breach.center.toFixed(2)} logs/min, σ ${breach.spread.toFixed(2)}, ` +
+      `${breach.sampleCount} samples over ${baseline.windowDays} days, ` +
       `sensitivity ${sensitivity}).`
     );
   }

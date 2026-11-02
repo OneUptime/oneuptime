@@ -164,6 +164,9 @@ describe("the English section on the SNMP Walk page", () => {
       "Collect",
       "Alert on it",
       "Copy OID",
+      "Download",
+      "snmpwalk text (.txt)",
+      "CSV spreadsheet (.csv)",
     ]) {
       expect({ label, drawn: page.includes(`"${label}"`) }).toEqual({
         label,
@@ -243,6 +246,54 @@ describe("the English section on the SNMP Walk page", () => {
     expect(rows[exists + 1]).toContain(`| ${CheckOn.SnmpOidRatePerSecond} |`);
   });
 
+  /*
+   * #5281: Download saves the walk as a file, in either format the card's
+   * menu offers, as SnmpWalkExport writes it - every OID the walk read,
+   * whatever the filter shows - for anyone who can read the walk.
+   */
+  it("says what Download saves, as SnmpWalkExport writes it", () => {
+    const exporter: string = readSource(
+      "App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkExport.ts",
+    );
+    const card: string = readSource(
+      "App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkCard.tsx",
+    );
+
+    // The CSV's columns, and the text file's numeric OIDs from a leading dot.
+    expect(exporter).toContain(
+      'export const SNMP_WALK_CSV_COLUMNS: ReadonlyArray<string> = [\n  "OID",\n  "Name",\n  "MIB",\n  "Type",\n  "Value",\n];',
+    );
+    expect(exporter).toContain('return normalized ? `.${normalized}` : "";');
+    expect(SECTION).toContain(
+      "**CSV spreadsheet (.csv)**, with each OID's name, MIB, type and value.",
+    );
+    expect(SECTION).toContain(
+      "**snmpwalk text (.txt)**, one OID a line as `snmpwalk -On` prints it",
+    );
+
+    // Every row the walk read, not the filtered ones the page shows.
+    expect(card).toContain(
+      "const file: SnmpWalkExportFile = buildSnmpWalkExport({\n      rows: rows,",
+    );
+    expect(SECTION).toContain(
+      "The file holds every OID the walk read, continued walks included, whatever the filter shows,",
+    );
+
+    // Named after the device, the subtree and the time.
+    expect(exporter).toContain(
+      "return `${device}-snmp-walk-${root}-${time}.${EXTENSIONS[data.format]}`;",
+    );
+    expect(SECTION).toContain(
+      "and is named after the device, the subtree and the time it was saved.",
+    );
+
+    // Offered whenever the walk read something, whoever may walk.
+    expect(card).toContain("{rows.length > 0 ? getDownloadMenu() : <></>}");
+    expect(SECTION).toContain(
+      "Anyone who can read the device's last walk can download it.",
+    );
+  });
+
   it("names the permission walking needs as the role editor does", () => {
     expect(SECTION).toContain(
       `Walking needs the **${PermissionHelper.getTitle(Permission.CreateNetworkDeviceDiagnostic)}** permission`,
@@ -288,6 +339,20 @@ describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
         `**${drawnNetworkLabel(language, "SNMP Walk")}**`,
       );
       expect(section).toContain("`snmpwalk`");
+
+      // Download, and the two files it saves, as the card draws them (#5281).
+      for (const label of [
+        "Download",
+        "snmpwalk text (.txt)",
+        "CSV spreadsheet (.csv)",
+      ]) {
+        expect({
+          language,
+          label,
+          named: section.includes(`**${drawnNetworkLabel(language, label)}**`),
+        }).toEqual({ language, label, named: true });
+      }
+      expect(section).toContain("`snmpwalk -On`");
       expect(section).toContain(
         `**${PermissionHelper.getTitle(Permission.CreateNetworkDeviceDiagnostic)}**`,
       );

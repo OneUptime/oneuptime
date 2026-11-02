@@ -133,6 +133,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Find a resource.",
     "Move between views.",
     // Open a resource's own map.
+    "Read it as a tree.",
     "Find what needs attention.",
     "Look closer.",
     "Go both ways.",

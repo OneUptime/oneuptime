@@ -43,11 +43,12 @@ flowchart TB
 ### डोमेन-व्यापी डेलिगेशन की अनुमति दें
 
 1. [Google एडमिन कंसोल](https://admin.google.com) में, सुपर एडमिनिस्ट्रेटर के रूप में, **Security → Access and data control → API controls → Manage domain-wide delegation** खोलें, और **Add new** चुनें।
-2. सेवा खाते की **Unique ID** को **Client ID** के रूप में, और `https://www.googleapis.com/auth/admin.reports.audit.readonly` को एकमात्र **OAuth scope** के रूप में डालें। **Authorize** चुनें। Google को इसे लागू करने में कुछ मिनट लग सकते हैं।
+2. सेवा खाते की **Unique ID** को **Client ID** के रूप में, और `https://www.googleapis.com/auth/admin.reports.audit.readonly` को **OAuth scope** के रूप में डालें। **Authorize** चुनें। Google को इसे लागू करने में कुछ मिनट लग सकते हैं।
+3. प्लेबुक को उपयोगकर्ताओं को निलंबित करने, उनका निलंबन हटाने और साइन आउट करने देने के लिए (देखें [रोकथाम](/docs/telemetry/security-cases#रोकथाम)), उसी क्लाइंट के स्कोप में `https://www.googleapis.com/auth/admin.directory.user` और `https://www.googleapis.com/auth/admin.directory.user.security` अल्पविराम से अलग करके जोड़ें। तब कनेक्शन जिस व्यवस्थापक के रूप में काम करता है, उसे उन उपयोगकर्ताओं को प्रबंधित करने वाला होना चाहिए।
 
 ### OneUptime में कनेक्शन जोड़ें
 
-**उत्पाद → Security Events → कनेक्शन** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **पहचान** के नीचे **Google Workspace** चुनें, और **अगला** पर क्लिक करें। **Administrator email** डालें, **अगला** पर क्लिक करें, और कुंजी फ़ाइल की सामग्री **सेवा खाता JSON** में पेस्ट करें। **पोलिंग** चरण में Drive भी पढ़ने के लिए **Drive गतिविधि** चालू करें।
+**उत्पाद → सुरक्षा इवेंट → कनेक्शन** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **पहचान** के नीचे **Google Workspace** चुनें, और **अगला** पर क्लिक करें। **Administrator email** डालें, **अगला** पर क्लिक करें, और कुंजी फ़ाइल की सामग्री **सेवा खाता JSON** में पेस्ट करें। **पोलिंग** चरण में Drive भी पढ़ने के लिए **Drive गतिविधि** चालू करें।
 
 ### सहेजने से पहले इसे टेस्ट करें
 

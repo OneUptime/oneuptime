@@ -2,7 +2,11 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import ProjectUtil from "Common/UI/Utils/Project";
-import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import TelemetryServiceUtil, {
+  UNKNOWN_RESOURCE_LABEL,
+} from "Common/UI/Utils/TelemetryService";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import ServiceElement from "../Service/ServiceElement";
 
@@ -25,6 +29,7 @@ export interface ComponentProps {
 const ExceptionResource: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { service, label } = TelemetryServiceUtil.resolveTelemetryResource({
     primaryEntityId: props.primaryEntityId,
     primaryEntityType: props.primaryEntityType,
@@ -40,13 +45,13 @@ const ExceptionResource: FunctionComponent<ComponentProps> = (
     );
   }
 
-  if (label && label !== "Unknown") {
+  if (label && label !== UNKNOWN_RESOURCE_LABEL) {
     return (
       <div
         className={`text-gray-700 ${props.className || ""}`}
         data-testid="exception-resource"
       >
-        {label}
+        {translator.translateText(label)}
       </div>
     );
   }

@@ -43,8 +43,18 @@ and editing row at its width, and the picks they make. Screenshots of the toolba
 pickers and the editing row (dark, German, Persian) are under
 `output/playwright/dashboard-time-range-ui`.
 
-Both dashboards are 1000px wide, so on the phone their toolbars are past the screen's
-right edge; the spec's `press` explains how it reaches them there.
+It also covers the dashboard inside OneUptime at any width (the board fits its place,
+`Common/Utils/Dashboard/DashboardBoardLayout`): at 1280 beside the side menu the grid
+fits its column and nothing scrolls sideways (the board was at least 1000px wide, so even
+1280 scrolled); at 1024 the columns narrow and a chart keeps the 230px of its three rows;
+at 768 and on the phone the widgets are one under another, each the board's width, in the
+order the grid is read; on the phone the toolbar's name and ⋯ menu share a line and its
+controls have their own, every one on the screen; editing on the phone shows the grid,
+which the board scrolls sideways while the page does not; and at 1024 a widget dragged one
+row's height down moves one row (rows taller than columns are wide) and is saved there.
+
+Both dashboards are the screen's width, but a menu's choice or the editing row can still
+sit below a phone's fold; the spec's `press` explains how it reaches them there.
 
 This checks real browser rendering and the app's handling of the defaults and picks; the
 API, the database and the deployed app's routing are outside this fixture.

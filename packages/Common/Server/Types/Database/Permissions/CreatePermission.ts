@@ -4,6 +4,7 @@ import BasePermission from "./BasePermission";
 import ColumnPermissions from "./ColumnPermission";
 import EditionPermissions from "./EditionPermission";
 import OwnedScopePermission from "./OwnedScopePermission";
+import PrivateRecordPermission from "./PrivateRecordPermission";
 import PublicPermission from "./PublicPermission";
 import ReadPermission from "./ReadPermission";
 import TablePermission from "./TablePermission";
@@ -744,6 +745,23 @@ export default class CreatePermission {
           data.props,
         ))
     ) {
+      /*
+       * A private parent the write's permission does not reach, named by
+       * someone who may not read the parent's kind at all: answered like a
+       * parent they may not read - one that does not exist - telling them
+       * nothing about it.
+       */
+      const unreachableIds: Array<string> =
+        await CreatePermission.getUnreachablePrivateParentIds(data);
+
+      if (unreachableIds.length > 0) {
+        throw CreatePermission.getMissingParentRefusal(
+          data.modelType,
+          data.parent,
+          unreachableIds,
+        );
+      }
+
       return;
     }
 
@@ -754,6 +772,17 @@ export default class CreatePermission {
 
     let foundIds: Array<string> = [];
 
+    /*
+     * A private parent is found only where the write's permission reaches it
+     * (PrivateRecordPermission): the lookup that reads the parents as the
+     * caller carries that too, so the common case asks nothing more.
+     */
+    const isWriteUnderPrivateHeld: boolean =
+      PrivateRecordPermission.isWriteUnderRecordsNarrowed({
+        recordModelType: data.parent.parentModelType,
+        props: data.props,
+      });
+
     if (lookupIds.length > 0 && isHeld) {
       foundIds = await data.findReadableParentIds({
         parentModelType: data.parent.parentModelType,
@@ -762,6 +791,7 @@ export default class CreatePermission {
           parentModelType: data.parent.parentModelType,
           ids: lookupIds,
           props: data.props,
+          write: { modelType: data.modelType, type: data.type },
         }),
         props: data.props,
       });
@@ -785,12 +815,101 @@ export default class CreatePermission {
     });
 
     if (refusedIds.length > 0) {
+      /*
+       * A PRIVATE PARENT TAKES A PART ONLY THROUGH THE TEAMS THAT OWN IT. Of
+       * the parents the lookup left out, the ones the caller reads after all
+       * - they own it, or a team of theirs does - are private ones their
+       * write does not reach: a note, an owner, a state change or a role
+       * goes on a private incident, alert or episode only with the
+       * permission of a team that owns it, or of a person who does
+       * (PrivateRecordPermission), and one of their other teams' permission
+       * reaches none of it. Refused in so many words, as the caller sees the
+       * parent; asked only when a parent was left out.
+       */
+      if (isHeld && isWriteUnderPrivateHeld) {
+        const refusedLookupIds: Array<string> = refusedIds.filter(
+          (id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          },
+        );
+
+        const readableIds: Array<string> =
+          refusedLookupIds.length > 0
+            ? await data.findReadableParentIds({
+                parentModelType: data.parent.parentModelType,
+                ids: refusedLookupIds,
+                query: CreatePermission.getParentLookupQuery({
+                  parentModelType: data.parent.parentModelType,
+                  ids: refusedLookupIds,
+                  props: data.props,
+                }),
+                props: data.props,
+              })
+            : [];
+
+        if (readableIds.length > 0) {
+          throw new NotAuthorizedException(
+            `You do not have permission to ${data.type} ${
+              new data.modelType().singularName || "this record"
+            }. ${PrivateRecordPermission.getPrivateParentWriteReason(
+              (
+                new data.parent.parentModelType().singularName || "record"
+              ).toLowerCase(),
+            )}`,
+          );
+        }
+      }
+
       throw CreatePermission.getMissingParentRefusal(
         data.modelType,
         data.parent,
         refusedIds,
       );
     }
+
+    /*
+     * Parents found as OneUptime, for a caller who reads none of their kind
+     * (isParentReadOptional): a private one their write does not reach is
+     * answered like one they may not read.
+     */
+    if (!isHeld && isWriteUnderPrivateHeld) {
+      const unreachableIds: Array<string> =
+        await CreatePermission.getUnreachablePrivateParentIds({
+          ...data,
+          ids: foundIds,
+        });
+
+      if (unreachableIds.length > 0) {
+        throw CreatePermission.getMissingParentRefusal(
+          data.modelType,
+          data.parent,
+          unreachableIds,
+        );
+      }
+    }
+  }
+
+  /*
+   * Of the parents a write names, the private ones the caller's permission
+   * for the write does not reach (PrivateRecordPermission
+   * .getUnreachableParentIds), read as OneUptime in the record's project.
+   */
+  private static async getUnreachablePrivateParentIds(data: {
+    modelType: DatabaseBaseModelType;
+    parent: CreateParent;
+    ids: Array<string>;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Create | DatabaseRequestType.Update;
+    findParentIdsInProject: RecordIdsFinder;
+  }): Promise<Array<string>> {
+    return await PrivateRecordPermission.getUnreachableParentIds({
+      modelType: data.modelType,
+      parentModelType: data.parent.parentModelType,
+      parentIds: data.ids,
+      props: data.props,
+      type: data.type,
+      findIdsInProject: data.findParentIdsInProject,
+    });
   }
 
   // The parent of each model asked about, read from its metadata once.
@@ -946,6 +1065,18 @@ export default class CreatePermission {
     parentModelType: DatabaseBaseModelType;
     ids: Array<string>;
     props: DatabaseCommonInteractionProps;
+    /*
+     * The write the parents are looked up for - a part created under them,
+     * or moved under them - when they are to take it: a private parent is
+     * then found only where that write's permission reaches it, owned by
+     * the caller or by a team of theirs granting it (PrivateRecordPermission).
+     */
+    write?:
+      | {
+          modelType: DatabaseBaseModelType;
+          type: DatabaseRequestType.Create | DatabaseRequestType.Update;
+        }
+      | undefined;
   }): Query<BaseModel> {
     const query: Query<BaseModel> = {
       _id: QueryHelper.any(data.ids),
@@ -954,7 +1085,21 @@ export default class CreatePermission {
     const privacyFilter: SelfPrivacyFilter | null =
       CreatePermission.getParentPrivacyFilter(data.parentModelType);
 
-    return privacyFilter ? privacyFilter(query, data.props) : query;
+    const readable: Query<BaseModel> = privacyFilter
+      ? privacyFilter(query, data.props)
+      : query;
+
+    if (!data.write) {
+      return readable;
+    }
+
+    return PrivateRecordPermission.addReachToRecordsQuery({
+      query: readable,
+      recordModelType: data.parentModelType,
+      modelType: data.write.modelType,
+      type: data.write.type,
+      props: data.props,
+    });
   }
 
   // The rule for the private records of a parent table; null if it holds none.

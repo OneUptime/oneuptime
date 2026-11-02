@@ -6,6 +6,7 @@ import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "Common/Server/API/BillingPaymentMethodAPI";
 import FileAPI from "Common/Server/API/FileAPI";
+import CustomFieldFileAPI from "Common/Server/API/CustomFieldFileAPI";
 import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
 import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
@@ -115,6 +116,7 @@ import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMain
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
 import FormAPI from "Common/Server/API/FormAPI";
+import FormDomainAPI from "Common/Server/API/FormDomainAPI";
 import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
 import AlertEpisodeAPI from "Common/Server/API/AlertEpisodeAPI";
 import IncidentEpisodeMemberAPI from "Common/Server/API/IncidentEpisodeMemberAPI";
@@ -187,6 +189,10 @@ import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import SecurityCaseEvidenceAPI from "Common/Server/API/SecurityCaseEvidenceAPI";
 import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
+import TelemetryExceptionActivity from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
+import TelemetryExceptionActivityService, {
+  Service as TelemetryExceptionActivityServiceType,
+} from "Common/Server/Services/TelemetryExceptionActivityService";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
@@ -581,6 +587,9 @@ import MetricSavedViewService, {
 import TraceSavedViewService, {
   Service as TraceSavedViewServiceType,
 } from "Common/Server/Services/TraceSavedViewService";
+import ExceptionSavedViewService, {
+  Service as ExceptionSavedViewServiceType,
+} from "Common/Server/Services/ExceptionSavedViewService";
 import LogPipelineService, {
   Service as LogPipelineServiceType,
 } from "Common/Server/Services/LogPipelineService";
@@ -681,6 +690,9 @@ import DataStoreLabelRuleService, {
 import DataSecurityFlowService, {
   Service as DataSecurityFlowServiceType,
 } from "Common/Server/Services/DataSecurityFlowService";
+import DataSecurityIdentityService, {
+  Service as DataSecurityIdentityServiceType,
+} from "Common/Server/Services/DataSecurityIdentityService";
 import DataSecurityIssueService, {
   Service as DataSecurityIssueServiceType,
 } from "Common/Server/Services/DataSecurityIssueService";
@@ -837,6 +849,12 @@ import ServerlessFunctionInstanceService, {
 import CloudResourceInstanceService, {
   Service as CloudResourceInstanceServiceType,
 } from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService, {
+  Service as CloudAppServiceType,
+} from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService, {
+  Service as CloudAppRevisionServiceType,
+} from "Common/Server/Services/CloudAppRevisionService";
 import RumApplicationClientService, {
   Service as RumApplicationClientServiceType,
 } from "Common/Server/Services/RumApplicationClientService";
@@ -1533,6 +1551,8 @@ import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplication
 import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
@@ -1715,6 +1735,7 @@ import TableView from "Common/Models/DatabaseModels/TableView";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
+import ExceptionSavedView from "Common/Models/DatabaseModels/ExceptionSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
@@ -1741,6 +1762,7 @@ import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam"
 import DataStoreOwnerRule from "Common/Models/DatabaseModels/DataStoreOwnerRule";
 import DataStoreLabelRule from "Common/Models/DatabaseModels/DataStoreLabelRule";
 import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
+import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
@@ -3611,6 +3633,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new TelemetryExceptionAPI().getRouter(),
     );
 
+    // An exception's activity timeline, read as the exception is.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityServiceType
+      >(
+        TelemetryExceptionActivity,
+        TelemetryExceptionActivityService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new KubernetesResourceAPI().getRouter(),
@@ -4065,6 +4099,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // The exceptions list's saved views, as the traces explorer keeps its own.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ExceptionSavedView, ExceptionSavedViewServiceType>(
+        ExceptionSavedView,
+        ExceptionSavedViewService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<LogPipeline, LogPipelineServiceType>(
@@ -4348,6 +4391,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataSecurityFlow, DataSecurityFlowServiceType>(
         DataSecurityFlow,
         DataSecurityFlowService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityIdentity, DataSecurityIdentityServiceType>(
+        DataSecurityIdentity,
+        DataSecurityIdentityService,
       ).getRouter(),
     );
 
@@ -4905,6 +4956,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * A form's own domains, with Check now, Order SSL, Reissue SSL and the
+     * Status column's certificates (the routes its page calls on the domain
+     * are the form API's, above).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new FormDomainAPI().getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
@@ -5221,6 +5282,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudResourceInstance, CloudResourceInstanceServiceType>(
         CloudResourceInstance,
         CloudResourceInstanceService,
+      ).getRouter(),
+    );
+
+    // An App Platforms environment's apps and their revisions: read-only.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudApp, CloudAppServiceType>(
+        CloudApp,
+        CloudAppService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudAppRevision, CloudAppRevisionServiceType>(
+        CloudAppRevision,
+        CloudAppRevisionService,
       ).getRouter(),
     );
 
@@ -6080,6 +6158,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new WorkspaceNotificationSummaryAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
+    /*
+     * The files records' File and Multiple files custom fields hold, to the
+     * people who may read the records (CustomFieldFileAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CustomFieldFileAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MonitorGroupAPI().getRouter(),

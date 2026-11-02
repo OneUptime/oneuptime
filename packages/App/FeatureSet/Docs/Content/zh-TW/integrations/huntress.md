@@ -51,11 +51,11 @@ sequenceDiagram
 :::steps
 ### 建立工作流程
 
-開啟**工作流程**，點選**建立工作流程**。在**或從範本開始**中選擇 **Huntress** 類別，選擇 **Open an incident for each Huntress incident report**，點選**使用此範本**，然後建立工作流程。工作流程會在**建構器**中開啟，處於關閉狀態。
+開啟**工作流程**，點選**建立工作流程**。在**或從範本開始**中選擇 **Huntress** 類別，選擇 **Open an incident for each Huntress incident report**，然後點選**使用此範本**。
 
 ### 選擇呼叫誰
 
-點選 **Page an On-Call Policy** 步驟，選擇要呼叫的**待命策略**，然後儲存該步驟。
+接著對話方塊會詢問要呼叫誰：在 **Who to page for high and critical reports** 底下選擇要呼叫的待命策略，不選則不呼叫任何人，然後點選**建立工作流程**。工作流程會在**建構器**中開啟，處於關閉狀態。之後要變更呼叫誰，請點選它的 **Page an On-Call Policy** 步驟，變更其**待命策略**。
 
 ### 在 Huntress 中新增 Webhook 端點
 
@@ -79,7 +79,7 @@ sequenceDiagram
 
 ## 工作流程做什麼
 
-範本在觸發器之後用一個 **Switch / Case**，為每種 **Event** 走一條路徑：
+在觸發器之後， **Incident From Another Tool** 依報告的編號執行每種 **Event** 要求的操作：
 
 | Event | 工作流程做什麼 |
 | --- | --- |
@@ -87,7 +87,7 @@ sequenceDiagram
 | `comment-added` | 找到報告的事件，把留言作為私人備註加到事件上。 |
 | `closed` | 找到報告的事件並解決它，除非它已經解決。原因記錄在它的時間軸上：Huntress 關閉了該報告。 |
 
-它和其他工作流程一樣，所以你可以修改它做的事：修改 **Create One Incident** 之後的 **If / Else** 比較的內容，只為嚴重報告呼叫；用 Slack 或 Microsoft Teams 步驟把每份報告貼到聊天頻道；或用依 **Organization** 判斷的 **Switch / Case** 把每個組織送給它自己的待命策略。每次執行都會列在工作流程的執行記錄中，並顯示每個步驟做了什麼。
+它和其他工作流程一樣，所以你可以修改它做的事：修改 **Incident From Another Tool** 之後的 **If / Else** 比較的內容，只為嚴重報告呼叫；用 Slack 或 Microsoft Teams 步驟把每份報告貼到聊天頻道；或用依 **Organization** 判斷的 **Switch / Case** 把每個組織送給它自己的待命策略。每次執行都會列在工作流程的執行記錄中，並顯示每個步驟做了什麼。
 
 ### 嚴重性
 
@@ -174,7 +174,7 @@ Huntress 與你的 OneUptime 伺服器時鐘相差超過五分鐘，或者該請
 :::
 
 :::details 沒有建立事件
-開啟工作流程的執行記錄，以及該報告的那次執行。如果 **Create One Incident** 因事件嚴重性為空而失敗，表示專案沒有事件嚴重性：在**事件 → 設定 → 事件嚴重性**中新增一個。
+開啟工作流程的執行記錄，以及該報告的那次執行。如果 **Incident From Another Tool** 以 `This project has no incident severities to put the incident at.` 失敗，請在**事件 → 設定 → 事件嚴重性**中新增一個。
 :::
 
 :::details 沒有呼叫任何人

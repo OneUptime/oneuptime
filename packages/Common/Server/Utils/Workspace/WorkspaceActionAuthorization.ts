@@ -31,6 +31,7 @@ import { applyIncidentSelfPrivacyFilter } from "../Incident/IncidentPrivacyFilte
 import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
 import { applyIncidentEpisodeSelfPrivacyFilter } from "../IncidentEpisode/IncidentEpisodePrivacyFilter";
 import { applyAlertEpisodeSelfPrivacyFilter } from "../AlertEpisode/AlertEpisodePrivacyFilter";
+import PrivateRecordWriteCheck from "../Permission/PrivateRecordWriteCheck";
 
 /*
  * A resource a chat action is performed against: the incident being
@@ -120,6 +121,18 @@ export default class WorkspaceActionAuthorization {
    */
   public static getPrivateReason(noun: string): string {
     return `this ${noun} is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.`;
+  }
+
+  /*
+   * The same, for a private record the member sees - they own it, or a team
+   * of theirs does - but may not change this way: a private incident, alert
+   * or episode is changed only with the permissions of the teams that own it
+   * and of the people named as its owners (PrivateRecordPermission), and
+   * none of those lets them. Another of their teams' permission reaches none
+   * of it.
+   */
+  public static getPrivateWriteReason(noun: string): string {
+    return `this ${noun} is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.`;
   }
 
   /*
@@ -312,6 +325,16 @@ export default class WorkspaceActionAuthorization {
       let readableResource: DatabaseBaseModel | null = null;
       let readError: unknown = undefined;
 
+      /*
+       * Whether the record is private, read with it, when the row the
+       * action writes is a part of it: the private record rule is then
+       * asked only of a private one (assertReachesPrivateRecord).
+       */
+      const isPartOfResource: boolean = PrivateRecordWriteCheck.isPartOf(
+        modelType,
+        resource.service.modelType as DatabaseBaseModelType,
+      );
+
       try {
         readableResource = await resource.service.findOneBy({
           query: {
@@ -320,6 +343,7 @@ export default class WorkspaceActionAuthorization {
           } as Query<DatabaseBaseModel>,
           select: {
             ...(resource.select || {}),
+            ...(isPartOfResource ? { isPrivate: true } : {}),
             _id: true,
           } as Select<DatabaseBaseModel>,
           props: props,
@@ -342,10 +366,64 @@ export default class WorkspaceActionAuthorization {
         });
       }
 
+      // A private record they see, that this row is no write of theirs on.
+      await WorkspaceActionAuthorization.assertReachesPrivateRecord({
+        props: props,
+        modelType: modelType,
+        type: DatabaseRequestType.Create,
+        service: resource.service,
+        id: resource.id,
+        action: action,
+        readRecord: readableResource,
+      });
+
       readableResources.push(readableResource);
     }
 
     return readableResources;
+  }
+
+  /*
+   * Throws NotAuthorizedException, worded for the chat, when `type` on
+   * `modelType` - a private incident, alert or episode itself, or a part of
+   * one: its state timeline, a note, a role - would not reach the record
+   * `id` of `service`'s kind for this member, who may read it: it is
+   * private, and neither they nor a team of theirs granting the write owns
+   * it (PrivateRecordWriteCheck). The write itself is held to the same rule;
+   * asked first, the member is told why before anything is written. A write
+   * of anything else is not this rule's to answer.
+   */
+  @CaptureSpan()
+  public static async assertReachesPrivateRecord(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    type: DatabaseRequestType;
+    service: DatabaseService<DatabaseBaseModel>;
+    id: ObjectID;
+    action: string;
+    // The record as the member read it, isPrivate with it. See reaches.
+    readRecord?: DatabaseBaseModel | undefined;
+  }): Promise<void> {
+    const reaches: boolean = await PrivateRecordWriteCheck.reaches({
+      modelType: data.modelType,
+      type: data.type,
+      recordService: data.service,
+      recordId: data.id,
+      props: data.props,
+      readRecord: data.readRecord,
+    });
+
+    if (reaches) {
+      return;
+    }
+
+    const noun: string = (
+      data.service.getModel().singularName || "record"
+    ).toLowerCase();
+
+    throw new NotAuthorizedException(
+      `You do not have permission to ${data.action}: ${WorkspaceActionAuthorization.getPrivateWriteReason(noun)}`,
+    );
   }
 
   /*

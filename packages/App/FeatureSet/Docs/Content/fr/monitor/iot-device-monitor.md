@@ -50,19 +50,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir la flotte
 
-Sous **Configuration du moniteur IoT**, choisissez la flotte dans **Flotte IoT**. Chaque flotte qui a envoyé des données figure dans la liste.
+Sous **Configuration du moniteur IoT**, choisissez la flotte dans **Flotte IoT**. Chaque flotte qui a envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter une flotte IoT** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qui est surveillé
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Device Offline**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** - cliquez sur un [modèle](#modèles-dalerte-prédéfinis). Il définit la métrique, l'agrégation, la plage temporelle, un regroupement sur `device.id` et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez toujours modifier la **Plage temporelle**.
-- **Custom Metric** - choisissez une métrique dans **Métrique IoT**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un appareil ou à un type d'appareil. Une métrique personnalisée n'est pas regroupée : elle juge la flotte dans son ensemble.
-- **Avancé** - construisez vous-même requêtes et formules sous **Sélectionner les métriques**, y compris sur vos propres noms de métriques, par exemple la mémoire utilisée en pourcentage de la taille mémoire d'un appareil. Utilisez **Regrouper par** `device.id` pour juger chaque appareil séparément.
+- **Modifier** - choisissez un autre [modèle](#modèles-dalerte-prédéfinis). Il définit la métrique, l'agrégation, la plage temporelle, un regroupement sur `device.id` et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez toujours modifier la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) - choisissez une métrique dans **Métrique IoT**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un appareil ou à un type d'appareil. Une métrique personnalisée n'est pas regroupée : elle juge la flotte dans son ensemble.
+- **Avancé** (sous **Plus de champs**) - construisez vous-même requêtes et formules sous **Sélectionner les métriques**, y compris sur vos propres noms de métriques, par exemple la mémoire utilisée en pourcentage de la taille mémoire d'un appareil. Utilisez **Regrouper par** `device.id` pour juger chaque appareil séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez son **Select Metric Variable**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro, donc définissez votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez son **Select Metric Variable**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données, donc définissez votre propre seuil.
 
 ### Créer le moniteur
 
@@ -88,17 +88,17 @@ Les filtres s'appliquent ensemble : avec un **ID de l'appareil** et un **Type d'
 
 ## Modèles d'alerte prédéfinis
 
-**Quick Setup** propose 5 modèles. Chacun construit un moniteur complet : la requête de métrique, un regroupement sur `device.id`, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose 5 modèles. Chacun construit un moniteur complet : la requête de métrique, un regroupement sur `device.id`, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne déclenche que lorsque la condition est vraie pour chaque minute de sa fenêtre - sauf **Device Offline**, qui déclenche dès la première mesure inférieure à 1. Un critère de seuil se rétablit 10 % au-delà de son seuil, donc une valeur qui oscille autour de la ligne ne bascule pas sans cesse.
 
 | Modèle | Catégorie | Gravité | Surveille | Déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Disponibilité | Critique | `iot_device_up`, Min par `device.id`, 30 dernières minutes | Une mesure est inférieure à 1, ou un appareil enregistré n'envoie rien pendant toute la fenêtre | De retour à 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg par `device.id`, 5 dernières minutes | Sous 20 % | À 22 % ou plus |
-| Weak Signal | Connectivité | Warning | `iot_signal_strength_dbm`, Avg par `device.id`, 5 dernières minutes | Sous -100 dBm | À -90 dBm ou plus |
+| Low Battery | Power | Avertissement | `iot_battery_percent`, Avg par `device.id`, 5 dernières minutes | Sous 20 % | À 22 % ou plus |
+| Weak Signal | Connectivité | Avertissement | `iot_signal_strength_dbm`, Avg par `device.id`, 5 dernières minutes | Sous -100 dBm | À -90 dBm ou plus |
 | High Temperature | Environnement | Critique | `iot_temperature_celsius`, Max par `device.id`, 5 dernières minutes | Au-dessus de 70 °C | À 63 °C ou moins |
-| High CPU Usage | Système | Warning | `iot_cpu_usage_ratio`, Avg par `device.id`, 5 dernières minutes | Au-dessus de 0.9 (90 % de son CPU) | À 0.81 ou moins |
+| High CPU Usage | Système | Avertissement | `iot_cpu_usage_ratio`, Avg par `device.id`, 5 dernières minutes | Au-dessus de 0.9 (90 % de son CPU) | À 0.81 ou moins |
 
 La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent à la gravité d'incident et d'alerte la plus élevée de votre projet ; modifiez-les dans le critère.
 
@@ -117,6 +117,8 @@ La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte
 | **L'appareil est enregistré** | Un appareil du **Registre des appareils** de la flotte est attendu. Lorsqu'il n'envoie rien pendant toute la fenêtre, le moniteur le traite comme s'il signalait `0`, donc il obtient son propre incident, qui se résout de lui-même lorsque l'appareil signale à nouveau. |
 
 Un appareil enregistré est aussi conservé comme hors ligne dans l'inventaire de la flotte, alors qu'un appareil non enregistré en est retiré après 15 minutes de silence. La détection du silence nécessite la politique d'absence de données **Treat As Zero** sur le critère `iot_device_up`, que possèdent les moniteurs Device Offline créés à partir du modèle. Un moniteur Device Offline créé avant l'existence de l'enregistrement des appareils doit la recevoir à la main, ou être recréé à partir du modèle.
+
+**Device Offline** juge chaque appareil sur sa mesure la plus récente : un appareil qui s'est signalé indisponible puis de nouveau disponible est disponible au contrôle suivant. Un moniteur Device Offline qui reste hors ligne jusqu'à ce que la mesure d'indisponibilité ait 30 minutes a été créé avant que le modèle ne fasse cela : choisissez de nouveau le modèle sous **Sur quoi alerter** pour le mettre à jour.
 
 > [!NOTE]
 > Un appareil non enregistré qui devient silencieux, sans Last Will ni rapport de passerelle, cesse seulement d'envoyer des données, et un moniteur regroupé par appareil ne peut pas l'isoler. Enregistrez vos appareils, ou donnez à un appareil critique son propre moniteur (**Custom Metric**, avec son **ID de l'appareil**) et réglez **En l'absence de données** sur **Déclencheur**. La détection du silence nécessite aussi qu'au moins un autre appareil de la flotte continue de signaler : une flotte qui s'éteint complètement, lors d'une panne de passerelle par exemple, lève un seul incident pour le moniteur, et non un par appareil.
@@ -150,7 +152,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
 | **En l'absence de données** | Sous **Plus de champs**. Ce qui se passe lorsqu'une série n'a aucun échantillon dans la fenêtre : **Ignore** (la valeur par défaut) l'ignore, **Treat As Zero** la lit comme `0`, et **Déclencheur** fait correspondre le critère. |
 
-Les conditions d'anomalie comparent chaque valeur à la même heure de la semaine dans la référence. Elles restent dans un état « Learning », et ne lèvent rien, tant que la fenêtre de référence ne contient pas assez d'historique.
+Les conditions d'anomalie comparent chaque valeur à la même heure de la semaine dans la référence. Elles restent dans un état « Learning », et ne lèvent rien, tant que la fenêtre de référence ne contient pas assez d'historique. Une somme, un décompte ou une requête sur un histogramme reste dans cet état pour de bon : ce moniteur filtre ses requêtes par attributs, et la référence n'en contient aucun.
 
 ### Critères par défaut
 

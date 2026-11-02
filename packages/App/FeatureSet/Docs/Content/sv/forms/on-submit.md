@@ -134,7 +134,7 @@ Varje inlämning lämnar en privat anteckning på det den skapade:
 > **Which office are you in?**\
 > Berlin
 
-Den anger formuläret och inlämnaren — "Submitted anonymously through the form **Report a Problem**." när formuläret inte frågade vem det är — och anger sedan, när inlämningen började från en av formulärets mallar, vilken: "Started from the template **Application Outage**." — och visar därefter svaren på formulärets egna frågor, vart och ett under sin fråga, i formulärets ordning. Svaren på kopplade frågor finns redan på posten: dess titel, dess allvarlighetsgrad, dess anpassade fält. Eftersom anteckningen är privat når den aldrig en statussida, men den publiceras i postens Slack- och Microsoft Teams-kanaler som vilken annan anteckning som helst.
+Den anger formuläret och inlämnaren — "Submitted anonymously through the form **Report a Problem**." när formuläret inte frågade vem det är — och anger sedan, när inlämningen började från en av formulärets mallar, vilken: "Started from the template **Application Outage**." — och visar därefter svaren på formulärets egna frågor, vart och ett under sin fråga, i formulärets ordning. Svaren på kopplade frågor finns redan på posten: dess titel, dess allvarlighetsgrad, dess anpassade fält. Eftersom anteckningen är privat når den aldrig en statussida, men den publiceras i postens Slack- och Microsoft Teams-kanaler som vilken annan anteckning som helst. Filerna från dess frågor av typen **Fil** och **Flera filer** bifogas anteckningen, där ditt team laddar ned dem.
 
 Adressen är en länk som skriver till exakt den adressen — i instrumentpanelen, i Slack och i e-posten till ägarna.
 
@@ -158,6 +158,10 @@ En inlämning går direkt till platser där text kan agera på egen hand — Sla
 | Bildsyntax eller ett diagramblock i titeln | **Titeln är vanlig text.** De får också det osynliga tecknet, så var titeln än hamnar — en episod, ett chattmeddelande, en anteckningsmall — läser den inte in något och ritar inget. De osynliga tecknen räknas in i titelns gräns. |
 
 Allt annat — länkar, resten av Markdown, val i listrutor, tal, datum, en ikryssad ruta — lagras som inlämnaren angav det, och inlämningen behåller inlämnarens namn och e-post som de skrevs.
+
+## Filer som en inlämnare skickar
+
+En filfråga håller de filer som en inlämnare väljer i webbläsaren och skickar dem med svaren, så ingen behöver ett konto för att bifoga en fil. Servern kontrollerar varje fil så som ett [anpassat filfält](/docs/incidents/settings#filfält) gör — dess storlek, dess slag och vad den innehåller — och sparar filerna privat i ditt projekt först när inlämningen har klarat alla andra kontroller: ingenting behålls för en inlämning som avvisas. En fråga för ett anpassat fält av typen **Fil** eller **Flera filer** lägger sina filer i det fältet, och formulärets egna filfrågor bifogar sina i den privata anteckningen. Inlämningen behåller varje fils namn. [Storleksgränser](/docs/forms/building#storleksgränser) och [Frekvensgränser](/docs/forms/sharing-and-security#frekvensgränser) anger hur mycket en inlämning och ett formulär får skicka.
 
 ## Nästa steg
 

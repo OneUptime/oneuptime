@@ -107,7 +107,7 @@ Wie viele Tage das Diagramm abdeckt, wird nicht hier festgelegt. Das ist **Verf�
 
 | Feld | Was es tut |
 | ----- | ------------ |
-| **Standardsprache** | Die Sprache, die Erstbesucher sehen, gewählt aus einer Liste, die jede Sprache in ihrer eigenen Schreibweise und auf Englisch nennt (`Deutsch (German)`). Sie steht standardmäßig auf Englisch, und Besucher können jederzeit in der Fußzeile wechseln. |
+| **Standardsprache** | Die Sprache, die Erstbesucher sehen, gewählt aus einer Liste, die jede Sprache in ihrer eigenen Schreibweise und auf Englisch nennt (`Deutsch (German)`). Sie steht standardmäßig auf Englisch, und Besucher können jederzeit in der Fußzeile wechseln. Abonnenten werden ebenfalls in ihr angeschrieben, es sei denn, sie haben die Seite beim Abonnieren in einer anderen Sprache gelesen. |
 | **Aktivierte Sprachen** | Eine Mehrfachauswahl, Platzhalter `All languages`. Lassen Sie sie leer, wird jede unterstützte Sprache angeboten; wählen Sie einige, listet die Fußzeile nur diese. |
 
 Siebzehn Sprachen werden mit OneUptime ausgeliefert: Englisch, Deutsch, Französisch, Spanisch, Italienisch, Portugiesisch, Niederländisch, Dänisch, Norwegisch, Schwedisch, Russisch, Japanisch, Koreanisch, Chinesisch (vereinfacht), Chinesisch (traditionell), Hindi und Persisch. Persisch wird von rechts nach links gelesen, deshalb ist eine Seite auf Persisch von rechts her aufgebaut, von Anfang an, wenn Persisch ihre Standardsprache ist. Ihre Verfügbarkeitsbalken beginnen trotzdem links mit dem ältesten Tag.
@@ -214,7 +214,7 @@ Wählen Sie in **Domäne** (Platzhalter `Select domain`) eine Ihrer verifizierte
 Klicken Sie auf **Statusseite Domain erstellen**. Der Dialog schließt sich, und die **DNS-Einrichtung** der neuen Domain öffnet sich, mit dem hinzuzufügenden Eintrag.
 :::
 
-Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Subdomain zu verwenden, fügen Sie diese Domain hinzu und löschen die alte.
+Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Subdomain zu verwenden, fügen Sie diese Domain hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
 
 ### DNS-Einrichtung und Verifizierung
 

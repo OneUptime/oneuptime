@@ -31,7 +31,8 @@ export const FORM_SHARE_MORE_SETTINGS_TEST_ID: string =
 
 /*
  * A form's Share page, top to bottom in the order someone shares a form:
- * whether it takes submissions, its link (copy, open, reset), what it says
+ * whether it takes submissions, every address it answers at - its own
+ * domains, then its link - to open and copy, with Reset Link, what it says
  * after a submission, and - folded under More settings - which networks
  * can reach it.
  *

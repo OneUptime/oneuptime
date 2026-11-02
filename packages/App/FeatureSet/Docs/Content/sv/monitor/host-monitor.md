@@ -61,19 +61,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Värd** under 
 
 ### Välj värden
 
-Välj maskinen i **Värd** under **Host Monitor Configuration**. Varje värd som har skickat data finns i listan.
+Välj maskinen i **Värd** under **Host Monitor Configuration**. Varje värd som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till värd** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** – klicka på en [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
-- **Avancerad** – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
+- **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så ange din egen tröskel.
 
 ### Skapa monitorn
 
@@ -95,18 +95,18 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
-| High CPU Utilization | Warning | `system.cpu.utilization` för tillstånden `user` och `system`, adderade och visade som procent, senaste 5 minuterna | Över 80 % | Vid eller under 72 % |
-| High Memory Utilization | Warning | `system.memory.utilization` för tillståndet `used`, som procent, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
+| High CPU Utilization | Varning | `system.cpu.utilization` för tillstånden `user` och `system`, adderade och visade som procent, senaste 5 minuterna | Över 80 % | Vid eller under 72 % |
+| High Memory Utilization | Varning | `system.memory.utilization` för tillståndet `used`, som procent, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max per `mountpoint` och `device`, som procent, senaste 5 minuterna | Över 90 % | Vid eller under 81 % |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, senaste 5 minuterna | Över 4 | Vid eller under 3,6 |
-| High Process Count | Warning | `system.processes.count`, Max, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
+| High Load Average (1m) | Varning | `system.cpu.load_average.1m`, Avg, senaste 5 minuterna | Över 4 | Vid eller under 3,6 |
+| High Process Count | Varning | `system.processes.count`, Max, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 
@@ -115,11 +115,11 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 - **Minne** utesluter buffertar och sidcache, så att en värd som mest innehåller cache inte utlöser den.
 - **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla: OneUptimes collector-konfigurationer utelämnar dem från skrapan `filesystem` med `exclude_fs_types`, och en egen konfiguration behöver detsamma.
 - **Belastningsmedelvärde** är en rå längd på körkön, inte delad med antalet kärnor: 4 är mättnad på en värd med 2 kärnor och rutin på en med 32, så höj den på stora värdar.
-- **Antal processer** jämför det största enskilda processtillståndet (`running`, `sleeping`, …), inte värdens totala antal, så det stämmer inte med en processlista. Processkrapan rapporterar bara på Linux.
+- **Antal processer** jämför det största enskilda processtillståndet (`running`, `sleeping`, …), inte värdens totala antal, så det stämmer inte med en processlista. Skraparen för processer rapporterar på Linux, macOS och BSD, inte på Windows.
 
 ## Insamlade mätvärden
 
-Listan **Host Metric** erbjuder de här mätvärdena. Var och ett bär `resource.host.name`, vilket är hur monitorn begränsar sina frågor till en värd.
+Listan **Host Metric** erbjuder de här mätvärdena. Var och ett bär `resource.host.name`, vilket är hur monitorn begränsar sina frågor till en värd. Valt där räknar CPU tillståndet `user`, minnes- och filsystemsanvändning tillståndet `used`, och filsystem och processer ger en serie per monteringspunkt och status.
 
 > [!IMPORTANT]
 > Utnyttjandemåtten är en kvot från 0 till 1, inte en procentsats: använd `0.8` för 80 % i en tröskel på det råa mätvärdet. Mallarna räknar om till procent med en formel, så deras trösklar är 80, 85 och 90.
@@ -181,7 +181,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | **Baslinjefönster** | Bara avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret saknar mätningar: **Ignore** (standard), **Treat As Zero** eller **Utlösare**. |
 
-Avvikelsevillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i ett "Learning"-läge och ger ingenting förrän baslinjefönstret innehåller tillräckligt med historik.
+Avvikelsevillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i ett "Learning"-läge och ger ingenting förrän baslinjefönstret innehåller tillräckligt med historik. En summa, ett antal eller en fråga på ett histogram stannar i det tillståndet för alltid: den här monitorn filtrerar sina frågor på attribut, och baslinjen innehåller inga.
 
 Varje kriterium anger också vad som ska hända när det matchar: ändra monitorns status, skapa ett larm eller deklarera en incident. Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör.
 

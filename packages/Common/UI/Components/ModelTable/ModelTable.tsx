@@ -5,7 +5,9 @@ import ModelImportExportUtil, {
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import {
   FormType,
   ModelField,
@@ -114,6 +116,14 @@ const ModelTable: <TBaseModel extends BaseModel>(
 ): ReactElement => {
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
   const model: TBaseModel = new props.modelType();
+
+  /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: its changes are offered only when a team of theirs that owns it
+   * may make them (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
   const translator: Translator = useTranslator();
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
@@ -224,6 +234,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
     const createGate: PermissionGateResult = PermissionGate.check(
       model,
       ModelAction.Create,
+      privateRecordOptions,
     );
 
     if (createGate.isAllowed || createGate.disabledReason) {

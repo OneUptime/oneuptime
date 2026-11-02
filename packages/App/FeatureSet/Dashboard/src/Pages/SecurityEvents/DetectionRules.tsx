@@ -63,6 +63,11 @@ import {
   DetectionRuleShape,
   readDetectionRuleShape,
 } from "../../Components/SecurityEvents/DetectionRuleShape";
+import {
+  RealTimeFormValues,
+  getRealTimeFormProblem,
+  runsInRealTime as runsInRealTimeValues,
+} from "../../Components/SecurityEvents/DetectionRuleRealTime";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import RelativeTimeCell from "../../Components/SecurityEvents/RelativeTimeCell";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
@@ -128,6 +133,11 @@ export const DETECTION_RULE_YAML_TOOLS_TEST_ID: string =
  */
 const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
   getAdvancedFormSection<DetectionRule>();
+
+// Whether the form's rule checks each event as it arrives (a switch Postgres may hand back as "true").
+export function runsInRealTime(values: FormValues<DetectionRule>): boolean {
+  return runsInRealTimeValues(values as unknown as RealTimeFormValues);
+}
 
 /*
  * A single Sigma rule counts its matches by the form's Group By Field,
@@ -256,7 +266,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Detection Rules",
           description:
-            "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.",
+            "Sigma rules run on a schedule, or on each event as it arrives, against your security events. A matching rule can raise an alert and open a case.",
         }}
         helpContent={{
           title: DetectionRulesGuide.guideTitle,
@@ -294,6 +304,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         createInitialValues={{
           isEnabled: true,
           evaluationIntervalInMinutes: 5,
+          // A new rule runs on its interval: Run in Real Time is off.
+          isRealTime: false,
           /*
            * Mirror the DB defaults (DetectionRule.ts): without these the
            * severity dropdowns' showIf sees undefined on a fresh create
@@ -487,8 +499,44 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             advancedSection,
           ),
           {
+            /*
+             * A rule that fires on one event can check each event as it
+             * arrives (Types/SecurityEvent/RealTimeDetection). Turned on
+             * for a rule that cannot, the switch says why and what to
+             * change, before the rule is saved - as the server would
+             * refuse it. A correlation reads events together, so it is not
+             * offered - unless the rule runs in real time already, so the
+             * switch that has to go off can.
+             */
+            field: {
+              isRealTime: true,
+            },
+            showIf: (values: FormValues<DetectionRule>): boolean => {
+              return countsByFormFields(values) || runsInRealTime(values);
+            },
+            title: "Run in Real Time",
+            stepId: "on-match",
+            description:
+              "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            collapsibleSection: advancedSection,
+            customValidation: (
+              values: FormValues<DetectionRule>,
+            ): string | null => {
+              return getRealTimeFormProblem(
+                values as unknown as RealTimeFormValues,
+                translator,
+              );
+            },
+          },
+          {
             field: {
               evaluationIntervalInMinutes: true,
+            },
+            // A real-time rule runs on no interval.
+            showIf: (values: FormValues<DetectionRule>): boolean => {
+              return !runsInRealTime(values);
             },
             title: "Evaluation Interval (Minutes)",
             stepId: "on-match",
@@ -697,6 +745,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           sigmaRuleYaml: true,
           // Whether each row is on, for Enable and Disable to count.
           isEnabled: true,
+          // A real-time rule's Status and Interval say so.
+          isRealTime: true,
         }}
         columns={[
           /*
@@ -829,9 +879,27 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               evaluationIntervalInMinutes: true,
             },
             title: "Interval (Minutes)",
-            type: FieldType.Number,
-            noValueMessage: "-",
+            type: FieldType.Element,
             isHiddenByDefault: true,
+            // A real-time rule runs on no interval: it says so instead.
+            getElement: (item: DetectionRule): ReactElement => {
+              if (item.isRealTime) {
+                return (
+                  <span className="text-gray-700">
+                    {translator.translateText("Real time")}
+                  </span>
+                );
+              }
+
+              return (
+                <span>
+                  {item.evaluationIntervalInMinutes !== undefined &&
+                  item.evaluationIntervalInMinutes !== null
+                    ? translator.formatNumber(item.evaluationIntervalInMinutes)
+                    : "-"}
+                </span>
+              );
+            },
           },
           {
             field: {

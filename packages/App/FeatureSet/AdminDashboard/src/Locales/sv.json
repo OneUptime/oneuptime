@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Företagsnamn som är kopplat till denna licens.",
+  "Annual contract value (in USD) for this license.": "Årligt kontraktsvärde (i USD) för denna licens.",
+  "Expiration date of this license.": "Utgångsdatum för denna licens.",
+  "Something went wrong": "Något gick fel",
+  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Läs in sidan igen för att fortsätta",
+  "Error details": "Felinformation",
+  "Still stuck?": "Fortfarande fast?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den med OneUptime Support.",
+  "Download support bundle": "Ladda ned supportpaket",
+  "Send it to {{email}}": "Skicka det till {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Supportpaketet har laddats ned. Granska det och bifoga det sedan i ditt mejl.",
+  "The support bundle could not be downloaded. Please try again.": "Supportpaketet kunde inte laddas ned. Försök igen.",
   "common": {
     "save": "Spara",
     "cancel": "Avbryt",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "{{price}} per användare, faktureras årsvis från i dag.",
   "{{price}} per user, billed monthly from today.": "{{price}} per användare, faktureras månadsvis från i dag.",
   "Our sales team will contact you to agree on a price.": "Vårt säljteam kontaktar dig för att komma överens om ett pris.",
+  "Current plan": "Aktuell plan",
+  "Current plan, billed yearly": "Aktuell plan, faktureras årsvis",
+  "Current plan, billed monthly": "Aktuell plan, faktureras månadsvis",
   "{{count}}-day free trial": "{{count}} dagars gratis provperiod",
   "{{count}}-day free trial_one": "{{count}} dags gratis provperiod",
   "Free for {{count}} days, no card needed to start.": "Gratis i {{count}} dagar, inget kort behövs för att börja.",
@@ -1560,5 +1575,12 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "Compact rows": "Kompakta rader",
+  "Sort by": "Sortera efter",
+  "Sorted by {{column}}": "Sorterat efter {{column}}",
+  "Sort": "Sortera",
+  "Ascending": "Stigande",
+  "Descending": "Fallande",
+  "Select all items": "Markera alla objekt"
 }

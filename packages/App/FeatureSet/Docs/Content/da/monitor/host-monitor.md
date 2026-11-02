@@ -61,19 +61,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Vært** under 
 
 ### Vælg værten
 
-Vælg maskinen i **Vært** under **Host Monitor Configuration**. Hver vært, der har sendt data, er på listen.
+Vælg maskinen i **Vært** under **Host Monitor Configuration**. Hver vært, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj vært** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Host Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** – klik på en [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** – vælg én metrik i **Host Metric**, og angiv derefter **Aggregering** og **Tidsinterval**.
-- **Avanceret** – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
+- **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) – vælg én metrik i **Host Metric**, og angiv derefter **Aggregering** og **Tidsinterval**.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at en metrik falder til nul, så angiv din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 
@@ -95,18 +95,18 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder seks skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
-| High CPU Utilization | Warning | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som procent, seneste 5 minutter | Over 80 % | Ved eller under 72 % |
-| High Memory Utilization | Warning | `system.memory.utilization` for tilstanden `used`, som procent, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
+| High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som procent, seneste 5 minutter | Over 80 % | Ved eller under 72 % |
+| High Memory Utilization | Advarsel | `system.memory.utilization` for tilstanden `used`, som procent, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max pr. `mountpoint` og `device`, som procent, seneste 5 minutter | Over 90 % | Ved eller under 81 % |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, seneste 5 minutter | Over 4 | Ved eller under 3,6 |
-| High Process Count | Warning | `system.processes.count`, Max, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
+| High Load Average (1m) | Advarsel | `system.cpu.load_average.1m`, Avg, seneste 5 minutter | Over 4 | Ved eller under 3,6 |
+| High Process Count | Advarsel | `system.processes.count`, Max, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 
@@ -115,11 +115,11 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 - **Hukommelse** udelader buffere og sidecache, så en vært, der mest indeholder cache, ikke udløser den.
 - **Filsystem** åbner én hændelse pr. montering. Skrivebeskyttede pseudofilsystemer, som snap-monteringer af typen `squashfs` eller `devfs` på macOS, er altid 100 % fulde: OneUptimes collector-konfigurationer udelader dem fra scraperen `filesystem` med `exclude_fs_types`, og en konfiguration, du selv skriver, skal have det samme.
 - **Belastningsgennemsnit** er en rå længde af kørselskøen, ikke divideret med antallet af kerner: 4 er mætning på en vært med 2 kerner og rutine på en med 32, så hæv den på store værter.
-- **Antal processer** sammenligner den største enkelte procestilstand (`running`, `sleeping`, …), ikke værtens samlede antal, så det vil ikke svare til en procesliste. Scraperen for processer rapporterer kun på Linux.
+- **Antal processer** sammenligner den største enkelte procestilstand (`running`, `sleeping`, …), ikke værtens samlede antal, så det vil ikke svare til en procesliste. Scraperen for processer rapporterer på Linux, macOS og BSD, men ikke på Windows.
 
 ## Indsamlede metrikker
 
-Listen **Host Metric** tilbyder disse metrikker. Hver bærer `resource.host.name`, som er den måde, monitoren afgrænser sine forespørgsler til én vært.
+Listen **Host Metric** tilbyder disse metrikker. Hver bærer `resource.host.name`, som er den måde, monitoren afgrænser sine forespørgsler til én vært. Valgt dér tæller CPU tilstanden `user`, hukommelses- og filsystemforbrug tilstanden `used`, og filsystemer og processer giver én serie pr. monteringspunkt og status.
 
 > [!IMPORTANT]
 > Udnyttelsesmetrikkerne er et forhold fra 0 til 1, ikke en procent: brug `0.8` for 80 % i en tærskel på den rå metrik. Skabelonerne omregner til procent med en formel, så deres tærskler lyder 80, 85 og 90.
@@ -181,7 +181,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ikke har nogen målinger: **Ignore** (standard), **Treat As Zero** eller **Trigger**. |
 
-Anomalibetingelser sammenligner hver værdi med samme time på ugen i baselinen. De forbliver i en "Learning"-tilstand og giver intet, før baseline-vinduet rummer nok historik.
+Anomalibetingelser sammenligner hver værdi med samme time på ugen i baselinen. De forbliver i en "Learning"-tilstand og giver intet, før baseline-vinduet rummer nok historik. En sum, en optælling eller en forespørgsel på et histogram forbliver i den tilstand for altid: denne monitor filtrerer sine forespørgsler efter attributter, og baselinen indeholder ingen.
 
 Hvert kriterium siger også, hvad der skal ske, når det matcher: ændre monitorens status, oprette en advarsel eller erklære en hændelse. Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør det.
 

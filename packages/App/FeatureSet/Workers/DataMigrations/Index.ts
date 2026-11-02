@@ -149,10 +149,12 @@ import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
 import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncements";
 import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
+import BindInfrastructureMonitorSteps from "./BindInfrastructureMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddSecurityCaseTargetAndTaskNotificationSettingsForUsers from "./AddSecurityCaseTargetAndTaskNotificationSettingsForUsers";
 import AddSecurityHuntNotificationSettingsForUsers from "./AddSecurityHuntNotificationSettingsForUsers";
+import AddUserIdToExceptionInstance from "./AddUserIdToExceptionInstance";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
@@ -912,6 +914,25 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new AddSecurityHuntNotificationSettingsForUsers(),
+  /*
+   * The exceptions list counts each exception's affected users: adds the
+   * column that names the user an occurrence happened to
+   * (ExceptionInstance.userId, String DEFAULT ''). Metadata-only and
+   * idempotent; occurrences stored before it read as naming no user. No
+   * ordering requirement, so it sits above the runbook moves, which keep
+   * their places before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new AddUserIdToExceptionInstance(),
+  /*
+   * Binds every infrastructure monitor's step to its resource's id and stores
+   * its value as the resource has it (InfrastructureResourceBinding), so a
+   * rename of a cluster, vCenter or host keeps its monitors. Reads the
+   * resource tables; idempotent. No ordering requirement, so it sits above
+   * the three runbook migrations below, which keep their places right before
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BindInfrastructureMonitorSteps(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

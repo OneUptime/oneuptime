@@ -5,6 +5,7 @@
 :::cards
 - [نصب عامل](#نصب-عامل): چهار گام با Helm.
 - [نصب به‌صورت افزونه Amazon EKS](#نصب-بهصورت-افزونه-amazon-eks): از کنسول EKS، بدون Helm.
+- [OpenShift](#openshift): پیش‌تنظیم، محدودیت‌های زمینهٔ امنیتی که می‌سازد، و هشدارهای خود OpenShift.
 - [گزینه‌های پیکربندی](#گزینههای-پیکربندی): فیلترها، نمونه‌برداری، Control Plane، Service Mesh، هزینه‌ها و برچسب‌ها.
 - [عامل هوش مصنوعی Kubernetes](#عامل-هوش-مصنوعی-kubernetes): `kubectl` فقط‌خواندنی برای OneUptime AI، و اصلاح‌ها وقتی اجازه دهید.
 - [فرستادن داده کمتر](#کاهش-حجم-داده-گردآوریشده): اهرم‌ها، به ترتیب اثرشان.
@@ -27,7 +28,7 @@ flowchart TB
 | کالکتور گره | DaemonSet | لاگ‌های پاد از `/var/log/pods`، متریک‌های kubelet و cAdvisor، و متریک‌های سیستم‌عامل گره. | همه‌جا جز EKS Fargate |
 | ابزارگذاری eBPF (OBI) | DaemonSet | ترِیس‌ها و متریک‌های درخواست HTTP، gRPC، SQL و Redis از هر پاد، و نقشه سرویس. | به‌طور پیش‌فرض، جز روی GKE Autopilot و EKS Fargate |
 | عامل هوش مصنوعی Kubernetes | Deployment | `kubectl` فقط‌خواندنی برای OneUptime AI هنگام بررسی یک حادثه یا هشدار. | به‌طور پیش‌فرض |
-| دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که کالکتور گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate` |
+| دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که کالکتور گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot`، `eks-fargate` و `openshift-restricted` |
 | موتور و پرسشگر هزینه | Deployments | خرج برای هر namespace، بار کاری و پاد. | با `cost.enabled=true` |
 
 همه ایمیج‌های عامل فقط برای Linux ساخته شده‌اند، پس هر بار کاری به گره‌های Linux سنجاق شده است.
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,43 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `standard` (پیش‌فرض) | خوشه‌های خودمدیریت، **EKS on EC2**، **GKE Standard**، **AKS**، minikube، kind، k3s | کالکتور گره `/var/log/pods` را از راه `hostPath` می‌خواند (کمترین سربار) | kubelet، cAdvisor و متریک‌های سیستم‌عامل گره |
 | `gke-autopilot` | **GKE Autopilot** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند (بدون `hostPath`، بدون دسترسی به میزبان) | kubelet و cAdvisor، بدون `hostPath` |
 | `eks-fargate` | **EKS Fargate** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند (بدون `hostPath`، بدون دسترسی به میزبان) | هیچ: Fargate هیچ DaemonSet اجرا نمی‌کند |
+| `openshift` | **OpenShift**: OpenShift Container Platform، ROSA، ARO، OKD | کالکتور گره `/var/log/pods` را از راه `hostPath` می‌خواند، زیر یک محدودیت زمینهٔ امنیتی که چارت برایش می‌سازد | kubelet، cAdvisor و متریک‌های سیستم‌عامل گره |
+| `openshift-restricted` | **OpenShift**، جایی که مدیر نمی‌خواهد SCC اضافه کند | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند (بدون `hostPath`، بدون دسترسی به میزبان) | kubelet و cAdvisor، بدون `hostPath` |
 
-اگر مطمئن نیستید، با `standard` شروع کنید. اگر نصب با یک خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `preset=gke-autopilot` (یا `eks-fargate` روی Fargate) نصب کنید. GKE Autopilot و EKS Fargate پادهای با امتیاز ویژه را هم که eBPF و پروفایلر به آن‌ها نیاز دارند رد می‌کنند، پس این دو پیش‌تنظیم هر دو را کنار می‌گذارند.
+اگر مطمئن نیستید، با `standard` شروع کنید. اگر نصب با یک خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `preset=gke-autopilot` (یا `eks-fargate` روی Fargate) نصب کنید. GKE Autopilot و EKS Fargate پادهای با امتیاز ویژه را هم که eBPF و پروفایلر به آن‌ها نیاز دارند رد می‌کنند، پس این دو پیش‌تنظیم هر دو را کنار می‌گذارند. روی OpenShift از `openshift` استفاده کنید، یا اگر مدیری نمی‌خواهد SCC اضافه کند از `openshift-restricted`: ببینید [OpenShift](#openshift).
+
+## OpenShift
+
+با `--set preset=openshift` نصب کنید، همان‌طور که زبانه **OpenShift** در بالا نشان می‌دهد. OpenShift یک پاد را فقط زیر یک محدودیت زمینهٔ امنیتی (SCC) می‌پذیرد که حساب سرویس آن اجازهٔ استفاده از آن را داشته باشد، و تا وقتی مدیری اجازهٔ بیشتری ندهد، آن محدودیت `restricted-v2` است (OpenShift 4.11 و بعد از آن): بدون حجم‌های `hostPath`، بدون کانتینرهای با امتیاز ویژه، و با یک شناسهٔ کاربر از بازهٔ خود namespace. پس پیش‌تنظیم:
+
+- دو SCC می‌سازد که هر کدام فقط به حساب سرویس پادهای خودش داده می‌شود:
+  - یکی برای کالکتور گره: سوار کردن فقط‌خواندنی `hostPath`، اجرا با root و نوع SELinux `spc_t`، بدون امتیاز ویژه، با حذف همهٔ capabilityها؛
+  - یکی برای ابزارگذاری eBPF و پروفایلر: با امتیاز ویژه، در PID namespace میزبان. فقط تا وقتی که یکی از آن دو روشن باشد.
+- می‌گذارد OpenShift شناسهٔ کاربر هر پاد دیگری را برگزیند، که زیر `restricted-v2` اجرا می‌شود.
+- `oneuptime.kubernetes.distribution=openshift` را روی تله‌متری عامل می‌زند، تا **بستر** خوشه **OpenShift** نشان داده شود، و اگر خوشه روی ابری اجرا شود، آن ابر (`cloud.provider`، `cloud.platform`) را هم می‌افزاید.
+
+ساختن SCCها به دسترسی cluster-admin نیاز دارد. بدون این پیش‌تنظیم، انتشار نصب می‌شود، اما OpenShift هرگز پادهای کالکتور گره و eBPF عامل را راه نمی‌اندازد، و یادداشت‌های پس از نصب هم همین را می‌گویند.
+
+**اگر مدیری نمی‌خواهد SCC اضافه کند،** به‌جای آن با `--set preset=openshift-restricted` نصب کنید. آنگاه چارت هیچ SCC نمی‌سازد و هر پاد زیر `restricted-v2` اجرا می‌شود، همان‌طور که با `gke-autopilot` است. خوشه همچنان OpenShift نشان داده می‌شود. در عوض این‌ها را از دست می‌دهید:
+
+- لاگ‌های پاد از گره‌ها: دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند، با یک اتصال بلندمدت برای هر کانتینر.
+- متریک‌های سیستم‌عامل گره. متریک‌های گره، پاد و کانتینر می‌مانند: کالکتور گره kubelet و cAdvisor را از راه شبکه می‌خواند.
+- ترِیس‌های eBPF و پروفایلر، هر چه `ebpf.enabled` و `profiling.enabled` بگویند. برای ترِیس کردن سرویس‌هایتان، با یک OpenTelemetry SDK از آن‌ها ترِیس بفرستید.
+- لاگ‌های ممیزی، که از گره خوانده می‌شوند.
+
+برای بازگرداندن آن‌ها، هنگام ارتقا و با دسترسی cluster-admin، با `--set preset=openshift` به `openshift` بروید.
+
+**آنچه در OneUptime می‌بینید.** عامل، اشیای خود OpenShift را هم به‌صورت فقط‌خواندنی می‌خواند و در صفحه‌های خوشه نشان می‌دهد:
+
+- **نمای کلی** خوشه با کارت **OpenShift** آغاز می‌شود: نسخه‌ای که اجرا می‌کند، اینکه به‌روزرسانی‌ای در جریان است یا شکست می‌خورد، و اینکه چند تا از اپراتورهای خوشه سالم‌اند، همراه با آنچه هر یک از بقیه گزارش می‌دهد. اپراتوری که در دسترس نیست خوشه را **ناسالم** می‌کند، و اپراتوری با کارایی کاهش‌یافته یا به‌روزرسانی‌ای که شکست می‌خورد آن را به وضعیت **کاهش کارایی** می‌برد.
+- **Routes** و **سرویس‌ها**، زیر **شبکه**: هر Route کجا پاسخ می‌دهد، TLS را چگونه پایان می‌دهد، ترافیک را به کدام سرویس‌ها و با چه سهمی می‌فرستد، و چرا یک مسیریاب آن را رد کرده است. کلید TLS یک Route هرگز از خوشه بیرون نمی‌رود: عامل پیش از فرستادن Route آن را جایگزین می‌کند.
+- **DeploymentConfigها**، زیر **بارهای کاری**، مانند Deploymentها نشان داده می‌شوند: انتشارهایشان، پردازنده و حافظهٔ پادهایشان، و رویدادهای ReplicationControllerها و پادهایی که اجرا می‌کنند.
+
+**هشدارها دربارهٔ اپراتورها و به‌روزرسانی‌ها.** صفحهٔ **توصیه‌ها** یک خوشهٔ OpenShift این موارد را پیشنهاد می‌کند: **Cluster Operator Unavailable**، **Cluster Operator Degraded** و **Cluster Update Failing**. هر کدام یک پایشگر لاگ روی تصویرهای لحظه‌ای است که عامل هر `resourceSpecs.interval` می‌فرستد. وقتی دو تصویر لحظه‌ای مشکل را گزارش کنند هشدار می‌دهد، پس اپراتوری که در حین یک به‌روزرسانی برای لحظه‌ای تغییر وضعیت می‌دهد چیزی را برنمی‌انگیزد، و وقتی حل می‌شود که یک تصویر لحظه‌ای بگوید مشکل تمام شده است، نه هرگز چون عامل دیگر نمی‌فرستد.
+
+**هشدارهای خود OpenShift.** OpenShift همراه با Prometheus و Alertmanager عرضه می‌شود، با هشدارهایی برای اپراتورها، etcd و گره‌هایش. برای اینکه برای هر کدام در OneUptime حادثه‌ای باز شود، در کنسول وب زیر **Administration → Cluster Settings → Configuration → Alertmanager** یک گیرندهٔ وب‌هوک برای OneUptime بیفزایید، همان‌طور که [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) توضیح می‌دهد.
+
+**ترِیس‌ها از کد شما.** ابزارگذاری eBPF بدون تغییر در کد، HTTP، gRPC و SQL را ترِیس می‌کند. برای فرستادن ترِیس از SDKهای OpenTelemetry، یا از Red Hat build of OpenTelemetry، صادرکنندهٔ OTLP آن‌ها را به سوی OneUptime نشانه بگیرید، همان‌طور که [OpenTelemetry](/docs/telemetry/open-telemetry) توضیح می‌دهد.
 
 ## چه چیزی گردآوری می‌شود
 
@@ -215,6 +262,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | متریک‌های خوشه | وضعیت گره‌ها، منابع قابل تخصیص، شمار پادها |
 | رویدادهای Kubernetes | هر رویداد، Warning و Normal، از هر namespace و هر نوع شیء: [رویدادهای Kubernetes](#رویدادهای-kubernetes) را ببینید |
 | لاگ‌های پاد | stdout و stderr هر کانتینر (از راه `hostPath` روی خوشه‌های استاندارد، از راه API در Kubernetes روی Autopilot و Fargate) |
+| اشیای OpenShift (پیش‌تنظیم‌های OpenShift) | ClusterOperatorها، ClusterVersion، Routeها، DeploymentConfigها و Serviceها: [OpenShift](#openshift) را ببینید |
 | ترِیس‌های برنامه (eBPF، به‌طور پیش‌فرض روشن) | اسپن‌های HTTP، gRPC، SQL و Redis از هر پاد، بدون SDK یا تغییر کد |
 | متریک‌های RED برای HTTP (eBPF) | `http.server.request.duration`، و اندازه بدنه درخواست و پاسخ، برای هر سرویس |
 | گراف سرویس (eBPF) | لبه‌های نرخ درخواست، تأخیر و خطا از فراخواننده به فراخوانده، که نقشه سرویس را می‌کشند |
@@ -245,7 +293,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 ### جست‌وجو و هشدار برای رویدادها
 
-هر رویداد یک لاگ هم هست. یک هشدار با شدت **Warning** ذخیره می‌شود و آنچه رویداد می‌گوید در ویژگی‌هایش است:
+هر رویداد یک لاگ هم هست. یک هشدار با شدت **هشدار** ذخیره می‌شود و آنچه رویداد می‌گوید در ویژگی‌هایش است:
 
 | ویژگی | نمونه |
 | --- | --- |
@@ -488,6 +536,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**روی OpenShift،** برای زمان‌بند و مدیر کنترلرها `--set controlPlane.enabled=true` کافی است، روی هر دو پیش‌تنظیم OpenShift. OpenShift چند نسخه از هر کدام را پشت یک Service اجرا می‌کند، پس عامل هر نسخه را در EndpointSliceهای آن Service پیدا می‌کند و جداگانه، با توکن حساب سرویس خودش، آن را می‌خواند. `controlPlane.scheduler.endpoints` و `controlPlane.controllerManager.endpoints` اگر تنظیم شوند همچنان اولویت دارند. etcd گواهی کلاینت می‌خواهد، پس تا وقتی `controlPlane.etcd.clientCertSecret` نام Secretی را ندهد که گواهی را دارد خوانده نمی‌شود. مانیتورینگ OpenShift یکی دارد: آن را با دسترسی cluster-admin در Secretی با سه کلیدی که چارت می‌خواند کپی کنید:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+این کپی چرخش آن گواهی توسط OpenShift را دنبال نمی‌کند، پس وقتی متریک‌های etcd متوقف شدند این فرمان‌ها را دوباره اجرا کنید. یک control plane میزبانی‌شده (ROSA با HCP، HyperShift) این مؤلفه‌ها را بیرون از خوشه اجرا می‌کند: عامل هیچ‌کدام را پیدا نمی‌کند و آن زبانه‌ها آنجا خالی می‌مانند.
+
 سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، صفحه **Control Plane** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
 
 ### روشن کردن متریک‌های CoreDNS
@@ -600,7 +668,7 @@ eBPF فراخوانی‌های شبکه را می‌بیند، نه کد شما 
 
 eBPF را خاموش کنید وقتی:
 
-- روی **GKE Autopilot** یا **EKS Fargate** نصب می‌کنید: این بسترها پادهای با امتیاز ویژه را رد می‌کنند، پس `preset=gke-autopilot` و `preset=eks-fargate` از پیش eBPF را برایتان کنار می‌گذارند و پروفایلر را هم با آن.
+- روی **GKE Autopilot** یا **EKS Fargate** نصب می‌کنید: این بسترها پادهای با امتیاز ویژه را رد می‌کنند، پس `preset=gke-autopilot` و `preset=eks-fargate` از پیش eBPF را برایتان کنار می‌گذارند و پروفایلر را هم با آن. `preset=openshift-restricted` روی OpenShift همین کار را می‌کند.
 - گره‌ها هسته‌ای قدیمی‌تر از 5.8 بدون پس‌آوردهای BTF اجرا می‌کنند.
 - از پیش در هر برنامه از OpenTelemetry SDKها ترِیس می‌فرستید و متریک‌های eBPF را هم نمی‌خواهید. (فقط برای ترِیس‌ها لازم نیست: OBI برای برنامه‌ای که می‌بیند ترِیس‌های خودش را صادر می‌کند، فرستادن ترِیس‌های eBPF را متوقف می‌کند، همان‌طور که بالا آمد.)
 
@@ -998,9 +1066,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 با اسکریپت تشخیصی شروع کنید. سلامت پادها را بررسی می‌کند، کلید دریافت داده را رمزگشایی و اعتبارسنجی می‌کند، بررسی می‌کند که خوشه به OneUptime می‌رسد و از OneUptime می‌پرسد که آیا کلید شما را می‌پذیرد، سپس یک حکم با محتمل‌ترین علت چاپ می‌کند:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+هر OneUptime این اسکریپت را از انتشار خودش ارائه می‌کند: در یک OneUptime خودمیزبان، به‌جای `https://oneuptime.com` از نشانی خودتان استفاده کنید. برای خواندن اسکریپت پیش از اجرا، نشانی آن را در یک مرورگر باز کنید.
 
 فقط وضعیت خوشه را می‌خواند و چند پروب اجرا می‌کند؛ هیچ چیزی را تغییر نمی‌دهد. برای دقیق‌ترین آزمون ترافیک خروجی، نخست با `--set debug.enabled=true` نصب کنید: این کار یک sidecar کوچک ابزارهای شبکه به پادهای عامل می‌افزاید تا اسکریپت مسیر خروجی خود کالکتور را بیازماید.
 

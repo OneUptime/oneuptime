@@ -1,7 +1,9 @@
 import {
+  CheckOn,
   EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
+import { isExceptionMeasure } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TelemetryAlertRuleUtil, {
   TelemetryAlertRule,
@@ -18,6 +20,7 @@ import {
 } from "Common/Types/DateLanguage";
 import { TelemetryRulePreviewSummary } from "Common/Types/Monitor/TelemetryRulePreview";
 import {
+  TemplateValue,
   TranslatableTerm,
   translatableTerm,
   translationKey,
@@ -230,9 +233,11 @@ const METRIC_COMPARISON_TERMS: Record<string, string> = {
 
 export const getComparisonChoices: (data: {
   monitorType: MonitorType;
+  measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
 }) => Array<TelemetryRuleChoice<FilterType>> = (data: {
   monitorType: MonitorType;
+  measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
 }): Array<TelemetryRuleChoice<FilterType>> => {
   const labels: Record<string, string> =
@@ -365,11 +370,26 @@ export const TelemetryRuleCopy: {
   logCountTitle: string;
   spanCountTitle: string;
   exceptionCountTitle: string;
+  newExceptionCountTitle: string;
+  regressedExceptionCountTitle: string;
+  exceptionIncreaseTitle: string;
+  exceptionMeasureTitle: string;
+  exceptionMeasureCount: string;
+  exceptionMeasureNew: string;
+  exceptionMeasureRegressed: string;
+  exceptionMeasureIncrease: string;
+  exceptionMeasureNoPreview: string;
   metricValueTitle: string;
   windowTitle: string;
   metricTitle: string;
   aggregationTitle: string;
   sensitivityTitle: string;
+  baselineWindowTitle: string;
+  baselineWindowDescription: string;
+  sigmaCountTitle: string;
+  sigmaCountDescription: string;
+  minimumCountTitle: string;
+  minimumCountDescription: string;
   noDataTitle: string;
   noDataDescription: string;
   statusTitle: string;
@@ -385,6 +405,7 @@ export const TelemetryRuleCopy: {
   metricWindowFieldDescription: string;
   valueRequired: string;
   anomalyHint: string;
+  exceptionAnomalyHint: string;
   groupedHint: string;
 } = {
   whenToAlertTitle: translationKey("When to alert"),
@@ -399,11 +420,36 @@ export const TelemetryRuleCopy: {
   logCountTitle: translationKey("Number of logs"),
   spanCountTitle: translationKey("Number of spans"),
   exceptionCountTitle: translationKey("Number of exceptions"),
+  newExceptionCountTitle: translationKey("Number of new exceptions"),
+  regressedExceptionCountTitle: translationKey(
+    "Number of exceptions that came back",
+  ),
+  exceptionIncreaseTitle: translationKey("Rise over the usual (in %)"),
+  exceptionMeasureTitle: translationKey("Alert on"),
+  exceptionMeasureCount: translationKey("Exceptions"),
+  exceptionMeasureNew: translationKey("New exceptions"),
+  exceptionMeasureRegressed: translationKey("Exceptions that came back"),
+  exceptionMeasureIncrease: translationKey("A rise over the usual"),
+  exceptionMeasureNoPreview: translationKey(
+    "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.",
+  ),
   metricValueTitle: translationKey("Value"),
   windowTitle: translationKey("Time window"),
   metricTitle: translationKey("Metric"),
   aggregationTitle: translationKey("Measured as"),
   sensitivityTitle: translationKey("Sensitivity"),
+  baselineWindowTitle: translationKey("Baseline Window"),
+  baselineWindowDescription: translationKey(
+    "How much history to learn from. It can only learn from the exceptions OneUptime keeps.",
+  ),
+  sigmaCountTitle: translationKey("Standard deviations"),
+  sigmaCountDescription: translationKey(
+    "How far from the usual count a window must be. Leave empty to use the sensitivity.",
+  ),
+  minimumCountTitle: translationKey("Minimum exceptions"),
+  minimumCountDescription: translationKey(
+    "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.",
+  ),
   noDataTitle: translationKey("If there is no data"),
   noDataDescription: translationKey("What a window with no values counts as."),
   statusTitle: translationKey("Monitor status while it matches"),
@@ -432,6 +478,9 @@ export const TelemetryRuleCopy: {
   valueRequired: translationKey("Enter the value to compare with."),
   anomalyHint: translationKey(
     "Compared with the same hour of the week over the last 14 days. A new monitor waits until there is enough history.",
+  ),
+  exceptionAnomalyHint: translationKey(
+    "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.",
   ),
   groupedHint: translationKey(
     "Counted together here. The monitor counts each group on its own.",
@@ -482,6 +531,7 @@ export const getRuleSentence: (data: {
     | "windowInSeconds"
     | "rollingTime"
     | "metricAggregationType"
+    | "measure"
   >;
   translator: Translator;
   metricName?: string | undefined;
@@ -495,6 +545,7 @@ export const getRuleSentence: (data: {
     | "windowInSeconds"
     | "rollingTime"
     | "metricAggregationType"
+    | "measure"
   >;
   translator: Translator;
   metricName?: string | undefined;
@@ -611,6 +662,39 @@ export const getRuleSentence: (data: {
         { window, count, comparison: translatableTerm(comparison) },
       );
     case MonitorType.Exceptions:
+      if (
+        rule.measure &&
+        rule.measure !== CheckOn.ExceptionCount &&
+        isExceptionMeasure(rule.measure)
+      ) {
+        return getExceptionMeasureSentence({
+          measure: rule.measure,
+          window,
+          count,
+          comparison,
+          isAny,
+          hasCount,
+          translator,
+        });
+      }
+      if (rule.filterType === FilterType.AnomalouslyHigh) {
+        return translator.translateTemplate(
+          "Alerts when matching exceptions in {{window}} are unusually many for this hour of the week.",
+          { window },
+        );
+      }
+      if (rule.filterType === FilterType.AnomalouslyLow) {
+        return translator.translateTemplate(
+          "Alerts when matching exceptions in {{window}} are unusually few for this hour of the week.",
+          { window },
+        );
+      }
+      if (rule.filterType === FilterType.Anomalous) {
+        return translator.translateTemplate(
+          "Alerts when matching exceptions in {{window}} are unusually many or few for this hour of the week.",
+          { window },
+        );
+      }
       if (isNone) {
         return translator.translateTemplate(
           "Alerts when no matching exceptions happen in {{window}}.",
@@ -636,6 +720,77 @@ export const getRuleSentence: (data: {
     default:
       return "";
   }
+};
+
+/*
+ * An Exceptions rule on new exceptions, exceptions that came back, or the
+ * rise over the usual count (ExceptionMonitorEvaluation), said back.
+ */
+const getExceptionMeasureSentence: (data: {
+  measure: CheckOn;
+  window: string;
+  count: string;
+  comparison: string;
+  isAny: boolean;
+  hasCount: boolean;
+  translator: Translator;
+}) => string = (data: {
+  measure: CheckOn;
+  window: string;
+  count: string;
+  comparison: string;
+  isAny: boolean;
+  hasCount: boolean;
+  translator: Translator;
+}): string => {
+  const { translator, window, count } = data;
+  const comparison: TemplateValue = translatableTerm(data.comparison);
+
+  if (data.measure === CheckOn.NewExceptionCount) {
+    if (data.isAny) {
+      return translator.translateTemplate(
+        "Alerts when a matching exception happens for the first time in {{window}}.",
+        { window },
+      );
+    }
+    return data.hasCount
+      ? translator.translateTemplate(
+          "Alerts when the number of matching exceptions seen for the first time in {{window}} is {{comparison}} {{count}}.",
+          { window, count, comparison },
+        )
+      : translator.translateTemplate(
+          "Alerts when the number of matching exceptions seen for the first time in {{window}} is {{comparison}} the number you enter.",
+          { window, comparison },
+        );
+  }
+
+  if (data.measure === CheckOn.RegressedExceptionCount) {
+    if (data.isAny) {
+      return translator.translateTemplate(
+        "Alerts when a matching exception you resolved comes back in {{window}}.",
+        { window },
+      );
+    }
+    return data.hasCount
+      ? translator.translateTemplate(
+          "Alerts when the number of resolved exceptions that came back in {{window}} is {{comparison}} {{count}}.",
+          { window, count, comparison },
+        )
+      : translator.translateTemplate(
+          "Alerts when the number of resolved exceptions that came back in {{window}} is {{comparison}} the number you enter.",
+          { window, comparison },
+        );
+  }
+
+  return data.hasCount
+    ? translator.translateTemplate(
+        "Alerts when matching exceptions in {{window}} rise above the usual for the day before by {{comparison}} {{count}}%.",
+        { window, count, comparison },
+      )
+    : translator.translateTemplate(
+        "Alerts when matching exceptions in {{window}} rise above the usual for the day before by {{comparison}} the percent you enter.",
+        { window, comparison },
+      );
 };
 
 const getMetricRuleSentence: (data: {
@@ -723,9 +878,27 @@ const getMetricRuleSentence: (data: {
 };
 
 // The count a count rule compares, as its field is titled.
-export const getCountTitle: (monitorType: MonitorType) => string = (
+export const getCountTitle: (
   monitorType: MonitorType,
+  measure?: CheckOn | undefined,
+) => string = (
+  monitorType: MonitorType,
+  measure?: CheckOn | undefined,
 ): string => {
+  if (monitorType === MonitorType.Exceptions && measure) {
+    if (measure === CheckOn.NewExceptionCount) {
+      return TelemetryRuleCopy.newExceptionCountTitle;
+    }
+
+    if (measure === CheckOn.RegressedExceptionCount) {
+      return TelemetryRuleCopy.regressedExceptionCountTitle;
+    }
+
+    if (measure === CheckOn.ExceptionCountIncreasePercent) {
+      return TelemetryRuleCopy.exceptionIncreaseTitle;
+    }
+  }
+
   switch (monitorType) {
     case MonitorType.Traces:
       return TelemetryRuleCopy.spanCountTitle;

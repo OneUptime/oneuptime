@@ -784,6 +784,14 @@
               <span class="text-sm font-medium text-gray-900">Cloud</span>
             </a>
 
+            <!-- App Platforms - Blue -->
+            <a href="/product/app-platforms" class="flex items-center gap-3 rounded-xl p-3 hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                <%- include('./Partials/icons/app-platforms', {iconClass: 'h-4 w-4', useIconSprite: true}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">App Platforms</span>
+            </a>
+
             <!-- Profiles - Rose -->
             <a href="/product/profiles" class="flex items-center gap-3 rounded-xl p-3 hover:bg-rose-50 ring-1 ring-transparent hover:ring-rose-200">
               <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
@@ -1148,7 +1156,7 @@
                   <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Backlog, consumer lag &amp; dead letters</p>
                 </div>
               </a>
-              <a href="/product/kubernetes" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="kubernetes cluster pod observability k8s">
+              <a href="/product/kubernetes" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="kubernetes cluster pod observability k8s openshift">
                 <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200">
                   <%- include('./Partials/icons/kubernetes', {iconClass: 'h-5 w-5', useIconSprite: true}) %>
                 </div>
@@ -1262,7 +1270,16 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="product-card-title truncate text-sm font-medium text-gray-900">Cloud</p>
-                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">AWS, GCP &amp; Azure</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">AWS, GCP &amp; Azure accounts</p>
+                </div>
+              </a>
+              <a href="/product/app-platforms" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="app platforms paas ecs fargate cloud run app service container apps beanstalk app engine">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200">
+                  <%- include('./Partials/icons/app-platforms', {iconClass: 'h-5 w-5', useIconSprite: true}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">App Platforms</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">ECS, Cloud Run &amp; App Service</p>
                 </div>
               </a>
             </div>

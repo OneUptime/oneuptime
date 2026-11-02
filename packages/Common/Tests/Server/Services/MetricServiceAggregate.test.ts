@@ -218,6 +218,309 @@ describe("MetricService aggregate statement generation", () => {
   });
 
   /*
+   * A monitor grouped by a pod, a container or a Proxmox id names each
+   * affected resource from its datapoints' other attributes - the pod's
+   * node, whether the id is a node or a guest. Its grouped read asks for
+   * them (includeSampleAttributes, #5281): each row's `attributes` is the
+   * newest datapoint of its bucket's whole map with the grouped keys laid
+   * over it. The grouping itself never changes, and a chart, which never
+   * asks, keeps its compact map of the grouped keys.
+   */
+  describe("sample attributes on a grouped read (includeSampleAttributes)", () => {
+    const SAMPLE_MAP: RegExp =
+      /mapUpdate\(argMax\(__sample_attrs, __sample_time\), map\(\{p\d+:String\}, __attr_grp_0\)\) AS attributes/;
+    const SAMPLE_COLUMNS: string =
+      "attributes AS __sample_attrs, time AS __sample_time";
+
+    it("lays the grouped keys over the bucket's newest datapoint's whole map, grouping as before", () => {
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+            includeSampleAttributes: true,
+          }),
+        );
+      const query: string = result.statement.query;
+
+      // One level down, the row's whole map and time under names of their own.
+      expect(query).toContain(SAMPLE_COLUMNS);
+      expect(query).toMatch(SAMPLE_MAP);
+      // Grouped on the extracted key alone, never on the map.
+      expect(query).toContain("GROUP BY time, __attr_grp_0");
+      expect(query).not.toContain("GROUP BY time, attributes");
+      expect(query).not.toMatch(/GROUP BY[^)]*__sample/);
+      expect(result.columns).toContain("attributes");
+
+      // The key is still bound twice: the extraction and the map's key.
+      expect(
+        Object.values(result.statement.query_params).filter(
+          (value: unknown) => {
+            return value === "resource.k8s.pod.name";
+          },
+        ),
+      ).toHaveLength(2);
+    });
+
+    it("does the same for a percentile, through the histogram fanout", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          aggregationType: AggregationType.P95,
+          groupByAttributeKeys: ["resource.k8s.pod.name"],
+          includeSampleAttributes: true,
+        }),
+      );
+
+      expect(query).toContain("quantileExactWeighted(0.95)");
+      expect(query).toContain(SAMPLE_COLUMNS);
+      expect(query).toMatch(SAMPLE_MAP);
+      expect(query).toContain("GROUP BY time, __attr_grp_0");
+    });
+
+    it("and over a whole window (Total): a row per series", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          groupByAttributeKeys: ["resource.k8s.pod.name"],
+          includeSampleAttributes: true,
+          aggregationInterval: AggregationInterval.Total,
+        }),
+      );
+
+      expect(query).toMatch(SAMPLE_MAP);
+      expect(query).toContain("GROUP BY __attr_grp_0");
+    });
+
+    it("keeps every grouped key in the map laid over the sample, in order", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          groupByAttributeKeys: [
+            "resource.k8s.namespace.name",
+            "resource.k8s.pod.name",
+          ],
+          includeSampleAttributes: true,
+        }),
+      );
+
+      expect(query).toMatch(
+        /mapUpdate\(argMax\(__sample_attrs, __sample_time\), map\(\{p\d+:String\}, __attr_grp_0, \{p\d+:String\}, __attr_grp_1\)\) AS attributes/,
+      );
+      expect(query).toContain("GROUP BY time, __attr_grp_0, __attr_grp_1");
+    });
+
+    it("is off unless asked: a chart's grouped read keeps the grouped keys alone", () => {
+      for (const aggregationType of [
+        AggregationType.Avg,
+        AggregationType.P90,
+      ]) {
+        const query: string = getQuery(
+          buildAggregateBy({
+            aggregationType: aggregationType,
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+          }),
+        );
+
+        expect(query).not.toContain("__sample_attrs");
+        expect(query).not.toContain("mapUpdate");
+        expect(query).toMatch(
+          /map\(\{p\d+:String\}, __attr_grp_0\) AS attributes/,
+        );
+      }
+    });
+
+    it("means nothing without grouped keys: an ungrouped read still routes to the rollup", () => {
+      const query: string = getQuery(
+        buildAggregateBy({ includeSampleAttributes: true }),
+      );
+
+      expect(query).toContain("MetricItemAggMV1m");
+      expect(query).not.toContain("__sample_attrs");
+      expect(query).not.toContain("mapUpdate");
+    });
+
+    /*
+     * aggregateBy itself: the buckets as any grouped read returns them, and
+     * a whole-window read of a row a series whose map every row of that
+     * series then shares - a map a series, never a map a bucket.
+     */
+    describe("aggregateBy: one map a series, shared by its rows", () => {
+      const NEWEST_TIME: string = "2026-07-09 19:12:00";
+
+      // The rows ClickHouse answers each statement with, and the statements.
+      const answer: (
+        bucketRows: Array<Record<string, unknown>>,
+        sampleRows: Array<Record<string, unknown>>,
+      ) => Array<string> = (
+        bucketRows: Array<Record<string, unknown>>,
+        sampleRows: Array<Record<string, unknown>>,
+      ): Array<string> => {
+        const statements: Array<string> = [];
+
+        (
+          service as unknown as {
+            executeQuery: (statement: Statement) => Promise<unknown>;
+          }
+        ).executeQuery = async (statement: Statement): Promise<unknown> => {
+          statements.push(statement.query);
+          const isSampleRead: boolean =
+            statement.query.includes("__sample_attrs");
+
+          return {
+            json: async (): Promise<{
+              data: Array<Record<string, unknown>>;
+            }> => {
+              return { data: isSampleRead ? sampleRows : bucketRows };
+            },
+          };
+        };
+
+        return statements;
+      };
+
+      const podRow: (
+        time: string,
+        value: number,
+        pod: string,
+      ) => Record<string, unknown> = (
+        time: string,
+        value: number,
+        pod: string,
+      ): Record<string, unknown> => {
+        return {
+          value: value,
+          time: time,
+          attributes: { "resource.k8s.pod.name": pod },
+        };
+      };
+
+      it("reads the buckets without a map, and the window's newest map once a series", async () => {
+        const statements: Array<string> = answer(
+          [
+            podRow("2026-07-09 19:12:00", 4, "checkout-1"),
+            podRow("2026-07-09 19:12:00", 9, "checkout-2"),
+            podRow("2026-07-09 19:11:00", 3, "checkout-1"),
+            podRow("2026-07-09 19:11:00", 8, "checkout-2"),
+          ],
+          [
+            {
+              value: 2,
+              time: NEWEST_TIME,
+              attributes: {
+                "resource.k8s.pod.name": "checkout-1",
+                "resource.k8s.node.name": "node-a",
+              },
+            },
+            {
+              value: 2,
+              time: NEWEST_TIME,
+              attributes: {
+                "resource.k8s.pod.name": "checkout-2",
+                "resource.k8s.node.name": "node-b",
+              },
+            },
+          ],
+        );
+
+        const result: AggregatedResult = await service.aggregateBy(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+            includeSampleAttributes: true,
+          }),
+        );
+
+        // Two reads: the buckets, compact; and a row a series over the window.
+        expect(statements).toHaveLength(2);
+        const bucketRead: string = statements.find((query: string) => {
+          return !query.includes("__sample_attrs");
+        })!;
+        const sampleRead: string = statements.find((query: string) => {
+          return query.includes("__sample_attrs");
+        })!;
+        expect(bucketRead).toContain("GROUP BY time, __attr_grp_0");
+        expect(bucketRead).not.toContain("mapUpdate");
+        expect(sampleRead).toContain("GROUP BY __attr_grp_0");
+        expect(sampleRead).not.toContain("GROUP BY time");
+        expect(sampleRead).toMatch(SAMPLE_MAP);
+
+        // Every bucket, its value as read, its series' map.
+        expect(result.data).toHaveLength(4);
+        const nodes: Array<unknown> = result.data.map(
+          (row: AggregatedResult["data"][number]): unknown => {
+            return (row["attributes"] as Record<string, unknown>)[
+              "resource.k8s.node.name"
+            ];
+          },
+        );
+        expect(nodes).toEqual(["node-a", "node-b", "node-a", "node-b"]);
+        expect(
+          result.data.map((row: AggregatedResult["data"][number]) => {
+            return row.value;
+          }),
+        ).toEqual([4, 9, 3, 8]);
+
+        // One object a series: the read never holds a map a bucket.
+        expect(result.data[0]!["attributes"]).toBe(
+          result.data[2]!["attributes"],
+        );
+        expect(result.data[1]!["attributes"]).toBe(
+          result.data[3]!["attributes"],
+        );
+      });
+
+      it("leaves a series the whole-window read did not return with its keys alone", async () => {
+        answer(
+          [
+            podRow("2026-07-09 19:12:00", 4, "checkout-1"),
+            podRow("2026-07-09 19:12:00", 7, ""),
+          ],
+          [
+            {
+              value: 1,
+              time: NEWEST_TIME,
+              attributes: {
+                "resource.k8s.pod.name": "checkout-1",
+                "resource.k8s.node.name": "node-a",
+              },
+            },
+          ],
+        );
+
+        const result: AggregatedResult = await service.aggregateBy(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+            includeSampleAttributes: true,
+          }),
+        );
+
+        expect(result.data[0]!["attributes"]).toEqual({
+          "resource.k8s.pod.name": "checkout-1",
+          "resource.k8s.node.name": "node-a",
+        });
+        expect(result.data[1]!["attributes"]).toEqual({
+          "resource.k8s.pod.name": "",
+        });
+      });
+
+      it("is one read, as before, when nothing asks for the map", async () => {
+        const statements: Array<string> = answer(
+          [podRow("2026-07-09 19:12:00", 4, "checkout-1")],
+          [],
+        );
+
+        const result: AggregatedResult = await service.aggregateBy(
+          buildAggregateBy({
+            groupByAttributeKeys: ["resource.k8s.pod.name"],
+          }),
+        );
+
+        expect(statements).toHaveLength(1);
+        expect(statements[0]).not.toContain("__sample_attrs");
+        expect(result.data[0]!["attributes"]).toEqual({
+          "resource.k8s.pod.name": "checkout-1",
+        });
+      });
+    });
+  });
+
+  /*
    * The `aggregationInterval` override lets callers pin the time bucket
    * independent of the query window (the two scenarios from the customer
    * thread: "daily uptime per host over a week" and "one weekly average

@@ -4,7 +4,7 @@ OneUptime Kubernetes एजेंट एक Helm चार्ट है जो �
 
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): Helm के साथ चार चरण।
-- [प्रीसेट चुनें](#प्रीसेट-चुनें): मानक क्लस्टर, GKE Autopilot या EKS Fargate।
+- [प्रीसेट चुनें](#प्रीसेट-चुनें): मानक क्लस्टर, GKE Autopilot, EKS Fargate या OpenShift।
 - [सामान्य विकल्प](#सामान्य-विकल्प): वे सेटिंग जिन्हें ज़्यादातर क्लस्टर बदलते हैं।
 - [समस्या निवारण](#समस्या-निवारण): एक डायग्नोस्टिक स्क्रिप्ट, और आम समस्याएँ।
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | नोड कलेक्टर | DaemonSet | `/var/log/pods` से पॉड लॉग, kubelet और cAdvisor मेट्रिक्स, और नोड के OS मेट्रिक्स। | हाँ |
 | eBPF इंस्ट्रूमेंटेशन (OBI) | DaemonSet | हर पॉड से HTTP, gRPC, SQL और Redis ट्रेस और अनुरोध मेट्रिक्स, और सर्विस मैप। | हाँ |
 | Kubernetes AI एजेंट | Deployment | इस क्लस्टर पर किसी घटना या अलर्ट की जाँच करते समय OneUptime AI को केवल-पढ़ने वाला `kubectl` चलाने देता है। | हाँ |
-| लॉग टेलर | Deployment | जहाँ नोड कलेक्टर पॉड लॉग नहीं पढ़ सकता, वहाँ उन्हें Kubernetes API से पढ़ता है। | `gke-autopilot` और `eks-fargate` प्रीसेट के साथ |
+| लॉग टेलर | Deployment | जहाँ नोड कलेक्टर पॉड लॉग नहीं पढ़ सकता, वहाँ उन्हें Kubernetes API से पढ़ता है। | `gke-autopilot`, `eks-fargate` और `openshift-restricted` प्रीसेट के साथ |
 | eBPF प्रोफ़ाइलर | DaemonSet | हर प्रोसेस के निरंतर CPU फ़्लेम ग्राफ़। | नहीं |
 | kube-state-metrics | Deployment | पॉड फ़ेज़, कंटेनर के प्रतीक्षा कारण और रिसोर्स कोटा। | नहीं |
 
@@ -92,10 +92,14 @@ kubectl get pods -n oneuptime-agent
 | `standard` (डिफ़ॉल्ट) | सेल्फ़-मैनेज्ड, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | नोड कलेक्टर `/var/log/pods` पढ़ता है | kubelet, cAdvisor और OS मेट्रिक्स |
 | `gke-autopilot` | **GKE Autopilot** | लॉग टेलर उन्हें Kubernetes API से पढ़ता है | kubelet और cAdvisor मेट्रिक्स, बिना `hostPath` के |
 | `eks-fargate` | **EKS Fargate** | लॉग टेलर उन्हें Kubernetes API से पढ़ता है | कुछ नहीं: Fargate कोई DaemonSet नहीं चलाता |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | नोड कलेक्टर `/var/log/pods` पढ़ता है | kubelet, cAdvisor और OS मेट्रिक्स |
+| `openshift-restricted` | **OpenShift**, जहाँ कोई एडमिन SCC नहीं जोड़ना चाहता | लॉग टेलर उन्हें Kubernetes API से पढ़ता है | kubelet और cAdvisor मेट्रिक्स, बिना `hostPath` के |
 
 अगर पक्का न हो, तो `standard` पाने के लिए `preset` को खाली छोड़ दें। अगर इंस्टॉल `hostPath` का नाम लेने वाली Pod Security त्रुटि के साथ विफल हो, तो `gke-autopilot` के साथ फिर से इंस्टॉल करें, या EKS Fargate पर `eks-fargate` के साथ।
 
-GKE Autopilot और EKS Fargate विशेषाधिकार वाले पॉड भी अस्वीकार करते हैं, जिनकी eBPF इंस्ट्रूमेंटेशन और प्रोफ़ाइलिंग को ज़रूरत होती है, इसलिए उनके प्रीसेट दोनों को छोड़ देते हैं:
+GKE Autopilot और EKS Fargate विशेषाधिकार वाले पॉड भी अस्वीकार करते हैं, जिनकी eBPF इंस्ट्रूमेंटेशन और प्रोफ़ाइलिंग को ज़रूरत होती है, इसलिए उनके प्रीसेट दोनों को छोड़ देते हैं।
+
+OpenShift पर डिफ़ॉल्ट सिक्योरिटी कॉन्टेक्स्ट कंस्ट्रेंट (SCC), `restricted-v2`, नोड कलेक्टर और eBPF पॉड को अस्वीकार करता है। `openshift` प्रीसेट हर एक के लिए एक SCC बनाता है, जिसका उपयोग केवल उसका अपना सर्विस अकाउंट करता है, और OpenShift को अन्य सभी पॉड का उपयोगकर्ता ID चुनने देता है:
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+अगर कोई एडमिन SCC नहीं जोड़ना चाहता, तो इसके बजाय `--set preset=openshift-restricted` के साथ इंस्टॉल करें। तब चार्ट कोई SCC नहीं बनाता और हर पॉड `restricted-v2` के तहत चलता है: पॉड लॉग Kubernetes API से आते हैं, और OS मेट्रिक्स, eBPF ट्रेस या प्रोफ़ाइल नहीं मिलते। देखें [OpenShift](/docs/telemetry/kubernetes-agent#openshift)।
 
 ## क्लस्टर को लेबल दें
 
@@ -355,7 +370,7 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 | `oneuptime.url` | (ज़रूरी) | आपका OneUptime URL। |
 | `oneuptime.apiKey` | (ज़रूरी) | इंजेशन कुंजी, **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से। `x-oneuptime-token` हेडर के रूप में भेजी जाती है; प्रोजेक्ट API कुंजी काम नहीं करती। |
 | `clusterName` | (ज़रूरी) | क्लस्टर का नाम, प्रोजेक्ट में अद्वितीय। हर रिकॉर्ड इसे `k8s.cluster.name` के रूप में रखता है। |
-| `preset` | (खाली: `standard`) | `standard`, `gke-autopilot` या `eks-fargate`। देखें [प्रीसेट चुनें](#प्रीसेट-चुनें)। |
+| `preset` | (खाली: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift` या `openshift-restricted`। देखें [प्रीसेट चुनें](#प्रीसेट-चुनें)। |
 | `oneuptime.labels` | `{}` | इस एजेंट के हर रिकॉर्ड के लिए लेबल। देखें [क्लस्टर को लेबल दें](#क्लस्टर-को-लेबल-दें)। |
 | `namespaceFilters.rules` | `kube-system` को `podLogs` और `ebpfDiscovery` से बाहर रखता है | ऐसे नियम जो `podLogs`, `ebpfDiscovery`, `metrics` और `traces` के लिए नेमस्पेस शामिल या बाहर करते हैं। पैटर्न `*` का उपयोग कर सकते हैं, और बाहर करना हमेशा जीतता है। |
 | `filters.logs.minSeverity` | `""` | इस स्तर से नीचे की पॉड लॉग पंक्तियाँ हटाता है: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` या `FATAL`। |
@@ -408,9 +423,11 @@ kubectl delete namespace oneuptime-agent
 चार्ट की डायग्नोस्टिक स्क्रिप्ट चलाएँ। यह पॉड, इंजेशन कुंजी और क्लस्टर से बाहर जाने के रास्ते की जाँच करती है, OneUptime से पूछती है कि कुंजी स्वीकार है या नहीं, और एक निष्कर्ष प्रिंट करती है। यह केवल पढ़ती है, और कुछ नहीं बदलती:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+हर OneUptime अपनी रिलीज़ की यह स्क्रिप्ट ख़ुद देता है: सेल्फ़-होस्टेड OneUptime पर `https://oneuptime.com` की जगह अपना URL इस्तेमाल करें। स्क्रिप्ट चलाने से पहले उसे पढ़ने के लिए, उसका पता किसी ब्राउज़र में खोलें।
 
 आम कारण, खासकर दोबारा इंस्टॉल के बाद, गलत या रद्द की गई इंजेशन कुंजी है: OneUptime उसे अस्वीकार करता है, और कलेक्टर हर बैच हटा देता है जबकि उसके पॉड `Running` बने रहते हैं।
 :::

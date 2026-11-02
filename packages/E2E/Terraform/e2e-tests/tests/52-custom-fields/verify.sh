@@ -47,6 +47,23 @@ assert_equals "terraform_e2e_incident_field" "$(get_output incident_custom_field
 validate_field "$ALERT_RESPONSE" "name" "terraform-e2e-alert-field" || validation_failed=1
 validate_field "$ALERT_RESPONSE" "customFieldType" "Boolean" || validation_failed=1
 
+# A File field and a Multiple files field, as their types are stored.
+MONITOR_FILE_FIELD_ID=$(get_output monitor_file_custom_field_id)
+ALERT_FILES_FIELD_ID=$(get_output alert_files_custom_field_id)
+
+assert_not_empty "$MONITOR_FILE_FIELD_ID" "Monitor File custom field id" || validation_failed=1
+assert_not_empty "$ALERT_FILES_FIELD_ID" "Alert Multiple files custom field id" || validation_failed=1
+
+MONITOR_FILE_RESPONSE=$(api_get_resource "/api/monitor-custom-field" "$MONITOR_FILE_FIELD_ID" \
+    '{"_id": true, "name": true, "customFieldType": true}')
+ALERT_FILES_RESPONSE=$(api_get_resource "/api/alert-custom-field" "$ALERT_FILES_FIELD_ID" \
+    '{"_id": true, "name": true, "customFieldType": true}')
+
+validate_field "$MONITOR_FILE_RESPONSE" "name" "terraform-e2e-monitor-file-field" || validation_failed=1
+validate_field "$MONITOR_FILE_RESPONSE" "customFieldType" "File" || validation_failed=1
+validate_field "$ALERT_FILES_RESPONSE" "name" "terraform-e2e-alert-files-field" || validation_failed=1
+validate_field "$ALERT_FILES_RESPONSE" "customFieldType" "MultipleFiles" || validation_failed=1
+
 if [ $validation_failed -eq 1 ]; then
     print_failed "Custom Fields Verification"
 fi

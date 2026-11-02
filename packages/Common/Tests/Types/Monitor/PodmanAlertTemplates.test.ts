@@ -18,6 +18,8 @@ import {
 } from "../../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../../Types/ObjectID";
 import { evaluateTemplateCriteria } from "./Utils/TemplateCriteriaEvaluation";
+import * as fs from "fs";
+import * as path from "path";
 
 /*
  * Podman containers emit the same OTel container.* metrics as Docker, so the
@@ -40,9 +42,9 @@ interface PodmanTemplateCase {
   onlineFilterType: FilterType;
   threshold: number;
   /*
-   * Query/formula shape. A single-metric threshold template has exactly one
-   * query and no formula, which is the default; the restart loop
-   * differences a lifetime counter and pins its own counts.
+   * Query/formula shape. Every Podman template has exactly one query and
+   * no formula, which is the default; a template that differences a
+   * lifetime counter in a formula would pin its own counts.
    */
   queryCount?: number;
   formulaCount?: number;
@@ -90,14 +92,14 @@ const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
     id: "podman-restart-loop",
     category: "Container",
     severity: "Critical",
-    // queryConfigs[0] is the Max half of the per-minute delta pair.
-    metricName: "container.restarts",
-    // The criteria compare the FORMULA: the restart count's growth.
+    /*
+     * The restarts since the agent's previous sample of the container, sent
+     * with every sample, summed per minute.
+     */
+    metricName: "container.restarts.increase",
     metricAlias: "container_restarts",
-    aggregation: MetricsAggregationType.Max,
+    aggregation: MetricsAggregationType.Sum,
     rollingTime: RollingTime.Past15Minutes,
-    queryCount: 2,
-    formulaCount: 1,
     offlineFilterType: FilterType.GreaterThan,
     onlineFilterType: FilterType.LessThanOrEqualTo,
     threshold: 3,
@@ -333,6 +335,8 @@ describe("PodmanAlertTemplates", () => {
     "container.cpu.throttling_data.throttled_time",
     "container.cpu.throttling_data.throttled_periods",
     "container.cpu.usage.total",
+    // The restart loop reads the increase the agent sends, never this.
+    "container.restarts",
   ];
 
   test("no template thresholds a cumulative counter it cannot recover from", () => {
@@ -381,61 +385,106 @@ describe("PodmanAlertTemplates", () => {
     );
   });
 
-  test("the restart loop counts restarts in the window, not the lifetime total", async () => {
+  test("the restart loop counts every restart in the window, not the lifetime total", async () => {
     /*
-     * Regression: container.restarts is the engine's lifetime RestartCount,
-     * and this template thresholded it ("> 5"): any container with six
-     * restarts in its history fired at once, and could never recover - a
-     * counter that only grows never comes back under its threshold. It now
-     * sums the counter's per-minute growth, the house delta Docker uses.
+     * Regression, twice over. container.restarts is the engine's lifetime
+     * RestartCount, and this template thresholded it ("> 5"): any container
+     * with six restarts in its history fired at once, and could never
+     * recover. Then it summed the count's growth between two samples of
+     * the same minute, which missed every restart between two minutes'
+     * samples - about half of a crash loop at the 30-second scrape - and
+     * read a manual restart, which starts the count again at 0, as the
+     * whole count in one minute. It now sums container.restarts.increase,
+     * the restarts since the agent's previous sample of the container.
      */
     const step: MonitorStep = getPodmanAlertTemplateById(
       "podman-restart-loop",
     )!.getMonitorStep(buildArgs());
     const monitor: MonitorStepPodmanMonitor = getPodmanMonitor(step);
-    const offline: any = (
-      step.data?.monitorCriteria.data
-        ?.monitorCriteriaInstanceArray as Array<any>
-    )[0];
+    const [offline, online]: Array<any> = step.data?.monitorCriteria.data
+      ?.monitorCriteriaInstanceArray as Array<any>;
+    const query: any = (monitor.metricViewConfig.queryConfigs as Array<any>)[0];
 
-    expect(
-      (monitor.metricViewConfig.queryConfigs as Array<any>).map((q: any) => {
-        return q.metricQueryData.filterData.aggegationType;
-      }),
-    ).toEqual([MetricsAggregationType.Max, MetricsAggregationType.Min]);
-    expect(
-      (monitor.metricViewConfig.formulaConfigs as Array<any>)[0]
-        .metricFormulaData.metricFormula,
-    ).toBe("container_restarts_max - container_restarts_min");
-    expect(
-      offline.data.filters[0].metricMonitorOptions.metricAggregationType,
-    ).toBe(EvaluateOverTimeType.Sum);
+    expect(monitor.metricViewConfig.queryConfigs).toHaveLength(1);
+    expect(monitor.metricViewConfig.formulaConfigs).toEqual([]);
+    expect(query.metricQueryData.filterData.metricName).toBe(
+      "container.restarts.increase",
+    );
+    expect(query.metricQueryData.filterData.aggegationType).toBe(
+      MetricsAggregationType.Sum,
+    );
+    expect(query.metricQueryData.groupByAttributeKeys).toEqual([
+      "resource.container.name",
+    ]);
+    expect(query.metricAliasData.title).toBe("Container Restarts");
+    for (const instance of [offline, online]) {
+      expect(
+        instance.data.filters[0].metricMonitorOptions.metricAggregationType,
+      ).toBe(EvaluateOverTimeType.Sum);
+    }
+
+    const evaluate: (
+      restartsPerMinute: Array<number>,
+    ) => Promise<{ breached: boolean; healthy: boolean }> = (
+      restartsPerMinute: Array<number>,
+    ): Promise<{ breached: boolean; healthy: boolean }> => {
+      return evaluateTemplateCriteria({
+        step,
+        viewConfig: monitor.metricViewConfig,
+        samplesByAlias: { container_restarts: restartsPerMinute },
+        windowMinutes: 15,
+      });
+    };
 
     // A long-lived container with 40 restarts in its history, all old.
-    expect(
-      await evaluateTemplateCriteria({
-        step,
-        viewConfig: monitor.metricViewConfig,
-        samplesByAlias: {
-          container_restarts_max: Array(15).fill(40),
-          container_restarts_min: Array(15).fill(40),
-        },
-        windowMinutes: 15,
-      }),
-    ).toEqual({ breached: false, healthy: true });
+    expect(await evaluate(Array(15).fill(0))).toEqual({
+      breached: false,
+      healthy: true,
+    });
 
-    // A container crash-looping now: four restarts seen in the window.
-    expect(
-      await evaluateTemplateCriteria({
-        step,
-        viewConfig: monitor.metricViewConfig,
-        samplesByAlias: {
-          container_restarts_max: [2, 3, 3, 4, 5, 5, 6],
-          container_restarts_min: [2, 2, 3, 3, 4, 5, 5],
-        },
-        windowMinutes: 15,
-      }),
-    ).toEqual({ breached: true, healthy: false });
+    // A container crash-looping now: four restarts, none two in a minute.
+    expect(await evaluate([1, 0, 1, 1, 0, 1])).toEqual({
+      breached: true,
+      healthy: false,
+    });
+
+    // Sampled three times, minutes apart: each sample brings its restarts.
+    expect(await evaluate([2, 2, 3])).toEqual({
+      breached: true,
+      healthy: false,
+    });
+
+    // Three is not a loop yet, and recovery waits for 2.7 or fewer.
+    expect(await evaluate([1, 1, 1])).toEqual({
+      breached: false,
+      healthy: false,
+    });
+  });
+
+  test("the restart loop reads the metric the Podman agent makes, and says an older agent sends none", () => {
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../agents/PodmanAgent/otel-collector-config.yaml",
+      ),
+      "utf8",
+    );
+    const template: PodmanAlertTemplate = getPodmanAlertTemplateById(
+      "podman-restart-loop",
+    )!;
+
+    expect(config).toContain(
+      'copy_metric(name="container.restarts.increase", description="Times the container restarted since the agent\'s previous sample of it.") where metric.name == "container.restarts"',
+    );
+    expect(config).toContain("cumulative_to_delta/restarts-increase:");
+    expect(config).toContain("container.restarts:\n        enabled: true");
+
+    expect(template.description).toContain("container.restarts.increase");
+    expect(template.description).toContain("every restart counts");
+    expect(template.description).toContain(
+      "An older Podman agent does not send it: update the agent first.",
+    );
+    expect(template.description).not.toContain("same minute");
   });
 
   test("the process-count template counts threads too, and says so", () => {

@@ -4,14 +4,24 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Search from "Common/Types/BaseDatabase/Search";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import OneUptimeDate from "Common/Types/Date";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { JSONObject } from "Common/Types/JSON";
-import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitorResponse";
-import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import ExceptionMonitorResponse, {
+  ExceptionLearnedBaseline,
+} from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ExceptionLearnedBaselineUtil from "Common/Server/Utils/Monitor/ExceptionLearnedBaseline";
+import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
 import {
   RumAlertTemplate,
   getRumAlertTemplateById,
@@ -67,12 +77,18 @@ jest.mock("Common/Server/Services/SpanService", () => {
   return { __esModule: true, default: { countBy: jest.fn() } };
 });
 jest.mock("Common/Server/Services/ExceptionInstanceService", () => {
-  return { __esModule: true, default: { countBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { countBy: jest.fn(), findBy: jest.fn() },
+  };
 });
 jest.mock("Common/Server/Services/TelemetryExceptionService", () => {
   return {
     __esModule: true,
-    default: { getResolvedOrArchivedFingerprints: jest.fn() },
+    default: {
+      getResolvedOrArchivedFingerprints: jest.fn(),
+      countBy: jest.fn(),
+    },
   };
 });
 jest.mock("Common/Server/Services/MetricService", () => {
@@ -92,6 +108,7 @@ import TelemetryExceptionService from "Common/Server/Services/TelemetryException
 import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import {
+  GROUPED_READ_ROW_LIMIT,
   monitorLogs,
   monitorTrace,
   monitorException,
@@ -103,8 +120,12 @@ const logCountBy: jest.Mock = LogService.countBy as unknown as jest.Mock;
 const spanCountBy: jest.Mock = SpanService.countBy as unknown as jest.Mock;
 const exceptionCountBy: jest.Mock =
   ExceptionInstanceService.countBy as unknown as jest.Mock;
+const exceptionFindBy: jest.Mock =
+  ExceptionInstanceService.findBy as unknown as jest.Mock;
 const resolvedFingerprints: jest.Mock =
   TelemetryExceptionService.getResolvedOrArchivedFingerprints as unknown as jest.Mock;
+const exceptionGroupCountBy: jest.Mock =
+  TelemetryExceptionService.countBy as unknown as jest.Mock;
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
 const metricFindBy: jest.Mock = MetricService.findBy as unknown as jest.Mock;
@@ -118,7 +139,9 @@ beforeEach(() => {
   logCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   spanCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   exceptionCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
+  exceptionFindBy.mockReset().mockResolvedValue([]);
   resolvedFingerprints.mockReset().mockResolvedValue([]);
+  exceptionGroupCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   metricAggregateBy.mockReset().mockResolvedValue({ data: [] });
   metricFindBy.mockReset().mockResolvedValue([]);
   metricTypeFindBy.mockReset().mockResolvedValue([]);
@@ -184,6 +207,69 @@ describe("monitorTrace", () => {
     const passedQuery: Record<string, unknown> = spanCountBy.mock.calls[0]![0]
       .query as Record<string, unknown>;
     expect(passedQuery["startTime"]).toBeInstanceOf(InBetween);
+  });
+});
+
+describe("where a log or span check says its window ended", () => {
+  const heldBack: Date = new Date("2026-11-02T09:40:00.000Z");
+
+  const lastCallOf: (count: unknown) => JSONObject = (
+    count: unknown,
+  ): JSONObject => {
+    const calls: Array<Array<JSONObject>> = (count as jest.Mock).mock
+      .calls as Array<Array<JSONObject>>;
+
+    return calls[calls.length - 1]![0]!;
+  };
+
+  test("a log check held back by the ingest queue says where to", async () => {
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+      evaluateUntil: heldBack,
+    });
+
+    expect(response.evaluatedUntil).toBe(heldBack);
+  });
+
+  test("a span check held back by the ingest queue says where to", async () => {
+    const response: TraceMonitorResponse = await monitorTrace({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+      evaluateUntil: heldBack,
+    });
+
+    expect(response.evaluatedUntil).toBe(heldBack);
+  });
+
+  test("the window a log check counts is the one it says", async () => {
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    const counted: JSONObject = lastCallOf(LogService.countBy);
+
+    expect((counted["query"] as { time: InBetween<Date> }).time.endValue).toBe(
+      response.evaluatedUntil,
+    );
+  });
+
+  test("the window a span check counts is the one it says", async () => {
+    const response: TraceMonitorResponse = await monitorTrace({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    const counted: JSONObject = lastCallOf(SpanService.countBy);
+
+    expect(
+      (counted["query"] as { startTime: InBetween<Date> }).startTime.endValue,
+    ).toBe(response.evaluatedUntil);
   });
 });
 
@@ -352,6 +438,351 @@ describe("monitorException", () => {
       .calls[0]![0].query as Record<string, unknown>;
     expect((countQuery["environment"] as Includes).values).toEqual([
       "production",
+    ]);
+  });
+});
+
+/*
+ * New and regressed exceptions, as the worker reads them for an Exceptions
+ * monitor whose criteria check them. The groups are counted in Postgres;
+ * an infrastructure entity is a property of each occurrence, so a monitor
+ * scoped to entities counts them among the groups of the window's
+ * occurrences from those entities, read from ClickHouse first. A monitor
+ * without the filter reads what it always did.
+ */
+describe("monitorException's learned baseline", () => {
+  const baseline: ExceptionLearnedBaseline = {
+    windowDays: 14,
+    windowSeconds: 900,
+    weeksOfHistory: 2,
+    sampleCount: 8,
+    mean: 5,
+    stddev: 2.5,
+    median: 5,
+    madSigma: 2.5,
+    minObserved: 3,
+    maxObserved: 7,
+  };
+
+  function spikeStep(): MonitorStep {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorType: MonitorType.Exceptions,
+      monitorName: "Checkout",
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+    });
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data = {
+      ...instance.data!,
+      filters: [
+        {
+          checkOn: CheckOn.ExceptionCount,
+          filterType: FilterType.AnomalouslyHigh,
+          value: undefined,
+        },
+      ],
+    };
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [instance] };
+    step.setMonitorCriteria(criteria);
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      lastXSecondsOfExceptions: 900,
+    });
+    return step;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a spike rule reads its baseline, over the check's window and its own query, and it reaches the response", async () => {
+    exceptionCountBy.mockResolvedValue(new PositiveNumber(40));
+    resolvedFingerprints.mockResolvedValue(["resolved-one"]);
+
+    const read: jest.SpyInstance = jest
+      .spyOn(ExceptionLearnedBaselineUtil, "read")
+      .mockResolvedValue(baseline);
+
+    const evaluateUntil: Date = new Date("2026-11-02T09:40:00.000Z");
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: spikeStep(),
+      monitorId,
+      projectId,
+      evaluateUntil,
+    });
+
+    expect(response.exceptionCount).toBe(40);
+    expect(response.exceptionLearnedBaselines).toEqual([baseline]);
+    expect(read).toHaveBeenCalledTimes(1);
+
+    const asked: Parameters<typeof ExceptionLearnedBaselineUtil.read>[0] =
+      read.mock.calls[0]![0];
+
+    expect(asked.windowEnd).toBe(evaluateUntil);
+    expect(asked.windowStart).toEqual(new Date("2026-11-02T09:25:00.000Z"));
+    expect(asked.windowSeconds).toBe(900);
+    expect(asked.windowDays).toBe(14);
+    expect(asked.countQuery.fingerprint).toBeInstanceOf(IncludesNone);
+    // The count, and nothing over the day before.
+    expect(exceptionCountBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a plain count reads no baseline, and carries none", async () => {
+    exceptionCountBy.mockResolvedValue(new PositiveNumber(3));
+
+    const read: jest.SpyInstance = jest.spyOn(
+      ExceptionLearnedBaselineUtil,
+      "read",
+    );
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(read).not.toHaveBeenCalled();
+    expect(response.exceptionLearnedBaselines).toBeUndefined();
+  });
+
+  test("a baseline that cannot be read leaves the check standing, with the count", async () => {
+    exceptionCountBy.mockResolvedValue(new PositiveNumber(40));
+    jest
+      .spyOn(ExceptionLearnedBaselineUtil, "read")
+      .mockRejectedValue(new Error("timed out"));
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: spikeStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.exceptionCount).toBe(40);
+    expect(response.exceptionLearnedBaselines).toBeUndefined();
+  });
+});
+
+describe("monitorException's new and regressed exceptions", () => {
+  // An Exceptions monitor step whose criteria check these.
+  function stepCheckingOn(
+    checkOns: Array<CheckOn>,
+    config: Partial<MonitorStepExceptionMonitor>,
+  ): MonitorStep {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorType: MonitorType.Exceptions,
+      monitorName: "Checkout",
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+    });
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data = {
+      ...instance.data!,
+      filters: checkOns.map((checkOn: CheckOn) => {
+        return { checkOn, filterType: FilterType.GreaterThan, value: 0 };
+      }),
+    };
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [instance] };
+    step.setMonitorCriteria(criteria);
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      lastXSecondsOfExceptions: 600,
+      ...config,
+    });
+    return step;
+  }
+
+  function fingerprintRows(fingerprints: Array<string>): Array<JSONObject> {
+    return fingerprints.map((fingerprint: string): JSONObject => {
+      return { fingerprint };
+    });
+  }
+
+  function groupQueries(): Array<Record<string, unknown>> {
+    return exceptionGroupCountBy.mock.calls.map(
+      (call: Array<unknown>): Record<string, unknown> => {
+        return (call[0] as { query: Record<string, unknown> }).query;
+      },
+    );
+  }
+
+  test("without an entity filter, the groups are counted as before and no occurrence is read for them", async () => {
+    exceptionGroupCountBy
+      .mockResolvedValueOnce(new PositiveNumber(3))
+      .mockResolvedValueOnce(new PositiveNumber(1));
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: stepCheckingOn(
+        [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+        { entityKeys: [] },
+      ),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.newExceptionCount).toBe(3);
+    expect(response.regressedExceptionCount).toBe(1);
+    expect(exceptionFindBy).not.toHaveBeenCalled();
+    expect(groupQueries()).toHaveLength(2);
+
+    for (const query of groupQueries()) {
+      expect(query["projectId"]).toBe(projectId);
+      expect("fingerprint" in query).toBe(false);
+    }
+  });
+
+  test("with an entity filter, they are counted among the groups of the window's occurrences from those entities", async () => {
+    resolvedFingerprints.mockResolvedValue(["resolved-fingerprint"]);
+    exceptionFindBy.mockResolvedValue(fingerprintRows(["fp-1", "fp-2"]));
+    exceptionGroupCountBy
+      .mockResolvedValueOnce(new PositiveNumber(2))
+      .mockResolvedValueOnce(new PositiveNumber(1));
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: stepCheckingOn(
+        [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+        { entityKeys: ["host:web-1"], environments: ["production"] },
+      ),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.newExceptionCount).toBe(2);
+    expect(response.regressedExceptionCount).toBe(1);
+
+    // One read of the window's occurrences: the very query the count reads.
+    expect(exceptionFindBy).toHaveBeenCalledTimes(1);
+    const read: Record<string, unknown> = exceptionFindBy.mock.calls[0]![0];
+    const readQuery: Record<string, unknown> = read["query"] as Record<
+      string,
+      unknown
+    >;
+    const countQuery: Record<string, unknown> = exceptionCountBy.mock
+      .calls[0]![0].query as Record<string, unknown>;
+
+    expect(readQuery["projectId"]).toBe(projectId);
+    expect((readQuery["entityKeys"] as Includes).values).toEqual([
+      "host:web-1",
+    ]);
+    expect((readQuery["environment"] as Includes).values).toEqual([
+      "production",
+    ]);
+    expect(readQuery["fingerprint"]).toBeInstanceOf(IncludesNone);
+    expect(readQuery["fingerprint"]).toEqual(countQuery["fingerprint"]);
+    expect(readQuery["time"]).toEqual(countQuery["time"]);
+    expect(read["groupBy"]).toEqual({ fingerprint: true });
+    expect(read["props"]).toEqual({ isRoot: true });
+
+    // Both group counts keep to those fingerprints.
+    expect(groupQueries()).toHaveLength(2);
+
+    for (const query of groupQueries()) {
+      expect((query["fingerprint"] as Includes).values).toEqual([
+        "fp-1",
+        "fp-2",
+      ]);
+    }
+  });
+
+  /*
+   * REGRESSION: the measures read the clock again for their window, so when
+   * a millisecond passed after the count's own read, the occurrences they
+   * grouped were not the ones counted (a 1 ms race seen on 2026-11-01). Here
+   * every clock read is a millisecond later than the one before.
+   */
+  test("the count and the occurrences it groups are read for one instant, however the clock moves between them", async () => {
+    let reads: number = 0;
+    const clock: jest.SpiedFunction<typeof OneUptimeDate.getCurrentDate> = jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockImplementation(() => {
+        reads++;
+        return new Date(Date.UTC(2026, 10, 1, 12, 0, 0) + reads);
+      });
+
+    try {
+      exceptionFindBy.mockResolvedValue(fingerprintRows(["fp-1"]));
+      exceptionGroupCountBy.mockResolvedValue(new PositiveNumber(1));
+
+      await monitorException({
+        monitorStep: stepCheckingOn([CheckOn.NewExceptionCount], {
+          entityKeys: ["host:web-1"],
+        }),
+        monitorId,
+        projectId,
+      });
+
+      const readQuery: Record<string, unknown> = exceptionFindBy.mock
+        .calls[0]![0].query as Record<string, unknown>;
+      const countQuery: Record<string, unknown> = exceptionCountBy.mock
+        .calls[0]![0].query as Record<string, unknown>;
+
+      expect(reads).toBeGreaterThan(0);
+      expect(readQuery["time"]).toEqual(countQuery["time"]);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  test("with an entity filter and no occurrence from those entities, none are new or regressed, and no group is read", async () => {
+    exceptionFindBy.mockResolvedValue([]);
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: stepCheckingOn(
+        [CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount],
+        { entityKeys: ["host:web-1"] },
+      ),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.newExceptionCount).toBe(0);
+    expect(response.regressedExceptionCount).toBe(0);
+    expect(exceptionGroupCountBy).not.toHaveBeenCalled();
+  });
+
+  test("a monitor that only counts reads no groups and no fingerprints, entity filter or not", async () => {
+    for (const entityKeys of [[], ["host:web-1"]]) {
+      await monitorException({
+        monitorStep: stepCheckingOn([CheckOn.ExceptionCount], { entityKeys }),
+        monitorId,
+        projectId,
+      });
+    }
+
+    expect(exceptionFindBy).not.toHaveBeenCalled();
+    expect(exceptionGroupCountBy).not.toHaveBeenCalled();
+  });
+
+  test("a step saved and reloaded as JSON keeps its entities for them", async () => {
+    exceptionFindBy.mockResolvedValue(fingerprintRows(["fp-1"]));
+
+    const reloaded: MonitorStep = MonitorStep.fromJSON(
+      JSON.parse(
+        JSON.stringify(
+          stepCheckingOn([CheckOn.NewExceptionCount], {
+            entityKeys: ["pod:checkout-7"],
+          }).toJSON(),
+        ),
+      ) as JSONObject,
+    );
+
+    await monitorException({ monitorStep: reloaded, monitorId, projectId });
+
+    expect(
+      (
+        (exceptionFindBy.mock.calls[0]![0].query as Record<string, unknown>)[
+          "entityKeys"
+        ] as Includes
+      ).values,
+    ).toEqual(["pod:checkout-7"]);
+    expect((groupQueries()[0]!["fingerprint"] as Includes).values).toEqual([
+      "fp-1",
     ]);
   });
 });
@@ -700,6 +1131,22 @@ describe("monitorVMware", () => {
   });
 
   test("a shipped template groups by the object's resource attribute and takes the grouped path", async () => {
+    // The grouped read: a row per host and minute, grouped in SQL.
+    metricAggregateBy.mockResolvedValue({
+      data: [
+        {
+          timestamp: new Date(),
+          value: 97.25,
+          attributes: { "resource.vcenter.host.name": "esx-02" },
+        },
+        {
+          timestamp: new Date(),
+          value: 27.5,
+          attributes: { "resource.vcenter.host.name": "esx-01" },
+        },
+      ],
+    });
+    // The breakdown's scan of raw rows (limit 100).
     metricFindBy.mockResolvedValue([
       {
         time: new Date(),
@@ -740,12 +1187,29 @@ describe("monitorVMware", () => {
       projectId,
     });
 
-    // Grouped: raw rows are aggregated per series in the worker, never via aggregateBy.
-    expect(metricAggregateBy).not.toHaveBeenCalled();
-    // One raw fetch for the per-series aggregation, one (limit 100) for the breakdown.
-    expect(metricFindBy).toHaveBeenCalledTimes(2);
+    /*
+     * Grouped: one SQL aggregate, GROUP BY the host's name, up to the
+     * grouped read's limit (#5281) - never raw rows aggregated in the
+     * worker, which were cut at 10,000 rows.
+     */
+    expect(metricAggregateBy).toHaveBeenCalledTimes(1);
+    const aggregate: Record<string, unknown> = metricAggregateBy.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(aggregate["groupByAttributeKeys"]).toEqual([
+      "resource.vcenter.host.name",
+    ]);
+    expect(aggregate["limit"]).toBe(GROUPED_READ_ROW_LIMIT);
+    expect(aggregate["timeoutOverflowMode"]).toBe("throw");
+    // The raw rows feed only the breakdown (limit 100).
+    expect(metricFindBy).toHaveBeenCalledTimes(1);
+    expect(
+      (metricFindBy.mock.calls[0]![0] as Record<string, unknown>)["limit"],
+    ).toBe(100);
 
-    for (const call of metricFindBy.mock.calls) {
+    for (const call of [
+      ...metricAggregateBy.mock.calls,
+      ...metricFindBy.mock.calls,
+    ]) {
       const query: Record<string, unknown> = (
         call[0] as Record<string, unknown>
       )["query"] as Record<string, unknown>;

@@ -160,11 +160,18 @@ describe("the dashboard's page", () => {
     expect(fullScreen).toBeGreaterThan(menu);
   });
 
-  test("puts the logo on its plate, the light backdrop it has while the page is dark", () => {
-    expect(view).toMatch(
-      /<LogoPlate className="flex-shrink-0"> <img src=\{logoUrl\}/,
+  /*
+   * The logo on its plate, the light backdrop it has while the page is dark
+   * - or, while it is dark, the dashboard's logo for the dark theme in its
+   * place (LogoPlate's darkLogo), as a status page's header does.
+   */
+  test("puts the logo on its plate, and hands it the dark theme logo to draw instead while the page is dark", () => {
+    expect(view).toContain(
+      '<LogoPlate className="flex-shrink-0" darkLogo={ darkThemeLogoUrl ? ( <img src={darkThemeLogoUrl} alt={dashboardName} className="h-8 w-auto object-contain" /> ) : undefined } > {logoUrl ? ( <img src={logoUrl} alt={dashboardName} className="h-8 w-auto object-contain" /> ) : undefined} </LogoPlate>',
     );
-    expect(view.split("<img").length - 1).toBe(1);
+    // Drawn when the dashboard has either logo.
+    expect(view).toContain("{(logoUrl || darkThemeLogoUrl) && (");
+    expect(view.split("<img").length - 1).toBe(2);
   });
 
   test("draws the page and the canvas on the dashboard's own grounds, which the dark theme remaps", () => {

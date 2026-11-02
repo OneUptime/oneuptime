@@ -51,6 +51,12 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { EXCEPTION_DIGEST_WINDOW_HOURS } from "Common/Types/Telemetry/ExceptionAIDigest";
+import { MAX_SIMILAR_EXCEPTIONS } from "Common/Types/Telemetry/SimilarExceptions";
+import { EXCEPTION_TREND_BUCKET_COUNT } from "Common/Types/Telemetry/ExceptionListStats";
+import {
+  EXCEPTION_USER_ID_ATTRIBUTE_KEYS,
+  readExceptionUserId,
+} from "Common/Utils/Exceptions/ExceptionUserId";
 import {
   CORE_LOGS_TABLE_COLUMN_OPTIONS,
   DEFAULT_LOGS_TABLE_COLUMNS,
@@ -60,6 +66,11 @@ import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator"
 import { DEFAULT_SAVED_VIEW_TIME_RANGE } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import { INTERACTIVE_READ_TIME_LIMIT } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
+import {
+  ExceptionGroupingBasis,
+  ExceptionGroupingKey,
+  getExceptionGroupingKey,
+} from "Common/Server/Utils/Telemetry/ExceptionGrouping";
 import LogExceptionExtractor from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
@@ -1175,8 +1186,10 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
       "Depth",
     ]);
     expect(firstColumn(section(page, "## Read a trace"))).toEqual(numbers);
-    expect(header).toContain(
-      'title="Show only the spans with an error status"',
+    // Each number is drawn in the reader's language, the Errors one's tooltip too.
+    expect(header).toContain("{translator.translateText(stat.label)}");
+    expect(header.replace(/\s+/g, " ")).toContain(
+      'title={translator.translateText( "Show only the spans with an error status", )}',
     );
 
     const views: string = between(
@@ -1200,8 +1213,17 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
       "Service map",
       "Operations",
     ]);
-    expect(traceExplorer).toContain("Critical path");
-    expect(traceExplorer).toContain("Errors only");
+    // Drawn in the reader's language, as every translation names them.
+    expect(traceExplorer).toContain(
+      'translator.translateText("Critical path")',
+    );
+    expect(traceExplorer).toContain('translator.translateText("Errors only")');
+    expect(page).toContain(
+      "Turn on **Critical path** to highlight the chain of spans that decided how long the request took.",
+    );
+    expect(page).toContain(
+      "turn on **Errors only** to keep only the spans that failed.",
+    );
   });
 
   it("marks an operation called 10 or more times from one parent, and loads 500 spans at a time", () => {
@@ -1383,7 +1405,7 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
     );
 
     for (const card of ["P50 Latency", "P95 Latency", "P99 Latency"]) {
-      expect(insights).toContain(`>${card}</p>`);
+      expect(insights).toContain(`translator.translateText("${card}")`);
     }
 
     expect(insights).toContain(
@@ -2167,6 +2189,379 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
+  /*
+   * The list's saved views: what one keeps, Assigned to me read for whoever
+   * opens it, Clear view back to the list's own defaults, the address
+   * naming the view, and the project's views - the traces explorer's
+   * control over a table of the list's own.
+   */
+  it("saves the list as a view for the project, opened from Saved Views and by its link", () => {
+    const viewer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const savedView: string = readDashboardSource(
+      "Utils/ExceptionSavedView.ts",
+    );
+    const dropdown: string = readCommonSource(
+      "UI/Components/TelemetryViewer/components/SavedViewsDropdown.tsx",
+    );
+    const model: string = readCommonSource(
+      "Models/DatabaseModels/ExceptionSavedView.ts",
+    );
+    const search: string = section(page, "### Search and filter");
+
+    expect(search).toContain(
+      "**Saved Views** keeps the list under a name, for everyone in the project: the search, filters, time range, status, what counts as an issue, **Assigned to me**, the sort and the page size. A view with **Assigned to me** shows each person the exceptions assigned to them, and **Clear view** puts the list back as it first opens. The page's address names the view you picked, so a link you share opens it.",
+    );
+
+    // The control, its labels, and the project's own table of views.
+    expect(viewer).toContain("<TelemetrySavedViewsControl<ExceptionSavedView>");
+    expect(viewer).toContain("modelType={ExceptionSavedView}");
+    expect(dropdown).toContain('trigger: translationKey("Saved Views"),');
+    expect(dropdown).toContain('{translator.translateText("Clear view")}');
+    expect(model).toContain('tableName: "ExceptionSavedView"');
+    expect(model).toContain("Permission.ProjectMember,");
+
+    // What a view keeps.
+    for (const field of [
+      "search: state.search,",
+      "timeRange: serializeSavedViewTimeRange(state.timeRange),",
+      "pageSize: state.pageSize,",
+      "exceptionStatus: state.status,",
+      "exceptionClassScope: state.classScope,",
+      "exceptionAssignedToMe: state.assignedToMe,",
+      "exceptionSort: state.sort,",
+    ]) {
+      expect(savedView).toContain(field);
+    }
+
+    // Assigned to me is the reader's own: the list asks for its user's.
+    expect(viewer).toContain("setAssignedToMe(view.assignedToMe);");
+    expect(viewer).toContain("q.assignToUserId = UserUtil.getUserId();");
+
+    // Clear view is the empty state: the list's defaults for each field.
+    expect(savedView).toContain(
+      "status: readOne(state.exceptionStatus, STATUS_VALUES) || defaults.status,",
+    );
+
+    // The address names the view, and a link naming one opens it.
+    expect(viewer).toContain("savedView: selectedSavedViewId || null,");
+    expect(viewer).toContain('params.get("savedView")');
+    expect(viewer).toContain(
+      "initialSavedViewId={initialUrlState.savedViewId}",
+    );
+  });
+
+  /*
+   * An assignment is told to whoever it hands the exception to: the person,
+   * or each member of the team, through their own setting of the event the
+   * notification settings page names, and never to whoever assigned it.
+   */
+  it("notifies the person or the team an exception is assigned to, not the one who assigned it", () => {
+    const settingsPage: string = readDashboardSource(
+      "Pages/UserSettings/NotificationSettings.tsx",
+    );
+    const notifications: string = readCommonSource(
+      "Server/Utils/Telemetry/ExceptionAssignmentNotifications.ts",
+    );
+    const job: string = readPackageFile(
+      "App/FeatureSet/Workers/Jobs/TelemetryException/SendAssignedNotification.ts",
+    );
+    const triage: string = section(page, "## Resolve, reopen and archive");
+
+    expect(triage).toContain(
+      "The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.",
+    );
+
+    // The row, by the label the settings page draws, for the event sent.
+    expect(settingsPage).toContain(
+      '[NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION]: {\n    label: "Exception assigned to me",',
+    );
+    expect(notifications).toContain(
+      "NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION",
+    );
+
+    // The person, or the team's members; never the one who assigned it.
+    expect(notifications).toContain(
+      "TeamMemberService.getUsersInTeams([data.assigneeTeamId])",
+    );
+    expect(notifications).toContain(
+      "if (sameId(userId, data.assignedByUserId)) {",
+    );
+    // Through their own settings, sent once by the Workers.
+    expect(notifications).toContain(
+      "await UserNotificationSettingService.sendUserNotification({",
+    );
+    expect(job).toContain("schedule: EVERY_MINUTE");
+  });
+
+  /*
+   * An exception's activity: the card at the bottom of its Overview, and
+   * every change it lists recorded where every change goes through - the
+   * service's update hooks (the page, the list, Bulk Actions, the API,
+   * OneUptime's own writes), the merge and the ingest upsert - with an API
+   * key's change carrying the key's name.
+   */
+  it("shows who changed an exception and when, from every change", () => {
+    const card: string = readDashboardSource(
+      "Components/Exceptions/ExceptionActivity.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const presentation: string = readDashboardSource(
+      "Utils/ExceptionActivityPresentation.ts",
+    );
+    const service: string = readCommonSource(
+      "Server/Services/TelemetryExceptionService.ts",
+    );
+    const activityService: string = readCommonSource(
+      "Server/Services/TelemetryExceptionActivityService.ts",
+    );
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Utils/Exception.ts",
+    );
+    const triage: string = section(page, "## Resolve, reopen and archive");
+
+    expect(triage).toContain(
+      "**Activity**, at the bottom of the exception's **Overview**, says who changed it and when, newest first: who resolved, reopened, archived or assigned it, merged another exception into it or unmerged one, and when it came back after it was resolved.",
+    );
+    expect(triage).toContain(
+      "Every change is there, made on the exception's page, in the list, under **Bulk Actions**, through the API or by OneUptime itself, and a change made with an API key carries the key's name.",
+    );
+
+    // The card, titled as the page names it, last on the Overview.
+    expect(card).toContain('title="Activity"');
+    expect(explorer).toContain("<ExceptionActivity");
+    const overview: string = explorer.slice(
+      explorer.indexOf("props.section === ExceptionDetailSection.Overview"),
+      explorer.indexOf("props.section === ExceptionDetailSection.StackTrace"),
+    );
+    expect(overview).toContain("<ExceptionActivity");
+    expect(overview.lastIndexOf("<ExceptionActivity")).toBeGreaterThan(
+      overview.lastIndexOf("<ExceptionMergedPanel"),
+    );
+    // Newest first.
+    expect(card).toContain("sort: { createdAt: SortOrder.Descending }");
+
+    // Each kind the paragraph names has its sentence.
+    for (const sentence of [
+      '"{{actor}} resolved this exception"',
+      '"{{actor}} reopened this exception"',
+      '"{{actor}} archived this exception"',
+      '"{{actor}} assigned this exception to {{assignee}}"',
+      '"{{actor}} merged {{exception}} into this exception"',
+      '"{{actor}} unmerged {{exception}} from this exception"',
+      '"It came back after it was resolved"',
+      '"{{name}} (API key)"',
+    ]) {
+      expect(presentation).toContain(sentence);
+    }
+
+    // Recorded wherever a change is made, an API key's by its name.
+    expect(service).toContain("protected override async onUpdateSuccess(");
+    expect(service).toContain("TelemetryExceptionActivityService.record({");
+    expect(merge).toContain("TelemetryExceptionActivityType.Merged");
+    expect(merge).toContain("TelemetryExceptionActivityType.UnmergedFrom");
+    expect(ingest).toContain("TelemetryExceptionActivityType.Regressed");
+    expect(activityService).toContain("FeedApiKeyActorUtil.fromProps(props)");
+  });
+
+  /*
+   * Each row's affected users and trend chart: counted over the list's own
+   * range, from the user attributes ingest reads, in the order it reads
+   * them, and shown only when an occurrence named a user.
+   */
+  it("shows each row's affected users and its occurrences over the range picked", () => {
+    const row: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRow.tsx",
+    );
+    const listStats: string = readDashboardSource(
+      "Utils/ExceptionListStats.ts",
+    );
+    const traces: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelTracesIngestService.ts",
+    );
+    const logs: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+    );
+    const users: string =
+      "An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted.";
+
+    expect(page).toContain(
+      "Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range.",
+    );
+    expect(page).toContain(users);
+
+    // The attributes named, in the order ingest prefers them.
+    expect(inlineCodes(users)).toEqual([...EXCEPTION_USER_ID_ATTRIBUTE_KEYS]);
+    // On the exception event, then its span or log record, then its resource.
+    expect(
+      readExceptionUserId([
+        { "enduser.id": "event" },
+        { "user.id": "span", "resource.user.id": "resource" },
+      ]),
+    ).toBe("event");
+    expect(
+      readExceptionUserId([{}, { "user.id": "span", "resource.user.id": "r" }]),
+    ).toBe("span");
+    expect(readExceptionUserId([{}, { "resource.enduser.id": "r" }])).toBe("r");
+    // An occurrence that names no user is not counted.
+    expect(readExceptionUserId([{ "user.email": "a@example.com" }])).toBe("");
+    expect(traces).toContain("userId: readExceptionUserId([");
+    expect(logs).toContain("userId: readExceptionUserId([finalAttributes])");
+    expect(row).toContain("affectedUsers > 0 &&");
+
+    // Over the range picked: the rows' own range goes with the request.
+    expect(exceptionsViewer).toContain("setListWindow(readWindow);");
+    expect(exceptionsViewer).toContain(
+      "buildExceptionListStatsRequest({ exceptions, window: listWindow })",
+    );
+    expect(listStats).toContain('"/telemetry-exception/list-stats"');
+    expect(EXCEPTION_TREND_BUCKET_COUNT).toBeGreaterThan(1);
+    expect(row).toContain("<ExceptionTrendSparkline");
+  });
+
+  /*
+   * Grouping v2: a new exception is its type and its own code's functions
+   * and files; an exception recorded before keeps its first fingerprint.
+   */
+  it("groups a new exception by its own code's functions and files, and leaves earlier ones as they were", () => {
+    const tracesIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelTracesIngestService.ts",
+    );
+    const logsIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+    );
+    const trace: (
+      line: number,
+      library: string,
+      message: string,
+    ) => ExceptionGroupingKey = (
+      line: number,
+      library: string,
+      message: string,
+    ): ExceptionGroupingKey => {
+      return getExceptionGroupingKey({
+        exceptionType: "TypeError",
+        message,
+        stackTrace: [
+          `TypeError: ${message}`,
+          `    at reserve (/app/src/stock.ts:${line}:3)`,
+          `    at handle (/app/node_modules/${library}/layer.js:${line + 9}:5)`,
+          `    at checkout (/app/src/cart.ts:${line * 3}:7)`,
+        ].join("\n"),
+      });
+    };
+
+    expect(page).toContain(
+      "A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above. Exceptions recorded before this grouping keep theirs.",
+    );
+
+    // Line numbers, library frames and the message are left out.
+    expect(trace(10, "express", "Order 1001 failed")).toEqual(
+      trace(77, "koa", "Order 2002 failed"),
+    );
+    expect(trace(10, "express", "x").basis).toBe(
+      ExceptionGroupingBasis.InAppFrames,
+    );
+    expect(trace(10, "express", "x").parts).toEqual([
+      "app/src/stock.ts|reserve",
+      "app/src/cart.ts|checkout",
+    ]);
+    // Without a stack trace, the message, its varying values taken out.
+    expect(
+      getExceptionGroupingKey({
+        exceptionType: "Error",
+        message: "Order id=1042 not found",
+      }),
+    ).toEqual(
+      getExceptionGroupingKey({
+        exceptionType: "Error",
+        message: "Order id=2077 not found",
+      }),
+    );
+
+    // Both ingest paths store each occurrence under its exception's choice.
+    for (const ingest of [tracesIngest, logsIngest]) {
+      expect(ingest).toContain("ExceptionUtil.getFingerprintV2({");
+      expect(ingest).toContain(
+        "await ExceptionUtil.assignRowGroupFingerprints(batch);",
+      );
+    }
+    expect(exceptionUtil).toContain(
+      "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
+    );
+    // An exception recorded before keeps its first fingerprint.
+    expect(exceptionUtil).toContain(
+      "chosen.set(key, cached?.exists ? candidate.v1 : candidate.v2);",
+    );
+
+    const troubleshooting: string = section(page, "## Troubleshooting");
+    expect(troubleshooting).toContain(
+      "New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.",
+    );
+  });
+
+  /*
+   * Merging a likely duplicate into the exception, and undoing it: offered
+   * on the Similar exceptions card for the AI's "Likely the same bug" in the
+   * same service, listed on the Overview, undone from either page, and only
+   * by someone who may edit exceptions.
+   */
+  it("merges a likely duplicate into the exception, and unmerges it", () => {
+    const similar: string = readDashboardSource(
+      "Components/Exceptions/ExceptionSimilar.tsx",
+    );
+    const panel: string = readDashboardSource(
+      "Components/Exceptions/ExceptionMergedPanel.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Utils/Exception.ts",
+    );
+    const explain: string = section(page, "## Explain it with AI");
+
+    expect(explain).toContain(
+      "Merge one that OneUptime AI calls **Likely the same bug**, in the same service, into this exception with **Merge** beside it: its occurrences, those so far and every new one, count on this exception from then on and show on its page, and it leaves the list.",
+    );
+    expect(explain).toContain(
+      "**Merged into this exception** below lists what was merged in, and **Unmerge** beside each, or on a merged exception's own page, gives it back its own place in the list, its occurrences since included. Merging and unmerging take permission to edit exceptions.",
+    );
+
+    // Merge: only on the AI's duplicate, in the same service, for an editor.
+    expect(similar).toContain("entry.isSameService === true");
+    expect(similar).toContain(
+      "verdict?.verdict === DuplicateVerdictKind.Duplicate",
+    );
+    expect(similar).toContain('title="Merge"');
+    expect(explorer).toContain(
+      "PermissionGate.check(new TelemetryException(), ModelAction.Update)",
+    );
+    expect(merge).toContain(
+      "Only exceptions of the same service can be merged.",
+    );
+    expect(merge).toContain("ModelPermission.getUpdatableQuery(");
+
+    // Every new occurrence counts there: the alias is read at ingest.
+    expect(ingest).toContain("await ExceptionUtil.withMergedSurvivors(");
+
+    // Below, on the Overview, and on the merged one's own page.
+    expect(panel).toContain('title="Merged into this exception"');
+    expect(panel).toContain('title="Unmerge"');
+    expect(panel).toContain(
+      'template="This exception was merged into {{exception}}. Its occurrences count there."',
+    );
+  });
+
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "## Error classes"),
@@ -2295,7 +2690,53 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception.",
     );
     expect(page).toContain(
-      "It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.",
+      "It is written when you ask and kept until a new occurrence arrives, so asking again spends nothing; it uses the project's AI credits, and is not offered while **Enable AI** is off.",
+    );
+  });
+
+  /*
+   * Similar exceptions on the Overview, with why each is listed, and
+   * OneUptime AI's verdict on each, as the card and the scorer have them.
+   */
+  it("lists similar exceptions with why, and OneUptime AI's verdict on each", () => {
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const card: string = readDashboardSource(
+      "Components/Exceptions/ExceptionSimilar.tsx",
+    );
+
+    // On the Overview, where a likely duplicate can be merged in.
+    expect(explorer).toContain(
+      "<ExceptionSimilar\n            telemetryExceptionId={props.telemetryExceptionId}\n            canMerge={canMergeIntoThis}",
+    );
+    expect(card).toContain('title="Similar exceptions"');
+    for (const label of [
+      '"Same message"',
+      '"Same code location"',
+      '"Similar message"',
+      '"Check with OneUptime AI"',
+      '"Likely the same bug"',
+      '"A related bug"',
+      '"A different bug"',
+    ]) {
+      expect(card).toContain(label);
+    }
+    expect(MAX_SIMILAR_EXCEPTIONS).toBe(5);
+    // Kept by what it was written from, occurrence counts included.
+    const checker: string = readCommonSource(
+      "Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts",
+    );
+    expect(checker).toContain("AiAnswerCache.key([");
+    expect(checker).toContain("String(exception.occuranceCount || 0),");
+    expect(page).toContain(
+      "Its answer is kept until a new occurrence arrives.",
+    );
+    expect(page).toContain(
+      "Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words.",
+    );
+    expect(page).toContain(
+      "**Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off.",
     );
   });
 
@@ -2398,10 +2839,15 @@ describe("the explorers together", () => {
       "Entry spans": "common:Types/Telemetry/TraceSpanType.ts",
       "Root spans": "common:Types/Telemetry/TraceSpanType.ts",
       "All spans": "common:Types/Telemetry/TraceSpanType.ts",
-      "See full trace": "Components/Traces/SpanDetailsPanel.tsx",
-      "Critical path": "Components/Traces/TraceExplorer.tsx",
-      "Errors only": "Components/Traces/TraceExplorer.tsx",
     };
+
+    // The trace pages' own words are keys now, drawn in every language.
+    for (const word of ["Critical path", "Errors only", "See full trace"]) {
+      expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
+        word,
+        isKey: true,
+      });
+    }
     const readDrawnIn: (source: string) => string = (
       source: string,
     ): string => {

@@ -73,6 +73,15 @@ enum NotificationSettingEventType {
   SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION = "Send missed call notification when I am the owner of the incoming call policy",
 
   /*
+   * Exceptions (ExceptionAssignmentNotifications). An exception is assigned
+   * to the person, or to a team they are on: told once, by the Workers, to
+   * the people who can read the exception - never to the one who assigned
+   * it. The exception's owner-added notification, as the other products'
+   * SEND_*_OWNER_ADDED_NOTIFICATION are.
+   */
+  SEND_EXCEPTION_ASSIGNED_NOTIFICATION = "Send notification when an exception is assigned to me or to a team I am on",
+
+  /*
    * Security Cases (SecurityCaseNotifications). Sent only to people who can
    * read the case. The first is sent at the priority each person picks on
    * their setting (minimumSecurityCasePriority), High and above when they

@@ -617,11 +617,13 @@ describe("getDeviceAttachment", () => {
     expect(request.id.toString()).toBe(DEVICE_ID.toString());
     /*
      * The neighbour tables ride on the same read: a switch or router is
-     * cabled to what it reports over LLDP or CDP, and the card lists them.
+     * cabled to what it reports over LLDP or CDP, and the card lists them -
+     * and to what Meraki reports, which sits in its discovered details.
      */
     expect(Object.keys(request.select).sort()).toEqual([
       "_id",
       "cdpNeighbors",
+      "discoveredDetails",
       "hostname",
       "lldpNeighbors",
       "macAddress",
@@ -783,5 +785,57 @@ describe("chooseDeviceAttachment - the other devices that could claim a row", ()
     );
 
     expect(found?.matchedBy).toBe("mac");
+  });
+});
+
+describe("chooseDeviceAttachment - a row a controller reported (#5379)", () => {
+  const device: { hostname: string; siteId: string } = {
+    hostname: REGISTER_IP,
+    siteId: SITE_ONE,
+  };
+
+  test("its address stands for as long as the map says: read every two hours", () => {
+    const found: DeviceAttachment | undefined = chooseDeviceAttachment(device, [
+      endpointRow({
+        _id: "e1",
+        attachmentSource: "meraki",
+        attachedPortName: "Port 7",
+        attachedInterfaceIndex: undefined,
+        lastSeenAt: new Date("2026-09-07T05:30:00Z"),
+      }),
+    ]);
+
+    expect(found?.matchedBy).toBe("ip");
+    expect(found?.portName).toBe("Port 7");
+    expect(found?.reportedBy).toBe("meraki");
+  });
+
+  test("past that it is not evidence of an address, as on the map", () => {
+    expect(
+      chooseDeviceAttachment(device, [
+        endpointRow({
+          _id: "e1",
+          attachmentSource: "meraki",
+          lastSeenAt: new Date("2026-09-07T03:00:00Z"),
+        }),
+      ]),
+    ).toBeUndefined();
+  });
+
+  test("the same age from a walk is long past", () => {
+    expect(
+      chooseDeviceAttachment(device, [
+        endpointRow({
+          _id: "e1",
+          lastSeenAt: new Date("2026-09-07T05:30:00Z"),
+        }),
+      ]),
+    ).toBeUndefined();
+  });
+
+  test("a row a walk found says nothing about a controller", () => {
+    expect(
+      chooseDeviceAttachment(device, [endpointRow({ _id: "e1" })])?.reportedBy,
+    ).toBeUndefined();
   });
 });

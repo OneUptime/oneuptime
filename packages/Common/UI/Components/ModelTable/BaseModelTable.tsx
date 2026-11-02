@@ -29,7 +29,12 @@ import buildQueryFromFilterData, {
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "../../Utils/PrivateRecordScope";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
@@ -122,6 +127,7 @@ import {
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
+import { isDrawnFromRecordId } from "./ColumnSort";
 import Columns from "./Columns";
 import ColumnCustomizationModal, {
   AddableColumnsConfig,
@@ -735,6 +741,22 @@ export interface BaseTableProps<
     | undefined;
 }
 
+/*
+ * The header's buttons that read the list's rows - Filter, and the Columns
+ * the rows are drawn with: left out of a list nobody may read
+ * (isNoAccessShown).
+ */
+const LIST_READ_BUTTONS: WeakSet<CardButtonSchema | ReactElement> = new WeakSet<
+  CardButtonSchema | ReactElement
+>();
+
+const ofListRead: (button: CardButtonSchema) => CardButtonSchema = (
+  button: CardButtonSchema,
+): CardButtonSchema => {
+  LIST_READ_BUTTONS.add(button);
+  return button;
+};
+
 export interface ComponentProps<
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 > extends BaseTableProps<TBaseModel> {
@@ -892,6 +914,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const model: TBaseModel = new props.modelType();
 
+  /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: its changes are offered only when a team of theirs that owns it
+   * may make them (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+
   type GetItemLabelFunction = (item: unknown) => string;
 
   /*
@@ -999,13 +1029,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * on deleteVerb alone: deleteButtonText is also set by tables such as
      * "Remove from Project", which keep the default "delete" sentence.
      */
-    const result: PermissionGateResult = PermissionGate.check(model, action, {
-      singularName: props.singularName || model.singularName || undefined,
-      verb:
-        action === ModelAction.Delete
-          ? props.bulkActions?.deleteVerb?.trim() || undefined
-          : undefined,
-    });
+    const result: PermissionGateResult = PermissionGate.check(
+      model,
+      action,
+      withPrivateRecordGateOptions(
+        {
+          singularName: props.singularName || model.singularName || undefined,
+          verb:
+            action === ModelAction.Delete
+              ? props.bulkActions?.deleteVerb?.trim() || undefined
+              : undefined,
+        },
+        privateRecordOptions,
+      ),
+    );
 
     if (result.isAllowed) {
       return { show: true, disabled: false, tooltip: undefined };
@@ -2069,7 +2106,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         columns.push({
           ...column,
           id: columnIdByColumn.get(column),
-          disableSort: column.disableSort || shouldDisableSort(key),
+          /*
+           * Nor does a column that draws its own thing from the record's id
+           * (Owners): it would sort by the id (isDrawnFromRecordId).
+           */
+          disableSort:
+            column.disableSort ||
+            shouldDisableSort(key) ||
+            isDrawnFromRecordId<TBaseModel>(column, key),
           key: columnKey,
           /*
            * `key` is only the first declared field, so a cell composed from
@@ -3239,24 +3283,26 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     if (showFilterButton) {
-      headerbuttons.push({
-        title: "",
-        buttonStyle: ButtonStyleType.ICON,
-        buttonSize: ButtonSize.Small,
-        className: "",
-        onClick: () => {
-          /*
-           * Just open the popup. This used to `setQuery({})` first, which
-           * dropped the active filters (and refetched everything) the moment
-           * the user opened the filter UI — while the chips and the URL still
-           * advertised them. Filters now change only when the form applies
-           * them.
-           */
-          setShowFilterModal(true);
-        },
-        disabled: isFilterFetchLoading,
-        icon: IconProp.Filter,
-      });
+      headerbuttons.push(
+        ofListRead({
+          title: "",
+          buttonStyle: ButtonStyleType.ICON,
+          buttonSize: ButtonSize.Small,
+          className: "",
+          onClick: () => {
+            /*
+             * Just open the popup. This used to `setQuery({})` first, which
+             * dropped the active filters (and refetched everything) the moment
+             * the user opened the filter UI — while the chips and the URL still
+             * advertised them. Filters now change only when the form applies
+             * them.
+             */
+            setShowFilterModal(true);
+          },
+          disabled: isFilterFetchLoading,
+          icon: IconProp.Filter,
+        }),
+      );
     }
 
     /*
@@ -3264,16 +3310,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * table has nothing to hide and nothing to reorder.
      */
     if (isColumnCustomizationEnabled && allColumns.length > 1) {
-      headerbuttons.push({
-        title: "",
-        buttonStyle: ButtonStyleType.ICON,
-        buttonSize: ButtonSize.Small,
-        className: "",
-        onClick: () => {
-          setShowColumnCustomizationModal(true);
-        },
-        icon: IconProp.TableCells,
-      });
+      headerbuttons.push(
+        ofListRead({
+          title: "",
+          buttonStyle: ButtonStyleType.ICON,
+          buttonSize: ButtonSize.Small,
+          className: "",
+          onClick: () => {
+            setShowColumnCustomizationModal(true);
+          },
+          icon: IconProp.TableCells,
+        }),
+      );
     }
 
     setCardButtons(headerbuttons);
@@ -4205,6 +4253,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const createCheck: PermissionGateResult = PermissionGate.check(
       model,
       ModelAction.Create,
+      privateRecordOptions,
     );
 
     return buildModelTableEmptyState({
@@ -4520,6 +4569,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           const userCanDelete: boolean = PermissionGate.snapshotAllows(
             model,
             ModelAction.Delete,
+            privateRecordOptions,
           );
 
           const sourceButtons: Array<
@@ -5476,14 +5526,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         ? getSaveFilterDropdown()
         : null;
 
-    if (cardButtons.length === 0 && !hasSearch) {
-      return savedViewsElement ? [savedViewsElement] : cardButtons;
+    /*
+     * Nothing to filter, and no columns to choose, in a list nobody may
+     * read: its ⋯ offered Filter and Columns over "You don't have access to
+     * this list". Refresh stays - a person granted access reads it again.
+     */
+    const headerButtons: Array<CardButtonSchema | ReactElement> =
+      isNoAccessShown
+        ? cardButtons.filter(
+            (button: CardButtonSchema | ReactElement): boolean => {
+              return !LIST_READ_BUTTONS.has(button);
+            },
+          )
+        : cardButtons;
+
+    if (headerButtons.length === 0 && !hasSearch) {
+      return savedViewsElement ? [savedViewsElement] : headerButtons;
     }
 
     if (!hasSearch) {
       // Without search, just split into [Saved Views] [main] [⋯]; no special wrapping.
       const { main, rest }: TableHeaderButtonSplit =
-        splitTableHeaderButtons(cardButtons);
+        splitTableHeaderButtons(headerButtons);
       const composed: Array<ReactElement> = [];
       if (savedViewsElement) {
         composed.push(savedViewsElement);
@@ -5503,7 +5567,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       isSearchExpanded || trimmedActive.length > 0 || selectedLabels.length > 0;
 
     const { main, rest }: TableHeaderButtonSplit =
-      splitTableHeaderButtons(cardButtons);
+      splitTableHeaderButtons(headerButtons);
     const moreMenu: ReactElement | null = renderTableHeaderMoreMenu(rest);
 
     /*

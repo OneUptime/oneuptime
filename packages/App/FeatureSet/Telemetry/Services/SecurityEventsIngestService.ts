@@ -24,6 +24,7 @@ import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecuri
 import SecurityEventFormat from "Common/Types/SecurityEvent/SecurityEventFormat";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import ThreatIntelEnricher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
+import RealTimeDetections from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import SecurityEventsQueueService from "./Queue/SecurityEventsQueueService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
@@ -211,7 +212,7 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
           processed++;
 
           if (dbRows.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
-            await this.submitEventsBuffer(dbRows, pendingAcks);
+            await this.submitEventsBuffer(projectId, dbRows, pendingAcks);
           }
         } catch (processingError) {
           if (processingError instanceof SecurityEventStorageFlushError) {
@@ -223,7 +224,7 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
         }
       }
 
-      await this.submitEventsBuffer(dbRows, pendingAcks, true);
+      await this.submitEventsBuffer(projectId, dbRows, pendingAcks, true);
 
       await Promise.all(pendingAcks);
 
@@ -322,7 +323,14 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
     );
   }
 
+  /*
+   * Each batch goes to the fan-in writer, and is then screened against the
+   * project's real-time detection rules (RealTimeDetections), which never
+   * throws into ingest: a rule that may match gets a job that confirms it
+   * once the batch can be read.
+   */
   private static async submitEventsBuffer(
+    projectId: ObjectID,
     rows: Array<JSONObject>,
     pendingAcks: Array<Promise<void>>,
     force: boolean = false,
@@ -347,6 +355,8 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
       pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
         return new SecurityEventStorageFlushError(error);
       });
+
+      await RealTimeDetections.screen({ projectId, rows: batch });
     }
   }
 }

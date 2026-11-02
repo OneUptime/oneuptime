@@ -46,6 +46,22 @@ enum CustomFieldType {
    * through the Markdown renderer, never insert it as HTML.
    */
   Markdown = "Markdown",
+
+  /**
+   * One file - a signed change request, a contract, a diagram - uploaded on
+   * the record. Stored in the `customFields` bag as a reference to the file
+   * (CustomFieldFile: its id, name, type and size), never the bytes, which
+   * stay in File. The server writes the reference from the file itself
+   * (Server/Utils/CustomField/CustomFieldFiles), and the file is served only
+   * to someone who may read the record, as a download.
+   */
+  File = "File",
+
+  /**
+   * As `File`, but several: a list of references, in the order they were
+   * added, at most CUSTOM_FIELD_MAX_FILES of them.
+   */
+  MultipleFiles = "MultipleFiles",
 }
 
 export default CustomFieldType;

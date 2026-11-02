@@ -39,6 +39,7 @@ import {
   SecurityPlaybookApprovalTurnedOff,
   SecurityPlaybookStep,
   TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
+  assertSecurityPlaybookStepConditions,
   parseSecurityPlaybookSteps,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { isSecurityPlaybookTrigger } from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
@@ -63,6 +64,13 @@ const STEP_REFERENCE_SETTINGS: ReadonlyArray<{
 }> = [
   { key: "userId", isList: false, modelName: "User", modelType: User },
   { key: "userIds", isList: true, modelName: "User", modelType: User },
+  // Who an Add tasks step hands its tasks to.
+  {
+    key: "assigneeUserId",
+    isList: false,
+    modelName: "User",
+    modelType: User,
+  },
   { key: "teamId", isList: false, modelName: "Team", modelType: Team },
   { key: "teamIds", isList: true, modelName: "Team", modelType: Team },
   { key: "labelIds", isList: true, modelName: "Label", modelType: Label },
@@ -244,8 +252,10 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The cleaning that needs no other record, first: steps read into their
-   * clean shape (so the project check reads the ids a run will act on), and
-   * the trigger and conditions held to their values.
+   * clean shape (so the project check reads the ids a run will act on), each
+   * step that waits on another held to the branching rule
+   * (assertSecurityPlaybookStepConditions), and the trigger and conditions
+   * held to their values.
    */
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
@@ -271,9 +281,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (data["steps"] !== undefined && data["steps"] !== null) {
-      data["steps"] = parseSecurityPlaybookSteps(
+      const steps: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps(
         data["steps"],
-      ) as unknown as JSONArray;
+      );
+
+      assertSecurityPlaybookStepConditions(steps);
+      data["steps"] = steps as unknown as JSONArray;
     }
 
     if (

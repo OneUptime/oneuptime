@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> Skabelonen **Forward new incidents to another system** bygger det samme workflow for dig. Du finder den under **Hændelser**, når du opretter et workflow.
+> Skabelonen **Forward new incidents to another system** bygger dette workflow for dig, uden Log-blokken: uden noget på **Error** får en forespørgsel, der fejler, kørslen til at mislykkes, og kørslens **Trin** siger hvorfor. Du finder den under **Hændelser**, når du opretter et workflow.
 
 :::steps
 ### Opret workflowet

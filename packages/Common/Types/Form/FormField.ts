@@ -145,6 +145,12 @@ export const FORM_QUESTION_TYPES: ReadonlyArray<CustomFieldType> = [
   CustomFieldType.Boolean,
   CustomFieldType.Date,
   CustomFieldType.DateTime,
+  /*
+   * Files the submitter chooses: kept with the submission and attached to
+   * the private note the created record gets (FormFileAnswer).
+   */
+  CustomFieldType.File,
+  CustomFieldType.MultipleFiles,
 ];
 
 export const FORM_CHOICE_QUESTION_TYPES: ReadonlyArray<CustomFieldType> = [

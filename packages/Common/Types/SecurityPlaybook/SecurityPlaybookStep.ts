@@ -1,3 +1,4 @@
+import ColumnLength from "../Database/ColumnLength";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, JSONValue } from "../JSON";
 import ObjectID from "../ObjectID";
@@ -11,20 +12,32 @@ import {
   getSecurityPlaybookAction,
   isSecurityPlaybookActionType,
 } from "./SecurityPlaybookAction";
+import {
+  SecurityPlaybookStepCondition,
+  SecurityPlaybookStepOutcome,
+  getSecurityPlaybookFinds,
+  getSecurityPlaybookStepOutcomes,
+  readSecurityPlaybookStepCondition,
+} from "./SecurityPlaybookStepCondition";
 
 /*
- * One step of a playbook: an action, its settings, and three switches that
- * shape how a run treats it.
+ * One step of a playbook: an action, its settings, and what shapes how a
+ * run treats it.
  *
  *  - requiresApproval: the run stops before the step and waits for a person
  *    to approve or reject it on the case. Rejecting ends the run. A
  *    containment step always waits, unless a Security Admin turned that off
  *    (approvalTurnedOff, which only the server writes; doesStepNeedApproval).
  *  - continueOnFailure: a failed step does not stop the steps after it.
- *  - onlyIfThreatIntelMatched: the step runs only when an earlier Check
- *    Threat Intel step of the same run found a known-bad entity, and is
- *    skipped otherwise. "Contain only what intel says is bad" without a
- *    branching editor.
+ *  - runIf: the step runs only after an earlier step's result - it
+ *    succeeded or failed, or, for a step that looks something up, it found
+ *    something or found nothing - and is skipped otherwise
+ *    (SecurityPlaybookStepCondition). Two steps waiting on opposite
+ *    results of one step are an if and an else.
+ *  - onlyIfThreatIntelMatched: the step runs only when any earlier Check
+ *    Threat Intel step of the same run found a known-bad entity. What
+ *    playbooks saved before runIf branch with; still honoured, and still
+ *    shown on the steps that have it.
  *
  * Steps are stored as JSON on the playbook and copied onto each run when it
  * starts, so editing a playbook never changes a run already under way.
@@ -43,6 +56,8 @@ export interface SecurityPlaybookStep {
   requiresApproval: boolean;
   continueOnFailure: boolean;
   onlyIfThreatIntelMatched: boolean;
+  // Runs only after this result of an earlier step; always when absent.
+  runIf?: SecurityPlaybookStepCondition | undefined;
   approvalTurnedOff?: SecurityPlaybookApprovalTurnedOff | undefined;
 }
 
@@ -81,6 +96,15 @@ export interface AddCaseNoteConfig {
 
 export interface AddCaseLabelsConfig {
   labelIds: Array<string>;
+}
+
+/*
+ * Tasks for the case's checklist (SecurityCaseTask), one a line, each
+ * handed to the person named - a project member - or to nobody.
+ */
+export interface AddCaseTasksConfig {
+  tasks: Array<string>;
+  assigneeUserId?: string | undefined;
 }
 
 export interface CheckThreatIntelConfig {
@@ -170,6 +194,9 @@ export const TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS: ReadonlyArray<Permission
 
 export const SECURITY_PLAYBOOK_MAX_STEPS: number = 25;
 export const SECURITY_PLAYBOOK_NOTE_MAX_LENGTH: number = 10000;
+// The most tasks one Add tasks step adds, and how long each may be.
+export const SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP: number = 20;
+export const SECURITY_PLAYBOOK_TASK_MAX_LENGTH: number = ColumnLength.LongText;
 export const ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS: number = 1;
 export const ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS: number = 720;
 export const ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS: number = 24;
@@ -321,6 +348,37 @@ export function normalizeSecurityPlaybookStepConfig(
       return { labelIds };
     }
 
+    case SecurityPlaybookActionType.AddCaseTasks: {
+      const tasks: Array<string> = readTaskLines(rawConfig["tasks"]);
+      const assigneeUserId: string = readText(rawConfig, "assigneeUserId");
+
+      if (tasks.length === 0) {
+        throw new BadDataException(`${label}: write at least one task.`);
+      }
+
+      if (tasks.length > SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP) {
+        throw new BadDataException(
+          `${label}: a step adds at most ${SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP} tasks; this one has ${tasks.length}.`,
+        );
+      }
+
+      const tooLong: string | undefined = tasks.find(
+        (task: string): boolean => {
+          return task.length > SECURITY_PLAYBOOK_TASK_MAX_LENGTH;
+        },
+      );
+
+      if (tooLong) {
+        throw new BadDataException(
+          `${label}: a task can be at most ${SECURITY_PLAYBOOK_TASK_MAX_LENGTH} characters. Keep each to a line.`,
+        );
+      }
+
+      return assigneeUserId && isObjectIdText(assigneeUserId)
+        ? { tasks, assigneeUserId }
+        : { tasks };
+    }
+
     case SecurityPlaybookActionType.CheckThreatIntel: {
       const raisePriorityToId: string = readText(
         rawConfig,
@@ -448,9 +506,15 @@ export function normalizeSecurityPlaybookStepConfig(
     case SecurityPlaybookActionType.SuspendOktaUser:
     case SecurityPlaybookActionType.EndOktaSessions:
     case SecurityPlaybookActionType.ContainCrowdStrikeHost:
+    case SecurityPlaybookActionType.DisableEntraIdUser:
+    case SecurityPlaybookActionType.SignOutEntraIdUser:
+    case SecurityPlaybookActionType.SuspendGoogleWorkspaceUser:
+    case SecurityPlaybookActionType.SignOutGoogleWorkspaceUser:
     case SecurityPlaybookActionType.UnsuspendOktaUser:
     case SecurityPlaybookActionType.LiftCrowdStrikeContainment:
     case SecurityPlaybookActionType.ReleaseDefenderDevice:
+    case SecurityPlaybookActionType.EnableEntraIdUser:
+    case SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser:
       return {
         connectionId: requireId(
           rawConfig,
@@ -568,6 +632,29 @@ export function normalizeSecurityPlaybookStepConfig(
   }
 }
 
+/*
+ * The tasks of an Add tasks step: a list, or text with one a line, each
+ * trimmed, without empty lines or the same task twice.
+ */
+export function readTaskLines(value: JSONValue | undefined): Array<string> {
+  const lines: Array<unknown> = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split("\n")
+      : [];
+  const tasks: Array<string> = [];
+
+  for (const line of lines) {
+    const task: string = typeof line === "string" ? line.trim() : "";
+
+    if (task && !tasks.includes(task)) {
+      tasks.push(task);
+    }
+  }
+
+  return tasks;
+}
+
 function readApprovalTurnedOff(
   value: JSONValue | undefined,
 ): SecurityPlaybookApprovalTurnedOff | undefined {
@@ -676,6 +763,8 @@ export function parseSecurityPlaybookSteps(
       isDisruptive && !requiresApproval
         ? readApprovalTurnedOff(step["approvalTurnedOff"])
         : undefined;
+    const runIf: SecurityPlaybookStepCondition | undefined =
+      readSecurityPlaybookStepCondition(step["runIf"], label);
 
     return {
       id,
@@ -688,7 +777,91 @@ export function parseSecurityPlaybookSteps(
       requiresApproval,
       continueOnFailure: step["continueOnFailure"] === true,
       onlyIfThreatIntelMatched: step["onlyIfThreatIntelMatched"] === true,
+      ...(runIf ? { runIf } : {}),
       ...(approvalTurnedOff ? { approvalTurnedOff } : {}),
     };
+  });
+}
+
+/*
+ * The steps a step's own result is waited on by: every later step whose
+ * condition names it. What keeps it from being deleted, or moved below one
+ * of them.
+ */
+export function getStepsWaitingOn(
+  steps: ReadonlyArray<SecurityPlaybookStep>,
+  stepId: string,
+): Array<{ index: number; step: SecurityPlaybookStep }> {
+  const waiting: Array<{ index: number; step: SecurityPlaybookStep }> = [];
+
+  steps.forEach((step: SecurityPlaybookStep, index: number): void => {
+    if (step.runIf?.stepId === stepId) {
+      waiting.push({ index, step });
+    }
+  });
+
+  return waiting;
+}
+
+/*
+ * THE BRANCHING RULE, checked across the whole list when a playbook is
+ * saved: a step waits only on a step before it, on a result that step can
+ * have - found or found nothing for one that looks something up, succeeded
+ * otherwise - and on its failure only when that step carries on past one.
+ * Throws a message that names the step and says what to change. Runs
+ * already under way keep the steps they started with, which the engine
+ * reads as they are (evaluateSecurityPlaybookStepCondition).
+ */
+export function assertSecurityPlaybookStepConditions(
+  steps: ReadonlyArray<SecurityPlaybookStep>,
+): void {
+  steps.forEach((step: SecurityPlaybookStep, index: number): void => {
+    const condition: SecurityPlaybookStepCondition | undefined = step.runIf;
+
+    if (!condition) {
+      return;
+    }
+
+    const label: string = stepLabel(index, step.action);
+    const waitedOn: number = steps.findIndex(
+      (candidate: SecurityPlaybookStep): boolean => {
+        return candidate.id === condition.stepId;
+      },
+    );
+
+    if (waitedOn < 0) {
+      throw new BadDataException(
+        `${label}: the step it runs after is no longer in the playbook. Choose again when it runs.`,
+      );
+    }
+
+    if (waitedOn >= index) {
+      throw new BadDataException(
+        waitedOn === index
+          ? `${label}: a step cannot run after its own result. Choose an earlier step.`
+          : `${label}: it runs after step ${waitedOn + 1}, which comes after it. Move it below step ${waitedOn + 1}, or choose again when it runs.`,
+      );
+    }
+
+    const earlier: SecurityPlaybookStep = steps[waitedOn]!;
+    const earlierTitle: string =
+      getSecurityPlaybookAction(earlier.action)?.title || earlier.action;
+
+    if (
+      condition.outcome === SecurityPlaybookStepOutcome.Failed &&
+      !earlier.continueOnFailure
+    ) {
+      throw new BadDataException(
+        `${label}: it runs only if step ${waitedOn + 1} (${earlierTitle}) fails, but a failed step ${waitedOn + 1} stops the run. Turn on Carry On If It Fails for step ${waitedOn + 1}, or choose again when this step runs.`,
+      );
+    }
+
+    if (!getSecurityPlaybookStepOutcomes(earlier).includes(condition.outcome)) {
+      throw new BadDataException(
+        getSecurityPlaybookFinds(earlier.action)
+          ? `${label}: step ${waitedOn + 1} (${earlierTitle}) looks something up, so it finds something or finds nothing. Choose one of those.`
+          : `${label}: step ${waitedOn + 1} (${earlierTitle}) does not look anything up, so it can only succeed or fail. Choose one of those.`,
+      );
+    }
   });
 }

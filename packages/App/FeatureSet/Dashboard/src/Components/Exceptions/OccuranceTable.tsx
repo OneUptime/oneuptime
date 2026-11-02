@@ -52,6 +52,8 @@ function toOccurrenceDate(value: unknown): Date | undefined {
 
 export interface ComponentProps {
   exceptionFingerprint: string;
+  // The fingerprints of the exceptions merged into this one: listed with it.
+  mergedFingerprints?: Array<string> | undefined;
   primaryEntityId?: ObjectID | undefined;
 }
 
@@ -155,6 +157,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
           query={buildExceptionOccurrenceQuery({
             projectId: ProjectUtil.getCurrentProjectId()!,
             fingerprint: props.exceptionFingerprint,
+            mergedFingerprints: props.mergedFingerprints,
             primaryEntityId: props.primaryEntityId,
           })}
           onFetchSuccess={(data: Array<ExceptionInstance>) => {
@@ -249,7 +252,11 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                     data-testid="occurrence-time"
                   >
                     <div className="text-sm font-medium text-gray-900">
-                      {formatRelativeTime(occurredAt)}
+                      {formatRelativeTime(
+                        occurredAt,
+                        new Date(),
+                        translator.language,
+                      )}
                     </div>
                     <div className="text-xs text-gray-500">
                       {OneUptimeDate.getDateAsLocalShortDateTimeString(

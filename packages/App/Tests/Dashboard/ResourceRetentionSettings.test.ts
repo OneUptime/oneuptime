@@ -47,7 +47,7 @@ interface ResourceSettingsSpec {
  */
 const STANDARD_TELEMETRY_RESOURCES: Array<ResourceSettingsSpec> = [
   { resource: "Rum", model: "RumApplication" },
-  { resource: "Cloud", model: "CloudResource" },
+  { resource: "AppPlatforms", model: "CloudResource" },
   { resource: "Serverless", model: "ServerlessFunction" },
   { resource: "Kubernetes", model: "KubernetesCluster" },
   { resource: "Docker", model: "DockerHost" },
@@ -558,7 +558,7 @@ describe("RUM session replay retention Settings", () => {
   });
 
   test.each([
-    { resource: "Cloud", model: "CloudResource" },
+    { resource: "AppPlatforms", model: "CloudResource" },
     { resource: "Serverless", model: "ServerlessFunction" },
     { resource: "Database", model: "DatabaseServer" },
   ])(

@@ -48,19 +48,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir l'hôte
 
-Sous **Podman Monitor Configuration**, choisissez l'hôte dans **Hôte Podman**. Chaque hôte qui a envoyé des données figure dans la liste.
+Sous **Podman Monitor Configuration**, choisissez l'hôte dans **Hôte Podman**. Chaque hôte qui a envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un hôte Podman** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Host Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** – cliquez sur un [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit la métrique, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
-- **Custom Metric** – choisissez une métrique dans **Podman Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. **Nom du conteneur** et **Image du conteneur** la restreignent à certains conteneurs.
-- **Avancé** – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**. Utilisez **Regrouper par** `resource.container.name` pour juger chaque conteneur séparément.
+- **Modifier** – choisissez un autre [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit la métrique, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) – choisissez une métrique dans **Podman Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. **Nom du conteneur** et **Image du conteneur** la restreignent à certains conteneurs.
+- **Avancé** (sous **Plus de champs**) – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**. Utilisez **Regrouper par** `resource.container.name` pour juger chaque conteneur séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro ; définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données ; définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -84,17 +84,17 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose six modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Host Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque conteneur est jugé séparément et reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose six modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Host Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque conteneur est jugé séparément et reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Avg par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
-| High Container Memory Usage | Warning | `container.memory.percent`, Avg par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
-| Container Restart Loop | Critique | Croissance de `container.restarts` par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
-| High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
+| High Container CPU Usage | Avertissement | `container.cpu.utilization`, Avg par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
+| High Container Memory Usage | Avertissement | `container.memory.percent`, Avg par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
+| Container Restart Loop | Critique | `container.restarts.increase`, Sum par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
+| High Container Process Count | Avertissement | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 | Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Sous 120 secondes | À 132 secondes ou plus |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
@@ -107,7 +107,7 @@ Les deux modèles en pourcentage utilisent **Moyenne** : leurs métriques sont d
 > `container.cpu.utilization` est le nombre qu'affiche `podman stats`, en moyenne sur l'intervalle de 30 secondes de l'agent : 100 % correspond à un cœur de CPU complet, et non à toute l'allocation de CPU du conteneur. Un conteneur doté de plusieurs cœurs affiche bien plus de 100 en bonne santé ; relevez donc le seuil pour ceux-là.
 
 > [!NOTE]
-> `container.restarts` est un total cumulé tenu par Podman, donc **Container Restart Loop** alerte sur sa croissance dans la fenêtre, comme sous Docker : une requête Maximum et une requête Minimum par minute, soustraites par une formule puis additionnées. Avec la collecte de 30 secondes de l'agent, environ la moitié des redémarrages est vue, et le seuil en tient déjà compte. L'agent n'échantillonne en outre que les conteneurs en cours d'exécution : un conteneur qui s'arrête dès son démarrage n'est presque jamais échantillonné, et **Container Restarted (Low Uptime)** se déclenche à chaque redémarrage que l'agent voit.
+> `container.restarts` est un total cumulé tenu par Podman, jusqu'à ce qu'un redémarrage manuel ou un conteneur recréé le fasse repartir de 0 : l'agent envoie donc aussi `container.restarts.increase` avec chaque mesure, soit les redémarrages depuis sa mesure précédente du conteneur. **Container Restart Loop** les additionne, comme sous Docker : il compte donc chaque redémarrage, quel que soit l'écart entre les mesures, et un redémarrage manuel n'en est pas un. Un agent plus ancien n'envoie pas `container.restarts.increase` : [mettez-le à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent) d'abord. Un moniteur créé à partir du modèle avant cela lit de combien `container.restarts` a augmenté au sein de chaque minute, ce qui manque environ la moitié des redémarrages d'une boucle : supprimez-le et recréez le modèle.
 
 > [!CAUTION]
 > `container.uptime` n'existe que pour les conteneurs en cours d'exécution. Un conteneur qui s'arrête et reste arrêté n'envoie aucune donnée, donc **Container Restarted (Low Uptime)** détecte les redémarrages et les redéploiements, pas un arrêt définitif. Un conteneur prévu pour tourner moins de deux minutes reste en état d'alerte pendant toute sa vie.
@@ -154,6 +154,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` pointé sur le socket
 | --- | --- |
 | `container.uptime` | Secondes écoulées depuis le démarrage du conteneur. Seuls les conteneurs en cours d'exécution la remontent. |
 | `container.restarts` | Nombre de redémarrages du conteneur. Un total cumulé. |
+| `container.restarts.increase` | Redémarrages depuis la mesure précédente du conteneur par l'agent, envoyés avec chaque mesure. Leur somme sur une fenêtre donne les redémarrages de cette fenêtre : alertez donc sur celle-ci plutôt que sur le total cumulé. |
 | `container.pids.count` | Tâches dans le conteneur. Le contrôleur pids du cgroup compte les threads aussi bien que les processus. |
 
 `container.cpu.throttling_data.throttled_periods` n'est pas dans la liste ; interrogez-la depuis **Avancé**.
@@ -172,7 +173,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
 | **En l'absence de données** | Sous **Plus de champs**. Ce qui se passe quand la fenêtre n'a aucune mesure : **Ignore** (par défaut), **Treat As Zero** ou **Déclencheur**. |
 
-Les conditions d'anomalie comparent chaque valeur à la même heure de la semaine dans la référence. Elles restent dans un état « Learning », et ne déclenchent rien, tant que la fenêtre de référence ne contient pas assez d'historique.
+Les conditions d'anomalie comparent chaque valeur à la même heure de la semaine dans la référence. Elles restent dans un état « Learning », et ne déclenchent rien, tant que la fenêtre de référence ne contient pas assez d'historique. Une somme, un décompte ou une requête sur un histogramme reste dans cet état pour de bon : ce moniteur filtre ses requêtes par attributs, et la référence n'en contient aucun.
 
 Chaque critère indique aussi quoi faire quand il correspond : changer le statut du moniteur, créer une alerte ou déclarer un incident. Les critères sont vérifiés de haut en bas, et le premier qui correspond l'emporte.
 
@@ -290,8 +291,8 @@ OneUptime identifie un hôte par `resource.host.name`, que l'agent tire de `PODM
 Regroupez la requête par `resource.container.name`, comme le fait le modèle **High Container CPU Usage**, pour que chaque conteneur soit jugé séparément. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé. Si le CPU d'un conteneur reste une ligne plate quelle que soit sa charge, l'hôte exécute un agent plus ancien : [mettez-le à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent).
 :::
 
-:::details L'alerte sur le nombre de redémarrages ne se rétablit jamais
-`container.restarts` est un total cumulé, il ne redescend donc pas de lui-même sous le seuil. Corrigez la cause, puis recréez le conteneur pour remettre le compteur à zéro, ou relevez le seuil.
+:::details L'alerte de redémarrage ne se déclenche jamais ou ne se rétablit jamais
+Un moniteur qui compare `container.restarts` lui-même à un seuil, comme celui créé à partir d'une première version du modèle de redémarrage, se déclenche sur l'historique du conteneur et ne se rétablit jamais : le total ne fait que croître. Un moniteur créé à partir de **Container Restart Loop** avant qu'il ne lise `container.restarts.increase` mesure de combien le total a augmenté au sein de chaque minute, et manque environ la moitié des redémarrages d'une boucle. Un agent plus ancien n'envoie pas `container.restarts.increase` : [mettez l'agent à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent), puis supprimez le moniteur et recréez **Container Restart Loop**.
 :::
 
 ## Étapes suivantes

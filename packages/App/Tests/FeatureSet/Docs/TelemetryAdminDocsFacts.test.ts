@@ -1313,7 +1313,8 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "VMware",
       "Database",
       "Serverless",
-      "Cloud",
+      // A cloud environment's, in App Platforms: a resource in Cloud has none.
+      "AppPlatforms",
       "Rum",
       "IoT",
     ];
@@ -1352,12 +1353,12 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "vCenter",
       "database",
       "serverless function",
-      "cloud resource",
+      "cloud environment",
       "RUM application",
       "IoT fleet",
     ]);
     expect(page).toContain(
-      "Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud resources, RUM applications and IoT fleets all have these cards.",
+      "Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud environments, RUM applications and IoT fleets all have these cards.",
     );
     // And says where they wait: folded under the page's More settings.
     expect(page).toContain(
@@ -2276,6 +2277,46 @@ describe("Topology (telemetry/topology)", () => {
         "VMWARE_VCENTER_VIEW_TOPOLOGY",
       ].sort(),
     );
+  });
+
+  it("says how to read a resource's map as the map draws it: a tree, lines coloured by trouble, the way to it open", () => {
+    const layout: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyLayout.ts",
+    );
+    const look: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyLook.ts",
+    );
+    const view: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyView.ts",
+    );
+    const nodes: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyNodes.tsx",
+    );
+    const canvas: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyCanvas.tsx",
+    );
+
+    expect(page).toContain(
+      "- **Read it as a tree.** The resource is at the top, and each part's parts are drawn to its right, joined to it by a line that turns red or amber where something needs attention. Parts with trouble inside open by themselves, the round button on a part opens or closes it, and the arrow keys move through the map.",
+    );
+    // The resource at the top; a part's parts in the column to its right.
+    expect(layout).toContain("export function getTopologyColumnX(");
+    expect(layout).toContain("rootIndent");
+    // Lines red or amber where trouble lies: the health colours.
+    expect(between(look, "RESOURCE_TOPOLOGY_BRANCH_COLORS", "};")).toContain(
+      "RESOURCE_TOPOLOGY_HEALTH_COLORS.critical",
+    );
+    expect(between(look, "RESOURCE_TOPOLOGY_BRANCH_COLORS", "};")).toContain(
+      "RESOURCE_TOPOLOGY_HEALTH_COLORS.warning",
+    );
+    // Parts with trouble inside open by themselves.
+    expect(between(view, "export function opensByItself(", "\n}")).toContain(
+      "node.attentionBelow > 0",
+    );
+    // The round button opens and closes; the arrow keys move through it.
+    expect(nodes).toContain('borderRadius: "50%"');
+    expect(nodes).toContain("aria-expanded={props.isOpen}");
+    expect(canvas).toContain("getTopologyKeyMove(");
   });
 
   it("names the buttons that narrow a resource's map and lead between the two maps, as the Dashboard draws them", () => {

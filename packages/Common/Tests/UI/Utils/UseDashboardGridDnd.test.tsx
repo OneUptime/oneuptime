@@ -37,6 +37,12 @@ interface HarnessProps {
   isEnabled?: boolean;
   onCommit?: (rects: Array<GridRect>) => void;
   onItemClick?: (id: string) => void;
+  /*
+   * A row's height when it is not a unit's width: a board narrower than its
+   * square grid (DashboardBoardLayout) narrows its columns and keeps its
+   * rows.
+   */
+  rowUnitSizeInPx?: number;
 }
 
 /**
@@ -52,7 +58,12 @@ const Harness: FunctionComponent<HarnessProps> = (
 
   const dnd: DashboardGridDndResult = useDashboardGridDnd({
     items,
-    metrics: { unitSizeInPx: UNIT, gapInPx: GAP, columns: 12 },
+    metrics: {
+      unitSizeInPx: UNIT,
+      rowUnitSizeInPx: props.rowUnitSizeInPx,
+      gapInPx: GAP,
+      columns: 12,
+    },
     isEnabled: props.isEnabled ?? true,
     canvasRef,
     onCommit: (rects: Array<GridRect>) => {
@@ -775,6 +786,187 @@ describe("useDashboardGridDnd — resizing", () => {
 
     // The bottom edge (row 3) is anchored; the top clamps at 0.
     expect(itemAttr("a", "top")).toBe(0);
+    expect(itemAttr("a", "height")).toBe(3);
+  });
+});
+
+/*
+ * A board narrower than its square grid narrows its columns and keeps its
+ * rows 70px tall (Common/Utils/Dashboard/DashboardBoardLayout), so while it
+ * is edited a row is taller than a column is wide. Here columns stay 50px
+ * (a 60px pitch) and rows are 80px (a 90px pitch): every move and resize
+ * across is measured in columns, and every one down in rows.
+ */
+describe("useDashboardGridDnd — rows taller than columns are wide", () => {
+  const ROW: number = 80;
+  const ROW_CELL: number = ROW + GAP;
+
+  test("a drag one row's pitch down moves the widget one row", () => {
+    const onCommit: jest.Mock = jest.fn();
+
+    render(
+      <Harness
+        initialItems={[makeRect({ id: "a", left: 0, top: 0 })]}
+        rowUnitSizeInPx={ROW}
+        onCommit={onCommit}
+      />,
+    );
+
+    press(screen.getByTestId("item-a"), { x: 10, y: 10 });
+    moveTo({ x: 10, y: 10 + ROW_CELL });
+    release({ x: 10, y: 10 + ROW_CELL });
+
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(itemAttr("a", "top")).toBe(1);
+    expect(itemAttr("a", "left")).toBe(0);
+  });
+
+  test("a drag of 40px down stays in its row, where square 60px cells would have moved it", () => {
+    const onCommit: jest.Mock = jest.fn();
+
+    render(
+      <Harness
+        initialItems={[makeRect({ id: "a", left: 0, top: 0 })]}
+        rowUnitSizeInPx={ROW}
+        onCommit={onCommit}
+      />,
+    );
+
+    press(screen.getByTestId("item-a"), { x: 10, y: 10 });
+    moveTo({ x: 10, y: 50 });
+    release({ x: 10, y: 50 });
+
+    expect(itemAttr("a", "top")).toBe(0);
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  test("across, the pitch is still the column's: two columns right is two units", () => {
+    render(
+      <Harness
+        initialItems={[makeRect({ id: "a", left: 0, top: 1 })]}
+        rowUnitSizeInPx={ROW}
+      />,
+    );
+
+    press(screen.getByTestId("item-a"), { x: 10, y: ROW_CELL + 10 });
+    moveTo({ x: 10 + 2 * CELL, y: ROW_CELL + 10 });
+    release({ x: 10 + 2 * CELL, y: ROW_CELL + 10 });
+
+    expect(itemAttr("a", "left")).toBe(2);
+    expect(itemAttr("a", "top")).toBe(1);
+  });
+
+  test("the dragged widget is drawn at its rows' height and moved by the row pitch", () => {
+    render(
+      <Harness
+        initialItems={[
+          makeRect({ id: "a", left: 0, top: 0, width: 3, height: 2 }),
+        ]}
+        rowUnitSizeInPx={ROW}
+      />,
+    );
+
+    const element: HTMLElement = screen.getByTestId("item-a");
+
+    press(element, { x: 10, y: 10 });
+    moveTo({ x: 10 + CELL, y: 10 + ROW_CELL });
+
+    expect(element.style.transform).toBe(`translate(${CELL}px, ${ROW_CELL}px)`);
+    expect(element.style.width).toBe(`${3 * UNIT + 2 * GAP}px`);
+    expect(element.style.height).toBe(`${2 * ROW + GAP}px`);
+
+    release({ x: 10 + CELL, y: 10 + ROW_CELL });
+
+    // Settled where its rect now is, at the same sizes.
+    expect(element.style.transform).toBe(`translate(${CELL}px, ${ROW_CELL}px)`);
+    expect(element.style.height).toBe(`${2 * ROW + GAP}px`);
+    expect(itemAttr("a", "left")).toBe(1);
+    expect(itemAttr("a", "top")).toBe(1);
+  });
+
+  test("a south resize grows one row per row pitch, not per column pitch", () => {
+    render(
+      <Harness
+        initialItems={[
+          makeRect({ id: "a", left: 0, top: 0, width: 3, height: 2 }),
+        ]}
+        rowUnitSizeInPx={ROW}
+      />,
+    );
+
+    const bottom: number = 2 * ROW + GAP;
+
+    press(screen.getByTestId("resize-a-s"), { x: 30, y: bottom });
+    moveTo({ x: 30, y: bottom + 2 * ROW_CELL });
+    release({ x: 30, y: bottom + 2 * ROW_CELL });
+
+    expect(itemAttr("a", "height")).toBe(4);
+    expect(itemAttr("a", "width")).toBe(3);
+  });
+
+  test("an east resize grows one column per column pitch", () => {
+    render(
+      <Harness
+        initialItems={[makeRect({ id: "a", left: 0, top: 0, width: 3 })]}
+        rowUnitSizeInPx={ROW}
+      />,
+    );
+
+    press(screen.getByTestId("resize-a-e"), { x: 170, y: 30 });
+    moveTo({ x: 170 + 2 * CELL, y: 30 });
+    release({ x: 170 + 2 * CELL, y: 30 });
+
+    expect(itemAttr("a", "width")).toBe(5);
+    expect(itemAttr("a", "height")).toBe(2);
+  });
+
+  test("a north resize keeps the bottom edge, counting rows by their own pitch", () => {
+    render(
+      <Harness
+        initialItems={[makeRect({ id: "a", left: 0, top: 3, height: 2 })]}
+        rowUnitSizeInPx={ROW}
+      />,
+    );
+
+    press(screen.getByTestId("resize-a-n"), { x: 30, y: 3 * ROW_CELL });
+    moveTo({ x: 30, y: 3 * ROW_CELL - ROW_CELL });
+    release({ x: 30, y: 3 * ROW_CELL - ROW_CELL });
+
+    expect(itemAttr("a", "top")).toBe(2);
+    expect(itemAttr("a", "height")).toBe(3);
+  });
+
+  test("a resize never shrinks below the minimum, measured in rows", () => {
+    render(
+      <Harness
+        initialItems={[
+          makeRect({
+            id: "a",
+            left: 0,
+            top: 0,
+            width: 6,
+            height: 4,
+            minWidth: 2,
+            minHeight: 3,
+          }),
+        ]}
+        rowUnitSizeInPx={ROW}
+      />,
+    );
+
+    const bottom: number = 4 * ROW + 3 * GAP;
+
+    press(screen.getByTestId("resize-a-s"), { x: 30, y: bottom });
+    moveTo({ x: 30, y: 0 });
+
+    const element: HTMLElement = screen.getByTestId("item-a");
+
+    // Clamped at three rows' height while dragging...
+    expect(element.style.height).toBe(`${3 * ROW + 2 * GAP}px`);
+
+    release({ x: 30, y: 0 });
+
+    // ...and committed at three rows.
     expect(itemAttr("a", "height")).toBe(3);
   });
 });

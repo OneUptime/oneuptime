@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Company name associated with this license.",
+  "Annual contract value (in USD) for this license.": "Annual contract value (in USD) for this license.",
+  "Expiration date of this license.": "Expiration date of this license.",
+  "Something went wrong": "Something went wrong",
+  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
+  "Error details": "Error details",
+  "Still stuck?": "Still stuck?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.",
+  "Download support bundle": "Download support bundle",
+  "Send it to {{email}}": "Send it to {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Support bundle downloaded. Review it, then attach it to your email.",
+  "The support bundle could not be downloaded. Please try again.": "The support bundle could not be downloaded. Please try again.",
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "{{price}} per user, billed yearly from today.",
   "{{price}} per user, billed monthly from today.": "{{price}} per user, billed monthly from today.",
   "Our sales team will contact you to agree on a price.": "Our sales team will contact you to agree on a price.",
+  "Current plan": "Current plan",
+  "Current plan, billed yearly": "Current plan, billed yearly",
+  "Current plan, billed monthly": "Current plan, billed monthly",
   "{{count}}-day free trial": "{{count}}-day free trial",
   "{{count}}-day free trial_one": "{{count}}-day free trial",
   "Free for {{count}} days, no card needed to start.": "Free for {{count}} days, no card needed to start.",
@@ -1560,5 +1575,12 @@
     "note": "Note",
     "tip": "Tip",
     "warning": "Warning"
-  }
+  },
+  "Compact rows": "Compact rows",
+  "Sort by": "Sort by",
+  "Sorted by {{column}}": "Sorted by {{column}}",
+  "Sort": "Sort",
+  "Ascending": "Ascending",
+  "Descending": "Descending",
+  "Select all items": "Select all items"
 }

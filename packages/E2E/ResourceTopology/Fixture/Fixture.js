@@ -14,7 +14,8 @@
  *              or alerts)
  *   ?fail=     topology (every inventory read fails once, so the page shows
  *              its error and retries)
- *   ?lang=     de reads the German locale file
+ *   ?lang=     de reads the German locale file, fa the Persian one (a page
+ *              read from right to left)
  *   ?theme=    dark (handled by server.js)
  *
  * Every read is recorded on window.__resourceTopologyFixture: listRequests,
@@ -35,6 +36,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import VMwareLayout from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Layout";
@@ -55,6 +57,8 @@ import CephLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/La
 import CephTopology from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Topology";
 import StorageArrayLayout from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Layout";
 import StorageArrayTopology from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Topology";
+import CloudAccountLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Layout";
+import CloudAccountTopology from "../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Topology";
 import MasterTopologyPage from "../../../App/FeatureSet/Dashboard/src/Pages/Topology/TopologyPage";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -70,6 +74,7 @@ import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
@@ -79,7 +84,14 @@ import {
   isTopologyApiUrl,
   topologyRouteFor,
 } from "../../Topology/TopologyApiFixture";
-import { IDS, NAMES, PROJECT_ID, buildEstate, uuid } from "./FixtureData";
+import {
+  CLOUD_ACCOUNT_ID,
+  IDS,
+  NAMES,
+  PROJECT_ID,
+  buildEstate,
+  uuid,
+} from "./FixtureData";
 
 /*
  * ---------------------------------------------------------------------------
@@ -94,7 +106,9 @@ const ISSUES = ["off", "denied"].includes(params.get("issues"))
   ? params.get("issues")
   : "on";
 const FAIL = params.get("fail") || "";
-const LANGUAGE = params.get("lang") === "de" ? "de" : "en";
+const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 const LOADED_AT = Date.now();
 const MINUTE = 60 * 1000;
 
@@ -192,6 +206,9 @@ const crashingPod = estate.k8sRows.find((row) => {
 const restartingContainer = estate.dockerRows.find((row) => {
   return row.name === "shop-api-2";
 });
+const ordersDatabase = estate.cloudRows.find((row) => {
+  return row.name === "orders-db";
+});
 
 const incidents =
   ISSUES === "on" && ESTATE !== "quiet" && ESTATE !== "empty"
@@ -232,6 +249,11 @@ const incidents =
           title: "[Ceph] OSD down",
           cephClusters: [{ _id: IDS.ceph }],
           seriesLabels: { ceph_daemon: "osd.5" },
+        }),
+        incident({
+          title: "[AWS] RDS CPU above 90% - orders-db",
+          cloudResources: ordersDatabase ? [{ _id: ordersDatabase._id }] : [],
+          seriesLabels: null,
         }),
       ]
     : [];
@@ -441,6 +463,17 @@ const store = {
     },
   ],
   StorageArrayResource: estate.storageRows,
+  CloudAccount: [
+    {
+      _id: IDS.cloudAccount,
+      name: "production",
+      provider: "aws",
+      accountId: CLOUD_ACCOUNT_ID,
+      lastSeenAt: fresh,
+      isArchived: false,
+    },
+  ],
+  CloudResource: estate.cloudRows,
   IncidentState: incidentStates,
   AlertState: alertStates,
   ScheduledMaintenanceState: [
@@ -471,6 +504,7 @@ const INVENTORY_TABLES = new Set([
   "ProxmoxResource",
   "CephResource",
   "StorageArrayResource",
+  "CloudResource",
 ]);
 let failuresLeft = FAIL === "topology" ? 1 : 0;
 
@@ -731,9 +765,12 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     de: { translation: de },
+    fa: { translation: fa },
   },
   interpolation: { escapeValue: false },
 });
+// <html lang> and <html dir> follow the language, as the Dashboard's do.
+followLanguageForPage(i18next);
 
 /*
  * ---------------------------------------------------------------------------
@@ -810,6 +847,12 @@ const PRODUCTS = [
     StorageArrayTopology,
     PageMap.STORAGE_ARRAY_VIEW,
     PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY,
+  ],
+  [
+    CloudAccountLayout,
+    CloudAccountTopology,
+    PageMap.CLOUD_ACCOUNT_VIEW,
+    PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY,
   ],
 ].map(([Layout, Page, layoutKey, pageKey]) => {
   return {

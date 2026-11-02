@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="{{#if @root.emailLanguage}}{{@root.emailLanguage}}{{else}}en{{/if}}"{{#if @root.emailDirection}} dir="{{@root.emailDirection}}"{{/if}}>
 {{> Header}}
-<body class="st-Email" bgcolor="#f1f5f9" style="margin: 0; padding: 0; width: 100%; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;" override="fix">
+<body class="st-Email" bgcolor="#f1f5f9" style="margin: 0; padding: 0; width: 100%; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;"{{#if @root.emailDirection}} dir="{{@root.emailDirection}}"{{/if}} override="fix">
   {{#if preheader}}<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">{{preheader}}</div>{{/if}}
   <table role="presentation" class="st-Background" bgcolor="#f1f5f9" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
     <tr><td class="st-Outer" align="center" style="padding: 32px 12px;">
       <!--[if mso]><table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="640"><tr><td><![endif]-->
-      <table role="presentation" class="st-Wrapper" align="center" bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 640px; table-layout: fixed; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; border-spacing: 0;">
+      <table role="presentation" class="st-Wrapper" align="center" bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 640px; table-layout: fixed; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; border-spacing: 0;"{{#if @root.emailDirection}} dir="{{@root.emailDirection}}"{{/if}}>
         <tr><td style="padding: 0;">

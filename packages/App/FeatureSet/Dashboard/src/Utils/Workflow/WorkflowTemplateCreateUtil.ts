@@ -14,14 +14,24 @@ import ObjectID from "Common/Types/ObjectID";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
+  PageStepTarget,
+  PageTargetKind,
+  getPageStepTarget,
+} from "Common/Types/Workflow/Components/OnCall";
+import {
   WORKFLOW_TEMPLATE_VARIABLE_NAME_REGEX,
+  WhoToPagePicks,
   WorkflowTemplate,
   WorkflowTemplateOAuth2Variable,
   WorkflowTemplateVariable,
+  WorkflowTemplateWhoToPage,
   buildGraphForTemplate,
   fillWorkflowTemplateSetting,
+  getTemplateGraphSpec,
 } from "Common/Types/Workflow/Templates";
 import { WorkflowVariableType } from "Common/Types/Workflow/WorkflowVariableOAuth";
+import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /** Keyed by WorkflowTemplateVariable.name. */
 export interface WorkflowTemplateVariableValues {
@@ -179,6 +189,95 @@ export const editTemplateVariable: EditTemplateVariableFunction = (
   };
 };
 
+/*
+ * WHO A TEMPLATE PAGES, ASKED IN THE WIZARD.
+ *
+ * A template that pages people has a Page step whose who-to-page setting no
+ * template can fill in: the people, teams, schedules and policies are the
+ * project's own. It used to be left for the Builder, so the workflow opened
+ * there with an error on the step - "1 error" on a fresh "Zabbix problems
+ * to incidents". The template now names each such step (whoToPage), and the
+ * Configure step asks with the people picker the Builder draws for it.
+ */
+
+// The people picker's kind for each kind of Page step.
+const PICKER_KIND_OF_PAGE_TARGET: Record<PageTargetKind, PeoplePickerKind> = {
+  [PageTargetKind.User]: PeoplePickerKind.User,
+  [PageTargetKind.Team]: PeoplePickerKind.Team,
+  [PageTargetKind.OnCallSchedule]: PeoplePickerKind.OnCallSchedule,
+  [PageTargetKind.OnCallPolicy]: PeoplePickerKind.OnCallPolicy,
+};
+
+// One Page step's question, with what its picker lists.
+export interface WhoToPageQuestion extends WorkflowTemplateWhoToPage {
+  kind: PeoplePickerKind;
+}
+
+export type GetWhoToPageQuestionsFunction = (
+  template: WorkflowTemplate | null,
+) => Array<WhoToPageQuestion>;
+
+// The Configure step's who-to-page questions, in the template's order. None for a template that pages nobody.
+export const getWhoToPageQuestions: GetWhoToPageQuestionsFunction = (
+  template: WorkflowTemplate | null,
+): Array<WhoToPageQuestion> => {
+  if (!template || !template.whoToPage) {
+    return [];
+  }
+
+  const nodes: Array<{ componentId: string; metadataId: string }> =
+    getTemplateGraphSpec(template.id)?.nodes || [];
+
+  return template.whoToPage.map(
+    (ask: WorkflowTemplateWhoToPage): WhoToPageQuestion => {
+      const metadataId: string | undefined = nodes.find(
+        (node: { componentId: string }): boolean => {
+          return node.componentId === ask.componentId;
+        },
+      )?.metadataId;
+      const target: PageStepTarget | null = getPageStepTarget(metadataId);
+
+      if (!target) {
+        throw new Error(
+          `${template.id} asks who ${ask.componentId} pages, but it is not a Page step.`,
+        );
+      }
+
+      return { ...ask, kind: PICKER_KIND_OF_PAGE_TARGET[target.kind] };
+    },
+  );
+};
+
+// What a required who-to-page question says when nobody is picked. In English: its key, looked up where it is shown.
+export const WHO_TO_PAGE_REQUIRED_MESSAGE: string =
+  translationKey("Pick who to page.");
+
+/** Errors for the who-to-page questions, keyed by the Page step's component id. */
+export interface WhoToPageErrors {
+  [componentId: string]: string;
+}
+
+export type ValidateWhoToPageFunction = (
+  template: WorkflowTemplate,
+  picks: WhoToPagePicks,
+) => WhoToPageErrors;
+
+// Somebody for each question that requires it. A question that does not may be left with nobody.
+export const validateWhoToPage: ValidateWhoToPageFunction = (
+  template: WorkflowTemplate,
+  picks: WhoToPagePicks,
+): WhoToPageErrors => {
+  const errors: WhoToPageErrors = {};
+
+  for (const ask of template.whoToPage || []) {
+    if (ask.required && (picks[ask.componentId] || []).length === 0) {
+      errors[ask.componentId] = WHO_TO_PAGE_REQUIRED_MESSAGE;
+    }
+  }
+
+  return errors;
+};
+
 export type TemplateVariablesToFillFunction = (
   template: WorkflowTemplate | null,
 ) => Array<WorkflowTemplateVariable>;
@@ -260,6 +359,8 @@ interface BuildWorkflowProps {
   projectId: ObjectID;
   template?: WorkflowTemplate | null | undefined;
   values?: WorkflowTemplateVariableValues | undefined;
+  // Who was picked for each of the template's Page steps (getWhoToPageQuestions).
+  whoToPage?: WhoToPagePicks | undefined;
   generateId?: GenerateIdFunction | undefined;
 }
 
@@ -292,9 +393,15 @@ export const buildWorkflowFromTemplate: BuildWorkflowFromTemplateFunction = (
     return workflow;
   }
 
+  /*
+   * A template that pages takes who was picked into its Page steps, and
+   * leaves out a Page step nobody was picked for where nobody may be
+   * (applyWhoToPage): what it opens with in the Builder is whole.
+   */
   const graph: JSONObject | null = buildGraphForTemplate(
     props.template.id,
     props.generateId || generateWorkflowNodeId,
+    props.template.whoToPage ? props.whoToPage || {} : undefined,
   );
 
   if (!graph) {

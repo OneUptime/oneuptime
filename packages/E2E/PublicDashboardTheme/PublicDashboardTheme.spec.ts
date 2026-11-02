@@ -30,6 +30,11 @@ import {
  *     light box but the logo's backdrop, every text at 4.5:1 (3:1 when
  *     large), the HTML widget transparent; and so are the empty states and
  *     the toolbar's menus and time range picker.
+ *   - A dashboard's logo for its dark theme is drawn instead of the logo
+ *     while the page is dark, as it is, with no backdrop.
+ *   - On a phone nothing scrolls sideways: the widgets are one under
+ *     another, in the order the grid is read; on a tablet the grid keeps
+ *     its arrangement in the screen's width.
  *
  * Screenshots of every board in both themes, and of the prompt and the
  * error pages, are saved for review under
@@ -240,14 +245,14 @@ const themeMenu: (page: Page) => Locator = (page: Page): Locator => {
 /*
  * A press on a control of the dashboard's toolbar, as the visitor makes it.
  *
- * The dashboard's board keeps its 1000px on a phone and scrolls sideways in
- * its own frame (DashboardViewLayout); the toolbar fits the screen. A
- * control the visitor scrolls to is where Playwright's own click cannot
- * reach it: in the phone emulation (isMobile) the browser scrolls the
- * visual viewport, not the page, and Playwright's check of what is under
- * the pointer then looks at the wrong place. So on the phone the control
- * is scrolled to, must be visible and enabled, and gets the click a tap
- * ends in; at 1280 it is Playwright's real click.
+ * On a phone the page is the screen's width and its board stacks its
+ * widgets (DashboardViewLayout), but a menu's choices can still sit below
+ * the fold. A control the visitor scrolls to is where Playwright's own
+ * click cannot reach it: in the phone emulation (isMobile) the browser
+ * scrolls the visual viewport, not the page, and Playwright's check of
+ * what is under the pointer then looks at the wrong place. So on the phone
+ * the control is scrolled to, must be visible and enabled, and gets the
+ * click a tap ends in; at 1280 it is Playwright's real click.
  */
 const press: (control: Locator) => Promise<void> = async (
   control: Locator,
@@ -1217,6 +1222,96 @@ test.describe("every widget kind in the dark theme", () => {
     expect(await backdrop(page)).toBe("rgba(0, 0, 0, 0)");
   });
 
+  /*
+   * A dashboard's logo for its dark theme (its Branding page): drawn
+   * instead of the logo while the page is dark, as it is - light lettering
+   * made for a dark background needs no backdrop - and the logo, on nothing,
+   * on the light page. Without one, the logo keeps its backdrop (above).
+   */
+  test("a dashboard's dark theme logo is drawn on the dark page, as it is, and the logo on the light one", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    const drawnLogo: (page: Page) => Promise<{
+      variant: string | null;
+      isPlate: boolean;
+      background: string;
+      source: string;
+      width: number;
+    }> = async (
+      page: Page,
+    ): Promise<{
+      variant: string | null;
+      isPlate: boolean;
+      background: string;
+      source: string;
+      width: number;
+    }> => {
+      return page.evaluate(() => {
+        const logo: HTMLElement | null = document.querySelector(
+          "[data-ou-logo-variant]",
+        );
+        const image: HTMLImageElement | null = logo
+          ? logo.querySelector("img")
+          : null;
+
+        return {
+          variant: logo ? logo.getAttribute("data-ou-logo-variant") : null,
+          isPlate: Boolean(logo && logo.hasAttribute("data-ou-logo-plate")),
+          background: logo ? getComputedStyle(logo).backgroundColor : "none",
+          source: image ? image.src : "",
+          width: image ? image.getBoundingClientRect().width : 0,
+        };
+      });
+    };
+
+    await openDashboard(page, "dark", "darkLogo=1");
+    await expect(page.locator("[data-ou-logo-variant] img")).toBeVisible();
+
+    const dark: Awaited<ReturnType<typeof drawnLogo>> = await drawnLogo(page);
+
+    expect(dark.variant).toBe("dark");
+    expect(dark.isPlate).toBe(false);
+    expect(dark.background).toBe("rgba(0, 0, 0, 0)");
+    expect(dark.width).toBeGreaterThan(0);
+    await shoot(page, testInfo, "dark-theme-logo-dark");
+
+    // The visitor turns it light: the logo, made for the light page.
+    await pickTheme(page, "light");
+    await expectScheme(page, "light");
+
+    const light: Awaited<ReturnType<typeof drawnLogo>> = await drawnLogo(page);
+
+    expect(light.variant).toBe("light");
+    expect(light.source).not.toBe(dark.source);
+    expect(light.background).toBe("rgba(0, 0, 0, 0)");
+    await shoot(page, testInfo, "dark-theme-logo-light");
+
+    // And dark again: the dark theme logo is back.
+    await pickTheme(page, "dark");
+    await expectScheme(page, "dark");
+    expect((await drawnLogo(page)).source).toBe(dark.source);
+  });
+
+  test("a System dashboard's dark theme logo follows the device", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await openDashboard(page, "system", "darkLogo=1");
+
+    await expect(
+      page.locator('[data-ou-logo-variant="dark"] img'),
+    ).toBeVisible();
+
+    await page.emulateMedia({ colorScheme: "light" });
+
+    await expect(
+      page.locator('[data-ou-logo-variant="light"] img'),
+    ).toBeVisible();
+    await expect(page.locator('[data-ou-logo-variant="dark"]')).toHaveCount(0);
+  });
+
   test("the toolbar's menus and time range picker are dark, and readable", async ({
     page,
   }: {
@@ -1242,14 +1337,23 @@ test.describe("every widget kind in the dark theme", () => {
 });
 
 /*
- * The page at a phone's width (#5106, #5116 follow-up). The page was 1000px
- * wide as a whole, so on a phone the toolbar - auto-refresh, theme, full
- * screen - sat past the right edge and the header and footer scrolled away
- * with the board. Now the page is the screen's width, and only the board,
- * which keeps the 1000px its twelve columns are laid out for, scrolls
- * sideways inside its own frame.
+ * The page at a phone's width (#5106, #5116 follow-up, and #5284's). The
+ * page was 1000px wide as a whole, so on a phone the toolbar - auto-refresh,
+ * theme, full screen - sat past the right edge; then only the board kept
+ * its 1000px, scrolling sideways in a frame of its own, so a phone showed
+ * half of each row of widgets. Now nothing scrolls sideways: the board
+ * lays its widgets out in the screen's width, on a phone one under
+ * another (Common/Utils/Dashboard/DashboardBoardLayout).
  */
 test.describe("the page at a phone's width", () => {
+  interface WidgetBox {
+    id: string;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  }
+
   interface PageBoxes {
     viewport: number;
     pageScroll: number;
@@ -1258,6 +1362,9 @@ test.describe("the page at a phone's width", () => {
     footer: { left: number; right: number };
     frame: { clientWidth: number; scrollWidth: number; overflowX: string };
     board: number;
+    arrangement: string | null;
+    // Every widget, in the order the page draws them, read in one frame.
+    widgets: Array<WidgetBox>;
   }
 
   const measure: (page: Page) => Promise<PageBoxes> = async (
@@ -1285,6 +1392,7 @@ test.describe("the page at a phone's width", () => {
       };
       const frame: HTMLElement = byTestId("public-dashboard-board-frame");
       const toolbar: HTMLElement = byTestId("public-dashboard-toolbar");
+      const canvas: HTMLElement = byTestId("dashboard-board");
 
       return {
         viewport: document.documentElement.clientWidth,
@@ -1310,11 +1418,25 @@ test.describe("the page at a phone's width", () => {
           overflowX: getComputedStyle(frame).overflowX,
         },
         board: byTestId("public-dashboard-board").getBoundingClientRect().width,
+        arrangement: canvas.getAttribute("data-arrangement"),
+        widgets: Array.from(
+          canvas.querySelectorAll<HTMLElement>('[id^="dashboard-component-"]'),
+        ).map((element: HTMLElement): WidgetBox => {
+          const box: DOMRect = element.getBoundingClientRect();
+
+          return {
+            id: element.id,
+            left: box.left,
+            right: box.right,
+            top: box.top,
+            bottom: box.bottom,
+          };
+        }),
       };
     });
   };
 
-  test("the header, the toolbar and the footer are on the screen; only the board scrolls, in its frame", async ({
+  test("the header, the toolbar, the footer and every widget are on the screen; nothing scrolls sideways", async ({
     page,
   }: { page: Page }, testInfo: TestInfo) => {
     test.skip(
@@ -1343,12 +1465,106 @@ test.describe("the page at a phone's width", () => {
       ]);
     }
 
-    // The board keeps its grid's width and scrolls inside its frame.
-    expect(boxes.board).toBeGreaterThanOrEqual(1000);
-    expect(boxes.frame.overflowX).toBe("auto");
-    expect(boxes.frame.scrollWidth).toBeGreaterThan(boxes.frame.clientWidth);
+    // The board is the screen's width, and its frame never scrolls.
+    expect(Math.abs(boxes.board - boxes.viewport)).toBeLessThanOrEqual(1);
+    expect(boxes.frame.overflowX).toBe("visible");
+    expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
+
+    // Every widget is whole on the screen, across.
+    expect(boxes.widgets.length).toBeGreaterThan(5);
+
+    for (const widget of boxes.widgets) {
+      expect([widget.id, widget.left >= 0]).toEqual([widget.id, true]);
+      expect([widget.id, widget.right <= boxes.viewport + 0.5]).toEqual([
+        widget.id,
+        true,
+      ]);
+    }
 
     await shoot(page, testInfo, "phone-page");
+  });
+
+  test("the widgets are one under another, each the board's width, in the order the grid is read", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "light", "board=kubernetes");
+
+    const boxes: PageBoxes = await measure(page);
+
+    expect(boxes.arrangement).toBe("stacked");
+
+    const widths: Array<number> = boxes.widgets.map(
+      (widget: WidgetBox): number => {
+        return Math.round(widget.right - widget.left);
+      },
+    );
+
+    // One width for all of them: the board's, less its padding.
+    expect(new Set(widths).size).toBe(1);
+    expect(widths[0]!).toBeGreaterThan(boxes.viewport - 40);
+
+    // Each starts below the one before it ends: never two on one row.
+    for (let index: number = 1; index < boxes.widgets.length; index++) {
+      expect(boxes.widgets[index]!.top).toBeGreaterThanOrEqual(
+        boxes.widgets[index - 1]!.bottom,
+      );
+    }
+
+    /*
+     * The board's first widget is its title, across the top of the grid;
+     * the four values side by side under it come next, in their order.
+     */
+    const firstText: string = (
+      await page.locator('[id^="dashboard-component-"]').first().innerText()
+    ).trim();
+
+    expect(firstText).toContain("Kubernetes Dashboard");
+
+    await shoot(page, testInfo, "phone-stacked-kubernetes");
+  });
+
+  test("a chart has room for its plot on a phone", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "light", "board=kubernetes");
+
+    /*
+     * Each chart's plot: the tallest surface a chart widget - the widgets
+     * that offer "Drag to zoom" - draws its series on. A value's sparkline
+     * is a surface too, and short on purpose.
+     */
+    const plotHeights: Array<number> = await page.evaluate(
+      (): Array<number> => {
+        return Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[id^="dashboard-component-"]',
+          ),
+        )
+          .filter((widget: HTMLElement): boolean => {
+            return widget.innerText.indexOf("Drag to zoom") >= 0;
+          })
+          .map((widget: HTMLElement): number => {
+            return Math.max(
+              0,
+              ...Array.from(
+                widget.querySelectorAll<SVGElement>("svg.recharts-surface"),
+              ).map((svg: SVGElement): number => {
+                return svg.getBoundingClientRect().height;
+              }),
+            );
+          });
+      },
+    );
+
+    expect(plotHeights.length).toBeGreaterThan(0);
+
+    for (const height of plotHeights) {
+      expect(height).toBeGreaterThanOrEqual(120);
+    }
   });
 
   test("a real tap on the toolbar opens its menus: they are on the screen now", async ({
@@ -1438,33 +1654,41 @@ test.describe("the page at a phone's width", () => {
     expect(toolbarMiddle).toBeLessThan(titleBox.y + titleBox.height + 16);
   });
 
-  test("the board's frame scrolls sideways to its right edge, and back", async ({
+  /*
+   * A tablet keeps the dashboard's arrangement: the grid, its columns
+   * sharing the screen's width, every row as tall as on a 1000px board.
+   */
+  test("on a tablet the widgets keep the grid's arrangement in the screen's width", async ({
     page,
   }: { page: Page }, testInfo: TestInfo) => {
-    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+    test.skip(Boolean(testInfo.project.use.isMobile), "A tablet's width.");
 
-    await openDashboard(page, "light");
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await openDashboard(page, "light", "board=kubernetes");
 
-    const frame: Locator = page.getByTestId("public-dashboard-board-frame");
+    const boxes: PageBoxes = await measure(page);
 
-    const scrolled: { left: number; max: number } = await frame.evaluate(
-      (element: Element): { left: number; max: number } => {
-        element.scrollLeft = element.scrollWidth;
-        return {
-          left: element.scrollLeft,
-          max: element.scrollWidth - element.clientWidth,
-        };
+    expect(boxes.arrangement).toBe("grid");
+    expect(boxes.pageScroll).toBe(0);
+    expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
+
+    for (const widget of boxes.widgets) {
+      expect([widget.id, widget.right <= boxes.viewport + 0.5]).toEqual([
+        widget.id,
+        true,
+      ]);
+    }
+
+    // Side by side: some two widgets share a row.
+    const rowTops: Array<number> = boxes.widgets.map(
+      (widget: WidgetBox): number => {
+        return Math.round(widget.top);
       },
     );
 
-    expect(scrolled.max).toBeGreaterThan(0);
-    expect(scrolled.left).toBe(scrolled.max);
-    // The page itself has not moved: the header stays where it was.
-    expect(
-      await page.evaluate((): number => {
-        return window.scrollX;
-      }),
-    ).toBe(0);
+    expect(new Set(rowTops).size).toBeLessThan(rowTops.length);
+
+    await shoot(page, testInfo, "tablet-grid-kubernetes");
   });
 
   test("at 1280 nothing scrolls sideways, and the board is the page's width", async ({
@@ -1477,10 +1701,11 @@ test.describe("the page at a phone's width", () => {
     const boxes: PageBoxes = await measure(page);
 
     expect(boxes.pageScroll).toBe(0);
-    // No scroll frame where the board fits: a chart's tooltip is never cut.
+    // No scroll frame: a chart's tooltip is never cut.
     expect(boxes.frame.overflowX).toBe("visible");
     expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
     expect(Math.abs(boxes.board - boxes.viewport)).toBeLessThanOrEqual(1);
+    expect(boxes.arrangement).toBe("grid");
   });
 
   test("the password prompt fits a phone, and names the dashboard once", async ({

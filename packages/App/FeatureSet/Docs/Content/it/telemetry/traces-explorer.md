@@ -60,7 +60,7 @@ Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip
 
 ### Aprire uno span
 
-Fate clic su una riga per espanderla: i suoi attributi, e i log e le eccezioni che ha registrato. Fate clic su **See full trace** per aprire la sua traccia completa.
+Fate clic su una riga per espanderla: i suoi attributi, e i log e le eccezioni che ha registrato. Fate clic su **Vedi traccia completa** per aprire la sua traccia completa.
 :::
 
 La ricerca, i chip e l'intervallo di tempo restano nell'indirizzo della pagina, quindi un aggiornamento, un segnalibro o un link condiviso apre gli stessi span.
@@ -81,12 +81,12 @@ Sotto, scegliete una di quattro viste:
 
 | Vista | Cosa mostra |
 | --- | --- |
-| **Waterfall** | Ogni span su una linea temporale, annidato sotto lo span che lo ha avviato. Attivate **Critical path** per evidenziare la catena di span che ha deciso quanto è durata la richiesta. |
+| **Cascata** | Ogni span su una linea temporale, annidato sotto lo span che lo ha avviato. Attivate **Percorso critico** per evidenziare la catena di span che ha deciso quanto è durata la richiesta. |
 | **Flame graph** | Lo stesso albero come barre impilate, dove le barre più larghe hanno impiegato più tempo. |
-| **Service map** | I servizi per cui è passata la richiesta e le chiamate tra di loro. |
-| **Operations** | Una riga per servizio e nome di span, con chiamate, errori, tempo proprio e tempo totale. Un'operazione chiamata 10 o più volte da uno stesso span padre viene segnalata: spesso una query N+1 o un ciclo che si potrebbe raggruppare. |
+| **Mappa dei servizi** | I servizi per cui è passata la richiesta e le chiamate tra di loro. |
+| **Operazioni** | Una riga per servizio e nome di span, con chiamate, errori, tempo proprio e tempo totale. Un'operazione chiamata 10 o più volte da uno stesso span padre viene segnalata: spesso una query N+1 o un ciclo che si potrebbe raggruppare. |
 
-Fate clic su uno span in qualsiasi vista per aprirne il pannello, con schede per attributi, eventi, log, eccezioni e link, e per il suo profilo o la sua chiamata LLM quando ne ha uno. Cercate tra gli span della traccia per nome, ID o servizio con la casella di ricerca accanto alle viste (premete `/`), e attivate **Errors only** per tenere solo gli span falliti.
+Fate clic su uno span in qualsiasi vista per aprirne il pannello, con schede per attributi, eventi, log, eccezioni e link, e per il suo profilo o la sua chiamata LLM quando ne ha uno. Cercate tra gli span della traccia per nome, ID o servizio con la casella di ricerca accanto alle viste (premete `/`), e attivate **Solo errori** per tenere solo gli span falliti.
 
 Una traccia grande carica 500 span alla volta. Fate clic sul pulsante in fondo alla traccia per caricarne altri, o tutti.
 
@@ -97,7 +97,7 @@ Una traccia grande carica 500 span alla volta. Fate clic sul pulsante in fondo a
 
 Il grafico sopra l'elenco mostra il numero di span nel tempo, suddiviso per stato. Scegliete un'altra misura nell'intestazione del grafico per mostrare invece il loro tempo di risposta medio, mediano (P50) o P95.
 
-Per altro, passate l'elenco da **Span** ad **Analytics**. Scegliete una serie temporale, una classifica o una tabella; misurate il numero di richieste, il numero di errori o i tempi di risposta (media, P50, P90, P95, P99, minimo o massimo); e raggruppate per nome di span, servizio, stato, tipo di span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra da 5 a 100 gruppi.
+Per altro, passate l'elenco da **Span** ad **Analisi**. Scegliete una serie temporale, una classifica o una tabella; misurate il numero di richieste, il numero di errori o i tempi di risposta (media, P50, P90, P95, P99, minimo o massimo); e raggruppate per nome di span, servizio, stato, tipo di span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra da 5 a 100 gruppi.
 
 ## Seguire, salvare e condividere
 

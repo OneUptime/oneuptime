@@ -34,15 +34,15 @@ flowchart TB
 
 ### クラスターを選ぶ
 
-**Kubernetes クラスター** で選択します。一覧には、エージェントがデータを報告したすべてのクラスターが表示されます。
+**Kubernetes クラスター** で選択します。一覧には、エージェントがデータを報告したすべてのクラスターが表示されます。選ぶと、フィールドの下の行にデータが届いているかどうかが表示されます。**Kubernetes クラスターを追加** を押すと、キーが入力済みのセットアップ手順が開き、最初のデータを待ちます。
 
 ### 監視する対象を選ぶ
 
-3 つのタブのいずれかを使います。
+新しいモニターは **アラートの対象** の **Cluster Stopped Reporting** から始まり、**変更** で別のテンプレートを選べます。**Custom Metric** と **詳細** は **その他の項目** にあります。
 
-| タブ | 選択する内容 |
+| 場所 | 選択する内容 |
 | --- | --- |
-| **Quick Setup** | [既製のアラートテンプレート](#既製のアラートテンプレート)。メトリクス、スコープ、時間範囲、条件が入力されます。**時間範囲** は引き続き変更できます。 |
+| **アラートの対象** | [既製のアラートテンプレート](#既製のアラートテンプレート)。メトリクス、スコープ、時間範囲、条件が入力されます。**時間範囲** は引き続き変更できます。 |
 | **Custom Metric** | [メトリクスカタログ](#メトリクスカタログ) からメトリクスを 1 つ選び、次に **リソーススコープ**、フィルター、**集計**（平均、最大、最小、合計、カウント）、**時間範囲** を選びます。 |
 | **詳細** | **リソーススコープ**、フィルター、**時間範囲** に加え、**メトリクスを選択** で独自のメトリクスクエリと数式を作成します。結果のライブグラフが表示されます。 |
 
@@ -69,6 +69,8 @@ flowchart TB
 | ノード | クラスターのノード | **ノード名** |
 | Pod | Pod | **Namespace**、**Pod 名** |
 
+コンテナと Pod のメトリクスには、その Pod が属するワークロードの名前が付きます（Deployment の Pod には Deployment の名前とその ReplicaSet の名前が付きます）。そのため、スコープをワークロードにすると、そのワークロードのコンテナと Pod を監視します。Job の失敗 Pod のようなワークロード自身のメトリクスには、そのワークロード自身の名前しか付かないため、そのワークロードの種類で絞り込んでください。
+
 ### 時間範囲
 
 **時間範囲** は、モニターが評価されるたびにメトリクスクエリが対象とする期間で、**Past 1 Minute** から **Past 365 Days** まで選べます。短い期間（1～15 分）はアラートに向いており、長い期間はノイズの多いメトリクスを平滑化します。
@@ -85,13 +87,13 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | ノード | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| コンテナ | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| コンテナ | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | コントロールプレーン | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。
+> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。 **Container Restarts** はコンテナの再起動数の累計で、**Container Restarts (Increase)** はエージェントがサンプルごとに送る、そのコンテナの前回のサンプル以降の再起動数です。ウィンドウ内での合計が、その間の再起動数になります。**Container Restarts** と同じ属性を持ち、コンテナの Pod のワークロード名も含みますが、再起動のたびに変わるコンテナの ID は含みません。**Job Failed Pods** は Job の失敗 Pod 数の累計で、**Job Failed Pods (Increase)** はエージェントがサンプルごとに送る、その Job の前回のサンプル以降に失敗した Pod 数です。ウィンドウ内での合計が、その間の失敗数になります。**Job Failed Pods** と同じく、Job の名前と Namespace を持ちます。
 
 ## 監視条件
 
@@ -122,13 +124,13 @@ flowchart TB
 | **Anomalously Low** | 想定範囲を下回る |
 | **Anomalous** | どちらかの方向に想定範囲を外れる |
 
-各サンプルは、**ベースラインウィンドウ**（既定は 14 日、ほかに 28、60、90 日）から作られる、週の同じ時間帯のベースラインと比較されます。**感度** は想定範囲の幅を決めます。**低 (4σ — 著しい偏差のみ)**、既定の **中 (3σ — 推奨)**、**高 (2σ — ノイズが多い、非常に安定したサービス)** から選びます。異常条件は、選んだベースラインウィンドウ分以上のメトリクス履歴がたまるまで「Learning」状態のままで、アラートを出しません。
+各サンプルは、**ベースラインウィンドウ**（既定は 14 日、ほかに 28、60、90 日）から作られる、週の同じ時間帯のベースラインと比較されます。**感度** は想定範囲の幅を決めます。**低 (4σ — 著しい偏差のみ)**、既定の **中 (3σ — 推奨)**、**高 (2σ — ノイズが多い、非常に安定したサービス)** から選びます。異常条件は、週のその時間帯に 2 週間分の履歴がたまるまで「Learning」状態のままで、アラートを出しません。 合計、カウント、ヒストグラムに対するクエリは、ずっとこの状態のままです。このモニターはクエリを属性でフィルターしますが、ベースラインは属性を持たないためです。
 
 **その他の項目** にある **データがない場合** は、期間内にクエリが何も返さないときの動作を決めます。**Ignore**（既定）は一致せず、**トリガー** は無応答を問題として扱い、**Treat As Zero** はゼロとして比較します。OneUptime 自身がデータを受信していなかった時間は、決してデータなしとは扱われません。そのような時間を含む期間のチェックは代わりに待機します。詳しくは [OneUptime がデータを受信していないとき](/docs/monitor/when-oneuptime-is-not-receiving) を参照してください。
 
 ## 既製のアラートテンプレート
 
-**Quick Setup** タブには、カテゴリ別に次のテンプレートが表示されます。それぞれ 2 つの条件を入力します。1 つは条件が成り立つ間モニターをオフラインにしてインシデントとアラートを作成し、もう 1 つは条件が解消したらモニターをオンラインに戻します。
+**アラートの対象** の一覧には、カテゴリ別に次のテンプレートが表示されます。それぞれ 2 つの条件を入力します。1 つは条件が成り立つ間モニターをオフラインにしてインシデントとアラートを作成し、もう 1 つは条件が解消したらモニターをオンラインに戻します。
 
 | テンプレート | カテゴリ | 発火する条件 | 重大度 |
 | --- | --- | --- | --- |
@@ -153,10 +155,15 @@ flowchart TB
 
 オブジェクト単位のメトリクスを使うテンプレートは、ノード、Pod、Deployment、Job、DaemonSet、HPA をそれぞれ個別に評価します。そのため、不健全な Pod が複数あるクラスターでは、クラスター全体で 1 件ではなく Pod ごとにインシデントが作成されます。
 
+**High Node CPU Request Commitment** と **High Node Memory Request Commitment** は、スケジューラーと同じく、終了していない Pod のリクエストだけを数えます。Succeeded または Failed になった Pod (完了した Job の Pod など) のリクエストは、Pod が削除されるまでクラスターが報告し続けますが、それらは数えません。
+
 **Cluster Stopped Reporting** は、クラスターのエージェントから 10 分間何も届かないときに発火します。エージェントがアンインストールされたかクラッシュを繰り返している場合、API キーが取り消された場合、OneUptime への経路を失った場合、またはクラスターの API サーバーがエージェントに応答しなくなった場合です。データが戻ると解決します。データが途絶えると、ほかのテンプレートは比較するものがなくなって最後のステータスを保ったままになるため、それを知らせてくれるのはこのテンプレートです。
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** と **Job Failures** は、再起動数や失敗 Pod 数そのものではなく、ウィンドウ内でそれがどれだけ増えたかを数えるため、再起動や失敗が止まれば自動で解消します。増加は同じ分の 2 つのサンプル間でしか見えず、エージェントの 30 秒間隔ではおよそ半分です。クラッシュループは何度も再起動するので検出されますが、1 回だけの再起動は見逃されることがあります。
+> **CrashLoopBackOff Detection** は、エージェントがサンプルごとに送る `k8s.container.restarts.increase`（そのコンテナの前回のサンプル以降の再起動数）を合計します。そのため、サンプルの間隔がどれだけ空いてもすべての再起動を数え、再起動が止まれば自動で解消し、作り直された Pod は再起動として読まれずに新しく数え始めます。古いエージェントは `k8s.container.restarts.increase` を送らないため、先に[アップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.container.restarts` が各分の中でどれだけ増えたかを読むため、クラッシュループの再起動のおよそ半分を見逃します。削除してテンプレートから作り直してください。
+
+> [!NOTE]
+> **Job Failures** は、エージェントがサンプルごとに送る `k8s.job.failed_pods.increase`（その Job の前回のサンプル以降に失敗した Pod 数）を合計します。そのため、サンプルの間隔がどれだけ空いてもすべての失敗を数え、失敗が止まれば自動で解消し、同じ名前で作り直された Job は失敗として読まれずに新しく数え始めます。エージェントが Job を初めてサンプルする前の失敗はその数え始めの値になるため、最初の 30 秒以内に失敗して再試行しない Job は見逃されることがあります。古いエージェントは `k8s.job.failed_pods.increase` を送らないため、先に[アップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.job.failed_pods` が各分の中でどれだけ増えたかを読むため、失敗のおよそ半分を見逃します。削除してテンプレートから作り直してください。
 
 ### 症状だけでなく原因を捉える
 
@@ -185,7 +192,11 @@ flowchart TB
 :::
 
 :::details 再起動で CrashLoopBackOff Detection が発火しなかった
-このテンプレートは、コンテナの再起動数が 15 分以内に増え、かつコンテナがその半分未満しか準備完了でなかったときに発火します。そのため、1 回再起動してすぐに戻ったコンテナでは通知されません。増加は同じ分の 2 つのサンプル間でしか見えないため、1 回だけの再起動は見逃されることがあります。数分ごとに再起動するクラッシュループは検出されます。
+このテンプレートは、コンテナが 15 分以内に再起動し、かつその半分未満しか準備完了でなかったときに発火します。そのため、1 回再起動してすぐに戻ったコンテナでは通知されません。読むのは `k8s.container.restarts.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.container.restarts` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の再起動を見逃します。削除してテンプレートから作り直してください。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.container.restarts.increase` を追加してください。ワークロードに絞り込んだモニターには `k8s.container.restarts.increase` のワークロード名も必要ですが、古いエージェントはそれを付けずに送ります。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。
+:::
+
+:::details 失敗した Job で Job Failures が発火しなかった
+このテンプレートは、Job の Pod が 15 分以内に失敗したときに発火し、最後の失敗から 15 分後に解消します。読むのは `k8s.job.failed_pods.increase` で、古いエージェントはこれを送りません。[エージェントをアップグレード](/docs/monitor/kubernetes-agent#アップグレード)してください。それ以前にテンプレートから作成したモニターは、`k8s.job.failed_pods` が同じ分の 2 つのサンプル間でどれだけ増えたかを読むため、2 つの分にまたがるサンプル間の失敗を見逃します。削除してテンプレートから作り直してください。エージェントが Job を初めてサンプルする前の失敗はその数え始めの値になるため、唯一の Pod が最初の 30 秒以内に失敗した Job は見逃されます。`filters.metrics.include` でエージェントが送るメトリクスを列挙している場合は、`k8s.job.failed_pods.increase` を追加してください。ワークロードに絞り込んだモニターでは Job そのものを指定してください。Job の失敗 Pod に付くのは Job の名前と Namespace で、それを作成した CronJob の名前ではありません。
 :::
 
 ## 次のステップ

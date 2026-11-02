@@ -50,6 +50,48 @@ const styleOf: (locator: Locator, property: string) => Promise<string> = async (
   }, property);
 };
 
+/*
+ * The box of the first run of `text` in the element's words: where a
+ * character or a word was drawn, whichever way its line reads.
+ */
+const boxOfText: (locator: Locator, text: string) => Promise<Box> = async (
+  locator: Locator,
+  text: string,
+): Promise<Box> => {
+  return locator.evaluate((element: Element, needle: string): Box => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node: Node | null = walker.nextNode();
+
+    while (node) {
+      const index: number = (node.textContent || "").indexOf(needle);
+
+      if (index >= 0) {
+        const range: Range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + needle.length);
+
+        const rect: DOMRect = range.getBoundingClientRect();
+
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        };
+      }
+
+      node = walker.nextNode();
+    }
+
+    throw new Error(`"${needle}" is not in the element's words`);
+  }, text);
+};
+
 const open: (
   page: Page,
   query: string,
@@ -790,6 +832,607 @@ test.describe("values someone wrote, shown and typed", () => {
   });
 });
 
+/*
+ * What a page says back. A check the product makes is in the reader's
+ * words; an answer from the server is English - "Promo code is invalid." -
+ * and on a Persian page it put its full stop first. Under a field
+ * (FieldError) and above a form (Alert) it now reads the way it is
+ * written, and still starts where the field does.
+ */
+test.describe("what a page says back", () => {
+  test("fa: a server's English answer reads left to right under its field, its full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const field: Locator = page.getByTestId("error-server-field");
+    const words: Locator = field.getByTestId("error-message").locator("bdi");
+
+    expect(await words.getAttribute("dir")).toBe("ltr");
+    expect(await words.textContent()).toBe("Promo code is invalid.");
+
+    // Under the field, starting at its right as the page's lines do.
+    const input: Box = await boxOf(field.locator("input"));
+    const line: Box = await boxOf(words);
+
+    expect(Math.abs(input.right - line.right)).toBeLessThan(2);
+
+    // The full stop is drawn after the words, at their right.
+    const first: Box = await boxOfText(words, "P");
+    const stop: Box = await boxOfText(words, ".");
+
+    expect(stop.left).toBeGreaterThan(first.right);
+    expect(Math.abs(stop.right - line.right)).toBeLessThan(2);
+  });
+
+  test("fa: a check in the page's own words is drawn as it always was, right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const field: Locator = page.getByTestId("error-check-field");
+    const line: Locator = field.getByTestId("error-message");
+
+    // The page's own words need no isolate: the line reads the page's way.
+    await expect(line).toHaveText("توضیحات الزامی است");
+    await expect(line.locator("bdi")).toHaveCount(0);
+    expect(await styleOf(line, "direction")).toBe("rtl");
+
+    // Under the field, starting at its right as the page's lines do.
+    const input: Box = await boxOf(field.locator("input"));
+    const first: Box = await boxOfText(line, "توضیحات");
+
+    expect(Math.abs(input.right - first.right)).toBeLessThan(2);
+  });
+
+  test("fa: a form's English error reads left to right, its full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const words: Locator = page.getByTestId("error-form").locator("bdi");
+
+    expect(await words.getAttribute("dir")).toBe("ltr");
+
+    const first: Box = await boxOfText(words, "P");
+    const stop: Box = await boxOfText(words, ".");
+
+    expect(stop.left).toBeGreaterThan(first.right);
+  });
+
+  test("fa: a note editor's English error reads left to right under it, its full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const field: Locator = page.getByTestId("error-note-field");
+    const words: Locator = field.getByTestId("error-message").locator("bdi");
+
+    expect(await words.getAttribute("dir")).toBe("ltr");
+    expect(await words.textContent()).toBe("Notes cannot be empty.");
+
+    const first: Box = await boxOfText(words, "N");
+    const stop: Box = await boxOfText(words, ".");
+
+    expect(stop.left).toBeGreaterThan(first.right);
+    // Under the editor, starting at its right as the page's lines do.
+    expect(
+      Math.abs((await boxOf(field)).right - (await boxOf(words)).right),
+    ).toBeLessThan(2);
+  });
+
+  test("a value typed into a field in error starts clear of the error's icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["en", "fa"]) {
+      await open(page, `lang=${language}`);
+
+      const field: Locator = page.getByTestId("error-server-field");
+      const input: Locator = field.locator("input");
+      const box: Box = await boxOf(input);
+      const icon: Box = await boxOf(field.locator("svg").first());
+      const paddings: { left: number; right: number } = await input.evaluate(
+        (element: Element): { left: number; right: number } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+          return {
+            left: parseFloat(style.paddingLeft),
+            right: parseFloat(style.paddingRight),
+          };
+        },
+      );
+
+      // The icon sits at the field's end; the field keeps it clear of what is typed.
+      if (language === "fa") {
+        expect(icon.left - box.left).toBeLessThan(box.right - icon.right);
+        expect(box.left + paddings.left).toBeGreaterThanOrEqual(icon.right);
+      } else {
+        expect(icon.right).toBeGreaterThan(box.right - 48);
+        expect(box.right - paddings.right).toBeLessThanOrEqual(icon.left);
+      }
+    }
+  });
+
+  test("en: an error is drawn as it always was, from the field's left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const field: Locator = page.getByTestId("error-server-field");
+    const line: Locator = field.getByTestId("error-message");
+
+    // English on an English page: no isolate, the same line as before.
+    await expect(line).toHaveText("Promo code is invalid.");
+    await expect(line.locator("bdi")).toHaveCount(0);
+    expect(await styleOf(line, "direction")).toBe("ltr");
+
+    const input: Box = await boxOf(field.locator("input"));
+    const first: Box = await boxOfText(line, "Promo");
+    const stop: Box = await boxOfText(line, ".");
+
+    expect(Math.abs(input.left - first.left)).toBeLessThan(2);
+    expect(stop.left).toBeGreaterThan(first.right);
+  });
+});
+
+/*
+ * A value longer than its column is cut short with "..." at the end of its
+ * line, and on a Persian page a line ends at the left: an English summary
+ * and an English name lost their start. Each now reads its own way, cut at
+ * its own end, its first letter in view.
+ */
+test.describe("values cut short to their column", () => {
+  test("fa: an English summary, name and address are cut at their own end, their first letters in view", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const table: Locator = page.getByTestId("section-people");
+    const summary: Locator = table
+      .locator("td")
+      .filter({ hasText: "Polled 4,812" })
+      .locator(":scope > div");
+
+    expect(await styleOf(summary, "direction")).toBe("ltr");
+    // Its end is the page's start: a value that fits starts at the right.
+    expect(await styleOf(summary, "text-align")).toBe("end");
+
+    const summaryBox: Box = await boxOf(summary);
+    const summaryStart: Box = await boxOfText(summary, "Polled");
+
+    expect(summaryStart.left).toBeGreaterThanOrEqual(summaryBox.left - 0.5);
+    // Cut short: the whole sentence is wider than its box.
+    expect(
+      await summary.evaluate((element: Element): boolean => {
+        return element.scrollWidth > element.clientWidth;
+      }),
+    ).toBe(true);
+
+    for (const testId of ["user-name-line", "user-email"]) {
+      const first: string = testId === "user-email" ? "jose" : "José";
+      const line: Locator = table
+        .getByTestId(testId)
+        .filter({ hasText: first });
+      const lineBox: Box = await boxOf(line);
+      const start: Box = await boxOfText(line, first);
+
+      expect({ testId, direction: await styleOf(line, "direction") }).toEqual({
+        testId,
+        direction: "ltr",
+      });
+      expect({
+        testId,
+        isStartInView: start.left >= lineBox.left - 0.5,
+      }).toEqual({ testId, isStartInView: true });
+    }
+  });
+
+  test("fa: a short English value starts where its column does, at the right, its full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const table: Locator = page.getByTestId("section-people");
+    const short: Locator = table
+      .locator("td")
+      .filter({ hasText: "Up to date." })
+      .locator(":scope > div");
+    const header: Box = await boxOf(
+      table.locator("th").filter({ hasText: "خلاصه آخرین فراخوانی" }),
+    );
+    const words: Box = await boxOfText(short, "Up to date.");
+    const stop: Box = await boxOfText(short, ".");
+
+    expect(Math.abs((await boxOf(short)).right - words.right)).toBeLessThan(1);
+    // Under its column's name, which starts at the column's right.
+    expect(words.right).toBeGreaterThan(header.right - 32);
+    expect(Math.abs(stop.right - words.right)).toBeLessThan(1);
+
+    // A Persian name reads as the page does, with no direction of its own.
+    const persianName: Locator = table
+      .getByTestId("user-name-line")
+      .filter({ hasText: "سارا احمدی" });
+
+    expect(await persianName.getAttribute("dir")).toBeNull();
+    expect(await styleOf(persianName, "direction")).toBe("rtl");
+  });
+
+  test("en: the same values are cut short as they always were", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const summary: Locator = page
+      .getByTestId("section-people")
+      .locator("td")
+      .filter({ hasText: "Polled 4,812" })
+      .locator(":scope > div");
+
+    expect(await summary.getAttribute("dir")).toBeNull();
+    expect(await styleOf(summary, "direction")).toBe("ltr");
+
+    const summaryBox: Box = await boxOf(summary);
+    const summaryStart: Box = await boxOfText(summary, "Polled");
+
+    expect(Math.abs(summaryStart.left - summaryBox.left)).toBeLessThan(1);
+  });
+});
+
+/*
+ * A month's events in a narrow calendar, each cut short to its block. On a
+ * Persian page an English title lost its start ("...cluster"), and every
+ * title started at its block's left (react-big-calendar's own text-align:
+ * left). A title now reads its own way where it reads the other way from
+ * the page, cut at its own end, and starts where the page's lines do.
+ */
+test.describe("a narrow month's events", () => {
+  const eventContent: (page: Page, text: string) => Locator = (
+    page: Page,
+    text: string,
+  ): Locator => {
+    return page
+      .getByTestId("section-calendar")
+      .locator(".rbc-event", { hasText: text })
+      .locator(".rbc-event-content");
+  };
+
+  const isCutShort: (locator: Locator) => Promise<boolean> = async (
+    locator: Locator,
+  ): Promise<boolean> => {
+    return locator.evaluate((element: Element): boolean => {
+      return element.scrollWidth > element.clientWidth;
+    });
+  };
+
+  test("fa: an English title is cut at its own end, its first letters in view", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const english: Locator = eventContent(page, "Database upgrade");
+
+    await expect(english).toBeVisible();
+    expect(await styleOf(english, "direction")).toBe("ltr");
+    expect(await isCutShort(english)).toBe(true);
+
+    const box: Box = await boxOf(english);
+    const start: Box = await boxOfText(english, "Database");
+
+    expect(start.left).toBeGreaterThanOrEqual(box.left - 0.5);
+  });
+
+  test("fa: a Persian title starts at its block's right, cut short or whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    for (const [title, firstWord] of [
+      ["به‌روزرسانی سرور", "به‌روزرسانی"],
+      ["ارتقا", "ارتقا"],
+    ]) {
+      const persian: Locator = eventContent(page, title!);
+
+      await expect(persian).toBeVisible();
+      expect(await styleOf(persian, "direction")).toBe("rtl");
+
+      const box: Box = await boxOf(persian);
+      const first: Box = await boxOfText(persian, firstWord!);
+
+      expect({
+        title,
+        startsAtTheRight: box.right - first.right < 1.5,
+      }).toEqual({ title, startsAtTheRight: true });
+    }
+
+    expect(await isCutShort(eventContent(page, "به‌روزرسانی سرور"))).toBe(true);
+  });
+
+  test("en: an English title starts at its block's left as before; a Persian one is cut at its own end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const english: Locator = eventContent(page, "Database upgrade");
+
+    await expect(english).toBeVisible();
+    expect(await styleOf(english, "direction")).toBe("ltr");
+
+    const englishBox: Box = await boxOf(english);
+    const englishStart: Box = await boxOfText(english, "Database");
+
+    expect(Math.abs(englishStart.left - englishBox.left)).toBeLessThan(1.5);
+
+    const persian: Locator = eventContent(page, "به‌روزرسانی سرور");
+
+    expect(await styleOf(persian, "direction")).toBe("rtl");
+    expect(await isCutShort(persian)).toBe(true);
+
+    const persianBox: Box = await boxOf(persian);
+    const persianStart: Box = await boxOfText(persian, "به‌روزرسانی");
+
+    expect(persianBox.right - persianStart.right).toBeLessThan(1.5);
+  });
+});
+
+test.describe("lists and sentences in the reader's way", () => {
+  test("fa: a folded products category lists its products with the Persian comma, its chevron pointing left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const category: Locator = page.getByTestId("section-products-menu");
+
+    await expect(category).toContainText("حوادث، هشدارها، مانیتورها");
+
+    const chevron: Locator = category.locator("svg").last();
+
+    expect(await styleOf(chevron, "scale")).toBe("-1 1");
+  });
+
+  test("en: a folded products category keeps the English comma, its chevron pointing right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const category: Locator = page.getByTestId("section-products-menu");
+
+    await expect(category).toContainText("Incidents, Alerts, Monitors");
+    expect(await styleOf(category.locator("svg").last(), "scale")).toBe("none");
+  });
+
+  /*
+   * "خوانده‌شده از داشبورد Meraki (Acme Retail)، ۴ دقیقه پیش." - the time
+   * follows the connection's name in Latin letters. Its digit joined the
+   * name's left-to-right run and was drawn beside the name, before the words
+   * it belongs with. Set apart, it reads after the name, with its words.
+   */
+  test("fa: a time after a name in Latin letters stays with its words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const sentence: Locator = page.getByTestId("sentence-meraki");
+    const name: Box = await boxOfText(sentence, "Acme Retail");
+    const digit: Box = await boxOfText(sentence, "۴");
+    const words: Box = await boxOfText(sentence, "دقیقه");
+
+    // Read from the right: the name, then the digit, then its words.
+    expect(digit.right).toBeLessThanOrEqual(name.left);
+    expect(words.right).toBeLessThanOrEqual(digit.left + 0.5);
+  });
+
+  test("en: the same sentence reads as written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const sentence: Locator = page.getByTestId("sentence-meraki");
+
+    await expect(sentence).toHaveText(
+      "Read from the Meraki dashboard (Acme Retail), 4 minutes ago.",
+    );
+
+    const name: Box = await boxOfText(sentence, "Acme Retail");
+    const time: Box = await boxOfText(sentence, "minutes");
+
+    expect(time.left).toBeGreaterThan(name.right);
+  });
+});
+
+/*
+ * A field's popup opens from its start edge: its left on a page read left
+ * to right, its right on a Persian page, where it opens leftward over what
+ * comes after the field - not rightward over the side menu.
+ */
+test.describe("a field's popup", () => {
+  for (const language of LANGUAGES) {
+    test(`${language.lang}: opens from the field's start edge`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language.lang}`);
+
+      const trigger: Locator = page
+        .getByTestId("section-popup")
+        .getByTestId("color-picker-trigger");
+
+      await trigger.click();
+
+      const popup: Locator = page.getByTestId("color-picker-popup");
+
+      await expect(popup).toBeVisible();
+
+      const anchor: Box = await boxOf(trigger);
+      const opened: Box = await boxOf(popup);
+
+      if (language.dir === "rtl") {
+        expect(Math.abs(opened.right - anchor.right)).toBeLessThan(1.5);
+      } else {
+        expect(Math.abs(opened.left - anchor.left)).toBeLessThan(1.5);
+      }
+    });
+  }
+});
+
+/*
+ * A note's diagrams are laid out left to right, and each label reads the
+ * way it is written: a Persian message on a sequence diagram's arrow drew
+ * its full stop at its right, where a Persian sentence starts.
+ */
+test.describe("a diagram in a note", () => {
+  for (const language of ["en", "fa"]) {
+    test(`${language}: a Persian label ends in its full stop at its left; an English one reads as written`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}`);
+
+      const note: Locator = page.getByTestId("note-diagram");
+
+      await expect(note.locator("svg")).toHaveCount(2);
+
+      const persian: Locator = note
+        .locator("text")
+        .filter({ hasText: "پرداخت انجام شد." });
+      const english: Locator = note
+        .locator("text")
+        .filter({ hasText: "Charge the card" });
+
+      expect(await persian.getAttribute("direction")).toBe("rtl");
+      expect(await english.getAttribute("direction")).toBe("ltr");
+
+      const stop: Box = await boxOfText(persian, ".");
+      const word: Box = await boxOfText(persian, "پرداخت");
+
+      expect(stop.right).toBeLessThanOrEqual(word.left + 0.5);
+
+      // A box's label reads its own way too, the diagram left to right.
+      const box: Locator = note
+        .locator("foreignObject")
+        .filter({ hasText: "درگاه پرداخت" });
+
+      expect(await styleOf(box, "direction")).toBe("rtl");
+
+      const first: Box = await boxOf(
+        note.locator("foreignObject").filter({ hasText: "Checkout API" }),
+      );
+      const second: Box = await boxOf(box);
+
+      expect(first.right).toBeLessThan(second.left);
+    });
+  }
+});
+
+/*
+ * A React Flow canvas is laid out left to right in every language: a node's
+ * place is its x and y. A node is a card of what it names - a workflow
+ * step from the step catalogue is English - and each of its lines reads the
+ * way its own words do: an English step's description keeps its full stop
+ * at its end on a Persian page, a Persian node's sentence reads from the
+ * right, its full stop at its left.
+ */
+test.describe("a canvas", () => {
+  for (const language of LANGUAGES) {
+    test(`${language.lang}: the canvas keeps its places; each node reads the way its own words do`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language.lang}`);
+
+      const canvas: Locator = page.getByTestId("canvas");
+      const flow: Locator = canvas.locator(".react-flow");
+      const node: Locator = canvas.locator(
+        '.react-flow__node[data-id="payments"]',
+      );
+      const step: Locator = canvas.locator(
+        '.react-flow__node[data-id="checkout"]',
+      );
+
+      await expect(node).toBeVisible();
+
+      expect(await styleOf(flow, "direction")).toBe("ltr");
+      /*
+       * Laid out as the canvas is; on a page read right to left its lines
+       * read their own way, and a page read left to right is as it was.
+       */
+      expect(await styleOf(node, "direction")).toBe("ltr");
+      expect((await styleOf(node, "unicode-bidi")) === "plaintext").toBe(
+        language.dir === "rtl",
+      );
+
+      // An English sentence keeps its full stop at its end, in every language.
+      const stepWord: Box = await boxOfText(step, "Charges");
+      const stepStop: Box = await boxOfText(step, ".");
+
+      expect(stepStop.left).toBeGreaterThan(stepWord.right);
+
+      if (language.dir === "rtl") {
+        // A Persian one reads from the right: its full stop is at its left.
+        const word: Box = await boxOfText(node, "درگاه");
+        const stop: Box = await boxOfText(node, ".");
+
+        expect(stop.right).toBeLessThanOrEqual(word.left + 0.5);
+      }
+
+      // 40px in from the canvas's left, whatever the language.
+      const canvasBox: Box = await boxOf(canvas);
+      const nodeBox: Box = await boxOf(node);
+
+      expect(Math.abs(nodeBox.left - (canvasBox.left + 40))).toBeLessThan(1);
+    });
+  }
+
+  test("fa: the panels over the canvas read the page's way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const panel: Locator = page
+      .getByTestId("canvas")
+      .locator(".react-flow__panel")
+      .first();
+
+    expect(await styleOf(panel, "direction")).toBe("rtl");
+  });
+});
+
 test.describe("chevrons and arrows point the way the line reads", () => {
   for (const language of ["en", "fa"]) {
     test(`${language}: mirrored right to left, kept as drawn left to right, in a left-to-right box, and when they point up`, async ({
@@ -929,6 +1572,111 @@ test.describe("what reads left to right in every language", () => {
       "start",
     );
   });
+});
+
+interface KoreanWordLines {
+  word: string;
+  // The lines the word's letters are drawn on.
+  lines: number;
+}
+
+interface KoreanWordsLayout {
+  wordBreak: string;
+  words: Array<KoreanWordLines>;
+}
+
+/*
+ * How the narrow box draws its Korean words: each word and the lines it is
+ * drawn on, read in one evaluate. The box is first made three and a half
+ * syllables wide, measured in the font the runner draws Hangul in, so every
+ * word (three syllables at most) fits a line of its own, while a line that
+ * breaks between any two syllables splits a two-syllable word after
+ * another one ("로드 시" / "간").
+ */
+const koreanWordsLayout: (page: Page) => Promise<KoreanWordsLayout> = async (
+  page: Page,
+): Promise<KoreanWordsLayout> => {
+  return page
+    .getByTestId("korean-words")
+    .evaluate((element: Element): KoreanWordsLayout => {
+      const text: Text = element.firstChild as Text;
+      const content: string = text.data;
+      const syllable: Range = document.createRange();
+      syllable.setStart(text, 0);
+      syllable.setEnd(text, 1);
+      const syllableWidth: number = syllable.getBoundingClientRect().width;
+      const box: HTMLElement = element.parentElement as HTMLElement;
+      box.style.padding = "0";
+      box.style.width = `${syllableWidth * 3.5}px`;
+
+      const words: Array<KoreanWordLines> = [];
+      let from: number = 0;
+
+      for (const word of content.split(" ")) {
+        const start: number = content.indexOf(word, from);
+        const range: Range = document.createRange();
+        range.setStart(text, start);
+        range.setEnd(text, start + word.length);
+        const tops: Set<number> = new Set<number>(
+          Array.from(range.getClientRects()).map((rect: DOMRect): number => {
+            return Math.round(rect.top);
+          }),
+        );
+        words.push({ word: word, lines: tops.size });
+        from = start + word.length;
+      }
+
+      return {
+        wordBreak: window.getComputedStyle(element).wordBreak,
+        words: words,
+      };
+    });
+};
+
+test.describe("Korean keeps its words whole", () => {
+  test('ko: <html lang="ko">, and every word stays on one line in a narrow box', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=ko");
+
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.getAttribute("lang") || "";
+      }),
+    ).toBe("ko");
+
+    const layout: KoreanWordsLayout = await koreanWordsLayout(page);
+
+    // Inherited from <html> (Theme.css, html:lang(ko)).
+    expect(layout.wordBreak).toBe("keep-all");
+    expect(layout.words.length).toBe(7);
+
+    for (const word of layout.words) {
+      expect(word, word.word).toEqual({ word: word.word, lines: 1 });
+    }
+  });
+
+  for (const language of ["en", "de"]) {
+    test(`${language}: a page in another language breaks Korean anywhere, as before`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}`);
+
+      const layout: KoreanWordsLayout = await koreanWordsLayout(page);
+
+      expect(layout.wordBreak).toBe("normal");
+      // The check sees a broken word when there is one.
+      expect(
+        layout.words.some((word: KoreanWordLines): boolean => {
+          return word.lines > 1;
+        }),
+      ).toBe(true);
+    });
+  }
 });
 
 test.describe("dates in the reader's digits", () => {

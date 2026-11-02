@@ -41,7 +41,7 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir ce dont le moniteur vous informe
 
-Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Toute exception** ou **Trop d'exceptions**. Chaque choix remplit la règle, que vous pouvez modifier plus bas. Choisissez **Autre chose** pour la configurer vous-même.
+Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Toute exception** ou **Trop d'exceptions**. Chaque choix remplit la règle, que vous pouvez modifier plus bas. Choisissez **Autre chose** pour la configurer vous-même. **Une nouvelle exception**, **Une exception résolue revient** et **Pic d'exceptions** alertent sur une exception vue pour la première fois, sur une exception revenue après que vous l'avez résolue, et sur une hausse bien au-dessus de ce qui est normal pour cette heure de la semaine.
 
 ### Choisir les exceptions à compter
 
@@ -53,7 +53,7 @@ Ouvrez **Plus de champs** pour filtrer par service de télémétrie ou entité d
 
 ### Dire quand alerter
 
-Dans **Quand alerter**, choisissez une **Condition**, le **Nombre d'exceptions** et une **Fenêtre de temps**. La phrase en dessous redit la règle en termes simples. Le graphique sous cette phrase compte les exceptions correspondantes dans chaque fenêtre au cours des dernières heures, trace le nombre de la règle sous forme de ligne et indique combien de fois la règle aurait alerté. Son bouton propose un nombre que la règle n'aurait pas dépassé sur cette période.
+Dans **Quand alerter**, choisissez une **Condition**, le **Nombre d'exceptions** et une **Fenêtre de temps**. La phrase en dessous redit la règle en termes simples. Le graphique sous cette phrase compte les exceptions correspondantes dans chaque fenêtre au cours des dernières heures, trace le nombre de la règle sous forme de ligne et indique combien de fois la règle aurait alerté. Son bouton propose un nombre que la règle n'aurait pas dépassé sur cette période. **Alerter sur** choisit ce que la règle compare : **Exceptions**, **Nouvelles exceptions**, **Exceptions revenues** ou **Une hausse par rapport à l'habitude**. Le graphique n'est tracé que pour **Exceptions**. Avec **Anormalement haut**, que configure **Pic d'exceptions**, il n'y a aucun nombre à saisir : choisissez plutôt une **Sensibilité**.
 
 ### Choisir ce qui se passe
 
@@ -116,7 +116,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur d'exceptions ont un seul **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus** ou **Exactement**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
+Les critères d'un moniteur d'exceptions ont quatre sortes de **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **New Exceptions**, **Regressed Exceptions** et **Exception Increase (in %)**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre d'exceptions est… |
 | --- | --- |
@@ -126,8 +126,11 @@ Les critères d'un moniteur d'exceptions ont un seul **Type de filtre** : **Exce
 | **Inférieur ou égal à** | égal ou inférieur à la valeur |
 | **Égal à** | exactement la valeur |
 | **Différent de** | tout sauf la valeur |
+| **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
+| **Anomalously Low** | en dessous de cette plage |
+| **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
 
-Les décomptes d'exceptions n'ont pas de conditions d'anomalie : il n'existe pas de référence à laquelle les comparer.
+Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. Seul **Exception Count** les a : voir [Les pics par rapport à la normale](#les-pics-par-rapport-à-la-normale).
 
 Un moniteur d'exceptions créé dans « Créer un moniteur » commence avec la règle correspondant à ce que vous avez choisi sous **De quoi ce moniteur doit-il vous informer ?** :
 
@@ -135,6 +138,9 @@ Un moniteur d'exceptions créé dans « Créer un moniteur » commence avec la r
 | --- | --- | --- |
 | **Toute exception** | **Plus de** `0` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
 | **Trop d'exceptions** | **Plus de** `20` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Une nouvelle exception** | **Nouvelles exceptions**: **Plus de** `0` sur **Dernières 10 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Une exception résolue revient** | **Exceptions revenues**: **Plus de** `0` sur **Dernières 10 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Pic d'exceptions** | **Anormalement haut** sur **Dernières 15 minutes** | Crée une alerte, qui se résout d'elle-même |
 
 Un moniteur d'exceptions créé via l'API ou Terraform sans critères commence avec ces critères :
 
@@ -142,6 +148,34 @@ Un moniteur d'exceptions créé via l'API ou Terraform sans critères commence a
 | --- | --- | --- |
 | Check if … has exceptions | **Exception Count** **Supérieur à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
 | Check if … has no exceptions | **Exception Count** **Égal à** `0` | Passe le moniteur en ligne |
+
+## Exceptions nouvelles, revenues et en hausse
+
+Au-delà du nombre d'exceptions, un moniteur d'exceptions peut alerter sur ce qu'un outil de suivi des erreurs met en avant. Chacun n'est lu que lorsqu'un critère le vérifie.
+
+| Type de filtre | Ce qu'il compte dans la fenêtre |
+| --- | --- |
+| **New Exceptions** | Les exceptions correspondantes vues pour la première fois, ni résolues ni archivées. |
+| **Regressed Exceptions** | Les exceptions correspondantes que vous avez résolues, revenues et toujours ouvertes. |
+| **Exception Increase (in %)** | De combien le nombre d'exceptions correspondantes dépasse l'habitude : la veille de la fenêtre, par fenêtre de même durée, au moins une. Dix exceptions après une journée calme donnent 900 %. |
+
+Les exceptions nouvelles et revenues sont filtrées par service, type d'exception, environnement et message, et aussi par entité d'infrastructure : une exception compte quand l'une de ses occurrences dans la fenêtre vient de l'une des entités choisies.
+
+## Les pics par rapport à la normale
+
+**Pic d'exceptions** compare la fenêtre aux mêmes heures des semaines précédentes, et non à un nombre fixe. Un pic du lundi matin est normal un lundi matin, le même nombre à 3 h un dimanche ne l'est pas, et une lente montée sur plusieurs jours se voit dès qu'elle sort de la plage de la semaine dernière.
+
+| Réglage | Ce qu'il fait | Valeur par défaut |
+| --- | --- | --- |
+| **Sensibilité** | À quelle distance de la plage habituelle une fenêtre doit se trouver : 4 écarts types en Faible, 3 en Moyen, 2 en Élevé. | Moyen |
+| **Fenêtre de référence** (sous **Plus de champs**) | La quantité d'historique dont apprendre : 14, 28, 60 ou 90 jours. | 14 jours |
+| **Écarts types** (sous **Plus de champs**) | Un nombre à vous à la place de ce que fixe **Sensibilité**. | Vide |
+| **Minimum d'exceptions** (sous **Plus de champs**) | Le plus petit nombre d'exceptions dans une fenêtre pouvant alerter : 20 en Faible, 10 en Moyen, 5 en Élevé. | Vide |
+
+- **Il utilise vos filtres.** L'historique est lu avec les filtres du moniteur, donc un moniteur sur un type d'exception est comparé à l'historique de ce type, et les exceptions résolues et archivées sont laissées de côté des deux côtés.
+- **Le calme compte.** Une fenêtre sans exception fait partie de la normale, donc la plage d'un service calme reste petite. Ses premières exceptions n'alertent pas, à cause de **Minimum d'exceptions**, et une vraie rafale alerte.
+- **Un nouveau service attend.** Tant qu'un service n'a pas deux semaines d'historique, le critère apprend encore et ne se déclenche pas, quel que soit le nombre d'exceptions levées. L'historique ne remonte que jusqu'où OneUptime conserve les exceptions : 15 jours sauf si vous avez changé cela, et un service conservé moins de deux semaines n'en a jamais assez.
+- **L'alerte dit pourquoi.** Elle nomme la plage attendue et à quelle distance de celle-ci se trouvait la fenêtre. Chaque vérification écrit la même chose dans la **Chronologie de statut**, ou qu'elle apprend encore.
 
 ## Exemple : seulement les exceptions de production
 
@@ -168,6 +202,10 @@ C'est le comportement attendu. Les exceptions résolues ne sont pas comptées : 
 
 :::details Un filtre de type d'exception ne sélectionne rien
 Les **Types d'exception** sont comparés exactement au nom de type avec lequel l'exception a été signalée, comme `TypeError`. Copiez le type depuis l'explorateur d'exceptions.
+:::
+
+:::details Une règle de pic d'exceptions n'alerte jamais
+Consultez la **Chronologie de statut** : elle indique la plage attendue, le nombre requis pour alerter, ou que la règle apprend encore. Un service a besoin de deux semaines d'historique, donc une conservation inférieure à deux semaines le fait rester en apprentissage. Si le nombre reste sous **Minimum d'exceptions**, baissez-le sous **Plus de champs**, ou choisissez une **Sensibilité** plus élevée.
 :::
 
 ## Étapes suivantes

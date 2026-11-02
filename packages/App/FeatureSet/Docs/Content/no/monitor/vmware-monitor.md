@@ -48,19 +48,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **VMware** under
 
 ### Velg vCenteret
 
-Velg vCenteret i **vCenter** under **VMware Monitor Configuration**. Hvert vCenter som har sendt data, eller som du har koblet til uten en agent, står i listen.
+Velg vCenteret i **vCenter** under **VMware Monitor Configuration**. Hvert vCenter som har sendt data, eller som du har koblet til uten en agent, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til vCenter** åpner siden med vCentere, der du kobler til et.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **vCenter Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
+- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -106,36 +106,36 @@ I monitorfiltre og grupperingsnøkler begynner ressursattributter med `resource.
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 24 maler for vanlige VMware-problemer, og **Quick Setup** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 24 maler for vanlige VMware-problemer, og listen under **Hva det skal varsles om** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, så en verdi som svinger rundt linjen, ikke skifter fram og tilbake.
 
 | Mal | Kategori | Alvorlighetsgrad | Overvåker | Utløser når | Gjenoppretter når |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Tilgjengelighet | Kritisk | `vcenter.datacenter.cpu.limit`, Count over hele vCenteret, **siste 10 minutter** | Ingen data i hele vinduet: agenten eller proben har stoppet, eller vCenteret sluttet å svare den | Data kommer inn igjen |
-| Host CPU Saturation | Vert | Warning | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Over 90 %: hver VM på verten konkurrerer om kjerner og viser CPU-ready-tid | Ved 81 % eller mindre |
-| Host Memory Saturation | Vert | Warning | `vcenter.host.memory.utilization`, Avg per vert | Over 90 %: verten begynner å ta tilbake minne med ballooning, komprimering og swapping | Ved 81 % eller mindre |
-| Host Disk Latency High | Vert | Warning | `vcenter.host.disk.latency.max`, Max per vert | Over 50 ms: hver VM med disker på den stien venter på lagring. Krever ytelsestellernivå 3 | Ved 45 ms eller mindre |
-| Host Network Packet Errors | Vert | Warning | `vcenter.host.network.packet.error.rate`, Max per vert | Over 0: nesten alltid en feil i kabel, SFP eller switchport | Ved 0 |
-| Host Network Packet Drops | Vert | Warning | `vcenter.host.network.packet.drop.rate`, Max per vert | Over 0: en overbooket uplink, eller ringbuffere i NIC-en som renner over | Ved 0 |
-| VM CPU Saturation | Virtuell maskin | Warning | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **siste 15 minutter** | Over 90 % av VM-ens vCPU-er i alle 15 minuttene: en VM kan bruke det den har fått, så bare en som aldri går ned, tilkaller | Ved 81 % eller mindre |
-| VM CPU Ready Contention | Virtuell maskin | Warning | `vcenter.vm.cpu.readiness`, Avg per VM | Over 10 %: VM-en var klar til å kjøre, men verten hadde ingen fysisk kjerne til den. Usynlig fra innsiden av gjesten | Ved 9 % eller mindre |
-| VM Memory Saturation | Virtuell maskin | Warning | `vcenter.vm.memory.utilization`, Avg per VM | Over 90 % av minnet: gjesten er i ferd med å begynne å pagere | Ved 81 % eller mindre |
-| VM Memory Ballooning | Virtuell maskin | Warning | `vcenter.vm.memory.ballooned`, Max per VM | Over 0: verten mangler minne og tar det tilbake fra denne gjesten | Ved 0 |
+| Host CPU Saturation | Vert | Advarsel | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Over 90 %: hver VM på verten konkurrerer om kjerner og viser CPU-ready-tid | Ved 81 % eller mindre |
+| Host Memory Saturation | Vert | Advarsel | `vcenter.host.memory.utilization`, Avg per vert | Over 90 %: verten begynner å ta tilbake minne med ballooning, komprimering og swapping | Ved 81 % eller mindre |
+| Host Disk Latency High | Vert | Advarsel | `vcenter.host.disk.latency.max`, Max per vert | Over 50 ms: hver VM med disker på den stien venter på lagring. Krever ytelsestellernivå 3 | Ved 45 ms eller mindre |
+| Host Network Packet Errors | Vert | Advarsel | `vcenter.host.network.packet.error.rate`, Max per vert | Over 0: nesten alltid en feil i kabel, SFP eller switchport | Ved 0 |
+| Host Network Packet Drops | Vert | Advarsel | `vcenter.host.network.packet.drop.rate`, Max per vert | Over 0: en overbooket uplink, eller ringbuffere i NIC-en som renner over | Ved 0 |
+| VM CPU Saturation | Virtuell maskin | Advarsel | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **siste 15 minutter** | Over 90 % av VM-ens vCPU-er i alle 15 minuttene: en VM kan bruke det den har fått, så bare en som aldri går ned, tilkaller | Ved 81 % eller mindre |
+| VM CPU Ready Contention | Virtuell maskin | Advarsel | `vcenter.vm.cpu.readiness`, Avg per VM | Over 10 %: VM-en var klar til å kjøre, men verten hadde ingen fysisk kjerne til den. Usynlig fra innsiden av gjesten | Ved 9 % eller mindre |
+| VM Memory Saturation | Virtuell maskin | Advarsel | `vcenter.vm.memory.utilization`, Avg per VM | Over 90 % av minnet: gjesten er i ferd med å begynne å pagere | Ved 81 % eller mindre |
+| VM Memory Ballooning | Virtuell maskin | Advarsel | `vcenter.vm.memory.ballooned`, Max per VM | Over 0: verten mangler minne og tar det tilbake fra denne gjesten | Ved 0 |
 | VM Memory Swapping | Virtuell maskin | Kritisk | `vcenter.vm.memory.swapped`, Max per VM | Over 0: verten swapper VM-ens minne, siste utvei etter ballooning og komprimering | Ved 0 |
-| VM Disk Latency High | Virtuell maskin | Warning | `vcenter.vm.disk.latency.max`, Max per VM | Over 50 ms: applikasjoner i gjesten får tidsavbrudd på I/O | Ved 45 ms eller mindre |
-| VM Disk Usage High | Virtuell maskin | Warning | `vcenter.vm.disk.utilization`, Avg per VM | Over 90 % av den tildelte lagringen er brukt: en thin-provisjonert VM er i ferd med å kreve hele størrelsen sin | Ved 81 % eller mindre |
-| Datastore Capacity Warning | Datalager | Warning | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Over 80 %: et tidlig varsel, siden thin-disker og snapshots raskt bruker resten | Ved 72 % eller mindre |
+| VM Disk Latency High | Virtuell maskin | Advarsel | `vcenter.vm.disk.latency.max`, Max per VM | Over 50 ms: applikasjoner i gjesten får tidsavbrudd på I/O | Ved 45 ms eller mindre |
+| VM Disk Usage High | Virtuell maskin | Advarsel | `vcenter.vm.disk.utilization`, Avg per VM | Over 90 % av den tildelte lagringen er brukt: en thin-provisjonert VM er i ferd med å kreve hele størrelsen sin | Ved 81 % eller mindre |
+| Datastore Capacity Warning | Datalager | Advarsel | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Over 80 %: et tidlig varsel, siden thin-disker og snapshots raskt bruker resten | Ved 72 % eller mindre |
 | Datastore Capacity Critical | Datalager | Kritisk | `vcenter.datastore.disk.utilization`, Avg per datastore | Over 90 %: en full datastore setter hver VM med en disk på den på pause | Ved 81 % eller mindre |
 | Cluster Host Not Effective | Klynge | Kritisk | `vcenter.cluster.host.count` filtrert til `effective = false`, Max per `resource.vcenter.cluster.name` | Over 0: en vert er i vedlikeholdsmodus, frakoblet eller svarer ikke, så klyngen kjører med mindre kapasitet enn den er dimensjonert for | Ved 0 |
 | Datacenter Hosts Unhealthy | Datasenter | Kritisk | `vcenter.datacenter.host.count` filtrert til `status = red`, Max per `resource.vcenter.datacenter.name` | Over 0: en vert har en kritisk alarm, som en maskinvaresensor, en tapt lagringssti eller en feil i HA-agenten | Ved 0 |
-| Datacenter Hosts Degraded | Datasenter | Warning | `vcenter.datacenter.host.count` filtrert til `status = yellow`, Max per datasenter | Over 0: en vert har en advarselsalarm | Ved 0 |
-| Datacenter Hosts Powered Off | Datasenter | Warning | `vcenter.datacenter.host.count` filtrert til `power_state = off`, Max per datasenter | Over 0: en vert er slått av - den krasjet, mistet strømmen eller ble satt i standby av DPM | Ved 0 |
-| Datacenter VMs Unhealthy | Datasenter | Warning | `vcenter.datacenter.vm.count` filtrert til `status = red`, Max per datasenter | Over 0: en VM har en kritisk alarm, som en mislykket HA-omstart, en tapt datastore eller et tapt Tools-heartbeat | Ved 0 |
+| Datacenter Hosts Degraded | Datasenter | Advarsel | `vcenter.datacenter.host.count` filtrert til `status = yellow`, Max per datasenter | Over 0: en vert har en advarselsalarm | Ved 0 |
+| Datacenter Hosts Not Responding | Datasenter | Kritisk | `vcenter.datacenter.host.count` filtrert til `power_state = unknown`, Max per datasenter | Over 0: vCenter har mistet kontakten med en vert - den krasjet, mistet strømmen eller administrasjonsnettverket, eller ble koblet fra. En vert som er slått av med vilje eller satt i standby av DPM, teller ikke | Ved 0 |
+| Datacenter VMs Unhealthy | Datasenter | Advarsel | `vcenter.datacenter.vm.count` filtrert til `status = red`, Max per datasenter | Over 0: en VM har en kritisk alarm, som en mislykket HA-omstart, en tapt datastore eller et tapt Tools-heartbeat | Ved 0 |
 | Datacenter Clusters Unhealthy | Datasenter | Kritisk | `vcenter.datacenter.cluster.count` filtrert til `status = red`, Max per datasenter | Over 0: en klynge har en kritisk alarm, som for få HA-failoverressurser, et mislykket HA-valg eller en kritisk vSAN-helsesjekk | Ved 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per klynge | Over 20 000 µs (20 ms): lagringen blir tregere for hver VM på vSAN-datastoren. Stille på klynger uten vSAN | Ved 18 000 µs eller mindre |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per klynge | Over 0: en diskgruppe klarer ikke å holde tritt, og vSAN bremser I/O-en til klientene sine | Ved 0 |
-| Resource Pool Memory Swapped | Klynge | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Over 0: poolens VM-er tar minne fra vertens swap, som regel fordi poolens minnegrense eller -andeler er for lave | Ved 0 |
+| vSAN Latency High | vSAN | Advarsel | `vcenter.cluster.vsan.latency.avg`, Avg per klynge, **siste 15 minutter** | Over 20 000 µs (20 ms): lagringen blir tregere for hver VM på vSAN-datastoren. Stille på klynger uten vSAN | Ved 18 000 µs eller mindre |
+| vSAN Congestion | vSAN | Advarsel | `vcenter.cluster.vsan.congestions`, Max per klynge, **siste 15 minutter** | Over 0: en diskgruppe klarer ikke å holde tritt, og vSAN bremser I/O-en til klientene sine | Ved 0 |
+| Resource Pool Memory Swapped | Klynge | Advarsel | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Over 0: poolens VM-er tar minne fra vertens swap, som regel fordi poolens minnegrense eller -andeler er for lave | Ved 0 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.
 
@@ -277,7 +277,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen prøver: **Ignore** (standarden), **Treat As Zero** eller **Utløser**. |
 
-Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk.
+Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk. En sum, en telling eller en spørring på et histogram blir værende i den tilstanden for alltid: denne monitoren filtrerer spørringene sine etter attributter, og grunnlinjen inneholder ingen.
 
 Noen kriterier å starte med:
 

@@ -5,7 +5,6 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import PermissionNamespace from "../../Types/Permission/PermissionNamespace";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -119,7 +118,7 @@ export default class UserPermissionUtil {
     }
 
     // Rebuilt from the memberships, as if nothing were cached. See the helper.
-    if (this.hasOwnedRowWithoutTeam(json)) {
+    if (this.hasRowWithoutTeam(json)) {
       return null;
     }
 
@@ -129,25 +128,43 @@ export default class UserPermissionUtil {
   /*
    * Whether a cached permission set was written before each row named the
    * team it is granted on (UserPermission.teamId): an Owned row of it would
-   * reach only what the user owns, and not what the team granting it owns.
-   * Such a set is read as missing, so the caller rebuilds it from the
-   * memberships (AccessTokenService.getUserTenantAccessPermission) rather
-   * than serve it until it expires, 30 days later.
+   * reach only what the user owns, and not what the team granting it owns,
+   * and any other allow row would reach no private incident, alert or
+   * episode at all - each team's permission reaches the private records
+   * that team owns (PrivateRecordPermission), and a row that names no team
+   * only the ones the user owns. Such a set is read as missing, so the
+   * caller rebuilds it from the memberships (AccessTokenService
+   * .getUserTenantAccessPermission) rather than serve it until it expires,
+   * 30 days later. Only the rows every member holds without a team
+   * (TEAMLESS_PERMISSIONS) name none.
    */
-  public static hasOwnedRowWithoutTeam(
+  public static hasRowWithoutTeam(
     permission: UserTenantAccessPermission,
   ): boolean {
     return (permission.permissions || []).some(
       (userPermission: UserPermission): boolean => {
         return (
           Boolean(userPermission) &&
-          userPermission.scope === PermissionScope.Owned &&
           userPermission.isBlockPermission !== true &&
-          !userPermission.teamId
+          !userPermission.teamId &&
+          !UserPermissionUtil.TEAMLESS_PERMISSIONS.includes(
+            userPermission.permission,
+          )
         );
       },
     );
   }
+
+  /*
+   * The permissions a member's set holds on no team's behalf: the defaults
+   * every signed-in user holds (getDefaultUserTenantAccessPermission) and
+   * the project membership itself (withProjectUserPermission).
+   */
+  public static readonly TEAMLESS_PERMISSIONS: ReadonlyArray<Permission> = [
+    Permission.CurrentUser,
+    Permission.UnAuthorizedSsoUser,
+    Permission.ProjectUser,
+  ];
 
   @CaptureSpan()
   public static async getUserGlobalAccessPermissionFromCache(

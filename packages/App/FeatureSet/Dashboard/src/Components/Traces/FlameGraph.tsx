@@ -7,6 +7,11 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import Color from "Common/Types/Color";
 import { Black } from "Common/Types/BrandColors";
+import TelemetryServiceUtil, {
+  UNKNOWN_RESOURCE_LABEL,
+} from "Common/UI/Utils/TelemetryService";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface FlameGraphProps {
@@ -30,10 +35,19 @@ interface FlameGraphNode {
 
 const MIN_BLOCK_WIDTH_PX: number = 2;
 
+/*
+ * The line over the graph that says what a click and a double-click do, in
+ * English: a key of the locales, drawn in the reader's language.
+ */
+export const FLAME_GRAPH_INSTRUCTIONS: string = translationKey(
+  "Click a span to view details. Double-click to zoom into a subtree.",
+);
+
 const FlameGraph: FunctionComponent<FlameGraphProps> = (
   props: FlameGraphProps,
 ): ReactElement => {
   const { spans, telemetryServices, onSpanSelect, selectedSpanId } = props;
+  const translator: Translator = useTranslator();
 
   const [hoveredSpanId, setHoveredSpanId] = React.useState<string | null>(null);
   const [focusedSpanId, setFocusedSpanId] = React.useState<string | null>(null);
@@ -107,7 +121,11 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       );
       return {
         color: (service?.serviceColor as Color) || Black,
-        name: service?.name || "Unknown",
+        name:
+          TelemetryServiceUtil.getServiceDisplayName(
+            service?.name,
+            translator,
+          ) || translator.translateTerm(UNKNOWN_RESOURCE_LABEL),
       };
     };
 
@@ -162,7 +180,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       traceStart: tStart,
       traceEnd: tEnd,
     };
-  }, [spans, telemetryServices, selfTimes]);
+  }, [spans, telemetryServices, selfTimes, translator.language]);
 
   // Find max depth for height calculation
   const maxDepth: number = React.useMemo(() => {
@@ -249,7 +267,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
   if (spans.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 text-sm">
-        No spans to display
+        {translator.translateText("No spans to display")}
       </div>
     );
   }
@@ -323,7 +341,12 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
               return prev === node.span.spanId! ? null : node.span.spanId!;
             });
           }}
-          title={`${node.span.name} (${node.serviceName})\nDuration: ${durationStr}\nSelf Time: ${selfTimeStr}`}
+          // The span and its service, then each time under its own label.
+          title={[
+            `${node.span.name} (${node.serviceName})`,
+            `${translator.translateText("Duration:")} ${durationStr}`,
+            `${translator.translateText("Self Time:")} ${selfTimeStr}`,
+          ].join("\n")}
         >
           {widthPercent > 3 ? (
             <div className="px-1 text-[10px] font-medium text-white truncate leading-snug pt-0.5">
@@ -345,8 +368,11 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     <div className="flame-graph" ref={containerRef} dir="ltr">
       {/* Controls */}
       <div className="flex items-center justify-between mb-2 px-1">
-        <div className="text-[11px] text-gray-500">
-          Click a span to view details. Double-click to zoom into a subtree.
+        <div
+          className="text-[11px] text-gray-500"
+          data-testid="flame-graph-instructions"
+        >
+          {translator.translateText(FLAME_GRAPH_INSTRUCTIONS)}
         </div>
         {focusedSpanId ? (
           <button
@@ -356,7 +382,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
             }}
             className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
           >
-            Reset Zoom
+            {translator.translateText("Reset Zoom")}
           </button>
         ) : (
           <></>
@@ -381,11 +407,15 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-600">
             <div>
-              <span className="font-medium text-gray-700">Service: </span>
+              <span className="font-medium text-gray-700">
+                {translator.translateText("Service:")}{" "}
+              </span>
               {hoveredNode.serviceName}
             </div>
             <div>
-              <span className="font-medium text-gray-700">Duration: </span>
+              <span className="font-medium text-gray-700">
+                {translator.translateText("Duration:")}{" "}
+              </span>
               {SpanUtil.getSpanDurationAsString({
                 spanDurationInUnixNano: hoveredNode.durationUnixNano,
                 divisibilityFactor:
@@ -393,7 +423,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
               })}
             </div>
             <div>
-              <span className="font-medium text-gray-700">Self Time: </span>
+              <span className="font-medium text-gray-700">
+                {translator.translateText("Self Time:")}{" "}
+              </span>
               {SpanUtil.getSpanDurationAsString({
                 spanDurationInUnixNano: hoveredNode.selfTimeUnixNano,
                 divisibilityFactor:

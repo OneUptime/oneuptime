@@ -81,10 +81,14 @@ Logoet beholder højden på det OneUptime-logo, det erstatter, og et bredt logo 
 | **Afkrydsningsfelt** | En boks at sætte flueben i, som en bekræftelse. |
 | **Dato** | En dag. |
 | **Dato og klokkeslæt** | En dag og et klokkeslæt. |
+| **Fil** | Én fil, fx et skærmbillede eller et underskrevet dokument. |
+| **Flere filer** | Op til 10 filer, fx skærmbilleder og logfiler. |
 
 En rulleliste eller et flervalg viser de **Valgmuligheder**, du giver det, hver med en valgfri farve (knappen ved siden af en mulighed åbner et sæt navngivne farver, med **Brugerdefineret farve** til en præcis kode), mellem én og 100 af dem. At skifte et spørgsmål mellem **Rulleliste** og **Flervalg** beholder dets muligheder; et spørgsmål, der bliver en af dem, starter med to, du kan omdøbe, og et, der holder op med at være en af dem, mister dem. **Duplikér** kopierer et af formularens egne spørgsmål lige under det.
 
 Svarene på disse spørgsmål gemmes med indsendelsen og vises i den private note på det, formularen opretter — de udfylder ikke noget felt. For at udfylde et felt skal du tilføje selve feltet, fra de næste to grupper.
+
+Et spørgsmål af typen **Fil** eller **Flere filer** tager filer fra indsenderens computer og vedhæfter dem den private note, hvor dit team downloader dem. Vil du hellere gemme filerne i et brugerdefineret felt på hændelsen eller begivenheden, så tilføj et brugerdefineret felt af typen **Fil** eller **Flere filer**.
 
 ### Felter på det, formularen opretter
 
@@ -115,7 +119,7 @@ Hvert felt kan kun spørges om én gang; listen markerer dem, der allerede er p�
 
 ### Brugerdefinerede felter
 
-Dine brugerdefinerede felter for hændelser — eller for planlagt vedligeholdelse, på en vedligeholdelsesformular — hvert et spørgsmål, hvis svar bliver feltets værdi. Spørgsmålet tager sin type og sine muligheder fra det brugerdefinerede felt og starter med dets navn som spørgsmål og dets beskrivelse som hjælpetekst, som du kan ændre.
+Dine brugerdefinerede felter for hændelser — eller for planlagt vedligeholdelse, på en vedligeholdelsesformular — hvert et spørgsmål, hvis svar bliver feltets værdi. Spørgsmålet tager sin type og sine muligheder fra det brugerdefinerede felt og starter med dets navn som spørgsmål og dets beskrivelse som hjælpetekst, som du kan ændre. Et brugerdefineret felt af typen **Fil** eller **Flere filer** stilles som et filspørgsmål, og dets filer havner i feltet.
 
 En formular spørger kun om de brugerdefinerede felter, du føjer til den, uanset hvad **Vis ved oprettelse** siger: hvert felt, en formular spørger om, viser sit navn, sin beskrivelse og sine muligheder for alle med linket. Når et brugerdefineret felt slettes, bliver dets spørgsmål på formularen, men spørges ikke længere om, og dets kort siger det — slet spørgsmålet. Et felt, der oprettes igen med samme navn, er et nyt felt: tilføj det igen.
 
@@ -232,6 +236,9 @@ Efter indsendelsen siger siden "Tak — dit svar er sendt." og giver nummeret p�
 | Ethvert andet tekstsvar | 10.000 tegn. |
 | Et flervalgssvar | 100 valg. |
 | **Dit navn**, **Din e-mail** | 100 tegn hver. |
+| En fil | 10 MB, af de slags et [brugerdefineret filfelt](/docs/incidents/settings#filfelter) tager. |
+| Et spørgsmål af typen **Flere filer** | 10 filer. |
+| Filerne i én indsendelse | 10 filer, 20 MB i alt. |
 
 En indsendelse, der overskrider en grænse, udelader et påkrævet svar eller giver et svar, der ikke passer til sit spørgsmål, afvises med en besked, der siger hvilket, og intet oprettes. Svar på spørgsmål, formularen ikke stiller, ignoreres.
 

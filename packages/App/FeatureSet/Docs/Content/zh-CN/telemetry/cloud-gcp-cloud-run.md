@@ -1,6 +1,6 @@
 # Google Cloud Run
 
-将 Cloud Run 服务和作业的追踪、日志和指标发送到 OneUptime。所有上报 `cloud.platform=gcp_cloud_run` 的数据都会进入按 Google Cloud 项目和区域划分的一个 **Cloud Environment**（例如 _GCP Cloud Run · us-central1 · my-project_），每个服务也会出现在 **无服务器函数** 下。
+将 Cloud Run 服务和作业的追踪、日志和指标发送到 OneUptime。所有上报 `cloud.platform=gcp_cloud_run` 的数据都会进入按 Google Cloud 项目和区域划分的一个 **云环境**（例如 _GCP Cloud Run · us-central1 · my-project_），每个服务也会出现在 **无服务器函数** 下。
 
 :::cards
 - [工作原理](#工作原理): GCP 检测器设置了什么，以及为什么一个服务会出现在两个地方。
@@ -33,7 +33,7 @@ OpenTelemetry GCP 资源检测器会读取元数据服务器以及环境变量 `
 | `faas.instance` | 实例 ID | 为一个运行中的实例命名：在 **实例** 下每个实例一行 |
 
 > [!NOTE]
-> Cloud Run 有意出现在两个地方。因为检测器设置了 `faas.name`，每个服务也是一个 **无服务器函数**，有自己的调用次数、错误率和持续时间。**Cloud Environment** 汇总了该项目和区域中的所有服务。数据不会存储两次：同一份遥测数据会同时归档到两处。
+> Cloud Run 有意出现在两个地方。因为检测器设置了 `faas.name`，每个服务也是一个 **无服务器函数**，有自己的调用次数、错误率和持续时间。**云环境** 汇总了该项目和区域中的所有服务。数据不会存储两次：同一份遥测数据会同时归档到两处。
 
 环境密钥是 `gcp_cloud_run|my-project|us-central1`。
 
@@ -159,7 +159,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-返回 `200` 且 `"valid": true` 表示令牌已被接受。`401` 表示令牌未知、已吊销、已停用或已过期。然后向服务发送一个请求，在 Cloud Logging 中查看 Collector 的日志（按 `otel-collector` 容器过滤），检查是否有 `401`、`connection refused` 或 `context deadline exceeded`。1 分钟内，环境就会以 _GCP Cloud Run · us-central1 · my-project_ 的名称出现在 **云 → All Environments** 中，服务则出现在 **无服务器函数** 下。
+返回 `200` 且 `"valid": true` 表示令牌已被接受。`401` 表示令牌未知、已吊销、已停用或已过期。然后向服务发送一个请求，在 Cloud Logging 中查看 Collector 的日志（按 `otel-collector` 容器过滤），检查是否有 `401`、`connection refused` 或 `context deadline exceeded`。1 分钟内，环境就会以 _GCP Cloud Run · us-central1 · my-project_ 的名称出现在 **应用平台 → 所有环境** 中，服务则出现在 **无服务器函数** 下。
 :::
 
 ## 带 sidecar 的服务 YAML

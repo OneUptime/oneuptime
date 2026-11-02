@@ -50,19 +50,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **IoT-enhed** un
 
 ### Vælg flåden
 
-Vælg under **IoT Monitor Configuration** flåden i **IoT Fleet**. Hver flåde, der har sendt data, står på listen.
+Vælg under **IoT Monitor Configuration** flåden i **IoT Fleet**. Hver flåde, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj IoT-flåde** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Device Offline** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** - klik på en [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** - vælg én metrik i **IoT Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til én enhed eller én enhedstype. En brugerdefineret metrik grupperes ikke: den bedømmer flåden som helhed.
-- **Avanceret** - byg selv forespørgsler og formler under **Vælg målinger**, også over dine egne metriknavne, for eksempel hukommelse i brug i procent af en enheds hukommelsesstørrelse. Brug **Gruppér efter** `device.id` for at bedømme hver enhed for sig.
+- **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) - vælg én metrik i **IoT Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til én enhed eller én enhedstype. En brugerdefineret metrik grupperes ikke: den bedømmer flåden som helhed.
+- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, også over dine egne metriknavne, for eksempel hukommelse i brug i procent af en enheds hukommelsesstørrelse. Brug **Gruppér efter** `device.id` for at bedømme hver enhed for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Select Metric Variable**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Select Metric Variable**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -78,27 +78,27 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | --- | --- | --- |
 | **IoT Fleet** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanceret | Valgfrit. Én enhed, via dens `device.id`, som `sensor-001`. |
-| **Device Type** | Custom Metric, Avanceret | Valgfrit. De enheder, der rapporterer dette `iot.device.type`, som `sensor` eller `gateway`. |
+| **Enhedstype** | Custom Metric, Avanceret | Valgfrit. De enheder, der rapporterer dette `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner sætter deres eget. |
 | **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
-Filtrene virker sammen: med et **Device ID** og en **Device Type** matcher en enhed af en anden type intet.
+Filtrene virker sammen: med et **Device ID** og en **Enhedstype** matcher en enhed af en anden type intet.
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder 5 skabeloner. Hver bygger en komplet monitor: metrikforespørgslen, en gruppering på `device.id`, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder 5 skabeloner. Hver bygger en komplet monitor: metrikforespørgslen, en gruppering på `device.id`, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
 Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindue - undtagen **Device Offline**, som udløser ved den første måling under 1. Et tærskelkriterium genopretter 10 % forbi sin tærskel, så en værdi, der svinger omkring linjen, ikke skifter frem og tilbage.
 
 | Skabelon | Kategori | Alvorlighed | Overvåger | Udløser når | Genopretter når |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tilgængelighed | Kritisk | `iot_device_up`, Min pr. `device.id`, seneste 30 minutter | En måling er under 1, eller en registreret enhed sender intet i hele vinduet | Tilbage på 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg pr. `device.id`, seneste 5 minutter | Under 20 % | Ved 22 % eller derover |
-| Weak Signal | Forbindelse | Warning | `iot_signal_strength_dbm`, Avg pr. `device.id`, seneste 5 minutter | Under -100 dBm | Ved -90 dBm eller derover |
+| Low Battery | Power | Advarsel | `iot_battery_percent`, Avg pr. `device.id`, seneste 5 minutter | Under 20 % | Ved 22 % eller derover |
+| Weak Signal | Forbindelse | Advarsel | `iot_signal_strength_dbm`, Avg pr. `device.id`, seneste 5 minutter | Under -100 dBm | Ved -90 dBm eller derover |
 | High Temperature | Miljø | Kritisk | `iot_temperature_celsius`, Max pr. `device.id`, seneste 5 minutter | Over 70 °C | Ved 63 °C eller derunder |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg pr. `device.id`, seneste 5 minutter | Over 0.9 (90 % af dens CPU) | Ved 0.81 eller derunder |
+| High CPU Usage | System | Advarsel | `iot_cpu_usage_ratio`, Avg pr. `device.id`, seneste 5 minutter | Over 0.9 (90 % af dens CPU) | Ved 0.81 eller derunder |
 
 **Alvorlighed** er den label, vælgeren viser. Den hændelse og den advarsel, en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; skift dem i kriteriet.
 
@@ -117,6 +117,8 @@ Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindu
 | **Enheden er registreret** | En enhed i flådens **Device Registry** forventes. Når den intet sender i hele vinduet, behandler monitoren den, som om den rapporterede `0`, så den får sin egen hændelse, som løser sig selv, når enheden rapporterer igen. |
 
 En registreret enhed bevares også som offline i flådens inventar, mens en uregistreret fjernes efter 15 minutters stilhed. Registrering af stilhed kræver politikken **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer oprettet fra skabelonen har. En Device Offline-monitor, der blev oprettet, før enhedsregistrering fandtes, skal have den sat manuelt eller oprettes igen fra skabelonen.
+
+**Device Offline** bedømmer hver enhed ud fra dens seneste måling, så en enhed, der meldte sig nede og derefter oppe igen, er oppe ved næste kontrol. En Device Offline-monitor, der forbliver offline, indtil målingen om nede er 30 minutter gammel, blev oprettet, før skabelonen gjorde dette: vælg skabelonen igen under **Hvad der skal advares om** for at opdatere den.
 
 > [!NOTE]
 > En uregistreret enhed, der bliver tavs uden en Last Will eller en gatewayrapport, holder bare op med at sende data, og en monitor, der grupperer pr. enhed, kan ikke udpege den. Registrér dine enheder, eller giv en kritisk enhed sin egen monitor (**Custom Metric**, med dens **Device ID**), og sæt **Hvis ingen data** til **Trigger**. Registrering af stilhed kræver også, at mindst én anden enhed i flåden stadig rapporterer: en flåde, der går helt i sort, for eksempel under et gatewaynedbrud, udsender én hændelse for monitoren, ikke én pr. enhed.
@@ -150,7 +152,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når en serie ingen prøver har i vinduet: **Ignore** (standarden) springer den over, **Treat As Zero** læser den som `0`, og **Trigger** får kriteriet til at matche. |
 
-Anomalibetingelser sammenligner hver værdi med den samme time på ugen i baselinen. De forbliver i tilstanden "Learning", og udsender intet, indtil baseline-vinduet indeholder nok historik.
+Anomalibetingelser sammenligner hver værdi med den samme time på ugen i baselinen. De forbliver i tilstanden "Learning", og udsender intet, indtil baseline-vinduet indeholder nok historik. En sum, en optælling eller en forespørgsel på et histogram forbliver i den tilstand for altid: denne monitor filtrerer sine forespørgsler efter attributter, og baselinen indeholder ingen.
 
 ### Standardkriterier
 

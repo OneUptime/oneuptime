@@ -57,19 +57,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Ceph** e
 
 ### Escolher o cluster
 
-Em **Ceph Monitor Configuration**, escolha o cluster em **Cluster Ceph**. Todo cluster que já enviou dados está na lista.
+Em **Ceph Monitor Configuration**, escolha o cluster em **Cluster Ceph**. Todo cluster que já enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Ceph** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que acompanhar
 
-Escolha uma das três abas:
+Um monitor novo começa com **Cluster Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** — clique em um [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** — escolha uma métrica em **Ceph Metric** e depois defina **Agregação** e **Intervalo de tempo**. **OSD** e **Pool ID** restringem a um daemon ou a um pool.
-- **Avançado** — monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma razão de capacidade usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Agrupar por** `ceph_daemon` ou `pool_id` para avaliar cada daemon ou pool separadamente.
+- **Alterar** — escolha outro [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) — escolha uma métrica em **Ceph Metric** e depois defina **Agregação** e **Intervalo de tempo**. **OSD** e **Pool ID** restringem a um daemon ou a um pool. Uma métrica mantida por pool ou por daemon é avaliada pool a pool ou daemon a daemon, com um incidente para cada um.
+- **Avançado** (em **Mais campos**) — monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma razão de capacidade usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Agrupar por** `ceph_daemon` ou `pool_id` para avaliar cada daemon ou pool separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina seu próprio limite.
 
 ### Criar o monitor
 
@@ -87,7 +87,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | **OSD** | Custom Metric, Avançado | Opcional. Correspondência exata com o rótulo `ceph_daemon`, por exemplo `osd.3`. |
 | **Pool ID** | Custom Metric, Avançado | Opcional. Correspondência exata com o rótulo `pool_id`, por exemplo `2`. |
 | **Ceph Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
-| **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa pela agregação habitual da métrica. |
+| **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo** ou **Mínimo**. Começa pela agregação habitual da métrica. Uma soma ou uma contagem somaria todas as coletas de um minuto, então ficam para o **Avançado**. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Past 1 Minute**; os modelos definem o próprio. |
 | **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
@@ -95,11 +95,11 @@ As séries de dados dos pools têm só o rótulo `pool_id`: o nome do pool exist
 
 ### Séries de health checks
 
-`ceph_health_detail` exporta **uma série por health check ativo**, com os rótulos `name` (por exemplo `OSD_NEARFULL` ou `RECENT_CRASH`) e `severity`. Uma série só existe enquanto seu check está disparado, então nenhuma série significa que está tudo bem. Para alertar sobre qualquer health check do Ceph, filtre pelo `name` dele, dispare com **Máximo** acima de `0` e recupere em `0` com **Se não houver dados** definido como **Treat As Zero** — exatamente como os modelos de health checks são montados. `ceph_daemon_health_metrics` funciona do mesmo jeito por daemon, com um rótulo `type` (por exemplo `SLOW_OPS`) e `ceph_daemon`.
+`ceph_health_detail` exporta **uma série por health check**, com os rótulos `name` (por exemplo `OSD_NEARFULL` ou `RECENT_CRASH`) e `severity`. A série de um check vale `1` enquanto o check está ativo e `0` depois que ele se resolve, e um check que nunca disparou não tem série. Para alertar sobre qualquer health check do Ceph, filtre pelo `name` dele, dispare com **Máximo** acima de `0` e recupere em `0` com **Se não houver dados** definido como **Treat As Zero** — exatamente como os modelos de health checks são montados. `ceph_daemon_health_metrics` funciona do mesmo jeito por daemon, com um rótulo `type` (por exemplo `SLOW_OPS`) e `ceph_daemon`.
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece 24 modelos que cobrem um cluster silencioso, a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece 24 modelos que cobrem um cluster silencioso, a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério com limite recupera 10% além do limite, para que um valor que oscila na linha não fique alternando. **Gravidade** é o rótulo que o seletor mostra; o incidente e o alerta criados por um modelo começam com a gravidade de incidente e de alerta mais alta do seu projeto.
 
@@ -116,42 +116,42 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | Crítico | `ceph_health_status`, Max, último minuto | 2 ou mais: `HEALTH_ERR` | Abaixo de 1,8: `HEALTH_WARN` ou melhor |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 ou mais: `HEALTH_WARN` ou pior | Abaixo de 0,9: `HEALTH_OK` |
+| Cluster Health Warning | Aviso | `ceph_health_status`, Max | 1 ou mais: `HEALTH_WARN` ou pior | Abaixo de 0,9: `HEALTH_OK` |
 | Monitor Quorum Degraded | Crítico | `ceph_mon_quorum_status`, Min por `ceph_daemon`, último minuto | Um monitor cai abaixo de 1, fora do quórum. Um incidente por monitor | De volta a 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Acima de 0: o check `SLOW_OPS` do cluster está ativo | Em 0 |
-| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` para `type = SLOW_OPS`, Max por `ceph_daemon` | Acima de 0. Um incidente por OSD ou monitor | A série desaparece |
+| Slow Operations | Aviso | `ceph_healthcheck_slow_ops`, Max | Acima de 0: o check `SLOW_OPS` do cluster está ativo | Em 0 |
+| Daemon Slow Operations | Aviso | `ceph_daemon_health_metrics` para `type = SLOW_OPS`, Max por `ceph_daemon` | Acima de 0. Um incidente por OSD ou monitor | A série desaparece |
 | Daemon Crash | Crítico | `ceph_health_detail` para `name = RECENT_CRASH`, Max | O check está ativo: existem falhas de daemons não arquivadas. O mgr não tem nenhuma métrica `ceph_crash_*`, então este é o único sinal de falha | As falhas são arquivadas |
-| Monitor Clock Skew | Warning | `ceph_health_detail` para `name = MON_CLOCK_SKEW`, Max | O check está ativo: os relógios dos monitores se desviam além do permitido (0,05 s por padrão) | O check desaparece |
+| Monitor Clock Skew | Aviso | `ceph_health_detail` para `name = MON_CLOCK_SKEW`, Max | O check está ativo: os relógios dos monitores se desviam além do permitido (0,05 s por padrão) | O check desaparece |
 | Monitor Disk Critically Low | Crítico | `ceph_health_detail` para `name = MON_DISK_CRIT`, Max | O check está ativo: o disco de banco de dados de um monitor tem menos de 5% livre (o padrão) | O check desaparece |
-| Monitor Disk Space Low | Warning | `ceph_health_detail` para `name = MON_DISK_LOW`, Max | O check está ativo: menos de 30% livre (o padrão) | O check desaparece |
+| Monitor Disk Space Low | Aviso | `ceph_health_detail` para `name = MON_DISK_LOW`, Max | O check está ativo: menos de 30% livre (o padrão) | O check desaparece |
 
 ### Modelos de OSD
 
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | OSD Down | Crítico | `ceph_osd_up`, Min por `ceph_daemon` | Um OSD cai abaixo de 1. Um incidente por OSD | De volta a 1 |
-| OSD Out | Warning | `ceph_osd_in`, Min por `ceph_daemon` | Um OSD cai abaixo de 1: marcado como fora da distribuição de dados | De volta a 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, Avg por `ceph_daemon` | Acima de 100 ms. Um incidente por OSD | Em 90 ms ou menos |
-| OSD Slow Heartbeats | Warning | `ceph_health_detail` para `name = OSD_SLOW_PING_TIME_FRONT` e `name = OSD_SLOW_PING_TIME_BACK`, Max | Um dos checks está ativo: os heartbeats na rede pública ou na rede do cluster estão lentos. O mgr não exporta nenhuma medida de tempo de ping | Os dois checks desaparecem |
+| OSD Out | Aviso | `ceph_osd_in`, Min por `ceph_daemon` | Um OSD cai abaixo de 1: marcado como fora da distribuição de dados | De volta a 1 |
+| OSD High Latency | Aviso | `ceph_osd_apply_latency_ms`, Avg por `ceph_daemon` | Acima de 100 ms. Um incidente por OSD | Em 90 ms ou menos |
+| OSD Slow Heartbeats | Aviso | `ceph_health_detail` para `name = OSD_SLOW_PING_TIME_FRONT` e `name = OSD_SLOW_PING_TIME_BACK`, Max | Um dos checks está ativo: os heartbeats na rede pública ou na rede do cluster estão lentos. O mgr não exporta nenhuma medida de tempo de ping | Os dois checks desaparecem |
 
 ### Modelos de placement groups
 
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | Crítico | `ceph_pg_total` − `ceph_pg_active`, Max por `pool_id` | Acima de 0: há PGs que não conseguem atender E/S, então as requisições dos clientes a elas travam. Um incidente por pool | Em 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, Max por `pool_id` | Acima de 0: há objetos com menos réplicas que o configurado | Em 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, Max por `pool_id` | Acima de 0: há PGs mapeadas para menos OSDs que o número de réplicas | Em 0 |
+| Degraded Placement Groups | Aviso | `ceph_pg_degraded`, Max por `pool_id` | Acima de 0: há objetos com menos réplicas que o configurado | Em 0 |
+| Undersized Placement Groups | Aviso | `ceph_pg_undersized`, Max por `pool_id` | Acima de 0: há PGs mapeadas para menos OSDs que o número de réplicas | Em 0 |
 | Damaged Placement Groups | Crítico | `ceph_health_detail` para `name = PG_DAMAGED` e `name = OSD_SCRUB_ERRORS`, Max | Um dos checks está ativo: o scrubbing encontrou danos ou erros de leitura | Os dois checks desaparecem |
 
 ### Modelos de capacidade
 
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Acima de 85%, a razão nearfull padrão do Ceph | Em 76,5% ou menos |
+| Cluster Near Full | Aviso | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Acima de 85%, a razão nearfull padrão do Ceph | Em 76,5% ou menos |
 | Cluster Full | Crítico | A mesma razão | Acima de 95%, a razão full padrão do Ceph, a partir da qual as gravações param no cluster inteiro | Em 85,5% ou menos |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, por `pool_id` | Acima de 85% do que o pool comporta. Um incidente por pool | Em 76,5% ou menos |
-| OSD Nearfull | Warning | `ceph_health_detail` para `name = OSD_NEARFULL`, Max | O check está ativo: um OSD passou do limite nearfull (85% por padrão). OSDs individuais enchem muito antes da média do cluster | O check desaparece |
-| OSD Backfillfull | Warning | `ceph_health_detail` para `name = OSD_BACKFILLFULL`, Max | O check está ativo: o backfill para o OSD é recusado (90% por padrão), o que trava a recuperação | O check desaparece |
+| Pool Near Full | Aviso | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, por `pool_id` | Acima de 85% do que o pool comporta. Um incidente por pool | Em 76,5% ou menos |
+| OSD Nearfull | Aviso | `ceph_health_detail` para `name = OSD_NEARFULL`, Max | O check está ativo: um OSD passou do limite nearfull (85% por padrão). OSDs individuais enchem muito antes da média do cluster | O check desaparece |
+| OSD Backfillfull | Aviso | `ceph_health_detail` para `name = OSD_BACKFILLFULL`, Max | O check está ativo: o backfill para o OSD é recusado (90% por padrão), o que trava a recuperação | O check desaparece |
 | OSD Full | Crítico | `ceph_health_detail` para `name = OSD_FULL`, Max, último minuto | O check está ativo: um OSD atingiu o limite full (95% por padrão) e as gravações são recusadas | O check desaparece |
 
 - **Os modelos de queda e de quórum usam o mínimo**, para que um único OSD fora do ar ou um único monitor fora do quórum os dispare em vez de ficar escondido pela maioria saudável.
@@ -175,7 +175,7 @@ O agente consulta cada daemon mgr a cada 30 segundos e mantém os rótulos próp
 | `ceph_healthcheck_slow_ops` | contagem | Operações lentas de OSDs e monitores relatadas pelo check `SLOW_OPS`. |
 | `ceph_daemon_health_metrics` | contagem | Métricas de saúde por daemon, identificadas por `type` (por exemplo `SLOW_OPS`) e `ceph_daemon`. |
 | `ceph_mon_quorum_status` | contagem | 1 quando o monitor está no quórum, por `ceph_daemon` (por exemplo `mon.a`). |
-| `ceph_mon_metadata` | contagem | Metadados do monitor, sempre 1. Some para contar os monitores. |
+| `ceph_mon_metadata` | contagem | Metadados do monitor, sempre 1 enquanto o monitor informa. Uma soma junta cada coleta de um minuto, então não conta monitores. |
 | `ceph_cluster_total_bytes` | bytes | Capacidade bruta total. |
 | `ceph_cluster_total_used_bytes` | bytes | Capacidade bruta em uso. |
 
@@ -190,7 +190,7 @@ O agente consulta cada daemon mgr a cada 30 segundos e mantém os rótulos próp
 | `ceph_osd_stat_bytes` | bytes | Capacidade bruta do dispositivo do OSD. |
 | `ceph_osd_stat_bytes_used` | bytes | Bytes brutos usados no OSD. Compare com o total para achar OSDs desbalanceados ou quase cheios. |
 | `ceph_osd_numpg` | contagem | Placement groups no OSD. |
-| `ceph_osd_metadata` | contagem | Metadados do OSD (nome do host, classe do dispositivo, versão), sempre 1. Some para contar os OSDs. |
+| `ceph_osd_metadata` | contagem | Metadados do OSD (nome do host, classe do dispositivo, versão), sempre 1 enquanto o OSD informa. Uma soma junta cada coleta de um minuto, então não conta OSDs. |
 
 ### Métricas de pools
 
@@ -207,7 +207,7 @@ O agente consulta cada daemon mgr a cada 30 segundos e mantém os rótulos próp
 
 ### Métricas de placement groups
 
-Toda série `ceph_pg_*` é por pool, com o rótulo `pool_id`; some entre os pools para ter uma contagem do cluster inteiro.
+Toda série `ceph_pg_*` é por pool, com o rótulo `pool_id`. Uma soma junta cada coleta de um minuto e cada pool, então compare pool a pool, agrupando por `pool_id`, como fazem os modelos de PG.
 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Janela de linha de base** | Somente condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
 | **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
-As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam no estado "Learning", sem gerar nada, até a janela de linha de base ter histórico suficiente.
+As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam no estado "Learning", sem gerar nada, até a janela de linha de base ter histórico suficiente. Uma soma, uma contagem ou uma consulta sobre um histograma permanece nesse estado para sempre: este monitor filtra suas consultas por atributos, e a linha de base não guarda nenhum.
 
 Cada critério também diz o que fazer quando é atendido: mudar o status do monitor, criar um alerta ou declarar um incidente. Os critérios são verificados de cima para baixo, e o primeiro atendido decide.
 
@@ -270,7 +270,7 @@ Os modelos que acompanham `ceph_health_detail` — Daemon Crash, Monitor Clock S
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-As séries de health checks, incluindo `ceph_daemon_health_metrics`, só existem enquanto um check está disparado, então é esperado não encontrar nenhuma com o cluster saudável.
+Um health check que nunca disparou não tem série, `ceph_daemon_health_metrics` incluído, e um que se resolveu vale `0`, então é esperado não encontrar nenhuma, ou só zeros, enquanto o cluster está saudável.
 :::
 
 :::details Contadores como ceph_pool_wr_bytes só crescem

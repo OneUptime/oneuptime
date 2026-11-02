@@ -100,13 +100,25 @@ const environment = {
   NODE_ENV: "development",
 };
 
-const render = () => {
+const render = (variables) => {
   return ejs.render(
     fs.readFileSync(template, "utf8"),
     // A self-hosted install: no Google tag, OneUptime's own name and icons.
-    { enableGoogleTagManager: false },
+    { enableGoogleTagManager: false, ...(variables || {}) },
     { filename: template },
   );
+};
+
+/*
+ * A form on its owner's own domain: the page the App renders at a form
+ * domain's root (App/FeatureSet/Frontend/FormDomainPage.ts) - the template
+ * with the mark that makes the app draw the form alone, titled with the
+ * form's name (Data.js FORM). The fixture's own address stands in for the
+ * domain, as the page sends its requests wherever it was opened.
+ */
+const FORM_DOMAIN_PAGE = {
+  isFormDomainPage: true,
+  formDomainPageTitle: "Report a problem",
 };
 
 const send = (response, file, type) => {
@@ -215,6 +227,12 @@ async function main() {
           file.endsWith(".css") ? "text/css" : "application/javascript",
         );
       });
+      return;
+    }
+
+    if (url.pathname === "/" && url.searchParams.get("formdomain") === "1") {
+      response.setHeader("Content-Type", "text/html");
+      response.end(render(FORM_DOMAIN_PAGE));
       return;
     }
 

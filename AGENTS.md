@@ -51,7 +51,7 @@ Any text a notification carries can be that long: a response body or a log a des
 
 ### Emails load nothing from outside the installation
 
-An email is read wherever its reader is - on a network without the internet, behind a mail gateway that flags remote images - and every image it fetches tells whoever serves it who opened the email, and when (issue #5124: every email's header loaded its logo from res.cloudinary.com). So an email's own markup loads nothing it does not carry: an image is either inside the email - OneUptime's logo (`oneUptimeLogoUrl`, `packages/Common/Server/Utils/Mail/EmailLogo.ts`) and screenshots go out as inline attachments the HTML points at by Content-ID (`EmailInlineImages.ts`) - or an address the installation builds on its own host and hands the template (a logo its operator uploaded). Never a CDN, a web font, a tracking pixel or any other address a template or the code that writes email markup spells out; the only host a template names is `oneuptime.com`, in the footer's link of an installation that is not renamed. `OfflineAssetHygiene.test.ts` (packages/Common/Tests/Server/Utils) reads every email template, in any format, and every string of the code that writes email markup; `EmailsLoadNothingFromOutside.test.ts` (packages/App/Tests/Notification) renders and sends every template on every transport.
+An email is read wherever its reader is - on a network without the internet, behind a mail gateway that flags remote images - and every image it fetches tells whoever serves it who opened the email, and when (issue #5124: every email's header loaded its logo from res.cloudinary.com). So an email's own markup loads nothing it does not carry: an image is either inside the email - OneUptime's logo (`oneUptimeLogoUrl`, `packages/Common/Server/Utils/Mail/EmailLogo.ts`) and screenshots go out as inline attachments the HTML points at by Content-ID (`EmailInlineImages.ts`) - or an address the installation builds on its own host and hands the template (a logo its operator uploaded). Just before an email is sent, a logo an operator uploaded - the installation's own, a status page's - goes inside the email in place of that address when it is a PNG, JPEG or GIF of at most 512 KB (`EmailCarriedLogos.ts`; the readers are `getCarriedProductLogo` in App's EmailBranding and `StatusPageCarriedLogo`, which the notification service registers when it starts); any other keeps its address. Never a CDN, a web font, a tracking pixel or any other address a template or the code that writes email markup spells out; the only host a template names is `oneuptime.com`, in the footer's link of an installation that is not renamed. `OfflineAssetHygiene.test.ts` (packages/Common/Tests/Server/Utils) reads every email template, in any format, and every string of the code that writes email markup; `EmailsLoadNothingFromOutside.test.ts` (packages/App/Tests/Notification) renders and sends every template on every transport.
 
 ### After you make a change.
 
@@ -85,6 +85,24 @@ rather than as a failed deploy. Prefer a render assertion over a careful reading
 cluster-backed suites that install the chart on a throwaway KinD cluster. That is the
 `helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
 see `HelmChart/README.md` for how to add one.
+
+### Release notes
+
+Each release's notes on GitHub, which the upgrade guide sends self-hosters to and the website links to as the Changelog, are written by `Scripts/Release/GenerateReleaseNotes.js` from what the release ships: the title of every pull request and the subject of every commit pushed straight to master. So a title is a line someone reads on the release page. Write it as `type(area): what changed, for the person using OneUptime`, not what the code does.
+
+- `feat`, `fix`, `perf` and `docs` each have a section. `test`, `ci`, `chore`, `refactor`, `style` and `build` go under Maintenance, which is folded, and so does anything in an area of the repository rather than the product (`fix(ci): ...`; `INTERNAL_AREAS` in the script).
+- The scope is the area the line is filed under: use the product's name (`exceptions`, `on-call`, `status-pages`). A title with no type can open with its area instead (`Workflows: every template in five steps`); it goes under New and improved.
+- A `!` after the type or scope (`feat(helm)!: ...`) puts the change under Breaking changes, at the top. Use it whenever an upgrade asks something of the person upgrading.
+- A label wins over a title (`bug`, `enhancement`, `documentation`, `dependencies`), and `ignore` leaves a pull request out.
+
+To see a release's notes, or write a published release's again:
+
+```bash
+GH_TOKEN=$(gh auth token) node Scripts/Release/GenerateReleaseNotes.js --version 14.0.98 --output notes.md
+gh release edit 14.0.98 --notes-file notes.md
+```
+
+With `--to master` and no `--version`, it shows what the next release will say.
 
 ### Mobile app releases
 

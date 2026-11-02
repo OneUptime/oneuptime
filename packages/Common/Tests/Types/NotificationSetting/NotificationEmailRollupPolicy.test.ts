@@ -36,7 +36,7 @@ import {
  * No mocks: both modules under test are pure and import nothing but the enum.
  */
 describe("NotificationEmailRollupPolicy - the two sets partition the enum", () => {
-  test("the enum still has exactly 54 members, split 7 / 47", () => {
+  test("the enum still has exactly 56 members, split 7 / 49", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -51,14 +51,17 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
      * never rolled up - and a task on a case handed to the person, which
      * rolls up with the other security case emails. 55 with a scheduled
      * hunt that found security events, which rolls up in a section of its
-     * own: what a hunt finds is for reading, not paging.
+     * own: what a hunt finds is for reading, not paging. 56 with an
+     * exception assigned to the person or their team, which rolls up in a
+     * section of its own like an owner-added email: twenty handed over at
+     * once from Bulk Actions are one email.
      */
-    expect(allEventTypes.length).toBe(55);
+    expect(allEventTypes.length).toBe(56);
     expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(7);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(48);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(49);
   });
 
-  test("their union is exactly the enum, so a 56th member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 57th member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );

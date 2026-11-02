@@ -180,14 +180,14 @@ section "The docs' commands"
 # ----------------------------------------------------------------------------
 # Lift the blocks out of the page, so this runs what readers copy. The
 # agent's own files are served from this checkout (file:///src) instead of
-# GitHub's master branch, which a pull request has not reached yet; the
-# collector release is downloaded for real.
+# the OneUptime the page names, whose release a pull request has not reached
+# yet; the collector release is downloaded for real.
 python3 - "${DOCS_PAGE}" "${WORK_DIR}" <<'PY'
 import pathlib, re, sys
 
 page = pathlib.Path(sys.argv[1]).read_text()
 out = pathlib.Path(sys.argv[2])
-RAW = "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/"
+SERVED = "https://oneuptime.com/install/vmware-agent/"
 
 
 # A section runs to the next heading of its level or higher; a "# comment"
@@ -250,7 +250,7 @@ for name, text in {
     "upgrade.sh": upgrade,
     "uninstall.sh": uninstall,
 }.items():
-    (out / name).write_text(text.replace(RAW, "file:///src/") + "\n")
+    (out / name).write_text(text.replace(SERVED, "file:///src/") + "\n")
 PY
 
 # The settings as a reader fills them in.

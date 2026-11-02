@@ -7,10 +7,24 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import RowActions from "Common/UI/Components/ActionButton/RowActions";
 import ExceptionIssueBadges from "./ExceptionIssueBadges";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import {
+  getTextReadingDirectionByMostLetters,
+  LEFT_TO_RIGHT,
+  ReadingDirection,
+} from "Common/Types/ReadingDirection";
 import PeopleAvatar, {
   PeopleAvatarItem,
 } from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import { getExceptionAssigneeAvatar } from "../../Utils/ExceptionAssignment";
+import { ExceptionListStatsItem } from "Common/Types/Telemetry/ExceptionListStats";
+import ExceptionTrendSparkline, {
+  SPARKLINE_HEIGHT,
+  SPARKLINE_WIDTH,
+} from "./ExceptionTrendSparkline";
 
 export interface ExceptionRowProps {
   exception: TelemetryException;
@@ -22,7 +36,18 @@ export interface ExceptionRowProps {
    * button that opens the exception.
    */
   actionButtons?: Array<ActionButtonSchema<TelemetryException>> | undefined;
+  /*
+   * The row's numbers over the list's time range (one request for the
+   * page): how many users it affected and its occurrences over time.
+   * Undefined until they are in, or when they could not be read.
+   */
+  stats?: ExceptionListStatsItem | undefined;
+  // While the page's numbers are being read: the chart's place is held.
+  isStatsLoading?: boolean | undefined;
 }
+
+// A fingerprint is a code: it reads left to right in every language.
+const FINGERPRINT_DIRECTION: ReadingDirection = LEFT_TO_RIGHT;
 
 // "5m ago", in the reader's language.
 function formatRelativeTime(time: Date, translator: Translator): string {
@@ -85,6 +110,14 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
   const isArchived: boolean = Boolean(exception.isArchived);
   const assignee: PeopleAvatarItem | null =
     getExceptionAssigneeAvatar(exception);
+  const assigneeNameDirection: ReadingDirection | undefined = assignee
+    ? getLineDirection(assignee.name, translator.language)
+    : undefined;
+  /*
+   * Users are shown only when an occurrence named one: "0 users" would read
+   * as "nobody was affected" for a service that never sends a user id.
+   */
+  const affectedUsers: number = props.stats?.affectedUsers || 0;
 
   /*
    * Where the exception stands. From sm up it sits at the row's top right,
@@ -126,17 +159,29 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
           />
 
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            {/* Line 1: type + message */}
+            {/*
+             * Line 1: type + message, read the way they are written - an
+             * English message on a Persian page keeps its full stop at its
+             * end - and starting where the page's lines do.
+             */}
             <div className="min-w-0">
-              <span className="font-mono text-xs font-semibold text-gray-900">
-                {exceptionType}
-              </span>
-              {firstLine && (
-                <span className="text-xs text-gray-700">
-                  <span className="text-gray-400">: </span>
-                  <span className="font-mono">{firstLine}</span>
+              <bdi
+                dir={
+                  getTextReadingDirectionByMostLetters(
+                    `${exceptionType} ${firstLine}`,
+                  ) || undefined
+                }
+              >
+                <span className="font-mono text-xs font-semibold text-gray-900">
+                  {exceptionType}
                 </span>
-              )}
+                {firstLine && (
+                  <span className="text-xs text-gray-700">
+                    <span className="text-gray-400">: </span>
+                    <span className="font-mono">{firstLine}</span>
+                  </span>
+                )}
+              </bdi>
             </div>
 
             {/* Line 2: (on a phone, the status first) service + environment */}
@@ -159,7 +204,21 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
                   data-testid="exception-row-assignee"
                 >
                   <PeopleAvatar item={assignee} size="mini" />
-                  <span className="truncate">{assignee.name}</span>
+                  {/*
+                   * Cut short at its own end: an English name on a
+                   * Persian page loses its end, not its start
+                   * (LineDirection).
+                   */}
+                  <span
+                    className={
+                      assigneeNameDirection
+                        ? `truncate ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                        : "truncate"
+                    }
+                    dir={assigneeNameDirection}
+                  >
+                    {assignee.name}
+                  </span>
                 </span>
               )}
               <span
@@ -181,8 +240,17 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
                   {exception.environment}
                 </span>
               )}
+              {/*
+               * A code, read left to right in every language: on a
+               * Persian page it is cut short, and ends in its "...", at
+               * its right end.
+               */}
               {exception.fingerprint && (
-                <span className="min-w-0 truncate font-mono text-[10px] text-gray-400">
+                <span
+                  className="min-w-0 truncate font-mono text-[10px] text-gray-400"
+                  dir={FINGERPRINT_DIRECTION}
+                  data-testid="exception-row-fingerprint"
+                >
                   {exception.fingerprint.toString().slice(0, 12)}…
                 </span>
               )}
@@ -238,8 +306,55 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
                   }}
                 />
               </span>
+              {affectedUsers > 0 && (
+                <>
+                  <span className="text-gray-300">·</span>
+                  <span
+                    title={translator.translateText(
+                      "Distinct users this exception happened to in this time range",
+                    )}
+                    data-testid="exception-row-users"
+                  >
+                    <TranslatedSentence
+                      template={{
+                        one: "{{number}} user",
+                        other: "{{number}} users",
+                      }}
+                      count={affectedUsers}
+                      slots={{
+                        number: (
+                          <span className="font-semibold tabular-nums text-gray-800">
+                            {translator.formatNumber(affectedUsers)}
+                          </span>
+                        ),
+                      }}
+                    />
+                  </span>
+                </>
+              )}
             </div>
           </div>
+
+          {/*
+           * Its occurrences over the list's range, from sm up: on a phone
+           * the row's words need the width.
+           */}
+          {props.stats ? (
+            <div className="flex flex-shrink-0 items-center self-center max-sm:hidden">
+              <ExceptionTrendSparkline
+                trend={props.stats.trend}
+                isMuted={isResolved || isArchived}
+              />
+            </div>
+          ) : props.isStatsLoading ? (
+            <div
+              className="flex-shrink-0 self-center animate-pulse rounded bg-gray-100 max-sm:hidden"
+              style={{ width: SPARKLINE_WIDTH, height: SPARKLINE_HEIGHT }}
+              data-testid="exception-row-trend-loading"
+            />
+          ) : (
+            <></>
+          )}
 
           {/* Status pill, from sm up */}
           <div

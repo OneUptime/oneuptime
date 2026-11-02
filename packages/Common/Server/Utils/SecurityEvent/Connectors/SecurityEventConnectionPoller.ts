@@ -25,6 +25,7 @@ import OTelIngestService, {
 } from "../../../Services/OpenTelemetryIngestService";
 import SecurityEventConnectionService from "../../../Services/SecurityEventConnectionService";
 import SecurityEventService from "../../../Services/SecurityEventService";
+import RealTimeDetections from "../RealTime/RealTimeDetections";
 import logger from "../../Logger";
 import { redactLogString } from "../../LogRedaction";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -1154,6 +1155,12 @@ export default class SecurityEventConnectionPoller {
      */
     await SecurityEventService.insertJsonRows(rows, {
       clickhouseSettings: { async_insert: 0, insert_distributed_sync: 1 },
+    });
+
+    // Checked against the project's real-time detection rules as they land.
+    await RealTimeDetections.screen({
+      projectId: connection.projectId!,
+      rows,
     });
 
     result.ingestedCount = rows.length;

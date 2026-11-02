@@ -7,6 +7,7 @@ import MetricSavedViewService from "../../../Server/Services/MetricSavedViewServ
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import TraceSavedViewService from "../../../Server/Services/TraceSavedViewService";
+import ExceptionSavedViewService from "../../../Server/Services/ExceptionSavedViewService";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -125,6 +126,14 @@ const SERVICE_CASES: Array<ServiceCase> = [
     defaultColumn: "isDefault",
     newRowData: (): StoredRow => {
       return { name: "Slow spans", query: {} };
+    },
+  },
+  {
+    label: "ExceptionSavedViewService",
+    service: ExceptionSavedViewService as unknown as DatabaseService<BaseModel>,
+    defaultColumn: "isDefault",
+    newRowData: (): StoredRow => {
+      return { name: "Checkout errors", query: {} };
     },
   },
   {

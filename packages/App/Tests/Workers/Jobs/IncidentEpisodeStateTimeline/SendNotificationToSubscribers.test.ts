@@ -909,7 +909,7 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
     );
 
     expect(sentSlack()).toEqual([
-      `🚨 ## Incident - ${EPISODE_TITLE}\n\n\n**Resources Affected:** Edge network\n**Severity:** ${EPISODE_SEVERITY}\n**Status:** ${STATE_NAME}\n\n[View Status Page](${STATUS_PAGE_URL}) | [Unsubscribe](${UNSUBSCRIBE_URL})`,
+      `## 🚨 Incident - ${EPISODE_TITLE}\n\n\n**Resources Affected:** Edge network\n**Severity:** ${EPISODE_SEVERITY}\n**Status:** ${STATE_NAME}\n\n[View Status Page](${STATUS_PAGE_URL}) | [Unsubscribe](${UNSUBSCRIBE_URL})`,
     ]);
     expect(sentSlack()[0]).toBe(
       dashboardDefault(StatusPageSubscriberNotificationMethod.Slack),
@@ -2413,7 +2413,7 @@ describe("IncidentEpisodeStateTimeline escapes plain values in email", () => {
       }),
     );
     for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
-      expect(message).toContain(`## Incident - ${HOSTILE_TITLE_MARKDOWN}`);
+      expect(message).toContain(`## 🚨 Incident - ${HOSTILE_TITLE_MARKDOWN}`);
       expect(message).toContain(
         `**Resources Affected:** ${HOSTILE_RESOURCES_MARKDOWN}`,
       );

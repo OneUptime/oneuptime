@@ -8,7 +8,11 @@ import {
   getKubernetesMetricCategoryLabel,
   getKubernetesMetricsByCategory,
 } from "../../../Types/Monitor/KubernetesMetricCatalog";
-import { KubernetesResourceScope } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
+import {
+  KUBERNETES_WORKLOAD_KINDS,
+  KubernetesResourceScope,
+  MonitorStepKubernetesMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import {
@@ -17,6 +21,8 @@ import {
   readAgentChartValues,
 } from "./Utils/KubernetesAgentEmittedMetrics";
 import { describe, expect, test } from "@jest/globals";
+import * as fs from "fs";
+import * as path from "path";
 
 describe("KubernetesMetricCatalog", () => {
   const allMetrics: Array<KubernetesMetricDefinition> =
@@ -574,6 +580,220 @@ describe("KubernetesMetricCatalog", () => {
       for (const metric of allMetrics) {
         expect(metric.metricName).not.toMatch(/unavailable/);
       }
+    });
+  });
+
+  /*
+   * A Custom Metric monitor on the running restart count, with the list's
+   * Maximum, fires on a container's history and never recovers. The
+   * restarts the agent sends with each sample, summed over the window, are
+   * the restarts in it - what CrashLoopBackOff Detection reads.
+   */
+  describe("the restarts since each sample, beside the running count", () => {
+    test("offers them summed, beside the running count it keeps at its maximum", () => {
+      expect(
+        getKubernetesMetricByMetricName("k8s.container.restarts.increase"),
+      ).toEqual(
+        expect.objectContaining({
+          id: "container-restarts-increase",
+          friendlyName: "Container Restarts (Increase)",
+          category: "Container",
+          defaultAggregation: AggregationType.Sum,
+          defaultResourceScope: KubernetesResourceScope.Cluster,
+          unit: "count",
+        }),
+      );
+      expect(getKubernetesMetricByMetricName("k8s.container.restarts")).toEqual(
+        expect.objectContaining({
+          friendlyName: "Container Restarts",
+          category: "Container",
+          defaultAggregation: AggregationType.Max,
+        }),
+      );
+    });
+
+    test("lists it right after the running count in the picker", () => {
+      const names: Array<string> = getKubernetesMetricsByCategory(
+        "Container",
+      ).map((metric: KubernetesMetricDefinition): string => {
+        return metric.metricName;
+      });
+
+      expect(names.indexOf("k8s.container.restarts.increase")).toBe(
+        names.indexOf("k8s.container.restarts") + 1,
+      );
+    });
+
+    test("says what a sample's value is, what its sum is, and that it can be scoped to a workload", () => {
+      const description: string = getKubernetesMetricByMetricName(
+        "k8s.container.restarts.increase",
+      )!.description;
+
+      expect(description).toBe(
+        "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it. Carries its pod's workload names, so it can be scoped to a workload.",
+      );
+      // Read as a count, with no unit to print.
+      expect(
+        MetricValueFormatter.format({
+          value: 3,
+          unit: "count",
+          metricName: "k8s.container.restarts.increase",
+        }),
+      ).toBe("3");
+    });
+
+    test("is what the shipped chart's cluster collector makes of k8s.container.restarts", () => {
+      const config: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+        ),
+        "utf8",
+      );
+
+      expect(config).toContain(
+        '- set(name, "k8s.container.restarts.increase") where name == "k8s.container.restarts"',
+      );
+      expect(config).toContain(
+        "            - k8s.container.restarts.increase\n          match_type: strict\n        initial_value: drop\n",
+      );
+    });
+
+    /*
+     * A Workload scope filters every query on the workload's name
+     * (MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey), and
+     * the restarts pipeline has no k8sattributes of its own: the increase
+     * gets the names in the metrics pipeline, which the restarts pipeline
+     * hands it to once it is made.
+     */
+    test("carries the workload names a Workload scope filters on, from the metrics pipeline it is handed to", () => {
+      const config: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+        ),
+        "utf8",
+      );
+      const pipelines: string = config.substring(
+        config.indexOf("      pipelines:\n"),
+      );
+      const restartsPipeline: string = pipelines.substring(
+        pipelines.indexOf("        metrics/restarts-increase:\n"),
+      );
+      const metricsPipeline: string = pipelines.substring(
+        pipelines.indexOf("        metrics:\n"),
+        pipelines.indexOf("        logs:\n"),
+      );
+
+      expect(restartsPipeline).toContain(
+        "          exporters:\n            - forward/restarts-increase\n",
+      );
+      expect(restartsPipeline).not.toContain("- k8sattributes");
+      expect(metricsPipeline).toContain("            - k8s_cluster\n");
+      expect(metricsPipeline).toContain(
+        "            - forward/restarts-increase\n",
+      );
+      expect(metricsPipeline).toContain("            - k8sattributes\n");
+
+      // Every kind a Workload Kind can name is a name k8sattributes extracts.
+      for (const kind of KUBERNETES_WORKLOAD_KINDS) {
+        const key: string | null =
+          MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+            workloadType: kind.value,
+            workloadName: "checkout",
+          });
+
+        expect(key).toBe(`resource.k8s.${kind.value}.name`);
+        expect(config).toContain(`            - k8s.${kind.value}.name\n`);
+      }
+    });
+  });
+
+  /*
+   * The same for Jobs: a Custom Metric monitor on the Job's running
+   * failed-pod count, with the list's Maximum, fires on a Job's history and
+   * stays open until the Job is deleted. The failed pods the agent sends
+   * with each sample, summed over the window, are the failures in it - what
+   * Job Failures reads.
+   */
+  describe("the Job failures since each sample, beside the running count", () => {
+    test("offers them summed, beside the running count it keeps at its maximum", () => {
+      expect(
+        getKubernetesMetricByMetricName("k8s.job.failed_pods.increase"),
+      ).toEqual(
+        expect.objectContaining({
+          id: "job-failed-pods-increase",
+          friendlyName: "Job Failed Pods (Increase)",
+          category: "Workload",
+          defaultAggregation: AggregationType.Sum,
+          defaultResourceScope: KubernetesResourceScope.Workload,
+          unit: "count",
+        }),
+      );
+      expect(getKubernetesMetricByMetricName("k8s.job.failed_pods")).toEqual(
+        expect.objectContaining({
+          friendlyName: "Job Failed Pods",
+          category: "Workload",
+          defaultAggregation: AggregationType.Max,
+        }),
+      );
+      expect(getKubernetesMetricById("job-failed-pods-increase")).toBe(
+        getKubernetesMetricByMetricName("k8s.job.failed_pods.increase"),
+      );
+    });
+
+    test("lists it right after the running count in the picker", () => {
+      const names: Array<string> = getKubernetesMetricsByCategory(
+        "Workload",
+      ).map((metric: KubernetesMetricDefinition): string => {
+        return metric.metricName;
+      });
+
+      expect(names.indexOf("k8s.job.failed_pods.increase")).toBe(
+        names.indexOf("k8s.job.failed_pods") + 1,
+      );
+    });
+
+    test("says what a sample's value is, what its sum is, and that it can be scoped to a Job", () => {
+      const description: string = getKubernetesMetricByMetricName(
+        "k8s.job.failed_pods.increase",
+      )!.description;
+
+      expect(description).toBe(
+        "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it. Carries the Job's name and namespace, so it can be scoped to a Job.",
+      );
+      // A Workload scope of kind Job filters on the Job's own name.
+      expect(
+        MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+          workloadType: "job",
+          workloadName: "nightly-export",
+        }),
+      ).toBe("resource.k8s.job.name");
+      // Read as a count, with no unit to print.
+      expect(
+        MetricValueFormatter.format({
+          value: 2,
+          unit: "count",
+          metricName: "k8s.job.failed_pods.increase",
+        }),
+      ).toBe("2");
+    });
+
+    test("is what the shipped chart's cluster collector makes of k8s.job.failed_pods", () => {
+      const config: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+        ),
+        "utf8",
+      );
+
+      expect(config).toContain(
+        '- copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
+      );
+      expect(config).toContain(
+        "            - k8s.job.failed_pods.increase\n          match_type: strict\n        initial_value: drop\n",
+      );
     });
   });
 });

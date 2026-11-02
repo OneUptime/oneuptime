@@ -206,7 +206,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      */
     [SESSION_REPLAY]: [
       "⋯",
-      "Watch session at this span",
       "View session replay",
       "Other pages",
       "All recordings",
@@ -379,6 +378,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Search.",
     "When every session is anonymous.",
     "This person's other sessions.",
+    "One user or one session.",
     "The timeline",
     "Tabs.",
     "Playing a whole visit.",

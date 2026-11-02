@@ -34,15 +34,15 @@ Andate in **Monitor** e fate clic su **Crea monitor**. In **Altri tipi di monito
 
 ### Scegliere il cluster
 
-Selezionatelo in **Cluster Kubernetes**. L'elenco contiene ogni cluster da cui l'agente ha inviato dati.
+Selezionatelo in **Cluster Kubernetes**. L'elenco contiene ogni cluster da cui l'agente ha inviato dati. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Kubernetes** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
-Usate una delle tre schede:
+Un nuovo monitor parte da **Cluster Stopped Reporting**, in **Su cosa avvisare**; **Cambia** sceglie un altro modello. **Custom Metric** e **Avanzato** sono in **Altri campi**:
 
-| Scheda | Cosa scegliete |
+| Dove | Cosa scegliete |
 | --- | --- |
-| **Quick Setup** | Un [modello di avviso pronto](#modelli-di-avviso-pronti). Compila la metrica, l'ambito, l'intervallo di tempo e i criteri; potete comunque cambiare l'**Intervallo di tempo**. |
+| **Su cosa avvisare** | Un [modello di avviso pronto](#modelli-di-avviso-pronti). Compila la metrica, l'ambito, l'intervallo di tempo e i criteri; potete comunque cambiare l'**Intervallo di tempo**. |
 | **Custom Metric** | Una metrica del [catalogo delle metriche](#catalogo-delle-metriche), poi il suo **Ambito della risorsa**, i filtri, l'**Aggregazione** (Media, Massimo, Minimo, Somma o Conteggio) e l'**Intervallo di tempo**. |
 | **Avanzato** | L'**Ambito della risorsa**, i filtri e l'**Intervallo di tempo**, più le vostre query di metriche e formule in **Seleziona metriche**, con un grafico in tempo reale del risultato. |
 
@@ -69,6 +69,8 @@ Completate il modulo e salvate. Il monitor compare in **Monitor**, e il suo stat
 | Nodo | Un nodo del cluster | **Nome del nodo** |
 | Pod | Un pod | **Namespace**, **Nome del pod** |
 
+Le metriche di un container e di un pod portano i nomi dei carichi di lavoro a cui appartiene il pod (il pod di un Deployment porta il nome del Deployment e quello del suo ReplicaSet), quindi l'ambito Carico di lavoro sorveglia i container e i pod di quel carico di lavoro. Le metriche proprie di un carico di lavoro, come i pod falliti di un Job, portano solo il nome del proprio carico di lavoro: limitatele al tipo di quel carico di lavoro.
+
 ### Intervallo di tempo
 
 **Intervallo di tempo** è la finestra coperta dalla query della metrica a ogni valutazione del monitor, da **Past 1 Minute** a **Past 365 Days**. Le finestre brevi (da 1 a 15 minuti) sono adatte agli avvisi; quelle più lunghe smussano le metriche rumorose.
@@ -85,13 +87,13 @@ La scheda **Custom Metric** offre queste metriche, raggruppate per tipo di risor
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Nodo | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| Container | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Carico di lavoro | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| Carico di lavoro | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Piano di controllo | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** e **Node CPU Usage** sono espresse in core, non in percentuale: `0.18` equivale a 0,18 di un core. **Pod Phase (Code)** è un codice (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): aggregatelo con Massimo o Minimo, mai con Somma. Le metriche del piano di controllo arrivano solo quando la raccolta del piano di controllo da parte dell'agente è attiva. **Node Ready Condition** vale 1 con Ready, 0 con NotReady e -1 con Unknown, ciò che segnala un nodo caduto: avvisa sotto 1.
+> **Pod CPU Usage** e **Node CPU Usage** sono espresse in core, non in percentuale: `0.18` equivale a 0,18 di un core. **Pod Phase (Code)** è un codice (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): aggregatelo con Massimo o Minimo, mai con Somma. Le metriche del piano di controllo arrivano solo quando la raccolta del piano di controllo da parte dell'agente è attiva. **Node Ready Condition** vale 1 con Ready, 0 con NotReady e -1 con Unknown, ciò che segnala un nodo caduto: avvisa sotto 1. **Container Restarts** è il contatore progressivo dei riavvii del container; **Container Restarts (Increase)** è ciò che l'agente invia con ogni campione: i riavvii dal suo campione precedente del container, quindi la sua somma su una finestra dà i riavvii avvenuti in essa. Porta ciò che porta **Container Restarts**, compresi i nomi dei carichi di lavoro del pod del container, ma non l'ID del container, che cambia a ogni riavvio. **Job Failed Pods** è il contatore progressivo dei pod falliti di un Job; **Job Failed Pods (Increase)** è ciò che l'agente invia con ogni campione: i pod del Job falliti dal suo campione precedente del Job, quindi la sua somma su una finestra dà i fallimenti avvenuti in essa. Porta ciò che porta **Job Failed Pods**: il nome e il namespace del Job.
 
 ## Criteri di monitoraggio
 
@@ -122,41 +124,46 @@ Il rilevamento delle anomalie rispetto a una baseline non richiede soglie. Scegl
 | **Anomalously Low** | Scende sotto l'intervallo atteso |
 | **Anomalous** | Esce dall'intervallo atteso in una delle due direzioni |
 
-Ogni campione viene confrontato con una baseline della stessa ora della settimana costruita sulla **Finestra di riferimento** (14 giorni per impostazione predefinita; 28, 60 o 90 giorni). **Sensibilità** stabilisce quanto è ampio l'intervallo atteso: **Bassa (4σ — solo deviazioni gravi)**, **Media (3σ — consigliata)**, quella predefinita, oppure **Alta (2σ — più rumorosa, servizi molto stabili)**. Le condizioni di anomalia restano in uno stato «Learning» e non producono avvisi finché non esiste almeno la finestra di riferimento scelta di storico della metrica.
+Ogni campione viene confrontato con una baseline della stessa ora della settimana costruita sulla **Finestra di riferimento** (14 giorni per impostazione predefinita; 28, 60 o 90 giorni). **Sensibilità** stabilisce quanto è ampio l'intervallo atteso: **Bassa (4σ — solo deviazioni gravi)**, **Media (3σ — consigliata)**, quella predefinita, oppure **Alta (2σ — più rumorosa, servizi molto stabili)**. Le condizioni di anomalia restano in uno stato «Learning» e non producono avvisi finché quell'ora della settimana non ha due settimane di storico. Una somma, un conteggio o una query su un istogramma resta per sempre in quello stato: questo monitor filtra le sue query per attributi e la baseline non ne contiene.
 
 **Se nessun dato**, in **Altri campi**, decide cosa succede quando la query non restituisce nulla nella finestra: **Ignore** (predefinito) non corrisponde, **Trigger** tratta il silenzio come il problema e **Treat As Zero** confronta uno zero. Il tempo in cui OneUptime stesso non stava ricevendo non è mai assenza di dati: un controllo la cui finestra lo contiene attende invece, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Modelli di avviso pronti
 
-La scheda **Quick Setup** elenca questi modelli, raggruppati per categoria. Ognuno compila due criteri: uno che segna il monitor offline e apre un incidente e un avviso finché la condizione vale, e uno che lo riporta online quando non vale più.
+L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per categoria. Ognuno compila due criteri: uno che segna il monitor offline e apre un incidente e un avviso finché la condizione vale, e uno che lo riporta online quando non vale più.
 
 | Modello | Categoria | Scatta quando | Gravità |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Disponibilità | Dall'agente del cluster non arrivano dati per 10 minuti | Critico |
 | CrashLoopBackOff Detection | Carico di lavoro | Un container si è riavviato in 15 minuti ed è stato pronto per meno della metà di essi | Critico |
-| Pod Stuck in Pending | Pianificazione | Un pod è nella fase Pending in ogni campione di una finestra di 15 minuti | Warning |
+| Pod Stuck in Pending | Pianificazione | Un pod è nella fase Pending in ogni campione di una finestra di 15 minuti | Avviso |
 | Node Not Ready | Nodo | Un nodo segnala NotReady o smette di segnalare il suo stato (Unknown) | Critico |
-| High Node CPU Utilization | Nodo | L'utilizzo medio della CPU di un nodo supera il 90% della sua CPU allocabile | Warning |
-| High Node Memory Utilization | Nodo | Il working set medio della memoria di un nodo supera l'85% della sua memoria allocabile | Warning |
-| Deployment Replica Mismatch | Carico di lavoro | Un deployment ha meno repliche disponibili di quelle desiderate per 15 minuti | Warning |
-| Job Failures | Carico di lavoro | Un pod di un job è fallito in 15 minuti | Warning |
+| High Node CPU Utilization | Nodo | L'utilizzo medio della CPU di un nodo supera il 90% della sua CPU allocabile | Avviso |
+| High Node Memory Utilization | Nodo | Il working set medio della memoria di un nodo supera l'85% della sua memoria allocabile | Avviso |
+| Deployment Replica Mismatch | Carico di lavoro | Un deployment ha meno repliche disponibili di quelle desiderate per 15 minuti | Avviso |
+| Job Failures | Carico di lavoro | Un pod di un job è fallito in 15 minuti | Avviso |
 | etcd No Leader | Piano di controllo | etcd non ha un leader eletto | Critico |
 | API Server Request Saturation | Piano di controllo | Il server API mantiene 200 o più richieste in corso per tutta la finestra | Critico |
-| Scheduler Backlog | Pianificazione | La coda dei pod in attesa dello scheduler non è vuota per 5 minuti | Warning |
-| High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 90% | Warning |
-| DaemonSet Misscheduled Nodes | Carico di lavoro | Un DaemonSet esegue pod su nodi che non corrispondono più al suo selettore di nodi, alla sua affinità o alle sue tolleranze | Warning |
-| High Node CPU Request Commitment | Nodo | La somma delle richieste di CPU dei container di un nodo supera il 90% della sua CPU allocabile | Warning |
-| High Node Memory Request Commitment | Nodo | La somma delle richieste di memoria dei container di un nodo supera il 90% della sua memoria allocabile | Warning |
+| Scheduler Backlog | Pianificazione | La coda dei pod in attesa dello scheduler non è vuota per 5 minuti | Avviso |
+| High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 90% | Avviso |
+| DaemonSet Misscheduled Nodes | Carico di lavoro | Un DaemonSet esegue pod su nodi che non corrispondono più al suo selettore di nodi, alla sua affinità o alle sue tolleranze | Avviso |
+| High Node CPU Request Commitment | Nodo | La somma delle richieste di CPU dei container di un nodo supera il 90% della sua CPU allocabile | Avviso |
+| High Node Memory Request Commitment | Nodo | La somma delle richieste di memoria dei container di un nodo supera il 90% della sua memoria allocabile | Avviso |
 | HPA Saturated at Max Replicas | Carico di lavoro | Un HPA scalato sopra il suo `minReplicas` lavora al 90% o più del suo `maxReplicas` | Critico |
 | Pod Memory Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di memoria dei suoi container | Critico |
-| Pod CPU Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di CPU dei suoi container | Warning |
+| Pod CPU Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di CPU dei suoi container | Avviso |
 
 I modelli basati su metriche per oggetto valutano ogni nodo, pod, deployment, job, DaemonSet o HPA separatamente, quindi un cluster con diversi pod non sani riceve un incidente per pod invece di uno per l'intero cluster.
+
+**High Node CPU Request Commitment** e **High Node Memory Request Commitment** contano solo le request dei pod che non sono terminati, come fa lo scheduler. Il cluster continua a riportare le request di un pod Succeeded o Failed, come quello di un Job terminato, finché il pod non viene eliminato: queste non vengono contate.
 
 **Cluster Stopped Reporting** scatta quando dall'agente del cluster non arriva nulla per dieci minuti: l'agente è stato disinstallato o va continuamente in crash, la sua chiave API è stata revocata, ha perso la connessione a OneUptime, oppure il server API del cluster ha smesso di rispondergli. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** e **Job Failures** contano quanto è cresciuto nella finestra un contatore di riavvii o di pod falliti, non il contatore stesso, quindi si risolvono da soli quando i riavvii o i fallimenti si fermano. La crescita si vede solo tra due campioni dello stesso minuto: con l'intervallo di 30 secondi dell'agente è circa la metà. Un crash loop si riavvia di continuo e viene rilevato; un singolo riavvio può passare inosservato.
+> **CrashLoopBackOff Detection** somma `k8s.container.restarts.increase`, che l'agente invia con ogni campione: i riavvii dal suo campione precedente del container. Così conta ogni riavvio per quanto distanti siano i campioni, si risolve da solo quando i riavvii si fermano, e un pod ricreato inizia un nuovo conteggio invece di essere letto come riavvii. Un agente più vecchio non invia `k8s.container.restarts.increase`: prima [aggiornatelo](/docs/monitor/kubernetes-agent#aggiornamento). Un monitor creato dal modello prima di allora legge quanto è cresciuto `k8s.container.restarts` entro ogni minuto, e così perde circa la metà dei riavvii di un crash loop: eliminatelo e create di nuovo il modello.
+
+> [!NOTE]
+> **Job Failures** somma `k8s.job.failed_pods.increase`, che l'agente invia con ogni campione: i pod del Job falliti dal suo campione precedente del Job. Così conta ogni fallimento per quanto distanti siano i campioni, si risolve da solo quando i fallimenti si fermano, e un Job ricreato con lo stesso nome inizia un nuovo conteggio invece di essere letto come fallimenti. I fallimenti precedenti al primo campione di un Job da parte dell'agente sono il punto di partenza del suo conteggio, quindi un Job che fallisce nel suo primo mezzo minuto e non riprova mai può passare inosservato. Un agente più vecchio non invia `k8s.job.failed_pods.increase`: prima [aggiornatelo](/docs/monitor/kubernetes-agent#aggiornamento). Un monitor creato dal modello prima di allora legge quanto è cresciuto `k8s.job.failed_pods` entro ogni minuto, e così perde circa la metà dei fallimenti: eliminatelo e create di nuovo il modello.
 
 ### Cogliere le cause, non solo i sintomi
 
@@ -185,7 +192,11 @@ I cluster si registrano da soli a partire dai dati dell'agente, con il `clusterN
 :::
 
 :::details CrashLoopBackOff Detection non è scattato per un riavvio
-Il modello scatta quando il contatore dei riavvii di un container cresce in 15 minuti mentre il container è stato pronto per meno della metà di essi, quindi un container che si è riavviato una volta ed è tornato subito non avvisa. La crescita si vede solo tra due campioni dello stesso minuto, quindi un singolo riavvio può passare inosservato; un crash loop si riavvia ogni pochi minuti e viene rilevato.
+Il modello scatta quando un container si riavvia in 15 minuti mentre è stato pronto per meno della metà di essi, quindi un container che si è riavviato una volta ed è tornato subito non avvisa. Legge `k8s.container.restarts.increase`, che un agente più vecchio non invia: [aggiornate l'agente](/docs/monitor/kubernetes-agent#aggiornamento). Un monitor creato dal modello prima di allora legge quanto è cresciuto `k8s.container.restarts` tra due campioni dello stesso minuto, e perde i riavvii tra i campioni di due minuti: eliminatelo e create di nuovo il modello. Se `filters.metrics.include` elenca le metriche che l'agente invia, aggiungete `k8s.container.restarts.increase`. Un monitor limitato a un carico di lavoro ha bisogno anche dei nomi dei carichi di lavoro su `k8s.container.restarts.increase`, che un agente più vecchio invia senza: [aggiornate l'agente](/docs/monitor/kubernetes-agent#aggiornamento).
+:::
+
+:::details Job Failures non è scattato per un Job fallito
+Il modello scatta quando un pod di un Job fallisce in 15 minuti, e si risolve quindici minuti dopo l'ultimo fallimento. Legge `k8s.job.failed_pods.increase`, che un agente più vecchio non invia: [aggiornate l'agente](/docs/monitor/kubernetes-agent#aggiornamento). Un monitor creato dal modello prima di allora legge quanto è cresciuto `k8s.job.failed_pods` tra due campioni dello stesso minuto, e perde i fallimenti tra i campioni di due minuti: eliminatelo e create di nuovo il modello. I fallimenti precedenti al primo campione di un Job da parte dell'agente sono il punto di partenza del suo conteggio, quindi un Job il cui unico pod fallisce nel suo primo mezzo minuto passa inosservato. Se `filters.metrics.include` elenca le metriche che l'agente invia, aggiungete `k8s.job.failed_pods.increase`. Un monitor limitato a un carico di lavoro deve nominare il Job stesso: i pod falliti di un Job portano il suo nome e il suo namespace, non il CronJob che lo ha creato.
 :::
 
 ## Passaggi successivi

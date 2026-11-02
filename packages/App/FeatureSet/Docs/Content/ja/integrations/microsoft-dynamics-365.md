@@ -133,7 +133,7 @@ OneUptime → Dynamics 365 のテンプレートは、**プライベートイン
 4. **ワークフローを作成** をクリックします。ワークフローはすべてオフの状態で作成されます。**ビルダー** の上部で **有効** をオンにしてください。
 :::
 
-まず **Create a Dynamics 365 case when an incident is declared** (アラートの場合は **Create a Dynamics 365 case when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Dynamics 365 テンプレートは、このテンプレートが書き込むリンクでサポート案件を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行の最後のステップに `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.` と表示されるはずです。
+まず **Create a Dynamics 365 case when an incident is declared** (アラートの場合は **Create a Dynamics 365 case when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Dynamics 365 テンプレートは、このテンプレートが書き込むリンクでサポート案件を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-case-1` の **Response Body** に、 `CAS-01001-X1Y2Z3` のような新しいサポート案件の `ticketnumber` が含まれるはずです。
 
 ### Dynamics 365 → OneUptime のテンプレートを接続する
 
@@ -156,11 +156,11 @@ Dynamics 365 → OneUptime のテンプレート (インシデント用 3 つ、
 
 | テンプレート | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| サポート案件の作成時にインシデントを宣言 / アラートを作成 | Added | Cases | | `{"incidentid": "<Case>"}` |
-| サポート案件の解決時にインシデント / アラートを解決 | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| サポート案件のメモを非公開メモとしてインシデント / アラートに追加 | Added | Notes | | `{"annotationid": "<Note>"}` |
+| サポート案件の作成時にインシデントを宣言 / アラートを作成 | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| サポート案件の解決時にインシデント / アラートを解決 | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| サポート案件のメモを非公開メモとしてインシデント / アラートに追加 | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-一部のサポート案件だけを送るには、トリガーの **Filter rows** を使います。たとえば優先度が高いサポート案件なら `prioritycode eq 1` です。トリガーの出力全体を送ることもでき、テンプレートは同じようにそこから行の ID と `SdkMessage` を読み取ります。
+一部のサポート案件だけを送るには、トリガーの **Filter rows** を使います。たとえば優先度が高いサポート案件なら `prioritycode eq 1` です。本文では、Dataverse の Webhook と同じように、行を `PrimaryEntityId` で指定します。テンプレートは行そのものを Dynamics 365 から読み直します。
 @tab Dataverse webhook
 [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) で URL を登録します: **Register New WebHook** を、**HttpHeader** 認証と独自のヘッダーで登録します。URL 自体がシークレットです。次に、下の各イベントについて、**Event Pipeline Stage of Execution** を **PostOperation**、**Execution Mode** を **Asynchronous** にしたステップをその Webhook に登録します。
 
@@ -181,12 +181,12 @@ Dynamics 365 → OneUptime のテンプレート (インシデント用 3 つ、
 
 ### 動作を確認する
 
-どのテンプレートも、何が起きたかを示す **Log** ステップで終わるため、**ログ → 実行履歴** の実行の最後のステップを見てください:
+各実行の **ステップ** にはテンプレートが何をしたかが示されるので、 **ログ → 実行履歴** で実行を開き、どう終わったかを見てください:
 
-- `✅` — 処理を完了し、サポート案件、インシデント、またはアラートを示します。
-- `ℹ️` — 意図的にイベントをスキップし、その理由を示します。サポート案件がこの種類のレコードにリンクされていない、メモが相手側から来た、レコードがプライベートである、新しい状態に対応するサポート案件のステータスがない、のいずれかです。
-- `❌` — 呼び出しが失敗しました。Dynamics 365 への呼び出しの場合、行には Dynamics 365 の応答が含まれます。
-- `⚠️` — サポート案件からレコードを作成するテンプレートがレコードを作成したものの、Dynamics 365 がリンクを受け付けなかったため、ほかのテンプレートがまだ見つけられません。サポート案件の列にリンクを手動で入力してください。
+- **実行済み**: 処理を完了しました。最後のステップにサポート案件、インシデント、またはアラートが示されます。
+- **実行済み** で、 **Check With JavaScript** ステップが **No** に進んだ: 意図的にイベントをスキップしました。そのステップに理由が示されます。サポート案件がこの種類のレコードにリンクされていない、メモが相手側から来た、レコードがプライベートである、新しい状態ではサポート案件がクローズされない、のいずれかです。
+- **エラー**: ステップが失敗しました。 **ステップ** にあるその項目に理由が示されます。Dynamics 365 への呼び出しの場合は、Dynamics 365 の応答も含まれます。
+- `link-case-1` で **エラー**: サポート案件からレコードを作成するテンプレートがレコードを作成したものの、Dynamics 365 がリンクを受け付けなかったため、ほかのテンプレートがまだ見つけられません。サポート案件の列にリンクを手動で入力してください。
 
 実行が最初の Dynamics 365 のステップで `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}` と表示されて止まる場合は、サインインの設定が間違っており、メッセージに Microsoft Entra ID の応答が引用されています。[テンプレートが尋ねる内容](#テンプレートが尋ねる内容) を参照してください。
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### テンプレートの動作を変更する
 
-ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Run Custom JavaScript** ブロックの **JavaScript Code** の、共有ヘルパーブロックのすぐ下にあります。インシデント版とアラート版は、同じブロックに同じ定数を持っています。
+ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Check With JavaScript** ブロックの **JavaScript Code** の、共有ヘルパーブロックのすぐ下にあります。インシデント版とアラート版は、同じブロックに同じ定数を持っています。
 
 | 定数 | テンプレートとブロック | 制御する内容 |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `CASE_ORIGIN`, `CASE_TYPE` | Dynamics 365 のサポート案件を作成 — `prepare-case-1` | 新しいサポート案件の `caseorigincode` (`3`、Web) と `casetypecode` (`2`、Problem)。ほかの列を設定するには、同じスクリプトの `CASE` に論理名で追加します。 |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Dynamics 365 のサポート案件を作成 — `prepare-case-1` | Case テーブル自体の上限である 200 文字と 2000 文字。どれだけ切り詰められても、説明には OneUptime へのリンクが残ります。Case テーブルでより多く許可している場合は上げてください。 |
 | `RESOLVED_CASE_STATUS` | Dynamics 365 のサポート案件を解決 — `plan-case-1` | 解決されたレコードがサポート案件をクローズするときのステータス。`5` は Problem Solved、`1000` は Information Provided です。 |
-| `STATE_TO_CASE_STATUS` | Dynamics 365 のサポート案件を解決 — `plan-case-1` | レコードが別の状態になったとき、状態の名前でサポート案件を移します。`{ Acknowledged: 4 }` は、インシデントが確認されるとサポート案件を Researching に移します。Dynamics 365 のアクティブなステータスは、`1` In Progress、`2` On Hold、`3` Waiting for Details、`4` Researching です。ここに挙げた解決済みの状態は、指定したステータスでサポート案件をクローズします。 |
+| `STATE_TO_CASE_STATUS` | Dynamics 365 のサポート案件を解決 — `plan-case-1` | 独自の解決済みの状態で、状態の名前によって、別の解決済みステータスでサポート案件をクローズします。 `{ Closed: 1000 }` は Information Provided としてクローズします。サポート案件が変わるのはレコードが解決されたときだけで、Researching のようなアクティブなステータスが設定されることはありません。 |
 | `PRIORITY_RANK` | Dynamics 365 のサポート案件から作成 — `prepare-incident-1`、`prepare-alert-1` | サポート案件の優先度 (`1` High、`2` Normal、`3` Low) を、`0` (最も重大な重大度)、`1`、`2` (最も軽い重大度) に対応付けます。一覧にない優先度は中央になります。新しいプロジェクトにある二つのアラートの重大度では、`2: 1` を `2: 0` に変えない限り、Normal は Low になります。 |
 | `ONLY_PRIORITIES` | Dynamics 365 のサポート案件から作成 — `prepare-incident-1`、`prepare-alert-1` | 空の場合は、フローまたは Webhook が送るすべてのサポート案件を受け付けます。`[1]` にすると、優先度が高いサポート案件にだけレコードを作成します。 |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Dynamics 365 のサポート案件の解決時に解決 — `decide-state-1` | `{ Researching: 'Acknowledged' }` のように、サポート案件のステータスを名前で OneUptime の状態に対応付けます。それ以外は、サポート案件の状態で決まります。Resolved はレコードを解決します。サポート案件がキャンセルされたときにも解決するには、`2: 'isResolvedState'` を追加します。 |
-| `MESSAGES` | Dynamics 365 → OneUptime のすべてのテンプレート — `read-event-1` | テンプレートが作用するイベント。編集されたメモもコピーするには、メモのテンプレートの一覧に `'Update'` を追加します。編集はそれぞれ新しいメモになります。 |
+| `MESSAGES` | Dynamics 365 → OneUptime のすべてのテンプレート — `read-event-1`、または `prepare-incident-1` と `prepare-alert-1` | テンプレートが作用するイベント。編集されたメモもコピーするには、メモのテンプレートの一覧に `'Update'` を追加します。編集はそれぞれ新しいメモになります。 |
 | `MAX_NOTE_LENGTH` | メモのテンプレート — `build-note-1`、`read-note-1` | それぞれが書き込むメモの最大長。Dynamics 365 へはメモ自体の上限である 100,000 文字、OneUptime へは 30,000 文字です。 |
 
 キーとして使う状態名とステータス名は、大文字を含めて名前どおりに正確に書く必要があります。コードに `{{` を含めないでください。スクリプトは実行前にほかの設定と同じように値が埋め込まれるため、開き波かっこが 2 つ続くと参照として読まれます。
@@ -242,7 +242,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 制限事項
 
 - **Microsoft の商用クラウド。** トークン URL は `login.microsoftonline.com` です。US Government (GCC High、DoD) や中国のクラウドでは、`dynamicsAccessToken` を開いて **設定を編集** を使い、トークン URL を `login.microsoftonline.us` のような自分のクラウドのサインインホストに変更します。
-- **Dynamics 365 がサポート案件の解決を拒否することがあります。** Customer Service の設定によっては、未完了の活動や未完了の子サポート案件があるあいだはサポート案件を解決できず、ビジネスルールやプラグインが拒否することもあります。実行は Dynamics 365 の理由とともに `❌ Dynamics 365 did not resolve the case` で終わり、サポート案件はそのまま残ります。
+- **Dynamics 365 がサポート案件の解決を拒否することがあります。** Customer Service の設定によっては、未完了の活動や未完了の子サポート案件があるあいだはサポート案件を解決できず、ビジネスルールやプラグインが拒否することもあります。実行は Dynamics 365 の理由とともに `close-case-1` で失敗し、サポート案件はそのまま残ります。
 - **レコードとサポート案件は後ろに戻りません。** サポート案件を再オープンしても OneUptime では何も変わらず、解決済みのレコードが再オープンされることもありません。すでに解決またはキャンセルされたサポート案件を、クローズし直すために再オープンすることもありません。
 - **メモと説明はプレーンテキストです。** Dynamics 365 のリッチテキストエディターで書かれたメモは、表示されているテキストとして OneUptime に届きます。エディターで書かれた、またはメールから取り込まれたサポート案件の説明も同様で、段落と改行は残り、書式、画像、メール独自のスタイルは失われます。OneUptime のメモは、Markdown を含めて生の文字のまま Dynamics 365 に届きます。サポート案件のタイトルと説明、メモ、ステータス・優先度・顧客・人の名前など、Dynamics 365 から来るテキストは書かれたとおりに読めます。そこに入力された画像、リンク、HTML、図、`<!channel>` のようなチャットのメンションは、それらを開始する文字の後に見えない word joiner が入るため、文字として表示されるだけで何もしません。テキストをコピーしても word joiner は残ります。ワークフローは作成時のスクリプトを保持するため、古いバージョンのテンプレートから作成したワークフローは、そのバージョンのとおりにテキストを書きます。この動作にするには、テンプレートから作成し直してください。添付ファイルは Dynamics 365 に残り、OneUptime のメモにはファイル名が示されます。
 - **編集されたメモはコピーされません**。新しいメモだけがコピーされます。`MESSAGES` に `'Update'` を追加すれば変わります。

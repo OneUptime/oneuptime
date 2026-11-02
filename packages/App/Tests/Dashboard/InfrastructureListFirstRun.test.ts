@@ -70,7 +70,7 @@ const LIST_PAGES: Array<string> = [
   "Pages/Database/Databases.tsx",
   "Pages/MessageQueue/MessageQueues.tsx",
   "Pages/Serverless/ServerlessFunctions.tsx",
-  "Pages/Cloud/CloudResources.tsx",
+  "Pages/AppPlatforms/Environments.tsx",
   "Pages/Cloud/MonitoredResources.tsx",
 ];
 
@@ -89,7 +89,7 @@ const LISTS_WITH_CHIPS: Array<string> = [
   "Pages/Database/Databases.tsx",
   "Pages/MessageQueue/MessageQueues.tsx",
   "Pages/Serverless/ServerlessFunctions.tsx",
-  "Pages/Cloud/CloudResources.tsx",
+  "Pages/AppPlatforms/Environments.tsx",
   "Pages/Cloud/MonitoredResources.tsx",
 ];
 
@@ -189,7 +189,7 @@ const REFRESH_TOGGLES: Record<string, string> = {
   "Pages/StorageArray/StorageArrays.tsx": ADD_DIALOG_REFRESH_TOGGLE,
   "Pages/IoT/Fleets.tsx": ADD_DIALOG_REFRESH_TOGGLE,
   "Pages/Serverless/ServerlessFunctions.tsx": ADD_DIALOG_REFRESH_TOGGLE,
-  "Pages/Cloud/CloudResources.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/AppPlatforms/Environments.tsx": ADD_DIALOG_REFRESH_TOGGLE,
 };
 
 // Each list's showcase (Components/ResourceShowcase), by the constant it is.
@@ -207,7 +207,7 @@ const SHOWCASES: Record<string, string> = {
   "Pages/Database/Databases.tsx": "DATABASE_SHOWCASE",
   "Pages/MessageQueue/MessageQueues.tsx": "MESSAGE_QUEUE_SHOWCASE",
   "Pages/Serverless/ServerlessFunctions.tsx": "SERVERLESS_FUNCTION_SHOWCASE",
-  "Pages/Cloud/CloudResources.tsx": "CLOUD_ENVIRONMENT_SHOWCASE",
+  "Pages/AppPlatforms/Environments.tsx": "CLOUD_ENVIRONMENT_SHOWCASE",
 };
 
 describe.each(LIST_PAGES)("%s", (page: string) => {
@@ -293,7 +293,7 @@ describe("the list descriptions that named attributes say what a reader sees", (
 
 describe("the Cloud lists name what they list", () => {
   test("an empty Cloud Environments list says no environments, not the model's no resources", () => {
-    expect(code("Pages/Cloud/CloudResources.tsx")).toContain(
+    expect(code("Pages/AppPlatforms/Environments.tsx")).toContain(
       'noItemsMessage="No cloud environments yet."',
     );
   });

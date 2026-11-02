@@ -44,7 +44,8 @@ Forbindelsen logger på med [OAuth 2.0-flowet for klientlegitimationsoplysninger
 
 1. Gå til **API permissions → Add a permission → Microsoft Graph → Application permissions**, vælg `AuditLog.Read.All`, og vælg **Add permissions**. Microsoft dokumenterer, at listen over logins også kan kræve `Directory.Read.All`: tilføj den, hvis logins afvises med `403`, når samtykket er givet.
 2. Til Microsoft 365-auditloggen tilføjer du en anden tilladelse: **Add a permission → Office 365 Management APIs → Application permissions** og derefter `ActivityFeed.Read`.
-3. Vælg **Grant admin consent for** din lejer, og bekræft. Hver tilladelses status skal være **Granted**: uden samtykke afvises hver læsning med `403`.
+3. For at lade playbooks deaktivere, aktivere og logge brugere ud (se [Inddæmning](/docs/telemetry/security-cases#inddæmning)) tilføjer du på samme måde `User.Read.All`, `User.EnableDisableAccount.All` og `User.RevokeSessions.All`. Microsoft lader kun en app, der også har rollen Privileged Authentication Administrator, ændre en administrators konto.
+4. Vælg **Grant admin consent for** din lejer, og bekræft. Hver tilladelses status skal være **Granted**: uden samtykke afvises hver læsning med `403`.
 
 ### Opret en klienthemmelighed
 
@@ -52,7 +53,7 @@ Gå til **Certificates & secrets → Client secrets → New client secret**, væ
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Entra ID** under **Identitet**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Klienthemmelighed**. Slå **Microsoft 365-auditlog** til i trinnet **Hentning** for også at læse den.
+Åbn **Produkter → Sikkerhedshændelser → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Entra ID** under **Identitet**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Klienthemmelighed**. Slå **Microsoft 365-auditlog** til i trinnet **Hentning** for også at læse den.
 
 ### Test den, før du gemmer
 

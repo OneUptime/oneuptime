@@ -1,3 +1,7 @@
+import {
+  CustomFieldFile,
+  readCustomFieldFiles,
+} from "../CustomField/CustomFieldFile";
 import { JSONObject, JSONValue } from "../JSON";
 import {
   PublicFormField,
@@ -70,6 +74,37 @@ export const getFormAnswerDisplayValue: GetFormAnswerDisplayValueFunction = (
           return getOptionLabel(field, entry);
         })
         .join(", ");
+
+    /*
+     * The files' names: of the files stored for the submission
+     * (CustomFieldFile), or of the files as they were sent.
+     */
+    case PublicFormFieldType.File:
+    case PublicFormFieldType.MultipleFiles: {
+      const stored: Array<CustomFieldFile> = readCustomFieldFiles(value);
+
+      if (stored.length > 0) {
+        return stored
+          .map((file: CustomFieldFile): string => {
+            return file.name;
+          })
+          .join(", ");
+      }
+
+      return (Array.isArray(value) ? value : [value])
+        .map((entry: JSONValue): string => {
+          return entry &&
+            typeof entry === "object" &&
+            !Array.isArray(entry) &&
+            typeof (entry as JSONObject)["name"] === "string"
+            ? ((entry as JSONObject)["name"] as string)
+            : "";
+        })
+        .filter((name: string): boolean => {
+          return name.length > 0;
+        })
+        .join(", ");
+    }
 
     default:
       return value === null || value === undefined ? "" : String(value);

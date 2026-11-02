@@ -533,8 +533,6 @@ interface ChatPage {
   // What the search on the page is typed as, and in Add Component.
   searchedAs: string;
   searchedInPickerAs: string;
-  // The Log step's line, before the chat's reason.
-  logLine: string;
   // The fields the template's message reads.
   messageFields: Array<string>;
 }
@@ -553,7 +551,6 @@ const CHAT_PAGES: Array<ChatPage> = [
     stepSettings: ["Discord Incoming Webhook URL", "Message Text"],
     searchedAs: "Discord",
     searchedInPickerAs: "discord",
-    logLine: "❌ Discord could not deliver the incident notification:",
     messageFields: [
       "incidentNumberWithPrefix",
       "title",
@@ -574,7 +571,6 @@ const CHAT_PAGES: Array<ChatPage> = [
     stepSettings: ["Telegram Bot Token", "Chat ID", "Message Text"],
     searchedAs: "Telegram",
     searchedInPickerAs: "telegram",
-    logLine: "❌ Telegram could not deliver the alert notification:",
     messageFields: [
       "alertNumberWithPrefix",
       "title",
@@ -685,48 +681,41 @@ describe("Discord and Telegram: a message from a template, or from scratch", () 
     },
   );
 
+  /*
+   * Two steps: nothing on the chat step's Error output, so a message the
+   * chat refuses fails the run, and its Steps say why
+   * (Types/Workflow/UnhandledStepFailure) - where the template had a Log.
+   */
   it.each(CHAT_PAGES)(
-    "$page lists the template's three steps, its message's fields and the line its Log step writes",
+    "$page lists the template's two steps and its message's fields, and says a refused message fails the run",
     (entry: ChatPage) => {
       const graph: { nodes: Array<TemplateNode>; edges: Array<TemplateEdge> } =
         graphOf(entry);
-      const [trigger, step, log] = graph.nodes as [
-        TemplateNode,
-        TemplateNode,
-        TemplateNode,
-      ];
+      const [trigger, step] = graph.nodes as [TemplateNode, TemplateNode];
       const message: string = String(step.args?.["text"] || "");
-      const logged: string = String(log.args?.["value"] || "");
       const text: string = englishPage(entry.page);
 
-      expect(graph.nodes).toHaveLength(3);
+      expect(graph.nodes).toHaveLength(2);
       expect(trigger.metadataId).toBe(entry.trigger);
       expect(trigger.componentId).toBe(entry.triggerBlock);
       expect(step.metadataId).toBe(entry.step);
-      expect(log.metadataId).toBe(ComponentID.Log);
       expect(graph.edges).toEqual([
         {
           fromComponentId: trigger.componentId,
           toComponentId: step.componentId,
           fromPort: "success",
         },
-        {
-          fromComponentId: step.componentId,
-          toComponentId: log.componentId,
-          fromPort: "error",
-        },
       ]);
       expect(modelFieldsRead(message, entry.triggerBlock)).toEqual(
         entry.messageFields,
       );
-      expect(logged.startsWith(entry.logLine)).toBe(true);
-      expect(text).toContain(`\`${entry.logLine}\``);
       expect(text).toContain(
-        `with three steps: ${bold(component(entry.trigger).title)}; ${bold(entry.stepTitle)}, which`,
+        `with two steps: ${bold(component(entry.trigger).title)}, and ${bold(entry.stepTitle)}, which`,
       );
       expect(text).toContain(
-        `and a ${bold("Log")} step on its ${bold("Error")} output.`,
+        `With nothing connected to ${bold("Error")}, as in the template, a run that could not`,
       );
+      expect(text).not.toContain(`${bold("Log")} step`);
 
       // The page's sample message is how the template's message starts.
       const sample: string = scanMarkdown(text)

@@ -16,6 +16,7 @@ import MonitorStepExceptionMonitor from "../../../Types/Monitor/MonitorStepExcep
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   EvaluateOverTimeType,
@@ -53,8 +54,18 @@ const ARGS: ServiceAlertTemplateArgs = {
   monitorName: "payments-api",
 };
 
-// The counts are canaries. Update them deliberately when adding a template.
-const AGNOSTIC_COUNT: number = 8;
+/*
+ * The counts are canaries. Update them deliberately when adding a template.
+ * The RED signals, plus new, regressed and spiking exceptions.
+ * The exception templates that alert on another measure than the count.
+ */
+const EXCEPTION_CHECK_ON_BY_TEMPLATE: Record<string, CheckOn> = {
+  "service-new-exception": CheckOn.NewExceptionCount,
+  "service-regressed-exception": CheckOn.RegressedExceptionCount,
+  "service-exception-spike": CheckOn.ExceptionCount,
+};
+
+const AGNOSTIC_COUNT: number = 11;
 
 const TEMPLATE_COUNT_BY_LANGUAGE: Partial<Record<ServiceLanguage, number>> = {
   java: 6,
@@ -455,6 +466,7 @@ describe("ServiceAlertTemplates", () => {
     it("uses the one checkOn its monitor type implements", () => {
       for (const template of ALL_TEMPLATES) {
         const expected: CheckOn | undefined =
+          EXCEPTION_CHECK_ON_BY_TEMPLATE[template.id] ||
           CHECK_ON_BY_MONITOR_TYPE[template.monitorType];
 
         expect(expected).toBeDefined();
@@ -469,9 +481,93 @@ describe("ServiceAlertTemplates", () => {
       }
     });
 
+    /*
+     * New, regressed and spiking exceptions: an Exceptions monitor on the
+     * service, over the window each needs, alerting above the number.
+     */
+    it.each([
+      ["service-new-exception", CheckOn.NewExceptionCount, 600, 0],
+      ["service-regressed-exception", CheckOn.RegressedExceptionCount, 600, 0],
+    ])(
+      "%s watches the service's own exceptions",
+      (
+        id: string,
+        checkOn: CheckOn,
+        windowInSeconds: number,
+        threshold: number,
+      ) => {
+        const template: ServiceAlertTemplate = getServiceAlertTemplateById(id)!;
+
+        expect(template.monitorType).toBe(MonitorType.Exceptions);
+        expect(template.category).toBe("Errors");
+
+        const step: MonitorStep = buildStep(template);
+
+        expect(step.data?.exceptionMonitor?.lastXSecondsOfExceptions).toBe(
+          windowInSeconds,
+        );
+        expect(step.data?.exceptionMonitor?.includeResolved).toBe(false);
+        expect(step.data?.exceptionMonitor?.telemetryServiceIds).toHaveLength(
+          1,
+        );
+
+        const unhealthy: CriteriaFilter = getFilters(step)[0]!;
+
+        expect(unhealthy.checkOn).toBe(checkOn);
+        expect(unhealthy.filterType).toBe(FilterType.GreaterThan);
+        expect(unhealthy.value).toBe(threshold);
+      },
+    );
+
+    /*
+     * A spike is the count against what is normal for the hour of the week
+     * (ExceptionLearnedBaseline), with no number to tune. An anomaly has no
+     * mirror, so its healthy criteria matches every count: the first match
+     * decides, so it catches exactly the windows the anomaly did not, and
+     * the monitor comes back online.
+     */
+    it("service-exception-spike watches the service's exceptions against the learned baseline", () => {
+      const template: ServiceAlertTemplate = getServiceAlertTemplateById(
+        "service-exception-spike",
+      )!;
+
+      expect(template.monitorType).toBe(MonitorType.Exceptions);
+      expect(template.category).toBe("Errors");
+
+      const step: MonitorStep = buildStep(template);
+
+      expect(step.data?.exceptionMonitor?.lastXSecondsOfExceptions).toBe(900);
+      expect(step.data?.exceptionMonitor?.includeResolved).toBe(false);
+      expect(step.data?.exceptionMonitor?.telemetryServiceIds).toHaveLength(1);
+
+      const [unhealthy, healthy]: Array<CriteriaFilter> = getFilters(step);
+
+      expect(unhealthy).toEqual({
+        checkOn: CheckOn.ExceptionCount,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+        metricMonitorOptions: {
+          anomalyDetection: { sensitivity: AnomalyDetectionSensitivity.Medium },
+        },
+      });
+      expect(healthy).toMatchObject({
+        checkOn: CheckOn.ExceptionCount,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 0,
+      });
+      expect(healthy!.metricMonitorOptions).toBeUndefined();
+      expect(template.description).not.toContain("day before");
+    });
+
     it("uses only comparators the numeric evaluator implements", () => {
       for (const template of ALL_TEMPLATES) {
         for (const filter of getFilters(buildStep(template))) {
+          if (filter.filterType === FilterType.AnomalouslyHigh) {
+            expect(filter.checkOn).toBe(CheckOn.ExceptionCount);
+            expect(filter.value).toBeUndefined();
+            continue;
+          }
+
           expect(NUMERIC_FILTER_TYPES).toContain(filter.filterType);
           expect(typeof filter.value).toBe("number");
         }
@@ -510,6 +606,13 @@ describe("ServiceAlertTemplates", () => {
 
         const unhealthy: CriteriaFilter = instances[0]!.data!.filters[0]!;
         const healthy: CriteriaFilter = instances[1]!.data!.filters[0]!;
+
+        // No mirror to write: every count the anomaly left is the healthy one.
+        if (unhealthy.filterType === FilterType.AnomalouslyHigh) {
+          expect(healthy.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+          expect(healthy.value).toBe(0);
+          continue;
+        }
 
         expect(healthy.filterType).toBe(
           COMPLEMENTS[unhealthy.filterType as FilterType],
@@ -613,7 +716,11 @@ describe("ServiceAlertTemplates", () => {
         const unhealthy: CriteriaFilter = filters[0]!;
         const healthy: CriteriaFilter = filters[1]!;
 
-        if (!unhealthy.metricMonitorOptions) {
+        // An anomaly's options are its own: its pair matches every count.
+        if (
+          !unhealthy.metricMonitorOptions ||
+          unhealthy.metricMonitorOptions.anomalyDetection
+        ) {
           expect(healthy.metricMonitorOptions).toBeUndefined();
           continue;
         }
@@ -638,7 +745,10 @@ describe("ServiceAlertTemplates", () => {
 
       for (const template of ALL_TEMPLATES) {
         for (const filter of getFilters(buildStep(template))) {
-          if (!filter.metricMonitorOptions) {
+          if (
+            !filter.metricMonitorOptions ||
+            filter.metricMonitorOptions.anomalyDetection
+          ) {
             continue;
           }
 

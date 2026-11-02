@@ -1,6 +1,12 @@
 import { JSONObject } from "../../../Types/JSON";
 import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
+import {
+  MAX_UNPLACED_FIELDS_PER_SCAN,
+  UnplacedField,
+} from "../../../Utils/DataSecurity/UnplacedFields";
+
+export { MAX_UNPLACED_FIELDS_PER_SCAN };
 
 /*
  * WHAT EVERY CONTENT SCAN TAKES AND RETURNS.
@@ -83,6 +89,14 @@ export interface ContentScanResult {
   isComplete: boolean;
   // What the next scan needs to skip what has not changed.
   nextState?: JSONObject | undefined;
+  /*
+   * The fields the scan could not place - described by their names and the
+   * shapes of their values, never a value (Utils/DataSecurity/
+   * UnplacedFields) - for OneUptime AI to suggest a data type for when the
+   * project's Enable AI is on (Server/Utils/AI/DataSecurity/
+   * FieldSuggestion). At most MAX_UNPLACED_FIELDS_PER_SCAN.
+   */
+  unplacedFields?: Array<UnplacedField> | undefined;
 }
 
 // The most entries a scan's read log keeps.
@@ -99,5 +113,6 @@ export function emptyContentScanResult(): ContentScanResult {
     fingerprints: {},
     plaintextPasswordFields: [],
     isComplete: true,
+    unplacedFields: [],
   };
 }

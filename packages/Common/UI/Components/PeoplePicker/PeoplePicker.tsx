@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import IconProp from "../../../Types/Icon/IconProp";
 import useAnchoredFieldPopup, {
   AnchoredFieldPopup,
@@ -7,6 +8,7 @@ import useTranslateValue from "../../Utils/Translation";
 import joinAriaIds from "../../Utils/AriaIds";
 import Icon from "../Icon/Icon";
 import { PeopleChip } from "./PeopleList";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import PeopleSearchPopup, {
   PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
   PEOPLE_SEARCH_POPUP_WIDTH_PX,
@@ -109,6 +111,11 @@ export interface ComponentProps {
    * a workflow step's { } button.
    */
   trailing?: ReactElement | undefined;
+  /*
+   * Focus the button that opens the list as the field is drawn: on a
+   * dialog step that asks for nothing else, as a form's first input is.
+   */
+  autoFocus?: boolean | undefined;
 }
 
 // The button of a single-pick picker once something is picked.
@@ -277,6 +284,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         data-testid="people-picker-add-button"
+        autoFocus={props.autoFocus}
         disabled={!isInteractive}
         aria-haspopup="dialog"
         aria-expanded={popup.isPopupOpen}
@@ -287,7 +295,13 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
           }
         }}
         onKeyDown={isInteractive ? popup.onTriggerKeyDown : undefined}
-        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+        className={`inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: !isInteractive,
+            hoverClassName:
+              "hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900",
+          },
+        )}`}
       >
         <Icon
           icon={isChangingSinglePick ? IconProp.Pencil : IconProp.Add}
@@ -375,16 +389,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
         <p className="mt-1 text-sm text-gray-500">{lookup.error}</p>
       )}
 
-      {props.error && (
-        <p
-          id={errorId}
-          role="alert"
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-        >
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
 
       <PeopleSearchPopup
         popup={popup}

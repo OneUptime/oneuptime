@@ -50,19 +50,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Disposi
 
 ### Elegir la flota
 
-En **Configuración del monitor de IoT**, elija la flota en **Flota IoT**. Cada flota que ha enviado datos está en la lista.
+En **Configuración del monitor de IoT**, elija la flota en **Flota IoT**. Cada flota que ha enviado datos está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir flota IoT** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Device Offline**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** - haga clic en una [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, la agregación, el intervalo de tiempo, una agrupación por `device.id` y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** - elija una métrica en **Métrica de IoT** y luego establezca **Agregación** e **Intervalo de tiempo**. Los [filtros](#configuración-del-monitor) la acotan a un dispositivo o a un tipo de dispositivo. Una métrica personalizada no se agrupa: juzga la flota en su conjunto.
-- **Avanzado** - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, también sobre nombres de métricas propios, por ejemplo la memoria en uso como porcentaje del tamaño de memoria de un dispositivo. Use **Agrupar por** `device.id` para juzgar cada dispositivo por separado.
+- **Cambiar** - elija otra [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, la agregación, el intervalo de tiempo, una agrupación por `device.id` y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) - elija una métrica en **Métrica de IoT** y luego establezca **Agregación** e **Intervalo de tiempo**. Los [filtros](#configuración-del-monitor) la acotan a un dispositivo o a un tipo de dispositivo. Una métrica personalizada no se agrupa: juzga la flota en su conjunto.
+- **Avanzado** (en **Más campos**) - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, también sobre nombres de métricas propios, por ejemplo la memoria en uso como porcentaje del tamaño de memoria de un dispositivo. Use **Agrupar por** `device.id` para juzgar cada dispositivo por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Seleccionar variable de métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que cae a cero, así que establezca su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Seleccionar variable de métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que no envía datos, así que establezca su propio umbral.
 
 ### Crear el monitor
 
@@ -88,7 +88,7 @@ Los filtros actúan juntos: con un **ID del dispositivo** y un **Tipo de disposi
 
 ## Plantillas de alerta predefinidas
 
-**Quick Setup** ofrece 5 plantillas. Cada una construye un monitor completo: la consulta de la métrica, una agrupación por `device.id`, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+La lista de **Sobre qué alertar** ofrece 5 plantillas. Cada una construye un monitor completo: la consulta de la métrica, una agrupación por `device.id`, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo dispara cuando la condición se cumple en cada minuto de su ventana - salvo **Device Offline**, que dispara con la primera lectura por debajo de 1. Un criterio de umbral se recupera un 10 % más allá de su umbral, así que un valor que oscila en la línea no parpadea.
 
@@ -117,6 +117,8 @@ Un criterio solo dispara cuando la condición se cumple en cada minuto de su ven
 | **El dispositivo está registrado** | Un dispositivo del **Registro de dispositivos** de la flota se espera. Cuando no envía nada en toda la ventana, el monitor lo trata como si informara `0`, así que recibe su propio incidente, que se resuelve solo cuando el dispositivo vuelve a informar. |
 
 Un dispositivo registrado también se mantiene como desconectado en el inventario de la flota, mientras que uno no registrado se elimina tras 15 minutos de silencio. La detección del silencio necesita la política de datos ausentes **Treat As Zero** en el criterio de `iot_device_up`, que tienen los monitores Device Offline creados desde la plantilla. Un monitor Device Offline creado antes de que existiera el registro de dispositivos necesita que se establezca a mano, o debe volver a crearse desde la plantilla.
+
+**Device Offline** juzga cada dispositivo por su lectura más reciente, así que un dispositivo que informó caída y luego volvió a estar activo está activo en la siguiente comprobación. Un monitor Device Offline que sigue fuera de línea hasta que la lectura de caída tiene 30 minutos se creó antes de que la plantilla hiciera esto: vuelve a elegir la plantilla en **Sobre qué alertar** para actualizarlo.
 
 > [!NOTE]
 > Un dispositivo no registrado que se queda en silencio, sin Last Will ni informe de la pasarela, solo deja de enviar datos, y un monitor agrupado por dispositivo no puede señalarlo. Registre sus dispositivos, o dé a un dispositivo crítico un monitor propio (**Custom Metric**, con su **ID del dispositivo**) y establezca **Si no hay datos** en **Disparador**. La detección del silencio también necesita que al menos otro dispositivo de la flota siga informando: una flota que se apaga por completo, por ejemplo durante una caída de la pasarela, genera un incidente para el monitor, no uno por dispositivo.
@@ -150,7 +152,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
 | **Si no hay datos** | En **Más campos**. Qué ocurre cuando una serie no tiene muestras en la ventana: **Ignore** (el predeterminado) la omite, **Treat As Zero** la lee como `0`, y **Disparador** hace que el criterio coincida. |
 
-Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en estado «Learning», y no generan nada, hasta que la ventana de referencia tiene historial suficiente.
+Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en estado «Learning», y no generan nada, hasta que la ventana de referencia tiene historial suficiente. Una suma, un recuento o una consulta sobre un histograma permanece en ese estado para siempre: este monitor filtra sus consultas por atributos y la línea de referencia no guarda ninguno.
 
 ### Criterios predeterminados
 

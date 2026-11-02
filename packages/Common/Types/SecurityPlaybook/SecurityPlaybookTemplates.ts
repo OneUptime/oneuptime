@@ -5,6 +5,7 @@ import SecurityCaseStage from "../SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../SecurityCase/SecurityDetectionSource";
 import { SecurityPlaybookActionType } from "./SecurityPlaybookAction";
 import { SecurityPlaybookStep } from "./SecurityPlaybookStep";
+import { SecurityPlaybookStepOutcome } from "./SecurityPlaybookStepCondition";
 import SecurityPlaybookTrigger from "./SecurityPlaybookTrigger";
 
 /*
@@ -48,7 +49,10 @@ function step(
   flags: Partial<
     Pick<
       SecurityPlaybookStep,
-      "requiresApproval" | "continueOnFailure" | "onlyIfThreatIntelMatched"
+      | "requiresApproval"
+      | "continueOnFailure"
+      | "onlyIfThreatIntelMatched"
+      | "runIf"
     >
   > = {},
 ): SecurityPlaybookStep {
@@ -59,11 +63,64 @@ function step(
     requiresApproval: flags.requiresApproval || false,
     continueOnFailure: flags.continueOnFailure || false,
     onlyIfThreatIntelMatched: flags.onlyIfThreatIntelMatched || false,
+    ...(flags.runIf ? { runIf: flags.runIf } : {}),
   };
 }
 
 // The template the one-click setup turns on: it enriches every new case.
 export const ENRICH_NEW_CASES_TEMPLATE_KEY: string = "enrich";
+
+// The template for the cases Data Security opens on an exposed store.
+export const DATA_EXPOSURE_TEMPLATE_KEY: string = "data-exposure";
+
+/*
+ * The cases Data Security opens - a store with sensitive data that anyone
+ * on the internet, or an account outside, can read - answered the way a
+ * data exposure is: its owners told, its exposure closed through its cloud
+ * connection once a person approves, and a checklist of what a breach
+ * response asks.
+ */
+export const DATA_EXPOSURE_TEMPLATE: SecurityPlaybookTemplateDefinition = {
+  key: DATA_EXPOSURE_TEMPLATE_KEY,
+  title: "Close a Data Exposure",
+  description:
+    "When Data Security opens a case on an exposed store: email its owners, block its public access and revoke its sharing once a person approves, and leave a response checklist.",
+  icon: IconProp.Database,
+  trigger: SecurityPlaybookTrigger.CaseOpened,
+  detectionSource: SecurityDetectionSource.DataSecurity,
+  getSteps: (): Array<SecurityPlaybookStep> => {
+    return [
+      step(
+        SecurityPlaybookActionType.NotifyDataStoreOwners,
+        {},
+        { continueOnFailure: true },
+      ),
+      /*
+       * Each changes a cloud's settings, so a person approves it; a store
+       * it does not fit, or marked public by design, is left alone.
+       */
+      step(
+        SecurityPlaybookActionType.BlockDataStorePublicAccess,
+        {},
+        { requiresApproval: true, continueOnFailure: true },
+      ),
+      step(
+        SecurityPlaybookActionType.RevokeDataStoreSharing,
+        {},
+        { requiresApproval: true, continueOnFailure: true },
+      ),
+      // The response checklist, as the case's own tasks to tick off.
+      step(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks: [
+          "Find who read the data while it was exposed, from the store's access logs and its Who Can Reach It page",
+          "Decide whether this is a breach you must report, to whom and by when",
+          "Rotate every secret and key the store held",
+          "Close the case with what was exposed, for how long, and to whom",
+        ],
+      }),
+    ];
+  },
+};
 
 export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlaybookTemplateDefinition> =
   [
@@ -92,8 +149,14 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
             { lookbackInHours: 24 },
             { continueOnFailure: true },
           ),
-          step(SecurityPlaybookActionType.AddCaseNote, {
-            note: "Triage checklist for {{case.number}}:\n\n- [ ] Is the activity expected for these entities?\n- [ ] Did any entity match threat intel?\n- [ ] Is anything else in the project talking to them?\n- [ ] Contain, or close with a verdict.",
+          // The triage checklist, as the case's own tasks to tick off.
+          step(SecurityPlaybookActionType.AddCaseTasks, {
+            tasks: [
+              "Check that the activity is expected for these entities",
+              "Check whether any entity matched threat intel",
+              "Check what else in the project talks to them",
+              "Contain them, or close the case with a verdict",
+            ],
           }),
         ];
       },
@@ -108,19 +171,29 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
       getSteps: (
         values: SecurityPlaybookTemplateValues,
       ): Array<SecurityPlaybookStep> => {
+        const check: SecurityPlaybookStep = step(
+          SecurityPlaybookActionType.CheckThreatIntel,
+          {},
+        );
+        // Both run only on a match: the branch threat intel decides.
+        const onMatch: SecurityPlaybookStep["runIf"] = {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.Found,
+        };
+
         return [
-          step(SecurityPlaybookActionType.CheckThreatIntel, {}),
+          check,
           step(
             SecurityPlaybookActionType.SetCasePriority,
             {
               priorityId: values.priorityId(SecurityCasePriorityLevel.Critical),
             },
-            { onlyIfThreatIntelMatched: true },
+            { runIf: onMatch },
           ),
           step(
             SecurityPlaybookActionType.SetCaseStatus,
             { statusId: values.statusId(SecurityCaseStage.Acknowledged) },
-            { onlyIfThreatIntelMatched: true },
+            { runIf: onMatch },
           ),
         ];
       },
@@ -166,12 +239,19 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
             {},
             { continueOnFailure: true },
           ),
-          step(SecurityPlaybookActionType.AddCaseNote, {
-            note: "Response checklist for {{case.number}}:\n\n- [ ] Open the traces in the evidence note: did any request reach the app, or the database?\n- [ ] Watch the session replays: what did the attacker do before and after?\n- [ ] Block the source: add a Run a runbook step to this playbook, with a runbook that blocks an address.\n- [ ] Review the AI's fix before it is merged.",
+          // The response checklist, as the case's own tasks to tick off.
+          step(SecurityPlaybookActionType.AddCaseTasks, {
+            tasks: [
+              "Open the traces in the evidence note: did any request reach the app, or the database?",
+              "Watch the session replays: what did the attacker do before and after?",
+              "Block the source address, and add a Run a runbook step to this playbook that does it next time",
+              "Review the AI's fix before it is merged",
+            ],
           }),
         ];
       },
     },
+    DATA_EXPOSURE_TEMPLATE,
   ];
 
 export function getSecurityPlaybookTemplateDefinition(

@@ -9,6 +9,7 @@ import { ResourceOwnerEntry } from "./OwnerEntry";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { TABLE_VALUE_LOADING_ATTRIBUTE } from "Common/UI/Components/Table/TableFoldedValues";
 
 export interface ComponentProps {
   owners: Array<ResourceOwnerEntry> | undefined;
@@ -94,8 +95,17 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
 
   if (props.isLoading && !props.owners) {
+    /*
+     * Marked as on its way: folded under a row's title (TableFit), it
+     * draws no line of its own until the owners are in.
+     */
     return (
-      <p className="text-gray-400">{translator.translateText("Loading...")}</p>
+      <p
+        className="text-gray-400"
+        {...{ [TABLE_VALUE_LOADING_ATTRIBUTE]: "true" }}
+      >
+        {translator.translateText("Loading...")}
+      </p>
     );
   }
 

@@ -4330,6 +4330,20 @@
                         "null"
                     ]
                 },
+                "cloud": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "commercial",
+                        "gcc",
+                        "gcc-high",
+                        "dod"
+                    ]
+                },
                 "existingSecret": {
                     "type": "object",
                     "properties": {
@@ -4458,6 +4472,12 @@
                         "null"
                     ]
                 },
+                "tenantId": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "existingSecret": {
                     "type": "object",
                     "properties": {
@@ -4468,6 +4488,9 @@
                             "type": "string"
                         },
                         "clientSecretKey": {
+                            "type": "string"
+                        },
+                        "tenantIdKey": {
                             "type": "string"
                         }
                     },

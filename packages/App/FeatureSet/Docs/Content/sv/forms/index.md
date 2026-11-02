@@ -94,6 +94,7 @@ Under **Dela** kopierar du länken och skickar den till dem som ska använda for
 | **Mallar** | Namngivna uppsättningar av svar som man kan börja formuläret från, hur var och en ställer frågorna, den som formuläret öppnas med och varje malls egen länk. |
 | **Vid inlämning** | Vad varje inlämning skapar och hur varje fält i den fylls i. **Redigera inställningar** ändrar standardvärdena och det som alltid gäller. |
 | **Dela** | **Tar emot inlämningar**, **Delningslänk**, meddelandet efter inlämning och, under **Fler inställningar**, **IP-tillåtelselista**. |
+| **Anpassade domäner** | Formulärets egna domäner, som `report.acme.com`, med deras DNS-poster och certifikat. Se [Anpassade domäner](/docs/forms/sharing-and-security#anpassade-domäner). |
 | **Inlämningar** | Varje inlämning via formuläret, den senaste först, med dess svar och det som den skapade. |
 | **Duplicera formulär** | Under **Avancerad**: en kopia av formuläret, namngiven åt dig, med dess frågor, mallar, inställningar under Vid inlämning, varumärke, tackmeddelande och IP-tillåtelselista, och en egen länk. Kopian är avstängd från början och öppnas i sin redigerare. |
 | **Ta bort formulär** | Borttagning av formuläret, under **Avancerad**. Dess inlämningar tas bort med det; de incidenter och händelser som det skapade gör det inte. |
@@ -135,6 +136,10 @@ Formulär låter personer utanför ditt team skapa incidenter och underhållshä
 | **Read Form** | Se formulär, deras frågor, inställningar och länkar. | De ovanstående, plus Project Member, Viewer och rollerna för incidenter och planerat underhåll |
 | **Read Form Submission** | Se inlämningarna och deras svar. | Project Owner, Project Admin |
 | **Delete Form Submission** | Ta bort inlämningar. | Project Owner, Project Admin |
+| **Create Form Domain** | Lägga till en [anpassad domän](/docs/forms/sharing-and-security#anpassade-domäner) i ett formulär. | Project Owner, Project Admin och **Edit Form** |
+| **Edit Form Domain** | Kontrollera ett formulärs anpassade domäner, och beställa, utfärda på nytt eller byta deras certifikat. | Project Owner, Project Admin och **Edit Form** |
+| **Delete Form Domain** | Ta bort ett formulärs anpassade domäner. | Project Owner, Project Admin och **Edit Form** |
+| **Read Form Domain** | Se ett formulärs anpassade domäner, deras DNS-poster och hur långt var och en har kommit på vägen till HTTPS. | Alla med **Read Form** |
 
 Inlämningar innehåller det som främlingar har skrivit (namn, e-postadresser och svar som kanske aldrig når posten), så bara projektägare och -administratörer ser dem, om du inte ger **Read Form Submission**. Alla som kan läsa ett formulär kan se och dela dess länk. Att skicka ett formulär kräver ingen behörighet alls. Hur roller och detaljerade behörigheter samverkar kan du läsa i [Användare, team och behörigheter](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ På OneUptime Cloud kräver formulär planen **Growth** eller högre, och ett fo
 
 ## Formulär via API:t
 
-Formulär är en vanlig API-resurs på `/api/form`, och deras inlämningar på `/api/form-submission`, som du kan läsa och ta bort men inte skapa eller redigera. [API-referensen](/reference) har de fullständiga formerna för begäranden och svar.
+Formulär är en vanlig API-resurs på `/api/form`, och deras inlämningar på `/api/form-submission`, som du kan läsa och ta bort men inte skapa eller redigera. [API-referensen](/reference) har de fullständiga formerna för begäranden och svar. Ett formulärs anpassade domäner finns på `/api/form-domain`.
 
 ### Frågor och inställningar
 
@@ -190,7 +195,7 @@ Varje fråga har ett eget `id` (bokstäver, siffror, `-` och `_`), en `source`, 
 
 | `source` | Vad den frågar |
 | --- | --- |
-| `Question` | En av formulärets egna frågor, besvarad enligt `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` eller `DateTime`. En listruta listar sina `dropdownOptions`, en per rad. |
+| `Question` | En av formulärets egna frågor, besvarad enligt `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En listruta listar sina `dropdownOptions`, en per rad. |
 | `TargetField` | Ett fält i det som formuläret skapar, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` och `impactStartedAt` för en incident; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` och `labels` för en underhållshändelse. Ett fält som besvaras genom att välja listar de poster som det erbjuder i `allowedOptionIds`. |
 | `TargetCustomField` | Ett av incidentens eller händelsens anpassade fält, angivet med `customFieldId`. |
 | `Submitter` | Avsändarens `Name` eller `Email`, angivet med `submitterField`. |
@@ -247,13 +252,15 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   }'
 ```
 
+Svaret på en filfråga är filerna så som de sparades, var och en med sin `fileId`, `name`, `fileType` och `size`. Själva filerna finns på det som inlämningen skapade: i dess anpassade filfält eller bifogade i dess privata anteckning.
+
 ### Arbetsflöden
 
 Formulär har de genererade arbetsflödeskomponenterna: **On Create Form**, **On Update Form** och så vidare. Använd **On Create Incident** eller **On Create Scheduled Maintenance Event** för att agera på det som ett formulär har skapat.
 
 ### Den offentliga sidans egna slutpunkter
 
-Den offentliga sidan pratar med två vägar som inte kräver någon API-nyckel: `GET /api/form/public/<shareKey>`, som returnerar formulärets namn, beskrivning och frågor (och, när det har dem, dess logotyp, logotypens alternativtext och dess favicon, bilderna som base64, samt dess mallar med deras svar på de frågor som sidan ställer), och `POST /api/form/public/<shareKey>/submit`, som skickar formuläret och i `templateId` anger den mall som avsändaren började från. Det är sidans egna slutpunkter, inte ett API att bygga vidare på: varje anrop passerar formulärets skydd (se [Delning & säkerhet](/docs/forms/sharing-and-security)), och de ändras med sidan. Använd `POST /api/incident` med en API-nyckel för att skapa incidenter från din egen kod: se [Deklarera en incident](/docs/incidents/declaring-incidents).
+Den offentliga sidan pratar med två vägar som inte kräver någon API-nyckel: `GET /api/form/public/<shareKey>`, som returnerar formulärets namn, beskrivning och frågor (och, när det har dem, dess logotyp, logotypens alternativtext och dess favicon, bilderna som base64, samt dess mallar med deras svar på de frågor som sidan ställer), och `POST /api/form/public/<shareKey>/submit`, som skickar formuläret och i `templateId` anger den mall som avsändaren började från. Det är sidans egna slutpunkter, inte ett API att bygga vidare på: varje anrop passerar formulärets skydd (se [Delning & säkerhet](/docs/forms/sharing-and-security)), och de ändras med sidan. Använd `POST /api/incident` med en API-nyckel för att skapa incidenter från din egen kod: se [Deklarera en incident](/docs/incidents/declaring-incidents). På ett formulärs [anpassade domän](/docs/forms/sharing-and-security#anpassade-domäner) använder sidan i stället `GET /api/form/custom-domain` och `POST /api/form/custom-domain/submit` på den domänen, som inte nämner någon nyckel: domänen pekar ut formuläret.
 
 ## Vart dina incidentformulär tog vägen
 

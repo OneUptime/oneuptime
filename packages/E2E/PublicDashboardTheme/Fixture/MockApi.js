@@ -6,8 +6,8 @@
  * does not answer is recorded as unexpected and answered 404.
  *
  * The query string sets the page: `board` (Data.js, the widgets), `data`
- * (`empty` for the widgets' empty states) and `variables=1` (the toolbar's
- * variable pickers). The dashboard itself - its theme, password and access -
+ * (`empty` for the widgets' empty states), `variables=1` (the toolbar's
+ * variable pickers) and `darkLogo=1` (a logo for the dark theme). The dashboard itself - its theme, password and access -
  * is its id (Scenarios.js). The fixture's own settings are kept for the
  * tab, so they hold through the password prompt and back, which the app
  * reaches by reloading the page.
@@ -47,6 +47,9 @@ const readSettings = () => {
     withVariables: params.has("variables")
       ? params.get("variables") === "1"
       : Boolean(kept.withVariables),
+    withDarkLogo: params.has("darkLogo")
+      ? params.get("darkLogo") === "1"
+      : Boolean(kept.withDarkLogo),
   };
 
   try {
@@ -148,6 +151,7 @@ const answer = (route, dashboardId, rest, body) => {
         dashboardId,
         settings.board,
         settings.withVariables,
+        settings.withDarkLogo,
       );
     case "metric-types":
       return metricTypesAnswer();

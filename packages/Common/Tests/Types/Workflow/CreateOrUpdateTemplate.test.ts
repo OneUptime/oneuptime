@@ -84,7 +84,12 @@ describe("the template", () => {
     expect(RECOMMENDED_WORKFLOW_TEMPLATE_IDS).not.toContain(TEMPLATE_ID);
   });
 
-  test("starts on On Create or Update Incident, then posts, and logs a failed post", () => {
+  /*
+   * A post the other system refuses fails the run, and the post's Steps
+   * entry says why (UnhandledStepFailure): nothing is connected to its
+   * Error output.
+   */
+  test("starts on On Create or Update Incident, then posts, and a refused post fails the run", () => {
     expect(
       GRAPH.nodes.map((node: GraphNodeSpec): [string, string] => {
         return [node.componentId, node.metadataId];
@@ -92,17 +97,13 @@ describe("the template", () => {
     ).toEqual([
       [TRIGGER, "incident-on-create-or-update"],
       ["api-post-1", ComponentID.ApiPost],
-      ["log-failed", ComponentID.Log],
     ]);
     expect(nodeOf(TRIGGER).componentType).toBe(ComponentType.Trigger);
     expect(
       GRAPH.edges.map((edge: GraphEdgeSpec): string => {
         return `${edge.fromComponentId}:${edge.fromPort}->${edge.toComponentId}`;
       }),
-    ).toEqual([
-      `${TRIGGER}:success->api-post-1`,
-      "api-post-1:error->log-failed",
-    ]);
+    ).toEqual([`${TRIGGER}:success->api-post-1`]);
   });
 });
 

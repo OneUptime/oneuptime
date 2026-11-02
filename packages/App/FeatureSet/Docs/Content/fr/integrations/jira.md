@@ -129,7 +129,7 @@ Un **compte de service** Atlassian fonctionne aussi. Un administrateur de l'orga
 4. Cliquez sur **Créer un flux de travail**. Chaque workflow est créé désactivé : activez **Activé** en haut de son **Constructeur**.
 :::
 
-Commencez par **Create a Jira issue when an incident is declared**, ou par **Create a Jira issue when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Jira du même genre retrouve le ticket grâce à l'étiquette que celui-ci ajoute. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. La dernière étape de l'exécution devrait indiquer `✅ Created Jira issue` et nommer le nouveau ticket.
+Commencez par **Create a Jira issue when an incident is declared**, ou par **Create a Jira issue when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Jira du même genre retrouve le ticket grâce à l'étiquette que celui-ci ajoute. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. L'exécution devrait se terminer avec **Exécuté**, et le **Response Body** de sa dernière étape, `create-issue-1`, nomme le nouveau ticket.
 
 Chaque workflow garde sa propre copie de ces valeurs. Quand vous remplacez le jeton, mettez à jour `jiraBasicAuthToken` sous **Variables de flux de travail** dans chaque workflow Jira qui l'a demandé. Si Jira change d'adresse, mettez à jour `jiraSiteUrl` et `jiraBaseUrl` de la même façon.
 
@@ -180,14 +180,14 @@ Avant de vous y fier :
 
 ### Vérifier que cela fonctionne
 
-Chaque modèle se termine par une étape **Log** qui dit ce qui s'est passé, c'est donc la dernière étape d'une exécution dans **Journaux → Exécutions** qu'il faut regarder :
+Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
 
-- `✅` — il a fait son travail, et nomme le ticket, l'incident ou l'alerte.
-- `ℹ️` — il a ignoré l'événement exprès, et dit pourquoi : le ticket n'est lié à aucun enregistrement de ce genre, la note vient de Jira, l'enregistrement est privé, ou aucun statut Jira ne correspond au nouvel état.
-- `❌` — un appel a échoué. Pour un appel à Jira, la ligne inclut la réponse de Jira.
-- `⚠️` — un modèle qui crée un enregistrement à partir d'un ticket Jira l'a créé, mais Jira n'a pas accepté les étiquettes de lien, donc les autres modèles ne peuvent pas encore le trouver. Ajoutez les étiquettes à la main.
+- **Exécuté** : il a fait son travail, et sa dernière étape nomme le ticket, l'incident ou l'alerte.
+- **Exécuté**, avec son étape **Check With JavaScript** sur **No** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le ticket n'est lié à aucun enregistrement de ce genre, la note vient de Jira, l'enregistrement est privé, ou aucun statut Jira ne correspond au nouvel état.
+- **Erreur** : une étape a échoué, et son entrée dans **Étapes** dit pourquoi. Pour un appel à Jira, elle inclut la réponse de Jira.
+- **Erreur** à `link-issue-1` : un modèle qui crée un enregistrement à partir d'un ticket Jira l'a créé, mais Jira n'a pas accepté les étiquettes de lien, donc les autres modèles ne peuvent pas encore le trouver. Ajoutez les étiquettes à la main.
 
-Une exécution ignorée se termine quand même par **Exécuté**. Les événements ignorés sont normaux : la plupart des événements Jira ne concernent pas un modèle donné. Voir [Exécutions de workflow](/docs/workflows/runs-and-logs).
+Les événements ignorés sont normaux : la plupart des événements Jira ne concernent pas un modèle donné. Voir [Exécutions de workflow](/docs/workflows/runs-and-logs).
 
 ## Fonctionnement des modèles
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Changer ce que fait un modèle
 
-Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **JavaScript Code** d'un bloc **Run Custom JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes d'un modèle gardent les mêmes constantes dans les mêmes blocs :
+Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **JavaScript Code** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes d'un modèle gardent les mêmes constantes dans les mêmes blocs :
 
 | Constante | Modèle, et bloc | Ce qu'elle règle |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les r�
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | Les noms de statut que le modèle préfère quand il suit le sens, et ceux qu'il ne choisit jamais sauf si `STATE_TO_JIRA_STATUS` les nomme. Les deux sont des expressions régulières comparées au nom du statut, sans tenir compte de la casse. |
 | `SYNC_PRIVATE_INCIDENTS` | Chaque modèle d'incident de OneUptime vers Jira — `prepare-issue-1`, `plan-transition-1` ou `build-comment-1` | `false` garde hors de Jira les incidents marqués **Incident privé** : aucun ticket n'est créé pour eux, leur ticket n'avance pas, et ni leurs notes ni leurs modifications ne sont publiées. Réglez-la sur `true` pour les envoyer quand même. Chaque modèle a sa propre copie, réglez-la donc dans chaque modèle qui doit les envoyer. |
 | `SYNC_PRIVATE_ALERTS` | Chaque modèle d'alerte de OneUptime vers Jira — `prepare-issue-1`, `plan-transition-1` ou `build-comment-1` | La même chose pour les alertes marquées **Alerte privée** : `false` les garde hors de Jira de la même façon, et `true` les envoie quand même. Réglez-la dans chaque modèle d'alerte qui doit les envoyer. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | Associe un nom de statut Jira à un nom d'état OneUptime, par exemple `{ 'In Review': 'Monitoring' }`. Les statuts non listés suivent la catégorie de statut de Jira : In Progress prend en compte l'incident ou l'alerte, Done le résout, et To Do ne correspond à rien. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | Associe un nom de statut Jira à un nom d'état OneUptime, par exemple `{ 'In Review': 'Monitoring' }`. Les statuts non listés suivent la catégorie de statut de Jira : In Progress prend en compte l'incident ou l'alerte, Done le résout, et To Do ne correspond à rien. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1` ; Create an alert when a Jira issue is created — `prepare-alert-1` | Associe une priorité Jira, écrite en minuscules, à `0` (votre gravité la plus sévère), `1` ou `2` (la moins sévère), les gravités intermédiaires étant réparties sur l'intervalle. Les priorités non listées tombent au milieu. Avec les deux gravités d'alerte d'un nouveau projet, `0` donne High et `1` comme `2` donnent Low, donc Medium devient Low sauf si vous le changez en `medium: 0`. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | Les événements de commentaire qui deviennent des notes. Ajoutez `'comment_updated'` pour copier aussi les modifications — chaque modification devient une nouvelle note — et cochez aussi **Comment updated** sur le webhook Jira. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | Les champs Jira, en minuscules, dont les changements ne méritent pas de note. Un changement est écarté quand l'ID ou le nom de son champ est listé, c'est ainsi que `'rank'` attrape Rank, un champ personnalisé qui arrive sous un ID comme `customfield_10019`. Le statut est sur la liste parce que le modèle de statut s'en charge. |
@@ -271,7 +271,7 @@ Les notes privées et les commentaires de modification sont marqués internes pa
 ### Limites
 
 - **Jira Cloud uniquement.** Les modèles appellent l'API REST v3 de Jira Cloud avec l'authentification Basic. Data Center n'a pas de v3 et prend un jeton d'accès personnel en `Bearer`, donc chaque bloc d'API a besoin des changements décrits dans [Jira Data Center](#jira-data-center) : des chemins `/rest/api/2/...`, des chaînes simples au lieu de corps en Atlassian Document Format, et l'en-tête. Les blocs `find-issue-1` changent le plus : Data Center n'a pas de `/search/jql`, ils doivent donc faire un `POST` vers `/rest/api/2/search` à la place.
-- **Les incidents déclarés depuis Jira sont discrets.** Ils sont créés masqués de vos pages de statut, sans prévenir les abonnés des pages de statut, car le texte d'un ticket n'a pas été écrit pour des clients. Pour en afficher un, activez **Visible sur la page de statut** sur la page **Paramètres** de l'incident (voir [Garder un incident hors de la page de statut](/docs/incidents/states-and-severities#garder-un-incident-hors-de-la-page-de-statut)), ou changez `isVisibleOnStatusPage` et `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` dans le bloc `create-incident-1` du modèle.
+- **Les incidents déclarés depuis Jira sont discrets.** Ils sont créés masqués de vos pages de statut, sans prévenir les abonnés des pages de statut, car le texte d'un ticket n'a pas été écrit pour des clients. Pour en afficher un, activez **Visible sur la page de statut** sur la page **Paramètres** de l'incident (voir [Garder un incident hors de la page de statut](/docs/incidents/states-and-severities#garder-un-incident-hors-de-la-page-de-statut)), ou activez **Show On Status Pages**, sous **Plus de champs**, dans le bloc `incident-from-another-tool-1` du modèle.
 - **Les incidents et alertes privés restent dans OneUptime.** Les modèles de OneUptime vers Jira les ignorent, et chaque saut le dit dans **Journaux → Exécutions**. Pour les envoyer quand même, réglez `SYNC_PRIVATE_INCIDENTS` ou `SYNC_PRIVATE_ALERTS` sur `true`. Rendre un enregistrement privé plus tard arrête la synchronisation à partir de ce moment, mais ne reprend pas ce que Jira a déjà. Les modèles de Jira vers OneUptime ne vérifient pas, donc les commentaires, modifications et changements de statut d'un ticket lié atteignent toujours un enregistrement privé.
 - **Rien ne recule.** Rouvrir un ticket Jira ne change rien dans OneUptime, et un statut de la catégorie To Do ne correspond à aucun état. Voir [L'ordre est une vraie contrainte](/docs/incidents/states-and-severities#lordre-est-une-vraie-contrainte-pas-une-préférence-daffichage). Les modèles de transition ne font jamais non plus passer un ticket à une catégorie de statut antérieure.
 - **Chaque alerte reçoit un ticket.** Hormis les alertes privées, le modèle d'alerte qui crée un ticket en crée un pour chaque alerte, y compris chacune de celles qu'un moniteur lève. [Ce qui change pour les alertes](#ce-qui-change-pour-les-alertes) montre comment ajouter une condition.
@@ -286,7 +286,7 @@ Les notes privées et les commentaires de modification sont marqués internes pa
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **Le même événement peut arriver deux fois.** Jira retente une livraison qui a échoué sur une erreur serveur ou a expiré. Si OneUptime avait déjà commencé l'exécution, les modèles de commentaires et de modifications de ticket ajoutent une seconde note. Les modèles qui créent un enregistrement n'en créent pas un second : ils demandent d'abord à Jira les étiquettes du ticket, et quand une nouvelle tentative arrive, la première exécution a déjà étiqueté le ticket. Cela ne sert à rien quand la première exécution a créé l'enregistrement mais que Jira a refusé les étiquettes : l'exécution se termine par une ligne `⚠️`, et vous devez ajouter les étiquettes à la main.
+- **Le même événement peut arriver deux fois.** Jira retente une livraison qui a échoué sur une erreur serveur ou a expiré. Si OneUptime avait déjà commencé l'exécution, les modèles de commentaires et de modifications de ticket ajoutent une seconde note. Les modèles qui créent un enregistrement n'en créent pas un second : ils demandent d'abord à Jira les étiquettes du ticket, et quand une nouvelle tentative arrive, la première exécution a déjà étiqueté le ticket. Cela ne sert à rien quand la première exécution a créé l'enregistrement mais que Jira a refusé les étiquettes : l'exécution échoue à `link-issue-1`, et vous devez ajouter les étiquettes à la main.
 
 ## Le construire vous-même
 

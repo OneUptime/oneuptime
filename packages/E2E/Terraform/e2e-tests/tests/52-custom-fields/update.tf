@@ -39,6 +39,22 @@ resource "oneuptime_alert_custom_field" "alert_field" {
   custom_field_type = "Boolean"
 }
 
+# File and Multiple files fields. A record holds files in them, set through its
+# custom_fields to the files uploaded with oneuptime_file:
+# jsonencode({ "<field name>" = { fileId = oneuptime_file.<name>.id } }), a list
+# of those for Multiple files.
+resource "oneuptime_monitor_custom_field" "file_field" {
+  name              = "terraform-e2e-monitor-file-field"
+  description       = "File custom field created by Terraform E2E tests"
+  custom_field_type = "File"
+}
+
+resource "oneuptime_alert_custom_field" "files_field" {
+  name              = "terraform-e2e-alert-files-field"
+  description       = "Multiple files custom field created by Terraform E2E tests"
+  custom_field_type = "MultipleFiles"
+}
+
 output "monitor_custom_field_id" {
   value       = oneuptime_monitor_custom_field.monitor_field.id
   description = "ID of the monitor custom field"
@@ -57,4 +73,14 @@ output "incident_custom_field_variable_key" {
 output "alert_custom_field_id" {
   value       = oneuptime_alert_custom_field.alert_field.id
   description = "ID of the alert custom field"
+}
+
+output "monitor_file_custom_field_id" {
+  value       = oneuptime_monitor_custom_field.file_field.id
+  description = "ID of the monitor File custom field"
+}
+
+output "alert_files_custom_field_id" {
+  value       = oneuptime_alert_custom_field.files_field.id
+  description = "ID of the alert Multiple files custom field"
 }

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import {
   DETECTION_RULE_NEEDS_ATTENTION,
+  DETECTION_RULE_REAL_TIME,
   DETECTION_RULE_RUN_FAILED,
   DETECTION_RULE_WAITING,
   LAST_ERROR_LABEL,
@@ -283,6 +284,29 @@ describe("a detection rule's Status", () => {
     ).toBe(SECURITY_DETECTION_DISABLED);
   });
 
+  test("a real-time rule runs on no interval: it reads Real time, in green, never waiting for a run", () => {
+    const status: SecurityDetectionStatus = getDetectionRuleStatus(
+      rule({ isEnabled: true, isRealTime: true }),
+    );
+
+    expect(status).toBe(DETECTION_RULE_REAL_TIME);
+    expect(status.text).toBe("Real time");
+    expect(status.color).toBe(Green);
+    expect(status.tooltip).toBe(
+      "Checks each event as it arrives, within seconds, instead of every interval.",
+    );
+
+    // A failed confirmation still reads as one; a switched-off rule as off.
+    expect(
+      getDetectionRuleStatus(
+        rule({ isEnabled: true, isRealTime: true, lastError: "Timeout" }),
+      ),
+    ).toBe(DETECTION_RULE_RUN_FAILED);
+    expect(
+      getDetectionRuleStatus(rule({ isEnabled: false, isRealTime: true })),
+    ).toBe(SECURITY_DETECTION_DISABLED);
+  });
+
   test("its one message is its Last Error, a note when the run wrote it about its work", () => {
     expect(
       getDetectionRuleMessages(rule({ lastError: RULE_OVERFLOW })),
@@ -342,6 +366,7 @@ describe("every Status is worded in every Dashboard language", () => {
     DETECTION_RULE_RUN_FAILED,
     DETECTION_RULE_NEEDS_ATTENTION,
     DETECTION_RULE_WAITING,
+    DETECTION_RULE_REAL_TIME,
     SECURITY_DETECTION_ENABLED,
     SECURITY_DETECTION_DISABLED,
   ];

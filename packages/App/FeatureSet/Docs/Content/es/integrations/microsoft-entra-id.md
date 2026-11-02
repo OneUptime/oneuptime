@@ -44,7 +44,8 @@ La conexión inicia sesión con el [flujo de credenciales de cliente de OAuth 2.
 
 1. Ve a **API permissions → Add a permission → Microsoft Graph → Application permissions**, elige `AuditLog.Read.All` y selecciona **Add permissions**. Microsoft documenta que su lista de inicios de sesión también puede pedir `Directory.Read.All`: añádelo si los inicios de sesión se rechazan con `403` una vez concedido el consentimiento.
 2. Para el registro de auditoría de Microsoft 365, añade un segundo permiso: **Add a permission → Office 365 Management APIs → Application permissions** y luego `ActivityFeed.Read`.
-3. Selecciona **Grant admin consent for** tu inquilino y confirma. El estado de cada permiso debe indicar **Granted**: sin consentimiento, cada lectura se rechaza con `403`.
+3. Para que los playbooks puedan deshabilitar, habilitar y cerrar la sesión de usuarios (consulta [Contención](/docs/telemetry/security-cases#contención)), añade de la misma forma `User.Read.All`, `User.EnableDisableAccount.All` y `User.RevokeSessions.All`. Microsoft solo deja cambiar la cuenta de un administrador a una aplicación que además tenga el rol Privileged Authentication Administrator.
+4. Selecciona **Grant admin consent for** tu inquilino y confirma. El estado de cada permiso debe indicar **Granted**: sin consentimiento, cada lectura se rechaza con `403`.
 
 ### Crear un secreto de cliente
 

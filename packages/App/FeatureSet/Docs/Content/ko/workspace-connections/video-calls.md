@@ -44,7 +44,7 @@ flowchart TB
 
 인시던트 선언은 화상 통화 제공자를 기다리지 않습니다. 통화는 인시던트가 생성된 뒤에 시작되므로, 제공자가 느리거나 실패해도 인시던트나 온콜 호출이 늦어지지 않습니다.
 
-제공자가 거부하면 (만료된 시크릿, 누락된 권한, 삭제된 호스트 등) 인시던트의 피드에 규칙의 통화를 시작할 수 없었다는 내용이 제공자의 이유와 함께 표시되므로, 대응자는 인시던트 페이지에서 통화를 시작하면 된다는 것을 알 수 있습니다. 규칙의 실행은 워크스페이스 알림 로그에 **화상 통화 시작** 로 기록되며, **프로젝트 설정** > **워크스페이스** > **Video Calls** 의 연결 행에는 통화가 다시 시작될 때까지 오류가 표시됩니다.
+제공자가 거부하면 (만료된 시크릿, 누락된 권한, 삭제된 호스트 등) 인시던트의 피드에 규칙의 통화를 시작할 수 없었다는 내용이 제공자의 이유와 함께 표시되므로, 대응자는 인시던트 페이지에서 통화를 시작하면 된다는 것을 알 수 있습니다. 규칙의 실행은 워크스페이스 알림 로그에 **화상 통화 시작** 으로 기록되며, **프로젝트 설정** > **워크스페이스** > **Video Calls** 의 연결 행에는 통화가 다시 시작될 때까지 오류가 표시됩니다.
 
 ### 비공개 인시던트
 
@@ -55,7 +55,7 @@ flowchart TB
 OneUptime Cloud 에서는 Zoom, Google Meet, Microsoft Teams 연결이 한 번의 클릭으로 끝나며, 제공자 쪽에서 설정할 것이 없습니다.
 
 :::steps
-1. **프로젝트 설정** > **워크스페이스** > **Video Calls** 로 이동해 Zoom, Google Meet, Microsoft Teams 중 하나에서 **연결** 를 클릭합니다.
+1. **프로젝트 설정** > **워크스페이스** > **Video Calls** 로 이동해 Zoom, Google Meet, Microsoft Teams 중 하나에서 **연결** 을 클릭합니다.
 2. **Continue to Zoom** (또는 Google, Microsoft) 을 클릭해 로그인하고, OneUptime 이 회의를 만들도록 허용합니다.
 3. 연결이 완료된 상태로 화상 통화 페이지로 돌아옵니다. **Start a test meeting** 으로 처음부터 끝까지 확인한 다음, Slack 또는 Microsoft Teams 알림 규칙에서 그 연결을 선택합니다.
 :::
@@ -68,7 +68,7 @@ OneUptime Cloud 에서는 Zoom, Google Meet, Microsoft Teams 연결이 한 번�
 | Google Meet | Google Meet 을 사용할 수 있는 Google 계정. | 그 계정으로 Meet 공간 만들기 (`meetings.space.created`) 와 이메일 주소 읽기. |
 | Microsoft Teams | Microsoft Teams 를 쓰는 회사 또는 학교 계정. 개인 Microsoft 계정으로는 Teams 회의를 만들 수 없습니다. | 그 계정으로 온라인 회의 만들기 (위임된 권한 `OnlineMeetings.ReadWrite`) 와 로그인 상태 유지 (`offline_access`). [인시던트 통화 녹화와 녹취](#모든-통화를-녹화하고-녹취하기) 를 위해 그 계정의 캘린더에 회의 넣기 (`Calendars.ReadWrite`) 와 회의 녹취록 읽기 (`OnlineMeetingTranscript.Read.All`, 관리자가 승인). |
 
-로그인으로 만든 연결에도 누가 기다릴지 정하는 설정이 있습니다. Google Meet 은 **Who can join**, Microsoft Teams 는 **Who skips the lobby** 입니다. 연결 행의 **편집** 로 변경합니다.
+로그인으로 만든 연결에도 누가 기다릴지 정하는 설정이 있습니다. Google Meet 은 **Who can join**, Microsoft Teams 는 **Who skips the lobby** 입니다. 연결 행의 **편집** 으로 변경합니다.
 
 OneUptime 이 통화 녹취록을 읽기 전에 로그인한 Zoom 연결은 전처럼 통화를 시작하지만, 다시 로그인할 때까지 녹취록은 읽을 수 없습니다. 행의 **Reconnect** 가 Zoom 에 녹취록 권한을 요청합니다.
 
@@ -92,7 +92,7 @@ OneUptime 은 로그인의 새로 고침 토큰을 암호화해 보관하고 최
 
 ### 대신 자체 앱 사용하기
 
-사람의 로그인 대신 서비스 ID 로 연결하려면 (Zoom 의 Server-to-Server OAuth 앱, 도메인 전체 위임이 있는 Google 서비스 계정, Microsoft Entra 앱 등록), 연결 대화 상자에서 **Use your own Zoom app** (또는 Google, Microsoft) 을 클릭합니다. 각각은 [제공자](#제공자) 에서 설명합니다. 한 번의 클릭용 앱을 설정하지 않은 자체 호스팅 서버에서는 **연결** 가 바로 이 양식을 엽니다. 설정 방법은 [자체 호스팅 서버에서 한 번의 클릭으로 연결하기](#자체-호스팅-서버에서-한-번의-클릭으로-연결하기) 를 참조하세요.
+사람의 로그인 대신 서비스 ID 로 연결하려면 (Zoom 의 Server-to-Server OAuth 앱, 도메인 전체 위임이 있는 Google 서비스 계정, Microsoft Entra 앱 등록), 연결 대화 상자에서 **Use your own Zoom app** (또는 Google, Microsoft) 을 클릭합니다. 각각은 [제공자](#제공자) 에서 설명합니다. 한 번의 클릭용 앱을 설정하지 않은 자체 호스팅 서버에서는 **연결** 이 바로 이 양식을 엽니다. 설정 방법은 [자체 호스팅 서버에서 한 번의 클릭으로 연결하기](#자체-호스팅-서버에서-한-번의-클릭으로-연결하기) 를 참조하세요.
 
 ## 수동으로 통화 시작하기
 
@@ -113,11 +113,11 @@ OneUptime 은 로그인의 새로 고침 토큰을 암호화해 보관하고 최
 
 ### OneUptime AI 가 읽기
 
-1~2분 안에 인시던트의 **OneUptime AI** 카드에 **제안된 근본 원인** 가 **확인되지 않음** 표시와 함께 나타나고, 근거가 된 녹취록 줄이 시각과 화자와 함께 인용됩니다. 그 아래에는 통화에서 나온 나머지 내용이 접힌 채로 있습니다. 발견 사항 ( **통화에서 확인됨** 목록과 **가설** 목록), 시도한 것, 결정, 후속 조치, 미해결 질문입니다. 읽은 내용은 인시던트의 피드에도 게시되고, 거기서 인시던트의 Slack 및 Microsoft Teams 채널로 전달됩니다.
+1~2분 안에 인시던트의 **OneUptime AI** 카드에 **제안된 근본 원인** 이 **확인되지 않음** 표시와 함께 나타나고, 근거가 된 녹취록 줄이 시각과 화자와 함께 인용됩니다. 그 아래에는 통화에서 나온 나머지 내용이 접힌 채로 있습니다. 발견 사항 ( **통화에서 확인됨** 목록과 **가설** 목록), 시도한 것, 결정, 후속 조치, 미해결 질문입니다. 읽은 내용은 인시던트의 피드에도 게시되고, 거기서 인시던트의 Slack 및 Microsoft Teams 채널로 전달됩니다.
 
 ### 사용하거나 기각하기
 
-**근본 원인으로 사용** 는 제안을 인용과 함께 근본 원인 편집기에서 엽니다. 필요한 부분을 고치고 저장하면, 본인의 편집으로 인시던트의 근본 원인이 되고 피드에 기록됩니다. **닫기** 는 제안을 제쳐 두고, **실행 취소** 는 다시 되돌립니다.
+**근본 원인으로 사용** 은 제안을 인용과 함께 근본 원인 편집기에서 엽니다. 필요한 부분을 고치고 저장하면, 본인의 편집으로 인시던트의 근본 원인이 되고 피드에 기록됩니다. **숨기기** 는 제안을 제쳐 두고, **실행 취소** 는 다시 되돌립니다.
 :::
 
 OneUptime AI 는 통화에서 원인이 언급된 경우에만, 그렇게 말한 줄과 함께 원인을 제안하고, 그 줄을 녹취록에 있는 그대로 인용합니다. 통화에서 원인이 정리되지 않았으면, 카드는 추측하는 대신 **근본 원인을 제안할 만큼 통화에서 충분히 논의되지 않았습니다** 라고 표시합니다.
@@ -262,7 +262,7 @@ Slack 허들은 Slack 규칙 전용입니다. Microsoft Teams 규칙은 프로�
 
 ## 자체 호스팅 서버에서 한 번의 클릭으로 연결하기
 
-OneUptime Cloud 에는 한 번의 클릭 연결을 위한 자체 Zoom, Google, Microsoft 앱이 있습니다. 자체 호스팅 서버는 앱을 설정한 제공자마다 이를 제공합니다. 설정하지 않으면 **연결** 는 자체 앱용 양식을 엽니다.
+OneUptime Cloud 에는 한 번의 클릭 연결을 위한 자체 Zoom, Google, Microsoft 앱이 있습니다. 자체 호스팅 서버는 앱을 설정한 제공자마다 이를 제공합니다. 설정하지 않으면 **연결** 은 자체 앱용 양식을 엽니다.
 
 제공자마다 OAuth 앱을 하나 만들고, 서버의 호스트로 다음 리디렉션 URI 를 등록합니다.
 
@@ -274,7 +274,7 @@ OneUptime Cloud 에는 한 번의 클릭 연결을 위한 자체 Zoom, Google, M
 
 - **Zoom**: [Zoom App Marketplace](https://marketplace.zoom.us/) 에서 **Develop** > **Build App** 을 선택하고 사용자가 관리하는 **General App** 을 만듭니다. **Basic Information** 에서 **Development** 와 **Production** 탭 모두와 OAuth 허용 목록에 리디렉션 URI 를 OAuth Redirect URL 로 추가하고, **Production** 탭에서 **Deauthorization Notification** 엔드포인트 URL 을 `https://<host>/api/video-call-oauth/zoom/events` 로 설정합니다. **Scopes** 에서 `meeting:write:meeting` 과 `user:read:user` 를 추가합니다. [통화 녹취록](#통화-녹취록) 을 읽게 하려면 `cloud_recording:read:list_recording_files` 와 `cloud_recording:read:meeting_transcript` 도 추가합니다. **Features** > **Access** 의 **Secret Token** 이 `ZOOM_APP_WEBHOOK_SECRET_TOKEN` 입니다. **Development** 자격 증명은 자신의 Zoom 계정 사용자에게만 작동하고, **Production** 자격 증명은 Zoom 이 앱을 검토하고 게시하면 모든 사람에게 작동합니다.
 - **Google Meet**: [Google Cloud 콘솔](https://console.cloud.google.com/) 에서 **Google Meet REST API** 를 사용 설정하고, 스코프 `openid`, `email`, `https://www.googleapis.com/auth/meetings.space.created` 로 OAuth 동의 화면 ( **Google Auth Platform** ) 을 구성한 다음, 리디렉션 URI 로 **Web application** 유형의 OAuth 클라이언트를 만듭니다. 앱을 프로덕션에 게시하세요. 테스트 상태로 둔 앱은 7일 후 로그인을 잃습니다. Google 은 Meet 스코프를 요청하는 앱을 검토하며, 검토가 끝날 때까지 사람들은 로그인 전에 경고를 봅니다.
-- **Microsoft Teams**: [Microsoft Entra 관리 센터](https://entra.microsoft.com/) 에서 **Accounts in any organizational directory** 용 앱을 등록하고, 리디렉션 URI 를 **Web** 리디렉션 URI 로 추가하고, Microsoft Graph 위임 권한 `openid`, `profile`, `email`, `offline_access`, `OnlineMeetings.ReadWrite` (그리고 [통화를 녹화하고 녹취하는](#모든-통화를-녹화하고-녹취하기) 프로젝트가 요청하는 `Calendars.ReadWrite` 와 `OnlineMeetingTranscript.Read.All`) 를 추가한 다음, 클라이언트 시크릿을 만듭니다. Microsoft Teams 봇의 등록 (`MICROSOFT_TEAMS_APP_CLIENT_ID`) 이 아닌 별도의 등록을 사용하세요. 앱에 확인된 게시자가 없는 동안에는 대부분의 조직에서 관리자의 동의가 필요합니다.
+- **Microsoft Teams**: [Microsoft Entra 관리 센터](https://entra.microsoft.com/) 에서 **Accounts in any organizational directory** 용 앱을 등록하고, 리디렉션 URI 를 **Web** 리디렉션 URI 로 추가하고, Microsoft Graph 위임 권한 `openid`, `profile`, `email`, `offline_access`, `OnlineMeetings.ReadWrite` (그리고 [통화를 녹화하고 녹취하는](#모든-통화를-녹화하고-녹취하기) 프로젝트가 요청하는 `Calendars.ReadWrite` 와 `OnlineMeetingTranscript.Read.All`) 를 추가한 다음, 클라이언트 시크릿을 만듭니다. Microsoft Teams 봇의 등록 (`MICROSOFT_TEAMS_APP_CLIENT_ID`) 이 아닌 별도의 등록을 사용하세요. 앱에 확인된 게시자가 없는 동안에는 대부분의 조직에서 관리자의 동의가 필요합니다. 조직에서 다중 테넌트 앱을 허용하지 않는다면 **Accounts in this organizational directory only** 용으로 등록하고, `MICROSOFT_TEAMS_MEETINGS_APP_TENANT_ID` (Helm 에서는 `microsoftTeamsMeetingsApp.tenantId`) 를 해당 앱의 **Directory (tenant) ID** 로 설정하세요. 그러면 로그인이 조직의 테넌트에서 이루어지며, 조직의 구성원과 게스트만 로그인할 수 있습니다. Microsoft 365 테넌트가 미국 정부 클라우드에 있다면 해당 클라우드의 Microsoft Entra 관리 센터에서 앱을 등록하고, [Microsoft Teams 봇](/docs/self-hosted/microsoft-teams-integration#미국-정부-클라우드)과 마찬가지로 `MICROSOFT_TEAMS_CLOUD`를 설정하세요. 그러면 로그인과 회의가 그 클라우드의 호스트로 갑니다.
 
 클라이언트 ID 는 공개 정보입니다. 어떤 제공자가 한 번의 클릭으로 연결되는지 알 수 있도록 대시보드로 전송됩니다. 시크릿과 웹훅 시크릿 토큰은 비밀로 유지하세요. 워커가 매일 갱신할 때가 된 로그인을 갱신하므로 앱과 같은 값이 필요합니다.
 
@@ -293,7 +293,7 @@ OneUptime Cloud 에는 한 번의 클릭 연결을 위한 자체 Zoom, Google, M
 :::
 
 :::details 사람들이 로비나 대기실에서 기다림
-연결 행의 **편집** 로 **Who can join** (Google Meet) 또는 **Who skips the lobby** (Microsoft Teams) 를 변경하세요. Zoom 의 경우 계정의 **Waiting room** 설정이 켜진 채로 잠겨 있지 않은지 확인하세요.
+연결 행의 **편집** 으로 **Who can join** (Google Meet) 또는 **Who skips the lobby** (Microsoft Teams) 를 변경하세요. Zoom 의 경우 계정의 **Waiting room** 설정이 켜진 채로 잠겨 있지 않은지 확인하세요.
 :::
 
 :::details Zoom에서 가져오기가 녹취록을 찾지 못함
@@ -309,7 +309,7 @@ OneUptime 이 회의를 주최자의 캘린더에 넣지 못해 평소 방식으
 :::
 
 :::details OneUptime AI 가 녹취록을 읽지 못함
-이유는 카드에 표시됩니다. 프로젝트에서 AI 가 꺼져 있거나, 프로젝트가 AI 일일 한도에 도달했거나, AI 제공자가 거부한 경우입니다. 해결한 뒤 카드의 **다시 시도** 으로 다시 읽습니다.
+이유는 카드에 표시됩니다. 프로젝트에서 AI 가 꺼져 있거나, 프로젝트가 AI 일일 한도에 도달했거나, AI 제공자가 거부한 경우입니다. 해결한 뒤 카드의 **다시 시도** 로 다시 읽습니다.
 :::
 
 ## 다음 단계

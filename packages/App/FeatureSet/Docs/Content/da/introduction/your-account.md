@@ -129,7 +129,7 @@ Du kan høre til så mange projekter, du vil. Projektvælgeren øverst til venst
 
 ## Sprog og tema
 
-Begge gemmes i din browser, ikke på din konto, så indstil dem igen i en anden browser eller på en anden enhed.
+Begge gemmes i din browser, ikke på din konto, så indstil dem igen i en anden browser eller på en anden enhed. De bevares, når du logger ud, så på en delt computer starter den næste person med dine indstillinger.
 
 - **Sprog**: dashboardet starter på din browsers sprog. Brug sprogmenuen nederst på hver side for at skifte. Denne dokumentation har sin egen sprogmenu øverst.
 - **Tema**: vælg **Lyst**, **Mørkt** eller **System** i brugermenuen. **System** er lyst eller mørkt, alt efter hvordan din enhed er indstillet, og skifter med den; alle browsere starter med det. Login-siderne bruger samme tema.

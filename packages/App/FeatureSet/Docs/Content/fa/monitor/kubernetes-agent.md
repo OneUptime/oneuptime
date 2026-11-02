@@ -4,7 +4,7 @@
 
 :::cards
 - [نصب عامل](#نصب-عامل): چهار گام با Helm.
-- [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم): خوشه‌های استاندارد، GKE Autopilot یا EKS Fargate.
+- [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم): خوشه‌های استاندارد، GKE Autopilot، EKS Fargate یا OpenShift.
 - [گزینه‌های رایج](#گزینههای-رایج): تنظیماتی که بیشتر خوشه‌ها تغییر می‌دهند.
 - [رفع اشکال](#رفع-اشکال): یک اسکریپت تشخیصی، و مشکلات معمول.
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | گردآورنده گره | DaemonSet | لاگ‌های پاد از `/var/log/pods`، متریک‌های kubelet و cAdvisor، و متریک‌های سیستم‌عامل گره. | بله |
 | ابزارگذاری eBPF (OBI) | DaemonSet | ترِیس‌ها و متریک‌های درخواست HTTP، gRPC، SQL و Redis از هر پاد، و نقشه سرویس. | بله |
 | عامل AI در Kubernetes | Deployment | به OneUptime AI اجازه می‌دهد هنگام بررسی یک حادثه یا هشدار روی این خوشه، `kubectl` فقط‌خواندنی اجرا کند. | بله |
-| دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که گردآورنده گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate` |
+| دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که گردآورنده گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot`، `eks-fargate` و `openshift-restricted` |
 | پروفایلر eBPF | DaemonSet | نمودارهای شعله‌ای پیوسته CPU از هر فرایند. | خیر |
 | kube-state-metrics | Deployment | فازهای پاد، دلیل‌های انتظار کانتینر و سهمیه‌های منابع. | خیر |
 
@@ -92,10 +92,14 @@ kubectl get pods -n oneuptime-agent
 | `standard` (پیش‌فرض) | خودمدیریت، **EKS on EC2**، **GKE Standard**، **AKS**، minikube، kind، k3s | گردآورنده گره `/var/log/pods` را می‌خواند | متریک‌های kubelet، cAdvisor و سیستم‌عامل |
 | `gke-autopilot` | **GKE Autopilot** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | متریک‌های kubelet و cAdvisor، بدون `hostPath` |
 | `eks-fargate` | **EKS Fargate** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | هیچ: Fargate هیچ DaemonSet اجرا نمی‌کند |
+| `openshift` | **OpenShift**: OpenShift Container Platform، ROSA، ARO، OKD | گردآورنده گره `/var/log/pods` را می‌خواند | متریک‌های kubelet، cAdvisor و سیستم‌عامل |
+| `openshift-restricted` | **OpenShift**، جایی که مدیر نمی‌خواهد SCC اضافه کند | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | متریک‌های kubelet و cAdvisor، بدون `hostPath` |
 
 اگر مطمئن نیستید، `preset` را تعیین‌نشده بگذارید تا `standard` را بگیرید. اگر نصب با خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `gke-autopilot` نصب کنید، یا روی EKS Fargate با `eks-fargate`.
 
-GKE Autopilot و EKS Fargate پادهای privileged را هم رد می‌کنند، که ابزارگذاری eBPF و پروفایل‌گیری به آن‌ها نیاز دارند، پس پیش‌تنظیم‌هایشان هر دو را کنار می‌گذارند:
+GKE Autopilot و EKS Fargate پادهای privileged را هم رد می‌کنند، که ابزارگذاری eBPF و پروفایل‌گیری به آن‌ها نیاز دارند، پس پیش‌تنظیم‌هایشان هر دو را کنار می‌گذارند.
+
+روی OpenShift، محدودیت زمینه امنیتی پیش‌فرض (SCC)، یعنی `restricted-v2`، گردآورنده گره و پادهای eBPF را رد می‌کند. پیش‌تنظیم `openshift` برای هر کدام یک SCC می‌سازد که فقط حساب سرویس خودش از آن استفاده می‌کند، و می‌گذارد OpenShift شناسه کاربر همه پادهای دیگر را انتخاب کند:
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+اگر مدیری نمی‌خواهد SCC اضافه کند، به‌جای آن با `--set preset=openshift-restricted` نصب کنید. آنگاه چارت هیچ SCC نمی‌سازد و هر پاد زیر `restricted-v2` اجرا می‌شود: لاگ‌های پاد از راه API در Kubernetes می‌آیند و متریک‌های سیستم‌عامل، ترِیس‌های eBPF و پروفایل‌ها نیستند. [OpenShift](/docs/telemetry/kubernetes-agent#openshift) را ببینید.
 
 ## برچسب زدن به خوشه
 
@@ -355,7 +370,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `oneuptime.url` | (الزامی) | URL در OneUptime شما. |
 | `oneuptime.apiKey` | (الزامی) | کلید دریافت داده، از **تنظیمات پروژه → تله‌متری و APM → کلیدهای دریافت داده**. به‌صورت سرآیند `x-oneuptime-token` فرستاده می‌شود؛ کلید API پروژه کار نمی‌کند. |
 | `clusterName` | (الزامی) | نام خوشه، یکتا در پروژه. هر رکورد آن را به‌صورت `k8s.cluster.name` با خود دارد. |
-| `preset` | (خالی: `standard`) | `standard`، `gke-autopilot` یا `eks-fargate`. [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم) را ببینید. |
+| `preset` | (خالی: `standard`) | `standard`، `gke-autopilot`، `eks-fargate`، `openshift` یا `openshift-restricted`. [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم) را ببینید. |
 | `oneuptime.labels` | `{}` | برچسب‌هایی برای هر رکورد از این عامل. [برچسب زدن به خوشه](#برچسب-زدن-به-خوشه) را ببینید. |
 | `namespaceFilters.rules` | `kube-system` را از `podLogs` و `ebpfDiscovery` کنار می‌گذارد | قاعده‌هایی که namespaceها را برای `podLogs`، `ebpfDiscovery`، `metrics` و `traces` در بر می‌گیرند یا کنار می‌گذارند. الگوها می‌توانند از `*` استفاده کنند، و کنار گذاشتن همیشه برنده است. |
 | `filters.logs.minSeverity` | `""` | خط‌های لاگ پاد زیر این سطح را کنار می‌گذارد: `TRACE`، `DEBUG`، `INFO`، `WARN`، `ERROR` یا `FATAL`. |
@@ -408,9 +423,11 @@ kubectl delete namespace oneuptime-agent
 اسکریپت تشخیصی چارت را اجرا کنید. پادها، کلید دریافت داده و راه خروج از خوشه را بررسی می‌کند، از OneUptime می‌پرسد که آیا کلید پذیرفته می‌شود، و یک حکم چاپ می‌کند. فقط می‌خواند و چیزی را تغییر نمی‌دهد:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+هر OneUptime این اسکریپت را از انتشار خودش ارائه می‌کند: در یک OneUptime خودمیزبان، به‌جای `https://oneuptime.com` از نشانی خودتان استفاده کنید. برای خواندن اسکریپت پیش از اجرا، نشانی آن را در یک مرورگر باز کنید.
 
 علت معمول، به‌ویژه پس از نصب دوباره، یک کلید دریافت داده نادرست یا باطل‌شده است: OneUptime آن را رد می‌کند، و گردآورنده هر دسته را کنار می‌گذارد در حالی که پادهایش `Running` می‌مانند.
 :::

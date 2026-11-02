@@ -63,7 +63,7 @@ Din brugerdefinerede CSS og HTML gælder i begge temaer; [Brugerdefineret HTML, 
 ### Titel, beskrivelse og favicon
 
 - **Titel og beskrivelse**: sidens navn i browserfanen og i e-mails til abonnenter og den beskrivelse, søgemaskiner viser. **Rediger** åbner **Sidetitel** (pladsholder `e.g., Acme Status`) og **Sidebeskrivelse**. Søgemaskiner og linkforhåndsvisninger viser dem, så skriv dem til en kunde, ikke til dit team.
-- **Favicon**: **Edit Favicon** åbner uploaden **Favicon**: det lille ikon i browserfanen.
+- **Favicon**: **Rediger favicon** åbner uploaden **Favicon**: det lille ikon i browserfanen.
 
 ### Header-links
 
@@ -107,7 +107,7 @@ Hvor mange dage diagrammet dækker, angives ikke her. Det er **Oppetidshistorik*
 
 | Felt | Hvad det gør |
 | ----- | ------------ |
-| **Standardsprog** | Det sprog, førstegangsbesøgende ser, valgt fra en liste, der nævner hvert sprog på sproget selv og på engelsk (`Deutsch (German)`). Standard er engelsk, og besøgende kan altid skifte fra sidefoden. |
+| **Standardsprog** | Det sprog, førstegangsbesøgende ser, valgt fra en liste, der nævner hvert sprog på sproget selv og på engelsk (`Deutsch (German)`). Standard er engelsk, og besøgende kan altid skifte fra sidefoden. Abonnenter får også deres beskeder på det, medmindre de læste siden på et andet sprog, da de abonnerede. |
 | **Aktiverede sprog** | En flervalgsliste, pladsholder `All languages`. Lad den stå tom, så tilbydes alle understøttede sprog; vælg nogle få, så viser sidefoden kun dem. |
 
 OneUptime leveres med sytten sprog: engelsk, tysk, fransk, spansk, italiensk, portugisisk, nederlandsk, dansk, norsk, svensk, russisk, japansk, koreansk, kinesisk (forenklet), kinesisk (traditionelt), hindi og persisk. Persisk læses fra højre mod venstre, så en side vist på persisk er bygget op fra højre, fra første øjeblik, når persisk er dens standardsprog. Oppetidsbjælkerne begynder stadig til venstre med den ældste dag.
@@ -214,7 +214,7 @@ I **Domæne** (pladsholder `Select domain`) vælger du et af dine bekræftede do
 Klik på **Opret Statusside Domæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner med den post, der skal tilføjes.
 :::
 
-Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle.
+Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
 
 ### DNS-opsætning og bekræftelse
 

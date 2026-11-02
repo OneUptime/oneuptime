@@ -84,7 +84,7 @@ Comece pelo modelo, que cria o workflow inteiro para você, ou do zero.
 3. Mantenha o nome **Notify IRC on new incident** ou mude-o, e clique em **Próximo**.
 4. Informe **IRC Server** e **IRC Channel** e clique em **Criar fluxo de trabalho**.
 
-O workflow abre no **Construtor** com três etapas: **On Create Incident**; **Send Message to IRC**, que publica o número, o título, a gravidade e o estado do incidente em duas linhas; e uma etapa **Registro** na sua saída **Erro**, que registra por que uma mensagem não foi entregue. O servidor e o canal são guardados como as variáveis `ircServer` e `ircChannel` do workflow. Se você guardou senhas na etapa anterior, clique em **Send Message to IRC**, abra **Mais campos** e escolha cada variável com o botão **{ }** da configuração.
+O workflow abre no **Construtor** com duas etapas: **On Create Incident** e **Send Message to IRC**, que publica o número, o título, a gravidade e o estado do incidente em duas linhas. Uma mensagem que não é entregue faz a execução falhar, e o registro da execução diz por quê. O servidor e o canal são guardados como as variáveis `ircServer` e `ircChannel` do workflow. Se você guardou senhas na etapa anterior, clique em **Send Message to IRC**, abra **Mais campos** e escolha cada variável com o botão **{ }** da configuração.
 @tab Do zero
 1. Abra **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
 2. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident** em **Populares**. Clique no gatilho e, em **Fields to pass on**, escolha os campos do incidente que a sua mensagem mostra, por exemplo o título.

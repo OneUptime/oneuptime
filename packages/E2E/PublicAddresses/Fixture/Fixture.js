@@ -1,8 +1,9 @@
 /*
- * Offline fixture for the addresses a status page or a public dashboard
- * answers at (Components/CustomDomain/PublicAddresses): a status page's
- * Overview, whose Status Page Link card lists them, and a dashboard's
- * Sharing page, which lists them under its public choice.
+ * Offline fixture for the addresses a status page, a public dashboard or a
+ * form answers at (Components/CustomDomain/PublicAddresses): a status page's
+ * Overview, whose Status Page Link card lists them, a dashboard's Sharing
+ * page, which lists them under its public choice, and a form's Share page,
+ * whose Share Link card lists them.
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced; the pages, cards, rows, the DNS Setup dialog and
@@ -11,6 +12,8 @@
  * Pages (the path picks one):
  *   /dashboard/<project>/status-pages/<id>                     a status page's Overview
  *   /dashboard/<project>/dashboards/<id>/authentication-settings  a dashboard's Sharing page
+ *   /dashboard/<project>/forms/<id>/share                      a form's Share page
+ *   /dashboard/<project>/forms/<id>/custom-domains             a form's Custom Domains page
  *
  * Steered by the query string:
  *   - domains=<state>:<domain>;...  the custom domains, each where it is on
@@ -18,6 +21,7 @@
  *                     failed, expired, uploaded or renewal
  *   - access=public|signin|password   who can see the status page
  *   - share=private|link|password     who can view the dashboard
+ *   - enabled=0       the form is turned off (Accepting Submissions)
  *   - role=owner|viewer|noread        a project owner; a member who may read
  *                     everything here but change none of it; one who may
  *                     read the page but not its custom domains
@@ -25,7 +29,8 @@
  *                     cannot be reached does
  *   - delay=<ms>      each custom domain read takes this long (30 ms
  *                     otherwise), to see the list while it loads
- *   - lang=de|ja|fa   the Dashboard's German, Japanese or Persian words
+ *   - lang=de|ja|fa   the Dashboard's German, Japanese or Persian words;
+ *                     Persian right to left
  *   - theme=dark, cname=0   (read by server.js) the dark theme; an
  *                     installation with no CNAME record
  *
@@ -48,8 +53,12 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import StatusPageOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Index";
 import DashboardSharingPage from "../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Sharing";
+import FormSharePage from "../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
+import FormCustomDomainsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/CustomDomains";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
+import Form from "Common/Models/DatabaseModels/Form";
+import FormDomain from "Common/Models/DatabaseModels/FormDomain";
 import Label from "Common/Models/DatabaseModels/Label";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
@@ -76,6 +85,8 @@ const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
 const STATUS_PAGE_ID = "30000000-0000-4000-8000-000000000001";
 const DASHBOARD_ID = "40000000-0000-4000-8000-000000000001";
+const FORM_ID = "50000000-0000-4000-8000-000000000001";
+const FORM_SHARE_KEY = "0f8fad5b-d9cb-469f-a165-70867728950e";
 const DAY = 24 * 60 * 60 * 1000;
 
 const params = new URLSearchParams(window.location.search);
@@ -160,6 +171,18 @@ const DASHBOARD = (() => {
   return record;
 })();
 
+const FORM = (() => {
+  const record = new Form();
+  record._id = FORM_ID;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.name = "Report a problem";
+  record.shareKey = new ObjectID(FORM_SHARE_KEY);
+  record.isEnabled = params.get("enabled") !== "0";
+  record.successMessage = "";
+  record.ipWhitelist = "";
+  return record;
+})();
+
 /*
  * The custom domains, from ?domains=<state>:<domain>;... - each row as its
  * table holds it, and its certificate as the certificates route answers.
@@ -236,6 +259,17 @@ const RECORDS = {
       return domainRow(DashboardDomain, "dashboardId", DASHBOARD_ID, {
         ...spec,
         fullDomain: spec.fullDomain.replace("status", "dashboard"),
+      });
+    });
+  },
+  Form: () => [FORM],
+  // The Custom Domains table's saved views: none saved.
+  TableView: () => [],
+  FormDomain: () => {
+    return domainSpecs.map((spec) => {
+      return domainRow(FormDomain, "formId", FORM_ID, {
+        ...spec,
+        fullDomain: spec.fullDomain.replace("status", "report"),
       });
     });
   },
@@ -386,6 +420,12 @@ await i18next.use(initReactI18next).init({
   nsSeparator: false,
 });
 document.documentElement.lang = language;
+/*
+ * Persian reads right to left, as the Dashboard draws it (Common/UI/Utils/
+ * PageLanguage sets dir on <html>, and server.js loads the reading-direction
+ * plugin after Tailwind, as index.ejs does).
+ */
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 // What App.tsx does for every page: the router's hooks, handed to Navigation.
 function Shell(props) {
@@ -421,6 +461,22 @@ function Fixture() {
         element={
           <Shell>
             <DashboardSharingPage {...PAGE_PROPS} />
+          </Shell>
+        }
+      />
+      <PageRoute
+        path="/dashboard/:projectId/forms/:id/share"
+        element={
+          <Shell>
+            <FormSharePage {...PAGE_PROPS} />
+          </Shell>
+        }
+      />
+      <PageRoute
+        path="/dashboard/:projectId/forms/:id/custom-domains"
+        element={
+          <Shell>
+            <FormCustomDomainsPage {...PAGE_PROPS} />
           </Shell>
         }
       />

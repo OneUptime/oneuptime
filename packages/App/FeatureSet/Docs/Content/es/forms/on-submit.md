@@ -134,7 +134,7 @@ Cada envío deja una nota privada en lo que creó:
 > **Which office are you in?**\
 > Berlin
 
-Nombra el formulario y el remitente — "Submitted anonymously through the form **Report a Problem**." cuando el formulario no preguntó quién es —, luego, cuando el envío empezó desde una de las plantillas del formulario, dice cuál: "Started from the template **Application Outage**." — y después lista las respuestas a las preguntas propias del formulario, cada una bajo su pregunta, en el orden del formulario. Las respuestas a las preguntas vinculadas ya están en el registro: su título, su gravedad, sus campos personalizados. Como es privada, la nota nunca llega a una página de estado, pero se publica en los canales de Slack y Microsoft Teams del registro como cualquier otra nota.
+Nombra el formulario y el remitente — "Submitted anonymously through the form **Report a Problem**." cuando el formulario no preguntó quién es —, luego, cuando el envío empezó desde una de las plantillas del formulario, dice cuál: "Started from the template **Application Outage**." — y después lista las respuestas a las preguntas propias del formulario, cada una bajo su pregunta, en el orden del formulario. Las respuestas a las preguntas vinculadas ya están en el registro: su título, su gravedad, sus campos personalizados. Como es privada, la nota nunca llega a una página de estado, pero se publica en los canales de Slack y Microsoft Teams del registro como cualquier otra nota. Los archivos de sus preguntas **Archivo** y **Varios archivos** se adjuntan a la nota, donde tu equipo los descarga.
 
 La dirección es un enlace que escribe exactamente a esa dirección — en el panel, en Slack y en el correo a los propietarios.
 
@@ -158,6 +158,10 @@ Un envío va directo a lugares donde el texto puede actuar por sí solo — cana
 | Sintaxis de imagen o un bloque de diagrama en el título | **El título es texto sin formato.** También reciben el carácter invisible, así que dondequiera que acabe el título — un episodio, un mensaje de chat, una plantilla de nota — no carga nada ni dibuja nada. Los caracteres invisibles cuentan para el límite del título. |
 
 Todo lo demás — los enlaces, el resto del Markdown, las opciones de las listas desplegables, los números, las fechas, una casilla marcada — se guarda tal como lo dio el remitente, y el envío conserva el nombre y el correo del remitente tal como los escribió.
+
+## Archivos que envía quien rellena el formulario
+
+Una pregunta de archivos guarda en el navegador los archivos que elige quien rellena el formulario y los envía con las respuestas, así que nadie necesita una cuenta para adjuntar uno. El servidor comprueba cada archivo como lo hace un [campo personalizado de archivo](/docs/incidents/settings#campos-de-archivo) — su tamaño, su tipo y lo que contiene — y guarda los archivos en tu proyecto, privados, solo cuando el envío ha pasado todas las demás comprobaciones: no se conserva nada de un envío rechazado. Una pregunta de un campo personalizado **Archivo** o **Varios archivos** pone sus archivos en ese campo, y las preguntas de archivos propias del formulario adjuntan los suyos a la nota privada. El envío conserva el nombre de cada archivo. [Límites de tamaño](/docs/forms/building#límites-de-tamaño) y [Límites de frecuencia](/docs/forms/sharing-and-security#límites-de-frecuencia) dicen cuánto pueden enviar un envío y un formulario.
 
 ## Próximos pasos
 

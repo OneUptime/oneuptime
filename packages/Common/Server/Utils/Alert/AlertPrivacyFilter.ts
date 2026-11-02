@@ -45,7 +45,7 @@ export function getAlertSelfPrivacyRaw(
       return (
         `(${alias} IS NULL OR ${alias} = FALSE OR ` +
         `"Alert"."_id" IN (SELECT aou."alertId" FROM "AlertOwnerUser" aou WHERE aou."userId" = :${uidRid} AND aou."deletedAt" IS NULL) OR ` +
-        `"Alert"."_id" IN (SELECT aot."alertId" FROM "AlertOwnerTeam" aot INNER JOIN "TeamMember" tm ON tm."teamId" = aot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND aot."deletedAt" IS NULL))`
+        `"Alert"."_id" IN (SELECT aot."alertId" FROM "AlertOwnerTeam" aot INNER JOIN "TeamMember" tm ON tm."teamId" = aot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND aot."deletedAt" IS NULL))`
       );
     },
     {
@@ -80,7 +80,7 @@ export function getAlertRelatedRecordPrivacyRaw(
         `(${alias} IN (SELECT a."_id" FROM "Alert" a WHERE a."deletedAt" IS NULL AND (` +
         `a."isPrivate" IS NULL OR a."isPrivate" = FALSE OR ` +
         `a."_id" IN (SELECT aou."alertId" FROM "AlertOwnerUser" aou WHERE aou."userId" = :${uidRid} AND aou."deletedAt" IS NULL) OR ` +
-        `a."_id" IN (SELECT aot."alertId" FROM "AlertOwnerTeam" aot INNER JOIN "TeamMember" tm ON tm."teamId" = aot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND aot."deletedAt" IS NULL))))`
+        `a."_id" IN (SELECT aot."alertId" FROM "AlertOwnerTeam" aot INNER JOIN "TeamMember" tm ON tm."teamId" = aot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND aot."deletedAt" IS NULL))))`
       );
     },
     {
@@ -160,7 +160,7 @@ export function getOptionalAlertRelatedRecordPrivacyRaw(
         `(${alias} IS NULL OR ${alias} IN (SELECT a."_id" FROM "Alert" a WHERE a."deletedAt" IS NULL AND (` +
         `a."isPrivate" IS NULL OR a."isPrivate" = FALSE OR ` +
         `a."_id" IN (SELECT aou."alertId" FROM "AlertOwnerUser" aou WHERE aou."userId" = :${uidRid} AND aou."deletedAt" IS NULL) OR ` +
-        `a."_id" IN (SELECT aot."alertId" FROM "AlertOwnerTeam" aot INNER JOIN "TeamMember" tm ON tm."teamId" = aot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND aot."deletedAt" IS NULL))))`
+        `a."_id" IN (SELECT aot."alertId" FROM "AlertOwnerTeam" aot INNER JOIN "TeamMember" tm ON tm."teamId" = aot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND aot."deletedAt" IS NULL))))`
       );
     },
     {

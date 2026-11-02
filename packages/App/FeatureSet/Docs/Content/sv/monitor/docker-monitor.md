@@ -48,19 +48,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Docker Contain
 
 ### Välj värden
 
-Välj värden i **Docker-värd** under **Docker-monitorkonfiguration**. Varje värd som har skickat data finns i listan.
+Välj värden i **Docker-värd** under **Docker-monitorkonfiguration**. Varje värd som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till Docker-värd** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** – klicka på en [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** – välj ett mätvärde i **Docker-mått** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
-- **Avancerad** – bygg frågor och formler själv under **Välj mått**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
+- **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Docker-mått** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så ange din egen tröskel.
 
 ### Skapa monitorn
 
@@ -84,18 +84,18 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder sju mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Host Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje container bedöms för sig, en upptagen container inte döljer en annan, och varje container över tröskeln får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder sju mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Alla mallar utom **Host Stopped Reporting** grupperar sin fråga efter `resource.container.name`, så att varje container bedöms för sig, en upptagen container inte döljer en annan, och varje container över tröskeln får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count över alla containrar på värden, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`, Max per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
-| Container Restart Loop | Kritisk | Ökning av `container.restarts` per container, senaste 15 minuterna | Fler än 3 omstarter i fönstret (Summa) | 2,7 eller färre |
-| Container CPU Throttling | Warning | Ökning av `container.cpu.throttling_data.throttled_time` i ms per container, senaste 5 minuterna | Mer än 1000 ms i fönstret (Summa) | 900 ms eller mindre |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
+| High Container CPU Usage | Varning | `container.cpu.utilization`, Max per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
+| High Container Memory Usage | Varning | `container.memory.percent`, Max per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
+| Container Restart Loop | Kritisk | `container.restarts.increase`, Sum per container, senaste 15 minuterna | Fler än 3 omstarter i fönstret (Summa) | 2,7 eller färre |
+| Container CPU Throttling | Varning | Ökning av `container.cpu.throttling_data.throttled_time` i ms per container, senaste 5 minuterna | Mer än 1000 ms i fönstret (Summa) | 900 ms eller mindre |
+| High Container Process Count | Varning | `container.pids.count`, Max per container, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, senaste 1 minuten | Under 120 sekunder | Minst 132 sekunder |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
@@ -110,7 +110,10 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 > `container.memory.percent` delar med containerns minnesgräns när en sådan är satt, och annars med **värdens** totala minne. Kontrollera om containern startades med `--memory` innan du behandlar en överskridning som ett nära förestående avslut på grund av minnesbrist.
 
 > [!WARNING]
-> `container.restarts` och `container.cpu.throttling_data.throttled_time` bara växer, så de två mallarna varnar på hur mycket de växte i fönstret: en Maximum- och en Minimum-fråga per minut, subtraherade av en formel och summerade. Med agentens insamling var 30:e sekund ser det ungefär hälften av den verkliga aktiviteten, och trösklarna tar redan hänsyn till det. Om du höjer agentens `collection_interval` till 60 sekunder eller mer innehåller varje minut en mätning, och båda mallarna slutar varna. Agenten mäter dessutom bara körande containrar, så en container som avslutas i samma stund som den startar mäts sällan: **Container Restarted (Low Uptime)** utlöses vid varje omstart som agenten ser.
+> `container.cpu.throttling_data.throttled_time` bara växer, så **Container CPU Throttling** varnar på hur mycket den växte i fönstret: en Maximum- och en Minimum-fråga per minut, subtraherade av en formel och summerade. Med agentens insamling var 30:e sekund ser det ungefär hälften av den verkliga strypningen, och tröskeln tar redan hänsyn till det. Om du höjer agentens `collection_interval` till 60 sekunder eller mer innehåller varje minut en mätning, och mallen slutar varna.
+
+> [!NOTE]
+> `container.restarts` bara växer också, tills en manuell omstart eller en återskapad container börjar om den från 0, så agenten skickar också `container.restarts.increase` med varje mätning: omstarterna sedan dess förra mätning av containern. **Container Restart Loop** summerar dem, så den räknar varje omstart hur långt det än är mellan mätningarna, och en manuell omstart räknas inte. Docker rapporterar en container som den håller på att starta om som körande, så agenten fortsätter att mäta en container i en omstartsloop mellan dess körningar. En äldre agent skickar inte `container.restarts.increase`: [uppgradera den](/docs/telemetry/docker-host#uppgradera-agenten) först. En monitor som skapades från mallen innan dess läser hur mycket `container.restarts` växte inom varje minut, och missar därmed ungefär hälften av omstarterna i en loop: ta bort den och skapa mallen igen.
 
 > [!CAUTION]
 > `container.uptime` finns bara för körande containrar. En container som stannar och förblir stoppad skickar inga data, så **Container Restarted (Low Uptime)** fångar omstarter och nya driftsättningar, inte en permanent avstängning. En container som är tänkt att köras i mindre än två minuter förblir i larmläge hela sin livstid. För en tjänst som måste vara igång bör du också övervaka det den levererar – till exempel med en [API-övervakning](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ Agenten använder OpenTelemetry-mottagaren `docker_stats` mot Docker-socketen va
 | --- | --- |
 | `container.uptime` | Sekunder sedan containern startade. Bara körande containrar rapporterar det. |
 | `container.restarts` | Antal gånger containern har startats om sedan den skapades. En räknare över hela livstiden. |
+| `container.restarts.increase` | Omstarter sedan agentens förra mätning av containern, skickade med varje mätning. Summan över ett fönster är omstarterna i det, så varna på denna i stället för på räknaren över hela livstiden. |
 | `container.pids.count` | Uppgifter i containern. Cgroupens pids-kontrollant räknar trådar lika väl som processer. |
 
 `container.cpu.throttling_data.throttled_periods` finns inte i listan; fråga efter det från **Avancerad**.
@@ -173,7 +177,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | **Baslinjefönster** | Bara avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret saknar mätningar: **Ignore** (standard), **Treat As Zero** eller **Utlösare**. |
 
-Avvikelsevillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i ett "Learning"-läge och ger ingenting förrän baslinjefönstret innehåller tillräckligt med historik.
+Avvikelsevillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i ett "Learning"-läge och ger ingenting förrän baslinjefönstret innehåller tillräckligt med historik. En summa, ett antal eller en fråga på ett histogram stannar i det tillståndet för alltid: den här monitorn filtrerar sina frågor på attribut, och baslinjen innehåller inga.
 
 Varje kriterium anger också vad som ska hända när det matchar: ändra monitorns status, skapa ett larm eller deklarera en incident. Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör.
 
@@ -288,8 +292,12 @@ OneUptime identifierar en värd med `resource.host.name`, som agenten tar från 
 Gruppera frågan efter `resource.container.name` och aggregera med **Maximum**, som mallen **High Container CPU Usage** gör. Ett genomsnitt över alla containrar på en upptagen värd dras ned av de inaktiva. Kom ihåg att 100 % betyder en hel kärna, så en container som får använda flera kärnor behöver en högre tröskel. Om en containers CPU är en platt linje oavsett belastning kör värden en äldre agent: [uppgradera den](/docs/telemetry/docker-host#uppgradera-agenten).
 :::
 
-:::details Mallen för omstartsloop eller strypning slutade varna
-Båda mäter hur mycket en räknare växte mellan två mätningar under samma minut. Om agentens `collection_interval` är 60 sekunder eller mer innehåller varje minut en mätning, ökningen är alltid 0 och ingen av mallarna utlöses. Behåll agentens standard på 30 sekunder.
+:::details Mallen för strypning slutade varna
+Den mäter hur mycket `container.cpu.throttling_data.throttled_time` växte mellan två mätningar under samma minut. Om agentens `collection_interval` är 60 sekunder eller mer innehåller varje minut en mätning, ökningen är alltid 0 och mallen utlöses aldrig. Behåll agentens standard på 30 sekunder.
+:::
+
+:::details Mallen för omstartsloop utlöses aldrig eller missar omstarter
+Den läser `container.restarts.increase`, som en äldre agent inte skickar: [uppgradera agenten](/docs/telemetry/docker-host#uppgradera-agenten). En monitor som skapades från mallen innan dess läser hur mycket `container.restarts` växte mellan två mätningar under samma minut, och missar omstarterna mellan mätningarna i två olika minuter: ta bort den och skapa mallen igen.
 :::
 
 ## Nästa steg

@@ -2077,10 +2077,15 @@ describe("CreateWorkflowModal Jira templates", () => {
           variable.description,
         );
 
-        /* Shown beside the OneUptime URL field, not beside some other one. */
-        expect(helpText.parentElement).toContainElement(
+        /*
+         * Shown beside the OneUptime URL field, not beside some other one:
+         * a line of the field's help, in the field. The template's own
+         * words, so laid out the way they are written, on a Persian page too.
+         */
+        expect(helpText.parentElement?.parentElement).toContainElement(
           getVariableInput(ONEUPTIME_URL_VARIABLE),
         );
+        expect(helpText).toHaveAttribute("dir", "auto");
         expect(helpText).toHaveTextContent(
           `link the Jira issue back to the ${kind.noun}`,
         );

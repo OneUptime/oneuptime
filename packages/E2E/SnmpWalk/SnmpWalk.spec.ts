@@ -1,4 +1,12 @@
-import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
+import {
+  BrowserContext,
+  Download,
+  expect,
+  Locator,
+  Page,
+  test,
+} from "@playwright/test";
+import fs from "fs/promises";
 import path from "path";
 
 /*
@@ -8,8 +16,8 @@ import path from "path";
  * picked from the starting points or typed, a walk still running when the
  * page opens, continuing a walk that stopped at its limit, Collect on the
  * device or its template, Alert on it, Copy OID, why a walk failed, who may
- * do which, and the page at a phone's width, in the dark theme, in Japanese
- * and in German. Screenshots in output/playwright/snmp-walk-ui are for the
+ * do which, saving a walk as a file, and the page at a phone's width, in
+ * the dark theme, in Japanese and in German. Screenshots in output/playwright/snmp-walk-ui are for the
  * people who review the page.
  */
 
@@ -820,6 +828,390 @@ test.describe("who may do what", () => {
       rowOf(page, CISCO_CPU).getByTestId("snmp-walk-row-collected"),
     ).toBeVisible();
     await expect(page.getByTestId("snmp-walk-row-alert")).toHaveCount(0);
+  });
+});
+
+/*
+ * A walk saved as a file (#5281): Download, beside Continue walking, holds
+ * every OID the walk read - continued pages and all, whatever the filter
+ * shows - as `snmpwalk -On` prints a walk, or as CSV for a spreadsheet.
+ * What the browser saves is read back here.
+ */
+const WALK_TEXT_FILE_NAME: RegExp =
+  /^edge-sw-01-snmp-walk-1\.3\.6\.1-\d{4}(-\d{2}){5}\.txt$/;
+const WALK_CSV_FILE_NAME: RegExp =
+  /^edge-sw-01-snmp-walk-1\.3\.6\.1-\d{4}(-\d{2}){5}\.csv$/;
+
+interface SavedWalk {
+  name: string;
+  content: string;
+}
+
+// Opens Download's menu and saves the walk in one of its two formats.
+async function saveWalk(
+  page: Page,
+  format: "text" | "csv",
+): Promise<SavedWalk> {
+  await page.getByRole("button", { name: "Download this walk" }).click();
+
+  const [download]: [Download, void] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByTestId(`snmp-walk-download-${format}`).click(),
+  ]);
+  const savedAt: string | null = await download.path();
+
+  expect(savedAt, "the browser saved the file").not.toBeNull();
+
+  return {
+    name: download.suggestedFilename(),
+    content: await fs.readFile(savedAt!, "utf8"),
+  };
+}
+
+function linesOf(saved: SavedWalk): Array<string> {
+  return saved.content.trimEnd().split("\n");
+}
+
+test.describe("saving a walk", () => {
+  test("Download saves every OID the walk read as snmpwalk prints it, whatever the filter shows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+    await expect(rows(page)).toHaveCount(26);
+
+    // A filter narrows the page, never the file.
+    await page.getByTestId("snmp-walk-filter").fill("uplink to core");
+    await expect(rows(page)).toHaveCount(1);
+
+    const button: Locator = page.getByRole("button", {
+      name: "Download this walk",
+    });
+    await expect(button).toBeVisible();
+    await expect(button).toContainText("Download");
+    await expect(
+      page
+        .getByTestId("snmp-walk-result-actions")
+        .getByTestId("snmp-walk-download-button"),
+    ).toBeVisible();
+
+    await button.click();
+    await expect(page.getByRole("menuitem")).toHaveText([
+      "snmpwalk text (.txt)",
+      "CSV spreadsheet (.csv)",
+    ]);
+    await shoot(page, "download-menu-1280");
+    await page.keyboard.press("Escape");
+
+    const saved: SavedWalk = await saveWalk(page, "text");
+
+    expect(saved.name).toMatch(WALK_TEXT_FILE_NAME);
+    expect(saved.content.endsWith("\n")).toBe(true);
+
+    const lines: Array<string> = linesOf(saved);
+
+    expect(lines).toHaveLength(26);
+    // A multi-line sysDescr stays one OID's line, its breaks written \r\n.
+    expect(lines[0]).toBe(
+      '.1.3.6.1.2.1.1.1.0 = STRING: "Cisco IOS Software [Cupertino], Catalyst L3 Switch Software (CAT9K_IOSXE), Version 17.9.4a, RELEASE SOFTWARE (fc3)\\r\\nTechnical Support: http://www.cisco.com/techsupport\\r\\nCopyright (c) 1986-2023 by Cisco Systems, Inc."',
+    );
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        ".1.3.6.1.2.1.1.2.0 = OID: .1.3.6.1.4.1.9.1.2494",
+        ".1.3.6.1.2.1.1.3.0 = Timeticks: (104524500) 12 days, 2:20:45.00",
+        '.1.3.6.1.2.1.1.5.0 = STRING: "edge-sw-01"',
+        ".1.3.6.1.2.1.1.7.0 = INTEGER: 6",
+        ".1.3.6.1.2.1.2.2.1.6.1 = Hex-STRING: 00 1A 2B 3C 4D 5E",
+        ".1.3.6.1.2.1.2.2.1.10.1 = Counter32: 3418237763",
+        ".1.3.6.1.2.1.2.2.1.5.1 = Gauge32: 1000000000",
+        ".1.3.6.1.2.1.4.20.1.1.10.20.0.2 = IpAddress: 10.20.0.2",
+        ".1.3.6.1.2.1.31.1.1.1.6.1 = Counter64: 18446744073709551615",
+        '.1.3.6.1.4.1.9.9.999.1.0 = STRING: ""',
+        ".1.3.6.1.4.1.9.9.999.2.0 = NULL",
+      ]),
+    );
+
+    // The filter is as it was.
+    await expect(rows(page)).toHaveCount(1);
+  });
+
+  test("and as CSV for a spreadsheet: a byte order mark, the columns, a row an OID", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+    await expect(rows(page)).toHaveCount(26);
+
+    const saved: SavedWalk = await saveWalk(page, "csv");
+
+    expect(saved.name).toMatch(WALK_CSV_FILE_NAME);
+    // Excel reads "Raum 3.14" and every other value as UTF-8.
+    expect(saved.content.charCodeAt(0)).toBe(0xfeff);
+
+    const lines: Array<string> = saved.content.slice(1).split("\r\n");
+
+    expect(lines[0]).toBe("OID,Name,MIB,Type,Value");
+    expect(
+      lines.filter((line: string): boolean => {
+        return line.startsWith("1.3.6.1.");
+      }),
+    ).toHaveLength(26);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        "1.3.6.1.2.1.1.3.0,sysUpTime.0,SNMPv2-MIB,Timeticks,104524500",
+        "1.3.6.1.2.1.1.5.0,sysName.0,SNMPv2-MIB,STRING,edge-sw-01",
+        '1.3.6.1.2.1.1.6.0,sysLocation.0,SNMPv2-MIB,STRING,"Frankfurt DC2, Raum 3.14"',
+      ]),
+    );
+    // The multi-line sysDescr is one quoted field.
+    expect(saved.content).toContain(
+      '"Cisco IOS Software [Cupertino], Catalyst L3 Switch Software (CAT9K_IOSXE), Version 17.9.4a, RELEASE SOFTWARE (fc3)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2023 by Cisco Systems, Inc."',
+    );
+    expect(saved.content.endsWith("\r\n")).toBe(true);
+  });
+
+  test("a walk continued page by page saves as one list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?scenario=more");
+    await expect(page.getByTestId("snmp-walk-summary")).toHaveText(
+      "1,000 OIDs read under 1.3.6.1.2.1.2 so far. There is more to read.",
+    );
+
+    // Download first, then Continue walking.
+    const actions: Locator = page.getByTestId("snmp-walk-result-actions");
+    const download: { x: number } = (await actions
+      .getByTestId("snmp-walk-download-button")
+      .boundingBox())!;
+    const continueWalking: { x: number } = (await actions
+      .getByTestId("snmp-walk-continue")
+      .boundingBox())!;
+    expect(download.x).toBeLessThan(continueWalking.x);
+
+    // Every OID read so far, though the page shows a hundred.
+    await expect(rows(page)).toHaveCount(100);
+    let saved: SavedWalk = await saveWalk(page, "text");
+    expect(saved.name).toMatch(
+      /^edge-sw-01-snmp-walk-1\.3\.6\.1\.2\.1\.2-\d{4}(-\d{2}){5}\.txt$/,
+    );
+    expect(linesOf(saved)).toHaveLength(1000);
+
+    await page.getByTestId("snmp-walk-continue").click();
+    await expect(page.getByTestId("snmp-walk-summary")).toHaveText(
+      "1,200 OIDs under 1.3.6.1.2.1.2.",
+      { timeout: 15000 },
+    );
+
+    saved = await saveWalk(page, "text");
+    const lines: Array<string> = linesOf(saved);
+    expect(lines).toHaveLength(1200);
+    // In walk order: the continued page after the first.
+    expect(lines[999]).toBe(".1.3.6.1.2.1.2.2.1.10.1000 = Counter32: 1000007");
+    expect(lines[1199]).toBe(".1.3.6.1.2.1.2.2.1.10.1200 = Counter32: 1200007");
+  });
+
+  test("a reader who may not walk the device still saves its last walk", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?role=viewer");
+    await expect(rows(page)).toHaveCount(26);
+
+    const saved: SavedWalk = await saveWalk(page, "text");
+    expect(linesOf(saved)).toHaveLength(26);
+  });
+
+  test("a walk that read nothing offers nothing to save", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?scenario=nothing");
+    await expect(page.getByTestId("snmp-walk-result")).toBeVisible();
+    await expect(page.getByTestId("snmp-walk-download-button")).toHaveCount(0);
+  });
+
+  test("on a phone, Download and Continue walking each take the row, and the menu opens inside the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "?scenario=more");
+
+    const result: { x: number; width: number } = (await page
+      .getByTestId("snmp-walk-result")
+      .boundingBox())!;
+    const download: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("snmp-walk-download-button").boundingBox())!;
+    const continueWalking: { x: number; y: number; width: number } = (await page
+      .getByTestId("snmp-walk-continue")
+      .boundingBox())!;
+
+    for (const button of [download, continueWalking]) {
+      expect(Math.abs(button.x - result.x)).toBeLessThanOrEqual(1);
+      expect(button.width).toBeGreaterThanOrEqual(result.width - 2);
+    }
+    expect(continueWalking.y).toBeGreaterThanOrEqual(
+      download.y + download.height,
+    );
+
+    await page.getByRole("button", { name: "Download this walk" }).click();
+    await expect(page.getByRole("menuitem")).toHaveCount(2);
+    for (const item of await page.getByRole("menuitem").all()) {
+      const box: { x: number; width: number } = (await item.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "download-menu-390");
+    await page.keyboard.press("Escape");
+  });
+
+  test("beside the device page's side menu, the summary keeps the card's width and Download goes under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * A 768-pixel window leaves the card 478 pixels beside the side menu.
+     * There Download and Continue walking beside the summary left it a
+     * column a few words wide ("1,000 OIDs read / under / 1.3.6.1.2.1.2 so
+     * / far."). They go under it now, side by side at its start; with room
+     * - the card at 890 pixels, a 1280-pixel window - they sit at its end.
+     */
+    interface HeaderBoxes {
+      header: { x: number; width: number };
+      summary: { x: number; y: number; width: number; height: number };
+      download: { x: number; y: number; width: number; height: number };
+      continueWalking: { x: number; y: number; width: number };
+    }
+
+    const readBoxes: () => Promise<HeaderBoxes> =
+      async (): Promise<HeaderBoxes> => {
+        // In one frame: the header and what is in it.
+        return await page
+          .getByTestId("snmp-walk-result-header")
+          .evaluate((header: Element): HeaderBoxes => {
+            const box: (element: Element) => {
+              x: number;
+              y: number;
+              width: number;
+              height: number;
+            } = (element: Element) => {
+              const rect: DOMRect = element.getBoundingClientRect();
+              return {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+              };
+            };
+
+            return {
+              header: box(header),
+              summary: box(header.firstElementChild!),
+              download: box(
+                header.querySelector(
+                  "[data-testid='snmp-walk-download-button']",
+                )!,
+              ),
+              continueWalking: box(
+                header.querySelector("[data-testid='snmp-walk-continue']")!,
+              ),
+            };
+          });
+      };
+
+    await page.setViewportSize({ width: 768, height: 1000 });
+    await open(page, "?scenario=more&frame=478");
+    await expect(page.getByTestId("snmp-walk-summary")).toHaveText(
+      "1,000 OIDs read under 1.3.6.1.2.1.2 so far. There is more to read.",
+    );
+
+    let boxes: HeaderBoxes = await readBoxes();
+
+    // The summary has the card's width, and reads in two lines at most.
+    expect(boxes.summary.width).toBeGreaterThanOrEqual(boxes.header.width - 1);
+    const summaryLines: number = await page
+      .getByTestId("snmp-walk-summary")
+      .evaluate((element: Element): number => {
+        return Math.round(
+          element.getBoundingClientRect().height /
+            parseFloat(getComputedStyle(element).lineHeight),
+        );
+      });
+    expect(summaryLines).toBeLessThanOrEqual(2);
+
+    // Download and Continue walking under it, side by side, at its start.
+    expect(boxes.download.y).toBeGreaterThanOrEqual(
+      boxes.summary.y + boxes.summary.height,
+    );
+    expect(Math.abs(boxes.download.x - boxes.header.x)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(boxes.continueWalking.y - boxes.download.y),
+    ).toBeLessThanOrEqual(1);
+    expect(boxes.continueWalking.x).toBeGreaterThan(
+      boxes.download.x + boxes.download.width,
+    );
+    expect(boxes.download.width).toBeLessThan(boxes.header.width / 2);
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "download-768-side-menu");
+
+    // With room, at the summary's end, on its first line.
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await open(page, "?scenario=more&frame=890");
+    boxes = await readBoxes();
+
+    expect(boxes.download.y).toBeLessThan(
+      boxes.summary.y + boxes.summary.height / 2,
+    );
+    expect(boxes.download.x).toBeGreaterThanOrEqual(
+      boxes.summary.x + boxes.summary.width,
+    );
+    expect(
+      Math.abs(
+        boxes.continueWalking.x +
+          boxes.continueWalking.width -
+          (boxes.header.x + boxes.header.width),
+      ),
+    ).toBeLessThanOrEqual(1);
+  });
+
+  test("Download is dark in the dark theme, and reads in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?theme=dark");
+
+    const button: Locator = page.getByTestId("snmp-walk-download-button");
+    expect(await backgroundBrightness(button)).toBeLessThan(3 * 128);
+    expect(await textBrightness(button)).toBeGreaterThan(3 * 128);
+
+    await button.click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    expect(await backgroundBrightness(menu)).toBeLessThan(3 * 128);
+    await shoot(page, "download-menu-1280-dark");
+    await page.keyboard.press("Escape");
+
+    await open(page, "?lang=de");
+    const german: Locator = page.getByRole("button", {
+      name: "Diesen Walk herunterladen",
+    });
+    await expect(german).toContainText("Herunterladen");
+    await german.click();
+    await expect(page.getByRole("menuitem")).toHaveText([
+      "snmpwalk-Text (.txt)",
+      "CSV-Tabelle (.csv)",
+    ]);
+    await page.keyboard.press("Escape");
   });
 });
 

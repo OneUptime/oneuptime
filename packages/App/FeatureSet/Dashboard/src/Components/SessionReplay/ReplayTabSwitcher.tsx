@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -661,9 +662,12 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
             ? `Switch to ${tab.label}; the playhead stays where it is`
             : "No footage stored for this tab"
         }
-        className={`flex w-full flex-col gap-1 rounded-lg px-2.5 py-1.5 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        className={`flex w-full flex-col gap-1 rounded-lg px-2.5 py-1.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
           tab.isActive ? "bg-indigo-50" : ""
-        } ${tab.hasFootage ? "" : "cursor-not-allowed opacity-60"}`}
+        } ${getHandDrawnButtonStateClassName({
+          isLocked: !tab.hasFootage,
+          hoverClassName: "hover:bg-gray-50",
+        })}`}
         onClick={(): void => {
           selectOption(tab);
         }}

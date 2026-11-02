@@ -529,7 +529,7 @@ describe("episode overview layout", () => {
      * episode's feed read again.
      */
     expect(incident).toContain(
-      "const mayAssignRoles: boolean = PermissionGate.check( new IncidentEpisodeRoleMember(), ModelAction.Create, ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: timing.isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const episodeId: string = modelIdString; await assignIncidentEpisodeRole({ incidentEpisodeId: new ObjectID(episodeId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
+      "const mayAssignRoles: boolean = PermissionGate.check( new IncidentEpisodeRoleMember(), ModelAction.Create, privateRecordGate(new IncidentEpisodeRoleMember()), ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: timing.isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const episodeId: string = modelIdString; await assignIncidentEpisodeRole({ incidentEpisodeId: new ObjectID(episodeId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
     );
     expect(incident).toContain("withRoleGiven({");
     expect(incident).toContain(

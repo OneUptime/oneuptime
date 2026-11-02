@@ -61,23 +61,22 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 ### 模板需要填写的内容
 
 - **Zabbix URL**：你打开 Zabbix 的地址，例如 `https://zabbix.example.com`；如果 Zabbix 运行在某个路径下，则为 `https://example.com/zabbix`。指向问题的链接会指向这里，调用 Zabbix 的模板会把请求发送到它的 `api_jsonrpc.php`。该字段不接受 Zabbix 内某个页面的地址。
-- **Zabbix API Token**：工作流所代表的 Zabbix 用户的 API 令牌。[创建 API 令牌](#创建-api-令牌) 介绍了如何创建。它会保存为密钥变量，并且只在 `Authorization` 标头中发送。
+- **Zabbix API Token**：工作流所代表的 Zabbix 用户的 API 令牌。[创建 API 令牌](#创建-api-令牌) 介绍了如何创建。它会保存为密钥变量，并且只发送给 Zabbix：放在 `Authorization` 标头中，在 Zabbix 6.0 上则放在请求正文中。
 
 ### 用模板接收问题
 
 :::steps
 1. 前往 **工作流**，点击 **创建工作流**。在 **或者从模板开始** 下，在类别列表中选择 **Zabbix**，点击 **Declare an incident for each Zabbix problem**，然后点击 **使用此模板**。
-2. 填写 **Zabbix URL**，然后点击 **创建工作流**。工作流会在 **生成器** 中打开，处于关闭状态。
-3. 点击 **Page an On-Call Policy** 步骤，选择要呼叫的 **值班策略**，然后保存。
-4. 点击 **Webhook** 触发器，然后点击 **复制 URL**，把 URL 留给 Zabbix 使用。
-5. 在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Zabbix。
+2. 填写 **Zabbix URL**。在 **Who to page for High and Disaster problems** 下选择要呼叫的值班策略，不选则不呼叫任何人，然后点击 **创建工作流**。工作流会在 **生成器** 中打开，处于关闭状态。
+3. 点击 **Webhook** 触发器，然后点击 **复制 URL**，把 URL 留给 Zabbix 使用。
+4. 在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Zabbix。
 :::
 
 然后 [配置 Zabbix](#配置-zabbix)，让它把问题发送到这个 URL。
 
 ### 工作流做什么
 
-在 **Webhook** 触发器之后，一个 **Switch / Case** 块会为媒介类型发送的每种 `event` 走一条路径：
+在 **Webhook** 触发器之后， **Check With JavaScript** 步骤 `read-event-1` 读取媒介类型发送的 `event`，再由 **Incident From Another Tool**（警报模板中为 **Alert From Another Tool** ）按问题的事件 ID 执行它所代表的操作：
 
 | 事件类型 | 工作流做什么 |
 | --- | --- |
@@ -85,7 +84,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 | `recovery` | 解决问题的事件，除非它已经解决。原因记录在它的时间线上。 |
 | `update` | 把在 Zabbix 中所做的操作作为私密备注添加到事件：谁做的、做了什么、写了什么。如果这次更新确认了问题，它也会确认事件，值班升级随之停止。 |
 
-其他任何内容，例如来自其他工具的请求，都会原样保留，运行的最后一步会说明原因。每次运行都以一个 **Log** 步骤结束，说明发生了什么：`✅` 表示完成了工作，`ℹ️` 表示有意跳过了该事件，`❌` 表示某个步骤失败，运行日志会说明原因。
+其他任何内容，例如来自其他工具的请求，都会原样保留： `read-event-1` 走 **No**，运行的 **步骤** 会说明原因。失败的步骤会让运行失败，它在 **步骤** 中的条目会说明原因。
 
 ### 严重程度
 
@@ -127,7 +126,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 
 ### 在 Zabbix 6.0 上
 
-Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取 API 令牌。在调用 Zabbix 的模板的每个 API 步骤中，把 `"auth": "{{local.variables.zabbixApiToken}}",` 添加到 **Request Body** 中 `"jsonrpc": "2.0",` 之后，并删除该标头。Zabbix 7.2 及更高版本会拒绝 `auth`，所以升级时请再次删除它。
+Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取 API 令牌。在每个调用 Zabbix 的模板的 **Update Zabbix Problem** 步骤中，打开 **更多字段** 下的 **Zabbix 6.0**。Zabbix 7.2 及更高版本会拒绝正文中的令牌，所以升级时请再次关闭它。
 
 ## 用监视器接收问题
 
@@ -346,7 +345,7 @@ Zabbix 以文本形式发送严重程度：`Not classified`、`Information`、`W
 
 - **像对待密码一样对待 URL。** 任何拥有它的人都可以创建事件。如果泄露，请重置它：在工作流的 **Webhook** 触发器中使用 **重置 URL**，或在监视器的 **设置** 页面使用 **重置传入请求密钥**。然后更新 Zabbix 用户媒介中的 **Send to**。
 - **链接指向你的 Zabbix。** 无论请求中写了什么，模板都会链接到其 **Zabbix URL** 所指站点上的问题，并把 Zabbix 发送的内容作为文本写入。
-- **让 API 令牌只做工作流需要做的事。** 它是一个密钥变量，在运行日志中会被隐藏，并且只在 `Authorization` 标头中发送。给它的用户一个仅允许上述操作的角色，如果令牌泄露，请在 **Users → API tokens** 中删除它。
+- **让 API 令牌只做工作流需要做的事。** 它是一个密钥变量，在运行日志中会被隐藏，并且只发送给 Zabbix：除非打开了 **Zabbix 6.0**，否则放在 `Authorization` 标头中。给它的用户一个仅允许上述操作的角色，如果令牌泄露，请在 **Users → API tokens** 中删除它。
 - **只发送需要事件的内容。** 使用动作的条件或用户媒介的严重程度，把低严重程度的问题留在 Zabbix 中。
 - **自托管？** 让你的 Zabbix 服务器能够穿过防火墙，通过 HTTPS 访问你的 OneUptime。要调用私有网络中的 Zabbix，工作流需要 [出站网络访问](/docs/workflows/configuration#出站网络访问)。
 

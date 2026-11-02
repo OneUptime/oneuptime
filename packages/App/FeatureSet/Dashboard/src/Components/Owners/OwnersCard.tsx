@@ -1,4 +1,9 @@
+import {
+  BUTTON_DISABLED_CLASS_NAME,
+  getRestingClassName,
+} from "Common/UI/Components/Button/ButtonStates";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -24,7 +29,11 @@ import {
   getAnchoredPopupTriggerProps,
 } from "Common/UI/Types/UseAnchoredFieldPopup";
 import API from "Common/UI/Utils/API/API";
-import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -99,7 +108,8 @@ interface OwnerCircle extends PeopleAvatarItem {
 interface OwnerCircleViewProps {
   item: OwnerCircle;
   isOverlapping: boolean;
-  onRemoveClick: () => void;
+  // Left out for a reader who may not remove this owner: no remove button.
+  onRemoveClick?: (() => void) | undefined;
 }
 
 const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
@@ -187,16 +197,22 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
           </div>
         </div>
       </Tooltip>
-      <button
-        type="button"
-        onClick={props.onRemoveClick}
-        aria-label={translator.translateTemplate("Remove {{name}}", {
-          name: item.name,
-        })}
-        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-md opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:bg-red-600 focus:opacity-100 focus:scale-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-150"
-      >
-        <Icon icon={IconProp.Close} className="h-3 w-3" size={SizeProp.Small} />
-      </button>
+      {props.onRemoveClick && (
+        <button
+          type="button"
+          onClick={props.onRemoveClick}
+          aria-label={translator.translateTemplate("Remove {{name}}", {
+            name: item.name,
+          })}
+          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-md opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:bg-red-600 focus:opacity-100 focus:scale-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-150"
+        >
+          <Icon
+            icon={IconProp.Close}
+            className="h-3 w-3"
+            size={SizeProp.Small}
+          />
+        </button>
+      )}
     </div>
   );
 };
@@ -263,8 +279,47 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     resourceId: props.resourceId,
   };
 
+  /*
+   * On a private record's page, adding and removing owners take the
+   * permission of a team of the reader's that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(new props.ownerUserModelType());
+
   // Locked, with why, for a reader who may add neither people nor teams.
-  const addGate: PermissionGateResult = getAddOwnersGate(target);
+  const addGate: PermissionGateResult = getAddOwnersGate(
+    target,
+    privateRecordOptions,
+  );
+
+  /*
+   * An owner's remove button, for each kind of owner: not offered to a
+   * reader who may not remove that kind - a shortcut to a change, never to
+   * a refusal. It is a hover shortcut on the avatar, so such a reader is
+   * shown none rather than a locked one; the locked Add owner says why.
+   * Before the permissions are known it is offered, as Add owner is
+   * (getAddOwnersGate): the server decides, and the confirmation says why
+   * it refused (a permission limited to what the reader owns, say).
+   */
+  const isRemoveOffered: (gate: PermissionGateResult) => boolean = (
+    gate: PermissionGateResult,
+  ): boolean => {
+    return gate.isAllowed || !gate.disabledReason;
+  };
+  const mayRemovePeople: boolean = isRemoveOffered(
+    PermissionGate.check(
+      new props.ownerUserModelType(),
+      ModelAction.Delete,
+      privateRecordOptions,
+    ),
+  );
+  const mayRemoveTeams: boolean = isRemoveOffered(
+    PermissionGate.check(
+      new props.ownerTeamModelType(),
+      ModelAction.Delete,
+      privateRecordOptions,
+    ),
+  );
 
   const loadOwners: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -556,7 +611,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                       type="button"
                       disabled={true}
                       aria-disabled={true}
-                      className="pointer-events-none inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white opacity-50 shadow-sm"
+                      className={`pointer-events-none ${OWNERS_ADD_BUTTON_CLASS_NAME} ${getRestingClassName(OWNERS_ADD_BUTTON_IDLE_CLASS_NAME)} ${BUTTON_DISABLED_CLASS_NAME}`}
                     >
                       <Icon
                         icon={IconProp.Lock}
@@ -597,10 +652,18 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                     key={`${item.kind}-${item.rowId.toString()}`}
                     item={item}
                     isOverlapping={true}
-                    onRemoveClick={() => {
-                      setRemoveError("");
-                      setConfirmRemove(item);
-                    }}
+                    onRemoveClick={
+                      (
+                        item.kind === PeoplePickerKind.Team
+                          ? mayRemoveTeams
+                          : mayRemovePeople
+                      )
+                        ? () => {
+                            setRemoveError("");
+                            setConfirmRemove(item);
+                          }
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -617,7 +680,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                         disabled={true}
                         aria-disabled={true}
                         aria-label={addOwnerText}
-                        className="pointer-events-none h-11 w-11 cursor-not-allowed rounded-full border-2 border-dashed border-gray-200 bg-gray-50 text-gray-300 flex items-center justify-center"
+                        className={`pointer-events-none flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed ${getRestingClassName(OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME)} ${BUTTON_DISABLED_CLASS_NAME}`}
                       >
                         <Icon
                           icon={IconProp.Lock}

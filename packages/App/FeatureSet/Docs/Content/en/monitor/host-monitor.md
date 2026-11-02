@@ -61,19 +61,19 @@ Under **Monitor Type**, click **More monitor types** and pick **Host** under **I
 
 ### Choose the host
 
-Under **Host Monitor Configuration**, pick the machine from **Host**. Every host that has sent data is in the list.
+Under **Host Monitor Configuration**, pick the machine from **Host**. Every host that has sent data is in the list. Once picked, a line under the field says whether data is arriving. **Add Host** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Pick one of the three tabs:
+A new monitor starts on **Host Stopped Reporting**, under **What to alert on**. To watch something else:
 
-- **Quick Setup** — click a [template](#pre-built-alert-templates). It sets the metric, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** — pick one metric from **Host Metric**, then set **Aggregation** and **Time Range**.
-- **Advanced** — build queries and formulas yourself under **Select Metrics**, for example a filter on `state` or a group-by on `mountpoint`.
+- **Change** — pick another [template](#pre-built-alert-templates). It sets the metric, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** (under **More fields**) — pick one metric from **Host Metric**, then set **Aggregation** and **Time Range**.
+- **Advanced** (under **More fields**) — build queries and formulas yourself under **Select Metrics**, for example a filter on `state` or a group-by on `mountpoint`.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -95,7 +95,7 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers six templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+The **What to alert on** list offers six templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
@@ -115,11 +115,11 @@ A criteria fires only when the condition holds for every minute of its window, a
 - **Memory** excludes buffers and page cache, so a host that is mostly cache does not trip it.
 - **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full: OneUptime's collector configs leave them out of the `filesystem` scraper with `exclude_fs_types`, and a config of your own needs the same.
 - **Load average** is a raw run-queue length, not divided by the number of cores: 4 is saturation on a 2-core host and routine on a 32-core one, so raise it on large hosts.
-- **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux only.
+- **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux, macOS and BSD, not on Windows.
 
 ## Collected Metrics
 
-The **Host Metric** list offers these metrics. Each carries `resource.host.name`, which is how the monitor scopes its queries to one host.
+The **Host Metric** list offers these metrics. Each carries `resource.host.name`, which is how the monitor scopes its queries to one host. Picked there, CPU counts the `user` state, memory and filesystem usage the `used` state, and filesystems and processes give one series per mount and status.
 
 > [!IMPORTANT]
 > The utilization metrics are a ratio from 0 to 1, not a percentage: use `0.8` for 80% in a threshold on the raw metric. The templates convert to a percentage with a formula, so their thresholds read 80, 85 and 90.
@@ -181,7 +181,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
 | **If No Data** | Under **More fields**. What happens when the window has no samples: **Ignore** (the default), **Treat As Zero** or **Trigger**. |
 
-Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history. A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes, and the baseline holds none.
 
 Each criteria also says what to do when it matches: change the monitor status, create an alert, or declare an incident. Criteria are checked from top to bottom, and the first one that matches decides.
 

@@ -25,7 +25,15 @@ import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
  *   4. one environment's prune failure is logged and the loop continues;
  *   5. the handler never throws, whatever fails underneath it;
  *   6. the worker Index actually imports the job — a job file that is not
- *      imported never registers, which is the exact latent bug this fixes.
+ *      imported never registers, which is the exact latent bug this fixes;
+ *   7. on the first tick of each hour only, App Platforms' apps and their
+ *      revisions that sent nothing for the retention window are removed,
+ *      anchored to each environment's own lastSeenAt, one environment's
+ *      failure never stopping the next or the instance prune.
+ *
+ * The clock is pinned to a tick that is not the first of its hour, so the
+ * hourly step stays out of the way of the others' tests; its own tests
+ * move it to the top of the hour.
  *
  * The job registers itself via RunCron at import time and exports nothing,
  * so the Cron util is mocked to capture the handler — the same recorder the
@@ -102,16 +110,43 @@ jest.mock("Common/Server/Services/CloudResourceInstanceService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/CloudAppService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getUnseenThresholdDate: jest.fn(),
+      getRetentionDays: jest.fn(),
+      deleteUnseenForResource: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/CloudAppRevisionService", () => {
+  return {
+    __esModule: true,
+    default: {
+      deleteUnseenForResource: jest.fn(),
+    },
+  };
+});
+
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService from "Common/Server/Services/CloudAppRevisionService";
 import logger from "Common/Server/Utils/Logger";
+import OneUptimeDate from "Common/Types/Date";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
-import "../../../../FeatureSet/Workers/Jobs/Cloud/CleanupStaleResources";
+import { isAppPruneTick } from "../../../../FeatureSet/Workers/Jobs/Cloud/CleanupStaleResources";
 
 const JOB_NAME: string = "Cloud:CleanupStaleResources";
 const THRESHOLD_MS: number = 15 * 60 * 1000;
 const NOW: Date = new Date("2026-09-08T10:00:00.000Z");
+// A tick that is not the first of its hour, and one that is.
+const MID_HOUR_TICK: Date = new Date("2026-09-08T10:05:00.000Z");
+const TOP_OF_HOUR_TICK: Date = new Date("2026-09-08T11:00:00.000Z");
+const APP_RETENTION_MS: number = 30 * 24 * 60 * 60 * 1000;
 
 const PROJECT_ID: ObjectID = new ObjectID("project-1");
 const RESOURCE_A_ID: ObjectID = new ObjectID("cloud-env-a");
@@ -128,6 +163,16 @@ interface ResourceServiceMock {
 interface InstanceServiceMock {
   getStaleThresholdDate: jest.Mock;
   deleteStaleForResource: jest.Mock;
+}
+
+interface AppServiceMock {
+  getUnseenThresholdDate: jest.Mock;
+  getRetentionDays: jest.Mock;
+  deleteUnseenForResource: jest.Mock;
+}
+
+interface RevisionServiceMock {
+  deleteUnseenForResource: jest.Mock;
 }
 
 interface LoggerMock {
@@ -153,6 +198,9 @@ const resourceService: ResourceServiceMock =
 const instanceService: InstanceServiceMock =
   CloudResourceInstanceService as unknown as InstanceServiceMock;
 const mockedLogger: LoggerMock = logger as unknown as LoggerMock;
+const appService: AppServiceMock = CloudAppService as unknown as AppServiceMock;
+const revisionService: RevisionServiceMock =
+  CloudAppRevisionService as unknown as RevisionServiceMock;
 
 /*
  * Stand-in for the real helper: anchor minus a fixed 15 minutes, wall
@@ -211,6 +259,16 @@ beforeEach(() => {
   resourceService.findBy.mockResolvedValue([]);
   instanceService.getStaleThresholdDate.mockImplementation(thresholdFor);
   instanceService.deleteStaleForResource.mockResolvedValue(0);
+  appService.getUnseenThresholdDate.mockImplementation((anchor: Date): Date => {
+    return new Date(anchor.getTime() - APP_RETENTION_MS);
+  });
+  appService.getRetentionDays.mockReturnValue(30);
+  appService.deleteUnseenForResource.mockResolvedValue(0);
+  revisionService.deleteUnseenForResource.mockResolvedValue(0);
+  // resetAllMocks reset this spy too: re-pin the clock every test.
+  jest
+    .spyOn(OneUptimeDate, "getCurrentDate")
+    .mockReturnValue(new Date(MID_HOUR_TICK));
 });
 
 describe("the cron registers itself", () => {
@@ -545,5 +603,184 @@ describe("steps 3 and 4: cloud resources", () => {
     expect(mockedLogger.debug).toHaveBeenCalledWith(
       expect.stringContaining("restored 2 and archived 7 cloud resource(s)"),
     );
+  });
+});
+
+/*
+ * Step 5: App Platforms' apps and their revisions. The retention window and
+ * the deletes live in CloudAppService and CloudAppRevisionService (pinned in
+ * Common/Tests/Server/Services/CloudAppService.test.ts and
+ * CloudAppRevisionService.test.ts); here, that the tick runs them once an
+ * hour, for every environment, anchored to its own last telemetry, and that
+ * no failure there stops the rest.
+ */
+describe("step 5: apps and revisions that sent nothing", () => {
+  function appPruneCalls(): Array<{
+    cloudResourceId: ObjectID;
+    olderThan: Date;
+  }> {
+    return appService.deleteUnseenForResource.mock.calls.map(
+      (call: Array<unknown>) => {
+        return call[0] as { cloudResourceId: ObjectID; olderThan: Date };
+      },
+    );
+  }
+
+  // The environments the prune reads, and the connected ones step 2 does.
+  function answerEnvironments(data: {
+    all: Array<CloudResource>;
+    connected?: Array<CloudResource>;
+  }): void {
+    resourceService.findBy.mockImplementation(async (args: FindByArgs) => {
+      return args.query["otelCollectorStatus"] === "connected"
+        ? data.connected || []
+        : data.all;
+    });
+  }
+
+  test("isAppPruneTick: the first five-minute tick of each hour, in UTC", () => {
+    expect(isAppPruneTick(new Date("2026-09-08T11:00:00.000Z"))).toBe(true);
+    expect(isAppPruneTick(new Date("2026-09-08T11:04:59.999Z"))).toBe(true);
+    expect(isAppPruneTick(new Date("2026-09-08T11:05:00.000Z"))).toBe(false);
+    expect(isAppPruneTick(new Date("2026-09-08T11:59:00.000Z"))).toBe(false);
+  });
+
+  test("runs on the first tick of an hour, and on no other", async () => {
+    answerEnvironments({
+      all: [makeResource({ id: RESOURCE_A_ID, lastSeenAt: NOW })],
+    });
+
+    await runTick();
+
+    expect(appService.deleteUnseenForResource).not.toHaveBeenCalled();
+    expect(revisionService.deleteUnseenForResource).not.toHaveBeenCalled();
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+
+    await runTick();
+
+    expect(appService.deleteUnseenForResource).toHaveBeenCalledTimes(1);
+    expect(revisionService.deleteUnseenForResource).toHaveBeenCalledTimes(1);
+  });
+
+  test("prunes every environment's apps and revisions, anchored to its own lastSeenAt, as root", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+    const seenA: Date = new Date("2026-09-08T09:58:00.000Z");
+    const seenB: Date = new Date("2026-08-01T00:00:00.000Z");
+    answerEnvironments({
+      all: [
+        makeResource({ id: RESOURCE_A_ID, lastSeenAt: seenA }),
+        // Disconnected for weeks: its apps are kept until it reports again.
+        makeResource({ id: RESOURCE_B_ID, lastSeenAt: seenB }),
+        // Never reported: nothing of it to prune.
+        makeResource({ id: new ObjectID("cloud-env-c") }),
+        makeResource({ id: undefined, lastSeenAt: seenA }),
+      ],
+    });
+
+    await runTick();
+
+    // Every environment, connected or not, read as root across the table.
+    const pruneRead: FindByArgs = resourceService.findBy.mock.calls.find(
+      (call: Array<unknown>): boolean => {
+        return !(call[0] as FindByArgs).query["otelCollectorStatus"];
+      },
+    )![0] as FindByArgs;
+    expect(pruneRead.query).toEqual({
+      cloudResourceKind: CloudResourceKind.Environment,
+    });
+    expect(pruneRead.select).toEqual({ _id: true, lastSeenAt: true });
+    expect(pruneRead.props).toEqual({ isRoot: true });
+    expect(pruneRead.limit).toBe(LIMIT_MAX);
+
+    expect(appService.getUnseenThresholdDate).toHaveBeenNthCalledWith(1, seenA);
+    expect(appService.getUnseenThresholdDate).toHaveBeenNthCalledWith(2, seenB);
+
+    const calls: Array<{ cloudResourceId: ObjectID; olderThan: Date }> =
+      appPruneCalls();
+    expect(
+      calls.map((call: { cloudResourceId: ObjectID }): string => {
+        return call.cloudResourceId.toString();
+      }),
+    ).toEqual([RESOURCE_A_ID.toString(), RESOURCE_B_ID.toString()]);
+    expect(calls[0]!.olderThan.getTime()).toBe(
+      seenA.getTime() - APP_RETENTION_MS,
+    );
+    expect(calls[1]!.olderThan.getTime()).toBe(
+      seenB.getTime() - APP_RETENTION_MS,
+    );
+    // The revisions of the same environments, with the same cutoffs.
+    expect(revisionService.deleteUnseenForResource.mock.calls).toEqual(
+      appService.deleteUnseenForResource.mock.calls,
+    );
+  });
+
+  test("one environment's failure is logged, and the next environment and the instance prune still run", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+    answerEnvironments({
+      all: [
+        makeResource({ id: RESOURCE_A_ID, lastSeenAt: NOW }),
+        makeResource({ id: RESOURCE_B_ID, lastSeenAt: NOW }),
+      ],
+      connected: [makeResource({ id: RESOURCE_A_ID, lastSeenAt: NOW })],
+    });
+    appService.deleteUnseenForResource
+      .mockRejectedValueOnce(new Error("db connection reset"))
+      .mockResolvedValueOnce(2);
+    revisionService.deleteUnseenForResource.mockResolvedValue(5);
+
+    await expect(runTick()).resolves.toBeUndefined();
+
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `app prune failed for cloud environment ${RESOURCE_A_ID.toString()}`,
+      ),
+    );
+    expect(appPruneCalls()).toHaveLength(2);
+    expect(deleteCalls()).toHaveLength(1);
+    expect(mockedLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "removed 2 app(s) and 5 revision(s) that sent nothing for 30 days",
+      ),
+    );
+  });
+
+  test("a failing read of the environments is logged, and the instance prune still runs", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+    resourceService.findBy.mockImplementation(async (args: FindByArgs) => {
+      if (!args.query["otelCollectorStatus"]) {
+        throw new Error("postgres went away");
+      }
+      return [makeResource({ id: RESOURCE_A_ID, lastSeenAt: NOW })];
+    });
+
+    await expect(runTick()).resolves.toBeUndefined();
+
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("app prune failed: postgres went away"),
+    );
+    expect(deleteCalls()).toHaveLength(1);
+  });
+
+  test("stays quiet when nothing was removed", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date(TOP_OF_HOUR_TICK));
+    answerEnvironments({
+      all: [makeResource({ id: RESOURCE_A_ID, lastSeenAt: NOW })],
+    });
+
+    await runTick();
+
+    expect(appPruneCalls()).toHaveLength(1);
+    expect(mockedLogger.debug).not.toHaveBeenCalled();
   });
 });

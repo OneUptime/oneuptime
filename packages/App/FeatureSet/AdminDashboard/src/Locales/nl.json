@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Bedrijfsnaam die bij deze licentie hoort.",
+  "Annual contract value (in USD) for this license.": "Jaarlijkse contractwaarde (in USD) voor deze licentie.",
+  "Expiration date of this license.": "Vervaldatum van deze licentie.",
+  "Something went wrong": "Er is iets misgegaan",
+  "An unexpected error has occurred. Please reload the page to continue": "Er is een onverwachte fout opgetreden. Laad de pagina opnieuw om verder te gaan",
+  "Error details": "Foutdetails",
+  "Still stuck?": "Kom je er nog steeds niet uit?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Download een lokaal diagnosebestand met de foutstack, de componentstack, de opgeschoonde pagina-URL, browsergegevens en de OneUptime-build. Het leest nooit cookies, opgeslagen browsergegevens of formulierinhoud. Bekijk het voordat je het met OneUptime Support deelt.",
+  "Download support bundle": "Ondersteuningsbundel downloaden",
+  "Send it to {{email}}": "Stuur het naar {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Ondersteuningsbundel gedownload. Bekijk hem en voeg hem toe aan je e-mail.",
+  "The support bundle could not be downloaded. Please try again.": "De ondersteuningsbundel kon niet worden gedownload. Probeer het opnieuw.",
   "common": {
     "save": "Opslaan",
     "cancel": "Annuleren",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "{{price}} per gebruiker, vanaf vandaag jaarlijks gefactureerd.",
   "{{price}} per user, billed monthly from today.": "{{price}} per gebruiker, vanaf vandaag maandelijks gefactureerd.",
   "Our sales team will contact you to agree on a price.": "Ons verkoopteam neemt contact met u op om een prijs af te spreken.",
+  "Current plan": "Huidig abonnement",
+  "Current plan, billed yearly": "Huidig abonnement, jaarlijks gefactureerd",
+  "Current plan, billed monthly": "Huidig abonnement, maandelijks gefactureerd",
   "{{count}}-day free trial": "{{count}} dagen gratis proberen",
   "{{count}}-day free trial_one": "{{count}} dag gratis proberen",
   "Free for {{count}} days, no card needed to start.": "{{count}} dagen gratis, geen kaart nodig om te beginnen.",
@@ -1560,5 +1575,12 @@
     "note": "Opmerking",
     "tip": "Tip",
     "warning": "Waarschuwing"
-  }
+  },
+  "Compact rows": "Compacte rijen",
+  "Sort by": "Sorteren op",
+  "Sorted by {{column}}": "Gesorteerd op {{column}}",
+  "Sort": "Sorteren",
+  "Ascending": "Oplopend",
+  "Descending": "Aflopend",
+  "Select all items": "Alle items selecteren"
 }

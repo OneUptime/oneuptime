@@ -317,7 +317,7 @@ Når en funksjon i din egen kode tar minst 5 % av profilens tid eller minne, ell
 
 Når en profil har trace- og span-ID-er (for eksempel som sample-etiketter `trace_id` / `span_id`), kan du gå rett fra et tregt span i et spor til den tilsvarende CPU- eller minneprofilen for å forstå nøyaktig hvilken kode som kjørte, og **Åpne tilknyttet spor** går den andre veien.
 
-Fanen **Profil** for et span inneholder også samplene som er knyttet til spans som ligger under det, fordi profilere ofte tilskriver en forespørsels CPU-tid et underordnet span i stedet for selve forespørselsspanet.
+Fanen **Profilprøver** for et span inneholder også samplene som er knyttet til spans som ligger under det, fordi profilere ofte tilskriver en forespørsels CPU-tid et underordnet span i stedet for selve forespørselsspanet.
 
 Siden for et spor lenker også til profilereren for sporets tjeneste i de 15 minuttene før og etter, når tjenesten ble profilert da, og siden **Ytelsesprofiler** for en tjeneste eller en vert åpner profilereren for den tjenesten eller verten.
 

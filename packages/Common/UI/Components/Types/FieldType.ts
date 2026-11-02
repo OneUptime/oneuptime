@@ -3,6 +3,12 @@ enum FieldType {
   Heading = "Heading",
   Name = "Name",
   File = "File",
+  /*
+   * Several files. Detail draws File and MultipleFiles values that are file
+   * references (CustomFieldFile) as the files' names: a custom field of
+   * either type reaches Detail with its type as the field's (CustomFieldType).
+   */
+  MultipleFiles = "MultipleFiles",
   Percent = "Percent",
   ImageFile = "ImageFile",
   Hostname = "Hostname",

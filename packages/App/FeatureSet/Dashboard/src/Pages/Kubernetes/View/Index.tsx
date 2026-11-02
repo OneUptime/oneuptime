@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { getKubernetesClusterProviderLabel } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
@@ -39,9 +40,16 @@ import KubernetesCpuUtils, {
 } from "../Utils/KubernetesCpuUtils";
 import {
   fetchClusterWarningEvents,
+  fetchOpenShiftClusterHealth,
   KubernetesWarningSummary,
 } from "../Utils/KubernetesObjectFetcher";
+import {
+  getWorseClusterHealth,
+  KubernetesClusterHealth,
+  OpenShiftClusterHealth,
+} from "../Utils/KubernetesOpenShiftHealth";
 import KubernetesRecentWarningsCard from "../../../Components/Kubernetes/KubernetesRecentWarningsCard";
+import OpenShiftHealthCard from "../../../Components/Kubernetes/OpenShiftHealthCard";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -379,6 +387,9 @@ const KubernetesClusterOverview: FunctionComponent<
   const [containerCount, setContainerCount] = useState<number>(0);
   const [pvcCount, setPvcCount] = useState<number>(0);
   const [pvCount, setPvCount] = useState<number>(0);
+  const [deploymentConfigCount, setDeploymentConfigCount] = useState<number>(0);
+  const [routeCount, setRouteCount] = useState<number>(0);
+  const [serviceCount, setServiceCount] = useState<number>(0);
   const [podHealthSummary, setPodHealthSummary] = useState<{
     running: number;
     pending: number;
@@ -389,9 +400,11 @@ const KubernetesClusterOverview: FunctionComponent<
     ready: number;
     notReady: number;
   }>({ ready: 0, notReady: 0 });
-  const [clusterHealth, setClusterHealth] = useState<
-    "Healthy" | "Degraded" | "Unhealthy"
-  >("Healthy");
+  const [clusterHealth, setClusterHealth] =
+    useState<KubernetesClusterHealth>("Healthy");
+  // Null unless the cluster reports ClusterOperators.
+  const [openShiftHealth, setOpenShiftHealth] =
+    useState<OpenShiftClusterHealth | null>(null);
   const [topCpuPods, setTopCpuPods] = useState<Array<KubernetesResource>>([]);
   const [topMemoryPods, setTopMemoryPods] = useState<Array<KubernetesResource>>(
     [],
@@ -470,8 +483,28 @@ const KubernetesClusterOverview: FunctionComponent<
       return AutoRefreshInterval.THIRTY_SECONDS;
     });
 
-  const loadSummary: (clusterId: ObjectID) => Promise<void> = async (
+  const loadOpenShiftHealth: (
+    clusterIdentifier: string,
+  ) => Promise<void> = async (clusterIdentifier: string): Promise<void> => {
+    try {
+      const health: OpenShiftClusterHealth | null =
+        await fetchOpenShiftClusterHealth(clusterIdentifier);
+
+      // A read that came back empty keeps what the card showed.
+      if (health) {
+        setOpenShiftHealth(health);
+      }
+    } catch {
+      // The card is supplementary; the rest of the page does not depend on it.
+    }
+  };
+
+  const loadSummary: (
     clusterId: ObjectID,
+    clusterIdentifier: string,
+  ) => Promise<void> = async (
+    clusterId: ObjectID,
+    clusterIdentifier: string,
   ): Promise<void> => {
     setSummaryError("");
     try {
@@ -507,6 +540,16 @@ const KubernetesClusterOverview: FunctionComponent<
       setCronJobCount(readNum("cronJobCount"));
       setPvcCount(readNum("pvcCount"));
       setPvCount(readNum("pvCount"));
+      setDeploymentConfigCount(readNum("deploymentConfigCount"));
+      setRouteCount(readNum("routeCount"));
+      setServiceCount(readNum("serviceCount"));
+
+      // Only an OpenShift cluster's agent sends these: no read for any other.
+      if (readNum("clusterOperatorCount") > 0) {
+        void loadOpenShiftHealth(clusterIdentifier);
+      } else {
+        setOpenShiftHealth(null);
+      }
       setContainerCount(readNum("containerCount"));
 
       const podPhase: JSONObject =
@@ -1224,7 +1267,7 @@ const KubernetesClusterOverview: FunctionComponent<
          * Promise.all — we don't want the slowest request to hold back
          * the other sections.
          */
-        void loadSummary(modelId);
+        void loadSummary(modelId, item.clusterIdentifier);
         void loadTopPods(item.clusterIdentifier);
         void loadWarnings(item.clusterIdentifier);
         void loadGoldenMetricsRef.current(item.clusterIdentifier);
@@ -1278,7 +1321,7 @@ const KubernetesClusterOverview: FunctionComponent<
          * their page-load values while the control claims to refresh.
          */
         void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
-        void loadSummary(modelId);
+        void loadSummary(modelId, cluster.clusterIdentifier);
         void loadTopPods(cluster.clusterIdentifier);
         void loadWarnings(cluster.clusterIdentifier);
         setDetailsRefresher((prev: boolean) => {
@@ -1303,7 +1346,7 @@ const KubernetesClusterOverview: FunctionComponent<
   const onManualRefresh: () => void = (): void => {
     if (cluster?.clusterIdentifier) {
       void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
-      void loadSummary(modelId);
+      void loadSummary(modelId, cluster.clusterIdentifier);
       void loadTopPods(cluster.clusterIdentifier);
       void loadWarnings(cluster.clusterIdentifier);
       setDetailsRefresher((prev: boolean) => {
@@ -1336,6 +1379,15 @@ const KubernetesClusterOverview: FunctionComponent<
   if (!cluster) {
     return <ErrorMessage message="Cluster not found." />;
   }
+
+  /*
+   * What the cluster's health says: its pods and nodes, and on OpenShift its
+   * operators and update too, which fail while every pod still runs.
+   */
+  const overallHealth: KubernetesClusterHealth = getWorseClusterHealth(
+    clusterHealth,
+    openShiftHealth?.health,
+  );
 
   const workloadLinks: Array<ResourceLink> = [
     {
@@ -1441,6 +1493,43 @@ const KubernetesClusterOverview: FunctionComponent<
       iconTextClass: "text-fuchsia-600",
     },
   ];
+
+  // OpenShift's own, only on a cluster that has some.
+  if (deploymentConfigCount > 0) {
+    workloadLinks.splice(3, 0, {
+      title: "DeploymentConfigs",
+      description: "OpenShift's older way to roll out pods",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS,
+      count: deploymentConfigCount,
+      icon: IconProp.Layers,
+      iconBgClass: "bg-sky-100",
+      iconTextClass: "text-sky-600",
+    });
+  }
+
+  if (routeCount > 0) {
+    infraLinks.push({
+      title: "Routes",
+      description: "How traffic reaches the cluster's Services",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES,
+      count: routeCount,
+      icon: IconProp.Globe,
+      iconBgClass: "bg-lime-100",
+      iconTextClass: "text-lime-600",
+    });
+  }
+
+  if (serviceCount > 0) {
+    infraLinks.push({
+      title: "Services",
+      description: "Stable addresses in front of pods",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES,
+      count: serviceCount,
+      icon: IconProp.Link,
+      iconBgClass: "bg-green-100",
+      iconTextClass: "text-green-600",
+    });
+  }
 
   // Build pod health segments for StackedProgressBar
   const podHealthSegments: Array<StackedProgressBarSegment> = [
@@ -1865,10 +1954,12 @@ const KubernetesClusterOverview: FunctionComponent<
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-900 group-hover:text-indigo-700 flex items-center justify-between">
-                  <span>{link.title}</span>
+                <div className="font-medium text-gray-900 group-hover:text-indigo-700 flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate" title={link.title}>
+                    {link.title}
+                  </span>
                   {link.count !== undefined && (
-                    <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
+                    <span className="inline-flex flex-shrink-0 items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
                       {link.count}
                     </span>
                   )}
@@ -1934,21 +2025,21 @@ const KubernetesClusterOverview: FunctionComponent<
      */
     const healthLabel: string = getResourceHealthLabel({
       translator: translator,
-      health: clusterHealth,
+      health: overallHealth,
       isConnected: isConnected,
     });
     const healthBadgeClass: string = !isConnected
       ? "bg-gray-50 text-gray-600 ring-gray-200"
-      : clusterHealth === "Healthy"
+      : overallHealth === "Healthy"
         ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-        : clusterHealth === "Degraded"
+        : overallHealth === "Degraded"
           ? "bg-amber-50 text-amber-700 ring-amber-200"
           : "bg-red-50 text-red-700 ring-red-200";
     const healthDotClass: string = !isConnected
       ? "bg-gray-400"
-      : clusterHealth === "Healthy"
+      : overallHealth === "Healthy"
         ? "bg-emerald-500"
-        : clusterHealth === "Degraded"
+        : overallHealth === "Degraded"
           ? "bg-amber-500"
           : "bg-red-500";
 
@@ -2217,6 +2308,12 @@ const KubernetesClusterOverview: FunctionComponent<
         )}
       />
 
+      {/*
+       * OpenShift's own health, first: a degraded operator or a stuck update
+       * is what an admin opens this page for, and none shows in the charts.
+       */}
+      {openShiftHealth && <OpenShiftHealthCard health={openShiftHealth} />}
+
       {/* Golden metrics — at-a-glance cluster health */}
       {renderGoldenMetrics()}
 
@@ -2428,7 +2525,11 @@ const KubernetesClusterOverview: FunctionComponent<
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">
         <InfoCard
           title="Cluster Health"
-          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth}
+          tooltip={
+            openShiftHealth
+              ? KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealthOpenShift
+              : KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth
+          }
           value={
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
@@ -2436,15 +2537,15 @@ const KubernetesClusterOverview: FunctionComponent<
               <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span
-                className={`text-2xl font-semibold ${
-                  clusterHealth === "Healthy"
+                className={`whitespace-nowrap text-xl font-semibold ${
+                  overallHealth === "Healthy"
                     ? "text-emerald-600"
-                    : clusterHealth === "Degraded"
+                    : overallHealth === "Degraded"
                       ? "text-amber-600"
                       : "text-red-600"
                 }`}
               >
-                {clusterHealth}
+                {overallHealth}
               </span>
             )
           }
@@ -2937,6 +3038,26 @@ const KubernetesClusterOverview: FunctionComponent<
               },
               title: "Cluster Name (clusterName)",
               fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                provider: true,
+              },
+              title: "Platform",
+              fieldType: FieldType.Element,
+              /*
+               * What the cluster's telemetry says it runs on: OpenShift from
+               * the agent's openshift preset, or a managed platform's
+               * cloud.platform (getKubernetesClusterProvider).
+               */
+              getElement: (item: KubernetesCluster): ReactElement => {
+                return (
+                  <span>
+                    {getKubernetesClusterProviderLabel(item.provider) ||
+                      translator.translateText("Not reported")}
+                  </span>
+                );
+              },
             },
             {
               field: {

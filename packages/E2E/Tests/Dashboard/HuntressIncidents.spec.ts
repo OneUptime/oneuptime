@@ -326,8 +326,10 @@ test.describe("Huntress incident report -> workflow -> incident -> on-call -> re
     });
 
     /*
-     * The template's graph, with the policy picked as the Builder saves it -
-     * what "Use this template", then picking who to page, leaves.
+     * The template's graph, with the policy picked as the create wizard
+     * saves it - what "Use this template" leaves once who to page is
+     * picked: the trigger, Incident From Another Tool, an If / Else and the
+     * Page step.
      */
     ctx.graph = buildHuntressIncidentWorkflowGraph(
       {

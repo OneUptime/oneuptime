@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import { describe, expect, test } from "@jest/globals";
@@ -28,6 +29,8 @@ const TEMPLATES_DIR: string = Path.resolve(
 const PARTIALS_DIR: string = Path.join(TEMPLATES_DIR, "Partials");
 
 const engine: typeof Handlebars = Handlebars.create();
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(engine);
 
 for (const name of fs.readdirSync(PARTIALS_DIR)) {
   if (name.endsWith(".hbs")) {

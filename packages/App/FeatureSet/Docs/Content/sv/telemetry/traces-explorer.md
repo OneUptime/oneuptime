@@ -60,7 +60,7 @@ Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett 
 
 ### Öppna ett span
 
-Klicka på en rad för att fälla ut den: dess attribut, och loggarna och undantagen som den registrerade. Klicka på **See full trace** för att öppna hela spåret.
+Klicka på en rad för att fälla ut den: dess attribut, och loggarna och undantagen som den registrerade. Klicka på **Visa hela spåret** för att öppna hela spåret.
 :::
 
 Din sökning, dina chips och tidsintervallet sparas i sidans adress, så att en omladdning, ett bokmärke eller en delad länk öppnar samma spans.
@@ -81,12 +81,12 @@ Under dem väljer du en av fyra vyer:
 
 | Vy | Vad den visar |
 | --- | --- |
-| **Waterfall** | Varje span på en tidslinje, nästlat under det span som startade det. Slå på **Critical path** för att markera kedjan av spans som avgjorde hur lång tid förfrågan tog. |
+| **Vattenfall** | Varje span på en tidslinje, nästlat under det span som startade det. Slå på **Kritisk väg** för att markera kedjan av spans som avgjorde hur lång tid förfrågan tog. |
 | **Flamdiagram** | Samma träd som staplade staplar, där de bredaste staplarna tog längst tid. |
-| **Service map** | Tjänsterna som förfrågan gick genom, och anropen mellan dem. |
-| **Operations** | En rad per tjänst och span-namn, med anrop, fel, egen tid och total tid. En operation som anropas 10 gånger eller mer från ett och samma föräldraspan markeras: ofta en N+1-fråga eller en loop som kunde ha samlats ihop. |
+| **Tjänstekarta** | Tjänsterna som förfrågan gick genom, och anropen mellan dem. |
+| **Operationer** | En rad per tjänst och span-namn, med anrop, fel, egen tid och total tid. En operation som anropas 10 gånger eller mer från ett och samma föräldraspan markeras: ofta en N+1-fråga eller en loop som kunde ha samlats ihop. |
 
-Klicka på ett span i valfri vy för att öppna dess panel, med flikar för attribut, händelser, loggar, undantag och länkar, och för dess profil eller LLM-anrop när det har ett. Sök bland spårets spans på namn, ID eller tjänst med sökrutan bredvid vyerna (tryck på `/`), och slå på **Errors only** för att bara behålla de spans som misslyckades.
+Klicka på ett span i valfri vy för att öppna dess panel, med flikar för attribut, händelser, loggar, undantag och länkar, och för dess profil eller LLM-anrop när det har ett. Sök bland spårets spans på namn, ID eller tjänst med sökrutan bredvid vyerna (tryck på `/`), och slå på **Endast fel** för att bara behålla de spans som misslyckades.
 
 Ett stort spår läser in 500 spans åt gången. Klicka på knappen längst ned i spåret för att läsa in fler, eller alla.
 
@@ -97,7 +97,7 @@ Ett stort spår läser in 500 spans åt gången. Klicka på knappen längst ned 
 
 Diagrammet ovanför listan visar antalet spans över tid, uppdelat på status. Välj ett annat mått i diagrammets rubrik för att i stället visa deras genomsnittliga svarstid, median (P50) eller P95.
 
-För mer byter du listan från **Spans** till **Analytics**. Välj en tidsserie, en topplista eller en tabell; mät antal förfrågningar, antal fel eller svarstider (genomsnitt, P50, P90, P95, P99, minimum eller maximum); och gruppera på span-namn, tjänst, status, span-typ eller valfritt attribut, och sedan på ett andra fält. En topplista eller en tabell visar de 5 till 100 största grupperna.
+För mer byter du listan från **Spans** till **Analyser**. Välj en tidsserie, en topplista eller en tabell; mät antal förfrågningar, antal fel eller svarstider (genomsnitt, P50, P90, P95, P99, minimum eller maximum); och gruppera på span-namn, tjänst, status, span-typ eller valfritt attribut, och sedan på ett andra fält. En topplista eller en tabell visar de 5 till 100 största grupperna.
 
 ## Följ, spara och dela
 

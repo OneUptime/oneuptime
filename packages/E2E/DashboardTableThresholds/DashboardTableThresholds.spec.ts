@@ -664,6 +664,75 @@ test.describe("metric tables on the dashboard inside OneUptime", () => {
     await shoot(page, testInfo, "board");
   });
 
+  /*
+   * On a phone the board shows its widgets one under another, each the
+   * screen's width (Common/Utils/Dashboard/DashboardBoardLayout). There a
+   * table's row search moves under its title: beside it, the 14rem search
+   * squeezed the title out of sight and its description to one word a
+   * line. At 1280 the search sits beside the title, at the line's end.
+   */
+  test("a table's title keeps its line: the row search sits beside it, or under it on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openApp(page);
+
+    const widget: Locator = widgetTitled(page, SATURATION);
+    const header: Locator = widget.getByTestId("dashboard-table-header");
+    const title: Locator = widget.getByRole("heading", {
+      name: TITLES[SATURATION]!,
+      exact: true,
+    });
+    const description: Locator = widget.getByText(
+      "CPU, memory and disk, per host",
+      { exact: true },
+    );
+    const search: Locator = widget.getByRole("textbox", {
+      name: "Search rows",
+    });
+
+    await expect(search).toBeVisible();
+    await header.scrollIntoViewIfNeeded();
+
+    const titleBox: { x: number; y: number; width: number; height: number } =
+      (await title.boundingBox())!;
+    const descriptionBox: { y: number; height: number } =
+      (await description.boundingBox())!;
+    const searchBox: { x: number; y: number; width: number } =
+      (await search.boundingBox())!;
+
+    // The title is drawn whole, and its description on one line.
+    expect(
+      await title.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      }),
+    ).toBe(true);
+    expect(descriptionBox.height).toBeLessThan(24);
+
+    if (testInfo.project.use.isMobile) {
+      // Under the description, from the line's start, the search's width.
+      expect(searchBox.y).toBeGreaterThanOrEqual(
+        descriptionBox.y + descriptionBox.height,
+      );
+      expect(Math.abs(searchBox.x - titleBox.x)).toBeLessThanOrEqual(1);
+      expect(searchBox.width).toBeGreaterThanOrEqual(200);
+    } else {
+      // Beside the title, after it.
+      expect(searchBox.y).toBeLessThan(titleBox.y + titleBox.height);
+      expect(searchBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
+    }
+
+    // Nothing in the header runs past the widget.
+    expect(
+      await header.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      }),
+    ).toBe(true);
+
+    await shoot(page, testInfo, "table-header", header);
+  });
+
   test("show a fraction of 1 as a percent, and 79.96% at one decimal as 80.0%, a warning", async ({
     page,
   }: {

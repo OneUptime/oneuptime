@@ -6,6 +6,7 @@ import {
   CheckOn,
   CriteriaFilter,
   FilterType,
+  MetricAnomalyDetectionOptions,
 } from "../../../../../Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "../../../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import DataToProcess from "../../../../../Server/Utils/Monitor/DataToProcess";
@@ -203,10 +204,9 @@ describe("LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
   /*
    * Anomaly filters on LogCount: the evaluator normalizes the observed
-   * count to logs-per-minute (the LogCountBaseline sample unit) and
-   * compares it to the same-hour-of-week baseline of the monitor's
-   * scope, mirroring the Metric/SNMP baseline paths — including the
-   * Learning cold-start and zero-variance guards. Full matrix coverage
+   * count to logs-per-minute (the unit getBaseline answers in) and
+   * compares it to the earlier weeks of the monitor's scope, including
+   * the Learning cold-start and zero-variance guards. Full matrix coverage
    * of the shared math lives in CountAnomaly.test.ts and the trace
    * sibling in TraceMonitorCriteria.test.ts.
    */
@@ -412,6 +412,210 @@ describe("LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
           },
         }),
       ).toBeNull();
+    });
+
+    describe("the window an anomaly filter reads", () => {
+      const high: CriteriaFilter = {
+        checkOn: CheckOn.LogCount,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      function evaluateWindow(input: {
+        evaluatedUntil?: Date | string;
+        monitorStep?: MonitorStep;
+      }): Promise<string | null> {
+        return LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: {
+            ...(buildResponse(90) as LogMonitorResponse),
+            evaluatedUntil: input.evaluatedUntil,
+          } as DataToProcess,
+          criteriaFilter: high,
+          monitorStep: input.monitorStep,
+        });
+      }
+
+      test("it is the window judged, not the time of the check", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+        const heldBack: Date = new Date("2026-11-02T09:40:00.000Z");
+
+        await evaluateWindow({
+          evaluatedUntil: heldBack,
+          monitorStep: buildMonitorStep({ lastXSecondsOfLogs: 900 }),
+        });
+
+        expect(getBaselineSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ windowEnd: heldBack, windowSeconds: 900 }),
+        );
+      });
+
+      test("a window kept as JSON reads as the same instant", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+        await evaluateWindow({ evaluatedUntil: "2026-11-02T09:40:00.000Z" });
+
+        expect(getBaselineSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            windowEnd: new Date("2026-11-02T09:40:00.000Z"),
+          }),
+        );
+      });
+
+      test("a response without one is read as ending now", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+        const before: number = Date.now();
+
+        await evaluateWindow({});
+
+        const windowEnd: Date = getBaselineSpy.mock.calls[0]![0].windowEnd;
+
+        expect(windowEnd.getTime()).toBeGreaterThanOrEqual(before);
+        expect(windowEnd.getTime()).toBeLessThanOrEqual(Date.now());
+      });
+
+      test("the window's length defaults as the rate does", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+        await evaluateWindow({});
+
+        expect(getBaselineSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ windowSeconds: 60 }),
+        );
+      });
+    });
+
+    describe("a quiet scope's baseline", () => {
+      const quiet: Partial<CountBaselineSummary> = {
+        sampleCount: 360,
+        mean: 0,
+        stddev: 1,
+        median: 0,
+        madSigma: 1,
+        minObserved: 0,
+        maxObserved: 0,
+      };
+
+      // Runs of a job among the empty windows of a sparse scope.
+      const jobLike: Partial<CountBaselineSummary> = {
+        ...quiet,
+        mean: 1.1,
+        stddev: 7.8,
+        maxObserved: 110,
+        nonEmpty: {
+          sampleCount: 4,
+          mean: 100,
+          stddev: 10,
+          median: 100,
+          madSigma: 10,
+          minObserved: 90,
+          maxObserved: 110,
+        },
+      };
+
+      function filterOf(
+        filterType: FilterType,
+        anomalyDetection?: MetricAnomalyDetectionOptions,
+      ): CriteriaFilter {
+        return {
+          checkOn: CheckOn.LogCount,
+          filterType,
+          value: undefined,
+          metricMonitorOptions: { anomalyDetection },
+        };
+      }
+
+      test("its first few are no reason to alert", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline(quiet));
+
+        expect(
+          await evaluateAnomaly({
+            logCount: 9,
+            criteriaFilter: filterOf(FilterType.AnomalouslyHigh),
+          }),
+        ).toBeNull();
+      });
+
+      test("a burst is", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline(quiet));
+
+        expect(
+          await evaluateAnomaly({
+            logCount: 10,
+            criteriaFilter: filterOf(FilterType.AnomalouslyHigh),
+          }),
+        ).toBeTruthy();
+      });
+
+      test("the minimum follows the sensitivity", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline(quiet));
+
+        expect(
+          await evaluateAnomaly({
+            logCount: 5,
+            criteriaFilter: filterOf(FilterType.AnomalouslyHigh, {
+              sensitivity: AnomalyDetectionSensitivity.High,
+            }),
+          }),
+        ).toBeTruthy();
+
+        expect(
+          await evaluateAnomaly({
+            logCount: 19,
+            criteriaFilter: filterOf(FilterType.AnomalouslyHigh, {
+              sensitivity: AnomalyDetectionSensitivity.Low,
+            }),
+          }),
+        ).toBeNull();
+      });
+
+      test("a minimum the monitor sets is honoured", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline(quiet));
+
+        expect(
+          await evaluateAnomaly({
+            logCount: 50,
+            criteriaFilter: filterOf(FilterType.AnomalouslyHigh, {
+              minimumCount: 100,
+            }),
+          }),
+        ).toBeNull();
+      });
+
+      test("a job's usual run is not unusually high", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline(jobLike));
+
+        expect(
+          await evaluateAnomaly({
+            logCount: 105,
+            criteriaFilter: filterOf(FilterType.AnomalouslyHigh),
+          }),
+        ).toBeNull();
+      });
+
+      test("a run past the usual is, and the alert says what was usual", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline(jobLike));
+
+        const result: string | null = await evaluateAnomaly({
+          logCount: 300,
+          criteriaFilter: filterOf(FilterType.AnomalouslyHigh),
+        });
+
+        expect(result).toContain("mean 100.00 logs/min");
+        expect(result).toContain("4 samples over 14 days");
+      });
+
+      test("an empty window is not unusually low", async () => {
+        getBaselineSpy.mockResolvedValue(buildBaseline(jobLike));
+
+        expect(
+          await evaluateAnomaly({
+            logCount: 0,
+            criteriaFilter: filterOf(FilterType.Anomalous),
+          }),
+        ).toBeNull();
+      });
     });
 
     test("a baseline lookup error is swallowed and never fires", async () => {

@@ -1,4 +1,5 @@
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
+import { getCustomFieldValueEntryKey } from "../../../Types/CustomField/CustomFieldFile";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import OneUptimeDate from "../../../Types/Date";
 import {
@@ -317,16 +318,25 @@ export default class CustomFieldFeedChange {
     );
   }
 
-  // One spelling of a value: a list in any order is one list.
+  /*
+   * One spelling of a value: a list in any order is one list, and a file is
+   * the file it names, whichever shape names it (getCustomFieldValueEntryKey)
+   * - so a list of files sent back as the dashboard holds them is no change,
+   * and two lists of different files are never one.
+   */
   private static canonicalize(value: unknown): string {
     if (Array.isArray(value)) {
       return JSON.stringify(
         value
           .map((entry: unknown): string => {
-            return String(entry);
+            return getCustomFieldValueEntryKey(entry);
           })
           .sort(),
       );
+    }
+
+    if (CustomFieldFeedChange.isBag(value)) {
+      return getCustomFieldValueEntryKey(value);
     }
 
     if (value instanceof Date) {

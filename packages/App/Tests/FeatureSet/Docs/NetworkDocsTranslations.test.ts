@@ -129,8 +129,11 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SNMP Transceiver Reading",
     "SNMP Trap Received (Trap OID)",
     "SNMP Trap Varbind Value",
+    "SNMP Device Is Online",
     // Review Results' label for a host found without a name.
     "No name found",
+    // The alert pack's criteria, named in English (NetworkDeviceAlertPack).
+    "Device unreachable",
     // The template and the policy the recommended policy creates, named in English.
     "Network device alert pack (recommended)",
     "Alert on every device",

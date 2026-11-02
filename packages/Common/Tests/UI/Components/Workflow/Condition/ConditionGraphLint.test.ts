@@ -181,7 +181,12 @@ describe("isArgumentRequired", () => {
     expect(isArgumentRequired(conditional, { operator: true })).toBe(true);
   });
 
-  test("If / Else's Compare with is the setting that uses it", () => {
+  /*
+   * If / Else's Compare with, for the operators that compare with nothing,
+   * and Incident or Alert From Another Tool's Outside ID, which an Incident
+   * ID or Alert ID given instead makes unnecessary.
+   */
+  test("If / Else's Compare with and From Another Tool's Outside ID are the settings that use it", () => {
     const withRule: Array<Argument> = Components.flatMap(
       (component: ComponentMetadata) => {
         return component.arguments.filter((argument: Argument) => {
@@ -195,6 +200,8 @@ describe("isArgumentRequired", () => {
         return [argument.id, argument.notRequiredWhen];
       }),
     ).toEqual([
+      ["outside-id", { argumentId: "record-id" }],
+      ["outside-id", { argumentId: "record-id" }],
       [
         "input-2",
         { argumentId: "operator", values: ["is empty", "is not empty"] },

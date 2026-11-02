@@ -111,9 +111,13 @@ const KEY_CARRYING_OTHER_CLIENTS: Record<string, string> = {
  * itself, and these go to OneUptime's own API, on the page's own server.
  */
 const BROWSER_REQUESTS_WITH_A_KEY: Record<string, string> = {
-  "ee/AdminDashboard/License/LicenseManager.tsx":
+  "ee/AdminDashboard/License/LicenseSettingsAPI.ts":
     "the admin dashboard activating a licence key with OneUptime's own API",
 };
+
+// The frontends' code: what a browser runs, and no server.
+const BROWSER_CODE: RegExp =
+  /^(?:ee\/(?:AdminDashboard|Dashboard)|packages\/App\/FeatureSet\/[^/]+\/src)\//;
 
 // Whether ee/ is checked out: Common Test runs without it.
 const EE_IS_PRESENT: boolean = fs.existsSync(
@@ -398,13 +402,13 @@ describe("requests anywhere else", () => {
 
       expect({
         relativePath,
-        component: relativePath.endsWith(".tsx"),
+        inTheBrowser: BROWSER_CODE.test(relativePath),
         sendsAKey: sharedClientCallsIn(relativePath).some(
           (call: SharedClientCall): boolean => {
             return KEY_IN_CODE.test(bodyAndHeadersOf(call));
           },
         ),
-      }).toEqual({ relativePath, component: true, sendsAKey: true });
+      }).toEqual({ relativePath, inTheBrowser: true, sendsAKey: true });
     }
   });
 });

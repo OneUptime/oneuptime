@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import LogRecordingRuleFilterEditor from "./LogRecordingRuleFilterEditor";
 import Service from "Common/Models/DatabaseModels/Service";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -397,13 +398,11 @@ const LogRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <p
+        <FieldError
+          message={props.error}
           className="text-sm text-red-600"
-          role="alert"
-          data-testid="log-recording-rule-definition-error"
-        >
-          {props.error}
-        </p>
+          dataTestId="log-recording-rule-definition-error"
+        />
       )}
     </div>
   );

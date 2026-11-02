@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nej"| shown["Checklistan med<br/>återstående steg"]
 ```
 
-Checklistan försvinner när alla fyra steg är klara. Klicka på **Stäng** för att dölja den tidigare. Det sparas i den här webbläsaren för det här projektet; allt som stegen öppnar finns kvar i menyn **Produkter**.
+Checklistan försvinner när alla fyra steg är klara. Klicka på **Dölj** för att dölja den tidigare. Det sparas i den här webbläsaren för det här projektet; allt som stegen öppnar finns kvar i menyn **Produkter**.
 
 ### Kräver uppmärksamhet
 
@@ -108,7 +108,7 @@ En episod samlar relaterade incidenter eller larm, så att du hanterar dem som e
 
 ## Hitta rätt
 
-Allt i OneUptime finns under **Produkter** i toppfältet. Menyn visar sina grupper som raderna i en enda lista och öppnas alltid med den första av dem, det grundläggande, utfälld: Övervakare, Incidenter, Larm, Jourtjänst, Statussidor, Schemalagt underhåll och SLOs. Varje annan grupp (Observerbarhet, AI, Kod, Resurser, Infrastruktur, Instrumentpaneler och automatisering och Inställningar) är hopfälld till en rad i samma lista. Varje rad nämner gruppens produkter och säger hur många de är. Klicka på en rad för att fälla ut eller fälla ihop den, eller gå till den med piltangenterna och tryck på **Enter**.
+Allt i OneUptime finns under **Produkter** i toppfältet. Menyn visar sina grupper som raderna i en enda lista och öppnas alltid med den första av dem, det grundläggande, utfälld: Övervakare, Incidenter, Larm, Jourtjänst, Statussidor, Schemalagt underhåll och SLOs. Varje annan grupp (Observerbarhet, AI, Kod, Resurser, Infrastruktur, Moln, Instrumentpaneler och automatisering och Inställningar) är hopfälld till en rad i samma lista. Varje rad nämner gruppens produkter och säger hur många de är. Klicka på en rad för att fälla ut eller fälla ihop den, eller gå till den med piltangenterna och tryck på **Enter**.
 
 - **Sökningen hittar allt.** Skriv i menyns sökruta för att hitta vilken produkt som helst efter namn, efter vad den gör eller efter ett välbekant ord som `k8s` eller `RUM`. Sökningen letar också i de hopfällda grupperna.
 - **Du börjar där du är.** Gruppen för sidan du är på fälls ut av sig själv, och produkterna du nyligen har öppnat står överst.

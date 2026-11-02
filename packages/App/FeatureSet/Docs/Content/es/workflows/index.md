@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> La plantilla **Forward new incidents to another system** construye este mismo flujo de trabajo por ti. La encontrarás en **Incidentes** al crear un flujo de trabajo.
+> La plantilla **Forward new incidents to another system** construye este flujo de trabajo por ti, sin el bloque Log: sin nada en **Error**, una solicitud que falla hace fallar la ejecución, y los **Pasos** de la ejecución dicen por qué. La encontrarás en **Incidentes** al crear un flujo de trabajo.
 
 :::steps
 ### Crear el flujo de trabajo

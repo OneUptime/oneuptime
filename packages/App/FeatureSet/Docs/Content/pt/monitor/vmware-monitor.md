@@ -48,19 +48,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **VMware**
 
 ### Escolher o vCenter
 
-Em **VMware Monitor Configuration**, escolha o vCenter em **vCenter**. Todo vCenter que enviou dados, ou que você conectou sem agente, está na lista.
+Em **VMware Monitor Configuration**, escolha o vCenter em **vCenter**. Todo vCenter que enviou dados, ou que você conectou sem agente, está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar vCenter** abre a página de vCenters, onde você conecta um.
 
 ### Escolher o que observar
 
-Escolha uma das três abas:
+Um monitor novo começa com **vCenter Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** - clique em um [modelo](#modelos-de-alerta-prontos). Ele define a métrica, os filtros de atributos, a agregação, o intervalo de tempo, o agrupamento e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** - escolha uma métrica em **VMware Metric** e depois defina **Agregação** e **Intervalo de tempo**. O formulário a agrupa pelo objeto que ela descreve, então cada host, VM ou datastore é avaliado separadamente, e os [filtros](#configurações-do-monitor) a restringem a um datacenter, cluster, host, VM, datastore ou resource pool.
-- **Avançado** - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, com filtros em atributos como `disk_state`, `power_state` ou `status`. Use **Agrupar por** com um [atributo de identidade](#atributos-de-identidade) para avaliar cada objeto separadamente.
+- **Alterar** - escolha outro [modelo](#modelos-de-alerta-prontos). Ele define a métrica, os filtros de atributos, a agregação, o intervalo de tempo, o agrupamento e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) - escolha uma métrica em **VMware Metric** e depois defina **Agregação** e **Intervalo de tempo**. O formulário a agrupa pelo objeto que ela descreve, então cada host, VM ou datastore é avaliado separadamente, e os [filtros](#configurações-do-monitor) a restringem a um datacenter, cluster, host, VM, datastore ou resource pool.
+- **Avançado** (em **Mais campos**) - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, com filtros em atributos como `disk_state`, `power_state` ou `status`. Use **Agrupar por** com um [atributo de identidade](#atributos-de-identidade) para avaliar cada objeto separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -106,36 +106,36 @@ Nos filtros do monitor e nas chaves de agrupamento, os atributos de recurso come
 
 ## Modelos de alerta prontos
 
-O OneUptime traz 24 modelos para problemas comuns de VMware, e o **Quick Setup** oferece todos eles. Cada um monta um monitor completo: a consulta da métrica, os seus filtros de atributos, um agrupamento pelo atributo de identidade do próprio objeto, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+O OneUptime traz 24 modelos para problemas comuns de VMware, e a lista de **Sobre o que alertar** oferece todos eles. Cada um monta um monitor completo: a consulta da métrica, os seus filtros de atributos, um agrupamento pelo atributo de identidade do próprio objeto, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um critério só dispara quando a condição vale em cada minuto da sua janela, e um critério de limite se recupera 10 % além do seu limite, então um valor que oscila na linha não fica alternando.
 
 | Modelo | Categoria | Gravidade | Observa | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Disponibilidade | Crítico | `vcenter.datacenter.cpu.limit`, Count sobre o vCenter inteiro, **últimos 10 minutos** | Nenhum dado durante toda a janela: o agente ou a sonda parou, ou o vCenter parou de responder a ele | Os dados voltam a chegar |
-| Host CPU Saturation | Host | Warning | `vcenter.host.cpu.utilization`, Avg por `resource.vcenter.host.name` | Acima de 90 %: cada VM no host disputa núcleos, e mostra tempo de CPU ready | Em 81 % ou menos |
-| Host Memory Saturation | Host | Warning | `vcenter.host.memory.utilization`, Avg por host | Acima de 90 %: o host começa a recuperar memória com ballooning, compressão e swapping | Em 81 % ou menos |
-| Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max por host | Acima de 50 ms: cada VM cujos discos estão nesse caminho espera pelo armazenamento. Precisa do nível 3 de contadores de desempenho | Em 45 ms ou menos |
-| Host Network Packet Errors | Host | Warning | `vcenter.host.network.packet.error.rate`, Max por host | Acima de 0: quase sempre uma falha de cabo, SFP ou porta de switch | Em 0 |
-| Host Network Packet Drops | Host | Warning | `vcenter.host.network.packet.drop.rate`, Max por host | Acima de 0: um uplink sobrecarregado, ou buffers em anel da NIC que transbordam | Em 0 |
-| VM CPU Saturation | Máquina virtual | Warning | `vcenter.vm.cpu.utilization`, Avg por `resource.vcenter.vm.name`, **últimos 15 minutos** | Acima de 90 % das vCPUs da VM durante os 15 minutos: uma VM pode usar o que recebeu, então só aciona uma que nunca desce | Em 81 % ou menos |
-| VM CPU Ready Contention | Máquina virtual | Warning | `vcenter.vm.cpu.readiness`, Avg por VM | Acima de 10 %: a VM estava pronta para rodar, mas o host não tinha um núcleo físico para ela. Invisível de dentro do convidado | Em 9 % ou menos |
-| VM Memory Saturation | Máquina virtual | Warning | `vcenter.vm.memory.utilization`, Avg por VM | Acima de 90 % da sua memória: o convidado está prestes a paginar | Em 81 % ou menos |
-| VM Memory Ballooning | Máquina virtual | Warning | `vcenter.vm.memory.ballooned`, Max por VM | Acima de 0: falta memória ao host, e ele a toma de volta deste convidado | Em 0 |
+| Host CPU Saturation | Host | Aviso | `vcenter.host.cpu.utilization`, Avg por `resource.vcenter.host.name` | Acima de 90 %: cada VM no host disputa núcleos, e mostra tempo de CPU ready | Em 81 % ou menos |
+| Host Memory Saturation | Host | Aviso | `vcenter.host.memory.utilization`, Avg por host | Acima de 90 %: o host começa a recuperar memória com ballooning, compressão e swapping | Em 81 % ou menos |
+| Host Disk Latency High | Host | Aviso | `vcenter.host.disk.latency.max`, Max por host | Acima de 50 ms: cada VM cujos discos estão nesse caminho espera pelo armazenamento. Precisa do nível 3 de contadores de desempenho | Em 45 ms ou menos |
+| Host Network Packet Errors | Host | Aviso | `vcenter.host.network.packet.error.rate`, Max por host | Acima de 0: quase sempre uma falha de cabo, SFP ou porta de switch | Em 0 |
+| Host Network Packet Drops | Host | Aviso | `vcenter.host.network.packet.drop.rate`, Max por host | Acima de 0: um uplink sobrecarregado, ou buffers em anel da NIC que transbordam | Em 0 |
+| VM CPU Saturation | Máquina virtual | Aviso | `vcenter.vm.cpu.utilization`, Avg por `resource.vcenter.vm.name`, **últimos 15 minutos** | Acima de 90 % das vCPUs da VM durante os 15 minutos: uma VM pode usar o que recebeu, então só aciona uma que nunca desce | Em 81 % ou menos |
+| VM CPU Ready Contention | Máquina virtual | Aviso | `vcenter.vm.cpu.readiness`, Avg por VM | Acima de 10 %: a VM estava pronta para rodar, mas o host não tinha um núcleo físico para ela. Invisível de dentro do convidado | Em 9 % ou menos |
+| VM Memory Saturation | Máquina virtual | Aviso | `vcenter.vm.memory.utilization`, Avg por VM | Acima de 90 % da sua memória: o convidado está prestes a paginar | Em 81 % ou menos |
+| VM Memory Ballooning | Máquina virtual | Aviso | `vcenter.vm.memory.ballooned`, Max por VM | Acima de 0: falta memória ao host, e ele a toma de volta deste convidado | Em 0 |
 | VM Memory Swapping | Máquina virtual | Crítico | `vcenter.vm.memory.swapped`, Max por VM | Acima de 0: o host faz swap da memória da VM, o último recurso depois do ballooning e da compressão | Em 0 |
-| VM Disk Latency High | Máquina virtual | Warning | `vcenter.vm.disk.latency.max`, Max por VM | Acima de 50 ms: as aplicações do convidado esgotam o tempo de espera na E/S | Em 45 ms ou menos |
-| VM Disk Usage High | Máquina virtual | Warning | `vcenter.vm.disk.utilization`, Avg por VM | Acima de 90 % do seu armazenamento provisionado comprometido: uma VM com thin provisioning está prestes a reivindicar o seu tamanho total | Em 81 % ou menos |
-| Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg por `resource.vcenter.datastore.name` | Acima de 80 %: um aviso antecipado, já que discos thin e snapshots consomem o resto rapidamente | Em 72 % ou menos |
+| VM Disk Latency High | Máquina virtual | Aviso | `vcenter.vm.disk.latency.max`, Max por VM | Acima de 50 ms: as aplicações do convidado esgotam o tempo de espera na E/S | Em 45 ms ou menos |
+| VM Disk Usage High | Máquina virtual | Aviso | `vcenter.vm.disk.utilization`, Avg por VM | Acima de 90 % do seu armazenamento provisionado comprometido: uma VM com thin provisioning está prestes a reivindicar o seu tamanho total | Em 81 % ou menos |
+| Datastore Capacity Warning | Datastore | Aviso | `vcenter.datastore.disk.utilization`, Avg por `resource.vcenter.datastore.name` | Acima de 80 %: um aviso antecipado, já que discos thin e snapshots consomem o resto rapidamente | Em 72 % ou menos |
 | Datastore Capacity Critical | Datastore | Crítico | `vcenter.datastore.disk.utilization`, Avg por datastore | Acima de 90 %: um datastore cheio pausa cada VM que tem um disco nele | Em 81 % ou menos |
 | Cluster Host Not Effective | Cluster | Crítico | `vcenter.cluster.host.count` filtrada para `effective = false`, Max por `resource.vcenter.cluster.name` | Acima de 0: um host está em modo de manutenção, desconectado ou sem resposta, então o cluster roda com menos capacidade do que foi dimensionado | Em 0 |
 | Datacenter Hosts Unhealthy | Datacenter | Crítico | `vcenter.datacenter.host.count` filtrada para `status = red`, Max por `resource.vcenter.datacenter.name` | Acima de 0: um host tem um alarme crítico, como um sensor de hardware, um caminho de armazenamento perdido ou um erro do agente de HA | Em 0 |
-| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` filtrada para `status = yellow`, Max por datacenter | Acima de 0: um host tem um alarme de aviso | Em 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` filtrada para `power_state = off`, Max por datacenter | Acima de 0: um host está desligado - travou, perdeu energia ou foi colocado em standby pelo DPM | Em 0 |
-| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` filtrada para `status = red`, Max por datacenter | Acima de 0: uma VM tem um alarme crítico, como uma reinicialização de HA que falhou, um datastore perdido ou um heartbeat do Tools perdido | Em 0 |
+| Datacenter Hosts Degraded | Datacenter | Aviso | `vcenter.datacenter.host.count` filtrada para `status = yellow`, Max por datacenter | Acima de 0: um host tem um alarme de aviso | Em 0 |
+| Datacenter Hosts Not Responding | Datacenter | Crítico | `vcenter.datacenter.host.count` filtrada para `power_state = unknown`, Max por datacenter | Acima de 0: o vCenter perdeu o contato com um host - travou, perdeu energia ou a rede de gerenciamento, ou foi desconectado. Um host desligado de propósito ou colocado em standby pelo DPM não conta | Em 0 |
+| Datacenter VMs Unhealthy | Datacenter | Aviso | `vcenter.datacenter.vm.count` filtrada para `status = red`, Max por datacenter | Acima de 0: uma VM tem um alarme crítico, como uma reinicialização de HA que falhou, um datastore perdido ou um heartbeat do Tools perdido | Em 0 |
 | Datacenter Clusters Unhealthy | Datacenter | Crítico | `vcenter.datacenter.cluster.count` filtrada para `status = red`, Max por datacenter | Acima de 0: um cluster tem um alarme crítico, como recursos de failover de HA insuficientes, uma eleição de HA que falhou ou uma verificação de integridade do vSAN crítica | Em 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg por cluster | Acima de 20 000 µs (20 ms): o armazenamento fica lento para cada VM no datastore vSAN. Silencioso em clusters sem vSAN | Em 18 000 µs ou menos |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max por cluster | Acima de 0: um grupo de discos não dá conta, e o vSAN desacelera a E/S dos seus clientes | Em 0 |
-| Resource Pool Memory Swapped | Cluster | Warning | `vcenter.resource_pool.memory.swapped`, Max por `resource.vcenter.resource_pool.inventory_path` | Acima de 0: as VMs do pool tiram memória do swap do host, geralmente porque o limite ou as shares de memória do pool estão baixos demais | Em 0 |
+| vSAN Latency High | vSAN | Aviso | `vcenter.cluster.vsan.latency.avg`, Avg por cluster, **últimos 15 minutos** | Acima de 20 000 µs (20 ms): o armazenamento fica lento para cada VM no datastore vSAN. Silencioso em clusters sem vSAN | Em 18 000 µs ou menos |
+| vSAN Congestion | vSAN | Aviso | `vcenter.cluster.vsan.congestions`, Max por cluster, **últimos 15 minutos** | Acima de 0: um grupo de discos não dá conta, e o vSAN desacelera a E/S dos seus clientes | Em 0 |
+| Resource Pool Memory Swapped | Cluster | Aviso | `vcenter.resource_pool.memory.swapped`, Max por `resource.vcenter.resource_pool.inventory_path` | Acima de 0: as VMs do pool tiram memória do swap do host, geralmente porque o limite ou as shares de memória do pool estão baixos demais | Em 0 |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam na gravidade de incidente e de alerta mais alta do seu projeto; altere-as no critério.
 
@@ -277,7 +277,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
 | **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
-As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não disparam nada, até que a janela de linha de base tenha histórico suficiente.
+As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não disparam nada, até que a janela de linha de base tenha histórico suficiente. Uma soma, uma contagem ou uma consulta sobre um histograma permanece nesse estado para sempre: este monitor filtra suas consultas por atributos, e a linha de base não guarda nenhum.
 
 Alguns critérios para começar:
 

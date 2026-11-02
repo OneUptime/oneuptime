@@ -131,7 +131,16 @@ Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta 
 | **Sem dados** | ausente: a consulta não enviou nada na janela |
 | **Com dados** | presente: a consulta enviou algo na janela |
 
-As condições de anomalia não têm limite. Em vez dele, **Quando alertar** mostra **Sensibilidade** (Baixo, Médio, a padrão, ou Alto), e os critérios personalizados também uma **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e cada ponto de dados é comparado com a linha de base da mesma hora da semana, construída a partir dessa janela. Até que essa hora da semana tenha histórico suficiente, o critério ainda está aprendendo e não gera alertas.
+As condições de anomalia não têm limite. Em vez dele, **Quando alertar** mostra **Sensibilidade** (Baixo, Médio, a padrão, ou Alto), e os critérios personalizados também uma **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e cada ponto de dados é comparado com a mesma hora da semana em dias anteriores, até onde alcança essa janela. O que está acontecendo agora nunca entra nessa comparação, então uma mudança que persiste continua alertando até que, uma semana depois, tenha entrado nesses dias anteriores. Até que essa hora da semana tenha duas semanas de histórico, o critério ainda está aprendendo e não gera alertas.
+
+Com o que um ponto de dados é comparado depende da consulta:
+
+- **Seus serviços.** Um monitor que nomeia serviços é comparado apenas com esses serviços. Um que não nomeia nenhum é comparado com todos os serviços que informam a métrica.
+- **Uma média, um mínimo, um máximo ou um percentil de uma métrica simples** é comparado com as amostras da métrica, até onde alcança a **Janela de linha de base**.
+- **Uma soma ou uma contagem, e qualquer consulta sobre um histograma,** é comparada com os próprios pontos de dados da consulta. Eles são mantidos pelo mesmo tempo que suas métricas, então a comparação não vai além disso: 15 dias, a menos que você tenha alterado.
+- **Uma consulta filtrada ou agrupada por um atributo** é comparada com todas as séries dos seus serviços, porque uma linha de base não guarda atributos, então ela só percebe uma mudança grande o bastante para sair do intervalo de todas elas. Se for uma soma, uma contagem ou uma consulta sobre um histograma, não há com o que comparar e ela continua aprendendo. O mesmo vale para um percentil de um histograma.
+
+Uma soma ou uma contagem só conta como baixa em um ponto de dados completo seguido de outro completo, porque os mais recentes ainda estão sendo preenchidos. Por isso, uma janela de um minuto só consegue encontrar um valor alto.
 
 Um monitor de métricas criado em Criar monitor começa com uma regra na sua primeira consulta: **A média** em **Últimos 5 minutos**, **Acima de** o **Valor** que você informar, e **Criar um alerta**.
 
@@ -214,7 +223,7 @@ A consulta não tem **Agrupar por**, então todos os hosts são reduzidos a um s
 :::
 
 :::details Um critério de anomalia nunca dispara
-Ele ainda está aprendendo: a hora da semana com que compara ainda não tem histórico suficiente dentro da **Janela de linha de base**.
+Ele ainda está aprendendo: a hora da semana com que compara ainda não tem duas semanas de histórico. Uma soma, uma contagem ou uma consulta sobre um histograma filtradas ou agrupadas por um atributo continuam aprendendo para sempre, assim como um percentil de um histograma: não há histórico com o qual compará-los.
 :::
 
 ## Próximos passos

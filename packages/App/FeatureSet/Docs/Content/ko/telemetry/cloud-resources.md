@@ -34,12 +34,12 @@ flowchart TB
 
 | 실행하는 것 | 나타나는 곳 | 방법 |
 | --- | --- | --- |
-| ECS, Cloud Run, Container Apps, App Service 등의 컨테이너 | **클라우드 → All Environments** | 워크로드 자체의 텔레메트리(`cloud.platform` 기준). [클라우드 환경](/docs/telemetry/cloud-environments)을 참고하세요 |
+| ECS, Cloud Run, Container Apps, App Service 등의 컨테이너 | **앱 플랫폼 → 모든 환경** | 워크로드 자체의 텔레메트리(`cloud.platform` 기준). [클라우드 환경](/docs/telemetry/cloud-environments)을 참고하세요 |
 | 공급자가 모니터링하는 모든 IaaS·PaaS 리소스 | **클라우드 → 모든 리소스** | Collector가 읽는 공급자의 모니터링 API. 이 페이지입니다 |
 | OpenTelemetry Collector가 설치된 가상 머신 | **호스트** | 호스트 자체의 메트릭과 로그. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)를 참고하세요 |
 | 애플리케이션이 쓰는 큐와 토픽 | **Queues** | 스팬과 같은 클라우드 메트릭. [큐](/docs/telemetry/queues)를 참고하세요 |
 
-하나의 리소스가 여러 곳에 나타날 수 있습니다. Collector가 설치된 가상 머신은 **호스트**이며, 그 플랫폼 메트릭(하이퍼바이저가 보는 CPU 크레딧, 디스크, 네트워크) 덕분에 **클라우드 리소스**이기도 합니다. SQS 큐는 **Queue**이자 **클라우드 리소스**입니다. 각 보기는 그 데이터 원본이 아는 것을 보여 줍니다.
+하나의 리소스가 여러 곳에 나타날 수 있습니다. Collector가 설치된 가상 머신은 **호스트**며, 그 플랫폼 메트릭(하이퍼바이저가 보는 CPU 크레딧, 디스크, 네트워크) 덕분에 **클라우드 리소스**이기도 합니다. SQS 큐는 **Queue**이자 **클라우드 리소스**입니다. 각 보기는 그 데이터 원본이 아는 것을 보여 줍니다.
 
 ## 시작하기 전에
 
@@ -639,7 +639,7 @@ stateDiagram-v2
 ## 인벤토리와 규칙
 
 - **인벤토리:** 클라우드 리소스는 [인벤토리](/docs/inventory/overview)에 **클라우드 리소스** 항목으로 나열되며, 공급자의 ID가 `cloud.resource.id`, 유형이 `cloud.resource.type`입니다. AI 에이전트의 리소스 도구도 이를 나열합니다.
-- **규칙:** **클라우드 → 설정 → 레이블 규칙**과 **소유자 규칙**은 클라우드 환경과 마찬가지로 클라우드 리소스에도 적용됩니다.
+- **규칙:** **클라우드 → 설정 → 레이블 규칙**과 **소유자 규칙**은 클라우드 리소스에 적용됩니다. 클라우드 환경에는 앱 플랫폼의 자체 규칙이 있으며, 둘이 나뉘기 전에 만든 규칙은 양쪽 모두에 적용됩니다.
 
 ## 문제 해결
 

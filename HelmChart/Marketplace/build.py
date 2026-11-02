@@ -715,11 +715,53 @@ def copy_agent_chart(destination: Path, version: str) -> None:
     chart_yaml.write_text(text, encoding="utf-8")
 
 
+# The agent chart's notes ask the API server whether it serves
+# security.openshift.io, to tell an OpenShift install without the openshift
+# preset to switch to it. An add-on reads no API version off the cluster:
+# Amazon EKS renders it with no cluster to ask, and an EKS cluster is never
+# OpenShift. So the add-on's notes go without that block (its comment, the
+# `if` and its `end`), and the rest stays as the chart has it.
+OPENSHIFT_NOTES_BLOCK: "re.Pattern[str]" = re.compile(
+    r"(?:\{\{- /\*\n(?:(?!\*/).)*\*/\}\}\n)?"
+    r'\{\{- if and \(\.Capabilities\.APIVersions\.Has "security\.openshift\.io/v1"\)[^\n]*\n'
+    r"(?:(?!\{\{- end \}\}).)*"
+    r"\{\{- end \}\}\n",
+    re.DOTALL,
+)
+
+
+def remove_openshift_notes(chart: Path) -> None:
+    """The chart's notes without their OpenShift preset check, the one API version read they make."""
+    notes: Path = chart / "templates" / "NOTES.txt"
+    text: str = notes.read_text(encoding="utf-8")
+    text, removed = OPENSHIFT_NOTES_BLOCK.subn("", text, count=1)
+    if removed != 1:
+        raise ValueError(
+            f"{notes}: no OpenShift preset check to take out of the add-on's notes. "
+            "Update OPENSHIFT_NOTES_BLOCK in build.py with the chart."
+        )
+    notes.write_text(text, encoding="utf-8")
+
+
+def refuse_api_version_reads(chart: Path) -> None:
+    """Amazon EKS renders an add-on with no cluster to ask: no template may read an API version off one."""
+    for template in sorted((chart / "templates").rglob("*")):
+        if template.is_file() and ".Capabilities.APIVersions" in template.read_text(
+            encoding="utf-8"
+        ):
+            raise ValueError(
+                f"{template.relative_to(chart)} reads an API version off the cluster, "
+                "which an EKS add-on may not."
+            )
+
+
 def build_aws_eks_addon(
     out: Path, version: str, edition: Dict[str, Any]
 ) -> List[Dict[str, Any]]:
     chart: Path = out / "kubernetes-agent"
     copy_agent_chart(chart, version)
+    remove_openshift_notes(chart)
+    refuse_api_version_reads(chart)
 
     values_path: Path = chart / "values.yaml"
     editor: ValuesEditor = ValuesEditor(values_path.read_text(encoding="utf-8"))

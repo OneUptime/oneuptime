@@ -57,20 +57,31 @@ chmod 0755 "${WORK_DIR}"
 # string: kubeletstats reads it through certutil, and a file it cannot parse
 # fails the same way a missing one does. Nothing is signed or verified with it —
 # `validate` never starts the pipeline, so nothing connects.
-mkdir -p "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount"
+mkdir -p "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount" "${WORK_DIR}/etcd-client-cert"
 echo "validate-only" >"${WORK_DIR}/serviceaccount/token"
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
   -subj "/CN=otelcol-validate" \
   -keyout "${WORK_DIR}/serviceaccount/ca.key" \
   -out "${WORK_DIR}/serviceaccount/ca.crt" 2>/dev/null
-chmod 0755 "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount"
-chmod 0644 "${WORK_DIR}/serviceaccount/token" "${WORK_DIR}/serviceaccount/ca.crt"
+# The scrape jobs of the OpenShift control plane name two more of these paths:
+# OpenShift's service CA, and the client certificate
+# controlPlane.etcd.clientCertSecret mounts. The prometheus receiver checks the
+# files a job names when it loads the job, so they are stubbed too.
+cp "${WORK_DIR}/serviceaccount/ca.crt" "${WORK_DIR}/serviceaccount/service-ca.crt"
+cp "${WORK_DIR}/serviceaccount/ca.crt" "${WORK_DIR}/etcd-client-cert/ca.crt"
+cp "${WORK_DIR}/serviceaccount/ca.crt" "${WORK_DIR}/etcd-client-cert/tls.crt"
+cp "${WORK_DIR}/serviceaccount/ca.key" "${WORK_DIR}/etcd-client-cert/tls.key"
+chmod 0755 "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount" "${WORK_DIR}/etcd-client-cert"
+chmod 0644 "${WORK_DIR}/serviceaccount/token" "${WORK_DIR}/serviceaccount/ca.crt" \
+  "${WORK_DIR}/serviceaccount/service-ca.crt" "${WORK_DIR}"/etcd-client-cert/*
 
 SERVICE_ACCOUNT_DIR=/var/run/secrets/kubernetes.io/serviceaccount
 STUB_MOUNTS=(
   -v "${WORK_DIR}/hostfs":/host:ro
   -v "${WORK_DIR}/serviceaccount/token":"${SERVICE_ACCOUNT_DIR}/token":ro
   -v "${WORK_DIR}/serviceaccount/ca.crt":"${SERVICE_ACCOUNT_DIR}/ca.crt":ro
+  -v "${WORK_DIR}/serviceaccount/service-ca.crt":"${SERVICE_ACCOUNT_DIR}/service-ca.crt":ro
+  -v "${WORK_DIR}/etcd-client-cert":/etc/oneuptime/etcd-client-cert:ro
 )
 
 # The configs reference these through ${env:...}. The values are never used —
@@ -317,6 +328,67 @@ if (found === 0) {
 }
 ' "${WORK_DIR}/kubernetes-agent.rendered.yaml" "${WORK_DIR}" >"${WORK_DIR}/k8s-configs.txt"
 
+# The cluster collector's metrics/restarts-increase pipeline (the restarts
+# CrashLoopBackOff Detection sums) is in what is validated, its gauge made a
+# sum in metric context: that is where the collector the chart pins has
+# convert_gauge_to_sum. And so is the forward connector it hands the
+# increases to the metrics pipeline through, for their workload names.
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [config] = process.argv.slice(1);
+const collector = yaml.load(fs.readFileSync(config, "utf8"));
+const contexts = (collector.processors["transform/restarts-increase"] || { metric_statements: [] })
+  .metric_statements.filter((group) => {
+    return group.statements.some((statement) => {
+      return statement.startsWith("convert_gauge_to_sum(");
+    });
+  })
+  .map((group) => {
+    return group.context;
+  });
+const pipeline = collector.service.pipelines["metrics/restarts-increase"];
+if (!pipeline || contexts.join(",") !== "metric") {
+  throw new Error(`${config}: no metrics/restarts-increase pipeline converting its gauge in metric context`);
+}
+if (
+  !collector.connectors ||
+  !("forward/restarts-increase" in collector.connectors) ||
+  pipeline.exporters.join(",") !== "forward/restarts-increase" ||
+  !collector.service.pipelines.metrics.receivers.includes("forward/restarts-increase")
+) {
+  throw new Error(`${config}: metrics/restarts-increase does not hand its increases to the metrics pipeline through forward/restarts-increase`);
+}
+' "${WORK_DIR}/k8s-validate-kubernetes-agent-deployment.yaml"
+
+# And the metrics pipeline's transform/job-failures-increase (the Job
+# failures Job Failures sums): a copy of k8s.job.failed_pods, its gauge made a
+# sum in metric context, then cumulative_to_delta/job-failures-increase, both
+# run by the metrics pipeline - so validating this config validates them.
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [config] = process.argv.slice(1);
+const collector = yaml.load(fs.readFileSync(config, "utf8"));
+const transform = collector.processors["transform/job-failures-increase"] || { metric_statements: [] };
+const contexts = transform.metric_statements.map((group) => {
+  return `${group.context}:${group.statements.map((statement) => {
+    return statement.substring(0, statement.indexOf("("));
+  }).join("+")}`;
+});
+const processors = collector.service.pipelines.metrics.processors;
+const at = processors.indexOf("transform/job-failures-increase");
+if (
+  contexts.join(",") !== "metric:copy_metric,metric:convert_gauge_to_sum" ||
+  at < 0 ||
+  processors[at + 1] !== "cumulative_to_delta/job-failures-increase"
+) {
+  throw new Error(`${config}: the metrics pipeline does not copy k8s.job.failed_pods and convert the copy in metric context (${contexts.join(", ")}; ${processors.join(", ")})`);
+}
+' "${WORK_DIR}/k8s-validate-kubernetes-agent-deployment.yaml"
+
 while read -r name; do
   validate "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
 done <"${WORK_DIR}/k8s-configs.txt"
@@ -350,6 +422,98 @@ fs.writeFileSync(out, config);
   "${WORK_DIR}/k8s-deployment-client-calls.yaml"
 validate "kubernetes-agent / collector Deployment, ebpf.dropUnlinkedClientCalls=true" \
   "${WORK_DIR}/k8s-deployment-client-calls.yaml"
+
+# The OpenShift presets run the collector's openshift resource detector right
+# after the resource processor in both collectors' pipelines
+# (kubernetes-agent.openshiftDetector), which the renders above leave out. A
+# key the detector does not know would stop the agent on every OpenShift
+# cluster, so both configs are validated with it too. The detector reads the
+# API address from KUBERNETES_SERVICE_HOST/PORT and the service account's
+# token and CA, which ENV_ARGS and STUB_MOUNTS give it.
+#
+# Takes a short name for its files, the render's label, and its --set flags.
+validate_openshift_render() {
+  local name="$1"
+  local label="$2"
+  shift 2
+
+  echo "==> rendering kubernetes-agent chart with ${label}"
+  helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+    --set clusterName=validate-only \
+    --set oneuptime.url=https://oneuptime.example.com \
+    --set oneuptime.apiKey=validate-only \
+    "$@" \
+    >"${WORK_DIR}/kubernetes-agent-${name}.rendered.yaml"
+  node -e '
+const fs = require("fs");
+const path = require("path");
+const yaml = require("js-yaml");
+
+const [rendered, outDir, renderName] = process.argv.slice(1);
+const docs = yaml.loadAll(fs.readFileSync(rendered, "utf8"));
+for (const component of ["deployment", "daemonset"]) {
+  const configMap = docs.find((doc) => {
+    return doc && doc.kind === "ConfigMap" && doc.metadata.name === `validate-kubernetes-agent-${component}`;
+  });
+  const config = configMap.data["otel-collector-config.yaml"];
+  const collector = yaml.load(config);
+  if (!collector.processors["resourcedetection/openshift"]) {
+    throw new Error(`${rendered}: the ${component} config defines no resourcedetection/openshift`);
+  }
+  for (const [name, pipeline] of Object.entries(collector.service.pipelines)) {
+    const at = pipeline.processors.indexOf("resource");
+    if (at >= 0 && pipeline.processors[at + 1] !== "resourcedetection/openshift") {
+      throw new Error(`${rendered}: the ${component} pipeline ${name} does not run resourcedetection/openshift after resource`);
+    }
+  }
+  fs.writeFileSync(path.join(outDir, `k8s-${component}-${renderName}.yaml`), config);
+}
+' "${WORK_DIR}/kubernetes-agent-${name}.rendered.yaml" "${WORK_DIR}" "${name}"
+  validate "kubernetes-agent / collector Deployment, ${label}" \
+    "${WORK_DIR}/k8s-deployment-${name}.yaml"
+  validate "kubernetes-agent / node collector DaemonSet, ${label}" \
+    "${WORK_DIR}/k8s-daemonset-${name}.yaml"
+}
+
+validate_openshift_render openshift "preset=openshift" \
+  --set preset=openshift
+
+# openshift-restricted leaves the node collector the kubelet's metrics and no
+# logs pipeline, and adds the log tailer, a shape no render above has.
+validate_openshift_render openshift-restricted "preset=openshift-restricted" \
+  --set preset=openshift-restricted
+
+# With controlPlane.enabled, the OpenShift presets scrape the scheduler, the
+# controller manager and etcd through service discovery, in jobs no other render
+# has. This one has every key those jobs can write: etcd's client certificate,
+# and the service CA and server name of a job that checks certificates.
+validate_openshift_render openshift-control-plane "preset=openshift, controlPlane.enabled=true" \
+  --set preset=openshift \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert \
+  --set controlPlane.scheduler.insecureSkipVerify=false \
+  --set controlPlane.controllerManager.insecureSkipVerify=false
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [config] = process.argv.slice(1);
+const collector = yaml.load(fs.readFileSync(config, "utf8"));
+const jobs = collector.receivers.prometheus.config.scrape_configs;
+for (const [job, namespace] of [
+  ["etcd", "openshift-etcd"],
+  ["kube-scheduler", "openshift-kube-scheduler"],
+  ["kube-controller-manager", "openshift-kube-controller-manager"],
+]) {
+  const found = jobs.find((candidate) => {
+    return candidate.job_name === job;
+  });
+  const sd = found && (found.kubernetes_sd_configs || [])[0];
+  if (!sd || sd.role !== "endpointslice" || sd.namespaces.names.join(",") !== namespace) {
+    throw new Error(`${config}: no ${job} job finds its targets in the EndpointSlices of ${namespace}`);
+  }
+}
+' "${WORK_DIR}/k8s-deployment-openshift-control-plane.yaml"
 
 # The collector a `helm upgrade --reuse-values` keeps. That upgrade renders the
 # new chart with the previous release's values, image.tag included, so a
@@ -387,6 +551,39 @@ for (const role of ["deployment", "daemonset"]) {
   }
   const config = yaml.load(configMap.data["otel-collector-config.yaml"]);
   if (role === "deployment") {
+    // Before 0.108.0 convert_gauge_to_sum is a datapoint function, so the
+    // restarts pipeline converts its gauge there on this collector.
+    const transform = config.processors["transform/restarts-increase"];
+    if (
+      !config.service.pipelines["metrics/restarts-increase"] ||
+      !transform ||
+      !transform.metric_statements.some((group) => {
+        return group.context === "datapoint";
+      })
+    ) {
+      throw new Error(`${rendered}: no metrics/restarts-increase pipeline converting its gauge in datapoint context`);
+    }
+    // And hands the increases to the metrics pipeline through the forward
+    // connector, which this collector has too.
+    if (
+      !config.connectors ||
+      !("forward/restarts-increase" in config.connectors) ||
+      config.service.pipelines["metrics/restarts-increase"].exporters.join(",") !== "forward/restarts-increase" ||
+      !config.service.pipelines.metrics.receivers.includes("forward/restarts-increase")
+    ) {
+      throw new Error(`${rendered}: metrics/restarts-increase does not hand its increases to the metrics pipeline through forward/restarts-increase`);
+    }
+    // And the Job failures copy, its gauge made a sum there too.
+    const jobFailures = config.processors["transform/job-failures-increase"];
+    if (
+      !jobFailures ||
+      !config.service.pipelines.metrics.processors.includes("transform/job-failures-increase") ||
+      jobFailures.metric_statements.map((group) => {
+        return group.context;
+      }).join(",") !== "metric,datapoint"
+    ) {
+      throw new Error(`${rendered}: the metrics pipeline does not copy k8s.job.failed_pods and convert the copy in datapoint context`);
+    }
     if (!config.receivers.k8sobjects) {
       throw new Error(`${rendered}: the Deployment config has no k8sobjects receiver to set aside`);
     }

@@ -7,6 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 
@@ -64,6 +65,8 @@ const INCIDENT_TEMPLATES: Array<string> = [
 ];
 
 const handlebars: typeof Handlebars = Handlebars.create();
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(handlebars);
 
 function templateSource(filename: string): string {
   return fs.readFileSync(Path.join(TEMPLATES_DIR, filename), "utf8");

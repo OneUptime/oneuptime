@@ -77,18 +77,20 @@ const PLATFORM_PAGES: ReadonlyArray<string> = [ECS, CLOUD_RUN, CONTAINER_APPS];
 const DASHBOARD: string = "App/FeatureSet/Dashboard/src";
 const CLOUD_SIDE_MENU: string = `${DASHBOARD}/Pages/Cloud/SideMenu.tsx`;
 const CLOUD_VIEW_SIDE_MENU: string = `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`;
+const APP_PLATFORMS_SIDE_MENU: string = `${DASHBOARD}/Pages/AppPlatforms/SideMenu.tsx`;
+const ENVIRONMENT_VIEW_SIDE_MENU: string = `${DASHBOARD}/Pages/AppPlatforms/View/SideMenu.tsx`;
 const CLOUD_ACCOUNT_SIDE_MENU: string = `${DASHBOARD}/Pages/Cloud/Accounts/View/SideMenu.tsx`;
 const CLOUD_ACCOUNT_OVERVIEW: string = `${DASHBOARD}/Pages/Cloud/Accounts/View/Overview.tsx`;
 const CLOUD_AI_AGENT_CARD: string = `${DASHBOARD}/Components/Cloud/CloudAiAgentCard.tsx`;
 const SETTINGS_SIDE_MENU: string = `${DASHBOARD}/Pages/Settings/SideMenu.tsx`;
-const ENVIRONMENTS_PAGE: string = `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`;
+const ENVIRONMENTS_PAGE: string = `${DASHBOARD}/Pages/AppPlatforms/Environments.tsx`;
 const RESOURCES_PAGE: string = `${DASHBOARD}/Pages/Cloud/MonitoredResources.tsx`;
-const ENVIRONMENT_OVERVIEW: string = `${DASHBOARD}/Pages/Cloud/View/Overview.tsx`;
+const ENVIRONMENT_OVERVIEW: string = `${DASHBOARD}/Pages/AppPlatforms/View/Overview.tsx`;
 const RESOURCE_OVERVIEW: string = `${DASHBOARD}/Pages/Cloud/View/MonitoredResourceOverview.tsx`;
-const INSTANCES_PAGE: string = `${DASHBOARD}/Pages/Cloud/View/Instances.tsx`;
-const TELEMETRY_SCOPE: string = `${DASHBOARD}/Pages/Cloud/Utils/CloudResourceTelemetryScope.ts`;
+const INSTANCES_PAGE: string = `${DASHBOARD}/Pages/AppPlatforms/View/Instances.tsx`;
+const TELEMETRY_SCOPE: string = `${DASHBOARD}/Pages/AppPlatforms/Utils/CloudResourceTelemetryScope.ts`;
 const ENVIRONMENT_ONBOARDING: string = `${DASHBOARD}/Components/Cloud/CloudEnvironmentOnboarding.tsx`;
-const ENVIRONMENT_SETTINGS: string = `${DASHBOARD}/Pages/Cloud/View/Settings.tsx`;
+const ENVIRONMENT_SETTINGS: string = `${DASHBOARD}/Pages/AppPlatforms/View/Settings.tsx`;
 const RESOURCE_DETAILS_CARD: string = `${DASHBOARD}/Components/TelemetryResource/ResourceDetailsCard.tsx`;
 const RESOURCE_ONBOARDING: string = `${DASHBOARD}/Components/ResourceOnboarding/ResourceOnboarding.ts`;
 const METRIC_EXPLORER: string = `${DASHBOARD}/Components/Metrics/MetricExplorer.tsx`;
@@ -110,6 +112,10 @@ const INVENTORY_REGISTRY: string =
  * that path goes through and the navbar key the product's title comes from.
  */
 const PRODUCT_MENUS: Record<string, { menu: string; titleKey: string }> = {
+  "App Platforms": {
+    menu: APP_PLATFORMS_SIDE_MENU,
+    titleKey: "appPlatformsTitle",
+  },
   Cloud: { menu: CLOUD_SIDE_MENU, titleKey: "cloudTitle" },
   "Project Settings": {
     menu: SETTINGS_SIDE_MENU,
@@ -441,13 +447,24 @@ describe("the menu paths", () => {
     expect(menuSections(CLOUD_SIDE_MENU)).toEqual([
       {
         title: "Cloud",
-        items: ["Connect", "Accounts", "All Environments", "All Resources"],
+        items: ["Accounts", "All Resources", "Connect"],
       },
       { title: "Settings", items: ["Owner Rules", "Label Rules"] },
       { title: "Advanced", items: ["Archived"] },
     ]);
-    expect(isMenuPath("Cloud", ["All Environments"])).toBe(true);
+    expect(menuSections(APP_PLATFORMS_SIDE_MENU)).toEqual([
+      {
+        title: "App Platforms",
+        items: ["Overview", "All Apps", "All Environments"],
+      },
+      { title: "Settings", items: ["Owner Rules", "Label Rules"] },
+      { title: "Advanced", items: ["Archived"] },
+    ]);
+    // The environments are App Platforms', no longer Cloud's.
+    expect(isMenuPath("App Platforms", ["All Environments"])).toBe(true);
+    expect(isMenuPath("Cloud", ["All Environments"])).toBe(false);
     expect(isMenuPath("Cloud", ["Settings", "Label Rules"])).toBe(true);
+    expect(isMenuPath("App Platforms", ["Settings", "Label Rules"])).toBe(true);
     expect(isMenuPath("Cloud", ["Label Rules"])).toBe(false);
     expect(
       isMenuPath("Project Settings", ["Telemetry & APM", "Ingestion Keys"]),
@@ -456,16 +473,21 @@ describe("the menu paths", () => {
   });
 
   it("names the environment's and the resource's own tabs as their side menu does", () => {
-    const items: Array<string> = Array.from(
-      readSource(CLOUD_VIEW_SIDE_MENU).matchAll(VIEW_MENU_ITEM),
-    ).flatMap((match: RegExpMatchArray): Array<string> => {
-      return [match[1], match[2]].filter(
-        (title: string | undefined): title is string => {
-          return Boolean(title);
+    const tabsOf: (menu: string) => Array<string> = (
+      menu: string,
+    ): Array<string> => {
+      return Array.from(readSource(menu).matchAll(VIEW_MENU_ITEM)).flatMap(
+        (match: RegExpMatchArray): Array<string> => {
+          return [match[1], match[2]].filter(
+            (title: string | undefined): title is string => {
+              return Boolean(title);
+            },
+          );
         },
       );
-    });
+    };
 
+    // An environment's, in App Platforms: its apps' own telemetry.
     for (const tab of [
       "Overview",
       "Documentation",
@@ -476,7 +498,22 @@ describe("the menu paths", () => {
       "Settings",
       "Owners",
     ]) {
-      expect(items).toContain(tab);
+      expect(tabsOf(ENVIRONMENT_VIEW_SIDE_MENU)).toContain(tab);
+    }
+
+    // A resource's, in Cloud: the provider's metrics and its changes.
+    for (const tab of [
+      "Overview",
+      "Documentation",
+      "Metrics",
+      "Changes",
+      "Settings",
+      "Owners",
+    ]) {
+      expect(tabsOf(CLOUD_VIEW_SIDE_MENU)).toContain(tab);
+    }
+    for (const tab of ["Logs", "Traces", "Instances"]) {
+      expect(tabsOf(CLOUD_VIEW_SIDE_MENU)).not.toContain(tab);
     }
 
     expect(pageProse(HUB)).toContain("environment's **Documentation** tab");
@@ -560,13 +597,13 @@ describe("the environments list and its Add guide", () => {
   it("renames an environment on its details card, as the Settings page draws it", () => {
     const settings: string = readSource(ENVIRONMENT_SETTINGS);
 
-    expect(settings).toContain('title="Resource Details"');
+    expect(settings).toContain('title="Environment Details"');
     expect(settings).toContain('title: "Display Name",');
     expect(readSource(RESOURCE_DETAILS_CARD)).toContain(
       'translationKey("Edit Details")',
     );
     expect(pageProse(HUB)).toContain(
-      "choose **Edit Details** on the **Resource Details** card of the environment's **Settings** page and type a **Display Name**",
+      "choose **Edit Details** on the **Environment Details** card of the environment's **Settings** page and type a **Display Name**",
     );
   });
 
@@ -578,8 +615,11 @@ describe("the environments list and its Add guide", () => {
   });
 
   it("names the status pill as the list draws it", () => {
-    expect(readSource(ENVIRONMENTS_PAGE)).toContain(
-      'text={isConnected ? "Connected" : "Disconnected"}',
+    expect(readSource(ENVIRONMENTS_PAGE).replace(/\s+/g, " ")).toContain(
+      'text={ isConnected ? "Connected" : isWaiting ? "Waiting" : "Disconnected" }',
+    );
+    expect(pageProse(HUB)).toContain(
+      "An environment that has sent nothing yet shows **Waiting**.",
     );
     expect(pageProse(HUB)).toContain(
       "shows **Disconnected**, and the next span, log or metric brings it back to **Connected**",
@@ -611,7 +651,7 @@ describe("the environments list and its Add guide", () => {
       "            defaultCollapsed={true}\n          >\n            <CloudMonitoringDocumentationCard",
     );
     expect(pageProse(HUB)).toContain(
-      "under **Cloud → All Environments**, click **Add Cloud Environment**",
+      "under **App Platforms → All Environments**, click **Add Cloud Environment**",
     );
     expect(pageProse(RESOURCES)).toContain(
       "under **Cloud → All Resources** until the first resource arrives",
@@ -696,7 +736,7 @@ describe("the clocks the sweeps keep", () => {
 
     expect(minutes).toBe(15);
     expect(pageProse(HUB)).toContain(
-      `An environment whose telemetry stops for ${minutes} minutes shows **Disconnected**`,
+      `One whose telemetry stops for ${minutes} minutes shows **Disconnected**`,
     );
     expect(pageProse(TROUBLESHOOTING)).toContain(
       `when no telemetry has arrived for it in ${minutes} minutes`,

@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-Envie os traços, logs e métricas dos seus Azure Container Apps para o OneUptime. Toda réplica que reporta `cloud.platform=azure_container_apps` entra em um **Cloud Environment** por assinatura do Azure e região, como _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, com as réplicas em execução listadas em **Instâncias**.
+Envie os traços, logs e métricas dos seus Azure Container Apps para o OneUptime. Toda réplica que reporta `cloud.platform=azure_container_apps` entra em um **Ambiente de nuvem** por assinatura do Azure e região, como _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, com as réplicas em execução listadas em **Instâncias**.
 
 :::cards
 - [Como funciona](#como-funciona): O que os detectores definem, e os dois atributos que você mesmo define.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Procure por `Everything is ready`, e nenhum `401` ou `connection refused`. Em um minuto após o primeiro span, log ou métrica, o ambiente aparece em **Nuvem → All Environments** como _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Procure por `Everything is ready`, e nenhum `401` ou `connection refused`. Em um minuto após o primeiro span, log ou métrica, o ambiente aparece em **Plataformas de aplicativos → Todos os ambientes** como _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## Usar o agente OpenTelemetry gerenciado do ambiente

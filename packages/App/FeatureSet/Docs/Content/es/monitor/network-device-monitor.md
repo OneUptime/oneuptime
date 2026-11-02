@@ -394,6 +394,8 @@ Cada fila indica dónde se conoce su OID: un valor que recopila una plantilla de
 - **Crear una alerta**, que aparece cuando el OID ya se recopila, abre un nuevo monitor de dispositivo de red para el dispositivo con un criterio sobre el OID. Un contador empieza con **SNMP OID Rate (per second)** y un indicador con **SNMP OID Value**, ambos por encima de un umbral que fijas tú; un tiempo de actividad alerta por debajo de diez minutos (el dispositivo se reinició) y cualquier otro valor cuando cambia respecto al leído.
 - **Copiar OID**, en el menú de la fila, copia el OID.
 
+**Descargar**, junto al resumen del recorrido, guarda lo que leyó el recorrido como un archivo: **Texto de snmpwalk (.txt)**, un OID por línea tal como lo imprime `snmpwalk -On`, que lee cualquier herramienta SNMP y el soporte de cualquier fabricante, u **Hoja de cálculo CSV (.csv)**, con el nombre, la MIB, el tipo y el valor de cada OID. El archivo contiene cada OID que leyó el recorrido, incluidos los recorridos continuados, muestre lo que muestre el filtro, y lleva el nombre del dispositivo, del subárbol y de la hora en que se guardó. Quien puede leer el último recorrido del dispositivo puede descargarlo.
+
 Un recorrido que falla dice por qué y qué revisar: un dispositivo que no responde (SNMP desactivado, UDP 161 bloqueado o, en v1 y v2c, una cadena de comunidad incorrecta, que un agente ignora sin decir nada), un usuario, una contraseña o un protocolo de SNMPv3 que el dispositivo rechazó, o una parte del árbol que la vista SNMP de las credenciales deja fuera. Un recorrido que se detiene a medias conserva lo que leyó. Recorrer necesita el permiso **Create Network Device Diagnostic** y una sonda lo bastante reciente para recorrer SNMP: con una más antigua, la página te pide que la actualices.
 
 ### Tablas SNMP
@@ -504,17 +506,17 @@ Una investigación de OneUptime AI sobre un incidente o una alerta de un monitor
 
 ### Identidad del dispositivo
 
-Tras el primer recorrido correcto, OneUptime lee el grupo de sistema SNMPv2 y, cuando el dispositivo lo admite, ENTITY-MIB, y rellena la ficha del dispositivo: nombre del sistema, descripción, ubicación, contacto, tiempo en funcionamiento, fabricante, modelo, número de serie y versión de firmware. El OID de empresa del fabricante (`sysObjectID`) es la huella del dispositivo: nombra al fabricante y elige la plantilla del fabricante correspondiente. Los mismos datos aparecen en el [inventario](/docs/inventory/cmdb-sync#atributos-de-activo-de-los-dispositivos-de-red) junto a todos tus demás activos.
+Tras el primer recorrido correcto, OneUptime lee el grupo de sistema SNMPv2 y, cuando el dispositivo lo admite, ENTITY-MIB, y rellena la ficha del dispositivo: nombre del sistema, descripción, ubicación, contacto, tiempo en funcionamiento, fabricante, modelo, número de serie y versión de firmware. En los dispositivos FortiGate, Juniper, MikroTik y Sophos, una solicitud más lee de la MIB propia del fabricante lo que ENTITY-MIB deja vacío. El OID de empresa del fabricante (`sysObjectID`) es la huella del dispositivo: nombra al fabricante y elige la plantilla del fabricante correspondiente. Los mismos datos aparecen en el [inventario](/docs/inventory/cmdb-sync#atributos-de-activo-de-los-dispositivos-de-red) junto a todos tus demás activos.
 
 Un dispositivo solo con ping conserva el nombre y la dirección que le diste tú, o un escaneo de descubrimiento. Lo que su propio sondeo no ha leído, lo toma del descubrimiento:
 
-- El nombre del sistema, la descripción, el `sysObjectID`, la ubicación y el contacto que leyó por SNMP el último [escaneo de descubrimiento](#descubrir-dispositivos-con-un-escaneo-de-red) de su dirección, y los nombres de DNS inverso y NetBIOS que encontró.
-- Su dirección MAC, de la tabla ARP de un router recorrido de su sitio.
+- El nombre del sistema, la descripción, el `sysObjectID`, la ubicación, el contacto, el modelo, el número de serie, el firmware y la versión del software que leyó por SNMP el último [escaneo de descubrimiento](#descubrir-dispositivos-con-un-escaneo-de-red) de su dirección, y los nombres de DNS inverso y NetBIOS que encontró.
+- Su dirección MAC, de la tabla ARP de un router recorrido de su sitio o, si no, del primer puerto Ethernet que leyó ese escaneo.
 - Para un dispositivo sondeado por un nombre DNS, la dirección a la que su sonda resolvió ese nombre.
 
-Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro de ellos, y cada escaneo, recorrido de router o sondeo que vuelve a leer uno lo pone al día. La vista general del dispositivo y su elemento del inventario indican qué escaneo, router o sonda leyó cada valor, y cuándo. Un valor que guardaste en el dispositivo nunca se sustituye. Cuando un escaneo encuentra otra máquina en la dirección del dispositivo, como una concesión DHCP que se movió, la vista general lo indica, y no se usa nada de lo que ese escaneo leyó allí.
+Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro de ellos, y cada escaneo, recorrido de router o sondeo que vuelve a leer uno lo pone al día. Un escaneo lee la dirección MAC, el modelo, el número de serie, el firmware y la versión del software de un host con unas pocas solicitudes más tras su grupo de sistema, durante cinco segundos como máximo por host. Un host que deja de responderlas sigue contando como un host que respondió, y lo que el escaneo no pudo leer conserva su último valor. La vista general del dispositivo y su elemento del inventario indican qué escaneo, router o sonda leyó cada valor, y cuándo. Un valor que guardaste en el dispositivo nunca se sustituye. Cuando un escaneo encuentra otra máquina en la dirección del dispositivo, como una concesión DHCP que se movió, la vista general lo indica, y no se usa nada de lo que ese escaneo leyó allí.
 
-Un switch, punto de acceso o appliance de Meraki no da por SNMP número de serie, modelo ni firmware: Meraki no implementa ENTITY-MIB. Cuando una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) lee su organización, el dispositivo toma esos datos, y todo lo demás que su sondeo deja vacío, del panel de Meraki, y su tarjeta **Inventario** nombra la conexión en una fila **Meraki**.
+Un switch, punto de acceso o appliance de Meraki no da por SNMP número de serie ni firmware: sondeado directamente, responde al grupo de sistema y a las tablas de interfaces, que dan su modelo y su dirección MAC, y nada más. Cuando una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) lee su organización, el dispositivo toma esos datos, y todo lo demás que su sondeo deja vacío, del panel de Meraki, y su tarjeta **Inventario** nombra la conexión en una fila **Meraki**.
 
 Para volver a leer un dispositivo ahora, pulsa **Actualizar** en su tarjeta **Inventario**. Su sonda lo consulta en menos de un minuto y su conexión de Meraki vuelve a leer la organización. La tarjeta indica cuándo ha llegado la nueva lectura, o que la sonda no pudo alcanzar el dispositivo. **Actualizar** está disponible para quien puede editar dispositivos de red, en un dispositivo que una sonda consulta o que una conexión de Meraki describe.
 
@@ -753,6 +755,8 @@ Mientras no hay políticas, la página ofrece **Crear la política recomendada**
 
 Abre la página del dispositivo y haz clic en **Crear monitor** en la tarjeta **Monitores que alertan sobre este dispositivo**. El formulario del monitor se abre con el tipo Dispositivo de red y el dispositivo elegidos, y el [paquete de alertas recomendado](#paquete-de-alertas-recomendado) relleno: revísalo, define las gravedades y las políticas de guardia, y guarda.
 
+La mayoría de los switches, routers, firewalls e impresoras también sirven una interfaz web en su propia dirección. **Monitorear la interfaz web**, en la misma tarjeta, abre un monitor de **Sitio web** para ella: `https://` en la dirección del dispositivo, con **Permitir certificados autofirmados** activado, ya que la interfaz web de un dispositivo casi siempre usa uno, comprobado desde la propia sonda del dispositivo y con el nombre del dispositivo. Cambia la URL si la interfaz responde por `http`, en otro puerto o bajo una ruta, y guarda. La tarjeta muestra el monitor mientras su nombre contenga el nombre del dispositivo y su URL esté en la dirección del dispositivo; no cambia el estado del dispositivo.
+
 Para crear uno desde **Monitores**:
 
 1. Ve a **Monitores** y haz clic en **Crear monitor**.
@@ -760,6 +764,8 @@ Para crear uno desde **Monitores**:
 3. Elige el dispositivo de red sobre el que alertar. Todo lo relativo a recopilar datos — nombre de host, credenciales, horario, recorridos de interfaces, OID de salud — viene del dispositivo; el monitor solo elige sobre qué alertar, mediante sus criterios.
 
 Un monitor de dispositivo de red no tiene intervalo propio: se evalúa cada vez que llegan los resultados de sondeo del dispositivo, y cada vez que llega un trap del dispositivo.
+
+Cuando los sondeos se detienen, el monitor se sigue evaluando. Cuando un dispositivo lleva tres intervalos de sondeo, y al menos diez minutos, sin un sondeo, sus monitores se evalúan cada cinco minutos como un sondeo que no pudo alcanzarlo: se dispara un criterio que coincide con **SNMP Device Is Online** en False, como **Device unreachable**, y el incidente dice por qué no llegó ningún sondeo, por ejemplo que la sonda está caída o que el dispositivo no tiene sonda. Un dispositivo con el sondeo desactivado, o con la [anulación con monitor vinculado](#la-anulación-con-monitor-vinculado), se deja tal cual. El siguiente sondeo evalúa el monitor como siempre.
 
 ### Los incidentes y alertas de un dispositivo
 
@@ -951,6 +957,7 @@ Para que el mapa se rellene:
 - Da credenciales SNMP a los dispositivos. Las tablas de vecinos vienen del recorrido, así que un dispositivo solo con ping aparece en el mapa pero no informa vecinos propios.
 - Mantén **Recorrer interfaces** activado en los ajustes de sondeo de los dispositivos: las tablas de vecinos se recorren junto con las interfaces.
 - Activa LLDP, o CDP en los dispositivos Cisco, en los propios dispositivos.
+- En una red Meraki, conecte el panel. Una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) dibuja los cables que Meraki conoce, incluidos los de un MX que solo responde a ping.
 
 Haz clic en un par no gestionado y **Añadir al monitoreo** lo registra como dispositivo sondeado por sonda. Toma la sonda en la que coinciden sus vecinos, así que recibe ping desde su primer sondeo, y puedes añadir credenciales más tarde si resulta que tiene SNMP.
 
@@ -989,6 +996,8 @@ Para eso, el mapa tiene que saber qué MAC aprendida es la del dispositivo. Hay 
 - Escribiéndola: define la **Dirección MAC** en el dispositivo, en su página **Ajustes** o en la tarjeta de la vista general, cuando su nombre de host es un nombre DNS o ningún router del sitio se recorre. Se acepta cualquiera de las grafías habituales.
 
 El switch del que cuelga el dispositivo también necesita **Recopilar endpoints conectados** activado: de ahí sale el puerto. Las direcciones se asocian dentro del sitio del dispositivo, porque cada sucursal tiene su `10.0.0.5`; una MAC coincide sea cual sea el sitio.
+
+Una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) hace todo esto sin nada que activar. La lista de clientes de Meraki indica en qué switch y puerto está cada cliente, así que un dispositivo se coloca en cuanto ese switch es un dispositivo de red aquí, en el mismo sitio. La lista también le da al dispositivo su dirección MAC, y el nombre que Meraki da a un cliente aparece en la columna **Nombre de host** de **Endpoints**. Se lee cada dos horas, así que un dispositivo nuevo puede tardar ese tiempo en aparecer. Mientras Meraki informa de un cliente, su puerto prevalece sobre una tabla de reenvío recorrida, porque Meraki distingue un puerto de acceso de un enlace ascendente. Un cliente Wi-Fi se coloca en su punto de acceso solo si es un dispositivo de aquí: los teléfonos de una red de invitados quedan fuera del mapa.
 
 La vista general del dispositivo tiene una tarjeta **Conectado a** que nombra el switch, el puerto y la VLAN. Un switch, router o firewall que informa de sus vecinos por LLDP o CDP los muestra ahí en su lugar: su propio puerto, el vecino (un enlace cuando es un dispositivo de aquí) y el puerto del otro extremo, con **Abrir el mapa** al lado. En el mapa, el panel del dispositivo muestra lo mismo bajo **Conectado a**, y el panel del enlace indica que se aprendió de la tabla de reenvío del switch. La vista padre-hijo dibuja el dispositivo bajo su switch. Un enlace que dibujaste a mano en **Enlaces del dispositivo** para el mismo par se fusiona con el aprendido en lugar de duplicarlo: el puerto aprendido sustituye a uno mal escrito, y se conserva un padre que hayas definido en el enlace dibujado a mano.
 
@@ -1047,6 +1056,8 @@ El mapa dibuja el cable de un dispositivo solo con ping a partir de la tabla de 
 - El switch recopila endpoints: **Recopilar endpoints conectados** activado en sus ajustes de sondeo, con credenciales que permitan que el recorrido funcione. La vista general del dispositivo muestra una tarjeta **Conectado a** en cuanto un switch lo ha aprendido.
 - Se conoce la MAC del dispositivo: su **Dirección MAC** está definida, o un router del sitio recopila endpoints y el nombre de host del dispositivo es la dirección que asocia la tabla ARP de ese router. Un dispositivo registrado por nombre DNS sin MAC no se puede asociar, así que escribe la MAC.
 - El mismo sitio: una dirección solo se asocia a un dispositivo del mismo sitio que el switch que la aprendió. Un dispositivo sin sitio solo se asocia por dirección cuando ese switch tampoco tiene sitio; si el switch está en un sitio, pon el dispositivo en el mismo. Una MAC coincide sea cual sea el sitio.
+
+El panel del dispositivo en el mapa indica cuál de estas cosas falta. En una red Meraki, la lista de clientes de Meraki sustituye a las dos primeras: compruebe que el switch es un dispositivo de red aquí, en el mismo sitio, y cuente dos horas para que aparezca un dispositivo nuevo.
 
 Si el dispositivo está detrás de un switch no gestionado o de un hub, el switch gestionado aprende todas las MAC que hay detrás en un solo puerto, y ese es el puerto que dibuja el mapa: la realidad física vista desde el switch gestionado.
 :::

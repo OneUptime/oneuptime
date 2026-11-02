@@ -9,7 +9,6 @@ import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import SMS from "Common/Types/SMS/SMS";
-import Text from "Common/Types/Text";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
@@ -68,7 +67,12 @@ import Email from "Common/Types/Email";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 RunCron(
   "IncidentEpisodeStateTimeline:SendNotificationToSubscribers",
@@ -666,6 +670,15 @@ RunCron(
                       subscriber,
                     ).toString();
 
+                  /*
+                   * The language this subscriber's messages are written in:
+                   * their own, else the page's (SubscriberLanguage).
+                   */
+                  const language: string = SubscriberLanguage.getLanguage({
+                    subscriber: subscriber,
+                    statusPage: statuspage,
+                  });
+
                   const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
                     {
                       ...emailBodyTemplateVariables,
@@ -719,9 +732,26 @@ RunCron(
                           subscriberPlainTextTemplateVariables,
                         );
                     } else {
-                      // Use default hard-coded template
-                      smsMessage = writeDefaultSubscriberSms(
-                        `Incident ${episode.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(episodeStateName)}. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                      // OneUptime's own words, in the subscriber's language.
+                      smsMessage = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return SubscriberMessageText.smsWithLinks(
+                            translator,
+                            {
+                              sentences: [
+                                StateChangeNoteMessage.getIncidentSmsHeadline({
+                                  stateName: episodeStateName,
+                                  incidentTitle: episode.title || "",
+                                  statusPageName: statusPageName,
+                                  translator: translator,
+                                }),
+                              ],
+                              detailsUrl: episodeDetailsUrl,
+                              unsubscribeUrl: unsubscribeUrl,
+                            },
+                          );
+                        },
                       );
                     }
 
@@ -752,13 +782,19 @@ RunCron(
                     });
                   }
 
-                  let emailTitle: string = `Incident `;
-
-                  if (resourcesAffectedPlainText) {
-                    emailTitle += `on ${resourcesAffectedPlainText} `;
-                  }
-
-                  emailTitle += `is ${episodeStateName}`;
+                  // The default email's heading, in the subscriber's language.
+                  const emailTitle: string = writeInLanguage(
+                    language,
+                    (translator: Translator): string => {
+                      return SubscriberMessageText.incidentStateChangeEmailTitle(
+                        translator,
+                        {
+                          resources: resourcesAffectedPlainText,
+                          state: episodeStateName,
+                        },
+                      );
+                    },
+                  );
 
                   if (
                     subscriber.subscriberEmail &&
@@ -789,7 +825,18 @@ RunCron(
                             emailTemplate.emailSubject,
                             subscriberPlainTextTemplateVariables,
                           )
-                        : `[Incident ${Text.uppercaseFirstLetter(episodeStateName)}] ${episode.title || ""}`;
+                        : writeInLanguage(
+                            language,
+                            (translator: Translator): string => {
+                              return StateChangeNoteMessage.getIncidentCustomTemplateEmailSubject(
+                                {
+                                  stateName: episodeStateName,
+                                  incidentTitle: episode.title || "",
+                                  translator: translator,
+                                },
+                              );
+                            },
+                          );
 
                       await deliveryRecord.deliver({
                         statusPage: statuspage,
@@ -821,9 +868,50 @@ RunCron(
                         },
                       });
                     } else {
-                      const subject: string = `[${Text.uppercaseFirstLetter(
-                        episodeStateName,
-                      )} Incident] ${episode.title || ""}`;
+                      const subject: string = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return StateChangeNoteMessage.getIncidentEmailSubject(
+                            {
+                              stateName: episodeStateName,
+                              incidentTitle: episode.title || "",
+                              translator: translator,
+                            },
+                          );
+                        },
+                      );
+
+                      // OneUptime's default names, in the subscriber's language.
+                      const namesInLanguage: {
+                        resourcesAffected: string;
+                        episodeSeverity: string;
+                        episodeState: string;
+                      } = writeInLanguage(
+                        language,
+                        (
+                          translator: Translator,
+                        ): {
+                          resourcesAffected: string;
+                          episodeSeverity: string;
+                          episodeState: string;
+                        } => {
+                          return {
+                            resourcesAffected:
+                              resourcesAffectedHtml ||
+                              SubscriberMessageText.noResources(translator),
+                            episodeSeverity: episode.incidentSeverity?.name
+                              ? SubscriberMessageText.nameInLanguage(
+                                  translator,
+                                  episode.incidentSeverity.name,
+                                )
+                              : " - ",
+                            episodeState: SubscriberMessageText.nameInLanguage(
+                              translator,
+                              episodeStateName,
+                            ),
+                          };
+                        },
+                      );
 
                       // Use default hard-coded template
                       await deliveryRecord.deliver({
@@ -854,15 +942,15 @@ RunCron(
                                     ? "true"
                                     : "false",
                                 resourcesAffected:
-                                  resourcesAffectedHtml || "None",
+                                  namesInLanguage.resourcesAffected,
                                 episodeSeverity:
-                                  episode.incidentSeverity?.name || " - ",
+                                  namesInLanguage.episodeSeverity,
                                 ...EmailColorUtil.getTemplateVariables(
                                   "episodeSeverity",
                                   episode.incidentSeverity?.color,
                                 ),
                                 episodeTitle: episode.title || "",
-                                episodeState: episodeStateName,
+                                episodeState: namesInLanguage.episodeState,
                                 ...EmailColorUtil.getTemplateVariables(
                                   "episodeState",
                                   episodeStateTimeline.incidentState?.color,
@@ -875,6 +963,10 @@ RunCron(
                               },
                               subject: subject,
                               isSubjectLiteral: true,
+                              // The template's own words, in the subscriber's language.
+                              ...(language !== DEFAULT_READER_LANGUAGE
+                                ? { language: language }
+                                : {}),
                             },
                             {
                               mailServer:
@@ -902,22 +994,23 @@ RunCron(
                           subscriberMarkdownTemplateVariables,
                         );
                     } else {
-                      // Use default hard-coded template
-                      slackTitle =
-                        mdText`🚨 ## Incident - ${episode.title || " - "}
-
-`.toString();
-
-                      if (resourcesAffectedPlainText) {
-                        slackTitle += mdText`
-**Resources Affected:** ${resourcesAffectedPlainText}`.toString();
-                      }
-
-                      slackTitle += mdText`
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-**Status:** ${episodeStateName}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                      // OneUptime's own words, in the subscriber's language.
+                      slackTitle = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return SubscriberMessageText.incidentStateChangeChatMessage(
+                            translator,
+                            {
+                              title: episode.title,
+                              resourcesAffected: resourcesAffectedPlainText,
+                              severityName: episode.incidentSeverity?.name,
+                              stateName: episodeStateName,
+                              statusPageUrl: statusPageURL,
+                              unsubscribeUrl: unsubscribeUrl,
+                            },
+                          );
+                        },
+                      );
                     }
 
                     await deliveryRecord.deliver({
@@ -956,22 +1049,23 @@ RunCron(
                           subscriberMarkdownTemplateVariables,
                         );
                     } else {
-                      // Use default hard-coded template
-                      teamsTitle =
-                        mdText`🚨 ## Incident - ${episode.title || " - "}
-
-`.toString();
-
-                      if (resourcesAffectedPlainText) {
-                        teamsTitle += mdText`
-**Resources Affected:** ${resourcesAffectedPlainText}`.toString();
-                      }
-
-                      teamsTitle += mdText`
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-**Status:** ${episodeStateName}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                      // OneUptime's own words, in the subscriber's language.
+                      teamsTitle = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return SubscriberMessageText.incidentStateChangeChatMessage(
+                            translator,
+                            {
+                              title: episode.title,
+                              resourcesAffected: resourcesAffectedPlainText,
+                              severityName: episode.incidentSeverity?.name,
+                              stateName: episodeStateName,
+                              statusPageUrl: statusPageURL,
+                              unsubscribeUrl: unsubscribeUrl,
+                            },
+                          );
+                        },
+                      );
                     }
 
                     await deliveryRecord.deliver({

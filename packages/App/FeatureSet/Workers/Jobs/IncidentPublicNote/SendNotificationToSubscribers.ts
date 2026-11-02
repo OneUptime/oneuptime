@@ -74,7 +74,13 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "Common/Utils/Markdown/FeedMarkdown";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+  SubscriberSmsText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -109,8 +115,8 @@ const NOTIFICATION_COPY: Record<
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
     emailEvent: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
-    smsNoteSentence: "A new note is posted.",
-    chatNoteSentence: "New note has been added to an incident",
+    smsNoteSentence: SubscriberSmsText.notePosted,
+    chatNoteSentence: SubscriberChatText.newIncidentNote,
     webhookEventType: "IncidentNoteCreated",
     feedSentReason: "a public note is added to",
     feedNotSentSubject: "the public note",
@@ -122,8 +128,8 @@ const NOTIFICATION_COPY: Record<
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
     emailEvent: SubscriberIncidentEmailEvent.IncidentPublicNoteUpdated,
-    smsNoteSentence: "A note has been updated.",
-    chatNoteSentence: "A note on this incident has been updated",
+    smsNoteSentence: SubscriberSmsText.noteUpdated,
+    chatNoteSentence: SubscriberChatText.incidentNoteUpdated,
     webhookEventType: "IncidentNoteUpdated",
     feedSentReason: "a public note was updated on",
     feedNotSentSubject: "the updated public note",
@@ -650,12 +656,34 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             : FeedMarkdown.empty();
 
         /*
-         * "**Status:** Resolved", under the severity, for a note posted with
-         * a state change: where the state change message has it.
+         * The default Slack and Teams message, in a subscriber's language:
+         * its heading, what happened, the resources and severity, "**Status:**
+         * Resolved" under them for a note posted with a state change (where
+         * the state change message has it), the fields marked "Include in
+         * Subscriber Notifications", the note and the links.
          */
-        const chatStatusLine: MarkdownText = stateChange
-          ? mdText`${StateChangeNoteMessage.getChatStatusLine(stateChange.name)}\n`
-          : FeedMarkdown.empty();
+        const getChatMessage: (data: {
+          translator: Translator;
+          unsubscribeUrl: string;
+        }) => string = (data: {
+          translator: Translator;
+          unsubscribeUrl: string;
+        }): string => {
+          return SubscriberMessageText.incidentNoteChatMessage(
+            data.translator,
+            {
+              title: incident.title,
+              sentence: copy.chatNoteSentence,
+              resourcesAffected: resourcesAffectedPlainText,
+              severityName: incident.incidentSeverity?.name,
+              stateChangeName: stateChange?.name,
+              customFields: chatCustomFields,
+              note: incidentPublicNote.note,
+              statusPageUrl: statusPageURL,
+              unsubscribeUrl: data.unsubscribeUrl,
+            },
+          );
+        };
 
         /*
          * Every subscriber of the page, read in batches past LIMIT_MAX, a
@@ -700,6 +728,15 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 URL.fromString(statusPageURL),
                 subscriber,
               ).toString();
+
+            /*
+             * The language this subscriber's messages are written in: their
+             * own, else the page's (SubscriberLanguage).
+             */
+            const language: string = SubscriberLanguage.getLanguage({
+              subscriber: subscriber,
+              statusPage: statuspage,
+            });
 
             logger.debug(
               `Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
@@ -747,17 +784,37 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   smsTemplate.templateBody,
                 ]);
               } else {
-                // Use default hard-coded template
-                const smsHeadline: string = stateChange
-                  ? StateChangeNoteMessage.getIncidentSmsHeadline({
-                      stateName: stateChange.name,
-                      incidentTitle: incident.title || "-",
-                      statusPageName: statusPageName,
-                    })
-                  : `Incident update: ${incident.title || "-"} on ${statusPageName}.`;
+                // OneUptime's own words, in the subscriber's language.
+                smsMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    const smsHeadline: string = stateChange
+                      ? StateChangeNoteMessage.getIncidentSmsHeadline({
+                          stateName: stateChange.name,
+                          incidentTitle: incident.title || "-",
+                          statusPageName: statusPageName,
+                          translator: translator,
+                        })
+                      : translator.translateTemplate(
+                          SubscriberSmsText.incidentUpdate,
+                          {
+                            title: incident.title || "-",
+                            statusPageName: statusPageName,
+                          },
+                        );
 
-                smsMessage = writeDefaultSubscriberSms(
-                  `${smsHeadline} ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                    return SubscriberMessageText.smsWithLinks(translator, {
+                      sentences: [
+                        smsHeadline,
+                        SubscriberMessageText.text(
+                          translator,
+                          copy.smsNoteSentence,
+                        ),
+                      ],
+                      detailsUrl: incidentDetailsUrl,
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+                  },
                 );
               }
 
@@ -804,9 +861,13 @@ const notifySubscribersOfIncidentPublicNote: (data: {
 
               const subscriberEmail: Email = subscriber.subscriberEmail;
 
-              // The page's email, with this subscriber's unsubscribe link.
+              /*
+               * The page's email, with this subscriber's unsubscribe link, in
+               * their language.
+               */
               const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
                 unsubscribeUrl: unsubscribeUrl,
+                language: language,
               });
 
               await pageEmail.recordSending();
@@ -859,18 +920,16 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   slackTemplate.templateBody,
                 ]);
               } else {
-                // Use default hard-coded template
-                markdownMessage = mdText`## Incident - ${incident.title || ""}
-
-**${copy.chatNoteSentence}**
-
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-${chatStatusLine}${chatCustomFields}
-**Note:**
-${FeedMarkdown.asMarkdown(incidentPublicNote.note || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                markdownMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return getChatMessage({
+                      translator: translator,
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+                  },
+                );
                 await incidentTemplateVariables.recordIncludedFieldsSent();
               }
 
@@ -911,18 +970,16 @@ ${FeedMarkdown.asMarkdown(incidentPublicNote.note || "")}
                   teamsTemplate.templateBody,
                 ]);
               } else {
-                // Use default hard-coded template
-                markdownMessage = mdText`## Incident - ${incident.title || ""}
-
-**${copy.chatNoteSentence}**
-
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-${chatStatusLine}${chatCustomFields}
-**Note:**
-${FeedMarkdown.asMarkdown(incidentPublicNote.note || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                markdownMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return getChatMessage({
+                      translator: translator,
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+                  },
+                );
                 await incidentTemplateVariables.recordIncludedFieldsSent();
               }
 

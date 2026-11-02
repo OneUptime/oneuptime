@@ -280,6 +280,32 @@ async function cardBackground(inside: Locator): Promise<Rgba> {
   );
 }
 
+/*
+ * The colour an element's words are read on: the nearest background behind
+ * it that is painted. A card's own box is clear - its surface is painted by
+ * a box inside it - so the card's background alone reads as transparent
+ * black.
+ */
+async function paintedBackground(inside: Locator): Promise<Rgba> {
+  return colourOf(
+    await inside.evaluate((element: Element): string => {
+      for (
+        let node: Element | null = element;
+        node;
+        node = node.parentElement
+      ) {
+        const colour: string = window.getComputedStyle(node).backgroundColor;
+
+        if (colour !== "transparent" && colour !== "rgba(0, 0, 0, 0)") {
+          return colour;
+        }
+      }
+
+      return window.getComputedStyle(document.documentElement).backgroundColor;
+    }),
+  );
+}
+
 test.describe("an outline button draws a border, a fill, a hover and a focus ring", () => {
   test("every outline style, as the gallery draws it", async ({
     page,
@@ -426,6 +452,52 @@ test.describe("an outline button draws a border, a fill, a hover and a focus rin
 
     await screenshot(page, "buttons-dark-1280");
   });
+});
+
+/*
+ * A secondary link - Show More Details under a monitor's summary, and every
+ * other SECONDARY_LINK - was text-gray-400: 2.5:1 on a white card, read as
+ * a hint rather than something to press (#5281). It is text-gray-600 now,
+ * the body text's contrast, and darker still under the pointer.
+ */
+test.describe("a secondary link reads as a link that works", () => {
+  for (const theme of ["light", "dark"]) {
+    test(`its words are at least 4.5:1 on their card, and stronger under the pointer, in the ${theme} theme`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        `section=buttons${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+
+      const control: Locator = button(page, "button-SECONDARY_LINK");
+      const surface: Rgba = await paintedBackground(control);
+
+      // A painted surface: white on a light card, near black on a dark one.
+      expect(surface.a).toBe(1);
+      if (theme === "dark") {
+        expect(luminance(surface)).toBeLessThan(0.1);
+      } else {
+        expect(surface).toEqual({ r: 255, g: 255, b: 255, a: 1 });
+      }
+
+      const atRest: number = contrast(
+        colourOf(await styleOf(control, "color")),
+        surface,
+      );
+
+      expect(atRest).toBeGreaterThanOrEqual(4.5);
+
+      await control.hover();
+      await expect
+        .poll(async (): Promise<number> => {
+          return contrast(colourOf(await styleOf(control, "color")), surface);
+        })
+        .toBeGreaterThan(atRest);
+    });
+  }
 });
 
 /*

@@ -29,7 +29,7 @@ Si aloja OneUptime usted mismo, use `https://YOUR-ONEUPTIME-HOST/otlp/v1/validat
 
 ## El entorno no aparece
 
-Nada en **Nube → Todos los entornos** un minuto después de la primera solicitud. Revise estas tres cosas, en este orden.
+Nada en **Plataformas de aplicaciones → Todos los entornos** un minuto después de la primera solicitud. Revise estas tres cosas, en este orden.
 
 **`cloud.platform` falta, o no es un valor gestionado.** OneUptime archiva la telemetría en Entornos en la nube solo cuando el recurso lleva uno de estos valores: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` o `azure_app_service`. Las causas habituales:
 

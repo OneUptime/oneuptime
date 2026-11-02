@@ -133,7 +133,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 4. **워크플로 생성**을 클릭합니다. 모든 워크플로는 꺼진 상태로 만들어집니다. **빌더** 상단에서 **활성화됨**을 켜세요.
 :::
 
-**Create a Dynamics 365 case when an incident is declared**(알림이라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 알림을 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행의 마지막 단계에 `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`가 표시되어야 합니다.
+**Create a Dynamics 365 case when an incident is declared**(알림이라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 알림을 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-case-1`의 **Response Body**에 `CAS-01001-X1Y2Z3` 같은 새 사례의 `ticketnumber`가 들어 있습니다.
 
 ### Dynamics 365 → OneUptime 템플릿 연결하기
 
@@ -156,11 +156,11 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [W
 
 | 템플릿 | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| 사례가 만들어지면 인시던트 선언 / 알림 만들기 | Added | Cases | | `{"incidentid": "<Case>"}` |
-| 사례가 해결되면 인시던트 / 알림 해결 | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| 사례 메모를 인시던트 / 알림에 비공개 노트로 추가 | Added | Notes | | `{"annotationid": "<Note>"}` |
+| 사례가 만들어지면 인시던트 선언 / 알림 만들기 | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| 사례가 해결되면 인시던트 / 알림 해결 | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| 사례 메모를 인시던트 / 알림에 비공개 노트로 추가 | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-일부 사례만 보내려면 트리거의 **Filter rows**를 사용하세요. 예를 들어 High 우선순위 사례라면 `prioritycode eq 1`입니다. 트리거의 출력 전체를 게시할 수도 있습니다. 템플릿은 같은 방식으로 거기에서 행의 ID와 `SdkMessage`를 읽습니다.
+일부 사례만 보내려면 트리거의 **Filter rows**를 사용하세요. 예를 들어 High 우선순위 사례라면 `prioritycode eq 1`입니다. 본문은 Dataverse 웹후크처럼 행을 `PrimaryEntityId`로 지정합니다. 템플릿은 행 자체를 Dynamics 365에서 다시 읽습니다.
 @tab Dataverse webhook
 [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook)로 URL을 등록합니다. **HttpHeader** 인증과 직접 정한 헤더로 **Register New WebHook**을 하며, URL 자체가 시크릿입니다. 그런 다음 아래의 각 이벤트에 대해 **Event Pipeline Stage of Execution**을 **PostOperation**으로, **Execution Mode**를 **Asynchronous**로 설정한 단계를 그 웹훅에 등록합니다.
 
@@ -181,12 +181,12 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [W
 
 ### 작동하는지 확인하기
 
-모든 템플릿은 무슨 일이 있었는지 알려 주는 **Log** 단계로 끝나므로, **로그 → 실행 기록**에 있는 실행의 마지막 단계를 보면 됩니다:
+각 실행의 **단계**에 템플릿이 한 일이 나오므로, **로그 → 실행 기록**에서 실행을 열고 어떻게 끝났는지 보세요:
 
-- `✅` — 할 일을 마쳤고, 사례, 인시던트 또는 알림을 알려 줍니다.
-- `ℹ️` — 일부러 이벤트를 건너뛰었고 그 이유를 알려 줍니다. 사례가 이 종류의 레코드에 연결되지 않았거나, 메모가 반대편에서 왔거나, 레코드가 비공개이거나, 새 상태에 매핑된 사례 상태가 없는 경우입니다.
-- `❌` — 호출이 실패했습니다. Dynamics 365 호출이라면 줄에 Dynamics 365의 응답이 포함됩니다.
-- `⚠️` — 사례에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Dynamics 365가 링크를 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 사례의 열에 링크를 직접 입력하세요.
+- **실행됨**: 할 일을 마쳤고, 마지막 단계에 사례, 인시던트 또는 알림이 나옵니다.
+- **실행됨**이고 **Check With JavaScript** 단계가 **No**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 사례가 이 종류의 레코드에 연결되지 않았거나, 메모가 반대편에서 왔거나, 레코드가 비공개이거나, 새 상태가 사례를 종결하지 않는 경우입니다.
+- **오류**: 단계가 실패했고, **단계**에 있는 그 항목에 이유가 나옵니다. Dynamics 365 호출이라면 Dynamics 365의 응답도 포함됩니다.
+- `link-case-1`에서 **오류**: 사례에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Dynamics 365가 링크를 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 사례의 열에 링크를 직접 입력하세요.
 
 실행이 첫 번째 Dynamics 365 단계에서 `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`로 멈춘다면 로그인 설정이 잘못된 것이며, 메시지에 Microsoft Entra ID의 응답이 인용됩니다. [템플릿이 묻는 내용](#템플릿이-묻는-내용)을 참고하세요.
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 템플릿이 하는 일 바꾸기
 
-워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위 근처의 상수로, **Run Custom JavaScript** 블록의 **JavaScript Code**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다.
+워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위 근처의 상수로, **Check With JavaScript** 블록의 **JavaScript Code**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다.
 
 | 상수 | 템플릿과 블록 | 제어하는 내용 |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `CASE_ORIGIN`, `CASE_TYPE` | Create a Dynamics 365 case — `prepare-case-1` | 새 사례의 `caseorigincode`(`3`, Web)와 `casetypecode`(`2`, Problem). 다른 열을 설정하려면 같은 스크립트의 `CASE`에 논리적 이름으로 추가하세요. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | Case 테이블 자체의 한도인 200자와 2000자. 아무리 많이 잘려도 설명에는 OneUptime으로 돌아가는 링크가 남습니다. Case 테이블이 더 많이 허용한다면 값을 올리세요. |
 | `RESOLVED_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 해결된 레코드가 사례를 종결할 때 쓰는 상태: `5`는 Problem Solved, `1000`은 Information Provided입니다. |
-| `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 레코드가 다른 상태가 되면 상태 이름으로 사례를 옮깁니다. `{ Acknowledged: 4 }`는 인시던트가 확인되면 사례를 Researching으로 옮깁니다. Dynamics 365의 활성 상태는 `1` In Progress, `2` On Hold, `3` Waiting for Details, `4` Researching입니다. 여기에 나열된 해결 상태는 지정한 상태로 사례를 종결합니다. |
+| `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 직접 만든 해결 상태에서, 상태 이름으로, 다른 해결 상태로 사례를 종결합니다. `{ Closed: 1000 }`은 Information Provided로 종결합니다. 레코드가 해결될 때만 사례가 바뀌며, Researching 같은 활성 상태는 설정되지 않습니다. |
 | `PRIORITY_RANK` | Create from a Dynamics 365 case — `prepare-incident-1`, `prepare-alert-1` | 사례 우선순위(`1` High, `2` Normal, `3` Low)를 `0`(가장 높은 심각도), `1` 또는 `2`(가장 낮은 심각도)에 매핑합니다. 목록에 없는 우선순위는 가운데에 놓입니다. 새 프로젝트에 있는 두 가지 알림 심각도에서는 `2: 1`을 `2: 0`으로 바꾸지 않는 한 Normal이 Low가 됩니다. |
 | `ONLY_PRIORITIES` | Create from a Dynamics 365 case — `prepare-incident-1`, `prepare-alert-1` | 비어 있으면 흐름이나 웹훅이 보내는 모든 사례를 받습니다. `[1]`은 High 우선순위 사례에만 레코드를 만듭니다. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Resolve when the Dynamics 365 case is resolved — `decide-state-1` | `{ Researching: 'Acknowledged' }`처럼 사례의 상태 설명을 이름으로 OneUptime 상태에 매핑합니다. 목록에 없으면 사례의 상태가 결정합니다. Resolved는 레코드를 해결합니다. 사례가 취소될 때도 해결하려면 `2: 'isResolvedState'`를 추가하세요. |
-| `MESSAGES` | 모든 Dynamics 365 → OneUptime 템플릿 — `read-event-1` | 템플릿이 반응하는 이벤트. 편집된 메모도 복사하려면 메모 템플릿의 목록에 `'Update'`를 추가하세요. 각 편집은 새 노트가 됩니다. |
+| `MESSAGES` | 모든 Dynamics 365 → OneUptime 템플릿 — `read-event-1`, 또는 `prepare-incident-1`과 `prepare-alert-1` | 템플릿이 반응하는 이벤트. 편집된 메모도 복사하려면 메모 템플릿의 목록에 `'Update'`를 추가하세요. 각 편집은 새 노트가 됩니다. |
 | `MAX_NOTE_LENGTH` | 노트 템플릿 — `build-note-1`, `read-note-1` | 각 템플릿이 쓰는 가장 긴 노트: Dynamics 365에는 메모 자체의 한도인 100,000자, OneUptime에는 30,000자. |
 
 키로 쓰는 상태 이름과 상태 설명 이름은 대문자까지 포함해 정확히 그 이름대로 써야 합니다. 코드에 `{{`를 넣지 마세요. 스크립트는 실행 전에 다른 설정처럼 값이 채워지므로, 여는 중괄호 두 개가 연달아 있으면 참조로 읽힙니다.
@@ -242,7 +242,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 제한 사항
 
 - **Microsoft 상용 클라우드 전용.** 토큰 URL은 `login.microsoftonline.com`입니다. 미국 정부(GCC High, DoD)나 중국 클라우드라면 `dynamicsAccessToken`을 열고 **설정 편집**을 사용해 토큰 URL을 `login.microsoftonline.us` 같은 해당 클라우드의 로그인 호스트로 바꾸세요.
-- **Dynamics 365가 사례 해결을 거부할 수 있습니다.** Customer Service 설정에 따라 열려 있는 활동이나 열려 있는 하위 사례가 있는 동안에는 사례를 해결하지 못할 수 있고, 비즈니스 규칙이나 플러그인도 해결을 거부할 수 있습니다. 실행은 Dynamics 365의 이유와 함께 `❌ Dynamics 365 did not resolve the case`로 끝나고, 사례는 그대로 남습니다.
+- **Dynamics 365가 사례 해결을 거부할 수 있습니다.** Customer Service 설정에 따라 열려 있는 활동이나 열려 있는 하위 사례가 있는 동안에는 사례를 해결하지 못할 수 있고, 비즈니스 규칙이나 플러그인도 해결을 거부할 수 있습니다. 실행은 Dynamics 365의 이유와 함께 `close-case-1`에서 실패하고, 사례는 그대로 남습니다.
 - **레코드와 사례는 뒤로 가지 않습니다.** 사례를 다시 열어도 OneUptime에서는 아무것도 바뀌지 않으며, 해결된 레코드는 다시 열리지 않습니다. 이미 해결되었거나 취소된 사례를 다시 종결하려고 다시 여는 일도 없습니다.
 - **메모와 설명은 일반 텍스트입니다.** Dynamics 365의 서식 있는 텍스트 편집기에서 쓴 메모는 화면에 보이는 텍스트로 OneUptime에 도착하며, 편집기에서 쓰거나 이메일에서 가져온 사례 설명도 마찬가지입니다. 단락과 줄바꿈은 남고, 서식, 이미지, 이메일 자체의 스타일은 사라집니다. OneUptime 노트는 Markdown까지 원래 문자 그대로 Dynamics 365에 도착합니다. Dynamics 365에서 온 텍스트(사례의 제목과 설명, 메모, 상태, 우선순위, 고객, 사람의 이름)는 쓰인 그대로 읽힙니다. 그 안에 입력한 이미지, 링크, HTML, 다이어그램, `<!channel>` 같은 채팅 멘션은 이를 시작하는 문자 뒤에 보이지 않는 word joiner가 들어가므로 문자로만 표시되고 아무 동작도 하지 않습니다. 텍스트를 복사해도 word joiner는 남습니다. 워크플로는 만들 때의 스크립트를 유지하므로, 이전 버전의 템플릿으로 만든 워크플로는 그 버전 방식대로 텍스트를 씁니다. 이 동작을 원하면 템플릿에서 다시 만드세요. 첨부 파일은 Dynamics 365에 남고, OneUptime의 노트에는 파일 이름이 표시됩니다.
 - **편집된 메모는 복사되지 않습니다**. `'Update'`를 `MESSAGES`에 추가하지 않는 한 새 메모만 복사됩니다.

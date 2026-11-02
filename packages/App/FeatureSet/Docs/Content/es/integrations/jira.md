@@ -129,7 +129,7 @@ Una **cuenta de servicio** de Atlassian también funciona. Un administrador de l
 4. Haz clic en **Crear flujo de trabajo**. Todo flujo de trabajo se crea desactivado: activa **Habilitado** en la parte superior de su **Constructor**.
 :::
 
-Empieza con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** para las alertas: cada otra plantilla de OneUptime → Jira del mismo tipo encuentra la incidencia por la etiqueta que añade esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Registros → Ejecuciones** del flujo de trabajo. El último paso de la ejecución debería decir `✅ Created Jira issue` y nombrar la nueva incidencia.
+Empieza con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** para las alertas: cada otra plantilla de OneUptime → Jira del mismo tipo encuentra la incidencia por la etiqueta que añade esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Registros → Ejecuciones** del flujo de trabajo. La ejecución debería terminar como **Ejecutado**, y el **Response Body** de su último paso, `create-issue-1`, nombra la nueva incidencia.
 
 Cada flujo de trabajo guarda su propia copia de estos valores. Cuando sustituyas el token, actualiza `jiraBasicAuthToken` en **Variables del flujo de trabajo** en cada flujo de trabajo de Jira que lo pidió. Si Jira cambia de dirección, actualiza `jiraSiteUrl` y `jiraBaseUrl` de la misma manera.
 
@@ -180,14 +180,14 @@ Antes de confiar en ello:
 
 ### Comprobar que funciona
 
-Cada plantilla termina con un paso **Log** que dice qué pasó, así que el último paso de una ejecución en **Registros → Ejecuciones** es el lugar donde mirar:
+Los **Pasos** de cada ejecución dicen qué hizo la plantilla, así que abre la ejecución en **Registros → Ejecuciones** y mira cómo terminó:
 
-- `✅` — hizo su trabajo y nombra la incidencia, el incidente o la alerta.
-- `ℹ️` — omitió el evento a propósito y dice por qué: la incidencia no está vinculada a un registro de este tipo, la nota vino de Jira, el registro es privado o el nuevo estado no tiene ningún estado de Jira asignado.
-- `❌` — falló una llamada. Para una llamada a Jira, la línea incluye la respuesta de Jira.
-- `⚠️` — una plantilla que crea un registro a partir de una incidencia de Jira lo creó, pero Jira no aceptó las etiquetas de vínculo, así que las demás plantillas aún no pueden encontrarlo. Añade las etiquetas a mano.
+- **Ejecutado**: hizo su trabajo, y su último paso nombra la incidencia, el incidente o la alerta.
+- **Ejecutado**, con su paso **Check With JavaScript** en **No**: omitió el evento a propósito, y el paso dice por qué: la incidencia no está vinculada a un registro de este tipo, la nota vino de Jira, el registro es privado o el nuevo estado no tiene ningún estado de Jira asignado.
+- **Error**: falló un paso, y su entrada en **Pasos** dice por qué. Para una llamada a Jira, incluye la respuesta de Jira.
+- **Error** en `link-issue-1`: una plantilla que crea un registro a partir de una incidencia de Jira lo creó, pero Jira no aceptó las etiquetas de vínculo, así que las demás plantillas aún no pueden encontrarlo. Añade las etiquetas a mano.
 
-Una ejecución omitida termina igualmente como **Ejecutado**. Las omisiones son normales: la mayoría de los eventos de Jira no son de los que actúa una plantilla concreta. Consulta [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs).
+Las omisiones son normales: la mayoría de los eventos de Jira no son de los que actúa una plantilla concreta. Consulta [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs).
 
 ## Cómo funcionan las plantillas
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Cambiar lo que hace una plantilla
 
-Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras cambiar. Los ajustes que más probablemente querrás tocar son constantes cerca del principio de un script, el **JavaScript Code** de un bloque **Run Custom JavaScript**, justo debajo del bloque auxiliar común. Las versiones para incidentes y para alertas de una plantilla guardan las mismas constantes en los mismos bloques:
+Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras cambiar. Los ajustes que más probablemente querrás tocar son constantes cerca del principio de un script, el **JavaScript Code** de un bloque **Check With JavaScript**, justo debajo del bloque auxiliar común. Las versiones para incidentes y para alertas de una plantilla guardan las mismas constantes en los mismos bloques:
 
 | Constante | Plantilla y bloque | Qué controla |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | Los nombres de estado que la plantilla prefiere cuando va por significado, y los que nunca elige salvo que `STATE_TO_JIRA_STATUS` los nombre. Ambos son expresiones regulares que se comparan con el nombre del estado, sin distinguir mayúsculas. |
 | `SYNC_PRIVATE_INCIDENTS` | Cada plantilla de incidentes de OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` o `build-comment-1` | `false` deja fuera de Jira los incidentes marcados como **Incidente privado**: no se abre ninguna incidencia para ellos, su incidencia no se mueve, y no se publican ni sus notas ni sus ediciones. Ponla en `true` para enviarlos de todos modos. Cada plantilla tiene su propia copia, así que ponla en cada plantilla que deba enviarlos. |
 | `SYNC_PRIVATE_ALERTS` | Cada plantilla de alertas de OneUptime → Jira — `prepare-issue-1`, `plan-transition-1` o `build-comment-1` | Lo mismo para las alertas marcadas como **Alerta privada**: `false` las deja fuera de Jira de las mismas maneras, y `true` las envía de todos modos. Ponla en cada plantilla de alertas que deba enviarlas. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | Asigna un nombre de estado de Jira a un nombre de estado de OneUptime, como `{ 'In Review': 'Monitoring' }`. Los estados no listados van por la categoría de estado de Jira: In Progress reconoce el incidente o la alerta, Done lo resuelve, y To Do no corresponde a nada. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | Asigna un nombre de estado de Jira a un nombre de estado de OneUptime, como `{ 'In Review': 'Monitoring' }`. Los estados no listados van por la categoría de estado de Jira: In Progress reconoce el incidente o la alerta, Done lo resuelve, y To Do no corresponde a nada. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | Asigna una prioridad de Jira, escrita en minúsculas, a `0` (tu gravedad más grave), `1` o `2` (la menos grave), con las intermedias repartidas por el rango. Las prioridades no listadas quedan en medio. Con las dos gravedades de alerta que tiene un proyecto nuevo, `0` es High y tanto `1` como `2` son Low, así que Medium pasa a Low salvo que lo cambies a `medium: 0`. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | Los eventos de comentario que se convierten en notas. Añade `'comment_updated'` para copiar también las ediciones — cada edición se convierte en una nota nueva — y marca también **Comment updated** en el webhook de Jira. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | Los campos de Jira, en minúsculas, cuyos cambios no merecen una nota. Un cambio se descarta cuando el ID o el nombre de su campo está en la lista, que es como `'rank'` atrapa Rank, un campo personalizado que llega con un ID como `customfield_10019`. El estado está en la lista porque de él se encarga la plantilla de estado. |
@@ -271,7 +271,7 @@ Las notas privadas y los comentarios de edición se marcan como internos con la 
 ### Limitaciones
 
 - **Solo Jira Cloud.** Las plantillas llaman a la API REST v3 de Jira Cloud con autenticación Basic. Data Center no tiene v3 y acepta un token de acceso personal como `Bearer`, así que cada bloque de API necesita los cambios de [Jira Data Center](#jira-data-center): rutas `/rest/api/2/...`, cadenas simples en lugar de cuerpos en Atlassian Document Format, y la cabecera. Los bloques `find-issue-1` son los que más cambian: Data Center no tiene `/search/jql`, así que deben hacer un `POST` a `/rest/api/2/search` en su lugar.
-- **Los incidentes declarados desde Jira son discretos.** Se crean ocultos en tus páginas de estado, sin avisar a los suscriptores de las páginas de estado, porque el texto de una incidencia no se escribió para clientes. Para mostrar uno, activa **Visible en la página de estado** en la página **Ajustes** del incidente (consulta [Mantener un incidente fuera de la página de estado](/docs/incidents/states-and-severities#mantener-un-incidente-fuera-de-la-página-de-estado)), o cambia `isVisibleOnStatusPage` y `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` en el bloque `create-incident-1` de la plantilla.
+- **Los incidentes declarados desde Jira son discretos.** Se crean ocultos en tus páginas de estado, sin avisar a los suscriptores de las páginas de estado, porque el texto de una incidencia no se escribió para clientes. Para mostrar uno, activa **Visible en la página de estado** en la página **Ajustes** del incidente (consulta [Mantener un incidente fuera de la página de estado](/docs/incidents/states-and-severities#mantener-un-incidente-fuera-de-la-página-de-estado)), o activa **Show On Status Pages**, en **Más campos**, en el bloque `incident-from-another-tool-1` de la plantilla.
 - **Los incidentes y alertas privados se quedan en OneUptime.** Las plantillas de OneUptime → Jira los omiten, y cada omisión lo dice en **Registros → Ejecuciones**. Para enviarlos de todos modos, pon `SYNC_PRIVATE_INCIDENTS` o `SYNC_PRIVATE_ALERTS` en `true`. Hacer privado un registro más adelante detiene la sincronización a partir de ese momento, pero no retira lo que Jira ya tiene. Las plantillas de Jira → OneUptime no lo comprueban, así que los comentarios, las ediciones y los cambios de estado de una incidencia vinculada siguen llegando a un registro privado.
 - **Nada retrocede.** Reabrir una incidencia de Jira no cambia nada en OneUptime, y un estado de la categoría To Do no corresponde a ningún estado. Consulta [El orden es una restricción real](/docs/incidents/states-and-severities#el-orden-es-una-restricción-real-no-una-preferencia-de-visualización). Las plantillas de transición tampoco mueven nunca una incidencia a una categoría de estado anterior.
 - **Cada alerta recibe una incidencia.** Salvo las alertas privadas, la plantilla de alertas que crea incidencias abre una por cada alerta, incluida cada una que genera un monitor. [Qué cambia para las alertas](#qué-cambia-para-las-alertas) muestra cómo añadir una condición.
@@ -286,7 +286,7 @@ Las notas privadas y los comentarios de edición se marcan como internos con la 
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **El mismo evento puede llegar dos veces.** Jira reintenta una entrega que falló con un error del servidor o agotó el tiempo. Si OneUptime ya había empezado la ejecución, las plantillas de comentarios y de cambios de incidencia añaden una segunda nota. Las plantillas que crean un registro no crean un segundo: primero preguntan a Jira por las etiquetas de la incidencia, y para cuando llega un reintento, la primera ejecución ya ha etiquetado la incidencia. Eso no sirve cuando la primera ejecución creó el registro pero Jira rechazó las etiquetas: la ejecución termina con una línea `⚠️`, y debes añadir las etiquetas a mano.
+- **El mismo evento puede llegar dos veces.** Jira reintenta una entrega que falló con un error del servidor o agotó el tiempo. Si OneUptime ya había empezado la ejecución, las plantillas de comentarios y de cambios de incidencia añaden una segunda nota. Las plantillas que crean un registro no crean un segundo: primero preguntan a Jira por las etiquetas de la incidencia, y para cuando llega un reintento, la primera ejecución ya ha etiquetado la incidencia. Eso no sirve cuando la primera ejecución creó el registro pero Jira rechazó las etiquetas: la ejecución falla en `link-issue-1`, y debes añadir las etiquetas a mano.
 
 ## Construirlo tú mismo
 

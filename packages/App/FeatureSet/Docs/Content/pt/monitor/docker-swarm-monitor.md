@@ -51,19 +51,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Docker S
 
 ### Escolher o cluster
 
-Em **Docker Swarm Monitor Configuration**, escolha o cluster em **Docker Swarm Cluster**. Todo cluster que enviou dados está na lista.
+Em **Docker Swarm Monitor Configuration**, escolha o cluster em **Docker Swarm Cluster**. Todo cluster que enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Docker Swarm** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que monitorar
 
-Escolha uma das três abas:
+Um monitor novo começa com **Cluster Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** – clique em um [modelo](#modelos-de-alerta-prontos). Ele define a métrica, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** – escolha uma métrica em **Docker Swarm Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a algumas tarefas.
-- **Avançado** – monte você mesmo consultas e fórmulas em **Selecionar Métricas**. Use **Agrupar por** `resource.container.name` para avaliar cada tarefa separadamente.
+- **Alterar** – escolha outro [modelo](#modelos-de-alerta-prontos). Ele define a métrica, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) – escolha uma métrica em **Docker Swarm Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a algumas tarefas.
+- **Avançado** (em **Mais campos**) – monte você mesmo consultas e fórmulas em **Selecionar Métricas**. Use **Agrupar por** `resource.container.name` para avaliar cada tarefa separadamente.
 
 ### Revisar os critérios
 
-Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -92,7 +92,9 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece cinco modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Todos os modelos, exceto **Cluster Stopped Reporting**, agrupam a consulta por `resource.container.name`, então cada tarefa é avaliada separadamente e recebe seu próprio incidente e seu próprio alerta, cuja causa raiz lista as tarefas afetadas e seus valores. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece cinco modelos. Cada um monta um monitor completo: uma consulta, um critério que dispara e outro que se recupera. Todos os modelos, exceto **Cluster Stopped Reporting**, agrupam a consulta por `resource.container.name`, então cada tarefa é avaliada separadamente e recebe seu próprio incidente e seu próprio alerta, cuja causa raiz lista as tarefas afetadas e seus valores. Os limites são pontos de partida que você pode editar.
+
+Esses modelos também leem apenas as tarefas do Swarm: um contêiner iniciado de outra forma em um nó, entre eles o do próprio agente, fica de fora. Uma consulta de **Custom Metric** ou **Avançado** lê todos os contêineres que o agente informa; o filtro **Nome do serviço** a restringe às tarefas de um serviço.
 
 Salvo indicação contrária na tabela, um critério só dispara quando a condição vale em todos os minutos da sua janela, e se recupera 10% além do limite para que um valor oscilando na linha não fique mudando de estado.
 
@@ -100,9 +102,9 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos os contêineres do cluster, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | Task Down (Low Uptime) | Crítico | `container.uptime`, Min por tarefa, último 1 minuto | Qualquer valor está abaixo de 60 segundos | Todos os valores estão em 66 segundos ou mais |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, Avg por tarefa, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
-| High Task Memory Usage | Warning | `container.memory.percent`, Avg por tarefa, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
-| High Task Process Count | Warning | `container.pids.count`, Max por tarefa, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
+| High Task CPU Usage | Aviso | `container.cpu.utilization`, Avg por tarefa, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
+| High Task Memory Usage | Aviso | `container.memory.percent`, Avg por tarefa, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
+| High Task Process Count | Aviso | `container.pids.count`, Max por tarefa, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 
@@ -159,7 +161,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
 | **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
-As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não geram nada, até a janela de linha de base ter histórico suficiente.
+As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não geram nada, até a janela de linha de base ter histórico suficiente. Uma soma, uma contagem ou uma consulta sobre um histograma permanece nesse estado para sempre: este monitor filtra suas consultas por atributos, e a linha de base não guarda nenhum.
 
 Cada critério também diz o que fazer quando corresponde: mudar o status do monitor, criar um alerta ou declarar um incidente. Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide.
 

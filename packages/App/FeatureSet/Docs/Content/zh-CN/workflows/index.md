@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> **Forward new incidents to another system** 模板会为你搭建同样的工作流。创建工作流时，可以在 **事件** 下找到它。
+> **Forward new incidents to another system** 模板会为你搭建这个工作流，但不含 Log 块： **Error** 上没有连接任何东西时，失败的请求会让运行失败，运行的 **步骤** 会说明原因。创建工作流时，可以在 **事件** 下找到它。
 
 :::steps
 ### 创建工作流

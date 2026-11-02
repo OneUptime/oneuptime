@@ -140,3 +140,126 @@ export function computeGaugeArcGeometry(
     valuePath: buildGaugeArcPath(arcStart, arcCurrent, radius),
   };
 }
+
+/*
+ * How large the gauge is drawn in its widget: the size of the square its
+ * arc is inscribed in, from the tile the canvas hands the widget.
+ *
+ * Across, it is the tile's width less 24px, as it always was. Down, it is
+ * the largest gauge whose arc, value and status under it, title above it
+ * and min and max labels fit the tile's height: the card takes
+ * GAUGE_CARD_CHROME_HEIGHT_IN_PX of it and the gauge's own padding
+ * GAUGE_VIEW_PADDING_HEIGHT_IN_PX. The height used to be read as 1.8px of
+ * gauge for every px left after 50px, which overflowed a wide, short
+ * widget - a gauge as wide as a phone's screen, where a dashboard shows its
+ * widgets one under another - and cut its status off.
+ */
+export const GAUGE_MIN_SIZE_IN_PX: number = 96;
+
+// What the widget's card takes of its height: its border and its padding.
+export const GAUGE_CARD_CHROME_HEIGHT_IN_PX: number = 26;
+
+// The gauge view's own padding, above and below (py-2).
+export const GAUGE_VIEW_PADDING_HEIGHT_IN_PX: number = 16;
+
+// The title's line (11px text), and the min and max labels' (10px).
+export const GAUGE_TITLE_LINE_HEIGHT_IN_PX: number = 16.5;
+export const GAUGE_FOOTER_LINE_HEIGHT_IN_PX: number = 15;
+
+// The status under the value: its gap above (mt-2) and its 10px line.
+const GAUGE_STATUS_HEIGHT_IN_PX: number = 8 + 15;
+
+// The value's font, a share of the gauge's size and never under 22px.
+export function computeGaugeValueFontPx(gaugeSize: number): number {
+  return Math.max(gaugeSize * 0.22, 22);
+}
+
+// The arc's thickness, a share of the gauge's size and never under 7px.
+export function computeGaugeStrokeWidth(gaugeSize: number): number {
+  return Math.max(gaugeSize * 0.06, 7);
+}
+
+/*
+ * The height a gauge of this size needs inside the gauge view's padding.
+ * The view stacks the title, the arc and the min and max labels, spread
+ * apart by what height is left over; the value and the status are drawn
+ * from the arc's centre down, past the arc's own box.
+ */
+export function computeGaugeContentHeightInPx(data: {
+  gaugeSize: number;
+  hasTitle: boolean;
+}): number {
+  const valueFontPx: number = computeGaugeValueFontPx(data.gaugeSize);
+  const arcBoxHeight: number =
+    data.gaugeSize / 2 + computeGaugeStrokeWidth(data.gaugeSize) + 12;
+  // From the top of the arc's box to the bottom of the status.
+  const valueBottom: number =
+    data.gaugeSize / 2 + 0.45 * valueFontPx + GAUGE_STATUS_HEIGHT_IN_PX;
+
+  if (!data.hasTitle) {
+    return Math.max(arcBoxHeight + GAUGE_FOOTER_LINE_HEIGHT_IN_PX, valueBottom);
+  }
+
+  /*
+   * With a title, the arc sits halfway between the title and the labels,
+   * so a status that runs past the arc's box needs twice what it runs past
+   * by.
+   */
+  const stacked: number =
+    GAUGE_TITLE_LINE_HEIGHT_IN_PX +
+    arcBoxHeight +
+    GAUGE_FOOTER_LINE_HEIGHT_IN_PX;
+
+  return Math.max(
+    stacked,
+    GAUGE_TITLE_LINE_HEIGHT_IN_PX -
+      GAUGE_FOOTER_LINE_HEIGHT_IN_PX -
+      arcBoxHeight +
+      2 * valueBottom,
+  );
+}
+
+export function computeGaugeSize(data: {
+  // The widget's tile, in px.
+  widthInPx: number;
+  heightInPx: number;
+  hasTitle: boolean;
+}): number {
+  const widest: number = Math.floor(data.widthInPx - 24);
+
+  const contentHeight: number =
+    data.heightInPx -
+    GAUGE_CARD_CHROME_HEIGHT_IN_PX -
+    GAUGE_VIEW_PADDING_HEIGHT_IN_PX;
+
+  const fits: (gaugeSize: number) => boolean = (gaugeSize: number): boolean => {
+    return (
+      computeGaugeContentHeightInPx({ gaugeSize, hasTitle: data.hasTitle }) <=
+      contentHeight
+    );
+  };
+
+  if (!Number.isFinite(widest) || widest <= GAUGE_MIN_SIZE_IN_PX) {
+    return GAUGE_MIN_SIZE_IN_PX;
+  }
+
+  if (fits(widest)) {
+    return widest;
+  }
+
+  // The largest whole size that fits, found by halving: the need only grows with the size.
+  let low: number = GAUGE_MIN_SIZE_IN_PX;
+  let high: number = widest;
+
+  while (high - low > 1) {
+    const middle: number = Math.floor((low + high) / 2);
+
+    if (fits(middle)) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+
+  return low;
+}

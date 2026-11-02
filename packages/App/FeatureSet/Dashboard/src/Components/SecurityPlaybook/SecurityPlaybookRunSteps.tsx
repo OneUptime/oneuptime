@@ -21,7 +21,9 @@ import {
   RunStepRow,
   UNDO_BUTTON_TITLES,
   getRunStepRows,
+  getSkippedRunIf,
 } from "./SecurityPlaybookRunStepRows";
+import SecurityPlaybookStepFlag from "./SecurityPlaybookStepFlag";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -165,8 +167,22 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
           const status: string | undefined = row.result?.status;
           const marker: { icon: IconProp; className: string } =
             getMarker(status);
-          const detail: string | undefined =
-            row.result?.error || row.result?.message;
+          /*
+           * Skipped because of what an earlier step found: the step card's
+           * own words, in place of the run's English sentence.
+           */
+          const skippedRunIf: string | undefined = getSkippedRunIf({
+            rows,
+            row,
+            translator,
+          });
+          const detail: string | undefined = skippedRunIf
+            ? undefined
+            : row.result?.error || row.result?.message;
+          // A skipped step never got as far as asking anyone.
+          const showsApproval: boolean =
+            row.requiresApproval &&
+            status !== SecurityPlaybookStepStatus.Skipped;
           const approval: SecurityPlaybookStepResult["approval"] =
             row.result?.approval;
           const targets: Array<SecurityPlaybookTarget> =
@@ -191,7 +207,7 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
                     {translator.translateTemplate(
                       "Step {{number}}: {{title}}",
                       {
-                        number: row.index + 1,
+                        number: translator.formatNumber(row.index + 1),
                         title: translator.translateText(row.title) || row.title,
                       },
                     )}
@@ -204,7 +220,7 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
                   ) : (
                     <></>
                   )}
-                  {row.requiresApproval ? (
+                  {showsApproval ? (
                     <span
                       className="inline-flex items-center gap-1 text-xs text-gray-500"
                       title={translator.translateText(
@@ -218,6 +234,18 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
                     <></>
                   )}
                 </div>
+                {skippedRunIf ? (
+                  <div className="mt-1.5">
+                    <SecurityPlaybookStepFlag
+                      icon={IconProp.Condition}
+                      text={skippedRunIf}
+                      isTranslated={true}
+                      dataTestId={`security-playbook-run-step-${row.index}-run-if`}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
                 {detail ? (
                   <div
                     className={`mt-1 text-sm ${

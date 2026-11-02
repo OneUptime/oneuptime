@@ -226,7 +226,7 @@ describe("every locked chip carries its search syntax, or the reason it has none
     );
 
     expect(exceptionDetail.trim()).toBe(
-      'searchTokenUnavailableReason: "The traces search cannot filter spans by exception.",',
+      'searchTokenUnavailableReason: translationKey( "The traces search cannot filter spans by exception.", ),',
     );
   });
 

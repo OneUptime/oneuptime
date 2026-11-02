@@ -71,7 +71,7 @@ Il pannello dei dettagli ha due schede:
 
 | Scheda | Cosa mostra |
 | --- | --- |
-| **Dettagli** | Il **Corpo del log**, il suo **ID traccia**, **Span ID** e **Sessione** quando li ha, e i suoi **Attributi**, come elenco o come JSON. |
+| **Dettagli** | Il **Corpo del log**, il suo **ID traccia**, **ID span** e **Sessione** quando li ha, e i suoi **Attributi**, come elenco o come JSON. |
 | **Context** | Il log tra i suoi vicini. **Nearby (service + time)** mostra le cinque righe prima e dopo dello stesso servizio, e **This trace** mostra fino a 100 log della sua traccia. |
 
 - Fate clic sull'ID traccia per aprire l'intera richiesta nell'[Esploratore tracce](/docs/telemetry/traces-explorer).
@@ -86,7 +86,7 @@ La modalità in diretta si spegne da sola quando cambiate la ricerca, un filtro 
 
 ## Scegliere le colonne ed esportare
 
-- **Colonne** sceglie che cosa mostra l'elenco. **Ora**, **Servizio**, **Gravità** e **Messaggio** vengono per primi; aggiungete **ID traccia**, **Span ID** o qualsiasi attributo, spostate le colonne su e giù, oppure tornate ai valori predefiniti con **Reimposta**.
+- **Colonne** sceglie che cosa mostra l'elenco. **Ora**, **Servizio**, **Gravità** e **Messaggio** vengono per primi; aggiungete **ID traccia**, **ID span** o qualsiasi attributo, spostate le colonne su e giù, oppure tornate ai valori predefiniti con **Reimposta**.
 - **Esporta** scarica i log della pagina che state guardando. **Esporta come CSV** scrive le colonne mostrate; **Esporta come JSON** scrive ogni campo di ogni log, con tutti i suoi attributi.
 - Puntate la riga delle intestazioni e trascinate il tratto alla fine del nome di una colonna per allargarla o restringerla, oppure fate doppio clic sul tratto per adattare la colonna al suo contenuto. L'elenco conserva le vostre larghezze in questo browser; **Reimposta larghezze**, alla fine della riga delle intestazioni, riporta ogni colonna alla sua larghezza.
 
@@ -112,7 +112,7 @@ Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono lo s
 
 ## Rappresentare i log in grafici
 
-Passate l'elenco ad **Analytics** per contare i log invece di leggerli. Scegliete una serie temporale, una classifica o una tabella; contate ogni log, o i valori univoci di un campo; e raggruppate per gravità, servizio, traccia, span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra i primi 5, 10, 25 o 50 gruppi.
+Passate l'elenco ad **Analisi** per contare i log invece di leggerli. Scegliete una serie temporale, una classifica o una tabella; contate ogni log, o i valori univoci di un campo; e raggruppate per gravità, servizio, traccia, span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra i primi 5, 10, 25 o 50 gruppi.
 
 Fate clic su **Elenco** per tornare alle righe stesse.
 

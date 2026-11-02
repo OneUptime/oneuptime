@@ -380,6 +380,10 @@ const PLAN_NAME_SLOT: string = "{{planName}}";
  */
 const PROSE: Record<string, Array<string>> = {
   [LOCAL]: ["Docker"],
+  /*
+   * Backups is the Proxmox Overview's card about guests' backups: here it
+   * heads the production checklist's row about OneUptime's own.
+   */
   [COMPOSE]: [
     "Memory",
     "CPU",
@@ -390,6 +394,7 @@ const PROSE: Record<string, Array<string>> = {
     "Settings",
     "Secrets",
     "Email",
+    "Backups",
   ],
   [TEAMS]: ["No", "Yes"],
   [GITHUB]: ["Required"],
@@ -421,7 +426,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Sign-ups",
     "Firewall",
     "Visitor addresses",
-    "Backups",
     "Updates",
     "High availability",
   ],
@@ -522,16 +526,15 @@ const PROSE_LEADS: Record<string, Array<string>> = {
 /*
  * Bold leads that may read the same in a translation: names of products and
  * tools, sizes and status codes, and words several languages borrow from
- * English (Firewall, Backups, Updates; "clusters", "instances" and "nodes"
- * after a number in French, Portuguese and Dutch). Every other lead is the
- * page's own English, which a translation translates.
+ * English (Firewall, Updates; "clusters", "instances" and "nodes" after a
+ * number in French, Portuguese and Dutch). Every other lead is the page's
+ * own English, which a translation translates.
  */
 const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
   "Git",
   "HTTPS",
   "Docker Compose v2",
   "Firewall",
-  "Backups",
   "Updates",
   "10 clusters",
   "3 instances",

@@ -23,6 +23,10 @@ Test" workflow provides both:
   fails, because a parity check must not pass by skipping. The workflow
   installs the release binary at the `GOMPLATE_VERSION` that
   `Scripts/Install/configure.sh` pins.
+- **helm.** `KubernetesAgentOpenShiftAdmission.test.js` renders the
+  `kubernetes-agent` chart. Without helm on PATH its renders are skipped with
+  the reason logged, except when `CI` is set: then they fail. GitHub's runners
+  have helm.
 - **docker.** `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` turns on the real-Docker
   check of what `COPY ./ee` ships through `.dockerignore` (it builds one tiny
   image from `public.ecr.aws/docker/library/node:26-alpine3.24`). With the
@@ -329,7 +333,8 @@ commented-out syslog receivers and `logs` pipeline uncommented — and it checks
 that an empty `STORAGE_ARRAY_NAME` stops the collector), over the Database
 Agent's per-receiver configs (as shipped, and again with every optional metric
 their comments list switched on), and over both collector ConfigMaps rendered
-out of the `kubernetes-agent` chart. It validates those two once more on
+out of the `kubernetes-agent` chart, on its default values and on its OpenShift
+presets. It validates the default two once more on
 `0.96.0`, the collector the chart pinned before, rendered for that tag:
 `helm upgrade --reuse-values` keeps a release's old `image.tag`, so the chart's
 configs have to start there too (0.96.0's `k8sobjects` receiver asks an API
@@ -607,11 +612,15 @@ on the resource, so ingest stores them `resource.`-prefixed), and stamps
 empty, on the node's metrics and container logs but not on the cluster's
 inventory; the keys the worker's Service Name and Node Name filters read are
 those keys, `resource.`-prefixed; and it never stamps `host.name` or runs
-`resourcedetection`. Every agent's receivers are all in a pipeline. The Docker
-and Podman agents tail no inventory snapshot: their images, the upstream
-collector with the config copied in, have no shell, so the `entrypoint.sh` and
-inventory poller that sat beside the config never ran, and every script left in
-those folders has to be `install.sh` or one the image copies in.
+`resourcedetection`. Every agent's receivers are all in a pipeline, and so are
+its processors: one defined but in no pipeline never runs, and the metric it
+makes (`container.cpu.utilization`, `container.restarts.increase`) is never
+sent. The Docker and Podman agents send restarts both ways (see
+`ContainerAgentRestarts.test.js`). They tail no inventory snapshot: their
+images, the upstream collector with the config copied in, have no shell, so
+the `entrypoint.sh` and inventory poller that sat beside the config never ran,
+and every script left in those folders has to be `install.sh` or one the image
+copies in.
 
 ### `AgentTroubleshootTokenCheck.test.js`
 
@@ -759,6 +768,54 @@ Podman's API. It needs docker; the "Ops Config Test" workflow runs it after
 `agent-cpu-names-behaviour.sh`. `Utils/ContainerAgentCpuBehaviour.js` builds its
 configs and payloads and checks what comes out.
 
+### `ContainerAgentRestarts.test.js`
+
+The Docker and Podman agents' `container.restarts.increase`. The `docker_stats`
+receiver's `container.restarts` is the engine's RestartCount for a container: a
+lifetime total that only its restart policy raises, and that a manual restart
+or a recreated container starts again at 0. A monitor can only take the
+difference of samples inside one minute, so Container Restart Loop used to
+miss every restart between two minutes' samples - about half of a crash loop
+at the 30-second interval - and read a manual restart as the whole count in
+one minute. So the agents copy `container.restarts` as
+`container.restarts.increase` and turn the copy, with `cumulative_to_delta`,
+into the restarts since the previous sample of the same container, whatever
+the gap; the template sums it, and `container.restarts` goes on unchanged for
+the charts.
+
+The suite holds both configs to that: the receiver's count on, the two
+processors exactly as written and identical in both agents, run in the metrics
+pipeline only, right after the CPU processors and before `resource`; only the
+copy turned into increases; `initial_value: drop`, because "auto" would send a
+container's lifetime count as its first increase after every agent restart; a
+staleness of 2 hours, far past the template's 15 minutes. And the arithmetic:
+increases across 30 seconds, five minutes and an hour; nothing for a manual
+restart's sample; restarts between two minutes' samples counted in full where
+the old per-minute growth saw none. It also holds the checks of the behaviour
+script below to the same arithmetic, so that script fails only on what the
+collector does.
+
+### `container-agent-restarts-behaviour.sh`
+
+What those processors DO, in the collector the agents are built FROM. For each
+agent it lifts them out of the config as shipped and posts seven samples of two
+containers to them, in order - 30 seconds, five minutes and an hour apart, with
+a manual restart among them - and checks that every sample but the first sends
+the restarts since the one before (as a delta covering the time between them),
+that the restart's sample sends none, and that `container.restarts` comes out
+as it went in. Then it runs the agent's whole metrics pipeline against the
+machine's Docker daemon and a container that exits a second after it starts,
+under `--restart=always`: its count must grow, the increases must add up to
+exactly that growth, and some of its samples must have been taken while Docker
+was restarting it (Docker reports such a container as running and answers a
+stats request for it with empty stats, a memory limit of 0) - which is what
+lets the agent count the restarts of a container that is hardly ever running.
+The Podman agent's receiver is pointed at the Docker socket, so that run checks
+its pipeline, not Podman's API. It needs docker; the "Ops Config Test" workflow
+runs it after `container-agent-cpu-utilization-behaviour.sh`.
+`Utils/ContainerAgentRestartsBehaviour.js` builds its configs and payloads and
+checks what comes out; the real-daemon config is the CPU helper's.
+
 ### `agent-event-severity-behaviour.sh`
 
 What the Kubernetes agent does to the Kubernetes Events it watches, in the
@@ -775,6 +832,95 @@ body wraps the Event under `object`; the rule used to read the watch's own
 `type` (ADDED, MODIFIED) and marked every warning INFO. It needs docker and
 helm; the "Ops Config Test" workflow runs it after
 `agent-metric-filter-behaviour.sh`.
+
+### `agent-restarts-increase-behaviour.sh`
+
+What the Kubernetes agent sends for container restarts, in the collector the
+chart ships (and in 0.96.0, which an upgrade with `--reuse-values` keeps, where
+the gauge is made a sum in datapoint context). It renders the chart and lifts
+both of the cluster collector's metrics pipelines out of its ConfigMap as
+rendered: `metrics/restarts-increase` (all but `memory_limiter`) into the
+`forward/restarts-increase` connector, and `metrics`, which receives from it
+(all but `memory_limiter` and `batch`), with a stand-in in place of
+`k8sattributes`, which needs a cluster: it adds each pod's workload names by
+the pod's UID, as `k8sattributes` finds them. It posts, in order, seven samples
+of what the `k8s_cluster` receiver sends for seven containers - of a
+Deployment, a StatefulSet, a DaemonSet, a CronJob's Job and a pod of no
+workload, 30 seconds, five minutes and an hour apart: `k8s.container.restarts`
+as an int gauge on the container's own resource, keyed by `container.id`,
+which changes with every restart because the kubelet runs each one as a new
+container, with `k8s.container.ready` beside it and a pod's `k8s.pod.phase`,
+and no workload name. `k8s.container.restarts.increase` must come out as a
+monotonic delta sum without `container.id`, stamped with the cluster's name: a
+crash loop's restarts since each sample before, nothing for a pod recreated
+under the same name (a new UID) at its first sample, nothing for a count that
+went down in the same pod, and 0 for a quiet container. Each increase must
+carry its pod's workload names, and exactly what `k8s.container.restarts`
+carries at the same sample but `container.id`, so a restart never splits a
+container's series. The count, the readiness and the phase must come out once
+each per sample, as they came in. Kept by `container.id`, the same processors
+would count no restart at all. It needs docker and helm; the "Ops Config Test"
+workflow runs it after `agent-cpu-names-behaviour.sh`.
+`Utils/KubernetesAgentRestartsIncreaseBehaviour.js` builds its config and
+payloads and checks what comes out.
+
+### `KubernetesAgentRestartsIncrease.test.js`
+
+Holds `agent-restarts-increase-behaviour.sh` to the arithmetic and to the
+chart: the increases it expects are what `cumulative_to_delta` makes of its
+samples keyed by the pod (and none, keyed by `container.id`, and fewer, had the
+workload names been added before the conversion and found late); its samples
+are what the kubelet reports (a new container ID with every count, a recreated
+pod under a new UID from 0) and its payloads what `k8s_cluster` sends; its pods
+cover every workload name the chart's `k8sattributes` extracts; the processors
+it lifts are the ones the template's pipelines list, in order, its stand-in
+where `k8sattributes` runs; it refuses a render wired otherwise; its check
+passes the export the arithmetic predicts and fails one that kept
+`container.id`, lost a restart or a workload name, carries another pod's,
+differs from the count, sent another metric, or is not a delta sum from the
+previous sample. It also holds the workflow to running the script.
+
+### `agent-job-failures-increase-behaviour.sh`
+
+What the Kubernetes agent sends for Job failures, in the collector the chart
+ships (and in 0.96.0, which an upgrade with `--reuse-values` keeps, where the
+copy's gauge is made a sum in datapoint context). It renders the chart, lifts
+the cluster collector's `transform/job-failures-increase` and
+`cumulative_to_delta/job-failures-increase` (the first two processors of its
+`metrics` pipeline after `memory_limiter`) and its `resource` processor out of
+its ConfigMap as rendered, and posts them, in order, seven samples of what that
+pipeline gets for four Jobs - 30 seconds, five minutes and an hour apart:
+`k8s.job.failed_pods` as an int gauge on the Job's own resource, keyed by
+`k8s.job.uid`, with `k8s.job.active_pods` and `k8s.job.successful_pods` beside
+it, a container's `k8s.container.restarts` and a Prometheus counter of the API
+server. `k8s.job.failed_pods.increase` must come out as a monotonic delta sum
+with the Job's UID, name and namespace, stamped with the cluster's name: a
+failing Job's failures since each sample before, nothing for a Job recreated
+under the same name (a new UID) at its first sample, nothing for a count that
+went down in the same Job, and 0 for a Job that failed long ago. Each increase
+must carry exactly what `k8s.job.failed_pods` carries at the same sample - the
+Job's name, UID and namespace, its workload - and the same at every sample of a
+Job, so the pods it retries with never split its series. Everything else
+must come out as it came in: `k8s.job.failed_pods` a gauge at every sample with
+its count, the other gauges gauges, and the counter cumulative. It needs docker
+and helm; the "Ops Config Test" workflow runs it after
+`agent-restarts-increase-behaviour.sh`.
+`Utils/KubernetesAgentJobFailuresIncreaseBehaviour.js` builds its config and
+payloads and checks what comes out.
+
+### `KubernetesAgentJobFailuresIncrease.test.js`
+
+Holds `agent-job-failures-increase-behaviour.sh` to the arithmetic and to the
+chart: the increases it expects are what `cumulative_to_delta` makes of its
+samples keyed by the Job's UID, each one Job's own; its samples are what
+`k8s_cluster` reports (a UID that changes only when the Job is recreated, a
+recreated Job from 0) and its payloads what the `metrics` pipeline gets; the
+processors it lifts are the ones the template's pipeline runs first, in order;
+its check passes the export the arithmetic predicts and fails one that lost a
+failure or the Job's UID, sent a first sample's count, is not a delta sum from
+the previous sample, renamed or converted the count itself, turned another sum
+into deltas, carries other workload attributes than the count, or splits a
+Job's series. It also holds the workflow to running the script.
 
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 
@@ -862,6 +1008,25 @@ suite reads the images and Dockerfiles from release.yml's
 template, finds the ones with an `enterprise` stage (using the same line test
 as `build_docker_images.sh`, cross-checked against the stage parser) and
 asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
+
+### `KubernetesAgentOpenShiftAdmission.test.js`
+
+KinD has no SCCs, and `helm install` on OpenShift succeeds whatever the chart
+renders: OpenShift refuses a pod later, one at a time, and the pod never
+appears. So this stands in for the SCC admission plugin. It renders the
+`kubernetes-agent` chart with `helm template` with every option on, takes every
+pod template out of the render, and holds it to what OpenShift's SCCs say:
+
+- on `openshift-restricted`, every pod is admitted by `restricted-v2` as written,
+  states everything `restricted-v2` would otherwise fill in, and pins no user or
+  group ID, and the chart creates no SCC;
+- on `openshift`, every pod is admitted by `restricted-v2` or by an SCC its
+  service account may use, and only the node pods need one;
+- on `standard`, it finds the pods OpenShift refuses there (#5477), so the check
+  is not passing because it checks nothing.
+
+It needs `helm`: without it the renders are skipped with the reason logged,
+except when `CI` is set, when they fail. GitHub's runners have it.
 
 ### `KubernetesAiAgentRelease.test.js`
 
@@ -1122,6 +1287,33 @@ its own `if` names the branch, or a job it needs does and its own `if` calls no
 status function. The tags, the charts, the npm packages, the Terraform
 provider, the draft and the four agents' builds say so themselves; the builds
 and e2e jobs behind the release still run for any branch.
+
+### `ReleaseNotes.test.js`
+
+`Scripts/Release/GenerateReleaseNotes.js`, which writes the notes of every
+GitHub release. They used to come from an action that worked out its range from
+the repository's tags, and a draft has no tag: it took the newest tag for the
+end of the range, which is the release before this one, so 14.0.96, 14.0.97 and
+14.0.98 each listed what the release before them shipped. It sorted by labels,
+which nobody applies, so all of it landed in one folded list.
+
+The suite runs the script against a fake GitHub (nothing here reaches the
+network) and pins the range: from the newest published release older than this
+one, as numbers, drafts and prereleases left out, to the commit the run built.
+Then the changes: every pull request once, every commit pushed straight to
+master (GitHub answers those with the release gate, which is no answer), and
+neither the gate nor the version bump. Then the sorting of real titles, in both
+forms the repository writes them, with a label over a title and what mends the
+repository under Maintenance; a title staying text, so that `/install/<agent>`
+keeps its placeholder and `@hono/node-server` mentions nobody; and GitHub's
+limit on a release body, which would fail the draft step.
+
+A release is not held back for its notes, so it also pins failure: what passes
+by is waited out, what cannot change is not, and with `--fallback-on-error` a
+GitHub that stays down leaves a warning and a page that links to the changes,
+run as the release job runs it. In `release.yml`, `draft-github-release` must
+write the notes for this version from the run's commit, ahead of all three
+attempts at the draft, and each attempt must read that file.
 
 ### `PlaywrightImage.test.js`
 

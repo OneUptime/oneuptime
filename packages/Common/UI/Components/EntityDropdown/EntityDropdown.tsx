@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import FieldError from "../Forms/Fields/FieldError";
 import Label from "../../../Models/DatabaseModels/Label";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -34,6 +35,7 @@ import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
 import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -2300,7 +2302,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   setSelectedLabelIds([]);
                 }}
                 disabled={isApplyingLabels}
-                className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-white hover:text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                className={`rounded px-2 py-1 text-xs font-medium text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: isApplyingLabels,
+                    hoverClassName: "hover:bg-white hover:text-gray-800",
+                  },
+                )}`}
               >
                 {translator.translateText("Clear")}
               </button>
@@ -2315,7 +2322,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   void applyLabelSelection();
                 }}
                 disabled={isApplyingLabels}
-                className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60"
+                className={`inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${getHandDrawnButtonStateClassName(
+                  {
+                    isBusy: isApplyingLabels,
+                    hoverClassName: "hover:bg-indigo-700",
+                  },
+                )}`}
               >
                 {isApplyingLabels && (
                   <svg
@@ -2355,11 +2367,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         </div>
       )}
 
-      {props.error && (
-        <p id={errorId} className="mt-1 text-sm text-red-400" role="alert">
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
     </div>
   );
 };

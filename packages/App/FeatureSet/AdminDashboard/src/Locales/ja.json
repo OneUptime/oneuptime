@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "このライセンスに関連付けられた会社名。",
+  "Annual contract value (in USD) for this license.": "このライセンスの年間契約額（USD）。",
+  "Expiration date of this license.": "このライセンスの有効期限。",
+  "Something went wrong": "問題が発生しました",
+  "An unexpected error has occurred. Please reload the page to continue": "予期しないエラーが発生しました。続行するにはページを再読み込みしてください",
+  "Error details": "エラーの詳細",
+  "Still stuck?": "まだ解決しませんか？",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "エラースタック、コンポーネントスタック、個人情報を除去したページ URL、ブラウザーの詳細、OneUptime のビルド情報を含む診断ファイルをローカルにダウンロードします。Cookie、ブラウザーに保存されたデータ、フォームの内容を読み取ることはありません。OneUptime サポートに共有する前に内容を確認してください。",
+  "Download support bundle": "サポート用のバンドルをダウンロード",
+  "Send it to {{email}}": "{{email}} に送信",
+  "Support bundle downloaded. Review it, then attach it to your email.": "サポート用のバンドルをダウンロードしました。内容を確認してから、メールに添付してください。",
+  "The support bundle could not be downloaded. Please try again.": "サポート用のバンドルをダウンロードできませんでした。もう一度お試しください。",
   "common": {
     "save": "保存",
     "cancel": "キャンセル",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "1 ユーザーあたり {{price}}、本日から毎年請求されます。",
   "{{price}} per user, billed monthly from today.": "1 ユーザーあたり {{price}}、本日から毎月請求されます。",
   "Our sales team will contact you to agree on a price.": "営業チームからご連絡し、価格をご相談します。",
+  "Current plan": "現在のプラン",
+  "Current plan, billed yearly": "現在のプラン（毎年請求）",
+  "Current plan, billed monthly": "現在のプラン（毎月請求）",
   "{{count}}-day free trial": "{{count}} 日間の無料トライアル",
   "{{count}}-day free trial_one": "{{count}} 日間の無料トライアル",
   "Free for {{count}} days, no card needed to start.": "{{count}} 日間無料。開始時にカードは不要です。",
@@ -1560,5 +1575,12 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "Compact rows": "コンパクトな行",
+  "Sort by": "並べ替えの基準",
+  "Sorted by {{column}}": "{{column}}で並べ替え",
+  "Sort": "並べ替え",
+  "Ascending": "昇順",
+  "Descending": "降順",
+  "Select all items": "すべての項目を選択"
 }

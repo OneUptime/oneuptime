@@ -219,7 +219,8 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   de: ["Name", "Optional", "Status"],
   fr: ["Date", "Description", "Incident", "Options", "Question", "Questions"],
   es: ["No"],
-  it: ["No"],
+  // Italian says "file" too.
+  it: ["No", "File"],
   pt: ["Status"],
   nl: ["Incident", "Labels", "Status"],
   da: ["Status"],
@@ -359,14 +360,20 @@ describe("the glossary's words", () => {
     ).toBe("Scheduled Maintenance");
   });
 
+  /*
+   * The card lists the form's addresses with the shared list
+   * (PublicAddresses), which has its own Copy link and opens each address
+   * itself: of its own words, the card keeps Reset Link. Copy Link stays,
+   * on the Templates page's links.
+   */
   test("the Share Link card", () => {
-    expect([
-      FormsCopy.copyLink,
-      FormsCopy.openForm,
-      FormsCopy.resetLink,
-    ]).toEqual(["Copy Link", "Open Form", "Reset Link"]);
+    expect([FormsCopy.copyLink, FormsCopy.resetLink]).toEqual([
+      "Copy Link",
+      "Reset Link",
+    ]);
+    expect(Object.keys(FormsCopy)).not.toContain("openForm");
     expect(FormsCopy.formTurnedOff).toBe(
-      "This form is turned off, so its link shows a 'not available' message.",
+      "This form is turned off, so people who open it see a 'not available' message.",
     );
   });
 
@@ -433,8 +440,12 @@ describe("the composed strings", () => {
    * ("Create Form"), so the phrases the Forms locales word themselves win.
    */
   test("are what the shared components build from the model's name", () => {
-    // The whole phrase first, then the template with the name translated.
-    expect(readCommon("..", "Utils", "TranslateTemplate.ts")).toContain(
+    /*
+     * The whole phrase first, then the template with the name translated
+     * (translateNamedAction, in the translator Common/UI/Utils/TranslateTemplate
+     * re-exports).
+     */
+    expect(readCommon("..", "..", "Types", "Translator.ts")).toContain(
       "if (translator.hasTranslation(phrase)) { return translator.translateText(phrase) || phrase; }",
     );
 
@@ -471,7 +482,8 @@ describe("the composed strings", () => {
 
     /*
      * Each card's edit modal: "Edit <model>", unless the card names its
-     * dialog itself. The Forms cards do not.
+     * dialog itself, or the page names the record (singularName, as App
+     * Platforms names its cloud rules). The Forms cards do neither.
      */
     const cardModelDetail: string = readCommon(
       "ModelDetail",
@@ -479,20 +491,30 @@ describe("the composed strings", () => {
     );
 
     expect(cardModelDetail).toContain(
-      'const editTitle: string = translateNamedAction(translator, { template: "Edit {{itemName}}", itemName: model.singularName || "", });',
+      'const singularName: string = props.singularName?.trim() || model.singularName || "";',
+    );
+    expect(cardModelDetail).toContain(
+      'const editTitle: string = translateNamedAction(translator, { template: "Edit {{itemName}}", itemName: singularName, });',
     );
     expect(cardModelDetail).toContain(
       "title={props.editModalTitle || editTitle}",
     );
 
-    // The delete card, its button and its confirmation.
+    /*
+     * The delete card, its button and its confirmation: the model's name,
+     * unless the page names the record itself (singularName, as App
+     * Platforms names its environments).
+     */
     const modelDelete: string = readCommon("ModelDelete", "ModelDelete.tsx");
 
     expect(modelDelete).toContain(
-      'title={translateNamedAction(translator, { template: "Delete {{itemName}}", itemName: model.singularName || "", })}',
+      'const singularName: string = props.singularName?.trim() || model.singularName || "";',
     );
     expect(modelDelete).toContain(
-      'const typeLabel: string = model.singularName || "item";',
+      'title={translateNamedAction(translator, { template: "Delete {{itemName}}", itemName: singularName, })}',
+    );
+    expect(modelDelete).toContain(
+      'const typeLabel: string = singularName || "item";',
     );
 
     const deleteMessage: string = readCommon(
@@ -785,11 +807,21 @@ describe("the dashboard renders the strings", () => {
       "Components/FormBuilder/FormShareLinkCard.tsx",
     );
 
-    // CopyTextButton looks its label and title up itself.
-    expect(card).toContain("label={FormsCopy.copyLink}");
-    expect(card).toContain("title={FormsCopy.copyLink}");
-    expect(card).not.toContain("translateString(FormsCopy.copyLink)");
-    expect(card).toContain("translateString(FormsCopy.openForm)");
+    /*
+     * The addresses are the shared list's (PublicAddresses), which looks up
+     * its own words: the card hands it the form's kind of domain and draws
+     * no text of its own beside them.
+     */
+    expect(card).toContain("<PublicAddresses kind={FORM_CUSTOM_DOMAINS}");
+    expect(card).not.toContain("translateString(");
+
+    // The Templates page's links still copy with CopyTextButton's own lookup.
+    const templates: string = readCode(
+      "Components/FormBuilder/Templates/FormTemplates.tsx",
+    );
+
+    expect(templates).toContain("label={FormsCopy.copyLink}");
+    expect(templates).not.toContain("translateString(FormsCopy.copyLink)");
 
     /*
      * What goes with a form is said by ModelDelete itself, from the shared

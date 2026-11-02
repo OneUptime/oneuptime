@@ -2,7 +2,7 @@
 
 Je bouwt een workflow in de **Bouwer** ervan: een canvas waarop je blokken toevoegt, ze verbindt en hun instellingen invult. Deze pagina laat zien hoe je een workflow maakt, [blokken toevoegt](#blokken-toevoegen), ze [verbindt](#blokken-verbinden) en [instelt](#een-blok-instellen), [waarden tussen blokken doorgeeft](#waarden-uit-eerdere-blokken-gebruiken) en [de workflow inschakelt](#inschakelen).
 
-Om een workflow te maken open je **Workflows** en klik je op **Workflow maken**. Het dialoogvenster **Een workflow maken** vraagt eerst hoe je wilt beginnen en daarna een naam. Een sjabloon dat eigen instellingen nodig heeft, zoals een Slack-webhook-URL, vraagt daar in een extra stap om en slaat ze op als workflow-variabelen, zodat je ze later kunt wijzigen zonder de workflow te bewerken.
+Om een workflow te maken open je **Workflows** en klik je op **Workflow maken**. Het dialoogvenster **Een workflow maken** vraagt eerst hoe je wilt beginnen en daarna een naam. Een sjabloon dat eigen instellingen nodig heeft, zoals een Slack-webhook-URL, vraagt daar in een extra stap om en slaat ze op als workflow-variabelen, zodat je ze later kunt wijzigen zonder de workflow te bewerken. Een sjabloon dat mensen oproept, vraagt in die stap ook wie het moet oproepen, gekozen uit de gebruikers, teams, bereikbaarheidsroosters of het bereikbaarheidsbeleid van je project.
 
 Kies hoe je begint:
 

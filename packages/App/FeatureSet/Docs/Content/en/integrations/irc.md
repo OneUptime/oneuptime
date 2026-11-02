@@ -84,7 +84,7 @@ Start from the template, which builds the whole workflow for you, or from scratc
 3. Keep the name, **Notify IRC on new incident**, or change it, and click **Next**.
 4. Enter the **IRC Server** and the **IRC Channel**, and click **Create Workflow**.
 
-The workflow opens in the **Builder** with three steps: **On Create Incident**; **Send Message to IRC**, which posts the incident's number, title, severity and state in two lines; and a **Log** step on its **Error** output, which records why a message wasn't delivered. The server and the channel are saved as the workflow's variables `ircServer` and `ircChannel`. If you saved passwords in the previous step, click **Send Message to IRC**, open **More fields**, and pick each variable with the **{ }** button of its setting.
+The workflow opens in the **Builder** with two steps: **On Create Incident**, and **Send Message to IRC**, which posts the incident's number, title, severity and state in two lines. A message that isn't delivered fails the run, and the run's log says why. The server and the channel are saved as the workflow's variables `ircServer` and `ircChannel`. If you saved passwords in the previous step, click **Send Message to IRC**, open **More fields**, and pick each variable with the **{ }** button of its setting.
 @tab From scratch
 1. Open **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
 2. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Incident** under **Popular**. Click the trigger and, in **Fields to pass on**, pick the incident fields your message shows, such as its title.

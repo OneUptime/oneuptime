@@ -44,7 +44,8 @@ Anslutningen loggar in med [OAuth 2.0-flödet för klientautentiseringsuppgifter
 
 1. Gå till **API permissions → Add a permission → Microsoft Graph → Application permissions**, välj `AuditLog.Read.All` och välj **Add permissions**. Microsoft dokumenterar att listan över inloggningar också kan kräva `Directory.Read.All`: lägg till den om inloggningar avvisas med `403` när medgivandet har getts.
 2. För Microsoft 365-granskningsloggen lägger du till en andra behörighet: **Add a permission → Office 365 Management APIs → Application permissions**, sedan `ActivityFeed.Read`.
-3. Välj **Grant admin consent for** din klientorganisation och bekräfta. Varje behörighets status måste vara **Granted**: utan medgivande avvisas varje läsning med `403`.
+3. Om playbooks ska kunna inaktivera, aktivera och logga ut användare (se [Begränsning](/docs/telemetry/security-cases#begränsning)) lägger du till `User.Read.All`, `User.EnableDisableAccount.All` och `User.RevokeSessions.All` på samma sätt. Microsoft låter bara en app som också har rollen Privileged Authentication Administrator ändra en administratörs konto.
+4. Välj **Grant admin consent for** din klientorganisation och bekräfta. Varje behörighets status måste vara **Granted**: utan medgivande avvisas varje läsning med `403`.
 
 ### Skapa en klienthemlighet
 
@@ -52,7 +53,7 @@ Gå till **Certificates & secrets → Client secrets → New client secret**, v�
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Entra ID** under **Identitet** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**. Slå på **Microsoft 365-granskningslogg** i steget **Hämtning** för att läsa den också.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Entra ID** under **Identitet** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**. Slå på **Microsoft 365-granskningslogg** i steget **Hämtning** för att läsa den också.
 
 ### Testa den innan du sparar
 

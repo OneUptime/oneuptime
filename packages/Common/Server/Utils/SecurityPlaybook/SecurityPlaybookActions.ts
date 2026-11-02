@@ -8,6 +8,7 @@ import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/Securi
 import SecurityCaseNote from "../../../Models/DatabaseModels/SecurityCaseNote";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
@@ -20,6 +21,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
 import {
@@ -39,6 +41,7 @@ import { SecurityPlaybookStepStatus } from "../../../Types/SecurityPlaybook/Secu
 import {
   AddCaseLabelsConfig,
   AddCaseNoteConfig,
+  AddCaseTasksConfig,
   AssignCaseConfig,
   CheckThreatIntelConfig,
   DeclareIncidentConfig,
@@ -52,6 +55,7 @@ import {
   SendWebhookConfig,
   SetCasePriorityConfig,
   SetCaseStatusConfig,
+  readTaskLines,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { SecurityPlaybookTarget } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -83,6 +87,7 @@ import OnCallPageService, {
 } from "../../Services/OnCallPageService";
 import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
 import SecurityCaseNoteService from "../../Services/SecurityCaseNoteService";
+import SecurityCaseTaskService from "../../Services/SecurityCaseTaskService";
 import SecurityCaseService, {
   SECURITY_CASE_PLAYBOOK_NAME_KEY,
 } from "../../Services/SecurityCaseService";
@@ -148,6 +153,11 @@ export interface PlaybookStepOutcome {
   detailsInMarkdown?: MarkdownText | undefined;
   error?: string | undefined;
   threatIntelMatched?: boolean | undefined;
+  /*
+   * For a step that looks something up: whether it found something, which a
+   * later step can wait on (SecurityPlaybookStepCondition).
+   */
+  found?: boolean | undefined;
   // The step wrote its own feed entry (a change of the case already says itself).
   hasWrittenOwnFeed?: boolean | undefined;
   feedEventType?: SecurityCaseFeedEventType | undefined;
@@ -226,6 +236,8 @@ export default class SecurityPlaybookActions {
         return await this.addCaseNote(context);
       case SecurityPlaybookActionType.AddCaseLabels:
         return await this.addCaseLabels(context);
+      case SecurityPlaybookActionType.AddCaseTasks:
+        return await this.addCaseTasks(context);
       case SecurityPlaybookActionType.CheckThreatIntel:
         return await this.checkThreatIntel(context);
       case SecurityPlaybookActionType.LookUpEntityActivity:
@@ -272,9 +284,15 @@ export default class SecurityPlaybookActions {
       case SecurityPlaybookActionType.EndOktaSessions:
       case SecurityPlaybookActionType.ContainCrowdStrikeHost:
       case SecurityPlaybookActionType.IsolateDefenderDevice:
+      case SecurityPlaybookActionType.DisableEntraIdUser:
+      case SecurityPlaybookActionType.SignOutEntraIdUser:
+      case SecurityPlaybookActionType.SuspendGoogleWorkspaceUser:
+      case SecurityPlaybookActionType.SignOutGoogleWorkspaceUser:
       case SecurityPlaybookActionType.UnsuspendOktaUser:
       case SecurityPlaybookActionType.LiftCrowdStrikeContainment:
       case SecurityPlaybookActionType.ReleaseDefenderDevice:
+      case SecurityPlaybookActionType.EnableEntraIdUser:
+      case SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser:
         return await this.contain(context);
     }
 
@@ -481,6 +499,91 @@ export default class SecurityPlaybookActions {
     );
   }
 
+  /*
+   * The step's tasks on the case's checklist (SecurityCaseTaskService, which
+   * puts each on the timeline and tells the person it is handed to). A task
+   * the case has already, open or done, by the same words whatever their
+   * case, is not added again: a playbook that runs for every new detection
+   * does not fill the checklist with copies. The person must still be a
+   * member of the project; one who left gets nothing, and the tasks are
+   * added for whoever works the case.
+   */
+  private static async addCaseTasks(
+    context: PlaybookStepContext,
+  ): Promise<PlaybookStepOutcome> {
+    const config: AddCaseTasksConfig = readConfig<AddCaseTasksConfig>(
+      context.step,
+    );
+    const tasks: Array<string> = readTaskLines(
+      config.tasks as unknown as JSONValue,
+    );
+
+    const existing: Array<SecurityCaseTask> =
+      await SecurityCaseTaskService.findBy({
+        query: {
+          projectId: context.projectId,
+          securityCaseId: context.securityCase.id!,
+        },
+        select: {
+          title: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: ROOT,
+      });
+
+    const known: Set<string> = new Set<string>(
+      existing.map((task: SecurityCaseTask): string => {
+        return (task.title || "").trim().toLowerCase();
+      }),
+    );
+    const toAdd: Array<string> = tasks.filter((task: string): boolean => {
+      return !known.has(task.toLowerCase());
+    });
+
+    if (toAdd.length === 0) {
+      return skipped(mdText`The case has these tasks already.`);
+    }
+
+    const assignee: User | undefined = config.assigneeUserId
+      ? (
+          await this.findNamed<User>(User, context.projectId, [
+            config.assigneeUserId,
+          ])
+        )[0]
+      : undefined;
+
+    for (const title of toAdd) {
+      const task: SecurityCaseTask = new SecurityCaseTask();
+      task.projectId = context.projectId;
+      task.securityCaseId = context.securityCase.id!;
+      task.title = title;
+
+      if (assignee?.id) {
+        task.assignedToUserId = assignee.id;
+      }
+
+      // The task service puts the task on the timeline itself.
+      await SecurityCaseTaskService.create({ data: task, props: ROOT });
+    }
+
+    const added: MarkdownText = mdText`Added ${String(toAdd.length)} task${toAdd.length === 1 ? "" : "s"}`;
+
+    if (assignee) {
+      return succeeded(
+        mdText`${added} for **${assignee.name?.toString() || assignee.email?.toString() || ""}**.`,
+        { hasWrittenOwnFeed: true },
+      );
+    }
+
+    return succeeded(
+      config.assigneeUserId
+        ? mdText`${added}. The person this step hands them to is no longer in the project, so they are left for whoever works the case.`
+        : mdText`${added}.`,
+      { hasWrittenOwnFeed: true },
+    );
+  }
+
   // ---------- Investigate ----------
 
   private static async checkThreatIntel(
@@ -509,7 +612,7 @@ export default class SecurityPlaybookActions {
     if (indicators.length === 0) {
       return succeeded(
         mdText`Looked up ${String(entities.length)} entit${entities.length === 1 ? "y" : "ies"} in threat intel: none is known-bad.`,
-        { feedEventType: SecurityCaseFeedEventType.ThreatIntel },
+        { feedEventType: SecurityCaseFeedEventType.ThreatIntel, found: false },
       );
     }
 
@@ -560,6 +663,7 @@ export default class SecurityPlaybookActions {
       )}.${priorityNote}`,
       {
         threatIntelMatched: true,
+        found: true,
         feedEventType: SecurityCaseFeedEventType.ThreatIntel,
         detailsInMarkdown: FeedMarkdown.bulletList(
           matches.map((match: ActiveIndicator): MarkdownText => {
@@ -613,6 +717,7 @@ export default class SecurityPlaybookActions {
       mdText`Looked up ${String(entities.length)} entit${entities.length === 1 ? "y" : "ies"} over the last ${String(config.lookbackInHours)} hour${config.lookbackInHours === 1 ? "" : "s"}: ${String(activity.length)} had events${quiet > 0 ? mdText`, ${String(quiet)} had none` : FeedMarkdown.empty()}.`,
       {
         feedEventType: SecurityCaseFeedEventType.EntityActivity,
+        found: activity.length > 0,
         detailsInMarkdown:
           rows.length > 0 ? FeedMarkdown.bulletList(rows) : undefined,
       },

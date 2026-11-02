@@ -34,7 +34,7 @@ Cloud-ressourcer er ét af flere steder, hvor din cloud dukker op:
 
 | Du kører | Hvor det vises | Hvordan |
 | --- | --- | --- |
-| Containere på ECS, Cloud Run, Container Apps, App Service, … | **Cloud → All Environments** | Dine workloads' egen telemetri efter deres `cloud.platform`. Se [Cloud-miljøer](/docs/telemetry/cloud-environments) |
+| Containere på ECS, Cloud Run, Container Apps, App Service, … | **App-platforme → Alle miljøer** | Dine workloads' egen telemetri efter deres `cloud.platform`. Se [Cloud-miljøer](/docs/telemetry/cloud-environments) |
 | Enhver IaaS- eller PaaS-ressource, som udbyderen overvåger | **Cloud → Alle ressourcer** | Udbyderens overvågnings-API, læst af en collector: denne side |
 | Virtuelle maskiner med en OpenTelemetry Collector på | **Værter** | Værtens egne metrikker og logs. Se [OpenTelemetry-collector på værten](/docs/telemetry/host-otel-collector) |
 | Køer og topics, som dine applikationer bruger | **Queues** | Spans og de samme cloudmetrikker. Se [Køer](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Selvhostede installationer kan ændre dette med miljøvariabler på appen:
 ## Inventar og regler
 
 - **Inventar:** Cloud-ressourcer vises i [Inventar](/docs/inventory/overview) som elementer af typen **Cloud-ressource** med udbyderens ID som `cloud.resource.id` og typen som `cloud.resource.type`. AI-agentens ressourceværktøjer viser dem også.
-- **Regler:** **Cloud → Indstillinger → Etiketregler** og **Ejerregler** gælder for dem, som de gør for cloud-miljøer.
+- **Regler:** **Cloud → Indstillinger → Etiketregler** og **Ejerregler** gælder for dem. App-platforme har sine egne for cloud-miljøer, og en regel, der blev oprettet, før de to blev adskilt, gælder for begge.
 
 ## Fejlfinding
 

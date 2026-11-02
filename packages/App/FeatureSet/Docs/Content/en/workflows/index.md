@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> The **Forward new incidents to another system** template builds the same workflow for you. Find it under **Incidents** when you create a workflow.
+> The **Forward new incidents to another system** template builds this workflow for you, without the Log block: with nothing on **Error**, a request that fails fails the run, and the run's **Steps** say why. Find it under **Incidents** when you create a workflow.
 
 :::steps
 ### Create the workflow

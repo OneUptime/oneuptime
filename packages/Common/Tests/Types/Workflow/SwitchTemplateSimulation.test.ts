@@ -236,7 +236,11 @@ describe("Send each new incident to the right Slack channel by severity (inciden
     ]);
   });
 
-  test("a post Slack refuses is logged by the step that made it", async () => {
+  /*
+   * Nothing is connected to the Slack step's Error output, so a post Slack
+   * refuses fails the run, and the step says why (UnhandledStepFailure).
+   */
+  test("a post Slack refuses fails the run, at the step that made it", async () => {
     const trace: SimulationTrace = await runSeveritySwitch(
       "Critical Incident",
       (): SimulatedReply => {
@@ -248,15 +252,13 @@ describe("Send each new incident to the right Slack channel by severity (inciden
       "incident-on-create-1",
       "switch-1",
       "slack-critical",
-      "log-critical-failed",
     ]);
     expect(trace.ports["slack-critical"]).toBe("error");
-    expect(trace.logs[0]).toContain(
-      "❌ Slack could not deliver the critical incident",
-    );
+    expect(trace.failedSteps).toEqual(["slack-critical"]);
+    expect(trace.logs).toEqual([]);
   });
 
-  test("its outline leads with the trigger, then the check, the Slack posts, and the logs last", () => {
+  test("its outline leads with the trigger, then the check, the Slack posts, and the log last", () => {
     expect(getWorkflowTemplateOutline("incident-severity-slack")).toEqual({
       triggerComponentId: "incident-on-create",
       stepComponentIds: [
@@ -264,7 +266,7 @@ describe("Send each new incident to the right Slack channel by severity (inciden
         ComponentID.SlackSendMessageToChannel,
         ComponentID.Log,
       ],
-      blockCount: 7,
+      blockCount: 5,
     });
   });
 

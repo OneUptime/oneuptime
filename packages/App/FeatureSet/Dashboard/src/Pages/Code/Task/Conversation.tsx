@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
 import PageComponentProps from "../../PageComponentProps";
 import CodeApi, { CodeTaskResponse } from "../../../Components/Code/CodeApi";
@@ -327,7 +328,12 @@ const CodeTaskConversation: FunctionComponent<
               onClick={() => {
                 void stop();
               }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-60"
+              className={`inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 ${getHandDrawnButtonStateClassName(
+                {
+                  isBusy: isStopping,
+                  hoverClassName: "hover:bg-gray-50",
+                },
+              )}`}
             >
               <span className="h-2.5 w-2.5 rounded-[2px] bg-current" />
               {isStopping

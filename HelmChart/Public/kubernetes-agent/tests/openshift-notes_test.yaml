@@ -1,0 +1,160 @@
+# What the notes say on OpenShift.
+#
+# On the openshift preset they name the SCCs the chart created and the pods
+# that use them, so an admin reviewing the install knows what was granted.
+#
+# On openshift-restricted the chart created none, so they say what that leaves
+# out and how to move to the openshift preset.
+#
+# On any other preset, an install on OpenShift goes in without complaint:
+# OpenShift admits pods later, one at a time, and refuses the ones that need
+# more than restricted-v2, so they simply never appear. The notes are the one
+# place to say so, when the API server serves security.openshift.io, and to
+# give the upgrade that fixes it. Nowhere else do they mention OpenShift.
+suite: the notes name the openshift preset's SCCs, and warn when OpenShift runs without the preset
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: names the node collector's and the eBPF SCCs on the openshift preset
+    set:
+      preset: openshift
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nPreset: openshift\\nEvery pod runs under OpenShift's restricted-v2 SCC, except those that read\\nthe nodes, which run under SCCs this chart created for them alone:\\n  - oneuptime-agent-kubernetes-agent-node-collector: the node collector \\(read-only node\\n    paths, as root with the SELinux type spc_t, no capabilities\\)\\n  - oneuptime-agent-kubernetes-agent-ebpf: the eBPF instrumentation\\n    \\(privileged, in the host's PID namespace\\)\\n"
+
+  - it: names the profiler beside the eBPF instrumentation when both run
+    set:
+      preset: openshift
+      profiling.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - oneuptime-agent-kubernetes-agent-ebpf: the eBPF instrumentation and the profiler\\n    \\(privileged, in the host's PID namespace\\)\\n"
+
+  - it: names the profiler alone when eBPF is off
+    set:
+      preset: openshift
+      ebpf.enabled: false
+      profiling.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - oneuptime-agent-kubernetes-agent-ebpf: the profiler\\n"
+
+  - it: names no privileged SCC when neither eBPF nor the profiler runs
+    set:
+      preset: openshift
+      ebpf.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "no capabilities\\)\\n\\nTo verify the agent is running:"
+      - notMatchRegexRaw:
+          pattern: "kubernetes-agent-ebpf"
+
+  - it: warns, with the upgrade that fixes it, when OpenShift runs the standard preset
+    capabilities:
+      apiVersions:
+        - security.openshift.io/v1
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nOneUptime URL: https://oneuptime\\.example\\.com\\n\\nThis cluster is OpenShift, but the preset is not openshift\\. OpenShift's\\ndefault SCC, restricted-v2, refuses the agent's pods that mount node paths,\\nrun privileged or run as a fixed user, so some of what is listed below will\\nnot arrive\\. Switch to the openshift preset:\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set preset=openshift\\n\\nThe agent is now collecting:"
+
+  - it: warns on any preset but openshift
+    set:
+      preset: gke-autopilot
+    capabilities:
+      apiVersions:
+        - security.openshift.io/v1
+    asserts:
+      - matchRegexRaw:
+          pattern: "This cluster is OpenShift, but the preset is not openshift\\."
+
+  - it: does not warn on the openshift preset
+    set:
+      preset: openshift
+    capabilities:
+      apiVersions:
+        - security.openshift.io/v1
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "the preset is not openshift"
+
+  - it: does not warn on the openshift-restricted preset, which is OpenShift's too
+    set:
+      preset: openshift-restricted
+    capabilities:
+      apiVersions:
+        - security.openshift.io/v1
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "the preset is not openshift"
+      - matchRegexRaw:
+          pattern: "\\nOneUptime URL: https://oneuptime\\.example\\.com\\n\\nThe agent is now collecting:"
+
+  - it: says what openshift-restricted leaves out, and how to move to the openshift preset
+    set:
+      preset: openshift-restricted
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nPreset: openshift-restricted\\neBPF auto-instrumentation and continuous CPU profiling are off on this preset,\\nwhatever ebpf\\.enabled and profiling\\.enabled say: both need a privileged pod\\non every node, and OpenShift's restricted-v2 SCC refuses privileged pods\\. To\\ntrace your services, send traces from them with an OpenTelemetry SDK\\.\\nEvery pod runs under restricted-v2 and this chart created no SCC, so nothing\\nreads the nodes: no per-node OS metrics and no audit logs, and pod logs come\\nthrough the Kubernetes API \\(the log tailer\\) instead of from the nodes\\. Node,\\npod and container metrics still arrive, from each node's kubelet\\.\\nTo collect the rest, switch to the openshift preset, which creates the SCCs\\nits node pods need \\(creating them takes cluster-admin rights\\):\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set preset=openshift\\n\\nTo verify the agent is running:"
+
+  - it: names no SCC on openshift-restricted, where the chart created none
+    set:
+      preset: openshift-restricted
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "kubernetes-agent-(node-collector|ebpf)|spc_t|SCCs this chart created"
+
+  - it: lists what openshift-restricted really collects, and nothing it leaves out
+    set:
+      preset: openshift-restricted
+      ebpf.enabled: true
+      profiling.enabled: true
+      hostMetrics.enabled: true
+      auditLogs.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+      - matchRegexRaw:
+          pattern: "  - Pod logs via the Kubernetes API \\(log-tailer Deployment"
+      - notMatchRegexRaw:
+          pattern: "Per-node OS metrics \\(|Kubernetes API server audit logs|Application traces|Continuous CPU flame graphs"
+      - notMatchRegexRaw:
+          pattern: "Pod logs from /var/log/pods"
+      - notMatchRegexRaw:
+          pattern: "To check the eBPF instrumentation logs"
+
+  - it: still lists audit logs on the openshift preset, which reads them
+    set:
+      preset: openshift
+      auditLogs.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Kubernetes API server audit logs \\(self-managed clusters\\)\\n"
+
+  - it: says nothing of OpenShift elsewhere
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "OpenShift|openshift|SCC"
+      - matchRegexRaw:
+          pattern: "\\nOneUptime URL: https://oneuptime\\.example\\.com\\n\\nThe agent is now collecting:"
+
+  - it: lists OpenShift's objects among what the agent collects on the openshift preset
+    set:
+      preset: openshift
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Kubernetes events \\(k8sobjects\\)\\n  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services \\(k8sobjects/openshift\\)\\n"
+
+  - it: does not list them when resource specs are off
+    set:
+      preset: openshift
+      resourceSpecs.enabled: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "k8sobjects/openshift"

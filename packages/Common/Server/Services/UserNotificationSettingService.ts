@@ -1081,6 +1081,26 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addIncomingCallNotificationSettings(userId, projectId);
     await this.addSecurityCaseNotificationSettings(userId, projectId);
     await this.addSecurityHuntNotificationSettings(userId, projectId);
+    await this.addExceptionNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * An exception assigned to the person, or to a team they are on
+   * (ExceptionAssignmentNotifications), by email: as every owner-added
+   * event, it is the person being handed something to look at. Idempotent -
+   * the notification seeds it too before sending, for the members who
+   * joined before it existed.
+   */
+  @CaptureSpan()
+  public async addExceptionNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION,
+    );
   }
 
   /*

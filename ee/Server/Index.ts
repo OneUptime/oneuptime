@@ -21,7 +21,10 @@ import LicenseArea, { licensing } from "./License/Index";
 import LicenseServerArea from "./LicenseServer/Index";
 import MarketplaceArea from "./Marketplace/Index";
 import TeamComplianceArea from "./TeamCompliance/Index";
-import WhiteLabelArea, { getProductBranding } from "./WhiteLabel/Index";
+import WhiteLabelArea, {
+  getProductBranding,
+  getProductBrandingLogo,
+} from "./WhiteLabel/Index";
 import WorkersArea from "./Workers/Index";
 import packageJson from "../package.json";
 
@@ -135,6 +138,9 @@ const EnterpriseModule: EnterpriseServerModule = {
   },
   getProductBranding: (): ProductBranding | null => {
     return getProductBranding();
+  },
+  getProductBrandingLogo: (): Buffer | null => {
+    return getProductBrandingLogo();
   },
   getBillingProvider: (): BillingProvider | null => {
     return getBillingProvider();

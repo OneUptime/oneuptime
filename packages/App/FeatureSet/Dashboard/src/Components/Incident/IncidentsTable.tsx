@@ -708,6 +708,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             name: true,
             _id: true,
             projectId: true,
+            // Opens an environment in App Platforms, a resource in Cloud.
+            cloudResourceKind: true,
           },
           services: {
             name: true,
@@ -823,6 +825,16 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             title: "Severity",
             type: FieldType.Entity,
             hideOnMobile: true,
+            /*
+             * Where the list does not fit its card - beside the side menu up
+             * to about 1600px - the severity sits under the state, and the
+             * duration under when it was declared, the labels and owners
+             * under the title: every value of the row kept, the row's View
+             * in sight (TableFit). A table of nine columns ran 560px past
+             * its card at 1280px.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "currentIncidentState",
             getElement: (item: Incident): ReactElement => {
               if (item["incidentSeverity"]) {
                 return (
@@ -916,6 +928,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 _id: true,
                 projectId: true,
+                cloudResourceKind: true,
               },
               services: {
                 name: true,
@@ -971,6 +984,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             disableSort: true,
             disableCsvExport: true,
+            // Under when it was declared, where the list folds (Severity).
+            hideBelowLargeScreen: true,
+            foldInto: "declaredAt",
             getElement: (item: Incident): ReactElement => {
               const incidentId: string = item.id?.toString() || "";
               const isResolved: boolean = isIncidentResolved(item);
@@ -1004,6 +1020,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            // Under the title, where the list folds (Severity).
+            hideBelowLargeScreen: true,
+            foldInto: "title",
 
             getElement: (item: Incident): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
@@ -1016,6 +1035,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            // Under the title, where the list folds (Severity).
+            hideBelowLargeScreen: true,
+            foldInto: "title",
             getElement: (item: Incident): ReactElement => {
               return (
                 <OwnersCell

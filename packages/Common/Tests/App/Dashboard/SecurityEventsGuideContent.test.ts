@@ -7,6 +7,7 @@ jest.mock("isolated-vm", () => {
 });
 
 import { describe, expect, test } from "@jest/globals";
+import { DETECTION_REAL_TIME_RULES_MAX } from "../../../Types/SecurityEvent/RealTimeDetection";
 import { Lexer, Token, Tokens } from "marked";
 import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
 import {
@@ -1089,6 +1090,24 @@ describe("Detection Rules guide: evaluation", () => {
     expect(evaluation).toContain(`\`${DETECTION_MATCH_COUNT_THRESHOLD_MIN}\``);
     expect(evaluation).toContain(
       DETECTION_MATCH_COUNT_THRESHOLD_MAX.toLocaleString("en-US"),
+    );
+  });
+
+  test("says which rules can run in real time, where the switch is and how many a project runs", () => {
+    const evaluation: string = sectionMarkdown(
+      DetectionRulesGuide,
+      "evaluation",
+    );
+
+    expect(evaluation).toContain("#### Rules that run in real time");
+    expect(evaluation).toContain(
+      "a **Match Count Threshold** of 1, no **Distinct Count Field**, no `re` modifier, not a correlation",
+    );
+    expect(evaluation).toContain(
+      "turn on **Run in Real Time** under **More fields** on the **On Match** step.",
+    );
+    expect(evaluation).toContain(
+      `A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time.`,
     );
   });
 

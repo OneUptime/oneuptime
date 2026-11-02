@@ -136,7 +136,7 @@ const TELEMETRY_MONITOR_PAGES: Array<string> = [
   PROFILES_MONITOR,
 ];
 
-// The anomaly conditions of a log count, a span count and a metric value.
+// The anomaly conditions of a log, span or exception count and a metric value.
 const ANOMALY_CONDITIONS: Array<string> = [
   "Anomalously High",
   "Anomalously Low",
@@ -171,7 +171,14 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Span Count",
     ...ANOMALY_CONDITIONS,
   ],
-  [EXCEPTIONS_MONITOR]: ["Exception Count"],
+  // The criteria's filter types, as the Dashboard draws them in English.
+  [EXCEPTIONS_MONITOR]: [
+    "Exception Count",
+    "New Exceptions",
+    "Regressed Exceptions",
+    "Exception Increase (in %)",
+    ...ANOMALY_CONDITIONS,
+  ],
   /*
    * Profiles has none: its criteria's labels (Profile Count, Function Share
    * (in %)) are spelled out for the locales (PROFILE_CHECK_ON_LABELS), so
@@ -285,11 +292,6 @@ const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
       label: "Edit Images",
       file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
       literal: /editButtonText=\{"Edit Images"\}/,
-    },
-    {
-      label: "Edit Favicon",
-      file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
-      literal: /editButtonText=\{"Edit Favicon"\}/,
     },
     {
       label: "Edit Default Bar Color",
@@ -426,6 +428,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anomaly detection",
   ],
   [METRICS_MONITOR]: [
+    "Its services.",
+    "An average, minimum, maximum or percentile of a plain metric",
+    "A Sum or a Count, and any query on a histogram,",
+    "A query filtered or grouped by an attribute",
     "Every minute.",
     "Queries, then formulas.",
     "Then the rule's measure.",
@@ -454,6 +460,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "No exceptions is a count of 0.",
     "OneUptime's own downtime is not silence.",
     "Criteria from top to bottom.",
+    "It uses your filters.",
+    "Quiet time counts.",
+    "A new service waits.",
+    "The alert says why.",
   ],
   [PROFILES_MONITOR]: [
     "Every minute.",

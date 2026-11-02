@@ -4,7 +4,7 @@ En Proxmox-monitor overvåger én Proxmox VE-klynge – dens noder, VM'er og LXC
 
 :::cards
 - [Opret monitoren](#opret-en-proxmox-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Tolv færdige advarsler, én hændelse pr. node, gæst eller volumen.
+- [Skabeloner](#færdige-advarselsskabeloner): Femten færdige advarsler, én hændelse pr. node, gæst eller volumen, og to på Proxmox VE's egne notifikationer.
 - [Ressourceidentitet](#ressourceidentitet): Sådan rammer du én node, gæst eller lagervolumen.
 - [Metrikker](#indsamlede-metrikker): Hver serie `pve_*`, monitoren kan advare på.
 :::
@@ -48,19 +48,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Proxmox** unde
 
 ### Vælg klyngen
 
-Vælg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge, der har sendt data, er på listen.
+Vælg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Proxmox-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** – klik på en [skabelon](#færdige-advarselsskabeloner). Den angiver metrikkerne, filtrene, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** – vælg én metrik i **Proxmox Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til en slags ressource eller til én ressource.
-- **Avanceret** – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. en hukommelsesprocent ud fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Brug **Gruppér efter** `id` for at bedømme hver ressource for sig.
+- **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikkerne, filtrene, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) – vælg én metrik i **Proxmox Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til en slags ressource eller til én ressource.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. en hukommelsesprocent ud fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Brug **Gruppér efter** `id` for at bedømme hver ressource for sig.
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at en metrik falder til nul, så angiv din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 
@@ -95,7 +95,7 @@ Hver serie bærer en datapunktetiket `id`, der navngiver den Proxmox-ressource, 
 | `lxc/<vmid>` | En LXC-container, f.eks. `lxc/101`. |
 | `storage/<node>/<storage>` | En lagervolumen på en node, f.eks. `storage/pve1/local`. |
 
-To undtagelser: replikeringsserier (`pve_replication_*`) bærer replikerings-**jobbets** id i `id` (f.eks. `100-0`), og den klyngedækkende `pve_not_backed_up_total` har slet ingen `id`.
+Én undtagelse: replikeringsserier (`pve_replication_*`) bærer replikerings-**jobbets** id i `id` (f.eks. `100-0`). Klyngens egne serier, som quorum (`pve_up`) og `pve_not_backed_up_total`, bærer `cluster/<name>`.
 
 Filtre matcher på lighed, ikke på et præfiks, så agenten deler også `id` op i tre attributter, du kan filtrere på. Skabelonerne bygger på dem:
 
@@ -109,7 +109,7 @@ Filtrér på `pve.scope` eller `pve.type` for én slags ressource, på `pve.id` 
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder 12 skabeloner. Hver bygger en komplet monitor – forespørgsler, attributfiltre, en gruppering, et kriterium, der udløses, og et, der genopretter. De fleste grupperer efter `id`, så hver node, gæst, volumen eller hvert job får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder 15 skabeloner. Hver bygger en komplet monitor – forespørgsler, attributfiltre, en gruppering, et kriterium, der udløses, og et, der genopretter. De fleste grupperer efter `id`, så hver node, gæst, volumen eller hvert job får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og et tærskelkriterium genopretter 10 % forbi sin tærskel, så en værdi, der svæver ved grænsen, ikke blafrer.
 
@@ -117,34 +117,51 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `pve_up`, Count over hele klyngen, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | Node Offline | Kritisk | `pve_up` for `pve.scope = node`, Min pr. `id` | Under 1 | Ved 1 |
-| Guest Down | Warning | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min pr. `id` | `pve_up` er under 1, mens `pve_onboot_status` er 1 | `pve_up` er tilbage på 1, eller start ved opstart er slået fra |
+| Guest Down | Advarsel | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min pr. `id` | `pve_up` er under 1, mens `pve_onboot_status` er 1 | `pve_up` er tilbage på 1, eller start ved opstart er slået fra |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (begge Sum): andelen af noder, der er online | 50 % eller mindre | Over 55 % |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg pr. `id` | Over 0,9 (90 % af nodens kerner) | Ved eller under 0,81 |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg pr. `id`, seneste 15 minutter | Over 0,95 (95 % af dens vCPU'er) i alle 15 minutter | Ved eller under 0,855 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
-| Container Root Disk Near Full | Warning | Det samme diskforhold for `pve.type = lxc`, pr. `id` | Over 90 % | Ved eller under 81 % |
+| Node Restarted | Advarsel | `pve_uptime_seconds` og `pve_up` for `pve.scope = node`, Min pr. `id` | `pve_uptime_seconds` er under 900 (15 minutter), mens `pve_up` er 1 | `pve_uptime_seconds` er på 990 eller mere, eller `pve_up` er 0 |
+| High Node CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg pr. `id` | Over 0,9 (90 % af nodens kerner) | Ved eller under 0,81 |
+| High Node Memory Usage | Advarsel | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
+| High Guest CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg pr. `id`, seneste 15 minutter | Over 0,95 (95 % af dens vCPU'er) i alle 15 minutter | Ved eller under 0,855 |
+| Storage Unavailable | Kritisk | `pve_up` for `pve.scope = storage`, Min pr. `id` | Under 1 | Ved 1 |
+| Storage Near Full | Advarsel | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
+| Container Root Disk Near Full | Advarsel | Det samme diskforhold for `pve.type = lxc`, pr. `id` | Over 90 % | Ved eller under 81 % |
 | HA Resource in Error State | Kritisk | `pve_ha_state` for `state = error`, Max pr. `id` | Over 0 | Ved 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (én klyngedækkende serie) | Over 0 | Ved 0 |
+| Guest Not Backed Up | Advarsel | `pve_not_backed_up_total`, Max (én klyngedækkende serie) | Over 0 | Ved 0 |
+| Backup Running Too Long | Advarsel | `pve_lock_state` for `pve.scope = guest` og `state = backup`, Min pr. `id`, seneste 6 timer | Over 0 | Ved 0 |
 | Replication Failing | Kritisk | `pve_replication_failed_syncs`, Max pr. `id` (job-id'et) | Over 0 | Ved 0 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 
 - **Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngen i ti minutter: Proxmox-agenten eller dens pve-exporter er stoppet, har mistet sin rute til OneUptime eller har fået sit token tilbagekaldt, Proxmox-API'et er holdt op med at svare den, eller hver node i et indbygget push er blevet tavs. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 - **Nedetidsskabelonerne bruger Minimum**, så én indsamling, hvor ressourcen var nede, udløser dem i stedet for at blive skjult af indsamlinger, hvor den kørte.
-- **Guest Down** ser kun på gæster, der er sat til at starte ved opstart, så en gæst, du har stoppet med vilje, aldrig kalder nogen.
-- **Cluster Quorum at Risk** er en tilnærmelse: pve-exporter har ingen corosync-metrik, så skabelonen tæller de noder, der er online.
+- **Guest Down** ser kun på gæster, der er sat til at starte ved opstart: stopper du en af dem med vilje, kalder den stadig nogen, så slå dens start ved opstart fra først.
+- **Cluster Quorum at Risk** tæller de noder, der er online. pve-exporter rapporterer også selve quorum, som `pve_up` for `cluster/<name>`: 1, mens klyngen har quorum.
+- **Node Restarted** udløses for en node, der er oppe, men har kørt i mindre end 15 minutter: den er genstartet, eller den er gået ned og kommet tilbage. Den løser sig selv, når noden har været oppe i 16,5 minutter, 10 % forbi tærsklen; en node, der er nede, udløser i stedet **Node Offline**.
 - **High Guest CPU Usage** ligger højere og reagerer langsommere end nodeskabelonen: en gæst er beregnet til at bruge sine vCPU'er, så kun en, der aldrig falder ned igen, kalder nogen.
 - **Forholdsformler** tager **Sum** af begge sider. Begge kommer fra den samme indsamling, så resultatet er en ægte procent.
 - **Container Root Disk Near Full** udelader QEMU-VM'er: deres diskforbrug viser 0 uden QEMU-gæsteagenten.
+- **Storage Unavailable** udløses, når et lager, som Proxmox VE viser for en node, holder op med at være tilgængeligt: et share, der ikke kan monteres, en Proxmox Backup Server, der ikke kan nås, en pool, der er væk. Gæster med diske på det hænger eller kan ikke starte, og backups til det mislykkes.
 - **Guest Not Backed Up** dækker kun medlemskab af backupjob. pve-exporter siger ikke, om backups kørte eller lykkedes; gruppér `pve_not_backed_up_info` efter `id` for at få gæsterne vist.
+- **Backup Running Too Long** udløses, når en VM eller container er låst af en backup i hver indsamling i seks timer: en backup, der hænger, eller et mål, der er for langsomt til gæsten. Så længe låsen holdes, kan gæsten hverken migreres, få et snapshot eller tages backup af igen.
 - **Forældet replikering** (nu minus den seneste synkronisering) kan der ikke advares på, fordi kriterier ikke kan regne med uret. Klyngens side **Oversigt** viser det; advar i stedet med **Replication Failing**.
+
+### Advarsler på Proxmox VE's notifikationer
+
+To advarsler mere læser Proxmox VE's egne notifikationer, som klyngen sender som logs, når du [sender dem til OneUptime](/docs/telemetry/proxmox#send-proxmox-ves-notifikationer). De er logmonitorer, der tilbydes på klyngens side **Anbefalinger**, og de virker både med agenten og med det indbyggede push.
+
+| Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | Advarsel | Notifikationslogs med `pve.notification.type = vzdump` og `pve.notification.severity = error`, pr. node og job, seneste 60 minutter | Et backupjob melder en fejl | Det samme jobs næste kørsel lykkes |
+| Node Fenced | Kritisk | Notifikationslogs med `pve.notification.type = fencing`, pr. node, seneste 30 minutter | Proxmox VE isolerer en node (fencing) | Den node isoleres ikke igen i 30 minutter |
+
+Hver node og hvert backupjob får sin egen hændelse og sin egen advarsel. Advarslen for et mislykket backupjob forbliver åben, indtil en senere kørsel af det samme job lykkes, uanset hvor lang tid det tager.
 
 ### Det indbyggede push i Proxmox VE
 
 Proxmox VE 9 og senere kan pushe metrikker gennem sin indbyggede OpenTelemetry-metrikserver uden at installere noget – se [vejledningen til Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gør pushet til de samme serier `pve_*`, så kataloget og skabelonerne for CPU, hukommelse og lager virker med det.
 
-**Node Offline** og **Cluster Quorum at Risk** virker også: hver node pusher kun sin egen status, så en node, der holder op med at rapportere, meldes nede (`pve_up` = 0) af de noder, der stadig lever – se [Når en node holder op med at rapportere](/docs/telemetry/proxmox#når-en-node-holder-op-med-at-rapportere). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** og **Replication Failing** kræver data, som kun agenten indsamler.
+**Node Offline** og **Cluster Quorum at Risk** virker også: hver node pusher kun sin egen status, så en node, der holder op med at rapportere, meldes nede (`pve_up` = 0) af de noder, der stadig lever – se [Når en node holder op med at rapportere](/docs/telemetry/proxmox#når-en-node-holder-op-med-at-rapportere). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** kræver data, som kun agenten indsamler. De to [advarsler på notifikationer](#advarsler-på-proxmox-ves-notifikationer) virker også med det: Proxmox VE sender selv sine notifikationer.
 
 ## Indsamlede metrikker
 
@@ -154,7 +171,7 @@ Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: dens klyngecol
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
-| `pve_up` | — | 1, når noden eller gæsten er oppe eller kører, ellers 0. |
+| `pve_up` | — | 1, når noden, gæsten eller lageret er oppe, ellers 0. For `cluster/<name>` 1, mens klyngen har quorum. |
 | `pve_uptime_seconds` | sekunder | Nodens eller gæstens oppetid. |
 | `pve_version_info` | antal | Proxmox VE-udgivelsen i sine etiketter. Altid 1. |
 
@@ -162,7 +179,7 @@ Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: dens klyngecol
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
-| `pve_node_info` | antal | Nodemetadata, altid 1. Summér den for at tælle de noder, der rapporterer. |
+| `pve_node_info` | antal | Nodemetadata, altid 1, mens noden rapporterer. En sum lægger hver scrape i et minut sammen, så den tæller ikke noder. |
 | `pve_cpu_usage_ratio` | forhold | CPU i brug som et forhold på 0–1 af den tilgængelige CPU. |
 | `pve_cpu_usage_limit` | kerner | Tilgængelig CPU i kerner. For en gæst dens vCPU'er. |
 | `pve_memory_usage_bytes` | bytes | Hukommelse i brug. |
@@ -180,6 +197,7 @@ CPU- og hukommelsesserierne rapporteres også for hver gæst, på id'erne `qemu/
 | `pve_disk_read_bytes` | bytes | Bytes læst fra disk af gæsten. En tæller over hele levetiden. |
 | `pve_disk_write_bytes` | bytes | Bytes skrevet til disk af gæsten. En tæller over hele levetiden. |
 | `pve_onboot_status` | antal | 1, når gæsten starter ved nodens opstart. En stoppet gæst med denne indstilling er som regel uplanlagt nedetid. |
+| `pve_lock_state` | — | Den lås, Proxmox VE holder på en gæst, mens en opgave ændrer den, én serie pr. lås (`backup`, `migrate`, `snapshot`, …), 1 på den, der holdes. Filtrér på etiketten `state`. |
 
 ### Lager
 
@@ -187,7 +205,8 @@ CPU- og hukommelsesserierne rapporteres også for hver gæst, på id'erne `qemu/
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Brugte bytes på disken eller lageret. For en QEMU-gæst viser den 0, medmindre QEMU-gæsteagenten er installeret. |
 | `pve_disk_size_bytes` | bytes | Diskens eller lagerets samlede størrelse. |
-| `pve_storage_info` | antal | Lagermetadata, altid 1. Summér den for at tælle lagervolumener. |
+| `pve_storage_shared` | antal | 1, når hver node i klyngen kan bruge lageret, såsom NFS eller Ceph; 0, når kun dets egen node kan. |
+| `pve_storage_info` | antal | Lagermetadata, altid 1, mens lageret findes. En sum lægger hver scrape i et minut sammen, så den tæller ikke volumener. |
 
 ### HA
 
@@ -201,7 +220,7 @@ Fra exporterens collector `backup-info` på klyngeniveau. De rapporterer kun dæ
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | antal | Gæster i intet backupjob. Én klyngedækkende serie uden `id`. |
+| `pve_not_backed_up_total` | antal | Gæster i intet backupjob. Én klyngedækkende serie, `id` `cluster/<name>`, der også rapporteres ved 0. |
 | `pve_not_backed_up_info` | antal | Én serie pr. udækket gæst, altid 1, mærket med gæstens `id`. Den forsvinder, så snart gæsten kommer med i et backupjob. |
 
 ### Replikering
@@ -231,7 +250,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ikke har nogen målinger: **Ignore** (standard), **Treat As Zero** eller **Trigger**. |
 
-Anomalibetingelser sammenligner hver værdi med samme time på ugen i baselinen. De forbliver i en "Learning"-tilstand og giver intet, før baseline-vinduet rummer nok historik.
+Anomalibetingelser sammenligner hver værdi med samme time på ugen i baselinen. De forbliver i en "Learning"-tilstand og giver intet, før baseline-vinduet rummer nok historik. En sum, en optælling eller en forespørgsel på et histogram forbliver i den tilstand for altid: denne monitor filtrerer sine forespørgsler efter attributter, og baselinen indeholder ingen.
 
 Hvert kriterium siger også, hvad der skal ske, når det matcher: ændre monitorens status, oprette en advarsel eller erklære en hændelse. Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør det.
 
@@ -262,7 +281,7 @@ Skabelonen tager gennemsnittet af `pve_cpu_usage_ratio` pr. `id`, så hver node 
 :::
 
 :::details Node Offline bliver ved med at udløses for en node, du har fjernet fra klyngen
-Med det indbyggede push i Proxmox VE ser en node, der er taget ud af klyngen, ud som en, der er gået ned: den holdt op med at rapportere, så de noder, der stadig lever, bliver ved med at melde den nede. Åbn nodens side, og klik på **Remove Node** – noden forsvinder, og dens advarsel løses. Ellers forbliver den Offline i op til 7 dage. Agenten har ikke dette problem: den spørger klyngen, som ikke længere viser noden.
+Med det indbyggede push i Proxmox VE ser en node, der er taget ud af klyngen, ud som en, der er gået ned: den holdt op med at rapportere, så de noder, der stadig lever, bliver ved med at melde den nede. Åbn nodens side, og klik på **Fjern node** – noden forsvinder, og dens advarsel løses. Ellers forbliver den Offline i op til 7 dage. Agenten har ikke dette problem: den spørger klyngen, som ikke længere viser noden.
 :::
 
 :::details Backup- eller replikeringsmetrikker mangler

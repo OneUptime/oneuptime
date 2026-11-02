@@ -50,10 +50,27 @@ export interface DockerSwarmResourceFilters {
    * `<stack>_<service>`). Scopes the query to one service's tasks. Optional.
    */
   serviceName?: string | undefined;
+  /**
+   * → `resource.docker.swarm.service.name` is present: only the containers
+   * Swarm runs for a service (its tasks), not one started any other way on
+   * a node - the agent's own container, a `docker run`. Set by every
+   * template but Cluster Stopped Reporting, whose heartbeat is the agent's
+   * own container. Not set: every container the agent reports.
+   */
+  tasksOnly?: boolean | undefined;
 }
+
+// The attribute only a Swarm task's container carries (see tasksOnly).
+export const SWARM_TASK_SERVICE_ATTRIBUTE: string =
+  "resource.docker.swarm.service.name";
 
 export default interface MonitorStepDockerSwarmMonitor {
   clusterIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   resourceFilters: DockerSwarmResourceFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;

@@ -57,19 +57,19 @@ flowchart TB
 
 ### 選擇叢集
 
-在 **Ceph Monitor Configuration** 下，從 **Ceph 叢集** 中選擇叢集。所有傳送過資料的叢集都在清單中。
+在 **Ceph Monitor Configuration** 下，從 **Ceph 叢集** 中選擇叢集。所有傳送過資料的叢集都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 Ceph 叢集** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
 
 ### 選擇要監看的內容
 
-從三個分頁中選擇一個：
+新監測器從 **告警內容** 下的 **Cluster Stopped Reporting** 開始。要監測其他內容：
 
-- **Quick Setup**：按一下一個[範本](#預建警示範本)。範本會設定指標、篩選器、彙總、時間範圍和臨界值，並以自己的條件取代下方的條件。之後仍可以修改**時間範圍**。
-- **Custom Metric**：從 **Ceph Metric** 中選擇一個指標，然後設定**彙總**和**時間範圍**。**OSD** 和 **Pool ID** 可以把範圍縮小到一個常駐程式或一個儲存池。
-- **進階**：在**選擇指標**下自行建立查詢和公式，例如用 `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes` 計算已用容量比率。用 **分組依據** 指定 `ceph_daemon` 或 `pool_id`，即可分別判斷每個常駐程式或儲存池。
+- **變更**：選擇另一個 [範本](#預建警示範本)。範本會設定指標、篩選器、彙總、時間範圍和臨界值，並以自己的條件取代下方的條件。之後仍可以修改**時間範圍**。
+- **Custom Metric**（在 **更多欄位** 下）：從 **Ceph Metric** 中選擇一個指標，然後設定**彙總**和**時間範圍**。**OSD** 和 **Pool ID** 可以把範圍縮小到一個常駐程式或一個儲存池。按集區或按常駐程式分別記錄的指標，會逐個集區或逐個常駐程式判斷，每個各自產生一個事件。
+- **進階**（在 **更多欄位** 下）：在**選擇指標**下自行建立查詢和公式，例如用 `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes` 計算已用容量比率。用 **分組依據** 指定 `ceph_daemon` 或 `pool_id`，即可分別判斷每個常駐程式或儲存池。
 
 ### 檢查條件
 
-開啟**監測器條件**下的每個條件，檢查其**指標**、**彙總**、**條件**和 **閾值**。範本會自動填入這些內容。使用 **Custom Metric** 或**進階**時，監測器會從[預設條件](#預設條件)開始，而預設條件只會注意到指標降到零，所以請設定自己的臨界值。
+開啟**監測器條件**下的每個條件，檢查其**指標**、**彙總**、**條件**和 **閾值**。範本會自動填入這些內容。使用 **Custom Metric** 或**進階**時，監測器會從[預設條件](#預設條件)開始，而預設條件只會注意到指標不再傳送資料，所以請設定自己的臨界值。
 
 ### 建立監測器
 
@@ -87,7 +87,7 @@ flowchart TB
 | **OSD** | Custom Metric、進階 | 選填。與 `ceph_daemon` 標籤完全相符，例如 `osd.3`。 |
 | **Pool ID** | Custom Metric、進階 | 選填。與 `pool_id` 標籤完全相符，例如 `2`。 |
 | **Ceph Metric** | Custom Metric | [目錄](#收集的指標)中的一個指標。 |
-| **彙總** | Custom Metric | 樣本的合併方式：**平均**、**最大值**、**最小值**、**總和**或**計數**。初始值為該指標慣用的彙總方式。 |
+| **彙總** | Custom Metric | 樣本的合併方式：**平均**、**最大值**或**最小值**。初始值為該指標慣用的彙總方式。總和或計數會把一分鐘內的每次抓取加在一起，因此留給 **進階** 使用。 |
 | **時間範圍** | 全部 | 查詢讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新的監測器從 **Past 1 Minute** 開始；範本會設定自己的值。 |
 | **選擇指標** | 進階 | 查詢建構器：**指標**、**Aggregate by**、**Filter by attributes**、**分組依據**，以及用來組合查詢的**新增指標**和**新增公式**。 |
 
@@ -95,11 +95,11 @@ flowchart TB
 
 ### 健康檢查序列
 
-`ceph_health_detail` 匯出的是**每個作用中健康檢查一個序列**，帶有 `name`（例如 `OSD_NEARFULL` 或 `RECENT_CRASH`）和 `severity` 標籤。序列只在其檢查觸發期間存在，所以沒有序列就代表健康。若要對任何 Ceph 健康檢查發出警示，請依其 `name` 篩選，在**最大值**高於 `0` 時觸發，並將**如果沒有資料**設為 **Treat As Zero**，在 `0` 時復原——健康檢查範本正是這樣建立的。`ceph_daemon_health_metrics` 以同樣的方式依常駐程式運作，以 `type` 標籤（例如 `SLOW_OPS`）和 `ceph_daemon` 為鍵。
+`ceph_health_detail` 匯出的是**每個健康檢查一個序列**，帶有 `name`（例如 `OSD_NEARFULL` 或 `RECENT_CRASH`）和 `severity` 標籤。檢查作用期間其序列為 `1`，清除後為 `0`，從未觸發過的檢查沒有序列。若要對任何 Ceph 健康檢查發出警示，請依其 `name` 篩選，在**最大值**高於 `0` 時觸發，並將**如果沒有資料**設為 **Treat As Zero**，在 `0` 時復原——健康檢查範本正是這樣建立的。`ceph_daemon_health_metrics` 以同樣的方式依常駐程式運作，以 `type` 標籤（例如 `SLOW_OPS`）和 `ceph_daemon` 為鍵。
 
 ## 預建警示範本
 
-**Quick Setup** 提供 24 個範本，涵蓋停止回報的叢集、叢集健康狀態、OSD、歸置群組和容量。每個範本都會建立一個完整的監測器——查詢、標籤篩選器、分組、一個觸發條件和一個復原條件。臨界值只是起點，可以編輯。
+**告警內容** 清單提供 24 個範本，涵蓋停止回報的叢集、叢集健康狀態、OSD、歸置群組和容量。每個範本都會建立一個完整的監測器——查詢、標籤篩選器、分組、一個觸發條件和一個復原條件。臨界值只是起點，可以編輯。
 
 除非表格另有說明，範本會讀取過去 5 分鐘的資料。只有當條件在視窗內的每一分鐘都成立時才會觸發；帶臨界值的條件要回到臨界值另一側 10% 處才會復原，這樣在邊界附近徘徊的值就不會來回跳動。**嚴重程度**是選擇器中顯示的標籤；範本建立的事件和警示，會以你專案中最嚴重的事件嚴重程度和警示嚴重程度開始。
 
@@ -116,42 +116,42 @@ flowchart TB
 | 範本 | 嚴重程度 | 監看內容 | 觸發時機 | 復原時機 |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | 嚴重 | `ceph_health_status`，Max，過去 1 分鐘 | 2 或以上：`HEALTH_ERR` | 低於 1.8：`HEALTH_WARN` 或更好 |
-| Cluster Health Warning | Warning | `ceph_health_status`，Max | 1 或以上：`HEALTH_WARN` 或更差 | 低於 0.9：`HEALTH_OK` |
+| Cluster Health Warning | 警告 | `ceph_health_status`，Max | 1 或以上：`HEALTH_WARN` 或更差 | 低於 0.9：`HEALTH_OK` |
 | Monitor Quorum Degraded | 嚴重 | `ceph_mon_quorum_status`，依 `ceph_daemon` 取 Min，過去 1 分鐘 | 某個 mon 降到 1 以下，退出仲裁。每個 mon 一個事件 | 回到 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`，Max | 高於 0：叢集的 `SLOW_OPS` 檢查處於作用中 | 為 0 |
-| Daemon Slow Operations | Warning | `type = SLOW_OPS` 的 `ceph_daemon_health_metrics`，依 `ceph_daemon` 取 Max | 高於 0。每個 OSD 或 mon 一個事件 | 序列消失 |
+| Slow Operations | 警告 | `ceph_healthcheck_slow_ops`，Max | 高於 0：叢集的 `SLOW_OPS` 檢查處於作用中 | 為 0 |
+| Daemon Slow Operations | 警告 | `type = SLOW_OPS` 的 `ceph_daemon_health_metrics`，依 `ceph_daemon` 取 Max | 高於 0。每個 OSD 或 mon 一個事件 | 序列消失 |
 | Daemon Crash | 嚴重 | `name = RECENT_CRASH` 的 `ceph_health_detail`，Max | 檢查處於作用中：有尚未封存的常駐程式當機。mgr 沒有 `ceph_crash_*` 指標，所以這是唯一的當機訊號 | 當機已封存 |
-| Monitor Clock Skew | Warning | `name = MON_CLOCK_SKEW` 的 `ceph_health_detail`，Max | 檢查處於作用中：mon 的時鐘偏差超過允許值（預設 0.05 秒） | 檢查消失 |
+| Monitor Clock Skew | 警告 | `name = MON_CLOCK_SKEW` 的 `ceph_health_detail`，Max | 檢查處於作用中：mon 的時鐘偏差超過允許值（預設 0.05 秒） | 檢查消失 |
 | Monitor Disk Critically Low | 嚴重 | `name = MON_DISK_CRIT` 的 `ceph_health_detail`，Max | 檢查處於作用中：mon 資料庫磁碟的可用空間低於 5%（預設值） | 檢查消失 |
-| Monitor Disk Space Low | Warning | `name = MON_DISK_LOW` 的 `ceph_health_detail`，Max | 檢查處於作用中：可用空間低於 30%（預設值） | 檢查消失 |
+| Monitor Disk Space Low | 警告 | `name = MON_DISK_LOW` 的 `ceph_health_detail`，Max | 檢查處於作用中：可用空間低於 30%（預設值） | 檢查消失 |
 
 ### OSD 範本
 
 | 範本 | 嚴重程度 | 監看內容 | 觸發時機 | 復原時機 |
 | --- | --- | --- | --- | --- |
 | OSD Down | 嚴重 | `ceph_osd_up`，依 `ceph_daemon` 取 Min | 某個 OSD 降到 1 以下。每個 OSD 一個事件 | 回到 1 |
-| OSD Out | Warning | `ceph_osd_in`，依 `ceph_daemon` 取 Min | 某個 OSD 降到 1 以下：被標記為退出資料分布 | 回到 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`，依 `ceph_daemon` 取 Avg | 高於 100 ms。每個 OSD 一個事件 | 不高於 90 ms |
-| OSD Slow Heartbeats | Warning | `name = OSD_SLOW_PING_TIME_FRONT` 和 `name = OSD_SLOW_PING_TIME_BACK` 的 `ceph_health_detail`，Max | 任一檢查處於作用中：公用網路或叢集網路上的心跳變慢。mgr 不會匯出 ping 時間指標 | 兩個檢查都消失 |
+| OSD Out | 警告 | `ceph_osd_in`，依 `ceph_daemon` 取 Min | 某個 OSD 降到 1 以下：被標記為退出資料分布 | 回到 1 |
+| OSD High Latency | 警告 | `ceph_osd_apply_latency_ms`，依 `ceph_daemon` 取 Avg | 高於 100 ms。每個 OSD 一個事件 | 不高於 90 ms |
+| OSD Slow Heartbeats | 警告 | `name = OSD_SLOW_PING_TIME_FRONT` 和 `name = OSD_SLOW_PING_TIME_BACK` 的 `ceph_health_detail`，Max | 任一檢查處於作用中：公用網路或叢集網路上的心跳變慢。mgr 不會匯出 ping 時間指標 | 兩個檢查都消失 |
 
 ### 歸置群組範本
 
 | 範本 | 嚴重程度 | 監看內容 | 觸發時機 | 復原時機 |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | 嚴重 | `ceph_pg_total` − `ceph_pg_active`，依 `pool_id` 取 Max | 高於 0：PG 無法處理 I/O，送往它們的用戶端請求會停住。每個儲存池一個事件 | 為 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`，依 `pool_id` 取 Max | 高於 0：物件的副本數少於設定值 | 為 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`，依 `pool_id` 取 Max | 高於 0：PG 對應到的 OSD 少於其副本數 | 為 0 |
+| Degraded Placement Groups | 警告 | `ceph_pg_degraded`，依 `pool_id` 取 Max | 高於 0：物件的副本數少於設定值 | 為 0 |
+| Undersized Placement Groups | 警告 | `ceph_pg_undersized`，依 `pool_id` 取 Max | 高於 0：PG 對應到的 OSD 少於其副本數 | 為 0 |
 | Damaged Placement Groups | 嚴重 | `name = PG_DAMAGED` 和 `name = OSD_SCRUB_ERRORS` 的 `ceph_health_detail`，Max | 任一檢查處於作用中：清理（scrub）發現了損壞或讀取錯誤 | 兩個檢查都消失 |
 
 ### 容量範本
 
 | 範本 | 嚴重程度 | 監看內容 | 觸發時機 | 復原時機 |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 高於 85%，即 Ceph 預設的 nearfull 比率 | 不高於 76.5% |
+| Cluster Near Full | 警告 | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 高於 85%，即 Ceph 預設的 nearfull 比率 | 不高於 76.5% |
 | Cluster Full | 嚴重 | 同一比率 | 高於 95%，即 Ceph 預設的 full 比率，此時整個叢集停止寫入 | 不高於 85.5% |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100，依 `pool_id` | 高於儲存池可容納量的 85%。每個儲存池一個事件 | 不高於 76.5% |
-| OSD Nearfull | Warning | `name = OSD_NEARFULL` 的 `ceph_health_detail`，Max | 檢查處於作用中：某個 OSD 超過 nearfull 臨界值（預設 85%）。單一 OSD 會遠早於叢集平均值被寫滿 | 檢查消失 |
-| OSD Backfillfull | Warning | `name = OSD_BACKFILLFULL` 的 `ceph_health_detail`，Max | 檢查處於作用中：往該 OSD 的回填被拒絕（預設 90%），復原因而停滯 | 檢查消失 |
+| Pool Near Full | 警告 | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100，依 `pool_id` | 高於儲存池可容納量的 85%。每個儲存池一個事件 | 不高於 76.5% |
+| OSD Nearfull | 警告 | `name = OSD_NEARFULL` 的 `ceph_health_detail`，Max | 檢查處於作用中：某個 OSD 超過 nearfull 臨界值（預設 85%）。單一 OSD 會遠早於叢集平均值被寫滿 | 檢查消失 |
+| OSD Backfillfull | 警告 | `name = OSD_BACKFILLFULL` 的 `ceph_health_detail`，Max | 檢查處於作用中：往該 OSD 的回填被拒絕（預設 90%），復原因而停滯 | 檢查消失 |
 | OSD Full | 嚴重 | `name = OSD_FULL` 的 `ceph_health_detail`，Max，過去 1 分鐘 | 檢查處於作用中：某個 OSD 達到 full 臨界值（預設 95%），寫入被拒絕 | 檢查消失 |
 
 - **停止運作和仲裁範本使用最小值**，因此一個停止運作的 OSD 或一個退出仲裁的 mon 就會觸發它們，而不會被健康的多數掩蓋。
@@ -175,7 +175,7 @@ flowchart TB
 | `ceph_healthcheck_slow_ops` | 計數 | `SLOW_OPS` 檢查回報的 OSD 和 mon 慢速操作。 |
 | `ceph_daemon_health_metrics` | 計數 | 依常駐程式的健康指標，以 `type`（例如 `SLOW_OPS`）和 `ceph_daemon` 為鍵。 |
 | `ceph_mon_quorum_status` | 計數 | mon 在仲裁中時為 1，依 `ceph_daemon`（例如 `mon.a`）。 |
-| `ceph_mon_metadata` | 計數 | mon 中繼資料，一律為 1。加總即可計算 mon 數量。 |
+| `ceph_mon_metadata` | 計數 | mon 中繼資料，mon 回報期間一律為 1。加總會把一分鐘內的每次抓取都加起來，因此無法計算 mon 數量。 |
 | `ceph_cluster_total_bytes` | 位元組 | 總原始容量。 |
 | `ceph_cluster_total_used_bytes` | 位元組 | 已使用的原始容量。 |
 
@@ -190,7 +190,7 @@ flowchart TB
 | `ceph_osd_stat_bytes` | 位元組 | OSD 裝置的原始容量。 |
 | `ceph_osd_stat_bytes_used` | 位元組 | OSD 上已使用的原始位元組數。與總量比較，可以找出不平均或接近寫滿的 OSD。 |
 | `ceph_osd_numpg` | 計數 | OSD 上的歸置群組。 |
-| `ceph_osd_metadata` | 計數 | OSD 中繼資料（主機名稱、裝置類別、版本），一律為 1。加總即可計算 OSD 數量。 |
+| `ceph_osd_metadata` | 計數 | OSD 中繼資料（主機名稱、裝置類別、版本），OSD 回報期間一律為 1。加總會把一分鐘內的每次抓取都加起來，因此無法計算 OSD 數量。 |
 
 ### 儲存池指標
 
@@ -207,7 +207,7 @@ flowchart TB
 
 ### 歸置群組指標
 
-每個 `ceph_pg_*` 序列都依儲存池劃分，帶有 `pool_id` 標籤；將所有儲存池加總即可得到叢集層級的數量。
+每個 `ceph_pg_*` 序列都依儲存池劃分，帶有 `pool_id` 標籤。加總會把一分鐘內的每次抓取和每個儲存池都加起來，因此請像 PG 範本那樣，依 `pool_id` 分組逐一比較儲存池。
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ flowchart TB
 | **基準視窗** | 僅限異常條件。14 天（預設）、28 天、60 天或 90 天的歷史記錄。 |
 | **如果沒有資料** | 位於**更多欄位**下。視窗中沒有樣本時的處理方式：**Ignore**（預設）、**Treat As Zero** 或**觸發器**。 |
 
-異常條件將每個值與基準中一週內同一時段的值比較。在基準視窗累積足夠的歷史記錄之前，它們會維持 "Learning" 狀態，不會產生任何東西。
+異常條件將每個值與基準中一週內同一時段的值比較。在基準視窗累積足夠的歷史記錄之前，它們會維持 "Learning" 狀態，不會產生任何東西。 總和、計數或針對直方圖的查詢會一直保持這個狀態：此監測器依屬性篩選查詢，而基準不保存屬性。
 
 每個條件也規定符合時要做什麼：變更監測器狀態、建立警示或宣告事件。條件由上而下依序檢查，第一個符合的條件決定結果。
 
@@ -270,7 +270,7 @@ flowchart TB
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-健康檢查序列（包括 `ceph_daemon_health_metrics`）只在檢查觸發期間存在，因此叢集健康時找不到它們是正常的。
+從未觸發過的健康檢查（包括 `ceph_daemon_health_metrics`）沒有序列，已清除的檢查為 `0`，因此叢集健康時找不到序列或只看到 0 都是正常的。
 :::
 
 :::details ceph_pool_wr_bytes 之類的計數器只增不減

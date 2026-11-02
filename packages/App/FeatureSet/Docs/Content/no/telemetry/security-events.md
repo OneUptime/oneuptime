@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Åpne **Produkter → Security Events**, under **Observerbarhet**. Menyen har en seksjon for hver del av sikkerheten, og en egen side for hver ting i den:
+Åpne **Produkter → Sikkerhetshendelser**, under **Observerbarhet**. Menyen har en seksjon for hver del av sikkerheten, og en egen side for hver ting i den:
 
 | Side | Seksjon | Hva den er til |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ flowchart TB
 | **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
 | **Hunts** | Hendelser | Søk lagret fra Hendelser, åpnet igjen med ett klikk eller kjørt etter en tidsplan som varsler personer når de finner noe |
-| **Campaigns** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
+| **Kampanjer** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
 | **Deteksjonsregler** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
@@ -111,7 +111,7 @@ Endepunktet svarer `200` så snart hendelsene står i kø. En hendelse sendt ute
 
 ### Finn dem under Hendelser
 
-Åpne **Produkter → Security Events → Hendelser**. Hendelsene vises i løpet av noen sekunder, med alvorlighetsgrad, klasse, bruker, vert og IP-adresser fylt ut.
+Åpne **Produkter → Sikkerhetshendelser → Hendelser**. Hendelsene vises i løpet av noen sekunder, med alvorlighetsgrad, klasse, bruker, vert og IP-adresser fylt ut.
 :::
 
 ### Formater
@@ -262,11 +262,11 @@ Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **R
 
 ### Hva som skjedde etterpå
 
-En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel, følges inn i den forespørselen. Panelet viser hvor langt forespørselen kom (**Avvist**, **Reached App**, **Errored** eller **Reached Database**), hvem som sendte den, og lenker til sporingen, unntaket, øktavspillingen og selve logglinjen. En logglinje, en sporing og et unntak som er del av et angrep, sier det også på sine egne sider.
+En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel, følges inn i den forespørselen. Panelet viser hvor langt forespørselen kom (**Avvist**, **Nådde appen**, **Feilet** eller **Nådde databasen**), hvem som sendte den, og lenker til sporingen, unntaket, øktavspillingen og selve logglinjen. En logglinje, en sporing og et unntak som er del av et angrep, sier det også på sine egne sider.
 
 ### Campaigns
 
-**Campaigns** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
+**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
 
 ### Korreler
 
@@ -313,7 +313,7 @@ Hunts har det samme REST-API-et som resten av OneUptime, under `/security-hunt`,
 
 ## Deteksjonsregler
 
-En deteksjonsregel er en [Sigma](https://sigmahq.io/)-regel, et åpent YAML-format for å beskrive mistenkelig aktivitet, som OneUptime kjører etter en tidsplan mot hendelsene dine. Når den treffer, åpner den en [sak](/docs/telemetry/security-cases) eller legger treffet til i en åpen sak, åpner et varsel, eventuelt en hendelse (incident), og skriver et Detection Finding tilbake blant sikkerhetshendelsene. **Regelbibliotek** har ferdige regler å starte fra.
+En deteksjonsregel er en [Sigma](https://sigmahq.io/)-regel, et åpent YAML-format for å beskrive mistenkelig aktivitet, som OneUptime kjører etter en tidsplan mot hendelsene dine, eller på hver hendelse så snart den kommer inn. Når den treffer, åpner den en [sak](/docs/telemetry/security-cases) eller legger treffet til i en åpen sak, åpner et varsel, eventuelt en hendelse (incident), og skriver et Detection Finding tilbake blant sikkerhetshendelsene. **Regelbibliotek** har ferdige regler å starte fra.
 
 ```mermaid title="Slik slår en deteksjonsregel til"
 flowchart TB
@@ -327,12 +327,12 @@ flowchart TB
 ### Opprett en regel
 
 :::steps
-1. Åpne **Produkter → Security Events → Deteksjoner → Deteksjonsregler**, og klikk på **Opprett Deteksjonsregel**.
+1. Åpne **Produkter → Sikkerhetshendelser → Deteksjoner → Deteksjonsregler**, og klikk på **Opprett Deteksjonsregel**.
 2. Lim inn regelens YAML i **Sigma-regel (YAML)** under **Sigma-regel**. Den tolkes når du lagrer, så en feil vises i skjemaet.
 3. **Navn** fylles inn fra regelens `title`: skriv over det for å kalle regelen noe annet. En ny regel kjører; **Aktivert** står i redigeringsskjemaet.
 4. La **Åpne en sak ved treff** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.
 5. Velg under **Varsler og hendelser** hva et treff ellers skal utløse: **Opprett et varsel** (standard), **Erklær en hendelse**, **Begge** eller **Ingen av dem**, med valgfri **Varselsalvor** eller **Hendelsesalvor**.
-6. **Flere felt** har **Beskrivelse**, **Skriv Detection Finding ved treff** (på) og hvordan treff telles; se [Evalueringsinnstillinger](#evalueringsinnstillinger).
+6. **Flere felt** har **Beskrivelse**, **Skriv Detection Finding ved treff** (på), **Kjør i sanntid** (av) og hvordan treff telles; se [Evalueringsinnstillinger](#evalueringsinnstillinger).
 :::
 
 En første regel, som treffer mislykkede pålogginger fra utenfor `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Felt | Hva det gjør |
 | --- | --- |
 | **Evalueringsintervall (minutter)** | Hvor ofte regelen kjører: hele minutter, 1 til 1440. Skjemaet for en ny regel starter på 5. |
+| **Kjør i sanntid** | Av på en ny regel. Når den er på, sjekker regelen hver hendelse når den kommer inn, i stedet for hvert intervall; se [Sanntidsregler](#sanntidsregler). |
 | **Grupperingsfelt** | Valgfritt. Treff som deler dette feltets verdi, for eksempel `principalHost`, telles, varsles og dedupliseres samlet: ett varsel per vert i stedet for hundrevis. |
 | **Felt for unik telling** | Valgfritt. Tell de ulike verdiene i dette feltet i stedet for hendelsene som treffer. Tomme verdier telles ikke. |
 | **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor én kjøring: 1 til 1000000, og 1 slår til på hvert treff. |
@@ -450,6 +451,16 @@ OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått 
 - Etter et opphold, for eksempel et worker-avbrudd eller en regel som er slått på igjen, dekker neste kjøring hele oppholdet, opptil de siste 24 timene.
 - En hendelse som kommer mer enn to minutter for sent, etter at en kjøring har dekket tidspunktet, lagres og er søkbar, men den regelen leser den aldri.
 - Hver gruppe som når terskelen, blir et Detection Finding, opptil 10 000 per kjøring. Varsler, hendelser og saker åpnes for de 100 med høyest telling; resten deler én sak om regelen, og regelens **Siste feil** sier hvor mange grupper som traff.
+
+### Sanntidsregler
+
+En regel som utløses av én hendelse, kan kjøre i sanntid i stedet for etter intervallet sitt: slå på **Kjør i sanntid** under **Flere felt** i steget **Ved treff**. Hver hendelse OneUptime mottar, fra enhver kilde, sjekkes da mot regelen når den kommer inn, og et treff åpner saken, varselet og funnet sitt i løpet av sekunder.
+
+- Det passer for en regel med en **Terskel for antall treff** på 1, uten **Felt for unik telling** og uten modifikatoren `re`. En korrelasjon teller hendelser sammen og kjører derfor etter intervallet sitt. Skjemaet forteller hva som må endres når en regel ikke passer.
+- Et prosjekt kjører høyst 50 regler i sanntid, siden hver hendelse sjekkes mot hver av dem.
+- I **Deteksjonsregler** viser **Status** for en sanntidsregel **Sanntid**, og det gjør intervallkolonnen også. En sjekk som mislykkes, vises under **Siste feil**, slik som for en kjøring.
+- Når den slås på, leser regelen først det som har kommet inn siden forrige kjøring, så ingenting faller mellom tidsplanen og sanntid. Når den slås av, går den tilbake til intervallet sitt, fra to minutter før.
+- Unntak og overvåkingslister gjelder for den som for enhver regel, og **Kjør på tidligere hendelser** leser den som enhver annen.
 
 ### Alvorlighetsgrad
 
@@ -481,7 +492,7 @@ Funn er vanlige hendelser: søk etter dem under **Hendelser** og pivoter på dem
 
 ### Unntak
 
-Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsskanner, en nattlig sikkerhetskopijobb eller en planlagt penetrasjonstest. Det gjør regelen stille for akkurat den ene tingen uten å slå den av, og regelens andre treff utløses fortsatt. Alle unntak står under **Produkter → Security Events → Deteksjoner → Regelunntak**: legg til ett der med **Legg til Regelunntak**, med **Legg til unntak** i en regels rad, eller med **Legg til unntak** i en deteksjons rad på en sak, som starter med deteksjonens regel og det den ble utløst for.
+Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsskanner, en nattlig sikkerhetskopijobb eller en planlagt penetrasjonstest. Det gjør regelen stille for akkurat den ene tingen uten å slå den av, og regelens andre treff utløses fortsatt. Alle unntak står under **Produkter → Sikkerhetshendelser → Deteksjoner → Regelunntak**: legg til ett der med **Legg til Regelunntak**, med **Legg til unntak** i en regels rad, eller med **Legg til unntak** i en deteksjons rad på en sak, som starter med deteksjonens regel og det den ble utløst for.
 
 | Det regelen hopper over | Hva det treffer |
 | --- | --- |
@@ -497,7 +508,7 @@ Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsska
 
 ### Overvåkingslister
 
-En overvåkingsliste er en liste teamet ditt holder én gang og som enhver regel kan lese, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher eller adressene administratorer kan logge på fra. Alle lister ligger under **Produkter → Security Events → Deteksjoner → Overvåkingslister**: Opprett en der med **Opprett Overvåkingsliste**, som spør om navnet og hva den inneholder, eller legg til en vanlig fra **Start med en vanlig liste**. Siden til en liste viser verdiene, og **Bruk den i en regel** gir en seleksjon som leser listen, til å kopiere inn i en regel.
+En overvåkingsliste er en liste teamet ditt holder én gang og som enhver regel kan lese, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher eller adressene administratorer kan logge på fra. Alle lister ligger under **Produkter → Sikkerhetshendelser → Deteksjoner → Overvåkingslister**: Opprett en der med **Opprett Overvåkingsliste**, som spør om navnet og hva den inneholder, eller legg til en vanlig fra **Start med en vanlig liste**. Siden til en liste viser verdiene, og **Bruk den i en regel** gir en seleksjon som leser listen, til å kopiere inn i en regel.
 
 En regel leser en liste med `expand` og navnet på listen mellom to `%`-tegn. Denne regelen utløses når en administrator logger på fra en adresse som ikke står på den tillatte listen:
 
@@ -573,6 +584,10 @@ Sjekk nøkkelen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Sj
 
 :::details En regel treffer aldri
 Sjekk **Status**: med **Deaktivert** kjører ikke regelen, og med **Kjøring mislyktes** viser **Vis feil** i raden hvorfor. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
+:::
+
+:::details Kjør i sanntid kan ikke slås på
+Regelen teller treff, teller unike verdier, leser et regulært uttrykk eller er en korrelasjon, og skjemaet forteller hvilket: sett **Terskel for antall treff** til 1, tøm **Felt for unik telling**, eller bruk `contains`, `startswith` eller `endswith` i stedet for `re`. Et prosjekt kjører høyst 50 regler i sanntid: slå det av på en annen regel først.
 :::
 
 :::details En regel traff, men ingen varsler ble åpnet

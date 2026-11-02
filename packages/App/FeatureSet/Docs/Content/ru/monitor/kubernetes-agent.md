@@ -4,7 +4,7 @@
 
 :::cards
 - [Установите агент](#установка-агента): Четыре шага с Helm.
-- [Выберите пресет](#выбор-пресета): Стандартные кластеры, GKE Autopilot или EKS Fargate.
+- [Выберите пресет](#выбор-пресета): Стандартные кластеры, GKE Autopilot, EKS Fargate или OpenShift.
 - [Основные параметры](#основные-параметры): Настройки, которые меняют в большинстве кластеров.
 - [Устранение неполадок](#устранение-неполадок): Диагностический скрипт и типичные проблемы.
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | Сборщик узла | DaemonSet | Логи подов из `/var/log/pods`, метрики kubelet и cAdvisor и метрики ОС узла. | Да |
 | eBPF-инструментирование (OBI) | DaemonSet | Трассировки HTTP, gRPC, SQL и Redis и метрики запросов от каждого пода, а также карта сервисов. | Да |
 | ИИ-агент Kubernetes | Deployment | Позволяет OneUptime AI выполнять `kubectl` только для чтения, пока он расследует инцидент или оповещение в этом кластере. | Да |
-| Считыватель логов | Deployment | Логи подов через Kubernetes API там, где сборщик узла не может их прочитать. | С пресетами `gke-autopilot` и `eks-fargate` |
+| Считыватель логов | Deployment | Логи подов через Kubernetes API там, где сборщик узла не может их прочитать. | С пресетами `gke-autopilot`, `eks-fargate` и `openshift-restricted` |
 | eBPF-профилировщик | DaemonSet | Непрерывные flame-графы CPU для каждого процесса. | Нет |
 | kube-state-metrics | Deployment | Фазы подов, причины ожидания контейнеров и квоты ресурсов. | Нет |
 
@@ -92,10 +92,14 @@ kubectl get pods -n oneuptime-agent
 | `standard` (по умолчанию) | Самостоятельно управляемые кластеры, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Сборщик узла читает `/var/log/pods` | Метрики kubelet, cAdvisor и ОС |
 | `gke-autopilot` | **GKE Autopilot** | Считыватель логов читает их через Kubernetes API | Метрики kubelet и cAdvisor, без `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Считыватель логов читает их через Kubernetes API | Ничего: Fargate не запускает DaemonSet |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Сборщик узла читает `/var/log/pods` | Метрики kubelet, cAdvisor и ОС |
+| `openshift-restricted` | **OpenShift**, если администратор не хочет добавлять SCC | Считыватель логов читает их через Kubernetes API | Метрики kubelet и cAdvisor, без `hostPath` |
 
 Если не уверены, оставьте `preset` пустым, чтобы получить `standard`. Если установка завершается ошибкой Pod Security с упоминанием `hostPath`, установите заново с `gke-autopilot` или с `eks-fargate` в EKS Fargate.
 
-GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF-инструментированию и профилированию, поэтому их пресеты не включают ни то, ни другое:
+GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF-инструментированию и профилированию, поэтому их пресеты не включают ни то, ни другое.
+
+В OpenShift используемое по умолчанию ограничение контекста безопасности (SCC) `restricted-v2` отклоняет сборщик узла и поды eBPF. Пресет `openshift` создаёт для каждого из них отдельное SCC, которым пользуется только его собственный сервисный аккаунт, и позволяет OpenShift выбирать идентификатор пользователя для всех остальных подов:
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+Если администратор не хочет добавлять SCC, устанавливайте с `--set preset=openshift-restricted`. Тогда чарт не создаёт SCC, и каждый под работает под `restricted-v2`: логи подов поступают через Kubernetes API, а метрик ОС, трассировок eBPF и профилей нет. См. [OpenShift](/docs/telemetry/kubernetes-agent#openshift).
 
 ## Метки для кластера
 
@@ -355,7 +370,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `oneuptime.url` | (обязательно) | Ваш URL OneUptime. |
 | `oneuptime.apiKey` | (обязательно) | Ключ приема из **Настройки проекта → Телеметрия и APM → Ключи приема**. Отправляется в заголовке `x-oneuptime-token`; ключ API проекта не подойдёт. |
 | `clusterName` | (обязательно) | Имя кластера, уникальное в проекте. Каждая запись несёт его как `k8s.cluster.name`. |
-| `preset` | (пусто: `standard`) | `standard`, `gke-autopilot` или `eks-fargate`. См. [Выбор пресета](#выбор-пресета). |
+| `preset` | (пусто: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift` или `openshift-restricted`. См. [Выбор пресета](#выбор-пресета). |
 | `oneuptime.labels` | `{}` | Метки для каждой записи от этого агента. См. [Метки для кластера](#метки-для-кластера). |
 | `namespaceFilters.rules` | Исключает `kube-system` из `podLogs` и `ebpfDiscovery` | Правила, которые включают или исключают пространства имён, для `podLogs`, `ebpfDiscovery`, `metrics` и `traces`. Шаблоны могут использовать `*`, и исключение всегда побеждает. |
 | `filters.logs.minSeverity` | `""` | Отбрасывает строки логов подов ниже этого уровня: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` или `FATAL`. |
@@ -408,9 +423,11 @@ kubectl delete namespace oneuptime-agent
 Запустите диагностический скрипт чарта. Он проверяет поды, ключ приема и путь из кластера наружу, спрашивает OneUptime, принят ли ключ, и выводит один вердикт. Он только читает и ничего не меняет:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Каждый OneUptime раздаёт этот скрипт своего релиза: на самостоятельно размещённом OneUptime используйте свой URL вместо `https://oneuptime.com`. Чтобы прочитать скрипт перед запуском, откройте его адрес в браузере.
 
 Типичная причина, особенно после переустановки, — неверный или отозванный ключ приема: OneUptime его отклоняет, и сборщик отбрасывает каждый пакет, пока его поды остаются в состоянии `Running`.
 :::

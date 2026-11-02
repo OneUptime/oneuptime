@@ -230,6 +230,24 @@ import { AddOnCallPageMessage1808510000000 } from "./1808510000000-AddOnCallPage
 import { AddUpdateCheckSecurityAdvisoryColumns1808540000000 } from "./1808540000000-AddUpdateCheckSecurityAdvisoryColumns";
 import { AddTelemetryExceptionRegression1808560000000 } from "./1808560000000-AddTelemetryExceptionRegression";
 import { AddTelemetryExceptionAiExplanation1808580000000 } from "./1808580000000-AddTelemetryExceptionAiExplanation";
+import { AddDetectionRuleRealTime1808600000000 } from "./1808600000000-AddDetectionRuleRealTime";
+import { AddTelemetryExceptionMerge1808620000000 } from "./1808620000000-AddTelemetryExceptionMerge";
+import { AddTelemetryExceptionMergeIndexesAndKeys1808630000000 } from "./1808630000000-AddTelemetryExceptionMergeIndexesAndKeys";
+import { AddTelemetryExceptionActivity1808660000000 } from "./1808660000000-AddTelemetryExceptionActivity";
+import { AddTelemetryExceptionActivityAssigneeNotified1808670000000 } from "./1808670000000-AddTelemetryExceptionActivityAssigneeNotified";
+import { AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000 } from "./1808680000000-AddTelemetryExceptionActivityAssigneeNotifiedIndex";
+import { AddExceptionSavedView1808690000000 } from "./1808690000000-AddExceptionSavedView";
+import { AddDashboardDarkThemeLogo1808700000000 } from "./1808700000000-AddDashboardDarkThemeLogo";
+import { AddDashboardDarkThemeLogoKey1808710000000 } from "./1808710000000-AddDashboardDarkThemeLogoKey";
+import { AddFormDomain1808712000000 } from "./1808712000000-AddFormDomain";
+import { AddNetworkEndpointHostnameAndAttachmentSource1808720000000 } from "./1808720000000-AddNetworkEndpointHostnameAndAttachmentSource";
+import { AddCloudRuleKind1808760000000 } from "./1808760000000-AddCloudRuleKind";
+import { AddProxmoxInventoryFactsAndBackups1808770000000 } from "./1808770000000-AddProxmoxInventoryFactsAndBackups";
+import { AddStatusPageSubscriberLanguage1808780000000 } from "./1808780000000-AddStatusPageSubscriberLanguage";
+import { AddDataSecurityIdentities1808791000000 } from "./1808791000000-AddDataSecurityIdentities";
+import { AddDataSecurityFieldSuggestions1808792000000 } from "./1808792000000-AddDataSecurityFieldSuggestions";
+import { AddCloudApps1808795310000 } from "./1808795310000-AddCloudApps";
+import { AddCloudResourceInstanceAppIndexAndKey1808795320000 } from "./1808795320000-AddCloudResourceInstanceAppIndexAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1662,4 +1680,22 @@ export default [
   AddUpdateCheckSecurityAdvisoryColumns1808540000000,
   AddTelemetryExceptionRegression1808560000000,
   AddTelemetryExceptionAiExplanation1808580000000,
+  AddDetectionRuleRealTime1808600000000,
+  AddTelemetryExceptionMerge1808620000000,
+  AddTelemetryExceptionMergeIndexesAndKeys1808630000000,
+  AddTelemetryExceptionActivity1808660000000,
+  AddTelemetryExceptionActivityAssigneeNotified1808670000000,
+  AddTelemetryExceptionActivityAssigneeNotifiedIndex1808680000000,
+  AddExceptionSavedView1808690000000,
+  AddDashboardDarkThemeLogo1808700000000,
+  AddDashboardDarkThemeLogoKey1808710000000,
+  AddFormDomain1808712000000,
+  AddNetworkEndpointHostnameAndAttachmentSource1808720000000,
+  AddCloudRuleKind1808760000000,
+  AddProxmoxInventoryFactsAndBackups1808770000000,
+  AddStatusPageSubscriberLanguage1808780000000,
+  AddDataSecurityIdentities1808791000000,
+  AddDataSecurityFieldSuggestions1808792000000,
+  AddCloudApps1808795310000,
+  AddCloudResourceInstanceAppIndexAndKey1808795320000,
 ];

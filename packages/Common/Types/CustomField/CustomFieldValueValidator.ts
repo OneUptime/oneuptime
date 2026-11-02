@@ -1,5 +1,11 @@
 import { CustomFieldDefinition } from "./CustomFieldDefinition";
 import {
+  CUSTOM_FIELD_MAX_FILES,
+  CustomFieldFileReferences,
+  getCustomFieldValueEntryKey,
+  readCustomFieldFileReferences,
+} from "./CustomFieldFile";
+import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
 } from "./CustomFieldDropdownOption";
@@ -92,7 +98,10 @@ const listOptions: ListOptionsFunction = (options: Array<string>): string => {
 
 /*
  * The same notion of "the same answer" that value mapping uses, so an
- * unchanged multi-select in another order is still unchanged.
+ * unchanged multi-select in another order is still unchanged. A file is
+ * the same file whichever shape names it (getCustomFieldValueEntryKey):
+ * the dashboard sends back { _id, name, fileType } for a file the record
+ * holds as { fileId, name, fileType, size }.
  */
 type CanonicalizeFunction = (value: unknown) => string;
 
@@ -101,10 +110,14 @@ const canonicalize: CanonicalizeFunction = (value: unknown): string => {
     return JSON.stringify(
       [...value]
         .map((entry: unknown) => {
-          return String(entry);
+          return getCustomFieldValueEntryKey(entry);
         })
         .sort(),
     );
+  }
+
+  if (value !== null && typeof value === "object" && !(value instanceof Date)) {
+    return JSON.stringify(getCustomFieldValueEntryKey(value));
   }
 
   if (value instanceof Date) {
@@ -299,6 +312,63 @@ const validateMultiSelectValue: ValidateOneFunction = (data: {
   } the options for ${quote(name)}. Choose from: ${listOptions(options)}.`;
 };
 
+/*
+ * A File field holds one file: its id, or an object naming it ({ fileId },
+ * or the uploaded File's { _id } or { id }). Whether the file exists, is
+ * the record's project's and is of a kind and size a field takes is the
+ * server's to check (CustomFieldFiles): this module has no database.
+ */
+const validateFileValue: ValidateOneFunction = (data: {
+  definition: CustomFieldDefinition;
+  value: unknown;
+  storedValue: unknown;
+}): string | null => {
+  const name: string = data.definition.name;
+  const references: CustomFieldFileReferences = readCustomFieldFileReferences(
+    data.value,
+  );
+
+  if (references.isList) {
+    return `${quote(name)} holds one file, not a list: send the file's id, or { "fileId": "<id>" }.`;
+  }
+
+  if (references.fileIds.length !== 1) {
+    return `${quote(name)} holds a file, but was sent ${quote(
+      data.value,
+    )}. Send the file's id, or { "fileId": "<id>" }.`;
+  }
+
+  return null;
+};
+
+// A Multiple files field holds a list of files, at most CUSTOM_FIELD_MAX_FILES.
+const validateMultipleFilesValue: ValidateOneFunction = (data: {
+  definition: CustomFieldDefinition;
+  value: unknown;
+  storedValue: unknown;
+}): string | null => {
+  const name: string = data.definition.name;
+  const references: CustomFieldFileReferences = readCustomFieldFileReferences(
+    data.value,
+  );
+
+  if (references.unreadableCount > 0) {
+    return `${quote(name)} holds a list of files, but was sent ${quote(
+      data.value,
+    )}. Send a list of file ids, or of { "fileId": "<id>" }.`;
+  }
+
+  if (references.duplicateCount > 0) {
+    return `${quote(name)} lists the same file more than once.`;
+  }
+
+  if (references.fileIds.length > CUSTOM_FIELD_MAX_FILES) {
+    return `${quote(name)} holds at most ${CUSTOM_FIELD_MAX_FILES} files, but was sent ${references.fileIds.length}.`;
+  }
+
+  return null;
+};
+
 const validateValue: ValidateOneFunction = (data: {
   definition: CustomFieldDefinition;
   value: unknown;
@@ -343,6 +413,12 @@ const validateValue: ValidateOneFunction = (data: {
 
     case CustomFieldType.MultiSelectDropdown:
       return validateMultiSelectValue(data);
+
+    case CustomFieldType.File:
+      return validateFileValue(data);
+
+    case CustomFieldType.MultipleFiles:
+      return validateMultipleFilesValue(data);
 
     default:
       // No type, or one this version does not know: nothing to check.

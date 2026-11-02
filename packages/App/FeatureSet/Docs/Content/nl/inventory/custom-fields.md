@@ -51,6 +51,8 @@ Voeg bij een vervolgkeuzetype de opties toe onder **Vervolgkeuzeopties**. Elke o
 | **Datum en tijd** | Laatst geaudit op, buiten gebruik gesteld op |
 | **Lange tekst** | Toegangsinstructies, notities: meerdere regels platte tekst |
 | **Opgemaakte tekst (Markdown)** | Notities met opmaak en links, geschreven in de Markdown-editor |
+| **Bestand** | Een garantiebewijs, een ondertekende inkooporder, een foto van het rack-label: één bestand |
+| **Meerdere bestanden** | Handleidingen, facturen en foto's: tot 10 bestanden |
 
 ## Een uitgewerkt assetvocabulaire
 
@@ -79,6 +81,9 @@ Elk aangepast veld wordt een filter boven de lijst **All Items**, en het filter 
 | **Nummer** | is, is niet, is groter dan, is groter dan of gelijk aan, is kleiner dan, is kleiner dan of gelijk aan, is leeg, is niet leeg |
 | **Booleaans**, **Vervolgkeuzelijst (enkele keuze)**, **Vervolgkeuzelijst (meerdere keuzes)** | is, is niet, is leeg, is niet leeg |
 | **Datum**, **Datum en tijd** | is, is vóór, is na, ligt tussen, is leeg, is niet leeg |
+| **Bestand**, **Meerdere bestanden** | is |
+
+Een chip voor **Bestand** of **Meerdere bestanden** vraagt maar één ding: of het veld **Heeft bestanden** of **Geen bestanden** heeft.
 
 Filters worden met EN gecombineerd, dus "Warranty Expiry is vóór 2026-10-01 EN Lifecycle Status is In gebruik" is één weergave van de lijst. Dat is de vraag waarvoor een assetregister bestaat, en de reden om de datumtypen te gebruiken in plaats van een datum in een tekstveld: een tekstveld slaat `2026-10-01` gewoon op en kan je daarna niet vertellen wat volgend kwartaal verloopt.
 
@@ -91,6 +96,7 @@ Kolommen van aangepaste velden zijn eerst verborgen: zet ze aan via de kolomkiez
 - Niets maakt een waarde uniek. Twee items kunnen hetzelfde serienummer hebben, en niets houdt je tegen.
 - Datums worden opgeslagen als ISO-8601-tijdstempels in UTC en getoond in je eigen tijdzone.
 - Een veld verwijderen haalt het uit de lijst en uit de filterbalk. De waarden die al zijn geschreven blijven op de items staan.
+- Een veld **Bestand** of **Meerdere bestanden** neemt bestanden van elk ten hoogste 10 MB, van de soorten die onder [Bestandsvelden](/docs/incidents/settings#bestandsvelden) staan, geüpload in het project. Alleen wie het item mag zien, kan ze downloaden, en een bestand wordt verwijderd zodra niets het meer vasthoudt.
 
 ## Volgende stappen
 

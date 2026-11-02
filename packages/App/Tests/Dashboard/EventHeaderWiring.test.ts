@@ -49,6 +49,12 @@ interface HeaderKind {
   bandWiring?: string;
   // What a locked state button says first, in the words of what was pressed.
   lockSentence: string;
+  /*
+   * Whether the record can be private: its state is then changed only with
+   * the permissions of the teams that own it, so the state buttons ask with
+   * what the reader holds on it (PrivateRecordScope).
+   */
+  canBePrivate: boolean;
 }
 
 const KINDS: Array<HeaderKind> = [
@@ -58,6 +64,7 @@ const KINDS: Array<HeaderKind> = [
     timeline: "IncidentStateTimeline",
     tone: "ai",
     lockSentence: "You do not have permission to change this incident's state.",
+    canBePrivate: true,
   },
   {
     name: "alert",
@@ -65,6 +72,7 @@ const KINDS: Array<HeaderKind> = [
     timeline: "AlertStateTimeline",
     tone: "ai",
     lockSentence: "You do not have permission to change this alert's state.",
+    canBePrivate: true,
   },
   {
     name: "incident episode",
@@ -72,6 +80,7 @@ const KINDS: Array<HeaderKind> = [
     timeline: "IncidentEpisodeStateTimeline",
     tone: "danger",
     lockSentence: "You do not have permission to change this episode's state.",
+    canBePrivate: true,
   },
   {
     name: "alert episode",
@@ -79,6 +88,7 @@ const KINDS: Array<HeaderKind> = [
     timeline: "AlertEpisodeStateTimeline",
     tone: "danger",
     lockSentence: "You do not have permission to change this episode's state.",
+    canBePrivate: true,
   },
   {
     name: "scheduled maintenance event",
@@ -88,6 +98,7 @@ const KINDS: Array<HeaderKind> = [
     bandWiring:
       'headerNoticeTone={overdueNotice?"warning":"neutral"}headerNotice={overdueNotice||props.publishingNotice}',
     lockSentence: "You do not have permission to change this event's state.",
+    canBePrivate: false,
   },
 ];
 
@@ -104,17 +115,52 @@ describe.each(KINDS)("the $name header", (kind: HeaderKind) => {
      * record's state - not that they may not "create this State Timeline" -
      * and then which permissions would let them.
      */
+    const sentence: string = `{sentence:translationKey("${kind.lockSentence.replace(
+      WHITESPACE,
+      "",
+    )}",),}`;
+
     expect(code).toContain(
-      `stateChangeGate={PermissionGate.check(new${kind.timeline}(),ModelAction.Create,{sentence:translationKey("${kind.lockSentence.replace(
-        WHITESPACE,
-        "",
-      )}",),},)}`,
+      kind.canBePrivate
+        ? `stateChangeGate={PermissionGate.check(new${kind.timeline}(),ModelAction.Create,withPrivateRecordGateOptions(${sentence},privateRecordOptions,),)}`
+        : `stateChangeGate={PermissionGate.check(new${kind.timeline}(),ModelAction.Create,${sentence},)}`,
     );
     expect(code).toContain(
       `import${kind.timeline}from"Common/Models/DatabaseModels/${kind.timeline}";`,
     );
     expect(code).toContain(
-      'importPermissionGate,{ModelAction}from"Common/UI/Utils/PermissionGate";',
+      kind.canBePrivate
+        ? 'importPermissionGate,{ModelAction,PermissionGateOptions,}from"Common/UI/Utils/PermissionGate";'
+        : 'importPermissionGate,{ModelAction}from"Common/UI/Utils/PermissionGate";',
+    );
+  });
+
+  /*
+   * A private incident, alert or episode is changed only with the
+   * permissions of the teams that own it (PrivateRecordScope): its state
+   * buttons, and the note its dialog offers, ask with what the reader holds
+   * on the record its page is open on - read from the row of its state
+   * timeline, a part of it.
+   */
+  test("asks with what the reader holds on a private record, when it can be one", () => {
+    expect(
+      code.includes(
+        `constPRIVATE_RECORD_STATE_TIMELINE:${kind.timeline}=new${kind.timeline}();`,
+      ),
+    ).toBe(kind.canBePrivate);
+    expect(
+      code.includes(
+        "constprivateRecordOptions:PermissionGateOptions|undefined=usePrivateRecordGateOptions(PRIVATE_RECORD_STATE_TIMELINE);",
+      ),
+    ).toBe(kind.canBePrivate);
+    expect(
+      code.includes(
+        'import{usePrivateRecordGateOptions,withPrivateRecordGateOptions,}from"Common/UI/Utils/PrivateRecordScope";',
+      ),
+    ).toBe(kind.canBePrivate);
+    // Every note the dialog offers is asked about the same way.
+    expect(countOf(code, "noteGateOptions:privateRecordOptions,")).toBe(
+      kind.canBePrivate ? countOf(code, "noteModel:new") : 0,
     );
   });
 

@@ -24,7 +24,7 @@ flowchart TB
 
 ## Como o OneUptime modela IoT
 
-- **Frota**: um grupo de dispositivos, como `building-a-sensors` ou `field-gateways`. Ela vem do atributo de recurso `iot.fleet.name` e aparece no OneUptime como o serviço de telemetria `iot/<fleet>`. Defina também `service.name=iot/<fleet>`, para que logs e métricas fiquem no mesmo serviço.
+- **Frota**: um grupo de dispositivos, como `building-a-sensors` ou `field-gateways`. Ela vem do atributo de recurso `iot.fleet.name` e aparece no OneUptime como o serviço de telemetria `iot/<fleet>`. Defina também `service.name=iot/<fleet>`, para que logs e métricas fiquem no mesmo serviço. O nome de uma frota é reconhecido sem diferenciar maiúsculas e minúsculas: uma leitura enviada para `warehouse` chega à frota `Warehouse` e é armazenada com esse nome.
 - **Dispositivo**: um dispositivo em uma frota, identificado pelo atributo `device.id` em cada ponto de dados. O inventário da frota é indexado por `device.id`.
 
 | Atributo | Definido em | Obrigatório | Descrição |
@@ -195,7 +195,7 @@ Um payload de telemetria também pode carregar `"attributes"`, um mapa de string
 
 ### Detecção de offline com Last Will
 
-Registre um Last Will do MQTT em `oneuptime/<fleet>/<device>/status` com o payload `offline`. Se o dispositivo cair ou sair da rede, o OneUptime publica `iot_device_up = 0` para ele no momento em que a sessão termina, o que dispara o modelo de alerta Device Offline incluído e marca o dispositivo como fora do ar no inventário, sem polling. Publique `online` no mesmo tópico depois de se conectar, para que o dispositivo volte a aparecer como no ar.
+Registre um Last Will do MQTT em `oneuptime/<fleet>/<device>/status` com o payload `offline`. Se o dispositivo cair ou sair da rede, o OneUptime publica `iot_device_up = 0` para ele no momento em que a sessão termina, o que dispara o modelo de alerta Device Offline incluído e marca o dispositivo como fora do ar no inventário, sem polling. Publique `online` no mesmo tópico depois de se conectar, para que o dispositivo volte a aparecer como no ar. Qualquer leitura que o dispositivo publique também conta como ativo, então um dispositivo que continua enviando leituras permanece ativo sem publicar seu status de novo.
 
 ### Exemplos
 
@@ -281,7 +281,7 @@ O OneUptime reconhece estes nomes de métricas `iot_*`. Envie só os que fazem s
 | `iot_battery_percent` | Carga da bateria, de `0` a `100` (%). |
 | `iot_signal_strength_dbm` | Intensidade do sinal sem fio em dBm, como o RSSI de Wi-Fi, LoRa ou celular. |
 | `iot_temperature_celsius` | Temperatura do dispositivo ou do sensor em °C. |
-| `iot_cpu_usage_ratio` | Uso de CPU como uma razão de `0` a `1`. O OneUptime a armazena e a mostra como porcentagem. |
+| `iot_cpu_usage_ratio` | Uso de CPU como uma razão de `0` a `1`. O OneUptime a armazena como foi enviada, e o inventário de dispositivos a mostra como porcentagem. |
 | `iot_memory_usage_bytes` | Memória em uso, em bytes. |
 | `iot_memory_size_bytes` | Memória total do dispositivo, em bytes. |
 | `iot_uptime_seconds` | Segundos desde a última inicialização do dispositivo. |
@@ -289,7 +289,7 @@ O OneUptime reconhece estes nomes de métricas `iot_*`. Envie só os que fazem s
 ## Verifique se a frota aparece
 
 1. Verifique se o dispositivo, o coletor do gateway ou o cliente MQTT envia sem erros: procure falhas de exportação e respostas HTTP `401` ou `422` nos logs dele, ou uma conexão recusada com o código de retorno 4.
-2. Abra **Produtos → Infraestrutura → IoT → All Fleets**. A frota aparece como `iot/<fleet>` em cerca de um minuto depois das primeiras leituras dela.
+2. Abra **Produtos → Infraestrutura → IoT → All Fleets**. A frota aparece com seu nome em cerca de um minuto depois das primeiras leituras dela.
 3. Abra a página **Dispositivos** da frota. Cada dispositivo que você enviou deve aparecer com os valores mais recentes de bateria, sinal, temperatura, CPU, memória e status no ar ou fora do ar.
 4. Abra a página **Métricas** da frota para mostrar em gráfico qualquer uma das séries `iot_*`.
 

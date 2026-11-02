@@ -4,7 +4,7 @@ Savoir ce que contient un magasin de données, ce n'est que la moitié du travai
 
 :::cards
 - [Flux de données](#flux-de-données): Services, fournisseurs d'IA, hôtes extérieurs et copies.
-- [Qui peut accéder à un magasin de données](#qui-peut-accéder-à-un-magasin-de-données): Chaque autorisation que signale votre cloud, et à quel point le magasin de données est exposé.
+- [Qui peut accéder à un magasin de données](#qui-peut-accéder-à-un-magasin-de-données): Chaque identité et chaque autorisation, ce que chaque identité atteint, et à quel point le magasin de données est exposé.
 - [Règles de résidence](#règles-de-résidence): Les régions où chaque sorte de données peut résider.
 :::
 
@@ -39,18 +39,18 @@ Une copie est trouvée sans les valeurs de l'un ou l'autre magasin de données. 
 
 ## Qui peut accéder à un magasin de données
 
-La lecture de la configuration transforme les propres paramètres d'accès de chaque cloud - stratégies et ACL de bucket, attributions de rôles Azure, liaisons IAM Google Cloud, partages d'instantanés - en une seule liste de qui peut accéder au magasin de données, sur sa page **Qui peut y accéder** :
+La lecture de la configuration transforme les propres paramètres d'accès de chaque cloud - stratégies et ACL de bucket, attributions de rôles Azure, liaisons IAM Google Cloud, partages d'instantanés et, sur AWS, les propres stratégies IAM de chaque rôle et de chaque utilisateur - en une seule liste de qui peut accéder au magasin de données, sur sa page **Qui peut y accéder**. Les services que la carte des services montre en train d'appeler le magasin de données y figurent aussi :
 
 | Colonne | Ce qu'elle indique |
 | --- | --- |
-| **Principal** | Qui ou quoi a accès, tel que le cloud le nomme : `*`, un ID de compte, un ARN, un e-mail, un compte de service. |
-| **Type de principal** | Public, Compte, Rôle, Utilisateur, Groupe, Principal de service, Compte de service ou Service. |
+| **Qui** | Qui ou quoi a accès, tel que le cloud le nomme : `*`, un ID de compte, un ARN, un e-mail, un compte de service, un service. Une identité inutilisée depuis 90 jours est marquée comme telle. |
+| **Type** | Public, Compte, Rôle, Utilisateur, Groupe, Principal de service, Compte de service ou Service. |
 | **Niveau d'accès** | Lecture, Écriture ou Administrateur. |
-| **Accordé via** | Ce qui l'accorde : une stratégie de bucket, une ACL, une attribution de rôle, une liaison IAM ou un partage d'instantané. |
-| **Externe** | Le principal est extérieur aux comptes, abonnements et projets connectés à OneUptime. |
-| **Public** | Le principal est n'importe qui sur Internet. |
+| **Accordé via** | Ce qui l'accorde : une stratégie de bucket, une ACL, une stratégie IAM, un rôle qu'elle peut assumer, une attribution de rôle, une liaison IAM ou un partage d'instantané - ou, pour un service, le fait que des traces l'ont vu utiliser le magasin de données. |
+| **Portée** | N'importe qui sur Internet, en dehors de vos comptes - les comptes, abonnements et projets connectés à OneUptime - ou vos comptes. |
+| **Dernière utilisation** | Quand l'identité a utilisé son accès pour la dernière fois, selon le cloud, ou quand la carte des services a vu le service appeler le magasin de données pour la dernière fois. |
 
-La liste est relue à chaque lecture de la configuration, et une autorisation que le cloud ne signale plus est retirée. [Plus de 25 identités peuvent lire des données de niveau Restreint](/docs/data-security/checks-and-issues#accès) compte les lecteurs qui y figurent. Les services qui utilisent un magasin de données sont ses flux **Utilise**.
+La liste est relue à chaque lecture de la configuration, et une autorisation que le cloud ne signale plus est retirée. [Plus de 25 identités peuvent lire des données de niveau Restreint](/docs/data-security/checks-and-issues#accès) compte les lecteurs qui y figurent, et [Des identités inutilisées depuis 90 jours peuvent encore y accéder](/docs/data-security/checks-and-issues#accès) échoue tant qu'une identité inutilisée depuis 90 jours peut atteindre ses données sensibles. Les services qui utilisent un magasin de données sont ses flux **Utilise**.
 
 D'après ce qu'elle lit, chaque magasin de données reçoit une exposition :
 
@@ -63,6 +63,22 @@ D'après ce qu'elle lit, chaque magasin de données reçoit une exposition :
 | **Inconnu** | OneUptime n'a pas pu lire assez de sa configuration pour le dire. |
 
 Public l'emporte sur partagé, et partagé sur accessible : un bucket public également partagé avec un autre compte est Public. L'exposition s'ajoute au [score de risque](/docs/data-security/checks-and-issues#score-de-risque) d'un problème.
+
+### Chaque identité, et ce qu'elle peut atteindre
+
+Sur AWS, la lecture liste une fois les utilisateurs et les rôles du compte, et décide comme IAM lesquels atteignent chaque bucket et chaque table DynamoDB, et comment : ce que leurs stratégies autorisent moins ce qu'elles refusent, les limites d'autorisations, et une autorisation qui ne vaut que sous conditions le dit. Un compte extérieur à vos comptes connectés qui peut assumer un rôle atteint ce que le rôle atteint. La dernière utilisation de chaque identité vient d'IAM pour les rôles, et du rapport d'identifiants du compte pour les utilisateurs.
+
+**Sécurité des données → Accès** liste chaque identité qui peut atteindre vos magasins de données, la plus risquée en premier : ce qu'elle atteint et à quel point c'est sensible, le maximum qu'elle peut faire et quand elle a été utilisée pour la dernière fois, avec des filtres **En dehors de vos comptes**, **Non utilisée depuis 90 jours** et **Peut modifier des données sensibles**. Chacune ouvre sa propre page : chaque magasin de données qu'elle peut atteindre, le plus sensible en premier, et son score de risque partie par partie. En dessous, Accès liste chaque autorisation venant de l'extérieur de vos comptes.
+
+| Ce qui s'ajoute au risque d'une identité | Points |
+| --- | --- |
+| Les données les plus sensibles qu'elle atteint | 50 pour Restreint, 30 pour Confidentiel, 10 pour Interne |
+| Elle peut écrire dans un magasin de données Confidentiel ou Restreint, ou l'administrer | 15 |
+| Elle est n'importe qui sur Internet, ou en dehors de vos comptes | 20 pour n'importe qui, 15 pour l'extérieur |
+| Elle n'a pas été utilisée depuis 90 jours et atteint des données Interne, Confidentiel ou Restreint | 10 |
+| Le nombre de magasins de données sensibles qu'elle atteint | 1 pour chacun, jusqu'à 5 |
+
+Le score vaut au plus 100. Un rôle d'un compte extérieur qui peut modifier un magasin de données de numéros de carte obtient 50 + 15 + 15 + 1 = 81.
 
 ## Règles de résidence
 

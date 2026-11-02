@@ -22,9 +22,11 @@ import logger from "Common/Server/Utils/Logger";
  *     per concrete clock hour, so storage stays bounded — but querying
  *     `WHERE hourOfWeek = X AND day >= today() - N` collapses across N
  *     equivalent hours-of-week into a single rolling baseline.
- *   - hourOfWeek is materialized 0..167 with `(toDayOfWeek(time, 1)-1)*24
- *     + toHour(time)`, so Mon 09:00 → 8 and Sun 23:00 → 167. The MV
- *     uses ISO week (Monday=1) to match toDayOfWeek's mode 1 semantics.
+ *   - hourOfWeek is materialized with `(toDayOfWeek(time, 1)-1)*24
+ *     + toHour(time)`. Mode 1 makes Monday 0, not 1, so the hours are a
+ *     day behind the code's: Tuesday 00:00 → 0, Sunday 23:00 → 143 and
+ *     Monday's, wrapped by toUInt8, 232..255. Reads translate them
+ *     (MetricHourBaseline.toStoredHour).
  *
  * Scope:
  *   - Only scalar value paths (Gauge `value`, Sum `sum`) are aggregated.

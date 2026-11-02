@@ -48,15 +48,15 @@ Iemand telt als plaats vanaf het moment dat u die uitnodigt, nog voor de accepta
 :::steps
 ### Eerst een betaalmethode toevoegen
 
-Een abonnementswijziging heeft een betaalmethode nodig. Zonder betaalmethode opent **Change Plan** in plaats daarvan **Add a Payment Method**: zie [Betaalmethoden](#betaalmethoden).
+Een abonnementswijziging heeft een betaalmethode nodig. Zonder betaalmethode opent **Abonnement wijzigen** in plaats daarvan **Add a Payment Method**: zie [Betaalmethoden](#betaalmethoden).
 
-### Op Change Plan klikken
+### Op Abonnement wijzigen klikken
 
-Klik op de kaart **Huidig abonnement** op **Change Plan**. **Jaarplan** staat bij het begin aan: zet het uit om de maandprijzen te zien.
+Klik op de kaart **Huidig abonnement** op **Abonnement wijzigen**. De abonnementen openen op de periode waarvoor het project wordt gefactureerd; schakel tussen **Maandelijks** en **Jaarlijks** om de andere prijzen te zien.
 
 ### Het abonnement kiezen
 
-Elk abonnement toont zijn prijs per gebruiker. De opmerking onder de abonnementen zegt wat er met uw proefperiode gebeurt: **Your free trial carries over** zolang het project nog in de proefperiode zit, en **Changing plan does not start a free trial** zodra dat niet meer zo is.
+Elk abonnement toont zijn prijs per gebruiker, en **Huidig abonnement** markeert het abonnement waarop het project zit. De opmerking onder de abonnementen zegt wat er met uw proefperiode gebeurt: **Uw gratis proefperiode loopt door** zolang het project nog in de proefperiode zit, en **Van abonnement wisselen start geen gratis proefperiode** zodra dat niet meer zo is.
 
 ### De wijziging opslaan
 
@@ -184,7 +184,7 @@ Een project met het Free-abonnement heeft een betaalmethode nodig voordat het ac
 Een project met onbetaalde facturen wordt inactief, en wordt verwijderd als ze onbetaald blijven. Open **Facturen** en klik bij elke factuur die nog openstaat op **Factuur betalen**.
 :::
 
-:::details Change Plan opent Add a Payment Method
+:::details Abonnement wijzigen opent Add a Payment Method
 Het project heeft nog geen betaalmethode. Voeg er een toe en wijzig daarna het abonnement.
 :::
 

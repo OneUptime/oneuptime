@@ -18,7 +18,7 @@ Det kreves rollen Project Owner, Project Admin eller Security Admin for å sette
 :::steps
 ### Slå på det de fleste team trenger
 
-Åpne **Produkter → Security Events**. Klikk på **Slå på anbefalt** på **Oversikt**. Det slår på tre ting samtidig: **Finn sikkerhetshendelser i loggene dine**, de anbefalte deteksjonsreglene og **Berik nye saker**, en playbook som sjekker hver nye sak mot trusseletterretning og legger igjen en sjekkliste for triage på den.
+Åpne **Produkter → Sikkerhetshendelser**. Klikk på **Slå på anbefalt** på **Oversikt**. Det slår på tre ting samtidig: **Finn sikkerhetshendelser i loggene dine**, de anbefalte deteksjonsreglene og **Berik nye saker**, en playbook som sjekker hver nye sak mot trusseletterretning og legger igjen en sjekkliste for triage på den.
 
 ### Send et testangrep
 
@@ -96,7 +96,7 @@ Ingenting har nådd Security siden da. Åpne **Tilkoblinger**, og sjekk at **Log
 :::
 
 :::details Kortet som slår på Security, er borte
-Noen lukket det med **Lukk**. Så lenge ingenting overvåkes for trusler ennå, tilbyr **Oversikt** **Sett opp Security**, som henter det tilbake.
+Noen la det bort med **Skjul**. Så lenge ingenting overvåkes for trusler ennå, tilbyr **Oversikt** **Sett opp Security**, som henter det tilbake.
 :::
 
 ## Neste steg

@@ -3,21 +3,21 @@
 
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Scheduled Maintenance Event: " eventTitle) }}
+{{> EmailTitle title=(tt "Scheduled Maintenance Event: {{title}}" title=eventTitle) }}
 
-{{> InfoBlock info="Here are more details for this scheduled event:    "}}
+{{> InfoBlock info=(tHtml "Here are more details for this scheduled event:")}}
 
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Event Title: " plainText=eventTitle }}
+{{> DetailBoxField title=(t "Event Title") plainText=eventTitle }}
 {{#if eventState}}
-{{> DetailBoxField title="Status: " plainText=eventState color=eventStateColor textColor=eventStateTextColor }}
+{{> DetailBoxField title=(t "Status") plainText=eventState color=eventStateColor textColor=eventStateTextColor }}
 {{/if}}
-{{> DetailBoxField title="Event Description: " text=eventDescription }}
+{{> DetailBoxField title=(t "Event Description") text=eventDescription }}
 {{#if resourcesAffected}}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Resources Affected") text=resourcesAffected  }}
 {{/if}}
-{{> DetailBoxField title="Note: " text=note  }}
+{{> DetailBoxField title=(t "Note") text=note  }}
 {{> DetailBoxEnd this }}
 
 
@@ -28,9 +28,9 @@
 
 
 {{#if detailsUrl}}
-{{> LinkBlock linkUrl=detailsUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=detailsUrl linkLabel=(t "Find further information here:")}}
 {{else}}
-{{> LinkBlock linkUrl=statusPageUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel=(t "Find further information here:")}}
 {{/if}}
 
 {{> UnsubscribeBlock this}}

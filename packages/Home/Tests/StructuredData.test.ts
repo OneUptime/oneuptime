@@ -6,6 +6,10 @@ import { replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import type { BlogPost } from "../Utils/BlogPost";
 import BlogTag from "../Utils/BlogTag";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import {
+  AirGappedTopicPage,
+  AirGappedTopicPages,
+} from "../Utils/AirGappedPages";
 import ProductCompare, {
   FAQ,
   Product,
@@ -427,6 +431,72 @@ describe("every page's head: organization, breadcrumbs, web page and software", 
         });
       }
     }
+  });
+
+  test.each(
+    AirGappedTopicPages.map((page: AirGappedTopicPage): [string, string] => {
+      return [page.path, page.name];
+    }),
+  )(
+    "%s is a web page with a trail through the hub, not software",
+    async (pagePath: string, name: string) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = seoFor(pagePath);
+      const html: string = await renderHead(
+        seo as unknown as Record<string, unknown>,
+      );
+
+      expectReadableStructuredData(html, pagePath);
+
+      const data: Array<StructuredData> = structuredDataIn(html);
+
+      expect(
+        data.map((item: StructuredData): unknown => {
+          return item["@type"];
+        }),
+      ).toEqual(["Organization", "BreadcrumbList", "WebPage"]);
+
+      const trail: Array<StructuredData> = data.find(
+        (item: StructuredData): boolean => {
+          return item["@type"] === "BreadcrumbList";
+        },
+      )!["itemListElement"] as Array<StructuredData>;
+
+      expect(
+        trail.map((crumb: StructuredData): unknown => {
+          return crumb["name"];
+        }),
+      ).toEqual(["Home", "Enterprise", "Self-Hosted", "Air-Gapped", name]);
+    },
+  );
+
+  test("the OpenShift page is a web page with a trail through Kubernetes, not software", async () => {
+    const seo: PageSEOData & { fullCanonicalUrl: string } =
+      seoFor("/product/openshift");
+    const html: string = await renderHead(
+      seo as unknown as Record<string, unknown>,
+    );
+
+    expectReadableStructuredData(html, "/product/openshift");
+
+    const data: Array<StructuredData> = structuredDataIn(html);
+
+    expect(
+      data.map((item: StructuredData): unknown => {
+        return item["@type"];
+      }),
+    ).toEqual(["Organization", "BreadcrumbList", "WebPage"]);
+
+    const trail: Array<StructuredData> = data.find(
+      (item: StructuredData): boolean => {
+        return item["@type"] === "BreadcrumbList";
+      },
+    )!["itemListElement"] as Array<StructuredData>;
+
+    expect(
+      trail.map((crumb: StructuredData): unknown => {
+        return crumb["name"];
+      }),
+    ).toEqual(["Home", "Products", "Kubernetes", "OpenShift"]);
   });
 });
 

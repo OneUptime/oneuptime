@@ -134,7 +134,7 @@ Every submission leaves a private note on what it created:
 > **Which office are you in?**\
 > Berlin
 
-It names the form and the submitter — "Submitted anonymously through the form **Report a Problem**." when the form did not ask who they are — then, when the submission started from one of the form's templates, says which: "Started from the template **Application Outage**." — and then lists the answers to the form's own questions, each under its question, in the form's order. The answers to linked questions are already on the record: its title, its severity, its custom fields. Being private, the note never reaches a status page, but it is posted to the record's Slack and Microsoft Teams channels like any other note.
+It names the form and the submitter — "Submitted anonymously through the form **Report a Problem**." when the form did not ask who they are — then, when the submission started from one of the form's templates, says which: "Started from the template **Application Outage**." — and then lists the answers to the form's own questions, each under its question, in the form's order. The files of its **File** and **Multiple Files** questions are attached to the note, where your team downloads them. The answers to linked questions are already on the record: its title, its severity, its custom fields. Being private, the note never reaches a status page, but it is posted to the record's Slack and Microsoft Teams channels like any other note.
 
 The address is a link that writes to exactly that address — in the dashboard, in Slack and in the owners' email.
 
@@ -158,6 +158,10 @@ A submission goes straight to places where text can act on its own — Slack and
 | Image syntax or a diagram fence in the title | **The title is plain text.** They get the invisible character too, so wherever the title lands — an episode, a chat message, a note template — it loads nothing and draws nothing. The invisible characters count towards the title's limit. |
 
 Everything else — links, the rest of the Markdown, dropdown choices, numbers, dates, a ticked checkbox — is stored as the submitter gave it, and the submission keeps the submitter's name and email as typed.
+
+## Files a submitter sends
+
+A file question keeps the files a submitter chooses in their browser and sends them with the answers, so nobody needs an account to attach one. The server checks each file as a [file custom field](/docs/incidents/settings#file-fields) does — its size, its kind and what it holds — and stores the files in your project, private, only once the submission has passed every other check: nothing is kept for a submission that is refused. A **File** or **Multiple files** custom field question puts its files in that field, and the form's own file questions attach theirs to the private note. The submission keeps each file's name. [Size limits](/docs/forms/building#size-limits) and [Rate limits](/docs/forms/sharing-and-security#rate-limits) say how much a submission and a form may send.
 
 ## Next steps
 

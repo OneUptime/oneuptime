@@ -345,11 +345,28 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
       "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator.ts",
     );
 
-    expect(
-      evaluator.split("query: {\n        isEnabled: true,\n      },").length,
-    ).toBeGreaterThan(1);
+    // The cron's read and a project's turn: enabled rules on an interval.
     expect(evaluator).toContain(
-      "query: {\n        projectId,\n        isEnabled: true,\n      },",
+      "query: {\n        isEnabled: true,\n        // A real-time rule checks events as they arrive, on no interval.\n        isRealTime: false,\n      },",
+    );
+    expect(evaluator).toContain(
+      "query: {\n        projectId,\n        isEnabled: true,\n        isRealTime: false,\n      },",
+    );
+
+    // A real-time rule: the screen reads enabled ones only, and a job for one turned off since does nothing.
+    expect(
+      readSource(
+        "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetections.ts",
+      ),
+    ).toContain(
+      "query: {\n        projectId,\n        isEnabled: true,\n        isRealTime: true,\n      },",
+    );
+    expect(
+      readSource(
+        "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetectionJob.ts",
+      ),
+    ).toContain(
+      "if (!rule || rule.isEnabled === false || rule.isRealTime !== true) {",
     );
   });
 

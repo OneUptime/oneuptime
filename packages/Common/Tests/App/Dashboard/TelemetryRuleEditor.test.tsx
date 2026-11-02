@@ -72,6 +72,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   EvaluateOverTimeType,
@@ -449,17 +450,342 @@ describe("When to alert, for a Logs monitor", () => {
     );
   });
 
-  test("an Exceptions monitor offers no unusual conditions", () => {
+  test("an Exceptions rule offers the unusual conditions on how many exceptions", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.AnyException),
+    });
+
+    pick(comboboxOf("Condition"), "Unusually high");
+
+    expect(
+      screen.queryByTestId("telemetry-rule-threshold"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("telemetry-rule-sensitivity")).toHaveTextContent(
+      "Medium",
+    );
+    expect(storedFilter(recorder)).toMatchObject({
+      checkOn: CheckOn.ExceptionCount,
+      filterType: FilterType.AnomalouslyHigh,
+      value: undefined,
+      metricMonitorOptions: {
+        anomalyDetection: { sensitivity: AnomalyDetectionSensitivity.Medium },
+      },
+    });
+    expect(sentence()).toBe(
+      "Alerts when matching exceptions in 5 minutes are unusually many for this hour of the week.",
+    );
+    // It is still a count of exceptions: the chart stays.
+    expect(screen.getByTestId("preview-stub")).toBeInTheDocument();
+  });
+
+  test.each([
+    ["Unusually low", "unusually few"],
+    ["Unusually high or low", "unusually many or few"],
+  ])("%s is said back", (label: string, words: string) => {
     renderEditor({
       monitorType: MonitorType.Exceptions,
       initial: recipeStep(TelemetryRuleRecipeKey.AnyException),
     });
 
-    fireEvent.keyDown(comboboxOf("Condition"), { key: "ArrowDown" });
+    pick(comboboxOf("Condition"), label);
 
-    expect(screen.queryByText("Unusually high")).not.toBeInTheDocument();
-    expect(screen.getAllByText("At least").length).toBeGreaterThan(0);
-    expect(screen.getByText("Number of exceptions")).toBeInTheDocument();
+    expect(sentence()).toBe(
+      `Alerts when matching exceptions in 5 minutes are ${words} for this hour of the week.`,
+    );
+  });
+
+  test.each([
+    "New exceptions",
+    "Exceptions that came back",
+    "A rise over the usual",
+  ])(
+    "%s has no baseline, so it offers no unusual conditions",
+    (measure: string) => {
+      renderEditor({
+        monitorType: MonitorType.Exceptions,
+        initial: recipeStep(TelemetryRuleRecipeKey.AnyException),
+      });
+
+      pick(comboboxOf("Alert on"), measure);
+      fireEvent.keyDown(comboboxOf("Condition"), { key: "ArrowDown" });
+
+      expect(screen.queryByText("Unusually high")).not.toBeInTheDocument();
+      expect(screen.getAllByText("At least").length).toBeGreaterThan(0);
+    },
+  );
+
+  /*
+   * The Exceptions spike pick: a sensitivity is all most people touch. The
+   * baseline window, the raw threshold and the minimum count are folded
+   * away, and say so when they hold something else.
+   */
+  test("Exceptions spike: a sensitivity on the simple path, no number to enter", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.ExceptionRise),
+    });
+
+    expect(sentence()).toBe(
+      "Alerts when matching exceptions in 15 minutes are unusually many for this hour of the week.",
+    );
+    expect(
+      screen.queryByTestId("telemetry-rule-threshold"),
+    ).not.toBeInTheDocument();
+
+    pick(comboboxOf("Sensitivity"), "High");
+
+    expect(
+      storedFilter(recorder).metricMonitorOptions?.anomalyDetection,
+    ).toEqual({ sensitivity: AnomalyDetectionSensitivity.High });
+    expect(sentence()).toBe(
+      "Alerts when matching exceptions in 15 minutes are unusually many for this hour of the week.",
+    );
+  });
+
+  test("the baseline window and the raw threshold are folded under More fields", () => {
+    renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.ExceptionRise),
+    });
+
+    const fold: HTMLElement = screen.getByTestId(
+      "telemetry-rule-anomaly-more-fields",
+    );
+
+    expect(fold).toHaveTextContent("More fields");
+    expect(fold).toHaveAttribute("data-collapsed", "true");
+    // What it holds is named on the fold, and nothing is set yet.
+    expect(fold).toHaveTextContent("Baseline Window");
+  });
+
+  test("a setting that is not the default shows on the closed fold", () => {
+    const step: MonitorStep = recipeStep(TelemetryRuleRecipeKey.ExceptionRise);
+    const filter: CriteriaFilter =
+      step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0]!.data!
+        .filters[0]!;
+
+    filter.metricMonitorOptions = {
+      anomalyDetection: {
+        sensitivity: AnomalyDetectionSensitivity.Medium,
+        windowDays: 28,
+        minimumCount: 4,
+      },
+    };
+
+    renderEditor({ monitorType: MonitorType.Exceptions, initial: step });
+
+    const fold: HTMLElement = screen.getByTestId(
+      "telemetry-rule-anomaly-more-fields",
+    );
+
+    expect(fold).toHaveAttribute("data-collapsed", "true");
+    expect(fold).toHaveTextContent("Baseline Window: 28");
+    expect(fold).toHaveTextContent("Minimum exceptions: 4");
+  });
+
+  test.each([
+    [TelemetryRuleRecipeKey.AnyException],
+    [TelemetryRuleRecipeKey.NewException],
+  ])("a %s rule has no such fold", (key: TelemetryRuleRecipeKey) => {
+    renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(key),
+    });
+
+    expect(
+      screen.queryByTestId("telemetry-rule-anomaly-more-fields"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a Logs anomaly rule has no such fold: its evaluator reads neither number", () => {
+    renderEditor({
+      monitorType: MonitorType.Logs,
+      initial: recipeStep(TelemetryRuleRecipeKey.ErrorLogs),
+    });
+
+    pick(comboboxOf("Condition"), "Unusually high");
+
+    expect(
+      screen.queryByTestId("telemetry-rule-anomaly-more-fields"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("opened, More fields writes the baseline window, the raw threshold and the minimum, and clearing goes back", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.ExceptionRise),
+    });
+
+    const fold: HTMLElement = screen.getByTestId(
+      "telemetry-rule-anomaly-more-fields",
+    );
+
+    fireEvent.click(within(fold).getByRole("button"));
+
+    pick(comboboxOf("Baseline Window"), "28 days");
+
+    expect(
+      storedFilter(recorder).metricMonitorOptions?.anomalyDetection,
+    ).toEqual({
+      sensitivity: AnomalyDetectionSensitivity.Medium,
+      windowDays: 28,
+    });
+
+    const sigma: HTMLInputElement = screen.getByTestId(
+      "telemetry-rule-sigma-count",
+    ) as HTMLInputElement;
+    const minimum: HTMLInputElement = screen.getByTestId(
+      "telemetry-rule-minimum-count",
+    ) as HTMLInputElement;
+
+    // The sensitivity's numbers, as the placeholders of the empty boxes.
+    expect(sigma.placeholder).toBe("3");
+    expect(minimum.placeholder).toBe("10");
+
+    fireEvent.change(sigma, { target: { value: "2.5" } });
+    fireEvent.change(minimum, { target: { value: "4" } });
+
+    expect(
+      storedFilter(recorder).metricMonitorOptions?.anomalyDetection,
+    ).toEqual({
+      sensitivity: AnomalyDetectionSensitivity.Medium,
+      windowDays: 28,
+      sigmaCount: 2.5,
+      minimumCount: 4,
+    });
+
+    fireEvent.change(sigma, { target: { value: "" } });
+    fireEvent.change(minimum, { target: { value: "" } });
+    pick(comboboxOf("Baseline Window"), "14 days");
+
+    expect(
+      storedFilter(recorder).metricMonitorOptions?.anomalyDetection,
+    ).toEqual({ sensitivity: AnomalyDetectionSensitivity.Medium });
+  });
+
+  test("the placeholders follow the sensitivity", () => {
+    renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.ExceptionRise),
+    });
+
+    pick(comboboxOf("Sensitivity"), "Low");
+    fireEvent.click(
+      within(
+        screen.getByTestId("telemetry-rule-anomaly-more-fields"),
+      ).getByRole("button"),
+    );
+
+    expect(
+      (screen.getByTestId("telemetry-rule-sigma-count") as HTMLInputElement)
+        .placeholder,
+    ).toBe("4");
+    expect(
+      (screen.getByTestId("telemetry-rule-minimum-count") as HTMLInputElement)
+        .placeholder,
+    ).toBe("20");
+  });
+
+  test("moving an unusual rule to a measure without a baseline gives it a number", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.ExceptionRise),
+    });
+
+    pick(comboboxOf("Alert on"), "New exceptions");
+
+    expect(storedFilter(recorder)).toMatchObject({
+      checkOn: CheckOn.NewExceptionCount,
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    });
+    expect(
+      screen.queryByTestId("telemetry-rule-anomaly-more-fields"),
+    ).not.toBeInTheDocument();
+
+    pick(comboboxOf("Alert on"), "Exceptions");
+
+    expect(storedFilter(recorder)).toMatchObject({
+      checkOn: CheckOn.ExceptionCount,
+      filterType: FilterType.GreaterThan,
+    });
+  });
+
+  /*
+   * What an Exceptions rule alerts on: how many, new ones, ones that came
+   * back, or a rise over the usual. Each is written to the criteria, said
+   * back, and the count chart steps aside for the other three.
+   */
+  test("an Exceptions rule can alert on new exceptions instead of how many", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.AnyException),
+    });
+
+    expect(screen.getByTestId("telemetry-rule-measure")).toHaveTextContent(
+      "Exceptions",
+    );
+    expect(screen.getByTestId("preview-stub")).toBeInTheDocument();
+
+    pick(comboboxOf("Alert on"), "New exceptions");
+
+    expect(storedFilter(recorder).checkOn).toBe(CheckOn.NewExceptionCount);
+    expect(sentence()).toBe(
+      "Alerts when a matching exception happens for the first time in 5 minutes.",
+    );
+    expect(screen.getByText("Number of new exceptions")).toBeInTheDocument();
+    expect(screen.queryByTestId("preview-stub")).not.toBeInTheDocument();
+    expect(screen.getByTestId("telemetry-rule-no-preview")).toBeInTheDocument();
+    // Another kind of rule: its title follows.
+    expect(storedRule(recorder, MonitorType.Exceptions).alert?.title).not.toBe(
+      "Checkout: an exception happened",
+    );
+  });
+
+  test("a rise over the usual is said in percent", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.ExceptionRise),
+    });
+
+    // From the spike pick, which has no number: it starts on the usual 200%.
+    pick(comboboxOf("Alert on"), "A rise over the usual");
+
+    expect(storedFilter(recorder).checkOn).toBe(
+      CheckOn.ExceptionCountIncreasePercent,
+    );
+    expect(sentence()).toBe(
+      "Alerts when matching exceptions in 15 minutes rise above the usual for the day before by more than 200%.",
+    );
+    expect(screen.getByText("Rise over the usual (in %)")).toBeInTheDocument();
+
+    pick(comboboxOf("Alert on"), "Exceptions");
+
+    expect(storedFilter(recorder).checkOn).toBe(CheckOn.ExceptionCount);
+    expect(screen.getByTestId("preview-stub")).toBeInTheDocument();
+  });
+
+  test("a resolved exception coming back reads as itself", () => {
+    renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(TelemetryRuleRecipeKey.RegressedException),
+    });
+
+    expect(sentence()).toBe(
+      "Alerts when a matching exception you resolved comes back in 10 minutes.",
+    );
+  });
+
+  test("only an Exceptions rule offers the choice", () => {
+    renderEditor({
+      monitorType: MonitorType.Logs,
+      initial: recipeStep(TelemetryRuleRecipeKey.ErrorLogs),
+    });
+
+    expect(
+      screen.queryByTestId("telemetry-rule-measure"),
+    ).not.toBeInTheDocument();
   });
 });
 

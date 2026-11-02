@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import ObjectID from "../../../Types/ObjectID";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
@@ -169,6 +170,14 @@ export interface ComponentProps {
   // The menu closed: what it covered under the control can show again.
   onMenuClose?: (() => void) | undefined;
   /*
+   * A single pick shows its whole name, on a second line if it must, instead
+   * of ending in an ellipsis: for a field whose value has to be read to be
+   * checked - a monitor criteria's Filter Type in a phone's narrow form, where
+   * "SNMP Walk Is Succeeding" was cut to "SNMP Walk...". Off unless set: a
+   * picker in a toolbar or a header keeps its one line.
+   */
+  wrapsPickedValue?: boolean | undefined;
+  /*
    * Close the menu once an option is picked. Defaults to true; a
    * multi-select whose people pick several in a row turns it off, so the
    * list stays open, at the same place, for the next one.
@@ -208,6 +217,10 @@ const namesAnOption: (
  */
 export const SINGLE_SELECT_VALUE_LABEL_CLASS_NAME: string =
   "truncate text-sm font-medium text-gray-900";
+
+// A single pick that shows whole (wrapsPickedValue): it wraps instead.
+export const SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME: string =
+  "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-medium text-gray-900";
 
 export const MULTI_SELECT_CHIP_LABEL_CLASS_NAME: string =
   "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-medium text-gray-900";
@@ -737,7 +750,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               className={
                 props.isMultiSelect
                   ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
-                  : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
+                  : props.wrapsPickedValue
+                    ? SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME
+                    : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
               }
               dir={getOptionLabelDirection(option)}
               data-testid="dropdown-value-label"
@@ -1157,6 +1172,16 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           ): CSSObjectWithLabel => {
             return getDropdownOptionStyle(provided, state);
           },
+          /*
+           * react-select cuts a single pick to one line with an ellipsis;
+           * a field that shows its pick whole lets it wrap instead
+           * (wrapsPickedValue).
+           */
+          singleValue: (provided: CSSObjectWithLabel): CSSObjectWithLabel => {
+            return props.wrapsPickedValue
+              ? { ...provided, whiteSpace: "normal", textOverflow: "clip" }
+              : provided;
+          },
           multiValue: (provided: CSSObjectWithLabel): CSSObjectWithLabel => {
             return {
               ...provided,
@@ -1273,16 +1298,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           }
         }}
       />
-      {props.error && (
-        <p
-          id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {tx(props.error) ?? props.error}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
     </div>
   );
 };

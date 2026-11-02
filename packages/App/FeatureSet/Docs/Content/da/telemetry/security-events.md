@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Åbn **Produkter → Security Events** under **Observabilitet**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
+Åbn **Produkter → Sikkerhedshændelser** under **Observabilitet**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
 
 | Side | Sektion | Hvad den bruges til |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ flowchart TB
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
 | **Hunts** | Begivenheder | Søgninger gemt fra Begivenheder, åbnet igen med ét klik eller kørt efter en tidsplan, der giver personer besked, når de finder noget |
-| **Campaigns** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
+| **Kampagner** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detektionsregler** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
@@ -111,7 +111,7 @@ Endpointet svarer `200`, når begivenhederne står i kø. En begivenhed uden tid
 
 ### Find dem under Begivenheder
 
-Åbn **Produkter → Security Events → Begivenheder**. Begivenhederne vises inden for få sekunder med deres alvorlighed, klasse, bruger, vært og IP-adresser udfyldt.
+Åbn **Produkter → Sikkerhedshændelser → Begivenheder**. Begivenhederne vises inden for få sekunder med deres alvorlighed, klasse, bruger, vært og IP-adresser udfyldt.
 :::
 
 ### Formater
@@ -262,11 +262,11 @@ Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **R
 
 ### Hvad der skete bagefter
 
-En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Reached App**, **Errored** eller **Reached Database**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
+En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Nåede appen**, **Fejlede** eller **Nåede databasen**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
 
 ### Campaigns
 
-**Campaigns** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
+**Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
 
 ### Korrelér
 
@@ -313,7 +313,7 @@ Hunts har den samme REST API som resten af OneUptime, under `/security-hunt`, og
 
 ## Detektionsregler
 
-En detektionsregel er en [Sigma](https://sigmahq.io/)-regel, et åbent YAML-format til at beskrive mistænkelig aktivitet, som OneUptime kører efter en tidsplan mod dine begivenheder. Når den matcher, åbner den en [sag](/docs/telemetry/security-cases) eller føjer matchet til en åben sag, åbner en advarsel, eventuelt en hændelse, og skriver et Detection Finding tilbage i begivenhederne. **Regelbibliotek** har færdige regler at starte fra.
+En detektionsregel er en [Sigma](https://sigmahq.io/)-regel, et åbent YAML-format til at beskrive mistænkelig aktivitet, som OneUptime kører efter en tidsplan mod dine begivenheder eller på hver begivenhed, så snart den ankommer. Når den matcher, åbner den en [sag](/docs/telemetry/security-cases) eller føjer matchet til en åben sag, åbner en advarsel, eventuelt en hændelse, og skriver et Detection Finding tilbage i begivenhederne. **Regelbibliotek** har færdige regler at starte fra.
 
 ```mermaid title="Sådan udløses en detektionsregel"
 flowchart TB
@@ -327,12 +327,12 @@ flowchart TB
 ### Opret en regel
 
 :::steps
-1. Åbn **Produkter → Security Events → Detektioner → Detektionsregler**, og klik på **Opret Detektionsregel**.
+1. Åbn **Produkter → Sikkerhedshændelser → Detektioner → Detektionsregler**, og klik på **Opret Detektionsregel**.
 2. Indsæt regelens YAML i **Sigma-regel (YAML)** under **Sigma-regel**. Den fortolkes, når du gemmer, så en fejl vises i formularen.
 3. **Navn** udfyldes med regelens `title`: skriv ovenpå for at kalde reglen noget andet. En ny regel kører; **Aktiveret** står i dens redigeringsformular.
 4. Lad **Åbn en sag ved match** være slået til under **Ved match** for at samle regelens match i sager efter den værdi, reglen grupperer efter.
 5. Vælg under **Advarsler og hændelser**, hvad et match ellers udløser: **Opret en advarsel** (standard), **Erklær en hændelse**, **Begge** eller **Ingen af dem**, med en valgfri **Advarselsalvor** eller **Hændelsesalvor**.
-6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til) og hvordan match tælles; se [Evalueringsindstillinger](#evalueringsindstillinger).
+6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til), **Kør i realtid** (fra) og hvordan match tælles; se [Evalueringsindstillinger](#evalueringsindstillinger).
 :::
 
 En første regel, der matcher mislykkede logins uden for `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Felt | Hvad det gør |
 | --- | --- |
 | **Evalueringsinterval (minutter)** | Hvor ofte reglen kører: hele minutter, 1 til 1440. Formularen for en ny regel starter på 5. |
+| **Kør i realtid** | Slået fra på en ny regel. Slået til tjekker reglen hver begivenhed, når den ankommer, i stedet for ved hvert interval; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfelt** | Valgfrit. Match, der deler dette felts værdi, f.eks. `principalHost`, tælles, advares og dedupliceres samlet: én advarsel pr. vært i stedet for hundredvis. |
 | **Felt til unik optælling** | Valgfrit. Tæl de forskellige værdier af dette felt i stedet for de matchende begivenheder. Tomme værdier tælles ikke. |
 | **Grænse for antal match** | En gruppe udløses kun, når dens optælling når dette tal inden for én kørsel: 1 til 1000000, og 1 udløses ved ethvert match. |
@@ -450,6 +451,16 @@ OneUptime tjekker hvert minut for aktiverede regler, hvis interval er gået side
 - Efter et hul, f.eks. et worker-nedbrud eller en regel, der er slået til igen, dækker den næste kørsel hele hullet, op til de seneste 24 timer.
 - En begivenhed, der ankommer mere end to minutter for sent, efter at en kørsel har dækket dens tidspunkt, gemmes og kan søges, men den regel læser den aldrig.
 - Hver gruppe, der når tærsklen, bliver et Detection Finding, op til 10.000 pr. kørsel. Advarsler, hændelser og sager åbnes for de 100 med de højeste optællinger; resten deler én sag om reglen, og reglens **Seneste fejl** fortæller, hvor mange grupper der matchede.
+
+### Realtidsregler
+
+En regel, der udløses af én begivenhed, kan køre i realtid i stedet for efter sit interval: Slå **Kør i realtid** til under **Flere felter** i trinnet **Ved match**. Hver begivenhed, OneUptime modtager, fra enhver kilde, tjekkes så mod reglen, når den ankommer, og et match åbner sin sag, sin advarsel og sit fund inden for sekunder.
+
+- Det passer til en regel med en **Grænse for antal match** på 1, uden **Felt til unik optælling** og uden modifikatoren `re`. En korrelation tæller begivenheder sammen og kører derfor efter sit interval. Formularen fortæller, hvad der skal ændres, når en regel ikke passer.
+- Et projekt kører højst 50 regler i realtid, da hver begivenhed tjekkes mod hver enkelt.
+- I **Detektionsregler** viser en realtidsregels **Status** **Realtid**, og det gør dens intervalkolonne også. Et tjek, der mislykkes, vises under **Seneste fejl**, ligesom for en kørsel.
+- Når den slås til, læser reglen først, hvad der er ankommet siden dens seneste kørsel, så intet falder mellem tidsplanen og realtid. Når den slås fra, går den tilbage til sit interval, fra to minutter før.
+- Undtagelser og overvågningslister gælder for den som for enhver regel, og **Kør på tidligere hændelser** læser den som enhver anden.
 
 ### Alvorlighed
 
@@ -481,7 +492,7 @@ Fund er almindelige begivenheder: søg efter dem under **Begivenheder**, og pivo
 
 ### Undtagelser
 
-En undtagelse er noget, en regel springer over, fordi du forventer det, som en sårbarhedsscanner, et natligt backupjob eller en planlagt penetrationstest. Den gør reglen stille for netop den ene ting uden at slå den fra, og reglens andre match udløser stadig. Alle undtagelser står under **Produkter → Security Events → Detektioner → Regelundtagelser**: tilføj en der med **Tilføj Regelundtagelse**, med **Tilføj undtagelse** i en regels række, eller med **Tilføj undtagelse** i en detektions række på en sag, som starter med detektionens regel og det, den udløste for.
+En undtagelse er noget, en regel springer over, fordi du forventer det, som en sårbarhedsscanner, et natligt backupjob eller en planlagt penetrationstest. Den gør reglen stille for netop den ene ting uden at slå den fra, og reglens andre match udløser stadig. Alle undtagelser står under **Produkter → Sikkerhedshændelser → Detektioner → Regelundtagelser**: tilføj en der med **Tilføj Regelundtagelse**, med **Tilføj undtagelse** i en regels række, eller med **Tilføj undtagelse** i en detektions række på en sag, som starter med detektionens regel og det, den udløste for.
 
 | Det, reglen springer over | Hvad den matcher |
 | --- | --- |
@@ -497,7 +508,7 @@ En undtagelse er noget, en regel springer over, fordi du forventer det, som en s
 
 ### Overvågningslister
 
-En overvågningsliste er en liste, dit team vedligeholder én gang, og som enhver regel kan læse, som VIP-brugere, kritiske værter, kendte ondsindede filhashes eller de adresser, administratorer må logge ind fra. Alle lister ligger under **Produkter → Security Events → Detektioner → Overvågningslister**: Opret en der med **Opret Overvågningsliste**, som spørger om dens navn og hvad den indeholder, eller tilføj en almindelig fra **Start med en almindelig liste**. En listes side viser dens værdier, og **Brug den i en regel** giver en selektion, der læser listen, til at kopiere ind i en regel.
+En overvågningsliste er en liste, dit team vedligeholder én gang, og som enhver regel kan læse, som VIP-brugere, kritiske værter, kendte ondsindede filhashes eller de adresser, administratorer må logge ind fra. Alle lister ligger under **Produkter → Sikkerhedshændelser → Detektioner → Overvågningslister**: Opret en der med **Opret Overvågningsliste**, som spørger om dens navn og hvad den indeholder, eller tilføj en almindelig fra **Start med en almindelig liste**. En listes side viser dens værdier, og **Brug den i en regel** giver en selektion, der læser listen, til at kopiere ind i en regel.
 
 En regel læser en liste med `expand` og listens navn mellem to `%`-tegn. Denne regel udløser, når en administrator logger ind fra en adresse, der ikke er på den tilladte liste:
 
@@ -573,6 +584,10 @@ Tjek nøglen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Tjek 
 
 :::details En regel matcher aldrig
 Tjek dens **Status**: med **Deaktiveret** kører reglen ikke, og med **Kørsel mislykkedes** viser **Vis fejl** i dens række hvorfor. Åbn en begivenhed, du forventede ville matche, og sammenlign den med reglen felt for felt: en almindelig værdi skal være lig med hele feltet, så brug `contains` eller `*` til en del af et felt. En attribut navngives som i begivenheden (`threat.matched`, ikke `attributes.threat.matched`). Med en tærskel over 1 skal matchene falde inden for én kørsel.
+:::
+
+:::details Kør i realtid kan ikke slås til
+Reglen tæller match, tæller unikke værdier, læser et regulært udtryk eller er en korrelation, og formularen fortæller hvilket: sæt **Grænse for antal match** til 1, ryd **Felt til unik optælling**, eller brug `contains`, `startswith` eller `endswith` i stedet for `re`. Et projekt kører højst 50 regler i realtid: slå det fra på en anden regel først.
 :::
 
 :::details En regel matchede, men ingen advarsel blev åbnet

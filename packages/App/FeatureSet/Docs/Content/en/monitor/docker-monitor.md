@@ -48,19 +48,19 @@ Under **Monitor Type**, click **More monitor types** and pick **Docker Container
 
 ### Choose the host
 
-Under **Docker Monitor Configuration**, pick the host from **Docker Host**. Every host that has sent data is in the list.
+Under **Docker Monitor Configuration**, pick the host from **Docker Host**. Every host that has sent data is in the list. Once picked, a line under the field says whether data is arriving. **Add Docker Host** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Pick one of the three tabs:
+A new monitor starts on **Host Stopped Reporting**, under **What to alert on**. To watch something else:
 
-- **Quick Setup** — click a [template](#pre-built-alert-templates). It sets the metric, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** — pick one metric from **Docker Metric**, then set **Aggregation** and **Time Range**. **Container Name** and **Container Image** narrow it to some containers.
-- **Advanced** — build queries and formulas yourself under **Select Metrics**. Use **Group by** `resource.container.name` to judge each container on its own.
+- **Change** — pick another [template](#pre-built-alert-templates). It sets the metric, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** (under **More fields**) — pick one metric from **Docker Metric**, then set **Aggregation** and **Time Range**. **Container Name** and **Container Image** narrow it to some containers.
+- **Advanced** (under **More fields**) — build queries and formulas yourself under **Select Metrics**. Use **Group by** `resource.container.name` to judge each container on its own.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -84,7 +84,7 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers seven templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Host Stopped Reporting** groups its query by `resource.container.name`, so every container is judged on its own, one busy container does not hide another, and each breaching container gets its own incident and alert. Thresholds are starting points you can edit.
+The **What to alert on** list offers seven templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Host Stopped Reporting** groups its query by `resource.container.name`, so every container is judged on its own, one busy container does not hide another, and each breaching container gets its own incident and alert. Thresholds are starting points you can edit.
 
 Unless the table says otherwise, a criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
@@ -93,7 +93,7 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 | Host Stopped Reporting | Critical | `container.memory.percent`, Count over every container on the host, past 10 minutes | No data for the whole window | Data arrives again |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Max per container, past 5 minutes | Above 85% | At or below 76.5% |
-| Container Restart Loop | Critical | Growth of `container.restarts` per container, past 15 minutes | More than 3 restarts in the window (Sum) | 2.7 or fewer |
+| Container Restart Loop | Critical | `container.restarts.increase`, Sum per container, past 15 minutes | More than 3 restarts in the window (Sum) | 2.7 or fewer |
 | Container CPU Throttling | Warning | Growth of `container.cpu.throttling_data.throttled_time` in ms per container, past 5 minutes | More than 1000 ms in the window (Sum) | 900 ms or less |
 | High Container Process Count | Warning | `container.pids.count`, Max per container, past 5 minutes | Above 2000 | At or below 1800 |
 | Container Restarted (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Below 120 seconds | At or above 132 seconds |
@@ -110,7 +110,10 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 > `container.memory.percent` divides by the container's memory limit when one is set, and by the **host's** total memory when it is not. Check whether the container was started with `--memory` before you treat a breach as an imminent out-of-memory kill.
 
 > [!WARNING]
-> `container.restarts` and `container.cpu.throttling_data.throttled_time` only ever grow, so those two templates alert on how much they grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real activity, and the thresholds already allow for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and both templates stop alerting. The agent also samples running containers only, so a container that exits the moment it starts is rarely sampled at all: **Container Restarted (Low Uptime)** fires on every restart the agent does see.
+> `container.cpu.throttling_data.throttled_time` only ever grows, so **Container CPU Throttling** alerts on how much it grew in the window: a Maximum and a Minimum query per minute, subtracted by a formula and summed. At the agent's 30-second scrape that sees about half the real throttling, and the threshold already allows for it. If you raise the agent's `collection_interval` to 60 seconds or more, each minute holds one sample and the template stops alerting.
+
+> [!NOTE]
+> `container.restarts` only ever grows too, until a restart by hand or a recreated container starts it again at 0, so the agent also sends `container.restarts.increase` with every sample: the restarts since its previous sample of the container. **Container Restart Loop** adds those up, so it counts every restart however far apart the samples are, and a restart by hand is not one. Docker reports a container it is restarting as running, so the agent keeps sampling a crash-looping container between its runs. An older agent does not send `container.restarts.increase`: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent) first. A monitor made from the template before then reads how much `container.restarts` grew within each minute, which misses about half of a loop's restarts: delete it and create the template again.
 
 > [!CAUTION]
 > `container.uptime` exists only for running containers. A container that stops and stays stopped sends no data, so **Container Restarted (Low Uptime)** catches restarts and redeploys, not a permanent shutdown. A container meant to run for less than two minutes stays in the alerting state for its whole life. For a service that must stay up, also watch what it serves — for example with an [API Monitor](/docs/monitor/api-monitor).
@@ -155,6 +158,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver against the Docker sock
 | --- | --- |
 | `container.uptime` | Seconds since the container started. Only running containers report it. |
 | `container.restarts` | Times the container has restarted since it was created. A lifetime counter. |
+| `container.restarts.increase` | Restarts since the agent's previous sample of the container, sent with every sample. Their sum over a window is the restarts in it, so alert on this one rather than on the lifetime count. |
 | `container.pids.count` | Tasks in the container. The cgroup pids controller counts threads as well as processes. |
 
 `container.cpu.throttling_data.throttled_periods` is not in the **Docker Metric** list; query it from **Advanced**.
@@ -173,7 +177,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
 | **If No Data** | Under **More fields**. What happens when the window has no samples: **Ignore** (the default), **Treat As Zero** or **Trigger**. |
 
-Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history. A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes, and the baseline holds none.
 
 Each criteria also says what to do when it matches: change the monitor status, create an alert, or declare an incident. Criteria are checked from top to bottom, and the first one that matches decides.
 
@@ -288,8 +292,12 @@ OneUptime identifies a host by `resource.host.name`, which the agent takes from 
 Group the query by `resource.container.name` and aggregate with **Maximum**, as the **High Container CPU Usage** template does. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold. If a container's CPU is a flat line whatever its load, the host runs an older agent: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent).
 :::
 
-:::details The restart-loop or throttling template stopped alerting
-Both measure how much a counter grew between two samples in the same minute. If the agent's `collection_interval` is 60 seconds or more, every minute holds one sample, the growth always reads 0, and neither template fires. Keep the agent's default of 30 seconds.
+:::details The throttling template stopped alerting
+It measures how much `container.cpu.throttling_data.throttled_time` grew between two samples in the same minute. If the agent's `collection_interval` is 60 seconds or more, every minute holds one sample, the growth always reads 0, and the template never fires. Keep the agent's default of 30 seconds.
+:::
+
+:::details The restart-loop template never fires, or misses restarts
+It reads `container.restarts.increase`, which an older agent does not send: [upgrade the agent](/docs/telemetry/docker-host#upgrading-the-agent). A monitor made from the template before then reads how much `container.restarts` grew between two samples in the same minute, and misses the restarts between two minutes' samples: delete it and create the template again.
 :::
 
 ## Next steps

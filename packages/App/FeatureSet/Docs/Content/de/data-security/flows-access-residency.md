@@ -4,7 +4,7 @@ Zu wissen, was ein Datenspeicher enthält, ist nur die halbe Antwort. Datensiche
 
 :::cards
 - [Datenflüsse](#datenflüsse): Dienste, KI-Anbieter, externe Hosts und Kopien.
-- [Wer einen Datenspeicher erreichen kann](#wer-einen-datenspeicher-erreichen-kann): Jede Berechtigung, die Ihre Cloud meldet, und wie exponiert der Datenspeicher ist.
+- [Wer einen Datenspeicher erreichen kann](#wer-einen-datenspeicher-erreichen-kann): Jede Identität und Berechtigung, was jede Identität erreicht und wie exponiert der Datenspeicher ist.
 - [Residenzregeln](#residenzregeln): Die Regionen, in denen jede Art von Daten liegen darf.
 :::
 
@@ -39,18 +39,18 @@ Eine Kopie wird gefunden, ohne die Werte eines der beiden Datenspeicher zu kenne
 
 ## Wer einen Datenspeicher erreichen kann
 
-Das Lesen der Konfiguration macht aus den eigenen Zugriffseinstellungen jeder Cloud - Bucket-Richtlinien und ACLs, Azure-Rollenzuweisungen, IAM-Bindungen von Google Cloud, Snapshot-Freigaben - eine einzige Liste, wer den Datenspeicher erreichen kann, auf seiner Seite **Wer ihn erreichen kann**:
+Das Lesen der Konfiguration macht aus den eigenen Zugriffseinstellungen jeder Cloud - Bucket-Richtlinien und ACLs, Azure-Rollenzuweisungen, IAM-Bindungen von Google Cloud, Snapshot-Freigaben und bei AWS den eigenen IAM-Richtlinien jeder Rolle und jedes Benutzers - eine einzige Liste, wer den Datenspeicher erreichen kann, auf seiner Seite **Wer ihn erreichen kann**. Die Dienste, die laut Dienstkarte den Datenspeicher aufrufen, stehen ebenfalls darauf:
 
 | Spalte | Was sie sagt |
 | --- | --- |
-| **Prinzipal** | Wer oder was Zugriff hat, so wie die Cloud es nennt: `*`, eine Konto-ID, ein ARN, eine E-Mail-Adresse, ein Dienstkonto. |
-| **Prinzipaltyp** | Öffentlich, Konto, Rolle, Benutzer, Gruppe, Dienstprinzipal, Dienstkonto oder Dienst. |
+| **Wer** | Wer oder was Zugriff hat, so wie die Cloud es nennt: `*`, eine Konto-ID, ein ARN, eine E-Mail-Adresse, ein Dienstkonto, ein Dienst. Eine Identität, die seit 90 Tagen nicht verwendet wurde, ist entsprechend markiert. |
+| **Typ** | Öffentlich, Konto, Rolle, Benutzer, Gruppe, Dienstprinzipal, Dienstkonto oder Dienst. |
 | **Zugriffsebene** | Lesen, Schreiben oder Administrator. |
-| **Gewährt über** | Was ihn gewährt: eine Bucket-Richtlinie, eine ACL, eine Rollenzuweisung, eine IAM-Bindung oder eine Snapshot-Freigabe. |
-| **Extern** | Der Prinzipal liegt außerhalb der Konten, Abonnements und Projekte, die mit OneUptime verbunden sind. |
-| **Öffentlich** | Der Prinzipal ist jeder im Internet. |
+| **Gewährt über** | Was ihn gewährt: eine Bucket-Richtlinie, eine ACL, eine IAM-Richtlinie, eine Rolle, die übernommen werden darf, eine Rollenzuweisung, eine IAM-Bindung oder eine Snapshot-Freigabe - oder, bei einem Dienst, dass Traces ihn beim Nutzen des Datenspeichers gesehen haben. |
+| **Erreichbarkeit** | Jeder im Internet, außerhalb Ihrer Konten - der Konten, Abonnements und Projekte, die mit OneUptime verbunden sind - oder Ihre Konten. |
+| **Zuletzt verwendet** | Wann die Identität ihren Zugriff zuletzt genutzt hat, so wie die Cloud es meldet, oder wann die Dienstkarte den Dienst zuletzt beim Aufruf des Datenspeichers gesehen hat. |
 
-Die Liste wird bei jedem Lesen der Konfiguration neu gelesen, und eine Berechtigung, die die Cloud nicht mehr meldet, wird entfernt. [Mehr als 25 Identitäten können eingeschränkte Daten lesen](/docs/data-security/checks-and-issues#zugriff) zählt die Leser darauf. Die Dienste, die einen Datenspeicher nutzen, sind seine Datenflüsse vom Typ **Verwendet**.
+Die Liste wird bei jedem Lesen der Konfiguration neu gelesen, und eine Berechtigung, die die Cloud nicht mehr meldet, wird entfernt. [Mehr als 25 Identitäten können eingeschränkte Daten lesen](/docs/data-security/checks-and-issues#zugriff) zählt die Leser darauf, und [Identitäten, die seit 90 Tagen nicht verwendet wurden, können ihn noch erreichen](/docs/data-security/checks-and-issues#zugriff) schlägt fehl, solange eine seit 90 Tagen nicht verwendete Identität seine sensiblen Daten erreichen kann. Die Dienste, die einen Datenspeicher nutzen, sind seine Datenflüsse vom Typ **Verwendet**.
 
 Aus dem, was es liest, erhält jeder Datenspeicher eine Exponierung:
 
@@ -63,6 +63,22 @@ Aus dem, was es liest, erhält jeder Datenspeicher eine Exponierung:
 | **Unbekannt** | OneUptime konnte nicht genug von seiner Konfiguration lesen, um es zu sagen. |
 
 Öffentlich schlägt geteilt, und geteilt schlägt erreichbar: Ein öffentlicher Bucket, der auch mit einem anderen Konto geteilt ist, ist Öffentlich. Die Exponierung erhöht den [Risikowert](/docs/data-security/checks-and-issues#risikowert) eines Problems.
+
+### Jede Identität und was sie erreichen kann
+
+Bei AWS listet das Lesen die Benutzer und Rollen des Kontos einmal auf und entscheidet so, wie IAM es tut, wer davon jeden Bucket und jede DynamoDB-Tabelle erreicht und wie: was ihre Richtlinien erlauben, abzüglich dessen, was sie verweigern, Berechtigungsgrenzen, und eine Berechtigung, die nur unter Bedingungen gilt, sagt das. Ein Konto außerhalb Ihrer verbundenen Konten, das eine Rolle übernehmen darf, erreicht, was die Rolle erreicht. Die letzte Verwendung jeder Identität stammt bei Rollen von IAM und bei Benutzern aus dem Anmeldeinformationsbericht des Kontos.
+
+**Datensicherheit → Zugriff** listet jede Identität auf, die Ihre Datenspeicher erreichen kann, die riskanteste zuerst: was sie erreicht und wie sensibel das ist, das Höchste, was sie tun darf, und wann sie zuletzt verwendet wurde, mit Filtern für **Außerhalb Ihrer Konten**, **Seit 90 Tagen nicht verwendet** und **Kann sensible Daten ändern**. Jede öffnet ihre eigene Seite: jeden Datenspeicher, den sie erreichen kann, den sensibelsten zuerst, und ihren Risikowert Teil für Teil. Darunter listet Zugriff jede Berechtigung von außerhalb Ihrer Konten auf.
+
+| Was zum Risiko einer Identität beiträgt | Punkte |
+| --- | --- |
+| Die sensibelsten Daten, die sie erreicht | 50 für Eingeschränkt, 30 für Vertraulich, 10 für Intern |
+| Sie darf in einen vertraulichen oder eingeschränkten Datenspeicher schreiben oder ihn verwalten | 15 |
+| Sie ist jeder im Internet oder liegt außerhalb Ihrer Konten | 20 für jeden, 15 für außerhalb |
+| Sie wurde seit 90 Tagen nicht verwendet und erreicht interne, vertrauliche oder eingeschränkte Daten | 10 |
+| Wie viele sensible Datenspeicher sie erreicht | 1 für jeden, bis zu 5 |
+
+Der Wert beträgt höchstens 100. Eine Rolle eines Kontos außerhalb, die einen Datenspeicher mit Kartennummern ändern kann, erhält 50 + 15 + 15 + 1 = 81.
 
 ## Residenzregeln
 

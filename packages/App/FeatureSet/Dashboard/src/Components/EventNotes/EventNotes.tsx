@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
@@ -18,7 +19,9 @@ import { HeldPermissions } from "Common/Types/HeldPermissions";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import User from "Common/UI/Utils/User";
@@ -143,8 +146,15 @@ function EventNotes<TNote extends BaseModel>(
     // The kind's own words for what its notes are for, where it has them.
     ...(props.description ? { description: props.description } : {}),
   };
-  // What the viewer holds, blocks included.
-  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+  /*
+   * What the viewer holds, blocks included - on a private record's page,
+   * what they hold on the record: its notes are written, changed and
+   * removed only by a team of theirs that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+  const heldPermissions: HeldPermissions =
+    PermissionGate.getHeldPermissions(privateRecordOptions);
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string, action: "create" | "update") => boolean = (
@@ -167,12 +177,13 @@ function EventNotes<TNote extends BaseModel>(
   const createGate: PermissionGateResult = PermissionGate.check(
     model,
     ModelAction.Create,
+    privateRecordOptions,
   );
   const editGate: NoteActionGate = toActionGate(
-    PermissionGate.check(model, ModelAction.Update),
+    PermissionGate.check(model, ModelAction.Update, privateRecordOptions),
   );
   const deleteGate: NoteActionGate = toActionGate(
-    PermissionGate.check(model, ModelAction.Delete),
+    PermissionGate.check(model, ModelAction.Delete, privateRecordOptions),
   );
 
   const isEditAttachmentsEnabled: boolean =
@@ -747,7 +758,9 @@ function EventNotes<TNote extends BaseModel>(
               onClick={() => {
                 fetchNotes({ mode: "more" });
               }}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-60"
+              className={`inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition ${getHandDrawnButtonStateClassName(
+                { isBusy: isLoadingMore, hoverClassName: "hover:bg-gray-50" },
+              )}`}
             >
               {isLoadingMore && (
                 <Icon
@@ -846,7 +859,13 @@ function EventNotes<TNote extends BaseModel>(
               onClick={() => {
                 refresh();
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                {
+                  isLocked: isLoading,
+                  isBusy: isRefreshing,
+                  hoverClassName: "hover:bg-gray-50 hover:text-gray-700",
+                },
+              )}`}
             >
               <Icon
                 icon={IconProp.Refresh}

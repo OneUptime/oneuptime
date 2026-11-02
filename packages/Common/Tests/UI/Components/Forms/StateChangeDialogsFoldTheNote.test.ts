@@ -220,6 +220,24 @@ describe("state change dialogs", () => {
       expect(code(file)).toContain(
         `import ${noteModel} from "Common/Models/DatabaseModels/${noteModel}";`,
       );
+
+      /*
+       * On a private incident, alert or episode, asked with what the reader
+       * holds on the record: a note goes on it only through the teams that
+       * own it (PrivateRecordScope). A scheduled maintenance event is never
+       * private.
+       */
+      const isPrivateKind: boolean = !file.includes("ScheduledMaintenance");
+
+      expect([
+        file,
+        code(file).includes("noteGateOptions: privateRecordOptions,"),
+      ]).toEqual([file, isPrivateKind]);
+      expect(
+        code(file).split(
+          `noteModel: new ${noteModel}(), noteGateOptions: privateRecordOptions,`,
+        ).length > 1,
+      ).toBe(isPrivateKind);
     },
   );
 
@@ -227,7 +245,11 @@ describe("state change dialogs", () => {
     const source: string = code(SHARED_PIECE);
 
     expect(source).toContain(
-      "const isNoteOffered: boolean = !options.noteModel || canPostStateChangeNote(options.noteModel);",
+      "const isNoteOffered: boolean = !options.noteModel || canPostStateChangeNote(options.noteModel, options.noteGateOptions);",
+    );
+    // The note's own gate, with the private record's scope when it has one.
+    expect(source).toContain(
+      "const gate: PermissionGateResult = PermissionGate.check( noteModel, ModelAction.Create, options, );",
     );
     expect(source).toContain(
       "return isNoteOffered && noteTemplates.length > 0;",

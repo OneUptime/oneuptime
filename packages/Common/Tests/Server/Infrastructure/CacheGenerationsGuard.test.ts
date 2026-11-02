@@ -28,6 +28,8 @@ const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Infrastructure/OnCallCalendarFeedCache.ts",
   // Every API key's cached permissions, by project.
   "Server/Services/ApiKeyPermissionService.ts",
+  // What was merged into each exception, by project.
+  "Server/Services/TelemetryExceptionService.ts",
 ];
 
 // Pieces of the scheme that live in CacheGenerations alone.

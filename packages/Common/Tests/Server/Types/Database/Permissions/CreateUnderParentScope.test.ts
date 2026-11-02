@@ -27,10 +27,30 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
-import { describe, expect, jest, test } from "@jest/globals";
+import PrivateRecordPermission from "../../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../../../Server/Utils/Logger");
+
+/*
+ * A part goes under a private incident, alert or episode only through the
+ * teams that own it (PrivateRecordPermission): the parent lookup then
+ * carries the write's reach, a parent it leaves out is looked up again to
+ * say why, and one found as OneUptime is asked whether the write reaches
+ * it. Its own suites hold that (CreateUnderParentScopeEveryModel,
+ * PrivateRecordPermission, PrivateRecordOwnerTeamsPostgres); this one holds
+ * the read rule a parent is looked up with, for parents that are not
+ * private.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(PrivateRecordPermission, "isWriteUnderRecordsNarrowed")
+    .mockReturnValue(false);
+  jest
+    .spyOn(PrivateRecordPermission, "getUnreachableParentIds")
+    .mockResolvedValue([] as never);
+});
 
 /*
  * A RECORD READ THROUGH ANOTHER ONE IS CREATED ONLY UNDER A PARENT ITS

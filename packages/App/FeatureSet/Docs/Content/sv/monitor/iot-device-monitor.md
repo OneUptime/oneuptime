@@ -50,19 +50,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **IoT-enhet** un
 
 ### Välj flottan
 
-Välj flottan i **IoT Fleet** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan.
+Välj flottan i **IoT Fleet** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till IoT-flotta** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska bevakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Device Offline** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** - klicka på en [mall](#färdiga-larmmallar). Den sätter mätvärdet, aggregeringen, tidsintervallet, en gruppering på `device.id` och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** - välj ett mätvärde i **IoT Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en enhet eller en enhetstyp. Ett anpassat mätvärde grupperas inte: det bedömer flottan som helhet.
-- **Avancerad** - bygg frågor och formler själv under **Välj mått**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Gruppera efter** `device.id` för att bedöma varje enhet för sig.
+- **Ändra** - välj en annan [mall](#färdiga-larmmallar). Den sätter mätvärdet, aggregeringen, tidsintervallet, en gruppering på `device.id` och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) - välj ett mätvärde i **IoT Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en enhet eller en enhetstyp. Ett anpassat mätvärde grupperas inte: det bedömer flottan som helhet.
+- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mått**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Gruppera efter** `device.id` för att bedöma varje enhet för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Select Metric Variable**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Select Metric Variable**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
@@ -78,27 +78,27 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | --- | --- | --- |
 | **IoT Fleet** | Alla | Krävs. Begränsar varje fråga till `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avancerad | Valfritt. En enhet, via `device.id`, som `sensor-001`. |
-| **Device Type** | Custom Metric, Avancerad | Valfritt. Enheterna som rapporterar denna `iot.device.type`, som `sensor` eller `gateway`. |
+| **Enhetstyp** | Custom Metric, Avancerad | Valfritt. Enheterna som rapporterar denna `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar sätter sitt eget. |
 | **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
-Filtren verkar tillsammans: med ett **Device ID** och en **Device Type** matchar en enhet av en annan typ ingenting.
+Filtren verkar tillsammans: med ett **Device ID** och en **Enhetstyp** matchar en enhet av en annan typ ingenting.
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder 5 mallar. Var och en bygger en komplett monitor: mätvärdesfrågan, en gruppering på `device.id`, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder 5 mallar. Var och en bygger en komplett monitor: mätvärdesfrågan, en gruppering på `device.id`, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret - utom **Device Offline**, som utlöser vid den första mätningen under 1. Ett tröskelkriterium återhämtar sig 10 % förbi tröskeln, så ett värde som pendlar kring linjen inte växlar fram och tillbaka.
 
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när | Återhämtar när |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tillgänglighet | Kritisk | `iot_device_up`, Min per `device.id`, senaste 30 minuterna | En mätning är under 1, eller en registrerad enhet skickar ingenting under hela fönstret | Tillbaka på 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, senaste 5 minuterna | Under 20 % | Vid 22 % eller mer |
-| Weak Signal | Anslutning | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, senaste 5 minuterna | Under -100 dBm | Vid -90 dBm eller mer |
+| Low Battery | Power | Varning | `iot_battery_percent`, Avg per `device.id`, senaste 5 minuterna | Under 20 % | Vid 22 % eller mer |
+| Weak Signal | Anslutning | Varning | `iot_signal_strength_dbm`, Avg per `device.id`, senaste 5 minuterna | Under -100 dBm | Vid -90 dBm eller mer |
 | High Temperature | Miljö | Kritisk | `iot_temperature_celsius`, Max per `device.id`, senaste 5 minuterna | Över 70 °C | Vid 63 °C eller mindre |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, senaste 5 minuterna | Över 0.9 (90 % av processorn) | Vid 0.81 eller mindre |
+| High CPU Usage | System | Varning | `iot_cpu_usage_ratio`, Avg per `device.id`, senaste 5 minuterna | Över 0.9 (90 % av processorn) | Vid 0.81 eller mindre |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmnivå; ändra dem i kriteriet.
 
@@ -117,6 +117,8 @@ Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret 
 | **Enheten är registrerad** | En enhet i flottans **Device Registry** förväntas. När den inte skickar något under hela fönstret behandlar monitorn den som om den rapporterade `0`, så den får en egen incident, som löser sig själv när enheten rapporterar igen. |
 
 En registrerad enhet behålls också som offline i flottans inventarium, medan en oregistrerad tas bort efter 15 minuters tystnad. Detektering av tystnad kräver regeln **Treat As Zero** för saknade data på kriteriet för `iot_device_up`, som Device Offline-monitorer skapade från mallen har. En Device Offline-monitor som skapades innan enhetsregistrering fanns måste få den satt manuellt eller skapas om från mallen.
+
+**Device Offline** bedömer varje enhet utifrån dess senaste avläsning, så en enhet som rapporterade att den var nere och sedan uppe igen är uppe vid nästa kontroll. En Device Offline-monitor som förblir offline tills nere-avläsningen är 30 minuter gammal skapades innan mallen gjorde detta: välj mallen igen under **Vad som ska larmas om** för att uppdatera den.
 
 > [!NOTE]
 > En oregistrerad enhet som blir tyst utan en Last Will eller en gatewayrapport slutar bara skicka data, och en monitor som grupperar per enhet kan inte peka ut den. Registrera dina enheter, eller ge en kritisk enhet en egen monitor (**Custom Metric**, med dess **Device ID**), och sätt **Om ingen data** till **Utlösare**. Detektering av tystnad kräver också att minst en annan enhet i flottan fortfarande rapporterar: en flotta som blir helt mörk, till exempel under ett gatewayavbrott, skapar en incident för monitorn, inte en per enhet.
@@ -150,7 +152,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när en serie inte har några stickprov i fönstret: **Ignore** (standard) hoppar över den, **Treat As Zero** läser den som `0`, och **Utlösare** får kriteriet att matcha. |
 
-Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i tillståndet "Learning", och skickar inte ut något, tills baslinjefönstret innehåller tillräckligt med historik.
+Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i tillståndet "Learning", och skickar inte ut något, tills baslinjefönstret innehåller tillräckligt med historik. En summa, ett antal eller en fråga på ett histogram stannar i det tillståndet för alltid: den här monitorn filtrerar sina frågor på attribut, och baslinjen innehåller inga.
 
 ### Standardkriterier
 

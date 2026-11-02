@@ -57,19 +57,19 @@ flowchart TB
 
 ### 클러스터 선택하기
 
-**Ceph Monitor Configuration**에서 **Ceph 클러스터** 목록의 클러스터를 선택합니다. 데이터를 보낸 적이 있는 모든 클러스터가 목록에 있습니다.
+**Ceph Monitor Configuration**에서 **Ceph 클러스터** 목록의 클러스터를 선택합니다. 데이터를 보낸 적이 있는 모든 클러스터가 목록에 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **Ceph 클러스터 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
 
 ### 감시할 대상 선택하기
 
-세 탭 중 하나를 선택합니다:
+새 모니터는 **알림 대상** 아래의 **Cluster Stopped Reporting** 에서 시작합니다. 다른 것을 감시하려면 다음 중 하나를 사용합니다.
 
-- **Quick Setup**: [템플릿](#기본-제공-알림-템플릿)을 클릭합니다. 템플릿이 메트릭, 필터, 집계, 시간 범위, 임계값을 설정하고, 아래의 기준을 템플릿의 기준으로 바꿉니다. **시간 범위**는 그 뒤에도 바꿀 수 있습니다.
-- **Custom Metric**: **Ceph Metric**에서 메트릭 하나를 고른 다음 **집계**와 **시간 범위**를 설정합니다. **OSD**와 **Pool ID**로 데몬 하나나 풀 하나로 좁힐 수 있습니다.
-- **고급**: **메트릭 선택**에서 쿼리와 수식을 직접 만듭니다. 예를 들어 `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`로 사용 용량 비율을 구합니다. **그룹화 기준**에 `ceph_daemon` 또는 `pool_id`를 지정하면 데몬이나 풀마다 따로 판단합니다.
+- **변경**: 다른 [템플릿](#기본-제공-알림-템플릿)을 고릅니다. 템플릿이 메트릭, 필터, 집계, 시간 범위, 임계값을 설정하고, 아래의 기준을 템플릿의 기준으로 바꿉니다. **시간 범위**는 그 뒤에도 바꿀 수 있습니다.
+- **Custom Metric** (**추가 필드** 안): **Ceph Metric**에서 메트릭 하나를 고른 다음 **집계**와 **시간 범위**를 설정합니다. **OSD**와 **Pool ID**로 데몬 하나나 풀 하나로 좁힐 수 있습니다. pool 또는 데몬마다 따로 있는 메트릭은 pool별, 데몬별로 판단되며 각각 인시던트를 하나씩 받습니다.
+- **고급** (**추가 필드** 안): **메트릭 선택**에서 쿼리와 수식을 직접 만듭니다. 예를 들어 `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`로 사용 용량 비율을 구합니다. **그룹화 기준**에 `ceph_daemon` 또는 `pool_id`를 지정하면 데몬이나 풀마다 따로 판단합니다.
 
 ### 기준 확인하기
 
-**모니터 기준**에서 각 기준을 열고 **메트릭**, **집계**, **조건**, **임계값**을 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric**이나 **고급**을 쓰면 모니터는 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 0으로 떨어지는 것만 알아차리므로 직접 임계값을 설정하세요.
+**모니터 기준**에서 각 기준을 열고 **메트릭**, **집계**, **조건**, **임계값**을 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric**이나 **고급**을 쓰면 모니터는 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 데이터를 보내지 않는 것만 알아차리므로 직접 임계값을 설정하세요.
 
 ### 모니터 만들기
 
@@ -87,7 +87,7 @@ flowchart TB
 | **OSD** | Custom Metric, 고급 | 선택. `ceph_daemon` 레이블과 정확히 일치해야 합니다. 예: `osd.3`. |
 | **Pool ID** | Custom Metric, 고급 | 선택. `pool_id` 레이블과 정확히 일치해야 합니다. 예: `2`. |
 | **Ceph Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. |
-| **집계** | Custom Metric | 샘플을 합치는 방법: **평균**, **최대**, **최소**, **합계** 또는 **개수**. 처음에는 그 메트릭의 일반적인 집계로 설정됩니다. |
+| **집계** | Custom Metric | 샘플을 합치는 방법: **평균**, **최대** 또는 **최소**. 처음에는 그 메트릭의 일반적인 집계로 설정됩니다. 합계나 개수는 1분 동안의 모든 스크레이프를 더해 버리므로 **고급** 에 맡깁니다. |
 | **시간 범위** | 전체 | 쿼리가 읽는 이동 창으로, **Past 1 Minute**부터 **Past 365 Days**까지입니다. 새 모니터는 **Past 1 Minute**로 시작하고, 템플릿은 자체 값을 설정합니다. |
 | **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 합치는 **메트릭 추가**와 **수식 추가**. |
 
@@ -95,11 +95,11 @@ flowchart TB
 
 ### 헬스 체크 시리즈
 
-`ceph_health_detail`은 **활성 헬스 체크마다 시리즈 하나**를 내보내며, 레이블은 `name`(예: `OSD_NEARFULL` 또는 `RECENT_CRASH`)과 `severity`입니다. 시리즈는 체크가 발생하는 동안에만 존재하므로, 시리즈가 없으면 정상입니다. 모든 Ceph 헬스 체크에 대해 알림을 보내려면 그 `name`으로 필터링하고, **최대**가 `0`을 넘으면 발생시키고, **데이터가 없는 경우**를 **Treat As Zero**로 설정해 `0`에서 복구되게 합니다. 헬스 체크 템플릿이 바로 이렇게 만들어져 있습니다. `ceph_daemon_health_metrics`도 데몬별로 같은 방식으로 동작하며, `type` 레이블(예: `SLOW_OPS`)과 `ceph_daemon`이 키입니다.
+`ceph_health_detail` 은 **상태 점검마다 하나의 시리즈** 를 내보내며, 레이블은 `name`(예: `OSD_NEARFULL` 또는 `RECENT_CRASH`)과 `severity` 입니다. 점검의 시리즈는 점검이 활성인 동안 `1`, 해제된 뒤에는 `0` 이며, 한 번도 발생하지 않은 점검에는 시리즈가 없습니다. 모든 Ceph 헬스 체크에 대해 알림을 보내려면 그 `name`으로 필터링하고, **최대**가 `0`을 넘으면 발생시키고, **데이터가 없는 경우**를 **Treat As Zero**로 설정해 `0`에서 복구되게 합니다. 헬스 체크 템플릿이 바로 이렇게 만들어져 있습니다. `ceph_daemon_health_metrics`도 데몬별로 같은 방식으로 동작하며, `type` 레이블(예: `SLOW_OPS`)과 `ceph_daemon`이 키입니다.
 
 ## 기본 제공 알림 템플릿
 
-**Quick Setup**에는 보고를 멈춘 클러스터, 클러스터 상태, OSD, 배치 그룹, 용량을 다루는 24개의 템플릿이 있습니다. 각 템플릿은 완전한 모니터(쿼리, 레이블 필터, 그룹화, 발생하는 기준과 복구되는 기준)를 만듭니다. 임계값은 수정할 수 있는 출발점입니다.
+**알림 대상** 목록에는 보고를 멈춘 클러스터, 클러스터 상태, OSD, 배치 그룹, 용량을 다루는 24개의 템플릿이 있습니다. 각 템플릿은 완전한 모니터(쿼리, 레이블 필터, 그룹화, 발생하는 기준과 복구되는 기준)를 만듭니다. 임계값은 수정할 수 있는 출발점입니다.
 
 템플릿은 표에 따로 적혀 있지 않으면 최근 5분을 읽습니다. 기준은 창의 모든 분 동안 조건이 유지될 때만 발생하며, 임계값 기준은 임계값에서 10% 벗어난 지점에서 복구되므로 경계선 근처를 오가는 값 때문에 상태가 깜박이지 않습니다. **심각도**는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 심각도와 알림 심각도로 시작합니다.
 
@@ -116,42 +116,42 @@ flowchart TB
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | 심각 | `ceph_health_status`, Max, 최근 1분 | 2 이상: `HEALTH_ERR` | 1.8 미만: `HEALTH_WARN` 또는 더 나은 상태 |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 이상: `HEALTH_WARN` 또는 더 나쁜 상태 | 0.9 미만: `HEALTH_OK` |
+| Cluster Health Warning | 경고 | `ceph_health_status`, Max | 1 이상: `HEALTH_WARN` 또는 더 나쁜 상태 | 0.9 미만: `HEALTH_OK` |
 | Monitor Quorum Degraded | 심각 | `ceph_mon_quorum_status`, `ceph_daemon`별 Min, 최근 1분 | 모니터가 1 아래로 떨어져 쿼럼에서 빠짐. 모니터마다 인시던트 하나 | 다시 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | 0 초과: 클러스터의 `SLOW_OPS` 체크가 활성 상태 | 0 |
-| Daemon Slow Operations | Warning | `type = SLOW_OPS`인 `ceph_daemon_health_metrics`, `ceph_daemon`별 Max | 0 초과. OSD 또는 모니터마다 인시던트 하나 | 시리즈가 사라짐 |
+| Slow Operations | 경고 | `ceph_healthcheck_slow_ops`, Max | 0 초과: 클러스터의 `SLOW_OPS` 체크가 활성 상태 | 0 |
+| Daemon Slow Operations | 경고 | `type = SLOW_OPS`인 `ceph_daemon_health_metrics`, `ceph_daemon`별 Max | 0 초과. OSD 또는 모니터마다 인시던트 하나 | 시리즈가 사라짐 |
 | Daemon Crash | 심각 | `name = RECENT_CRASH`인 `ceph_health_detail`, Max | 체크가 활성 상태: 보관되지 않은 데몬 크래시가 있음. mgr에는 `ceph_crash_*` 메트릭이 없으므로 이것이 유일한 크래시 신호 | 크래시가 보관됨 |
-| Monitor Clock Skew | Warning | `name = MON_CLOCK_SKEW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 모니터 시계가 허용된 편차(기본값 0.05초)를 넘어 어긋남 | 체크가 사라짐 |
+| Monitor Clock Skew | 경고 | `name = MON_CLOCK_SKEW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 모니터 시계가 허용된 편차(기본값 0.05초)를 넘어 어긋남 | 체크가 사라짐 |
 | Monitor Disk Critically Low | 심각 | `name = MON_DISK_CRIT`인 `ceph_health_detail`, Max | 체크가 활성 상태: 모니터 데이터베이스 디스크의 여유 공간이 5% 미만(기본값) | 체크가 사라짐 |
-| Monitor Disk Space Low | Warning | `name = MON_DISK_LOW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 여유 공간이 30% 미만(기본값) | 체크가 사라짐 |
+| Monitor Disk Space Low | 경고 | `name = MON_DISK_LOW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 여유 공간이 30% 미만(기본값) | 체크가 사라짐 |
 
 ### OSD 템플릿
 
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
 | OSD Down | 심각 | `ceph_osd_up`, `ceph_daemon`별 Min | OSD가 1 아래로 떨어짐. OSD마다 인시던트 하나 | 다시 1 |
-| OSD Out | Warning | `ceph_osd_in`, `ceph_daemon`별 Min | OSD가 1 아래로 떨어짐: 데이터 분산에서 out으로 표시됨 | 다시 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, `ceph_daemon`별 Avg | 100 ms 초과. OSD마다 인시던트 하나 | 90 ms 이하 |
-| OSD Slow Heartbeats | Warning | `name = OSD_SLOW_PING_TIME_FRONT`와 `name = OSD_SLOW_PING_TIME_BACK`인 `ceph_health_detail`, Max | 둘 중 하나의 체크가 활성 상태: 공용 네트워크나 클러스터 네트워크의 하트비트가 느림. mgr은 핑 시간 게이지를 내보내지 않음 | 두 체크가 모두 사라짐 |
+| OSD Out | 경고 | `ceph_osd_in`, `ceph_daemon`별 Min | OSD가 1 아래로 떨어짐: 데이터 분산에서 out으로 표시됨 | 다시 1 |
+| OSD High Latency | 경고 | `ceph_osd_apply_latency_ms`, `ceph_daemon`별 Avg | 100 ms 초과. OSD마다 인시던트 하나 | 90 ms 이하 |
+| OSD Slow Heartbeats | 경고 | `name = OSD_SLOW_PING_TIME_FRONT`와 `name = OSD_SLOW_PING_TIME_BACK`인 `ceph_health_detail`, Max | 둘 중 하나의 체크가 활성 상태: 공용 네트워크나 클러스터 네트워크의 하트비트가 느림. mgr은 핑 시간 게이지를 내보내지 않음 | 두 체크가 모두 사라짐 |
 
 ### 배치 그룹 템플릿
 
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | 심각 | `ceph_pg_total` − `ceph_pg_active`, `pool_id`별 Max | 0 초과: PG가 I/O를 처리하지 못해 PG로 가는 클라이언트 요청이 멈춤. 풀마다 인시던트 하나 | 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, `pool_id`별 Max | 0 초과: 객체의 복제본이 설정보다 적음 | 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, `pool_id`별 Max | 0 초과: PG가 복제본 수보다 적은 OSD에 매핑됨 | 0 |
+| Degraded Placement Groups | 경고 | `ceph_pg_degraded`, `pool_id`별 Max | 0 초과: 객체의 복제본이 설정보다 적음 | 0 |
+| Undersized Placement Groups | 경고 | `ceph_pg_undersized`, `pool_id`별 Max | 0 초과: PG가 복제본 수보다 적은 OSD에 매핑됨 | 0 |
 | Damaged Placement Groups | 심각 | `name = PG_DAMAGED`와 `name = OSD_SCRUB_ERRORS`인 `ceph_health_detail`, Max | 둘 중 하나의 체크가 활성 상태: 스크러빙에서 손상이나 읽기 오류가 발견됨 | 두 체크가 모두 사라짐 |
 
 ### 용량 템플릿
 
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 85% 초과(Ceph의 기본 nearfull 비율) | 76.5% 이하 |
+| Cluster Near Full | 경고 | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 85% 초과(Ceph의 기본 nearfull 비율) | 76.5% 이하 |
 | Cluster Full | 심각 | 같은 비율 | 95% 초과(Ceph의 기본 full 비율로, 클러스터 전체에서 쓰기가 멈춤) | 85.5% 이하 |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, `pool_id`별 | 풀이 담을 수 있는 양의 85% 초과. 풀마다 인시던트 하나 | 76.5% 이하 |
-| OSD Nearfull | Warning | `name = OSD_NEARFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD가 nearfull 임계값(기본값 85%)을 넘음. 개별 OSD는 클러스터 평균보다 훨씬 먼저 가득 참 | 체크가 사라짐 |
-| OSD Backfillfull | Warning | `name = OSD_BACKFILLFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD로의 백필이 거부되어(기본값 90%) 복구가 멈춤 | 체크가 사라짐 |
+| Pool Near Full | 경고 | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, `pool_id`별 | 풀이 담을 수 있는 양의 85% 초과. 풀마다 인시던트 하나 | 76.5% 이하 |
+| OSD Nearfull | 경고 | `name = OSD_NEARFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD가 nearfull 임계값(기본값 85%)을 넘음. 개별 OSD는 클러스터 평균보다 훨씬 먼저 가득 참 | 체크가 사라짐 |
+| OSD Backfillfull | 경고 | `name = OSD_BACKFILLFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD로의 백필이 거부되어(기본값 90%) 복구가 멈춤 | 체크가 사라짐 |
 | OSD Full | 심각 | `name = OSD_FULL`인 `ceph_health_detail`, Max, 최근 1분 | 체크가 활성 상태: OSD가 full 임계값(기본값 95%)에 도달해 쓰기가 거부됨 | 체크가 사라짐 |
 
 - **다운과 쿼럼 템플릿은 최소를 사용**하므로, 다운된 OSD 하나나 쿼럼에서 빠진 모니터 하나가 정상인 다수에 가려지지 않고 템플릿을 발생시킵니다.
@@ -175,7 +175,7 @@ flowchart TB
 | `ceph_healthcheck_slow_ops` | 개수 | `SLOW_OPS` 체크가 보고하는 느린 OSD 및 모니터 작업. |
 | `ceph_daemon_health_metrics` | 개수 | 데몬별 상태 메트릭. 키는 `type`(예: `SLOW_OPS`)과 `ceph_daemon`. |
 | `ceph_mon_quorum_status` | 개수 | 모니터가 쿼럼에 있으면 1. `ceph_daemon`(예: `mon.a`)별. |
-| `ceph_mon_metadata` | 개수 | 모니터 메타데이터. 항상 1. 합계하면 모니터 수가 됩니다. |
+| `ceph_mon_metadata` | 개수 | 모니터 메타데이터. 모니터가 보고하는 동안 항상 1. 합계는 매분의 스크레이프를 모두 더하므로 모니터 수가 아닙니다. |
 | `ceph_cluster_total_bytes` | 바이트 | 전체 원시 용량. |
 | `ceph_cluster_total_used_bytes` | 바이트 | 사용 중인 원시 용량. |
 
@@ -190,7 +190,7 @@ flowchart TB
 | `ceph_osd_stat_bytes` | 바이트 | OSD 장치의 원시 용량. |
 | `ceph_osd_stat_bytes_used` | 바이트 | OSD에서 사용 중인 원시 바이트. 전체 용량과 비교하면 고르지 않거나 거의 가득 찬 OSD를 찾을 수 있습니다. |
 | `ceph_osd_numpg` | 개수 | OSD에 있는 배치 그룹. |
-| `ceph_osd_metadata` | 개수 | OSD 메타데이터(호스트 이름, 장치 클래스, 버전). 항상 1. 합계하면 OSD 수가 됩니다. |
+| `ceph_osd_metadata` | 개수 | OSD 메타데이터(호스트 이름, 장치 클래스, 버전). OSD가 보고하는 동안 항상 1. 합계는 매분의 스크레이프를 모두 더하므로 OSD 수가 아닙니다. |
 
 ### 풀 메트릭
 
@@ -207,7 +207,7 @@ flowchart TB
 
 ### 배치 그룹 메트릭
 
-모든 `ceph_pg_*` 시리즈는 풀별이며 `pool_id` 레이블이 붙습니다. 클러스터 전체 개수는 모든 풀에 걸쳐 합계해서 구합니다.
+모든 `ceph_pg_*` 시리즈는 풀별이며 `pool_id` 레이블이 붙습니다. 합계는 매분의 스크레이프와 모든 풀을 더하므로, PG 템플릿처럼 `pool_id` 로 그룹화해 풀마다 비교합니다.
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ flowchart TB
 | **기준선 기간** | 이상 조건 전용. 14일(기본값), 28일, 60일 또는 90일의 기록. |
 | **데이터가 없는 경우** | **추가 필드** 아래에 있습니다. 창에 샘플이 없을 때의 동작: **Ignore**(기본값), **Treat As Zero** 또는 **트리거**. |
 
-이상 조건은 각 값을 기준선에서 같은 요일의 같은 시간대와 비교합니다. 기준선 기간에 기록이 충분히 쌓일 때까지는 "Learning" 상태로 머물며 아무것도 발생시키지 않습니다.
+이상 조건은 각 값을 기준선에서 같은 요일의 같은 시간대와 비교합니다. 기준선 기간에 기록이 충분히 쌓일 때까지는 "Learning" 상태로 머물며 아무것도 발생시키지 않습니다. 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남습니다. 이 모니터는 쿼리를 속성으로 필터링하는데 기준선에는 속성이 없기 때문입니다.
 
 각 기준은 일치할 때 할 일도 정합니다. 모니터 상태 변경, 알림 생성, 인시던트 선언 중 하나입니다. 기준은 위에서 아래로 확인되며, 처음 일치한 기준이 결정합니다.
 
@@ -270,7 +270,7 @@ flowchart TB
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-헬스 체크 시리즈는 `ceph_daemon_health_metrics`를 포함해 체크가 발생하는 동안에만 존재하므로, 클러스터가 정상일 때 아무것도 보이지 않는 것은 예상된 동작입니다.
+한 번도 발생하지 않은 상태 점검에는 시리즈가 없고(`ceph_daemon_health_metrics` 포함), 해제된 점검은 `0` 이므로, 클러스터가 정상일 때 시리즈가 없거나 0만 보이는 것은 예상된 결과입니다.
 :::
 
 :::details ceph_pool_wr_bytes 같은 카운터가 계속 증가하기만 함

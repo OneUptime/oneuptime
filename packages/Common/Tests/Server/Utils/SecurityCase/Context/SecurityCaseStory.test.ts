@@ -412,6 +412,60 @@ describe("SecurityCaseStory.build", () => {
     );
   });
 
+  /*
+   * The request threw fp-1, and fp-1's exception was merged into another
+   * (fp-0): the lookup leaves the merged row out and finds the one it was
+   * merged into, which carries fp-0. The story links that one, by what was
+   * merged into what - not by the row's own fingerprint, which would leave
+   * the request's exception without a link - and not another service's
+   * exception that only shares fp-0.
+   */
+  test("tells what a request threw into a merged exception, linked to the exception it was merged into", async () => {
+    const SURVIVOR_ID: string = "cccccccc-cccc-4ccc-8ccc-00000000000a";
+    const LOOKALIKE_ID: string = "cccccccc-cccc-4ccc-8ccc-00000000000b";
+
+    exceptionRead.mockImplementation(
+      async (data: unknown): Promise<Array<TelemetryException>> => {
+        const query: JSONObject = (data as { query: JSONObject }).query;
+
+        if ("mergedIntoTelemetryExceptionId" in query) {
+          // What was merged into what, as the read of merged rows finds it.
+          const merged: TelemetryException = new TelemetryException();
+          merged.fingerprint = "fp-1";
+          merged.mergedIntoTelemetryExceptionId = new ObjectID(SURVIVOR_ID);
+          merged.mergedIntoTelemetryException = new TelemetryException();
+          merged.mergedIntoTelemetryException.fingerprint = "fp-0";
+          return [merged];
+        }
+
+        // The lookup, as it reads: the merged row left out, fp-0's rows in.
+        const lookalike: TelemetryException = withId(
+          new TelemetryException(),
+          LOOKALIKE_ID,
+        );
+        lookalike.fingerprint = "fp-0";
+        const survivor: TelemetryException = withId(
+          new TelemetryException(),
+          SURVIVOR_ID,
+        );
+        survivor.fingerprint = "fp-0";
+        return [lookalike, survivor];
+      },
+    );
+
+    expect(
+      itemOf(await story(), SecurityCaseStoryItemKind.Exception).links,
+    ).toMatchObject({ exceptionFingerprint: "fp-1", exceptionId: SURVIVOR_ID });
+
+    // What was merged is read as root; the exceptions themselves as the reader.
+    expect(exceptionRead).toHaveBeenCalledWith(
+      expect.objectContaining({ props: { isRoot: true } }),
+    );
+    expect(exceptionRead).toHaveBeenCalledWith(
+      expect.objectContaining({ props: CALLER }),
+    );
+  });
+
   test("tells a change on a record the case names, with the record and its version - and no other", async () => {
     const told: SecurityCaseStoryJson = await story();
 

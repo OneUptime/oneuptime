@@ -12,6 +12,7 @@ import Icon from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Tooltip from "../Tooltip/Tooltip";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import React, {
   Fragment,
   FunctionComponent,
@@ -100,8 +101,18 @@ const CONNECTOR_OFFSET_CLASS_NAME: string = "top-[1.125rem]";
  * matching it from a className, because its padding, its 20px glyph and its
  * indigo-500 offset focus ring are all baked into the style.
  */
-const ROW_ACTION_CLASS_NAME: string =
-  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:pointer-events-none disabled:opacity-40";
+const ROW_ACTION_BASE_CLASS_NAME: string =
+  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+
+// Locked while its row is being changed, as every locked button looks.
+const getRowActionClassName: (isLocked: boolean) => string = (
+  isLocked: boolean,
+): string => {
+  return `${ROW_ACTION_BASE_CLASS_NAME} ${getHandDrawnButtonStateClassName({
+    isLocked: isLocked,
+    hoverClassName: "hover:bg-gray-200 hover:text-gray-700",
+  })}`;
+};
 
 const ROW_SELECTOR: string =
   "[data-testid='status-page-resource-navigator-row']";
@@ -537,7 +548,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
               }
               data-testid="status-page-resource-navigator-add-sub-group"
               disabled={isBusy}
-              className={ROW_ACTION_CLASS_NAME}
+              className={getRowActionClassName(isBusy)}
               onClick={() => {
                 props.onAddSubGroup?.(row.statusPageGroup);
               }}
@@ -563,7 +574,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 data-testid="status-page-resource-navigator-more"
-                className={ROW_ACTION_CLASS_NAME}
+                className={getRowActionClassName(isBusy)}
               >
                 <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
               </button>
@@ -835,7 +846,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
                   "Create a top level group",
                 )}
                 data-testid="status-page-resource-navigator-create-group"
-                className={ROW_ACTION_CLASS_NAME}
+                className={getRowActionClassName(false)}
                 onClick={props.onCreateGroup}
               >
                 <Icon icon={IconProp.Add} className="h-4 w-4" />

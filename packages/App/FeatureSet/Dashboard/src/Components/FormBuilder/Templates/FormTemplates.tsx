@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import FormsCopy from "../FormsCopy";
 import {
   FormQuestionData,
@@ -11,6 +12,7 @@ import {
   FormTemplateEditorQuestion,
   FormTemplateSettingSummary,
   getFormTemplateAnsweredLabels,
+  getFormTemplateAnswerFields,
   getFormTemplateEditorQuestions,
   getFormTemplateEditorValues,
   getFormTemplateQuestionAsked,
@@ -27,7 +29,6 @@ import {
   BuiltPublicForm,
   buildPublicForm,
   FormCustomFieldDefinition,
-  PublicFormField,
 } from "Common/Types/Form/FormPublic";
 import FormTargetType, {
   readFormTargetType,
@@ -109,8 +110,17 @@ interface EditorState {
   template: FormTemplate | undefined;
 }
 
-const ICON_BUTTON_CLASS_NAME: string =
-  "inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40";
+// Move up and Move down; locked at the list's ends and while it saves.
+const getIconButtonClassName: (isLocked: boolean) => string = (
+  isLocked: boolean,
+): string => {
+  return `inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+    {
+      isLocked: isLocked,
+      hoverClassName: "hover:bg-gray-100 hover:text-gray-700",
+    },
+  )}`;
+};
 
 // How many of the questions a template fills in, or sets, its row names.
 const LISTED_LABELS: number = 6;
@@ -300,14 +310,11 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
       ),
     );
 
+    // A file question is asked its own way here, but never answered.
     const answerFields: Array<Field<JSONObject>> = buildPublicFormFields(
       {
         ...built.form,
-        fields: questions.map(
-          (question: FormTemplateEditorQuestion): PublicFormField => {
-            return question.field;
-          },
-        ),
+        fields: getFormTemplateAnswerFields(questions),
       },
       { dataTestIdPrefix: "form-template-field" },
     ).map((field: Field<JSONObject>, index: number): Field<JSONObject> => {
@@ -534,7 +541,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
             <>
               <button
                 type="button"
-                className={ICON_BUTTON_CLASS_NAME}
+                className={getIconButtonClassName(index === 0 || isSaving)}
                 aria-label={`${tx(FormsCopy.moveUp)}: ${template.name}`}
                 title={tx(FormsCopy.moveUp)}
                 disabled={index === 0 || isSaving}
@@ -553,7 +560,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
               </button>
               <button
                 type="button"
-                className={ICON_BUTTON_CLASS_NAME}
+                className={getIconButtonClassName(
+                  index === templates.length - 1 || isSaving,
+                )}
                 aria-label={`${tx(FormsCopy.moveDown)}: ${template.name}`}
                 title={tx(FormsCopy.moveDown)}
                 disabled={index === templates.length - 1 || isSaving}

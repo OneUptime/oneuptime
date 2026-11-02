@@ -131,7 +131,16 @@ These monitors always evaluate the **Metric Value** — the aggregated value of 
 | **Has No Data** | missing: the query sent nothing in the window |
 | **Has Data** | present: the query sent something in the window |
 
-The anomaly conditions have no threshold. **When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 — and each data point is compared with the same-hour-of-week baseline built from that window. Until that hour of the week has enough history, the criteria is still learning and produces no alerts.
+The anomaly conditions have no threshold. **When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 — and each data point is compared with the same hour of the week on earlier days, as far back as that window goes. What is happening now is never part of that comparison, so a change that lasts keeps alerting until, a week later, it has entered those earlier days. Until that hour of the week has two weeks of history, the criteria is still learning and produces no alerts.
+
+What a data point is compared with depends on the query:
+
+- **Its services.** A monitor that names services is compared with those services alone. One that names none is compared with every service that reports the metric.
+- **An average, minimum, maximum or percentile of a plain metric** is compared with the metric's samples, as far back as the **Baseline Window** goes.
+- **A Sum or a Count, and any query on a histogram,** is compared with the query's own data points. Those are kept as long as your metrics are, so the comparison reaches back no further than that: 15 days unless you changed it.
+- **A query filtered or grouped by an attribute** is compared with every series of its services, because a baseline holds no attributes, so it only notices a change large enough to leave the range of them all. If it is a Sum, a Count or a query on a histogram, there is nothing to compare it with and it stays learning. So does a percentile of a histogram.
+
+A Sum or a Count only counts as low on a complete data point with another complete one after it, because the newest are still filling. So a one-minute window can only find one that is high.
 
 A Metrics monitor made in Create Monitor starts on one rule, on its first query: **The average** over **Last 5 minutes**, **Above** the **Value** you enter, and **Create an alert**.
 
@@ -214,7 +223,7 @@ The query has no **Group by**, so every host is collapsed into one number. Group
 :::
 
 :::details An anomaly criteria never fires
-It is still learning: the hour of the week it compares against does not have enough history yet within the **Baseline Window**.
+It is still learning: the hour of the week it compares against does not have two weeks of history yet. A Sum, a Count or a query on a histogram that is filtered or grouped by an attribute stays learning for good, and so does a percentile of a histogram: there is no history to compare them with.
 :::
 
 ## Next steps

@@ -29,8 +29,10 @@ import {
   DeveloperDocsParentPage,
   DeveloperDocsScope,
   getDeveloperDocsPageKey,
+  getDeveloperDocsParentPage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
 import { CLOSING_SECTION_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsMenuSection";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -506,7 +508,8 @@ describe("the registry", () => {
       });
       expect(getTerraformTypeName(modelType!)).not.toBeNull();
 
-      const key: string = `${parent.tableName}:${parent.scope}`;
+      // One parent page per scope - per product, for a model two show.
+      const key: string = `${parent.tableName}:${parent.scope}:${parent.product || ""}`;
       expect({ key, duplicate: seen.has(key) }).toEqual({
         key,
         duplicate: false,
@@ -515,22 +518,105 @@ describe("the registry", () => {
     }
   });
 
-  test("every resource with a list page has a view page too", () => {
+  test("a model with parent pages in two products names the product of each", () => {
+    for (const parent of DEVELOPER_DOCS_PARENT_PAGES) {
+      const sameScope: Array<DeveloperDocsParentPage> =
+        DEVELOPER_DOCS_PARENT_PAGES.filter(
+          (candidate: DeveloperDocsParentPage): boolean => {
+            return (
+              candidate.tableName === parent.tableName &&
+              candidate.scope === parent.scope
+            );
+          },
+        );
+
+      expect({
+        parent: parent.pageKey,
+        namesItsProduct: Boolean(parent.product),
+      }).toEqual({
+        parent: parent.pageKey,
+        namesItsProduct: sameScope.length > 1,
+      });
+    }
+
+    // CloudResource: App Platforms' environments and Cloud's resources.
+    expect(
+      DEVELOPER_DOCS_PARENT_PAGES.filter(
+        (parent: DeveloperDocsParentPage): boolean => {
+          return parent.tableName === "CloudResource";
+        },
+      ).map((parent: DeveloperDocsParentPage): Array<string> => {
+        return [parent.product || "", parent.scope, parent.pageKey];
+      }),
+    ).toEqual([
+      ["App Platforms", DeveloperDocsScope.List, "APP_PLATFORMS_ENVIRONMENTS"],
+      [
+        "App Platforms",
+        DeveloperDocsScope.View,
+        "APP_PLATFORMS_ENVIRONMENT_VIEW",
+      ],
+      ["Cloud", DeveloperDocsScope.List, "CLOUD_MONITORED_RESOURCES"],
+      ["Cloud", DeveloperDocsScope.View, "CLOUD_RESOURCE_VIEW"],
+    ]);
+  });
+
+  test("the parent page of such a model is found by the page the menu draws, never guessed", () => {
+    expect(() => {
+      return getDeveloperDocsParentPage(
+        "CloudResource",
+        DeveloperDocsScope.View,
+      );
+    }).toThrow(/parentPageKey/);
+
+    expect(
+      getDeveloperDocsParentPage(
+        "CloudResource",
+        DeveloperDocsScope.View,
+        PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+      )?.product,
+    ).toBe("App Platforms");
+    expect(
+      getDeveloperDocsParentPage(
+        "CloudResource",
+        DeveloperDocsScope.List,
+        PageMap.CLOUD_MONITORED_RESOURCES,
+      )?.product,
+    ).toBe("Cloud");
+
+    // A page that is not the model's parent in that scope finds nothing.
+    expect(
+      getDeveloperDocsParentPage(
+        "CloudResource",
+        DeveloperDocsScope.List,
+        PageMap.CLOUD_RESOURCE_VIEW,
+      ),
+    ).toBeUndefined();
+
+    // A model one product shows is found without naming the page.
+    expect(
+      getDeveloperDocsParentPage("ServerlessFunction", DeveloperDocsScope.View)
+        ?.pageKey,
+    ).toBe(PageMap.SERVERLESS_FUNCTION_VIEW);
+  });
+
+  test("every resource with a list page has a view page too, in the same product", () => {
     for (const parent of DEVELOPER_DOCS_PARENT_PAGES) {
       if (parent.scope !== DeveloperDocsScope.List) {
         continue;
       }
 
-      expect(
-        DEVELOPER_DOCS_PARENT_PAGES.some(
+      expect({
+        list: parent.pageKey,
+        hasView: DEVELOPER_DOCS_PARENT_PAGES.some(
           (candidate: DeveloperDocsParentPage): boolean => {
             return (
               candidate.tableName === parent.tableName &&
-              candidate.scope === DeveloperDocsScope.View
+              candidate.scope === DeveloperDocsScope.View &&
+              candidate.product === parent.product
             );
           },
         ),
-      ).toBe(true);
+      }).toEqual({ list: parent.pageKey, hasView: true });
     }
   });
 });
@@ -621,7 +707,10 @@ describe("every Developer page has a route and breadcrumbs", () => {
 
 describe("every route file shows the Developer pages it has", () => {
   const ROUTE_CALL: RegExp =
-    /getDeveloperDocsRoutes\(\{\s*modelType:\s*(\w+),\s*scope:\s*DeveloperDocsScope\.(List|View),/g;
+    /getDeveloperDocsRoutes\(\{\s*modelType:\s*(\w+),\s*scope:\s*DeveloperDocsScope\.(List|View),([^}]*)\}\)/g;
+
+  // The parent page a call names, for a model two products show.
+  const PARENT_PAGE_KEY: RegExp = /parentPageKey:\s*PageMap\.(\w+)/;
 
   test("each parent page's routes are in exactly one route file", () => {
     const declared: Array<string> = [];
@@ -635,6 +724,8 @@ describe("every route file shows the Developer pages it has", () => {
       for (const match of source.matchAll(ROUTE_CALL)) {
         const identifier: string = match[1] as string;
         const scope: string = (match[2] as string).toLowerCase();
+        const parentPageKey: string =
+          (match[3] as string).match(PARENT_PAGE_KEY)?.[1] || "";
         const imported: RegExpMatchArray | null = source.match(
           new RegExp(
             `import ${identifier} from "Common/Models/DatabaseModels/(\\w+)";`,
@@ -646,14 +737,18 @@ describe("every route file shows the Developer pages it has", () => {
           identifier,
           imported: true,
         });
-        declared.push(`${imported![1]}:${scope}`);
+        declared.push(`${imported![1]}:${scope}:${parentPageKey}`);
       }
     }
 
+    /*
+     * A model two products show is routed once per product, each route
+     * file naming its own product's parent page.
+     */
     expect(declared.sort()).toEqual(
       DEVELOPER_DOCS_PARENT_PAGES.map(
         (parent: DeveloperDocsParentPage): string => {
-          return `${parent.tableName}:${parent.scope}`;
+          return `${parent.tableName}:${parent.scope}:${parent.product ? parent.pageKey : ""}`;
         },
       ).sort(),
     );

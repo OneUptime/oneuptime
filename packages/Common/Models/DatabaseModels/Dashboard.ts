@@ -800,6 +800,94 @@ export default class Dashboard extends BaseModel {
   })
   public logoFileId?: ObjectID = undefined;
 
+  /*
+   * A logo made for a dark background - light lettering - shown instead of
+   * the logo wherever the public dashboard is dark: a Dark dashboard, one
+   * that follows each visitor's device while it is dark, and any dashboard
+   * a visitor turns dark from its toolbar. Without one, the logo (made for
+   * the light page) sits on a small light backdrop there. Optional, with
+   * the same access as the logo.
+   *
+   * Removing the file it points at leaves the dashboard without it (SET
+   * NULL), never takes the dashboard with it.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDashboard,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "darkThemeLogoFileId",
+    type: TableColumnType.Entity,
+    modelType: File,
+    title: "Dark Theme Logo",
+    description:
+      "The logo shown where the public dashboard is dark. Without one, the logo is shown on a light backdrop there.",
+  })
+  @ManyToOne(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+    },
+  )
+  @JoinColumn({ name: "darkThemeLogoFileId" })
+  public darkThemeLogoFile?: File = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDashboard,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Dark Theme Logo",
+    description: "Dashboard Dark Theme Logo File ID",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public darkThemeLogoFileId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

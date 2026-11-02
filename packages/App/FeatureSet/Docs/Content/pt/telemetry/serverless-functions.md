@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` com `"valid": true` significa que o OneUptime aceita a chave; `401` significa que ela é desconhecida, foi revogada, está desativada ou expirou. Depois, invoque a função. Assim que ela envia um span, um log ou uma métrica, aparece em **Produtos → Infraestrutura → Serverless → Todas as funções**.
+`200` com `"valid": true` significa que o OneUptime aceita a chave; `401` significa que ela é desconhecida, foi revogada, está desativada ou expirou. Depois, invoque a função. Assim que ela envia um span, um log ou uma métrica, aparece em **Produtos → Nuvem → Serverless → Todas as funções**.
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ Um atributo de recurso que começa com `oneuptime.label.` se torna um rótulo do
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Para rotular funções ou atribuir proprietários pelos nomes delas, abra **Produtos → Infraestrutura → Serverless** e use **Regras de Rótulos** e **Regras de proprietário** no menu lateral. As regras são executadas quando uma função é criada, inclusive as descobertas automaticamente. Para aplicar uma regra às funções que você já tem, use o **Executar agora** dela (veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now)).
+Para rotular funções ou atribuir proprietários pelos nomes delas, abra **Produtos → Nuvem → Serverless** e use **Regras de Rótulos** e **Regras de proprietário** no menu lateral. As regras são executadas quando uma função é criada, inclusive as descobertas automaticamente. Para aplicar uma regra às funções que você já tem, use o **Executar agora** dela (veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now)).
 
 ## Solução de problemas
 

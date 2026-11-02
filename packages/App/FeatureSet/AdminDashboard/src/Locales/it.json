@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Nome dell'azienda associata a questa licenza.",
+  "Annual contract value (in USD) for this license.": "Valore annuo del contratto (in USD) per questa licenza.",
+  "Expiration date of this license.": "Data di scadenza di questa licenza.",
+  "Something went wrong": "Qualcosa è andato storto",
+  "An unexpected error has occurred. Please reload the page to continue": "Si è verificato un errore imprevisto. Ricarica la pagina per continuare",
+  "Error details": "Dettagli dell'errore",
+  "Still stuck?": "Ancora bloccato?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Scarica un file di diagnostica locale con lo stack dell'errore, lo stack dei componenti, l'URL della pagina ripulito, i dettagli del browser e la build di OneUptime. Non legge mai cookie, dati salvati del browser o contenuti dei moduli. Controllalo prima di condividerlo con il supporto di OneUptime.",
+  "Download support bundle": "Scarica il pacchetto di supporto",
+  "Send it to {{email}}": "Invialo a {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Pacchetto di supporto scaricato. Controllalo, poi allegalo alla tua e-mail.",
+  "The support bundle could not be downloaded. Please try again.": "Impossibile scaricare il pacchetto di supporto. Riprova.",
   "common": {
     "save": "Salva",
     "cancel": "Annulla",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "{{price}} per utente, fatturati annualmente da oggi.",
   "{{price}} per user, billed monthly from today.": "{{price}} per utente, fatturati mensilmente da oggi.",
   "Our sales team will contact you to agree on a price.": "Il nostro team commerciale ti contatterà per concordare un prezzo.",
+  "Current plan": "Piano attuale",
+  "Current plan, billed yearly": "Piano attuale, fatturato annualmente",
+  "Current plan, billed monthly": "Piano attuale, fatturato mensilmente",
   "{{count}}-day free trial": "Prova gratuita di {{count}} giorni",
   "{{count}}-day free trial_one": "Prova gratuita di {{count}} giorno",
   "Free for {{count}} days, no card needed to start.": "Gratis per {{count}} giorni, nessuna carta per iniziare.",
@@ -1560,5 +1575,12 @@
     "note": "Nota",
     "tip": "Suggerimento",
     "warning": "Avviso"
-  }
+  },
+  "Compact rows": "Righe compatte",
+  "Sort by": "Ordina per",
+  "Sorted by {{column}}": "Ordinato per {{column}}",
+  "Sort": "Ordina",
+  "Ascending": "Crescente",
+  "Descending": "Decrescente",
+  "Select all items": "Seleziona tutti gli elementi"
 }

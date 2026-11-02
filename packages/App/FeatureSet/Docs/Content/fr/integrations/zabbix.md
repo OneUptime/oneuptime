@@ -61,23 +61,22 @@ Commencez par **Declare an incident for each Zabbix problem**, ou par **Create a
 ### Ce que demandent les modèles
 
 - **Zabbix URL** : l'adresse à laquelle vous ouvrez Zabbix, comme `https://zabbix.example.com`, ou `https://example.com/zabbix` quand Zabbix tourne sous un chemin. Les liens vers un problème y mènent, et les modèles qui appellent Zabbix envoient leurs requêtes à son `api_jsonrpc.php`. Le champ refuse l'adresse d'une page de Zabbix.
-- **Zabbix API Token** : un jeton d'API de l'utilisateur Zabbix au nom duquel agit le workflow. [Créer le jeton d'API](#créer-le-jeton-dapi) montre comment. Il est enregistré comme variable secrète, et n'est jamais envoyé que dans l'en-tête `Authorization`.
+- **Zabbix API Token** : un jeton d'API de l'utilisateur Zabbix au nom duquel agit le workflow. [Créer le jeton d'API](#créer-le-jeton-dapi) montre comment. Il est enregistré comme variable secrète, et n'est envoyé qu'à Zabbix : dans l'en-tête `Authorization`, ou dans le corps de la requête sous Zabbix 6.0.
 
 ### Recevoir les problèmes avec le modèle
 
 :::steps
 1. Allez dans **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez **Zabbix** dans la liste de catégories, cliquez sur **Declare an incident for each Zabbix problem**, puis sur **Utiliser ce modèle**.
-2. Renseignez **Zabbix URL** et cliquez sur **Créer un flux de travail**. Le workflow s'ouvre dans le **Constructeur**, désactivé.
-3. Cliquez sur l'étape **Page an On-Call Policy**, choisissez les **Politiques d'astreinte** à prévenir, et enregistrez-la.
-4. Cliquez sur le déclencheur **Webhook**, puis sur **Copier l'URL**, et gardez l'URL pour Zabbix.
-5. Activez **Activé** en haut du **Constructeur**. Un workflow désactivé répond à Zabbix par `400`.
+2. Renseignez **Zabbix URL**. Sous **Who to page for High and Disaster problems**, choisissez les politiques d'astreinte à prévenir, ou aucune pour ne prévenir personne, et cliquez sur **Créer un flux de travail**. Le workflow s'ouvre dans le **Constructeur**, désactivé.
+3. Cliquez sur le déclencheur **Webhook**, puis sur **Copier l'URL**, et gardez l'URL pour Zabbix.
+4. Activez **Activé** en haut du **Constructeur**. Un workflow désactivé répond à Zabbix par `400`.
 :::
 
 Ensuite, [configurez Zabbix](#configurer-zabbix) pour qu'il envoie ses problèmes à cette URL.
 
 ### Ce que fait le workflow
 
-Après le déclencheur **Webhook**, un bloc **Switch / Case** prend un chemin pour chaque `event` qu'envoie le type de média :
+Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-event-1` lit l'`event` qu'envoie le type de média, et **Incident From Another Tool**, ou **Alert From Another Tool** dans le modèle des alertes, fait ce qu'il signifie, par l'ID d'événement du problème :
 
 | Événement | Ce que fait le workflow |
 | --- | --- |
@@ -85,7 +84,7 @@ Après le déclencheur **Webhook**, un bloc **Switch / Case** prend un chemin po
 | `recovery` | Résout l'incident du problème, sauf s'il est déjà résolu. La raison figure dans sa chronologie. |
 | `update` | Ajoute à l'incident, comme note privée, ce qui a été fait dans Zabbix : qui l'a fait, ce qu'il a fait et ce qu'il a écrit. Quand la mise à jour a pris en compte le problème, il prend aussi en compte l'incident, ce qui arrête l'escalade de l'astreinte. |
 
-Tout le reste, comme une requête d'un autre outil, est laissé tel quel, et la dernière étape de l'exécution dit pourquoi. Chaque exécution se termine par une étape **Log** qui dit ce qui s'est passé : `✅` il a fait son travail, `ℹ️` il a ignoré l'événement exprès, `❌` une étape a échoué et le journal de l'exécution dit pourquoi.
+Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **No**, et les **Étapes** de l'exécution disent pourquoi. Une étape qui échoue fait échouer l'exécution, et son entrée dans **Étapes** dit pourquoi.
 
 ### Sévérités
 
@@ -127,7 +126,7 @@ Le modèle d'état interroge d'abord Zabbix sur le problème : un problème que 
 
 ### Sous Zabbix 6.0
 
-Zabbix 6.0 lit le jeton d'API dans le corps de la requête, pas dans son en-tête `Authorization`. Dans chaque étape d'API des modèles qui appellent Zabbix, ajoutez `"auth": "{{local.variables.zabbixApiToken}}",` à **Request Body**, après `"jsonrpc": "2.0",`, et supprimez l'en-tête. Zabbix 7.2 et plus récent refusent `auth` : supprimez-le donc à nouveau lors de la mise à niveau.
+Zabbix 6.0 lit le jeton d'API dans le corps de la requête, pas dans son en-tête `Authorization`. Dans l'étape **Update Zabbix Problem** de chaque modèle qui appelle Zabbix, activez **Zabbix 6.0**, sous **Plus de champs**. Zabbix 7.2 et plus récent refusent un jeton dans le corps : désactivez-le donc à nouveau lors de la mise à niveau.
 
 ## Recevoir les problèmes avec un moniteur
 
@@ -346,7 +345,7 @@ L'action a probablement deux opérations qui envoient au même utilisateur, par 
 
 - **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser l'URL** dans le déclencheur **Webhook** du workflow, ou **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur. Mettez ensuite à jour **Send to** dans les médias de l'utilisateur Zabbix.
 - **Les liens mènent à votre Zabbix.** Le modèle renvoie à un problème sur le site que nomme son **Zabbix URL**, quoi que dise une requête, et écrit ce que Zabbix a envoyé comme du texte.
-- **Limitez le jeton d'API à ce que fait le workflow.** C'est une variable secrète, masquée dans les journaux d'exécution et envoyée uniquement dans l'en-tête `Authorization`. Donnez à son utilisateur un rôle qui ne permet rien de plus que les actions ci-dessus, et supprimez le jeton dans **Users → API tokens** s'il fuit.
+- **Limitez le jeton d'API à ce que fait le workflow.** C'est une variable secrète, masquée dans les journaux d'exécution et envoyée uniquement à Zabbix, dans l'en-tête `Authorization` sauf si **Zabbix 6.0** est activé. Donnez à son utilisateur un rôle qui ne permet rien de plus que les actions ci-dessus, et supprimez le jeton dans **Users → API tokens** s'il fuit.
 - **N'envoyez que ce qui mérite un incident.** Utilisez les conditions de l'action, ou les sévérités du média de l'utilisateur, pour garder dans Zabbix les problèmes de faible sévérité.
 - **Auto-hébergé ?** Laissez votre serveur Zabbix joindre votre OneUptime en HTTPS à travers votre pare-feu. Pour appeler un Zabbix sur un réseau privé, le workflow a besoin d'un [accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 

@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` with `"valid": true` means OneUptime accepts the key; `401` means it is unknown, revoked, disabled or expired. Then invoke the function. Once it sends a span, a log or a metric, it appears under **Products → Infrastructure → Serverless → All Functions**.
+`200` with `"valid": true` means OneUptime accepts the key; `401` means it is unknown, revoked, disabled or expired. Then invoke the function. Once it sends a span, a log or a metric, it appears under **Products → Cloud → Serverless → All Functions**.
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ A resource attribute that starts with `oneuptime.label.` becomes a project label
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-To label functions or assign owners by their names instead, open **Products → Infrastructure → Serverless** and use **Label Rules** and **Owner Rules** in the side menu. Rules run when a function is created, auto-discovered ones included. To apply a rule to the functions you already have, use its **Run Now** (see [Run Rules on Existing Resources](/docs/configuration/run-rules-now)).
+To label functions or assign owners by their names instead, open **Products → Cloud → Serverless** and use **Label Rules** and **Owner Rules** in the side menu. Rules run when a function is created, auto-discovered ones included. To apply a rule to the functions you already have, use its **Run Now** (see [Run Rules on Existing Resources](/docs/configuration/run-rules-now)).
 
 ## Troubleshooting
 

@@ -1,3 +1,4 @@
+import FieldError from "./FieldError";
 import Dictionary from "../../../../Types/Dictionary";
 import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 import CardSelect from "../../CardSelect/CardSelect";
@@ -774,6 +775,15 @@ const FormField: <T extends GenericObject>(
                   props.field.fieldType ===
                   FormFieldSchemaType.MultiSelectDropdown
                 }
+                /*
+                 * A required pick has no clear button - one is always
+                 * picked, as a required colour has no "No color" - and an
+                 * optional one keeps it, to go back to none. Dropdown's
+                 * default drew the clear button on every form dropdown, a
+                 * playbook step's required Run This Step among them, and
+                 * pressing it only made the form say the field was required.
+                 */
+                isClearable={!required}
                 options={props.field.dropdownOptions || []}
                 placeholder={translatedPlaceholder || ""}
                 /*
@@ -872,15 +882,7 @@ const FormField: <T extends GenericObject>(
            */}
           {props.field.fieldType === FormFieldSchemaType.Dictionary &&
             props.touched &&
-            props.error && (
-              <p
-                data-testid="error-message"
-                className="mt-1 text-sm text-red-400"
-                role="alert"
-              >
-                {props.error}
-              </p>
-            )}
+            props.error && <FieldError message={props.error} />}
 
           {props.field.fieldType ===
             FormFieldSchemaType.OptionChooserButton && (
@@ -1196,19 +1198,24 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               onChange={async (files: Array<FileModel>) => {
-                const strippedFiles: Array<FileModel> = files.map(
-                  (i: FileModel) => {
-                    const strippedModel: FileModel = new FileModel();
-                    strippedModel._id = i._id!;
-                    if (i.name) {
-                      strippedModel.name = i.name;
-                    }
-                    if (i.fileType) {
-                      strippedModel.fileType = i.fileType;
-                    }
-                    return strippedModel;
-                  },
-                );
+                /*
+                 * Files kept in the browser are the value itself, bytes and
+                 * all; uploaded ones are named by what was uploaded.
+                 */
+                const strippedFiles: Array<FileModel> = props.field
+                  .keepFilesInBrowser
+                  ? files
+                  : files.map((i: FileModel) => {
+                      const strippedModel: FileModel = new FileModel();
+                      strippedModel._id = i._id!;
+                      if (i.name) {
+                        strippedModel.name = i.name;
+                      }
+                      if (i.fileType) {
+                        strippedModel.fileType = i.fileType;
+                      }
+                      return strippedModel;
+                    });
 
                 let fileResult: FileModel | Array<FileModel> | null =
                   strippedFiles;
@@ -1236,6 +1243,9 @@ const FormField: <T extends GenericObject>(
               }
               isMultiFilePicker={isMultiFileField}
               maxFileSizeInBytes={props.field.maxFileSizeInBytes}
+              maxFiles={props.field.maxFiles}
+              hint={props.field.fileHint}
+              keepFilesInBrowser={props.field.keepFilesInBrowser}
               dataTestId={props.field.dataTestId}
               initialValue={
                 props.currentValues &&

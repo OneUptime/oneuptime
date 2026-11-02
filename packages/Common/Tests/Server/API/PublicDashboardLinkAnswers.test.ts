@@ -180,6 +180,8 @@ const CONTENT_COLUMNS: Array<string> = [
   "pageTitle",
   "pageDescription",
   "logoFile",
+  // The logo for its dark theme, which /view-config sends with the logo.
+  "darkThemeLogoFile",
   "faviconFile",
   "dashboardViewConfig",
   "theme",

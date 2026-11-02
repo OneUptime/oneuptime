@@ -35,7 +35,7 @@ Varje skanning - en loggrad, en CSV-cell, en databasrad, de första byten av ett
 | **Medel** | Värdet klarade sin validerare utan något runt det som bekräftar det, eller fältets namn säger vad det innehåller och vissa värden stämmer överens. |
 | **Låg** | Formen matchar, men ingenting bekräftar det. |
 
-Bara fynd med konfidens Hög och Medel räknas: de gör ett datalager känsligt och kan öppna ett problem. Fynd med Låg listas på datalagret, hopfällda, för en person att bedöma.
+Bara fynd med konfidens Hög och Medel räknas: de gör ett datalager känsligt och kan öppna ett problem. Fynd med Låg listas på datalagret, hopfällda, för en person att bedöma: **Bekräfta** på ett fynd som stämmer gör det till Hög, och det förblir Hög i senare skanningar.
 
 När två datatyper gör anspråk på samma tecken vinner det säkrare fyndet: den högre konfidensen, sedan detektorn vars egna regler bevisar mer, sedan den längre matchningen.
 
@@ -58,6 +58,12 @@ Ett fälts namn delas upp i ord - `customerEmail`, `customer_email` och `custome
 Vissa datatyper kan inte avgöras utifrån sina värden: inget mönster skiljer en persons namn från en gata, eller en religion från vilket annat ord som helst. De här hittas bara utifrån fältets namn, när fältet har värden: Personnamn, Användarnamn, Kön, Nationalitet, Hälsoinformation, Ras eller etniskt ursprung, Religiös övertygelse, Sexuell läggning, Politisk åsikt, Fackföreningsmedlemskap, Biometriska data, Genetiska data och Brottsregister. Ett namn, ett användarnamn, ett kön eller en nationalitet får då Hög när 60 % eller mer av värdena ser ut som ett sådant, och annars Medel.
 
 Ett fält vars namn säger att det innehåller ett lösenord - `password`, `passwordHash`, `pwd`, inte `password_changed_at` - bör innehålla en hash: bcrypt, argon2, scrypt, PBKDF2 eller ett annat schema som ett datalager sannolikt använder. Tomma värden, platshållare som `********` och krypterade värden läggs åt sidan. När fler av resten inte är hashar än är det, innehåller fältet själva lösenorden, som inget mönster kan se, och datalagret underkänns i [Lösenord lagras i klartext](/docs/data-security/checks-and-issues#datahygien).
+
+### Fält som ingen detektor kunde placera
+
+En kolumn eller ett fält vars namn inte pekar på någon datatyp, och vars värden inte matchar någon detektor, är inte känt som säkert: det kan vara ditt eget kundnummer, eller en kolumn som har ett namn på ett annat språk. Med projektets **Aktivera AI** påslaget sparar en innehållsskanning sådana fält, högst 200 per skanning, och OneUptime AI tillfrågas vilken av projektets datatyper varje fält innehåller, högst 40 fält från ett datalager åt gången. Den får fältets namn, namnen på fälten bredvid och formerna på dess värden - varje bokstav skriven som `a` eller `A` och varje siffra som `9`, så `AB-1234` blir `AA-9999` - aldrig ett värde. Fritext, fält med färre än 5 värden, små heltal och fält som heter som ett id, en tidpunkt eller en status frågas det inte om.
+
+Varje typ som OneUptime AI nämner är ett fynd med Låg, markerat **Föreslagen av OneUptime AI** med sin motivering. Som varje fynd med Låg räknas det inte förrän en person väljer **Bekräfta** på datalagrets sida **Innehåll**; **Markera som inte känsligt** avvisar det. Ett fält som har fått svar frågas det inte om igen på 30 dagar, och ett fält som en person har bedömt aldrig igen.
 
 ## Känslighet
 

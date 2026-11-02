@@ -230,8 +230,8 @@ switching editions needs no migration in either direction.
 4. **On the Enterprise Edition, activate a license.** An install with no license
    gets a 14-day trial, counted from its first start of the Enterprise Edition —
    for an upgrade that is the day you upgrade, not the day you first installed
-   OneUptime. A master admin activates it from the edition label in the Admin
-   Dashboard header; air-gapped installs activate with a signed token instead.
+   OneUptime. A master admin activates it on Settings > License in the Admin
+   Dashboard; air-gapped installs activate with a signed token instead.
    See [Licensing](/docs/self-hosted/enterprise#licensing).
 5. **If this install will run the Community Edition while your identity
    provider deprovisions users through SCIM, review who has access before you
@@ -302,7 +302,7 @@ either direction.
   of the Enterprise Edition, and after the trial the same things stop as above.
   The seat limit is not enforced while the license is in this state, because the
   license record this install holds is already incomplete. A master admin
-  re-activating the license from the edition label, or the daily license sync
+  re-activating the license on Settings > License, or the daily license sync
   fetching the expiry from oneuptime.com, restores it without a restart.
 
 See
@@ -1698,6 +1698,24 @@ API, SSO, or the Slack and Microsoft Teams apps.
   permission over the whole project. It is now removed before the label is,
   which leaves what everyone may do as it was before the delete. A
   permission that keeps another of its labels stays.
+- **A private incident, alert or episode is changed only through the teams
+  that own it.** Someone on a team that may change incidents and on another
+  team that owns a private incident and may only view it could change that
+  incident through the first team: edit it, change its state, add notes,
+  owners and roles, and delete it, from the dashboard, the API, bulk
+  actions, Slack, Microsoft Teams and OneUptime AI. Now a private record is
+  changed only with the permissions of the teams that own it, each with its
+  own scope and labels, and of the people named as its owners, and the same
+  goes for its notes, owners, state history, roles, links, episode members
+  and calls. Its state history, public notes, roles, SLA and measurements
+  are now read, like its other parts, only by those who may read it.
+  Project owners and admins, and workflow steps, change every private
+  record as before. A team that owns private records but holds no
+  permissions lets its members see them and change none of them, and a
+  pending invitation no longer shows a team's private records. Give the
+  teams that own private records the permissions their members should act
+  with, or make those members owners. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

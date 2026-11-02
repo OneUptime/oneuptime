@@ -34,17 +34,20 @@ column a header and the sorted one marked (aria-sort, an arrow, a hint); Status 
 the whole list worst first, best first, then back to by name, with the read's order and
 the pick kept in the browser; a reload keeping the pick, for that widget only; a pod
 list reading its phases rank by rank; an incident list by severity and the security
-events list in ClickHouse; a trace table asking the server to rank its groups and a
+events list in ClickHouse; a 6-unit incident list with long titles fitting its widget
+(at 1440px, as below); a trace table asking the server to rank its groups and a
 metric table sorting its own rows; the headers in the dark theme and in German; the
 headers taking no more room than plain ones (`?board=narrow`: a 4-unit metric table
 whose long header wraps and whose right-aligned column hangs its arrow before its words,
 both inside the widget, and the security events list one line per event at 6 and 8
-units); the Sort setting saving the order everyone sees, kept by Save Changes and a
-reload; a click on a header in the Live Preview setting the Sort; and, on the public
-dashboard, the visitor's sort travelling as `widgetSort` with the server reading a pod
-list's phases rank by rank. Phone (Pixel 5, 390px) Chromium runs what a phone changes: reaching and
-pressing the headers, inside OneUptime and on the public dashboard. Screenshots are
-under `output/playwright/dashboard-widget-sort-ui`.
+units, in a 1440px window, where the board's units are 70px or wider as a list's
+default width was chosen on: the board fits its column now, and beside the side menu at
+1280 its units are about 60px); the Sort setting saving the order everyone sees, kept
+by Save Changes and a reload; a click on a header in the Live Preview setting the Sort;
+and, on the public dashboard, the visitor's sort travelling as `widgetSort` with the
+server reading a pod list's phases rank by rank. Phone (Pixel 5, 390px) Chromium runs
+what a phone changes: reaching and pressing the headers, inside OneUptime and on the
+public dashboard. Screenshots are under `output/playwright/dashboard-widget-sort-ui`.
 
 This checks real browser rendering and the widgets' handling of their sorts; the API,
 the database and the deployed app's routing are outside this fixture (the public

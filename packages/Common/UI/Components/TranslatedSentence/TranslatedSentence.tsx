@@ -54,12 +54,20 @@ const TranslatedSentence: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * A value is set apart from the words around it where it could move them
+   * (TranslateTemplate's SentenceOptions): a name in Latin letters and the
+   * time after it in a Persian sentence. A slot is too, in a sentence read
+   * right to left drawn as one line of text; one whose pieces renderText
+   * draws as boxes of their own keeps its slots as they are.
+   */
   const sentence: SentenceParts = getSentencePartsAndLanguage({
     translator: translator,
     template: props.template,
     slots: Object.keys(props.slots),
     values: props.values,
     count: props.count,
+    setsSlotsApart: !props.renderText,
   });
 
   return (

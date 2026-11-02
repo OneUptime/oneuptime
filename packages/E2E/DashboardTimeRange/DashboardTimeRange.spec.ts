@@ -18,6 +18,13 @@ import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
  *     purpose; Save Changes saves them, Discard Changes drops them, and a
  *     save never turns the interval the editor picked while viewing into
  *     the dashboard's.
+ *   - The dashboard inside OneUptime at any width: the board fits its
+ *     column beside the side menu (it was at least 1000px wide, so even
+ *     1280 scrolled sideways), its columns narrowing and its rows keeping
+ *     their height; on a phone the widgets are one under another and the
+ *     toolbar wraps onto the screen; while editing on a phone the grid
+ *     scrolls sideways inside the board. Editing on a narrower board moves
+ *     widgets by the rows' own height.
  *
  * Screenshots of the toolbar, the pickers and the editing row are saved for
  * review under output/playwright/dashboard-time-range-ui.
@@ -169,16 +176,14 @@ const shoot: (
 /*
  * A press on a control of the dashboard's toolbar, as the viewer makes it.
  *
- * The dashboard in the app is 1000px wide (DashboardView: minWidth), so on
- * a phone its toolbar sits past the screen's right edge and the viewer
- * scrolls to it; the public dashboard's toolbar fits the screen, and only
- * its board scrolls, in its own frame (DashboardViewLayout). Playwright's
- * own click cannot reach a control the viewer scrolls to - in the phone
- * emulation the browser scrolls the visual viewport, and the check of what
- * is under the pointer looks at the wrong place - so on the phone the
- * control is scrolled to, must be visible and enabled, and gets the click
- * a tap ends in (as the public dashboard theme suite does); at 1280 it is
- * Playwright's real click.
+ * Both dashboards are the screen's width and their toolbars wrap onto it,
+ * but a menu's choice or the editing row can still sit below the fold.
+ * Playwright's own click cannot reach a control the viewer scrolls to - in
+ * the phone emulation the browser scrolls the visual viewport, and the
+ * check of what is under the pointer looks at the wrong place - so on the
+ * phone the control is scrolled to, must be visible and enabled, and gets
+ * the click a tap ends in (as the public dashboard theme suite does); at
+ * 1280 it is Playwright's real click.
  */
 const press: (control: Locator) => Promise<void> = async (
   control: Locator,
@@ -1016,6 +1021,459 @@ test.describe("the dashboard inside OneUptime", () => {
         return window.getComputedStyle(element).borderLeftWidth;
       }),
     ).toBe("0px");
+  });
+});
+
+/*
+ * The dashboard inside OneUptime at any width (the #5284 follow-up). The
+ * board was at least 1000px wide wherever it was shown, so on a phone the
+ * page scrolled sideways with the toolbar past the screen's edge, and beside
+ * the side menu even a 1280px window scrolled sideways. Now the board lays
+ * its widgets out in its column's width (Common/Utils/Dashboard/
+ * DashboardBoardLayout): the grid, its columns narrowing and its rows
+ * keeping 70px, down to 500px, and one widget under another below that.
+ * Every measure is read in one evaluate, once the board has settled.
+ */
+test.describe("the dashboard inside OneUptime at any width", () => {
+  interface BoardBoxes {
+    viewport: number;
+    pageScroll: number;
+    arrangement: string | null;
+    board: {
+      left: number;
+      right: number;
+      clientWidth: number;
+      scrollWidth: number;
+    };
+    widgets: Array<{
+      id: string;
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      height: number;
+    }>;
+  }
+
+  const measureBoard: (page: Page) => Promise<BoardBoxes> = async (
+    page: Page,
+  ): Promise<BoardBoxes> => {
+    return page.evaluate((): BoardBoxes => {
+      const board: HTMLElement = document.querySelector(
+        '[data-testid="dashboard-board"]',
+      ) as HTMLElement;
+      const boardBox: DOMRect = board.getBoundingClientRect();
+
+      return {
+        viewport: document.documentElement.clientWidth,
+        pageScroll:
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+        arrangement: board.getAttribute("data-arrangement"),
+        board: {
+          left: boardBox.left,
+          right: boardBox.right,
+          clientWidth: board.clientWidth,
+          scrollWidth: board.scrollWidth,
+        },
+        widgets: Array.from(
+          board.querySelectorAll<HTMLElement>('[id^="dashboard-component-"]'),
+        ).map((element: HTMLElement) => {
+          const box: DOMRect = element.getBoundingClientRect();
+
+          return {
+            id: element.id,
+            left: box.left,
+            right: box.right,
+            top: box.top,
+            bottom: box.bottom,
+            height: box.height,
+          };
+        }),
+      };
+    });
+  };
+
+  // Until the widgets stop moving: the canvas lays them out once measured.
+  const settledBoard: (page: Page) => Promise<BoardBoxes> = async (
+    page: Page,
+  ): Promise<BoardBoxes> => {
+    let last: string = "";
+
+    await expect
+      .poll(
+        async (): Promise<boolean> => {
+          const now: string = JSON.stringify(await measureBoard(page));
+          const isSettled: boolean = now === last;
+
+          last = now;
+
+          return isSettled;
+        },
+        { intervals: [300, 300, 500, 800], timeout: 30000 },
+      )
+      .toBe(true);
+
+    return measureBoard(page);
+  };
+
+  const atDesktopProjectOnly: () => void = (): void => {
+    test.skip(
+      Boolean(test.info().project.use.isMobile),
+      "A window's width, set in the desktop project.",
+    );
+  };
+
+  const atPhoneOnly: () => void = (): void => {
+    test.skip(!test.info().project.use.isMobile, "A phone's width.");
+  };
+
+  test("at 1280 beside the side menu, the grid fits its column and nothing scrolls sideways", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    atDesktopProjectOnly();
+
+    await openApp(page, "wall", "Past 1 Day");
+
+    const boxes: BoardBoxes = await settledBoard(page);
+
+    expect(boxes.pageScroll).toBe(0);
+    expect(boxes.arrangement).toBe("grid");
+    expect(boxes.board.scrollWidth).toBe(boxes.board.clientWidth);
+
+    for (const widget of boxes.widgets) {
+      expect([widget.id, widget.right <= boxes.board.right + 0.5]).toEqual([
+        widget.id,
+        true,
+      ]);
+    }
+
+    await shoot(page, testInfo, "app-board-1280");
+  });
+
+  test("at 1024 beside the side menu, the columns narrow and a chart keeps the 230px of its three rows", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    atDesktopProjectOnly();
+
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await openApp(page, "wall", "Past 1 Day");
+
+    const boxes: BoardBoxes = await settledBoard(page);
+
+    expect(boxes.pageScroll).toBe(0);
+    expect(boxes.arrangement).toBe("grid");
+
+    // The template's charts are six columns by three rows.
+    const heights: Set<number> = new Set(
+      boxes.widgets.map((widget: BoardBoxes["widgets"][number]): number => {
+        return Math.round(widget.height);
+      }),
+    );
+
+    expect(heights.has(230)).toBe(true);
+    expect(heights.has(70)).toBe(true);
+
+    await shoot(page, testInfo, "app-board-1024");
+  });
+
+  test("at 768 beside the side menu, the widgets are one under another", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    atDesktopProjectOnly();
+
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await openApp(page, "wall", "Past 1 Day");
+
+    const boxes: BoardBoxes = await settledBoard(page);
+
+    expect(boxes.pageScroll).toBe(0);
+    expect(boxes.arrangement).toBe("stacked");
+
+    await shoot(page, testInfo, "app-board-768");
+  });
+
+  test("on a phone nothing scrolls sideways: the toolbar wraps onto the screen and the widgets are one under another", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    atPhoneOnly();
+
+    await openApp(page, "wall", "Past 1 Day");
+
+    const boxes: BoardBoxes = await settledBoard(page);
+
+    expect(boxes.pageScroll).toBe(0);
+    expect(boxes.arrangement).toBe("stacked");
+
+    // Each the board's width, each below the one before.
+    const widths: Set<number> = new Set(
+      boxes.widgets.map((widget: BoardBoxes["widgets"][number]): number => {
+        return Math.round(widget.right - widget.left);
+      }),
+    );
+
+    expect(widths.size).toBe(1);
+
+    for (let index: number = 1; index < boxes.widgets.length; index++) {
+      expect(boxes.widgets[index]!.top).toBeGreaterThanOrEqual(
+        boxes.widgets[index - 1]!.bottom,
+      );
+    }
+
+    // In the order the grid is read: the title across its top comes first.
+    await expect(
+      page.locator('[id^="dashboard-component-"]').first(),
+    ).toContainText("Metrics Dashboard");
+
+    // Every toolbar control on the screen, without scrolling to it.
+    const controls: Array<{ name: string; left: number; right: number }> =
+      await page.evaluate(() => {
+        return Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[data-testid="dashboard-toolbar-row"] button',
+          ),
+        ).map((button: HTMLElement) => {
+          const box: DOMRect = button.getBoundingClientRect();
+
+          return {
+            name:
+              button.getAttribute("aria-label") ||
+              button.getAttribute("title") ||
+              button.textContent ||
+              "button",
+            left: box.left,
+            right: box.right,
+          };
+        });
+      });
+
+    expect(controls.length).toBeGreaterThanOrEqual(3);
+
+    for (const control of controls) {
+      expect([control.name, control.left >= 0]).toEqual([control.name, true]);
+      expect([control.name, control.right <= boxes.viewport + 0.5]).toEqual([
+        control.name,
+        true,
+      ]);
+    }
+
+    await shoot(page, testInfo, "app-board-phone");
+  });
+
+  test("on a phone the name and the ⋯ menu share the first line, and the controls have a line of their own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atPhoneOnly();
+
+    await openApp(page, "wall", "Past 1 Day");
+    await settledBoard(page);
+
+    const [title, more, controls]: Array<FrameBox> = await boxesInOneFrame([
+      // The toolbar's heading, under the page's own title above it.
+      page
+        .getByTestId("dashboard-toolbar-row")
+        .getByRole("heading", { level: 2, name: "Production wall screen" }),
+      page.getByRole("button", { name: "More dashboard options" }),
+      page.getByTestId("dashboard-toolbar-controls"),
+    ]);
+
+    // The ⋯ menu on the name's line, at its end.
+    expect(more!.y).toBeLessThan(title!.y + title!.height);
+    expect(more!.y + more!.height).toBeGreaterThan(title!.y);
+    expect(more!.x).toBeGreaterThan(title!.x + title!.width);
+
+    // The controls under the name, from the line's start.
+    expect(controls!.y).toBeGreaterThanOrEqual(title!.y + title!.height);
+    expect(controls!.x).toBeLessThan(title!.x);
+  });
+
+  test("editing on a phone shows the grid, which the board scrolls sideways; the page does not", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    atPhoneOnly();
+
+    await openApp(page, "wall", "Past 1 Day");
+    await enterEditMode(page);
+
+    const boxes: BoardBoxes = await settledBoard(page);
+
+    expect(boxes.arrangement).toBe("grid");
+    expect(boxes.pageScroll).toBe(0);
+    expect(boxes.board.scrollWidth).toBeGreaterThan(boxes.board.clientWidth);
+
+    // Save Changes and Cancel are on the screen.
+    for (const name of ["Save Changes", "Cancel"]) {
+      const box: FrameBox = (
+        await boxesInOneFrame([page.getByRole("button", { name })])
+      )[0]!;
+
+      expect([name, box.x + box.width <= boxes.viewport + 0.5]).toEqual([
+        name,
+        true,
+      ]);
+    }
+
+    await shoot(page, testInfo, "app-board-phone-editing");
+  });
+
+  /*
+   * On a board narrower than its square grid a row is taller than a
+   * column is wide (70px against about 38 at 1024), and a widget dragged
+   * down moves by rows of the rows' own height. Dragged by 90px - one row's
+   * 80px pitch and a little - it moves one row; on square cells of the
+   * column's pitch it would have moved two.
+   */
+  test("editing at 1024: a widget dragged one row's height down moves one row, and is saved there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopProjectOnly();
+
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await openApp(page, "plain", "Past 1 Hour");
+    await enterEditMode(page);
+    await settledBoard(page);
+
+    // The first value under the title: the second widget the board lists.
+    const widget: Locator = page.locator('[id^="dashboard-component-"]').nth(1);
+    const id: string = ((await widget.getAttribute("id")) || "").slice(
+      "dashboard-component-".length,
+    );
+    const before: FrameBox = (await boxesInOneFrame([widget]))[0]!;
+
+    const startX: number = before.x + before.width / 2;
+    const startY: number = before.y + before.height / 2;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX, startY + 30, { steps: 5 });
+    await page.mouse.move(startX, startY + 90, { steps: 10 });
+    await page.mouse.up();
+
+    await expect
+      .poll(async (): Promise<number> => {
+        const after: FrameBox = (await boxesInOneFrame([widget]))[0]!;
+
+        return Math.round(after.y - before.y);
+      })
+      .toBe(80);
+
+    await press(page.getByRole("button", { name: "Save Changes" }));
+    await expect(page.getByTestId(DEFAULTS_BAR)).toHaveCount(0);
+
+    const saves: Array<FixtureSave> = await savesOf(page);
+
+    expect(saves).toHaveLength(1);
+
+    const components: Array<Record<string, unknown>> = saves[0]!
+      .dashboardViewConfig["components"] as Array<Record<string, unknown>>;
+    const saved: Record<string, unknown> | undefined = components.find(
+      (component: Record<string, unknown>): boolean => {
+        const componentId: unknown = component["componentId"];
+        const value: string =
+          typeof componentId === "string"
+            ? componentId
+            : String(
+                (componentId as { value?: string } | undefined)?.value || "",
+              );
+
+        return value === id;
+      },
+    );
+
+    expect(saved).toBeDefined();
+    // The template puts its first value in the second row (row 1): now row 2.
+    expect(saved!["topInDashboardUnits"]).toBe(2);
+  });
+
+  /*
+   * Rows are 70px on every board 500 to 950px wide and on a phone, and a
+   * number one row high gave its name up there by half a pixel
+   * (ValueWidgetLayout's title gate): the template's four numbers were
+   * bare at 1280 beside the side menu and on every phone.
+   */
+  test("a number one row high keeps its name over it, and on a phone its trend beside the name", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    await openApp(page, "wall", "Past 1 Day");
+    await settledBoard(page);
+
+    for (const name of [
+      "Request Rate",
+      "Avg Latency",
+      "Error Rate",
+      "Active Requests",
+    ]) {
+      const value: Locator = page
+        .getByTestId("value-widget")
+        .filter({ hasText: name });
+
+      await expect(value).toBeVisible();
+
+      if (test.info().project.use.isMobile) {
+        await expect(value.getByTestId("value-widget-trend")).toBeVisible();
+      }
+    }
+
+    await shoot(page, testInfo, "app-board-named-numbers");
+  });
+
+  /*
+   * A chart half of a 600px window's board is about 250px wide, and its
+   * legend's chip has less room than its series' name and value need. The
+   * value kept its whole width and the name shrank to nothing; now the
+   * name gives way first but keeps its first letters, and then the value
+   * is cut, inside the chip, never under its Investigate button.
+   */
+  test("on a narrow chart the legend's chip keeps its series' name and stays inside its frame", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    atDesktopProjectOnly();
+
+    await page.setViewportSize({ width: 600, height: 900 });
+    await openApp(page, "wall", "Past 1 Day");
+    await settledBoard(page);
+
+    const chip: {
+      row: number;
+      chip: number;
+      name: number;
+      valueRight: number;
+      investigateLeft: number;
+      valueCut: boolean;
+    } = await page.evaluate(() => {
+      const button: HTMLElement = document.querySelector(
+        '[id^="dashboard-component-"] button[aria-pressed]',
+      ) as HTMLElement;
+      const frame: HTMLElement = button.parentElement as HTMLElement;
+      // The colour's dot, the series' name, its value.
+      const parts: Array<Element> = Array.from(button.children);
+      const name: HTMLElement = parts[1] as HTMLElement;
+      const value: HTMLElement = parts[2] as HTMLElement;
+      const investigate: HTMLElement = frame.children[1] as HTMLElement;
+
+      return {
+        row: (frame.parentElement as HTMLElement).getBoundingClientRect().right,
+        chip: frame.getBoundingClientRect().right,
+        name: name.getBoundingClientRect().width,
+        valueRight: value.getBoundingClientRect().right,
+        investigateLeft: investigate.getBoundingClientRect().left,
+        valueCut: value.scrollWidth > value.clientWidth,
+      };
+    });
+
+    // The first letters of "Requests", not nothing.
+    expect(chip.name).toBeGreaterThanOrEqual(24);
+    // The value, cut, ends before the chip's Investigate button.
+    expect(chip.valueCut).toBe(true);
+    expect(chip.valueRight).toBeLessThanOrEqual(chip.investigateLeft + 0.5);
+    // And the chip inside its row.
+    expect(chip.chip).toBeLessThanOrEqual(chip.row + 0.5);
+
+    await shoot(page, testInfo, "app-board-600-legend");
   });
 });
 

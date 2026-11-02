@@ -143,25 +143,38 @@ test.describe.skip("Proxmox Product Onboarding", () => {
     await expect(page.getByText("Proxmox Monitor Configuration")).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("Quick Setup")).toBeVisible();
+    /*
+     * A new monitor starts on the Stopped Reporting alert, folded under
+     * "What to alert on"; Change opens the list.
+     */
+    await expect(page.getByText("What to alert on")).toBeVisible();
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Cluster Stopped Reporting",
+    );
+    await page.getByTestId("alert-template-change").click();
 
     /*
-     * Every template ProxmoxTemplatePicker renders — all 11 from
-     * Common/Types/Monitor/ProxmoxAlertTemplates.ts, including the V3
-     * Backup ("Guest Not Backed Up", WI-24) and Replication
-     * ("Replication Failing", WI-25) sections.
+     * Every template ProxmoxTemplatePicker renders — all 15 from
+     * Common/Types/Monitor/ProxmoxAlertTemplates.ts, including Stopped
+     * Reporting, the V3 Backup ("Guest Not Backed Up", WI-24) and
+     * Replication ("Replication Failing", WI-25) sections, and the
+     * restart, storage and stuck-backup templates.
      */
     const expectedTemplateNames: Array<string> = [
+      "Cluster Stopped Reporting",
       "Node Offline",
       "Guest Down",
       "Cluster Quorum at Risk",
+      "Node Restarted",
       "High Node CPU Usage",
       "High Node Memory Usage",
       "High Guest CPU Usage",
+      "Storage Unavailable",
       "Storage Near Full",
       "Container Root Disk Near Full",
       "HA Resource in Error State",
       "Guest Not Backed Up",
+      "Backup Running Too Long",
       "Replication Failing",
     ];
 

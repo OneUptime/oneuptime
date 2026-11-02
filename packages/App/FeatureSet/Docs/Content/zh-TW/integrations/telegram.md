@@ -16,10 +16,10 @@ flowchart TB
     fired["警示已觸發"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"Success"| chat["你的聊天中<br/>的訊息"]
-    step -->|"Error"| log["Log：未送達<br/>的原因"]
+    step -->|"Error"| failed["執行失敗，<br/>並說明原因"]
 ```
 
-該步驟以你的機器人身分，透過 Telegram 的 Bot API 把 **Message Text** 傳送到聊天。Telegram 接受訊息時，它走 **Success** 輸出；Telegram 拒絕時，它帶著 Telegram 給出的原因走 **Error** 輸出。範本把一個 **Log** 步驟連接到 **Error**，所以未能傳送的執行會說明原因。
+該步驟以你的機器人身分，透過 Telegram 的 Bot API 把 **Message Text** 傳送到聊天。Telegram 接受訊息時，它走 **Success** 輸出；Telegram 拒絕時，它帶著 Telegram 給出的原因走 **Error** 輸出。像範本中那樣 **Error** 上沒有連接任何東西時，未能傳送的執行會失敗，其 **步驟** 會說明原因。
 
 ## 開始之前
 
@@ -53,7 +53,7 @@ flowchart TB
 3. 保留名稱 **Notify Telegram on new alert** 或更改它，然後點選 **下一步**。
 4. 把權杖貼上到 **Telegram Bot Token** 中，把 ID 貼上到 **Telegram Chat ID** 中，然後點選 **建立工作流程**。
 
-工作流程會在 **建構器** 中開啟，包含三個步驟：**On Create Alert**；**Send Message to Telegram**，它傳送警示的編號、標題、嚴重程度和狀態；以及連接在其 **Error** 輸出上的一個 **Log** 步驟。權杖會儲存為工作流程的機密變數 `telegramBotToken`，ID 儲存為 `telegramChatId`。
+工作流程會在 **建構器** 中開啟，包含兩個步驟： **On Create Alert**，以及傳送警示編號、標題、嚴重程度和狀態的 **Send Message to Telegram**。權杖會儲存為工作流程的機密變數 `telegramBotToken`，ID 儲存為 `telegramChatId`。
 @tab 從零開始
 1. 把權杖儲存為機密的全域變數：前往 **工作流程 → 全域變數**，點選 **建立工作流程 變數**，將其命名為 `TELEGRAM_BOT_TOKEN`，然後點選 **下一步**。把權杖貼上到 **內容** 中，開啟 **密鑰**，然後點選 **建立工作流程 變數**。
 2. 前往 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，為工作流程命名，然後點選 **建立工作流程**。
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 在 **建構器** 頂部開啟 **已啟用**。從現在起，每個新警示都會發送到聊天中。
 
-要在不觸發警示的情況下進行測試，請點選 **執行工作流程**，在 **警示** 下選擇一個既有的警示：清單中會列出最近的警示，輸入它的編號或標題的一部分可以找到其他警示。點選 **手動執行工作流程**，然後用 **執行** 確認。**工作流程執行** 面板會追蹤這次執行，訊息會出現在聊天中。如果該步驟改走 **Error**，**Log** 步驟的那一列會說明原因：請參閱 [疑難排解](#疑難排解)。
+要在不觸發警示的情況下進行測試，請點選 **執行工作流程**，在 **警示** 下選擇一個既有的警示：清單中會列出最近的警示，輸入它的編號或標題的一部分可以找到其他警示。點選 **手動執行工作流程**，然後用 **執行** 確認。**工作流程執行** 面板會追蹤這次執行，訊息會出現在聊天中。如果該步驟改走 **Error**，執行就會失敗， **步驟** 中該步驟的項目會說明原因：請參閱 [疑難排解](#疑難排解)。
 :::
 
 ## 提示
@@ -85,7 +85,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 ## 疑難排解
 
-當該步驟走 **Error** 時，執行會說明原因：範本的 **Log** 步驟會寫下 `❌ Telegram could not deliver the alert notification:`、Telegram 給出的原因，以及機器人必須在聊天中的提醒。
+當該步驟走 **Error** 時，執行會失敗，執行的 **步驟** 中該步驟的項目會給出 Telegram 的原因。機器人必須在聊天中，所以請先檢查這一點。
 
 :::details Telegram 傳回 "Bad Request: chat not found"
 **Chat ID** 錯誤，或者機器人看不到該聊天：請把機器人新增到群組，讓它成為頻道的管理員，或者請對方與機器人開始聊天。群組的 ID 以 `-` 開頭。

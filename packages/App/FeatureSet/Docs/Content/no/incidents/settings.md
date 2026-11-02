@@ -225,8 +225,27 @@ Definisjonene ligger i en egen modell; verdiene ligger på selve hendelsen i kol
 | **Dato og klokkeslett**                    | En dato og et klokkeslett                             | Forventet løsning                                  |
 | **Lang tekst**                             | Flere linjer ren tekst                                | Berørte brukere eller systemer, tilleggsinformasjon |
 | **Formatert tekst (Markdown)**             | Formatert tekst, i Markdown-redigeringsverktøyet med visuell modus | En midlertidig løsning med lenker og lister |
+| **Fil** | Én fil, sluppet på feltet eller valgt | En signert endringsforespørsel, et skjermbilde |
+| **Flere filer** | Opptil 10 filer | Skjermbilder, logger og pakkefangster |
 
 **Lang tekst** og **Formatert tekst (Markdown)** er tilgjengelige for de egendefinerte feltene på hver ressurs, ikke bare hendelser. En verdi med formatert tekst lagres som Markdown-en den ble skrevet i. Det finnes ingen type med alternativknapper eller en gruppe avkrysningsbokser: bruk en **Nedtrekksliste (enkeltvalg)**, en **Nedtrekksliste (flervalg)** eller en **Boolsk**.
+
+### Filfelt
+
+Et felt av typen **Fil** holder én fil, og et felt av typen **Flere filer** opptil 10. På hendelsens side **Egendefinerte felt** slipper du filer på feltet eller klikker på det for å velge dem: **Erstatt** bytter filen i et felt av typen **Fil**, og **Fjern** tar ut en fil. Siden viser hver fil med navn og størrelse, og et klikk på den laster den ned. De egendefinerte feltene på alle andre ressurser tar filer på samme måte.
+
+| Hva | Grense |
+| --- | --- |
+| Én fil | 10 MB |
+| Et felt av typen **Flere filer** | 10 filer, 50 MB til sammen |
+| Filtyper | PDF-, Word-, RTF-, Excel-, PowerPoint- og OpenDocument-filer, bilder (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF og HEIC), ren tekst, Markdown-, CSV- og JSON-filer, ZIP-arkiver og pakkefangster |
+
+- **Kontrollert etter innholdet.** En fil må inneholde det typen sier, så en nettside som er omdøpt til `report.pdf`, avvises. SVG-bilder tas ikke imot, fordi de kan inneholde skript.
+- **Bare prosjektets egne filer.** Et felt tar bare filer som er lastet opp i hendelsens eget prosjekt.
+- **Lastes ned, åpnes aldri på siden.** Bare den som kan se hendelsen og dens egendefinerte felt, kan laste ned filene dens.
+- **Navngitt, ikke lenket, alle andre steder.** Hendelseslisten og CSV-eksporten av den, feeden, notatmaler og abonnentmeldinger viser et filfelt som navnene på filene i det. Listens filter spør om feltet **Har filer** eller har **Ingen filer**. Slack og Microsoft Teams utelater filfelt blant de egendefinerte feltene de lar deg redigere: legg til filer i OneUptime.
+- **Slettet når ingenting holder dem lenger.** En fil som fjernes eller erstattes, og filene i en slettet hendelse, slettes, med mindre noe annet, for eksempel en annen hendelse eller en mal, fortsatt holder dem.
+- **Via API-et og Terraform.** Last opp filen med `POST /api/file` i hendelsens prosjekt med `name`, `fileType` og byte i base64 i `file`, og sett deretter feltet til `_id` som returneres. Feltet leses tilbake som filene det holder, hver med sin `fileId`, `name`, `fileType` og `size`. I Terraform skriver du hver fil som `{ fileId = oneuptime_file.contract.id }`, slik at planen samsvarer med det feltet leses tilbake som.
 
 ### Påkrevd ved opprettelse kontrolleres bare av dashbordet
 
@@ -271,6 +290,8 @@ Når en bruker eller en API-nøkkel oppretter eller oppdaterer en hendelse, må 
 | **Dato**, **Dato og klokkeslett**                                  | En dato, helst som ISO 8601-tekst.                             |
 | **Nedtrekksliste (enkeltvalg)**                                    | Et av alternativene.                                           |
 | **Nedtrekksliste (flervalg)**                                      | En liste over alternativene, eller ett enkelt alternativ alene. |
+| **Fil** | ID-en til en fil, eller `{ "fileId": "<id>" }`, for en fil som er lastet opp i hendelsens prosjekt. |
+| **Flere filer** | En liste over dem, opptil 10, eller én alene. |
 
 For en **Nedtrekksliste (flervalg)** nevner avvisningen de første 10 oppføringene som ikke er blant alternativene, og deretter hvor mange flere det er.
 

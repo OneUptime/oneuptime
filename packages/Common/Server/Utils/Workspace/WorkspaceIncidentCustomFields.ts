@@ -7,6 +7,7 @@ import { parseCustomFieldDropdownOptions } from "../../../Types/CustomField/Cust
 import { isCustomFieldInheritedByRecord } from "../../../Types/CustomField/CustomFieldMappingCatalog";
 import { sortCustomFieldDefinitions } from "../../../Types/CustomField/CustomFieldOrder";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { isCustomFieldFileType } from "../../../Types/CustomField/CustomFieldFile";
 import {
   customFieldValueToDate,
   customFieldValueToText,
@@ -50,7 +51,9 @@ import WorkspaceMemberActions, {
  * Every field is optional, as on the Custom Fields card: "Required on
  * create" applies when an incident is declared. A field whose value is
  * copied from the incident's monitor is not asked for - it would only be
- * copied over again - as the card shows it without editing it.
+ * copied over again - as the card shows it without editing it. Nor is a
+ * File or Multiple files field: a chat form cannot upload a file, so its
+ * files are added, and downloaded, in OneUptime.
  *
  * What comes back is compared with what the incident holds: only the fields
  * whose value changed are written, a field emptied is cleared, and each new
@@ -113,6 +116,8 @@ export interface WorkspaceCustomFieldsForm {
   notShownCount: number;
   // Fields copied from the incident's monitor: shown in OneUptime, not asked.
   copiedFieldNames: Array<string>;
+  // File and Multiple files fields: their files are added in OneUptime.
+  fileFieldNames?: Array<string> | undefined;
 }
 
 // What a submitted form changes, and what is wrong with it.
@@ -206,9 +211,16 @@ export default class WorkspaceIncidentCustomFields {
   }): WorkspaceCustomFieldsForm {
     const inputs: Array<WorkspaceCustomFieldInput> = [];
     const copiedFieldNames: Array<string> = [];
+    const fileFieldNames: Array<string> = [];
     let notShownCount: number = 0;
 
     for (const definition of sortCustomFieldDefinitions(data.definitions)) {
+      // A chat form cannot upload a file: its files are added in OneUptime.
+      if (isCustomFieldFileType(definition.customFieldType)) {
+        fileFieldNames.push(definition.name);
+        continue;
+      }
+
       if (
         isCustomFieldInheritedByRecord({
           definitionTableName: DEFINITION_TABLE_NAME,
@@ -239,6 +251,7 @@ export default class WorkspaceIncidentCustomFields {
       inputs: inputs,
       notShownCount: notShownCount,
       copiedFieldNames: copiedFieldNames,
+      fileFieldNames: fileFieldNames,
     };
   }
 

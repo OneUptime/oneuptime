@@ -129,7 +129,7 @@ flowchart TB
 4. 点击 **创建工作流**。每个工作流创建时都处于关闭状态：在它的 **生成器** 顶部打开 **已启用**。
 :::
 
-先从 **Create a Jira issue when an incident is declared** 开始，警报则从 **Create a Jira issue when an alert is created** 开始：同类的其他 OneUptime → Jira 模板都通过这个模板添加的标签找到问题。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行的最后一步应显示 `✅ Created Jira issue` 并给出新问题。
+先从 **Create a Jira issue when an incident is declared** 开始，警报则从 **Create a Jira issue when an alert is created** 开始：同类的其他 OneUptime → Jira 模板都通过这个模板添加的标签找到问题。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-issue-1` 的 **Response Body** 会给出新问题。
 
 每个工作流都保存这些值的独立副本。更换令牌时，请在每个询问过它的 Jira 工作流的 **工作流变量** 下更新 `jiraBasicAuthToken`。如果 Jira 换了地址，请用同样的方式更新 `jiraSiteUrl` 和 `jiraBaseUrl`。
 
@@ -180,14 +180,14 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 
 ### 检查是否正常工作
 
-每个模板都以一个说明发生了什么的 **Log** 步骤结束，因此请查看 **日志 → 运行记录** 中这次运行的最后一步：
+每次运行的 **步骤** 都会说明模板做了什么，因此请在 **日志 → 运行记录** 中打开这次运行，看看它是如何结束的：
 
-- `✅` — 完成了它的工作，并给出问题、事件或警报。
-- `ℹ️` — 有意跳过了该事件，并说明原因：问题没有关联到这类记录、备注来自 Jira、记录是私密的，或者新状态没有映射到任何 Jira 状态。
-- `❌` — 某个调用失败了。对于 Jira 调用，这一行包含 Jira 的回应。
-- `⚠️` — 根据 Jira 问题创建记录的模板已经创建了记录，但 Jira 没有接受关联标签，因此其他模板暂时还找不到它。请手动添加这些标签。
+- **已执行**：完成了工作，最后一步会给出问题、事件或警报。
+- **已执行**，且 **Check With JavaScript** 步骤走了 **No**：有意跳过了该事件，该步骤会说明原因：问题没有关联到这类记录、备注来自 Jira、记录是私密的，或者新状态没有映射到任何 Jira 状态。
+- **错误**：某个步骤失败了，它在 **步骤** 中的条目会说明原因。对于 Jira 调用，其中包含 Jira 的回应。
+- 在 `link-issue-1` 处 **错误**：根据 Jira 问题创建记录的模板已创建了记录，但 Jira 没有接受关联标签，所以其他模板暂时找不到它。请手动添加标签。
 
-被跳过的运行仍以 **已执行** 结束。跳过是正常的：大多数 Jira 事件都不是某个特定模板要处理的。参见 [工作流运行记录](/docs/workflows/runs-and-logs)。
+跳过是正常的：大多数 Jira 事件都不是某个特定模板要处理的。参见 [工作流运行记录](/docs/workflows/runs-and-logs)。
 
 ## 模板的工作方式
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### 更改模板的行为
 
-打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Run Custom JavaScript** 块的 **JavaScript Code** 中，就在共享的辅助代码块下面。模板的事件版本和警报版本在相同的块中有相同的常量：
+打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Check With JavaScript** 块的 **JavaScript Code** 中，就在共享的辅助代码块下面。模板的事件版本和警报版本在相同的块中有相同的常量：
 
 | 常量 | 模板和块 | 控制的内容 |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ const STATE_TO_JIRA_STATUS = {
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | 模板按含义选择时优先使用的状态名称，以及除非 `STATE_TO_JIRA_STATUS` 指定、否则永不选择的状态名称。两者都是不区分大小写、与状态名称进行匹配的正则表达式。 |
 | `SYNC_PRIVATE_INCIDENTS` | 每个事件用的 OneUptime → Jira 模板 — `prepare-issue-1`、`plan-transition-1` 或 `build-comment-1` | `false` 让标记为 **私密事件** 的事件不进入 Jira：不为它创建问题，不移动它的问题，也不发布它的备注和编辑。设为 `true` 则照样发送。每个模板都有自己的副本，所以请在每个应发送它们的模板中设置。 |
 | `SYNC_PRIVATE_ALERTS` | 每个警报用的 OneUptime → Jira 模板 — `prepare-issue-1`、`plan-transition-1` 或 `build-comment-1` | 对标记为 **私密警报** 的警报作用相同：`false` 以同样的方式让它们不进入 Jira，`true` 则照样发送。请在每个应发送它们的警报模板中设置。 |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | 把 Jira 状态名称映射到 OneUptime 状态名称，例如 `{ 'In Review': 'Monitoring' }`。未列出的状态按 Jira 的状态类别处理：In Progress 确认事件或警报，Done 解决它，To Do 不映射到任何状态。 |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | 把 Jira 状态名称映射到 OneUptime 状态名称，例如 `{ 'In Review': 'Monitoring' }`。未列出的状态按 Jira 的状态类别处理：In Progress 确认事件或警报，Done 解决它，To Do 不映射到任何状态。 |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`；Create an alert when a Jira issue is created — `prepare-alert-1` | 把用小写书写的 Jira 优先级映射到 `0`（最高的严重程度）、`1` 或 `2`（最低的严重程度），介于两者之间的严重程度在这个范围内分配。未列出的优先级落在中间。对于新项目的两种警报严重程度，`0` 是 High，`1` 和 `2` 都是 Low，所以除非你把它改为 `medium: 0`，否则 Medium 会变成 Low。 |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | 会变成备注的评论事件。添加 `'comment_updated'` 可以同时复制编辑（每次编辑都会成为一条新备注），同时还要在 Jira Webhook 上勾选 **Comment updated**。 |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | 变更不值得记成备注的 Jira 字段（小写）。只要字段 ID 或名称之一在列表中，该变更就会被忽略，`'rank'` 正是这样捕获到 Rank 的——它是一个以 `customfield_10019` 这样的 ID 到达的自定义字段。状态在列表中，因为状态由状态模板处理。 |
@@ -271,7 +271,7 @@ const STATE_TO_JIRA_STATUS = {
 ### 限制
 
 - **仅限 Jira Cloud。** 模板使用 Basic 身份验证调用 Jira Cloud REST API v3。Data Center 没有 v3，并且以 `Bearer` 方式接受个人访问令牌，因此每个 API 块都需要 [Jira Data Center](#jira-data-center) 中的修改：`/rest/api/2/...` 路径、用纯字符串代替 Atlassian Document Format 主体，以及请求头。`find-issue-1` 块改动最大：Data Center 没有 `/search/jql`，因此它们必须改为向 `/rest/api/2/search` 发送 `POST`。
-- **从 Jira 声明的事件是安静的。** 它们创建时对状态页隐藏，也不通知状态页订阅者，因为问题的文本不是为客户写的。要显示某个事件，请在事件的 **设置** 页面打开 **在状态页面上可见**（参见 [不在状态页上显示事件](/docs/incidents/states-and-severities#让事件不出现在状态页上)），或者修改模板的 `create-incident-1` 块中的 `isVisibleOnStatusPage` 和 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`。
+- **从 Jira 声明的事件是安静的。** 它们创建时对状态页隐藏，也不通知状态页订阅者，因为问题的文本不是为客户写的。要显示某个事件，请在事件的 **设置** 页面打开 **在状态页面上可见**（参见 [不在状态页上显示事件](/docs/incidents/states-and-severities#让事件不出现在状态页上)），或者在模板的 `incident-from-another-tool-1` 块中打开 **更多字段** 下的 **Show On Status Pages**。
 - **私密事件和警报留在 OneUptime 中。** OneUptime → Jira 模板会跳过它们，每次跳过都会在 **日志 → 运行记录** 中注明。要照样发送，请把 `SYNC_PRIVATE_INCIDENTS` 或 `SYNC_PRIVATE_ALERTS` 设为 `true`。之后再把记录设为私密，会从那时起停止同步，但不会收回 Jira 已有的内容。Jira → OneUptime 模板不做检查，因此已关联问题上的评论、编辑和状态变更仍会到达私密记录。
 - **一切都不会往回走。** 重新打开 Jira 问题不会改变 OneUptime 中的任何内容，To Do 类别中的状态不映射到任何状态。参见 [顺序是真正的约束](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好)。转换模板也从不把问题移到更早的状态类别。
 - **每个警报都会得到一个问题。** 除私密警报外，警报的创建问题模板会为每个警报创建问题，包括监视器产生的每一个。[警报有何不同](#警报有何不同) 介绍了如何添加条件。
@@ -286,7 +286,7 @@ const STATE_TO_JIRA_STATUS = {
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **同一个事件可能到达两次。** Jira 会重试因服务器错误或超时而失败的投递。如果 OneUptime 已经开始了这次运行，评论模板和问题变更模板会添加第二条备注。创建记录的模板不会创建第二条记录：它们会先向 Jira 查询问题的标签，而在重试到达时，第一次运行已经为问题加上了标签。但如果第一次运行创建了记录而 Jira 拒绝了标签，这就帮不上忙了：那次运行会以 `⚠️` 行结束，你应该手动添加标签。
+- **同一个事件可能到达两次。** Jira 会重试因服务器错误或超时而失败的投递。如果 OneUptime 已经开始了这次运行，评论模板和问题变更模板会添加第二条备注。创建记录的模板不会创建第二条记录：它们会先向 Jira 查询问题的标签，而在重试到达时，第一次运行已经为问题加上了标签。但如果第一次运行创建了记录而 Jira 拒绝了标签，这就帮不上忙了：那次运行会在 `link-issue-1` 失败，你应该手动添加标签。
 
 ## 自己构建
 

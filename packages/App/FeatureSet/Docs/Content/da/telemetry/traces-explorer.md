@@ -60,7 +60,7 @@ Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip. Sid
 
 ### Åbn et span
 
-Klik på en række for at folde den ud: dens attributter samt de protokoller og undtagelser, den registrerede. Klik på **See full trace** for at åbne hele dens spor.
+Klik på en række for at folde den ud: dens attributter samt de protokoller og undtagelser, den registrerede. Klik på **Se hele sporet** for at åbne hele dens spor.
 :::
 
 Din søgning, dine chips og tidsintervallet gemmes i sidens adresse, så en genindlæsning, et bogmærke eller et delt link åbner de samme spans.
@@ -81,12 +81,12 @@ Under dem vælger du en af fire visninger:
 
 | Visning | Hvad den viser |
 | --- | --- |
-| **Waterfall** | Hvert span på en tidslinje, indlejret under det span, der startede det. Slå **Critical path** til for at fremhæve den kæde af spans, der afgjorde, hvor lang tid forespørgslen tog. |
+| **Vandfald** | Hvert span på en tidslinje, indlejret under det span, der startede det. Slå **Kritisk sti** til for at fremhæve den kæde af spans, der afgjorde, hvor lang tid forespørgslen tog. |
 | **Flammegraf** | Det samme træ som stablede bjælker, hvor de bredeste bjælker tog længst tid. |
-| **Service map** | De tjenester, forespørgslen gik igennem, og kaldene mellem dem. |
-| **Operations** | Én række pr. tjeneste og span-navn med kald, fejl, egen tid og samlet tid. En operation, der kaldes 10 gange eller mere fra ét forælder-span, markeres: ofte en N+1-forespørgsel eller en løkke, der kunne samles. |
+| **Tjenestekort** | De tjenester, forespørgslen gik igennem, og kaldene mellem dem. |
+| **Operationer** | Én række pr. tjeneste og span-navn med kald, fejl, egen tid og samlet tid. En operation, der kaldes 10 gange eller mere fra ét forælder-span, markeres: ofte en N+1-forespørgsel eller en løkke, der kunne samles. |
 
-Klik på et span i en vilkårlig visning for at åbne dets panel med faner for dets attributter, begivenheder, protokoller, undtagelser og links samt dets profil eller LLM-kald, når det har et. Søg i sporets spans efter navn, ID eller tjeneste med søgefeltet ved siden af visningerne (tryk på `/`), og slå **Errors only** til for kun at beholde de spans, der fejlede.
+Klik på et span i en vilkårlig visning for at åbne dets panel med faner for dets attributter, begivenheder, protokoller, undtagelser og links samt dets profil eller LLM-kald, når det har et. Søg i sporets spans efter navn, ID eller tjeneste med søgefeltet ved siden af visningerne (tryk på `/`), og slå **Kun fejl** til for kun at beholde de spans, der fejlede.
 
 Et stort spor indlæser 500 spans ad gangen. Klik på knappen nederst i sporet for at indlæse flere eller dem alle.
 
@@ -97,7 +97,7 @@ Et stort spor indlæser 500 spans ad gangen. Klik på knappen nederst i sporet f
 
 Diagrammet over listen viser antallet af spans over tid, fordelt på status. Vælg et andet mål i diagrammets hoved for i stedet at vise deres gennemsnitlige, mediane (P50) eller P95-svartid.
 
-For mere skal du skifte listen fra **Spans** til **Analytics**. Vælg en tidsserie, en topliste eller en tabel; mål antal forespørgsler, antal fejl eller svartider (gennemsnit, P50, P90, P95, P99, minimum eller maksimum); og gruppér efter span-navn, tjeneste, status, span-type eller en vilkårlig attribut og derefter efter et andet felt. En topliste eller en tabel viser fra 5 til 100 grupper.
+For mere skal du skifte listen fra **Spans** til **Analyser**. Vælg en tidsserie, en topliste eller en tabel; mål antal forespørgsler, antal fejl eller svartider (gennemsnit, P50, P90, P95, P99, minimum eller maksimum); og gruppér efter span-navn, tjeneste, status, span-type eller en vilkårlig attribut og derefter efter et andet felt. En topliste eller en tabel viser fra 5 til 100 grupper.
 
 ## Følg, gem og del
 

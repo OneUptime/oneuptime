@@ -1,12 +1,20 @@
 import MonitorStepKubernetesMonitor, {
   DEFAULT_KUBERNETES_WORKLOAD_KIND,
-  KUBERNETES_WORKLOAD_KINDS,
+  KUBERNETES_HPA_KIND,
+  KUBERNETES_WORKLOAD_SCOPE_KINDS,
+  KubernetesResourceFilters,
+  KubernetesWorkloadKind,
   MonitorStepKubernetesMonitorUtil,
   KubernetesResourceScope,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -21,12 +29,6 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import KubernetesTemplatePicker from "./KubernetesTemplatePicker";
 import KubernetesMetricPicker from "./KubernetesMetricPicker";
@@ -34,13 +36,30 @@ import {
   KubernetesAlertTemplate,
   getKubernetesAlertTemplateById,
   buildKubernetesMonitorConfig,
+  getAllKubernetesAlertTemplates,
+  getKubernetesDefaultAlertTemplateId,
 } from "Common/Types/Monitor/KubernetesAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
-import { KubernetesMetricDefinition } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import {
+  KubernetesMetricDefinition,
+  getKubernetesMetricById,
+} from "Common/Types/Monitor/KubernetesMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
+import InfrastructureResourceField from "../InfrastructureMonitorSetup/InfrastructureResourceField";
+import useInfrastructureResources, {
+  InfrastructureResources,
+} from "../InfrastructureMonitorSetup/UseInfrastructureResources";
+import {
+  InfrastructureWatchWay,
+  findTemplateIdForMetricsView,
+  getInitialWatchWay,
+} from "../InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
+import KUBERNETES_CLUSTER_ONBOARDING from "../../../Kubernetes/KubernetesClusterOnboarding";
+import AddResourceModal from "../../../ResourceOnboarding/AddResourceModal";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Navigation from "Common/UI/Utils/Navigation";
-
-export type KubernetesFormMode = "quick" | "custom" | "advanced";
 
 export interface ComponentProps {
   monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor;
@@ -48,7 +67,6 @@ export interface ComponentProps {
     monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor,
   ) => void;
   onMonitorCriteriaChange?: ((criteria: MonitorCriteria) => void) | undefined;
-  onModeChange?: ((mode: KubernetesFormMode) => void) | undefined;
   initialTemplateId?: string | undefined;
   initialClusterId?: string | undefined;
   // These IDs are needed to build proper criteria from templates
@@ -82,9 +100,13 @@ const resourceScopeOptions: Array<DropdownOption> = [
   },
 ];
 
-// The kinds of workload a Workload Name can name; Deployment first.
+/*
+ * The kinds a Workload Name can name: the workloads, Deployment first, then
+ * HorizontalPodAutoscaler. A template or metric that watches one kind
+ * starts the field on it.
+ */
 const workloadKindOptions: Array<DropdownOption> =
-  KUBERNETES_WORKLOAD_KINDS.map(
+  KUBERNETES_WORKLOAD_SCOPE_KINDS.map(
     (kind: { label: string; value: string }): DropdownOption => {
       return { label: kind.label, value: kind.value };
     },
@@ -111,8 +133,6 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     Navigation.getQueryStringByName("clusterId") ||
     undefined;
 
-  const [, setMode] = React.useState<KubernetesFormMode>("quick");
-
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -124,16 +144,80 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-  const [clusterOptions, setClusterOptions] = React.useState<
-    Array<DropdownOption>
-  >([]);
-
-  const [, setIsLoadingClusters] = React.useState<boolean>(true);
-
-  // Quick Setup state
+  /*
+   * The template a saved step was made from shows picked; a new step starts
+   * on the type's default alert once drawn.
+   */
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<
     string | undefined
-  >(urlTemplateId);
+  >(() => {
+    // A link names its template; else the one a saved step was made from.
+    if (urlTemplateId) {
+      return urlTemplateId;
+    }
+
+    return findTemplateIdForMetricsView<KubernetesAlertTemplate>({
+      templates: getAllKubernetesAlertTemplates(),
+      getMetricsViewConfig: (template: KubernetesAlertTemplate) => {
+        return MonitorStep.getMetricsViewConfig(
+          template.getMonitorStep({
+            clusterIdentifier:
+              monitorStepKubernetesMonitor.clusterIdentifier || "",
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+            monitorName: template.name,
+          }),
+        );
+      },
+      current: monitorStepKubernetesMonitor.metricViewConfig,
+    });
+  });
+
+  const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
+    return getInitialWatchWay({
+      queryCount:
+        monitorStepKubernetesMonitor.metricViewConfig.queryConfigs.length,
+      isTemplatePicked: Boolean(selectedTemplateId),
+    });
+  });
+
+  /*
+   * A template applied before any resource was picked is applied again once
+   * one is, so its incident titles name it.
+   */
+  const templateAppliedWithoutResourceRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  /*
+   * The Workload Kind the person picked, which a template or metric switch
+   * keeps.
+   */
+  const pickedWorkloadKindRef: React.MutableRefObject<string | undefined> =
+    useRef<string | undefined>(undefined);
+
+  /*
+   * The filters a scope starts on. A Workload scope starts on the kind the
+   * person picked, else on the kind the template or metric watches, so a
+   * Workload Name is read as that kind's: a Job's name for Job Failures or
+   * Job Failed Pods. Otherwise on none, and a name is read as a
+   * Deployment's.
+   */
+  const getStartingResourceFilters: (input: {
+    resourceScope: KubernetesResourceScope;
+    workloadKind: KubernetesWorkloadKind | undefined;
+  }) => KubernetesResourceFilters = (input: {
+    resourceScope: KubernetesResourceScope;
+    workloadKind: KubernetesWorkloadKind | undefined;
+  }): KubernetesResourceFilters => {
+    const workloadType: string | undefined =
+      input.resourceScope === KubernetesResourceScope.Workload
+        ? pickedWorkloadKindRef.current || input.workloadKind
+        : undefined;
+
+    return workloadType ? { workloadType } : {};
+  };
 
   // Custom Metric state
   const [selectedMetricId, setSelectedMetricId] = React.useState<
@@ -144,56 +228,58 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [customResourceScope, setCustomResourceScope] =
     React.useState<KubernetesResourceScope>(KubernetesResourceScope.Cluster);
 
-  useEffect(() => {
-    // Load clusters
-    setIsLoadingClusters(true);
-    ModelAPI.getList<KubernetesCluster>({
+  // The kind the chosen template, else the chosen metric, watches.
+  const getChosenWorkloadKind: () => KubernetesWorkloadKind | undefined = ():
+    | KubernetesWorkloadKind
+    | undefined => {
+    if (selectedTemplateId) {
+      return getKubernetesAlertTemplateById(selectedTemplateId)?.workloadKind;
+    }
+
+    return selectedMetricId
+      ? getKubernetesMetricById(selectedMetricId)?.workloadKind
+      : undefined;
+  };
+
+  const resources: InfrastructureResources<KubernetesCluster> =
+    useInfrastructureResources<KubernetesCluster>({
       modelType: KubernetesCluster,
-      query: {},
       select: {
         _id: true,
+        lastSeenAt: true,
         name: true,
         clusterIdentifier: true,
       },
-      sort: {
-        name: SortOrder.Ascending,
+      toOption: (cluster: KubernetesCluster): DropdownOption => {
+        return {
+          label: cluster.name || cluster.clusterIdentifier || "Unknown",
+          value: cluster.clusterIdentifier || "",
+        };
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    })
-      .then((result: ListResult<KubernetesCluster>) => {
-        const options: Array<DropdownOption> = result.data.map(
-          (cluster: KubernetesCluster) => {
-            return {
-              label: cluster.name || cluster.clusterIdentifier || "Unknown",
-              value: cluster.clusterIdentifier || "",
-            };
-          },
-        );
-        setClusterOptions(options);
+      getLastSeenAt: (cluster: KubernetesCluster): Date | undefined => {
+        return cluster.lastSeenAt;
+      },
+    });
 
-        // Auto-select cluster if initialClusterId or URL param is provided
-        if (urlClusterId && !monitorStepKubernetesMonitor.clusterIdentifier) {
-          const matchedCluster: DropdownOption | undefined = options.find(
-            (o: DropdownOption) => {
-              return o.value === urlClusterId;
-            },
-          );
-          if (matchedCluster) {
-            props.onChange({
-              ...monitorStepKubernetesMonitor,
-              clusterIdentifier: matchedCluster.value as string,
-            });
-          }
-        }
-      })
-      .catch((_err: Error) => {
-        setClusterOptions([]);
-      })
-      .finally(() => {
-        setIsLoadingClusters(false);
+  // Pick the cluster a link named, once the list is in.
+  useEffect(() => {
+    if (!urlClusterId || monitorStepKubernetesMonitor.clusterIdentifier) {
+      return;
+    }
+
+    const matchedCluster: DropdownOption | undefined = resources.options.find(
+      (option: DropdownOption) => {
+        return option.value === urlClusterId;
+      },
+    );
+
+    if (matchedCluster) {
+      props.onChange({
+        ...monitorStepKubernetesMonitor,
+        clusterIdentifier: matchedCluster.value as string,
       });
-  }, []);
+    }
+  }, [resources.options.length]);
 
   // Handle initial template selection
   useEffect(() => {
@@ -228,9 +314,14 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const handleTemplateSelection: (template: KubernetesAlertTemplate) => void = (
+  const applyTemplate: (
     template: KubernetesAlertTemplate,
+    clusterIdentifier: string,
+  ) => void = (
+    template: KubernetesAlertTemplate,
+    clusterIdentifier: string,
   ): void => {
+    templateAppliedWithoutResourceRef.current = !clusterIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
@@ -239,8 +330,6 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
      * Build the kubernetes monitor config from the template's getMonitorStep
      * We need the cluster identifier to build the config
      */
-    const clusterIdentifier: string =
-      monitorStepKubernetesMonitor.clusterIdentifier;
 
     /*
      * Use real monitor status and severity IDs if available,
@@ -267,9 +356,19 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
     // Extract the kubernetes monitor config
     if (templateStep.data?.kubernetesMonitor) {
+      const templateMonitor: MonitorStepKubernetesMonitor =
+        templateStep.data.kubernetesMonitor;
+
       props.onChange({
-        ...templateStep.data.kubernetesMonitor,
+        ...templateMonitor,
         clusterIdentifier: clusterIdentifier || "",
+        resourceFilters: {
+          ...templateMonitor.resourceFilters,
+          ...getStartingResourceFilters({
+            resourceScope: templateMonitor.resourceScope,
+            workloadKind: template.workloadKind,
+          }),
+        },
       });
     }
 
@@ -279,12 +378,58 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const handleTemplateSelection: (template: KubernetesAlertTemplate) => void = (
+    template: KubernetesAlertTemplate,
+  ): void => {
+    applyTemplate(template, monitorStepKubernetesMonitor.clusterIdentifier);
+  };
+
+  // A new monitor starts on the alert most people want first.
+  useEffect(() => {
+    if (
+      urlTemplateId ||
+      monitorStepKubernetesMonitor.metricViewConfig.queryConfigs.length > 0
+    ) {
+      return;
+    }
+
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById(getKubernetesDefaultAlertTemplateId());
+
+    if (template) {
+      applyTemplate(template, monitorStepKubernetesMonitor.clusterIdentifier);
+    }
+  }, []);
+
+  const changeResource: (clusterIdentifier: string) => void = (
+    clusterIdentifier: string,
+  ): void => {
+    const template: KubernetesAlertTemplate | undefined = selectedTemplateId
+      ? getKubernetesAlertTemplateById(selectedTemplateId)
+      : undefined;
+
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      clusterIdentifier
+    ) {
+      applyTemplate(template, clusterIdentifier);
+      return;
+    }
+
+    props.onChange({
+      ...monitorStepKubernetesMonitor,
+      clusterIdentifier: clusterIdentifier,
+    });
+  };
+
   const handleCustomMetricSelection: (
     metric: KubernetesMetricDefinition,
   ) => void = (metric: KubernetesMetricDefinition): void => {
     setSelectedMetricId(metric.id);
     // The metric replaces the one Quick Setup's template set.
     setSelectedTemplateId(undefined);
+    templateAppliedWithoutResourceRef.current = false;
     setCustomAggregation(metric.defaultAggregation);
     setCustomResourceScope(metric.defaultResourceScope);
 
@@ -301,7 +446,38 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       aggregationType: metric.defaultAggregation,
     });
 
-    props.onChange(config);
+    props.onChange({
+      ...config,
+      resourceFilters: {
+        ...config.resourceFilters,
+        ...getStartingResourceFilters({
+          resourceScope: metric.defaultResourceScope,
+          workloadKind: metric.workloadKind,
+        }),
+      },
+    });
+    /*
+     * The template's criteria compared the template's own metric; kept, they
+     * judged this one by another threshold and named another incident. A
+     * metric of your own starts on the out-of-the-box criteria: offline
+     * while it sends nothing, online while it does.
+     */
+    if (props.onMonitorCriteriaChange) {
+      props.onMonitorCriteriaChange(
+        MonitorCriteria.getDefaultMonitorCriteria({
+          monitorType: MonitorType.Kubernetes,
+          monitorName: props.monitorName || metric.friendlyName,
+          onlineMonitorStatusId:
+            props.onlineMonitorStatusId || ObjectID.generate(),
+          offlineMonitorStatusId:
+            props.offlineMonitorStatusId || ObjectID.generate(),
+          defaultIncidentSeverityId:
+            props.defaultIncidentSeverityId || ObjectID.generate(),
+          defaultAlertSeverityId:
+            props.defaultAlertSeverityId || ObjectID.generate(),
+        }),
+      );
+    }
   };
 
   const showNamespaceFilter: boolean =
@@ -315,6 +491,12 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     monitorStepKubernetesMonitor.resourceScope ===
     KubernetesResourceScope.Workload;
 
+  // An HPA is named by its own name, so the name field asks for the HPA's.
+  const isHpaNamed: boolean =
+    (
+      monitorStepKubernetesMonitor.resourceFilters?.workloadType || ""
+    ).toLowerCase() === KUBERNETES_HPA_KIND.value;
+
   const showNodeFilter: boolean =
     monitorStepKubernetesMonitor.resourceScope === KubernetesResourceScope.Node;
 
@@ -323,24 +505,49 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
-      <div className="mb-4">
-        <FieldLabelElement title="Kubernetes Cluster" required={true} />
-        <Dropdown
-          options={clusterOptions}
-          value={clusterOptions.find((option: DropdownOption) => {
+      <InfrastructureResourceField
+        title="Kubernetes Cluster"
+        placeholder="Select a cluster..."
+        options={resources.options}
+        value={resources.valueOf({
+          value: monitorStepKubernetesMonitor.clusterIdentifier,
+          resourceId: monitorStepKubernetesMonitor.resourceId,
+        })}
+        onChange={changeResource}
+        isLoading={resources.isLoading}
+        lastSeenAtByValue={resources.lastSeenAtByValue}
+        addResource={{
+          title: KUBERNETES_CLUSTER_ONBOARDING.addTitle,
+          renderModal: (input: {
+            onClose: () => void;
+            onConnected: (value: string) => void;
+          }): ReactElement => {
             return (
-              option.value === monitorStepKubernetesMonitor.clusterIdentifier
+              <AddResourceModal
+                onboarding={KUBERNETES_CLUSTER_ONBOARDING}
+                onClose={input.onClose}
+                onConnected={(record: BaseModel) => {
+                  input.onConnected(
+                    String(
+                      (record as KubernetesCluster).clusterIdentifier || "",
+                    ),
+                  );
+                }}
+              />
             );
-          })}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            props.onChange({
-              ...monitorStepKubernetesMonitor,
-              clusterIdentifier: (value as string) || "",
+          },
+        }}
+        onResourceAdded={(clusterIdentifier: string) => {
+          resources
+            .reload()
+            .then(() => {
+              changeResource(clusterIdentifier);
+            })
+            .catch(() => {
+              // The list keeps what it had; the new one can be picked from it.
             });
-          }}
-          placeholder="Select a cluster..."
-        />
-      </div>
+        }}
+      />
     );
   };
 
@@ -372,6 +579,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
           <div className="mt-3">
             <FieldLabelElement title="Workload Kind" required={false} />
             <Dropdown
+              ariaLabel="Workload Kind"
               options={workloadKindOptions}
               value={workloadKindOptions.find((option: DropdownOption) => {
                 return (
@@ -385,6 +593,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
+                pickedWorkloadKindRef.current = (value as string) || undefined;
+
                 props.onChange({
                   ...monitorStepKubernetesMonitor,
                   resourceFilters: {
@@ -400,7 +610,11 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showWorkloadFilter && (
           <div className="mt-3">
-            <FieldLabelElement title="Workload Name" required={false} />
+            {isHpaNamed ? (
+              <FieldLabelElement title="HPA Name" required={false} />
+            ) : (
+              <FieldLabelElement title="Workload Name" required={false} />
+            )}
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.workloadName || ""
@@ -413,7 +627,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                     workloadName: value || undefined,
                     /*
                      * The kind travels with the name: the worker reads a
-                     * name as the kind's (Deployment unless picked).
+                     * name as the kind's (Deployment unless the template,
+                     * the metric or the person set one).
                      */
                     workloadType:
                       monitorStepKubernetesMonitor.resourceFilters
@@ -421,7 +636,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                   },
                 });
               }}
-              placeholder="e.g. my-deployment"
+              placeholder={isHpaNamed ? "e.g. my-hpa" : "e.g. my-deployment"}
             />
           </div>
         )}
@@ -530,7 +745,10 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                   props.onChange({
                     ...monitorStepKubernetesMonitor,
                     resourceScope: newScope,
-                    resourceFilters: {},
+                    resourceFilters: getStartingResourceFilters({
+                      resourceScope: newScope,
+                      workloadKind: getChosenWorkloadKind(),
+                    }),
                   });
                 }}
                 placeholder="Select resource scope..."
@@ -640,12 +858,17 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               );
             })}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              const resourceScope: KubernetesResourceScope =
+                (value as KubernetesResourceScope) ||
+                KubernetesResourceScope.Cluster;
+
               props.onChange({
                 ...monitorStepKubernetesMonitor,
-                resourceScope:
-                  (value as KubernetesResourceScope) ||
-                  KubernetesResourceScope.Cluster,
-                resourceFilters: {},
+                resourceScope,
+                resourceFilters: getStartingResourceFilters({
+                  resourceScope,
+                  workloadKind: getChosenWorkloadKind(),
+                }),
               });
             }}
             placeholder="Select resource scope..."
@@ -714,41 +937,14 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const tabs: Array<Tab> = [
-    {
-      name: "Quick Setup",
-      children: renderQuickSetup(),
-    },
-    {
-      name: "Custom Metric",
-      children: renderCustomMetric(),
-    },
-    {
-      name: "Advanced",
-      children: renderAdvanced(),
-    },
-  ];
-
   return (
-    <div>
-      {renderClusterDropdown()}
-
-      <Tabs
-        tabs={tabs}
-        onTabChange={(tab: Tab) => {
-          let newMode: KubernetesFormMode = "quick";
-          if (tab.name === "Quick Setup") {
-            newMode = "quick";
-          } else if (tab.name === "Custom Metric") {
-            newMode = "custom";
-          } else if (tab.name === "Advanced") {
-            newMode = "advanced";
-          }
-          setMode(newMode);
-          props.onModeChange?.(newMode);
-        }}
-      />
-    </div>
+    <InfrastructureMonitorSetup
+      resourceField={renderClusterDropdown()}
+      alertTemplates={renderQuickSetup()}
+      customMetric={renderCustomMetric()}
+      queryBuilder={renderAdvanced()}
+      initialWay={initialWay}
+    />
   );
 };
 

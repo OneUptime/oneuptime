@@ -9,11 +9,13 @@
  *     when none does - rare up to 12 hours (1- and 5-minute buckets), common
  *     beyond (15-minute buckets and wider) - while the charts below them
  *     cover the whole range;
- *   - node/guest counts, the Storage tile, the list columns and the detail
- *     fields come from the latest inventory snapshot and ignore the time
- *     picker;
- *   - list columns hide CPU and memory older than 15 minutes, detail fields
- *     do not;
+ *   - node/guest counts, the Storage tile, the list columns and a part's
+ *     tiles and details come from the latest inventory snapshot and ignore
+ *     the time picker; templates never count as guests that run;
+ *   - list columns hide CPU and memory older than 15 minutes, a part's own
+ *     page does not;
+ *   - backup results come from Proxmox VE's notifications, backup job
+ *     coverage from the exporter;
  *   - the Memory chart is summed bytes although the Memory tile is a
  *     percentage, and the Storage chart counts shared storage once per node.
  * Change the fetch, change the words.
@@ -28,21 +30,20 @@ export type ProxmoxMetric =
   | "clusterMemory"
   | "fullestStorage"
   | "guestsRunning"
-  | "backupCoverage"
   // Cluster overview - charts under the tiles.
   | "cpuChart"
   | "memoryChart"
   | "storageChart"
   | "networkChart"
-  // Cluster overview - hero, summary strip and cards.
+  // Cluster overview - hero and cards.
   | "clusterInventoryCounts"
   | "haStates"
   | "clusterHealth"
-  | "quorum"
-  | "nodeCount"
-  | "guestCount"
-  | "storageCount"
   | "agentStatus"
+  | "backupsLastOk"
+  | "backupsLastFailed"
+  | "backupsNotInJob"
+  | "backupsNewest"
   | "replicationLastSync"
   | "replicationDuration"
   | "replicationFailedSyncs"
@@ -54,6 +55,8 @@ export type ProxmoxMetric =
   | "nodeUptime"
   | "nodeCpu"
   | "nodeMemory"
+  | "nodeRootDisk"
+  | "nodeGuests"
   | "nodeHaState"
   | "nodeNetworkThroughput"
   | "nodeDiskThroughput"
@@ -62,6 +65,7 @@ export type ProxmoxMetric =
   | "guestHaState"
   | "guestStartOnBoot"
   | "guestBackupCoverage"
+  | "guestLastBackup"
   | "guestUptime"
   | "guestCpu"
   | "guestMemory"
@@ -70,15 +74,16 @@ export type ProxmoxMetric =
   | "guestDiskThroughput"
   // Storage detail.
   | "storageStatus"
-  | "storageUsed"
-  | "storageTotal"
   | "storageUsedPercent"
+  | "storageFree"
   | "storageGrowthForecast"
+  | "storageShared"
   // Nodes list.
   | "nodesTableStatus"
   | "nodesTableCpu"
   | "nodesTableMemory"
   | "nodesTableUptime"
+  | "nodesTableGuests"
   // Guests list.
   | "guestsTableStatus"
   | "guestsTableCpu"
@@ -89,14 +94,13 @@ export type ProxmoxMetric =
   // Storage list.
   | "storageTableStatus"
   | "storageTableUsage"
-  | "storageTableAge"
   // Insights.
   | "insightsDiskThroughput";
 
 export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   // Cluster overview - golden tiles.
   nodeAvailability: translationKey(
-    "Nodes (physical servers) that Proxmox reports as online, out of all nodes in the cluster, from the latest report rather than the selected time range. The bar turns amber when a node is offline and red when half or more are offline.",
+    "Nodes (physical servers) that Proxmox reports as online, out of all nodes, and whether it reports the cluster quorate, from the latest report rather than the selected time range. The bar turns amber when a node is offline and red when half or more are offline.",
   ),
   clusterCpu: translationKey(
     "How busy the cluster's processors are, as a share of all CPU cores on all nodes, so a big node counts more than a small one. It averages the last 5 minutes of the selected range, but often the whole range on ranges over 12 hours, and always when those 5 minutes have no data.",
@@ -105,13 +109,10 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
     "Memory in use on all nodes together, as a share of their combined memory, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The line below shows used and total memory at the latest data point.",
   ),
   fullestStorage: translationKey(
-    "How full your fullest storage volume is (used space divided by its size), from the latest report rather than the selected time range. It is the single fullest volume, not an average, and above 85% it marks the cluster Degraded.",
+    "How full your fullest storage volume is (used space divided by its size), from the latest report rather than the selected time range. It is the single fullest volume, not an average; above 85% it marks the cluster Degraded and above 95% Unhealthy.",
   ),
   guestsRunning: translationKey(
-    "Running guests (virtual machines and containers) out of all guests, from the latest report. The net figure is their combined traffic in and out per second over the last 5 minutes of the selected range, often the whole range on ranges over 12 hours or without recent data.",
-  ),
-  backupCoverage: translationKey(
-    "Guests that at least one Proxmox backup job includes, out of all guests; it checks job coverage, not whether recent backups succeeded. The bar is red while any guest is left out, and a dash means Proxmox has not reported backup information yet.",
+    "Running guests (virtual machines and containers, templates left out) out of all guests, from the latest report. The net figure is their combined traffic in and out per second over the last 5 minutes of the selected range, often the whole range on ranges over 12 hours or without recent data.",
   ),
 
   // Cluster overview - charts under the tiles.
@@ -128,30 +129,30 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
     "Data received (In) and sent (Out) per second by all virtual machines and containers together over the selected range, worked out from the running byte counters Proxmox keeps for each guest.",
   ),
 
-  // Cluster overview - hero, summary strip and cards.
+  // Cluster overview - hero and cards.
   clusterInventoryCounts: translationKey(
-    "Nodes online out of all nodes, guests running out of all guests, and storage volumes (shared storage once per node), from the latest report rather than the selected time range.",
+    "Nodes online out of all nodes, guests running out of all guests (templates left out), and storage volumes (shared storage once per node), from the latest report rather than the selected time range.",
   ),
   haStates: translationKey(
     "How many nodes and guests are in each Proxmox high-availability (HA) state; HA restarts guests on another node when one fails. 'started' is normal, 'error' or 'fence' is a problem that marks the cluster Unhealthy, and 'migrate' or 'recovery' is temporary.",
   ),
   clusterHealth: translationKey(
-    "Unhealthy if a node is offline or a high-availability (HA) resource is in error or fence; Degraded if a storage volume is over 85% full, a start-on-boot guest is stopped, a guest is in no backup job or replication fails. Unknown if the agent is disconnected.",
-  ),
-  quorum: translationKey(
-    "Online nodes out of all nodes; Proxmox needs more than half of its nodes online (quorum) to start guests, change settings or run high availability, so this turns red at half or fewer. It is worked out from which nodes report as online, not read from Proxmox's own quorum service.",
-  ),
-  nodeCount: translationKey(
-    "How many Proxmox nodes (physical servers) this cluster has, with any that are offline called out in red. Select the card to open the node list.",
-  ),
-  guestCount: translationKey(
-    "How many guests this cluster has - QEMU virtual machines and LXC containers - whether they are running or stopped. Select the card to open the guest list.",
-  ),
-  storageCount: translationKey(
-    "How many storage volumes Proxmox reports, such as local disks, ZFS, NFS or Ceph, with storage shared by several nodes listed once per node. Select the card to open the storage list.",
+    "Unhealthy if a node is offline, the cluster is not quorate, a storage is unavailable or over 95% full, or an HA resource is in error or fence; Degraded if a storage is over 85% full, a start-on-boot guest is stopped, a guest is in no backup job or its last backup failed, or replication fails. Unknown if the agent is disconnected.",
   ),
   agentStatus: translationKey(
     "Whether the OneUptime Proxmox agent is sending data for this cluster. It switches to Disconnected 15 to 20 minutes after data stops arriving, and the numbers on this page may then be out of date.",
+  ),
+  backupsLastOk: translationKey(
+    "Guests whose last backup succeeded, as Proxmox VE's notifications reported it, with templates left out.",
+  ),
+  backupsLastFailed: translationKey(
+    "Guests whose last backup failed, as Proxmox VE's notifications reported it. Each stays under Needs attention until a later backup of it succeeds.",
+  ),
+  backupsNotInJob: translationKey(
+    "Guests that no Proxmox backup job includes, so nothing backs them up; a dash means Proxmox has not reported its backup jobs yet.",
+  ),
+  backupsNewest: translationKey(
+    "When the most recent backup of any guest finished, whatever its result, as Proxmox VE's notifications reported it.",
   ),
   replicationLastSync: translationKey(
     "How long ago this storage replication job last copied the guest's disks to the target node successfully. It turns amber after 1 hour and red after 6 hours without a successful sync.",
@@ -185,6 +186,12 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   nodeMemory: translationKey(
     "Memory in use on this node compared with its total memory, at its latest report.",
   ),
+  nodeRootDisk: translationKey(
+    "Space used on this node's root filesystem compared with its size, at its latest report.",
+  ),
+  nodeGuests: translationKey(
+    "Guests on this node that are running, out of all guests on it with templates left out, at its latest report.",
+  ),
   nodeHaState: translationKey(
     "This node's state in Proxmox high availability (HA), the feature that restarts guests on another node when one fails. 'online' is normal and 'maintenance' is planned; 'fence' means HA is cutting the node off after a failure and marks the cluster Unhealthy.",
   ),
@@ -197,7 +204,7 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
 
   // Guest detail.
   guestStatus: translationKey(
-    "Running or Stopped, as Proxmox last reported for this guest. A stopped guest only counts against cluster health when it is set to start on boot.",
+    "Running, Stopped or Template, as Proxmox last reported for this guest. A stopped guest only counts against cluster health when it is set to start on boot, and a template never runs.",
   ),
   guestHaState: translationKey(
     "This guest's state in Proxmox high availability (HA), which restarts it on another node if its node fails. 'started' is normal; 'error' or 'fence' means HA hit a problem and marks the cluster Unhealthy.",
@@ -207,6 +214,9 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   ),
   guestBackupCoverage: translationKey(
     "Whether at least one Proxmox backup job includes this guest; it does not check that recent backups ran or succeeded. A guest that is in no backup job marks the cluster Degraded.",
+  ),
+  guestLastBackup: translationKey(
+    "How this guest's last backup went and when it finished, with its size and how long it took, as Proxmox VE's notifications reported it. Before any arrive it says whether a backup job includes the guest.",
   ),
   guestUptime: translationKey(
     "How long this guest had been running since it last started, as of its latest report.",
@@ -231,17 +241,17 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   storageStatus: translationKey(
     "Available or Unavailable, as Proxmox last reported for this storage. Unavailable means Proxmox could not use it, for example because it is disabled, not mounted or unreachable from its node.",
   ),
-  storageUsed: translationKey(
-    "Space used on this storage volume at its latest report.",
-  ),
-  storageTotal: translationKey(
-    "The total size of this storage volume at its latest report.",
-  ),
   storageUsedPercent: translationKey(
-    "Used space as a share of this volume's total size, at its latest report. Above 85% the cluster is marked Degraded.",
+    "Used space as a share of this volume's total size, at its latest report. Above 85% the cluster is marked Degraded, and above 95% Unhealthy.",
+  ),
+  storageFree: translationKey(
+    "Space still free on this storage volume, out of its total size, at its latest report.",
   ),
   storageGrowthForecast: translationKey(
     "A straight-line estimate of when this volume fills up, based on how its used space changed over the last 24 hours. Shown only while usage is growing and would fill it within a year; 'Full now' means it is already full.",
+  ),
+  storageShared: translationKey(
+    "Shared storage, such as NFS or Ceph, is one storage that every node listing it uses; Local storage belongs to a single node.",
   ),
 
   // Nodes list.
@@ -257,10 +267,13 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   nodesTableUptime: translationKey(
     "How long each node has been running since it last booted (its uptime), not how long it has been part of the cluster.",
   ),
+  nodesTableGuests: translationKey(
+    "Guests running on each node out of all guests on it, templates left out, at their latest report.",
+  ),
 
   // Guests list.
   guestsTableStatus: translationKey(
-    "Running or Stopped, as Proxmox last reported for each guest. A stopped guest is not an error unless it is set to start on boot.",
+    "Running, Stopped or Template, as Proxmox last reported for each guest. A stopped guest is not an error unless it is set to start on boot.",
   ),
   guestsTableCpu: translationKey(
     "How busy each guest is, as a share of the CPU cores assigned to it, at its latest report. Shows N/A when the guest has sent no update in the last 15 minutes.",
@@ -275,7 +288,7 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
     "The guest's Proxmox high-availability (HA) state. 'started' is normal, 'error' or 'fence' means a problem, and a dash means HA does not manage the guest.",
   ),
   guestsTableBackup: translationKey(
-    "In job means at least one Proxmox backup job includes the guest, Not backed up means no job does, and a dash means no backup information has been reported yet. Whether recent backups succeeded is not checked.",
+    "How each guest's last backup went and when, from Proxmox VE's notifications; before any arrive, In a backup job or In no backup job. A dash means nothing is reported yet.",
   ),
 
   // Storage list.
@@ -284,9 +297,6 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   ),
   storageTableUsage: translationKey(
     "Space used compared with the volume's total size, with the percentage used, at its latest report. Shows N/A when Proxmox has not reported both numbers.",
-  ),
-  storageTableAge: translationKey(
-    "Proxmox does not report an uptime for storage volumes, so this column normally shows a dash.",
   ),
 
   // Insights.

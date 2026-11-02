@@ -96,8 +96,17 @@ export interface FakeResizeObservers {
   observed: () => Array<Element>;
   // How many observers were made, connected or not.
   made: () => number;
-  // Calls every connected observer back, as a browser does after a resize.
+  /*
+   * Calls every connected observer back, as a browser does after a resize,
+   * then runs the frame they asked for (a card header reads its line on the
+   * next frame, not in the observer's call).
+   */
   resize: () => void;
+  // Calls the observers back, and runs no frame.
+  notify: () => void;
+  // The frames asked for and not run yet; and running them.
+  pendingFrames: () => number;
+  runFrames: () => void;
   restore: () => void;
 }
 
@@ -113,6 +122,33 @@ export function installFakeResizeObservers(): FakeResizeObservers {
   }
 
   const watchers: Array<Watcher> = [];
+
+  // Animation frames, run when the test says (runFrames).
+  const frames: Map<number, FrameRequestCallback> = new Map();
+  let nextFrame: number = 1;
+  const originalRequest: typeof window.requestAnimationFrame =
+    window.requestAnimationFrame;
+  const originalCancel: typeof window.cancelAnimationFrame =
+    window.cancelAnimationFrame;
+
+  window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+    const id: number = nextFrame++;
+    frames.set(id, callback);
+    return id;
+  };
+  window.cancelAnimationFrame = (id: number): void => {
+    frames.delete(id);
+  };
+
+  const runFrames: () => void = (): void => {
+    const pending: Array<FrameRequestCallback> = Array.from(frames.values());
+
+    frames.clear();
+
+    for (const callback of pending) {
+      callback(0);
+    }
+  };
 
   class TestResizeObserver implements ResizeObserver {
     private watcher: Watcher;
@@ -157,6 +193,12 @@ export function installFakeResizeObservers(): FakeResizeObservers {
     });
   };
 
+  const notify: () => void = (): void => {
+    for (const watcher of connected()) {
+      watcher.callback([], watcher.observer);
+    }
+  };
+
   return {
     observed: (): Array<Element> => {
       return connected().flatMap((watcher: Watcher): Array<Element> => {
@@ -167,11 +209,18 @@ export function installFakeResizeObservers(): FakeResizeObservers {
       return watchers.length;
     },
     resize: (): void => {
-      for (const watcher of connected()) {
-        watcher.callback([], watcher.observer);
-      }
+      notify();
+      runFrames();
     },
+    notify: notify,
+    pendingFrames: (): number => {
+      return frames.size;
+    },
+    runFrames: runFrames,
     restore: (): void => {
+      window.requestAnimationFrame = originalRequest;
+      window.cancelAnimationFrame = originalCancel;
+
       if (original) {
         Object.defineProperty(window, "ResizeObserver", original);
       } else {

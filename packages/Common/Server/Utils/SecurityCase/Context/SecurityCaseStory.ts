@@ -10,7 +10,6 @@ import AnalyticsTableName from "../../../../Types/AnalyticsDatabase/AnalyticsTab
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
-import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
@@ -917,9 +916,11 @@ export default class SecurityCaseStory {
 
   /*
    * The exception groups (TelemetryException) the events' requests threw
-   * into, by fingerprint, so each can be opened. A reader who may not read
-   * exceptions still sees what was thrown (the events say it), without the
-   * link - and is told why.
+   * into, by fingerprint, so each can be opened. The fingerprint an event
+   * names is its occurrence's, so a merged exception's opens the exception
+   * it was merged into (findByOccurrenceFingerprints). A reader who may not
+   * read exceptions still sees what was thrown (the events say it), without
+   * the link - and is told why.
    */
   private static async readExceptionIds(data: {
     projectId: ObjectID;
@@ -942,21 +943,22 @@ export default class SecurityCaseStory {
       return ids;
     }
 
-    const groups: Array<TelemetryException> =
-      await TelemetryExceptionService.findBy({
-        query: {
-          projectId: data.projectId,
-          fingerprint: new Includes(fingerprints),
-        },
-        select: { _id: true, fingerprint: true },
-        limit: fingerprints.length * 2,
-        skip: 0,
-        props: data.props,
-      });
+    const groupsByFingerprint: Map<
+      string,
+      Array<TelemetryException>
+    > = await TelemetryExceptionService.findByOccurrenceFingerprints({
+      projectId: data.projectId,
+      fingerprints,
+      select: { _id: true, fingerprint: true },
+      limit: fingerprints.length * 2,
+      props: data.props,
+    });
 
-    for (const group of groups) {
-      if (group.fingerprint && group.id && !ids.has(group.fingerprint)) {
-        ids.set(group.fingerprint, group.id.toString());
+    for (const [fingerprint, groups] of groupsByFingerprint) {
+      const id: string | undefined = groups[0]?.id?.toString();
+
+      if (id) {
+        ids.set(fingerprint, id);
       }
     }
 

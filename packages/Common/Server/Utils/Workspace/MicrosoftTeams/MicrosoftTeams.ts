@@ -76,6 +76,7 @@ import {
 } from "./Botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
+import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsAccountNotLinkedException,
@@ -132,12 +133,16 @@ import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 import {
+  FULL_WIDTH_COLON,
   MessageCardFact,
   MessageCardLink,
   findFact,
   findMessageCardLinks,
+  isOnlyLinks,
+  toLabelKey,
   withLinksAsText,
 } from "./MicrosoftTeamsMessageCardText";
+import { getEveryWordingOf } from "../../ServerTranslation";
 
 /*
  * AI Ops - observability assistant imports. These power the natural-language
@@ -174,6 +179,22 @@ const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
  * one, so code that keeps its characters there is shown as code here.
  */
 const MESSAGE_CARD_FENCE_PATTERN: RegExp = /^(`{3,}|~{3,})/;
+
+/*
+ * The labels of a message's long text - its description and its note - as
+ * toLabelKey compares them: in English and in every language a status
+ * page's subscribers are written to in (Common/Server/Locales). A card
+ * shows such a line as text, never as a fact: a description that is a
+ * fact shows its first line among the facts and the rest of it apart,
+ * above them.
+ */
+const TEXT_LABEL_KEYS: ReadonlySet<string> = new Set<string>(
+  ["Description:", "Note:"]
+    .flatMap((label: string): Array<string> => {
+      return getEveryWordingOf(label);
+    })
+    .map(toLabelKey),
+);
 
 type GetMessageCardFenceOpeningFunction = (line: string) => string | null;
 
@@ -397,6 +418,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return this.cachedAdapter;
     }
 
+    // Before any credential is read: a cloud nobody can name sends nothing.
+    MicrosoftTeamsHosts.getCloud();
+
     if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
       throw new BadDataException(
         "Microsoft Teams App credentials not configured",
@@ -416,21 +440,40 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
     logger.debug(`Tenant ID: ${MicrosoftTeamsAppTenantId}`);
 
-    const authConfig: ConfigurationBotFrameworkAuthenticationOptions = {
-      MicrosoftAppId: MicrosoftTeamsAppClientId,
-      MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
-      MicrosoftAppType: MICROSOFT_TEAMS_APP_TYPE,
-      MicrosoftAppTenantId: MicrosoftTeamsAppTenantId,
-    };
-
     const botFrameworkAuthentication: ConfigurationBotFrameworkAuthentication =
-      new ConfigurationBotFrameworkAuthentication(authConfig);
+      new ConfigurationBotFrameworkAuthentication(
+        this.getBotAuthenticationOptions(),
+      );
     const adapter: CloudAdapter = new CloudAdapter(botFrameworkAuthentication);
     this.cachedAdapter = adapter;
 
     logger.debug("Bot Framework adapter created successfully");
     return adapter;
   }
+  /*
+   * How the Bot Framework SDK authenticates the bot, both ways: as a
+   * single-tenant app of MICROSOFT_TEAMS_APP_TENANT_ID, and - for a bot
+   * registered in Azure Government (GCC High and DoD) - on the Bot
+   * Framework's US Government channel, which the SDK reads as its
+   * government settings: tokens for sending from login.microsoftonline.us
+   * for api.botframework.us, and incoming requests checked against the
+   * keys at login.botframework.azure.us. In Azure's public cloud
+   * (Commercial and GCC) no channel is named, and the SDK uses its public
+   * settings, as before.
+   */
+  public static getBotAuthenticationOptions(): ConfigurationBotFrameworkAuthenticationOptions {
+    const channelService: string | undefined =
+      MicrosoftTeamsHosts.getBotChannelService();
+
+    return {
+      MicrosoftAppId: MicrosoftTeamsAppClientId || undefined,
+      MicrosoftAppPassword: MicrosoftTeamsAppClientSecret || undefined,
+      MicrosoftAppType: MICROSOFT_TEAMS_APP_TYPE,
+      MicrosoftAppTenantId: MicrosoftTeamsAppTenantId || undefined,
+      ...(channelService ? { ChannelService: channelService } : {}),
+    };
+  }
+
   // Helper method to get a valid access token, refreshing if necessary
   public static async getValidAccessToken(data: {
     authToken: string;
@@ -613,15 +656,20 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
       logger.debug(`Using tenant ID: ${data.tenantId}`);
 
-      // Use OAuth 2.0 client credentials flow to get a new app access token
-      const tokenUrl: string = `https://login.microsoftonline.com/${data.tenantId}/oauth2/v2.0/token`;
+      /*
+       * Use OAuth 2.0 client credentials flow to get a new app access token,
+       * from the sign-in of the Microsoft cloud this server's Teams is in.
+       */
+      const tokenUrl: string = `${MicrosoftTeamsHosts.getSignInOrigin()}/${encodeURIComponent(
+        data.tenantId,
+      )}/oauth2/v2.0/token`;
       logger.debug(`Token URL: ${tokenUrl}`);
 
       const tokenRequestBody: JSONObject = {
         client_id: MicrosoftTeamsAppClientId,
         client_secret: MicrosoftTeamsAppClientSecret,
         grant_type: "client_credentials",
-        scope: "https://graph.microsoft.com/.default",
+        scope: MicrosoftTeamsHosts.getGraphDefaultScope(),
       };
 
       logger.debug("Making token refresh request to Microsoft");
@@ -960,6 +1008,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
+       * A line of nothing but links - "[View Status Page](...) |
+       * [Unsubscribe](...)" - is the card's buttons: its words as text
+       * too would sit right above them, saying them twice.
+       */
+      if (isOnlyLinks(line, links)) {
+        continue;
+      }
+
+      /*
        * Replace the markdown link with just its text to preserve sentence
        * flow. The section is read as Markdown, so the text stays as it was
        * written, escapes and all: unescaped, a title's "[x](...)" would turn
@@ -973,13 +1030,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       if (factMatch) {
         const name: string = factMatch.name.trim();
         const value: string = factMatch.value.trim();
-        if (
-          name.toLowerCase() === "description" ||
-          name.toLowerCase() === "note"
-        ) {
+
+        /*
+         * A description or a note, in any language, is text under its
+         * label; so is a label with nothing after it ("**Notiz:**" over the
+         * note's own lines), which as a fact is an empty row, its text apart
+         * from it above the facts.
+         */
+        if (TEXT_LABEL_KEYS.has(toLabelKey(name)) || !value) {
+          // The colon the label was written with: Chinese writes "：".
+          const colon: string = factMatch.isFullWidthColon
+            ? FULL_WIDTH_COLON
+            : ":";
+
           // Both parts come out of the Markdown line: they stay Markdown.
           bodyTextParts.push(
-            mdText`**${FeedMarkdown.asMarkdown(name)}:** ${FeedMarkdown.asMarkdown(value)}`.toString(),
+            mdText`**${FeedMarkdown.asMarkdown(name)}${FeedMarkdown.asMarkdown(colon)}** ${FeedMarkdown.asMarkdown(value)}`.toString(),
           );
         } else {
           facts.push({ name: name, value: value });
@@ -1117,7 +1183,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get<JSONObject>({
         url: URL.fromString(
-          `https://graph.microsoft.com/v1.0/users/${data.userId}`,
+          MicrosoftTeamsHosts.getGraphUrl(`/users/${data.userId}`),
         ),
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -1173,7 +1239,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     await API.post({
       url: URL.fromString(
-        `https://graph.microsoft.com/v1.0/chats/${data.workspaceUserId}/messages`,
+        MicrosoftTeamsHosts.getGraphUrl(
+          `/chats/${data.workspaceUserId}/messages`,
+        ),
       ),
       data: chatMessage,
       headers: {
@@ -1515,7 +1583,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString(
-          `https://graph.microsoft.com/v1.0/teams/${teamId}/channels`,
+          MicrosoftTeamsHosts.getGraphUrl(`/teams/${teamId}/channels`),
         ),
         data: channelPayload,
         headers: {
@@ -1617,7 +1685,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get({
         url: URL.fromString(
-          `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels`,
+          MicrosoftTeamsHosts.getGraphUrl(`/teams/${data.teamId}/channels`),
         ),
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -2310,9 +2378,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get<JSONObject>({
         url: URL.fromString(
-          `https://graph.microsoft.com/v1.0/teams/${encodeURIComponent(
-            data.teamId,
-          )}/channels/${encodeURIComponent(data.channelId)}/messages?$top=${top}&$expand=replies`,
+          MicrosoftTeamsHosts.getGraphUrl(
+            `/teams/${encodeURIComponent(
+              data.teamId,
+            )}/channels/${encodeURIComponent(data.channelId)}/messages?$top=${top}&$expand=replies`,
+          ),
         ),
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -2864,8 +2934,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         projectId: data.projectId,
       });
 
-      let nextLink: string | null =
-        `https://graph.microsoft.com/v1.0/teams/${data.teamId}/installedApps?$expand=teamsApp`;
+      let nextLink: string | null = MicrosoftTeamsHosts.getGraphUrl(
+        `/teams/${data.teamId}/installedApps?$expand=teamsApp`,
+      );
       let pageCount: number = 0;
 
       while (nextLink) {
@@ -2920,7 +2991,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           }
         }
 
-        nextLink = (response.data["@odata.nextLink"] as string) || null;
+        nextLink = MicrosoftTeamsHosts.readGraphNextLink(response.data);
+
+        /*
+         * A next page that is not on this cloud's Graph is not followed - the
+         * request would carry the app's Graph token - so the pages not read
+         * might hold the app: say it is not known, not that it is missing.
+         */
+        if (!nextLink && response.data["@odata.nextLink"]) {
+          logger.warn(
+            `Microsoft Graph answered the installed apps of team ${data.teamId} with a next page that is not on Microsoft Graph; it was not followed.`,
+          );
+          return MicrosoftTeamsAppInstallState.Unknown;
+        }
       }
 
       return MicrosoftTeamsAppInstallState.NotInstalled;
@@ -3116,7 +3199,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug("Access token obtained for channel info retrieval");
 
       // Fetch channel information from Microsoft Graph API
-      const apiUrl: string = `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.channelId}`;
+      const apiUrl: string = MicrosoftTeamsHosts.getGraphUrl(
+        `/teams/${data.teamId}/channels/${data.channelId}`,
+      );
       logger.debug(`Making API call to: ${apiUrl}`);
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -3414,7 +3499,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get({
         url: URL.fromString(
-          `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels`,
+          MicrosoftTeamsHosts.getGraphUrl(`/teams/${data.teamId}/channels`),
         ),
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -4365,9 +4450,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            `https://graph.microsoft.com/v1.0/chats/${encodeURIComponent(
-              chatId,
-            )}/messages?$top=20`,
+            MicrosoftTeamsHosts.getGraphUrl(
+              `/chats/${encodeURIComponent(chatId)}/messages?$top=20`,
+            ),
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -4410,7 +4495,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const repliesResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            `https://graph.microsoft.com/v1.0/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}/replies?$top=20`,
+            MicrosoftTeamsHosts.getGraphUrl(
+              `/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}/replies?$top=20`,
+            ),
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -4432,7 +4519,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const rootResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            `https://graph.microsoft.com/v1.0/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}`,
+            MicrosoftTeamsHosts.getGraphUrl(
+              `/teams/${teamId}/channels/${channelId}/messages/${rootMessageId}`,
+            ),
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -6381,9 +6470,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            `https://graph.microsoft.com/v1.0/chats/${encodeURIComponent(
-              data.chatId,
-            )}`,
+            MicrosoftTeamsHosts.getGraphUrl(
+              `/chats/${encodeURIComponent(data.chatId)}`,
+            ),
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -7611,7 +7700,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
          * Handle pagination to get all teams
          */
         allTeams = [];
-        let nextLink: string | null = "https://graph.microsoft.com/v1.0/teams";
+        let nextLink: string | null = MicrosoftTeamsHosts.getGraphUrl("/teams");
         let pageCount: number = 0;
         const MAX_PAGES: number = MICROSOFT_TEAMS_MAX_PAGES; // Prevent infinite loop
 
@@ -7648,7 +7737,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           allTeams.push(...teams);
 
           // Check for next page
-          nextLink = (teamsResponse.data as any)["@odata.nextLink"] || null;
+          nextLink = MicrosoftTeamsHosts.readGraphNextLink(teamsResponse.data);
 
           logger.debug(
             `Page ${pageCount}: Fetched ${teams.length} teams. Total so far: ${allTeams.length}`,
@@ -7773,7 +7862,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            `https://graph.microsoft.com/v1.0/users/${userEmail}/joinedTeams`,
+            MicrosoftTeamsHosts.getGraphUrl(`/users/${userEmail}/joinedTeams`),
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -7859,7 +7948,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         if (nextLink) {
           requestUrl = nextLink;
         } else {
-          requestUrl = `https://graph.microsoft.com/v1.0/teams/${params.teamId}/channels/${params.channelId}/messages`;
+          requestUrl = MicrosoftTeamsHosts.getGraphUrl(
+            `/teams/${params.teamId}/channels/${params.channelId}/messages`,
+          );
           requestUrl += `?$top=${Math.min(50, maxMessages - messages.length)}`;
         }
 
@@ -7929,7 +8020,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           });
         }
 
-        nextLink = jsonData["@odata.nextLink"] as string;
+        nextLink = MicrosoftTeamsHosts.readGraphNextLink(jsonData) || undefined;
         pageCount++;
       } while (
         nextLink &&

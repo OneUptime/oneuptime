@@ -57,19 +57,19 @@ flowchart TB
 
 ### 选择集群
 
-在 **Ceph Monitor Configuration** 下，从 **Ceph 集群** 中选择集群。所有发送过数据的集群都在列表中。
+在 **Ceph Monitor Configuration** 下，从 **Ceph 集群** 中选择集群。所有发送过数据的集群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 Ceph 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监视的内容
 
-从三个选项卡中选择一个：
+新监视器从 **告警内容** 下的 **Cluster Stopped Reporting** 开始。要监视其他内容：
 
-- **Quick Setup**：点击一个[模板](#预置警报模板)。模板会设置指标、过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。之后仍可以修改**时间范围**。
-- **Custom Metric**：从 **Ceph Metric** 中选择一个指标，然后设置**聚合**和**时间范围**。**OSD** 和 **Pool ID** 可以把范围缩小到一个守护进程或一个存储池。
-- **高级**：在**选择指标**下自己构建查询和公式，例如用 `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes` 计算已用容量比例。用 **分组依据** 指定 `ceph_daemon` 或 `pool_id`，即可分别判断每个守护进程或存储池。
+- **更改**：选择另一个 [模板](#预置警报模板)。模板会设置指标、过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。之后仍可以修改**时间范围**。
+- **Custom Metric**（在 **更多字段** 下）：从 **Ceph Metric** 中选择一个指标，然后设置**聚合**和**时间范围**。**OSD** 和 **Pool ID** 可以把范围缩小到一个守护进程或一个存储池。按池或按守护进程分别记录的指标，会逐个池或逐个守护进程判断，每个各自产生一个事件。
+- **高级**（在 **更多字段** 下）：在**选择指标**下自己构建查询和公式，例如用 `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes` 计算已用容量比例。用 **分组依据** 指定 `ceph_daemon` 或 `pool_id`，即可分别判断每个守护进程或存储池。
 
 ### 检查条件
 
-打开**监视器条件**下的每个条件，检查其**指标**、**聚合**、**条件**和 **阈值**。模板会自动填写这些内容。使用 **Custom Metric** 或**高级**时，监视器从[默认条件](#默认条件)开始，而默认条件只会注意到指标降到零，所以请设置自己的阈值。
+打开**监视器条件**下的每个条件，检查其**指标**、**聚合**、**条件**和 **阈值**。模板会自动填写这些内容。使用 **Custom Metric** 或**高级**时，监视器从[默认条件](#默认条件)开始，而默认条件只会注意到指标不再发送数据，所以请设置自己的阈值。
 
 ### 创建监视器
 
@@ -87,7 +87,7 @@ flowchart TB
 | **OSD** | Custom Metric、高级 | 可选。与 `ceph_daemon` 标签精确匹配，例如 `osd.3`。 |
 | **Pool ID** | Custom Metric、高级 | 可选。与 `pool_id` 标签精确匹配，例如 `2`。 |
 | **Ceph Metric** | Custom Metric | [目录](#收集的指标)中的一个指标。 |
-| **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**、**最小值**、**总和**或**计数**。初始值为该指标的常用聚合。 |
+| **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**或**最小值**。初始值为该指标的常用聚合。总和或计数会把一分钟内的每次抓取加在一起，因此留给 **高级** 使用。 |
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 1 Minute** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于组合查询的**添加指标**和**添加公式**。 |
 
@@ -95,11 +95,11 @@ flowchart TB
 
 ### 健康检查序列
 
-`ceph_health_detail` 导出的是**每个活动健康检查一个序列**，带有 `name`（例如 `OSD_NEARFULL` 或 `RECENT_CRASH`）和 `severity` 标签。序列只在其检查触发期间存在，所以没有序列就表示健康。要对任意 Ceph 健康检查发出警报，请按其 `name` 过滤，在**最大值**高于 `0` 时触发，并把**如果无数据**设为 **Treat As Zero**，在 `0` 时恢复——健康检查模板正是这样构建的。`ceph_daemon_health_metrics` 以同样的方式按守护进程工作，以 `type` 标签（例如 `SLOW_OPS`）和 `ceph_daemon` 为键。
+`ceph_health_detail` 导出的是**每个健康检查一个序列**，带有 `name`（例如 `OSD_NEARFULL` 或 `RECENT_CRASH`）和 `severity` 标签。检查活动期间其序列为 `1`，清除后为 `0`，从未触发过的检查没有序列。要对任意 Ceph 健康检查发出警报，请按其 `name` 过滤，在**最大值**高于 `0` 时触发，并把**如果无数据**设为 **Treat As Zero**，在 `0` 时恢复——健康检查模板正是这样构建的。`ceph_daemon_health_metrics` 以同样的方式按守护进程工作，以 `type` 标签（例如 `SLOW_OPS`）和 `ceph_daemon` 为键。
 
 ## 预置警报模板
 
-**Quick Setup** 提供 24 个模板，涵盖停止报告的集群、集群健康状态、OSD、归置组和容量。每个模板都会构建一个完整的监视器——查询、标签过滤器、分组、一个触发条件和一个恢复条件。阈值只是起点，可以编辑。
+**告警内容** 列表提供 24 个模板，涵盖停止报告的集群、集群健康状态、OSD、归置组和容量。每个模板都会构建一个完整的监视器——查询、标签过滤器、分组、一个触发条件和一个恢复条件。阈值只是起点，可以编辑。
 
 除非表格另有说明，模板读取过去 5 分钟的数据。只有当条件在窗口内的每一分钟都成立时才会触发；带阈值的条件要回到阈值另一侧 10% 处才会恢复，这样在边界附近徘徊的值不会来回抖动。**严重程度**是选择器中显示的标签；模板创建的事件和警报，会以你项目中最严重的事件严重程度和警报严重程度开始。
 
@@ -116,42 +116,42 @@ flowchart TB
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | 严重 | `ceph_health_status`，Max，过去 1 分钟 | 2 或以上：`HEALTH_ERR` | 低于 1.8：`HEALTH_WARN` 或更好 |
-| Cluster Health Warning | Warning | `ceph_health_status`，Max | 1 或以上：`HEALTH_WARN` 或更差 | 低于 0.9：`HEALTH_OK` |
+| Cluster Health Warning | 警告 | `ceph_health_status`，Max | 1 或以上：`HEALTH_WARN` 或更差 | 低于 0.9：`HEALTH_OK` |
 | Monitor Quorum Degraded | 严重 | `ceph_mon_quorum_status`，按 `ceph_daemon` 取 Min，过去 1 分钟 | 某个 mon 降到 1 以下，退出仲裁。每个 mon 一个事件 | 回到 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`，Max | 高于 0：集群的 `SLOW_OPS` 检查处于活动状态 | 为 0 |
-| Daemon Slow Operations | Warning | `type = SLOW_OPS` 的 `ceph_daemon_health_metrics`，按 `ceph_daemon` 取 Max | 高于 0。每个 OSD 或 mon 一个事件 | 序列消失 |
+| Slow Operations | 警告 | `ceph_healthcheck_slow_ops`，Max | 高于 0：集群的 `SLOW_OPS` 检查处于活动状态 | 为 0 |
+| Daemon Slow Operations | 警告 | `type = SLOW_OPS` 的 `ceph_daemon_health_metrics`，按 `ceph_daemon` 取 Max | 高于 0。每个 OSD 或 mon 一个事件 | 序列消失 |
 | Daemon Crash | 严重 | `name = RECENT_CRASH` 的 `ceph_health_detail`，Max | 检查处于活动状态：存在未归档的守护进程崩溃。mgr 没有 `ceph_crash_*` 指标，所以这是唯一的崩溃信号 | 崩溃已归档 |
-| Monitor Clock Skew | Warning | `name = MON_CLOCK_SKEW` 的 `ceph_health_detail`，Max | 检查处于活动状态：mon 的时钟偏差超过允许值（默认 0.05 秒） | 检查消失 |
+| Monitor Clock Skew | 警告 | `name = MON_CLOCK_SKEW` 的 `ceph_health_detail`，Max | 检查处于活动状态：mon 的时钟偏差超过允许值（默认 0.05 秒） | 检查消失 |
 | Monitor Disk Critically Low | 严重 | `name = MON_DISK_CRIT` 的 `ceph_health_detail`，Max | 检查处于活动状态：mon 数据库磁盘的可用空间低于 5%（默认值） | 检查消失 |
-| Monitor Disk Space Low | Warning | `name = MON_DISK_LOW` 的 `ceph_health_detail`，Max | 检查处于活动状态：可用空间低于 30%（默认值） | 检查消失 |
+| Monitor Disk Space Low | 警告 | `name = MON_DISK_LOW` 的 `ceph_health_detail`，Max | 检查处于活动状态：可用空间低于 30%（默认值） | 检查消失 |
 
 ### OSD 模板
 
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
 | OSD Down | 严重 | `ceph_osd_up`，按 `ceph_daemon` 取 Min | 某个 OSD 降到 1 以下。每个 OSD 一个事件 | 回到 1 |
-| OSD Out | Warning | `ceph_osd_in`，按 `ceph_daemon` 取 Min | 某个 OSD 降到 1 以下：被标记为退出数据分布 | 回到 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`，按 `ceph_daemon` 取 Avg | 高于 100 ms。每个 OSD 一个事件 | 不高于 90 ms |
-| OSD Slow Heartbeats | Warning | `name = OSD_SLOW_PING_TIME_FRONT` 和 `name = OSD_SLOW_PING_TIME_BACK` 的 `ceph_health_detail`，Max | 任一检查处于活动状态：公共网络或集群网络上的心跳变慢。mgr 不导出 ping 时间指标 | 两个检查都消失 |
+| OSD Out | 警告 | `ceph_osd_in`，按 `ceph_daemon` 取 Min | 某个 OSD 降到 1 以下：被标记为退出数据分布 | 回到 1 |
+| OSD High Latency | 警告 | `ceph_osd_apply_latency_ms`，按 `ceph_daemon` 取 Avg | 高于 100 ms。每个 OSD 一个事件 | 不高于 90 ms |
+| OSD Slow Heartbeats | 警告 | `name = OSD_SLOW_PING_TIME_FRONT` 和 `name = OSD_SLOW_PING_TIME_BACK` 的 `ceph_health_detail`，Max | 任一检查处于活动状态：公共网络或集群网络上的心跳变慢。mgr 不导出 ping 时间指标 | 两个检查都消失 |
 
 ### 归置组模板
 
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | 严重 | `ceph_pg_total` − `ceph_pg_active`，按 `pool_id` 取 Max | 高于 0：PG 无法处理 I/O，发往它们的客户端请求会挂起。每个存储池一个事件 | 为 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`，按 `pool_id` 取 Max | 高于 0：对象的副本数少于配置值 | 为 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`，按 `pool_id` 取 Max | 高于 0：PG 映射到的 OSD 少于其副本数 | 为 0 |
+| Degraded Placement Groups | 警告 | `ceph_pg_degraded`，按 `pool_id` 取 Max | 高于 0：对象的副本数少于配置值 | 为 0 |
+| Undersized Placement Groups | 警告 | `ceph_pg_undersized`，按 `pool_id` 取 Max | 高于 0：PG 映射到的 OSD 少于其副本数 | 为 0 |
 | Damaged Placement Groups | 严重 | `name = PG_DAMAGED` 和 `name = OSD_SCRUB_ERRORS` 的 `ceph_health_detail`，Max | 任一检查处于活动状态：清洗（scrub）发现了损坏或读取错误 | 两个检查都消失 |
 
 ### 容量模板
 
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 高于 85%，即 Ceph 默认的 nearfull 比例 | 不高于 76.5% |
+| Cluster Near Full | 警告 | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 高于 85%，即 Ceph 默认的 nearfull 比例 | 不高于 76.5% |
 | Cluster Full | 严重 | 同一比例 | 高于 95%，即 Ceph 默认的 full 比例，此时整个集群停止写入 | 不高于 85.5% |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100，按 `pool_id` | 高于存储池可容纳量的 85%。每个存储池一个事件 | 不高于 76.5% |
-| OSD Nearfull | Warning | `name = OSD_NEARFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：某个 OSD 超过 nearfull 阈值（默认 85%）。单个 OSD 会远早于集群平均值被写满 | 检查消失 |
-| OSD Backfillfull | Warning | `name = OSD_BACKFILLFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：向该 OSD 的回填被拒绝（默认 90%），恢复停滞 | 检查消失 |
+| Pool Near Full | 警告 | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100，按 `pool_id` | 高于存储池可容纳量的 85%。每个存储池一个事件 | 不高于 76.5% |
+| OSD Nearfull | 警告 | `name = OSD_NEARFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：某个 OSD 超过 nearfull 阈值（默认 85%）。单个 OSD 会远早于集群平均值被写满 | 检查消失 |
+| OSD Backfillfull | 警告 | `name = OSD_BACKFILLFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：向该 OSD 的回填被拒绝（默认 90%），恢复停滞 | 检查消失 |
 | OSD Full | 严重 | `name = OSD_FULL` 的 `ceph_health_detail`，Max，过去 1 分钟 | 检查处于活动状态：某个 OSD 达到 full 阈值（默认 95%），写入被拒绝 | 检查消失 |
 
 - **宕机和仲裁模板使用最小值**，因此一个宕机的 OSD 或一个退出仲裁的 mon 就会触发它们，而不会被健康的多数掩盖。
@@ -175,7 +175,7 @@ flowchart TB
 | `ceph_healthcheck_slow_ops` | 计数 | `SLOW_OPS` 检查报告的 OSD 和 mon 慢操作。 |
 | `ceph_daemon_health_metrics` | 计数 | 按守护进程的健康指标，以 `type`（例如 `SLOW_OPS`）和 `ceph_daemon` 为键。 |
 | `ceph_mon_quorum_status` | 计数 | mon 在仲裁中时为 1，按 `ceph_daemon`（例如 `mon.a`）。 |
-| `ceph_mon_metadata` | 计数 | mon 元数据，始终为 1。求和即可统计 mon 数量。 |
+| `ceph_mon_metadata` | 计数 | mon 元数据，mon 报告期间始终为 1。求和会把一分钟内的每次抓取都加起来，因此不能统计 mon 数量。 |
 | `ceph_cluster_total_bytes` | 字节 | 总原始容量。 |
 | `ceph_cluster_total_used_bytes` | 字节 | 已使用的原始容量。 |
 
@@ -190,7 +190,7 @@ flowchart TB
 | `ceph_osd_stat_bytes` | 字节 | OSD 设备的原始容量。 |
 | `ceph_osd_stat_bytes_used` | 字节 | OSD 上已使用的原始字节数。与总量比较，可以发现不均衡或接近写满的 OSD。 |
 | `ceph_osd_numpg` | 计数 | OSD 上的归置组。 |
-| `ceph_osd_metadata` | 计数 | OSD 元数据（主机名、设备类别、版本），始终为 1。求和即可统计 OSD 数量。 |
+| `ceph_osd_metadata` | 计数 | OSD 元数据（主机名、设备类别、版本），OSD 报告期间始终为 1。求和会把一分钟内的每次抓取都加起来，因此不能统计 OSD 数量。 |
 
 ### 存储池指标
 
@@ -207,7 +207,7 @@ flowchart TB
 
 ### 归置组指标
 
-每个 `ceph_pg_*` 序列都按存储池划分，带有 `pool_id` 标签；对所有存储池求和即可得到集群级的数量。
+每个 `ceph_pg_*` 序列都按存储池划分，带有 `pool_id` 标签。求和会把一分钟内的每次抓取和每个存储池都加起来，因此请像 PG 模板那样，按 `pool_id` 分组逐个存储池比较。
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
@@ -233,7 +233,7 @@ flowchart TB
 | **基线窗口** | 仅限异常条件。14 天（默认）、28 天、60 天或 90 天的历史。 |
 | **如果无数据** | 位于**更多字段**下。窗口中没有样本时的处理方式：**Ignore**（默认）、**Treat As Zero** 或**触发器**。 |
 
-异常条件把每个值与基线中一周内同一时段的值进行比较。在基线窗口积累足够的历史之前，它们保持 "Learning" 状态，不会产生任何东西。
+异常条件把每个值与基线中一周内同一时段的值进行比较。在基线窗口积累足够的历史之前，它们保持 "Learning" 状态，不会产生任何东西。 总和、计数或针对直方图的查询会一直保持这个状态：此监视器按属性筛选查询，而基线不保存属性。
 
 每个条件还规定匹配时要做什么：更改监视器状态、创建警报或宣布事件。条件从上到下依次检查，第一个匹配的条件决定结果。
 
@@ -270,7 +270,7 @@ flowchart TB
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-健康检查序列（包括 `ceph_daemon_health_metrics`）只在检查触发期间存在，因此集群健康时找不到它们是正常的。
+从未触发过的健康检查（包括 `ceph_daemon_health_metrics`）没有序列，已清除的检查为 `0`，因此集群健康时找不到序列或只看到 0 都是正常的。
 :::
 
 :::details ceph_pool_wr_bytes 之类的计数器只增不减

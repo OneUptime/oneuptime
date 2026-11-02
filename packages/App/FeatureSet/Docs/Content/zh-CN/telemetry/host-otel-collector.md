@@ -1193,9 +1193,11 @@ exporters:
 Collector 发送主机报告的内容；**主机 AI 代理** 则让 OneUptime AI 在调查该主机上的事件或警报时直接询问主机本身。它运行只读命令（`systemctl status nginx --no-pager -n 50`、`journalctl -u nginx -n 200 --no-pager`、`df -h`、`free -m`、`ps aux --sort=-%cpu`、`ss -tulpn`），并且只有在你允许时才会应用修复，例如重启指定的 systemd 单元。它是一个 Linux 容器（镜像 `oneuptime/resource-ai-agent:release`），有自己的安装程序，需要 Docker（系统引擎，而不是 rootless Docker）和 Docker Compose 插件：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+每个 OneUptime 都提供其自身发布版本的这个安装程序：在自托管的 OneUptime 上，请从你的 URL 而不是 `https://oneuptime.com` 下载它。它会先保存为 `install.sh`，方便你在运行前先阅读它。
 
 - **AI 调查默认开启。** 代理连接后，OneUptime AI 会用它来调查该主机上的事件和警报，主机的 **概览** 会显示代理的状态。要停止，请在代理运行的位置设置 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理页面上 **AI 可以执行的操作** 下的 **更改** 会显示方法），或者移除代理。
 - 它以 `HOST_NAME` 注册；留空则使用主机自己的主机名，除非你设置了其他名称，这也是此 Collector 作为 `host.name` 报告的名称。两者必须一致，代理才能服务于此 Collector 创建的主机。它会出现在 OneUptime 中该主机的 **AI 代理** 页面上。

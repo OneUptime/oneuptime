@@ -56,6 +56,23 @@ export interface SetupGuideStep {
    * reader's language.
    */
   note?: string | undefined;
+  /*
+   * The rest of the step, under its note. For a step whose note is about
+   * the command right above it - an install script's "The first line
+   * downloads the script as install.sh, so you can read it before you run
+   * it." - its markdown is the command alone, and what the script asks for
+   * and where it installs come here, after the note, instead of pushing the
+   * note down past them.
+   */
+  details?: string | undefined;
+  /*
+   * The step's place on the guide's page (Common/UI/Utils/PageAnchor): a
+   * link elsewhere in the product that names it after its "#" opens the
+   * guide on this step, not on step 1 - the Proxmox Overview's "Set up
+   * notifications" lands on the step that sends them. A plain name, unique
+   * in the guide ("send-notifications").
+   */
+  anchor?: string | undefined;
 }
 
 // A folded topic under Advanced or Troubleshooting.
@@ -281,6 +298,9 @@ export function getSetupGuideMarkdown(content: SetupGuideContent): string {
     }
     if (step.note) {
       lines.push("", step.note.trim());
+    }
+    if (step.details) {
+      lines.push("", step.details.trim());
     }
     parts.push(lines.join("\n"));
   });

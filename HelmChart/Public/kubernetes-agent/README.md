@@ -35,8 +35,10 @@ The `preset` option picks compatible defaults for your Kubernetes distribution �
 | `standard` *(default)* | Self-managed, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet reading `/var/log/pods` via hostPath (lowest overhead) |
 | `gke-autopilot` | **GKE Autopilot** | Kubernetes API log tailer Deployment (no hostPath) |
 | `eks-fargate` | **EKS Fargate** | Kubernetes API log tailer Deployment (no hostPath) |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | DaemonSet reading `/var/log/pods` via hostPath, under a security context constraint (SCC) the chart creates for it |
+| `openshift-restricted` | **OpenShift**, where an admin will not add an SCC | Kubernetes API log tailer Deployment (no hostPath) |
 
-On `gke-autopilot` and `eks-fargate` the preset also leaves out the eBPF auto-instrumentation and the continuous profiler, whatever `ebpf.enabled` and `profiling.enabled` say. Both run a privileged pod on every node: GKE Autopilot refuses privileged pods, and EKS Fargate runs neither privileged pods nor DaemonSets. To get application traces there, send them from your services with an OpenTelemetry SDK.
+On `gke-autopilot` and `eks-fargate` the preset also leaves out the eBPF auto-instrumentation and the continuous profiler, whatever `ebpf.enabled` and `profiling.enabled` say. Both run a privileged pod on every node: GKE Autopilot refuses privileged pods, and EKS Fargate runs neither privileged pods nor DaemonSets. To get application traces there, send them from your services with an OpenTelemetry SDK. `openshift-restricted` leaves them out too: see below.
 
 **GKE Autopilot:**
 
@@ -62,7 +64,70 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set preset=eks-fargate
 ```
 
-If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works.
+**OpenShift:**
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
+```
+
+OpenShift admits a pod only under an SCC its service account may use, and until an admin grants more, that is `restricted-v2` (OpenShift 4.11 and later): no hostPath volumes, no privileged containers, and user IDs from the namespace's own range only. On the `openshift` preset the chart:
+
+- Creates two SCCs, each used only by its pods' own service account. For a release named `kubernetes-agent`:
+  - `kubernetes-agent-node-collector`, for the node collector: read-only hostPath mounts, as root with the SELinux type `spc_t`, since pod log files are not world-readable and RHCOS enforces SELinux. It stays unprivileged, with every capability dropped.
+  - `kubernetes-agent-ebpf`, for the eBPF auto-instrumentation and the continuous profiler: privileged, in the host's PID namespace. Only while `ebpf.enabled` or `profiling.enabled` is on.
+- Lets OpenShift assign the user and group IDs of every other pod, which then runs under `restricted-v2`.
+- Stamps `oneuptime.kubernetes.distribution=openshift` on the agent's telemetry, and turns on the collector's `openshift` resource detector, which adds `cloud.provider` and `cloud.platform` (for example `aws_openshift`) on a cloud.
+
+Creating the SCCs takes cluster-admin rights, as the chart's ClusterRole already does. With `serviceAccount.create=false`, every pod runs as the service account you name, and both SCCs are granted to it.
+
+**OpenShift, where an admin will not add an SCC:**
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod \
+  --set aiAgent.enabled=true \
+  --set preset=openshift-restricted
+```
+
+`openshift` is the recommended preset on OpenShift. `openshift-restricted` is for a cluster whose admin will not add one: the chart creates no SCC and every pod runs under `restricted-v2`, the way `gke-autopilot` works. It is still OpenShift to the agent: unpinned user IDs, the `oneuptime.kubernetes.distribution` stamp, the `openshift` resource detector and OpenShift's own objects stay. What it gives up:
+
+- **Pod logs from the nodes.** The log tailer reads them through the Kubernetes API, which costs one long-lived API connection per container.
+- **Host metrics** (`hostMetrics`): disk I/O, filesystem inodes, NIC errors, paging and load average read the node's `/proc` and `/sys`. Node, pod and container metrics stay: the node collector still reads each kubelet and cAdvisor over the network.
+- **eBPF traces and the continuous profiler,** whatever `ebpf.enabled` and `profiling.enabled` say. To get application traces, send them from your services with an OpenTelemetry SDK.
+- **Audit logs** (`auditLogs`), which are read from the node.
+
+To get them back, move to `openshift` with `--set preset=openshift` on an upgrade, as a cluster admin.
+
+**Control plane on OpenShift.** On both presets, `--set controlPlane.enabled=true` is enough for the API server, the scheduler and the controller manager. OpenShift runs several replicas of each behind a Service, so the chart finds every replica in the Service's EndpointSlices and scrapes it on its own, with the service account's token, in the jobs `kube-scheduler` and `kube-controller-manager`. Reading EndpointSlices is added to the ClusterRole only then. `controlPlane.<component>.endpoints`, when you set them, win for that component, and setting `controlPlane.<component>.insecureSkipVerify=false` checks each replica's certificate against OpenShift's service CA.
+
+etcd asks for a client certificate, so it has a job only once `controlPlane.etcd.clientCertSecret` names a Secret that holds one. Copy OpenShift's own, as a cluster admin:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+The copy does not follow OpenShift's rotation of that certificate: run these again when etcd's metrics stop. A hosted control plane (ROSA with HCP, HyperShift) has no such pods in the cluster, so discovery finds nothing and those metrics stay empty; nothing else changes.
+
+If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works. On OpenShift the install itself succeeds, but the pods that need more than `restricted-v2` are never created; the install notes say so, and `--set preset=openshift` fixes it.
 
 ## Kubernetes AI agent (AI investigations and fixes)
 
@@ -462,7 +527,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-agent` to see a
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, or `eks-fargate`. See table above. |
+| `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, `eks-fargate`, `openshift`, or `openshift-restricted`. See table above. |
 | `namespaceFilters.rules` | Exclude `kube-system` from `podLogs` and `ebpfDiscovery` | Scoped namespace rules. Patterns match the full namespace name and support `*`; any include rule creates an allowlist for its scope, and exclude rules always win. |
 | `namespaceFilters.rules[].action` | — | `include` or `exclude`. |
 | `namespaceFilters.rules[].namespaces` | — | Namespace names or patterns such as `team-*`. |
@@ -476,14 +541,14 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-agent` to see a
 | `logs.enabled` | `true` | Turn pod log collection on or off. Metrics are unaffected — the node collector keeps running for kubelet / cAdvisor / host metrics and just stops reading pod logs. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
 | `logs.windowsPods.enabled` | `false` | Hybrid mode for mixed-OS clusters: run the API log tailer alongside the DaemonSet, restricted to pods on Windows nodes (which the Linux-only DaemonSet cannot reach). Linux pods keep node-local file tailing; no log line ships twice. Only meaningful in `daemonset` log mode. |
-| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. Off on the `gke-autopilot` and `eks-fargate` presets, whatever it says. See section below. |
-| `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. Off on the `gke-autopilot` and `eks-fargate` presets, whatever it says. |
-| `hostMetrics.enabled` | `true` | Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average) via the OTel `hostmetrics` receiver. Each series carries the collecting node's `k8s.node.name`, so it breaks down per node. |
+| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. Off on the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets, whatever it says. See section below. |
+| `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. Off on the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets, whatever it says. |
+| `hostMetrics.enabled` | `true` | Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average) via the OTel `hostmetrics` receiver. Each series carries the collecting node's `k8s.node.name`, so it breaks down per node. Off on the presets without `hostPath` (`gke-autopilot`, `eks-fargate`, `openshift-restricted`), whatever it says. |
 | `auditLogs.enabled` | `false` | Tail `/var/log/kubernetes/audit.log` from the host. Self-managed clusters only — managed K8s routes audit logs to a cloud sink. |
 | `csi.enabled` | `false` | Scrape Prometheus metrics from CSI (storage) driver pods. |
 | `coreDns.enabled` | `false` | Scrape Prometheus metrics from CoreDNS (`kube-dns` Service by default). |
 | `resourceSpecs.enabled` | `true` | Pull full K8s object specs (labels, env vars, status) for the dashboard. |
-| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager, each at the endpoints in its own list (`controlPlane.<component>.endpoints`). The API server defaults to its in-cluster address, `https://kubernetes.default.svc:443/metrics`; etcd, the scheduler and the controller manager run on the control-plane nodes, so they have no default (the agent's pod has no host network) and are scraped once you list addresses it can reach. An `http://` endpoint is scraped in plain HTTP (etcd's metrics port, 2381), and `controlPlane.etcd.clientCertSecret` names a Secret (`ca.crt`, `tls.crt`, `tls.key`) with the client certificate etcd's HTTPS port asks for. Self-managed clusters only — managed offerings typically don't expose these endpoints. |
+| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager, each at the endpoints in its own list (`controlPlane.<component>.endpoints`). The API server defaults to its in-cluster address, `https://kubernetes.default.svc:443/metrics`; etcd, the scheduler and the controller manager run on the control-plane nodes, so they have no default (the agent's pod has no host network) and are scraped once you list addresses it can reach. An `http://` endpoint is scraped in plain HTTP (etcd's metrics port, 2381), and `controlPlane.etcd.clientCertSecret` names a Secret (`ca.crt`, `tls.crt`, `tls.key`) with the client certificate etcd's HTTPS port asks for. Self-managed clusters only — managed offerings typically don't expose these endpoints. On the OpenShift presets there is nothing to list: see below. |
 | `kubeletstats.utilizationMetrics.enabled` | `true` | Saturation metrics — container & pod CPU/memory as a percentage of request and limit. No extra scrape; derived from data the kubelet already returns. The Pod CPU / Memory Saturating Container Limit monitors read them. A container with no limit (or request) gets none of these series, and a pod only when every container in it has one. |
 | `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
 | `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` endpoint for CFS throttling and OOM kill counters that `kubeletstats` doesn't translate. An allowlist drops everything except 3 metrics at the receiver. |
@@ -529,7 +594,7 @@ Profiling needs nodes whose `hostPID` is the kernel's root PID namespace, as any
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `profiling.enabled` | `false` | Master switch. Off by default — opt in for continuous CPU flame graphs. Same kernel and privileged-pod requirements as `ebpf.*`, so the `gke-autopilot` and `eks-fargate` presets leave it off. |
+| `profiling.enabled` | `false` | Master switch. Off by default — opt in for continuous CPU flame graphs. Same kernel and privileged-pod requirements as `ebpf.*`, so the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets leave it off. |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` image tag. |
 | `profiling.samplesPerSecond` | `19` | Sampling frequency. Higher = more detail + more CPU. |
 | `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling at the given sampling probability — diagnoses lock contention and blocking I/O. Off by default. |
@@ -553,7 +618,7 @@ The agent ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](h
 Requirements:
 
 - **Linux kernel 5.8+** with BTF. This is the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, and RHEL/Stream 9+. Kernel 4.18+ works on RHEL-family distros with vendor backports. `ebpf.contextPropagation`, on by default, has **no** additional kernel floor — do not assume an older kernel makes it inert. See **Cross-service trace linking** below.
-- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). GKE Autopilot and EKS Fargate refuse privileged pods, so the `gke-autopilot` and `eks-fargate` presets leave it out for you. On any other cluster that blocks privileged pods, turn it off: `--set ebpf.enabled=false`.
+- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). GKE Autopilot and EKS Fargate refuse privileged pods, so the `gke-autopilot` and `eks-fargate` presets leave it out for you. On OpenShift, the `openshift` preset creates an SCC that lets only its pods run privileged, and `openshift-restricted` leaves it out. On any other cluster that blocks privileged pods, turn it off: `--set ebpf.enabled=false`.
 
 Turn it off if you don't want it:
 
@@ -669,6 +734,43 @@ Span attributes are OBI's defaults (`error.type`, `network.peer.address`, `db.qu
 
 See [`values.yaml`](./values.yaml) for the exhaustive list, including service mesh (Istio / Linkerd) scraping, control plane endpoints, and resource request/limit tuning.
 
+## Container restarts
+
+The cluster collector sends two restart metrics for every container:
+
+- `k8s.container.restarts`: the container status' `restartCount`, as the `k8s_cluster` receiver reports it, a running total for the pod (a gauge). For charts.
+- `k8s.container.restarts.increase`: the restarts since the collector's previous sample of the same pod and container, sent with every sample. Their sum over a window is every restart in it, however far apart the samples are. OneUptime's **CrashLoopBackOff Detection** template sums it over 15 minutes.
+
+The increase comes from a pipeline of its own, `metrics/restarts-increase` in `templates/configmap-deployment.yaml`, which `k8s_cluster` feeds as well as the `metrics` pipeline. It keeps `k8s.container.restarts` alone, renames it, takes `container.id` off its resource, makes the gauge a cumulative sum, and turns it into increases with `cumulative_to_delta` (`initial_value: drop`, `max_staleness: 2h`). A collector before 0.157.0 knows that processor only by its old name, `cumulativetodelta`, so the chart writes that name for one, as on the 0.96.0 that `helm upgrade --reuse-values` keeps. Then it hands them to the `metrics` pipeline through the `forward/restarts-increase` connector, which sends them with everything else the cluster reports. `container.id` has to come off: the kubelet runs every restart as a new container with a new ID, so a series keyed by it would never see its count move. What that means for the numbers:
+
+- A crash-looping container is sampled at every interval, between its runs too: the receiver reports every container of every pod, waiting in `CrashLoopBackOff` or not.
+- A container's first sample after the agent starts, and a new pod's first sample, send no increase. A pod recreated under a new name, or under the same name as a StatefulSet's is (it gets a new UID), starts a new count at 0 rather than reading as restarts.
+- A sample whose count went down in the same pod (its node rebooted and the runtime lost its containers) sends no increase, and the next restart is counted from it.
+- Init containers, sidecars declared as init containers among them, are not reported by the receiver, so their restarts are not counted. A pod held up by its init containers stays Pending, which **Pod Stuck in Pending** catches.
+- The increase carries what `k8s.container.restarts` carries but `container.id`: the receiver's own attributes (namespace, pod and its UID, container, node, image), and the workload names the `metrics` pipeline's `k8sattributes` gives every container metric, found by the pod's UID: `k8s.deployment.name`, `k8s.replicaset.name`, `k8s.statefulset.name`, `k8s.daemonset.name`, `k8s.job.name` and `k8s.cronjob.name`, whichever the pod belongs to, and its `app` labels. So a monitor scoped to a workload, or grouped by one, gets its containers' restarts.
+- The workload names are added after the conversion, so they are no part of the series a restart is counted in. They stay the same through every restart of a pod's containers, and a sample whose pod `k8sattributes` has not seen yet (a pod it learns of a moment after the receiver does) still counts its restarts, without the names. A pod of no workload (`kubectl run`) has its restarts counted with none.
+- An agent from an older chart sends the increase without the workload names: a monitor scoped to a workload gets none of its restarts until the agent is upgraded.
+- `filters.metrics` applies to it under its own name: an allowlist in `filters.metrics.include` must list `k8s.container.restarts.increase`, or the template gets no data.
+
+Before collector 0.108.0, `convert_gauge_to_sum` is a datapoint function; from 0.108.0 it is a metric one (and only that from 0.113.0). So the chart writes it in the context the collector it renders for (`image.tag`) has; 0.96.0 is what an upgrade with `--reuse-values` keeps.
+
+## Job failures
+
+The cluster collector sends two failure metrics for every Job:
+
+- `k8s.job.failed_pods`: the Job status' `failed`, as the `k8s_cluster` receiver reports it, a running count of the Job's failed pods that only grows for the Job's life (a gauge). For charts.
+- `k8s.job.failed_pods.increase`: the Job's pods that failed since the collector's previous sample of the same Job, sent with every sample. Their sum over a window is every failure in it, however far apart the samples are. OneUptime's **Job Failures** template sums it over 15 minutes.
+
+The receiver reports `k8s.job.failed_pods` on the Job's own resource, keyed by `k8s.job.uid`, which stays the same for the Job's life, so the increase needs no pipeline of its own: the `metrics` pipeline's first two processors make it, beside the count. `transform/job-failures-increase` copies `k8s.job.failed_pods` and makes the copy's gauge a cumulative sum, and `cumulative_to_delta/job-failures-increase` (`cumulativetodelta/job-failures-increase` before collector 0.157.0) turns only the copy into increases (`initial_value: drop`, `max_staleness: 2h`). What that means for the numbers:
+
+- A failing Job is sampled at every interval, between its retries too: the receiver reports every Job until it is deleted.
+- A Job's first sample after the agent starts, and a new Job's first sample, send no increase: the agent cannot tell a new Job's first failures from an old Job's history. So a Job whose only pod fails within its first half-minute (the collection interval) is not counted. A Job recreated under the same name (a Helm hook's, a migration Job a deploy replaces) has a new UID and starts a new count at 0 rather than reading as failures.
+- A sample whose count went down in the same Job (before Job tracking with finalizers, GA in Kubernetes 1.26, the count is of the failed pods that still exist) sends no increase, and the next failure is counted from it.
+- The copy shares the count's resource, so it carries what `k8s.job.failed_pods` carries: the Job's name, UID and namespace, and the cluster's attributes. The Job is the workload: a monitor scoped to a Job, or grouped by one, gets its failures. The pods a Job retries with leave its resource as it is, so its failures stay one series. The receiver does not put the CronJob that created a Job on the Job's metrics, and `k8sattributes` adds nothing to them (a Job's resource names no pod to look up), so neither metric carries `k8s.cronjob.name`: a CronJob's runs are Jobs named after it.
+- `filters.metrics` applies to it under its own name: an allowlist in `filters.metrics.include` must list `k8s.job.failed_pods.increase`, or the template gets no data.
+
+The copy's gauge is made a sum in the same context as the restarts' (see [Container restarts](#container-restarts)).
+
 ## Upgrading
 
 ```bash
@@ -693,6 +795,10 @@ Add any `--set` you need to either command: it overrides what the release had.
 > The chart says when this has happened. Its `values.yaml` carries the version of the chart it comes with (`chartDefaultsVersion`, stamped at release), and when that is not the chart's own version, the notes Helm prints after the install or upgrade end with a **WARNING** that names what is stale (the OBI image tag, when it is not this chart's) and the command that fixes it for that release. To check yourself, compare `helm get values <release> -n <namespace> --all | grep chartDefaultsVersion` (nothing, on a chart from before it) with the chart version `helm list -n <namespace>` shows.
 >
 > What it cannot see: a template gets the merged values, never which of them you set. A release on this chart's defaults never warns, so a value you pin on purpose is never reported; a release on an older chart's defaults has its OBI tag named even when you pinned it, and the fix keeps a pinned value as it is. A values file that copies a whole older `values.yaml` (or `helm get values --all`) pins that chart's defaults, `chartDefaultsVersion` among them, and warns on every upgrade: keep only the values you changed in it, and upgrade with `-f` and that file but without `--reuse-values` or `--reset-then-reuse-values`, which would keep the copy the release stored.
+
+> ⚠️ **Job Failures reads `k8s.job.failed_pods.increase`, which an agent from an older chart does not send.** Upgrade the agent first: a monitor made from the template against an older agent never fires. A monitor made from the template before the upgrade keeps reading how much `k8s.job.failed_pods` grew within each minute, which misses about half of a Job's failures: delete it and create it again from the template. See [Job failures](#job-failures).
+
+> ⚠️ **CrashLoopBackOff Detection reads `k8s.container.restarts.increase`, which an agent from an older chart does not send.** Upgrade the agent first: a monitor made from the template against an older agent never fires. A monitor made from the template before the upgrade keeps reading how much `k8s.container.restarts` grew within each minute, which misses about half of a crash loop's restarts: delete it and create it again from the template. Agents from the first charts that send the increase send it without the workload names, so a monitor scoped to a workload gets none of its restarts from them until they are upgraded. See [Container restarts](#container-restarts).
 
 > ⚠️ **Self-hosted OneUptime: upgrade the server first, or install the chart version that matches it.** The eBPF tracer this chart runs (OBI v0.14) names a called service in `service.peer.name` and reports a message broker's own Kafka/MQTT/NATS spans as producer/consumer spans; OneUptime servers older than this chart read neither, so the service map loses named peers and Queues count each broker as a producer and consumer of its topics. It also records its own Node.js agent injection as short `GET /json/list` and `GET /*` traces on every Node.js app, which only current servers drop.
 
@@ -748,9 +854,11 @@ This is usually one problem, not two: telemetry isn't being accepted, so the clu
 The bundled script checks pod health, decodes/validates the key, tests cluster egress, and asks OneUptime whether the token is actually accepted — then prints a single root-cause verdict:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Every OneUptime serves the script for its own release at `<your OneUptime URL>/install/kubernetes-agent/troubleshoot.sh`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com`. Open that address in a browser to read the script before you run it.
 
 It only reads cluster state and runs a couple of probes — it changes nothing. For the most accurate egress test, install with `--set debug.enabled=true` first (see below), then re-run.
 

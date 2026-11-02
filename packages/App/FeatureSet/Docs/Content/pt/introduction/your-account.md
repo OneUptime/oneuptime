@@ -129,7 +129,7 @@ As **Configurações do usuário**, à direita na barra abaixo da barra do topo,
 
 ## Idioma e tema
 
-Os dois ficam salvos no seu navegador, não na sua conta, então configure-os de novo em outro navegador ou dispositivo.
+Os dois ficam salvos no seu navegador, não na sua conta, então configure-os de novo em outro navegador ou dispositivo. Eles continuam salvos quando você sai, então, em um computador compartilhado, a próxima pessoa começa com as suas configurações.
 
 - **Idioma**: o painel começa no idioma do seu navegador. Para mudá-lo, use o menu de idiomas no rodapé de qualquer página. Esta documentação tem seu próprio menu de idiomas, no topo.
 - **Tema**: escolha **Claro**, **Escuro** ou **Sistema** no menu do usuário. **Sistema** é claro ou escuro conforme a configuração do seu dispositivo, e muda com ela; todo navegador começa nele. As páginas de login usam o mesmo tema.

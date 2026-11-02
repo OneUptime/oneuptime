@@ -9,6 +9,31 @@ import MonitorSummaryProbeUtil, {
 } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
+/*
+ * How the picker sits in the Monitor Summary card's header.
+ *
+ * On a phone the label sits over the list, and the list takes the header's
+ * whole width: beside the label it was left about 90px, and cut every probe
+ * to "Frankfu…". From sm up the two share a line while the list keeps 15rem
+ * beside the label - a probe's name and region, such as "Singapore
+ * (ap-southeast-1)" - and the list goes under the label, the whole width
+ * again, when the card has less room (beside a side menu at 768px).
+ *
+ * On a phone the list has no width of its own (w-full), so the header's row
+ * of actions can always shrink the picker to the card's width, however
+ * narrow the phone, instead of running past the card.
+ */
+export const PROBE_PICKER_CLASS_NAME: string =
+  "flex w-full flex-wrap items-center gap-x-3 gap-y-1.5";
+
+// The list: the whole line on a phone, 15rem beside the label from sm up.
+export const PROBE_PICKER_LIST_CLASS_NAME: string =
+  "w-full max-w-full grow sm:w-60";
+
+// The list's own box: no margins of its own beside or under the label.
+export const PROBE_PICKER_DROPDOWN_CLASS_NAME: string =
+  "relative w-full min-w-0 rounded-md overflow-visible";
+
 export interface ComponentProps {
   onProbeSelected?: (probe: Probe) => void;
   /*
@@ -49,24 +74,29 @@ const ProbePicker: FunctionComponent<ComponentProps> = (
     });
 
   return (
-    <div className="flex">
-      <div className="w-fit mr-2 flex h-full align-middle items-center mt-4">
+    <div className={PROBE_PICKER_CLASS_NAME} data-testid="probe-picker">
+      {/*
+       * Deliberately not `required`: this is a filter on what the card
+       * displays, not a setting. Chroming it like a required form field
+       * invited users to treat changing it as editing the monitor's probe,
+       * and to read the (unsaved, because there is nothing to save)
+       * selection as an edit that was thrown away.
+       */}
+      <FieldLabelElement
+        title="Showing results from:"
+        id={fieldLabelId}
+        hideOptionalLabel={true}
+      />
+      <div className={PROBE_PICKER_LIST_CLASS_NAME}>
         {/*
-         * Deliberately not `required`: this is a filter on what the card
-         * displays, not a setting. Chroming it like a required form field
-         * invited users to treat changing it as editing the monitor's probe,
-         * and to read the (unsaved, because there is nothing to save)
-         * selection as an edit that was thrown away.
+         * Never cleared: the card always shows one probe's results, so a
+         * cleared list only came back to the probe it showed - and its ×
+         * took a third of a phone's list.
          */}
-        <FieldLabelElement
-          title="Showing results from:"
-          id={fieldLabelId}
-          hideOptionalLabel={true}
-        />
-      </div>
-      <div>
         <Dropdown
           ariaLabelledby={fieldLabelId}
+          className={PROBE_PICKER_DROPDOWN_CLASS_NAME}
+          isClearable={false}
           value={dropdownOptions.find((option: DropdownOption) => {
             return option.value === props.selectedProbe?._id?.toString();
           })}

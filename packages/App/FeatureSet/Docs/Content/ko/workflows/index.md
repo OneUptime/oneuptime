@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> **Forward new incidents to another system** 템플릿이 같은 워크플로를 대신 만들어 줍니다. 워크플로를 만들 때 **인시던트** 아래에서 찾을 수 있습니다.
+> **Forward new incidents to another system** 템플릿이 이 워크플로를 Log 블록 없이 대신 만들어 줍니다. **Error**에 아무것도 없으므로 실패한 요청은 실행을 실패시키고, 실행의 **단계**에 그 이유가 표시됩니다. 워크플로를 만들 때 **인시던트** 아래에서 찾을 수 있습니다.
 
 :::steps
 ### 워크플로 만들기

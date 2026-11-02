@@ -43,7 +43,8 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 ### اجازه دادن به تفویض اختیار در سطح دامنه
 
 1. در [کنسول مدیریت Google](https://admin.google.com)، به‌عنوان مدیر ارشد، **Security → Access and data control → API controls → Manage domain-wide delegation** را باز کنید، و **Add new** را برگزینید.
-2. **Unique ID** حساب سرویس را به‌عنوان **Client ID** وارد کنید، و `https://www.googleapis.com/auth/admin.reports.audit.readonly` را به‌عنوان تنها **OAuth scope**. **Authorize** را برگزینید. اعمال آن ممکن است در Google چند دقیقه طول بکشد.
+2. **Unique ID** حساب سرویس را به‌عنوان **Client ID** وارد کنید، و `https://www.googleapis.com/auth/admin.reports.audit.readonly` را به‌عنوان **OAuth scope**. **Authorize** را برگزینید. اعمال آن ممکن است در Google چند دقیقه طول بکشد.
+3. برای اینکه پلی‌بوک‌ها بتوانند کاربران را تعلیق کنند، تعلیقشان را لغو کنند و از حساب خارجشان کنند ([مهار](/docs/telemetry/security-cases#مهار) را ببینید)، `https://www.googleapis.com/auth/admin.directory.user` و `https://www.googleapis.com/auth/admin.directory.user.security` را با کاما جدا کنید و به دامنه‌های همان کلاینت اضافه کنید. آن‌گاه مدیری که اتصال به جای او عمل می‌کند باید مدیری باشد که آن کاربران را مدیریت می‌کند.
 
 ### افزودن اتصال در OneUptime
 

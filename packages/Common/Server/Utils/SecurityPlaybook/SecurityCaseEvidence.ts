@@ -469,7 +469,11 @@ export default class SecurityCaseEvidence {
   /*
    * The exception groups these fingerprints are, the project's own. A
    * fingerprint names one group a service, so one may be several groups;
-   * each is returned.
+   * each is returned. A request's fingerprint is its occurrence's, so a
+   * merged exception's is the exception it was merged into
+   * (findByOccurrenceFingerprints) - that one, and not another that only
+   * shares its fingerprint. Each once, in the order of the fingerprints:
+   * the latest request's first.
    */
   @CaptureSpan()
   public static async findExceptions(data: {
@@ -480,11 +484,12 @@ export default class SecurityCaseEvidence {
       return [];
     }
 
-    return await TelemetryExceptionService.findBy({
-      query: {
-        projectId: data.projectId,
-        fingerprint: new Includes(data.fingerprints),
-      },
+    const exceptionsByFingerprint: Map<
+      string,
+      Array<TelemetryException>
+    > = await TelemetryExceptionService.findByOccurrenceFingerprints({
+      projectId: data.projectId,
+      fingerprints: data.fingerprints,
       select: {
         _id: true,
         fingerprint: true,
@@ -493,9 +498,20 @@ export default class SecurityCaseEvidence {
         isResolved: true,
         isArchived: true,
       },
-      skip: 0,
       limit: data.fingerprints.length * 5,
       props: { isRoot: true },
     });
+
+    const exceptions: Array<TelemetryException> = [];
+
+    for (const fingerprint of data.fingerprints) {
+      for (const exception of exceptionsByFingerprint.get(fingerprint) || []) {
+        if (!exceptions.includes(exception)) {
+          exceptions.push(exception);
+        }
+      }
+    }
+
+    return exceptions;
   }
 }

@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Firmenname, der mit dieser Lizenz verknüpft ist.",
+  "Annual contract value (in USD) for this license.": "Jährlicher Vertragswert (in USD) für diese Lizenz.",
+  "Expiration date of this license.": "Ablaufdatum dieser Lizenz.",
+  "Something went wrong": "Etwas ist schiefgelaufen",
+  "An unexpected error has occurred. Please reload the page to continue": "Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite neu, um fortzufahren",
+  "Error details": "Fehlerdetails",
+  "Still stuck?": "Kommen Sie immer noch nicht weiter?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Laden Sie eine lokale Diagnosedatei mit Fehler-Stack, Komponenten-Stack, bereinigter Seiten-URL, Browserdetails und OneUptime-Build herunter. Sie liest niemals Cookies, gespeicherte Browserdaten oder Formularinhalte. Prüfen Sie sie, bevor Sie sie mit dem OneUptime-Support teilen.",
+  "Download support bundle": "Support-Paket herunterladen",
+  "Send it to {{email}}": "Senden Sie es an {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Support-Paket heruntergeladen. Prüfen Sie es und hängen Sie es dann an Ihre E-Mail an.",
+  "The support bundle could not be downloaded. Please try again.": "Das Support-Paket konnte nicht heruntergeladen werden. Bitte versuchen Sie es erneut.",
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",
@@ -924,6 +936,9 @@
   "{{price}} per user, billed yearly from today.": "{{price}} pro Benutzer, ab heute jährlich abgerechnet.",
   "{{price}} per user, billed monthly from today.": "{{price}} pro Benutzer, ab heute monatlich abgerechnet.",
   "Our sales team will contact you to agree on a price.": "Unser Vertriebsteam meldet sich bei Ihnen, um einen Preis zu vereinbaren.",
+  "Current plan": "Aktueller Tarif",
+  "Current plan, billed yearly": "Aktueller Tarif, jährlich abgerechnet",
+  "Current plan, billed monthly": "Aktueller Tarif, monatlich abgerechnet",
   "{{count}}-day free trial": "{{count}} Tage kostenlos testen",
   "{{count}}-day free trial_one": "{{count}} Tag kostenlos testen",
   "Free for {{count}} days, no card needed to start.": "{{count}} Tage kostenlos, zum Start ist keine Karte nötig.",
@@ -1560,5 +1575,12 @@
     "note": "Hinweis",
     "tip": "Tipp",
     "warning": "Warnung"
-  }
+  },
+  "Compact rows": "Kompakte Zeilen",
+  "Sort by": "Sortieren nach",
+  "Sorted by {{column}}": "Sortiert nach {{column}}",
+  "Sort": "Sortieren",
+  "Ascending": "Aufsteigend",
+  "Descending": "Absteigend",
+  "Select all items": "Alle Elemente auswählen"
 }

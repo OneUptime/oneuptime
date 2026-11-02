@@ -140,14 +140,14 @@ Värdar och nätverksenheter beskrivs med samma uppgifter, sparade under samma n
 | --- | --- | --- | --- |
 | Värdnamn | `host.name` | Värdens namn. Det är värdens identitet och står därför i `identifyingAttributes` | Enhetens eget namn: dess SNMP-`sysName`, annars det NetBIOS- eller DNS-namn som upptäckten hittade. Aldrig dess IP-adress |
 | IP-adress | `host.ip` | Varje adress som collectorn rapporterar | Adressen som OneUptime pollar, när den är en IP-adress, annars adressen som dess sond slog upp DNS-namnet till |
-| MAC-adress | `host.mac` | Upptäckt | Inskriven på enheten, eller inlärd från ARP-tabellen i en genomgången router |
-| Serienummer | `host.serial_number` | Stämplat | ENTITY-MIB |
+| MAC-adress | `host.mac` | Upptäckt | Inskriven på enheten, inlärd från ARP-tabellen i en genomgången router, eller läst från enhetens egna portar |
+| Serienummer | `host.serial_number` | Stämplat | ENTITY-MIB, annars leverantörens egen MIB |
 | Tillverkare | `device.manufacturer` | Stämplat | ENTITY-MIB, annars det `sysDescr` eller `sysObjectID` nämner |
 | Modell | `device.model.name` | Stämplad | ENTITY-MIB, annars det `sysDescr` nämner |
 | Firmwareversion | `device.firmware.version` | Stämplad | ENTITY-MIB, annars det `sysDescr` nämner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det `sysDescr` nämner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-version | `os.version` | Upptäckt | ENTITY-MIB, annars det `sysDescr` nämner |
-| Device Type | `device.type` | Stämplad. Annars klassificerar kortet den utifrån operativsystem och namn (Server, Brandvägg, ...) | Dess roll: den du tilldelade, annars den som topologikartan ritar den som |
+| Enhetstyp | `device.type` | Stämplad. Annars klassificerar kortet den utifrån operativsystem och namn (Server, Brandvägg, ...) | Dess roll: den du tilldelade, annars den som topologikartan ritar den som |
 | Plats | `device.location` | Stämplad. Annars visar kortet dess molnzon | `sysLocation`. Kortet visar dess plats först |
 
 [Värdtabellen](#tillgångsattribut-för-värdar) och [tabellen över nätverksenheter](#tillgångsattribut-för-nätverksenheter) nedan talar i detalj om var varje värde kommer ifrån.
@@ -191,22 +191,22 @@ En nätverksenhet (`entityType: network.device`) speglas från sin Network Devic
 | Värdnamn | `host.name` | Enhetens eget namn: dess SNMP-`sysName`, annars det NetBIOS- eller omvända DNS-namn som upptäckten hittade. Utelämnas när bara dess IP-adress namnger den |
 | IP-adress | `host.ip` | Adressen som OneUptime pollar, när den är en IP-adress. För en enhet som pollas på ett DNS-namn, adressen som dess sond senast slog upp namnet till |
 | DNS-namn | `net.device.dns_name` | Det omvända DNS-namn som hittades vid upptäckten, eller DNS-namnet som OneUptime pollar |
-| MAC-adress | `host.mac` | Inskriven på enheten, eller inlärd från ARP-tabellen i en genomgången router |
+| MAC-adress | `host.mac` | Inskriven på enheten, eller inlärd från ARP-tabellen i en genomgången router. Annars MAC-adressen för enhetens första Ethernet-port, så som dess SNMP-walk eller en discovery-skanning läser den |
 | Märke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, annars tillverkaren som `sysDescr` nämner, annars leverantören av `sysObjectID` |
 | Modell | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, annars modellen som `sysDescr` nämner |
-| Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmwareversion | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, annars den firmware som `sysDescr` nämner på Ubiquiti-, HPE- och Aruba-enheter |
-| Operativsystem | `os.name` | Operativsystemet som `sysDescr` nämner |
-| Programvaru- eller OS-version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, annars den version som `sysDescr` nämner |
+| Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum`, annars leverantörens egen MIB på FortiGate-, Juniper-, MikroTik- och Sophos-enheter |
+| Firmwareversion | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, annars leverantörens egen MIB på FortiGate-, MikroTik- och Sophos-enheter, annars den firmware som `sysDescr` nämner på Ubiquiti-, HPE- och Aruba-enheter |
+| Operativsystem | `os.name` | Operativsystemet som `sysDescr` nämner, eller det som plattformen alltid kör: FortiOS på en FortiGate, Merakis MX-firmware på en MX |
+| Programvaru- eller OS-version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, annars leverantörens egen MIB, annars den version som `sysDescr` nämner |
 | Systembeskrivning | `os.description` | `sysDescr` |
 | Enhetstyp | `device.type` | Rollen som du har tilldelat enheten, annars rollen som topologikartan klassificerar den som, under ditt projekts namn på den |
 | Plats | `device.location` | `sysLocation`, såvida det inte är en agents standardvärde, som Net-SNMP:s ”Sitting on the Dock of the Bay” |
 | Plats i nätverket | `oneuptime.site.name` | Den Network Site som enheten är tilldelad |
 | Pollad adress | `net.device.hostname` | Adressen som OneUptime pollar: en IP-adress eller ett DNS-namn. Kvar för synkroniseringar som skrevs innan `host.name` och `host.ip` fanns |
 
-ENTITY-MIB-raderna fylls i efter enhetens första SNMP-walk. En enhet som inte gås igenom, eftersom den bara övervakas med ping eller ännu inte har pollats, får ändå sitt namn, märke, operativsystem och sin plats från det som den senaste discovery-skanningen av dess adress läste över SNMP, och sin MAC-adress från ARP-tabellen i en genomgången router. En enhet som inte implementerar ENTITY-MIB har inget serienummer eller firmware att rapportera. Dess `sysDescr` nämner ändå modellen och operativsystemet för många plattformar: en Cisco Meraki MX rapporterar `Meraki MX85`, vilket fyller i märke och modell. En plattform vars `sysDescr` inte har någon känd form lägger inte till något, i stället för att gissa.
+ENTITY-MIB-raderna fylls i efter enhetens första SNMP-walk. En enhet som inte gås igenom, eftersom den bara övervakas med ping eller ännu inte har pollats, får ändå sitt namn, märke, modell, serienummer, firmware, operativsystem, OS-version och sin plats från det som den senaste discovery-skanningen av dess adress läste över SNMP, och sin MAC-adress från ARP-tabellen i en genomgången router eller från den skanningen. En enhet som inte implementerar ENTITY-MIB har inget serienummer eller firmware att rapportera, såvida inte dess leverantör har dem i en egen MIB som OneUptime läser: FortiGate, Juniper, MikroTik och Sophos. Dess `sysDescr` nämner ändå modellen och operativsystemet för många plattformar: en Cisco Meraki MX rapporterar `Meraki MX85`, vilket fyller i märke, modell och operativsystem. En plattform vars `sysDescr` inte har någon känd form lägger inte till något, i stället för att gissa.
 
-En Meraki-enhet hämtar det som dess egen pollning lämnar tomt från Meraki-dashboarden, när en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation: dess serienummer, modell, firmware och märke, dess MAC-adress, dess namn, dess hanteringsadress, den gatuadress den är registrerad under och dess typ. En enhet är en av organisationens enheter när dess serienummer eller MAC-adress är Meraki-enhetens, eller när OneUptime pollar den på Meraki-enhetens hanteringsadress och den har samma namn. Ett värde som har sparats på enheten, och det som dess egen pollning läser, går först.
+En Meraki-enhet hämtar det som dess egen pollning lämnar tomt från Meraki-dashboarden, när en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation: dess serienummer, modell, firmware och märke, dess MAC-adress, dess namn, dess hanteringsadress, den gatuadress den är registrerad under och dess typ. Dess modell och firmware ger också dess operativsystem och OS-version. En enhet är en av organisationens enheter när dess serienummer eller MAC-adress är Meraki-enhetens, eller när OneUptime pollar den på Meraki-enhetens hanteringsadress och den har samma namn. Meraki anger ingen sådan adress för en MX, och den MAC-adress som Meraki anger finns inte på någon av MX-enhetens portar, så en MX matchas på sitt namn och en port-MAC strax över den MAC-adressen. Ett värde som har sparats på enheten, och det som dess egen pollning läser, går först. Det enda undantaget är MAC-adressen: Merakis, den på boxens etikett, går före en som har lästs från enhetens egen port.
 
 Ett värde som har sparats på enheten, inskrivet eller satt via API:et, ersätts aldrig av det som discovery läser. Av ett värde som enhetens egen walk läste och ett som en skanning läste används det nyaste. Det som en skanning läste används bara när skanningen hittade samma maskin på adressen: när systemnamnet, `sysObjectID` eller NetBIOS-namnet den läste motsäger enhetens används inget av det den läste där. Objektets kort **Tillgångsdetaljer** visar var varje värde kom ifrån och när.
 

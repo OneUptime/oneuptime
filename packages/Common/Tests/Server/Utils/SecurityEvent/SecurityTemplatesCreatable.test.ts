@@ -27,6 +27,8 @@ import {
   SecurityPlaybookTemplateDefinition,
   getSecurityPlaybookTemplateDefinition,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import { SecurityPlaybookStep } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
   buildDetectionRuleFromLibrary,
   buildSecurityPlaybookFromTemplate,
@@ -329,6 +331,41 @@ describe("the playbook templates", () => {
       getSecurityPlaybookTemplateDefinition(ENRICH_NEW_CASES_TEMPLATE_KEY)
         ?.title,
     ).toBe("Enrich New Cases");
+  });
+
+  test("a template's checklist is the case's own tasks, one a line, never a note of ticks", () => {
+    for (const key of [ENRICH_NEW_CASES_TEMPLATE_KEY, "attack-evidence"]) {
+      const steps: Array<SecurityPlaybookStep> =
+        getSecurityPlaybookTemplateDefinition(key)!.getSteps(
+          getSecurityPlaybookTemplateValues(VALUES),
+        );
+      const taskSteps: Array<SecurityPlaybookStep> = steps.filter(
+        (candidate: SecurityPlaybookStep): boolean => {
+          return candidate.action === SecurityPlaybookActionType.AddCaseTasks;
+        },
+      );
+
+      expect({ key, taskSteps: taskSteps.length }).toEqual({
+        key,
+        taskSteps: 1,
+      });
+
+      const tasks: Array<string> = taskSteps[0]!.config[
+        "tasks"
+      ] as Array<string>;
+
+      expect(tasks.length).toBeGreaterThanOrEqual(3);
+
+      for (const task of tasks) {
+        expect(task).not.toContain("\n");
+        expect(task).not.toContain("[ ]");
+      }
+
+      // No step writes the checklist as a note any more.
+      for (const candidate of steps) {
+        expect(String(candidate.config["note"] || "")).not.toContain("- [ ]");
+      }
+    }
   });
 
   test("every key and every name is its own", () => {

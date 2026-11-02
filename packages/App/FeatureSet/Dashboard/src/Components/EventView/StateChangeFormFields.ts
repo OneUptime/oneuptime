@@ -9,6 +9,7 @@ import PermissionGate, {
   ModelAction,
   PermissionCheckableModel,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "Common/UI/Utils/PermissionGate";
 import {
   BulkStateChangeNoteTemplate,
@@ -121,6 +122,12 @@ export interface StateChangeFormFieldsOptions {
    * out, the note is offered.
    */
   noteModel?: PermissionCheckableModel | undefined;
+  /*
+   * The page's private record scope, when it is open on one: the note is
+   * then offered only when a team of the reader's that owns the record may
+   * post it (PrivateRecordScope).
+   */
+  noteGateOptions?: PermissionGateOptions | undefined;
 }
 
 /*
@@ -132,10 +139,15 @@ export interface StateChangeFormFieldsOptions {
  */
 export const canPostStateChangeNote: (
   noteModel: PermissionCheckableModel,
-) => boolean = (noteModel: PermissionCheckableModel): boolean => {
+  options?: PermissionGateOptions | undefined,
+) => boolean = (
+  noteModel: PermissionCheckableModel,
+  options?: PermissionGateOptions | undefined,
+): boolean => {
   const gate: PermissionGateResult = PermissionGate.check(
     noteModel,
     ModelAction.Create,
+    options,
   );
 
   return gate.isAllowed || !gate.disabledReason;
@@ -179,7 +191,8 @@ export const getStateChangeFormFields: GetStateChangeFormFieldsFunction = <
     options.noteTemplates;
   // A note the person may not post is not offered (canPostStateChangeNote).
   const isNoteOffered: boolean =
-    !options.noteModel || canPostStateChangeNote(options.noteModel);
+    !options.noteModel ||
+    canPostStateChangeNote(options.noteModel, options.noteGateOptions);
 
   // One section for both of its fields, so they are one folded line.
   const noteSection: FormFieldCollapsibleSection<TEntity> =

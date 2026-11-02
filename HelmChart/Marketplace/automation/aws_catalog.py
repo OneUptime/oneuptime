@@ -57,6 +57,10 @@ IMAGES_FILE: Path = MARKETPLACE_DIR / "images.json"
 CHART_REPOSITORY = "oneuptime"
 USAGE_INSTRUCTIONS_LIMIT = 4000
 RELEASE_NOTES_LIMIT = 30000
+# AWS turns down a version whose notes hold "unsupported characters", naming them only in the
+# error, once the change set is running, and documents no list. The GitHub release's notes have
+# emoji in their headings, and any character a title has, so AWS gets the part it is sure to take.
+NOT_PLAIN_TEXT = re.compile(r"[^\t\n\r\x20-\x7e]+ ?")
 
 # The Kubernetes agent's EKS add-on (build.py --marketplace aws-eks-addon).
 EKS_ADDON = "aws-eks-addon"
@@ -139,7 +143,7 @@ def addon_release_notes(version: str) -> str:
 
 
 def release_notes_for(version: str, notes: str = "") -> str:
-    text: str = (notes or "").strip() or (
+    text: str = NOT_PLAIN_TEXT.sub("", notes or "").strip() or (
         f"OneUptime Enterprise {version}. What changed: "
         f"https://github.com/OneUptime/oneuptime/releases/tag/{version}"
     )

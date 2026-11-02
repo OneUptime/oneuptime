@@ -4,7 +4,7 @@ Proxmox 모니터는 Proxmox VE 클러스터 하나(노드, VM과 LXC 컨테이�
 
 :::cards
 - [모니터 만들기](#proxmox-모니터-만들기): 대시보드에서 6단계.
-- [템플릿](#미리-만들어진-알림-템플릿): 노드, 게스트, 볼륨마다 인시던트 하나를 여는 12개의 미리 만들어진 알림.
+- [템플릿](#미리-만들어진-알림-템플릿): 노드, 게스트, 볼륨마다 인시던트 하나를 여는 15개의 미리 만들어진 알림과, Proxmox VE 자체 통지에 대한 알림 2개.
 - [리소스 식별](#리소스-식별): 노드, 게스트, 스토리지 볼륨 하나를 대상으로 지정하는 방법.
 - [메트릭](#수집되는-메트릭): 모니터가 알림에 쓸 수 있는 모든 `pve_*` 계열.
 :::
@@ -48,19 +48,19 @@ flowchart TB
 
 ### 클러스터 선택
 
-**Proxmox Monitor Configuration** 에서 **Proxmox 클러스터** 의 클러스터를 고릅니다. 데이터를 보낸 모든 클러스터가 목록에 있습니다.
+**Proxmox Monitor Configuration** 에서 **Proxmox 클러스터** 의 클러스터를 고릅니다. 데이터를 보낸 모든 클러스터가 목록에 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **Proxmox 클러스터 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
 
 ### 감시할 대상 선택
 
-세 탭 중 하나를 고릅니다.
+새 모니터는 **알림 대상** 아래의 **Cluster Stopped Reporting** 에서 시작합니다. 다른 것을 감시하려면 다음 중 하나를 사용합니다.
 
-- **Quick Setup** – [템플릿](#미리-만들어진-알림-템플릿)을 클릭합니다. 메트릭, 필터, 집계, 시간 범위, 임계값을 설정하고 아래 기준을 템플릿의 기준으로 바꿉니다. **시간 범위** 는 계속 바꿀 수 있습니다.
-- **Custom Metric** – **Proxmox Metric** 에서 메트릭 하나를 고른 다음 **집계** 와 **시간 범위** 를 설정합니다. [필터](#모니터-설정)로 리소스 종류나 리소스 하나로 좁힙니다.
-- **고급** – **메트릭 선택** 에서 쿼리와 수식을 직접 만듭니다. 예를 들어 `pve_memory_usage_bytes / pve_memory_size_bytes`로 메모리 퍼센트를 구합니다. **그룹화 기준** 에 `id`를 지정하면 리소스를 하나씩 판단합니다.
+- **변경** – 다른 [템플릿](#미리-만들어진-알림-템플릿)을 고릅니다. 메트릭, 필터, 집계, 시간 범위, 임계값을 설정하고 아래 기준을 템플릿의 기준으로 바꿉니다. **시간 범위** 는 계속 바꿀 수 있습니다.
+- **Custom Metric** (**추가 필드** 안) – **Proxmox Metric** 에서 메트릭 하나를 고른 다음 **집계** 와 **시간 범위** 를 설정합니다. [필터](#모니터-설정)로 리소스 종류나 리소스 하나로 좁힙니다.
+- **고급** (**추가 필드** 안) – **메트릭 선택** 에서 쿼리와 수식을 직접 만듭니다. 예를 들어 `pve_memory_usage_bytes / pve_memory_size_bytes`로 메모리 퍼센트를 구합니다. **그룹화 기준** 에 `id`를 지정하면 리소스를 하나씩 판단합니다.
 
 ### 기준 확인
 
-**모니터 기준** 의 각 기준을 열어 **메트릭**, **집계**, **조건**, **임계값** 을 확인합니다. 템플릿은 이것들을 채웁니다. **Custom Metric** 이나 **고급** 을 쓰면 모니터는 메트릭이 0으로 떨어지는 것만 감지하는 [기본 기준](#기본-기준)으로 시작하므로, 직접 임계값을 설정하세요.
+**모니터 기준** 의 각 기준을 열어 **메트릭**, **집계**, **조건**, **임계값** 을 확인합니다. 템플릿은 이것들을 채웁니다. **Custom Metric** 이나 **고급** 을 쓰면 모니터는 메트릭이 데이터를 보내지 않는 것만 감지하는 [기본 기준](#기본-기준)으로 시작하므로, 직접 임계값을 설정하세요.
 
 ### 모니터 만들기
 
@@ -95,7 +95,7 @@ flowchart TB
 | `lxc/<vmid>` | LXC 컨테이너. 예: `lxc/101`. |
 | `storage/<node>/<storage>` | 노드의 스토리지 볼륨. 예: `storage/pve1/local`. |
 
-예외가 두 가지 있습니다. 복제 계열(`pve_replication_*`)은 `id`에 복제 **작업** ID(예: `100-0`)를 가지며, 클러스터 전체의 `pve_not_backed_up_total`에는 `id`가 아예 없습니다.
+예외가 하나 있습니다. 복제 계열(`pve_replication_*`)은 `id`에 복제 **작업** ID(예: `100-0`)를 가집니다. 쿼럼(`pve_up`)과 `pve_not_backed_up_total` 같은 클러스터 자체의 계열은 `cluster/<name>`을 가집니다.
 
 필터는 접두사가 아니라 같음으로 비교하므로, 에이전트는 `id`를 필터에 쓸 수 있는 세 속성으로도 나눕니다. 템플릿은 이 속성들을 씁니다.
 
@@ -109,7 +109,7 @@ flowchart TB
 
 ## 미리 만들어진 알림 템플릿
 
-**Quick Setup** 에는 템플릿이 12개 있습니다. 각각 완전한 모니터를 만듭니다. 쿼리, 속성 필터, 그룹화, 작동하는 기준, 회복하는 기준입니다. 대부분 `id`로 그룹화하므로, 노드, 게스트, 볼륨, 작업마다 자체 인시던트와 알림을 받습니다. 임계값은 출발점이므로 편집할 수 있습니다.
+**알림 대상** 목록에는 템플릿이 15개 있습니다. 각각 완전한 모니터를 만듭니다. 쿼리, 속성 필터, 그룹화, 작동하는 기준, 회복하는 기준입니다. 대부분 `id`로 그룹화하므로, 노드, 게스트, 볼륨, 작업마다 자체 인시던트와 알림을 받습니다. 임계값은 출발점이므로 편집할 수 있습니다.
 
 표에 달리 적혀 있지 않으면 템플릿은 최근 5분을 읽습니다. 기준은 기간의 매분 조건이 유지될 때만 작동하고, 임계값 기준은 임계값에서 10% 지난 지점에서 회복하므로 경계 근처를 오가는 값 때문에 깜빡이지 않습니다.
 
@@ -117,34 +117,51 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 심각 | `pve_up`, 클러스터 전체에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | Node Offline | 심각 | `pve.scope = node`의 `pve_up`, `id`별 Min | 1 미만 | 1이 됨 |
-| Guest Down | Warning | `pve.scope = guest`의 `pve_up`과 `pve_onboot_status`, `id`별 Min | `pve_onboot_status`가 1인데 `pve_up`이 1 미만 | `pve_up`이 다시 1이 되거나, 부팅 시 시작이 꺼짐 |
+| Guest Down | 경고 | `pve.scope = guest`의 `pve_up`과 `pve_onboot_status`, `id`별 Min | `pve_onboot_status`가 1인데 `pve_up`이 1 미만 | `pve_up`이 다시 1이 되거나, 부팅 시 시작이 꺼짐 |
 | Cluster Quorum at Risk | 심각 | `pve.scope = node`의 `pve_up` ÷ `pve_node_info` × 100(둘 다 합계): 온라인 노드의 비율 | 50% 이하 | 55% 초과 |
-| High Node CPU Usage | Warning | `pve.scope = node`의 `pve_cpu_usage_ratio`, `id`별 Avg | 0.9 초과(노드 코어의 90%) | 0.81 이하 |
-| High Node Memory Usage | Warning | `pve.scope = node`의 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
-| High Guest CPU Usage | Warning | `pve.scope = guest`의 `pve_cpu_usage_ratio`, `id`별 Avg, 최근 15분 | 15분 내내 0.95 초과(vCPU의 95%) | 0.855 이하 |
-| Storage Near Full | Warning | `pve.scope = storage`의 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
-| Container Root Disk Near Full | Warning | `pve.type = lxc`에 대한 같은 디스크 비율, `id`별 | 90% 초과 | 81% 이하 |
+| Node Restarted | 경고 | `pve.scope = node`의 `pve_uptime_seconds`와 `pve_up`, `id`별 Min | `pve_up`이 1인데 `pve_uptime_seconds`가 900(15분) 미만 | `pve_uptime_seconds`가 990 이상이 되거나 `pve_up`이 0이 됨 |
+| High Node CPU Usage | 경고 | `pve.scope = node`의 `pve_cpu_usage_ratio`, `id`별 Avg | 0.9 초과(노드 코어의 90%) | 0.81 이하 |
+| High Node Memory Usage | 경고 | `pve.scope = node`의 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
+| High Guest CPU Usage | 경고 | `pve.scope = guest`의 `pve_cpu_usage_ratio`, `id`별 Avg, 최근 15분 | 15분 내내 0.95 초과(vCPU의 95%) | 0.855 이하 |
+| Storage Unavailable | 심각 | `pve.scope = storage`의 `pve_up`, `id`별 Min | 1 미만 | 1이 됨 |
+| Storage Near Full | 경고 | `pve.scope = storage`의 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
+| Container Root Disk Near Full | 경고 | `pve.type = lxc`에 대한 같은 디스크 비율, `id`별 | 90% 초과 | 81% 이하 |
 | HA Resource in Error State | 심각 | `state = error`의 `pve_ha_state`, `id`별 Max | 0 초과 | 0이 됨 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max(클러스터 전체에 계열 하나) | 0 초과 | 0이 됨 |
+| Guest Not Backed Up | 경고 | `pve_not_backed_up_total`, Max(클러스터 전체에 계열 하나) | 0 초과 | 0이 됨 |
+| Backup Running Too Long | 경고 | `pve.scope = guest`이고 `state = backup`인 `pve_lock_state`, `id`별 Min, 최근 6시간 | 0 초과 | 0이 됨 |
 | Replication Failing | 심각 | `pve_replication_failed_syncs`, `id`(작업 ID)별 Max | 0 초과 | 0이 됨 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
 
 - **Cluster Stopped Reporting** 템플릿은 클러스터에서 10분 동안 아무것도 들어오지 않으면 작동합니다. Proxmox 에이전트나 그 pve-exporter가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소된 경우, Proxmox API가 더 이상 응답하지 않는 경우, 또는 기본 푸시의 모든 노드가 보고를 멈춘 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 - **중단 감지 템플릿은 최소를 씁니다**. 그래서 리소스가 내려가 있던 수집 한 번이 작동시키며, 리소스가 실행 중이던 수집에 가려지지 않습니다.
-- **Guest Down** 템플릿은 부팅 시 시작하도록 설정된 게스트만 보므로, 일부러 멈춘 게스트 때문에 누군가 호출되는 일은 없습니다.
-- **Cluster Quorum at Risk** 템플릿은 근사치입니다. pve-exporter에는 corosync 메트릭이 없으므로 온라인인 노드를 셉니다.
+- **Guest Down** 템플릿은 부팅 시 시작하도록 설정된 게스트만 봅니다. 그런 게스트는 일부러 멈춰도 호출이 일어나므로, 먼저 부팅 시 시작을 끄세요.
+- **Cluster Quorum at Risk** 템플릿은 온라인인 노드를 셉니다. pve-exporter는 쿼럼 자체도 `cluster/<name>`의 `pve_up`으로 보고하며, 클러스터에 쿼럼이 있는 동안 1입니다.
+- **Node Restarted** 템플릿은 실행 중이지만 가동된 지 15분이 안 된 노드에서 작동합니다. 재부팅했거나, 충돌한 뒤 다시 올라온 노드입니다. 노드가 16.5분 동안 가동되면(임계값에서 10% 지난 지점) 해결됩니다. 다운된 노드에서는 대신 **Node Offline** 이 작동합니다.
 - **High Guest CPU Usage** 템플릿은 노드 템플릿보다 높고 느립니다. 게스트는 원래 vCPU를 쓰도록 만들어졌으므로, 결코 내려오지 않는 게스트만 호출합니다.
 - **비율 수식** 은 양쪽의 **합계** 를 씁니다. 둘 다 같은 수집에서 오므로 결과는 진짜 퍼센트입니다.
 - **Container Root Disk Near Full** 템플릿은 QEMU VM을 제외합니다. QEMU 게스트 에이전트가 없으면 디스크 사용량이 0으로 나오기 때문입니다.
+- **Storage Unavailable** 템플릿은 Proxmox VE가 노드에 대해 나열하는 스토리지를 더 이상 사용할 수 없게 되면 작동합니다. 마운트할 수 없는 공유, 연결할 수 없는 Proxmox Backup Server, 사라진 풀 같은 경우입니다. 그곳에 디스크가 있는 게스트는 멈추거나 시작되지 않고, 그곳으로 가는 백업은 실패합니다.
 - **Guest Not Backed Up** 템플릿은 백업 작업에 포함되었는지만 다룹니다. pve-exporter는 백업이 실행되었는지, 성공했는지 알려 주지 않습니다. 게스트 목록을 보려면 `pve_not_backed_up_info`를 `id`로 그룹화하세요.
+- **Backup Running Too Long** 템플릿은 VM이나 컨테이너가 6시간 동안의 모든 수집에서 백업에 의해 잠겨 있으면 작동합니다. 멈춘 백업이거나, 게스트에 비해 너무 느린 백업 대상입니다. 잠금이 유지되는 동안 그 게스트는 마이그레이션도, 스냅샷도, 다시 백업도 할 수 없습니다.
 - **복제 지연**(현재 시각에서 마지막 동기화를 뺀 값)은 기준에서 시간 계산을 할 수 없으므로 알림에 쓸 수 없습니다. 클러스터의 **개요** 페이지에 표시되니, 대신 **Replication Failing** 으로 알림을 보내세요.
+
+### Proxmox VE 통지에 대한 알림
+
+알림 두 개가 더 Proxmox VE 자체 통지를 읽습니다. 통지를 [OneUptime으로 보내면](/docs/telemetry/proxmox#proxmox-ve-통지-보내기) 클러스터가 이를 로그로 보냅니다. 이 알림은 로그 모니터이며, 클러스터의 **권장 사항** 페이지에서 제안되고, 에이전트와 기본 푸시 모두에서 작동합니다.
+
+| 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | 경고 | `pve.notification.type = vzdump`이고 `pve.notification.severity = error`인 통지 로그, 노드와 작업별, 최근 60분 | 백업 작업이 실패를 보고함 | 같은 작업의 다음 실행이 성공함 |
+| Node Fenced | 심각 | `pve.notification.type = fencing`인 통지 로그, 노드별, 최근 30분 | Proxmox VE가 노드를 펜싱함 | 그 노드가 30분 동안 다시 펜싱되지 않음 |
+
+각 노드와 백업 작업마다 자체 인시던트와 알림을 받습니다. 실패한 백업 작업의 알림은 시간이 얼마나 걸리든 같은 작업의 이후 실행이 성공할 때까지 열려 있습니다.
 
 ### Proxmox VE 기본 푸시
 
 Proxmox VE 9 이상은 내장 OpenTelemetry 메트릭 서버로 아무것도 설치하지 않고 메트릭을 푸시할 수 있습니다. [Proxmox 에이전트 가이드](/docs/telemetry/proxmox)를 참고하세요. OneUptime은 푸시를 같은 `pve_*` 계열로 바꾸므로, 카탈로그와 CPU, 메모리, 스토리지 템플릿이 그대로 작동합니다.
 
-**Node Offline** 과 **Cluster Quorum at Risk** 도 작동합니다. 각 노드는 자신의 상태만 푸시하므로, 보고를 멈춘 노드는 아직 살아 있는 노드들이 중단(`pve_up` = 0)으로 보고합니다. [노드가 보고를 멈출 때](/docs/telemetry/proxmox#노드가-보고를-멈출-때)를 참고하세요. **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Replication Failing** 에는 에이전트만 수집하는 데이터가 필요합니다.
+**Node Offline** 과 **Cluster Quorum at Risk** 도 작동합니다. 각 노드는 자신의 상태만 푸시하므로, 보고를 멈춘 노드는 아직 살아 있는 노드들이 중단(`pve_up` = 0)으로 보고합니다. [노드가 보고를 멈출 때](/docs/telemetry/proxmox#노드가-보고를-멈출-때)를 참고하세요. **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long**, **Replication Failing** 에는 에이전트만 수집하는 데이터가 필요합니다. 두 [통지 알림](#proxmox-ve-통지에-대한-알림)도 기본 푸시에서 작동합니다. Proxmox VE가 통지를 직접 보내기 때문입니다.
 
 ## 수집되는 메트릭
 
@@ -154,7 +171,7 @@ Proxmox VE 9 이상은 내장 OpenTelemetry 메트릭 서버로 아무것도 설
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
-| `pve_up` | — | 노드나 게스트가 켜져 있거나 실행 중이면 1, 아니면 0. |
+| `pve_up` | — | 노드, 게스트, 스토리지가 켜져 있으면 1, 아니면 0. `cluster/<name>`은 클러스터에 쿼럼이 있는 동안 1. |
 | `pve_uptime_seconds` | 초 | 노드나 게스트의 가동 시간. |
 | `pve_version_info` | 개수 | 레이블에 담긴 Proxmox VE 릴리스. 항상 1. |
 
@@ -162,7 +179,7 @@ Proxmox VE 9 이상은 내장 OpenTelemetry 메트릭 서버로 아무것도 설
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
-| `pve_node_info` | 개수 | 노드 메타데이터, 항상 1. 합하면 보고 중인 노드 수가 됩니다. |
+| `pve_node_info` | 개수 | 노드 메타데이터, 노드가 보고하는 동안 항상 1. 합계는 매분의 스크레이프를 모두 더하므로 노드 수가 아닙니다. |
 | `pve_cpu_usage_ratio` | 비율 | 사용 가능한 CPU 대비 사용 중인 CPU의 비율(0–1). |
 | `pve_cpu_usage_limit` | 코어 | 사용 가능한 CPU(코어). 게스트는 그 vCPU. |
 | `pve_memory_usage_bytes` | 바이트 | 사용 중인 메모리. |
@@ -180,6 +197,7 @@ CPU와 메모리 계열은 각 게스트에 대해서도 `qemu/*`와 `lxc/*` ID�
 | `pve_disk_read_bytes` | 바이트 | 게스트가 디스크에서 읽은 바이트. 수명 전체 카운터. |
 | `pve_disk_write_bytes` | 바이트 | 게스트가 디스크에 쓴 바이트. 수명 전체 카운터. |
 | `pve_onboot_status` | 개수 | 노드가 부팅될 때 게스트가 시작되면 1. 이 설정이 있는 멈춘 게스트는 대개 계획에 없던 중단입니다. |
+| `pve_lock_state` | — | 작업이 게스트를 바꾸는 동안 Proxmox VE가 게스트에 거는 잠금. 잠금(`backup`, `migrate`, `snapshot`, …)마다 계열 하나가 있으며, 걸려 있는 잠금에서 1입니다. `state` 레이블로 필터링하세요. |
 
 ### 스토리지
 
@@ -187,7 +205,8 @@ CPU와 메모리 계열은 각 게스트에 대해서도 `qemu/*`와 `lxc/*` ID�
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | 바이트 | 디스크나 스토리지에서 사용 중인 바이트. QEMU 게스트는 QEMU 게스트 에이전트가 설치되어 있지 않으면 0입니다. |
 | `pve_disk_size_bytes` | 바이트 | 디스크나 스토리지의 전체 크기. |
-| `pve_storage_info` | 개수 | 스토리지 메타데이터, 항상 1. 합하면 스토리지 볼륨 수가 됩니다. |
+| `pve_storage_shared` | 개수 | NFS나 Ceph처럼 클러스터의 모든 노드가 스토리지를 쓸 수 있으면 1, 자기 노드만 쓸 수 있으면 0. |
+| `pve_storage_info` | 개수 | 스토리지 메타데이터, 존재하는 동안 항상 1. 합계는 매분의 스크레이프를 모두 더하므로 볼륨 수가 아닙니다. |
 
 ### HA
 
@@ -201,7 +220,7 @@ CPU와 메모리 계열은 각 게스트에 대해서도 `qemu/*`와 `lxc/*` ID�
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
-| `pve_not_backed_up_total` | 개수 | 어떤 백업 작업에도 속하지 않은 게스트. `id`가 없는 클러스터 전체 계열 하나. |
+| `pve_not_backed_up_total` | 개수 | 어떤 백업 작업에도 속하지 않은 게스트. `id`가 `cluster/<name>`인 클러스터 전체 계열 하나로, 0일 때도 보고됩니다. |
 | `pve_not_backed_up_info` | 개수 | 포함되지 않은 게스트마다 계열 하나, 항상 1, 게스트의 `id` 레이블이 붙습니다. 게스트가 백업 작업에 들어가면 사라집니다. |
 
 ### 복제
@@ -231,7 +250,7 @@ CPU와 메모리 계열은 각 게스트에 대해서도 `qemu/*`와 `lxc/*` ID�
 | **기준선 기간** | 이상 조건 전용. 기록 14일(기본값), 28일, 60일, 90일. |
 | **데이터가 없는 경우** | **추가 필드** 아래에 있습니다. 기간에 샘플이 없을 때의 동작: **Ignore**(기본값), **Treat As Zero**, **트리거**. |
 
-이상 조건은 각 값을 기준선의 같은 요일·같은 시간대와 비교합니다. 기준선 기간에 기록이 충분히 쌓일 때까지 "Learning" 상태로 남으며 아무것도 만들지 않습니다.
+이상 조건은 각 값을 기준선의 같은 요일·같은 시간대와 비교합니다. 기준선 기간에 기록이 충분히 쌓일 때까지 "Learning" 상태로 남으며 아무것도 만들지 않습니다. 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남습니다. 이 모니터는 쿼리를 속성으로 필터링하는데 기준선에는 속성이 없기 때문입니다.
 
 각 기준은 일치했을 때 할 일도 정합니다. 모니터 상태 변경, 알림 생성, 인시던트 선언입니다. 기준은 위에서 아래로 확인되며, 처음 일치한 기준이 결정합니다.
 
@@ -262,7 +281,7 @@ CPU와 메모리 계열은 각 게스트에 대해서도 `qemu/*`와 `lxc/*` ID�
 :::
 
 :::details 클러스터에서 뺀 노드에 대해 Node Offline이 계속 작동함
-Proxmox VE 기본 푸시에서는 클러스터에서 뺀 노드가 다운된 노드와 똑같아 보입니다. 보고를 멈췄으므로 아직 살아 있는 노드들이 계속 중단으로 보고합니다. 노드 페이지를 열고 **Remove Node** 를 클릭하면 노드가 사라지고 알림이 해결됩니다. 그러지 않으면 최대 7일 동안 오프라인으로 남습니다. 에이전트에는 이 문제가 없습니다. 에이전트는 클러스터에 묻고, 클러스터 목록에는 더 이상 그 노드가 없기 때문입니다.
+Proxmox VE 기본 푸시에서는 클러스터에서 뺀 노드가 다운된 노드와 똑같아 보입니다. 보고를 멈췄으므로 아직 살아 있는 노드들이 계속 중단으로 보고합니다. 노드 페이지를 열고 **노드 제거** 를 클릭하면 노드가 사라지고 알림이 해결됩니다. 그러지 않으면 최대 7일 동안 오프라인으로 남습니다. 에이전트에는 이 문제가 없습니다. 에이전트는 클러스터에 묻고, 클러스터 목록에는 더 이상 그 노드가 없기 때문입니다.
 :::
 
 :::details 백업이나 복제 메트릭이 없음

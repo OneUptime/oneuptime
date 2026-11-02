@@ -98,6 +98,7 @@ import {
   monitorProxmox,
   monitorVMware,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import { FoldedReadArgs, foldRowsAsSqlRead } from "./SqlGroupedFold";
 
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
@@ -135,16 +136,27 @@ function row(value: number, attributes: JSONObject): RawRow {
 }
 
 /*
- * Grouped monitors call MetricService.findBy TWICE per query: once for
- * the per-series aggregation (limit LIMIT_PER_PROJECT) and once for the
- * limit-100 breakdown scan. Rows are keyed on the metric name so each
- * query sees its own datapoints. `failScanFor` throws only on the scan,
- * never on the aggregation, which the worker deliberately lets fail loud.
+ * A grouped monitor reads each query twice: MetricService.aggregateBy,
+ * grouped in SQL by the series' keys (#5281) - the rows below folded as
+ * ClickHouse folds them (SqlGroupedFold) - and MetricService.findBy for
+ * the limit-100 breakdown scan of the raw rows. Rows are keyed on the
+ * metric name so each query sees its own datapoints. `failScanFor` throws
+ * only on the scan, never on the aggregation, which the worker
+ * deliberately lets fail loud.
  */
 function mockRawRows(input: {
   rowsByMetricName: Dictionary<Array<RawRow>>;
   failScanFor?: Array<string> | undefined;
 }): void {
+  metricAggregateBy.mockImplementation(async (args: unknown) => {
+    const aggregateArgs: FoldedReadArgs & { query: { name: string } } =
+      args as FoldedReadArgs & { query: { name: string } };
+
+    return foldRowsAsSqlRead(
+      input.rowsByMetricName[aggregateArgs.query.name] || [],
+      aggregateArgs,
+    );
+  });
   metricFindBy.mockImplementation(async (args: unknown) => {
     const findArgs: FindByArgs = args as FindByArgs;
 

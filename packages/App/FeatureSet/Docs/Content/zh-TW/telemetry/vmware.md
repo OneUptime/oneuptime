@@ -69,18 +69,28 @@ New-VIPermission -Entity (Get-Folder -NoRecursion) -Principal 'VSPHERE.LOCAL\one
 
 ### 安裝並啟動代理程式
 
+每個 OneUptime 都提供其自身發行版本的代理程式安裝指令碼和檔案：下面的命令從 `https://oneuptime.com` 下載它們，因此在自行架設的 OneUptime 上請把這個位址換成你的 URL。安裝指令碼會先儲存為 `install.sh`，讓你可以在執行前先閱讀它。
+
 :::tabs
 @tab install.sh
 下載安裝指令碼，並在將要裝載代理程式的機器上執行它：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh
 bash install.sh
 ```
 
 指令碼會詢問你的 OneUptime URL、擷取金鑰、vCenter 名稱、vCenter 端點和唯讀認證（讀取密碼時不會回顯），以及 AI 代理程式是否可以套用修正（如果可以，還會詢問它專用的 vSphere 使用者以及它絕不能變更的 VM）。它會安裝到 `/opt/oneuptime-vmware-agent`，寫入一個 `0600` 權限的 `.env` 檔案，並用 Docker Compose 啟動代理程式。它會依你輸入的原樣為 Docker Compose 為每個值加上引號，因此包含 `$`、`#`、空格或引號的密碼也能依輸入的原樣運作。再次執行指令碼會重複使用現有 `.env` 中的所有內容，不會再次詢問，這就是 [升級代理程式](#升級代理程式) 的方式。
 @tab Docker Compose
-從 [VMwareAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent) 下載 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一個新資料夾中，然後在它們旁邊建立一個 `.env` 檔案。它存放著密碼，因此請用 `chmod 600 .env` 保持其私密：
+從你的 OneUptime 下載 `docker-compose.yml` 和 `otel-collector-config.yaml` 到一個新資料夾中：
+
+```bash
+mkdir oneuptime-vmware-agent && cd oneuptime-vmware-agent
+curl -fsSLO https://oneuptime.com/install/vmware-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
+```
+
+在它們旁邊建立一個 `.env` 檔案。它存放著密碼，因此請用 `chmod 600 .env` 保持其私密：
 
 ```bash title=".env"
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -99,7 +109,7 @@ VCENTER_COLLECTION_INTERVAL=2m
 docker compose up -d
 ```
 @tab systemd
-代理程式不需要 Docker：它就是一個 OpenTelemetry Collector 二進位檔和一個設定檔。在裝有 systemd 235 或更新版本的 Linux 機器（x86_64 或 arm64；Ubuntu 18.04、Debian 10、RHEL 8 或更新版本）上，將代理程式固定的 `otelcol-contrib` 版本與同一個 `otel-collector-config.yaml` 一起作為 systemd 服務執行。代理程式為此提供的單元 [`oneuptime-vmware-agent-native.service`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service) 會以一個臨時的非特權使用者執行 Collector，不帶任何 capabilities，也沒有任何可寫入的位置。
+代理程式不需要 Docker：它就是一個 OpenTelemetry Collector 二進位檔和一個設定檔。在裝有 systemd 235 或更新版本的 Linux 機器（x86_64 或 arm64；Ubuntu 18.04、Debian 10、RHEL 8 或更新版本）上，將代理程式固定的 `otelcol-contrib` 版本與同一個 `otel-collector-config.yaml` 一起作為 systemd 服務執行。代理程式為此提供的單元 [`oneuptime-vmware-agent-native.service`](https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service) 會以一個臨時的非特權使用者執行 Collector，不帶任何 capabilities，也沒有任何可寫入的位置。
 
 下載 Collector、設定和單元，並將它們安裝到 `/opt/oneuptime-vmware-agent`：
 
@@ -109,9 +119,9 @@ VERSION=0.161.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 curl -fsSL -o oneuptime-vmware-agent.service \
-  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+  https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service
 
 sudo install -d -m 0755 /opt/oneuptime-vmware-agent
 sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
@@ -313,7 +323,7 @@ Collector 只在啟動時讀取其設定：請執行 `docker compose restart one
 Docker 安裝也可以在 systemd 下執行，使其隨機器啟動並在失敗時重新啟動。它的單元會包裝 Docker Compose，並假設代理程式位於 `/opt/oneuptime-vmware-agent`，也就是安裝指令碼放置它的位置：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
+sudo curl -fsSL https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-vmware-agent
 ```
@@ -331,15 +341,15 @@ Collector 固定在 `docker-compose.yml` 中（不使用 Docker 時則由你下�
 請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`，並重新建立代理程式，讓 Collector 讀取新的設定。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh
 bash install.sh
 ```
 @tab Docker Compose
 在代理程式的資料夾中重新下載這兩個檔案（並重新做一次你對它們所做的任何修改），然後提取映像檔並重新建立代理程式：
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -352,9 +362,9 @@ VERSION=0.161.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 curl -fsSL -o oneuptime-vmware-agent.service \
-  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+  https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service
 
 sudo install -d -m 0755 /opt/oneuptime-vmware-agent
 sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
@@ -400,10 +410,10 @@ sudo rm -r /opt/oneuptime-vmware-agent
 ## 疑難排解
 
 :::details 先執行診斷指令碼
-代理程式隨附一個指令碼 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/troubleshoot.sh)，它會檢查整條鏈路：容器執行階段、vCenter 是否回應並接受認證、加到每個指標上的 vCenter 名稱、權杖的格式、Collector 自身的指標，以及 OneUptime 是否接受擷取金鑰。最後一項檢查最重要。OneUptime 會以 `401` 拒絕錯誤的金鑰（已停用的金鑰或瀏覽器金鑰為 `422`），而 Collector 會將兩者都視為永久性錯誤：它會捨棄該批次並記錄一則 `Exporting failed` 錯誤，而容器仍保持正常，這很容易被忽略。該指令碼會從代理程式的網路內部要求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（無效），在較舊的伺服器上改用 `POST /fluentd/v1/logs`，並以相同方式要求 `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml`，因此 DNS、防火牆和 TLS 故障會以 Collector 遇到時的樣子完整呈現。
+代理程式隨附一個指令碼 [`troubleshoot.sh`](https://oneuptime.com/install/vmware-agent/troubleshoot.sh)，它會檢查整條鏈路：容器執行階段、vCenter 是否回應並接受認證、加到每個指標上的 vCenter 名稱、權杖的格式、Collector 自身的指標，以及 OneUptime 是否接受擷取金鑰。最後一項檢查最重要。OneUptime 會以 `401` 拒絕錯誤的金鑰（已停用的金鑰或瀏覽器金鑰為 `422`），而 Collector 會將兩者都視為永久性錯誤：它會捨棄該批次並記錄一則 `Exporting failed` 錯誤，而容器仍保持正常，這很容易被忽略。該指令碼會從代理程式的網路內部要求 `GET <url>/otlp/v1/validate`，直接得到 `200`（有效）或 `401`（無效），在較舊的伺服器上改用 `POST /fluentd/v1/logs`，並以相同方式要求 `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml`，因此 DNS、防火牆和 TLS 故障會以 Collector 遇到時的樣子完整呈現。
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-vmware-agent
 ```
 

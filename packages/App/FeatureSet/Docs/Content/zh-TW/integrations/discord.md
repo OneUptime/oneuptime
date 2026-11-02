@@ -16,10 +16,10 @@ flowchart TB
     declared["事件已宣佈"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
     step -->|"Success"| channel["你的頻道中<br/>的訊息"]
-    step -->|"Error"| log["Log：未送達<br/>的原因"]
+    step -->|"Error"| failed["執行失敗，<br/>並說明原因"]
 ```
 
-該步驟把 **Message Text** 發布到頻道的 webhook。Discord 接受訊息時，它走 **Success** 輸出；Discord 拒絕時，它帶著 Discord 給出的原因走 **Error** 輸出。範本把一個 **Log** 步驟連接到 **Error**，所以未能發布的執行會說明原因。
+該步驟把 **Message Text** 發布到頻道的 webhook。Discord 接受訊息時，它走 **Success** 輸出；Discord 拒絕時，它帶著 Discord 給出的原因走 **Error** 輸出。像範本中那樣 **Error** 上沒有連接任何東西時，未能發布的執行會失敗，其 **步驟** 會說明原因。
 
 ## 開始之前
 
@@ -48,7 +48,7 @@ flowchart TB
 3. 保留名稱 **Notify Discord on new incident** 或更改它，然後點選 **下一步**。
 4. 把 URL 貼上到 **Discord Webhook URL** 中，然後點選 **建立工作流程**。
 
-工作流程會在 **建構器** 中開啟，包含三個步驟：**On Create Incident**；**Send Message to Discord**，它發布事件的編號、標題、嚴重程度和狀態；以及連接在其 **Error** 輸出上的一個 **Log** 步驟。URL 會儲存為工作流程的機密變數 `discordWebhookUrl`。
+工作流程會在 **建構器** 中開啟，包含兩個步驟： **On Create Incident**，以及發布事件編號、標題、嚴重程度和狀態的 **Send Message to Discord**。URL 會儲存為工作流程的機密變數 `discordWebhookUrl`。
 @tab 從零開始
 1. 把 URL 儲存為機密的全域變數：前往 **工作流程 → 全域變數**，點選 **建立工作流程 變數**，將其命名為 `DISCORD_WEBHOOK_URL`，然後點選 **下一步**。把 URL 貼上到 **內容** 中，開啟 **密鑰**，然後點選 **建立工作流程 變數**。
 2. 前往 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，為工作流程命名，然後點選 **建立工作流程**。
@@ -68,7 +68,7 @@ flowchart TB
 
 在 **建構器** 頂部開啟 **已啟用**。從現在起，每個新事件都會發布到頻道中。
 
-要在不開啟事件的情況下進行測試，請點選 **執行工作流程**，在 **事件** 下選擇一個既有的事件：清單中會列出最近的事件，輸入它的編號或標題的一部分可以找到其他事件。點選 **手動執行工作流程**，然後用 **執行** 確認。**工作流程執行** 面板會追蹤這次執行，訊息會出現在頻道中。如果該步驟改走 **Error**，**Log** 步驟的那一列會說明原因：請參閱 [疑難排解](#疑難排解)。
+要在不開啟事件的情況下進行測試，請點選 **執行工作流程**，在 **事件** 下選擇一個既有的事件：清單中會列出最近的事件，輸入它的編號或標題的一部分可以找到其他事件。點選 **手動執行工作流程**，然後用 **執行** 確認。**工作流程執行** 面板會追蹤這次執行，訊息會出現在頻道中。如果該步驟改走 **Error**，執行就會失敗， **步驟** 中該步驟的項目會說明原因：請參閱 [疑難排解](#疑難排解)。
 :::
 
 ## 提示
@@ -80,7 +80,7 @@ flowchart TB
 
 ## 疑難排解
 
-當該步驟走 **Error** 時，執行會說明原因：範本的 **Log** 步驟會寫下 `❌ Discord could not deliver the incident notification:` 和 Discord 給出的原因。
+當該步驟走 **Error** 時，執行會失敗，執行的 **步驟** 中該步驟的項目會給出 Discord 的原因。
 
 :::details Discord 傳回 "Unknown Webhook" 或 "Invalid Webhook Token"
 webhook 已被刪除，或者 URL 複製錯了。請建立一個新的 webhook 並替換 URL：在範本的工作流程中是變數 `discordWebhookUrl`；在你自己的工作流程中是 `DISCORD_WEBHOOK_URL` 的內容。

@@ -160,6 +160,11 @@ export function getRunnerFormFields(
   const description: Field<Runner> = {
     field: { description: true },
     title: "Description",
+    /*
+     * Its column's help ("Optional description for this agent") names an
+     * agent; the title, "(Optional)" and the placeholder say it all.
+     */
+    hideColumnDescription: true,
     fieldType: FormFieldSchemaType.LongText,
     required: false,
     placeholder:

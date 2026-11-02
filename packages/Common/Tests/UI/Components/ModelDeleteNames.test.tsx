@@ -27,6 +27,7 @@ import ModelDelete from "../../../UI/Components/ModelDelete/ModelDelete";
 import { MAX_DISPLAY_NAME_LENGTH } from "../../../UI/Utils/ModelDisplayName";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
@@ -427,6 +428,95 @@ describe("ModelDelete names the record", () => {
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
       "Are you sure you want to delete this workflow?",
     );
+  });
+
+  /*
+   * App Platforms' environments are CloudResource rows, whose own noun is
+   * Cloud's: the environment's Delete page names them as App Platforms does.
+   */
+  it("calls the record what the page calls it, on the card and in the dialog", async () => {
+    mockGetItem(() => {
+      return makeModel(CloudResource, { name: "checkout · us-east-1" });
+    });
+
+    render(
+      <ModelDelete
+        modelType={CloudResource}
+        modelId={WORKFLOW_ID}
+        singularName="Cloud Environment"
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+        /^checkout · us-east-1$/,
+      );
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Delete Cloud Environment" }),
+    ).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/cloud resource/i);
+
+    openDialog("Delete Cloud Environment");
+
+    expect(
+      screen.getByRole("dialog", { name: "Delete Cloud Environment" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Delete Cloud Environment",
+    );
+  });
+
+  it("asks about the page's kind of thing when the name cannot be read", async () => {
+    getJestSpyOn(ModelAPI, "getItem").mockImplementation((): any => {
+      return Promise.reject(new Error("You cannot read this column."));
+    });
+
+    render(
+      <ModelDelete
+        modelType={CloudResource}
+        modelId={WORKFLOW_ID}
+        singularName="Cloud Environment"
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    openDialog("Delete Cloud Environment");
+
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      "Are you sure you want to delete this cloud environment?",
+    );
+  });
+
+  it("keeps the model's own noun when the page names none, or a blank one", async () => {
+    mockGetItem(() => {
+      return makeModel(CloudResource, { name: "vm-prod-01" });
+    });
+
+    render(
+      <ModelDelete
+        modelType={CloudResource}
+        modelId={WORKFLOW_ID}
+        singularName="  "
+        onDeleteSuccess={(): void => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("delete-confirmation-name")).toHaveTextContent(
+        /^vm-prod-01$/,
+      );
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Delete Cloud Resource" }),
+    ).toBeInTheDocument();
   });
 
   it("shortens a very long name, and shows the whole of it on hover", async () => {

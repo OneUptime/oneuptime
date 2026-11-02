@@ -23,6 +23,7 @@ import {
   WorkflowTemplateCategory,
   WorkflowTemplateOutline,
   WorkflowTemplateVariable,
+  WorkflowTemplateWhoToPage,
   getRecommendedWorkflowTemplates,
   getWorkflowTemplateCategoryInfo,
   getWorkflowTemplateOutline,
@@ -416,6 +417,8 @@ export interface WorkflowTemplatePreview {
   blockCount: number;
   /** What the Configure step will ask for, in the order it asks. */
   settings: Array<WorkflowTemplateVariable>;
+  /** Who its Page steps page, which the Configure step asks after the settings. */
+  whoToPage: Array<WorkflowTemplateWhoToPage>;
 }
 
 export type FindWorkflowComponentFunction = (
@@ -506,5 +509,6 @@ export const getWorkflowTemplatePreview: GetWorkflowTemplatePreviewFunction = (
     ),
     blockCount: outline.blockCount,
     settings: [...template.variables],
+    whoToPage: [...(template.whoToPage || [])],
   };
 };

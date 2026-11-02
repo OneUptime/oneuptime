@@ -1,8 +1,13 @@
 import {
   CONNECTION_FIELD_BY_PROVIDER,
+  RUN_ALWAYS,
+  RUN_ALWAYS_LABEL,
+  RUN_IF_KEY,
   STEP_ACTION_KEY,
+  describeRunIfFormValue,
   formValuesToStep,
   getNewStepFormValues,
+  getRunIfOptions,
   getStepDialogWords,
   isApprovalSwitchOffered,
   stepToFormValues,
@@ -54,9 +59,12 @@ import {
 } from "Common/UI/Components/CardSelect/CardSelect";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -79,6 +87,8 @@ export interface ComponentProps {
   step?: SecurityPlaybookStep | undefined;
   // Where the step sits (or will sit) in the playbook, for its messages.
   index: number;
+  // The steps before it, whose results Run This Step can wait on.
+  earlierSteps: Array<SecurityPlaybookStep>;
   connections: Array<PlaybookConnectionOption>;
   // The project's case priorities and statuses, which the case steps set.
   caseValues: SecurityCaseValueLists;
@@ -238,6 +248,10 @@ export function getStepSettingsFields(
     caseValues?: SecurityCaseValueLists | undefined;
     // The step's own priority and status ids, kept in the pickers if archived.
     step?: SecurityPlaybookStep | undefined;
+    // The steps before it, whose results Run This Step can wait on.
+    earlierSteps?: Array<SecurityPlaybookStep> | undefined;
+    // For Run This Step's choices, which name the earlier steps.
+    translator?: Translator | undefined;
   } = {
     mayTurnOffContainmentApproval: false,
   },
@@ -263,6 +277,16 @@ export function getStepSettingsFields(
       values["statusId"] as string | undefined,
     );
   };
+
+  const earlierSteps: Array<SecurityPlaybookStep> = options.earlierSteps || [];
+  const translator: Translator | undefined = options.translator;
+  /*
+   * Run This Step and Carry On If It Fails: how a step runs, which most
+   * steps leave as it is - folded under More fields, whose line says what
+   * either is set to.
+   */
+  const howItRuns: FormFieldCollapsibleSection<JSONObject> =
+    getAdvancedFormSection<JSONObject>();
 
   const connectionField: (
     provider: SecurityEventConnectorProvider,
@@ -408,6 +432,42 @@ export function getStepSettingsFields(
       },
       showIf: (values: FormValues<JSONObject>): boolean => {
         return isAction(values, SecurityPlaybookActionType.AddCaseLabels);
+      },
+    },
+    {
+      field: { tasks: true },
+      title: "Tasks",
+      // The most a step adds: SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP.
+      description:
+        "One task a line, up to 20. A task the case has already is not added again.",
+      fieldType: FormFieldSchemaType.LongText,
+      stepId: "settings",
+      placeholder: "Confirm the sign-in with the user",
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.AddCaseTasks);
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.AddCaseTasks);
+      },
+    },
+    {
+      field: { assigneeUserId: true },
+      // As the case's own Tasks page names who does a task.
+      title: "Assign To",
+      description:
+        "Who does the tasks. Left empty, they are for whoever works the case.",
+      fieldType: FormFieldSchemaType.PeoplePicker,
+      stepId: "settings",
+      peoplePicker: {
+        kinds: [{ kind: PeoplePickerKind.User, valueKey: "assigneeUserId" }],
+        isSinglePick: true,
+        addButtonText: translationKey("Choose someone"),
+        searchPlaceholder: translationKey("Search by name or email…"),
+        emptyText: translationKey("No project members"),
+      },
+      required: false,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.AddCaseTasks);
       },
     },
     {
@@ -593,6 +653,28 @@ export function getStepSettingsFields(
       ],
       translationKey(
         "The Microsoft Defender XDR connection to act through. Its app needs the Machine.Isolate permission. Add or test connections under Sources > Connections.",
+      ),
+    ),
+    connectionField(
+      SecurityEventConnectorProvider.MicrosoftEntraId,
+      [
+        SecurityPlaybookActionType.DisableEntraIdUser,
+        SecurityPlaybookActionType.SignOutEntraIdUser,
+        SecurityPlaybookActionType.EnableEntraIdUser,
+      ],
+      translationKey(
+        "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.",
+      ),
+    ),
+    connectionField(
+      SecurityEventConnectorProvider.GoogleWorkspace,
+      [
+        SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+        SecurityPlaybookActionType.SignOutGoogleWorkspaceUser,
+        SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
+      ],
+      translationKey(
+        "The Google Workspace connection to act through. Its domain-wide delegation needs the admin.directory.user and admin.directory.user.security scopes. Add or test connections under Sources > Connections.",
       ),
     ),
     {
@@ -793,13 +875,48 @@ export function getStepSettingsFields(
       },
     },
     {
-      field: { onlyIfThreatIntelMatched: true },
-      title: "Only If Threat Intel Matched",
+      field: { [RUN_IF_KEY]: true },
+      title: "Run This Step",
       description:
-        "Skip this step unless an earlier Check Threat Intel step of the run found a known indicator.",
-      fieldType: FormFieldSchemaType.Toggle,
+        "Always, or only after an earlier step's result: contain only what threat intel knows is bad, and do something else when it finds nothing.",
+      fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
+      dropdownOptions: translator
+        ? getRunIfOptions({
+            earlierSteps,
+            step: options.step,
+            translator,
+          })
+        : [],
+      defaultValue: RUN_ALWAYS,
+      /*
+       * It always says when the step runs: Always, unless a branch is
+       * picked. So it carries no "(Optional)", and cleared with its × it
+       * reads Always - which is what a step with nothing picked does.
+       */
       required: false,
+      hideOptionalLabel: true,
+      placeholder: RUN_ALWAYS_LABEL,
+      collapsibleSection: howItRuns,
+      // Folded, the line says what it waits on in the step card's words.
+      ...(translator
+        ? {
+            getFoldedValue: (values: FormValues<JSONObject>): string | null => {
+              return describeRunIfFormValue({
+                value: values[RUN_IF_KEY],
+                earlierSteps,
+                translator,
+              });
+            },
+          }
+        : {}),
+      // The first step has nothing before it to wait on.
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return (
+          earlierSteps.length > 0 ||
+          Boolean(values[RUN_IF_KEY] && values[RUN_IF_KEY] !== RUN_ALWAYS)
+        );
+      },
     },
     {
       field: { continueOnFailure: true },
@@ -809,6 +926,7 @@ export function getStepSettingsFields(
       fieldType: FormFieldSchemaType.Toggle,
       stepId: "settings",
       required: false,
+      collapsibleSection: howItRuns,
     },
   ];
 }
@@ -866,7 +984,7 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
           : {
               requiresApproval: false,
               continueOnFailure: false,
-              onlyIfThreatIntelMatched: false,
+              [RUN_IF_KEY]: RUN_ALWAYS,
             },
         onChange: (
           values: FormValues<JSONObject>,
@@ -902,6 +1020,8 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
             ),
             caseValues: props.caseValues,
             step: props.step,
+            earlierSteps: props.earlierSteps,
+            translator,
           }),
         ],
       }}

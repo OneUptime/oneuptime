@@ -121,29 +121,41 @@ const OBJECT_PAGES: Record<string, PageMap> = {
   PersistentVolume: PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL,
   HorizontalPodAutoscaler: PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL,
   VerticalPodAutoscaler: PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL,
+  DeploymentConfig: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+  Route: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+  Service: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
 };
+
+// The Kinds whose names repeat across namespaces, and whose page asks which.
+const PAGES_THAT_READ_THE_NAMESPACE: ReadonlyArray<string> = [
+  "DeploymentConfig",
+  "Route",
+  "Service",
+];
 
 /*
  * The page of an Event's object, or null for a Kind OneUptime has no page
- * for (a Service, an Ingress, ...). A ReplicaSet opens its Deployment: a
- * ReplicaSet is `<deployment>-<hash>`.
+ * for (an Ingress, ...). A ReplicaSet opens its Deployment: a ReplicaSet is
+ * `<deployment>-<hash>`. A ReplicationController opens its DeploymentConfig
+ * in the same way: a rollout's is `<deploymentconfig>-<version>`.
  */
 export function getKubernetesObjectRoute(data: {
   clusterId: ObjectID;
   kind: string;
   name: string;
+  namespace?: string | undefined;
 }): Route | null {
   let kind: string = data.kind;
   let name: string = data.name;
 
-  if (kind === "ReplicaSet") {
+  if (kind === "ReplicaSet" || kind === "ReplicationController") {
     const lastDash: number = name.lastIndexOf("-");
 
     if (lastDash <= 0) {
       return null;
     }
 
-    kind = "Deployment";
+    kind = kind === "ReplicaSet" ? "Deployment" : "DeploymentConfig";
     name = name.slice(0, lastDash);
   }
 
@@ -153,10 +165,14 @@ export function getKubernetesObjectRoute(data: {
     return null;
   }
 
-  return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
+  const route: Route = RouteUtil.populateRouteParams(RouteMap[page] as Route, {
     modelId: data.clusterId,
     subModelId: new ObjectID(name),
   });
+
+  return data.namespace && PAGES_THAT_READ_THE_NAMESPACE.includes(kind)
+    ? route.addQueryParams({ namespace: data.namespace })
+    : route;
 }
 
 type SortKey = "lastSeenAt" | "count" | "reason" | "objectName";
@@ -236,11 +252,13 @@ export const KubernetesNamespaceChip: FunctionComponent<{
 export const KubernetesObjectChip: FunctionComponent<{
   kind: string;
   name: string;
+  namespace?: string | undefined;
   clusterId: ObjectID;
   dataTestId: string;
 }> = (props: {
   kind: string;
   name: string;
+  namespace?: string | undefined;
   clusterId: ObjectID;
   dataTestId: string;
 }): ReactElement => {
@@ -248,6 +266,7 @@ export const KubernetesObjectChip: FunctionComponent<{
     clusterId: props.clusterId,
     kind: props.kind,
     name: props.name,
+    namespace: props.namespace,
   });
 
   return (
@@ -409,6 +428,7 @@ const EventCell: FunctionComponent<{
               <KubernetesObjectChip
                 kind={row.objectKind}
                 name={row.objectName}
+                namespace={row.namespace}
                 clusterId={props.clusterId}
                 dataTestId="kubernetes-event-object"
               />
@@ -474,6 +494,7 @@ const ObjectCell: FunctionComponent<{
     clusterId: props.clusterId,
     kind: row.objectKind,
     name: row.objectName,
+    namespace: row.namespace,
   });
 
   return (

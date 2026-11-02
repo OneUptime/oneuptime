@@ -166,6 +166,23 @@ const podmanMetricCatalog: Array<PodmanMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     unit: "count",
   },
+  /*
+   * What to alert on for restarts: the agent sends, with each sample, the
+   * restarts since its previous sample of the container
+   * (cumulative_to_delta/restarts-increase in the agent's config), so their
+   * Sum over a window is the restarts in it. container.restarts above is
+   * the lifetime count, for the charts.
+   */
+  {
+    id: "container-restarts-increase",
+    friendlyName: "Container Restarts (Increase)",
+    description:
+      "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+    metricName: "container.restarts.increase",
+    category: "Container",
+    defaultAggregation: MetricsAggregationType.Sum,
+    unit: "count",
+  },
   {
     id: "container-pids-count",
     friendlyName: "Container Process Count",

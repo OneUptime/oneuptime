@@ -1,13 +1,18 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
 import ResourceTable, {
   InfrastructureResource,
 } from "../../../Components/Infrastructure/ResourceTable";
 import {
-  fetchProxmoxInventoryResources,
+  fetchProxmoxInventoryRows,
   routeParamFromExternalId,
 } from "../Utils/ProxmoxResourceUtils";
+import {
+  getProxmoxNodeColumns,
+  toProxmoxListResource,
+} from "../../../Components/Proxmox/ProxmoxResourceColumns";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -22,13 +27,17 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProxmoxClusterNodes: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
+  // The whole inventory: the nodes, and the guests each one runs.
+  const [rows, setRows] = useState<Array<ProxmoxResourceModel>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -36,17 +45,17 @@ const ProxmoxClusterNodes: FunctionComponent<
     setIsLoading(true);
     try {
       /*
-       * Postgres inventory read (ProxmoxResource, kind=Node) — the
-       * same rows behind the sidebar badge counts. No ClickHouse
-       * group-by; latest CPU/memory ride the inventory row.
+       * Postgres inventory read (ProxmoxResource) — the same rows behind
+       * the sidebar badge counts. No ClickHouse group-by; latest CPU and
+       * memory ride the inventory row, and each node's guests are counted
+       * from the same read.
        */
-      const nodeList: Array<InfrastructureResource> =
-        await fetchProxmoxInventoryResources({
+      const inventory: Array<ProxmoxResourceModel> =
+        await fetchProxmoxInventoryRows({
           proxmoxClusterId: modelId,
-          kind: "Node",
         });
 
-      setResources(nodeList);
+      setRows(inventory);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -67,13 +76,19 @@ const ProxmoxClusterNodes: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  const resources: Array<InfrastructureResource> = rows
+    .filter((row: ProxmoxResourceModel): boolean => {
+      return row.kind === "Node";
+    })
+    .map(toProxmoxListResource);
+
   return (
     <ResourceTable
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}
       title="Nodes"
-      description="All nodes in this Proxmox cluster with their current resource usage."
+      description="All nodes in this Proxmox cluster with their current resource usage and the guests they run."
       resources={resources}
       showGroupColumn={false}
       builtInColumnDescriptions={{
@@ -84,6 +99,7 @@ const ProxmoxClusterNodes: FunctionComponent<
       }}
       tableIdPrefix="proxmox"
       emptyMessage="No nodes reported yet. Make sure the Proxmox agent is sending metrics."
+      columns={getProxmoxNodeColumns({ rows: rows, translator: translator })}
       getViewRoute={(resource: InfrastructureResource) => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL] as Route,

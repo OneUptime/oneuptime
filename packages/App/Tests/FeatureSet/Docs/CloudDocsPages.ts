@@ -67,6 +67,7 @@ export const PERSIAN_PATH_SEPARATOR: string = " > ";
  * at, with the navbar key the menu draws each one's title from.
  */
 export const PRODUCTS_MENU_KEYS: Readonly<Record<string, string>> = {
+  "App Platforms": "appPlatformsTitle",
   Cloud: "cloudTitle",
   "Project Settings": "projectSettingsTitle",
 };
@@ -214,6 +215,7 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A resource detector says where the workload runs.",
     "The environment is the roll-up.",
     "Each running task is an instance.",
+    "Each service is an app.",
     "An ingestion key.",
     "OpenTelemetry in your application.",
     "Resource detector:",
@@ -222,6 +224,10 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "Dotted Azure spellings work.",
     "environment key",
     "Instance identity",
+    "A revision the app never ran is a deploy.",
+    "Going back is a rollback.",
+    "Both are changes.",
+    "At most 12 new revisions of an app are recorded in an hour.",
     "From your telemetry:",
     "From rules:",
   ],

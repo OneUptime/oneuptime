@@ -731,7 +731,8 @@ export function scriptOf(templateId: string, componentId: string): string {
     (candidate: JSONObject): boolean => {
       return (
         candidate["componentId"] === componentId &&
-        candidate["metadataId"] === ComponentID.JavaScriptCode
+        (candidate["metadataId"] === ComponentID.JavaScriptCode ||
+          candidate["metadataId"] === ComponentID.JavaScriptCheck)
       );
     },
   );

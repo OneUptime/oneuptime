@@ -19,6 +19,14 @@ import {
   CUSTOM_FIELD_NO_LONGER_AN_OPTION_COLOR,
   CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEXT,
 } from "../CustomFields/CustomFieldFormFields";
+import CustomFieldFileList from "../CustomFields/CustomFieldFileList";
+import TableDate from "../Table/TableDate";
+import {
+  CustomFieldFile,
+  formatCustomFieldFileNames,
+  isCustomFieldFileType,
+  readCustomFieldFiles,
+} from "../../../Types/CustomField/CustomFieldFile";
 
 /*
  * ---------------------------------------------------------------------------
@@ -221,6 +229,21 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
     return empty;
   }
 
+  /*
+   * A file field's files, by name: the first, and how many more - every
+   * name on hover. Downloads are on the record's own Custom Fields card,
+   * where whoever may read the record may have them.
+   */
+  if (isCustomFieldFileType(definition.customFieldType)) {
+    const files: Array<CustomFieldFile> = readCustomFieldFiles(value);
+
+    if (files.length === 0) {
+      return empty;
+    }
+
+    return <CustomFieldFileList files={files} isCompact={true} />;
+  }
+
   if (definition.customFieldType === CustomFieldType.Boolean) {
     /*
      * A boolean custom field renders "No" rather than falling into the empty
@@ -248,8 +271,10 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
     /*
      * Stored as ISO-8601 (the shared date Input normalises every entry through
      * OneUptimeDate.toString()), which is unreadable in a cell, so it is shown
-     * in the viewer's own timezone — the same rendering Detail gives a date
-     * field, so the list and the item page agree.
+     * in the viewer's own timezone, as every date in a table is (TableDate):
+     * short in the cell - "Aug 17, 14:30", the year only when it is not this
+     * year's - and under the pointer whole, as Detail gives a date field
+     * ("Aug 17 2026, 14:30 UTC"), so the list and the item page agree.
      */
     const isDateOnly: boolean =
       definition.customFieldType === CustomFieldType.Date;
@@ -281,18 +306,7 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
       return <span>{raw}</span>;
     }
 
-    try {
-      return (
-        <span>
-          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            parsed,
-            isDateOnly,
-          )}
-        </span>
-      );
-    } catch {
-      return <span>{raw}</span>;
-    }
+    return <TableDate value={parsed} onlyShowDate={isDateOnly} />;
   }
 
   if (definition.customFieldType === CustomFieldType.MultiSelectDropdown) {
@@ -423,6 +437,11 @@ export const getCustomFieldColumns: GetCustomFieldColumnsFunction = <
 
           if (value === undefined || value === null) {
             return "";
+          }
+
+          // A file field exports its files' names, never their ids or JSON.
+          if (isCustomFieldFileType(definition.customFieldType)) {
+            return formatCustomFieldFileNames(value);
           }
 
           if (Array.isArray(value)) {

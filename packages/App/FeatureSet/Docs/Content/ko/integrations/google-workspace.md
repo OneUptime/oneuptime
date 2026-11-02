@@ -43,11 +43,12 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 ### 도메인 전체 위임 허용
 
 1. [Google 관리 콘솔](https://admin.google.com)에서 최고 관리자로 **Security → Access and data control → API controls → Manage domain-wide delegation**을 열고 **Add new**를 선택합니다.
-2. 서비스 계정의 **Unique ID**를 **Client ID**로, `https://www.googleapis.com/auth/admin.reports.audit.readonly`를 유일한 **OAuth scope**로 입력합니다. **Authorize**를 선택합니다. Google이 적용하는 데 몇 분 걸릴 수 있습니다.
+2. 서비스 계정의 **Unique ID**를 **Client ID**로, `https://www.googleapis.com/auth/admin.reports.audit.readonly`를 **OAuth scope**로 입력합니다. **Authorize**를 선택합니다. Google이 적용하는 데 몇 분 걸릴 수 있습니다.
+3. 플레이북이 사용자를 정지, 정지 해제, 로그아웃할 수 있게 하려면( [봉쇄](/docs/telemetry/security-cases#봉쇄) 참고), 같은 클라이언트의 범위에 `https://www.googleapis.com/auth/admin.directory.user` 와 `https://www.googleapis.com/auth/admin.directory.user.security` 를 쉼표로 구분해 추가합니다. 그러면 연결이 대신 동작하는 관리자는 그 사용자들을 관리하는 관리자여야 합니다.
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **아이덴티티** 아래의 **Google Workspace**를 고르고 **다음**을 클릭합니다. **Administrator email**을 입력하고 **다음**을 클릭한 뒤, 키 파일의 내용을 **서비스 계정 JSON**에 붙여 넣습니다. **폴링** 단계에서 **드라이브 활동**을 켜면 드라이브도 읽습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **아이덴티티** 아래의 **Google Workspace**를 고르고 **다음**을 클릭합니다. **Administrator email**을 입력하고 **다음**을 클릭한 뒤, 키 파일의 내용을 **서비스 계정 JSON**에 붙여 넣습니다. **폴링** 단계에서 **드라이브 활동**을 켜면 드라이브도 읽습니다.
 
 ### 저장하기 전에 테스트
 

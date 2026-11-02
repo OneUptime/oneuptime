@@ -203,6 +203,67 @@ describe("the VMware product page entry", () => {
   });
 });
 
+describe("the OpenShift page entry", () => {
+  /*
+   * The Kubernetes product monitors OpenShift, so /product/openshift is a
+   * solution that leads there, whatever its address reads like. The page type
+   * is what keeps it out of the products in llms.txt and products.json, and
+   * the missing softwareApplication what keeps it from describing a product of
+   * its own, so both are pinned, with the trail that runs through Kubernetes.
+   */
+  const seo: PageSEOData | undefined = PageSEOConfig["/product/openshift"];
+
+  test("is registered as a solution, not a product", () => {
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/openshift");
+    expect(seo!.pageType).toBe("solutions");
+    expect(seo!.twitterCard).toBe("summary_large_image");
+    expect(seo!.softwareApplication).toBeUndefined();
+  });
+
+  test("walks Home → Products → Kubernetes → OpenShift", () => {
+    expect(seo!.breadcrumbs).toEqual([
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Kubernetes", url: "/product/kubernetes" },
+      { name: "OpenShift", url: "/product/openshift" },
+    ]);
+  });
+
+  test("says what the page is about, and that it is the Kubernetes product", () => {
+    const copy: string = `${seo!.title} ${seo!.description}`;
+
+    expect(seo!.title).toMatch(/^OpenShift Monitoring \|/);
+    expect(seo!.title).toMatch(/\| OneUptime$/);
+    for (const term of [
+      "ROSA",
+      "ARO",
+      "OKD",
+      "EKS, AKS and GKE",
+      "Kubernetes product",
+      "openshift preset",
+      "oc adm policy",
+    ]) {
+      expect(copy).toContain(term);
+    }
+  });
+
+  test("claims no certification, listing or partnership", () => {
+    const copy: string = `${seo!.title} ${seo!.description}`;
+
+    expect(copy).not.toMatch(/certif|operatorhub|partner|red hat/i);
+  });
+
+  test("the Kubernetes product names the OpenShift platforms it monitors", () => {
+    const kubernetes: PageSEOData = PageSEOConfig["/product/kubernetes"]!;
+
+    expect(kubernetes.pageType).toBe("product");
+    expect(kubernetes.softwareApplication!.features).toContain(
+      "OpenShift Container Platform, ROSA, ARO and OKD clusters",
+    );
+  });
+});
+
 describe("the Databases product page entry", () => {
   /*
    * /product/databases is the marketing surface for the Databases product.

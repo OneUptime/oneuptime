@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> Malen **Forward new incidents to another system** bygger den samme arbeidsflyten for deg. Du finner den under **Hendelser** når du oppretter en arbeidsflyt.
+> Malen **Forward new incidents to another system** bygger denne arbeidsflyten for deg, uten Log-blokken: uten noe på **Error** får en forespørsel som feiler, kjøringen til å mislykkes, og kjøringens **Trinn** sier hvorfor. Du finner den under **Hendelser** når du oppretter en arbeidsflyt.
 
 :::steps
 ### Opprett arbeidsflyten

@@ -44,7 +44,8 @@ Tilkoblingen logger på med [OAuth 2.0-flyten for klientlegitimasjon](https://le
 
 1. Gå til **API permissions → Add a permission → Microsoft Graph → Application permissions**, velg `AuditLog.Read.All`, og velg **Add permissions**. Microsoft dokumenterer at listen over pålogginger også kan kreve `Directory.Read.All`: legg den til hvis pålogginger avvises med `403` etter at samtykket er gitt.
 2. For Microsoft 365-revisjonsloggen legger du til en ny tillatelse: **Add a permission → Office 365 Management APIs → Application permissions**, deretter `ActivityFeed.Read`.
-3. Velg **Grant admin consent for** leieren din, og bekreft. Statusen til hver tillatelse må være **Granted**: uten samtykke avvises hver lesing med `403`.
+3. For å la playbooks deaktivere, aktivere og logge ut brukere (se [Inndemming](/docs/telemetry/security-cases#inndemming)), legger du til `User.Read.All`, `User.EnableDisableAccount.All` og `User.RevokeSessions.All` på samme måte. Microsoft lar bare en app som også har rollen Privileged Authentication Administrator, endre kontoen til en administrator.
+4. Velg **Grant admin consent for** leieren din, og bekreft. Statusen til hver tillatelse må være **Granted**: uten samtykke avvises hver lesing med `403`.
 
 ### Opprett en klienthemmelighet
 
@@ -52,7 +53,7 @@ Gå til **Certificates & secrets → Client secrets → New client secret**, vel
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Entra ID** under **Identitet**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Klienthemmelighet**. Slå på **Microsoft 365-revisjonslogg** i trinnet **Henting** for å lese den også.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Entra ID** under **Identitet**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Klienthemmelighet**. Slå på **Microsoft 365-revisjonslogg** i trinnet **Henting** for å lese den også.
 
 ### Test den før du lagrer
 

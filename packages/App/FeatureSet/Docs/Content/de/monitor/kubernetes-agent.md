@@ -4,7 +4,7 @@ Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse 
 
 :::cards
 - [Den Agenten installieren](#den-agenten-installieren): Vier Schritte mit Helm.
-- [Ein Preset wählen](#ein-preset-wählen): Standard-Cluster, GKE Autopilot oder EKS Fargate.
+- [Ein Preset wählen](#ein-preset-wählen): Standard-Cluster, GKE Autopilot, EKS Fargate oder OpenShift.
 - [Häufige Optionen](#häufige-optionen): Die Einstellungen, die die meisten Cluster ändern.
 - [Fehlerbehebung](#fehlerbehebung): Ein Diagnoseskript und die üblichen Probleme.
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | Knoten-Collector | DaemonSet | Pod-Logs aus `/var/log/pods`, Kubelet- und cAdvisor-Metriken und die Betriebssystem-Metriken des Knotens. | Ja |
 | eBPF-Instrumentierung (OBI) | DaemonSet | HTTP-, gRPC-, SQL- und Redis-Traces und Anfragemetriken jedes Pods sowie die Service-Map. | Ja |
 | Kubernetes-KI-Agent | Deployment | Lässt OneUptime AI nur lesendes `kubectl` ausführen, während sie einen Vorfall oder eine Warnung auf diesem Cluster untersucht. | Ja |
-| Log-Tailer | Deployment | Pod-Logs über die Kubernetes-API, wo der Knoten-Collector sie nicht lesen kann. | Mit den Presets `gke-autopilot` und `eks-fargate` |
+| Log-Tailer | Deployment | Pod-Logs über die Kubernetes-API, wo der Knoten-Collector sie nicht lesen kann. | Mit den Presets `gke-autopilot`, `eks-fargate` und `openshift-restricted` |
 | eBPF-Profiler | DaemonSet | Fortlaufende CPU-Flammengrafiken jedes Prozesses. | Nein |
 | kube-state-metrics | Deployment | Pod-Phasen, Wartegründe von Containern und Ressourcenkontingente. | Nein |
 
@@ -92,10 +92,14 @@ Manche Kubernetes-Plattformen erlauben einem Workload nicht, ein `hostPath`-Volu
 | `standard` (Standard) | Selbst verwaltet, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Der Knoten-Collector liest `/var/log/pods` | Kubelet-, cAdvisor- und Betriebssystem-Metriken |
 | `gke-autopilot` | **GKE Autopilot** | Der Log-Tailer liest sie über die Kubernetes-API | Kubelet- und cAdvisor-Metriken, ohne `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Der Log-Tailer liest sie über die Kubernetes-API | Nichts: Fargate führt keine DaemonSets aus |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Der Knoten-Collector liest `/var/log/pods` | Kubelet-, cAdvisor- und Betriebssystem-Metriken |
+| `openshift-restricted` | **OpenShift**, wenn ein Admin keine SCC hinzufügen will | Der Log-Tailer liest sie über die Kubernetes-API | Kubelet- und cAdvisor-Metriken, ohne `hostPath` |
 
 Wenn Sie unsicher sind, lassen Sie `preset` leer, um `standard` zu erhalten. Schlägt die Installation mit einem Pod-Security-Fehler fehl, der `hostPath` nennt, installieren Sie erneut mit `gke-autopilot`, oder mit `eks-fargate` auf EKS Fargate.
 
-GKE Autopilot und EKS Fargate verweigern außerdem privilegierte Pods, die die eBPF-Instrumentierung und das Profiling brauchen, deshalb lassen deren Presets beides weg:
+GKE Autopilot und EKS Fargate verweigern außerdem privilegierte Pods, die die eBPF-Instrumentierung und das Profiling brauchen, deshalb lassen deren Presets beides weg.
+
+Auf OpenShift lehnt die standardmäßige Security Context Constraint (SCC), `restricted-v2`, den Knoten-Collector und die eBPF-Pods ab. Das Preset `openshift` legt für beide je eine SCC an, die nur von ihrem eigenen Dienstkonto verwendet wird, und lässt OpenShift die Benutzer-ID aller anderen Pods wählen:
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+Wenn ein Admin keine SCC hinzufügen will, installieren Sie stattdessen mit `--set preset=openshift-restricted`. Das Chart legt dann keine SCC an, und jeder Pod läuft unter `restricted-v2`: Pod-Logs kommen über die Kubernetes-API, und es gibt keine Betriebssystem-Metriken, eBPF-Traces oder Profile. Siehe [OpenShift](/docs/telemetry/kubernetes-agent#openshift).
 
 ## Den Cluster mit Labels versehen
 
@@ -355,7 +370,7 @@ Profiling braucht **Linux 5.10** oder neuer und einen privilegierten Pod mit den
 | `oneuptime.url` | (erforderlich) | Ihre OneUptime-URL. |
 | `oneuptime.apiKey` | (erforderlich) | Der Ingestion-Schlüssel, aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. Wird als Header `x-oneuptime-token` gesendet; ein Projekt-API-Schlüssel funktioniert nicht. |
 | `clusterName` | (erforderlich) | Der Name des Clusters, eindeutig im Projekt. Jeder Datensatz trägt ihn als `k8s.cluster.name`. |
-| `preset` | (leer: `standard`) | `standard`, `gke-autopilot` oder `eks-fargate`. Siehe [Ein Preset wählen](#ein-preset-wählen). |
+| `preset` | (leer: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift` oder `openshift-restricted`. Siehe [Ein Preset wählen](#ein-preset-wählen). |
 | `oneuptime.labels` | `{}` | Labels für jeden Datensatz dieses Agenten. Siehe [Den Cluster mit Labels versehen](#den-cluster-mit-labels-versehen). |
 | `namespaceFilters.rules` | Lässt `kube-system` aus `podLogs` und `ebpfDiscovery` heraus | Regeln, die Namespaces ein- oder ausschließen, für `podLogs`, `ebpfDiscovery`, `metrics` und `traces`. Muster können `*` verwenden, und Ausschließen gewinnt immer. |
 | `filters.logs.minSeverity` | `""` | Verwirft Pod-Logzeilen unter dieser Stufe: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` oder `FATAL`. |
@@ -408,9 +423,11 @@ kubectl delete namespace oneuptime-agent
 Führen Sie das Diagnoseskript des Charts aus. Es prüft die Pods, den Ingestion-Schlüssel und den Weg aus dem Cluster heraus, fragt OneUptime, ob der Schlüssel akzeptiert wird, und gibt ein einziges Urteil aus. Es liest nur und ändert nichts:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Jede OneUptime-Instanz stellt dieses Skript für ihr eigenes Release bereit: Verwenden Sie bei einer selbst gehosteten Instanz Ihre URL statt `https://oneuptime.com`. Um das Skript vor dem Ausführen zu lesen, öffnen Sie seine Adresse in einem Browser.
 
 Die übliche Ursache, besonders nach einer Neuinstallation, ist ein falscher oder widerrufener Ingestion-Schlüssel: OneUptime lehnt ihn ab, und der Collector verwirft jeden Stapel, während seine Pods `Running` bleiben.
 :::

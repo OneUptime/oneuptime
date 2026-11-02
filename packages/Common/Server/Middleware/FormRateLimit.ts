@@ -11,6 +11,7 @@ import ClientRateLimitCounter, {
   ClientRateLimitRefusal,
 } from "../Utils/RateLimit/ClientRateLimitCounter";
 import Response from "../Utils/Response";
+import { getRequestHost } from "../Utils/RequestHost";
 import ObjectID from "../../Types/ObjectID";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
@@ -94,11 +95,27 @@ export enum FormRateLimitScope {
 }
 
 export enum FormRateLimitBucket {
-  // GET /form/public/:shareKey. Fails open.
+  /*
+   * GET /form/public/:shareKey, and GET /form/custom-domain on a form's own
+   * domain. Fails open.
+   */
   Read = "read",
 
-  // POST /form/public/:shareKey/submit. Fails closed.
+  /*
+   * POST /form/public/:shareKey/submit, and POST /form/custom-domain/submit
+   * on a form's own domain. Fails closed.
+   */
   Submit = "submit",
+}
+
+/*
+ * Which form a request is about, as the per-form counters key it: by the
+ * share key in its path (the form's link), or by the domain it was sent to
+ * (the form on its own domain, which names no key).
+ */
+export enum FormRateLimitFormSource {
+  ShareKey = "share-key",
+  CustomDomain = "custom-domain",
 }
 
 export enum FormRateLimitOutcome {
@@ -176,6 +193,13 @@ export const FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
   "Submissions cannot be accepted right now. Please try again in a few minutes.";
 
 /*
+ * The form's hourly allowance of files is used up (FormFileAllowance): a
+ * submission with no file still goes through, so it says what is too much.
+ */
+export const FORM_FILES_RATE_LIMIT_MESSAGE: string =
+  "This form is receiving too many files right now. Please try again later.";
+
+/*
  * A submission the per-form ceiling refused. Thrown from inside
  * FormService (reserveFormSubmission), where there is no response to
  * write a header on, so it carries when to come back; the submit route
@@ -185,10 +209,37 @@ export const FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
 export class FormCeilingException extends TooManyRequestsException {
   public readonly retryAfterSeconds: number;
 
-  public constructor(retryAfterSeconds: number) {
-    super(FORM_TOTAL_RATE_LIMIT_MESSAGE);
+  public constructor(
+    retryAfterSeconds: number,
+    message: string = FORM_TOTAL_RATE_LIMIT_MESSAGE,
+  ) {
+    super(message);
     this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+/*
+ * How many megabytes of files one form may take in, every address together,
+ * per window: what a leaked link can make the database hold, however many
+ * submissions the per-form ceiling lets through. 200 MB an hour is twenty
+ * submissions with the most a submission carries (FormFileAnswer), far past
+ * what people reporting a problem attach.
+ */
+export interface FormFileCeiling {
+  windowSeconds: number;
+  limitInBytes: number;
+}
+
+// Where a form's allowance of files is counted now (getFileAllowanceCounter).
+export interface FormFileAllowanceCounter {
+  // The form, as its counters are keyed (getFormKey).
+  formKey: string;
+  // The Redis key of this window's count.
+  key: string;
+  ttlSeconds: number;
+  limitInBytes: number;
+  // When this window ends: what a refusal says to wait.
+  secondsUntilWindowEnd: number;
 }
 
 const parsePositiveInt: (rawValue: string | undefined) => number | null = (
@@ -285,6 +336,20 @@ const SUBMIT_BUCKET: FormRateLimitBucketConfig = {
   failsClosed: true,
 };
 
+const FILE_CEILING: FormFileCeiling = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS",
+    60 * 60,
+  ),
+  limitInBytes:
+    parsePositiveIntFromEnv(
+      "SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW",
+      200,
+    ) *
+    1024 *
+    1024,
+};
+
 /*
  * Redis namespace for every counter here, so a SCAN for form keys
  * never shows another surface's, and the two surfaces never share a count.
@@ -358,6 +423,30 @@ export default class FormRateLimit {
    */
   public static resolveFormKey(req: ExpressRequest): string {
     return FormRateLimit.getFormKey(req.params?.["shareKey"]);
+  }
+
+  /*
+   * The form a request to a form's own domain is about: the domain, as its
+   * Host header names it - lower case, no port - since the page there names
+   * no key, and the domain answers with one form. A Host that is not a name
+   * shares one "invalid" bucket, as a malformed key does. A form reached at
+   * its link and at its domain is counted under each, per address; the
+   * per-address counter across every form, and the form's own ceiling -
+   * keyed by its share key, whichever way it was reached - count both
+   * together.
+   */
+  public static resolveCustomDomainFormKey(req: ExpressRequest): string {
+    return FormRateLimit.getCustomDomainFormKey(getRequestHost(req));
+  }
+
+  public static getCustomDomainFormKey(
+    hostname: string | null | undefined,
+  ): string {
+    if (typeof hostname !== "string" || hostname.trim().length === 0) {
+      return "invalid";
+    }
+
+    return `d:${FormRateLimit.sanitizeKeySegment(hostname.trim().toLowerCase())}`;
   }
 
   /*
@@ -594,6 +683,46 @@ export default class FormRateLimit {
     }
   }
 
+  // The files ceiling in force, for tests and operators' diagnostics.
+  public static getFileCeiling(): FormFileCeiling {
+    return { ...FILE_CEILING };
+  }
+
+  /*
+   * Where a form's hourly allowance of files is counted, as of now: its
+   * key, keyed on the form (never on a client), the window it lasts and
+   * what it may hold. The counting is FormFileAllowance's
+   * (Server/Utils/Form/FormFileAllowance): this file only counts clients,
+   * through ClientRateLimitCounter.
+   */
+  public static getFileAllowanceCounter(
+    shareKey: string | undefined,
+  ): FormFileAllowanceCounter {
+    const formKey: string = FormRateLimit.getFormKey(shareKey);
+
+    return {
+      formKey: formKey,
+      key: `${KEY_PREFIX}${FormRateLimitBucket.Submit}:fb:${formKey}:${FormRateLimit.getWindowIndex(
+        FILE_CEILING.windowSeconds,
+      )}`,
+      ttlSeconds: FILE_CEILING.windowSeconds * TTL_MULTIPLIER,
+      limitInBytes: FILE_CEILING.limitInBytes,
+      secondsUntilWindowEnd: FormRateLimit.getSecondsUntilWindowEnd(
+        FILE_CEILING.windowSeconds,
+      ),
+    };
+  }
+
+  /*
+   * Whether the files counter being down should be logged now: once an
+   * interval, as for the submit counters (shouldLogCounterUnavailable).
+   */
+  public static shouldLogFileCounterUnavailable(): boolean {
+    return FormRateLimit.shouldLogCounterUnavailable(
+      FormRateLimitBucket.Submit,
+    );
+  }
+
   /*
    * For the submit route: when the service refused a submission for the
    * form's ceiling, say when to come back, as the middleware does for its
@@ -665,6 +794,7 @@ export default class FormRateLimit {
    */
   public static getMiddleware(
     bucket: FormRateLimitBucket = FormRateLimitBucket.Read,
+    formSource: FormRateLimitFormSource = FormRateLimitFormSource.ShareKey,
   ): (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -676,7 +806,10 @@ export default class FormRateLimit {
       next: NextFunction,
     ): Promise<void> => {
       const config: FormRateLimitBucketConfig = FormRateLimit.getConfig(bucket);
-      const formKey: string = FormRateLimit.resolveFormKey(req);
+      const formKey: string =
+        formSource === FormRateLimitFormSource.CustomDomain
+          ? FormRateLimit.resolveCustomDomainFormKey(req)
+          : FormRateLimit.resolveFormKey(req);
       const clientIp: string = FormRateLimit.resolveClientIp(req);
 
       const decision: FormRateLimitDecision = await FormRateLimit.consume({

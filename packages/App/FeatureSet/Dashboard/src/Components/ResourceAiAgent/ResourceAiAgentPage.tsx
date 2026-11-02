@@ -69,6 +69,7 @@ import {
 import {
   ResourceAiAgentInstall,
   ResourceAiAgentInstallVariable,
+  ResourceAiAgentInstallerAsks,
   ResourceAiAgentWriteAccessCommands,
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
@@ -76,6 +77,8 @@ import {
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
 } from "./ResourceAiAgentInstall";
+import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../SetupGuide/AgentInstallCommands";
+import { getConfiguredOneUptimeUrl } from "../SetupGuide/ConfiguredOneUptimeUrl";
 import {
   getProjectBalanceAccess,
   ProjectBalanceAccess,
@@ -180,6 +183,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   AgentAiSettingsSource,
@@ -689,17 +693,32 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 };
 
 /*
+ * The fold that holds the compose snippet when the agent has an installer
+ * of its own (the Host AI agent): the way to do by hand what the installer
+ * does.
+ */
+export const AI_AGENT_INSTALL_BY_HAND_TITLE: string = translationKey(
+  "Install it yourself with Docker Compose",
+);
+
+/*
  * The install instructions: that AI investigations are on by default, so
  * the agent is the only step (said while the resource's investigation
  * switch is on — someone may have turned it off before installing), the
  * compose snippet, how to start it, and what it reads.
+ *
+ * An agent with an installer of its own (the Host AI agent) gets one
+ * obvious way first: the installer's two lines, how to read it before it
+ * runs and what it asks for. The snippet is then folded away under
+ * "Install it yourself with Docker Compose", for whoever wants the files
+ * by hand.
  */
 function InstallInstructions(props: {
   install: ResourceAiAgentInstall;
   descriptor: ResourceAiAgentDescriptor;
   isInvestigationEnabled: boolean;
 }): ReactElement {
-  const translator: Translator = useTranslator();
+  const installerCommand: string | null = props.install.installerCommand;
 
   return (
     <div className="space-y-3" data-testid="ai-agent-install">
@@ -719,6 +738,114 @@ function InstallInstructions(props: {
       ) : (
         <></>
       )}
+      {installerCommand ? (
+        <InstallerInstructions
+          command={installerCommand}
+          asks={props.install.installerAsks}
+          notes={props.install.installerNotes}
+        />
+      ) : (
+        <></>
+      )}
+      {installerCommand ? (
+        <FoldedSection
+          title={AI_AGENT_INSTALL_BY_HAND_TITLE}
+          variant="line"
+          dataTestId="ai-agent-install-by-hand"
+        >
+          <div className="space-y-3 pt-2">
+            <ComposeInstructions install={props.install} />
+          </div>
+        </FoldedSection>
+      ) : (
+        <ComposeInstructions install={props.install} />
+      )}
+    </div>
+  );
+}
+
+/*
+ * The agent's own installer (the Host AI agent's): its two lines to copy,
+ * wrapped rather than cut off on a phone, then that the first only
+ * downloads it - so it can be read before it runs - and what it asks for
+ * and needs.
+ */
+function InstallerInstructions(props: {
+  command: string;
+  asks: ResourceAiAgentInstallerAsks | null;
+  notes: Array<string>;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div className="space-y-2" data-testid="ai-agent-install-installer">
+      <p className="text-xs text-gray-600">
+        {translator.translateText("Run the installer on the host:")}
+      </p>
+      <CodeBlock language="bash" code={props.command} wrapLongLines={true} />
+      <ul
+        className="list-disc space-y-1 pl-5 text-xs leading-5 text-gray-600"
+        data-testid="ai-agent-install-installer-notes"
+      >
+        <li>{translator.translateText(INSTALL_SCRIPT_READ_FIRST_NOTE)}</li>
+        {props.asks ? (
+          <li data-testid="ai-agent-install-installer-asks">
+            <TranslatedSentence
+              template={props.asks.template}
+              slots={{
+                url: <InstallerAnswer value={props.asks.url} />,
+                ...(props.asks.hostName
+                  ? { name: <InstallerAnswer value={props.asks.hostName} /> }
+                  : {}),
+              }}
+            />
+          </li>
+        ) : (
+          <></>
+        )}
+        {props.notes.map((note: string): ReactElement => {
+          return <li key={note}>{note}</li>;
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/*
+ * An answer the page gives the installer in its sentence - this
+ * OneUptime's URL, the host's name - as a value of its own: read left to
+ * right inside a Persian sentence, where its brackets stayed on the wrong
+ * side of it ("(prod-" at a line's end), and kept on one line when it is
+ * short enough, never broken at a hyphen ("prod-web-" / "01").
+ */
+export const INSTALLER_ANSWER_KEPT_WHOLE_MAX_LENGTH: number = 40;
+
+function InstallerAnswer(props: { value: string }): ReactElement {
+  return (
+    <bdi
+      className={
+        props.value.length <= INSTALLER_ANSWER_KEPT_WHOLE_MAX_LENGTH
+          ? "whitespace-nowrap"
+          : "[overflow-wrap:anywhere]"
+      }
+      data-testid="ai-agent-install-installer-answer"
+    >
+      {props.value}
+    </bdi>
+  );
+}
+
+/*
+ * The agent by hand: where its service goes, the snippet, how to start it,
+ * what else it needs and every variable it reads.
+ */
+function ComposeInstructions(props: {
+  install: ResourceAiAgentInstall;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+
+  return (
+    <>
       <p className="text-xs text-gray-600" data-testid="ai-agent-install-where">
         {props.install.whereText}
       </p>
@@ -729,7 +856,12 @@ function InstallInstructions(props: {
         {translator.translateText("Then start it:")}
       </p>
       <div data-testid="ai-agent-install-start">
-        <CodeBlock language="bash" code={props.install.startCommand} />
+        {/* A command of two lines: read whole, on a phone too. */}
+        <CodeBlock
+          language="bash"
+          code={props.install.startCommand}
+          wrapLongLines={true}
+        />
       </div>
       {props.install.prerequisites.length > 0 ? (
         <ul
@@ -778,7 +910,13 @@ function InstallInstructions(props: {
                     <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-800">
                       {variable.name}
                     </td>
-                    <td className="break-all px-3 py-2 font-mono text-gray-800">
+                    {/*
+                     * A value is one short token ("from .env", "(empty)",
+                     * the host's name, a database's id): kept whole, never
+                     * broken mid-word to a column a few letters wide. The
+                     * table scrolls inside its box when it runs out of room.
+                     */}
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-800">
                       {variable.value}
                     </td>
                     <td className="px-3 py-2 text-gray-600">
@@ -791,7 +929,7 @@ function InstallInstructions(props: {
           </tbody>
         </table>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1445,6 +1583,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           resourceType: descriptor.resourceType,
           resourceId: modelId.toString(),
           identity,
+          oneuptimeUrl: getConfiguredOneUptimeUrl(),
         })
       : null;
 

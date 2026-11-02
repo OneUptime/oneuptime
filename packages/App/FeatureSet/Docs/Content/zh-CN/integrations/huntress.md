@@ -51,11 +51,11 @@ sequenceDiagram
 :::steps
 ### 创建工作流
 
-打开**工作流**，点击**创建工作流**。在**或者从模板开始**中选择 **Huntress** 分类，选择 **Open an incident for each Huntress incident report**，点击**使用此模板**，然后创建工作流。工作流会在**生成器**中打开，处于关闭状态。
+打开**工作流**，点击**创建工作流**。在**或者从模板开始**中选择 **Huntress** 分类，选择 **Open an incident for each Huntress incident report**，然后点击**使用此模板**。
 
 ### 选择呼叫谁
 
-点击 **Page an On-Call Policy** 步骤，选择要呼叫的**值班策略**，然后保存该步骤。
+接着对话框会询问呼叫谁：在 **Who to page for high and critical reports** 下选择要呼叫的值班策略，不选则不呼叫任何人，然后点击**创建工作流**。工作流会在**生成器**中打开，处于关闭状态。之后要更改呼叫谁，请点击它的 **Page an On-Call Policy** 步骤，更改其**值班策略**。
 
 ### 在 Huntress 中添加 Webhook 端点
 
@@ -79,7 +79,7 @@ sequenceDiagram
 
 ## 工作流做什么
 
-模板在触发器之后用一个 **Switch / Case**，为每种 **Event** 走一条路径：
+在触发器之后， **Incident From Another Tool** 按报告的编号执行每种 **Event** 要求的操作：
 
 | Event | 工作流做什么 |
 | --- | --- |
@@ -87,7 +87,7 @@ sequenceDiagram
 | `comment-added` | 找到报告的事件，把评论作为私有备注添加到事件上。 |
 | `closed` | 找到报告的事件并解决它，除非它已经解决。原因记录在它的时间线上：Huntress 关闭了该报告。 |
 
-它和其他工作流一样，所以你可以修改它做的事：修改 **Create One Incident** 之后的 **If / Else** 比较的内容，只为严重报告呼叫；用 Slack 或 Microsoft Teams 步骤把每份报告发到聊天频道；或用基于 **Organization** 的 **Switch / Case** 把每个组织发给它自己的值班策略。每次运行都会列在工作流的运行记录中，并显示每个步骤做了什么。
+它和其他工作流一样，所以你可以修改它做的事：修改 **Incident From Another Tool** 之后的 **If / Else** 比较的内容，只为严重报告呼叫；用 Slack 或 Microsoft Teams 步骤把每份报告发到聊天频道；或用基于 **Organization** 的 **Switch / Case** 把每个组织发给它自己的值班策略。每次运行都会列在工作流的运行记录中，并显示每个步骤做了什么。
 
 ### 严重性
 
@@ -174,7 +174,7 @@ Huntress 与你的 OneUptime 服务器的时钟相差超过五分钟，或者该
 :::
 
 :::details 没有创建事件
-打开工作流的运行记录，以及该报告的那次运行。如果 **Create One Incident** 因事件严重性为空而失败，说明项目没有事件严重性：在**事件 → 设置 → 事件严重性**中添加一个。
+打开工作流的运行记录，以及该报告的那次运行。如果 **Incident From Another Tool** 以 `This project has no incident severities to put the incident at.` 失败，请在**事件 → 设置 → 事件严重性**中添加一个。
 :::
 
 :::details 没有呼叫任何人

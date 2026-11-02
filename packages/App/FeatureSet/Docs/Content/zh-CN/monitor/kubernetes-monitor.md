@@ -34,15 +34,15 @@ flowchart TB
 
 ### 选择集群
 
-在 **Kubernetes集群** 中选择它。列表中包含代理报告过的所有集群。
+在 **Kubernetes集群** 中选择它。列表中包含代理报告过的所有集群。选好后，字段下方的一行会显示是否有数据到达。**添加 Kubernetes 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监控的内容
 
-使用以下三个选项卡之一：
+新监视器从 **告警内容** 下的 **Cluster Stopped Reporting** 开始；**更改** 可选择另一个模板。**Custom Metric** 和 **高级** 位于 **更多字段** 下：
 
-| 选项卡 | 你要选择的内容 |
+| 位置 | 你要选择的内容 |
 | --- | --- |
-| **Quick Setup** | 一个 [现成的警报模板](#现成的警报模板)。它会填好指标、范围、时间范围和条件；你仍然可以更改 **时间范围**。 |
+| **告警内容** | 一个 [现成的警报模板](#现成的警报模板)。它会填好指标、范围、时间范围和条件；你仍然可以更改 **时间范围**。 |
 | **Custom Metric** | [指标目录](#指标目录) 中的一个指标，然后是它的 **资源范围**、过滤器、**聚合**（平均值、最大值、最小值、总和或计数）和 **时间范围**。 |
 | **高级** | **资源范围**、过滤器和 **时间范围**，以及在 **选择指标** 下编写的你自己的指标查询和公式，并附带结果的实时图表。 |
 
@@ -69,6 +69,8 @@ flowchart TB
 | 节点 | 集群中的一个节点 | **节点名称** |
 | Pod | 一个 Pod | **命名空间**、**Pod 名称** |
 
+容器和 Pod 的指标带有该 Pod 所属工作负载的名称（Deployment 的 Pod 带有该 Deployment 的名称及其 ReplicaSet 的名称），因此把范围设为工作负载时，会监控该工作负载的容器和 Pod。工作负载自身的指标（例如 Job 的失败 Pod）只带有它自己的工作负载名称：请按该工作负载的类型限定范围。
+
 ### 时间范围
 
 **时间范围** 是每次评估监视器时指标查询覆盖的窗口，从 **Past 1 Minute** 到 **Past 365 Days**。较短的窗口（1 到 15 分钟）适合发出警报；较长的窗口可以平滑噪声较大的指标。
@@ -85,13 +87,13 @@ flowchart TB
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | 节点 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
-| 容器 | Container Restarts, Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 工作负载 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Successful Pods |
+| 容器 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
+| 工作负载 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod Phase (Code)** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**Node Ready Condition** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时告警。
+> **Pod CPU Usage** 和 **Node CPU Usage** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod Phase (Code)** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**Node Ready Condition** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时告警。 **Container Restarts** 是容器的累计重启计数；**Container Restarts (Increase)** 是代理随每个样本发送的值，即自它上一次采样该容器以来的重启次数，所以它在一个窗口内的总和就是该窗口内的重启次数。它带有 **Container Restarts** 带有的属性，包括容器所在 Pod 的工作负载名称，但不包括每次重启都会变化的容器 ID。**Job Failed Pods** 是 Job 的累计失败 Pod 计数；**Job Failed Pods (Increase)** 是代理随每个样本发送的值，即自它上一次采样该 Job 以来失败的 Pod 数，所以它在一个窗口内的总和就是该窗口内的失败次数。它和 **Job Failed Pods** 一样，带有 Job 的名称和命名空间。
 
 ## 监控条件
 
@@ -122,41 +124,46 @@ flowchart TB
 | **Anomalously Low** | 低于预期范围 |
 | **Anomalous** | 向任一方向偏离预期范围 |
 
-每个样本都会与按 **基线窗口**（默认 14 天；可选 28、60 或 90 天）构建的、一周中同一小时的基线进行比较。**灵敏度** 决定预期范围的宽度：**低 (4σ — 仅限严重偏差)**、默认的 **中 (3σ — 推荐)**，或 **高 (2σ — 噪声较大，适用于非常稳定的服务)**。在积累到至少所选基线窗口长度的指标历史之前，异常条件会保持在“Learning”状态，不会产生警报。
+每个样本都会与按 **基线窗口**（默认 14 天；可选 28、60 或 90 天）构建的、一周中同一小时的基线进行比较。**灵敏度** 决定预期范围的宽度：**低 (4σ — 仅限严重偏差)**、默认的 **中 (3σ — 推荐)**，或 **高 (2σ — 噪声较大，适用于非常稳定的服务)**。在一周中的这一小时积累两周的历史之前，异常条件会保持在“Learning”状态，不会产生警报。 总和、计数或针对直方图的查询会一直保持这个状态：此监视器按属性筛选查询，而基线不保存属性。
 
 **更多字段** 下的 **如果无数据** 决定查询在窗口内没有返回任何内容时的处理方式：**Ignore**（默认）不匹配，**触发器** 把静默视为问题，**Treat As Zero** 按零进行比较。OneUptime 自身未接收数据的时间永远不算作无数据：窗口中包含这类时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 现成的警报模板
 
-**Quick Setup** 选项卡按类别列出这些模板。每个模板会填写两个条件：一个在条件成立时把监视器标记为离线并打开事件和警报，另一个在条件消除后让监视器恢复在线。
+**告警内容** 列表按类别列出这些模板。每个模板会填写两个条件：一个在条件成立时把监视器标记为离线并打开事件和警报，另一个在条件消除后让监视器恢复在线。
 
 | 模板 | 类别 | 触发时机 | 严重程度 |
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 可用性 | 10 分钟内没有从集群的代理收到任何数据 | 严重 |
 | CrashLoopBackOff Detection | 工作负载 | 某个容器在 15 分钟内重启，且其中不到一半的时间处于就绪状态 | 严重 |
-| Pod Stuck in Pending | 正在调度 | 在 15 分钟窗口的每个样本中，都有某个 Pod 处于 Pending 阶段 | Warning |
+| Pod Stuck in Pending | 正在调度 | 在 15 分钟窗口的每个样本中，都有某个 Pod 处于 Pending 阶段 | 警告 |
 | Node Not Ready | 节点 | 某个节点报告 NotReady，或不再报告其状态（Unknown） | 严重 |
-| High Node CPU Utilization | 节点 | 节点的平均 CPU 使用量超过其可分配 CPU 的 90% | Warning |
-| High Node Memory Utilization | 节点 | 节点的平均内存工作集超过其可分配内存的 85% | Warning |
-| Deployment Replica Mismatch | 工作负载 | Deployment 的可用副本数在 15 分钟内一直少于期望值 | Warning |
-| Job Failures | 工作负载 | 某个 Job 的 Pod 在 15 分钟内失败 | Warning |
+| High Node CPU Utilization | 节点 | 节点的平均 CPU 使用量超过其可分配 CPU 的 90% | 警告 |
+| High Node Memory Utilization | 节点 | 节点的平均内存工作集超过其可分配内存的 85% | 警告 |
+| Deployment Replica Mismatch | 工作负载 | Deployment 的可用副本数在 15 分钟内一直少于期望值 | 警告 |
+| Job Failures | 工作负载 | 某个 Job 的 Pod 在 15 分钟内失败 | 警告 |
 | etcd No Leader | 控制平面 | etcd 没有选出的领导者 | 严重 |
 | API Server Request Saturation | 控制平面 | API 服务器在整个窗口内持有 200 个或更多正在处理的请求 | 严重 |
-| Scheduler Backlog | 正在调度 | 调度器的待处理 Pod 队列在 5 分钟内一直不为空 | Warning |
-| High Node Disk Usage | 存储 | 节点的文件系统使用率超过 90% | Warning |
-| DaemonSet Misscheduled Nodes | 工作负载 | DaemonSet 在不再匹配其节点选择器、亲和性或容忍度的节点上运行 Pod | Warning |
-| High Node CPU Request Commitment | 节点 | 节点上容器的 CPU 请求总和超过其可分配 CPU 的 90% | Warning |
-| High Node Memory Request Commitment | 节点 | 节点上容器的内存请求总和超过其可分配内存的 90% | Warning |
+| Scheduler Backlog | 正在调度 | 调度器的待处理 Pod 队列在 5 分钟内一直不为空 | 警告 |
+| High Node Disk Usage | 存储 | 节点的文件系统使用率超过 90% | 警告 |
+| DaemonSet Misscheduled Nodes | 工作负载 | DaemonSet 在不再匹配其节点选择器、亲和性或容忍度的节点上运行 Pod | 警告 |
+| High Node CPU Request Commitment | 节点 | 节点上容器的 CPU 请求总和超过其可分配 CPU 的 90% | 警告 |
+| High Node Memory Request Commitment | 节点 | 节点上容器的内存请求总和超过其可分配内存的 90% | 警告 |
 | HPA Saturated at Max Replicas | 工作负载 | 扩容到高于其 `minReplicas` 的 HPA 运行在其 `maxReplicas` 的 90% 或以上 | 严重 |
 | Pod Memory Saturating Container Limit | 工作负载 | Pod 使用了超过其容器内存限制的 90% | 严重 |
-| Pod CPU Saturating Container Limit | 工作负载 | Pod 使用了超过其容器 CPU 限制的 90% | Warning |
+| Pod CPU Saturating Container Limit | 工作负载 | Pod 使用了超过其容器 CPU 限制的 90% | 警告 |
 
 基于单个对象指标的模板会分别评估每个节点、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多个不健康 Pod 的集群会为每个 Pod 创建一个事件，而不是为整个集群只创建一个。
+
+**High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 与调度器一样，只计算尚未结束的 Pod 的请求（request）。处于 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被删除之前，集群仍会上报其请求：这些不计入。
 
 **Cluster Stopped Reporting** 会在集群的代理 10 分钟内没有任何数据到达时触发：代理被卸载或不断崩溃、它的 API 密钥被撤销、它失去了通往 OneUptime 的路由，或者集群的 API 服务器不再响应它。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** 和 **Job Failures** 统计的是重启计数或失败 Pod 计数在窗口内增长了多少，而不是计数本身，因此重启或失败停止后会自动恢复。增长只能在同一分钟的两个样本之间看到：在代理 30 秒的间隔下大约是一半。崩溃循环会一再重启并被捕获；单次重启可能被漏掉。
+> **CrashLoopBackOff Detection** 累加代理随每个样本发送的 `k8s.container.restarts.increase`，即自它上一次采样该容器以来的重启次数。因此无论样本相隔多远，它都会计入每一次重启；重启停止后会自动恢复；重新创建的 Pod 会从头计数，而不会被当作重启。旧版代理不发送 `k8s.container.restarts.increase`：请先[升级代理](/docs/monitor/kubernetes-agent#升级)。在此之前用该模板创建的监控读取的是 `k8s.container.restarts` 在每一分钟内增长了多少，会漏掉崩溃循环约一半的重启：请删除它并重新用模板创建。
+
+> [!NOTE]
+> **Job Failures** 累加代理随每个样本发送的 `k8s.job.failed_pods.increase`，即自它上一次采样该 Job 以来失败的 Pod 数。因此无论样本相隔多远，它都会计入每一次失败；失败停止后会自动恢复；以相同名称重新创建的 Job 会从头计数，而不会被当作失败。代理第一次采样某个 Job 之前的失败是它计数的起点，因此在最初半分钟内失败且不再重试的 Job 可能被漏掉。旧版代理不发送 `k8s.job.failed_pods.increase`：请先[升级代理](/docs/monitor/kubernetes-agent#升级)。在此之前用该模板创建的监控读取的是 `k8s.job.failed_pods` 在每一分钟内增长了多少，会漏掉约一半的失败：请删除它并重新用模板创建。
 
 ### 捕捉原因，而不仅仅是症状
 
@@ -185,7 +192,11 @@ flowchart TB
 :::
 
 :::details CrashLoopBackOff Detection 没有因一次重启而触发
-当容器的重启计数在 15 分钟内增长、且容器在其中不到一半的时间处于就绪状态时，该模板触发；因此重启一次后立即恢复的容器不会告警。增长只能在同一分钟的两个样本之间看到，所以单次重启可能被漏掉；每隔几分钟就重启的崩溃循环会被捕获。
+当容器在 15 分钟内重启、且它在其中不到一半的时间处于就绪状态时，该模板触发；因此重启一次后立即恢复的容器不会告警。该模板读取 `k8s.container.restarts.increase`，而旧版代理不发送它：请[升级代理](/docs/monitor/kubernetes-agent#升级)。在此之前用该模板创建的监控读取的是 `k8s.container.restarts` 在同一分钟的两个样本之间增长了多少，会漏掉跨两分钟的样本之间的重启：请删除它并重新用模板创建。如果 `filters.metrics.include` 列出了代理要发送的指标，请把 `k8s.container.restarts.increase` 加进去。限定到某个工作负载的监控还需要 `k8s.container.restarts.increase` 上的工作负载名称，而旧版代理发送它时不带这些名称：请[升级代理](/docs/monitor/kubernetes-agent#升级)。
+:::
+
+:::details Job Failures 没有因一个失败的 Job 而触发
+当 Job 的某个 Pod 在 15 分钟内失败时，该模板触发，并在最后一次失败的十五分钟后恢复。该模板读取 `k8s.job.failed_pods.increase`，而旧版代理不发送它：请[升级代理](/docs/monitor/kubernetes-agent#升级)。在此之前用该模板创建的监控读取的是 `k8s.job.failed_pods` 在同一分钟的两个样本之间增长了多少，会漏掉跨两分钟的样本之间的失败：请删除它并重新用模板创建。代理第一次采样某个 Job 之前的失败是它计数的起点，因此唯一的 Pod 在最初半分钟内就失败的 Job 会被漏掉。如果 `filters.metrics.include` 列出了代理要发送的指标，请把 `k8s.job.failed_pods.increase` 加进去。限定到某个工作负载的监控必须指定 Job 本身：Job 的失败 Pod 带有该 Job 的名称和命名空间，而不是创建它的 CronJob 的名称。
 :::
 
 ## 后续步骤

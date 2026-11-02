@@ -16,6 +16,7 @@ import {
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
+import { isExceptionMeasure } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import {
   TRANSCEIVER_READING_TITLES,
@@ -724,8 +725,12 @@ export default class CriteriaFilterUtil {
     }
 
     if (monitorType === MonitorType.Exceptions) {
+      /*
+       * How many, new ones, ones that came back, and the rise over the
+       * usual count (ExceptionMonitorEvaluation).
+       */
       options = options.filter((i: DropdownOption) => {
-        return i.value === CheckOn.ExceptionCount;
+        return isExceptionMeasure(i.value);
       });
     }
 
@@ -935,9 +940,9 @@ export default class CriteriaFilterUtil {
       /*
        * Span/log counts also support the baseline anomaly filters — the
        * server evaluators (TraceMonitorCriteria / LogMonitorCriteria)
-       * compare the observed per-minute rate to the monitor's scope in
-       * the same-hour-of-week SpanCountBaseline / LogCountBaseline,
-       * mirroring the Metric monitor path. Security events have no
+       * compare the observed per-minute rate to windows around the same
+       * time of the earlier weeks, read from the monitor's scope in
+       * SpanCountBaseline / LogCountBaseline (CountWindowBaseline). Security events have no
        * volume baseline yet, so they keep the static comparators only.
        */
       const allowAnomaly: boolean =
@@ -1033,10 +1038,7 @@ export default class CriteriaFilterUtil {
         );
     }
 
-    if (
-      checkOn === CheckOn.ExceptionCount ||
-      checkOn === CheckOn.ProfileCount
-    ) {
+    if (isExceptionMeasure(checkOn) || checkOn === CheckOn.ProfileCount) {
       /*
        * Exception and profile counts are whole numbers the server decides
        * on with CompareCriteria.compareCriteriaNumbers
@@ -1045,11 +1047,13 @@ export default class CriteriaFilterUtil {
        * "no match" for every other filter type, so anything else offered
        * here would let the user save a rule that silently never fires.
        *
-       * Unlike log and span counts, neither of these has a volume
-       * baseline behind it - there is no ExceptionCountBaseline or
-       * ProfileCountBaseline and no anomaly branch in either evaluator -
-       * so the anomaly conditions stay off this list too.
+       * The exception count also supports the anomaly conditions: the
+       * server judges them against the monitor's own earlier weeks
+       * (ExceptionLearnedBaseline). New and regressed exceptions, the rise
+       * over the usual and profile counts have no baseline behind them,
+       * and no anomaly branch, so the anomaly conditions stay off for them.
        */
+      const allowAnomaly: boolean = checkOn === CheckOn.ExceptionCount;
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.EqualTo ||
@@ -1057,7 +1061,11 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.GreaterThanOrEqualTo
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          (allowAnomaly &&
+            (i.value === FilterType.AnomalouslyHigh ||
+              i.value === FilterType.AnomalouslyLow ||
+              i.value === FilterType.Anomalous))
         );
       });
     }

@@ -13,6 +13,7 @@ import {
   buildExceptionTrendRequest,
   buildExceptionTrendRows,
   describeExceptionStatusChange,
+  exceptionTimeValue,
   formatActiveSpan,
   formatOccurrenceCount,
   formatRelativeTime,
@@ -22,6 +23,11 @@ import {
   summarizeExceptionTrend,
 } from "../../FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  ComposedValue,
+  createTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const NOW: Date = new Date("2026-09-14T12:00:00.000Z");
 const SECOND: number = 1000;
@@ -529,5 +535,54 @@ describe("describeExceptionStatusChange", () => {
         now: NOW,
       }),
     ).toBe("Open and waiting for a fix.");
+  });
+});
+
+/*
+ * A relative time in the reader's language: Intl's words for one other than
+ * English, the English ones otherwise; and inside a translated sentence, in
+ * the sentence's language - never "Archived vor 4 Minuten".
+ */
+describe("relative times in the reader's language", () => {
+  test("Intl's words for a language other than English, the English ones otherwise", () => {
+    expect(formatRelativeTime(ago(4 * MINUTE), NOW, "de")).toBe(
+      "vor 4 Minuten",
+    );
+    expect(formatRelativeTime(ago(2 * HOUR), NOW, "fr")).toBe(
+      "il y a 2 heures",
+    );
+    expect(formatRelativeTime(ago(10 * SECOND), NOW, "de")).toBe("jetzt");
+    expect(formatRelativeTime(ago(4 * MINUTE), NOW, "en")).toBe(
+      "4 minutes ago",
+    );
+    expect(formatRelativeTime(ago(10 * SECOND), NOW, "en-GB")).toBe("just now");
+    expect(formatRelativeTime(ago(4 * MINUTE), NOW)).toBe("4 minutes ago");
+    // A language tag Intl rejects reads in English.
+    expect(formatRelativeTime(ago(4 * MINUTE), NOW, "not a language!")).toBe(
+      "4 minutes ago",
+    );
+  });
+
+  test("in a sentence, the time is in the sentence's language", () => {
+    const words: Record<string, string> = {
+      "Resolved {{time}}": "Behoben {{time}}",
+    };
+    const german: Translator = createTranslator(
+      (key: string): string | undefined => {
+        return words[key];
+      },
+      "de",
+    );
+    const time: ComposedValue = exceptionTimeValue(ago(4 * MINUTE), NOW)!;
+
+    // A sentence the locale has: a German time.
+    expect(german.translateTemplate("Resolved {{time}}", { time })).toBe(
+      "Behoben vor 4 Minuten",
+    );
+    // A sentence it does not have yet: English, all of it.
+    expect(german.translateTemplate("Archived {{time}}", { time })).toBe(
+      "Archived 4 minutes ago",
+    );
+    expect(exceptionTimeValue(undefined, NOW)).toBeUndefined();
   });
 });

@@ -2204,9 +2204,12 @@ describe("Incident Linked Alerts docs", () => {
       const header: string = readSource(ALERT_CHANGE_STATE_FILE);
       const action: string = readSource(DECLARE_FROM_ALERT_FILE);
 
-      // The header's buttons, as the dashboard labels them.
+      /*
+       * The header's buttons, as the dashboard labels them - with what the
+       * reader holds on the alert when it is private.
+       */
       expect(header).toMatch(
-        /getDeclareIncidentFromAlertAction\(\s*props\.alertId,?\s*\)/,
+        /getDeclareIncidentFromAlertAction\(\s*props\.alertId,\s*privateRecordOptions,?\s*\)/,
       );
       expect(action).toMatch(/label:\s*DECLARE_INCIDENT_ACTION_TITLE,/);
       expect(readSource(BULK_LINK_ACTIONS_FILE)).toContain(

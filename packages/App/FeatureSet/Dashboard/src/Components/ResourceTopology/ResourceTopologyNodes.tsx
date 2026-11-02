@@ -12,40 +12,58 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceTopologyFact,
+  ResourceTopologyGraph,
+  ResourceTopologyHealth,
   ResourceTopologyNode,
   ResourceTopologyText,
 } from "./ResourceTopologyModel";
 import {
   ResourceTopologyKindInfo,
-  SECTION_KIND,
   getResourceTopologyKind,
 } from "./ResourceTopologyKinds";
 import {
-  RESOURCE_TOPOLOGY_SIZES,
-  ResourceTopologyCaption,
+  ResourceTopologyDirection,
+  ResourceTopologyHeading,
+  ResourceTopologyHeadingWidth,
   ResourceTopologyPlaced,
   ResourceTopologyRelatedCaption,
   ResourceTopologySide,
 } from "./ResourceTopologyLayout";
 import {
-  RESOURCE_TOPOLOGY_HEALTH_COLORS,
   RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+  RESOURCE_TOPOLOGY_HEALTH_COLORS,
+  RESOURCE_TOPOLOGY_HEALTH_LABELS,
   RESOURCE_TOPOLOGY_MATCH_COLOR,
   RESOURCE_TOPOLOGY_SELECTED_COLOR,
+  ResourceTopologyHealthShare,
+  ResourceTopologyTone,
+  getHealthShares,
+  getResourceTopologyTone,
 } from "./ResourceTopologyLook";
-import { ResourceTopologyMoreItem } from "./ResourceTopologyView";
+import {
+  ResourceTopologyGroupItem,
+  ResourceTopologyMoreItem,
+} from "./ResourceTopologyView";
 import { truncateTopologyNameMiddle } from "./ResourceTopologyFormat";
 
 /*
- * The map's pieces. An open part is a box: its heading, then one group per
- * kind of part inside it. A closed part is a card that says what it holds,
- * and a part that holds nothing is a chip. Each reads the same way: an icon
- * tinted by what it is, a bar and a dot coloured by how it is doing, its
- * open incidents and alerts as red and amber counts.
+ * The map's pieces. Every part is a card of its own, side by side with the
+ * parts beside it and joined by a line to the part that holds it - never
+ * drawn inside it. A card reads the same way everywhere: an icon tinted by
+ * what the part is, its name with its open incidents and alerts right after
+ * it, a dot and a word for how it is doing, and, on a part that holds
+ * others, what it holds and a bar of how those are doing. A healthy card is
+ * plain; one that needs attention is tinted amber, a critical one red. A
+ * part that holds others has a round button on the edge its line leaves
+ * by, which opens it - its parts appear after it - and closes it again.
+ *
+ * Parts that hold nothing, many of them, are chips; a group's heading says
+ * what kind of parts are under it and how many need attention.
  *
  * Everything clickable is a real button, so the map works from the keyboard
  * and a screen reader names every part; React Flow's own node focus is off
- * (see the canvas).
+ * (see the canvas). Each part's main button carries data-topology-item, the
+ * id the canvas moves the keyboard by.
  */
 
 export interface ResourceTopologyNodeCallbacks {
@@ -58,8 +76,15 @@ export interface ResourceTopologyNodeData {
   placed: ResourceTopologyPlaced;
   node: ResourceTopologyNode | null;
   isSelected: boolean;
+  /* On the way from the resource to the part someone picked. */
+  isOnPath?: boolean | undefined;
+  /* Which way the page reads; the drawing is mirrored for right to left. */
+  direction?: ResourceTopologyDirection | undefined;
   callbacks: ResourceTopologyNodeCallbacks;
 }
+
+/* The attribute the canvas finds a part's main button by. */
+export const TOPOLOGY_ITEM_ATTRIBUTE: string = "data-topology-item";
 
 const HIDDEN_HANDLE: React.CSSProperties = {
   opacity: 0,
@@ -79,35 +104,26 @@ const SIDES: Array<{ side: ResourceTopologySide; position: Position }> = [
 
 /*
  * Where lines attach: every side can start or end one, and the canvas picks
- * the sides that face each other (getRelationSides). A box's lines attach
- * beside its heading, not halfway down what it holds.
+ * the sides that face each other (getRelationSides).
  */
-const SideHandles: FunctionComponent<{ sideY?: number | undefined }> = (props: {
-  sideY?: number | undefined;
-}): ReactElement => {
+const SideHandles: FunctionComponent = (): ReactElement => {
   return (
     <>
       {SIDES.map(
         (entry: { side: ResourceTopologySide; position: Position }) => {
-          const style: React.CSSProperties =
-            props.sideY !== undefined &&
-            (entry.side === "left" || entry.side === "right")
-              ? { ...HIDDEN_HANDLE, top: props.sideY }
-              : HIDDEN_HANDLE;
-
           return (
             <React.Fragment key={entry.side}>
               <Handle
                 id={`${entry.side}-target`}
                 type="target"
                 position={entry.position}
-                style={style}
+                style={HIDDEN_HANDLE}
               />
               <Handle
                 id={`${entry.side}-source`}
                 type="source"
                 position={entry.position}
-                style={style}
+                style={HIDDEN_HANDLE}
               />
             </React.Fragment>
           );
@@ -128,12 +144,16 @@ export function tx(text: string, translator: Translator): string {
 
 let measuringContext: CanvasRenderingContext2D | null | undefined;
 
-/* The drawn width of a string in a font, or 0 where nothing can measure it. */
-function measureTextWidth(text: string, font: string): number {
+/*
+ * The drawn width of a string in a font, or 0 where nothing can measure it:
+ * outside a browser, and in a test's document, which lays no text out (it
+ * has no document.fonts, and no canvas to measure with).
+ */
+export function measureTextWidth(text: string, font: string): number {
   if (measuringContext === undefined) {
     try {
       measuringContext =
-        typeof document === "undefined"
+        typeof document === "undefined" || !("fonts" in document)
           ? null
           : document.createElement("canvas").getContext("2d");
     } catch {
@@ -350,9 +370,9 @@ export function describeTopologyAttentionSplit(
 }
 
 /*
- * What needs attention inside a closed card, as the legend's coloured dots
- * with a count each: red for critical, amber for the rest. Short enough to
- * leave the card's line room for what it holds; the words are its title.
+ * What needs attention inside a part, as the legend's coloured dots with a
+ * count each: red for critical, amber for the rest. Short enough to leave
+ * the card's line room for what it holds; the words are its title.
  */
 export const AttentionCounts: FunctionComponent<{
   critical: number;
@@ -537,10 +557,10 @@ export const IssueBadges: FunctionComponent<{
 };
 
 const HealthDot: FunctionComponent<{
-  node: ResourceTopologyNode;
+  health: ResourceTopologyHealth;
   size?: number | undefined;
 }> = (props: {
-  node: ResourceTopologyNode;
+  health: ResourceTopologyHealth;
   size?: number | undefined;
 }): ReactElement => {
   const size: number = props.size || 8;
@@ -553,9 +573,9 @@ const HealthDot: FunctionComponent<{
         height: size,
         borderRadius: "50%",
         flexShrink: 0,
-        background: RESOURCE_TOPOLOGY_HEALTH_COLORS[props.node.effectiveHealth],
+        background: RESOURCE_TOPOLOGY_HEALTH_COLORS[props.health],
         boxShadow:
-          props.node.effectiveHealth === "critical"
+          props.health === "critical"
             ? "0 0 0 3px rgba(220, 38, 38, 0.18)"
             : undefined,
       }}
@@ -563,6 +583,68 @@ const HealthDot: FunctionComponent<{
   );
 };
 
+/*
+ * How what a part holds is doing, as one bar split by health, worst first:
+ * a cluster of 40 hosts with one down reads as a sliver of red on green.
+ * Its words are its title. A screen reader hears what needs attention
+ * inside from the round button's name instead.
+ */
+export const InsideHealthBar: FunctionComponent<{
+  node: ResourceTopologyNode;
+}> = (props: { node: ResourceTopologyNode }): ReactElement | null => {
+  const translator: Translator = useTranslator();
+  const shares: Array<ResourceTopologyHealthShare> = getHealthShares(
+    props.node.healthBelow,
+  );
+
+  if (shares.length === 0) {
+    return null;
+  }
+
+  const title: string = shares
+    .map((share: ResourceTopologyHealthShare): string => {
+      return `${tx(RESOURCE_TOPOLOGY_HEALTH_LABELS[share.health], translator)} ${translator.formatNumber(share.count)}`;
+    })
+    .join(" · ");
+
+  return (
+    <span
+      data-testid="resource-topology-inside-bar"
+      aria-hidden={true}
+      title={title}
+      style={{
+        display: "flex",
+        width: "100%",
+        height: 4,
+        gap: 2,
+        overflow: "hidden",
+        borderRadius: 999,
+      }}
+    >
+      {shares.map((share: ResourceTopologyHealthShare): ReactElement => {
+        return (
+          <span
+            key={share.health}
+            data-health={share.health}
+            style={{
+              flexGrow: share.share,
+              flexBasis: 0,
+              // A single critical part in a thousand still shows.
+              minWidth: 4,
+              borderRadius: 999,
+              background: RESOURCE_TOPOLOGY_HEALTH_COLORS[share.health],
+            }}
+          />
+        );
+      })}
+    </span>
+  );
+};
+
+/*
+ * The outline of a picked part, a part a search found, and of a part on
+ * the way to the picked one.
+ */
 function outlineFor(
   data: ResourceTopologyNodeData,
   isMatch: boolean,
@@ -578,8 +660,8 @@ function outlineFor(
   return undefined;
 }
 
-function shadowFor(node: ResourceTopologyNode | null): string {
-  if (node?.effectiveHealth === "critical") {
+function shadowFor(health: ResourceTopologyHealth | null): string {
+  if (health === "critical") {
     return "0 0 0 3px rgba(220, 38, 38, 0.12), var(--ou-shadow-sm, 0 1px 3px rgb(15 23 42 / 8%))";
   }
 
@@ -626,6 +708,13 @@ const FOCUS_RING: string =
 const FOCUS_RING_INSET: string =
   "nodrag focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-500";
 
+/*
+ * What only a closer look needs: the canvas hides it when the map is zoomed
+ * far out, where a card is read by its name and its colour (see the
+ * canvas's level of detail).
+ */
+export const TOPOLOGY_DETAIL_CLASS: string = "rt-detail";
+
 const LINE: React.CSSProperties = {
   display: "block",
   overflow: "hidden",
@@ -640,34 +729,68 @@ const BUTTON_RESET: React.CSSProperties = {
   margin: 0,
   font: "inherit",
   color: "inherit",
-  textAlign: "left",
+  textAlign: "start",
   cursor: "pointer",
 };
 
-const FactRow: FunctionComponent<{
+/*
+ * How a part is doing, on one line: a dot, its status ("Ready", "Powered
+ * off") and then its first two numbers ("CPU 22%", "Memory 41%"). The line
+ * wraps out of sight rather than cutting a number: the status always shows
+ * (cut with an ellipsis only when it is longer than the line), and a number
+ * that does not fit after it is left off whole - never "R" for "Ready" or
+ * "Memory 2…". The panel has every number.
+ */
+export const StatusLine: FunctionComponent<{
+  health: ResourceTopologyHealth;
+  status: string;
   facts: Array<ResourceTopologyFact>;
-}> = (props: { facts: Array<ResourceTopologyFact> }): ReactElement | null => {
+}> = (props: {
+  health: ResourceTopologyHealth;
+  status: string;
+  facts: Array<ResourceTopologyFact>;
+}): ReactElement => {
   const translator: Translator = useTranslator();
-
-  if (props.facts.length === 0) {
-    return null;
-  }
 
   return (
     <span
+      data-testid="resource-topology-status-line"
       style={{
         display: "flex",
-        gap: 8,
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: 8,
+        height: 16,
         overflow: "hidden",
-        whiteSpace: "nowrap",
-        flexShrink: 0,
+        minWidth: 0,
+        fontSize: 11,
+        lineHeight: "16px",
+        color: "var(--ou-text-secondary, #4b5563)",
       }}
     >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          minWidth: 0,
+          maxWidth: "100%",
+          flex: "0 1 auto",
+        }}
+      >
+        <HealthDot health={props.health} />
+        {props.status ? (
+          <span style={{ ...LINE, minWidth: 0 }}>{props.status}</span>
+        ) : null}
+      </span>
       {props.facts
         .slice(0, 2)
         .map((fact: ResourceTopologyFact): ReactElement => {
           return (
-            <span key={fact.label} style={{ fontSize: 11 }}>
+            <span
+              key={fact.label}
+              style={{ flex: "0 0 auto", whiteSpace: "nowrap" }}
+            >
               <span
                 style={{
                   color: "var(--ou-text-muted, #6b7280)",
@@ -676,7 +799,11 @@ const FactRow: FunctionComponent<{
               >
                 {tx(fact.label, translator)}
               </span>
-              <span
+              {/*
+               * A value keeps its own order on a page read from right to
+               * left: "600/min", never "min/600".
+               */}
+              <bdi
                 style={{
                   fontWeight: 600,
                   color:
@@ -688,105 +815,10 @@ const FactRow: FunctionComponent<{
                 }}
               >
                 {fact.value}
-              </span>
+              </bdi>
             </span>
           );
         })}
-    </span>
-  );
-};
-
-/*
- * What a card, a box heading and a related card all say about a part: its
- * icon, its name with its open incidents and alerts right after it, how it
- * is doing and what it is, and — on a card — its numbers on a line of their
- * own. A box heading is wide, so its numbers sit at its right instead.
- */
-const PartSummary: FunctionComponent<{
-  node: ResourceTopologyNode;
-  iconSize: number;
-  factsLine: boolean;
-}> = (props: {
-  node: ResourceTopologyNode;
-  iconSize: number;
-  factsLine: boolean;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-  const kind: ResourceTopologyKindInfo = getResourceTopologyKind(
-    props.node.kind,
-  );
-  const status: string = renderTopologyText(translator, props.node.status);
-  const kindLabel: string = topologyKindLabel(translator, props.node);
-  const facts: Array<ResourceTopologyFact> = props.node.facts || [];
-
-  return (
-    <span
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        minWidth: 0,
-        flex: 1,
-      }}
-    >
-      {/*
-       * A section only groups parts ("Called by", "Not on a node"): a
-       * heading, without the folder a namespace or a Compose project shows.
-       */}
-      {props.node.isSection ? null : (
-        <IconTile kind={kind} size={props.iconSize} />
-      )}
-      <span style={{ minWidth: 0, flex: 1 }}>
-        <span
-          style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
-        >
-          <TopologyName
-            name={topologyNodeName(translator, props.node)}
-            refitKey={props.node.issues.length}
-            style={{
-              ...LINE,
-              flex: "0 1 auto",
-              fontSize: 13,
-              fontWeight: 600,
-              lineHeight: "18px",
-              color: "var(--ou-text-primary, #111827)",
-            }}
-          />
-          <IssueBadges node={props.node} />
-        </span>
-        {props.node.isSection ? null : (
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              minWidth: 0,
-              fontSize: 11,
-              lineHeight: "16px",
-              color: "var(--ou-text-secondary, #4b5563)",
-            }}
-          >
-            <HealthDot node={props.node} />
-            <span style={{ ...LINE, flex: "0 1 auto" }}>
-              {[status, kindLabel]
-                .filter((part: string): boolean => {
-                  return part.length > 0;
-                })
-                .join(" · ")}
-            </span>
-          </span>
-        )}
-        {props.factsLine && facts.length > 0 ? (
-          <span style={{ display: "block", marginTop: 2 }}>
-            <FactRow facts={facts} />
-          </span>
-        ) : null}
-      </span>
-      {!props.factsLine && facts.length > 0 ? (
-        <span style={{ flexShrink: 0, marginInlineStart: 8 }}>
-          <FactRow facts={facts} />
-        </span>
-      ) : null}
     </span>
   );
 };
@@ -823,7 +855,132 @@ export function describeTopologyPart(
   return parts.join(", ");
 }
 
-/* A closed part: a card that says what it holds, and opens. */
+/*
+ * What the open button of a closed part says: its name, what it holds (as
+ * the card's line says it, which a narrow card may cut) and how many of
+ * those need attention.
+ */
+export function describeTopologyOpen(
+  translator: Translator,
+  node: ResourceTopologyNode,
+): string {
+  const contents: string = describeTopologyContents(translator, node);
+  const attention: number = node.attentionBelow;
+
+  return [
+    translator.translateTemplate("Open {{name}}", {
+      name: topologyNodeName(translator, node),
+    }),
+    contents,
+    attention > 0
+      ? describeTopologyAttentionSplit(
+          translator,
+          node.criticalBelow,
+          attention - node.criticalBelow,
+        )
+      : "",
+  ]
+    .filter((part: string): boolean => {
+      return part.length > 0;
+    })
+    .join(", ");
+}
+
+/* The class the canvas's rules give the round toggle its hover by. */
+export const TOPOLOGY_TOGGLE_CLASS: string = "rt-toggle";
+
+/*
+ * The round button's colours: a quiet disc on the card's own surface,
+ * whichever way it is. Closed, it is grey like a card's edge; open, its
+ * ring and chevron take the map's accent, mixed into the theme, so an open
+ * part is told from a closed one without a filled disc outshouting the red
+ * and amber the map is read by.
+ */
+export function getTopologyToggleColors(isOpen: boolean): {
+  border: string;
+  background: string;
+  color: string;
+} {
+  return {
+    border: isOpen
+      ? `color-mix(in srgb, ${RESOURCE_TOPOLOGY_SELECTED_COLOR} 55%, var(--ou-border-default, #e5e7eb))`
+      : "var(--ou-border-strong, #d1d5db)",
+    background: "var(--ou-surface-primary, #ffffff)",
+    color: isOpen
+      ? RESOURCE_TOPOLOGY_SELECTED_COLOR
+      : "var(--ou-text-secondary, #4b5563)",
+  };
+}
+
+/*
+ * The round button on the edge a part's line leaves by: it opens the part,
+ * and its parts appear after it; open, it closes it again. The chevron
+ * points the way the parts appear, and turns round on a page read from
+ * right to left (Icon does that).
+ */
+const PartToggle: FunctionComponent<{
+  node: ResourceTopologyNode;
+  isOpen: boolean;
+  height: number;
+  onToggle: (open: boolean) => void;
+}> = (props: {
+  node: ResourceTopologyNode;
+  isOpen: boolean;
+  height: number;
+  onToggle: (open: boolean) => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const size: number = 24;
+  const colors: { border: string; background: string; color: string } =
+    getTopologyToggleColors(props.isOpen);
+
+  return (
+    <button
+      type="button"
+      className={`${FOCUS_RING} ${TOPOLOGY_TOGGLE_CLASS}`}
+      data-testid={`resource-topology-${props.isOpen ? "close" : "open"}-${props.node.id}`}
+      aria-expanded={props.isOpen}
+      aria-label={
+        props.isOpen
+          ? translator.translateTemplate("Close {{name}}", {
+              name: topologyNodeName(translator, props.node),
+            })
+          : describeTopologyOpen(translator, props.node)
+      }
+      title={props.isOpen ? tx("Close", translator) : tx("Open", translator)}
+      onClick={() => {
+        props.onToggle(!props.isOpen);
+      }}
+      style={{
+        ...BUTTON_RESET,
+        position: "absolute",
+        top: (props.height - size) / 2,
+        insetInlineEnd: -size / 2,
+        width: size,
+        height: size,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "50%",
+        border: `1px solid ${colors.border}`,
+        background: colors.background,
+        color: colors.color,
+        boxShadow: "var(--ou-shadow-sm, 0 1px 3px rgb(15 23 42 / 8%))",
+        zIndex: 2,
+      }}
+    >
+      <Icon
+        icon={props.isOpen ? IconProp.ChevronLeft : IconProp.ChevronRight}
+        className="h-3.5 w-3.5"
+      />
+    </button>
+  );
+};
+
+/*
+ * A part: the resource itself, a section, or any part inside it, open or
+ * closed. Its line to what it holds leaves by its toggle.
+ */
 export const ResourceTopologyCardNode: FunctionComponent<
   NodeProps<ResourceTopologyNodeData>
 > = (props: NodeProps<ResourceTopologyNodeData>): ReactElement => {
@@ -831,103 +988,184 @@ export const ResourceTopologyCardNode: FunctionComponent<
   const data: ResourceTopologyNodeData = props.data;
   const node: ResourceTopologyNode = data.node!;
   const placed: ResourceTopologyPlaced = data.placed;
-  const canOpen: boolean = Boolean(placed.card?.canOpen);
-  const contents: string = canOpen
+  const card: NonNullable<ResourceTopologyPlaced["card"]> = placed.card!;
+  const isRoot: boolean = node.parentId === null;
+  const isSection: boolean = Boolean(node.isSection);
+  const isOpen: boolean = card.isOpen;
+  const kind: ResourceTopologyKindInfo = getResourceTopologyKind(node.kind);
+  const tone: ResourceTopologyTone = getResourceTopologyTone(
+    isSection ? "healthy" : node.effectiveHealth,
+  );
+  const status: string = renderTopologyText(translator, node.status);
+  const facts: Array<ResourceTopologyFact> = node.facts || [];
+  /*
+   * Under a group's heading a card need not say what it is; the resource
+   * itself, a part in a lane (lanes mix kinds), and a part with neither a
+   * status nor a number of its own (a datacenter, a region) do - a dot
+   * alone would say nothing.
+   */
+  const kindLabel: string =
+    isRoot || placed.lane || (!status && facts.length === 0)
+      ? topologyKindLabel(translator, node)
+      : "";
+  const contents: string = card.canOpen
     ? describeTopologyContents(translator, node)
     : "";
   const attention: number = node.attentionBelow;
+  const statusLine: string = [status, kindLabel]
+    .filter((part: string): boolean => {
+      return part.length > 0;
+    })
+    .join(" · ");
 
   return (
     <div
+      dir={data.direction || "ltr"}
       data-testid={`resource-topology-card-${node.id}`}
       data-health={node.effectiveHealth}
+      data-open={isOpen ? "true" : "false"}
       style={{
         position: "relative",
         width: placed.width,
         height: placed.height,
-        display: "flex",
-        flexDirection: "column",
-        borderRadius: 12,
-        border: "1px solid var(--ou-border-default, #e5e7eb)",
-        borderInlineStart: `4px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
-        background: "var(--ou-surface-primary, #ffffff)",
-        boxShadow: shadowFor(node),
-        outline: outlineFor(data, Boolean(placed.card?.isMatch)),
-        outlineOffset: 2,
-        overflow: "hidden",
       }}
     >
       <SideHandles />
-      <button
-        type="button"
-        className={FOCUS_RING_INSET}
-        aria-label={describeTopologyPart(translator, node)}
-        aria-pressed={data.isSelected}
-        onClick={() => {
-          data.callbacks.onSelect(node.id);
-        }}
+      <div
         style={{
-          ...BUTTON_RESET,
+          width: "100%",
+          height: "100%",
           display: "flex",
-          flex: 1,
-          minHeight: 0,
-          padding: "10px 12px 6px 10px",
+          borderRadius: 12,
+          border: `1px solid ${data.isOnPath && !data.isSelected ? RESOURCE_TOPOLOGY_MATCH_COLOR : tone.border}`,
+          borderInlineStart: `4px solid ${tone.edge === "transparent" ? tone.border : tone.edge}`,
+          background: isSection
+            ? "var(--ou-surface-secondary, #f9fafb)"
+            : tone.background,
+          boxShadow: shadowFor(isSection ? null : node.effectiveHealth),
+          outline: outlineFor(data, card.isMatch),
+          outlineOffset: 2,
+          overflow: "hidden",
         }}
       >
-        <PartSummary node={node} iconSize={30} factsLine={true} />
-      </button>
-      {canOpen ? (
         <button
           type="button"
           className={FOCUS_RING_INSET}
-          data-testid={`resource-topology-open-${node.id}`}
-          aria-expanded={false}
-          aria-label={[
-            translator.translateTemplate("Open {{name}}", {
-              name: topologyNodeName(translator, node),
-            }),
-            // What it holds, as the line says it, which a narrow card may cut.
-            contents,
-            attention > 0
-              ? describeTopologyAttentionSplit(
-                  translator,
-                  node.criticalBelow,
-                  attention - node.criticalBelow,
-                )
-              : "",
-          ]
-            .filter((part: string): boolean => {
-              return part.length > 0;
-            })
-            .join(", ")}
+          data-testid={`resource-topology-select-${node.id}`}
+          data-topology-item={card.id}
+          aria-label={describeTopologyPart(translator, node)}
+          aria-pressed={data.isSelected}
           onClick={() => {
-            data.callbacks.onToggleOpen(node.id, true);
+            data.callbacks.onSelect(node.id);
           }}
           style={{
             ...BUTTON_RESET,
             display: "flex",
-            alignItems: "center",
-            gap: 6,
-            height: 30,
-            padding: "0 12px 0 10px",
-            borderTop: "1px dashed var(--ou-border-default, #e5e7eb)",
-            fontSize: 11,
-            color: "var(--ou-text-secondary, #4b5563)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: 3,
+            flex: 1,
+            minWidth: 0,
+            paddingTop: 8,
+            paddingBottom: 8,
+            paddingInlineStart: 10,
+            // Room for the toggle that sits on the edge.
+            paddingInlineEnd: card.canOpen && !isRoot ? 22 : 12,
           }}
         >
-          <Icon icon={IconProp.ChevronRight} className="h-3 w-3" />
-          <span title={contents} style={{ ...LINE, flex: 1 }}>
-            {contents}
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              minWidth: 0,
+            }}
+          >
+            {isSection ? null : (
+              <IconTile kind={kind} size={isRoot ? 36 : 30} />
+            )}
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  minWidth: 0,
+                }}
+              >
+                <TopologyName
+                  name={topologyNodeName(translator, node)}
+                  refitKey={node.issues.length}
+                  style={{
+                    ...LINE,
+                    flex: "0 1 auto",
+                    fontSize: isRoot ? 15 : 13,
+                    fontWeight: 600,
+                    lineHeight: isRoot ? "20px" : "18px",
+                    color: "var(--ou-text-primary, #111827)",
+                  }}
+                />
+                <IssueBadges node={node} />
+              </span>
+              {isSection ? null : (
+                <span
+                  className={TOPOLOGY_DETAIL_CLASS}
+                  style={{ display: "block" }}
+                >
+                  <StatusLine
+                    health={node.effectiveHealth}
+                    status={statusLine}
+                    facts={facts}
+                  />
+                </span>
+              )}
+            </span>
           </span>
-          {attention > 0 ? (
-            <AttentionCounts
-              critical={node.criticalBelow}
-              warning={attention - node.criticalBelow}
-            />
+          {card.canOpen ? (
+            <span
+              className={TOPOLOGY_DETAIL_CLASS}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  minWidth: 0,
+                  fontSize: 11,
+                  lineHeight: "14px",
+                  color: "var(--ou-text-muted, #6b7280)",
+                }}
+              >
+                <span title={contents} style={{ ...LINE, flex: 1 }}>
+                  {contents}
+                </span>
+                {attention > 0 ? (
+                  <AttentionCounts
+                    critical={node.criticalBelow}
+                    warning={attention - node.criticalBelow}
+                  />
+                ) : null}
+              </span>
+              <InsideHealthBar node={node} />
+            </span>
           ) : null}
         </button>
+      </div>
+      {card.canOpen && !isRoot ? (
+        <PartToggle
+          node={node}
+          isOpen={isOpen}
+          height={placed.height}
+          onToggle={(open: boolean) => {
+            data.callbacks.onToggleOpen(node.id, open);
+          }}
+        />
       ) : null}
     </div>
   );
@@ -943,9 +1181,29 @@ export const ResourceTopologyChipNode: FunctionComponent<
   const placed: ResourceTopologyPlaced = data.placed;
   const status: string = renderTopologyText(translator, node.status);
   const firstFact: ResourceTopologyFact | undefined = node.facts?.[0];
+  const tone: ResourceTopologyTone = getResourceTopologyTone(
+    node.effectiveHealth,
+  );
+  const kindLabel: string = placed.lane
+    ? topologyKindLabel(translator, node)
+    : "";
+  const described: string = [status, kindLabel]
+    .filter((part: string): boolean => {
+      return part.length > 0;
+    })
+    .join(" · ");
+  // With nothing else to say, its first number - the value kept in its order.
+  const second: ReactElement | string | null =
+    described ||
+    (firstFact ? (
+      <>
+        {tx(firstFact.label, translator)} <bdi>{firstFact.value}</bdi>
+      </>
+    ) : null);
 
   return (
     <div
+      dir={data.direction || "ltr"}
       style={{
         position: "relative",
         width: placed.width,
@@ -958,6 +1216,7 @@ export const ResourceTopologyChipNode: FunctionComponent<
         className={FOCUS_RING}
         data-testid={`resource-topology-chip-${node.id}`}
         data-health={node.effectiveHealth}
+        data-topology-item={placed.chip?.id || node.id}
         aria-label={describeTopologyPart(translator, node)}
         aria-pressed={data.isSelected}
         title={topologyNodeName(translator, node)}
@@ -972,12 +1231,13 @@ export const ResourceTopologyChipNode: FunctionComponent<
           flexDirection: "column",
           justifyContent: "center",
           gap: 2,
-          padding: "0 10px",
+          paddingInlineStart: 10,
+          paddingInlineEnd: 10,
           borderRadius: 10,
-          border: "1px solid var(--ou-border-default, #e5e7eb)",
-          borderInlineStart: `3px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
-          background: "var(--ou-surface-primary, #ffffff)",
-          boxShadow: shadowFor(node),
+          border: `1px solid ${tone.border}`,
+          borderInlineStart: `3px solid ${tone.edge === "transparent" ? tone.border : tone.edge}`,
+          background: tone.background,
+          boxShadow: shadowFor(node.effectiveHealth),
           outline: outlineFor(data, Boolean(placed.chip?.isMatch)),
           outlineOffset: 2,
         }}
@@ -985,7 +1245,7 @@ export const ResourceTopologyChipNode: FunctionComponent<
         <span
           style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
         >
-          <HealthDot node={node} />
+          <HealthDot health={node.effectiveHealth} />
           <TopologyName
             name={topologyNodeName(translator, node)}
             refitKey={node.issues.length}
@@ -1000,20 +1260,20 @@ export const ResourceTopologyChipNode: FunctionComponent<
           />
           <IssueBadges node={node} compact={true} />
         </span>
-        <span
-          style={{
-            ...LINE,
-            paddingInlineStart: 14,
-            fontSize: 11,
-            lineHeight: "14px",
-            color: "var(--ou-text-muted, #6b7280)",
-          }}
-        >
-          {status ||
-            (firstFact
-              ? `${tx(firstFact.label, translator)} ${firstFact.value}`
-              : "")}
-        </span>
+        {second ? (
+          <span
+            className={TOPOLOGY_DETAIL_CLASS}
+            style={{
+              ...LINE,
+              paddingInlineStart: 14,
+              fontSize: 11,
+              lineHeight: "14px",
+              color: "var(--ou-text-muted, #6b7280)",
+            }}
+          >
+            {second}
+          </span>
+        ) : null}
       </button>
     </div>
   );
@@ -1029,100 +1289,253 @@ export const ResourceTopologyMoreNode: FunctionComponent<
   const kind: ResourceTopologyKindInfo = getResourceTopologyKind(more.kind);
 
   return (
-    <button
-      type="button"
-      className={FOCUS_RING}
-      data-testid={`resource-topology-more-${more.groupKey}`}
-      disabled={!more.canShowAll}
-      aria-label={translator.translateTemplate("Show {{count}} more {{kind}}", {
-        count: translator.formatNumber(more.hiddenCount),
-        kind: tx(kind.plural, translator),
-      })}
-      onClick={() => {
-        data.callbacks.onToggleGroup(more.groupKey);
-      }}
-      style={{
-        ...BUTTON_RESET,
-        width: data.placed.width,
-        height: data.placed.height,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
-        borderRadius: more.asChip ? 10 : 12,
-        border: "1px dashed var(--ou-border-strong, #d1d5db)",
-        background: "var(--ou-surface-secondary, #f9fafb)",
-        cursor: more.canShowAll ? "pointer" : "default",
-        textAlign: "center",
-      }}
-    >
-      <span
+    <div dir={data.direction || "ltr"}>
+      <SideHandles />
+      <button
+        type="button"
+        className={FOCUS_RING}
+        data-testid={`resource-topology-more-${more.groupKey}`}
+        data-topology-item={more.id}
+        disabled={!more.canShowAll}
+        aria-label={translator.translateTemplate(
+          "Show {{count}} more {{kind}}",
+          {
+            count: translator.formatNumber(more.hiddenCount),
+            kind: tx(kind.plural, translator),
+          },
+        )}
+        onClick={() => {
+          data.callbacks.onToggleGroup(more.groupKey);
+        }}
         style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--ou-text-primary, #111827)",
+          ...BUTTON_RESET,
+          width: data.placed.width,
+          height: data.placed.height,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+          borderRadius: more.asChip ? 10 : 12,
+          border: "1px dashed var(--ou-border-strong, #d1d5db)",
+          background: "var(--ou-surface-secondary, #f9fafb)",
+          cursor: more.canShowAll ? "pointer" : "default",
+          textAlign: "center",
         }}
       >
-        {translator.translateTemplate("+ {{count}} more", {
-          count: translator.formatNumber(more.hiddenCount),
-        })}
-      </span>
-      {more.hiddenAttention > 0 ? (
         <span
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
-            color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+            color: "var(--ou-text-primary, #111827)",
           }}
         >
-          {describeTopologyAttention(translator, more.hiddenAttention)}
+          {translator.translateTemplate("+ {{count}} more", {
+            count: translator.formatNumber(more.hiddenCount),
+          })}
         </span>
-      ) : more.asChip ? null : (
-        <span style={{ fontSize: 11, color: "var(--ou-text-muted, #6b7280)" }}>
-          {tx(kind.plural, translator)}
-        </span>
-      )}
-    </button>
+        {more.hiddenAttention > 0 ? (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+            }}
+          >
+            {describeTopologyAttention(translator, more.hiddenAttention)}
+          </span>
+        ) : more.asChip ? null : (
+          <span
+            style={{ fontSize: 11, color: "var(--ou-text-muted, #6b7280)" }}
+          >
+            {tx(kind.plural, translator)}
+          </span>
+        )}
+      </button>
+    </div>
   );
 };
 
-const CaptionBand: FunctionComponent<{
-  caption: ResourceTopologyCaption;
-  onToggleGroup: (groupKey: string) => void;
-}> = (props: {
-  caption: ResourceTopologyCaption;
-  onToggleGroup: (groupKey: string) => void;
-}): ReactElement | null => {
-  const translator: Translator = useTranslator();
-  const group: ResourceTopologyCaption["group"] = props.caption.group;
-  const kind: ResourceTopologyKindInfo = getResourceTopologyKind(group.kind);
-  const canFold: boolean = group.isShownInFull;
-  const canShowAll: boolean = Boolean(group.more?.canShowAll);
+/*
+ * What a heading says, in the reader's language: over a group, the kind of
+ * its parts, how many, how many need attention, and "Show all" or "Show
+ * fewer"; over a lane, the name of what the lane holds ("Called by") and
+ * how many. The map draws these words, and lays headings out by them.
+ */
+export interface ResourceTopologyHeadingWords {
+  title: string;
+  count: string;
+  attention: string;
+  action: string;
+  canFold: boolean;
+  canShowAll: boolean;
+}
 
-  // Sections are titled by their own box.
-  if (group.kind === SECTION_KIND) {
-    return null;
-  }
+export function getTopologyHeadingWords(
+  translator: Translator,
+  heading: ResourceTopologyHeading | undefined,
+  laneNode: ResourceTopologyNode | null,
+): ResourceTopologyHeadingWords {
+  const group: ResourceTopologyGroupItem | undefined = heading?.group;
+  const attention: number = group
+    ? group.attention
+    : laneNode
+      ? laneNode.attentionBelow
+      : 0;
+  const canFold: boolean = Boolean(group?.isShownInFull);
+  const canShowAll: boolean = Boolean(group?.more?.canShowAll);
+
+  return {
+    title: group
+      ? tx(getResourceTopologyKind(group.kind).plural, translator)
+      : laneNode
+        ? topologyNodeName(translator, laneNode)
+        : "",
+    count: translator.formatNumber(
+      group ? group.total : heading?.laneCount || 0,
+    ),
+    attention:
+      attention > 0 ? describeTopologyAttention(translator, attention) : "",
+    action:
+      group && canFold
+        ? tx("Show fewer", translator)
+        : group && canShowAll
+          ? translator.translateTemplate("Show all {{count}}", {
+              count: translator.formatNumber(group.total),
+            })
+          : "",
+    canFold: canFold,
+    canShowAll: canShowAll,
+  };
+}
+
+// A heading's type, as ResourceTopologyHeadingNode sets it.
+const HEADING_FONT_SIZE: number = 11;
+const HEADING_GAP: number = 8;
+// Clear of the line that runs into it, and room for a button's focus ring.
+const HEADING_PADDING_START: number = 6;
+const HEADING_PADDING_END: number = 4;
+const HEADING_LETTER_SPACING: number = 0.04 * HEADING_FONT_SIZE;
+const HEADING_FONT_FAMILY: string =
+  'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+// Room for a font that arrives after the first measure, and for rounding.
+const HEADING_SLACK: number = 1.06;
+
+/*
+ * How wide each heading's words are drawn, for the layout
+ * (ResourceTopologyLayoutOptions.headingWidth): measured in the page's font,
+ * so a heading in German or Persian is as wide as its words, and one in
+ * English no wider than it needs. 0 where nothing can measure text.
+ */
+export function createTopologyHeadingMeasure(
+  translator: Translator,
+  graph: ResourceTopologyGraph,
+  // How a string is measured in a font: the page's canvas by default.
+  measure: (text: string, font: string) => number = measureTextWidth,
+): ResourceTopologyHeadingWidth {
+  const widths: Map<string, number> = new Map<string, number>();
+
+  return (heading: ResourceTopologyHeading): number => {
+    const words: ResourceTopologyHeadingWords = getTopologyHeadingWords(
+      translator,
+      heading,
+      heading.laneSectionId
+        ? graph.nodes.get(heading.laneSectionId) || null
+        : null,
+    );
+    const key: string = JSON.stringify([
+      words.title,
+      words.count,
+      words.attention,
+      words.action,
+    ]);
+    const known: number | undefined = widths.get(key);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    const font: (weight: number) => string = (weight: number): string => {
+      return `${weight} ${HEADING_FONT_SIZE}px ${HEADING_FONT_FAMILY}`;
+    };
+    const title: string = words.title.toLocaleUpperCase(translator.language);
+    const parts: Array<number> = [
+      measure(title, font(600)) +
+        HEADING_LETTER_SPACING * Array.from(title).length,
+      measure(words.count, font(400)),
+    ];
+
+    if (words.attention) {
+      parts.push(measure("·", font(400)), measure(words.attention, font(600)));
+    }
+
+    if (words.action) {
+      parts.push(measure(words.action, font(600)));
+    }
+
+    const width: number = parts.some((part: number): boolean => {
+      return part <= 0;
+    })
+      ? 0
+      : Math.ceil(
+          (HEADING_PADDING_START +
+            HEADING_PADDING_END +
+            parts.reduce((sum: number, part: number): number => {
+              return sum + part;
+            }, 0) +
+            HEADING_GAP * (parts.length - 1)) *
+            HEADING_SLACK,
+        );
+
+    widths.set(key, width);
+
+    return width;
+  };
+}
+
+/*
+ * Over a group's parts: what they are, how many, how many need attention,
+ * and a way to show them all or fold them back. Over a lane: the name of
+ * what the lane holds ("Called by") and how many.
+ */
+export const ResourceTopologyHeadingNode: FunctionComponent<
+  NodeProps<ResourceTopologyNodeData>
+> = (props: NodeProps<ResourceTopologyNodeData>): ReactElement | null => {
+  const translator: Translator = useTranslator();
+  const data: ResourceTopologyNodeData = props.data;
+  const placed: ResourceTopologyPlaced = data.placed;
+  const group: ResourceTopologyGroupItem | undefined = placed.heading?.group;
+  const words: ResourceTopologyHeadingWords = getTopologyHeadingWords(
+    translator,
+    placed.heading,
+    group ? null : data.node,
+  );
 
   return (
     <div
-      data-testid={`resource-topology-group-${group.groupKey}`}
+      dir={data.direction || "ltr"}
+      data-testid={
+        group
+          ? `resource-topology-group-${group.groupKey}`
+          : `resource-topology-lane-${placed.heading?.laneSectionId || ""}`
+      }
       style={{
-        position: "absolute",
-        left: props.caption.x,
-        top: props.caption.y,
-        width: props.caption.width,
-        height: RESOURCE_TOPOLOGY_SIZES.captionHeight,
+        position: "relative",
+        width: placed.width,
+        height: placed.height,
         display: "flex",
         alignItems: "center",
         gap: 8,
+        paddingInlineStart: HEADING_PADDING_START,
+        // Room for "Show all"'s focus ring at the end, which overflow clips.
+        paddingInlineEnd: HEADING_PADDING_END,
         fontSize: 11,
         color: "var(--ou-text-muted, #6b7280)",
         whiteSpace: "nowrap",
         overflow: "hidden",
       }}
     >
+      <SideHandles />
       <span
         style={{
           flexShrink: 0,
@@ -1132,33 +1545,40 @@ const CaptionBand: FunctionComponent<{
           color: "var(--ou-text-secondary, #4b5563)",
         }}
       >
-        {tx(kind.plural, translator)}
+        {words.title}
       </span>
-      <span style={{ flexShrink: 0 }}>
-        {translator.formatNumber(group.total)}
-      </span>
-      {group.attention > 0 ? (
-        <span
-          style={{
-            minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            fontWeight: 600,
-            color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
-          }}
-        >
-          {describeTopologyAttention(translator, group.attention)}
-        </span>
+      <span style={{ flexShrink: 0 }}>{words.count}</span>
+      {words.attention ? (
+        <>
+          {/*
+           * Between the count and what needs attention, so "2" and "1 needs
+           * attention" never read as one number.
+           */}
+          <span aria-hidden={true} style={{ flexShrink: 0 }}>
+            ·
+          </span>
+          <span
+            style={{
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              fontWeight: 600,
+              color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+            }}
+          >
+            {words.attention}
+          </span>
+        </>
       ) : null}
-      {canFold || canShowAll ? (
+      {group && words.action ? (
         <button
           type="button"
           className={FOCUS_RING}
           data-testid={`resource-topology-group-toggle-${group.groupKey}`}
           // Shown in full is open: the button then folds the group.
-          aria-expanded={canFold}
+          aria-expanded={words.canFold}
           onClick={() => {
-            props.onToggleGroup(group.groupKey);
+            data.callbacks.onToggleGroup(group.groupKey);
           }}
           style={{
             ...BUTTON_RESET,
@@ -1169,123 +1589,9 @@ const CaptionBand: FunctionComponent<{
             color: "var(--ou-link, #4f46e5)",
           }}
         >
-          {canFold
-            ? tx("Show fewer", translator)
-            : translator.translateTemplate("Show all {{count}}", {
-                count: translator.formatNumber(group.total),
-              })}
+          {words.action}
         </button>
       ) : null}
-    </div>
-  );
-};
-
-/* An open part: a box with its heading, holding its parts. */
-export const ResourceTopologyContainerNode: FunctionComponent<
-  NodeProps<ResourceTopologyNodeData>
-> = (props: NodeProps<ResourceTopologyNodeData>): ReactElement => {
-  const translator: Translator = useTranslator();
-  const data: ResourceTopologyNodeData = props.data;
-  const node: ResourceTopologyNode = data.node!;
-  const placed: ResourceTopologyPlaced = data.placed;
-  const isRoot: boolean = node.parentId === null;
-  const healthColor: string =
-    RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth];
-  const tinted: boolean =
-    node.effectiveHealth === "critical" || node.effectiveHealth === "warning";
-
-  return (
-    <div
-      data-testid={`resource-topology-box-${node.id}`}
-      data-health={node.effectiveHealth}
-      style={{
-        position: "relative",
-        width: placed.width,
-        height: placed.height,
-        borderRadius: 16,
-        border: `1px solid ${tinted ? `${healthColor}66` : "var(--ou-border-default, #e5e7eb)"}`,
-        background:
-          placed.depth % 2 === 0
-            ? "var(--ou-surface-primary, #ffffff)"
-            : "var(--ou-surface-secondary, #f9fafb)",
-        boxShadow: isRoot ? "var(--ou-card-shadow)" : undefined,
-        outline: outlineFor(data, Boolean(placed.card?.isMatch)),
-        outlineOffset: 3,
-      }}
-    >
-      <SideHandles sideY={RESOURCE_TOPOLOGY_SIZES.headerHeight / 2} />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          height: RESOURCE_TOPOLOGY_SIZES.headerHeight,
-          padding: "0 10px 0 14px",
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          borderBottom: "1px solid var(--ou-border-subtle, #f3f4f6)",
-          background: tinted ? `${healthColor}0d` : undefined,
-        }}
-      >
-        <button
-          type="button"
-          className={FOCUS_RING}
-          data-testid={`resource-topology-select-${node.id}`}
-          aria-label={describeTopologyPart(translator, node)}
-          aria-pressed={data.isSelected}
-          onClick={() => {
-            data.callbacks.onSelect(node.id);
-          }}
-          style={{
-            ...BUTTON_RESET,
-            display: "flex",
-            flex: 1,
-            minWidth: 0,
-            alignItems: "center",
-          }}
-        >
-          <PartSummary node={node} iconSize={36} factsLine={true} />
-        </button>
-        {!isRoot ? (
-          <button
-            type="button"
-            className={FOCUS_RING}
-            data-testid={`resource-topology-close-${node.id}`}
-            aria-expanded={true}
-            aria-label={translator.translateTemplate("Close {{name}}", {
-              name: topologyNodeName(translator, node),
-            })}
-            title={tx("Close", translator)}
-            onClick={() => {
-              data.callbacks.onToggleOpen(node.id, false);
-            }}
-            style={{
-              ...BUTTON_RESET,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 28,
-              height: 28,
-              flexShrink: 0,
-              borderRadius: 8,
-              color: "var(--ou-text-muted, #6b7280)",
-            }}
-          >
-            <Icon icon={IconProp.ChevronUp} className="h-4 w-4" />
-          </button>
-        ) : null}
-      </div>
-      {(placed.captions || []).map(
-        (caption: ResourceTopologyCaption): ReactElement => {
-          return (
-            <CaptionBand
-              key={caption.group.groupKey}
-              caption={caption}
-              onToggleGroup={data.callbacks.onToggleGroup}
-            />
-          );
-        },
-      )}
     </div>
   );
 };
@@ -1303,9 +1609,13 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
   const node: ResourceTopologyNode = data.node!;
   const placed: ResourceTopologyPlaced = data.placed;
   const status: string = renderTopologyText(translator, node.status);
+  const tone: ResourceTopologyTone = getResourceTopologyTone(
+    node.effectiveHealth,
+  );
 
   return (
     <div
+      dir={data.direction || "ltr"}
       style={{
         position: "relative",
         width: placed.width,
@@ -1331,12 +1641,13 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
           flexDirection: "column",
           justifyContent: "center",
           gap: 2,
-          padding: "0 10px",
+          paddingInlineStart: 10,
+          paddingInlineEnd: 10,
           borderRadius: 10,
-          border: "1px solid var(--ou-border-default, #e5e7eb)",
-          borderInlineStart: `3px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
-          background: "var(--ou-surface-primary, #ffffff)",
-          boxShadow: shadowFor(node),
+          border: `1px solid ${tone.border}`,
+          borderInlineStart: `3px solid ${tone.edge === "transparent" ? tone.border : tone.edge}`,
+          background: tone.background,
+          boxShadow: shadowFor(node.effectiveHealth),
           outline: outlineFor(data, false),
           outlineOffset: 2,
         }}
@@ -1344,7 +1655,7 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
         <span
           style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
         >
-          <HealthDot node={node} />
+          <HealthDot health={node.effectiveHealth} />
           <TopologyName
             name={topologyNodeName(translator, node)}
             refitKey={node.issues.length}
@@ -1360,6 +1671,7 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
           <IssueBadges node={node} compact={true} />
         </span>
         <span
+          className={TOPOLOGY_DETAIL_CLASS}
           style={{
             ...LINE,
             paddingInlineStart: 14,
@@ -1389,6 +1701,7 @@ export const ResourceTopologyRelatedCaptionNode: FunctionComponent<
 
   return (
     <div
+      dir={props.data.direction || "ltr"}
       data-testid={`resource-topology-related-caption-${caption.label}`}
       style={{
         width: props.data.placed.width,
@@ -1426,10 +1739,10 @@ export const RESOURCE_TOPOLOGY_NODE_TYPES: Record<
   string,
   FunctionComponent<NodeProps<ResourceTopologyNodeData>>
 > = {
-  resourceTopologyContainer: ResourceTopologyContainerNode,
   resourceTopologyCard: ResourceTopologyCardNode,
   resourceTopologyChip: ResourceTopologyChipNode,
   resourceTopologyMore: ResourceTopologyMoreNode,
+  resourceTopologyHeading: ResourceTopologyHeadingNode,
   resourceTopologyRelated: ResourceTopologyRelatedNode,
   resourceTopologyRelatedCaption: ResourceTopologyRelatedCaptionNode,
 };

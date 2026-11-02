@@ -33,6 +33,7 @@ import {
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { CustomFieldFile } from "../../../Types/CustomField/CustomFieldFile";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Form from "../../../Models/DatabaseModels/Form";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -436,11 +437,17 @@ export default class IncidentFormTarget
     form: Form;
     createdId: ObjectID;
     note: string;
+    attachments?: Array<CustomFieldFile> | undefined;
   }): Promise<void> {
     const note: IncidentInternalNote = new IncidentInternalNote();
     note.projectId = data.form.projectId!;
     note.incidentId = data.createdId;
     note.note = data.note;
+
+    // The files the submitter chose for the form's own file questions.
+    if (data.attachments && data.attachments.length > 0) {
+      note.attachments = FormTargetHelpers.toAttachmentStubs(data.attachments);
+    }
 
     await IncidentInternalNoteService.create({
       data: note,

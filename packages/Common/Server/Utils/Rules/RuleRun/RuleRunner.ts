@@ -114,6 +114,8 @@ export default class RuleRunner {
     });
 
     const query: Record<string, unknown> = {
+      // The resources the rule can apply to, when not every one (a cloud rule's product).
+      ...(definition.getResourceScope ? definition.getResourceScope(rule) : {}),
       projectId: data.projectId,
     };
 

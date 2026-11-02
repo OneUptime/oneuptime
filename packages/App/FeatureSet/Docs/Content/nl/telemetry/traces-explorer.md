@@ -60,7 +60,7 @@ Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De z
 
 ### Een span openen
 
-Klik op een rij om hem uit te klappen: de attributen, en de logboeken en uitzonderingen die hij vastlegde. Klik op **See full trace** om de hele trace te openen.
+Klik op een rij om hem uit te klappen: de attributen, en de logboeken en uitzonderingen die hij vastlegde. Klik op **Volledige trace bekijken** om de hele trace te openen.
 :::
 
 Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde spans.
@@ -81,12 +81,12 @@ Daaronder kiest u een van vier weergaven:
 
 | Weergave | Wat die toont |
 | --- | --- |
-| **Waterfall** | Elke span op een tijdlijn, genest onder de span die hem startte. Zet **Critical path** aan om de keten van spans te markeren die bepaalde hoe lang het verzoek duurde. |
+| **Waterval** | Elke span op een tijdlijn, genest onder de span die hem startte. Zet **Kritiek pad** aan om de keten van spans te markeren die bepaalde hoe lang het verzoek duurde. |
 | **Flame graph** | Dezelfde boom als gestapelde balken, waarbij de breedste balken het langst duurden. |
-| **Service map** | De services waar het verzoek doorheen ging, en de aanroepen ertussen. |
-| **Operations** | Eén rij per service en spannaam, met de aanroepen, fouten, eigen tijd en totale tijd. Een operatie die 10 keer of vaker vanuit één ouder-span wordt aangeroepen, wordt gemarkeerd: vaak een N+1-query of een lus die gebundeld kan worden. |
+| **Servicekaart** | De services waar het verzoek doorheen ging, en de aanroepen ertussen. |
+| **Bewerkingen** | Eén rij per service en spannaam, met de aanroepen, fouten, eigen tijd en totale tijd. Een operatie die 10 keer of vaker vanuit één ouder-span wordt aangeroepen, wordt gemarkeerd: vaak een N+1-query of een lus die gebundeld kan worden. |
 
-Klik in een willekeurige weergave op een span om het paneel ervan te openen, met tabbladen voor attributen, gebeurtenissen, logboeken, uitzonderingen en links, en voor het profiel of de LLM-aanroep als die er is. Doorzoek de spans van de trace op naam, ID of service met het zoekvak naast de weergaven (druk op `/`), en zet **Errors only** aan om alleen de mislukte spans over te houden.
+Klik in een willekeurige weergave op een span om het paneel ervan te openen, met tabbladen voor attributen, gebeurtenissen, logboeken, uitzonderingen en links, en voor het profiel of de LLM-aanroep als die er is. Doorzoek de spans van de trace op naam, ID of service met het zoekvak naast de weergaven (druk op `/`), en zet **Alleen fouten** aan om alleen de mislukte spans over te houden.
 
 Een grote trace laadt 500 spans tegelijk. Klik op de knop onderaan de trace om meer of alle spans te laden.
 
@@ -97,7 +97,7 @@ Een grote trace laadt 500 spans tegelijk. Klik op de knop onderaan de trace om m
 
 De grafiek boven de lijst toont het aantal spans in de tijd, verdeeld naar status. Kies in de kop van de grafiek een andere maat om in plaats daarvan hun gemiddelde, mediane (P50) of P95-responstijd te tonen.
 
-Wilt u meer, zet de lijst dan van **Spans** op **Analytics**. Kies een tijdreeks, een toplijst of een tabel; meet verzoekaantallen, foutaantallen of responstijden (gemiddelde, P50, P90, P95, P99, minimum of maximum); en groepeer op spannaam, service, status, spansoort of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont 5 tot 100 groepen.
+Wilt u meer, zet de lijst dan van **Spans** op **Analyses**. Kies een tijdreeks, een toplijst of een tabel; meet verzoekaantallen, foutaantallen of responstijden (gemiddelde, P50, P90, P95, P99, minimum of maximum); en groepeer op spannaam, service, status, spansoort of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont 5 tot 100 groepen.
 
 ## Volgen, opslaan en delen
 

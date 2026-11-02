@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "../Button/ButtonStates";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -85,8 +86,8 @@ export const COLOR_SWATCH_CLASS: string =
 export const COLOR_SWATCH_ENABLED_CLASS: string =
   "cursor-pointer hover:scale-110";
 
-export const COLOR_SWATCH_DISABLED_CLASS: string =
-  "cursor-not-allowed opacity-50";
+// Locked, as every control looks.
+export const COLOR_SWATCH_DISABLED_CLASS: string = BUTTON_DISABLED_CLASS_NAME;
 
 /*
  * The two worded choices beside the swatches - "No color" before them and

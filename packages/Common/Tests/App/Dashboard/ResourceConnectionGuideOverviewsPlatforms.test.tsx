@@ -25,7 +25,7 @@ import CephClusterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import VMwareVCenterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Index";
 import ServerlessFunctionOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview";
 import RumApplicationOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Overview";
-import CloudResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview";
+import CloudResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -44,6 +44,13 @@ import {
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import { flush } from "./TimeRangeZoomPageHarness";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
+
+/*
+ * The OneUptime the pages' diagnostic commands download from: this
+ * Dashboard's own (HOST and HTTP_PROTOCOL).
+ */
+const READER_URL: string = getConfiguredOneUptimeUrl();
 
 /*
  * The "how do I connect this?" card (ResourceConnectionGuideCard) on the
@@ -319,7 +326,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       handMadeStatus: "disconnected",
       noun: "cluster",
       setupSnippet: "PROXMOX_CLUSTER_NAME=pve-prod",
-      guide: getProxmoxClusterConnectionGuide("pve-prod"),
+      guide: getProxmoxClusterConnectionGuide("pve-prod", READER_URL),
       documentationPage: PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION,
       heroStatus: pillBesideTitle,
       firstTile: "Node Availability",
@@ -334,7 +341,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       handMadeStatus: "disconnected",
       noun: "cluster",
       setupSnippet: "CEPH_CLUSTER_NAME=ceph-prod",
-      guide: getCephClusterConnectionGuide("ceph-prod"),
+      guide: getCephClusterConnectionGuide("ceph-prod", READER_URL),
       documentationPage: PageMap.CEPH_CLUSTER_VIEW_DOCUMENTATION,
       heroStatus: pillBesideTitle,
       firstTile: "Capacity Used",
@@ -349,7 +356,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       handMadeStatus: "disconnected",
       noun: "vCenter",
       setupSnippet: "VMWARE_VCENTER_NAME=prod-vcenter",
-      guide: getVMwareVCenterConnectionGuide("prod-vcenter"),
+      guide: getVMwareVCenterConnectionGuide("prod-vcenter", READER_URL),
       documentationPage: PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION,
       heroStatus: pillBesideTitle,
       firstTile: "Host Effectiveness",
@@ -419,7 +426,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
         cloudAccountId: "123456789012",
         cloudRegion: "us-east-1",
       }),
-      documentationPage: PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION,
+      documentationPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION,
       heroStatus: resourceOverviewPill,
       firstTile: "CPU",
     },

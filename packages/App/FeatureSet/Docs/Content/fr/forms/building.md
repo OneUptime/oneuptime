@@ -81,10 +81,14 @@ Le logo garde la hauteur du logo de OneUptime qu'il remplace, et un logo large e
 | **Case à cocher** | Une case à cocher, comme une confirmation. |
 | **Date** | Un jour. |
 | **Date et heure** | Un jour et une heure. |
+| **Fichier** | Un fichier, comme une capture d'écran ou un document signé. |
+| **Plusieurs fichiers** | Jusqu'à 10 fichiers, comme des captures d'écran et des journaux. |
 
 Une liste déroulante ou une sélection multiple liste les **Options** que vous lui donnez, chacune avec une couleur facultative (le bouton à côté d'une option ouvre un ensemble de couleurs nommées, avec **Couleur personnalisée** pour un code exact), de une à 100. Passer une question de **Liste déroulante** à **Choix multiple** conserve ses options ; une question qui devient l'un de ces types commence avec deux options que vous pouvez renommer, et une qui cesse de l'être les abandonne. **Dupliquer** copie une question propre au formulaire juste en dessous.
 
 Les réponses à ces questions sont conservées avec la soumission et listées sur la note privée de ce que le formulaire crée — elles ne remplissent aucun champ. Pour remplir un champ, ajoutez le champ lui-même, depuis les deux groupes suivants.
+
+Une question **Fichier** ou **Plusieurs fichiers** prend des fichiers sur l'ordinateur de la personne qui soumet et les joint à la note privée, où votre équipe les télécharge. Pour garder plutôt les fichiers dans un champ personnalisé de l'incident ou de l'événement, ajoutez un champ personnalisé **Fichier** ou **Plusieurs fichiers**.
 
 ### Champs de ce que le formulaire crée
 
@@ -115,7 +119,7 @@ Chaque champ ne peut être demandé qu'une fois ; la liste marque ceux qui sont 
 
 ### Champs personnalisés
 
-Vos champs personnalisés d'incident — ou de maintenance planifiée, pour un formulaire de maintenance — chacun une question dont la réponse devient la valeur du champ. La question prend son type et ses options du champ personnalisé, et commence avec son nom comme question et sa description comme texte d'aide, que vous pouvez changer.
+Vos champs personnalisés d'incident — ou de maintenance planifiée, pour un formulaire de maintenance — chacun une question dont la réponse devient la valeur du champ. La question prend son type et ses options du champ personnalisé, et commence avec son nom comme question et sa description comme texte d'aide, que vous pouvez changer. Un champ personnalisé **Fichier** ou **Plusieurs fichiers** est posé comme une question de fichiers, et ses fichiers vont dans le champ.
 
 Un formulaire ne demande que les champs personnalisés que vous lui ajoutez, quoi que dise **Afficher à la création** : chaque champ qu'un formulaire demande montre son nom, sa description et ses options à toute personne ayant le lien. Quand un champ personnalisé est supprimé, sa question reste dans le formulaire mais n'est plus demandée, et sa carte le dit — supprimez la question. Un champ recréé avec le même nom est un nouveau champ : ajoutez-le à nouveau.
 
@@ -232,6 +236,9 @@ Après la soumission, la page dit "Merci — votre réponse a été envoyée." e
 | Toute autre réponse textuelle | 10 000 caractères. |
 | Une réponse de sélection multiple | 100 choix. |
 | **Votre nom**, **Votre e-mail** | 100 caractères chacun. |
+| Un fichier | 10 Mo, des types qu'un [champ personnalisé de fichier](/docs/incidents/settings#champs-de-fichier) accepte. |
+| Une question **Plusieurs fichiers** | 10 fichiers. |
+| Les fichiers d'une soumission | 10 fichiers, 20 Mo en tout. |
 
 Une soumission qui dépasse une limite, omet une réponse obligatoire ou donne une réponse qui ne convient pas à sa question est refusée avec un message qui dit laquelle, et rien n'est créé. Les réponses aux questions que le formulaire ne pose pas sont ignorées.
 

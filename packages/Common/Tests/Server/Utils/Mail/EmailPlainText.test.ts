@@ -150,6 +150,29 @@ describe("EmailPlainText.fromHtml", () => {
     );
   });
 
+  test("a stat tile's label and value share a line, the label first, each tile a line", () => {
+    // The uptime report's tiles: what each counts, then the number.
+    const tile: (label: string, value: string) => string = (
+      label: string,
+      value: string,
+    ): string => {
+      return `<td><p class="st-Stat-label">${label}</p><div>${value}</div></td>`;
+    };
+
+    expect(
+      text(
+        `<p class="st-Stat-label">Average Uptime</p><p>99.84%</p><p>Oct 1 &ndash; Oct 31</p><table role="presentation"><tr>${tile(
+          "Downtime",
+          "4 hours, 39 minutes",
+        )}${tile("Incidents", "3")}${tile("Resources", "4")}</tr></table><p>After</p>`,
+      ),
+    ).toBe(
+      "Average Uptime: 99.84%\n\nOct 1 \u{2013} Oct 31\n\nDowntime: 4 hours, 39 minutes\nIncidents: 3\nResources: 4\n\nAfter",
+    );
+    // A tile's label written with its colon keeps the one.
+    expect(text(tile("Downtime:", "21m"))).toBe("Downtime: 21m");
+  });
+
   test("a data table is a row a line, its cells parted; a layout table's cells by a space", () => {
     expect(
       text(

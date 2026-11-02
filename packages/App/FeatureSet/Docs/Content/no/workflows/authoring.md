@@ -2,7 +2,7 @@
 
 Du bygger en arbeidsflyt i dens **Bygger**: et lerret der du legger til blokker, kobler dem sammen og fyller ut innstillingene deres. Denne siden viser hvordan du oppretter en arbeidsflyt, [legger til blokker](#legg-til-blokker), [kobler](#koble-sammen-blokker) og [konfigurerer](#konfigurer-en-blokk) dem, [sender verdier mellom dem](#bruk-verdier-fra-tidligere-blokker) og [slår arbeidsflyten på](#slå-den-på).
 
-For å opprette en arbeidsflyt åpner du **Arbeidsflyter** og klikker på **Opprett arbeidsflyt**. Dialogen **Opprett en arbeidsflyt** spør først hvordan du vil starte, og deretter om et navn. En mal som trenger egne innstillinger, som en Slack-webhook-URL, ber om dem i et ekstra trinn og lagrer dem som arbeidsflytvariabler, slik at du kan endre dem senere uten å redigere arbeidsflyten.
+For å opprette en arbeidsflyt åpner du **Arbeidsflyter** og klikker på **Opprett arbeidsflyt**. Dialogen **Opprett en arbeidsflyt** spør først hvordan du vil starte, og deretter om et navn. En mal som trenger egne innstillinger, som en Slack-webhook-URL, ber om dem i et ekstra trinn og lagrer dem som arbeidsflytvariabler, slik at du kan endre dem senere uten å redigere arbeidsflyten. En mal som tilkaller folk, spør i det samme trinnet hvem som skal tilkalles, valgt blant prosjektets brukere, team, vaktplaner eller vaktpolicyer.
 
 Velg hvordan du vil begynne:
 

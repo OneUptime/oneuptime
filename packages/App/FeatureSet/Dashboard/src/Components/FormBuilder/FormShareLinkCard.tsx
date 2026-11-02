@@ -1,21 +1,24 @@
 import FormsCopy from "./FormsCopy";
-import { getFormShareLink } from "./FormShareLink";
+import { FORM_EXAMPLE_DOMAIN, getFormShareLink } from "./FormShareLink";
+import {
+  CustomDomainModel,
+  FORM_CUSTOM_DOMAINS,
+} from "../CustomDomain/CustomDomainKinds";
+import PublicAddresses from "../CustomDomain/PublicAddresses";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Form from "Common/Models/DatabaseModels/Form";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -26,9 +29,20 @@ import React, {
 import useAsyncEffect from "use-async-effect";
 
 /*
- * A form's link, on its Share page: the link itself, copying it, opening the
- * form the way the people it is shared with see it, and Reset Link, which
- * gives the form a new key so the old link stops working.
+ * A form's link, on its Share page: every address the form answers at - its
+ * own domains first (Custom Domains: report.acme.com), each live one to
+ * open and copy, each one not live yet saying why, with DNS Setup when there
+ * is something to do - then its link on OneUptime, to open and copy; with no
+ * domain, one quiet line offers to add one. Drawn the way a status page's
+ * Overview and a dashboard's Sharing page draw theirs (PublicAddresses).
+ *
+ * Reset Link gives the form a new key, so its link on OneUptime stops
+ * working; its own domains name no key, and keep working. Its question
+ * says so when the form has custom domains - whoever shared report.acme.com
+ * would otherwise read "the current one stops working" as theirs.
+ *
+ * Turned off, every address shows the not-available message, its domains
+ * as much as its link, and the notice under the list says it of them all.
  *
  * The card is ResetObjectID's own, since resetting is an update of the
  * form's shareKey column like any other key reset: a viewer who may not
@@ -45,10 +59,6 @@ export interface ComponentProps {
   refresher?: boolean | undefined;
 }
 
-// The two actions next to the link look alike: they are equally safe.
-const LINK_ACTION_CLASS_NAME: string =
-  "inline-flex items-center justify-center gap-1 rounded-md border border-gray-200 bg-gray-100 px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-200";
-
 // What the card last read: the form it belongs to, its key and Enabled.
 interface LoadedLink {
   formId: string;
@@ -59,11 +69,22 @@ interface LoadedLink {
 const FormShareLinkCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
-
   const [loaded, setLoaded] = useState<LoadedLink | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * The form whose list read custom domains of its own, if any: Reset Link's
+   * question then says they are not affected. Not known (not read, or the
+   * read failed) reads as none: the question never promises what it cannot
+   * see. Kept by form, so another form's domains never answer for this one.
+   */
+  const [formWithCustomDomains, setFormWithCustomDomains] = useState<
+    string | null
+  >(null);
+
+  const hasCustomDomains: boolean =
+    formWithCustomDomains === props.modelId.toString();
 
   /*
    * Reads are numbered so that only the latest one is shown: a slow answer
@@ -148,7 +169,6 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
   }
 
   const link: URL = getFormShareLink(shown.shareKey);
-  const linkText: string = link.toString();
 
   return (
     <ResetObjectID<Form>
@@ -159,7 +179,11 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
       description={FormsCopy.shareLinkDescription}
       buttonTitle={FormsCopy.resetLink}
       confirmTitle={FormsCopy.resetLink}
-      confirmDescription={FormsCopy.resetLinkConfirmation}
+      confirmDescription={
+        hasCustomDomains
+          ? FormsCopy.resetLinkConfirmationWithCustomDomains
+          : FormsCopy.resetLinkConfirmation
+      }
       confirmButtonText={FormsCopy.resetLink}
       resultTitle={FormsCopy.newLinkTitle}
       resultDescription={FormsCopy.newLinkDescription}
@@ -172,36 +196,19 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
       }}
     >
       <div className="space-y-4" data-testid="form-share-link-card">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center">
-          <code
-            className="block min-w-0 flex-1 select-all break-all rounded-md border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-sm text-gray-900"
-            data-testid="form-share-link"
-          >
-            {linkText}
-          </code>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {/* The button looks its label and title up itself. */}
-            <CopyTextButton
-              textToBeCopied={linkText}
-              label={FormsCopy.copyLink}
-              copiedLabel={translateString("Copied!") || "Copied!"}
-              title={FormsCopy.copyLink}
-              size="md"
-              variant="soft"
-            />
-            <Link
-              to={link}
-              openInNewTab={true}
-              className={LINK_ACTION_CLASS_NAME}
-              id="form-open-form"
-            >
-              <Icon icon={IconProp.ExternalLink} className="h-4 w-4" />
-              <span>
-                {translateString(FormsCopy.openForm) || FormsCopy.openForm}
-              </span>
-            </Link>
-          </div>
-        </div>
+        <PublicAddresses
+          kind={FORM_CUSTOM_DOMAINS}
+          parentId={props.modelId}
+          oneUptimeUrl={link}
+          customDomainsRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.FORM_VIEW_CUSTOM_DOMAINS] as Route,
+            { modelId: props.modelId },
+          )}
+          exampleDomain={FORM_EXAMPLE_DOMAIN}
+          onDomainsRead={(domains: ReadonlyArray<CustomDomainModel>) => {
+            setFormWithCustomDomains(domains.length > 0 ? shown.formId : null);
+          }}
+        />
 
         {shown.isEnabled ? (
           <></>

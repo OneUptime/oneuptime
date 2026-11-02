@@ -10,12 +10,17 @@ import DeleteBy from "../Types/AnalyticsDatabase/DeleteBy";
 import Query from "../Types/AnalyticsDatabase/Query";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getDistributionAwareAggregationExpression,
+  isDistributionPointType,
+} from "../Utils/AnalyticsDatabase/DistributionAggregation";
 import AggregationType, {
   getPercentileLevel,
   isPercentileAggregation,
 } from "../../Types/BaseDatabase/AggregationType";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -39,22 +44,6 @@ import EntityType from "../../Types/Telemetry/EntityType";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import logger, { LogAttributes } from "../Utils/Logger";
-
-/*
- * Metric point types whose rows carry a pre-aggregated distribution
- * (count/sum/min/max + buckets) instead of a single observation. For
- * these rows the `value` column holds the datapoint's SUM of all
- * observations in the export interval (see OtelMetricsIngestService's
- * buildMetricRow: value = asInt ?? asDouble ?? sum), so aggregating
- * `value` directly produces sum-scale numbers — e.g. "Avg of
- * http.client.request.duration" would return ~110s for a service whose
- * true mean latency is 0.586s at ~188 requests per export interval.
- */
-const DISTRIBUTION_POINT_TYPES: ReadonlyArray<string> = [
-  "Histogram",
-  "ExponentialHistogram",
-  "Summary",
-];
 
 const MAX_GROUP_BY_ATTRIBUTE_KEYS: number = 10;
 const MAX_GROUP_BY_ATTRIBUTE_KEY_LENGTH: number = 256;
@@ -178,6 +167,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   public override async aggregateBy(
     aggregateBy: AggregateBy<Metric>,
   ): Promise<AggregatedResult> {
+    if (
+      aggregateBy.includeSampleAttributes === true &&
+      this.getSanitizedGroupByAttributeKeys(aggregateBy).length > 0
+    ) {
+      return await this.aggregateByWithSeriesSamples(aggregateBy);
+    }
+
     /*
      * Only scalar aggregations over `value` need the point type — the
      * percentile path is already distribution-aware via the bucket
@@ -202,7 +198,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
        * the point type already rules out MV routing (distribution
        * metrics never touch the rollups).
        */
-      if (!pointType || !DISTRIBUTION_POINT_TYPES.includes(pointType)) {
+      if (!isDistributionPointType(pointType)) {
         const serviceKeys: Array<string> | null =
           await this.resolveServiceEntityKeysHint(aggregateBy);
         if (serviceKeys) {
@@ -590,7 +586,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   ): boolean {
     const pointType: string | null | undefined =
       this.pointTypeHintByAggregate.get(aggregateBy);
-    return Boolean(pointType && DISTRIBUTION_POINT_TYPES.includes(pointType));
+    return isDistributionPointType(pointType);
   }
 
   /**
@@ -628,13 +624,116 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   }
 
   /**
+   * A grouped read whose rows carry each series' context
+   * (includeSampleAttributes): the buckets as any grouped read returns
+   * them - the grouped keys alone on each - and, beside it, a whole-window
+   * read (Total) of one row per series whose map is its newest
+   * datapoint's, the grouped keys laid over it. Every row of a series then
+   * takes that one map, so a read of fifty thousand buckets carries a map
+   * a series, never a map a bucket: a series' context is the same in every
+   * bucket, and a bucket's map would make the read ten times the size.
+   * The two reads run side by side; a series the whole-window read did not
+   * return (past its limit) keeps the grouped keys alone.
+   */
+  private async aggregateByWithSeriesSamples(
+    aggregateBy: AggregateBy<Metric>,
+  ): Promise<AggregatedResult> {
+    const attributeKeys: Array<string> =
+      this.getSanitizedGroupByAttributeKeys(aggregateBy);
+    const columnKeys: Array<string> = Object.keys(
+      aggregateBy.groupBy || {},
+    ).filter((key: string): boolean => {
+      return key !== "attributes" && Boolean(this.model.getTableColumn(key));
+    });
+
+    // Which series a row is of: its grouped keys' values, then its columns'.
+    const seriesKeyOf: (row: AggregatedModel) => string = (
+      row: AggregatedModel,
+    ): string => {
+      const attributes: JSONObject = (row["attributes"] as JSONObject) || {};
+
+      return JSON.stringify([
+        ...attributeKeys.map((key: string): string => {
+          const value: unknown = attributes[key];
+          return value === undefined || value === null ? "" : String(value);
+        }),
+        ...columnKeys.map((key: string): string => {
+          const value: unknown = row[key];
+          return value === undefined || value === null ? "" : String(value);
+        }),
+      ]);
+    };
+
+    const [buckets, samples]: [AggregatedResult, AggregatedResult] =
+      await Promise.all([
+        super.aggregateBy({
+          ...aggregateBy,
+          includeSampleAttributes: false,
+        }),
+        super.aggregateBy({
+          ...aggregateBy,
+          // The value is not read: the cheapest fold of the window.
+          aggregationType: AggregationType.Count,
+          aggregationInterval: AggregationInterval.Total,
+          includeSampleAttributes: true,
+          sort: undefined,
+          skip: 0,
+        }),
+      ]);
+
+    const sampleBySeries: Map<string, JSONObject> = new Map();
+
+    for (const row of samples.data) {
+      const attributes: unknown = row["attributes"];
+
+      if (attributes && typeof attributes === "object") {
+        sampleBySeries.set(seriesKeyOf(row), attributes as JSONObject);
+      }
+    }
+
+    for (const row of buckets.data) {
+      const sample: JSONObject | undefined = sampleBySeries.get(
+        seriesKeyOf(row),
+      );
+
+      if (sample) {
+        row["attributes"] = sample as AggregatedModel[string];
+      }
+    }
+
+    return buckets;
+  }
+
+  /**
+   * Whether a grouped read's rows carry the attributes of a datapoint of
+   * their bucket besides the grouped keys (AggregateBy's
+   * includeSampleAttributes): only when grouped by attribute keys. Only
+   * the whole-window read of aggregateByWithSeriesSamples asks for it, a
+   * row a series.
+   */
+  private wantsSampleAttributes(
+    aggregateBy: AggregateBy<Metric>,
+    attributeGroupKeys: Array<string>,
+  ): boolean {
+    return (
+      aggregateBy.includeSampleAttributes === true &&
+      attributeGroupKeys.length > 0
+    );
+  }
+
+  /**
    * Appends `, attributes[{key}] AS __attr_grp_<i>` for every group-by
    * attribute key. Used in the (inner) SELECT so the outer/main query
    * can group on and re-project the extracted values.
+   *
+   * With sample attributes, the row's whole map and its time ride along
+   * too (`__sample_attrs`, `__sample_time`), under names of their own so
+   * the outer `... AS attributes` can never shadow the real column.
    */
   private appendAttributeGroupExtractionColumns(
     statement: Statement,
     attributeGroupKeys: Array<string>,
+    sample?: { timestampColumn: string } | undefined,
   ): void {
     attributeGroupKeys.forEach((key: string, index: number) => {
       statement.append(`, `);
@@ -643,21 +742,38 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       );
       statement.append(` AS __attr_grp_${index}`);
     });
+
+    if (sample && attributeGroupKeys.length > 0) {
+      statement.append(
+        `, attributes AS __sample_attrs, ${sample.timestampColumn} AS __sample_time`,
+      );
+    }
   }
 
   /**
    * Appends `, map({key0}, __attr_grp_0, ...) AS attributes` so grouped
    * rows return exactly the selected keys as an attributes map — the
    * same shape series splitters already read (`row.attributes[key]`).
+   *
+   * With sample attributes, the map is the newest datapoint of the
+   * bucket's whole map with the grouped keys laid over it:
+   * `mapUpdate(argMax(__sample_attrs, __sample_time), map(...))`. The
+   * grouped keys keep their grouped values ('' where a row lacks one),
+   * so a series' labels and fingerprint are the same either way.
    */
   private appendAttributeGroupMapColumn(
     statement: Statement,
     attributeGroupKeys: Array<string>,
+    withSampleAttributes?: boolean | undefined,
   ): void {
     if (attributeGroupKeys.length === 0) {
       return;
     }
-    statement.append(`, map(`);
+    statement.append(
+      withSampleAttributes
+        ? `, mapUpdate(argMax(__sample_attrs, __sample_time), map(`
+        : `, map(`,
+    );
     attributeGroupKeys.forEach((key: string, index: number) => {
       if (index > 0) {
         statement.append(`, `);
@@ -665,7 +781,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(SQL`${{ value: key, type: TableColumnType.Text }}`);
       statement.append(`, __attr_grp_${index}`);
     });
-    statement.append(`) AS attributes`);
+    statement.append(
+      withSampleAttributes ? `)) AS attributes` : `) AS attributes`,
+    );
   }
 
   /**
@@ -1240,7 +1358,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * fragment the quantile into one near-constant series per unique
      * attribute combination.
      */
-    this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
+    const percentileSampleAttributes: boolean = this.wantsSampleAttributes(
+      aggregateBy,
+      attributeGroupKeys,
+    );
+    this.appendAttributeGroupMapColumn(
+      statement,
+      attributeGroupKeys,
+      percentileSampleAttributes,
+    );
 
     /*
      * Server-side Top-K: rank groups over the whole window, restrict
@@ -1268,7 +1394,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     statement.append(SQL` FROM (`);
     statement.append(`SELECT ${innerSelectClause}`);
-    this.appendAttributeGroupExtractionColumns(statement, attributeGroupKeys);
+    this.appendAttributeGroupExtractionColumns(
+      statement,
+      attributeGroupKeys,
+      percentileSampleAttributes
+        ? { timestampColumn: aggregationTimestampColumn }
+        : undefined,
+    );
     statement.append(
       ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
     );
@@ -1375,51 +1507,6 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   }
 
   /**
-   * Distribution-aware per-bucket expression for scalar aggregations
-   * over `value`. Distribution rows (histogram/summary — identified by
-   * a non-null `count`) carry the datapoint's observation total in
-   * `sum` (mirrored into `value` at ingest) and the observation count
-   * in `count`, so:
-   *
-   *   Avg   -> sum(sum) / sum(count)   (count-weighted mean of
-   *            observations, not the mean of per-export-interval sums)
-   *   Sum   -> sum(sum)                (total of all observations)
-   *   Count -> sum(count)              (number of observations, not
-   *            the number of export intervals)
-   *   Min   -> min(min), falling back to the datapoint mean when the
-   *            optional OTLP min is absent
-   *   Max   -> max(max), same fallback
-   *
-   * Scalar rows (Sum/Gauge points — `count` is null) degrade to the
-   * plain value semantics these aggregations always had: each row is
-   * one observation of `value` with weight 1.
-   */
-  private getDistributionAwareAggregationExpression(
-    aggregationType: AggregationType,
-    column: string,
-  ): string {
-    const distRowCondition: string = `isNotNull(count) AND isNotNull(coalesce(sum, ${column}))`;
-    const observationTotalExpression: string = `sum(multiIf(${distRowCondition}, toFloat64(coalesce(sum, ${column})), isNotNull(${column}), toFloat64(${column}), 0))`;
-    const observationCountExpression: string = `sum(multiIf(${distRowCondition}, toFloat64(count), isNotNull(${column}), 1, 0))`;
-    const datapointMeanExpression: string = `toFloat64(coalesce(sum, ${column})) / toFloat64(count)`;
-
-    switch (aggregationType) {
-      case AggregationType.Sum:
-        return observationTotalExpression;
-      case AggregationType.Count:
-        return observationCountExpression;
-      case AggregationType.Avg:
-        return `if(${observationCountExpression} = 0, 0, ${observationTotalExpression} / ${observationCountExpression})`;
-      case AggregationType.Min:
-        return `min(multiIf(isNotNull(min), toFloat64(min), ${distRowCondition} AND count > 0, ${datapointMeanExpression}, isNotNull(${column}), toFloat64(${column}), NULL))`;
-      case AggregationType.Max:
-        return `max(multiIf(isNotNull(max), toFloat64(max), ${distRowCondition} AND count > 0, ${datapointMeanExpression}, isNotNull(${column}), toFloat64(${column}), NULL))`;
-      default:
-        return `${aggregationType.toLocaleLowerCase()}(${column})`;
-    }
-  }
-
-  /**
    * Base-table statement for non-percentile aggregations over `value`,
    * used whenever the MV fast paths don't apply (attribute filters,
    * group-by, or a distribution metric). Compared to the generic
@@ -1496,7 +1583,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
 
     const aggregationExpression: string =
-      this.getDistributionAwareAggregationExpression(
+      getDistributionAwareAggregationExpression(
         aggregateBy.aggregationType,
         aggregationColumn,
       );
@@ -1520,7 +1607,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     for (const key of groupByKeys) {
       statement.append(`, ${key}`);
     }
-    this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
+    const scalarSampleAttributes: boolean = this.wantsSampleAttributes(
+      aggregateBy,
+      attributeGroupKeys,
+    );
+    this.appendAttributeGroupMapColumn(
+      statement,
+      attributeGroupKeys,
+      scalarSampleAttributes,
+    );
     if (scalarApplyTopK) {
       this.appendTotalGroupsColumn({
         statement,
@@ -1554,7 +1649,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
       statement.append(SQL` FROM (`);
       statement.append(`SELECT ${innerColumns.join(", ")}`);
-      this.appendAttributeGroupExtractionColumns(statement, attributeGroupKeys);
+      this.appendAttributeGroupExtractionColumns(
+        statement,
+        attributeGroupKeys,
+        scalarSampleAttributes
+          ? { timestampColumn: aggregationTimestampColumn }
+          : undefined,
+      );
       statement.append(
         ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
       );

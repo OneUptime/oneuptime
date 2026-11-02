@@ -41,11 +41,11 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Ecc
 
 ### Scegliere di cosa vi informa il monitor
 
-In **Di cosa deve informarti questo monitor?**, scegliete **Qualsiasi eccezione** o **Troppe eccezioni**. Ogni scelta compila la regola, che potete modificare più in basso. Scegliete **Qualcos'altro** per impostarla voi.
+In **Di cosa deve informarti questo monitor?**, scegliete **Qualsiasi eccezione** o **Troppe eccezioni**. Ogni scelta compila la regola, che potete modificare più in basso. Scegliete **Qualcos'altro** per impostarla voi. **Una nuova eccezione**, **Torna un'eccezione risolta** e **Picco di eccezioni** avvisano su un'eccezione vista per la prima volta, su una tornata dopo che l'avete risolta e su un aumento molto sopra ciò che è normale per quell'ora della settimana.
 
 ### Scegliere le eccezioni da contare
 
-In **Eccezioni da osservare**, impostate **Il messaggio contiene**, **Tipi di eccezione** e **Environments**. Un filtro lasciato vuoto corrisponde a tutte le eccezioni. **Eccezioni corrispondenti**, sotto i filtri, mostra le eccezioni a cui corrispondono in questo momento.
+In **Eccezioni da osservare**, impostate **Il messaggio contiene**, **Tipi di eccezione** e **Ambienti**. Un filtro lasciato vuoto corrisponde a tutte le eccezioni. **Eccezioni corrispondenti**, sotto i filtri, mostra le eccezioni a cui corrispondono in questo momento.
 
 ### Restringere il campo (facoltativo)
 
@@ -53,7 +53,7 @@ Aprite **Altri campi** per filtrare per servizio di telemetria o entità dell'in
 
 ### Dire quando avvisare
 
-In **Quando avvisare**, scegliete una **Condizione**, il **Numero di eccezioni** e una **Finestra temporale**. La frase sotto di essi ripete la regola con parole semplici. Il grafico sotto la frase conta le eccezioni corrispondenti in ogni finestra nelle ultime ore, disegna il numero della regola come una linea e dice quante volte la regola avrebbe avvisato. Il suo pulsante propone un numero che la regola non avrebbe superato in quel periodo.
+In **Quando avvisare**, scegliete una **Condizione**, il **Numero di eccezioni** e una **Finestra temporale**. La frase sotto di essi ripete la regola con parole semplici. Il grafico sotto la frase conta le eccezioni corrispondenti in ogni finestra nelle ultime ore, disegna il numero della regola come una linea e dice quante volte la regola avrebbe avvisato. Il suo pulsante propone un numero che la regola non avrebbe superato in quel periodo. **Avvisa su** sceglie cosa confronta la regola: **Eccezioni**, **Nuove eccezioni**, **Eccezioni tornate** o **Un aumento rispetto al solito**. Il grafico viene disegnato solo per **Eccezioni**. Con **Insolitamente alto**, come imposta **Picco di eccezioni**, non c'è alcun numero da inserire: scegliete invece una **Sensibilità**.
 
 ### Scegliere cosa succede
 
@@ -70,7 +70,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | --- | --- | --- |
 | **Il messaggio contiene** | Eccezioni il cui messaggio contiene questo testo, senza distinzione tra maiuscole e minuscole. | Vuoto: tutte le eccezioni |
 | **Tipi di eccezione** | Eccezioni di uno qualsiasi di questi tipi, separati da virgole, come `TypeError, NullReferenceException`. Il nome del tipo deve corrispondere esattamente. | Vuoto: tutti i tipi |
-| **Environments** | Eccezioni di uno qualsiasi di questi ambienti, separati da virgole (vedete [Ambienti](#ambienti)). | Vuoto: tutti gli ambienti |
+| **Ambienti** | Eccezioni di uno qualsiasi di questi ambienti, separati da virgole (vedete [Ambienti](#ambienti)). | Vuoto: tutti gli ambienti |
 | **Finestra temporale** (in **Quando avvisare**) | Eccezioni degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
 | **Filtra per servizio di telemetria** (in **Altri campi**) | Eccezioni di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Eccezioni di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
@@ -116,7 +116,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor eccezioni hanno un solo **Tipo di filtro**: **Exception Count**, il numero di eccezioni che hanno corrisposto nella finestra. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo** o **Esattamente**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
+I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **Exception Count**, il numero di eccezioni che hanno corrisposto nella finestra, e **New Exceptions**, **Regressed Exceptions** e **Exception Increase (in %)**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio delle eccezioni è… |
 | --- | --- |
@@ -126,8 +126,11 @@ I criteri di un monitor eccezioni hanno un solo **Tipo di filtro**: **Exception 
 | **Minore o uguale a** | pari al valore o inferiore |
 | **Uguale a** | esattamente il valore |
 | **Diverso da** | qualsiasi cosa tranne il valore |
+| **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
+| **Anomalously Low** | sotto quell'intervallo |
+| **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
 
-I conteggi delle eccezioni non hanno condizioni di anomalia: non c'è un riferimento con cui confrontarli.
+Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. Solo **Exception Count** le ha: vedete [Picchi rispetto alla norma](#picchi-rispetto-alla-norma).
 
 Un monitor eccezioni creato in Crea monitor parte con la regola di ciò che avete scelto in **Di cosa deve informarti questo monitor?**:
 
@@ -135,6 +138,9 @@ Un monitor eccezioni creato in Crea monitor parte con la regola di ciò che avet
 | --- | --- | --- |
 | **Qualsiasi eccezione** | **Più di** `0` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
 | **Troppe eccezioni** | **Più di** `20` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
+| **Una nuova eccezione** | **Nuove eccezioni**: **Più di** `0` in **Ultimi 10 minuti** | Crea un avviso, che si risolve da solo |
+| **Torna un'eccezione risolta** | **Eccezioni tornate**: **Più di** `0` in **Ultimi 10 minuti** | Crea un avviso, che si risolve da solo |
+| **Picco di eccezioni** | **Insolitamente alto** in **Ultimi 15 minuti** | Crea un avviso, che si risolve da solo |
 
 Un monitor eccezioni creato tramite l'API o Terraform senza criteri parte con questi criteri:
 
@@ -143,9 +149,37 @@ Un monitor eccezioni creato tramite l'API o Terraform senza criteri parte con qu
 | Check if … has exceptions | **Exception Count** **Maggiore di** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
 | Check if … has no exceptions | **Exception Count** **Uguale a** `0` | Mette il monitor online |
 
+## Eccezioni nuove, tornate e in aumento
+
+Oltre al numero di eccezioni, un monitor eccezioni può avvisare su ciò che un sistema di tracciamento errori mette al primo posto. Ognuno viene letto solo quando un criterio lo controlla.
+
+| Tipo di filtro | Cosa conta nella finestra |
+| --- | --- |
+| **New Exceptions** | Le eccezioni corrispondenti viste per la prima volta, né risolte né archiviate. |
+| **Regressed Exceptions** | Le eccezioni corrispondenti che avete risolto, tornate e ancora aperte. |
+| **Exception Increase (in %)** | Di quanto il numero di eccezioni corrispondenti supera il solito: il giorno prima della finestra, per finestra della stessa durata, almeno una. Dieci eccezioni dopo un giorno tranquillo danno 900%. |
+
+Le eccezioni nuove e tornate sono filtrate per servizio, tipo di eccezione, ambiente e messaggio, e anche per entità di infrastruttura: un'eccezione conta quando una delle sue occorrenze nella finestra è arrivata da una delle entità scelte.
+
+## Picchi rispetto alla norma
+
+**Picco di eccezioni** confronta la finestra con le stesse ore delle settimane precedenti, non con un numero fisso. Un picco del lunedì mattina è normale di lunedì mattina, lo stesso conteggio alle 3 di una domenica no, e una salita lenta su più giorni si vede appena esce dall'intervallo della settimana scorsa.
+
+| Impostazione | Cosa fa | Predefinito |
+| --- | --- | --- |
+| **Sensibilità** | Quanto una finestra deve uscire dall'intervallo abituale: 4 deviazioni standard con Basso, 3 con Medio, 2 con Alto. | Medio |
+| **Finestra di riferimento** (in **Altri campi**) | Quanto storico usare per imparare: 14, 28, 60 o 90 giorni. | 14 giorni |
+| **Deviazioni standard** (in **Altri campi**) | Un numero vostro al posto di quello che imposta **Sensibilità**. | Vuoto |
+| **Minimo di eccezioni** (in **Altri campi**) | Il numero minimo di eccezioni in una finestra che può avvisare: 20 con Basso, 10 con Medio, 5 con Alto. | Vuoto |
+
+- **Usa i vostri filtri.** Lo storico viene letto con i filtri del monitor, quindi un monitor su un tipo di eccezione viene confrontato con lo storico di quel tipo, e le eccezioni risolte e archiviate restano fuori da entrambi.
+- **Anche la calma conta.** Una finestra senza eccezioni fa parte della norma, quindi l'intervallo di un servizio tranquillo resta piccolo. Le sue prime eccezioni non avvisano, per via di **Minimo di eccezioni**, e una vera raffica sì.
+- **Un nuovo servizio attende.** Finché un servizio non ha due settimane di storico, il criterio sta ancora imparando e non scatta, per quante eccezioni lanci. Lo storico arriva solo fin dove OneUptime conserva le eccezioni: 15 giorni se non lo avete cambiato, e un servizio conservato per meno di due settimane non ne ha mai abbastanza.
+- **L'avviso dice perché.** Indica l'intervallo atteso e quanto la finestra ne era fuori. Ogni controllo scrive lo stesso nella **Cronologia di stato**, oppure che sta ancora imparando.
+
 ## Esempio pratico: solo le eccezioni di produzione
 
-Volete un incidente ogni volta che l'API lancia un'eccezione in produzione, e niente per lo staging. Scegliete **Qualsiasi eccezione**, impostate **Environments** su `production`, lasciate la **Finestra temporale** su **Ultimi 5 minuti** e scegliete **Dichiara un incidente** in **Cosa succede**. Negli ultimi cinque minuti:
+Volete un incidente ogni volta che l'API lancia un'eccezione in produzione, e niente per lo staging. Scegliete **Qualsiasi eccezione**, impostate **Ambienti** su `production`, lasciate la **Finestra temporale** su **Ultimi 5 minuti** e scegliete **Dichiara un incidente** in **Cosa succede**. Negli ultimi cinque minuti:
 
 | Eccezioni | Ambiente | Stato | Contate? |
 | --- | --- | --- | --- |
@@ -159,7 +193,7 @@ L'**Exception Count** è 3, quindi **Più di** `0` corrisponde: il monitor va of
 ## Risoluzione dei problemi
 
 :::details Le eccezioni compaiono nell'esploratore, ma il monitor conta 0
-Confrontate il valore di **Environments** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
+Confrontate il valore di **Ambienti** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
 :::
 
 :::details L'incidente si è risolto quando ho risolto l'eccezione
@@ -168,6 +202,10 @@ Confrontate il valore di **Environments** con il filtro `env:` dell'esploratore:
 
 :::details Un filtro per tipo di eccezione non corrisponde a nulla
 I **Tipi di eccezione** vengono confrontati esattamente con il nome del tipo con cui l'eccezione è stata segnalata, come `TypeError`. Copiate il tipo dall'esploratore delle eccezioni.
+:::
+
+:::details Una regola sul picco di eccezioni non avvisa mai
+Controllate la **Cronologia di stato**: indica l'intervallo atteso, il conteggio necessario per avvisare o che la regola sta ancora imparando. Un servizio ha bisogno di due settimane di storico, quindi una conservazione inferiore a due settimane lo lascia in apprendimento. Se il conteggio resta sotto **Minimo di eccezioni**, abbassatelo in **Altri campi** o scegliete una **Sensibilità** più alta.
 :::
 
 ## Passaggi successivi

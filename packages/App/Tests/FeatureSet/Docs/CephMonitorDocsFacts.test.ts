@@ -287,9 +287,9 @@ function recoveryComparison(cell: string): {
 describe("the Ceph Monitor page's templates", () => {
   const templates: Array<CephAlertTemplate> = getAllCephAlertTemplates();
 
-  it("counts the templates Quick Setup offers", () => {
+  it("counts the templates What to alert on offers", () => {
     expect(englishPage()).toContain(
-      `**Quick Setup** offers ${templates.length} templates`,
+      `The **What to alert on** list offers ${templates.length} templates`,
     );
     expect(englishPage()).toContain(
       `[Templates](#pre-built-alert-templates): ${templates.length} ready-made alerts`,

@@ -45,6 +45,11 @@ import {
   getAllKubernetesEventAlertTemplates,
 } from "../KubernetesEventAlertTemplates";
 import {
+  OpenShiftAlertTemplate,
+  getAllOpenShiftAlertTemplates,
+} from "../OpenShiftAlertTemplates";
+import { OPENSHIFT_KUBERNETES_PROVIDER } from "../../Kubernetes/KubernetesClusterProvider";
+import {
   PodmanAlertTemplate,
   getAllPodmanAlertTemplates,
 } from "../PodmanAlertTemplates";
@@ -52,6 +57,10 @@ import {
   ProxmoxAlertTemplate,
   getAllProxmoxAlertTemplates,
 } from "../ProxmoxAlertTemplates";
+import {
+  ProxmoxNotificationAlertTemplate,
+  getAllProxmoxNotificationAlertTemplates,
+} from "../ProxmoxNotificationAlertTemplates";
 import {
   RumAlertTemplate,
   getAllRumAlertTemplates,
@@ -238,6 +247,52 @@ function getKubernetesRecommendations(): Array<MonitorRecommendation> {
   return [...metricRecommendations, ...eventRecommendations];
 }
 
+/*
+ * An OpenShift cluster's operators and version are logs the agent's openshift
+ * preset sends (OpenShiftAlertTemplates), so their alerts are Logs monitors
+ * scoped to the cluster, under their own OpenShift heading.
+ */
+function getOpenShiftRecommendations(): Array<MonitorRecommendation> {
+  return getAllOpenShiftAlertTemplates().map(
+    (template: OpenShiftAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        monitorType: MonitorType.Logs,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            clusterIdentifier: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    },
+  );
+}
+
+/*
+ * What to recommend for one cluster: the Kubernetes recommendations, and on an
+ * OpenShift cluster the OpenShift ones after them. A cluster whose platform is
+ * not known yet is offered the Kubernetes ones only.
+ */
+function getKubernetesRecommendationsFor(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  if (context?.kubernetesProvider !== OPENSHIFT_KUBERNETES_PROVIDER) {
+    return getKubernetesRecommendations();
+  }
+
+  return [...getKubernetesRecommendations(), ...getOpenShiftRecommendations()];
+}
+
+function getAllKubernetesRecommendations(): Array<MonitorRecommendation> {
+  return [...getKubernetesRecommendations(), ...getOpenShiftRecommendations()];
+}
+
 function getHostRecommendations(): Array<MonitorRecommendation> {
   return getAllHostAlertTemplates().map((template: HostAlertTemplate) => {
     return normalize({
@@ -321,23 +376,54 @@ function getPodmanRecommendations(): Array<MonitorRecommendation> {
 }
 
 function getProxmoxRecommendations(): Array<MonitorRecommendation> {
-  return getAllProxmoxAlertTemplates().map((template: ProxmoxAlertTemplate) => {
-    return normalize({
-      resourceType: MonitorRecommendationResourceType.Proxmox,
-      monitorType: MonitorType.Proxmox,
-      template: template,
-      getMonitorStep: (args: MonitorRecommendationArgs) => {
-        return template.getMonitorStep({
-          clusterIdentifier: args.resourceIdentifier,
-          onlineMonitorStatusId: args.onlineMonitorStatusId,
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-          defaultAlertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllProxmoxAlertTemplates().map((template: ProxmoxAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.Proxmox,
+        monitorType: MonitorType.Proxmox,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            clusterIdentifier: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    });
+
+  /*
+   * What Proxmox VE says itself - a failed backup job, a fenced node - are
+   * logs of the cluster once its notifications reach OneUptime
+   * (ProxmoxNotificationAlertTemplates), so their alerts are Logs monitors
+   * scoped to the cluster: offered beside the metric templates, last,
+   * under their own Notifications heading.
+   */
+  const notificationRecommendations: Array<MonitorRecommendation> =
+    getAllProxmoxNotificationAlertTemplates().map(
+      (template: ProxmoxNotificationAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.Proxmox,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              clusterIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
         });
       },
-    });
-  });
+    );
+
+  return [...metricRecommendations, ...notificationRecommendations];
 }
 
 function getVMwareRecommendations(): Array<MonitorRecommendation> {
@@ -630,7 +716,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       resourceLabel: "Kubernetes Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Kubernetes,
-      getRecommendations: getKubernetesRecommendations,
+      getRecommendations: getKubernetesRecommendationsFor,
+      getAllPossibleRecommendations: getAllKubernetesRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.Host,
@@ -666,7 +753,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Proxmox,
-      monitorTypes: [MonitorType.Proxmox],
+      // Metric templates, and the cluster's notifications' Logs monitors.
+      monitorTypes: [MonitorType.Proxmox, MonitorType.Logs],
       resourceLabel: "Proxmox Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Server,

@@ -330,6 +330,7 @@ function renderConversation(data?: {
   subjectId?: ObjectID;
   stage?: AIInvestigationStage;
   standing?: EventStanding;
+  mayChangeState?: boolean;
 }): ReturnType<typeof render> {
   return render(
     <InvestigationConversation
@@ -337,6 +338,7 @@ function renderConversation(data?: {
       subjectId={data?.subjectId || INCIDENT_ID}
       investigationStage={data?.stage}
       standing={data?.standing}
+      mayChangeState={data?.mayChangeState}
     />,
   );
 }
@@ -449,6 +451,45 @@ describe("InvestigationConversation — an empty thread", () => {
     expect(
       requests("/ai-investigation/conversation/send-message"),
     ).toHaveLength(0);
+  });
+
+  /*
+   * OneUptime AI acts within the asker's permissions: a reader who may not
+   * change the incident's state - its Acknowledge is locked for them, as on
+   * a private incident whose owning team of theirs may only view it - is
+   * not offered a request it would only refuse. The questions stay.
+   */
+  test("a reader who may not change its state is offered the questions, and no request to acknowledge it", async () => {
+    routeResponses({});
+
+    renderConversation({ mayChangeState: false });
+    await flush();
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge this incident" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "What should I do right now?" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Draft a status update" }),
+    ).toBeVisible();
+
+    cleanup();
+    renderConversation({ subjectType: "alert", mayChangeState: false });
+    await flush();
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge this alert" }),
+    ).toBeNull();
+
+    cleanup();
+    renderConversation({ mayChangeState: true });
+    await flush();
+
+    expect(
+      screen.getByRole("button", { name: "Acknowledge this incident" }),
+    ).toBeVisible();
   });
 
   test("an alert's thread talks about the alert", async () => {
@@ -2598,7 +2639,13 @@ describe("InvestigationConversation — the composer in the card", () => {
     renderConversation();
     await flush();
 
-    expect(sendButton()).toHaveClass("bg-gray-100", "text-gray-400");
+    // With nothing to send it is locked as every button is: faded, not grey.
+    expect(sendButton()).toHaveClass(
+      "bg-indigo-600",
+      "opacity-50",
+      "cursor-not-allowed",
+    );
+    expect(sendButton()).not.toHaveClass("bg-gray-100");
 
     fireEvent.change(composer(), { target: { value: "  " } });
     expect(sendButton()).toBeDisabled();
@@ -2607,6 +2654,7 @@ describe("InvestigationConversation — the composer in the card", () => {
     expect(sendButton()).toBeEnabled();
     // The page's own primary colour, not the Ask AI dialog's black.
     expect(sendButton()).toHaveClass("bg-indigo-600", "text-white");
+    expect(sendButton()).not.toHaveClass("opacity-50");
 
     fireEvent.click(sendButton());
     await flush();

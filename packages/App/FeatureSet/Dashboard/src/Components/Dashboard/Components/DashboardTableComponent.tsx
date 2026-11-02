@@ -63,6 +63,12 @@ import useDashboardWidgetColumns, {
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 
+// The table's header line: its title, and its controls beside or under it.
+export const DASHBOARD_TABLE_HEADER_TEST_ID: string = "dashboard-table-header";
+export const DASHBOARD_TABLE_TITLE_TEST_ID: string = "dashboard-table-title";
+export const DASHBOARD_TABLE_CONTROLS_TEST_ID: string =
+  "dashboard-table-controls";
+
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTableComponent;
 }
@@ -711,8 +717,22 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         transition: "opacity 0.2s ease-in-out",
       }}
     >
-      <div className="flex items-start justify-between gap-3 px-2 pt-2 pb-2 flex-shrink-0">
-        <div className="min-w-0 flex-1">
+      {/*
+       * The title and the table's controls (the row search and the count)
+       * share a line while there is room for both, and the controls move
+       * under the title when there is not, at its start. A table is as
+       * narrow as a phone's screen on a board that shows its widgets one
+       * under another, and there the 14rem search squeezed the title out
+       * of sight, its description one word a line.
+       */}
+      <div
+        className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 px-2 pt-2 pb-2 flex-shrink-0"
+        data-testid={DASHBOARD_TABLE_HEADER_TEST_ID}
+      >
+        <div
+          className={`min-w-0 flex-1 ${showHeader ? "basis-40" : ""}`}
+          data-testid={DASHBOARD_TABLE_TITLE_TEST_ID}
+        >
           {showHeader && (
             <>
               {title && (
@@ -726,10 +746,13 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
             </>
           )}
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div
+          className="flex min-w-0 max-w-full items-center gap-3"
+          data-testid={DASHBOARD_TABLE_CONTROLS_TEST_ID}
+        >
           {isGroupedMode && (
             <div
-              className={`group relative inline-flex items-center w-56 max-w-full transition-shadow ${
+              className={`group relative inline-flex min-w-0 items-center w-56 max-w-full transition-shadow ${
                 searchFocused ? "ring-2 ring-indigo-100 rounded-md" : ""
               }`}
             >

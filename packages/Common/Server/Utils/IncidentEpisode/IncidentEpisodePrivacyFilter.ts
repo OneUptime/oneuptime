@@ -39,7 +39,7 @@ export function getIncidentEpisodeSelfPrivacyRaw(
       return (
         `(${alias} IS NULL OR ${alias} = FALSE OR ` +
         `"IncidentEpisode"."_id" IN (SELECT ieou."incidentEpisodeId" FROM "IncidentEpisodeOwnerUser" ieou WHERE ieou."userId" = :${uidRid} AND ieou."deletedAt" IS NULL) OR ` +
-        `"IncidentEpisode"."_id" IN (SELECT ieot."incidentEpisodeId" FROM "IncidentEpisodeOwnerTeam" ieot INNER JOIN "TeamMember" tm ON tm."teamId" = ieot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND ieot."deletedAt" IS NULL))`
+        `"IncidentEpisode"."_id" IN (SELECT ieot."incidentEpisodeId" FROM "IncidentEpisodeOwnerTeam" ieot INNER JOIN "TeamMember" tm ON tm."teamId" = ieot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND ieot."deletedAt" IS NULL))`
       );
     },
     {
@@ -69,7 +69,7 @@ export function getIncidentEpisodeRelatedRecordPrivacyRaw(
         `(${alias} IN (SELECT ie."_id" FROM "IncidentEpisode" ie WHERE ie."deletedAt" IS NULL AND (` +
         `ie."isPrivate" IS NULL OR ie."isPrivate" = FALSE OR ` +
         `ie."_id" IN (SELECT ieou."incidentEpisodeId" FROM "IncidentEpisodeOwnerUser" ieou WHERE ieou."userId" = :${uidRid} AND ieou."deletedAt" IS NULL) OR ` +
-        `ie."_id" IN (SELECT ieot."incidentEpisodeId" FROM "IncidentEpisodeOwnerTeam" ieot INNER JOIN "TeamMember" tm ON tm."teamId" = ieot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND ieot."deletedAt" IS NULL))))`
+        `ie."_id" IN (SELECT ieot."incidentEpisodeId" FROM "IncidentEpisodeOwnerTeam" ieot INNER JOIN "TeamMember" tm ON tm."teamId" = ieot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND tm."hasAcceptedInvitation" = TRUE AND ieot."deletedAt" IS NULL))))`
       );
     },
     {

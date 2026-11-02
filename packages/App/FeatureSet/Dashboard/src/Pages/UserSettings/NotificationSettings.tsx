@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -358,6 +359,11 @@ const EVENT_LIBRARY: Record<
     label: "Added as SLO owner",
     description: "You are added as an owner of a service level objective.",
   },
+  [NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION]: {
+    label: "Exception assigned to me",
+    description:
+      "Someone assigns an exception to you, or to a team you are on.",
+  },
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     {
       label: "Probe status changed for your monitor",
@@ -578,7 +584,13 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
       }
       onClick={handleClick}
       disabled={isBusy}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${stateClasses}`}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${getHandDrawnLookClassName(
+        {
+          // While it saves it is busy: as it is, with no hover.
+          className: stateClasses,
+          isBusy: isBusy,
+        },
+      )}`}
     >
       {props.enabled ? (
         <Icon icon={IconProp.Check} className="h-4 w-4" size={SizeProp.Small} />
@@ -1046,18 +1058,22 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
 };
 
 const incidents: Array<SectionDef> = [
-  buildSection("Incidents", "Notify me about incidents on resources I own.", [
-    NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
-  ]),
   buildSection(
-    "Incident Episodes",
-    "Notify me about activity on incident episodes I own.",
+    translationKey("Incidents"),
+    translationKey("Notify me about incidents on resources I own."),
+    [
+      NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
+    ],
+  ),
+  buildSection(
+    translationKey("Incident Episodes"),
+    translationKey("Notify me about activity on incident episodes I own."),
     [
       NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
@@ -1069,16 +1085,20 @@ const incidents: Array<SectionDef> = [
 ];
 
 const alerts: Array<SectionDef> = [
-  buildSection("Alerts", "Notify me about alerts on resources I own.", [
-    NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
-  ]),
   buildSection(
-    "Alert Episodes",
-    "Notify me about activity on alert episodes I own.",
+    translationKey("Alerts"),
+    translationKey("Notify me about alerts on resources I own."),
+    [
+      NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  buildSection(
+    translationKey("Alert Episodes"),
+    translationKey("Notify me about activity on alert episodes I own."),
     [
       NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
@@ -1090,39 +1110,67 @@ const alerts: Array<SectionDef> = [
 ];
 
 const monitoring: Array<SectionDef> = [
-  buildSection("Monitors", "Notify me about monitors I own.", [
-    NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
-    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
-    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
-  ]),
-  buildSection("SLOs", "Notify me about SLOs I own.", [
-    NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
-    NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
-  ]),
-  buildSection("Probes", "Notify me about custom probes I own.", [
-    NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
-  ]),
-  buildSection("AI Agents", "Notify me about AI agents I own.", [
-    NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
-  ]),
+  buildSection(
+    translationKey("Monitors"),
+    translationKey("Notify me about monitors I own."),
+    [
+      NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
+      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+    ],
+  ),
+  buildSection(
+    translationKey("SLOs"),
+    translationKey("Notify me about SLOs I own."),
+    [
+      NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
+      NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  // Keys of their own, so the card says them in the reader's language.
+  buildSection(
+    translationKey("Exceptions"),
+    translationKey(
+      "Notify me about exceptions assigned to me or to a team I am on.",
+    ),
+    [NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION],
+  ),
+  buildSection(
+    translationKey("Probes"),
+    translationKey("Notify me about custom probes I own."),
+    [
+      NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  buildSection(
+    translationKey("AI Agents"),
+    translationKey("Notify me about AI agents I own."),
+    [
+      NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
 ];
 
 const statusPages: Array<SectionDef> = [
-  buildSection("Status Pages", "Notify me about status pages I own.", [
-    NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
-  ]),
+  buildSection(
+    translationKey("Status Pages"),
+    translationKey("Notify me about status pages I own."),
+    [
+      NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
 ];
 
 const scheduledMaintenance: Array<SectionDef> = [
   buildSection(
-    "Scheduled Maintenance",
-    "Notify me about scheduled maintenance events I own.",
+    translationKey("Scheduled Maintenance"),
+    translationKey("Notify me about scheduled maintenance events I own."),
     [
       NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
@@ -1135,8 +1183,10 @@ const scheduledMaintenance: Array<SectionDef> = [
 
 const onCall: Array<SectionDef> = [
   buildSection(
-    "On-Call",
-    "Notify me about my on-call schedule and policy membership.",
+    translationKey("On-Call"),
+    translationKey(
+      "Notify me about my on-call schedule and policy membership.",
+    ),
     [
       NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
       NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
@@ -1148,16 +1198,18 @@ const onCall: Array<SectionDef> = [
     ],
   ),
   buildSection(
-    "Incoming Call Policies",
-    "Notify me about calls to incoming call policies I own.",
+    translationKey("Incoming Call Policies"),
+    translationKey("Notify me about calls to incoming call policies I own."),
     [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION],
   ),
 ];
 
 const security: Array<SectionDef> = [
   buildSection(
-    "Security Cases",
-    "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.",
+    translationKey("Security Cases"),
+    translationKey(
+      "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.",
+    ),
     [
       NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,

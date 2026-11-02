@@ -60,7 +60,7 @@ Open de Log Analytics-werkruimte in de Azure-portal. De pagina **Overview** toon
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Sentinel** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Sentinel** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**.
 
 ### Testen voordat je opslaat
 
@@ -174,7 +174,7 @@ Registreer een toepassing en geef haar een clientgeheim, zoals in [Een toepassin
 
 ### De bestemming toevoegen
 
-Open **Producten → Security Events → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Microsoft Sentinel onder **SIEM** en klik op **Volgende**. Vul de **Directory-ID (tenant)**, de **Applicatie-ID (client)** en het **Clientgeheim** in, het **Eindpunt voor logopname** van de pagina **Overview** van het eindpunt voor gegevensverzameling (of van de regel), en de **Onveranderlijke ID van de gegevensverzamelingsregel** uit de **JSON View** van de regel. **Stream** is optioneel: leeg gelaten is het `Custom-OneUptimeSecurityEvents_CL`.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Microsoft Sentinel onder **SIEM** en klik op **Volgende**. Vul de **Directory-ID (tenant)**, de **Applicatie-ID (client)** en het **Clientgeheim** in, het **Eindpunt voor logopname** van de pagina **Overview** van het eindpunt voor gegevensverzameling (of van de regel), en de **Onveranderlijke ID van de gegevensverzamelingsregel** uit de **JSON View** van de regel. **Stream** is optioneel: leeg gelaten is het `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Een testgebeurtenis verzenden en beginnen met verzenden
 

@@ -394,6 +394,8 @@ Varje rad säger var dess OID är känd: ett värde som en leverantörs hälsoma
 - **Skapa larm** visas när OID:n samlas in och öppnar en ny nätverksenhetsmonitor för enheten med ett kriterium på OID:n. En räknare börjar på **SNMP OID Rate (per second)** och en mätare på **SNMP OID Value**, båda över ett tröskelvärde du själv anger; en drifttid varnar under tio minuter (enheten startade om), allt annat när det ändras från det lästa värdet.
 - **Kopiera OID**, i radens meny, kopierar OID:n.
 
+**Ladda ner**, bredvid walkens sammanfattning, sparar det walken läste som en fil: **snmpwalk-text (.txt)**, en OID per rad så som `snmpwalk -On` skriver ut den, som alla SNMP-verktyg och all leverantörssupport kan läsa, eller **CSV-kalkylblad (.csv)** med varje OID:s namn, MIB, typ och värde. Filen innehåller varje OID som walken läste, fortsatta walkar inräknade, oavsett vad filtret visar, och har namn efter enheten, underträdet och tiden då den sparades. Alla som kan läsa enhetens senaste walk kan ladda ner den.
+
 En walk som misslyckas säger varför, och vad du ska kontrollera: en enhet som inte svarar (SNMP avstängt, UDP 161 blockerad eller, för v1 och v2c, en felaktig community-sträng, som en agent ignorerar utan ett ord), en SNMPv3-användare, ett lösenord eller ett protokoll som enheten avvisade, eller en del av trädet som autentiseringsuppgifternas SNMP-vy utelämnar. En walk som stannar halvvägs behåller det den har läst. En walk kräver behörigheten **Create Network Device Diagnostic** och en sond som är ny nog för SNMP-walk: med en äldre ber sidan dig att uppdatera den.
 
 ### SNMP-tabeller
@@ -504,17 +506,17 @@ En utredning av OneUptime AI av en incident eller larm från en nätverksenhetsm
 
 ### Enhetsidentitet
 
-Efter den första lyckade walken läser OneUptime SNMPv2-systemgruppen och, där enheten stöder det, ENTITY-MIB, och fyller i enhetens post: systemnamn, beskrivning, placering, kontakt, drifttid, tillverkare, modell, serienummer och firmwareversion. Tillverkarens enterprise-OID (`sysObjectID`) är enhetens fingeravtryck: den namnger tillverkaren och väljer den matchande tillverkarmallen. Samma uppgifter visas i [inventariet](/docs/inventory/cmdb-sync#tillgångsattribut-för-nätverksenheter) tillsammans med alla dina andra tillgångar.
+Efter den första lyckade walken läser OneUptime SNMPv2-systemgruppen och, där enheten stöder det, ENTITY-MIB, och fyller i enhetens post: systemnamn, beskrivning, placering, kontakt, drifttid, tillverkare, modell, serienummer och firmwareversion. På FortiGate-, Juniper-, MikroTik- och Sophos-enheter läser ytterligare en förfrågan det som ENTITY-MIB lämnar tomt från tillverkarens egen MIB. Tillverkarens enterprise-OID (`sysObjectID`) är enhetens fingeravtryck: den namnger tillverkaren och väljer den matchande tillverkarmallen. Samma uppgifter visas i [inventariet](/docs/inventory/cmdb-sync#tillgångsattribut-för-nätverksenheter) tillsammans med alla dina andra tillgångar.
 
 En enhet med bara ping behåller det namn och den adress som du, eller en discovery-skanning, gav den. Det som dess egen pollning inte har läst hämtar den från discovery:
 
-- Det systemnamn, den beskrivning, `sysObjectID`, plats och kontakt som den senaste [discovery-skanningen](#upptäck-enheter-med-en-nätverksskanning) av dess adress läste över SNMP, och de omvända DNS-namn och NetBIOS-namn som den hittade.
-- Dess MAC-adress, från ARP-tabellen i en genomgången router på dess plats.
+- Det systemnamn, den beskrivning, `sysObjectID`, plats, kontakt, modell, serienummer, firmware och programvaruversion som den senaste [discovery-skanningen](#upptäck-enheter-med-en-nätverksskanning) av dess adress läste över SNMP, och de omvända DNS-namn och NetBIOS-namn som den hittade.
+- Dess MAC-adress, från ARP-tabellen i en genomgången router på dess plats, eller annars från den första Ethernet-port som den skanningen läste.
 - För en enhet som pollas på ett DNS-namn, adressen som dess sond slog upp namnet till.
 
-De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skanning, router-walk eller pollning som läser något av dem igen uppdaterar det. Enhetens översikt och dess objekt i inventariet visar vilken skanning, router eller sond som läste varje värde, och när. Ett värde som du har sparat på enheten ersätts aldrig. När en skanning hittar en annan maskin på enhetens adress, till exempel ett DHCP-lån som har flyttat, säger översikten det, och inget av det som den skanningen läste där används.
+De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skanning, router-walk eller pollning som läser något av dem igen uppdaterar det. En skanning läser en värds MAC-adress, modell, serienummer, firmware och programvaruversion med några fler förfrågningar efter dess systemgrupp, i högst fem sekunder per värd. En värd som slutar svara på dem räknas ändå som en värd som har svarat, och det som skanningen inte kunde läsa behåller sitt senaste värde. Enhetens översikt och dess objekt i inventariet visar vilken skanning, router eller sond som läste varje värde, och när. Ett värde som du har sparat på enheten ersätts aldrig. När en skanning hittar en annan maskin på enhetens adress, till exempel ett DHCP-lån som har flyttat, säger översikten det, och inget av det som den skanningen läste där används.
 
-En Meraki-switch, en Meraki-åtkomstpunkt eller en Meraki-appliance ger varken serienummer, modell eller firmware över SNMP: Meraki implementerar ingen ENTITY-MIB. När en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation hämtar enheten dem, och allt annat som dess pollning lämnar tomt, från Meraki-dashboarden, och dess kort **Inventarie** nämner anslutningen på en rad **Meraki**.
+En Meraki-switch, en Meraki-åtkomstpunkt eller en Meraki-appliance ger varken serienummer eller firmware över SNMP: när enheten pollas direkt svarar den på systemgruppen och gränssnittstabellerna, som ger dess modell och dess MAC-adress, och inget mer. När en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation hämtar enheten dem, och allt annat som dess pollning lämnar tomt, från Meraki-dashboarden, och dess kort **Inventarie** nämner anslutningen på en rad **Meraki**.
 
 För att läsa en enhet igen nu trycker du på **Uppdatera** på dess kort **Inventarie**. Dess sond pollar den inom en minut, och dess Meraki-anslutning läser organisationen igen. Kortet säger när den nya avläsningen har kommit in, eller att sonden inte kunde nå enheten. **Uppdatera** finns för den som får redigera nätverksenheter, på en enhet som en sond pollar eller som en Meraki-anslutning beskriver.
 
@@ -688,11 +690,11 @@ Regler har inget eget schema och behöver inget. Aktiverade regler körs själva
 Att spara en regel tillämpar den också på resultat som projektet redan har: en regel som du skriver eller aktiverar i dag når värdar som upptäckts under de senaste 24 timmarna inom ungefär en minut, så en regel som skrivs efter en enstaka skanning blir inte stående och väntar på en skanning som aldrig körs igen. Äldre resultat lämnas orörda, eftersom att importera en miljö som upptäcktes förra månaden är ett beslut, inte en bieffekt av att spara en regel. Regelns två knappar är sättet att fatta det beslutet, och de når varje skanning i projektet, hur gammal den än är:
 
 - **Dry Run** utvärderar varje färdig skanning och rapporterar vad regeln skulle importera och övervaka. Inget skrivs, så det är det säkra sättet att se vad en regel skulle göra anspråk på innan du aktiverar den i en miljö i drift. En avaktiverad regel kan köras som Dry Run; bara en riktig körning kräver att den är aktiverad, och därför börjar en regel som skapas i instrumentpanelen med **Aktiverad** avslaget: kör en Dry Run och slå sedan på den.
-- **Run Rule** gör samma utvärdering och utför importen.
+- **Kör regel** gör samma utvärdering och utför importen.
 
-**Vem får köra en regel.** En körning når varje skanning i projektet, så att trycka på **Dry Run** eller **Run Rule** kräver behörigheter som når hela projektet: behörighet att redigera regeln, att skapa nätverksenheter och - när regeln har en monitormall - att skapa monitorer, var och en med omfattning över alla resurser i projektet. En behörighet som är begränsad till etiketter eller till ägda enheter räcker inte, och ett teams blockering med etiketter på att skapa enheter eller monitorer nekar körningen. **Kör nu** för en platstilldelningsregel eller en regel för enhetsetiketter kräver behörighet att redigera regeln och att redigera nätverksenheter, med omfattning över hela projektet på samma sätt (se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now#innan-du-börjar), som namnger varje behörighet).
+**Vem får köra en regel.** En körning når varje skanning i projektet, så att trycka på **Dry Run** eller **Kör regel** kräver behörigheter som når hela projektet: behörighet att redigera regeln, att skapa nätverksenheter och - när regeln har en monitormall - att skapa monitorer, var och en med omfattning över alla resurser i projektet. En behörighet som är begränsad till etiketter eller till ägda enheter räcker inte, och ett teams blockering med etiketter på att skapa enheter eller monitorer nekar körningen. **Kör nu** för en platstilldelningsregel eller en regel för enhetsetiketter kräver behörighet att redigera regeln och att redigera nätverksenheter, med omfattning över hela projektet på samma sätt (se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now#innan-du-börjar), som namnger varje behörighet).
 
-Stora miljöer importeras i avvägda batcher. Att skapa en enhet eller en monitor kör hela pipelinen — platstilldelning, ägare, etiketter och, för monitorer, planen, statusen och arbetet med statussidor — så en körning skapar några hundra av varje åt gången i stället för tiotusentals på en gång. Ett tryck på **Run Rule** driver så många batcher som miljön behöver och rapporterar totalen, så en skanning av 900 routrar är ett tryck. Om en körning stannar med arbete kvar säger rapporten exakt hur mycket ("Stopped at the run cap with 409 active Network Device monitors still to create"), och att trycka på knappen igen fortsätter: värdar som redan är importerade och monitorer som redan är skapade hoppas över, så att köra igen lägger aldrig till två gånger.
+Stora miljöer importeras i avvägda batcher. Att skapa en enhet eller en monitor kör hela pipelinen — platstilldelning, ägare, etiketter och, för monitorer, planen, statusen och arbetet med statussidor — så en körning skapar några hundra av varje åt gången i stället för tiotusentals på en gång. Ett tryck på **Kör regel** driver så många batcher som miljön behöver och rapporterar totalen, så en skanning av 900 routrar är ett tryck. Om en körning stannar med arbete kvar säger rapporten exakt hur mycket ("Stopped at the run cap with 409 active Network Device monitors still to create"), och att trycka på knappen igen fortsätter: värdar som redan är importerade och monitorer som redan är skapade hoppas över, så att köra igen lägger aldrig till två gånger.
 
 Enheter och monitorer är separat arbete med separata gränser: en regel som får en monitormall efter att dess enheter har importerats skapar inga enheter alls, bara monitorer, och dess rapport säger det.
 
@@ -745,13 +747,15 @@ OneUptime håller sedan en nätverksenhetsmonitor per matchande enhet, skapad fr
 > [!IMPORTANT]
 > Varje monitor som en policy skapar räknas mot din plan. En policy över en stor miljö är många monitorer från en sparning, så bekräftelsen av den rekommenderade policyn anger projektets antal enheter innan den skapar något.
 
-Tabellens kolumn **Covered Devices** visar **Inte räknat ännu** fram till policyns första synkronisering, och **Last Sync** säger när den var, eller varför den misslyckades.
+Tabellens kolumn **Covered Devices** visar **Inte räknat ännu** fram till policyns första synkronisering, och **Senaste synkronisering** säger när den var, eller varför den misslyckades.
 
 Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en monitormall **Network device alert pack (recommended)**, som bär det [rekommenderade larmpaketet](#rekommenderat-larmpaket), och en policy **Alert on every device** som tillämpar den på hela projektet. Mallen hittas igen via en markör i dess beskrivning, så åtgärden skapar aldrig en andra kopia, och det är en monitormall som du också kan använda för monitorer du skapar själv. Smalna av policyns omfattning efteråt om hela projektet är för mycket.
 
 ### En enhet i taget
 
 Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Network Device och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
+
+De flesta switchar, routrar, brandväggar och skrivare har också ett webbgränssnitt på sin egen adress. **Övervaka webbgränssnitt**, på samma kort, öppnar en **Webbplats**-monitor för det: `https://` på enhetens adress, med **Tillåt självsignerade certifikat** påslaget, eftersom en enhets webbgränssnitt nästan alltid har ett, kontrollerad från enhetens egen probe och med namn efter enheten. Ändra URL:en om gränssnittet svarar på `http`, på en annan port eller under en sökväg, och spara sedan. Kortet visar monitorn så länge dess namn innehåller enhetens namn och dess URL ligger på enhetens adress; den ändrar inte enhetens status.
 
 För att i stället skapa en från **Monitorer**:
 
@@ -760,6 +764,8 @@ För att i stället skapa en från **Monitorer**:
 3. Välj den nätverksenhet som ska varnas för. Allt som rör insamling av data — värdnamn, autentiseringsuppgifter, schema, gränssnittswalks, hälso-OID:er — kommer från enheten; monitorn väljer bara vad som ska varnas för, genom sina kriterier.
 
 En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång enhetens avsökningsresultat kommer in, och varje gång en trap från enheten kommer in.
+
+När avsökningarna slutar utvärderas monitorn ändå. När en enhet har gått tre avsökningsintervall, och minst tio minuter, utan avsökning utvärderas dess monitorer var femte minut som en avsökning som inte nådde den: ett kriterium som matchar att **SNMP Device Is Online** är False, till exempel **Device unreachable**, utlöses, och incidenten säger varför ingen avsökning kom, till exempel att sonden är nere eller att enheten saknar sond. En enhet med avsökning avstängd, eller med [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor), lämnas i fred. Nästa avsökning utvärderar monitorn som vanligt.
 
 ### En enhets incidenter och larm
 
@@ -951,6 +957,7 @@ För att kartan ska fyllas i:
 - Ge enheterna SNMP-autentiseringsuppgifter. Granntabeller kommer från walken, så en enhet med bara ping syns på kartan men rapporterar inga egna grannar.
 - Håll **Walk Interfaces** påslaget i enheternas avsökningsinställningar: granntabellerna walkas tillsammans med gränssnitten.
 - Slå på LLDP, eller CDP på Cisco-enheter, på enheterna själva.
+- Anslut instrumentpanelen på ett Meraki-nätverk. En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) ritar kablarna som Meraki känner till, även de till en MX som bara svarar på ping.
 
 Klicka på en ohanterad peer så registrerar **Add to Monitoring** den som en sondavsökt enhet. Den tar den sond som dess grannar är överens om, så den pingas från sin första avsökning, och du kan lägga till autentiseringsuppgifter senare om den visar sig ha SNMP.
 
@@ -989,6 +996,8 @@ För det måste kartan veta vilken inlärd MAC som är enhetens. Det finns två 
 - Genom att skriva den: ange **MAC-adress** på enheten, på dess sida **Inställningar** eller kortet på översikten, när dess värdnamn är ett DNS-namn eller ingen router på platsen walkas. Alla vanliga skrivsätt accepteras.
 
 Switchen som enheten hänger på behöver också **Collect Connected Endpoints** påslaget: det är därifrån porten kommer. Adresser matchas inom enhetens plats, eftersom varje filial har en `10.0.0.5`; en MAC matchar oavsett plats.
+
+En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) gör allt detta utan att något behöver slås på. Merakis klientlista visar vilken switch och port varje klient är på, så en enhet placeras så snart den switchen är en nätverksenhet här, på samma plats. Listan ger också enheten dess MAC-adress, och det Meraki kallar en klient visas i kolumnen **Värdnamn** under **Slutpunkter**. Den läses varannan timme, så en ny enhet kan ta så lång tid på sig att dyka upp. Så länge Meraki rapporterar en klient går dess port före en genomgången vidarebefordringstabell, eftersom Meraki kan skilja en accessport från en upplänk. En Wi-Fi-klient placeras på sin accesspunkt bara när den är en enhet här: telefonerna på ett gästnätverk hålls utanför kartan.
 
 Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Ansluten till**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Device Links** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
 
@@ -1048,13 +1057,15 @@ Kartan ritar kabeln för en enhet med bara ping från dess switchs vidarebefordr
 - Enhetens MAC är känd: dess **MAC-adress** är angiven, eller så samlar en router på platsen in slutpunkter och enhetens värdnamn är den adress som routerns ARP-tabell binder. En enhet som är registrerad efter DNS-namn utan MAC kan inte matchas, så skriv in MAC:en.
 - Samma plats: en adress matchas bara mot en enhet på samma plats som switchen som lärde sig den. En enhet utan plats matchas bara på adress när den switchen inte heller har någon plats; om switchen finns på en plats, lägg enheten på samma. En MAC matchar oavsett plats.
 
+Enhetens panel på kartan visar vad av detta som saknas. På ett Meraki-nätverk ersätter Merakis klientlista de två första: kontrollera att switchen är en nätverksenhet här, på samma plats, och räkna med två timmar innan en ny enhet dyker upp.
+
 Om enheten sitter bakom en ohanterad switch eller en hubb lär sig den hanterade switchen varje MAC bakom den på en port, och det är den port som kartan ritar: den fysiska sanningen så som den hanterade switchen ser den.
 :::
 
 :::details Bara några av de upptäckta enheterna importerades
 En import från **Granska resultat** svarar på det i sitt sista steg: varje värd den inte importerade och varje enhet den importerade utan dess monitor står under orsaken, och ett nytt försök provar bara de misslyckade värdarna igen. För att se den senare klickar du på **Granska resultat** på skanningen och sedan på **Visa resultat**.
 
-För en regel för automatisk import svarar körningsrapporten på det, i dialogrutan som öppnas när en körning är klar, inte i en logg. En körning som stannade vid sin batchgräns säger det och namnger vad som återstår: tryck på **Run Rule** igen så fortsätter den där den stannade. En körning som blev klar men gjorde anspråk på färre värdar än du väntade dig säger vart resten tog vägen: stoppad av en undantagsregel, redan registrerad på den adressen, eller inte matchad av regelns kriterier.
+För en regel för automatisk import svarar körningsrapporten på det, i dialogrutan som öppnas när en körning är klar, inte i en logg. En körning som stannade vid sin batchgräns säger det och namnger vad som återstår: tryck på **Kör regel** igen så fortsätter den där den stannade. En körning som blev klar men gjorde anspråk på färre värdar än du väntade dig säger vart resten tog vägen: stoppad av en undantagsregel, redan registrerad på den adressen, eller inte matchad av regelns kriterier.
 
 När enheterna finns där men inte monitorerna: enheter och monitorer är separat arbete, så en regel som fick sin monitormall efter att dess enheter hade importerats rapporterar inga importerade enheter och bara skapade monitorer. Det är regeln som gör precis det arbete som återstod, inte en misslyckad import; se [Importera automatiskt med regler för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import).
 :::

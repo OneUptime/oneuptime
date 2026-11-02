@@ -90,6 +90,14 @@ import {
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import {
+  DETECTION_REAL_TIME_RULES_MAX,
+  REAL_TIME_CORRELATION_PROBLEM,
+  REAL_TIME_DISTINCT_COUNT_PROBLEM,
+  REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
+  REAL_TIME_THRESHOLD_PROBLEM,
+} from "Common/Types/SecurityEvent/RealTimeDetection";
+import { DETECTION_RULE_REAL_TIME } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
   normalizeOcsfSeverity,
@@ -223,6 +231,11 @@ const SOURCES: Record<string, string> = {
   httpFetch: "packages/Common/Server/Utils/DataSource/HttpFetch.ts",
   detectionJob:
     "packages/App/FeatureSet/Workers/Jobs/DetectionRules/EvaluateDetectionRules.ts",
+  // A real-time rule: the screen every write runs, its jobs and the rule's service.
+  realTimeScreen: `${SECURITY}/RealTime/RealTimeDetections.ts`,
+  realTimeJobs: `${SECURITY}/RealTime/RealTimeJobs.ts`,
+  detectionRuleService:
+    "packages/Common/Server/Services/DetectionRuleService.ts",
   matchJob:
     "packages/App/FeatureSet/Workers/Jobs/ThreatIntel/MatchThreatIntelIndicators.ts",
   pollJob:
@@ -1320,8 +1333,11 @@ describe("the Security Events page", () => {
       }),
     ).toBe(SecurityMatchRaises.Alert);
     expect(steps[5]).toContain(
-      "**Write Detection Finding on Match** (on) and how matches are counted",
+      "**Write Detection Finding on Match** (on), **Run in Real Time** (off) and how matches are counted",
     );
+    // A new rule runs on its interval.
+    expect(page_).toContain("isRealTime: false,");
+    expect(form).toContain('title: "Run in Real Time",');
     // Detection Rules is a page of the Detections section, its first.
     expect(
       getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_DETECTION_RULES)
@@ -1636,10 +1652,75 @@ describe("the Security Events page", () => {
     );
     expect(firstCells(rows)).toEqual([
       "**Evaluation Interval (Minutes)**",
+      "**Run in Real Time**",
       "**Group By Field**",
       "**Distinct Count Field**",
       "**Match Count Threshold**",
     ]);
+  });
+
+  it("says which rules can run in real time, how many a project runs, what the list shows, and how a rule hands over", () => {
+    const realTime: string = flat(section(page, "Real-time rules"));
+    const rules: string = flat(source("detectionRules"));
+    const jobs: string = flat(source("realTimeJobs"));
+    const service: string = flat(source("detectionRuleService"));
+
+    // What fits: one event, threshold 1, no distinct count, no `re`, no correlation.
+    for (const problem of [
+      REAL_TIME_THRESHOLD_PROBLEM,
+      REAL_TIME_DISTINCT_COUNT_PROBLEM,
+      REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
+      REAL_TIME_CORRELATION_PROBLEM,
+    ]) {
+      expect(problem.length).toBeGreaterThan(20);
+    }
+
+    expect(REAL_TIME_THRESHOLD_PROBLEM).toContain("Match Count Threshold to 1");
+    expect(REAL_TIME_DISTINCT_COUNT_PROBLEM).toContain("Distinct Count Field");
+    expect(REAL_TIME_REGULAR_EXPRESSION_PROBLEM).toContain(
+      "contains, startswith or endswith",
+    );
+    expect(realTime).toContain(
+      "- It fits a rule with a **Match Count Threshold** of 1, no **Distinct Count Field** and no `re` modifier. A correlation counts events together, so it runs on its interval.",
+    );
+    expect(realTime).toContain(
+      "turn on **Run in Real Time**, under **More fields** on the **On Match** step.",
+    );
+    expect(rules).toContain('title: "Run in Real Time", stepId: "on-match",');
+
+    expect(DETECTION_REAL_TIME_RULES_MAX).toBe(50);
+    expect(realTime).toContain(
+      `- A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time,`,
+    );
+
+    // Its Status, and its interval column, say Real time.
+    expect(DETECTION_RULE_REAL_TIME.text).toBe("Real time");
+    expect(realTime).toContain(
+      `a real-time rule's **Status** says **${DETECTION_RULE_REAL_TIME.text}**, and so does its interval column.`,
+    );
+    expect(rules).toContain('translator.translateText("Real time")');
+
+    // On: a handover from the last run; off: back on the interval two minutes behind.
+    expect(jobs).toContain("getRealTimeHandoverWindow");
+    expect(service).toContain("RealTimeJobs.enqueueHandover(");
+    expect(service).toContain(
+      "const resumeFrom: Date = OneUptimeDate.addRemoveSeconds( OneUptimeDate.getCurrentDate(), -DETECTION_EVALUATION_DELAY_IN_SECONDS, );",
+    );
+    expect(DETECTION_EVALUATION_DELAY_IN_SECONDS).toBe(120);
+    expect(realTime).toContain(
+      "- Turned on, the rule first reads what arrived since its last run, so nothing falls between its schedule and real time. Turned off, it goes back to its interval, from two minutes before.",
+    );
+
+    // Every source's write is screened.
+    expect(flat(source("ingestService"))).toContain(
+      "RealTimeDetections.screen(",
+    );
+    expect(flat(source("connectionPoller"))).toContain(
+      "RealTimeDetections.screen(",
+    );
+    expect(realTime).toContain(
+      "Every event OneUptime receives, from every source, is then checked against the rule as it arrives",
+    );
   });
 
   it("groups and counts on the typed fields its goals name, and leaves empty values out of a distinct count", () => {

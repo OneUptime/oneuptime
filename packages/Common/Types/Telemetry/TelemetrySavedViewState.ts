@@ -54,4 +54,20 @@ export default interface TelemetrySavedViewState {
    * serialization and must deserialize defensively.
    */
   explorerConfig?: JSONObject | undefined;
+  /*
+   * Exceptions list: what it shows besides the search, filters and window,
+   * as it writes them in its address bar (status, class, assigned, sort).
+   * Read them with readExceptionsSavedViewState (Dashboard
+   * Utils/ExceptionSavedView), which drops a value the list does not know.
+   * Each its own field, as the other explorers' are, so a link that names
+   * one of them can stand over a view's without taking the rest.
+   */
+  // The status: "unresolved", "resolved", "archived" or "all".
+  exceptionStatus?: string | undefined;
+  // What counts as an issue: "issues", "user-errors" or "all".
+  exceptionClassScope?: string | undefined;
+  // Only the exceptions assigned to whoever applies the view.
+  exceptionAssignedToMe?: boolean | undefined;
+  // An ExceptionListSort: "last-seen", "first-seen" or "most-events".
+  exceptionSort?: string | undefined;
 }

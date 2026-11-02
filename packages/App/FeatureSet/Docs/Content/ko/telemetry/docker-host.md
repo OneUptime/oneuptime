@@ -233,7 +233,7 @@ docker compose down
 
 ## AI 에이전트
 
-위의 명령과 Compose 파일, Docker 에이전트의 `install.sh`, 그리고 [DockerAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent)의 `docker-compose.yml`은 모두 **Docker AI 에이전트**를 실행합니다. 두 번째 컨테이너인 `oneuptime-docker-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)로, OneUptime AI가 이 호스트의 인시던트나 알림을 조사하는 동안 요청하는 읽기 전용 `docker` 명령(`docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream`)을 실행하고, 허용한 경우에만 지정한 컨테이너 재시작 같은 수정을 적용합니다. Collector와 같은 `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_HOST_NAME`을 읽으므로 정확히 이 호스트를 담당하며, OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.
+위의 명령과 Compose 파일, Docker 에이전트의 [`install.sh`](https://oneuptime.com/install/docker-agent), 그리고 [`docker-compose.yml`](https://oneuptime.com/install/docker-agent/docker-compose.yml)은 모두 **Docker AI 에이전트**를 실행합니다. 두 번째 컨테이너인 `oneuptime-docker-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)로, OneUptime AI가 이 호스트의 인시던트나 알림을 조사하는 동안 요청하는 읽기 전용 `docker` 명령(`docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream`)을 실행하고, 허용한 경우에만 지정한 컨테이너 재시작 같은 수정을 적용합니다. Collector와 같은 `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_HOST_NAME`을 읽으므로 정확히 이 호스트를 담당하며, OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.
 
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 알림을 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - `ONEUPTIME_AI_ALLOW_WRITES=true`로 시작하지 않는 한 읽기 전용입니다. `ONEUPTIME_AI_WRITE_TARGETS`(예: `web-*,api-*`)가 수정이 건드릴 수 있는 컨테이너를 제한합니다. 수정 실행 방식을 정하려면 `ONEUPTIME_AI_FIXES`도 지정해 시작하세요. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
@@ -283,6 +283,10 @@ docker version --format '{{ .Server.APIVersion }}'
 
 :::details 컨테이너 CPU가 평평한 선으로 나타남
 오래된 에이전트는 `docker_stats` 리시버가 직접 계산한 CPU 값을 보냅니다. Collector 0.150.0부터 리시버는 이 값을 통계 측정 한 번으로 계산합니다. 컨테이너가 시작된 뒤 사용한 전체 CPU를 호스트가 부팅된 뒤 사용한 전체 CPU로 나눈 값입니다. 이 선은 거의 움직이지 않고 부하를 따라가지 않지만 `container.cpu.usage.total`은 따라갑니다. [에이전트를 업그레이드하세요](#에이전트-업그레이드). 두 번째 측정부터 각 컨테이너가 30초 간격마다 사용한 CPU를 보냅니다. 이미 저장된 측정값은 그대로 남습니다.
+:::
+
+:::details Container Restart Loop가 작동하지 않거나 재시작을 놓침
+오래된 에이전트는 `container.restarts.increase`를 보내지 않습니다. 이는 각 컨테이너의 이전 샘플 이후의 재시작 횟수로, 템플릿이 이를 합산합니다. [에이전트를 업그레이드하세요](#에이전트-업그레이드). 각 컨테이너의 두 번째 샘플부터 모든 재시작이 집계됩니다. 업그레이드 전에 이 템플릿으로 만든 모니터는 대신 1분 안에 `container.restarts`가 얼마나 늘었는지를 읽으므로 루프 재시작의 절반 정도를 놓칩니다. 그 모니터를 삭제하고 템플릿으로 다시 만드세요.
 :::
 
 :::details 메트릭은 도착하지만 컨테이너 로그가 없음

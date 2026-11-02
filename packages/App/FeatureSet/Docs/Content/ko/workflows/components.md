@@ -22,10 +22,13 @@
 | 텍스트 요약, 분류, 초안 작성하기                              | [Generate Text with AI](#generate-text-with-ai)                   |
 | 값에 따라 다른 경로로 가기                                    | [Conditions](#conditions)                                         |
 | 값에 따라 여러 경로 중 하나로 가기                               | [Switch / Case](#switch-case)                                     |
+| 몇 줄의 JavaScript가 그렇다고 할 때만 계속하기                 | [Check With JavaScript](#check-with-javascript)                   |
 | 두 블록 사이에서 데이터 모양 바꾸기                           | [JSON](#json) 또는 [Custom Code](#custom-code)                    |
 | 다음 블록 전에 기다리기                                       | [Sleep](#sleep)                                                   |
 | 다른 워크플로 시작하기                                        | [Execute Workflow](#execute-workflow)                             |
 | 인시던트, 모니터 등 레코드를 읽거나 바꾸기                    | [OneUptime 데이터 구성 요소](#oneuptime-데이터-구성-요소)          |
+| 다른 도구의 문제에 대해 인시던트나 경고를 열고, 확인하고, 해결하기 | [다른 도구에서 온 인시던트와 경고](#다른-도구에서-온-인시던트와-경고) |
+| Zabbix 문제를 확인하거나 닫기                                  | [Zabbix](#zabbix)                                                 |
 
 전용 블록이 범용 블록보다 낫습니다. Slack 블록은 Slack의 한도를 알고, 레코드 블록은 레코드의 필드를 알기 때문에, 같은 일을 하는 **API** 블록보다 오류와 로그가 더 명확합니다.
 
@@ -44,7 +47,7 @@ flowchart TB
 - **Outputs**는 아래쪽 가장자리의 점입니다. 대부분의 블록에는 **Success**와 **Error**가 있고, [Conditions](#conditions)에는 **Yes**와 **No**가, [Switch / Case](#switch-case)에는 케이스마다 하나씩과 **Default**가 있습니다.
 - **Returns**는 API의 **Response Body**처럼 블록이 이후 블록에 넘기는 값입니다. 이후 블록은 `{{local.components.<block ID>.returnValues.<value ID>}}` 로 읽으며, 설정의 **{ }** 버튼으로 삽입할 수 있습니다. [변수](/docs/workflows/variables#구성-요소-출력앞선-블록에서-온-데이터)를 참조하세요.
 
-**Error**를 선택한 블록은 실행을 실패시키지 않습니다. 실행은 **Error** 경로를 따르거나, 연결된 것이 없으면 거기서 끝납니다. 반면 비워 둔 필수 설정이나 절대 작동할 수 없는 설정은 실행을 오류로 멈춥니다.
+**Error**를 선택한 블록은 실패를 **Error**에 연결된 블록에 넘기고, 실행은 거기서 계속됩니다. **Error**에 아무것도 연결되어 있지 않으면 실행은 실패합니다. 그 밖에 진행 중이던 일은 계속 실행되고, 그다음 실행은 **오류** 상태로 끝나며, 실행의 **단계**에 있는 블록 항목에 이유가 표시됩니다. 반면 비워 둔 필수 설정이나 절대 작동할 수 없는 설정은 실행을 오류로 멈춥니다.
 
 ## API
 
@@ -64,6 +67,8 @@ flowchart TB
 어느 쪽이든 블록은 **Response Status**, **Response Headers**, **Response Body**를 반환하며, 실패했을 때는 이유가 담긴 **Error**도 반환합니다. JSON 응답의 필드를 읽으려면 `{{local.components.api-get-1.returnValues.response-body.id}}` 처럼 참조에 그 이름을 덧붙입니다.
 
 리디렉션은 따라가지 않으므로, 실제로 응답하는 주소를 블록에 지정하세요. 요청은 OneUptime에서 나갑니다. 사설 네트워크 주소로 확인되는 URL은 셀프 호스팅 관리자가 허용하지 않는 한 거부되며, 실행은 이유와 함께 멈춥니다. [아웃바운드 네트워크 접근](/docs/workflows/configuration#아웃바운드-네트워크-접근)을 참조하세요.
+
+**API Get By ID (JSON)** 블록은 웹후크가 보낸 이슈 키처럼 다른 곳에서 온 ID로 항목 하나를 읽습니다. **URL**에서 ID가 들어갈 자리에 `{id}`를 넣고(예: `https://your-domain.atlassian.net/rest/api/3/issue/{id}`), ID는 **ID**에 넣으세요. 블록은 ID가 영문자, 숫자, 하이픈, 밑줄로만 된 200자 이하의 단순한 ID일 때만 넣고, 그때도 퍼센트 인코딩합니다. `x/../users` 같은 그 밖의 값은 요청을 보내기 전에 **Error**를 선택하므로, 외부에서 온 텍스트가 요청을 다른 곳으로 돌릴 수 없습니다. 그 밖에는 **API Get (JSON)** 블록처럼 작동하며 같은 값을 반환합니다.
 
 ## AI
 
@@ -219,10 +224,9 @@ Libera.Chat, OFTC 또는 자체 서버 등 어떤 IRC 네트워크든 IRC 채널
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-워크플로를 만들 때 **온콜** 아래의 템플릿에 이 워크플로가 준비되어 있고, **Switch / Case**로 심각도에 따라 호출하는 템플릿도 있습니다. 누구를 호출할지는 템플릿이 정하지 않습니다. 워크플로는 빌더에서 열리고, 호출 블록마다 **Click to set up** 이라고 표시됩니다.
+워크플로를 만들 때 **온콜** 아래의 템플릿에 이 워크플로가 준비되어 있고, **Switch / Case**로 심각도에 따라 호출하는 템플릿도 있습니다. **워크플로 만들기** 대화 상자는 템플릿의 호출 블록마다 누구를 호출할지 묻기 때문에, 워크플로는 그것이 정해진 상태로 열립니다. 빌더에서 추가한 호출 블록에는 누구를 호출할지 고를 때까지 **Click to set up** 이라고 표시됩니다.
 
 | 설정 | 하는 일 |
 | ---- | ------- |
@@ -270,6 +274,27 @@ return {
 코드는 `args`, `console.log`(실행의 로그에 기록됨), HTTP 요청용 `axios`, `crypto`, `sleep` 이 있는 샌드박스에서 실행됩니다. 파일 시스템도 프로세스도 없으며, 요청에는 API 블록과 같은 주소 규칙이 적용됩니다. 기본적으로 5초가 주어지며, 셀프 호스팅 설치에서는 `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` 로 바꿉니다.
 
 **Success**는 반환된 **Value**와 함께 발생하고, **Error**는 코드가 예외를 던지거나 시간이 다 되었을 때 메시지를 **Error**에 담아 발생합니다. 더 무거운 스크립트에는 대신 [Runbook](/docs/runbooks/index)을 사용하세요.
+
+## Check With JavaScript
+
+몇 줄의 JavaScript를 실행한 다음, 반환한 값에 따라 **Yes** 또는 **No**로 갑니다. [Custom Code](#custom-code) 블록과 그 뒤의 [If / Else](#conditions)를 하나로 합친 블록입니다. 다른 도구가 보낸 내용을 읽고 워크플로가 건드리지 말아야 할 것을 건너뛰는 경우처럼, 비교 하나로는 결정할 수 없을 때 사용하세요.
+
+| 설정                | 하는 일 |
+| ------------------- | ------- |
+| **JavaScript Code** | 여러분의 코드입니다. `return true`는 **Yes**로 갑니다. 값도 넘기려면 `proceed: true`, 값, `reason`을 담은 객체를 반환하세요. |
+| **Arguments**       | 코드에 넘길 값의 JSON 객체로, 코드는 이를 `args`로 읽습니다. **Run Custom JavaScript**와 같습니다. |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+`true`이거나 `proceed`가 `true`인 객체만 **Yes**로 갑니다. 그 밖의 것은 숫자나 텍스트라도 **No**로 갑니다. 블록은 코드가 반환한 것인 **Value**를 반환하며, 이후 블록은 이를 `{{local.components.javascript-check-1.returnValues.returnValue.title}}`로 읽습니다. 또 코드의 `reason` 또는 코드가 반환한 것을 한 문장으로 담은 **Reason**을 반환하며, 실행의 **단계** 탭은 이를 선택된 출력 옆에 보여 줍니다.
+
+코드는 **Run Custom JavaScript**가 실행하는 것과 똑같이 실행됩니다. 같은 샌드박스에서 같은 `args`, `console.log`, `axios`를 쓰며, 시간 제한도 같습니다. 예외를 던지거나 시간이 다 되면 블록은 **Error**로 갑니다.
 
 ## JSON
 
@@ -358,6 +383,50 @@ return {
 **Out**은 다른 워크플로가 대기열에 들어가는 즉시 발생합니다. **Error**는 그럴 수 없을 때 발생합니다. 존재하지 않거나, 꺼져 있거나 보관되었거나, 시작하면 루프가 생기는 경우입니다.
 
 공통 로직을 공유하는 데 사용하세요. "인시던트 채널에 게시하기" 워크플로를 한 번 만들고, 그것이 필요한 모든 워크플로에서 시작합니다. 서로를 시작하는 워크플로의 사슬은 자기 자신으로 되돌아올 수 없으며, 최대 10단계까지만 깊어질 수 있습니다. [설정 및 보안](/docs/workflows/configuration#다른-워크플로-호출-제한)을 참조하세요.
+
+## 다른 도구에서 온 인시던트와 경고
+
+다른 도구가 알려 주는 문제마다 인시던트 또는 경고를 하나씩, 그 도구가 문제에 붙인 ID로 짝지어 유지합니다. **Incident From Another Tool**과 **Alert From Another Tool**은 Zabbix, Huntress, Jira, Dynamics 365 템플릿의 바탕이며, 워크플로의 [Webhook 트리거](/docs/workflows/triggers#webhook)를 호출할 수 있는 도구라면 무엇이든 쓸 수 있습니다. **구성 요소 추가** 패널에서는 **From Other Tools** 아래에 있습니다.
+
+실행할 때마다 블록에 이벤트 하나가 전달됩니다. **What Happened**와, 도구에서의 문제 ID인 **Outside ID**입니다. 블록은 그 ID를 가진 레코드를 찾아 **What Happened**가 말하는 일을 합니다.
+
+| What Happened | 블록이 하는 일 |
+| ------------- | -------------- |
+| `open`, `problem`, `firing`, `triggered`, `created` | **Title**, **Description**, **Severity**로 인시던트를 열거나 경고를 만듭니다. 그 ID를 가진 레코드가 이미 있으면 그대로 둡니다. |
+| `acknowledge`, `acknowledged` | 레코드를 첫 번째 확인 상태로 옮기고, **Note**를 이유로 기록에 남깁니다. |
+| `resolve`, `resolved`, `recovery`, `ok`, `closed` | 레코드를 첫 번째 해결 상태로 옮기고, **Note**를 이유로 기록에 남깁니다. |
+| `note`, `update`, `comment` | **Note**를 비공개 노트로 레코드에 추가합니다. |
+| 여러분의 상태 중 하나의 이름 | 레코드를 그 상태로 옮깁니다. 이 단어들과 같은 이름 앞에는 `state:`를 붙이세요(예: `state: Open`). |
+
+| 출력 | 언제 |
+| ---- | ---- |
+| **Opened**, 경고 블록에서는 **Created** | 새 레코드를 열었습니다. 새 문제만 호출하도록 여기에 호출 블록을 연결하세요. |
+| **Updated** | 레코드를 다른 상태로 옮기거나 노트를 추가했습니다. |
+| **Unchanged** | 할 일이 없었습니다. 그 ID를 가진 레코드가 없거나, 레코드가 이미 그 상태이거나 더 나아갔거나, **What Happened**가 비어 있습니다. |
+| **Error** | 레코드를 읽거나 바꾸지 못했습니다. 여기에 아무것도 연결되어 있지 않으면 실행은 실패합니다. |
+
+레코드는 앞으로만 움직이고 해결된 레코드는 전혀 움직이지 않으므로, 두 도구가 모두 바꿔도 어느 쪽도 다른 쪽이 한 일을 되돌리지 않습니다. 레코드는 ID를 사용자 지정 필드에 보관하며(**Outside ID Field**가 다른 필드를 지정하지 않으면 `externalId`), 그 필드만 쓰기 때문에 레코드의 다른 사용자 지정 필드는 값을 유지합니다. 레코드가 보관하는 ID로는 그 레코드가 해결된 뒤에도 다시는 열리지 않습니다. Zabbix 이벤트 ID나 Huntress 보고서 번호처럼 문제마다 새로운 ID를 쓰세요. 대신 레코드 자체의 ID로 작업하려면, Jira 템플릿이 이슈 레이블에 담긴 ID로 하듯이 그 ID를 **Incident ID** 또는 **Alert ID**에 넣으세요.
+
+**Severity**는 심각도 하나를 이름이나 ID로(대소문자 구분 없이), 또는 그 가운데 위치로 지정합니다: `most severe`, `middle`, `least severe`. 이렇게 도구 고유의 수준이 여러분이 직접 이름 붙인 심각도에 나뉩니다. 비워 두거나 어느 것도 가리키지 않으면 가장 높은 심각도가 되며, 실행의 로그에 그렇게 기록됩니다. 새 인시던트는 상태 페이지에 나오지 않고 구독자에게도 알리지 않습니다. 다른 도구의 텍스트는 그 도구의 사용자를 위해 쓰였기 때문입니다. 보여 주려면 **Show On Status Pages**를 켜세요.
+
+**추가 필드**에서 **Reason**은 레코드가 옮겨질 때 기록에 남는 이유이며, 이때 **Note**는 그 옆에 비공개 노트로 추가됩니다. 확인하거나 해결할 때 무언가를 말하는 도구를 위한 것입니다. **Custom Fields**는 새 레코드에 JSON 객체로 사용자 지정 필드를 더하고, **Labels**는 레이블 ID를 쉼표로 구분해 지정하며, **영향받는 리소스**는 레코드가 다루는 리소스를 지정합니다(**Create One Incident**와 같습니다). **Note Instead Of Resolving**은 노트를 추가하고 레코드 해결은 팀에 맡깁니다. 블록은 한 일을 한 문장으로 담은 **Summary**와 레코드 자체를 반환하므로, 이후 블록은 그 ID를 `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`로 읽습니다.
+
+## Zabbix
+
+Zabbix의 API를 통해 Zabbix의 문제를 확인하거나 닫고, 또는 메시지를 추가합니다. 블록 이름은 **Update Zabbix Problem**이며, [Zabbix 템플릿](/docs/integrations/zabbix)은 이 블록으로 OneUptime에서 일어난 일을 Zabbix에 되돌려 보냅니다.
+
+| 설정 | 하는 일 |
+| ---- | ------- |
+| **Zabbix URL** | Zabbix를 여는 주소입니다(예: `https://zabbix.example.com`). 요청은 그 `api_jsonrpc.php`로 갑니다. |
+| **API Token** | 문제를 확인하고 댓글을 달고 닫을 수 있는 Zabbix 사용자의 API 토큰입니다. 비밀 변수에 보관하세요. |
+| **Event ID** | 문제의 이벤트 ID로, 보통 인시던트나 경고가 사용자 지정 필드에 보관하는 값입니다. |
+| **What To Do** | `acknowledge`, `close`, `message` 중 하나입니다. 비워 두면 Zabbix는 업데이트되지 않습니다. |
+| **Message** | Zabbix가 문제에 남기는 내용으로, 최대 2,048자입니다. 더 긴 메시지는 잘립니다. |
+| **Zabbix 6.0** | **추가 필드**에 있습니다. Zabbix 6.0은 토큰을 `Authorization` 헤더가 아니라 요청 본문에서 읽으므로 6.0에서는 이 설정을 켜고, 업그레이드하면 다시 끄세요. Zabbix 7.2 이상은 본문의 토큰을 거부합니다. |
+
+확인하거나 닫기 전에 블록은 먼저 문제를 읽습니다. Zabbix가 이미 해결한 문제, 또는 확인만 요청했을 때 이미 확인된 문제는 그대로 두고 블록은 **Unchanged**로 갑니다. Zabbix에 없는 문제나 토큰의 사용자가 볼 수 없는 문제도 마찬가지입니다. 트리거가 문제를 수동으로 닫는 것을 허용하지 않는 문제는 대신 확인되며, 그 메시지에는 Zabbix가 복구를 감지할 때까지 열린 채로 남는다고 적힙니다.
+
+**Updated**는 Zabbix가 업데이트를 받아들였을 때, **Error**는 Zabbix에 연결할 수 없었거나 Zabbix가 업데이트를 거부했을 때 Zabbix의 이유와 함께 발생합니다. Zabbix는 거부한 요청에도 성공 상태로 응답하므로, 블록은 상태 대신 Zabbix가 응답한 내용을 읽습니다. 블록은 한 일을 한 문장으로 담은 **Summary**를 반환합니다.
 
 ## OneUptime 데이터 구성 요소
 

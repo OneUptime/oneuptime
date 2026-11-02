@@ -32,7 +32,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Instale el Storage Array Agent** donde pueda llegar a la cabina por HTTPS, con el token de API de un usuario que tenga el rol **readonly** de la cabina. La [guía del Storage Array Agent](/docs/telemetry/storage-arrays) cubre el usuario, el token y la instalación, mediante `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, y la dirección y el token de la cabina (`PURE_FA_ENDPOINT` y `PURE_FA_API_TOKEN`, o `PURE_FB_ENDPOINT` y `PURE_FB_API_TOKEN`).
-- **Compruebe que la cabina está registrada.** Aparece en **Productos → Infraestructura → Storage Arrays → All Storage Arrays**, con el nombre del `STORAGE_ARRAY_NAME` del agente, alrededor de un minuto después de la primera lectura.
+- **Compruebe que la cabina está registrada.** Aparece en **Productos → Infraestructura → Cabinas de almacenamiento → All Storage Arrays**, con el nombre del `STORAGE_ARRAY_NAME` del agente, alrededor de un minuto después de la primera lectura.
 
 ## Crear un monitor de cabina de almacenamiento
 
@@ -47,19 +47,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Cabina 
 
 ### Elegir la cabina
 
-En **Storage Array Monitor Configuration**, elija la cabina en **Cabina de almacenamiento**. Cada cabina que ha enviado datos está en la lista. Su plataforma decide qué métricas y plantillas ofrece el formulario.
+En **Storage Array Monitor Configuration**, elija la cabina en **Cabina de almacenamiento**. Cada cabina que ha enviado datos está en la lista. Su plataforma decide qué métricas y plantillas ofrece el formulario. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir cabina de almacenamiento** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **Array Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** - haga clic en una [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, los filtros de etiquetas, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** - elija una métrica en **Storage Array Metric** y luego establezca **Agregación** e **Intervalo de tiempo**. Los [filtros](#configuración-del-monitor) la acotan a un volumen, host, pod, componente, sistema de archivos o bucket.
-- **Avanzado** - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo la capacidad usada como `purefa_array_space_bytes` filtrada a `space=capacity` menos la misma métrica filtrada a `space=empty`. Use **Agrupar por** con la etiqueta de un objeto para juzgar cada objeto por separado.
+- **Cambiar** - elija otra [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, los filtros de etiquetas, la agregación, el intervalo de tiempo y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) - elija una métrica en **Storage Array Metric** y luego establezca **Agregación** e **Intervalo de tiempo**. Los [filtros](#configuración-del-monitor) la acotan a un volumen, host, pod, componente, sistema de archivos o bucket.
+- **Avanzado** (en **Más campos**) - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, por ejemplo la capacidad usada como `purefa_array_space_bytes` filtrada a `space=capacity` menos la misma métrica filtrada a `space=empty`. Use **Agrupar por** con la etiqueta de un objeto para juzgar cada objeto por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que cae a cero, así que establezca su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que no envía datos, así que establezca su propio umbral.
 
 ### Crear el monitor
 
@@ -67,7 +67,7 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 :::
 
 > [!TIP]
-> Para configurar varias plantillas a la vez, abra la cabina desde **Productos → Infraestructura → Storage Arrays** y vaya a **Recomendaciones**. Elija las plantillas que quiera, decida a quién se avisa, y OneUptime crea un monitor por plantilla.
+> Para configurar varias plantillas a la vez, abra la cabina desde **Productos → Infraestructura → Cabinas de almacenamiento** y vaya a **Recomendaciones**. Elija las plantillas que quiera, decida a quién se avisa, y OneUptime crea un monitor por plantilla.
 
 ## Configuración del monitor
 
@@ -109,9 +109,9 @@ En los filtros del monitor y en las claves de agrupación, los atributos del age
 
 ## Plantillas de alerta predefinidas
 
-OneUptime incluye 20 plantillas — 12 para FlashArray y 8 para FlashBlade — y **Quick Setup** ofrece las de la plataforma de la cabina. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de etiquetas, una agrupación por la etiqueta propia del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+OneUptime incluye 20 plantillas — 12 para FlashArray y 8 para FlashBlade — y la lista de **Sobre qué alertar** ofrece las de la plataforma de la cabina. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de etiquetas, una agrupación por la etiqueta propia del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
-Un criterio solo dispara cuando la condición se cumple para **cada** valor de su ventana. Un monitor que disparó por un umbral de capacidad, latencia, retraso o ratio solo se recupera un 10 % más allá, así que un valor que oscila alrededor del umbral no parpadea; las plantillas de alertas y de hardware se recuperan en cuanto desaparece el estado.
+Un criterio solo dispara cuando la condición se cumple para **cada** valor de su ventana. Un monitor que disparó por un umbral de capacidad, latencia, retraso o ratio solo se recupera un 10 % más allá, así que un valor que oscila alrededor del umbral no parpadea. Las plantillas de alertas, hardware y conectividad se disparan cuando un estado se ha visto durante toda su ventana de 5 minutos, y se recuperan unos 5 minutos después de que desaparece.
 
 ### FlashArray
 
@@ -146,7 +146,7 @@ Un criterio solo dispara cuando la condición se cumple para **cada** valor de s
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan en la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en el criterio.
 
 - **Array Stopped Reporting** cuenta la serie de identidad de la plataforma (`purefa_info` o `purefb_info`), que cada endpoint que lee el agente exporta en cada lectura. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
-- **Las alertas abiertas y los estados de hardware usan Max** de una serie que solo existe mientras la alerta está abierta o el componente está en ese estado, así que una sola lectura que la muestre supera el umbral.
+- **Las alertas abiertas y los estados de hardware usan Max** de una serie que solo existe mientras la alerta está abierta o el componente está en ese estado, así que el estado dispara el umbral cuando se ha visto durante toda la ventana de 5 minutos.
 - **Cada plantilla por objeto agrupa por la etiqueta propia del objeto** (`summary`, `component_name`, `host`, `local_pod`, `name`), así que se dispara un incidente por cada objeto afectado, y el incidente lo nombra.
 - **Las plantillas de latencia usan Avg** del promedio por operación que calcula la propia cabina, y las de capacidad **Max** de su propio porcentaje de utilización. Las latencias se fijan en microsegundos y la capacidad en porcentaje.
 - **Hardware Component Unhealthy usa Min** por componente: su salud es 1 cuando está bien y baja a 0 cuando no.
@@ -228,7 +228,7 @@ El agente envía todo lo que exporta la cabina; las series de abajo son el catá
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `purefa_pod_replica_links_lag_max_msec`              | —                                      | FlashArray | `ms`      | Mayor retraso de replicación de cada enlace de réplica de pod (ActiveDR / asíncrono), con las etiquetas `local_pod`, `remote_pod`, `remote`, `direction` y `status` — agrupe por `local_pod` |
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Retraso medio de replicación de cada enlace de réplica de pod                                                                                                |
-| `purefa_pod_performance_replication_bandwidth_bytes` | —                                      | FlashArray | `bytes/s` | Tráfico de replicación de cada pod, con las etiquetas `direction` y `dimension`                                                                              |
+| `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Tráfico de replicación de cada pod, con las etiquetas `direction` y `dimension`                                                                              |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Latencia media de escritura en espejo de cada pod de ActiveCluster                                                                                           |
 
 ### Hardware
@@ -272,7 +272,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
 | **Si no hay datos** | En **Más campos**. Qué ocurre cuando la ventana no tiene muestras: **Ignore** (el predeterminado), **Treat As Zero** o **Disparador**. |
 
-Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en estado «Learning», y no generan nada, hasta que la ventana de referencia tiene historial suficiente.
+Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en estado «Learning», y no generan nada, hasta que la ventana de referencia tiene historial suficiente. Una suma, un recuento o una consulta sobre un histograma permanece en ese estado para siempre: este monitor filtra sus consultas por atributos y la línea de referencia no guarda ninguno.
 
 Algunos criterios para empezar:
 
