@@ -2,6 +2,15 @@ import DatabaseService from "./DatabaseService";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/GlobalConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import UserSessionService from "./UserSessionService";
+import logger from "../Utils/Logger";
+import {
+  getSessionLengthSettingProblem,
+  SESSION_LENGTH_SETTING_COLUMNS,
+  SessionLengthSettingColumn,
+  SessionLengths,
+} from "../../Types/UserSession/SessionLength";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import FindBy from "../Types/Database/FindBy";
@@ -253,6 +262,80 @@ export class Service extends DatabaseService<Model> {
   public forgetPushNotificationsTurnedOff(): void {
     this.pushNotificationsTurnedOffGeneration++;
     this.pushNotificationsTurnedOffCache.clear();
+  }
+
+  /*
+   * How long sign-ins last (Types/UserSession/SessionLength.ts): each length
+   * a write sets is a whole number of minutes in its range, or empty for
+   * the default, and the switch that gives SSO sign-ins their own is true or
+   * false. Anything else is refused with what it may be - an unclear value
+   * never shortens or lengthens anyone's sign-in. Whether the write may set
+   * them at all (the Enterprise license) is EditionPermissions' to decide,
+   * before this.
+   */
+  public static assertSessionLengthsAreValid(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    for (const column of SESSION_LENGTH_SETTING_COLUMNS) {
+      const problem: string | null = getSessionLengthSettingProblem(
+        column,
+        (data as Record<string, unknown>)[column],
+      );
+
+      if (problem) {
+        throw new BadDataException(problem);
+      }
+    }
+  }
+
+  // Whether a write sets any of the session length setting's columns.
+  public static writesSessionLengths(data: unknown): boolean {
+    if (!data || typeof data !== "object") {
+      return false;
+    }
+
+    return SESSION_LENGTH_SETTING_COLUMNS.some(
+      (column: SessionLengthSettingColumn): boolean => {
+        return (data as Record<string, unknown>)[column] !== undefined;
+      },
+    );
+  }
+
+  /*
+   * A change to how long sign-ins last applies to the people signed in
+   * now: this server and every other one read the lengths again at once
+   * (RealtimeAccessChanges), and every session they have already ended is
+   * ended (UserSessionService.endSessionsPastLengths) - its live updates
+   * with it. A failure to end them never fails the change: those sessions
+   * are refused at their next request and refresh all the same, as both
+   * ask the lengths.
+   */
+  private async applySessionLengthsChange(): Promise<void> {
+    EnterpriseEdition.forgetUserSessionLengths();
+
+    RealtimeAccessChanges.announce({
+      kind: RealtimeAccessChangeKind.SessionLengthsChanged,
+    });
+
+    try {
+      const lengths: SessionLengths | null =
+        await EnterpriseEdition.getUserSessionLengths();
+      const ended: number =
+        await UserSessionService.endSessionsPastLengths(lengths);
+
+      if (ended > 0) {
+        logger.info(
+          `GlobalConfigService: the session lengths changed; ${ended} session(s) past them were ended.`,
+        );
+      }
+    } catch (err) {
+      logger.error(
+        "GlobalConfigService: the session lengths changed, but the sessions past them could not be ended now; each is refused at its next request instead.",
+      );
+      logger.error(err);
+    }
   }
 
   // A new signing secret for the server's SMS and call gateway.
@@ -854,6 +937,7 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
+    Service.assertSessionLengthsAreValid(createBy.data);
     await this.prepareCallAndSmsGatewayForCreate(createBy);
 
     return {
@@ -876,6 +960,7 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
     this.assertCallAndSmsProviderIsValid(updateBy.data);
+    Service.assertSessionLengthsAreValid(updateBy.data);
     await this.prepareCallAndSmsGateway(updateBy);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
@@ -1132,6 +1217,10 @@ export class Service extends DatabaseService<Model> {
         .telegramWebhookSecretToken !== undefined
     ) {
       await this.rotateTelegramWebhookSecretTokenGeneration();
+    }
+
+    if (Service.writesSessionLengths(onUpdate.updateBy.data)) {
+      await this.applySessionLengthsChange();
     }
 
     return onUpdate;

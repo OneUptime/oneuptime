@@ -52,6 +52,7 @@ Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterpri
 | Alertes de santé PostgreSQL et Valkey (Redis) | Non | Oui | Sans objet |
 | [Sauvegardes](/docs/installation/backups) de PostgreSQL et ClickHouse vers un stockage qui vous appartient, selon un planning, avec restauration | Non | Oui | Sans objet |
 | [Canaux de notification personnalisés](/docs/self-hosted/custom-notification-channels) : alerter les personnes via votre propre service, comme l'application de votre entreprise | Non | Oui | Sans objet |
+| [Durée de session](/docs/self-hosted/session-length) : combien de temps les personnes restent connectées, et combien de temps sans utiliser OneUptime | Non | Oui | Sans objet |
 | Vue de la capacité ClickHouse, alertes de capacité et purge automatique du disque | Oui | Oui | Sans objet |
 | État des migrations, bundle de support et sondes globales dans le tableau de bord admin | Oui | Oui | Sans objet |
 | Gestion de la licence Enterprise, des sièges et des instances | Non | Oui | Sans objet |
@@ -203,6 +204,7 @@ Ce qui ne s'arrête **pas** :
 - **La supervision de base n'est jamais affectée** : moniteurs, alertes, incidents, astreinte, pages de statut et télémétrie continuent tous de fonctionner.
 - **Les administrateurs principaux peuvent toujours se connecter avec leur mot de passe.**
 - **Les rôles personnalisés, les listes d'autorisation IP et les contrôles d'accès des pages de statut continuent de s'appliquer.** Vous pouvez les supprimer, mais pas les créer ni les modifier.
+- **Les durées de session continuent de s'appliquer.** Vous pouvez les supprimer, mais pas les définir ni les modifier.
 - **Rien n'est supprimé.** La configuration SCIM, les journaux d'audit et les remplacements de rétention restent tels quels.
 
 **Tout reprend dès qu'une licence est activée**, sans redémarrage : le provisionnement SCIM, la journalisation d'audit et les remplacements de rétention reviennent avec la configuration que vous avez. OneUptime ne les désactive que lorsqu'il sait que la licence a expiré. Tant qu'il ne peut pas lire l'état de la licence, par exemple un instant pendant le démarrage du serveur, SCIM, la journalisation d'audit et les remplacements de rétention restent actifs.
@@ -220,6 +222,7 @@ Votre configuration reste dans la base de données. Revenir à l'image Enterpris
 - **Les remplacements de rétention cessent de s'appliquer.** La nouvelle télémétrie est conservée pendant la rétention par défaut du projet, et les cartes de rétention de **Paramètres du projet > Télémétrie & APM > Rétention des données** et de la page de paramètres de chaque service et de chaque ressource affichent une invitation à passer à un plan supérieur. Les remplacements restent dans la base de données et s'appliquent de nouveau lorsque vous revenez en arrière.
 - **Les pages de statut affichent de nouveau Powered by OneUptime.** Le paramètre reste dans la base de données et masque de nouveau la ligne lorsque vous revenez en arrière.
 - **Les rôles personnalisés, les listes d'autorisation IP et les contrôles d'accès des pages de statut continuent de s'appliquer.** Leurs paramètres affichent une invitation à passer à un plan supérieur, avec ce qui est encore en place et un bouton pour le supprimer.
+- **Les durées de session cessent de s'appliquer.** Chaque connexion dure comme dans la Community Edition. Les durées restent dans la base de données et s'appliquent de nouveau quand vous revenez en arrière.
 - **Les pages de paramètres Enterprise affichent une invitation à passer à un plan supérieur.** Par l'API, vous pouvez toujours lire et supprimer la configuration Enterprise et réinitialiser un jeton bearer SCIM, mais rien créer ni modifier d'autre. La journalisation d'audit ne peut pas être activée.
 - **Les tableaux de bord Health Enterprise, la Query Console et les alertes de santé PostgreSQL et Valkey s'arrêtent.** La surveillance de la capacité et la purge ClickHouse, l'état des migrations et le bundle de support continuent de fonctionner.
 

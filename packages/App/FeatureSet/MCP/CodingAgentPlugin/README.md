@@ -4,7 +4,7 @@ The plugin OneUptime lists for coding agents in [Cursor's Marketplace](https://c
 
 | File          | What it holds                                                                                                                                                                                                                     |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `skills/`     | The four skills, published as they are.                                                                                                                                                                                           |
+| `skills/`     | The four skills, published as they are. The ChatGPT plugin's ZIP carries them too, for ChatGPT and Codex, so they name no client.                                                                                                 |
 | `LISTING.md`  | The plugin's README, which the Claude directory shows as the listing's description. Each `{{name}}` in it is filled from the ChatGPT listing: its first sentence, its list of what you can do, its starter prompts and its links. |
 | `plugin.json` | What this plugin says differently from the ChatGPT listing: its `repository`, which is also where the release publishes it. Any other field set here replaces the ChatGPT listing's.                                              |
 | `README.md`   | This file, for maintainers. It is left out of the build.                                                                                                                                                                          |
@@ -85,4 +85,4 @@ The earlier notes held, with these additions:
 
 ## Updating the plugin
 
-Change the skills, `LISTING.md` or the ChatGPT listing here, and merge. The next release publishes the change at its own version. The Claude directory scans the new commit and publishes it as its publish setting says, and Cursor reviews it. A change to the server's tools needs nothing, unless a skill names a tool the server no longer has: then `../Tests/CodingAgentPlugin.test.ts` fails until the skill is changed too.
+Change the skills, `LISTING.md` or the ChatGPT listing here, and merge. The next release publishes the change at its own version. A skill reaches ChatGPT and Codex only in a new ChatGPT ZIP: raise `version` in `../ChatGPTPlugin/plugin.json`, then build and upload it as its README says. The Claude directory scans the new commit and publishes it as its publish setting says, and Cursor reviews it. A change to the server's tools needs nothing, unless a skill names a tool the server no longer has: then `../Tests/CodingAgentPlugin.test.ts` fails until the skill is changed too.

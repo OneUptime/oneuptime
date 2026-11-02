@@ -1692,6 +1692,27 @@ jobs:
           Tests/Server/Services/StatusPagePrivateUserSessionLengthPostgres.test.ts
           --forceExit
 
+      # Clones the migrated UserSession and GlobalConfig tables into an
+      # isolated schema: a master admin's session length or idle timeout
+      # (Admin Dashboard > Settings > Session Length) ends, at once and by
+      # the database's clock, every sign-in already past it, each with its
+      # reason; SSO sign-ins follow the general lengths or their own; the
+      # count the Admin Dashboard asks before a change ends nothing; saving
+      # the setting applies it to the sessions there are, and a refresh
+      # after it says why; thousands of sessions end in batches.
+      - name: Test user session lengths on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_USER_SESSION_LENGTH_TESTS: "true"
+          USER_SESSION_LENGTH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          USER_SESSION_LENGTH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          USER_SESSION_LENGTH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserSessionLengthsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated StatusPage, StatusPagePrivateUser and
       # StatusPageSubscriber tables (and the subscriber's resource join) into
       # an isolated schema and asks the subscriber loader every send reads

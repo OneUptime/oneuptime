@@ -6,6 +6,7 @@ import EnterpriseServerModule, {
 import type BillingProvider from "Common/Server/Types/Billing/BillingProvider";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
+import { SessionLengths } from "Common/Types/UserSession/SessionLength";
 import EnterpriseArea from "./Types/EnterpriseArea";
 import AdminHealthArea, { getAdminHealthRouter } from "./AdminHealth/Index";
 import AuditLogArea, { getAuditLogRecorder } from "./AuditLog/Index";
@@ -20,6 +21,10 @@ import IdentityArea from "./Identity/Index";
 import LicenseArea, { licensing } from "./License/Index";
 import LicenseServerArea from "./LicenseServer/Index";
 import MarketplaceArea from "./Marketplace/Index";
+import SessionLengthArea, {
+  forgetUserSessionLengths,
+  getUserSessionLengths,
+} from "./SessionLength/Index";
 import TeamComplianceArea from "./TeamCompliance/Index";
 import WhiteLabelArea, {
   getProductBranding,
@@ -54,6 +59,7 @@ export const ENTERPRISE_AREAS: ReadonlyArray<EnterpriseArea> = [
   AuditLogExportArea,
   BackupArea,
   CustomNotificationChannelsArea,
+  SessionLengthArea,
   // OneUptime Cloud's billing areas stay last: their routers mount after every other area's.
   BillingArea,
   CloudMarketplaceArea,
@@ -147,6 +153,12 @@ const EnterpriseModule: EnterpriseServerModule = {
   },
   getProjectBillingHooks: (): ProjectBillingHooks | null => {
     return getProjectBillingHooks();
+  },
+  getUserSessionLengths: (): Promise<SessionLengths> => {
+    return getUserSessionLengths();
+  },
+  forgetUserSessionLengths: (): void => {
+    forgetUserSessionLengths();
   },
 };
 

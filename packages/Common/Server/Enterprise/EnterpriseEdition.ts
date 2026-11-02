@@ -23,6 +23,11 @@ import PaymentRequiredException from "../../Types/Exception/PaymentRequiredExcep
 import ProductBrandingUtil, {
   ProductBranding,
 } from "../../Types/Branding/ProductBranding";
+import {
+  hasSessionLimits,
+  sanitizeSessionLengths,
+  SessionLengths,
+} from "../../Types/UserSession/SessionLength";
 
 /*
  * Which enterprise feature each enterprise configuration model belongs to,
@@ -119,6 +124,12 @@ export const IP_ALLOWLIST_TABLE_NAMES: ReadonlyArray<string> = [
  *     .customNotificationChannelId         through a custom channel.
  *   UserNotificationSetting                a person's notifications through
  *     .alertByCustomChannel                the custom channels.
+ *   GlobalConfig                           how long sign-ins last: the
+ *     .sessionLengthInMinutes              session length and the idle
+ *     .sessionIdleTimeoutInMinutes         timeout of every sign-in, and
+ *     .useSeparateSsoSessionLengths        SSO sign-ins' own when they have
+ *     .ssoSessionLengthInMinutes           them.
+ *     .ssoSessionIdleTimeoutInMinutes
  */
 const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
   string,
@@ -165,6 +176,16 @@ const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
     "UserNotificationSetting",
     { alertByCustomChannel: EnterpriseFeature.CustomNotificationChannels },
   ],
+  [
+    "GlobalConfig",
+    {
+      sessionLengthInMinutes: EnterpriseFeature.SessionLength,
+      sessionIdleTimeoutInMinutes: EnterpriseFeature.SessionLength,
+      useSeparateSsoSessionLengths: EnterpriseFeature.SessionLength,
+      ssoSessionLengthInMinutes: EnterpriseFeature.SessionLength,
+      ssoSessionIdleTimeoutInMinutes: EnterpriseFeature.SessionLength,
+    },
+  ],
 ]);
 
 /*
@@ -201,6 +222,7 @@ const FEATURE_NAMES: ReadonlyMap<EnterpriseFeature, string> = new Map<
     EnterpriseFeature.CustomNotificationChannels,
     "custom notification channels",
   ],
+  [EnterpriseFeature.SessionLength, "session lengths"],
 ]);
 
 /*
@@ -727,6 +749,60 @@ export default class EnterpriseEdition {
       }
 
       return null;
+    }
+  }
+
+  /*
+   * How long sign-ins last on this server (Types/UserSession/
+   * SessionLength.ts), or null when nothing shortens them: on the Community
+   * Edition, when the module has no say in it, and when none is set. What
+   * the module answers is read again value by value
+   * (sanitizeSessionLengths), so it can hand core nothing a GlobalConfig
+   * column could not hold. A module that cannot say - it has never read
+   * them - throws, and so does this: every caller is a session check, and a
+   * session check that does not know the lengths refuses (an error, never
+   * "no limit").
+   */
+  public static async getUserSessionLengths(): Promise<SessionLengths | null> {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getUserSessionLengths) {
+      return null;
+    }
+
+    const lengths: SessionLengths | null =
+      await enterpriseModule.getUserSessionLengths();
+
+    if (!lengths) {
+      return null;
+    }
+
+    const sanitized: SessionLengths = sanitizeSessionLengths(lengths);
+
+    return hasSessionLimits(sanitized) ? sanitized : null;
+  }
+
+  /*
+   * Tells the module the session lengths have just changed, so its next
+   * answer reads them again. Never throws: forgetting is never what fails
+   * the write that changed them.
+   */
+  public static forgetUserSessionLengths(): void {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.forgetUserSessionLengths) {
+      return;
+    }
+
+    try {
+      enterpriseModule.forgetUserSessionLengths();
+    } catch (err) {
+      logger.error(
+        "EnterpriseEdition: the enterprise module failed to forget the session lengths; it reads them again when its copy runs out.",
+      );
+      logger.error(err);
     }
   }
 

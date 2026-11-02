@@ -7,9 +7,11 @@ description: Set up OneUptime monitors and a status page for a service. Use when
 
 Create the checks for a service through the OneUptime MCP server, then give it a status page. One step needs the dashboard: there is no tool that puts a monitor on a status page.
 
+The person's own instructions come before these steps: where they ask for something else, do what they ask.
+
 ## Before you start
 
-- The tools come from the `oneuptime` MCP server. The first time a tool needs an identity, the person signs in to OneUptime in the browser (in Claude Code, from `/mcp`), picks one project and chooses read and write or read only.
+- The tools come from the `oneuptime` MCP server. The first time a tool needs an identity, the person signs in to OneUptime in the browser, from the client's MCP or connector settings, picks one project and chooses read and write or read only.
 - On OneUptime Cloud, connecting an MCP client and using API keys need the Growth plan or higher. The public status page tools need no credential.
 - Every create is a change to the person's project. Show them what you are about to create and get a yes.
 
@@ -19,7 +21,7 @@ Call `oneuptime_whoami`. If `access` is `read-only`, stop: the person has to con
 
 ## 2. Decide what to check
 
-Read the repository for the addresses that matter: the public site, an API's health endpoint, the ports it serves. Confirm them with the person and do not guess an address. OneUptime's probes check from outside, so `localhost` and private addresses need a custom probe inside that network.
+Find the addresses that matter: the public site, an API's health endpoint, the ports it serves. Read them from the service's code or configuration when you can see it, and ask the person otherwise. Confirm them with the person and do not guess an address. OneUptime's probes check from outside, so `localhost` and private addresses need a custom probe inside that network.
 
 Call `list_monitors` with a `name` filter so you do not create a monitor that already exists.
 
