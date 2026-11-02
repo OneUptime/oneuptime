@@ -15,6 +15,8 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -49,12 +51,26 @@ const lineChartMock: MockFunction = getJestMockFunction();
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
  * declarations, so the mock functions are only read when a call happens.
  */
+// A test may give some English its German; the rest stays English.
+const TRANSLATIONS: Record<string, string> = {};
+
+// The Details card's row whose label reads `label`.
+function detailRowLabelled(label: string): HTMLElement {
+  const row: HTMLElement | undefined = screen
+    .getAllByTestId("resource-overview-detail-row")
+    .find((candidate: HTMLElement): boolean => {
+      return candidate.querySelector("dt")?.textContent === label;
+    });
+  expect(row).toBeDefined();
+  return row!;
+}
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, opts?: { defaultValue?: string }): string => {
-          return opts?.defaultValue ?? key;
+          return TRANSLATIONS[key] ?? opts?.defaultValue ?? key;
         },
       };
     },
@@ -772,12 +788,51 @@ describe("RUM overview: normal data", () => {
     ).toEqual([SIGNALS.logs.countSeries, SIGNALS.logs.errorSeries]);
   });
 
+  /*
+   * #5307's follow-up: the row says its state in a few words of the
+   * product's own ("Healthy"), not the diagnosis's English title, and its
+   * label is Title Case as every Details row's is.
+   */
   test("the recording-health line still sits in the details", async () => {
     arrange();
     await renderPage();
 
-    expect(screen.getByText("Recording health")).toBeInTheDocument();
-    expect(screen.getByText("Recording healthy")).toBeInTheDocument();
+    const row: HTMLElement = detailRowLabelled("Recording Health");
+    expect(within(row).getByText("Healthy")).toBeInTheDocument();
+    expect(screen.queryByText("Recording health")).toBeNull();
+    expect(screen.queryByText("Recording healthy")).toBeNull();
+  });
+
+  test("in German the row's label and its words read in German", async () => {
+    const german: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const label: string = german["Recording Health"]!;
+    const words: string = german["Healthy"]!;
+    expect(label).toBeTruthy();
+    expect(label).not.toBe("Recording Health");
+    expect(words).toBeTruthy();
+    expect(words).not.toBe("Healthy");
+    TRANSLATIONS["Recording Health"] = label;
+    TRANSLATIONS["Healthy"] = words;
+
+    try {
+      arrange();
+      await renderPage();
+
+      const row: HTMLElement = detailRowLabelled(label);
+      expect(within(row).getByText(words)).toBeInTheDocument();
+      expect(screen.queryByText("Recording Health")).toBeNull();
+    } finally {
+      delete TRANSLATIONS["Recording Health"];
+      delete TRANSLATIONS["Healthy"];
+    }
   });
 });
 

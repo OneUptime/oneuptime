@@ -15,7 +15,7 @@ De fleste databaser dukker op af sig selv. OneUptime samler hver database fra op
 
 | Kilde | Hvad den kræver af dig | Hvad den føjer til databasens side |
 | --- | --- | --- |
-| **Applikationstraces** | Instrumenterede applikationer (OpenTelemetry) | Forespørgsler fra applikationer: kaldrate, fejl, latenstid og de tjenester, der kalder den |
+| **Applikationsspor** | Instrumenterede applikationer (OpenTelemetry) | Forespørgsler fra applikationer: kaldrate, fejl, latenstid og de tjenester, der kalder den |
 | **Kubernetes** | [OneUptimes Kubernetes-agent](/docs/telemetry/kubernetes-agent) | Hvor den kører: pods, CPU og hukommelse samt podsenes logs |
 | **Docker / Podman** | [Docker-agenten](/docs/telemetry/docker-host) eller [Podman-agenten](/docs/telemetry/podman-host) | Hvor den kører: containerne, deres CPU og hukommelse samt deres logs |
 | **Database Agent** (en OpenTelemetry Collector) | [Database Agent](#database-agent) eller din egen collector | **Engine metrics**: forbindelser, gennemløb, cache-hitrate, låse, replikeringsforsinkelse, hukommelse, i det omfang motoren har dem (se [Hvad der indsamles](#hvad-der-indsamles)), plus valgfrie forespørgselsprøver, topforespørgsler og motorens logfil |
@@ -418,7 +418,7 @@ Unitten forudsætter `/opt/oneuptime-database-agent` (installationsscriptets sta
 
 Kør `install.sh` igen: det genbruger alle værdier i din eksisterende `.env`, erstatter `docker-compose.yml`, `otel-collector-config.yaml` og systemd-unitten med de nuværende versioner og genopretter agentens container, så den nye konfiguration træder i kraft. En fil, du havde redigeret (`network_mode: host`, en `filelog`-receiver og dens montering, ekstra metrikker), gemmes ved siden af den nye som `<file>.bak.<timestamp>`, og scriptet viser den til sidst, så du kan genanvende ændringen. Anvend enhver ændring af `.env` eller `otel-collector-config.yaml` med `docker compose up -d --force-recreate`: collectoren læser kun sin konfiguration ved start, og et almindeligt `docker compose up -d` lader den kørende container være, når kun konfigurationsfilen er ændret. Scriptet registrerer i `.agent-files.sha256`, hvad det har installeret, så en fil, ingen har redigeret, erstattes uden kopi, uanset hvor meget den nye version har ændret sig; i en mappe uden den registrering (en, du har sat op manuelt) beholdes hver fil, der afviger fra den nye version, da den kan indeholde ændringer. For at fjerne agenten: `cd /opt/oneuptime-database-agent && docker compose down`, og slet derefter overvågningsbrugeren (og AI-agentens eget login, hvis du har oprettet et).
 
-Agenten rapporterer den collectorversion, dens filer fastlåser, som sin **Agent version**. Når den er ældre end den version, denne OneUptime-udgivelse fastlåser, vises et advarselstegn ved siden af den på databasens **Oversigt**. Vælg det for at se, hvordan du opgraderer: med installationsscriptet, med Docker Compose eller, for en database i Kubernetes, med Deploymentet fra opsætningsvejledningen.
+Agenten rapporterer den collectorversion, dens filer fastlåser, som sin **Agentversion**. Når den er ældre end den version, denne OneUptime-udgivelse fastlåser, vises et advarselstegn ved siden af den på databasens **Oversigt**. Vælg det for at se, hvordan du opgraderer: med installationsscriptet, med Docker Compose eller, for en database i Kubernetes, med Deploymentet fra opsætningsvejledningen.
 
 ## AI-agent
 

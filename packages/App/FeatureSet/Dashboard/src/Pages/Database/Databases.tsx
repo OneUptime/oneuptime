@@ -49,6 +49,8 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import { getDatabaseServerDiscoverySourceLabel } from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
 import useShowcaseCreateForm, {
   ShowcaseCreateForm,
@@ -102,6 +104,7 @@ const ENGINE_METRICS_STATUS_COLORS: Record<DatabaseEngineMetricsStatus, Color> =
   };
 
 const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // Below 2xl: Discovered from, Labels and Owners start hidden.
   const isWideTable: boolean = useDatabaseWideTable();
   /*
@@ -572,9 +575,12 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             // Also a filter above the table; shown by default on wide screens.
             isHiddenByDefault: !isWideTable,
             getElement: (item: DatabaseServer): ReactElement => {
+              // The product's own words, in the reader's language.
+              const discoveredFrom: string =
+                getDatabaseServerDiscoverySourceLabel(item.discoverySource);
               return (
                 <span className="text-sm text-gray-700">
-                  {getDatabaseServerDiscoverySourceLabel(item.discoverySource)}
+                  {translator.translateText(discoveredFrom) || discoveredFrom}
                 </span>
               );
             },

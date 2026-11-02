@@ -3,11 +3,13 @@ import {
   loadIncidentSecurity,
   loadSecurityConnectedRecords,
   loadSecurityConnections,
+  loadSecurityTelemetryMentions,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/ConnectionsLoader";
 import SecurityConnectedRecords from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnectedRecords";
 import SecurityConnections, {
   linkIncidentToConnectedRecords,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
+import SecurityTelemetryMentions from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityTelemetryMentions";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -15,8 +17,8 @@ import path from "path";
 /*
  * THE CONNECTIONS LOAD AFTER THE SERVICES THEY READ.
  *
- * SecurityConnectedRecords, SecurityConnections, ResourceSecurity and
- * IncidentSecurity read the project's hosts, container hosts, clusters,
+ * SecurityConnectedRecords, SecurityConnections, ResourceSecurity,
+ * IncidentSecurity and SecurityTelemetryMentions read the project's hosts, container hosts, clusters,
  * devices, services, members, incidents and alerts, and those services' own
  * imports reach far: HostService's reach IncidentService, whose
  * investigation runner reads a security case's context. When that context
@@ -46,6 +48,7 @@ const CONNECTION_MODULES: ReadonlyArray<string> = [
   "SecurityConnections.ts",
   "ResourceSecurity.ts",
   "IncidentSecurity.ts",
+  "SecurityTelemetryMentions.ts",
 ].map((name: string): string => {
   return path.join(CONNECTIONS, name);
 });
@@ -206,6 +209,9 @@ describe("the connections' load order", () => {
       "UserService",
       "IncidentService",
       "SecurityCaseService",
+      // The logs and traces searched for what a case names.
+      "LogService",
+      "SpanService",
     ]) {
       expect(services).toContain(service);
     }
@@ -275,5 +281,6 @@ describe("the connections' load order", () => {
     );
     expect(loadSecurityConnectedRecords()).toBe(SecurityConnectedRecords);
     expect(loadIncidentSecurity()).toBe(IncidentSecurity);
+    expect(loadSecurityTelemetryMentions()).toBe(SecurityTelemetryMentions);
   });
 });

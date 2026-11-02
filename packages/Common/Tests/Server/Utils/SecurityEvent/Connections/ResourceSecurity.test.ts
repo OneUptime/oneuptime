@@ -1,12 +1,15 @@
+import CloudResourceService from "../../../../../Server/Services/CloudResourceService";
 import DockerHostService from "../../../../../Server/Services/DockerHostService";
 import HostService from "../../../../../Server/Services/HostService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import InventoryItemService from "../../../../../Server/Services/InventoryItemService";
 import KubernetesClusterService from "../../../../../Server/Services/KubernetesClusterService";
+import MonitorService from "../../../../../Server/Services/MonitorService";
 import NetworkDeviceService from "../../../../../Server/Services/NetworkDeviceService";
 import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
 import SecurityEntityRiskService from "../../../../../Server/Services/SecurityEntityRiskService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import ServerlessFunctionService from "../../../../../Server/Services/ServerlessFunctionService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import UserService from "../../../../../Server/Services/UserService";
@@ -24,8 +27,12 @@ import ResourceSecurity, {
 import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
+import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../../../Types/Email";
+import IP from "../../../../../Types/IP/IP";
+import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../../../Types/Monitor/MonitorSteps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
@@ -340,6 +347,7 @@ describe("ResourceSecurity.read", () => {
     );
 
     expect(security?.values).toEqual([]);
+    expect(security?.isSearchedByLogs).toBe(true);
     expect(security?.entity).toBeNull();
     expect(countSpy.mock.calls[0]![0]).toMatchObject({
       values: [],
@@ -347,6 +355,208 @@ describe("ResourceSecurity.read", () => {
     });
     expect(casesSpy).not.toHaveBeenCalled();
     expect(riskSpy).not.toHaveBeenCalled();
+  });
+
+  test("a serverless function, as a service is: by the events read from its logs", async () => {
+    const functionRead: jest.SpyInstance = jest
+      .spyOn(ServerlessFunctionService, "findOneBy")
+      .mockResolvedValue({
+        id: HOST_ID,
+        name: "",
+        functionIdentifier: "checkout-handler",
+      } as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.ServerlessFunction,
+    );
+
+    expect(security?.name).toBe("checkout-handler");
+    expect(security?.values).toEqual([]);
+    expect(security?.isSearchedByLogs).toBe(true);
+    expect(security?.entity).toBeNull();
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: [],
+      logResourceId: HOST_ID,
+    });
+    expect(casesSpy).not.toHaveBeenCalled();
+    expect(functionRead.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, _id: HOST_ID.toString() },
+      props: CALLER,
+    });
+  });
+
+  test("a monitor by the hosts it checks: its names, every public address it checks, never a private one", async () => {
+    const steps: MonitorSteps = new MonitorSteps();
+
+    steps.setMonitorStepsInstanceArray([
+      new MonitorStep().setMonitorDestination(
+        URL.fromString("https://Shop.Acme.example/health"),
+      ),
+      new MonitorStep().setMonitorDestination(new IP("203.0.113.7")),
+      new MonitorStep().setMonitorDestination(new IP("10.0.3.17")),
+    ]);
+
+    const monitorRead: jest.SpyInstance = jest
+      .spyOn(MonitorService, "findOneBy")
+      .mockResolvedValue({
+        id: HOST_ID,
+        name: "Checkout site",
+        monitorSteps: steps,
+      } as never);
+    // A host holding the address too: a monitor checks it all the same.
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([
+        { id: new ObjectID(OTHER_HOST_ID), hostIpAddresses: "203.0.113.7" },
+      ] as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.Monitor,
+    );
+
+    expect(security?.name).toBe("Checkout site");
+    expect(security?.values).toEqual(["shop.acme.example", "203.0.113.7"]);
+    expect(security?.isSearchedByLogs).toBe(false);
+    expect(security?.entity).toEqual({
+      type: SecurityEntityType.Host,
+      value: "shop.acme.example",
+    });
+    expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
+    expect(monitorRead.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, _id: HOST_ID.toString() },
+      props: CALLER,
+    });
+  });
+
+  test("a monitor that checks only an address opens on that address; one that checks no host has nothing to search", async () => {
+    const byAddress: MonitorSteps = new MonitorSteps();
+
+    byAddress.setMonitorStepsInstanceArray([
+      new MonitorStep().setMonitorDestination(new IP("10.0.3.17")),
+      new MonitorStep().setMonitorDestination(new IP("203.0.113.7")),
+    ]);
+    jest.spyOn(MonitorService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "Edge ping",
+      monitorSteps: byAddress,
+    } as never);
+
+    expect((await read(SecurityConnectionKind.Monitor))?.entity).toEqual({
+      type: SecurityEntityType.IpAddress,
+      value: "203.0.113.7",
+    });
+
+    jest.spyOn(MonitorService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "Nightly job heartbeat",
+      monitorSteps: new MonitorSteps(),
+    } as never);
+
+    const heartbeat: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.Monitor,
+    );
+
+    expect(heartbeat?.values).toEqual([]);
+    expect(heartbeat?.entity).toBeNull();
+    expect(heartbeat?.isSearchedByLogs).toBe(false);
+  });
+
+  test("a cloud resource by its own ID and the names and public addresses it answers on, its addresses kept among the cloud resources", async () => {
+    const resourceRead: jest.SpyInstance = jest
+      .spyOn(CloudResourceService, "findOneBy")
+      .mockResolvedValue({
+        id: HOST_ID,
+        name: "checkout-alb",
+        providerResourceId:
+          "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/checkout/1",
+        cloudEndpoints: [
+          "checkout-1234.us-east-1.elb.amazonaws.com",
+          "203.0.113.50",
+          "203.0.113.51",
+          "10.0.4.12",
+        ],
+      } as never);
+    // Another cloud resource answers on .51 too; a host holding .50 is no cloud resource.
+    const holders: jest.SpyInstance = jest
+      .spyOn(CloudResourceService, "findBy")
+      .mockImplementation(async (args: unknown) => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+
+        return bound(query["cloudEndpoints"]).includes("%203.0.113.51%")
+          ? ([
+              { id: HOST_ID, cloudEndpoints: ["203.0.113.51"] },
+              {
+                id: new ObjectID(OTHER_HOST_ID),
+                cloudEndpoints: ["203.0.113.51"],
+              },
+            ] as never)
+          : ([{ id: HOST_ID, cloudEndpoints: ["203.0.113.50"] }] as never);
+      });
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([
+        { id: new ObjectID(OTHER_HOST_ID), hostIpAddresses: "203.0.113.50" },
+      ] as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    expect(security?.values).toEqual([
+      "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/checkout/1",
+      "checkout-1234.us-east-1.elb.amazonaws.com",
+      "203.0.113.50",
+    ]);
+    expect(security?.isSearchedByLogs).toBe(false);
+    expect(security?.entity).toEqual({
+      type: SecurityEntityType.Host,
+      value: "checkout-1234.us-east-1.elb.amazonaws.com",
+    });
+    expect(resourceRead.mock.calls[0]![0]).toMatchObject({ props: CALLER });
+
+    // Whose addresses they are is counted as OneUptime.
+    for (const call of holders.mock.calls) {
+      expect((call[0] as { props: unknown }).props).toEqual({ isRoot: true });
+    }
+  });
+
+  test("a cloud resource with no ID, name or address of its own is searched for by its logs", async () => {
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "aws_ecs|123456789012|us-east-1",
+      cloudEndpoints: ["10.0.4.12"],
+    } as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    expect(security?.values).toEqual([]);
+    expect(security?.isSearchedByLogs).toBe(true);
+    expect(security?.entity).toBeNull();
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: [],
+      logResourceId: HOST_ID,
+    });
+    expect(casesSpy).not.toHaveBeenCalled();
+  });
+
+  test("a project that does not use Security Events says how the record would have been searched", async () => {
+    inUseSpy.mockResolvedValue(false);
+    jest.spyOn(ServerlessFunctionService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "checkout-handler",
+    } as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.ServerlessFunction,
+    );
+
+    expect(security?.isInUse).toBe(false);
+    expect(security?.isSearchedByLogs).toBe(true);
+    expect(countSpy).not.toHaveBeenCalled();
   });
 
   test("a cluster by its k8s.cluster.name", async () => {

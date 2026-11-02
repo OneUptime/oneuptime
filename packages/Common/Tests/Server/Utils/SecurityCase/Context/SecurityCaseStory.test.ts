@@ -520,6 +520,93 @@ describe("SecurityCaseStory.build", () => {
     ).toEqual([["services"], ["hosts"]]);
   });
 
+  test("tells the incidents and alerts raised on a monitor the case names - an alert by its one monitor", async () => {
+    const MONITOR_ID: string = "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd";
+    const MONITOR_INCIDENT_ID: string = "dcdcdcdc-dcdc-4cdc-8cdc-dcdcdcdcdcd1";
+    const MONITOR_ALERT_ID: string = "dcdcdcdc-dcdc-4cdc-8cdc-dcdcdcdcdcd2";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue({
+      ...CONNECTIONS,
+      resources: [
+        connectedResource(
+          SecurityConnectionKind.Monitor,
+          MONITOR_ID,
+          "Checkout site",
+        ),
+      ],
+    });
+    incidentRead.mockImplementation(
+      async (data: unknown): Promise<Array<Incident>> => {
+        const query: JSONObject = (data as { query: JSONObject }).query;
+
+        if (!query["monitors"]) {
+          return [];
+        }
+
+        const row: Incident = incident(MONITOR_INCIDENT_ID, 20);
+        (row as unknown as JSONObject)["monitors"] = [{ _id: MONITOR_ID }];
+        return [row];
+      },
+    );
+    const alertRead: jest.SpyInstance = jest
+      .spyOn(AlertService, "findBy")
+      .mockImplementation(async (data: unknown): Promise<Array<Alert>> => {
+        const query: JSONObject = (data as { query: JSONObject }).query;
+
+        if (!query["monitorId"]) {
+          return [];
+        }
+
+        const alert: Alert = withId(new Alert(), MONITOR_ALERT_ID);
+        alert.title = "Checkout is slow";
+        alert.createdAt = at(4);
+        alert.monitorId = new ObjectID(MONITOR_ID);
+        return [alert];
+      });
+
+    const told: SecurityCaseStoryJson = await story();
+
+    expect(
+      told.items
+        .filter((entry: SecurityCaseStoryItemJson): boolean => {
+          return (
+            entry.kind === SecurityCaseStoryItemKind.Incident ||
+            entry.kind === SecurityCaseStoryItemKind.Alert
+          );
+        })
+        .map((entry: SecurityCaseStoryItemJson) => {
+          return [entry.kind, entry.links.resource];
+        }),
+    ).toEqual(
+      expect.arrayContaining([
+        [
+          SecurityCaseStoryItemKind.Alert,
+          {
+            kind: SecurityConnectionKind.Monitor,
+            id: MONITOR_ID,
+            name: "Checkout site",
+          },
+        ],
+        [
+          SecurityCaseStoryItemKind.Incident,
+          {
+            kind: SecurityConnectionKind.Monitor,
+            id: MONITOR_ID,
+            name: "Checkout site",
+          },
+        ],
+      ]),
+    );
+    // An alert names one monitor: read by its id, and its id read back.
+    expect(
+      (alertRead.mock.calls[0]![0] as { select: JSONObject }).select[
+        "monitorId"
+      ],
+    ).toBe(true);
+    // A monitor records no change of its own to tell.
+    expect(changeRead).not.toHaveBeenCalled();
+  });
+
   test("tells the case's milestones and its response, with who did it", async () => {
     const told: SecurityCaseStoryJson = await story();
 

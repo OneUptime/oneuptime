@@ -15,7 +15,7 @@ Det fungerer på samme måde for alle brokere (Apache Kafka, RabbitMQ, Apache Ac
 
 | Kilde | Hvad den kræver af dig | Hvad den tilføjer til køens side |
 | --- | --- | --- |
-| **Applikationstraces** | Instrumenterede applikationer (OpenTelemetry); se [Instrumentering af applikationer](#instrumentering-af-applikationer) | Publicerede og forbrugte beskeder, fejl og behandlingstid, tjenesterne på hver side og selve traces |
+| **Applikationsspor** | Instrumenterede applikationer (OpenTelemetry); se [Instrumentering af applikationer](#instrumentering-af-applikationer) | Publicerede og forbrugte beskeder, fejl og behandlingstid, tjenesterne på hver side og selve traces |
 | **Brokermetrikker** (en OpenTelemetry Collector) | Collector-receiveren eller scrapingen til din broker; se [Brokerens sundhedsmetrikker](#brokerens-sundhedsmetrikker) | **Brokersundhed**: efterslæb, consumer-lag, dead letters, alder på den ældste besked, begrænsning og brokerens egne beskedrater |
 
 ```mermaid title="To kilder, én køside"

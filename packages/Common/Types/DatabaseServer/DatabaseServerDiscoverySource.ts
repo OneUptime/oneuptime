@@ -1,3 +1,5 @@
+import { translationKey } from "../Translator";
+
 /*
  * How a DatabaseServer row came to exist. Stored on the row
  * (`discoverySource`) by whichever path created it first and never
@@ -35,13 +37,21 @@ export const DATABASE_SERVER_DISCOVERY_SOURCES: ReadonlyArray<DatabaseServerDisc
     DatabaseServerDiscoverySource.Manual,
   ];
 
+/*
+ * In English, as the server writes them (a database's Feed); the Dashboard
+ * draws them in the reader's language - each is a key of its locale files,
+ * read from here (the extractor reads what this file marks).
+ */
 const LABELS: Record<DatabaseServerDiscoverySource, string> = {
-  [DatabaseServerDiscoverySource.Collector]: "OpenTelemetry Collector",
-  [DatabaseServerDiscoverySource.ClientSpans]: "Application traces",
-  [DatabaseServerDiscoverySource.Kubernetes]: "Kubernetes",
-  [DatabaseServerDiscoverySource.Docker]: "Docker",
-  [DatabaseServerDiscoverySource.Podman]: "Podman",
-  [DatabaseServerDiscoverySource.Manual]: "Added manually",
+  [DatabaseServerDiscoverySource.Collector]: translationKey(
+    "OpenTelemetry Collector",
+  ),
+  [DatabaseServerDiscoverySource.ClientSpans]:
+    translationKey("Application traces"),
+  [DatabaseServerDiscoverySource.Kubernetes]: translationKey("Kubernetes"),
+  [DatabaseServerDiscoverySource.Docker]: translationKey("Docker"),
+  [DatabaseServerDiscoverySource.Podman]: translationKey("Podman"),
+  [DatabaseServerDiscoverySource.Manual]: translationKey("Added manually"),
 };
 
 /**

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12697
+    "keys": 40050,
+    "untranslated": 12640
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -53,6 +53,7 @@
     "Datastores",
     "DeploymentConfigs",
     "Desktop",
+    "Destination",
     "Diagram",
     "Disk",
     "Disk %",
@@ -86,6 +87,7 @@
     "INP 540 ms",
     "Info",
     "Information",
+    "Integration",
     "Interface",
     "Interfaces",
     "IoT",
@@ -94,10 +96,12 @@
     "Job",
     "LXC 201 · pve3",
     "Link",
+    "Link-local",
     "Links",
     "Live",
     "Log",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -108,6 +112,7 @@
     "Median (P50)",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Mesh / VPN",
     "Messaging",
     "Mexico (+52)",
     "Model",
@@ -220,6 +225,7 @@
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
     "VMID {{vmid}}",
+    "Version",
     "Version {{number}}",
     "Web",
     "Web, iOS, Android, React Native",

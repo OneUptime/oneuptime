@@ -129,7 +129,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **होस्ट** | वर्चुअल मशीन एक होस्ट है। देखें [होस्ट OpenTelemetry कलेक्टर](/docs/telemetry/host-otel-collector) |
 | EKS, GKE, AKS, सेल्फ़-मैनेज्ड Kubernetes | **Kubernetes** | `k8s.*` एट्रिब्यूट से रूट होता है। देखें [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Serverless फ़ंक्शन** | `faas.name` से, या FaaS वाले `cloud.platform` पर `service.name` से रूट होता है। देखें [Serverless फ़ंक्शन](/docs/telemetry/serverless-functions) |
-| लोड बैलेंसर, बकेट, प्रबंधित डेटाबेस और अन्य IaaS या PaaS संसाधन | **Cloud Resources** | Azure Monitor, CloudWatch और Cloud Monitoring जो मेट्रिक्स प्रकाशित करते हैं, उनसे खोजे जाते हैं। देखें [क्लाउड संसाधन](/docs/telemetry/cloud-resources) |
+| लोड बैलेंसर, बकेट, प्रबंधित डेटाबेस और अन्य IaaS या PaaS संसाधन | **क्लाउड संसाधन** | Azure Monitor, CloudWatch और Cloud Monitoring जो मेट्रिक्स प्रकाशित करते हैं, उनसे खोजे जाते हैं। देखें [क्लाउड संसाधन](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > Cloud Run और App Engine जानबूझकर दो जगह दिखते हैं। उनका डिटेक्टर प्रबंधित `cloud.platform` और `faas.name` दोनों सेट करता है, इसलिए हर सेवा अपने आप में एक **Serverless फ़ंक्शन** भी है, जबकि **क्लाउड परिवेश** उस प्रोजेक्ट और क्षेत्र की सभी सेवाओं को एक साथ रखता है। वही टेलीमेट्री दोनों जगह दर्ज होती है।

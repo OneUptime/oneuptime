@@ -461,12 +461,11 @@ const TITLE_SAYS_IT_ALL: Array<[string, string]> = [
   ["Pages/Logs/Settings/PipelineView.tsx", "Pipeline Details"],
   ["Pages/Traces/Settings/DropFilterView.tsx", "Drop Filter Details"],
   ["Pages/Logs/Settings/DropFilterView.tsx", "Drop Filter Details"],
-  ["Pages/Kubernetes/View/Index.tsx", "Cluster Details"],
-  ["Pages/Proxmox/View/Index.tsx", "Cluster Details"],
-  ["Pages/VMware/View/Index.tsx", "vCenter Details"],
-  ["Pages/Docker/View/Overview.tsx", "Docker Host Details"],
-  ["Pages/Podman/View/Overview.tsx", "Podman Host Details"],
-  ["Pages/Ceph/View/Index.tsx", "Ceph Cluster Details"],
+  /*
+   * (A Kubernetes, Proxmox and Ceph cluster's, a vCenter's, a Docker and a
+   * Podman host's details cards draw through ResourceRecordDetailsCard now,
+   * which has no description to give: RECORD_DETAILS_CARDS below.)
+   */
   [
     "Pages/StatusPages/Settings/SubscriberNotificationTemplateView.tsx",
     "Template Overview",
@@ -546,6 +545,56 @@ function getTitledObjects(file: string): Array<CardObject> {
 
   return objects;
 }
+
+/*
+ * The resource Overviews whose Details are their record's columns draw them
+ * through ResourceRecordDetailsCard (#5307's follow-up), under a title that
+ * says what they hold: the card takes no description, so none of them can
+ * say it again.
+ */
+const RECORD_DETAILS_CARDS: Array<[string, string]> = [
+  ["Pages/Kubernetes/View/Index.tsx", "Cluster Details"],
+  ["Pages/Proxmox/View/Index.tsx", "Cluster Details"],
+  ["Pages/VMware/View/Index.tsx", "vCenter Details"],
+  ["Pages/Docker/View/Overview.tsx", "Docker Host Details"],
+  ["Pages/Podman/View/Overview.tsx", "Podman Host Details"],
+  ["Pages/Ceph/View/Index.tsx", "Ceph Cluster Details"],
+  ["Pages/StorageArray/View/Index.tsx", "Storage Array Details"],
+  ["Pages/Host/View/Overview.tsx", "Host Details"],
+];
+
+describe("a resource Overview's record details card has no description", () => {
+  const RECORD_CARD: string = readDashboard(
+    "Components/TelemetryResource/ResourceRecordDetailsCard.tsx",
+  );
+
+  test("the card takes no description and hands its card none", () => {
+    const props: string = RECORD_CARD.slice(
+      RECORD_CARD.indexOf("export interface ComponentProps"),
+      RECORD_CARD.indexOf("// The column a fact reads."),
+    );
+    expect(props).toContain("title: string;");
+    expect(props).not.toMatch(/\bdescription\??:/);
+
+    const cardProps: string = RECORD_CARD.slice(
+      RECORD_CARD.indexOf("cardProps={{"),
+      RECORD_CARD.indexOf("modelDetailProps={{"),
+    );
+    expect(cardProps).toContain("title: props.title,");
+    expect(cardProps).not.toContain("description");
+  });
+
+  test.each(RECORD_DETAILS_CARDS)("%s: %s", (file: string, title: string) => {
+    const source: string = readDashboard(file).replace(/\s+/g, " ");
+    const card: string = source.slice(
+      source.indexOf("<ResourceRecordDetailsCard<"),
+    );
+
+    expect(source.split("<ResourceRecordDetailsCard<").length).toBe(2);
+    expect(card).toContain(`title="${title}"`);
+    expect(source).not.toContain("<CardModelDetail");
+  });
+});
 
 describe("a details card whose title says it all has no description", () => {
   test.each(TITLE_SAYS_IT_ALL)("%s: %s", (file: string, title: string) => {

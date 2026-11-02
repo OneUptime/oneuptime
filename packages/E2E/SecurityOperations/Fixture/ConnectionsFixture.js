@@ -20,16 +20,20 @@
  *   fin-ws-112.corp.acme-commerce.example
  *                     a host CASE-140's "fin-ws-112" only possibly names
  *   Kai Morgan        a member, k.morgan@acme-commerce.example, whose Okta
- *                     account is one of the spray's targets
+ *                     account is one of the spray's targets: on call now for
+ *                     Identity on-call, on Checkout primary's rotation too,
+ *                     and in the Identity and Checkout SRE teams
  *
  * Scenarios (?connections=):
  *   fail      the first read fails (a 500); Try again reads it
  *   partial   the reader's role cannot read users, and the Kubernetes
  *             clusters could not be read this time - so no email or name is
  *             said to be not in OneUptime; the next read answers in full
- *   busy      a case's page names one of every kind of record, every fact a
- *             record can have, possible matches, more records than are
- *             shown and values OneUptime does not know (busyAnswer)
+ *   busy      a case's page names one of every kind of record - a monitor
+ *             with its status, a cloud resource and a serverless function
+ *             among them - every fact a record can have, possible matches,
+ *             more records than are shown and values OneUptime does not
+ *             know (busyAnswer)
  */
 import {
   canonicalAddress,
@@ -96,6 +100,32 @@ export function createConnectionsFixture(options) {
 
   const empty = () => {
     return { count: 0, items: [] };
+  };
+
+  /*
+   * A member's on-call schedules and teams, as the server reads them: the
+   * ones they are on call for now first, then by name.
+   */
+  const scheduleId = (n) => {
+    return uuid("3e000000", n);
+  };
+  const MEMBER_FACTS = {
+    [MEMBERS[0].id]: {
+      onCallSchedules: {
+        count: 2,
+        items: [
+          { id: scheduleId(1), name: "Identity on-call", isOnCallNow: true },
+          { id: scheduleId(2), name: "Checkout primary", isOnCallNow: false },
+        ],
+      },
+      teams: {
+        count: 2,
+        items: [
+          { id: uuid("81000000", 22), title: "Checkout SRE" },
+          { id: uuid("81000000", 21), title: "Identity" },
+        ],
+      },
+    },
   };
 
   // What is going on on each host, as the server reads it for the window.
@@ -400,6 +430,110 @@ export function createConnectionsFixture(options) {
           activeAlerts: null,
           monitors: null,
           recentChanges: null,
+          // More schedules than are listed: "+1 more".
+          onCallSchedules: {
+            count: 3,
+            items: MEMBER_FACTS[MEMBERS[0].id].onCallSchedules.items,
+          },
+          teams: MEMBER_FACTS[MEMBERS[0].id].teams,
+        },
+        /*
+         * A cloud resource by a name it answers on, a serverless function
+         * by its own logs, and a monitor by the host of a URL it checks -
+         * with its status beside its name.
+         */
+        record(
+          SecurityConnectionKind.CloudResource,
+          10,
+          "checkout-alb",
+          Exact,
+          named(
+            SecurityEntityType.Domain,
+            "checkout-alb-1234.eu-west-1.elb.amazonaws.com",
+            SecurityConnectionReason.CloudEndpoint,
+          ),
+          {
+            activeAlerts: {
+              count: 1,
+              items: [
+                fact(
+                  12,
+                  "ALR-315",
+                  "Target 5xx above 2%",
+                  "Created",
+                  "#fd625e",
+                ),
+              ],
+            },
+            monitors: {
+              count: 1,
+              items: [
+                {
+                  id: recordId(212),
+                  title: "Storefront",
+                  stateName: "Degraded",
+                  stateColor: "#ffbf53",
+                },
+              ],
+            },
+            recentChanges: [
+              change(
+                6,
+                45,
+                "Changed the listener rule: /checkout to the canary target group",
+                "config",
+              ),
+            ],
+          },
+        ),
+        record(
+          SecurityConnectionKind.ServerlessFunction,
+          11,
+          "orders-webhook",
+          Exact,
+          named(
+            SecurityEntityType.Other,
+            "orders-webhook",
+            SecurityConnectionReason.LogSource,
+          ),
+          {
+            activeIncidents: null,
+            activeAlerts: null,
+            monitors: null,
+            recentChanges: [change(7, 20, "Deployed version 42", "deploy")],
+          },
+        ),
+        {
+          ...record(
+            SecurityConnectionKind.Monitor,
+            12,
+            "Storefront",
+            Exact,
+            named(
+              SecurityEntityType.Url,
+              "https://shop.acme-commerce.example/login",
+              SecurityConnectionReason.MonitorTarget,
+              "shop.acme-commerce.example",
+            ),
+            {
+              activeIncidents: {
+                count: 1,
+                items: [
+                  fact(
+                    14,
+                    "INC-1043",
+                    "Storefront slow for EU visitors",
+                    "Investigating",
+                    "#f97316",
+                  ),
+                ],
+              },
+              // A monitor is watched by nothing, and has no changes of its own.
+              monitors: null,
+              recentChanges: null,
+            },
+          ),
+          status: { name: "Degraded", color: "#ffbf53" },
         },
         record(
           SecurityConnectionKind.Host,
@@ -450,7 +584,8 @@ export function createConnectionsFixture(options) {
           ),
           {},
         ),
-      ],
+        // In the server's order: exact first, then by kind, then by name.
+      ].sort(compareConnectedResources),
       hasMoreResources: true,
       unmatched: [
         {
@@ -651,6 +786,14 @@ export function createConnectionsFixture(options) {
           recentChanges: isHost ? facts?.recentChanges || [] : null,
           ...(host?.inventoryItemId
             ? { inventoryItemId: host.inventoryItemId }
+            : {}),
+          // A member's on-call schedules and teams: who to reach.
+          ...(record.kind === SecurityConnectionKind.User
+            ? {
+                onCallSchedules:
+                  MEMBER_FACTS[record.id]?.onCallSchedules || empty(),
+                teams: MEMBER_FACTS[record.id]?.teams || empty(),
+              }
             : {}),
         };
       }),

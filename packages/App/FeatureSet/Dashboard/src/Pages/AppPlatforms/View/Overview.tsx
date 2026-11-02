@@ -40,6 +40,7 @@ import {
   getManagedCloudPlatformLabel,
 } from "Common/Types/Cloud/CloudPlatform";
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
   ResourceOverviewTile,
@@ -613,6 +614,7 @@ const CloudEnvironmentOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         recordId={modelId.toString()}
         settingsRoute={populate(
           PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,

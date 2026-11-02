@@ -31,6 +31,7 @@ import ResourceActivityCards from "../../../Components/ResourceActivity/Resource
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
   ResourceOverviewTile,
@@ -610,6 +611,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         }
         detailRows={detailRows}
+        detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         recordId={modelId.toString()}
         labels={r.labels}
         settingsRoute={populate(PageMap.SERVICE_VIEW_SETTINGS)}

@@ -548,7 +548,7 @@ describe("the availability chart, in the reader's language", () => {
 });
 
 describe("the order of the page", () => {
-  test("Host alerts come after the Filesystems table and before Details", async () => {
+  test("Host alerts come after the Filesystems table and before Host Details", async () => {
     getItemMock.mockResolvedValue(reportingHost());
     aggregateMock.mockImplementation((call: unknown) => {
       return Promise.resolve({
@@ -562,7 +562,8 @@ describe("the order of the page", () => {
       selector: "h2, h3, span, div",
     });
     const alerts: HTMLElement = screen.getByTestId("host-alerts");
-    const details: HTMLElement = screen.getByText("Details", {
+    // The one card of what the host reported, as its Settings card is titled.
+    const details: HTMLElement = await screen.findByText("Host Details", {
       selector: "h2, h3, span, div",
     });
     const charts: HTMLElement = screen.getAllByTestId("line-chart")[0]!;

@@ -1,3 +1,7 @@
+import {
+  normalizeCloudHost,
+  readCloudEndpoints,
+} from "../../Types/Cloud/CloudInventory";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -578,6 +582,363 @@ export function recordReportsAddress(
   );
 }
 
+// ---------- URLs ----------
+
+// A URL is at most this long to be read; a longer value is no URL a monitor checks.
+export const MAX_URL_LENGTH: number = 2048;
+
+// Whether a value starts with a URL's scheme: letters, then "://".
+function hasUrlScheme(value: string): boolean {
+  const scheme: number = value.indexOf("://");
+
+  if (scheme < 2 || scheme > 16) {
+    return false;
+  }
+
+  for (let index: number = 0; index < scheme; index++) {
+    const code: number = value.charCodeAt(index);
+    const isLetter: boolean =
+      (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+
+    // A scheme starts with a letter; digits, "+", "-" and "." may follow.
+    if (
+      !isLetter &&
+      (index === 0 ||
+        !(
+          (code >= 48 && code <= 57) ||
+          code === 43 ||
+          code === 45 ||
+          code === 46
+        ))
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*
+ * The host of a URL a case names - https://Shop.acme.example:8443/admin is
+ * shop.acme.example - when it is a host name or an address: what a
+ * website or API monitor checks. Null for anything else, a URL without a
+ * scheme included (it may be a path).
+ */
+export function getUrlHost(value: string | undefined | null): string | null {
+  const text: string = (value || "").trim();
+
+  if (!text || text.length > MAX_URL_LENGTH || !hasUrlScheme(text)) {
+    return null;
+  }
+
+  const host: string = normalizeCloudHost(text);
+  const address: string | null = canonicalAddress(host);
+
+  if (address) {
+    return address;
+  }
+
+  return isHostNameLike(host) ? host : null;
+}
+
+// ---------- Cloud resources ----------
+
+// A cloud resource's ID is at most this long (an Azure resource ID can be long).
+export const MAX_RESOURCE_ID_LENGTH: number = 2048;
+
+/*
+ * Whether a value is a cloud provider's ID for one resource, which names it
+ * and nothing else wherever it is written:
+ *   - an AWS ARN: arn:partition:service:region:account:resource;
+ *   - an Azure resource ID: /subscriptions/<id>/...;
+ *   - a Google Cloud full resource name: //<service>.googleapis.com/....
+ * No white space, at most MAX_RESOURCE_ID_LENGTH characters.
+ */
+export function isCloudResourceIdLike(
+  value: string | undefined | null,
+): boolean {
+  const text: string = (value || "").trim();
+
+  if (text.length < 8 || text.length > MAX_RESOURCE_ID_LENGTH) {
+    return false;
+  }
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    // White space and control characters.
+    if (code <= 32 || code === 127) {
+      return false;
+    }
+  }
+
+  const folded: string = text.toLowerCase();
+
+  if (folded.startsWith("arn:")) {
+    let colons: number = 0;
+
+    for (let index: number = 0; index < folded.length; index++) {
+      if (folded.charCodeAt(index) === 58) {
+        colons += 1;
+      }
+    }
+
+    // arn, partition, service, region, account and the resource.
+    return colons >= 5 && !folded.endsWith(":");
+  }
+
+  if (folded.startsWith("/subscriptions/")) {
+    return folded.length > "/subscriptions/".length;
+  }
+
+  if (folded.startsWith("//")) {
+    const service: number = folded.indexOf(".googleapis.com/");
+
+    return service > 2 && service + ".googleapis.com/".length < folded.length;
+  }
+
+  return false;
+}
+
+/*
+ * Whether a value a case names is a cloud resource's own ID: compared
+ * folded, it is that resource and nothing else, however the value was
+ * typed - an ID is never anything's short form.
+ */
+export function matchResourceId(data: {
+  entityValue: string;
+  providerResourceId: string | undefined | null;
+}): SecurityConnectionVerdict | null {
+  const entity: string = foldConnectionValue(data.entityValue);
+
+  if (
+    !isCloudResourceIdLike(entity) ||
+    entity !== foldConnectionValue(data.providerResourceId)
+  ) {
+    return null;
+  }
+
+  return {
+    certainty: SecurityConnectionCertainty.Exact,
+    reason: SecurityConnectionReason.ResourceId,
+  };
+}
+
+/*
+ * The names and the addresses a cloud resource answers on (its
+ * cloudEndpoints, as a cloud connection's inventory lists them), apart: a
+ * name is matched as a host's name is, an address as a host's address is.
+ */
+export function readCloudEndpointHosts(endpoints: unknown): {
+  names: Array<string>;
+  addresses: Array<string>;
+} {
+  const names: Array<string> = [];
+  const addresses: Array<string> = [];
+
+  for (const endpoint of readCloudEndpoints(endpoints)) {
+    const address: string | null = canonicalAddress(endpoint);
+
+    if (address) {
+      if (
+        !addresses.includes(address) &&
+        getSecurityAddressScope(address) !== SecurityAddressScope.Local
+      ) {
+        addresses.push(address);
+      }
+    } else if (isHostNameLike(endpoint) && !names.includes(endpoint)) {
+      names.push(endpoint);
+    }
+  }
+
+  return { names, addresses };
+}
+
+// ---------- Monitors ----------
+
+// The most hosts read from one monitor's steps: a monitor has a few steps.
+export const MONITOR_TARGET_MAX_HOSTS: number = 10;
+
+// A step value as written: a string, or a URL, Hostname or IP (or their JSON).
+function monitorStepText(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  const record: Record<string, unknown> = value as Record<string, unknown>;
+
+  // The JSON form: { _type: "URL", value: "https://..." }.
+  if (typeof record["value"] === "string") {
+    return record["value"];
+  }
+
+  const text: string = String(value);
+
+  return text === "[object Object]" ? "" : text;
+}
+
+// What a JSON or typed object holds under "data" (the class) or "value" (its JSON).
+function monitorHolder(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record: Record<string, unknown> = value as Record<string, unknown>;
+  const holder: unknown = record["data"] || record["value"];
+
+  return holder && typeof holder === "object"
+    ? (holder as Record<string, unknown>)
+    : null;
+}
+
+/*
+ * A field of a nested monitor setting (dnsMonitor.queryName): a plain object
+ * in the class and in its JSON alike.
+ */
+function monitorSettingText(setting: unknown, key: string): string {
+  if (!setting || typeof setting !== "object" || Array.isArray(setting)) {
+    return "";
+  }
+
+  const value: unknown = (setting as Record<string, unknown>)[key];
+
+  return typeof value === "string" ? value : "";
+}
+
+/*
+ * The hosts a monitor checks, from its steps - the Monitor column's
+ * MonitorSteps or its JSON: a website's or an API's URL by its host; a
+ * ping's, a port's, an SSL certificate's or an NTP server's host; the name
+ * a DNS monitor looks up and the domain a domain or DNSSEC monitor checks;
+ * the host a device's SNMP is polled at. Host names folded, addresses in
+ * their one spelling, each once, at most MONITOR_TARGET_MAX_HOSTS. A URL's
+ * path, query, user and port are never kept; a step that checks no host
+ * (a heartbeat, a script, telemetry) adds nothing.
+ */
+export function getMonitorTargetHosts(monitorSteps: unknown): Array<string> {
+  const hosts: Array<string> = [];
+  const holder: Record<string, unknown> | null = monitorHolder(monitorSteps);
+  const steps: unknown = holder ? holder["monitorStepsInstanceArray"] : null;
+
+  if (!Array.isArray(steps)) {
+    return hosts;
+  }
+
+  for (const step of steps) {
+    const data: Record<string, unknown> | null = monitorHolder(step);
+
+    if (!data) {
+      continue;
+    }
+
+    const candidates: Array<string> = [
+      monitorStepText(data["monitorDestination"]),
+      monitorSettingText(data["dnsMonitor"], "queryName"),
+      monitorSettingText(data["dnssecMonitor"], "domainName"),
+      monitorSettingText(data["domainMonitor"], "domainName"),
+      monitorSettingText(data["snmpMonitor"], "hostname"),
+    ];
+
+    for (const candidate of candidates) {
+      if (hosts.length >= MONITOR_TARGET_MAX_HOSTS) {
+        return hosts;
+      }
+
+      const host: string = normalizeCloudHost(candidate);
+      const address: string | null = canonicalAddress(host);
+      const target: string | null = address
+        ? getSecurityAddressScope(address) === SecurityAddressScope.Local
+          ? null
+          : address
+        : isHostNameLike(host)
+          ? host
+          : null;
+
+      if (target && !hosts.includes(target)) {
+        hosts.push(target);
+      }
+    }
+  }
+
+  return hosts;
+}
+
+/*
+ * Whether a value a case names is what a monitor checks (one of
+ * getMonitorTargetHosts):
+ *   - an address: exactly when it is a public one, possibly when it is a
+ *     private one (another network can use it); a local one names nothing;
+ *   - a URL, by its host: exactly when the monitor checks that host;
+ *   - a name: as a host's name is matched - exactly when the event says it
+ *     is a host or a domain, possibly when it does not say, or when one is
+ *     the other's short form.
+ * Several monitors checking one address all check it, so how many do never
+ * makes it less sure.
+ */
+export function matchMonitorTarget(data: {
+  entityValue: string;
+  entityType?: SecurityEntityType | string | undefined;
+  target: string;
+}): SecurityConnectionVerdict | null {
+  const isUrl: boolean =
+    data.entityType === SecurityEntityType.Url ||
+    hasUrlScheme((data.entityValue || "").trim());
+  const host: string | null = isUrl
+    ? getUrlHost(data.entityValue)
+    : (data.entityValue || "").trim();
+  const target: string = (data.target || "").trim();
+
+  if (!host || !target) {
+    return null;
+  }
+
+  const hostAddress: string | null = canonicalAddress(host);
+  const targetAddress: string | null = canonicalAddress(target);
+
+  if (hostAddress || targetAddress) {
+    if (!hostAddress || hostAddress !== targetAddress) {
+      return null;
+    }
+
+    const scope: SecurityAddressScope | null =
+      getSecurityAddressScope(hostAddress);
+
+    if (scope === SecurityAddressScope.Public) {
+      return {
+        certainty: SecurityConnectionCertainty.Exact,
+        reason: SecurityConnectionReason.MonitorTarget,
+      };
+    }
+
+    return scope === SecurityAddressScope.Private
+      ? {
+          certainty: SecurityConnectionCertainty.Possible,
+          reason: SecurityConnectionReason.PrivateAddress,
+        }
+      : null;
+  }
+
+  if (isUrl) {
+    return foldConnectionValue(host) === foldConnectionValue(target)
+      ? {
+          certainty: SecurityConnectionCertainty.Exact,
+          reason: SecurityConnectionReason.MonitorTarget,
+        }
+      : null;
+  }
+
+  return matchHostName({
+    entityValue: host,
+    entityType: data.entityType,
+    resourceName: target,
+    exactReason: SecurityConnectionReason.MonitorTarget,
+  });
+}
+
 // ---------- What a lookup looks for ----------
 
 export interface SecurityConnectionLookups {
@@ -599,6 +960,15 @@ export interface SecurityConnectionLookups {
   addresses: Array<string>;
   // Emails, folded.
   emails: Array<string>;
+  /*
+   * The hosts of the URLs it names (a host name folded, an address in its
+   * one spelling): what a website or API monitor checks...
+   */
+  urlHosts: Array<string>;
+  // ...and the URL each came from, by its host.
+  urlHostEntities: Map<string, SecurityEntity>;
+  // Cloud resource IDs - ARNs, Azure resource IDs, Google Cloud resource names - folded.
+  resourceIds: Array<string>;
   // The entities looked up at all: what "OneUptime does not know it" is said of.
   lookedUp: Array<SecurityEntity>;
 }
@@ -609,11 +979,20 @@ const HOST_NAME_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
   SecurityEntityType.Other,
 ];
 
+// Whether a value is a URL: typed as one, or written with a scheme.
+function isUrlValue(entity: SecurityEntity): boolean {
+  return (
+    entity.type === SecurityEntityType.Url ||
+    (entity.type !== SecurityEntityType.User && hasUrlScheme(entity.value))
+  );
+}
+
 /*
  * What to look a case's, an event's or an entity's entities up as: a host,
  * domain or untyped value with the shape of a host name as a name, an
- * address as an address, a user's email as an email. A user's bare name, a
- * URL, a file hash and a process are not looked up: nothing in OneUptime is
+ * address as an address, a user's email as an email, a URL by its host,
+ * and a cloud provider's ID for a resource as that ID. A user's bare name,
+ * a file hash and a process are not looked up: nothing in OneUptime is
  * keyed by them.
  */
 export function getSecurityConnectionLookups(
@@ -625,6 +1004,9 @@ export function getSecurityConnectionLookups(
   const prefixes: Set<string> = new Set();
   const addresses: Set<string> = new Set();
   const emails: Set<string> = new Set();
+  const urlHosts: Set<string> = new Set();
+  const urlHostEntities: Map<string, SecurityEntity> = new Map();
+  const resourceIds: Set<string> = new Set();
   const lookedUp: Array<SecurityEntity> = [];
   const seen: Set<string> = new Set();
 
@@ -656,11 +1038,49 @@ export function getSecurityConnectionLookups(
       continue;
     }
 
+    if (isUrlValue({ type: entity.type, value })) {
+      seen.add(folded);
+
+      const host: string | null = getUrlHost(value);
+      const hostAddress: string | null = host ? canonicalAddress(host) : null;
+
+      // A URL on a local address (http://127.0.0.1/) names no machine.
+      if (
+        host &&
+        !(
+          hostAddress &&
+          getSecurityAddressScope(hostAddress) === SecurityAddressScope.Local
+        ) &&
+        urlHosts.size < SECURITY_CONNECTION_MAX_ADDRESSES
+      ) {
+        urlHosts.add(host);
+
+        if (!urlHostEntities.has(host)) {
+          urlHostEntities.set(host, { type: entity.type, value });
+        }
+
+        lookedUp.push({ type: entity.type, value });
+      }
+
+      continue;
+    }
+
     if (entity.type === SecurityEntityType.User || isEmailLike(value)) {
       seen.add(folded);
 
       if (isEmailLike(value)) {
         emails.add(folded);
+        lookedUp.push({ type: entity.type, value });
+      }
+
+      continue;
+    }
+
+    if (isCloudResourceIdLike(value)) {
+      seen.add(folded);
+
+      if (resourceIds.size < SECURITY_CONNECTION_MAX_ADDRESSES) {
+        resourceIds.add(folded);
         lookedUp.push({ type: entity.type, value });
       }
 
@@ -692,19 +1112,27 @@ export function getSecurityConnectionLookups(
     hostNamePrefixes: Array.from(prefixes),
     addresses: Array.from(addresses),
     emails: Array.from(emails),
+    urlHosts: Array.from(urlHosts),
+    urlHostEntities,
+    resourceIds: Array.from(resourceIds),
     lookedUp,
   };
 }
 
 /*
  * The kinds of record each kind of value is looked up among: a name among
- * the machines, clusters and devices, an address among the hosts and
- * devices that hold it, an email among the project's members.
+ * the machines, clusters, devices, the names cloud resources answer on and
+ * the hosts monitors check; an address among the hosts, devices and cloud
+ * resources that hold it and the monitors that check it; an email among the
+ * project's members; a URL among the monitors that check its host; a cloud
+ * resource's ID among the cloud resources.
  */
 export const SECURITY_CONNECTION_LOOKUP_KINDS: Readonly<{
   name: ReadonlyArray<SecurityConnectionKind>;
   address: ReadonlyArray<SecurityConnectionKind>;
   email: ReadonlyArray<SecurityConnectionKind>;
+  url: ReadonlyArray<SecurityConnectionKind>;
+  resourceId: ReadonlyArray<SecurityConnectionKind>;
 }> = {
   name: [
     SecurityConnectionKind.Host,
@@ -712,10 +1140,145 @@ export const SECURITY_CONNECTION_LOOKUP_KINDS: Readonly<{
     SecurityConnectionKind.PodmanHost,
     SecurityConnectionKind.KubernetesCluster,
     SecurityConnectionKind.NetworkDevice,
+    SecurityConnectionKind.CloudResource,
+    SecurityConnectionKind.Monitor,
   ],
-  address: [SecurityConnectionKind.Host, SecurityConnectionKind.NetworkDevice],
+  address: [
+    SecurityConnectionKind.Host,
+    SecurityConnectionKind.NetworkDevice,
+    SecurityConnectionKind.CloudResource,
+    SecurityConnectionKind.Monitor,
+  ],
   email: [SecurityConnectionKind.User],
+  url: [SecurityConnectionKind.Monitor],
+  resourceId: [SecurityConnectionKind.CloudResource],
 };
+
+// The most values the project's monitors are searched for in one lookup.
+export const SECURITY_CONNECTION_MAX_MONITOR_MENTIONS: number = 160;
+
+/*
+ * What the project's monitors are searched for in the database, before
+ * each is held to the hosts it really checks (getMonitorTargetHosts): the
+ * texts a stored step holds around a host it checks. A monitor's steps are
+ * JSON, so a host, an address, a DNS name or a domain it checks is a whole
+ * string ("shop.acme.example"), and a URL's host follows its "//" (or a
+ * user's "@"). Searching for those, and never for a bare word, keeps a
+ * common short name ("www", "api") from reading every monitor of the
+ * project - which would push the ones that check it past the read's limit.
+ *
+ *   a name, a URL's host    "h"   //h   @h
+ *   a bare name, also       "h.   //h.  @h.   (h and a domain: its full form)
+ *   a full name's short     "s"   //s/  //s:  //s"   (exactly the short form)
+ *   form
+ *   an IPv4 address         "a"   //a   @a
+ *   an IPv6 address         "a"   [a]          (as the case wrote it, and
+ *                                                in its one spelling: a
+ *                                                monitor keeps an address
+ *                                                as somebody typed it)
+ *
+ * Folded, each once, the case's own names and addresses first, at most
+ * SECURITY_CONNECTION_MAX_MONITOR_MENTIONS; matched without case.
+ */
+export function getMonitorMentionTexts(
+  lookups: Pick<
+    SecurityConnectionLookups,
+    "hostNames" | "urlHosts" | "addresses" | "lookedUp"
+  >,
+): Array<string> {
+  const texts: Array<string> = [];
+  const add: (...values: Array<string>) => void = (
+    ...values: Array<string>
+  ): void => {
+    for (const value of values) {
+      const folded: string = (value || "").trim().toLowerCase();
+
+      if (
+        folded &&
+        !texts.includes(folded) &&
+        texts.length < SECURITY_CONNECTION_MAX_MONITOR_MENTIONS
+      ) {
+        texts.push(folded);
+      }
+    }
+  };
+  const addHost: (host: string) => void = (host: string): void => {
+    add(`"${host}"`, `//${host}`, `@${host}`);
+  };
+
+  for (const hostName of lookups.hostNames) {
+    addHost(hostName);
+
+    if (!getShortHostName(hostName)) {
+      add(`"${hostName}.`, `//${hostName}.`, `@${hostName}.`);
+    }
+  }
+
+  lookups.urlHosts.forEach((host: string): void => {
+    if (canonicalAddress(host)?.includes(":")) {
+      add(`"${host}"`, `[${host}]`);
+    } else {
+      addHost(host);
+    }
+  });
+
+  for (const address of lookups.addresses) {
+    const spellings: Array<string> = [
+      address,
+      ...lookups.lookedUp
+        .filter((entity: SecurityEntity): boolean => {
+          return canonicalAddress(entity.value) === address;
+        })
+        .map((entity: SecurityEntity): string => {
+          return entity.value;
+        }),
+    ];
+
+    for (const spelling of spellings) {
+      if (address.includes(":")) {
+        add(`"${spelling}"`, `[${spelling}]`);
+      } else {
+        addHost(spelling);
+      }
+    }
+  }
+
+  // The short forms last: the case's own names find the monitors checking them.
+  for (const hostName of lookups.hostNames) {
+    const short: string | null = getShortHostName(hostName);
+
+    if (short) {
+      add(`"${short}"`, `//${short}/`, `//${short}:`, `//${short}"`);
+    }
+  }
+
+  return texts;
+}
+
+// The kinds of record one value is looked up among, by what it is.
+export function getLookupKindsOf(
+  entity: SecurityEntity,
+): ReadonlyArray<SecurityConnectionKind> {
+  const value: string = (entity.value || "").trim();
+
+  if (canonicalAddress(value)) {
+    return SECURITY_CONNECTION_LOOKUP_KINDS.address;
+  }
+
+  if (isUrlValue({ type: entity.type, value })) {
+    return SECURITY_CONNECTION_LOOKUP_KINDS.url;
+  }
+
+  if (entity.type === SecurityEntityType.User || isEmailLike(value)) {
+    return SECURITY_CONNECTION_LOOKUP_KINDS.email;
+  }
+
+  if (isCloudResourceIdLike(value)) {
+    return SECURITY_CONNECTION_LOOKUP_KINDS.resourceId;
+  }
+
+  return SECURITY_CONNECTION_LOOKUP_KINDS.name;
+}
 
 /*
  * Whether a value was looked up among every kind of record it could be. One
@@ -726,17 +1289,11 @@ export function wasLookedUpEverywhere(
   entity: SecurityEntity,
   unsureKinds: ReadonlySet<SecurityConnectionKind>,
 ): boolean {
-  const kinds: ReadonlyArray<SecurityConnectionKind> = canonicalAddress(
-    entity.value,
-  )
-    ? SECURITY_CONNECTION_LOOKUP_KINDS.address
-    : entity.type === SecurityEntityType.User || isEmailLike(entity.value)
-      ? SECURITY_CONNECTION_LOOKUP_KINDS.email
-      : SECURITY_CONNECTION_LOOKUP_KINDS.name;
-
-  return !kinds.some((kind: SecurityConnectionKind): boolean => {
-    return unsureKinds.has(kind);
-  });
+  return !getLookupKindsOf(entity).some(
+    (kind: SecurityConnectionKind): boolean => {
+      return unsureKinds.has(kind);
+    },
+  );
 }
 
 // The best of a record's matches: exact when any is.
@@ -927,8 +1484,12 @@ export function getRecordSecurityValues(data: {
 
   for (const name of data.names) {
     const folded: string = (name || "").trim().toLowerCase();
+    // A cloud resource's own ID may be longer than any name or email.
+    const maxLength: number = isCloudResourceIdLike(folded)
+      ? MAX_RESOURCE_ID_LENGTH
+      : MAX_EMAIL_LENGTH;
 
-    if (!folded || seen.has(folded) || folded.length > MAX_EMAIL_LENGTH) {
+    if (!folded || seen.has(folded) || folded.length > maxLength) {
       continue;
     }
 

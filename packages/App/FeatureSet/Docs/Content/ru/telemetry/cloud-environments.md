@@ -129,7 +129,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **Хосты** | Виртуальная машина — это хост. См. [OpenTelemetry-коллектор на хосте](/docs/telemetry/host-otel-collector) |
 | EKS, GKE, AKS, самостоятельно управляемый Kubernetes | **Kubernetes** | Маршрутизируется по атрибутам `k8s.*`. См. [Агент Kubernetes](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Serverless-функции** | Маршрутизируется по `faas.name` или по `service.name` при `cloud.platform` для FaaS. См. [Serverless-функции](/docs/telemetry/serverless-functions) |
-| Балансировщики нагрузки, бакеты, управляемые базы данных и другие ресурсы IaaS или PaaS | **Cloud Resources** | Обнаруживаются по метрикам, которые публикуют Azure Monitor, CloudWatch и Cloud Monitoring. См. [Облачные ресурсы](/docs/telemetry/cloud-resources) |
+| Балансировщики нагрузки, бакеты, управляемые базы данных и другие ресурсы IaaS или PaaS | **Облачные ресурсы** | Обнаруживаются по метрикам, которые публикуют Azure Monitor, CloudWatch и Cloud Monitoring. См. [Облачные ресурсы](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > Cloud Run и App Engine намеренно появляются в двух местах. Их детектор задаёт и управляемую `cloud.platform`, и `faas.name`, поэтому каждый сервис — это ещё и отдельная **Serverless-функция**, а **Облачная среда** объединяет все сервисы этого проекта и региона. Одна и та же телеметрия учитывается в обоих местах.

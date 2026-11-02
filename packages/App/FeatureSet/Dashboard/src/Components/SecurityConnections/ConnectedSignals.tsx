@@ -4,6 +4,12 @@ import SecurityCaseApi, {
 } from "../SecurityCase/SecurityCaseApi";
 import { SecurityEntityChip } from "../SecurityCase/SecurityEntityChips";
 import { formatNameList } from "../AiAccess/AiAccessModes";
+import TelemetryMentions from "./TelemetryMentions";
+import {
+  CONNECTED_ENTRY_ICON_CLASS_NAME,
+  CONNECTED_FACT_ROW_CLASS_NAME,
+  CONNECTED_RECORD_TEXT_CLASS_NAME,
+} from "./SecurityConnectionsLayout";
 import {
   CONNECTED_ACTIVE_ALERTS,
   CONNECTED_ACTIVE_INCIDENTS,
@@ -18,6 +24,8 @@ import {
   CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION,
   CONNECTED_NOTHING_TO_LOOK_UP_TITLE,
   CONNECTED_NOT_FOUND_TITLE,
+  CONNECTED_ON_CALL_NOW,
+  CONNECTED_ON_CALL_SCHEDULES,
   CONNECTED_PARTIAL_EMPTY_DESCRIPTION,
   CONNECTED_PARTIAL_EMPTY_TITLE,
   CONNECTED_POSSIBLE_GROUP_DESCRIPTION,
@@ -25,13 +33,13 @@ import {
   CONNECTED_POSSIBLE_PILL,
   CONNECTED_POSSIBLE_TOOLTIP,
   CONNECTED_SIGNALS_TITLE,
+  CONNECTED_TEAMS,
   CONNECTED_TRY_AGAIN,
   CONNECTED_UNREADABLE,
   CONNECTED_WINDOW,
   CONNECTION_KIND_ICONS,
   CONNECTION_KIND_LABELS,
   CONNECTION_KIND_PLURALS,
-  CONNECTION_REASON_TEXT,
   SECURITY_CONNECTIONS_TEST_IDS,
   SIGNAL_LINKS_ARIA_LABEL,
   SIGNAL_LINK_ICONS,
@@ -45,13 +53,16 @@ import {
   getConnectedRecordRoute,
   getConnectedSignalsGroups,
   getConnectedSignalsState,
+  getConnectionReasonTemplate,
   getIncidentRoute,
   getLeadingMatch,
   getMonitorRoute,
+  getOnCallScheduleRoute,
   getSignalLinks,
+  getTeamRoute,
 } from "./SecurityConnectionsModel";
 import Route from "Common/Types/API/Route";
-import { Gray500, Yellow } from "Common/Types/BrandColors";
+import { Gray500, Green, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -62,6 +73,8 @@ import {
   SecurityConnectionKind,
   SecurityConnectionRecordJson,
   SecurityConnectionRecordListJson,
+  SecurityConnectionScheduleJson,
+  SecurityConnectionScheduleListJson,
   SecurityConnectionsJson,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import {
@@ -73,9 +86,6 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import TableEmptyState, {
-  TableEmptyStateKind,
-} from "Common/UI/Components/Table/TableEmptyState";
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -92,16 +102,25 @@ import React, {
  * OneUptime, and what was happening on each around it.
  *
  * One entry per record - a host, a container host, a cluster, a network
- * device, a service, a user - exact connections first: its name, opening its
- * page; why OneUptime connects it, said as a sentence; its signals, each
- * opening its explorer (or its own page) on it and the window; and what is
- * going on there, one fact a row - the incidents and alerts open on it, the
- * monitors watching it, what changed on it in the window - each item on a
- * line of its own, so a long title, another language or a right-to-left page
- * never runs one item into the next. The possible matches follow under a
+ * device, a cloud resource, a serverless function, a service, a monitor, a
+ * user - exact connections first: its name, opening its page (and a
+ * monitor's status beside it); why OneUptime connects it, said as a
+ * sentence; its signals, each opening its explorer (or its own page) on it
+ * and the window; and what is going on there, one fact a row - the
+ * incidents and alerts open on it, the monitors watching it, what changed
+ * on it in the window, a member's on-call schedules and teams - each item on
+ * a line of its own, so a long title, another language or a right-to-left
+ * page never runs one item into the next. The possible matches follow under a
  * heading of their own that says what "possible" means, each still with its
- * pill. Then what OneUptime looked for and did not find, and what the
- * reader's role keeps from them.
+ * pill. Then what OneUptime looked for and no record matches, and what the
+ * reader's role keeps from them. Under them, on a read of its own, where
+ * what it names appears in the logs and traces themselves
+ * (TelemetryMentions).
+ *
+ * No record at all is said as an entry of the list, not as a page's empty
+ * state: its sentence beside the list's icon, what it looked for under it -
+ * so the logs and traces below, often the answer then, are not pushed down
+ * under a large illustration that says nothing was found.
  *
  * The same answer the case's triage reads, so OneUptime AI and the person
  * reading the case see the same connections.
@@ -128,17 +147,10 @@ const FACT_LINK_CLASS_NAME: string =
   "min-w-0 text-gray-900 hover:text-indigo-700 hover:underline [overflow-wrap:anywhere]";
 
 /*
- * A fact's row: its label above its items in a narrow record (a phone, a
- * case beside its side menu on a tablet), beside them from 32rem of the
- * record's own width (the event drawer, a laptop's page) - so the labels
- * line up down the record and the items read as a column. The record's
- * text column is the size container.
+ * A fact's row and a record's text column, as the values found in the logs
+ * and traces lay theirs out too (SecurityConnectionsLayout).
  */
-export const CONNECTED_FACT_ROW_CLASS_NAME: string =
-  "grid grid-cols-1 gap-x-4 gap-y-1 [@container(min-width:32rem)]:grid-cols-[11rem_minmax(0,1fr)]";
-
-export const CONNECTED_RECORD_TEXT_CLASS_NAME: string =
-  "min-w-0 flex-1 [container-type:inline-size]";
+export { CONNECTED_FACT_ROW_CLASS_NAME, CONNECTED_RECORD_TEXT_CLASS_NAME };
 
 /*
  * A change: its time, then what changed - beside the time while the title
@@ -151,9 +163,13 @@ export const CONNECTED_CHANGE_ITEM_CLASS_NAME: string =
 export const CONNECTED_CHANGE_TITLE_CLASS_NAME: string =
   "min-w-0 flex-1 basis-64 text-gray-900 [overflow-wrap:anywhere]";
 
-// A section's heading in the card: Possible matches, Not in OneUptime.
+// A section's heading in the card: Possible matches, No matching record.
 const SECTION_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
+
+// The logs and traces under the records: a rule between, as the possible matches have.
+export const TELEMETRY_SECTION_CLASS_NAME: string =
+  "mt-4 border-t border-gray-100 pt-4";
 
 function readColor(value: string | undefined): Color {
   return value ? new Color(value) : Gray500;
@@ -203,6 +219,117 @@ const FactRecordItem: FunctionComponent<{
         <></>
       )}
     </li>
+  );
+};
+
+/*
+ * One on-call schedule a member is on: its name, opening it, and "On call
+ * now" when they are the one on call for it.
+ */
+const ScheduleItem: FunctionComponent<{
+  schedule: SecurityConnectionScheduleJson;
+}> = (props: { schedule: SecurityConnectionScheduleJson }): ReactElement => {
+  const route: Route | null = getOnCallScheduleRoute(props.schedule.id);
+  const name: ReactElement = <bdi>{props.schedule.name}</bdi>;
+
+  return (
+    <li
+      className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5"
+      data-testid={SECURITY_CONNECTIONS_TEST_IDS.factItem}
+    >
+      {route ? (
+        <AppLink to={route} className={FACT_LINK_CLASS_NAME}>
+          {name}
+        </AppLink>
+      ) : (
+        <span className="min-w-0 text-gray-900 [overflow-wrap:anywhere]">
+          {name}
+        </span>
+      )}
+      {props.schedule.isOnCallNow ? (
+        <span data-testid={SECURITY_CONNECTIONS_TEST_IDS.onCallNow}>
+          {/* The pill says its words in the reader's language. */}
+          <Pill
+            text={CONNECTED_ON_CALL_NOW}
+            color={Green}
+            size={PillSize.Small}
+          />
+        </span>
+      ) : (
+        <></>
+      )}
+    </li>
+  );
+};
+
+// What it looked for and no record matches: each as the case names it.
+const NotFoundChips: FunctionComponent<{
+  values: Array<SecurityEntity>;
+  className?: string | undefined;
+}> = (props: {
+  values: Array<SecurityEntity>;
+  className?: string | undefined;
+}): ReactElement => {
+  return (
+    <div className={`flex flex-wrap gap-1.5 ${props.className || ""}`.trim()}>
+      {props.values.map((entity: SecurityEntity, index: number) => {
+        return (
+          <SecurityEntityChip
+            key={`${entity.type}-${entity.value}-${index}`}
+            entity={{
+              type: entity.type || SecurityEntityType.Other,
+              value: entity.value,
+            }}
+            isLink={false}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+/*
+ * No record: an entry of the list, as a record's is drawn - the list's
+ * icon in its square, the sentence beside it and why under it - with what
+ * it looked for and found no record of, when it says.
+ */
+export const CONNECTED_NO_RECORD_TITLE_CLASS_NAME: string =
+  "flex min-h-[2rem] items-center text-sm font-medium text-gray-900 text-pretty";
+
+const NoRecordEntry: FunctionComponent<{
+  testId: string;
+  title: string;
+  description: string;
+  notFound: Array<SecurityEntity>;
+}> = (props: {
+  testId: string;
+  title: string;
+  description: string;
+  notFound: Array<SecurityEntity>;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div className="flex items-start gap-3" data-testid={props.testId}>
+      <span className={CONNECTED_ENTRY_ICON_CLASS_NAME}>
+        <Icon icon={IconProp.Link} className="h-4 w-4 text-gray-400" />
+      </span>
+      <div className={CONNECTED_RECORD_TEXT_CLASS_NAME}>
+        <p className={CONNECTED_NO_RECORD_TITLE_CLASS_NAME}>
+          {translator.translateText(props.title)}
+        </p>
+        <p className="text-sm text-gray-500 text-pretty">
+          {translator.translateText(props.description)}
+        </p>
+        {props.notFound.length > 0 ? (
+          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.notFound}>
+            <NotFoundChips values={props.notFound} className="mt-2" />
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -288,6 +415,10 @@ const ConnectedRecord: FunctionComponent<{
     resource.kind,
     resource.id,
   );
+  // A member's: null when they could not be read, left out for anyone else.
+  const schedules: SecurityConnectionScheduleListJson | null =
+    resource.onCallSchedules || null;
+  const teams: SecurityConnectionRecordListJson | null = resource.teams || null;
   const match: SecurityConnectedResourceJson["matches"][number] | null =
     getLeadingMatch(resource);
   const links: Array<SignalLink> = getSignalLinks({
@@ -315,7 +446,9 @@ const ConnectedRecord: FunctionComponent<{
     Boolean(incidents && incidents.count > 0) ||
     Boolean(alerts && alerts.count > 0) ||
     Boolean(monitors && monitors.count > 0) ||
-    changes.length > 0;
+    changes.length > 0 ||
+    Boolean(schedules && schedules.count > 0) ||
+    Boolean(teams && teams.count > 0);
 
   return (
     <li
@@ -325,7 +458,7 @@ const ConnectedRecord: FunctionComponent<{
       data-certainty={resource.certainty}
     >
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200">
+        <span className={CONNECTED_ENTRY_ICON_CLASS_NAME}>
           <Icon
             icon={CONNECTION_KIND_ICONS[resource.kind]}
             className="h-4 w-4 text-gray-600"
@@ -352,6 +485,18 @@ const ConnectedRecord: FunctionComponent<{
             <span className="text-xs font-medium text-gray-500">
               {translator.translateText(CONNECTION_KIND_LABELS[resource.kind])}
             </span>
+            {/* A monitor's status now, as the project names it. */}
+            {resource.status ? (
+              <span data-testid={SECURITY_CONNECTIONS_TEST_IDS.monitorStatus}>
+                <Pill
+                  text={resource.status.name}
+                  color={readColor(resource.status.color)}
+                  size={PillSize.Small}
+                />
+              </span>
+            ) : (
+              <></>
+            )}
             {isPossible ? (
               <span data-testid={SECURITY_CONNECTIONS_TEST_IDS.possiblePill}>
                 <Pill
@@ -371,7 +516,7 @@ const ConnectedRecord: FunctionComponent<{
               data-testid={SECURITY_CONNECTIONS_TEST_IDS.recordReason}
             >
               {translator.translateTemplate(
-                CONNECTION_REASON_TEXT[match.reason],
+                getConnectionReasonTemplate({ kind: resource.kind, match }),
                 {
                   value: match.entityValue,
                   matched: match.matchedValue,
@@ -528,6 +673,50 @@ const ConnectedRecord: FunctionComponent<{
                         },
                       )}
                     </ul>
+                  </FactRow>
+                ) : (
+                  <></>
+                )}
+                {schedules && schedules.count > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.schedules}
+                    label={translator.translatePlural(
+                      CONNECTED_ON_CALL_SCHEDULES,
+                      schedules.count,
+                    )}
+                    labelClassName="text-gray-700"
+                  >
+                    <ul className="space-y-1">
+                      {schedules.items.map(
+                        (
+                          schedule: SecurityConnectionScheduleJson,
+                        ): ReactElement => {
+                          return (
+                            <ScheduleItem
+                              key={schedule.id}
+                              schedule={schedule}
+                            />
+                          );
+                        },
+                      )}
+                      <MoreItems
+                        count={schedules.count - schedules.items.length}
+                      />
+                    </ul>
+                  </FactRow>
+                ) : (
+                  <></>
+                )}
+                {teams && teams.count > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.teams}
+                    label={translator.translatePlural(
+                      CONNECTED_TEAMS,
+                      teams.count,
+                    )}
+                    labelClassName="text-gray-700"
+                  >
+                    <FactRecordList list={teams} getRoute={getTeamRoute} />
                   </FactRow>
                 ) : (
                   <></>
@@ -708,55 +897,40 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {/*
+         * No record: every kind read and none matches; a kind could not be
+         * read, so one may still match; or nothing it names can match one.
+         * What it looked for goes under the sentence that says so.
+         */}
         {state === "nothing-found" ? (
-          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.empty}>
-            <TableEmptyState
-              kind={TableEmptyStateKind.Empty}
-              icon={IconProp.Link}
-              title={translator.translateText(CONNECTED_EMPTY_TITLE) || ""}
-              description={translator.translateText(
-                CONNECTED_EMPTY_DESCRIPTION,
-              )}
-              isCompact={true}
-            />
-          </div>
+          <NoRecordEntry
+            testId={SECURITY_CONNECTIONS_TEST_IDS.empty}
+            title={CONNECTED_EMPTY_TITLE}
+            description={CONNECTED_EMPTY_DESCRIPTION}
+            notFound={notFound}
+          />
         ) : (
           <></>
         )}
 
         {state === "partly-read" ? (
-          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.partialEmpty}>
-            <TableEmptyState
-              kind={TableEmptyStateKind.Empty}
-              icon={IconProp.Link}
-              title={
-                translator.translateText(CONNECTED_PARTIAL_EMPTY_TITLE) || ""
-              }
-              description={translator.translateText(
-                CONNECTED_PARTIAL_EMPTY_DESCRIPTION,
-              )}
-              isCompact={true}
-            />
-          </div>
+          <NoRecordEntry
+            testId={SECURITY_CONNECTIONS_TEST_IDS.partialEmpty}
+            title={CONNECTED_PARTIAL_EMPTY_TITLE}
+            description={CONNECTED_PARTIAL_EMPTY_DESCRIPTION}
+            notFound={notFound}
+          />
         ) : (
           <></>
         )}
 
         {state === "nothing-to-look-up" ? (
-          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.nothingToLookUp}>
-            <TableEmptyState
-              kind={TableEmptyStateKind.Empty}
-              icon={IconProp.Link}
-              title={
-                translator.translateText(CONNECTED_NOTHING_TO_LOOK_UP_TITLE) ||
-                ""
-              }
-              description={translator.translateText(
-                CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION,
-              )}
-              isCompact={true}
-            />
-          </div>
+          <NoRecordEntry
+            testId={SECURITY_CONNECTIONS_TEST_IDS.nothingToLookUp}
+            title={CONNECTED_NOTHING_TO_LOOK_UP_TITLE}
+            description={CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION}
+            notFound={[]}
+          />
         ) : (
           <></>
         )}
@@ -772,7 +946,8 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {notFound.length > 0 ? (
+        {/* Beside records: what it looked for that no record matches. */}
+        {state === "records" && notFound.length > 0 ? (
           <div
             className="border-t border-gray-100 pt-3"
             data-testid={SECURITY_CONNECTIONS_TEST_IDS.notFound}
@@ -780,20 +955,7 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
             <h3 className={`mb-1.5 ${SECTION_HEADING_CLASS_NAME}`}>
               {translator.translateText(CONNECTED_NOT_FOUND_TITLE)}
             </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {notFound.map((entity: SecurityEntity, index: number) => {
-                return (
-                  <SecurityEntityChip
-                    key={`${entity.type}-${entity.value}-${index}`}
-                    entity={{
-                      type: entity.type || SecurityEntityType.Other,
-                      value: entity.value,
-                    }}
-                    isLink={false}
-                  />
-                );
-              })}
-            </div>
+            <NotFoundChips values={notFound} />
           </div>
         ) : (
           <></>
@@ -841,6 +1003,19 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Read with the records, not after them: the two reads run side by side,
+   * and the logs and traces show under the records when they are in.
+   */
+  const telemetry: ReactElement = (
+    <TelemetryMentions
+      request={props.request}
+      requestKey={props.requestKey}
+      refreshToken={props.refreshToken}
+      className={TELEMETRY_SECTION_CLASS_NAME}
+    />
+  );
+
   if (props.isEmbedded) {
     return (
       <div
@@ -851,6 +1026,7 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
           {translator.translateText(props.description)}
         </p>
         {body}
+        {telemetry}
       </div>
     );
   }
@@ -858,7 +1034,10 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.connectedSignals}>
       <Card title={CONNECTED_SIGNALS_TITLE} description={props.description}>
-        {body}
+        <>
+          {body}
+          {telemetry}
+        </>
       </Card>
     </div>
   );

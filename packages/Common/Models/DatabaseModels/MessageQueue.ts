@@ -19,6 +19,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { translationKey } from "../../Types/Translator";
 import {
   Column,
   Entity,
@@ -44,13 +45,18 @@ export type MessageQueueDiscoverySource = MessageQueueSightingSource | "manual";
 export const MESSAGE_QUEUE_DISCOVERY_SOURCES: ReadonlyArray<MessageQueueDiscoverySource> =
   ["traces", "broker-metrics", "manual"];
 
+/*
+ * In English; the Dashboard draws them in the reader's language - each is a
+ * key of its locale files, read from here (the extractor reads what this
+ * file marks).
+ */
 const DISCOVERY_SOURCE_LABELS: ReadonlyMap<string, string> = new Map<
   string,
   string
 >([
-  ["traces", "Application traces"],
-  ["broker-metrics", "Broker metrics"],
-  ["manual", "Added manually"],
+  ["traces", translationKey("Application traces")],
+  ["broker-metrics", translationKey("Broker metrics")],
+  ["manual", translationKey("Added manually")],
 ]);
 
 /**

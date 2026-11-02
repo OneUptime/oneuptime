@@ -1,4 +1,5 @@
 import { CloudProvider } from "./CloudPlatform";
+import { translationKey } from "../Translator";
 
 /*
  * The IaaS and PaaS resource types OneUptime recognises in the metrics a
@@ -64,24 +65,30 @@ export const CLOUD_SERVICE_MODEL_LABELS: Readonly<
   [CloudServiceModel.PaaS]: "PaaS",
 };
 
+/*
+ * What each category is called, in English: the docs' table names them so,
+ * and the Dashboard draws them in the reader's language (each is a key of
+ * its locale files, read from here: the extractor reads only what this file
+ * marks with translationKey).
+ */
 export const CLOUD_RESOURCE_CATEGORY_LABELS: Readonly<
   Record<CloudResourceCategory, string>
 > = {
-  [CloudResourceCategory.Compute]: "Compute",
-  [CloudResourceCategory.Containers]: "Containers",
-  [CloudResourceCategory.Serverless]: "Serverless",
-  [CloudResourceCategory.Web]: "Web and API hosting",
-  [CloudResourceCategory.Networking]: "Networking",
-  [CloudResourceCategory.Storage]: "Storage",
-  [CloudResourceCategory.Database]: "Databases and caches",
-  [CloudResourceCategory.Messaging]: "Messaging and streaming",
-  [CloudResourceCategory.Integration]: "Integration",
-  [CloudResourceCategory.Analytics]: "Analytics",
-  [CloudResourceCategory.AI]: "AI and machine learning",
-  [CloudResourceCategory.Security]: "Security and identity",
-  [CloudResourceCategory.Monitoring]: "Monitoring",
-  [CloudResourceCategory.Management]: "Management",
-  [CloudResourceCategory.IoT]: "IoT",
+  [CloudResourceCategory.Compute]: translationKey("Compute"),
+  [CloudResourceCategory.Containers]: translationKey("Containers"),
+  [CloudResourceCategory.Serverless]: translationKey("Serverless"),
+  [CloudResourceCategory.Web]: translationKey("Web and API hosting"),
+  [CloudResourceCategory.Networking]: translationKey("Networking"),
+  [CloudResourceCategory.Storage]: translationKey("Storage"),
+  [CloudResourceCategory.Database]: translationKey("Databases and caches"),
+  [CloudResourceCategory.Messaging]: translationKey("Messaging and streaming"),
+  [CloudResourceCategory.Integration]: translationKey("Integration"),
+  [CloudResourceCategory.Analytics]: translationKey("Analytics"),
+  [CloudResourceCategory.AI]: translationKey("AI and machine learning"),
+  [CloudResourceCategory.Security]: translationKey("Security and identity"),
+  [CloudResourceCategory.Monitoring]: translationKey("Monitoring"),
+  [CloudResourceCategory.Management]: translationKey("Management"),
+  [CloudResourceCategory.IoT]: translationKey("IoT"),
 };
 
 export interface CloudResourceTypeDescriptor {

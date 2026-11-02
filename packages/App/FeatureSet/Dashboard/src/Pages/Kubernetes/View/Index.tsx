@@ -3,12 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import { getKubernetesClusterProviderLabel } from "Common/Types/Kubernetes/KubernetesClusterProvider";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
@@ -1202,6 +1201,7 @@ const KubernetesClusterOverview: FunctionComponent<
         id: modelId,
         select: {
           name: true,
+          description: true,
           clusterIdentifier: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
@@ -2159,6 +2159,14 @@ const KubernetesClusterOverview: FunctionComponent<
                       </span>
                     )}
                   </div>
+                  {/*
+                   * What the cluster is, in its owner's words: under its
+                   * name, as every resource hero says it. It used to be a
+                   * Description row of Cluster Details at the page's foot.
+                   */}
+                  <ResourceHeroDescription
+                    text={cluster.description as string | undefined}
+                  />
                   {clusterIdentifier && (
                     <div className="mt-1 truncate font-mono text-sm text-gray-500">
                       {clusterIdentifier}
@@ -2809,113 +2817,71 @@ const KubernetesClusterOverview: FunctionComponent<
       </Card>
 
       {/*
-       * Cluster Details: read here, edited in one place - the same card at
-       * the top of the cluster's Settings page (ResourceDetailsCard).
+       * What the cluster reported about itself, and only that
+       * (ResourceRecordDetailsCard): its name, description and when it was
+       * last seen are the hero's, its labels the header's (a phone's own
+       * card under this one). Edited on its Settings page, in the card of
+       * the same title.
        */}
-      <CardModelDetail<KubernetesCluster>
-        name="Cluster Details"
+      <ResourceRecordDetailsCard<KubernetesCluster>
+        modelType={KubernetesCluster}
+        modelId={modelId}
+        id="kubernetes-cluster-overview"
+        title="Cluster Details"
         refresher={detailsRefresher}
-        cardProps={{
-          title: "Cluster Details",
-          buttons: [
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
-                { modelId: modelId },
-              )}
-            />,
-          ],
-        }}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: KubernetesCluster,
-          id: "kubernetes-cluster-overview",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Display Name",
-              fieldType: FieldType.Text,
+        settingsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
+          { modelId: modelId },
+        )}
+        facts={[
+          {
+            field: {
+              clusterIdentifier: true,
             },
-            {
-              field: {
-                clusterIdentifier: true,
-              },
-              title: "Cluster Name (clusterName)",
-              fieldType: FieldType.Text,
+            title: "Cluster Name (clusterName)",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              provider: true,
             },
-            {
-              field: {
-                provider: true,
-              },
-              title: "Platform",
-              fieldType: FieldType.Element,
-              /*
-               * What the cluster's telemetry says it runs on: OpenShift from
-               * the agent's openshift preset, or a managed platform's
-               * cloud.platform (getKubernetesClusterProvider).
-               */
-              getElement: (item: KubernetesCluster): ReactElement => {
-                return (
-                  <span>
-                    {getKubernetesClusterProviderLabel(item.provider) ||
-                      translator.translateText("Not reported")}
-                  </span>
-                );
-              },
+            title: "Platform",
+            fieldType: FieldType.Element,
+            /*
+             * What the cluster's telemetry says it runs on: OpenShift from
+             * the agent's openshift preset, or a managed platform's
+             * cloud.platform (getKubernetesClusterProvider). A provider this
+             * build has no name for is left out with the facts not reported.
+             */
+            showIf: (item: KubernetesCluster): boolean => {
+              return Boolean(getKubernetesClusterProviderLabel(item.provider));
             },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
+            getElement: (item: KubernetesCluster): ReactElement => {
+              return (
+                <span>{getKubernetesClusterProviderLabel(item.provider)}</span>
+              );
             },
-            {
-              field: {
-                lastSeenAt: true,
-              },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
+          },
+          {
+            field: {
+              agentVersion: true,
             },
-            {
-              field: {
-                agentVersion: true,
-              },
-              title: "Agent Version",
-              fieldType: FieldType.Element,
-              /*
-               * A sign beside an outdated version opens how to upgrade the
-               * chart (AgentVersion).
-               */
-              getElement: (item: KubernetesCluster): ReactElement => {
-                return (
-                  <AgentVersion
-                    kind={AgentKind.KubernetesAgent}
-                    version={item.agentVersion}
-                    placeholder="Not reported"
-                  />
-                );
-              },
+            title: "Agent Version",
+            fieldType: FieldType.Element,
+            /*
+             * A sign beside an outdated version opens how to upgrade the
+             * chart (AgentVersion).
+             */
+            getElement: (item: KubernetesCluster): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.KubernetesAgent}
+                  version={item.agentVersion}
+                />
+              );
             },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: KubernetesCluster): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-          ],
-        }}
+          },
+        ]}
       />
 
       {/*

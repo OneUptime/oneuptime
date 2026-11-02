@@ -240,14 +240,14 @@ test("every Overview drawn with ResourceOverview is held to these rules", () => 
   );
 });
 
-test("a database's Runs on is still a link on its Overview, to the cluster or host", () => {
+test("a database's Runs On is still a link on its Overview, to the cluster or host", () => {
   const overview: string = code("Pages/Database/View/Overview.tsx");
 
   expect(overview).toContain(
     'import { DatabaseRunsOnLink } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";',
   );
   expect(overview).toContain(
-    '{ label: "Runs on", value: platform ? runsOn : undefined, element: ( <DatabaseRunsOnLink source={r} className="text-sm text-indigo-600" /> ), },',
+    '{ label: "Runs On", value: platform ? runsOn : undefined, element: ( <DatabaseRunsOnLink source={r} className="text-sm text-indigo-600" /> ), },',
   );
 });
 

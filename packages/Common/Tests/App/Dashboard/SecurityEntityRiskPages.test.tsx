@@ -108,6 +108,8 @@ const deleteItemMock: MockFunction = getJestMockFunction();
 const getEntityActivityMock: MockFunction = getJestMockFunction();
 // Where OneUptime knows the entity: its page's Connected Signals card.
 const getConnectionsMock: MockFunction = getJestMockFunction();
+// ...and where it appears in the logs and traces.
+const getTelemetryMentionsMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -140,6 +142,9 @@ jest.mock(
         },
         getConnections: (...args: Array<unknown>): unknown => {
           return getConnectionsMock(...args);
+        },
+        getTelemetryMentions: (...args: Array<unknown>): unknown => {
+          return getTelemetryMentionsMock(...args);
         },
       },
     };
@@ -382,6 +387,36 @@ beforeEach(() => {
         lastSeen: new Date(minutesAgo(9)),
       },
     ];
+  });
+  getTelemetryMentionsMock.mockReset();
+  getTelemetryMentionsMock.mockImplementation(async () => {
+    return {
+      windowStart: "",
+      windowEnd: "",
+      values: [
+        {
+          entityType: SecurityEntityType.IpAddress,
+          entityValue: "203.0.113.47",
+          logs: {
+            count: 0,
+            sources: [],
+            sourceCount: 0,
+            places: [],
+            lastSeen: null,
+          },
+          traces: {
+            count: 0,
+            sources: [],
+            sourceCount: 0,
+            places: [],
+            lastSeen: null,
+          },
+        },
+      ],
+      hasMoreValues: false,
+      unreadableSignals: [],
+      failedSignals: [],
+    };
   });
   getConnectionsMock.mockReset();
   getConnectionsMock.mockImplementation(async () => {
@@ -1421,6 +1456,15 @@ describe("an entity's page", () => {
     });
     expect(
       await screen.findByTestId("security-connected-not-found"),
+    ).toHaveTextContent("203.0.113.47");
+
+    // Its logs and traces are searched for it over the same window.
+    expect(getTelemetryMentionsMock).toHaveBeenCalledTimes(1);
+    expect(getTelemetryMentionsMock.mock.calls[0]![0]).toEqual(
+      getConnectionsMock.mock.calls[0]![0],
+    );
+    expect(
+      await screen.findByTestId("security-telemetry-not-found"),
     ).toHaveTextContent("203.0.113.47");
   });
 
