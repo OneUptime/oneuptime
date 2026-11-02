@@ -45,6 +45,7 @@
 - **[گردش‌های کاری و رانبوک‌ها](https://oneuptime.com/docs/fa/workflows/index)**: کارهای تکراری را خودکار کنید، و Jira، ServiceNow و ابزارهای دیگری را که تیمتان از قبل به کار می‌برد وصل کنید.
 - **[‏OneUptime AI](https://oneuptime.com/docs/fa/ai/ai-sre)**: حوادث و هشدارهای تازه را بررسی می‌کند و یک تحلیل علت ریشه‌ای با منبع منتشر می‌کند. وقتی اصلاح را روشن کنید، می‌تواند یک Pull Request با یک اصلاح باز کند تا تیمتان آن را بازبینی کند.
 - **[‏API، CLI و Terraform](https://oneuptime.com/docs/fa/api-reference/api-reference)**: OneUptime را از اسکریپت‌ها و CI خود خودکار کنید، و مانیتورها، صفحات وضعیت و آنکال را به‌صورت کد مدیریت کنید.
+- **[سرور MCP](https://oneuptime.com/docs/fa/ai/mcp-server)** (`https://oneuptime.com/mcp`): Claude، Cursor، VS Code همراه با GitHub Copilot یا هر کلاینت دیگری از Model Context Protocol (MCP) را وصل کنید و از آن بخواهید یک حادثه را بررسی کند، لاگ‌ها و ردیابی‌ها را جست‌وجو کند، یک هشدار را تأیید کند یا یک مانیتور راه بیندازد.
 
 باقی چیزها در [مستندات](https://oneuptime.com/docs/fa/introduction/getting-started) آمده است.
 

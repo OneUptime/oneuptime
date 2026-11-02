@@ -1,6 +1,7 @@
 import App from "./App";
 import { sendPushConfigurationToRegisteredServiceWorker } from "./Components/NotificationMethods/BrowserPushRegistration";
 import { i18nReady } from "./Utils/i18n";
+import reportSignUpFromSignIn from "./Utils/ReportSignUpFromSignIn";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import UiAnalytics from "Common/UI/Utils/Analytics";
@@ -106,6 +107,8 @@ Telemetry.setGlobalAttributes({
 if (UserUtil.isLoggedIn()) {
   UiAnalytics.setGoogleAnalyticsUserId(UserUtil.getUserId().toString());
 }
+
+reportSignUpFromSignIn();
 
 const root: any = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,

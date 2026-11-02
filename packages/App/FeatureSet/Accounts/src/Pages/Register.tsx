@@ -833,6 +833,15 @@ const RegisterPage: () => JSX.Element = () => {
               />
               <MicrosoftSignInButton
                 title={t("register.signUpWithMicrosoft")}
+                onPress={() => {
+                  if (!hasCapturedSignupStart.current) {
+                    UiAnalytics.captureRevenueEvent(
+                      RevenueEventName.SignupStarted,
+                      { funnel_stage: RevenueFunnelStage.Signup },
+                    );
+                    hasCapturedSignupStart.current = true;
+                  }
+                }}
               />
             </div>
           ) : (

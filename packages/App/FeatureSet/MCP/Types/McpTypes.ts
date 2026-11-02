@@ -9,6 +9,7 @@ export interface JSONSchemaProperty {
   enum?: Array<string | number | boolean>;
   items?: JSONSchemaProperty;
   properties?: Record<string, JSONSchemaProperty>;
+  additionalProperties?: boolean | JSONSchemaProperty;
   required?: string[];
   default?: unknown;
   format?: string;

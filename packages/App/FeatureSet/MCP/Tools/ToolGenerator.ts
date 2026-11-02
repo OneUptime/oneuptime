@@ -7,11 +7,8 @@ import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
-import {
-  AnalyticsModelSchema,
-  AnalyticsModelSchemaType,
-} from "Common/Utils/Schema/AnalyticsModelSchema";
 import {
   McpToolInfo,
   ModelToolsResult,
@@ -23,9 +20,13 @@ import ModelType from "../Types/ModelType";
 import {
   zodToJsonSchema,
   sanitizeToolName,
+  withoutFieldDescriptions,
   ZodToJsonSchemaResult,
 } from "./SchemaConverter";
-import { generateHelperTools } from "./HelperTools";
+import {
+  DESCRIBE_RESOURCE_TOOL_NAME,
+  generateHelperTools,
+} from "./HelperTools";
 import { generatePublicStatusPageTools } from "./PublicStatusPageTools";
 import {
   readOnlyToolAnnotations,
@@ -40,13 +41,37 @@ import { LIST_DEFAULT_LIMIT, LIST_MAX_LIMIT } from "../Config/ServerConfig";
 import MCPLogger from "../Utils/MCPLogger";
 
 /*
- * Guidance appended to query parameter descriptions so agents can discover
- * the operator syntax the OneUptime API accepts.
+ * tools/list is one answer that many clients load whole, before anything is
+ * asked, so what a tool says here is paid for on every connection and many
+ * times over. A list and a count tool state how a filter is written and leave
+ * the fields to oneuptime_describe_resource, which holds every field of a
+ * resource and is asked only when it is needed. Tests/ToolListBudget holds the
+ * answer to a size.
  */
-const QUERY_OPERATOR_HINT: string =
-  'Each field accepts a direct value (exact match) or an operator object {"_type": "<Operator>", "value": ...}. ' +
-  "Operators: EqualTo, NotEqual, IsNull, NotNull, EqualToOrNull, GreaterThan, LessThan, GreaterThanOrEqual, LessThanOrEqual, InBetween (numbers/dates), Search (partial text), Includes (array of values). " +
-  'Example — items from the last 24 hours: {"createdAt": {"_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z"}}.';
+const QUERY_DESCRIPTION: string = `Filter. Each field takes a value (exact match) or an operator, such as {"_type":"GreaterThan","value":...}. Fields and operators: ${DESCRIBE_RESOURCE_TOOL_NAME}.`;
+
+const FIELD_DETAILS_HINT: string = `Field details: ${DESCRIBE_RESOURCE_TOOL_NAME}.`;
+
+// Any field, so the fields are not listed tool by tool.
+function buildQueryProperty(): JSONSchemaProperty {
+  return {
+    type: "object",
+    description: QUERY_DESCRIPTION,
+    additionalProperties: true,
+  };
+}
+
+// Any sortable field, ascending or descending: the directions stay checkable.
+function buildSortProperty(exampleField: string): JSONSchemaProperty {
+  return {
+    type: "object",
+    description: `Fields to sort by. Example: {"${exampleField}":"DESC"}.`,
+    additionalProperties: {
+      type: "string",
+      enum: [SortOrder.Ascending, SortOrder.Descending],
+    },
+  };
+}
 
 /**
  * Annotations per operation type. Clients use readOnlyHint to auto-approve
@@ -79,13 +104,11 @@ function getAnnotationsForOperation(
  */
 function buildSelectProperty(
   selectInfo: SelectableFieldsInfo,
-  singularName: string,
 ): JSONSchemaProperty {
-  let description: string = `Optional: field names to return for each ${singularName} (e.g. ["_id", "name"]). Omit to get all readable fields.`;
-
-  if (selectInfo.heavyFields.length > 0) {
-    description += ` Large fields excluded by default (request explicitly if needed): ${selectInfo.heavyFields.join(", ")}.`;
-  }
+  const description: string =
+    selectInfo.heavyFields.length > 0
+      ? `Field names to return. Omit for all but these large fields: ${selectInfo.heavyFields.join(", ")}.`
+      : "Field names to return. Omit for all readable fields.";
 
   return {
     type: "array",
@@ -196,7 +219,7 @@ export function generateAllTools(): McpToolInfo[] {
   allTools.push(...workflowTools);
 
   // Generate helper tools for discovery and guidance
-  const helperTools: McpToolInfo[] = generateHelperTools(allTools);
+  const helperTools: McpToolInfo[] = generateHelperTools();
   allTools.push(...helperTools);
 
   // Generate public status page tools (no API key required)
@@ -311,12 +334,6 @@ export function generateToolsForDatabaseModel(
   const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({
     modelType: ModelClass,
   });
-  const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({
-    modelType: ModelClass,
-  });
-  const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({
-    modelType: ModelClass,
-  });
 
   const selectInfo: SelectableFieldsInfo = getSelectableFieldsForModel(model);
 
@@ -329,15 +346,7 @@ export function generateToolsForDatabaseModel(
       createSchema,
     ),
     createReadTool(modelName, singularName, pluralName, apiPath, selectInfo),
-    createListTool(
-      modelName,
-      singularName,
-      pluralName,
-      apiPath,
-      querySchema,
-      sortSchema,
-      selectInfo,
-    ),
+    createListTool(modelName, singularName, pluralName, apiPath, selectInfo),
     createUpdateTool(
       modelName,
       singularName,
@@ -346,7 +355,7 @@ export function generateToolsForDatabaseModel(
       updateSchema,
     ),
     createDeleteTool(modelName, singularName, pluralName, apiPath),
-    createCountTool(modelName, singularName, pluralName, apiPath, querySchema),
+    createCountTool(modelName, singularName, pluralName, apiPath),
   ];
 
   return { tools, modelInfo };
@@ -382,20 +391,7 @@ export function generateToolsForAnalyticsModel(
    * spans, and exceptions are ingested via OpenTelemetry, not created by
    * agents. Generate list and count tools only.
    */
-  const querySchema: AnalyticsModelSchemaType =
-    AnalyticsModelSchema.getQueryModelSchema({
-      modelType: ModelClass,
-      disableOpenApiSchema: true,
-    });
-  const selectSchema: AnalyticsModelSchemaType =
-    AnalyticsModelSchema.getSelectModelSchema({
-      modelType: ModelClass,
-    });
-  const sortSchema: AnalyticsModelSchemaType =
-    AnalyticsModelSchema.getSortModelSchema({
-      modelType: ModelClass,
-      disableOpenApiSchema: true,
-    });
+  const timeColumn: string = model.defaultSortColumn;
 
   const tools: McpToolInfo[] = [
     createAnalyticsListTool(
@@ -403,16 +399,14 @@ export function generateToolsForAnalyticsModel(
       singularName,
       pluralName,
       apiPath,
-      querySchema,
-      selectSchema,
-      sortSchema,
+      timeColumn,
     ),
     createAnalyticsCountTool(
       modelName,
       singularName,
       pluralName,
       apiPath,
-      querySchema,
+      timeColumn,
     ),
   ];
 
@@ -433,10 +427,14 @@ function createCreateTool(
   return {
     name: `create_${sanitizeToolName(singularName)}`,
     title: `Create ${singularName}`,
-    description: `Create a new ${singularName} in OneUptime. Returns the created ${singularName} object with its ID. Use this to add new ${pluralName} to your project. Note: projectId is inferred from your API key — you do not need to provide it.`,
+    description: `Create a new ${singularName}. Returns it with its ID. projectId comes from your credentials. ${FIELD_DETAILS_HINT}`,
     inputSchema: {
       type: "object",
-      properties: schemaProperties.properties || {},
+      // Only the fields a call cannot leave out say what they mean.
+      properties: withoutFieldDescriptions(
+        schemaProperties.properties || {},
+        schemaProperties.required || [],
+      ),
       required: schemaProperties.required || [],
       additionalProperties: false,
     },
@@ -461,15 +459,15 @@ function createReadTool(
   return {
     name: `get_${sanitizeToolName(singularName)}`,
     title: `Get ${singularName}`,
-    description: `Retrieve a single ${singularName} by its unique ID from OneUptime. Use list_${sanitizeToolName(pluralName)} first if you need to find the ID.`,
+    description: `Get one ${singularName} by ID. Find IDs with list_${sanitizeToolName(pluralName)}.`,
     inputSchema: {
       type: "object",
       properties: {
         id: {
           type: "string",
-          description: `The unique identifier (UUID) of the ${singularName} to retrieve. Example: "550e8400-e29b-41d4-a716-446655440000"`,
+          description: `ID (UUID) of the ${singularName}.`,
         },
-        select: buildSelectProperty(selectInfo, singularName),
+        select: buildSelectProperty(selectInfo),
       },
       required: ["id"],
       additionalProperties: false,
@@ -490,35 +488,26 @@ function createListTool(
   singularName: string,
   pluralName: string,
   apiPath: string,
-  querySchema: ModelSchemaType,
-  sortSchema: ModelSchemaType,
   selectInfo: SelectableFieldsInfo,
 ): McpToolInfo {
   return {
     name: `list_${sanitizeToolName(pluralName)}`,
     title: `List ${pluralName}`,
-    description: `List and search ${pluralName} from OneUptime with optional filtering, pagination, and sorting. Returns an array of ${singularName} objects plus the total matching count.`,
+    description: `List ${pluralName} with filtering, sorting and paging. Returns the page and the total matching count.`,
     inputSchema: {
       type: "object",
       properties: {
-        query: {
-          ...zodToJsonSchema(querySchema),
-          description: `Filter criteria for ${pluralName}. ${QUERY_OPERATOR_HINT}`,
-        },
-        select: buildSelectProperty(selectInfo, singularName),
+        query: buildQueryProperty(),
+        select: buildSelectProperty(selectInfo),
         skip: {
           type: "number",
-          description:
-            "Number of records to skip for pagination. Default: 0. Example: skip=10 to start from the 11th record.",
+          description: "Records to skip. Default: 0.",
         },
         limit: {
           type: "number",
-          description: `Maximum number of records to return. Default: ${LIST_DEFAULT_LIMIT}, Maximum: ${LIST_MAX_LIMIT}.`,
+          description: `Records to return. Default: ${LIST_DEFAULT_LIMIT}, maximum: ${LIST_MAX_LIMIT}.`,
         },
-        sort: {
-          ...zodToJsonSchema(sortSchema),
-          description: `Sort order for results. Use "ASC" for ascending or "DESC" for descending. Example: {"createdAt": "DESC"} to sort by newest first.`,
-        },
+        sort: buildSortProperty("createdAt"),
       },
       additionalProperties: false,
     },
@@ -545,15 +534,15 @@ function createUpdateTool(
   return {
     name: `update_${sanitizeToolName(singularName)}`,
     title: `Update ${singularName}`,
-    description: `Update an existing ${singularName} in OneUptime. Only include the fields you want to change - unspecified fields will remain unchanged. Use get_${sanitizeToolName(singularName)} afterwards to see the updated record.`,
+    description: `Update one ${singularName} by ID. Send only the fields to change. ${FIELD_DETAILS_HINT}`,
     inputSchema: {
       type: "object",
       properties: {
         id: {
           type: "string",
-          description: `The unique identifier (UUID) of the ${singularName} to update. Required. Use list_${sanitizeToolName(pluralName)} to find IDs.`,
+          description: `ID (UUID) of the ${singularName} to update.`,
         },
-        ...(schemaProperties.properties || {}),
+        ...withoutFieldDescriptions(schemaProperties.properties || {}),
       },
       required: ["id"],
       additionalProperties: false,
@@ -578,13 +567,13 @@ function createDeleteTool(
   return {
     name: `delete_${sanitizeToolName(singularName)}`,
     title: `Delete ${singularName}`,
-    description: `Permanently delete a ${singularName} from OneUptime. This action cannot be undone. Returns a confirmation message upon successful deletion.`,
+    description: `Permanently delete one ${singularName} by ID. This cannot be undone.`,
     inputSchema: {
       type: "object",
       properties: {
         id: {
           type: "string",
-          description: `The unique identifier (UUID) of the ${singularName} to delete. This action is irreversible.`,
+          description: `ID (UUID) of the ${singularName} to delete.`,
         },
       },
       required: ["id"],
@@ -606,19 +595,15 @@ function createCountTool(
   singularName: string,
   pluralName: string,
   apiPath: string,
-  querySchema: ModelSchemaType,
 ): McpToolInfo {
   return {
     name: `count_${sanitizeToolName(pluralName)}`,
     title: `Count ${pluralName}`,
-    description: `Count the total number of ${pluralName} in OneUptime, optionally filtered by query criteria. Returns a single number. Useful for dashboards, reports, or checking if records exist before listing.`,
+    description: `Count ${pluralName}, all of them or those a filter matches. Returns a single number.`,
     inputSchema: {
       type: "object",
       properties: {
-        query: {
-          ...zodToJsonSchema(querySchema),
-          description: `Optional filter criteria. If omitted, counts all ${pluralName}. ${QUERY_OPERATOR_HINT}`,
-        },
+        query: buildQueryProperty(),
       },
       additionalProperties: false,
     },
@@ -640,37 +625,31 @@ function createAnalyticsListTool(
   singularName: string,
   pluralName: string,
   apiPath: string,
-  querySchema: AnalyticsModelSchemaType,
-  selectSchema: AnalyticsModelSchemaType,
-  sortSchema: AnalyticsModelSchemaType,
+  timeColumn: string,
 ): McpToolInfo {
   return {
     name: `list_${sanitizeToolName(pluralName)}`,
     title: `List ${pluralName}`,
-    description: `Query ${pluralName} telemetry data from OneUptime. IMPORTANT: telemetry tables are large — always filter by a time range and keep limits small (e.g. 10-50). ${QUERY_OPERATOR_HINT}`,
+    description: `Query ${pluralName} telemetry. Telemetry tables are large: always filter on ${timeColumn} and keep limit small (10-50).`,
     inputSchema: {
       type: "object",
       properties: {
-        query: {
-          ...zodToJsonSchema(querySchema),
-          description: `Filter criteria for ${pluralName}. Always include a time-range filter. ${QUERY_OPERATOR_HINT}`,
-        },
+        query: buildQueryProperty(),
         select: {
-          ...zodToJsonSchema(selectSchema),
-          description: `Fields to return, as an object of field names to true (e.g. {"time": true, "body": true}). Select only the fields you need — telemetry rows can be large.`,
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Field names to return. Select only what you need: telemetry rows can be large.",
         },
         skip: {
           type: "number",
-          description: "Number of records to skip. Default: 0.",
+          description: "Records to skip. Default: 0.",
         },
         limit: {
           type: "number",
-          description: `Maximum number of records to return. Default: ${LIST_DEFAULT_LIMIT}, Maximum: ${LIST_MAX_LIMIT}. Keep small for telemetry queries.`,
+          description: `Records to return. Default: ${LIST_DEFAULT_LIMIT}, maximum: ${LIST_MAX_LIMIT}.`,
         },
-        sort: {
-          ...zodToJsonSchema(sortSchema),
-          description: `Sort order. Use "ASC" or "DESC". Example: {"time": "DESC"} for most recent first.`,
-        },
+        sort: buildSortProperty(timeColumn),
       },
       additionalProperties: false,
     },
@@ -690,19 +669,16 @@ function createAnalyticsCountTool(
   singularName: string,
   pluralName: string,
   apiPath: string,
-  querySchema: AnalyticsModelSchemaType,
+  timeColumn: string,
 ): McpToolInfo {
   return {
     name: `count_${sanitizeToolName(pluralName)}`,
     title: `Count ${pluralName}`,
-    description: `Count ${pluralName} telemetry records in OneUptime, optionally filtered. Prefer counting with a time-range filter.`,
+    description: `Count ${pluralName} telemetry, all of it or what a filter matches. Prefer to filter on ${timeColumn}.`,
     inputSchema: {
       type: "object",
       properties: {
-        query: {
-          ...zodToJsonSchema(querySchema),
-          description: `Optional filter criteria. ${QUERY_OPERATOR_HINT}`,
-        },
+        query: buildQueryProperty(),
       },
       additionalProperties: false,
     },
