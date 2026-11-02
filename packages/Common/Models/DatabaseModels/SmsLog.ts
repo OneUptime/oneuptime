@@ -247,6 +247,7 @@ export default class SmsLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SmsStatus),
     title: "Status of the SMS",
     description: "Status of the SMS sent",
     canReadOnRelationQuery: false,

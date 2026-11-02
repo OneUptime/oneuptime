@@ -311,12 +311,12 @@ export default class Runner extends BaseModel {
   })
   @TableColumn({
     secret: true,
-    required: true,
+    required: false,
     unique: true,
     type: TableColumnType.ShortText,
     title: "Agent Key",
     description:
-      "Secret key the agent presents on every request. Anyone who can read this key can claim work as this Runner and receive its secrets in plaintext. Never share it; reset it to revoke the agent.",
+      "Secret key the agent presents on every request. Anyone who can read this key can claim work as this Runner and receive its secrets in plaintext. Never share it; reset it to revoke the agent. Leave it out and OneUptime generates one.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -420,6 +420,7 @@ export default class Runner extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RunnerConnectionStatus),
     title: "Connection Status",
     description: "Connected if the agent has heartbeated recently.",
     canReadOnRelationQuery: true,

@@ -205,6 +205,7 @@ export default class IncidentVideoCall extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VideoCallProvider),
     canReadOnRelationQuery: true,
     title: "Provider",
     description:
@@ -425,6 +426,7 @@ export default class IncidentVideoCall extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VideoCallTranscriptSource),
     computed: true,
     title: "Transcript Source",
     description:
@@ -556,6 +558,7 @@ export default class IncidentVideoCall extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CallSummaryStatus),
     computed: true,
     title: "Call Summary Status",
     description:
@@ -616,6 +619,7 @@ export default class IncidentVideoCall extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(RootCauseSuggestionStatus),
     computed: true,
     title: "Root Cause Suggestion Status",
     description:
@@ -705,6 +709,7 @@ export default class IncidentVideoCall extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CallTranscriptFetchStatus),
     computed: true,
     title: "Transcript Fetch Status",
     description:
@@ -726,6 +731,7 @@ export default class IncidentVideoCall extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VideoCallTranscriptUnavailableReason),
     computed: true,
     title: "Transcript Fetch Reason",
     description:

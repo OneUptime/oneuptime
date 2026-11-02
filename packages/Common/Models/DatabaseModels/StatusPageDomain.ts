@@ -680,7 +680,11 @@ export default class StatusPageDomain extends BaseModel {
       Permission.EditStatusPageDomain,
     ],
   })
-  @TableColumn({ type: TableColumnType.VeryLongText })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    description:
+      "Your certificate for the domain, in PEM, with its chain. Used when Is Custom Certificate is on.",
+  })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,
@@ -717,7 +721,11 @@ export default class StatusPageDomain extends BaseModel {
     ],
   })
   @TableColumn({
-    secret: true, type: TableColumnType.VeryLongText })
+    secret: true,
+    type: TableColumnType.VeryLongText,
+    description:
+      "The private key of your certificate, in PEM. Used when Is Custom Certificate is on.",
+  })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,
@@ -754,7 +762,11 @@ export default class StatusPageDomain extends BaseModel {
       Permission.EditStatusPageDomain,
     ],
   })
-  @TableColumn({ type: TableColumnType.Boolean })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    description:
+      "When on, the domain is served with your own certificate (custom_certificate and its key) instead of one OneUptime gets from Let's Encrypt.",
+  })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,

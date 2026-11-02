@@ -3300,6 +3300,7 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageReportPeriodType),
     defaultValue: StatusPageReportPeriodType.Rolling,
     title: "Report Period Type",
     description:
@@ -3440,6 +3441,7 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UptimePrecision),
     title: "Overall Uptime Percent Precision",
     required: false,
     defaultValue: UptimePrecision.TWO_DECIMAL,

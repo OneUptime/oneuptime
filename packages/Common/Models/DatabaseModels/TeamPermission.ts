@@ -474,6 +474,8 @@ export default class TeamPermission extends BaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    description:
+      "When on, the permission is taken away from the team's members instead of given. A block permission always wins over one that gives it.",
   })
   @Column({
     type: ColumnType.Boolean,
@@ -506,6 +508,7 @@ export default class TeamPermission extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PermissionScope),
     title: "Scope",
     description:
       "Scope of this permission row. One of: All, Owned, Labels. Defaults to All so new permissions apply to every resource in the project unless explicitly narrowed.",

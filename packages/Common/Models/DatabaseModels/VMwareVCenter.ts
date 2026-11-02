@@ -1288,6 +1288,7 @@ export default class VMwareVCenter extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
     title: "AI Remediation Mode",
     /*
      * The API and Terraform docs for the mode: the same semantics as the
@@ -1456,6 +1457,7 @@ export default class VMwareVCenter extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VMwareCollectionMethod),
     canReadOnRelationQuery: true,
     title: "Collection Method",
     description:
@@ -1666,6 +1668,7 @@ export default class VMwareVCenter extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VMwareCollectionStatus),
     title: "Collection Status",
     description:
       "Where probe collection stands: Pending (the probe has not tried the current settings yet), Succeeded or Failed. Written by the server and the probe.",
@@ -1686,6 +1689,7 @@ export default class VMwareVCenter extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VMwareCollectionErrorCode),
     title: "Collection Error Code",
     description:
       "Why the last collection failed, as a code the dashboard turns into a next step (InvalidLogin, UntrustedCertificate, ConnectionTimedOut, ...). Written by the probe.",

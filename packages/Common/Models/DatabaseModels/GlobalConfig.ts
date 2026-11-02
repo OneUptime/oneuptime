@@ -301,6 +301,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailTransportType),
     title: "SMTP Transport",
     description:
       "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API.",
@@ -323,6 +324,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SMTPAuthenticationType),
     title: "SMTP Authentication Type",
     description:
       "The type of authentication to use for this SMTP server. Options: Username and Password, OAuth, or None.",
@@ -414,6 +416,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OAuthProviderType),
     title: "SMTP OAuth Provider Type",
     description:
       "The OAuth grant type to use. 'Client Credentials' for Microsoft 365 and most providers. 'JWT Bearer' for Google Workspace service accounts.",
@@ -547,6 +550,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TwilioConfigUse),
     title: "Twilio Used For",
     description:
       'What the server\'s Twilio account sends: "Calls and SMS", "SMS only" or "Calls only".',
@@ -578,6 +582,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CallAndSmsProvider),
     title: "Send SMS and Calls Through",
     description:
       'What carries the server\'s SMS and calls: "Twilio" (its Twilio account) or "Gateway" (your own gateway, at the Gateway URL).',
@@ -832,6 +837,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(EmailServerType),
     title: "Email Server Type",
     description: "Email Server Type",
   })

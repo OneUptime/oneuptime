@@ -317,6 +317,7 @@ class WorkspaceProjectAuthToken extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.LongText,
+    allowedValues: Object.values(WorkspaceType),
     canReadOnRelationQuery: true,
   })
   @Column({

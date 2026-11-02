@@ -65,6 +65,18 @@ export interface TableColumnMetadata {
   defaultValue?: string | number | boolean | JSONObject; // default value for the column, can be a string, number, or boolean
   forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
   example?: string | number | boolean | JSONObject | Array<JSONObject>; // example value for API documentation
+  /*
+   * The values a text column takes when it takes one of a few - its string
+   * enum's: allowedValues: Object.values(CloudProvider). The OpenAPI spec
+   * says them as the field's enum (ModelSchema), so the API reference lists
+   * them, MCP's tool schemas offer them, and the Terraform and OpenTofu
+   * provider refuses any other value at plan time and lists them where the
+   * attribute is documented. An example with no value of its own shows the
+   * first of them. Saying them changes nothing the server accepts.
+   * Tests/Models/ColumnAllowedValues holds every text column typed with a
+   * string enum to saying them.
+   */
+  allowedValues?: ReadonlyArray<string>;
   ordered?: boolean;
 }
 

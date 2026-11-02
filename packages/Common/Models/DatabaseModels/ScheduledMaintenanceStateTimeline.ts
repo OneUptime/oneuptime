@@ -496,11 +496,12 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status",
     description:
       "Status of notification sent to subscribers about this scheduled maintenance state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
-    example: "Sent",
+    example: "Success",
   })
   @Index()
   @Column({

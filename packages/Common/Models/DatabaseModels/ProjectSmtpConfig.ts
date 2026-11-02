@@ -670,6 +670,7 @@ export default class ProjectSmtpConfig extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailTransportType),
     title: "Transport",
     description:
       "How OneUptime delivers mail for this config. 'SMTP' uses the hostname/port. 'Microsoft Graph' sends via the Microsoft Graph REST API — use this when your Microsoft 365 tenant has SMTP AUTH disabled.",
@@ -712,6 +713,7 @@ export default class ProjectSmtpConfig extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SMTPAuthenticationType),
     title: "Authentication Type",
     description:
       "The type of authentication to use for this SMTP server. Options: Username and Password, OAuth, or None.",
@@ -895,6 +897,7 @@ export default class ProjectSmtpConfig extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OAuthProviderType),
     title: "OAuth Provider Type",
     description:
       "The OAuth grant type to use. 'Client Credentials' for Microsoft 365 and most providers. 'JWT Bearer' for Google Workspace service accounts.",

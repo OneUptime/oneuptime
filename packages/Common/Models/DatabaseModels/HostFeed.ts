@@ -461,6 +461,7 @@ export default class HostFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(HostFeedEventType),
     required: true,
     title: "Host Feed Event",
     description: "Host Feed Event",

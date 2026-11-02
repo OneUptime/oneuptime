@@ -1629,6 +1629,7 @@ export default class ScheduledMaintenance extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status On Event Scheduled",
     description:
       "Status of notification sent to subscribers when event was scheduled",

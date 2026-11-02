@@ -1686,6 +1686,7 @@ export default class IncidentEpisode extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status on Episode Created",
     description:
       "Status of notification sent to subscribers when this episode was created",

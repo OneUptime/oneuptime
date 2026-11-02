@@ -31,6 +31,7 @@ import {
 import { getMonitorStepsSchema } from "./MonitorSchemas";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
+import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -172,6 +173,17 @@ const RELATION_SELECT_SCHEMAS: Map<string, ModelSchemaType> = new Map();
 
 const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
 
+/*
+ * What a text field's example is when its column gives none of its own
+ * (TableColumn.example, or the first of its allowedValues): placeholders,
+ * which a reader replaces.
+ */
+const SHORT_TEXT_EXAMPLE: string = "Example short text";
+const LONG_TEXT_EXAMPLE: string =
+  "This is an example of longer text content that might be stored in this field.";
+const VERY_LONG_TEXT_EXAMPLE: string =
+  "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.";
+
 // What a column's description may already end its sentence with.
 const SENTENCE_END_PUNCTUATION: ReadonlyArray<string> = [".", "!", "?"];
 
@@ -255,6 +267,57 @@ export class ModelSchema extends BaseSchema {
     return `${words}${endsWithItsOwnPunctuation ? "" : "."} ${permissionsDescription}`;
   }
 
+  /*
+   * The values a text column takes, when it takes one of a few
+   * (TableColumn.allowedValues): the spec's enum for the field, each value
+   * once - an enum can give two names one value (MimeType's jpg and jpeg).
+   */
+  public static getAllowedValues(
+    column: TableColumnMetadata,
+  ): Array<string> | undefined {
+    if (!column.allowedValues || column.allowedValues.length === 0) {
+      return undefined;
+    }
+
+    return Array.from(new Set(column.allowedValues));
+  }
+
+  /*
+   * A text field's example: its column's own (TableColumn.example), else
+   * the first value it takes when it takes one of a few - "aws" for a cloud
+   * account's provider - else the placeholder for its type. Clients copy
+   * it: the Terraform provider's examples, the API reference, MCP's tool
+   * schemas, the Dashboard's Developer pages.
+   */
+  public static getTextExample(
+    column: TableColumnMetadata,
+    placeholder: string,
+  ): string {
+    if (typeof column.example === "string" && column.example.trim()) {
+      return column.example;
+    }
+
+    return ModelSchema.getAllowedValues(column)?.[0] || placeholder;
+  }
+
+  /*
+   * What the spec says about a text field's value: a string, its example,
+   * and the values it takes when it takes one of a few.
+   */
+  private static getTextOpenApi(
+    column: TableColumnMetadata,
+    placeholder: string,
+  ): { type: "string"; example: string; enum?: Array<string> } {
+    const allowedValues: Array<string> | undefined =
+      ModelSchema.getAllowedValues(column);
+
+    return {
+      type: "string",
+      example: ModelSchema.getTextExample(column, placeholder),
+      ...(allowedValues ? { enum: allowedValues } : {}),
+    };
+  }
+
   public static getModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
@@ -307,11 +370,9 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.Date) {
         zodType = getDateSchema();
       } else if (column.type === TableColumnType.VeryLongText) {
-        zodType = z.string().openapi({
-          type: "string",
-          example:
-            "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
-        });
+        zodType = z
+          .string()
+          .openapi(ModelSchema.getTextOpenApi(column, VERY_LONG_TEXT_EXAMPLE));
       } else if (
         column.type === TableColumnType.Number ||
         column.type === TableColumnType.PositiveNumber
@@ -338,20 +399,19 @@ export class ModelSchema extends BaseSchema {
           .string()
           .openapi({ type: "string", example: "example-slug-value" });
       } else if (column.type === TableColumnType.ShortText) {
-        const openapiConfig: any = {
-          type: "string",
-          example: "Example short text",
-        };
+        const openapiConfig: any = ModelSchema.getTextOpenApi(
+          column,
+          SHORT_TEXT_EXAMPLE,
+        );
         if (column.defaultValue !== undefined) {
           openapiConfig.default = column.defaultValue;
         }
         zodType = z.string().openapi(openapiConfig);
       } else if (column.type === TableColumnType.LongText) {
-        const openapiConfig: any = {
-          type: "string",
-          example:
-            "This is an example of longer text content that might be stored in this field.",
-        };
+        const openapiConfig: any = ModelSchema.getTextOpenApi(
+          column,
+          LONG_TEXT_EXAMPLE,
+        );
         if (column.defaultValue !== undefined) {
           openapiConfig.default = column.defaultValue;
         }
@@ -475,15 +535,17 @@ export class ModelSchema extends BaseSchema {
           example: { read: true, write: false, delete: false },
         });
       } else if (column.type === TableColumnType.CustomFieldType) {
-        zodType = z.any().openapi({
-          type: "object",
-          example: { type: "text", required: true },
+        // What a custom field holds: "Text", "Number", "Dropdown"...
+        zodType = z.string().openapi({
+          type: "string",
+          enum: Object.values(CustomFieldType),
+          example: CustomFieldType.Text,
         });
       } else if (column.type === TableColumnType.MonitorType) {
         zodType = z.string().openapi({
           type: "string",
           enum: Object.values(MonitorType),
-          example: "Manual",
+          example: MonitorType.Manual,
         });
       } else if (column.type === TableColumnType.WorkflowStatus) {
         zodType = z.string().openapi({
@@ -1468,11 +1530,10 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.Date) {
       zodType = getDateSchema();
     } else if (column.type === TableColumnType.VeryLongText) {
-      zodType = applyOpenApi(z.string(), {
-        type: "string",
-        example:
-          "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getTextOpenApi(column, VERY_LONG_TEXT_EXAMPLE),
+      );
     } else if (
       column.type === TableColumnType.Number ||
       column.type === TableColumnType.PositiveNumber
@@ -1496,16 +1557,15 @@ export class ModelSchema extends BaseSchema {
         example: "example-slug-value",
       });
     } else if (column.type === TableColumnType.ShortText) {
-      zodType = applyOpenApi(z.string(), {
-        type: "string",
-        example: "Example short text",
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getTextOpenApi(column, SHORT_TEXT_EXAMPLE),
+      );
     } else if (column.type === TableColumnType.LongText) {
-      zodType = applyOpenApi(z.string(), {
-        type: "string",
-        example:
-          "This is an example of longer text content that might be stored in this field.",
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getTextOpenApi(column, LONG_TEXT_EXAMPLE),
+      );
     } else if (column.type === TableColumnType.Phone) {
       zodType = getPhoneSchema();
     } else if (column.type === TableColumnType.Version) {
@@ -1624,15 +1684,18 @@ export class ModelSchema extends BaseSchema {
         example: { read: true, write: false, delete: false },
       });
     } else if (column.type === TableColumnType.CustomFieldType) {
-      zodType = applyOpenApi(z.any(), {
-        type: "object",
-        example: { type: "text", required: true },
+      // What a custom field holds: "Text", "Number", "Dropdown"...
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        enum: Object.values(CustomFieldType),
+        example: CustomFieldType.Text,
       });
     } else if (column.type === TableColumnType.MonitorType) {
+      // A value the API takes ("HTTP" is none).
       zodType = applyOpenApi(z.string(), {
         type: "string",
         enum: Object.values(MonitorType),
-        example: "HTTP",
+        example: MonitorType.Manual,
       });
     } else if (column.type === TableColumnType.WorkflowStatus) {
       zodType = applyOpenApi(z.string(), {

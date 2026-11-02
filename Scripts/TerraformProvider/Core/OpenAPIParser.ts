@@ -1473,10 +1473,18 @@ export class OpenAPIParser {
           typeof example._type === "string" &&
           (typeof example.value === "string" ||
             typeof example.value === "number");
+        /*
+         * A value only the server writes is read, not written: a read-only
+         * attribute and every data source attribute decode it instead.
+         */
         const hint: string =
-          isWrappedScalar || description.includes("jsonencode")
+          isWrappedScalar ||
+          description.includes("jsonencode") ||
+          description.includes("jsondecode")
             ? ""
-            : "A JSON value: write it with `jsonencode()`.";
+            : computed
+              ? "A JSON value: read it with `jsondecode()`."
+              : "A JSON value: write it with `jsonencode()`.";
         return {
           attribute: {
             ...base,

@@ -517,6 +517,7 @@ export default class CloudResource extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudResourceKind),
     canReadOnRelationQuery: true,
     title: "Cloud Resource Kind",
     description:

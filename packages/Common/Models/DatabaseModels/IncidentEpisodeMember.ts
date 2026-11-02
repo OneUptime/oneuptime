@@ -427,6 +427,7 @@ export default class IncidentEpisodeMember extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(IncidentEpisodeMemberAddedBy),
     required: true,
     isDefaultValueColumn: true,
     title: "Added By",

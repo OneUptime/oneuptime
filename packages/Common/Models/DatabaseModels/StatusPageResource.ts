@@ -828,6 +828,7 @@ export default class StatusPageResource extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UptimePrecision),
     title: "Uptime Percent Precision",
     required: false,
     description:

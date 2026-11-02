@@ -361,6 +361,7 @@ export default class ScheduledMaintenanceMeasurementValue extends BaseModel {
     required: true,
     computed: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementStatus),
     title: "Status",
     description:
       "Outcome of evaluating this measurement - Recorded, Pending, Not Applicable or Invalid",

@@ -303,6 +303,7 @@ export default class DataStore extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataStoreKind),
     required: true,
     canReadOnRelationQuery: true,
     title: "Kind",
@@ -619,6 +620,7 @@ export default class DataStore extends BaseModel {
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataStoreEnvironment),
     required: true,
     canReadOnRelationQuery: true,
     title: "Environment",
@@ -638,6 +640,7 @@ export default class DataStore extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSensitivity),
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
@@ -658,6 +661,7 @@ export default class DataStore extends BaseModel {
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSensitivity),
     required: false,
     canReadOnRelationQuery: true,
     title: "Sensitivity Override",
@@ -718,6 +722,7 @@ export default class DataStore extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataStoreExposure),
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
@@ -1146,6 +1151,7 @@ export default class DataStore extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecuritySeverity),
     required: false,
     computed: true,
     canReadOnRelationQuery: true,

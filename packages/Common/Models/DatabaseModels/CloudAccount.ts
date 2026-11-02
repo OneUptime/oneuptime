@@ -216,6 +216,7 @@ export default class CloudAccount extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudProvider),
     canReadOnRelationQuery: true,
     title: "Cloud",
     description: "Which cloud the account is in: 'aws', 'azure' or 'gcp'.",
@@ -582,6 +583,7 @@ export default class CloudAccount extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
     title: "AI Remediation Mode",
     /*
      * The API and Terraform docs for the mode: the same semantics as the

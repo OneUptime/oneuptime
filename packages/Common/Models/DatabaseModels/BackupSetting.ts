@@ -80,6 +80,7 @@ export default class BackupSetting extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(BackupDestinationType),
     title: "Destination",
     description:
       "Where backups go: s3, s3-compatible, google-cloud-storage or azure-blob-storage.",
@@ -99,6 +100,7 @@ export default class BackupSetting extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(BackupProvider),
     title: "Provider",
     description:
       "The recommended destination picked, such as cloudflare-r2 or minio. Empty means the storage's own.",
@@ -176,6 +178,7 @@ export default class BackupSetting extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(BackupFrequency),
     title: "Frequency",
     description:
       "How often backups run: every-hour, every-6-hours, every-12-hours, daily or weekly.",

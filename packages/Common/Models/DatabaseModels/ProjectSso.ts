@@ -263,8 +263,9 @@ export default class ProjectSSO extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SignatureMethod),
     canReadOnRelationQuery: true,
-    example: "sha256",
+    example: "RSA-SHA256",
   })
   @Column({
     nullable: false,
@@ -293,8 +294,9 @@ export default class ProjectSSO extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DigestMethod),
     canReadOnRelationQuery: true,
-    example: "sha256",
+    example: "SHA256",
   })
   @Column({
     nullable: false,

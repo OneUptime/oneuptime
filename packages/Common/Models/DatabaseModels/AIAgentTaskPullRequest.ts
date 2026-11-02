@@ -522,6 +522,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PullRequestState),
     canReadOnRelationQuery: true,
     title: "State",
     description: "Current state of the pull request (open, closed, merged).",
@@ -548,6 +549,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FixPullRequestCiStatus),
     canReadOnRelationQuery: true,
     title: "CI Status",
     description:
@@ -597,6 +599,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FixVerificationStatus),
     canReadOnRelationQuery: true,
     title: "Runner Verification Status",
     description:
@@ -696,6 +699,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FixProductionStatus),
     title: "Production Status",
     description:
       "Whether the merged fix worked in production: AwaitingDeploy, Watching, Verified, Regressed or Unverifiable. Written by the server, which watches what the fix was for (Production Check) once a recorded deploy contains the fix.",
@@ -844,6 +848,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FixProductionCheck),
     title: "Production Check",
     description:
       "What production is watched for once the fix merges: Exception (the exception stops), Performance (the operation it names gets faster), Recurrence (the monitor stops raising incidents or alerts) or Telemetry (the spans and log fields it adds arrive). Empty on a watched fix of an exception from before the column existed. Written by the server when the pull request merges.",

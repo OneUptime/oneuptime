@@ -2111,6 +2111,7 @@ export default class Incident extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status",
     description:
       "Status of notification sent to subscribers about this incident",
@@ -2230,6 +2231,7 @@ export default class Incident extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status on Postmortem Published",
     description:
       "Status of notification sent to subscribers about this incident postmortem",

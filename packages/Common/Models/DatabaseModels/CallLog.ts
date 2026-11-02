@@ -245,10 +245,11 @@ export default class CallLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CallStatus),
     title: "Status of the Call",
     description: "Status of the Call sent",
     canReadOnRelationQuery: false,
-    example: "Completed",
+    example: "Success",
   })
   @Column({
     nullable: false,

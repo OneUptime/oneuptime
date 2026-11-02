@@ -162,6 +162,7 @@ export default class CloudConnection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudProvider),
     canReadOnRelationQuery: true,
     title: "Cloud",
     description:

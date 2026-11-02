@@ -1108,6 +1108,7 @@ export default class DockerHost extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
     title: "AI Remediation Mode",
     /*
      * The API and Terraform docs for the mode: the same semantics as the

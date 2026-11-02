@@ -464,6 +464,33 @@ describe("JSON attributes", () => {
     );
   });
 
+  /*
+   * One only the server writes is read, never written: telling a reader to
+   * jsonencode() a read-only attribute sent them to write it.
+   */
+  test("a read-only one says to read it with jsondecode()", () => {
+    const report: TerraformAttribute | undefined =
+      getMonitor().schema["probe_report"];
+
+    expect(report?.computed).toBe(true);
+    expect(report?.required).toBe(false);
+    expect(report?.description).toBe(
+      "What the probes last reported. A JSON value: read it with `jsondecode()`.",
+    );
+  });
+
+  test("a data source's says to read it with jsondecode()", () => {
+    const monitor: TerraformDataSource | undefined = getParser()
+      .getDataSources()
+      .find((d: TerraformDataSource) => {
+        return d.name === "monitor";
+      });
+
+    expect(monitor?.schema["probe_report"]?.description).toBe(
+      "What the probes last reported. A JSON value: read it with `jsondecode()`.",
+    );
+  });
+
   test("a wrapped scalar is a plain value, not JSON", () => {
     const status: TerraformResource = getParser()
       .getResources()

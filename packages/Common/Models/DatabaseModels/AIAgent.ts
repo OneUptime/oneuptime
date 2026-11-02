@@ -127,9 +127,11 @@ export default class AIAgent extends BaseModel {
   })
   @TableColumn({
     secret: true,
-    required: true,
+    required: false,
     unique: true,
     type: TableColumnType.ShortText,
+    description:
+      "The secret the AI agent connects with, its AI_AGENT_KEY. Leave it out and OneUptime generates one.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -162,6 +164,7 @@ export default class AIAgent extends BaseModel {
     type: TableColumnType.Name,
     canReadOnRelationQuery: true,
     example: "My AI Agent",
+    description: "Any friendly name of this object",
   })
   @Column({
     nullable: false,
@@ -193,6 +196,7 @@ export default class AIAgent extends BaseModel {
     required: false,
     type: TableColumnType.Description,
     example: "AI agent for automated incident triage and response",
+    description: "Friendly description that will help you remember",
   })
   @Column({
     nullable: true,
@@ -241,7 +245,12 @@ export default class AIAgent extends BaseModel {
       Permission.EditProjectAIAgent,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.Version })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Version,
+    description:
+      "A version label for the AI agent. Leave it out and it is 1.0.0.",
+  })
   @Column({
     nullable: false,
     type: ColumnType.Version,
@@ -267,6 +276,7 @@ export default class AIAgent extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    description: "When the AI agent last checked in. Set by OneUptime.",
   })
   @Column({
     nullable: true,
@@ -396,6 +406,8 @@ export default class AIAgent extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+    description:
+      "ID of the project the AI agent belongs to. A global AI agent belongs to none.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -528,6 +540,7 @@ export default class AIAgent extends BaseModel {
     title: "Connection Status",
     description: "Connection Status of the AI Agent",
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIAgentConnectionStatus),
     canReadOnRelationQuery: true,
   })
   @Column({

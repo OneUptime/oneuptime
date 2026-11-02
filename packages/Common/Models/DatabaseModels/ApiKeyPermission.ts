@@ -445,6 +445,8 @@ export default class APIKeyPermission extends BaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    description:
+      "When on, the permission is taken away instead of given. A block permission always wins over one that gives it.",
   })
   @Column({
     type: ColumnType.Boolean,

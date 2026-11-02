@@ -389,6 +389,7 @@ export default class IncomingCallLogItem extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(IncomingCallStatus),
     title: "Status",
     description: "Status of this dial attempt",
     canReadOnRelationQuery: true,

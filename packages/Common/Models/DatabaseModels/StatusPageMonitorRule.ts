@@ -733,6 +733,7 @@ export default class StatusPageMonitorRule extends RuleBaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UptimePrecision),
     title: "Uptime Percent Precision",
     required: false,
     description:

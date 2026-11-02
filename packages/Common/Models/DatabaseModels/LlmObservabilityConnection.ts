@@ -164,6 +164,7 @@ export default class LlmObservabilityConnection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmConnectionProvider),
     canReadOnRelationQuery: true,
     title: "Provider",
     description:
@@ -269,6 +270,7 @@ export default class LlmObservabilityConnection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmConversationReaders),
     title: "Who Can Read Conversations",
     description:
       "For a company AI tool: 'admins' lets only project owners and admins read its conversations; 'everyone' lets everyone who reads the project's AI conversations read them.",

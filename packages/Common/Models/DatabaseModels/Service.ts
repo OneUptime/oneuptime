@@ -774,6 +774,7 @@ export default class Service extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TechStack),
     canReadOnRelationQuery: true,
     title: "Service Language",
     description: "Language in which this service is written",

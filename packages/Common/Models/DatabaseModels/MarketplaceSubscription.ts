@@ -73,6 +73,7 @@ export default class MarketplaceSubscription extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudMarketplace),
     title: "Marketplace",
     description: "The cloud marketplace the purchase was made on.",
     example: "AWS",
@@ -234,6 +235,7 @@ export default class MarketplaceSubscription extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MarketplaceSubscriptionStatus),
     title: "Status",
     description:
       "Pending (bought, not yet set up), Active (billed through the marketplace), Suspended (the marketplace paused billing) or Cancelled.",

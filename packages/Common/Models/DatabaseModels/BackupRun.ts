@@ -89,6 +89,7 @@ export default class BackupRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(BackupRunKind),
     title: "Kind",
     description: "backup, or restore.",
   })
@@ -103,6 +104,7 @@ export default class BackupRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(BackupRunTrigger),
     title: "Started By",
     description:
       "What started it: scheduled, manual, before-restore or found-at-destination.",
@@ -119,6 +121,7 @@ export default class BackupRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(BackupRunStatus),
     title: "Status",
     description: "queued, running, succeeded, failed or cancelled.",
     defaultValue: BackupRunStatus.Queued,
@@ -197,6 +200,7 @@ export default class BackupRun extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(BackupDestinationType),
     title: "Destination",
     description:
       "The storage the backup is in: s3, s3-compatible, google-cloud-storage or azure-blob-storage.",

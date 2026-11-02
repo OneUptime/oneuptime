@@ -387,6 +387,7 @@ export default class CloudResourceLabelRule extends RuleBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudResourceKind),
     title: "Applies To",
     description:
       "environment: App Platforms' environments. resource: the resources of Cloud's accounts. Empty: both, as rules made before the two products split.",
