@@ -1214,6 +1214,14 @@ analytics:
   # this to false to keep the container off on a billing-enabled install.
   googleTagManager:
     enabled: true
+  googleAnalytics:
+    # Google Analytics Measurement Protocol API secret (Admin > Data streams >
+    # the web stream > Measurement Protocol API secrets). With it, a free
+    # trial that converts into a payment reaches Google Analytics as a
+    # purchase, sent by the server because no browser is present when the card
+    # is charged. Empty sends nothing, and so does googleTagManager.enabled:
+    # false.
+    measurementProtocolApiSecret:
 
 # OneUptime's internal marketing conversion ledger (SaaS only). Conversions are
 # recorded for OneUptime's own reporting and are never sent to ad platforms.

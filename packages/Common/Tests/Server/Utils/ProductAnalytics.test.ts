@@ -196,6 +196,58 @@ describe("ProductAnalytics", () => {
       );
     });
 
+    test("sends neither a uuid nor a timestamp unless asked to", () => {
+      ProductAnalytics.capture({
+        event: "plan_changed",
+        distinctId: "someone@example.com",
+      });
+
+      expect(capturedBody()).not.toHaveProperty("uuid");
+      expect(capturedBody()).not.toHaveProperty("timestamp");
+    });
+
+    test("captures an event raised twice for one occurrence under one uuid and moment", () => {
+      /*
+       * A Stripe webhook sent again raises its marketing event again. PostHog
+       * keeps one event per uuid, name, distinct id and timestamp, so both
+       * captures must agree on all four.
+       */
+      const occurredAt: Date = new Date("2026-09-07T10:01:00.000Z");
+
+      for (let attempt: number = 0; attempt < 2; attempt++) {
+        ProductAnalytics.capture({
+          event: "server/first_payment",
+          distinctId: "someone@example.com",
+          deduplicationKey: "first_payment:project-1",
+          timestamp: occurredAt,
+        });
+      }
+
+      const bodies: Array<JSONObject> = postMock.mock.calls.map(
+        (call: Array<unknown>): JSONObject => {
+          return (call[0] as { data: JSONObject }).data;
+        },
+      );
+
+      expect(bodies[0]!["uuid"]).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      expect(bodies[1]!["uuid"]).toBe(bodies[0]!["uuid"]);
+      expect(bodies[0]!["timestamp"]).toBe("2026-09-07T10:01:00.000Z");
+      expect(bodies[1]!["timestamp"]).toBe(bodies[0]!["timestamp"]);
+    });
+
+    test("gives different occurrences different uuids", () => {
+      expect(
+        ProductAnalytics.getDeterministicUuid("first_payment:project-1"),
+      ).not.toBe(
+        ProductAnalytics.getDeterministicUuid("first_payment:project-2"),
+      );
+      expect(
+        ProductAnalytics.getDeterministicUuid("first_payment:project-1"),
+      ).toBe(ProductAnalytics.getDeterministicUuid("first_payment:project-1"));
+    });
+
     test("posts nothing at all when analytics is not configured", () => {
       /*
        * The default for every self-hosted install. Posting here would ship a

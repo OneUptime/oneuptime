@@ -842,12 +842,26 @@ export const GoogleTagManagerEnabled: boolean =
   IsBillingEnabled && process.env["GOOGLE_TAG_MANAGER_ENABLED"] !== "false";
 
 /*
+ * The Google Analytics Measurement Protocol API secret, created in Google
+ * Analytics under Admin > Data streams > (the web stream) > Measurement
+ * Protocol API secrets. It lets the server send Google Analytics the one
+ * purchase no browser is present for: a free trial that converts into a
+ * payment (GoogleAnalyticsMeasurementProtocol). Nothing is sent while it is
+ * empty, which is every self-hosted install, and nothing on a deployment that
+ * keeps Google tags off (GoogleTagManagerEnabled). Server-only: it must never
+ * reach FRONTEND_ENV_ALLOW_LIST.
+ */
+export const GoogleAnalyticsMeasurementProtocolApiSecret: string =
+  process.env["GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET"] || "";
+
+/*
  * Outbound marketing conversion webhooks.
  *
- * OneUptime does not store conversions. Signups and plan
- * upgrades/downgrades are POSTed to this endpoint as they happen and kept
- * nowhere afterwards, so an unset URL means those moments are simply not
- * measured — nothing accumulates waiting for one to be configured.
+ * OneUptime does not store conversions. Signups, plan changes, first
+ * payments, subscriptions ending and issued licences are POSTed to this
+ * endpoint as they happen and kept nowhere afterwards, so an unset URL means
+ * those moments are simply not measured — nothing accumulates waiting for
+ * one to be configured.
  *
  * Both are required. The payload carries email addresses and campaign data,
  * so a URL set without a secret is refused rather than sent unsigned. The

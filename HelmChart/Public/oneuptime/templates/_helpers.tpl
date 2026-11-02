@@ -494,6 +494,8 @@ button when it is set; the secret is in oneuptime.env.runtime.
 {{- $googleTagManagerEnabled := ((($.Values.analytics).googleTagManager).enabled) }}
 - name: GOOGLE_TAG_MANAGER_ENABLED
   value: {{ if kindIs "invalid" $googleTagManagerEnabled }}"true"{{ else }}{{ ternary "true" "false" $googleTagManagerEnabled | quote }}{{ end }}
+- name: GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET
+  value: {{ default "" ((($.Values.analytics).googleAnalytics).measurementProtocolApiSecret) | quote }}
 - name: CAPTCHA_ENABLED
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY
