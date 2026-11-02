@@ -3,6 +3,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SetupGuideMarkdown from "../SetupGuide/SetupGuideMarkdown";
 import { withUnbrokenFlags } from "../SetupGuide/UnbrokenFlags";
+import { getTextReadingDirectionByMostLetters } from "Common/Types/ReadingDirection";
 import SetupGuideSteps, {
   SetupGuideStepVariants,
   SetupGuideStepVariantView,
@@ -465,6 +466,9 @@ export const DeveloperDocsSectionView: FunctionComponent<SectionViewProps> = (
   const { translateString } = useTranslateValue();
   const translate: DeveloperDocsTranslate = toTranslate(translateString);
   const section: DeveloperDocsSection = props.section;
+  const description: string | undefined = section.description
+    ? translate(section.description)
+    : undefined;
 
   return (
     <section
@@ -474,9 +478,13 @@ export const DeveloperDocsSectionView: FunctionComponent<SectionViewProps> = (
       <h3 className="text-sm font-semibold text-gray-900">
         {translate(section.title)}
       </h3>
-      {section.description && (
-        <p className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500">
-          {withUnbrokenFlags(translate(section.description))}
+      {description && (
+        <p
+          // A sentence not yet in the reader's language reads its own way.
+          dir={getTextReadingDirectionByMostLetters(description) || undefined}
+          className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500"
+        >
+          {withUnbrokenFlags(description)}
         </p>
       )}
       <div className="space-y-3">

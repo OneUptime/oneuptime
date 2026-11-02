@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { withUnbrokenFlags } from "./UnbrokenFlags";
+import { getTextReadingDirectionByMostLetters } from "Common/Types/ReadingDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
@@ -144,7 +145,14 @@ const SetupGuideSteps: FunctionComponent<ComponentProps> = (
                 {step.title}
               </h3>
               {step.description && (
-                <p className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500">
+                <p
+                  // A sentence not yet in the reader's language reads its own way.
+                  dir={
+                    getTextReadingDirectionByMostLetters(step.description) ||
+                    undefined
+                  }
+                  className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500"
+                >
                   {withUnbrokenFlags(step.description)}
                 </p>
               )}
