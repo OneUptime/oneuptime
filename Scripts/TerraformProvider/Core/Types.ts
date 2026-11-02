@@ -97,6 +97,11 @@ export interface TerraformRelation {
 export interface TerraformResource {
   name: string;
   /*
+   * The model's table name (TeamMember for team_member), from its schemas'
+   * names: what Common's rules for clients are keyed by.
+   */
+  tableName?: string | undefined;
+  /*
    * The name this resource had before type names kept mixed-case words whole
    * (io_t_fleet for iot_fleet). Still registered, as a deprecated alias, so
    * configurations that use it keep working.
@@ -117,6 +122,24 @@ export interface TerraformResource {
     update?: Record<string, TerraformAttribute>;
     read?: Record<string, TerraformAttribute>;
   };
+  /*
+   * A membership imported by what it joins and who - `<team_id>/<email
+   * address or user id>` - as well as by its own ID.
+   */
+  membershipImport?: TerraformMembershipImport | undefined;
+}
+
+export interface TerraformMembershipImport {
+  // The Terraform attribute of what the person is a member of: team_id.
+  parentAttribute: string;
+  // Its API field: teamId.
+  parentApiField: string;
+  // The API field of the person: userId.
+  personApiField: string;
+  // The attribute naming the person by email address: user_email.
+  personEmailAttribute?: string | undefined;
+  // The list endpoint the membership is found in.
+  listPath: string;
 }
 
 export interface TerraformDataSource {
@@ -130,6 +153,13 @@ export interface TerraformDataSource {
     list?: OpenAPIOperation;
   };
   schema: Record<string, TerraformAttribute>;
+  /*
+   * A data source written by hand, in StaticFiles/, in place of the one the
+   * spec would give: the file's name. `oneuptime_user` is one - a project
+   * API key cannot read User records, so it finds people among the
+   * project's team members.
+   */
+  staticFile?: string | undefined;
 }
 
 export interface TerraformAttribute {
@@ -159,12 +189,43 @@ export interface TerraformAttribute {
    * Set by the parser once every resource and data source is known.
    */
   relationTag?: string | undefined;
+  // The table of what the relation points at (User for a person).
+  relationTableName?: string | undefined;
   relation?: TerraformRelation | undefined;
   /*
    * Data sources: a lookup argument. Set in configuration, it filters the
    * list the data source must find exactly one match in.
    */
   isLookupFilter?: boolean;
+  /*
+   * A person, or people, the resource names by user ID (`user_id`,
+   * `owner_users`): the attribute that names them by email address instead
+   * (Common/Utils/DeveloperDocs/PeopleByEmail.ts).
+   */
+  person?: TerraformPersonAttribute | undefined;
+  /*
+   * The email companion of a person attribute (`user_email` beside
+   * `user_id`): the Terraform name of the attribute it names the person of.
+   * It is never sent to the API: the provider finds the person by it.
+   */
+  personEmailOf?: string | undefined;
+}
+
+export interface TerraformPersonAttribute {
+  // The companion's Terraform name: user_email, owner_user_emails.
+  emailAttribute: string;
+  // One person (a user ID) or a set of them (user IDs).
+  isList: boolean;
+  /*
+   * The API requires the person: in Terraform the ID or the email address
+   * is, exactly one of them.
+   */
+  isRequired: boolean;
+  /*
+   * Someone named by an address nobody in the project has is invited by it
+   * (a team member), instead of refused.
+   */
+  invitesByEmail: boolean;
 }
 
 export interface GoType {

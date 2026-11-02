@@ -153,6 +153,7 @@ moved {
 | テキスト、数値、真偽値 | そのまま | `is_public_status_page = false` |
 | 別のレコードへの参照 | その ID。通常は別のリソースの `id` | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | 参照のリスト | ID のセット。順序は関係ありません | `labels = [oneuptime_label.critical.id]` |
+| 人 | ユーザー ID の横に、その人のメールアドレス。[ユーザーとチーム](/docs/terraform/people-and-teams) を参照 | `user_email = "alice@example.com"` |
 | 色、ドメイン、その他のラップされた値 | 単純な値 | `color = "#FF5733"` |
 | 日付と時刻 | RFC 3339 形式のテキスト | `starts_at = "2030-06-01T02:00:00Z"` |
 | モニターのチェック | 型付きのネストした属性: [モニターステップ](/docs/terraform/monitor-steps) を参照 | `monitor_steps = [{ ... }]` |

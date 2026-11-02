@@ -153,6 +153,7 @@ Les attributs suivent l'API de OneUptime, en snake_case :
 | Du texte, des nombres, vrai ou faux | Tels quels | `is_public_status_page = false` |
 | Une référence à un autre enregistrement | Son ID, en général l'`id` d'une autre ressource | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | Une liste de références | Un ensemble d'ID, dont l'ordre ne change rien | `labels = [oneuptime_label.critical.id]` |
+| Une personne | Son adresse e-mail, à côté de son ID d'utilisateur : voir [Personnes et équipes](/docs/terraform/people-and-teams) | `user_email = "alice@example.com"` |
 | Une couleur, un domaine et d'autres valeurs enveloppées | Leur valeur simple | `color = "#FF5733"` |
 | Une date et une heure | Du texte au format RFC 3339 | `starts_at = "2030-06-01T02:00:00Z"` |
 | Les vérifications d'un moniteur | Des attributs imbriqués typés : voir [Étapes de moniteur](/docs/terraform/monitor-steps) | `monitor_steps = [{ ... }]` |

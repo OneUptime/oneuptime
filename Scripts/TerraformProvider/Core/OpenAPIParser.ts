@@ -7,6 +7,73 @@ import {
   TerraformAttribute,
 } from "./Types";
 import { StringUtils } from "./StringUtils";
+import {
+  describePersonEmail,
+  getPersonEmailColumnName,
+  isDecidedBySomeoneElse,
+  isInvitedByEmail,
+  isPersonRelation,
+  MEMBERSHIP_IMPORTS,
+  MembershipImport,
+  PersonColumnKind,
+} from "Common/Utils/DeveloperDocs/PeopleByEmail";
+
+/*
+ * The data sources written by hand (StaticFiles/), each in place of the one
+ * the spec would give. `oneuptime_user`: the User endpoints answer a person
+ * about themselves only, so a project API key was refused every lookup -
+ * people are found among the project's team members instead, by email
+ * address, name or ID.
+ */
+export const HANDWRITTEN_DATA_SOURCES: Readonly<
+  Record<
+    string,
+    { staticFile: string; schema: Record<string, TerraformAttribute> }
+  >
+> = {
+  user: {
+    staticFile: "data_source_user.go",
+    schema: {
+      id: {
+        type: "string",
+        description:
+          "The person's user ID. Set it to look them up by ID instead of by email address or name.",
+        optional: true,
+        computed: true,
+      },
+      email: {
+        type: "string",
+        description:
+          "The person's email address, in any case. Set it to look them up by it: the usual way.",
+        optional: true,
+        computed: true,
+        isLookupFilter: true,
+      },
+      name: {
+        type: "string",
+        description:
+          "The person's name, exactly as it is shown in OneUptime. Set it to look them up by it; two people of the same name are an error, so prefer `email`.",
+        optional: true,
+        computed: true,
+        isLookupFilter: true,
+      },
+      has_accepted_invitation: {
+        type: "bool",
+        description:
+          "Whether they have joined the project: false while every invitation they have is still waiting for them.",
+        computed: true,
+      },
+      team_ids: {
+        type: "set",
+        elementKind: "scalar",
+        elementType: "string",
+        description:
+          "IDs of the `oneuptime_team` resources of this project they are in, or invited to.",
+        computed: true,
+      },
+    },
+  },
+};
 
 type OperationType = "create" | "read" | "update" | "delete" | "list";
 
@@ -77,6 +144,7 @@ export class OpenAPIParser {
 
       const resource: TerraformResource = {
         name: resourceName,
+        tableName: this.getTableName(operations, resourceName),
         goTypeName: StringUtils.toPascalCase(resourceName),
         operations: operations,
         schema: {},
@@ -96,11 +164,14 @@ export class OpenAPIParser {
         operations,
         resourceName,
       );
+      this.keepWhatOthersDecideReadOnly(resource);
       resource.schema = this.generateResourceSchema(resource.operationSchemas);
       this.resolveRelations(resource.schema);
       for (const operationSchema of Object.values(resource.operationSchemas)) {
         this.resolveRelations(operationSchema || {});
       }
+      this.addPersonEmailCompanions(resource);
+      this.addMembershipImport(resource);
 
       const writableFields: string[] = Object.entries(
         resource.operationSchemas.create || {},
@@ -166,6 +237,19 @@ export class OpenAPIParser {
         this.getTagDescriptions().get(resourceName);
       if (dataSourceDescription) {
         dataSource.description = dataSourceDescription;
+      }
+
+      const handwritten:
+        | { staticFile: string; schema: Record<string, TerraformAttribute> }
+        | undefined = HANDWRITTEN_DATA_SOURCES[resourceName];
+
+      if (handwritten) {
+        dataSource.staticFile = handwritten.staticFile;
+        dataSource.schema = JSON.parse(
+          JSON.stringify(handwritten.schema),
+        ) as Record<string, TerraformAttribute>;
+        dataSources.push(dataSource);
+        continue;
       }
 
       dataSource.schema = this.generateDataSourceSchema(dataSource.operations);
@@ -346,6 +430,209 @@ export class OpenAPIParser {
         ? `${attribute.description} ${sentence}`
         : sentence;
     }
+  }
+
+  /*
+   * The model's table name: what its schemas are named after
+   * (TeamMemberCreateSchema, TeamMemberReadSchema...), else the resource's
+   * name in PascalCase.
+   */
+  private getTableName(
+    operations: TerraformResource["operations"],
+    resourceName: string,
+  ): string {
+    const createSchemaRef: unknown = (operations.create?.requestBody as any)
+      ?.content?.["application/json"]?.schema?.properties?.["data"]?.$ref;
+    const createSchemaSuffix: RegExp = new RegExp("CreateSchema$");
+
+    if (typeof createSchemaRef === "string") {
+      const schemaName: string = createSchemaRef.replace(
+        "#/components/schemas/",
+        "",
+      );
+      if (createSchemaSuffix.test(schemaName)) {
+        return schemaName.replace(createSchemaSuffix, "");
+      }
+    }
+
+    return StringUtils.toPascalCase(resourceName);
+  }
+
+  /*
+   * What someone else decides is read-only: whether a membership's invited
+   * person accepted, and when (the server ignores a project caller's
+   * value), and whether OneUptime has told the owners yet (it sets it once
+   * it has). Planned from a configuration, each made every plan after it
+   * moved a change - a refused update of an accepted member, a replaced and
+   * re-notified owner row (Common/Utils/DeveloperDocs/PeopleByEmail.ts).
+   */
+  private keepWhatOthersDecideReadOnly(resource: TerraformResource): void {
+    const tableName: string = resource.tableName || "";
+
+    for (const operation of ["create", "update"] as const) {
+      const schema: Record<string, TerraformAttribute> | undefined =
+        resource.operationSchemas?.[operation];
+
+      if (!schema) {
+        continue;
+      }
+
+      for (const [name, attr] of Object.entries(schema)) {
+        if (isDecidedBySomeoneElse(tableName, attr.apiFieldName || name)) {
+          delete schema[name];
+        }
+      }
+    }
+  }
+
+  /*
+   * PEOPLE BY EMAIL ADDRESS. Beside every attribute a resource writes that
+   * names a person by user ID - user_id, assigned_to_user_id, owner_users -
+   * a companion names them by email address instead: user_email,
+   * assigned_to_user_email, owner_user_emails. A configuration gives one of
+   * the two; the provider finds the person among the project's members and
+   * invitees and sends their ID, and a team member named by an address
+   * nobody in the project has is invited by it. The rules and the names are
+   * Common/Utils/DeveloperDocs/PeopleByEmail.ts, which the dashboard's
+   * Terraform pages read too.
+   *
+   * The companion is only ever in `schema`, never in the request schemas:
+   * nothing sends it to the API. The ID attribute becomes Optional and
+   * Computed - the provider fills it in from the address.
+   */
+  private addPersonEmailCompanions(resource: TerraformResource): void {
+    const createSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.create || {};
+    const updateSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.update || {};
+
+    for (const [name, attr] of Object.entries(resource.schema)) {
+      if (!isPersonRelation(attr.relationTableName) || name === "id") {
+        continue;
+      }
+
+      const isWritten: boolean =
+        Object.prototype.hasOwnProperty.call(createSchema, name) ||
+        Object.prototype.hasOwnProperty.call(updateSchema, name);
+
+      // Who created or acknowledged a record is the server's to say.
+      if (!isWritten) {
+        continue;
+      }
+
+      // People are a set (owners, notify lists): order never counts.
+      if (attr.type === "list") {
+        this.warnings.push(
+          `Resource "${resource.name}": ${name} is an ordered list of people, which has no email companion.`,
+        );
+        continue;
+      }
+
+      const isList: boolean = attr.type === "set";
+      const apiFieldName: string = attr.apiFieldName || name;
+      const emailAttribute: string = StringUtils.toLegacySnakeCase(
+        getPersonEmailColumnName(
+          apiFieldName,
+          isList ? PersonColumnKind.Many : PersonColumnKind.One,
+        ),
+      );
+
+      if (resource.schema[emailAttribute]) {
+        this.warnings.push(
+          `Resource "${resource.name}": ${name} names a person, but ${emailAttribute} is already an attribute, so it has no email companion.`,
+        );
+        continue;
+      }
+
+      const invitesByEmail: boolean = isInvitedByEmail(
+        resource.tableName || "",
+        apiFieldName,
+      );
+
+      attr.person = {
+        emailAttribute: emailAttribute,
+        isList: isList,
+        isRequired: Boolean(attr.required),
+        invitesByEmail: invitesByEmail,
+      };
+      attr.required = false;
+      attr.optional = true;
+      attr.computed = true;
+      attr.description = [
+        attr.description,
+        `Or name them by email address, in \`${emailAttribute}\`.`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      resource.schema[emailAttribute] = {
+        type: isList ? "set" : "string",
+        description: OpenAPIParser.getPersonEmailDescription({
+          idAttribute: name,
+          isList: isList,
+          invitesByEmail: invitesByEmail,
+        }),
+        required: false,
+        optional: true,
+        computed: true,
+        personEmailOf: name,
+      };
+    }
+  }
+
+  /*
+   * A membership no screen shows the ID of is imported by what it joins and
+   * who: `<team_id>/alice@example.com` (MEMBERSHIP_IMPORTS). It needs the
+   * list endpoint to find it in, and both columns among its attributes.
+   */
+  private addMembershipImport(resource: TerraformResource): void {
+    const rule: MembershipImport | undefined =
+      MEMBERSHIP_IMPORTS[resource.tableName || ""];
+    const listPath: string | undefined = resource.operations.list?.path;
+
+    if (!rule || !listPath || !resource.operations.read) {
+      return;
+    }
+
+    const parent: [string, TerraformAttribute] | undefined = Object.entries(
+      resource.schema,
+    ).find(([name, attr]: [string, TerraformAttribute]) => {
+      return (attr.apiFieldName || name) === rule.parentColumn;
+    });
+    const person: [string, TerraformAttribute] | undefined = Object.entries(
+      resource.schema,
+    ).find(([name, attr]: [string, TerraformAttribute]) => {
+      return (attr.apiFieldName || name) === rule.personColumn;
+    });
+
+    if (!parent || !person) {
+      return;
+    }
+
+    resource.membershipImport = {
+      parentAttribute: parent[0],
+      parentApiField: rule.parentColumn,
+      personApiField: rule.personColumn,
+      personEmailAttribute: person[1].person?.emailAttribute,
+      listPath: listPath,
+    };
+  }
+
+  /*
+   * What a person attribute's email companion says it is: Common's words
+   * (PeopleByEmail.describePersonEmail), which the dashboard's Terraform
+   * examples use for the same attribute.
+   */
+  public static getPersonEmailDescription(data: {
+    idAttribute: string;
+    isList: boolean;
+    invitesByEmail: boolean;
+  }): string {
+    return describePersonEmail({
+      idName: data.idAttribute,
+      isList: data.isList,
+      invitesByEmail: data.invitesByEmail,
+    });
   }
 
   /*
@@ -841,6 +1128,7 @@ export class OpenAPIParser {
     const required: boolean = requiredList.includes(propName);
 
     const relationTag: unknown = prop["x-oneuptime-relation"]?.tag;
+    const relationTableName: unknown = prop["x-oneuptime-relation"]?.tableName;
 
     const base: TerraformAttribute = {
       type: "string",
@@ -853,6 +1141,9 @@ export class OpenAPIParser {
       ...(format ? { format } : {}),
       ...(typeof relationTag === "string" && relationTag
         ? { relationTag }
+        : {}),
+      ...(typeof relationTableName === "string" && relationTableName
+        ? { relationTableName }
         : {}),
     };
 

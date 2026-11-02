@@ -559,6 +559,16 @@ function getCurrentUserId(): string | undefined {
   }
 }
 
+// The viewer's address: Terraform names a person by it (user_email).
+function getCurrentUserEmail(): string | undefined {
+  try {
+    const email: string = User.getEmail()?.toString() || "";
+    return email || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -692,6 +702,7 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
       let nextLive: DeveloperDocsLiveData = {
         ...getEmptyDeveloperDocsLiveData(new Date()),
         currentUserId: getCurrentUserId(),
+        currentUserEmail: getCurrentUserEmail(),
       };
 
       if (usesLiveData) {

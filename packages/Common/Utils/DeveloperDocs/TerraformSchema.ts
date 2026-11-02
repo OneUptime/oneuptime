@@ -11,6 +11,13 @@ import {
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { JSONValue } from "../../Types/JSON";
 import Permission from "../../Types/Permission";
+import {
+  getPersonEmailColumnName,
+  isDecidedBySomeoneElse,
+  isInvitedByEmail,
+  isPersonRelation,
+  PersonColumnKind,
+} from "./PeopleByEmail";
 import { isSecretFieldName } from "./TerraformValues";
 
 /*
@@ -31,7 +38,12 @@ import { isSecretFieldName } from "./TerraformValues";
  *   - its Terraform type follows its column type (strings, numbers, booleans,
  *     RFC3339 timestamps, sets of ids, JSON strings, typed monitor steps);
  *   - it is required when the create schema requires it, and has the spec
- *     default its column declares.
+ *     default its column declares;
+ *   - a column that names a person by user ID has a companion that names
+ *     them by email address instead (user_email beside user_id), and then
+ *     neither one is required on its own; what someone else decides
+ *     (whether an invitation was accepted, whether an owner was told) is
+ *     no attribute (PeopleByEmail.ts).
  *
  * Common/Tests/Utils/DeveloperDocs/TerraformProviderSchemaContract.test.ts
  * runs the real spec through the real provider parser and holds this file to
@@ -105,6 +117,36 @@ export interface TerraformAttributeDescriptor {
    * in the provider but cannot be set from a configuration.
    */
   isReservedName: boolean;
+  /*
+   * A column that names a person by user ID (`userId`, `ownerUsers`): the
+   * provider's attribute that names them by email address instead.
+   */
+  personEmail?: TerraformPersonEmail | undefined;
+}
+
+// The attribute a person column has beside it, naming them by address.
+export interface TerraformPersonEmail {
+  // user_email, owner_user_emails.
+  attributeName: string;
+  // A set of people (owner_users), not one.
+  isList: boolean;
+  /*
+   * A team member named by an address nobody in the project has is invited
+   * by it.
+   */
+  invitesByEmail: boolean;
+}
+
+/*
+ * Whether a configuration must give the attribute. A person the API
+ * requires is given by user ID or by email address, so neither attribute
+ * is required on its own - the API reference still badges the column
+ * Required (getColumnsRequiredOnCreate), as the API requires it.
+ */
+export function isRequiredInTerraform(
+  descriptor: TerraformAttributeDescriptor,
+): boolean {
+  return descriptor.isRequired && !descriptor.personEmail;
 }
 
 /*
@@ -593,6 +635,11 @@ export function getTerraformAttributes(
       continue;
     }
 
+    // Someone else decides it, so it is no attribute (PeopleByEmail.ts).
+    if (isDecidedBySomeoneElse(tableName, columnName)) {
+      continue;
+    }
+
     const descriptor: TerraformAttributeDescriptor = {
       columnName,
       attributeName: toTerraformSnakeCase(columnName),
@@ -620,6 +667,17 @@ export function getTerraformAttributes(
       descriptor.relatedModelType = relatedModelByForeignKey[columnName];
     }
 
+    const personEmail: TerraformPersonEmail | undefined = getPersonEmail({
+      tableName,
+      columnName,
+      kind: descriptor.kind,
+      relatedModelType: descriptor.relatedModelType,
+    });
+
+    if (personEmail) {
+      descriptor.personEmail = personEmail;
+    }
+
     if (column.example !== undefined) {
       descriptor.example = column.example as JSONValue;
     }
@@ -632,6 +690,43 @@ export function getTerraformAttributes(
   }
 
   return attributes;
+}
+
+/*
+ * The address companion of a column that names a person - an ID of a User
+ * (`userId`) or a set of them (`ownerUsers`) - the way the provider's
+ * generator names it (OpenAPIParser.addPersonEmailCompanions).
+ */
+function getPersonEmail(data: {
+  tableName: string;
+  columnName: string;
+  kind: TerraformValueKind;
+  relatedModelType: DatabaseBaseModelType | undefined;
+}): TerraformPersonEmail | undefined {
+  if (!data.relatedModelType) {
+    return undefined;
+  }
+
+  if (!isPersonRelation(new data.relatedModelType().tableName)) {
+    return undefined;
+  }
+
+  const isList: boolean = data.kind === TerraformValueKind.IdSet;
+
+  if (!isList && data.kind !== TerraformValueKind.String) {
+    return undefined;
+  }
+
+  return {
+    attributeName: toTerraformSnakeCase(
+      getPersonEmailColumnName(
+        data.columnName,
+        isList ? PersonColumnKind.Many : PersonColumnKind.One,
+      ),
+    ),
+    isList: isList,
+    invitesByEmail: isInvitedByEmail(data.tableName, data.columnName),
+  };
 }
 
 /*
