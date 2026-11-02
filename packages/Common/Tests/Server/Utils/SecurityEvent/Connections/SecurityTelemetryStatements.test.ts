@@ -115,6 +115,14 @@ describe("the statement of one table and one search", () => {
     expect(query).toMatch(/AND time <= \{p\d+:DateTime64\(9\)\}/);
     expect(query).toContain("multiSearchAnyCaseInsensitive(ifNull(body, ''),");
     expect(query).toContain("hasAny(mapValues(attributes),");
+    /*
+     * A line is read at all only when its message holds a value, whatever
+     * its case, or an attribute holds one of its spellings (which the
+     * attribute index serves): never every line of the window.
+     */
+    expect(query).toMatch(
+      /AND \(multiSearchAnyCaseInsensitive\(ifNull\(body, ''\), \{p\d+:Array\(String\)\}\) OR hasAny\(mapValues\(attributes\), \{p\d+:Array\(String\)\}\)\)/,
+    );
     expect(query).toContain("primaryEntityId NOT IN (");
     // One entry of the ARRAY JOIN a value, its message matched by its pattern.
     expect(query.split("match(ifNull(body, ''),").length - 1).toBe(
@@ -167,7 +175,9 @@ describe("the statement of one table and one search", () => {
     expect(query).toContain("max(startTime) AS lastSeen");
     expect(query).not.toContain("body");
     expect(query).toContain("toUInt8(0), ");
-    expect(query).toContain("hasAny(mapValues(attributes),");
+    expect(query).toMatch(
+      /AND \(hasAny\(mapValues\(attributes\), \{p\d+:Array\(String\)\}\)\)/,
+    );
   });
 
   test("a reader of some services reads theirs alone", () => {

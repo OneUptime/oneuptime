@@ -394,9 +394,11 @@ describe("the search", () => {
           totalCount: 10,
           messageTotal: 10,
           sourceCount: 4,
-          sources: ids.map((id: string, index: number): Array<unknown> => {
-            return [4 - index, ServiceType.OpenTelemetry, id];
-          }),
+          sources: ids.map(
+            (id: string, index: number): Array<string | number> => {
+              return [4 - index, ServiceType.OpenTelemetry, id];
+            },
+          ),
           places: [[], []],
         },
       ]),

@@ -35,6 +35,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { DataSource } from "typeorm";
 
 /*
@@ -563,7 +564,7 @@ describePostgres("Security Events' connections against Postgres", () => {
       ],
     });
 
-    const read: jest.SpiedFunction<typeof MonitorService.findBy> = jest.spyOn(
+    const read: SpyInstance<typeof MonitorService.findBy> = jest.spyOn(
       MonitorService,
       "findBy",
     );
