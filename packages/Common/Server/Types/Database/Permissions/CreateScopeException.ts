@@ -3,7 +3,10 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 /*
  * A create refused because the record it makes is not one the caller's
  * create permission reaches: a permission limited to some labels, to the
- * records the caller owns, or a block with labels (CreateScopePermission).
+ * records the caller owns, or a block with labels (CreateScopePermission) -
+ * or, for telemetry, a row of a resource the caller's permissions to create
+ * and to read the table do not both reach
+ * (AnalyticsDatabase/ModelPermission.checkCreateScope).
  *
  * To every API caller it is the NotAuthorizedException it reads as - the
  * same status, the message saying what would let the record through. Its

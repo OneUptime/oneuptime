@@ -3019,6 +3019,16 @@ export default class AnalyticsDatabaseService<
       items.push(data);
     }
 
+    /*
+     * Every row is of a resource the caller may both create and read rows
+     * of (ModelPermission.checkCreateScope), worked out once for the batch.
+     */
+    await ModelPermission.checkCreateScope(
+      this.modelType,
+      items,
+      createBy.props,
+    );
+
     try {
       const insertStatement: string = this.statementGenerator.toCreateStatement(
         { item: items },
