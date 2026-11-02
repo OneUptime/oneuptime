@@ -816,6 +816,46 @@ runs it after `container-agent-cpu-utilization-behaviour.sh`.
 `Utils/ContainerAgentRestartsBehaviour.js` builds its configs and payloads and
 checks what comes out; the real-daemon config is the CPU helper's.
 
+### `swarm-agent-inventory-behaviour.sh`
+
+What the Docker Swarm agent's collector reads of the files its inventory
+poller (`agents/DockerSwarmAgent/inventory-snapshot.sh`) writes. The poller
+rewrites the inventory and the swarm's metrics through a rename, and the
+collector knows a file by its first kilobyte (its fingerprint): a file that
+starts like one it has already read is taken for that file and read from
+where it stopped. The inventory used to start with the swarm's first node,
+the same bytes every time, so a calm swarm's identical snapshot was never read
+again (its inventory aged out of OneUptime 15 minutes after the agent
+started), and in a bigger swarm nothing past the first kilobyte changed in
+OneUptime. It lifts the agent's `filelog/inventory` and
+`otlpjsonfile/inventory` receivers out of its config as shipped, runs the
+real poller three times against a stand-in for a manager's API (the second
+snapshot identical to the first, the third changing only its last node, past
+the first kilobyte), and checks that the collector read all three in full -
+every node of each, the change - and each one's metrics. It needs docker, jq
+and node; the "Ops Config Test" workflow runs it after
+`container-agent-restarts-behaviour.sh`.
+`Utils/DockerSwarmInventoryBehaviour.js` builds the stand-in API, the config
+and the checks.
+
+### `DockerSwarmInventorySnapshot.test.js`
+
+What the poller writes, run for real under `sh --once` against the same
+stand-in API (a `curl` first on PATH that answers each endpoint from a file):
+the Snapshot line each inventory opens with, unique to the snapshot; each
+manager's reachability as `docker node ls` says it (Leader, Reachable,
+Unreachable - it used to read Reachable for any manager but the leader); each
+node's address, size and Swarm's message; each service's mode (the job modes
+too), stack, image without its pinned digest, last rolling update and the
+tasks that failed or were rejected in the last hour with the newest one's
+error and exit code; each current task's name as `docker service ps` names it
+(a global service's after its node), its service, since when it is in its
+state and its container; and the metrics line - `docker.swarm.node.ready` per
+node, the replicas each replicated or global service wants and runs, a job's
+none, one reading time in its first bytes, and no reading at all when the API
+cannot be read. It needs jq: without it the suite is skipped with the reason
+logged, except under CI, where it fails.
+
 ### `agent-event-severity-behaviour.sh`
 
 What the Kubernetes agent does to the Kubernetes Events it watches, in the

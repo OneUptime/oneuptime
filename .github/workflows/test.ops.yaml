@@ -199,6 +199,17 @@ jobs:
       # taken while Docker was restarting it, which is what lets the agent
       # see a container that is hardly ever running.
       - run: bash Tests/Ops/container-agent-restarts-behaviour.sh
+      # And for the Docker Swarm agent's inventory: its poller
+      # (inventory-snapshot.sh) and the collector's two receivers that read
+      # what it writes, exactly as they ship. The poller rewrites its files
+      # through a rename, and the collector knows a file by its first
+      # kilobyte: a snapshot that started like the last one used to be taken
+      # for it and never read again, so a calm swarm's inventory aged out of
+      # OneUptime and a big one's changes past the first kilobyte never
+      # arrived. Three snapshots of a stand-in swarm - the second identical,
+      # the third changing only its last node - must all be read in full,
+      # with their metrics.
+      - run: bash Tests/Ops/swarm-agent-inventory-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a
