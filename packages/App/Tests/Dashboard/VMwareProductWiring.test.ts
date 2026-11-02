@@ -398,9 +398,11 @@ describe("the side menus reach the whole product", () => {
 
   test("the vCenter side menu badges come from the inventory summary", () => {
     /*
-     * The layout POSTs /vmware-resource/inventory-summary/:id and hands the
-     * counts to the side menu; both halves must agree on the key names or
-     * the badges silently render empty.
+     * The layout reads POST /vmware-resource/inventory-summary/:id through
+     * fetchVMwareInventorySummary (the Overview's count chips read the same
+     * one) and hands the counts to the side menu; the reader, the layout
+     * and the menu must agree on the key names or the badges silently
+     * render empty.
      */
     const layout: string = squash(
       readSource("Pages", "VMware", "View", "Layout.tsx"),
@@ -408,8 +410,16 @@ describe("the side menus reach the whole product", () => {
     const sideMenu: string = squash(
       readSource("Pages", "VMware", "View", "SideMenu.tsx"),
     );
+    const reader: string = squash(
+      readSource("Pages", "VMware", "Utils", "VMwareResourceUtils.ts"),
+    );
+    const overview: string = squash(
+      readSource("Pages", "VMware", "View", "Index.tsx"),
+    );
 
-    expect(layout).toContain('"/vmware-resource/inventory-summary/"');
+    expect(reader).toContain('.addRoute("/vmware-resource/inventory-summary/")');
+    expect(layout).toContain("await fetchVMwareInventorySummary(modelId);");
+    expect(overview).toContain("fetchVMwareInventorySummary(");
     for (const [summaryKey, countKey] of [
       ["hostCount", "hosts"],
       ["virtualMachineCount", "virtualMachines"],
@@ -417,7 +427,8 @@ describe("the side menus reach the whole product", () => {
       ["clusterCount", "clusters"],
       ["resourcePoolCount", "resourcePools"],
     ]) {
-      expect(layout).toContain(`readNum("${summaryKey}")`);
+      expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
+      expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
       expect(sideMenu).toContain(`badge={counts.${countKey}}`);
     }
   });

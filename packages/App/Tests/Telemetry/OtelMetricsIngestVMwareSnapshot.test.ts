@@ -673,6 +673,13 @@ describe("VMware snapshot ingest — full vcenter receiver collection", () => {
       vmTemplateCount: null,
       datastoreCount: null,
       clusterCount: null,
+      // A datacenter's own roll-up: a host row carries none of it.
+      notRespondingHostCount: null,
+      standbyHostCount: null,
+      criticalHostCount: null,
+      warningHostCount: null,
+      criticalVmCount: null,
+      criticalClusterCount: null,
       observedAt: OBSERVED_AT,
     });
 
@@ -740,6 +747,16 @@ describe("VMware snapshot ingest — full vcenter receiver collection", () => {
       clusterCount: 1,
       datastoreCount: 2,
       effectiveHostCount: null,
+      /*
+       * vCenter's roll-up of its hosts' states and alarms: every host on or
+       * off, every VM and cluster green - nothing lost, asleep or red.
+       */
+      notRespondingHostCount: 0,
+      standbyHostCount: 0,
+      criticalHostCount: 0,
+      warningHostCount: 0,
+      criticalVmCount: 0,
+      criticalClusterCount: 0,
     });
     expect(metricRow(rows, "datacenter/DC1").diskPercent).toBeCloseTo(30, 9);
 
@@ -752,6 +769,49 @@ describe("VMware snapshot ingest — full vcenter receiver collection", () => {
       memoryBalloonedBytes: 16 * MIB,
       memorySwappedBytes: 8 * MIB,
       cpuPercent: null,
+    });
+  });
+
+  /*
+   * A collection in which vCenter has lost one host, vSphere DPM put one in
+   * standby and some objects carry red or yellow alarms: the datacenter's
+   * own counts reach its inventory row, where the pages read which state a
+   * host with no usage is in and what the datacenter's alarms say.
+   */
+  test("a datacenter's lost, sleeping and red parts reach its inventory row as counts", async () => {
+    const spies: Spies = setupIngestMocks({});
+    const troubled: JSONObject = resourceMetrics(DC, [
+      sum("vcenter.datacenter.host.count", "{hosts}", [
+        point({ value: 5, labels: { status: "green", power_state: "on" } }),
+        point({ value: 1, labels: { status: "yellow", power_state: "on" } }),
+        point({ value: 1, labels: { status: "red", power_state: "unknown" } }),
+        point({ value: 1, labels: { status: "gray", power_state: "standby" } }),
+      ]),
+      sum("vcenter.datacenter.vm.count", "{virtual_machines}", [
+        point({ value: 30, labels: { status: "green", power_state: "on" } }),
+        point({ value: 2, labels: { status: "red", power_state: "on" } }),
+      ]),
+      sum("vcenter.datacenter.cluster.count", "{clusters}", [
+        point({ value: 2, labels: { status: "green" } }),
+        point({ value: 1, labels: { status: "red" } }),
+      ]),
+    ]);
+
+    await OtelMetricsIngestService.processMetricsFromQueue(request([troubled]));
+
+    expect(
+      metricRow(mirroredMetrics(spies), "datacenter/DC1"),
+    ).toMatchObject({
+      hostCount: 8,
+      poweredOnHostCount: 6,
+      notRespondingHostCount: 1,
+      standbyHostCount: 1,
+      criticalHostCount: 1,
+      warningHostCount: 1,
+      vmCount: 32,
+      criticalVmCount: 2,
+      clusterCount: 3,
+      criticalClusterCount: 1,
     });
   });
 

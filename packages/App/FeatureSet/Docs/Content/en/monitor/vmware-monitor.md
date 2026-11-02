@@ -4,7 +4,7 @@ A VMware monitor watches one vCenter - its datacenters, clusters, ESXi hosts, vi
 
 :::cards
 - [Create the monitor](#create-a-vmware-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Twenty-four ready-made alerts, one incident per host, VM or datastore.
+- [Templates](#pre-built-alert-templates): Twenty-five ready-made alerts, one incident per host, VM or datastore.
 - [Identity attributes](#identity-attributes): How to target one host, VM or datastore.
 - [Metrics](#collected-metrics): Every `vcenter.*` series the monitor can alert on.
 :::
@@ -106,14 +106,15 @@ In monitor filters and group-by keys, resource attributes start with `resource.`
 
 ## Pre-built Alert Templates
 
-OneUptime ships 24 templates for common VMware problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+OneUptime ships 25 templates for common VMware problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold, so a value hovering at the line does not flap.
 
 | Template | Category | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Availability | Critical | `vcenter.datacenter.cpu.limit`, Count over the whole vCenter, **past 10 minutes** | No data for the whole window: the agent or probe stopped, or vCenter stopped answering it | Data arrives again |
-| Host CPU Saturation | Host | Warning | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Above 90%: every VM on the host competes for cores, and shows CPU ready time | At or below 81% |
+| Host Not Responding | Host | Critical | `vcenter.host.memory.usage`, Max per `resource.vcenter.host.name` | At 0, no memory in use: vCenter has lost contact with the host (it crashed, lost power or its management network, or was disconnected), or it is powered off or in standby. Where vSphere DPM puts hosts in standby, use **Datacenter Hosts Not Responding**, which leaves them out | Above 0 |
+| Host CPU Saturation | Host | Warning | `vcenter.host.cpu.utilization`, Avg per host | Above 90%: every VM on the host competes for cores, and shows CPU ready time | At or below 81% |
 | Host Memory Saturation | Host | Warning | `vcenter.host.memory.utilization`, Avg per host | Above 90%: the host starts taking memory back by ballooning, compression and swapping | At or below 81% |
 | Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max per host | Above 50 ms: every VM whose disks are on that path waits on storage. Needs performance counter level 3 | At or below 45 ms |
 | Host Network Packet Errors | Host | Warning | `vcenter.host.network.packet.error.rate`, Max per host | Above 0: almost always a cable, SFP or switch-port fault | At 0 |
@@ -142,6 +143,7 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 - **Utilization templates use Avg:** the receiver reports a real 0 to 100 percentage for each object, so the average in a minute is the sustained utilization.
 - **Latency templates use Max:** the metric is already the worst latency across the object's disks, so its highest sample is the honest one.
 - **Count and state templates use Max**, so one collection that shows the condition trips them: packet errors, ballooning, swapping, red and yellow status, hosts that are not effective, congestion.
+- **Host Not Responding uses Max and fires at 0:** a running ESXi host always uses memory, so one collection that reports memory in use is a host that answers, and only a window in which none did fires it.
 - **Every template groups by the object's own identity attribute**, so one incident fires per affected object, and the incident names it. The exception is **vCenter Stopped Reporting**, which watches the whole vCenter: when data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **Thresholds are pinned to their unit** (`%`, `ms`, `us`), so they keep their meaning whatever unit a chart shows.
 
