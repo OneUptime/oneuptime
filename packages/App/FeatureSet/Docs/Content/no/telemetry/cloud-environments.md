@@ -129,7 +129,7 @@ En app som ikke sender noe på 30 dager, fjernes sammen med revisjonene sine, og
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **Verter** | En virtuell maskin er en vert. Se [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) |
 | EKS, GKE, AKS, selvadministrert Kubernetes | **Kubernetes** | Rutes etter attributtene `k8s.*`. Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Serverløse funksjoner** | Rutes etter `faas.name`, eller etter `service.name` på en `cloud.platform` for FaaS. Se [Serverløse funksjoner](/docs/telemetry/serverless-functions) |
-| Lastbalanserere, bøtter, administrerte databaser og andre IaaS- eller PaaS-ressurser | **Cloud Resources** | Oppdaget fra metrikkene som Azure Monitor, CloudWatch og Cloud Monitoring publiserer. Se [Skyressurser](/docs/telemetry/cloud-resources) |
+| Lastbalanserere, bøtter, administrerte databaser og andre IaaS- eller PaaS-ressurser | **Skyressurser** | Oppdaget fra metrikkene som Azure Monitor, CloudWatch og Cloud Monitoring publiserer. Se [Skyressurser](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > Cloud Run og App Engine vises med vilje på to steder. Detektoren deres setter både en administrert `cloud.platform` og `faas.name`, så hver tjeneste er også sin egen **Serverløs funksjon**, mens **Skymiljø** samler alle tjenestene i det prosjektet og den regionen. Den samme telemetrien arkiveres under begge.

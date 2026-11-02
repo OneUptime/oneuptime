@@ -37,6 +37,7 @@ import useMonitorUptimeSummary, {
   UseMonitorUptimeSummaryResult,
 } from "../../../Components/Monitor/Overview/useMonitorUptimeSummary";
 import Summary from "../../../Components/Monitor/SummaryView/Summary";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
 import PageComponentProps from "../../PageComponentProps";
 import MonitorViewOutletContext from "./MonitorViewOutletContext";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -47,6 +48,8 @@ import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonit
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil";
 import ObjectID from "Common/Types/ObjectID";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
+import { getMonitorTargetHosts } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -457,6 +460,25 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         <div className="min-w-0">
           <MonitorOpenWorkCard monitorId={modelId} openWork={openWork} />
+
+          {/*
+           * What Security Events found about the hosts it checks this
+           * week, for whoever may read it - only for a monitor that checks
+           * a host (a website, an API, a ping, a port, a certificate, a DNS
+           * name or a domain): a heartbeat or a script has nothing to be
+           * named by. Read again on a Refresh, not on every poll. Stacked,
+           * as every card of this one-third column is.
+           */}
+          {getMonitorTargetHosts(monitor.monitorSteps).length > 0 ? (
+            <ResourceSecurityCard
+              kind={SecurityConnectionKind.Monitor}
+              modelId={modelId}
+              refreshToken={data.manualRefreshCount}
+              headerLayout="stacked"
+            />
+          ) : (
+            <></>
+          )}
 
           <MonitorStatusChangesCard
             monitorId={modelId}

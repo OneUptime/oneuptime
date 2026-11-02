@@ -18,6 +18,11 @@ import {
 } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   MAX_HOST_NAME_LENGTH,
+  MAX_RESOURCE_ID_LENGTH,
+  MAX_URL_LENGTH,
+  MONITOR_TARGET_MAX_HOSTS,
+  SECURITY_CONNECTION_LOOKUP_KINDS,
+  SECURITY_CONNECTION_MAX_MONITOR_MENTIONS,
   SecurityAddressScope,
   SecurityConnectionLookups,
   SecurityConnectionVerdict,
@@ -28,20 +33,34 @@ import {
   getBestCertainty,
   getCaseConnectionWindow,
   getEventConnectionWindow,
+  getLookupKindsOf,
+  getMonitorMentionTexts,
+  getMonitorTargetHosts,
   getObservableSearchValues,
   getRecordSecurityValues,
   getSecurityAddressScope,
   getSecurityConnectionLookups,
   getShortHostName,
+  getUrlHost,
+  isCloudResourceIdLike,
   isEmailLike,
   isHostNameLike,
   matchAddress,
   matchEmail,
   matchHostName,
+  matchMonitorTarget,
+  matchResourceId,
+  readCloudEndpointHosts,
   readRecordAddresses,
   readSecurityLogResource,
   recordReportsAddress,
+  wasLookedUpEverywhere,
 } from "../../../Utils/SecurityCase/SecurityConnectionMatch";
+import Hostname from "../../../Types/API/Hostname";
+import URL from "../../../Types/API/URL";
+import IP from "../../../Types/IP/IP";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import {
   getEntityCaseGroupingKey,
   getEntityRiskKey,
@@ -98,6 +117,33 @@ describe("the kinds and reasons", () => {
     expect(
       SECURITY_CONNECTION_KINDS[SECURITY_CONNECTION_KINDS.length - 1],
     ).toBe(SecurityConnectionKind.InventoryItem);
+  });
+
+  test("machines, clusters, devices, the cloud's, services, the monitors that check them, then people", () => {
+    expect(SECURITY_CONNECTION_KINDS).toEqual([
+      SecurityConnectionKind.Host,
+      SecurityConnectionKind.DockerHost,
+      SecurityConnectionKind.PodmanHost,
+      SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.NetworkDevice,
+      SecurityConnectionKind.CloudResource,
+      SecurityConnectionKind.ServerlessFunction,
+      SecurityConnectionKind.Service,
+      SecurityConnectionKind.Monitor,
+      SecurityConnectionKind.User,
+      SecurityConnectionKind.InventoryItem,
+    ]);
+  });
+
+  test("a cloud resource's ID, the names it answers on and a monitor's target are exact reasons", () => {
+    for (const reason of [
+      SecurityConnectionReason.ResourceId,
+      SecurityConnectionReason.CloudEndpoint,
+      SecurityConnectionReason.MonitorTarget,
+    ]) {
+      expect(EXACT_SECURITY_CONNECTION_REASONS).toContain(reason);
+      expect(POSSIBLE_SECURITY_CONNECTION_REASONS).not.toContain(reason);
+    }
   });
 
   test("every reason is either exact or possible, never both", () => {
@@ -409,6 +455,22 @@ describe("getSecurityConnectionLookups: what each entity is looked up as", () =>
     { type: SecurityEntityType.Process, value: "powershell.exe -enc" },
     // The same host again, in another case: looked up once.
     { type: SecurityEntityType.Host, value: "web-1" },
+    // A URL an attribute named without saying it is one, and a local one.
+    {
+      type: SecurityEntityType.Other,
+      value: "https://Shop.Acme.example:8443/login?next=/",
+    },
+    { type: SecurityEntityType.Url, value: "http://127.0.0.1:8080/admin" },
+    // A cloud resource's own ID.
+    {
+      type: SecurityEntityType.Other,
+      value: "arn:aws:s3:::acme-prod-data",
+    },
+    // An IAM user's ARN names a user, not a resource.
+    {
+      type: SecurityEntityType.User,
+      value: "arn:aws:iam::123456789012:user/kim",
+    },
   ];
   const lookups: SecurityConnectionLookups =
     getSecurityConnectionLookups(entities);
@@ -442,7 +504,7 @@ describe("getSecurityConnectionLookups: what each entity is looked up as", () =>
     expect(lookups.addresses).toEqual(["203.0.113.7"]);
   });
 
-  test("emails folded; a bare user name, a hash, a URL and a process are never looked up", () => {
+  test("emails folded; a bare user name, a hash and a process are never looked up", () => {
     expect(lookups.emails).toEqual(["k.morgan@acme.example"]);
     expect(
       lookups.lookedUp.map((entity: SecurityEntity): string => {
@@ -454,7 +516,24 @@ describe("getSecurityConnectionLookups: what each entity is looked up as", () =>
       "prod-eu",
       "203.0.113.7",
       "K.Morgan@acme.example",
+      "https://evil.example/x",
+      "https://Shop.Acme.example:8443/login?next=/",
+      "arn:aws:s3:::acme-prod-data",
     ]);
+  });
+
+  test("a URL by its host - typed one, or written with a scheme - and never a local one", () => {
+    expect(lookups.urlHosts).toEqual(["evil.example", "shop.acme.example"]);
+    expect(lookups.urlHostEntities.get("shop.acme.example")).toEqual({
+      type: SecurityEntityType.Other,
+      value: "https://Shop.Acme.example:8443/login?next=/",
+    });
+    // A URL's host is never a name looked up among the machines.
+    expect(lookups.hostNames).not.toContain("evil.example");
+  });
+
+  test("a cloud resource's own ID, folded; a user's ARN is a user's", () => {
+    expect(lookups.resourceIds).toEqual(["arn:aws:s3:::acme-prod-data"]);
   });
 
   test("at most a case's worth of entities, and a few addresses", () => {
@@ -485,6 +564,620 @@ describe("getSecurityConnectionLookups: what each entity is looked up as", () =>
         { type: SecurityEntityType.Host, value: "  " },
       ]).lookedUp,
     ).toEqual([]);
+  });
+});
+
+describe("URLs: a URL by its host", () => {
+  test("the host of a URL with a scheme, folded, without its user, port, path or query", () => {
+    expect(getUrlHost("https://Shop.Acme.example:8443/admin?x=1#y")).toBe(
+      "shop.acme.example",
+    );
+    expect(getUrlHost("ftp://kim:secret@files.acme.example/a")).toBe(
+      "files.acme.example",
+    );
+    expect(getUrlHost("  wss://live.acme.example/socket  ")).toBe(
+      "live.acme.example",
+    );
+  });
+
+  test("an address host in its one spelling", () => {
+    expect(getUrlHost("http://203.0.113.7/login")).toBe("203.0.113.7");
+    expect(getUrlHost("http://[2001:db8::7]:8080/")).toBe(
+      "2001:db8:0:0:0:0:0:7",
+    );
+  });
+
+  test("no scheme, no host a monitor could check, or too long: nothing", () => {
+    expect(getUrlHost("shop.acme.example/admin")).toBeNull();
+    expect(getUrlHost("/admin/login")).toBeNull();
+    expect(getUrlHost("https://")).toBeNull();
+    expect(getUrlHost("https://bad host/x")).toBeNull();
+    expect(getUrlHost("1http://shop.acme.example")).toBeNull();
+    expect(getUrlHost("ht%p://shop.acme.example")).toBeNull();
+    expect(
+      getUrlHost(`https://shop.acme.example/${"a".repeat(MAX_URL_LENGTH)}`),
+    ).toBeNull();
+    expect(getUrlHost(undefined)).toBeNull();
+    expect(getUrlHost(null)).toBeNull();
+  });
+});
+
+describe("cloud resources: their own IDs, and the names and addresses they answer on", () => {
+  test.each([
+    "arn:aws:s3:::acme-prod-data",
+    "arn:aws:lambda:us-east-1:123456789012:function:checkout",
+    "ARN:AWS:EC2:US-EAST-1:123456789012:INSTANCE/I-0ABC",
+    "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm-1",
+    "//compute.googleapis.com/projects/acme/zones/us-central1-a/instances/web-1",
+  ])("%s is a cloud resource's ID", (value: string) => {
+    expect(isCloudResourceIdLike(value)).toBe(true);
+  });
+
+  test.each([
+    "arn:aws:s3",
+    "arn:aws:s3:::",
+    "/subscriptions/",
+    "//googleapis.com/x",
+    "//compute.googleapis.com/",
+    "web-1.acme.example",
+    "https://compute.googleapis.com/projects/acme",
+    "arn:aws:s3:::acme prod",
+    "",
+  ])("%p is not", (value: string) => {
+    expect(isCloudResourceIdLike(value)).toBe(false);
+  });
+
+  test("an ID longer than any provider writes is not one", () => {
+    expect(
+      isCloudResourceIdLike(
+        `arn:aws:s3:::${"a".repeat(MAX_RESOURCE_ID_LENGTH)}`,
+      ),
+    ).toBe(false);
+  });
+
+  test("a resource's own ID, folded, is that resource whatever the value was typed as", () => {
+    const verdict: SecurityConnectionVerdict | null = matchResourceId({
+      entityValue: " ARN:aws:s3:::Acme-Prod-Data ",
+      providerResourceId: "arn:aws:s3:::acme-prod-data",
+    });
+
+    expect(verdict).toEqual({
+      certainty: SecurityConnectionCertainty.Exact,
+      reason: SecurityConnectionReason.ResourceId,
+    });
+  });
+
+  test("another ID, a name or nothing is no resource's ID", () => {
+    expect(
+      matchResourceId({
+        entityValue: "arn:aws:s3:::acme-prod-data",
+        providerResourceId: "arn:aws:s3:::acme-prod-data-2",
+      }),
+    ).toBeNull();
+    // Equal, but not an ID at all: a name is never matched as one.
+    expect(
+      matchResourceId({
+        entityValue: "checkout",
+        providerResourceId: "checkout",
+      }),
+    ).toBeNull();
+    expect(
+      matchResourceId({
+        entityValue: "arn:aws:s3:::acme-prod-data",
+        providerResourceId: undefined,
+      }),
+    ).toBeNull();
+  });
+
+  test("the names it answers on apart from its addresses; local ones and repeats left out", () => {
+    expect(
+      readCloudEndpointHosts([
+        "Checkout-1234.us-east-1.elb.amazonaws.com",
+        "checkout-1234.us-east-1.elb.amazonaws.com",
+        "203.0.113.50",
+        "10.0.4.12",
+        "127.0.0.1",
+        "2001:db8::50",
+        "",
+        null,
+        { host: "shop.example.com" },
+      ]),
+    ).toEqual({
+      names: ["checkout-1234.us-east-1.elb.amazonaws.com"],
+      addresses: ["203.0.113.50", "10.0.4.12", "2001:db8:0:0:0:0:0:50"],
+    });
+    expect(readCloudEndpointHosts(undefined)).toEqual({
+      names: [],
+      addresses: [],
+    });
+    expect(readCloudEndpointHosts("shop.example.com")).toEqual({
+      names: [],
+      addresses: [],
+    });
+  });
+
+  test("a name it answers on, by the host rules: exact when typed, never by a short form", () => {
+    expect(
+      matchHostName({
+        entityValue: "checkout-1234.us-east-1.elb.amazonaws.com",
+        entityType: SecurityEntityType.Domain,
+        resourceName: "checkout-1234.us-east-1.elb.amazonaws.com",
+        exactReason: SecurityConnectionReason.CloudEndpoint,
+      }),
+    ).toEqual({
+      certainty: SecurityConnectionCertainty.Exact,
+      reason: SecurityConnectionReason.CloudEndpoint,
+    });
+  });
+});
+
+function stepsWith(
+  steps: Array<(step: MonitorStep) => MonitorStep>,
+): MonitorSteps {
+  const monitorSteps: MonitorSteps = new MonitorSteps();
+
+  monitorSteps.setMonitorStepsInstanceArray(
+    steps.map((build: (step: MonitorStep) => MonitorStep): MonitorStep => {
+      return build(new MonitorStep());
+    }),
+  );
+
+  return monitorSteps;
+}
+
+describe("monitors: the hosts a monitor checks", () => {
+  test("a URL's host, a host name, an address, a DNS lookup's name, a domain and an SNMP host", () => {
+    const steps: MonitorSteps = stepsWith([
+      (step: MonitorStep): MonitorStep => {
+        return step.setMonitorDestination(
+          URL.fromString("https://kim:pw@Shop.Acme.example:8443/checkout?a=1"),
+        );
+      },
+      (step: MonitorStep): MonitorStep => {
+        return step.setMonitorDestination(new Hostname("db-1.acme.internal"));
+      },
+      (step: MonitorStep): MonitorStep => {
+        return step.setMonitorDestination(new IP("203.0.113.7"));
+      },
+      (step: MonitorStep): MonitorStep => {
+        return step.setDnsMonitor({
+          queryName: "API.acme.example",
+          // The DNS server asked: not what the monitor checks.
+          hostname: "8.8.8.8",
+        } as never);
+      },
+      (step: MonitorStep): MonitorStep => {
+        return step.setDomainMonitor({
+          domainName: "acme.example",
+        } as never);
+      },
+      (step: MonitorStep): MonitorStep => {
+        return step.setSnmpMonitor({ hostname: "core-sw-1" } as never);
+      },
+    ]);
+
+    expect(getMonitorTargetHosts(steps)).toEqual([
+      "shop.acme.example",
+      "db-1.acme.internal",
+      "203.0.113.7",
+      "api.acme.example",
+      "acme.example",
+      "core-sw-1",
+    ]);
+  });
+
+  test("read from the JSON a monitor is stored as, too", () => {
+    const json: unknown = JSON.parse(
+      JSON.stringify(
+        stepsWith([
+          (step: MonitorStep): MonitorStep => {
+            return step.setMonitorDestination(
+              URL.fromString("https://shop.acme.example/"),
+            );
+          },
+          (step: MonitorStep): MonitorStep => {
+            return step.setDnsMonitor({
+              queryName: "api.acme.example",
+            } as never);
+          },
+        ]).toJSON(),
+      ),
+    );
+
+    expect(getMonitorTargetHosts(json)).toEqual([
+      "shop.acme.example",
+      "api.acme.example",
+    ]);
+  });
+
+  test("an address in its one spelling; a local one, a repeat or no host adds nothing", () => {
+    expect(
+      getMonitorTargetHosts(
+        stepsWith([
+          (step: MonitorStep): MonitorStep => {
+            return step.setMonitorDestination(new IP("2001:0DB8::7"));
+          },
+          (step: MonitorStep): MonitorStep => {
+            return step.setMonitorDestination(new IP("127.0.0.1"));
+          },
+          (step: MonitorStep): MonitorStep => {
+            return step.setMonitorDestination(
+              URL.fromString("https://SHOP.acme.example/a"),
+            );
+          },
+          (step: MonitorStep): MonitorStep => {
+            return step.setMonitorDestination(
+              URL.fromString("https://shop.acme.example/b"),
+            );
+          },
+          (step: MonitorStep): MonitorStep => {
+            return step;
+          },
+        ]),
+      ),
+    ).toEqual(["2001:db8:0:0:0:0:0:7", "shop.acme.example"]);
+  });
+
+  test(`at most ${MONITOR_TARGET_MAX_HOSTS} hosts`, () => {
+    const many: MonitorSteps = stepsWith(
+      Array.from(
+        { length: MONITOR_TARGET_MAX_HOSTS + 5 },
+        (_value: unknown, index: number) => {
+          return (step: MonitorStep): MonitorStep => {
+            return step.setMonitorDestination(
+              new Hostname(`host-${index}.acme.example`),
+            );
+          };
+        },
+      ),
+    );
+
+    expect(getMonitorTargetHosts(many)).toHaveLength(MONITOR_TARGET_MAX_HOSTS);
+  });
+
+  test("nothing that is not a monitor's steps checks a host", () => {
+    expect(getMonitorTargetHosts(undefined)).toEqual([]);
+    expect(getMonitorTargetHosts("https://shop.acme.example")).toEqual([]);
+    expect(getMonitorTargetHosts({ data: {} })).toEqual([]);
+    expect(
+      getMonitorTargetHosts({
+        data: { monitorStepsInstanceArray: [null, 3, { data: null }] },
+      }),
+    ).toEqual([]);
+    expect(
+      getMonitorTargetHosts({
+        value: {
+          monitorStepsInstanceArray: [
+            { value: { dnsMonitor: ["api.acme.example"] } },
+          ],
+        },
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("monitors: whether a value is what a monitor checks", () => {
+  test("a host or a domain it checks: exact", () => {
+    for (const type of [SecurityEntityType.Host, SecurityEntityType.Domain]) {
+      expect(
+        matchMonitorTarget({
+          entityValue: "SHOP.acme.example",
+          entityType: type,
+          target: "shop.acme.example",
+        }),
+      ).toEqual({
+        certainty: SecurityConnectionCertainty.Exact,
+        reason: SecurityConnectionReason.MonitorTarget,
+      });
+    }
+  });
+
+  test("an untyped value or a short form: possible", () => {
+    expect(
+      matchMonitorTarget({
+        entityValue: "shop.acme.example",
+        entityType: SecurityEntityType.Other,
+        target: "shop.acme.example",
+      }),
+    ).toEqual({
+      certainty: SecurityConnectionCertainty.Possible,
+      reason: SecurityConnectionReason.UntypedValue,
+    });
+    expect(
+      matchMonitorTarget({
+        entityValue: "web-1",
+        entityType: SecurityEntityType.Host,
+        target: "web-1.acme.internal",
+      }),
+    ).toEqual({
+      certainty: SecurityConnectionCertainty.Possible,
+      reason: SecurityConnectionReason.ShortHostName,
+    });
+  });
+
+  test("a URL on the host it checks: exact, by the URL's host alone", () => {
+    expect(
+      matchMonitorTarget({
+        entityValue: "https://shop.acme.example/admin/login",
+        entityType: SecurityEntityType.Url,
+        target: "shop.acme.example",
+      }),
+    ).toEqual({
+      certainty: SecurityConnectionCertainty.Exact,
+      reason: SecurityConnectionReason.MonitorTarget,
+    });
+    // Written with a scheme, whatever it was typed as.
+    expect(
+      matchMonitorTarget({
+        entityValue: "https://shop.acme.example/admin",
+        entityType: SecurityEntityType.Other,
+        target: "shop.acme.example",
+      })?.certainty,
+    ).toBe(SecurityConnectionCertainty.Exact);
+    // A URL's host is never another host's short form.
+    expect(
+      matchMonitorTarget({
+        entityValue: "https://shop/admin",
+        entityType: SecurityEntityType.Url,
+        target: "shop.acme.example",
+      }),
+    ).toBeNull();
+  });
+
+  test("a public address it checks: exact, however many monitors check it", () => {
+    expect(
+      matchMonitorTarget({
+        entityValue: "203.0.113.7",
+        entityType: SecurityEntityType.IpAddress,
+        target: "203.0.113.7",
+      }),
+    ).toEqual({
+      certainty: SecurityConnectionCertainty.Exact,
+      reason: SecurityConnectionReason.MonitorTarget,
+    });
+    expect(
+      matchMonitorTarget({
+        entityValue: "2001:DB8::7",
+        entityType: SecurityEntityType.IpAddress,
+        target: "2001:db8:0:0:0:0:0:7",
+      })?.certainty,
+    ).toBe(SecurityConnectionCertainty.Exact);
+    expect(
+      matchMonitorTarget({
+        entityValue: "http://203.0.113.7/admin",
+        entityType: SecurityEntityType.Url,
+        target: "203.0.113.7",
+      })?.certainty,
+    ).toBe(SecurityConnectionCertainty.Exact);
+  });
+
+  test("a private address it checks: possible; a local one names nothing", () => {
+    expect(
+      matchMonitorTarget({
+        entityValue: "10.0.3.17",
+        entityType: SecurityEntityType.IpAddress,
+        target: "10.0.3.17",
+      }),
+    ).toEqual({
+      certainty: SecurityConnectionCertainty.Possible,
+      reason: SecurityConnectionReason.PrivateAddress,
+    });
+    expect(
+      matchMonitorTarget({
+        entityValue: "127.0.0.1",
+        entityType: SecurityEntityType.IpAddress,
+        target: "127.0.0.1",
+      }),
+    ).toBeNull();
+  });
+
+  test("another host, an address against a name, or nothing: no match", () => {
+    expect(
+      matchMonitorTarget({
+        entityValue: "203.0.113.70",
+        entityType: SecurityEntityType.IpAddress,
+        target: "203.0.113.7",
+      }),
+    ).toBeNull();
+    expect(
+      matchMonitorTarget({
+        entityValue: "203.0.113.7",
+        entityType: SecurityEntityType.IpAddress,
+        target: "shop.acme.example",
+      }),
+    ).toBeNull();
+    expect(
+      matchMonitorTarget({
+        entityValue: "shop.acme.example",
+        entityType: SecurityEntityType.Host,
+        target: "203.0.113.7",
+      }),
+    ).toBeNull();
+    expect(
+      matchMonitorTarget({
+        entityValue: "web-10.acme.example",
+        entityType: SecurityEntityType.Host,
+        target: "web-1.acme.example",
+      }),
+    ).toBeNull();
+    expect(
+      matchMonitorTarget({
+        entityValue: "",
+        entityType: SecurityEntityType.Host,
+        target: "web-1.acme.example",
+      }),
+    ).toBeNull();
+    expect(
+      matchMonitorTarget({
+        entityValue: "web-1.acme.example",
+        entityType: SecurityEntityType.Host,
+        target: "",
+      }),
+    ).toBeNull();
+  });
+
+  test("what the project's monitors are searched for: where a stored step holds a host, never a bare word", () => {
+    const lookups: SecurityConnectionLookups = getSecurityConnectionLookups([
+      { type: SecurityEntityType.Host, value: "web-1.acme.internal" },
+      { type: SecurityEntityType.Host, value: "db" },
+      { type: SecurityEntityType.Url, value: "https://shop.acme.example/x" },
+      { type: SecurityEntityType.IpAddress, value: "2001:DB8::7" },
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
+    ]);
+
+    expect(getMonitorMentionTexts(lookups)).toEqual([
+      // A full name: a whole string, a URL's host, a user's host.
+      '"web-1.acme.internal"',
+      "//web-1.acme.internal",
+      "@web-1.acme.internal",
+      // A bare name: itself, and itself with a domain after it.
+      '"db"',
+      "//db",
+      "@db",
+      '"db.',
+      "//db.",
+      "@db.",
+      // A URL's host, as a full name is searched for.
+      '"shop.acme.example"',
+      "//shop.acme.example",
+      "@shop.acme.example",
+      // An IPv6 address in its one spelling and as written, whole or in brackets.
+      '"2001:db8:0:0:0:0:0:7"',
+      "[2001:db8:0:0:0:0:0:7]",
+      '"2001:db8::7"',
+      "[2001:db8::7]",
+      '"203.0.113.7"',
+      "//203.0.113.7",
+      "@203.0.113.7",
+      // A full name's short form, only as the whole host a step checks.
+      '"web-1"',
+      "//web-1/",
+      "//web-1:",
+      '//web-1"',
+    ]);
+  });
+
+  test("a common short word is never searched for on its own", () => {
+    const texts: Array<string> = getMonitorMentionTexts(
+      getSecurityConnectionLookups([
+        { type: SecurityEntityType.Host, value: "www.acme.example" },
+      ]),
+    );
+
+    expect(texts).not.toContain("www");
+    expect(texts).not.toContain("//www");
+    expect(texts).toContain('"www"');
+    expect(texts).toContain("//www/");
+  });
+
+  test(`at most ${SECURITY_CONNECTION_MAX_MONITOR_MENTIONS} texts, the case's own names first`, () => {
+    const many: Array<SecurityEntity> = Array.from(
+      { length: 50 },
+      (_value: unknown, index: number): SecurityEntity => {
+        return {
+          type: SecurityEntityType.Host,
+          value: `host-${index}.acme.example`,
+        };
+      },
+    );
+    const texts: Array<string> = getMonitorMentionTexts(
+      getSecurityConnectionLookups(many),
+    );
+
+    expect(texts).toHaveLength(SECURITY_CONNECTION_MAX_MONITOR_MENTIONS);
+    expect(texts[0]).toBe('"host-0.acme.example"');
+    // Every full name made it in before any short form.
+    expect(texts).toContain('"host-49.acme.example"');
+    expect(getMonitorMentionTexts(getSecurityConnectionLookups([]))).toEqual(
+      [],
+    );
+  });
+});
+
+describe("the kinds each value is looked up among", () => {
+  test("a name among the machines, devices, the names cloud resources answer on and the hosts monitors check", () => {
+    expect(
+      getLookupKindsOf({ type: SecurityEntityType.Host, value: "web-1" }),
+    ).toEqual(SECURITY_CONNECTION_LOOKUP_KINDS.name);
+    expect(SECURITY_CONNECTION_LOOKUP_KINDS.name).toEqual([
+      SecurityConnectionKind.Host,
+      SecurityConnectionKind.DockerHost,
+      SecurityConnectionKind.PodmanHost,
+      SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.NetworkDevice,
+      SecurityConnectionKind.CloudResource,
+      SecurityConnectionKind.Monitor,
+    ]);
+  });
+
+  test("an address among the hosts, devices and cloud resources holding it and the monitors checking it", () => {
+    expect(
+      getLookupKindsOf({
+        type: SecurityEntityType.IpAddress,
+        value: "203.0.113.7",
+      }),
+    ).toEqual([
+      SecurityConnectionKind.Host,
+      SecurityConnectionKind.NetworkDevice,
+      SecurityConnectionKind.CloudResource,
+      SecurityConnectionKind.Monitor,
+    ]);
+  });
+
+  test("an email among the members, a URL among the monitors, an ID among the cloud resources", () => {
+    expect(
+      getLookupKindsOf({
+        type: SecurityEntityType.User,
+        value: "kim@acme.example",
+      }),
+    ).toEqual([SecurityConnectionKind.User]);
+    expect(
+      getLookupKindsOf({
+        type: SecurityEntityType.Url,
+        value: "https://shop.acme.example",
+      }),
+    ).toEqual([SecurityConnectionKind.Monitor]);
+    expect(
+      getLookupKindsOf({
+        type: SecurityEntityType.Other,
+        value: "arn:aws:s3:::acme-prod-data",
+      }),
+    ).toEqual([SecurityConnectionKind.CloudResource]);
+  });
+
+  test("a value is not in OneUptime only when every kind it could be was read", () => {
+    const url: SecurityEntity = {
+      type: SecurityEntityType.Url,
+      value: "https://shop.acme.example",
+    };
+    const name: SecurityEntity = {
+      type: SecurityEntityType.Host,
+      value: "web-1",
+    };
+
+    expect(wasLookedUpEverywhere(url, new Set())).toBe(true);
+    // Monitors could not be read: the URL may well be a monitor's.
+    expect(
+      wasLookedUpEverywhere(url, new Set([SecurityConnectionKind.Monitor])),
+    ).toBe(false);
+    expect(
+      wasLookedUpEverywhere(url, new Set([SecurityConnectionKind.Host])),
+    ).toBe(true);
+    expect(
+      wasLookedUpEverywhere(
+        name,
+        new Set([SecurityConnectionKind.CloudResource]),
+      ),
+    ).toBe(false);
+    expect(
+      wasLookedUpEverywhere(
+        {
+          type: SecurityEntityType.Other,
+          value: "arn:aws:s3:::acme-prod-data",
+        },
+        new Set([SecurityConnectionKind.Monitor]),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -655,6 +1348,20 @@ describe("the way back: what a record is searched for by", () => {
     expect(getRecordSecurityValues({ names: ["a".repeat(300)] })).toEqual([]);
   });
 
+  test("a cloud resource's own ID is kept, however long an Azure ID runs", () => {
+    const azure: string = `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/${"rg".repeat(150)}/providers/Microsoft.Compute/virtualMachines/vm-1`;
+
+    expect(azure.length).toBeGreaterThan(254);
+    expect(getRecordSecurityValues({ names: [azure] })).toEqual([
+      azure.toLowerCase(),
+    ]);
+    expect(
+      getRecordSecurityValues({
+        names: [`/subscriptions/${"x".repeat(2100)}`],
+      }),
+    ).toEqual([]);
+  });
+
   test("observables are searched in the usual spellings, each once, within a limit", () => {
     expect(getObservableSearchValues(["Web-1", "web-1", " "])).toEqual([
       "Web-1",
@@ -685,6 +1392,12 @@ describe("every rule reads outside text in linear time", () => {
     "@a".repeat(200000),
     `${"a".repeat(399999)}@`,
     "%".repeat(400000),
+    // A URL's scheme, an ARN's colons, a Google Cloud name's slashes.
+    "a://".repeat(100000),
+    `https://${"a.".repeat(199990)}`,
+    `arn:${":".repeat(399996)}`,
+    `//${"x.googleapis.com/".repeat(23000)}`,
+    `/subscriptions/${"/".repeat(399985)}`,
   ];
 
   test.each(
@@ -705,6 +1418,22 @@ describe("every rule reads outside text in linear time", () => {
           { type: SecurityEntityType.Host, value },
           { type: SecurityEntityType.User, value },
         ]);
+        getUrlHost(value);
+        isCloudResourceIdLike(value);
+        matchResourceId({ entityValue: value, providerResourceId: value });
+        readCloudEndpointHosts([value]);
+        matchMonitorTarget({
+          entityValue: value,
+          entityType: SecurityEntityType.Url,
+          target: value,
+        });
+        getLookupKindsOf({ type: SecurityEntityType.Other, value });
+        getMonitorMentionTexts(
+          getSecurityConnectionLookups([
+            { type: SecurityEntityType.Url, value },
+            { type: SecurityEntityType.Other, value },
+          ]),
+        );
       },
       limitInMs: 2000,
     });

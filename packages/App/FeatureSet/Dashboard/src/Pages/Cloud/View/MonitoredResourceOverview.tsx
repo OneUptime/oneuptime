@@ -43,6 +43,8 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import AppLink from "../../../Components/AppLink/AppLink";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import CloudResourceInventoryCards from "../../../Components/Cloud/CloudResourceInventoryCards";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 
 /*
  * The Overview of a Cloud Resource - one a cloud connection lists from its
@@ -313,6 +315,14 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           resourceQueryKey="cloudResources"
           incidentsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS)}
           alertsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_ALERTS)}
+        />
+        {/*
+         * What Security Events found about it this week, for whoever may
+         * read it (Components/SecurityConnections).
+         */}
+        <ResourceSecurityCard
+          kind={SecurityConnectionKind.CloudResource}
+          modelId={modelId}
         />
       </div>
 

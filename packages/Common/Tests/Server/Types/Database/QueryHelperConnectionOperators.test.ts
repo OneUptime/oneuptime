@@ -3,16 +3,18 @@ import { FindOperator } from "typeorm";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * The two operators Security Events' connections read with:
+ * The operators Security Events' connections read with:
  *
  *   startsWithAnyOf                 the hosts whose name a bare name starts
  *                                   (web-1 for web-1.acme.internal)
  *   jsonArrayObjectsHaveTextAnyOf   the cases whose entities name a value,
  *                                   however an event spelled it
+ *   textContainsAnyOf               the monitors whose steps, and the cloud
+ *                                   resources whose endpoints, hold a value
  *
- * Both take values an attacker can write (a host name in an EDR event), so
- * both bind every value as a parameter, and LIKE's own characters are
- * escaped so a prefix matches only itself. Their effect on real rows is
+ * Each takes values an attacker can write (a host name in an EDR event), so
+ * each binds every value as a parameter, and LIKE's own characters are
+ * escaped so a text matches only itself. Their effect on real rows is
  * pinned on Postgres (SecurityConnectionsPostgres.test.ts).
  */
 
@@ -112,5 +114,57 @@ describe("QueryHelper.jsonArrayObjectsHaveTextAnyOf", () => {
       "value') OR 1=1 --",
       ["web-1", "10.0.0.5'); drop table x; --"],
     ]);
+  });
+});
+
+describe("QueryHelper.textContainsAnyOf", () => {
+  it("one case-insensitive ILIKE ANY over the column's text, with one bound array", () => {
+    const operator: RawOperator = asRaw(
+      QueryHelper.textContainsAnyOf([
+        '"shop.acme.example"',
+        "//shop.acme.example",
+      ]),
+    );
+    const sql: string = operator.getSql('"Monitor"."monitorSteps"');
+
+    expect(operator).toBeInstanceOf(FindOperator);
+    expect(operator.type).toBe("raw");
+    expect(
+      sql.startsWith(
+        '(CAST("Monitor"."monitorSteps" AS TEXT) ILIKE ANY (CAST(:',
+      ),
+    ).toBe(true);
+    expect(sql.endsWith(" AS text[])))")).toBe(true);
+    expect(sql).not.toContain("shop.acme.example");
+    expect(Object.values(operator.objectLiteralParameters)).toEqual([
+      ['%"shop.acme.example"%', "%//shop.acme.example%"],
+    ]);
+  });
+
+  it("folds, trims and deduplicates the texts, and escapes LIKE's own characters", () => {
+    const operator: RawOperator = asRaw(
+      QueryHelper.textContainsAnyOf([" WEB_1 ", "web_1", "100%", "a\\b", "  "]),
+    );
+
+    expect(Object.values(operator.objectLiteralParameters)).toEqual([
+      ["%web\\_1%", "%100\\%%", "%a\\\\b%"],
+    ]);
+  });
+
+  it("no text matches nothing, never every row", () => {
+    const operator: RawOperator = asRaw(
+      QueryHelper.textContainsAnyOf([" ", ""]),
+    );
+
+    expect(operator.getSql('"Monitor"."monitorSteps"')).toBe("TRUE = FALSE");
+    expect(Object.keys(operator.objectLiteralParameters)).toEqual([]);
+  });
+
+  it("a text an attacker wrote never reaches the SQL", () => {
+    const operator: RawOperator = asRaw(
+      QueryHelper.textContainsAnyOf(['x\'); DROP TABLE "Monitor"; --']),
+    );
+
+    expect(operator.getSql('"Monitor"."monitorSteps"')).not.toContain("DROP");
   });
 });

@@ -1,11 +1,12 @@
 # Kopplade signaler
 
-Ett säkerhetsärende säger vilka användare, värdar och adresser det handlar om. Kopplade signaler säger vilka av dem OneUptime redan känner till - dina värdar, containervärdar, Kubernetes-kluster, nätverksenheter, tjänster och medlemmar - och vad som hände på var och en kring ärendet: dess loggar, spår och mätvärden, incidenterna och larmen som är öppna på den, monitorerna som bevakar den och vad som ändrades på den. Åt andra hållet säger sidan för en värd, ett kluster, en tjänst eller en medlem vad Security Events har hittat om den.
+Ett säkerhetsärende säger vilka användare, värdar och adresser det handlar om. Kopplade signaler säger vilka av dem OneUptime redan känner till - dina värdar, containervärdar, Kubernetes-kluster, nätverksenheter, molnresurser, serverlösa funktioner, tjänster, monitorerna som kontrollerar dem och medlemmar - och vad som hände på var och en kring ärendet: dess loggar, spår och mätvärden, incidenterna och larmen som är öppna på den, monitorerna som bevakar den och vad som ändrades på den. Den söker också i själva dina loggar och spår efter dem: en angripares adress i en webbservers åtkomstlogg, en läckt e-postadress i ett programs fel. Åt andra hållet säger sidan för en värd, ett kluster, en molnresurs, en tjänst, en monitor eller en medlem vad Security Events har hittat om den.
 
 :::cards
 - [Var du ser det](#var-du-ser-det): Ett ärendes sida, en händelses flik, en entitets sida och sidorna för det de nämner.
 - [Hur ett värde matchas](#hur-ett-värde-matchas): Vad som räknas som samma post, och vad som bara kanske gör det.
 - [Vad varje post visar](#vad-varje-post-visar): Dess signaler kring ärendet, och vad som är öppet på den.
+- [I dina loggar och spår](#i-dina-loggar-och-spår): Var en adress, en domän eller en e-postadress som den nämner förekommer i dina loggrader och spans.
 - [Vem ser vad](#vem-ser-vad): Varje post läses med läsarens egen roll.
 :::
 
@@ -23,7 +24,7 @@ OneUptime slår upp varje värde bland projektets poster, säger hur säker varj
 
 ## Innan du börjar
 
-- Säkerhetshändelser som kommer in, och värdar, Kubernetes-kluster, tjänster eller medlemmar i projektet som de kan nämna. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started).
+- Säkerhetshändelser som kommer in, och värdar, Kubernetes-kluster, molnresurser, tjänster, monitorer eller medlemmar i projektet som de kan nämna. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started).
 - En roll som kan läsa säkerhetshändelser, och de sorters poster du vill se.
 
 ## Var du ser det
@@ -31,7 +32,7 @@ OneUptime slår upp varje värde bland projektets poster, säger hur säker varj
 - **Kopplade signaler**, en sida i varje säkerhetsärende: öppna ett ärende under **Produkter → Säkerhetshändelser → Säkerhetsärenden → Öppna ärenden** och sedan **Kopplade signaler** efter **Entiteter** i dess meny.
 - **Ansluten**, en flik i varje säkerhetshändelse: öppna en händelse under **Produkter → Säkerhetshändelser → Händelser**. Den listar vad händelsen nämner, under timmen kring den.
 - En entitets sida under **Produkter → Säkerhetshändelser → Entitetsrisk**: var OneUptime känner till användaren, värden eller adressen, kring dess senaste säkerhetshändelse.
-- Ett **Säkerhet**-kort på sidan för varje värd, Docker-värd, Podman-värd, Kubernetes-kluster, nätverksenhet, tjänst, medlem och inventariepost: de öppna säkerhetsärenden som nämner den, hur många säkerhetshändelser och fynd som nämnde den under de senaste 7 dagarna, det allvarligaste av dem och dess risk. **Öppna i Security Events** öppnar den där.
+- Ett **Säkerhet**-kort på sidan för varje värd, Docker-värd, Podman-värd, Kubernetes-kluster, nätverksenhet, molnresurs, serverlös funktion, tjänst, monitor, medlem och inventariepost: de öppna säkerhetsärenden som nämner den, hur många säkerhetshändelser och fynd som nämnde den under de senaste 7 dagarna, det allvarligaste av dem och dess risk. **Öppna i Security Events** öppnar den där. En monitors kort handlar om värdarna och adresserna den kontrollerar.
 - Ett **Säkerhet**-kort på en incidents sida, när ett säkerhetsärende deklarerade incidenten (**Deklarerad från**) eller öppna ärenden nämner en värd eller ett kluster som den påverkar (**Öppna ärenden som nämner det den påverkar**).
 
 ## Hur ett värde matchas
@@ -40,23 +41,27 @@ Varje användare, värd och adress som ett ärende eller en händelse nämner sl
 
 | Det ärendet eller händelsen nämner | Matchad mot | Hur säkert |
 | --- | --- | --- |
-| Ett värd- eller domännamn som är detsamma som namnet en värd, en containervärd, ett kluster eller en nätverksenhet rapporterar | Den posten | Exakt |
+| Ett värd- eller domännamn som är detsamma som namnet en värd, en containervärd, ett kluster eller en nätverksenhet rapporterar, eller ett namn som en molnresurs svarar på | Den posten | Exakt |
 | Samma namn, angivet utan att säga att det är en värd | Den posten | Möjlig |
 | En kort eller fullständig form av en posts namn, som `web-1` och `web-1.acme.internal` | Den posten | Möjlig |
-| En offentlig IP-adress som bara en post har | Den posten | Exakt |
+| En offentlig IP-adress som bara en värd eller nätverksenhet har, eller som bara en molnresurs svarar på | Den posten | Exakt |
 | En privat IP-adress, eller en som flera poster har | Varje post som har den | Möjlig |
+| En molnresurs eget ID: ett AWS-ARN, ett Azure-resurs-ID eller ett Google Cloud-resursnamn | Den molnresursen | Exakt |
+| En värd, en offentlig IP-adress eller värden för en URL som en monitor kontrollerar | Den monitorn | Exakt |
+| En privat IP-adress som en monitor kontrollerar | Den monitorn | Möjlig |
 | En medlems e-postadress | Den medlemmen | Exakt |
-| Posten som en loggrad skickades under, för händelserna som läses från dina loggar | Den värden, det klustret eller den tjänsten | Exakt |
-| Ett rent användarnamn, en URL, en filhash eller en process | Ingenting: ingen post är nycklad efter dem | - |
+| Posten som en loggrad skickades under, för händelserna som läses från dina loggar | Den värden, det klustret, den molnresursen, den serverlösa funktionen eller den tjänsten | Exakt |
+| Ett rent användarnamn, en filhash eller en process | Ingenting: ingen post är nycklad efter dem | - |
 
 - En möjlig matchning visar **Möjlig matchning** bredvid namnet och säger varför. Den räknas aldrig på postens sida, och en incident som ärendet deklarerar kopplas aldrig till den.
-- Det som söktes och inte är en post i projektet listas under **Inte i OneUptime**. Ett värde listas aldrig där när en sorts post som det kan vara inte kunde läsas.
+- Det som söktes och inte är en post i projektet listas under **Ingen matchande post**. Ett värde listas aldrig där när en sorts post som det kan vara inte kunde läsas.
 - Högst 10 poster listas för ett ärende, de exakta först.
 
 ## Vad varje post visar
 
 - Dess signaler, var och en öppnad på posten och ärendets period: **Loggar**, **Spår** och **Mätvärden**, en tjänsts **Undantag**, ett klusters **Kubernetes-händelser**, postens **Topologi** och dess post i **Inventarie** när inventariet har en.
-- Incidenterna och larmen som är öppna på den nu, och monitorerna som bevakar den, var och en med sin egen sida.
+- Incidenterna och larmen som är öppna på den nu, och monitorerna som bevakar den, var och en med sin egen sida. En monitor visar sin status bredvid sitt namn, och dess **Loggar** är det den såg vid varje kontroll.
+- En medlems jourscheman, med **Har jour nu** bredvid dem som medlemmen har jour för, och de team som medlemmen är med i.
 - Vad som ändrades på den under perioden: en tjänsts driftsättningar, ett klusters utrullningar och en värds åtgärder.
 
 | Var | Period |
@@ -66,25 +71,43 @@ Varje användare, värd och adress som ett ärende eller en händelse nämner sl
 | En entitets sida | 30 minuter före och efter dess senaste säkerhetshändelse |
 | En posts **Säkerhet**-kort | De senaste 7 dagarna |
 
+## I dina loggar och spår
+
+Under posterna söker Kopplade signaler i dina loggar och spår, i samma tidsfönster, efter de värden den nämner som bara kan betyda en sak: en IP-adress (utom `127.0.0.1` och de andra som varje maskin har), ett fullständigt värd- eller domännamn, en e-postadress, en URL, en molnresurs ID och en filhash. Ett kort värdnamn, en användares korta namn och en process söks aldrig efter: en loggrad kan innehålla dem av vilket skäl som helst. Högst 10 värden söks efter.
+
+| Var | Den nämner ett värde när |
+| --- | --- |
+| Meddelandet i en loggrad | Den innehåller hela värdet, oavsett stora och små bokstäver: `10.0.0.1` i `from 10.0.0.1:52144`, aldrig i `10.0.0.12` eller `110.0.0.1` |
+| Ett attribut i en loggrad eller ett span | Värdet är exakt värdet: som det skrivs, med små eller stora bokstäver, eller en IPv6-adress i kort form |
+
+- Varje värde som hittas visar hur många loggrader och spans som nämner det, var i dem det fanns - **I meddelandet** eller ett attribut med sin nyckel - som var och en öppnar **Loggar** eller **Spår** på de raderna eller spansen och tidsfönstret, och posterna som skickade dem, de flesta först.
+- Ett resursattribut, som `resource.host.name`, säger bara vilken post som skickade en rad, och räknas aldrig.
+- De värden som söktes efter och som ingen av dem nämner listas under **Inte i dina loggar eller spår**.
+- De söks med din egen roll: loggar eller spår som din roll inte kan läsa nämns och söks inte igenom; de som inte kunde sökas igenom just nu säger det, med **Försök igen**. En sökning som tar längre än 15 sekunder stoppas och säger det.
+
 ## Vem ser vad
 
 - Kopplade signaler och en posts **Säkerhet**-kort kräver en roll som kan läsa säkerhetshändelser: Security Admin, Security Member, Security Viewer, Project Owner eller Project Admin. Ingen annan ser säkerhetsdata på någon sida. Se [Roller](/docs/permissions/reference#roller).
 - En incidents **Säkerhet**-kort kräver en roll som kan läsa säkerhetsärenden.
-- Varje post läses med din egen roll. En sorts post som din roll inte kan läsa utelämnas, och sidan säger det; en som inte kunde läsas just nu säger det också, med **Försök igen**.
+- Varje post läses med din egen roll, och det gör även det som finns på den: en roll som inte kan läsa jourscheman visas inte en medlems. En sorts post som din roll inte kan läsa utelämnas, och sidan säger det; en som inte kunde läsas just nu säger det också, med **Försök igen**.
 - En posts sida visar sitt **Säkerhet**-kort bara i ett projekt som använder Security Events: ett som har tagit emot en säkerhetshändelse under de senaste 7 dagarna.
 
 ## Incidenter som ett ärende deklarerar
 
-**Deklarera incident** på ett ärende, eller ett playbook-steg som deklarerar en, kopplar incidenten till de värdar, Docker- och Podman-värdar, Kubernetes-kluster och tjänster som ärendet är exakt kopplat till. Incidenten visas på deras sidor och deras ägares regler gäller för den, och dess flöde nämner ärendet och vad den kopplades till. En möjlig matchning kopplas aldrig.
+**Deklarera incident** på ett ärende, eller ett playbook-steg som deklarerar en, kopplar incidenten till de värdar, Docker- och Podman-värdar, Kubernetes-kluster, molnresurser och tjänster som ärendet är exakt kopplat till. Incidenten visas på deras sidor och deras ägares regler gäller för den, och dess flöde nämner ärendet och vad den kopplades till. En möjlig matchning kopplas aldrig, och det gör inte heller en monitor: en incident på en monitor kan ändra dess status och visas på dess statussidor.
 
 ## OneUptime AI
 
-OneUptime AI:s triagering av ett ärende läser dess kopplade signaler: vad som är öppet och vad som ändrades på de värdar, tjänster och medlemmar som ärendet nämner. En incidents utredning läser säkerhetsärendet som deklarerade den och de öppna ärenden som nämner det den påverkar. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
+OneUptime AI:s triagering av ett ärende läser dess kopplade signaler: vad som är öppet och vad som ändrades på de värdar, tjänster, monitorer och medlemmar som ärendet nämner, en medlems jourscheman och team, och var dess värden förekommer i dina loggar och spår. En incidents utredning läser säkerhetsärendet som deklarerade den och de öppna ärenden som nämner det den påverkar. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 
 ## Felsökning
 
 :::details En värd som ärendet nämner listas inte
-Kontrollera att ärendet nämner värden som värden nämner sig själv, eller nämner en offentlig adress som bara den värden har. Ett kort namn som `web-1` för `web-1.acme.internal` listas som en möjlig matchning, och ett rent användarnamn, en URL, en filhash eller en process slås inte upp alls.
+Kontrollera att ärendet nämner värden som värden nämner sig själv, eller nämner en offentlig adress som bara den värden har. Ett kort namn som `web-1` för `web-1.acme.internal` listas som en möjlig matchning, och ett rent användarnamn, en filhash eller en process slås inte upp alls. En URL slås bara upp bland de monitorer som kontrollerar dess värd.
+:::
+
+:::details En adress som ärendet nämner finns inte i dess loggar och spår
+Bara ärendets tidsfönster söks igenom, och bara de loggar och spår som din roll kan läsa. Ett meddelande nämner en adress bara som helhet: `10.0.0.12` är en annan adress, även om meddelandesökningen i Loggar också hittar den. Ett attribut nämner den bara när dess värde är exakt adressen, och ett resursattribut aldrig.
 :::
 
 :::details Rätt värd listas som en möjlig matchning
@@ -93,6 +116,10 @@ En möjlig matchning räknas eller kopplas aldrig, så att ett namn som två mas
 
 :::details En värds sida har inget Säkerhet-kort
 Kortet visas för en roll som kan läsa säkerhetshändelser, i ett projekt som har tagit emot en säkerhetshändelse under de senaste 7 dagarna. En värd som inget har nämnt under den tiden visar en rad som säger det.
+:::
+
+:::details En monitors sida har inget Säkerhet-kort
+Kortet visas för en monitor som kontrollerar en värd, en adress eller en URL: en monitor för en webbplats, ett API, ping, en port, ett SSL-certifikat, DNS eller en domän. En heartbeat, ett skript eller en monitor av din telemetri kontrollerar ingen värd och har därför inget.
 :::
 
 :::details Sidan säger att din roll inte kan se en sorts post

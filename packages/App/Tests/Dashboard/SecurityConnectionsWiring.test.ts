@@ -78,6 +78,21 @@ const RECORD_PAGES: ReadonlyArray<{
     page: ["Pages", "Inventory", "View", "Index.tsx"],
     modelId: "modelId",
   },
+  {
+    kind: SecurityConnectionKind.CloudResource,
+    page: ["Pages", "Cloud", "View", "MonitoredResourceOverview.tsx"],
+    modelId: "modelId",
+  },
+  {
+    kind: SecurityConnectionKind.ServerlessFunction,
+    page: ["Pages", "Serverless", "View", "Overview.tsx"],
+    modelId: "modelId",
+  },
+  {
+    kind: SecurityConnectionKind.Monitor,
+    page: ["Pages", "Monitor", "View", "Index.tsx"],
+    modelId: "modelId",
+  },
 ];
 
 describe("the way back: a Security card on each record's page", () => {
@@ -110,6 +125,28 @@ describe("the way back: a Security card on each record's page", () => {
       expect(page.split("<ResourceSecurityCard").length).toBe(2);
     },
   );
+
+  test("a monitor's page draws it only for a monitor that checks a host, read again on a Refresh rather than every poll, its header stacked as the side column's cards are", () => {
+    const page: string = source("Pages", "Monitor", "View", "Index.tsx");
+
+    expect(page).toContain(
+      'import { getMonitorTargetHosts } from "Common/Utils/SecurityCase/SecurityConnectionMatch";',
+    );
+    /*
+     * Stacked: beside Open in Security Events, the one-third column would
+     * squeeze its title and description into a column a word wide.
+     */
+    expect(page).toContain(
+      '{getMonitorTargetHosts(monitor.monitorSteps).length > 0 ? ( <ResourceSecurityCard kind={SecurityConnectionKind.Monitor} modelId={modelId} refreshToken={data.manualRefreshCount} headerLayout="stacked" />',
+    );
+    // In the side column, right after what is open on the monitor.
+    expect(
+      page.indexOf("<MonitorOpenWorkCard monitorId={modelId}"),
+    ).toBeLessThan(page.indexOf("<ResourceSecurityCard"));
+    expect(page.indexOf("<ResourceSecurityCard")).toBeLessThan(
+      page.indexOf("<MonitorStatusChangesCard"),
+    );
+  });
 
   test("an incident's page draws the cases behind it, about itself", () => {
     const page: string = source("Pages", "Incidents", "View", "Index.tsx");
@@ -158,6 +195,66 @@ describe("Connected Signals", () => {
 
     expect(page).toContain(
       "{isActivityLoaded ? ( <ConnectedSignals request={{ entities: [{ type, value: risk?.entityValue || value }], ...(activity?.lastSeen ? { time: new Date(activity.lastSeen) } : {}), readLogResources: true, }}",
+    );
+  });
+});
+
+/*
+ * In your logs and traces: one section under every Connected Signals - a
+ * case's page, an event's tab, an entity's page - read with the very
+ * request the records are, on a route of its own beside theirs.
+ */
+describe("In your logs and traces", () => {
+  test("Connected Signals draws it under its records, with its own request, key and refresh, read alongside theirs", () => {
+    const component: string = source(
+      "Components",
+      "SecurityConnections",
+      "ConnectedSignals.tsx",
+    );
+
+    expect(component).toContain(
+      "<TelemetryMentions request={props.request} requestKey={props.requestKey} refreshToken={props.refreshToken} className={TELEMETRY_SECTION_CLASS_NAME} />",
+    );
+    // Once in the card, once in the event drawer - always after the records.
+    expect(component).toContain("{body} {telemetry} </div>");
+    expect(component).toContain("{body} {telemetry} </>");
+    expect(component.split("<TelemetryMentions").length).toBe(2);
+  });
+
+  test("its request is the records' own: a case by its id, or an event's or an entity's values and time", () => {
+    const api: string = source(
+      "Components",
+      "SecurityCase",
+      "SecurityCaseApi.ts",
+    );
+    const call: string = api.slice(
+      api.indexOf("public static async getTelemetryMentions("),
+      api.indexOf("public static async getResourceSecurity("),
+    );
+
+    expect(call).toContain('"/security-case/connections/telemetry"');
+    expect(call).toContain('"caseId" in request');
+    expect(call).toContain("entities: request.entities.map(");
+    expect(call).toContain(
+      "request.time ? { time: request.time.toISOString() }",
+    );
+    // The records' knobs mean nothing to it.
+    expect(call).not.toContain("logResources");
+    expect(call).not.toContain("readLogResources");
+  });
+
+  test("the section reads on its own, and draws nothing for a case that names nothing searched for", () => {
+    const section: string = source(
+      "Components",
+      "SecurityConnections",
+      "TelemetryMentions.tsx",
+    );
+
+    expect(section).toContain(
+      "SecurityCaseApi.getTelemetryMentions(props.request)",
+    );
+    expect(section).toContain(
+      "if (!error && mentions && mentions.values.length === 0) { return <></>; }",
     );
   });
 });
