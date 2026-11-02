@@ -79,6 +79,13 @@ export interface DropdownRowProps {
   kind: SessionLengthKind;
   // English, translated where it is drawn.
   label: string;
+  /*
+   * English, translated where it is drawn: what the row belongs to, named
+   * before its label to a screen reader. SSO Sign-ins' rows repeat the
+   * labels of the rows above, so without it two dropdowns on the page would
+   * have one name.
+   */
+  nameContext?: string | undefined;
   // What the server holds now.
   initialValue: number | null;
   isLocked: boolean;
@@ -91,6 +98,7 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const labelId: string = `session-length-label-${useId()}`;
+  const contextId: string = `session-length-context-${useId()}`;
   const descriptionId: string = `session-length-description-${useId()}`;
   const testId: string = getSessionLengthRowTestId(props.column);
   const isLength: boolean = props.kind === SessionLengthKind.Length;
@@ -167,6 +175,17 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
 
   return (
     <div data-testid={testId}>
+      {/*
+       * Hidden, yet part of the dropdown's name: the card's title already
+       * says it to everyone reading the page.
+       */}
+      {props.nameContext ? (
+        <span id={contextId} hidden data-testid={`${testId}-name-context`}>
+          {translator.translateText(props.nameContext)}
+        </span>
+      ) : (
+        <></>
+      )}
       <span
         id={labelId}
         className="block text-sm font-medium text-gray-900"
@@ -190,7 +209,9 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
           <Dropdown
             options={options}
             value={selectedOption}
-            ariaLabelledby={labelId}
+            ariaLabelledby={
+              props.nameContext ? `${contextId} ${labelId}` : labelId
+            }
             ariaDescribedby={descriptionId}
             isClearable={false}
             className="relative w-full overflow-visible rounded-md"

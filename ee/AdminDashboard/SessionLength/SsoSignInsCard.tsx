@@ -20,7 +20,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * settings and drawn as one of its sections: the switch that gives sign-ins
  * through SSO lengths of their own, and - while it is on - those two
  * lengths. A card of its own module, so it is read as a whole card where
- * the page folds it (CardInCardGuard).
+ * the page folds it (CardInCardGuard). Its lengths have the labels of the
+ * Session Length card's, so a screen reader names each with the card first
+ * ("SSO Sign-ins Sign people out after").
  */
 const SsoSignInsCard: FunctionComponent<SessionLengthCardProps> = (
   props: SessionLengthCardProps,
@@ -55,6 +57,7 @@ const SsoSignInsCard: FunctionComponent<SessionLengthCardProps> = (
                 column={SSO_SESSION_LENGTH_COLUMN}
                 kind={SessionLengthKind.Length}
                 label={SessionLengthCopy.lengthLabel}
+                nameContext={SessionLengthCopy.ssoCardTitle}
                 initialValue={props.settings.ssoSessionLengthInMinutes}
                 isLocked={props.isLocked}
                 confirmChange={props.confirmChange}
@@ -66,6 +69,7 @@ const SsoSignInsCard: FunctionComponent<SessionLengthCardProps> = (
                 column={SSO_SESSION_IDLE_TIMEOUT_COLUMN}
                 kind={SessionLengthKind.IdleTimeout}
                 label={SessionLengthCopy.idleLabel}
+                nameContext={SessionLengthCopy.ssoCardTitle}
                 initialValue={props.settings.ssoSessionIdleTimeoutInMinutes}
                 isLocked={props.isLocked}
                 confirmChange={props.confirmChange}

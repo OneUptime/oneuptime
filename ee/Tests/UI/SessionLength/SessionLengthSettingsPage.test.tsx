@@ -678,18 +678,23 @@ describe("a pick that signs people out right away", () => {
     expect(shown(LENGTH)).toBe("8 hours");
   });
 
-  test("when the server cannot say who, it is asked in general words, with a plain Save", async () => {
+  test("when the server cannot say who, it is asked in general words, and the button still says what going ahead does", async () => {
     preview = "error";
 
     await openPage();
     await pick(LENGTH, "1 hour");
 
     expect(confirmation()).toHaveTextContent(SessionLengthCopy.confirmUnknown);
-    expect(
-      screen.getByRole("button", {
-        name: SessionLengthCopy.confirmUnknownButton,
-      }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: SessionLengthCopy.confirmButton }),
+    );
+    await flush();
+
+    await waitFor(() => {
+      expect(writes()).toEqual([{ sessionLengthInMinutes: 60 }]);
+    });
   });
 
   test("a pick the server refuses goes back to what is set, with the reason under it", async () => {
@@ -935,6 +940,194 @@ describe("SSO sign-ins, under More settings", () => {
     expect(
       within(section).getByText(SessionLengthCopy.ssoCardDescription),
     ).toBeInTheDocument();
+  });
+
+  test("its two lengths are named with the card first, so no two dropdowns on the page share a name", async () => {
+    stored = { useSeparateSsoSessionLengths: true };
+
+    await openPage();
+    await openMoreSettings();
+
+    const names: Array<[string, string]> = [
+      [LENGTH, SessionLengthCopy.lengthLabel],
+      [IDLE, SessionLengthCopy.idleLabel],
+      [
+        SSO_LENGTH,
+        `${SessionLengthCopy.ssoCardTitle} ${SessionLengthCopy.lengthLabel}`,
+      ],
+      [
+        SSO_IDLE,
+        `${SessionLengthCopy.ssoCardTitle} ${SessionLengthCopy.idleLabel}`,
+      ],
+    ];
+
+    for (const [column, name] of names) {
+      expect(
+        within(row(column)).getByRole("combobox", { hidden: true, name }),
+      ).toBe(box(column));
+      expect(
+        screen.getAllByRole("combobox", { hidden: true, name }),
+      ).toHaveLength(1);
+    }
+
+    // The card's title says it on the page; the name only repeats it to a screen reader.
+    const context: HTMLElement = screen.getByTestId(
+      `${getSessionLengthRowTestId(SSO_LENGTH)}-name-context`,
+    );
+
+    expect(context).not.toBeVisible();
+    expect(
+      screen.queryByTestId(`${getSessionLengthRowTestId(LENGTH)}-name-context`),
+    ).toBeNull();
+  });
+});
+
+describe("once a change that signs people out is saved", () => {
+  /*
+   * The server ends every session past the new lengths as the change is
+   * saved, the master admin's own too when it is past them. The page then
+   * reads the setting again: the server refuses that read when it signed
+   * the master admin out, and the browser goes to the sign-in page, which
+   * says why, and brings them back once they sign in (Common/UI/Utils/API,
+   * BaseAPISessionLength) - as the confirmation said it would.
+   */
+  test("the setting is read again, so a master admin it signs out goes to the sign-in page right away", async () => {
+    preview = { peopleSignedOut: 1, includesYou: true };
+
+    await openPage();
+    await pick(LENGTH, "1 hour");
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: SessionLengthCopy.confirmOnlyYouButton,
+      }),
+    );
+    await flush();
+
+    await waitFor(() => {
+      expect(getItemMock).toHaveBeenCalledTimes(2);
+    });
+    expect(writes()).toEqual([{ sessionLengthInMinutes: 60 }]);
+
+    // Read after the write, the way the page first read it.
+    expect(updateByIdMock.mock.invocationCallOrder[0]!).toBeLessThan(
+      getItemMock.mock.invocationCallOrder[1]!,
+    );
+    expect(getItemMock.mock.calls[1]![0]).toEqual(
+      getItemMock.mock.calls[0]![0],
+    );
+  });
+
+  test("the same when it signs out others with the master admin among them, or when the server could not say who", async () => {
+    const answers: Array<JSONObject | "error"> = [
+      { peopleSignedOut: 37, includesYou: true },
+      { peopleSignedOut: 12, includesYou: false },
+      "error",
+    ];
+
+    for (const answer of answers) {
+      cleanup();
+      getItemMock.mockClear();
+      updateByIdMock.mockClear();
+      preview = answer;
+
+      await openPage();
+      await pick(LENGTH, "1 hour");
+
+      fireEvent.click(
+        screen.getByRole("button", { name: SessionLengthCopy.confirmButton }),
+      );
+      await flush();
+
+      await waitFor(() => {
+        expect(getItemMock).toHaveBeenCalledTimes(2);
+      });
+    }
+  });
+
+  test("a change that signs nobody out, or one not confirmed, is not read again", async () => {
+    stored = { sessionLengthInMinutes: 480 };
+
+    await openPage();
+    await pick(LENGTH, "14 days");
+
+    await waitFor(() => {
+      expect(writes()).toEqual([{ sessionLengthInMinutes: 20160 }]);
+    });
+
+    preview = { peopleSignedOut: 2, includesYou: true };
+    await pick(LENGTH, "1 hour");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await flush();
+
+    expect(writes()).toEqual([{ sessionLengthInMinutes: 20160 }]);
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a save the server refuses is not read again, nor is the next pick that signs nobody out", async () => {
+    preview = { peopleSignedOut: 1, includesYou: true };
+    updateByIdMock.mockRejectedValueOnce(
+      new Error("A session length must be a whole number of minutes.") as never,
+    );
+
+    await openPage();
+    await pick(LENGTH, "1 hour");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: SessionLengthCopy.confirmOnlyYouButton,
+      }),
+    );
+    await flush();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${getSessionLengthRowTestId(LENGTH)}-error`),
+      ).toBeInTheDocument();
+    });
+
+    // Shorter, but nobody is past it yet: saved without asking.
+    preview = { peopleSignedOut: 0, includesYou: false };
+    await pick(IDLE, "14 days");
+
+    await waitFor(() => {
+      expect(writes()).toEqual([
+        { sessionLengthInMinutes: 60 },
+        { sessionIdleTimeoutInMinutes: 20160 },
+      ]);
+    });
+    expect(confirmation()).toBeNull();
+    await flush();
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a read the server refuses leaves the page as it is: the browser is already on its way to the sign-in page", async () => {
+    preview = { peopleSignedOut: 1, includesYou: true };
+
+    await openPage();
+
+    getItemMock.mockRejectedValueOnce(
+      new Error("Your session has ended.") as never,
+    );
+
+    await pick(LENGTH, "1 hour");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: SessionLengthCopy.confirmOnlyYouButton,
+      }),
+    );
+    await flush();
+
+    await waitFor(() => {
+      expect(getItemMock).toHaveBeenCalledTimes(2);
+    });
+    await flush();
+
+    expect(shown(LENGTH)).toBe("1 hour");
+    expect(screen.queryByText(SessionLengthCopy.loadFailed)).toBeNull();
+    expect(screen.queryByText("Your session has ended.")).toBeNull();
   });
 });
 

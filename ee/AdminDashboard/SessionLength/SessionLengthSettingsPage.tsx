@@ -74,9 +74,12 @@ import { useTranslation } from "react-i18next";
  * A change applies to everyone signed in now. One that signs people out at
  * once is asked first, with how many (the preview route), and whether the
  * master admin making it is one of them - or is the only one; anything that
- * only lengthens a sign-in is saved as it is picked. Without a license that includes it, the
- * page says so and offers only the defaults: what is set keeps applying,
- * and can always be removed.
+ * only lengthens a sign-in is saved as it is picked. A change that signs
+ * out the master admin too takes them to the sign-in page as soon as it is
+ * saved, and back here once they sign in.
+ *
+ * Without a license that includes it, the page says so and offers only the
+ * defaults: what is set keeps applying, and can always be removed.
  */
 
 // A change waiting for the master admin to confirm it.
@@ -105,6 +108,9 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
   const settingsRef: MutableRefObject<SessionLengthSettings | null> =
     useRef<SessionLengthSettings | null>(null);
 
+  // Whether the change being saved is one the master admin confirmed signs people out.
+  const signsPeopleOutRef: MutableRefObject<boolean> = useRef<boolean>(false);
+
   const load: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
@@ -131,6 +137,8 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
   const confirmChange: ConfirmSessionLengthChange = async (
     change: SessionLengthChange,
   ): Promise<boolean> => {
+    signsPeopleOutRef.current = false;
+
     const current: SessionLengthSettings | null = settingsRef.current;
 
     if (!current) {
@@ -164,11 +172,31 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
       return true;
     }
 
-    return await new Promise<boolean>(
+    const isConfirmed: boolean = await new Promise<boolean>(
       (resolve: (isConfirmed: boolean) => void): void => {
         setConfirmation({ preview, resolve });
       },
     );
+
+    signsPeopleOutRef.current = isConfirmed;
+
+    return isConfirmed;
+  };
+
+  /*
+   * Once a change that signs people out is saved, the setting is read
+   * again. When the change signed out the master admin making it too, the
+   * server refuses the read, and the browser goes to the sign-in page right
+   * away - which says why, and brings them back here once they sign in
+   * (Common/UI/Utils/API) - as the confirmation told them. Otherwise the
+   * read changes nothing.
+   */
+  const followSignOut: () => Promise<void> = async (): Promise<void> => {
+    try {
+      await fetchSessionLengthSettings();
+    } catch {
+      // A refused read has already sent the browser to the sign-in page.
+    }
   };
 
   /*
@@ -187,6 +215,11 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
     const next: SessionLengthSettings = { ...current, ...change };
     settingsRef.current = next;
     setSettings(next);
+
+    if (signsPeopleOutRef.current) {
+      signsPeopleOutRef.current = false;
+      void followSignOut();
+    }
   };
 
   // The one person a change signs out is the master admin making it.
@@ -281,13 +314,13 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
     );
   };
 
+  /*
+   * What going ahead does, on its button - also when the server could not
+   * say who: the sentence above it says everyone past the new lengths.
+   */
   const getConfirmButtonText: (pending: PendingConfirmation) => string = (
     pending: PendingConfirmation,
   ): string => {
-    if (!pending.preview) {
-      return SessionLengthCopy.confirmUnknownButton;
-    }
-
     return isOnlyYou(pending.preview)
       ? SessionLengthCopy.confirmOnlyYouButton
       : SessionLengthCopy.confirmButton;

@@ -87,7 +87,6 @@ export const SessionLengthCopy: {
   confirmUnknown: string;
   confirmButton: string;
   confirmOnlyYouButton: string;
-  confirmUnknownButton: string;
 } = {
   cardTitle: translationKey("Session Length"),
   cardDescription: translationKey(
@@ -140,7 +139,6 @@ export const SessionLengthCopy: {
   ),
   confirmButton: translationKey("Save and sign them out"),
   confirmOnlyYouButton: translationKey("Save and sign me out"),
-  confirmUnknownButton: translationKey("Save"),
 };
 
 // How many people a change signs out at once, in the confirmation.
