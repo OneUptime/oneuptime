@@ -191,22 +191,64 @@ describe("CardSelect with products' marks", () => {
       }
     });
 
-    test("picking a product leaves its tile as it is: the card's edge and tick say it is picked", () => {
+    test("picking a product turns its mark indigo, as a picked icon turns, on the same tile", () => {
       render(<Picker options={DESTINATIONS} />);
 
-      const before: string = logoIn(card("google-cloud-storage"))!.outerHTML;
+      const before: Element = logoIn(card("google-cloud-storage"))!;
+      const drawn: Array<string> = getDrawnPathData(getDrawnMark(before));
+
+      expect(drawn).toEqual(getMarkPathData(ProviderLogo.GoogleCloudStorage));
+
+      expect(classesOf(before)).toContain(PROVIDER_LOGO_COLOR_CLASS_NAME);
+      expect(classesOf(before)).not.toContain("text-indigo-600");
 
       fireEvent.click(card("google-cloud-storage"));
+
+      const picked: Element = logoIn(card("google-cloud-storage"))!;
 
       expect(card("google-cloud-storage")).toHaveAttribute(
         "aria-checked",
         "true",
       );
       expect(card("google-cloud-storage")).toHaveClass("border-indigo-500");
-      expect(logoIn(card("google-cloud-storage"))!.outerHTML).toBe(before);
-      expect(classesOf(logoIn(card("google-cloud-storage"))!)).not.toContain(
-        "bg-indigo-100",
+      // The mark takes the picked indigo, as the tick and the edge do...
+      expect(classesOf(picked)).toContain("text-indigo-600");
+      expect(classesOf(picked)).not.toContain(PROVIDER_LOGO_COLOR_CLASS_NAME);
+      // ...on the same neutral tile, at the same size, the same drawing.
+      expect(classesOf(picked)).toEqual(
+        expect.arrayContaining(tileClasses(40)),
       );
+      expect(classesOf(picked)).not.toContain("bg-indigo-100");
+      expect(getDrawnPathData(getDrawnMark(picked))).toEqual(drawn);
+      // The products not picked keep the tile's grey.
+      expect(classesOf(logoIn(card("s3"))!)).toContain(
+        PROVIDER_LOGO_COLOR_CLASS_NAME,
+      );
+    });
+
+    test("a picked generic choice among products turns its icon indigo on its neutral tile", () => {
+      render(<Picker options={DESTINATIONS} />);
+
+      const iconTile: () => Element = (): Element => {
+        return card("webhook").querySelector(
+          `[data-testid='${PROVIDER_ICON_TILE_TEST_ID}']`,
+        )!;
+      };
+
+      expect(classesOf(iconTile())).toContain(PROVIDER_LOGO_COLOR_CLASS_NAME);
+
+      fireEvent.click(card("webhook"));
+
+      expect(classesOf(iconTile())).toContain("text-indigo-600");
+      expect(classesOf(iconTile())).not.toContain(
+        PROVIDER_LOGO_COLOR_CLASS_NAME,
+      );
+      expect(classesOf(iconTile())).toEqual(
+        expect.arrayContaining(tileClasses(40)),
+      );
+      // Picking another choice gives the webhook its grey back.
+      fireEvent.click(card("google-cloud-storage"));
+      expect(classesOf(iconTile())).toContain(PROVIDER_LOGO_COLOR_CLASS_NAME);
     });
 
     test("a list without products is drawn as before: grey tiles that turn indigo when picked", () => {

@@ -502,7 +502,8 @@ const CardSelect: FunctionComponent<ComponentProps> = (
   /*
    * The tile at the start of a choice: its product's logo, or its icon - on
    * a grey tile that turns indigo when picked, or, among logos, on a logo's
-   * neutral tile.
+   * neutral tile, where the picked choice's mark or icon turns indigo as an
+   * icon does on a picked grey tile.
    */
   const renderOptionMark: RenderOptionMarkFunction = (data: {
     option: CardSelectOption;
@@ -519,6 +520,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
           icon={data.option.icon}
           size={data.size}
           isDecorative={true}
+          colorClassName={data.isSelected ? "text-indigo-600" : undefined}
         />
       );
     }

@@ -96,7 +96,10 @@ For a new product, in the product or on the website:
 1. Find the brand's own one-colour mark: its press kit's black or white
    mark, its own monochrome glyph, or [Simple Icons](https://simpleicons.org)
    (read the icon's licence and its brand's guidelines in Simple Icons'
-   data). Never a colour logo recoloured from an image, never a PNG.
+   data). Never a colour logo recoloured from an image, never a PNG. Check
+   that it is the mark the brand uses today: a collection can lag a
+   rebrand (Simple Icons still draws Okta's old ring, not the Aura Okta has
+   used since 2022).
 2. Read the brand's rules. If they allow no logo in a product like this, or
    none in one colour, give the product an icon of OneUptime's in
    `PROVIDER_LOGO_STAND_IN_ICONS` and its row above; if it is one of a
@@ -124,7 +127,7 @@ mark without its row here.
 | `microsoft-defender.ts`   | Microsoft Defender | Microsoft's Fluent UI Fabric (MDL2) branded icons 1.3.9, `ATPLogo`                                                                             | [Microsoft Fabric assets licence](https://aka.ms/fluentui-assets-license): to show an integration with Microsoft products, in the monochrome version where the icons around are monochrome |
 | `splunk.ts`               | Splunk             | Simple Icons 16.36.0, `splunk`                                                                                                                 | [splunk.com](https://www.splunk.com)                                                                                                                                                       |
 | `elastic.ts`              | Elastic            | Simple Icons 16.36.0, `elastic`                                                                                                                | [Elastic trademarks](https://www.elastic.co/legal/trademarks)                                                                                                                              |
-| `okta.ts`                 | Okta               | Simple Icons 16.36.0, `okta`                                                                                                                   | [Okta content terms](https://www.okta.com/terms-of-use-for-okta-content/)                                                                                                                  |
+| `okta.ts`                 | Okta               | The Okta Aura, Okta's symbol since its 2022 brand, as SVG Logos draws it (`okta-icon`, CC0)                                                    | [Okta content terms](https://www.okta.com/terms-of-use-for-okta-content/)                                                                                                                  |
 | `microsoft-entra-id.ts`   | Microsoft Entra ID | Microsoft's Fluent UI Fabric (MDL2) branded icons 1.3.9, `AADLogo`                                                                             | [Microsoft Fabric assets licence](https://aka.ms/fluentui-assets-license), as for Defender                                                                                                 |
 | `google-workspace.ts`     | Google Workspace   | Google's mark: Simple Icons 16.36.0, `google`                                                                                                  | [Google brand resources](https://about.google/brand-resource-center/)                                                                                                                      |
 | `azure.ts`                | Microsoft Azure    | Microsoft's Fluent UI Fabric (MDL2) branded icons 1.3.9, `AzureLogo`                                                                           | [Microsoft Fabric assets licence](https://aka.ms/fluentui-assets-license), as for Defender                                                                                                 |

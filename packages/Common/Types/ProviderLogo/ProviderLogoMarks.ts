@@ -43,7 +43,7 @@ export const PROVIDER_LOGO_MARK_BOXES: Readonly<
   [ProviderLogo.MicrosoftDefender]: "-0.031 0 1920.031 2048",
   [ProviderLogo.Splunk]: "-0.001 8.439 24.001 7.121",
   [ProviderLogo.Elastic]: "-0.001 0.046 24.002 23.908",
-  [ProviderLogo.Okta]: "0 0 24 24",
+  [ProviderLogo.Okta]: "0 0 256 256",
   [ProviderLogo.MicrosoftEntraId]: "0 140 2048 1768",
   [ProviderLogo.GoogleWorkspace]: "0.306 0 23.388 24",
   [ProviderLogo.Azure]: "0 230 2048 1588",

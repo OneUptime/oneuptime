@@ -64,6 +64,8 @@ const PATH_DATA: RegExp = /^[MmZzLlHhVvCcSsQqTtAa0-9eE.,+\- ]+$/;
 // The first point a path moves to: "M12.5 3" or "m12.5-3" or "M12.5,3".
 const FIRST_POINT: RegExp =
   /^[Mm]\s*(-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?)[\s,]*(-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?)/;
+// Where a shape of a path starts: a move.
+const SHAPE_START: RegExp = /[Mm]/g;
 // What a mark's module may never hold: a colour, a style, an address, markup.
 const NOT_IN_A_MARK: ReadonlyArray<string> = [
   "#",
@@ -214,6 +216,27 @@ describe("how every product is drawn", () => {
   test("Java is drawn by Duke, OpenJDK's mark: Oracle allows no copy of its cup", () => {
     expect(getProviderLogoMark(ProviderLogo.Java)).toBe(ProviderLogo.Java);
     expect(sourceOf("java")).toContain("OpenJDK");
+  });
+
+  /*
+   * A collection can lag a rebrand: Simple Icons still draws Okta as the
+   * ring of its old wordmark, two shapes, while Okta's symbol since its
+   * 2022 brand is the Aura, a sunburst of rays - the mark Okta's own pages,
+   * press kit and favicon draw.
+   */
+  test("Okta is drawn by the Aura, its symbol today, never the ring of its old wordmark", () => {
+    const shapes: number = shapesOf(ProviderLogo.Okta).reduce(
+      (count: number, shape: ProviderLogoMarkShape): number => {
+        return count + (shape.d.match(SHAPE_START) || []).length;
+      },
+      0,
+    );
+
+    expect(getProviderLogoMark(ProviderLogo.Okta)).toBe(ProviderLogo.Okta);
+    expect(shapes).toBeGreaterThanOrEqual(16);
+    expect(PROVIDER_LOGO_MARK_BOXES[ProviderLogo.Okta]).toBe("0 0 256 256");
+    expect(sourceOf("okta")).toContain("Aura");
+    expect(sourceOf("okta")).not.toContain("Simple Icons");
   });
 });
 

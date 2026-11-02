@@ -433,6 +433,23 @@ describe("SecurityEventProviderTile", () => {
       );
     });
 
+    /*
+     * A row of upright tiles is as tall as its tallest (Splunk Enterprise
+     * Security's name takes two lines at 1280). Left to stretch, a tile with
+     * a one-line name shared its spare height between its two rows: its name
+     * sat lower than its neighbours' and its plus dropped below its mark.
+     * Upright, the rows keep their own heights at the tile's top.
+     */
+    test("upright, its rows keep their own heights at the top, so a row of tiles lines up", () => {
+      for (const canConnect of [true, false]) {
+        const { tile } = renderTile({ canConnect });
+
+        expect(tile).toHaveClass("lg:content-start");
+        expect(tile).not.toHaveClass("content-start");
+        cleanup();
+      }
+    });
+
     test("children are badge, text and plus, in that DOM order", () => {
       const { tile } = renderTile();
 

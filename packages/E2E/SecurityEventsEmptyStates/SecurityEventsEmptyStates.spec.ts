@@ -3240,6 +3240,102 @@ test.describe("connections empty state layout", () => {
   });
 
   /*
+   * A row of tiles is as tall as its tallest: at 1280 Splunk Enterprise
+   * Security's name takes two lines. A tile with a one-line name in that row
+   * used to share the spare height between its two rows - its name sat
+   * lower than its neighbours' and its plus dropped below its mark. Each
+   * tile keeps its rows at its top, so a row reads as one line of marks over
+   * one line of names.
+   */
+  test("1280: every row of tiles lines up - names on one line, each plus level with its mark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { width: 1280, height: 900 });
+
+    interface TileLine {
+      provider: string;
+      top: number;
+      nameTop: number;
+      markMiddle: number;
+      plusMiddle: number;
+      nameLines: number;
+    }
+
+    const lines: Array<TileLine> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<TileLine> => {
+        const middle: (element: Element) => number = (
+          element: Element,
+        ): number => {
+          const rect: DOMRect = element.getBoundingClientRect();
+          return rect.top + rect.height / 2;
+        };
+
+        return elements.map((element: Element): TileLine => {
+          const name: HTMLElement = element.querySelector(
+            "[data-provider-tile]",
+          ) as HTMLElement;
+          const mark: Element = element.querySelector(
+            ":scope > [data-provider-logo]",
+          ) as Element;
+          const plus: Element = element.children[2] as Element;
+
+          return {
+            provider: element.getAttribute("data-testid") || "",
+            top: element.getBoundingClientRect().top,
+            nameTop: name.getBoundingClientRect().top,
+            markMiddle: middle(mark),
+            plusMiddle: middle(plus),
+            nameLines: Math.round(
+              name.getBoundingClientRect().height /
+                parseFloat(getComputedStyle(name).lineHeight),
+            ),
+          };
+        });
+      },
+    );
+
+    expect(lines).toHaveLength(PROVIDERS.length);
+
+    const rows: Map<number, Array<TileLine>> = new Map();
+    for (const line of lines) {
+      const top: number = Math.round(line.top);
+      rows.set(top, [...(rows.get(top) || []), line]);
+    }
+
+    // A row holds a two-line name beside one-line names, so this is not vacuous.
+    expect(
+      Array.from(rows.values()).some((row: Array<TileLine>): boolean => {
+        return (
+          row.some((line: TileLine): boolean => {
+            return line.nameLines === 2;
+          }) &&
+          row.some((line: TileLine): boolean => {
+            return line.nameLines === 1;
+          })
+        );
+      }),
+    ).toBe(true);
+
+    for (const row of Array.from(rows.values())) {
+      const first: TileLine = row[0] as TileLine;
+      for (const line of row) {
+        expect(
+          Math.abs(line.nameTop - first.nameTop),
+          `${line.provider}'s name starts with its row's`,
+        ).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(line.plusMiddle - line.markMiddle),
+          `${line.provider}'s plus is level with its mark`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+
+    await screenshot(page, "connections-1280-rows");
+  });
+
+  /*
    * What you'll need sits side by side only where the card has room for
    * both, taken from the card's own width as the tiles take theirs: beside
    * the side menu at a 768 window the card is about 370px wide, where a
