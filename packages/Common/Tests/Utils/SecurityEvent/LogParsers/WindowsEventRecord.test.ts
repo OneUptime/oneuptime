@@ -69,14 +69,12 @@ describe("readWindowsEventRecord - the same record from every shape", () => {
 
     STRING_INSERT_FIELDS.get(
       "microsoft-windows-security-auditing:4625",
-    )!.forEach(
-      (name: string, index: number): void => {
-        expect([name, record.data[name]]).toEqual([
-          name,
-          failedSignIn().data![index]![1],
-        ]);
-      },
-    );
+    )!.forEach((name: string, index: number): void => {
+      expect([name, record.data[name]]).toEqual([
+        name,
+        failedSignIn().data![index]![1],
+      ]);
+    });
   });
 
   test("an unnamed field is param1, param2... in order", () => {

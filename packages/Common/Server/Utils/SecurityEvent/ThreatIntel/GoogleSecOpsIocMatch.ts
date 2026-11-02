@@ -58,12 +58,10 @@ const CONFIDENCE_FOR_BUCKET: ReadonlyMap<string, number> = lookupTable({
 });
 
 // A match Google SecOps marks as an active breach is a Critical one, a high-priority one at least High.
-const CONFIDENCE_FLOOR_FOR_PRIORITY: ReadonlyMap<string, number> = lookupTable(
-  {
-    ACTIVE_BREACH: 90,
-    HIGH: 70,
-  },
-);
+const CONFIDENCE_FLOOR_FOR_PRIORITY: ReadonlyMap<string, number> = lookupTable({
+  ACTIVE_BREACH: 90,
+  HIGH: 70,
+});
 
 function readString(source: JSONObject | undefined, key: string): string {
   const value: JSONValue | undefined = source ? source[key] : undefined;

@@ -20,6 +20,7 @@ import {
 } from "../BaseDatabase/WildcardPattern";
 import ObjectID from "../ObjectID";
 import { JSONObject } from "../JSON";
+import { readOwnValue } from "../../Utils/LookupTable";
 
 /*
  * The OneUptime telemetry search language — one grammar for logs, traces,
@@ -570,13 +571,7 @@ function getFieldAlias(
   aliases: Readonly<Record<string, string>> | undefined,
   rawKey: string,
 ): string | undefined {
-  const key: string = rawKey.toLowerCase();
-
-  if (!aliases || !Object.prototype.hasOwnProperty.call(aliases, key)) {
-    return undefined;
-  }
-
-  const alias: unknown = aliases[key];
+  const alias: unknown = readOwnValue(aliases, rawKey.toLowerCase());
 
   return typeof alias === "string" ? alias : undefined;
 }

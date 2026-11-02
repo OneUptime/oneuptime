@@ -476,7 +476,8 @@ describe("SplunkNormalizer: words named after what every object inherits", () =>
       payload["annotations.mitre_attack.mitre_tactic"] = name;
       payload["status"] = name;
 
-      const event: NormalizedSecurityEvent = SplunkNormalizer.normalize(payload);
+      const event: NormalizedSecurityEvent =
+        SplunkNormalizer.normalize(payload);
 
       expect({
         name,

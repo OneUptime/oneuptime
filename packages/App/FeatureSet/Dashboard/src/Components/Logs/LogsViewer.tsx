@@ -16,6 +16,10 @@ import {
   normalizeLogsTableColumns,
 } from "Common/UI/Components/LogsViewer/types";
 import useLiveLogsRefresh from "Common/UI/Components/LogsViewer/useLiveLogsRefresh";
+import {
+  isLogSearchFieldAlias,
+  resolveLogSearchField,
+} from "Common/UI/Components/LogsViewer/components/LogSearchBar";
 import useLogsHistogram, {
   LogsHistogramData,
   LogsHistogramState,
@@ -2674,20 +2678,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       (fieldKey: string, value: string): void => {
         /*
          * Map user-facing field names to internal keys (case-insensitive),
-         * by what was typed: a Map answers only for these, never for
-         * "constructor" or the rest every object inherits.
-         */
-        const fieldAliases: ReadonlyMap<string, string> = new Map<
-          string,
-          string
-        >([
-          ["severity", "severityText"],
-          ["level", "severityText"],
-          ["service", "primaryEntityId"],
-          ["trace", "traceId"],
-          ["span", "spanId"],
-        ]);
-        /*
+         * as the search bar reads them (isLogSearchFieldAlias,
+         * resolveLogSearchField): its own names only, never "constructor"
+         * or the rest every object inherits.
+         *
          * Unknown keys are telemetry attributes (e.g. `http.method`,
          * `requestId`). Prefix them with `attributes.` so the rebuild step
          * routes them into `query.attributes[<key>]` instead of treating them
@@ -2696,11 +2690,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
          * matches them case-insensitively. The chip displays without the
          * `attributes.` prefix.
          */
-        const aliased: string | undefined = fieldAliases.get(
-          fieldKey.toLowerCase(),
-        );
-        const resolvedKey: string = aliased
-          ? aliased
+        const resolvedKey: string = isLogSearchFieldAlias(fieldKey)
+          ? resolveLogSearchField(fieldKey)
           : `attributes.${fieldKey}`;
 
         handleFacetInclude(resolvedKey, value);

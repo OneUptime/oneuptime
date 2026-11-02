@@ -473,9 +473,9 @@ describe("AwsSecurityHubNormalizer", () => {
         const named: JSONObject = guardDutyFinding();
         named["Types"] = [`TTPs/${name}`];
 
-        expect(
-          AwsSecurityHubNormalizer.normalize(named).mitreTactics,
-        ).toEqual([id]);
+        expect(AwsSecurityHubNormalizer.normalize(named).mitreTactics).toEqual([
+          id,
+        ]);
       }
 
       const raw: JSONObject = guardDutyFinding();

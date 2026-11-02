@@ -105,26 +105,27 @@ const LOGON_TYPE_WORDS: ReadonlyMap<string, string> = new Map<string, string>([
  * Why a sign-in failed, by its NTSTATUS (4625's SubStatus, else Status) or
  * Kerberos code (4771's Status), in the words a person reads.
  */
-export const WINDOWS_FAILURE_REASONS: ReadonlyMap<string, string> =
-  lookupTable({
-  "0xc000006a": "wrong password",
-  "0xc0000064": "no such user",
-  "0xc0000234": "account locked out",
-  "0xc0000072": "account disabled",
-  "0xc000006f": "outside the allowed hours",
-  "0xc0000070": "not allowed from this workstation",
-  "0xc0000071": "password expired",
-  "0xc0000193": "account expired",
-  "0xc0000133": "clocks out of sync",
-  "0xc0000224": "must change password",
-  "0xc000015b": "logon type not allowed",
-  "0xc000005e": "no logon server available",
-  "0xc0000413": "blocked by the authentication firewall",
-  "0x12": "account disabled, locked out or expired",
-  "0x17": "password expired",
-  "0x18": "wrong password",
-  "0x25": "clocks out of sync",
-  });
+export const WINDOWS_FAILURE_REASONS: ReadonlyMap<string, string> = lookupTable(
+  {
+    "0xc000006a": "wrong password",
+    "0xc0000064": "no such user",
+    "0xc0000234": "account locked out",
+    "0xc0000072": "account disabled",
+    "0xc000006f": "outside the allowed hours",
+    "0xc0000070": "not allowed from this workstation",
+    "0xc0000071": "password expired",
+    "0xc0000193": "account expired",
+    "0xc0000133": "clocks out of sync",
+    "0xc0000224": "must change password",
+    "0xc000015b": "logon type not allowed",
+    "0xc000005e": "no logon server available",
+    "0xc0000413": "blocked by the authentication firewall",
+    "0x12": "account disabled, locked out or expired",
+    "0x17": "password expired",
+    "0x18": "wrong password",
+    "0x25": "clocks out of sync",
+  },
+);
 
 // Groups whose members administer a machine or a domain.
 export const PRIVILEGED_WINDOWS_GROUPS: ReadonlyArray<string> = [

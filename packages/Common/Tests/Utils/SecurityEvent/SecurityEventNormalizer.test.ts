@@ -175,9 +175,10 @@ describe("SecurityEventNormalizer", () => {
 describe("SecurityEventNormalizer: words named after what every object inherits", () => {
   test("a format named after one is no format", () => {
     for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
-      expect({ name, format: SecurityEventNormalizer.parseFormat(name) }).toEqual(
-        { name, format: null },
-      );
+      expect({
+        name,
+        format: SecurityEventNormalizer.parseFormat(name),
+      }).toEqual({ name, format: null });
     }
 
     expect(SecurityEventNormalizer.parseFormat(" Google-SecOps ")).toBe(

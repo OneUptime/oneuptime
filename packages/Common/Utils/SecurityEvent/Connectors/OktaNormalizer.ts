@@ -61,34 +61,36 @@ export const OKTA_DETECTION_FINDING_CLASS_NAME: string = "Detection Finding";
  * activity reports and failed policy evaluations, and ERROR for failures
  * of Okta's own processing — both worth a look, not a log line.
  */
-export const OKTA_SEVERITY_MAP: ReadonlyMap<string, OcsfSeverity> =
-  lookupTable({
+export const OKTA_SEVERITY_MAP: ReadonlyMap<string, OcsfSeverity> = lookupTable(
+  {
     DEBUG: OcsfSeverity.Informational,
     INFO: OcsfSeverity.Informational,
     WARN: OcsfSeverity.Medium,
     ERROR: OcsfSeverity.High,
-  });
+  },
+);
 
 /*
  * `outcome.result` values (the LogOutcome enum) as the status words the
  * rest of the product uses. Values Okta adds later fall through to a
  * prettified copy of the raw word rather than being lost.
  */
-export const OKTA_OUTCOME_STATUS_MAP: ReadonlyMap<string, string> =
-  lookupTable({
-  SUCCESS: "Success",
-  FAILURE: "Failure",
-  SKIPPED: "Skipped",
-  ALLOW: "Allowed",
-  DENY: "Denied",
-  CHALLENGE: "Challenge",
-  UNKNOWN: "Unknown",
-  RATE_LIMIT: "Rate Limited",
-  DEFERRED: "Deferred",
-  SCHEDULED: "Scheduled",
-  ABANDONED: "Abandoned",
-  UNANSWERED: "Unanswered",
-  });
+export const OKTA_OUTCOME_STATUS_MAP: ReadonlyMap<string, string> = lookupTable(
+  {
+    SUCCESS: "Success",
+    FAILURE: "Failure",
+    SKIPPED: "Skipped",
+    ALLOW: "Allowed",
+    DENY: "Denied",
+    CHALLENGE: "Challenge",
+    UNKNOWN: "Unknown",
+    RATE_LIMIT: "Rate Limited",
+    DEFERRED: "Deferred",
+    SCHEDULED: "Scheduled",
+    ABANDONED: "Abandoned",
+    UNANSWERED: "Unanswered",
+  },
+);
 
 /*
  * Outcomes that mean the actor did NOT get what it asked for. On an

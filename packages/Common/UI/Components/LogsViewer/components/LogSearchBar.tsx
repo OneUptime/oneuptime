@@ -18,6 +18,7 @@ import AttributeKeySentence, {
 } from "../../TelemetryViewer/components/AttributeKeySentence";
 import LogSearchSuggestions from "./LogSearchSuggestions";
 import LogSearchHelp from "./LogSearchHelp";
+import lookupTable, { readOwnValue } from "../../../../Utils/LookupTable";
 
 export interface LogSearchBarProps {
   value: string;
@@ -239,10 +240,9 @@ const LogSearchBar: React.ForwardRefExoticComponent<
                * what's actually in the data); otherwise accept the typed
                * value as-is so users aren't blocked when no suggestion exists.
                */
-              const resolvedField: string =
-                FIELD_ALIAS_MAP[fieldPrefix.toLowerCase()] || fieldPrefix;
+              const resolvedField: string = resolveLogSearchField(fieldPrefix);
               const availableValues: Array<string> =
-                (props.valueSuggestions || {})[resolvedField] || [];
+                readOwnValue(props.valueSuggestions, resolvedField) || [];
               const lowerPartial: string = partialValue.toLowerCase();
               const exactMatch: string | undefined = availableValues.find(
                 (v: string): boolean => {
@@ -499,14 +499,19 @@ function extractCurrentWord(value: string): string {
   return parts[parts.length - 1] || "";
 }
 
-// Field alias mapping (user-facing name → internal key used in valueSuggestions)
-const FIELD_ALIAS_MAP: Record<string, string> = {
+/*
+ * Field alias mapping (user-facing name → internal key used in
+ * valueSuggestions), read by what somebody typed before the colon: a Map,
+ * so `constructor:` is a field of that name, never Object's constructor
+ * (Common/Utils/LookupTable).
+ */
+const FIELD_ALIAS_MAP: ReadonlyMap<string, string> = lookupTable({
   severity: "severityText",
   level: "severityText",
   service: "primaryEntityId",
   trace: "traceId",
   span: "spanId",
-};
+});
 
 /*
  * Whether a key typed after `@` is one of the log fields above rather than
@@ -514,10 +519,15 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
  * attribute that happens to be called "service".
  */
 export function isLogSearchFieldAlias(key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(
-    FIELD_ALIAS_MAP,
-    key.toLowerCase(),
-  );
+  return FIELD_ALIAS_MAP.has(key.toLowerCase());
+}
+
+/*
+ * The field a typed name filters - one of the log fields above, by any
+ * case, or the name as typed, an attribute's.
+ */
+export function resolveLogSearchField(fieldName: string): string {
+  return FIELD_ALIAS_MAP.get(fieldName.toLowerCase()) || fieldName;
 }
 
 function getValueSuggestions(
@@ -526,10 +536,17 @@ function getValueSuggestions(
   valueSuggestions: Record<string, Array<string>>,
 ): Array<string> {
   // Resolve field name alias (case-insensitive lookup, preserve original key as fallback)
-  const resolvedField: string =
-    FIELD_ALIAS_MAP[fieldName.toLowerCase()] || fieldName;
+  const resolvedField: string = resolveLogSearchField(fieldName);
 
-  const values: Array<string> | undefined = valueSuggestions[resolvedField];
+  /*
+   * The suggestions the field itself holds: a field named after something
+   * every object inherits ("constructor") has none, where reading the
+   * plain object handed its function on as the list.
+   */
+  const values: Array<string> | undefined = readOwnValue(
+    valueSuggestions,
+    resolvedField,
+  );
 
   if (!values || values.length === 0) {
     return [];

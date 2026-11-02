@@ -89,31 +89,32 @@ export const PRIVILEGED_ENTRA_ROLES: ReadonlyArray<string> = [
 ];
 
 // Identity Protection's risk types, in the words its own portal uses.
-export const ENTRA_RISK_EVENT_TITLES: ReadonlyMap<string, string> =
-  lookupTable({
-  anonymizedIPAddress: "Anonymous IP address",
-  unlikelyTravel: "Atypical travel",
-  maliciousIPAddress: "Malicious IP address",
-  unfamiliarFeatures: "Unfamiliar sign-in properties",
-  malwareInfectedIPAddress: "Malware-linked IP address",
-  suspiciousIPAddress: "Suspicious IP address",
-  leakedCredentials: "Leaked credentials",
-  investigationsThreatIntelligence: "Microsoft Entra threat intelligence",
-  generic: "Additional risk detected",
-  adminConfirmedUserCompromised: "Admin confirmed user compromised",
-  passwordSpray: "Password spray",
-  mcasImpossibleTravel: "Impossible travel",
-  newCountry: "New country",
-  impossibleTravel: "Impossible travel",
-  mcasSuspiciousInboxManipulationRules: "Suspicious inbox manipulation rules",
-  suspiciousInboxForwarding: "Suspicious inbox forwarding",
-  anomalousToken: "Anomalous token",
-  tokenIssuerAnomaly: "Token issuer anomaly",
-  suspiciousBrowser: "Suspicious browser",
-  riskyIPAddress: "Activity from a risky IP address",
-  attackerinTheMiddle: "Attacker in the middle",
-  suspiciousAPITraffic: "Suspicious API traffic",
-  });
+export const ENTRA_RISK_EVENT_TITLES: ReadonlyMap<string, string> = lookupTable(
+  {
+    anonymizedIPAddress: "Anonymous IP address",
+    unlikelyTravel: "Atypical travel",
+    maliciousIPAddress: "Malicious IP address",
+    unfamiliarFeatures: "Unfamiliar sign-in properties",
+    malwareInfectedIPAddress: "Malware-linked IP address",
+    suspiciousIPAddress: "Suspicious IP address",
+    leakedCredentials: "Leaked credentials",
+    investigationsThreatIntelligence: "Microsoft Entra threat intelligence",
+    generic: "Additional risk detected",
+    adminConfirmedUserCompromised: "Admin confirmed user compromised",
+    passwordSpray: "Password spray",
+    mcasImpossibleTravel: "Impossible travel",
+    newCountry: "New country",
+    impossibleTravel: "Impossible travel",
+    mcasSuspiciousInboxManipulationRules: "Suspicious inbox manipulation rules",
+    suspiciousInboxForwarding: "Suspicious inbox forwarding",
+    anomalousToken: "Anomalous token",
+    tokenIssuerAnomaly: "Token issuer anomaly",
+    suspiciousBrowser: "Suspicious browser",
+    riskyIPAddress: "Activity from a risky IP address",
+    attackerinTheMiddle: "Attacker in the middle",
+    suspiciousAPITraffic: "Suspicious API traffic",
+  },
+);
 
 const RISK_SEVERITIES: ReadonlyMap<string, OcsfSeverity> = lookupTable({
   high: OcsfSeverity.High,
