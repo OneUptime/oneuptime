@@ -3,6 +3,7 @@ import MerakiTrafficReader, {
   ANALYTICS_WINDOW_MS,
   BACKFILL_MS,
   MAX_TOPOLOGY_NETWORKS_PER_READ,
+  MAX_UPLINK_HEALTH_WINDOWS_PER_READ,
   MerakiNetwork,
   NO_APPLIANCE_WARNING,
   RATE_LIMITED_WARNING,
@@ -11,6 +12,7 @@ import MerakiTrafficReader, {
   getAnalyticsStart,
   getTopologyDueNetworks,
   isTrafficAnalysisOff,
+  planUplinkHealthWindows,
   planUplinkWindows,
   readNetworks,
 } from "../../../../Server/Utils/NetworkController/Meraki/MerakiTrafficReader";
@@ -32,7 +34,10 @@ import {
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
 import { MerakiRegion } from "../../../../Types/NetworkController/MerakiRegion";
 import NetworkControllerProvider from "../../../../Types/NetworkController/NetworkControllerProvider";
-import { NetworkTrafficUsageKind } from "../../../../Types/NetFlow/NetworkTrafficUsage";
+import {
+  NetworkTrafficUsageKind,
+  isUplinkUsageKind,
+} from "../../../../Types/NetFlow/NetworkTrafficUsage";
 import {
   FAKE_API_KEY,
   FakeMerakiApi,
@@ -51,8 +56,8 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * One read of one Meraki organization, against a faithful fake of the
  * dashboard API on a test clock: what it asks for (the organization's
- * uplinks in one call a window, each network's applications and clients
- * every two hours), what it keeps (records whose windows it says it
+ * uplinks and their loss and latency in one call a window, each network's
+ * applications and clients every two hours), what it keeps (records whose windows it says it
  * covered, so the runner never writes one twice), where it gets to (the
  * cursors the next read carries on from), and what it does when Meraki
  * will not answer - a network skipped, a read stopped with what it read
@@ -64,6 +69,8 @@ const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
 const UPLINKS: string =
   "/api/v1/organizations/549236/appliance/uplinks/usage/byNetwork";
+const UPLINK_HEALTH: string =
+  "/api/v1/organizations/549236/devices/uplinksLossAndLatency";
 
 interface Env {
   clock: TestClock;
@@ -355,8 +362,13 @@ describe("a first read", () => {
     expect(result.complete).toBe(true);
     expect(result.warnings).toEqual([]);
 
-    // 3 listings, 34 uplink windows, 3 calls for each of 5 networks.
-    expect(result.requestCount).toBe(3 + 34 + 15);
+    /*
+     * 3 listings, 34 uplink windows, as many windows of loss and latency as a
+     * read asks for, 3 calls for each of 5 networks.
+     */
+    expect(result.requestCount).toBe(
+      3 + 34 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ + 15,
+    );
     expect(env.api.requests).toHaveLength(result.requestCount);
     expect(env.api.callsTo(UPLINKS)).toHaveLength(34);
     expect(result.uplinkWindows).toBe(34);
@@ -470,7 +482,8 @@ describe("the reads after it", () => {
     moveClockTo(env.clock, new Date("2026-10-24T12:05:00.000Z"));
     const result: NetworkControllerReadResult = await readOnce(env);
 
-    expect(env.api.requests.length - before).toBe(3 + 1);
+    // The listings, an uplink window, and that window's loss and latency.
+    expect(env.api.requests.length - before).toBe(3 + 1 + 1);
     expect(result.uplinkWindows).toBe(1);
     expect(result.analyticsNetworks).toBe(0);
     expect(result.analyticsNetworksWaiting).toBe(0);
@@ -572,7 +585,7 @@ describe("traffic analysis turned off on a network", () => {
         .filter((record: NetworkTrafficUsageRecord) => {
           return (
             record.controllerNetworkId === "L_1001" &&
-            record.kind !== NetworkTrafficUsageKind.Uplink
+            !isUplinkUsageKind(record.kind)
           );
         })
         .map((record: NetworkTrafficUsageRecord) => {
@@ -629,7 +642,7 @@ describe("when Meraki does not answer", () => {
       first.records.some((record: NetworkTrafficUsageRecord) => {
         return (
           record.controllerNetworkId === "L_1001" &&
-          record.kind !== NetworkTrafficUsageKind.Uplink
+          !isUplinkUsageKind(record.kind)
         );
       }),
     ).toBe(false);
@@ -790,6 +803,407 @@ describe("when Meraki does not answer", () => {
   });
 });
 
+describe("uplink loss and latency", () => {
+  function organizationWith(
+    uplinks: FakeMerakiOrganization["appliances"][number]["uplinks"],
+  ): FakeMerakiOrganization {
+    const organization: FakeMerakiOrganization = buildBranchOrganization({
+      id: "549236",
+      name: "Acme Retail",
+      count: 1,
+    });
+
+    organization.appliances[0]!.uplinks = uplinks;
+
+    return organization;
+  }
+
+  function health(
+    result: NetworkControllerReadResult,
+  ): Array<NetworkTrafficUsageRecord> {
+    return ofKind(result.records, NetworkTrafficUsageKind.UplinkHealth);
+  }
+
+  test("a first read asks for the last two hours, a window a call, in the uplink usage's own windows", async () => {
+    const env: Env = environment({}, 1);
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    const calls: Array<FakeMerakiRequest> = env.api.callsTo(UPLINK_HEALTH);
+
+    expect(calls).toHaveLength(MAX_UPLINK_HEALTH_WINDOWS_PER_READ);
+    expect(calls[0]!.url.searchParams.get("t0")).toBe(
+      "2026-10-24T09:55:00.000Z",
+    );
+    expect(calls[calls.length - 1]!.url.searchParams.get("t1")).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+    expect(result.nextState.uplinkHealthCursor).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+    // Five minutes a call, what Meraki allows, and none refused.
+    expect(result.warnings).toEqual([]);
+
+    // Two uplinks a window, each named as the traffic's rows are.
+    expect(health(result)).toHaveLength(MAX_UPLINK_HEALTH_WINDOWS_PER_READ * 2);
+    expect(health(result)[0]).toMatchObject({
+      controllerNetworkId: "L_1000",
+      controllerNetworkName: "Branch 1",
+      deviceSerial: "Q2XX-AAAA-0000",
+      deviceName: "MX 1",
+      interfaceName: "wan1",
+      lossPercent: 0.5,
+      latencyMs: 20,
+      sentOctets: 0,
+      receivedOctets: 0,
+    });
+    expect(
+      health(result).filter((record: NetworkTrafficUsageRecord): boolean => {
+        return record.interfaceName === "wan2";
+      })[0],
+    ).toMatchObject({ lossPercent: 1.5, latencyMs: 40 });
+    expectRecordsInWindows(result);
+  });
+
+  test("one call covers every appliance: an organization of 50 costs what one of 1 does", async () => {
+    const small: Env = environment({}, 1);
+    const large: Env = environment({}, 50);
+
+    await readOnce(small);
+    const result: NetworkControllerReadResult = await readOnce(large);
+
+    expect(large.api.callsTo(UPLINK_HEALTH)).toHaveLength(
+      small.api.callsTo(UPLINK_HEALTH).length,
+    );
+    expect(health(result)).toHaveLength(
+      50 * 2 * MAX_UPLINK_HEALTH_WINDOWS_PER_READ,
+    );
+  });
+
+  test("a read every five minutes asks for one more window, and never one twice", async () => {
+    const env: Env = environment({}, 1);
+    await readOnce(env);
+    const before: number = env.api.callsTo(UPLINK_HEALTH).length;
+
+    moveClockTo(env.clock, new Date("2026-10-24T12:05:00.000Z"));
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    const calls: Array<FakeMerakiRequest> = env.api
+      .callsTo(UPLINK_HEALTH)
+      .slice(before);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.url.searchParams.get("t0")).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+    expect(calls[0]!.url.searchParams.get("t1")).toBe(
+      "2026-10-24T12:00:00.000Z",
+    );
+    expect(health(result)).toHaveLength(2);
+  });
+
+  test("a read inside the same window asks for nothing", async () => {
+    const env: Env = environment({}, 1);
+    await readOnce(env);
+    const before: number = env.api.callsTo(UPLINK_HEALTH).length;
+
+    env.clock.advance(MINUTE);
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(env.api.callsTo(UPLINK_HEALTH).length).toBe(before);
+    expect(health(result)).toEqual([]);
+  });
+
+  test("a connection read every hour leaves no gap", async () => {
+    const env: Env = environment({}, 1);
+    await readOnce(env);
+    const before: number = env.api.callsTo(UPLINK_HEALTH).length;
+
+    moveClockTo(env.clock, new Date("2026-10-24T13:00:00.000Z"));
+    await readOnce(env);
+
+    const calls: Array<FakeMerakiRequest> = env.api
+      .callsTo(UPLINK_HEALTH)
+      .slice(before);
+
+    expect(calls).toHaveLength(12);
+    expect(calls[0]!.url.searchParams.get("t0")).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+  });
+
+  test("after a long pause it reads back two hours, not everything it missed", async () => {
+    const env: Env = environment({}, 1);
+    await readOnce(env);
+    const before: number = env.api.callsTo(UPLINK_HEALTH).length;
+
+    moveClockTo(env.clock, new Date("2026-10-27T12:00:00.000Z"));
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    const calls: Array<FakeMerakiRequest> = env.api
+      .callsTo(UPLINK_HEALTH)
+      .slice(before);
+
+    expect(calls).toHaveLength(MAX_UPLINK_HEALTH_WINDOWS_PER_READ);
+    expect(calls[0]!.url.searchParams.get("t0")).toBe(
+      "2026-10-27T09:55:00.000Z",
+    );
+    expect(result.nextState.uplinkHealthCursor).toBe(
+      "2026-10-27T11:55:00.000Z",
+    );
+  });
+
+  test("a line that is down loses every packet and has no latency: loss 100, latency unknown, never 0", async () => {
+    const env: Env = environment({
+      organizations: [
+        organizationWith([
+          {
+            interface: "wan1",
+            sentPerSecond: 1000,
+            receivedPerSecond: 1000,
+            lossPercent: 100,
+            latencyMs: null,
+          },
+        ]),
+      ],
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(health(result)[0]).toMatchObject({
+      interfaceName: "wan1",
+      lossPercent: 100,
+      latencyMs: null,
+    });
+  });
+
+  test("an uplink nobody measures has no row, though it carries traffic", async () => {
+    const env: Env = environment({
+      organizations: [
+        organizationWith([
+          { interface: "wan1", sentPerSecond: 1000, receivedPerSecond: 1000 },
+        ]),
+      ],
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(health(result)).toEqual([]);
+    // The windows still count as read: they are not asked for again.
+    expect(result.nextState.uplinkHealthCursor).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+  });
+
+  test("an uplink that carries nothing is measured all the same: a standby line", async () => {
+    const env: Env = environment({
+      organizations: [
+        organizationWith([
+          {
+            interface: "wan2",
+            sentPerSecond: 0,
+            receivedPerSecond: 0,
+            lossPercent: 0,
+            latencyMs: 31,
+          },
+        ]),
+      ],
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(ofKind(result.records, NetworkTrafficUsageKind.Uplink)).toEqual([]);
+    expect(health(result)[0]).toMatchObject({
+      interfaceName: "wan2",
+      lossPercent: 0,
+      latencyMs: 31,
+    });
+  });
+
+  test("an organization with no appliance asks for nothing, and moves on", async () => {
+    const organization: FakeMerakiOrganization = buildBranchOrganization({
+      id: "549236",
+      name: "Acme Retail",
+      count: 1,
+    });
+    organization.appliances = [];
+
+    const env: Env = environment({ organizations: [organization] });
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(env.api.callsTo(UPLINK_HEALTH)).toHaveLength(0);
+    expect(result.nextState.uplinkHealthCursor).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+  });
+
+  test("a call Meraki refuses is a warning, and costs the traffic nothing", async () => {
+    const env: Env = environment(
+      {
+        scripted: {
+          [UPLINK_HEALTH]: [merakiError(403, "Not available for this license")],
+        },
+      },
+      2,
+    );
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.complete).toBe(true);
+    expect(result.warnings).toEqual([
+      expect.stringContaining("Couldn't read the uplinks' loss and latency"),
+    ]);
+    expect(health(result)).toEqual([]);
+    // The cursor stays: the next read asks for it again.
+    expect(result.nextState.uplinkHealthCursor).toBeUndefined();
+    // Everything else was read.
+    expect(result.uplinkWindows).toBe(34);
+    expect(result.analyticsNetworks).toBe(2);
+    expect(env.api.callsTo(UPLINK_HEALTH)).toHaveLength(1);
+  });
+
+  test("a read that stopped part way carries on from the window it stopped at", async () => {
+    const env: Env = environment(
+      {
+        scripted: {
+          [UPLINK_HEALTH]: [
+            { status: 200, body: [] },
+            { status: 200, body: [] },
+            merakiError(400, "Try later"),
+          ],
+        },
+      },
+      1,
+    );
+
+    const first: NetworkControllerReadResult = await readOnce(env);
+
+    expect(first.nextState.uplinkHealthCursor).toBe("2026-10-24T10:05:00.000Z");
+
+    const second: NetworkControllerReadResult = await readOnce(env);
+
+    expect(second.nextState.uplinkHealthCursor).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
+    expect(env.api.callsTo(UPLINK_HEALTH)[3]!.url.searchParams.get("t0")).toBe(
+      "2026-10-24T10:05:00.000Z",
+    );
+  });
+
+  test("a rate limit that outlasts its retries says so, and the read still reads the rest", async () => {
+    const limited: Array<FakeMerakiResponse> = [];
+
+    for (let attempt: number = 0; attempt < 12; attempt++) {
+      limited.push(
+        merakiError(429, "Too many requests", { "retry-after": "1" }),
+      );
+    }
+
+    const env: Env = environment({ scripted: { [UPLINK_HEALTH]: limited } }, 1);
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.wasRateLimited).toBe(true);
+    expect(result.warnings).toContain(RATE_LIMITED_WARNING);
+    expect(result.analyticsNetworks).toBe(1);
+  });
+
+  test("a refused key still fails the read", async () => {
+    const env: Env = environment(
+      { scripted: { [UPLINK_HEALTH]: [merakiError(401, "Invalid API key")] } },
+      1,
+    );
+
+    await expect(readOnce(env)).rejects.toMatchObject({
+      kind: LlmConnectionFailureKind.Authentication,
+    });
+  });
+
+  test("an answer that is no list is an empty window", async () => {
+    const env: Env = environment(
+      {
+        scripted: {
+          [UPLINK_HEALTH]: [{ status: 200, body: { errors: ["surprise"] } }],
+        },
+      },
+      1,
+    );
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.warnings).toEqual([]);
+    expect(health(result)).toHaveLength(
+      (MAX_UPLINK_HEALTH_WINDOWS_PER_READ - 1) * 2,
+    );
+  });
+});
+
+describe("planUplinkHealthWindows", () => {
+  const NOW: Date = new Date("2026-10-24T12:03:00.000Z");
+
+  test("every window is five minutes and ends at least five minutes ago, so Meraki's two is always kept", () => {
+    const windows: ReturnType<typeof planUplinkHealthWindows> =
+      planUplinkHealthWindows({ cursor: undefined, now: NOW });
+
+    expect(windows).toHaveLength(MAX_UPLINK_HEALTH_WINDOWS_PER_READ);
+
+    for (const window of windows) {
+      expect(window.end.getTime() - window.start.getTime()).toBe(5 * MINUTE);
+      expect(window.end.getTime()).toBeLessThanOrEqual(
+        NOW.getTime() - 5 * MINUTE,
+      );
+      // On the uplink usage's own grid, so the two line up on a chart.
+      expect(window.start.getTime() % (5 * MINUTE)).toBe(0);
+    }
+  });
+
+  test("they run on from where the last one ended, without a gap or an overlap", () => {
+    const windows: ReturnType<typeof planUplinkHealthWindows> =
+      planUplinkHealthWindows({
+        cursor: "2026-10-24T11:40:00.000Z",
+        now: NOW,
+      });
+
+    expect(
+      windows.map((window: { start: Date }): string => {
+        return window.start.toISOString();
+      }),
+    ).toEqual([
+      "2026-10-24T11:40:00.000Z",
+      "2026-10-24T11:45:00.000Z",
+      "2026-10-24T11:50:00.000Z",
+    ]);
+  });
+
+  test("a cursor inside a window starts that window again", () => {
+    expect(
+      planUplinkHealthWindows({
+        cursor: "2026-10-24T11:52:30.000Z",
+        now: NOW,
+      })[0]!.start.toISOString(),
+    ).toBe("2026-10-24T11:50:00.000Z");
+  });
+
+  test("nothing is due until a whole window has passed", () => {
+    expect(
+      planUplinkHealthWindows({
+        cursor: "2026-10-24T11:55:00.000Z",
+        now: NOW,
+      }),
+    ).toEqual([]);
+  });
+
+  test("a cursor in the future, or one that is no date, is safe", () => {
+    expect(
+      planUplinkHealthWindows({
+        cursor: "2030-01-01T00:00:00.000Z",
+        now: NOW,
+      }),
+    ).toEqual([]);
+    expect(
+      planUplinkHealthWindows({ cursor: "not a date", now: NOW }),
+    ).toHaveLength(MAX_UPLINK_HEALTH_WINDOWS_PER_READ);
+  });
+});
+
 describe("a large organization", () => {
   test("1,200 networks are read over a few reads, each within its budget and pace, each network once", async () => {
     const env: Env = environment({}, 1200);
@@ -801,11 +1215,19 @@ describe("a large organization", () => {
     expect(first.requestCount).toBe(900);
     expect(first.complete).toBe(false);
     /*
-     * 5 listings (two pages each of networks and devices), 34 windows, and
-     * the links of as many networks as one read asks.
+     * 5 listings (two pages each of networks and devices), 34 windows, the
+     * windows of loss and latency, and the links of as many networks as one
+     * read asks.
      */
     expect(first.analyticsNetworks).toBe(
-      Math.floor((900 - 5 - 34 - MAX_TOPOLOGY_NETWORKS_PER_READ) / 2),
+      Math.floor(
+        (900 -
+          5 -
+          34 -
+          MAX_UPLINK_HEALTH_WINDOWS_PER_READ -
+          MAX_TOPOLOGY_NETWORKS_PER_READ) /
+          2,
+      ),
     );
     expect(first.linkNetworkIds).toHaveLength(MAX_TOPOLOGY_NETWORKS_PER_READ);
     expect(first.analyticsNetworksWaiting).toBe(1200 - first.analyticsNetworks);
@@ -884,7 +1306,9 @@ describe("the organization's device list", () => {
       [],
     );
     // Nothing more than the read cost before it listed every device.
-    expect(result.requestCount).toBe(3 + 34 + 15);
+    expect(result.requestCount).toBe(
+      3 + 34 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ + 15,
+    );
 
     expect(result.devices).toHaveLength(7);
     expect(result.isDeviceListComplete).toBe(true);
@@ -1226,8 +1650,10 @@ describe("the links of a read (#5379)", () => {
         isWireless: false,
       }),
     ]);
-    // 3 listings, 34 uplink windows, 3 calls for each of 5 networks.
-    expect(result.requestCount).toBe(3 + 34 + 15);
+    // 3 listings, 34 uplink windows, their health, 3 calls for each of 5 networks.
+    expect(result.requestCount).toBe(
+      3 + 34 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ + 15,
+    );
   });
 
   test("a network whose window was not read gives no clients", async () => {

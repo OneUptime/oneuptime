@@ -24,6 +24,28 @@ export function isDistributionPointType(pointType: unknown): boolean {
 }
 
 /**
+ * The same aggregations read from a rollup of plain metrics: its stored
+ * states merged. Avg is derived from the sum and count states, since no
+ * rollup stores an average's state.
+ */
+export function getRollupAggregationExpression(
+  aggregationType: AggregationType,
+): string {
+  switch (aggregationType) {
+    case AggregationType.Sum:
+      return `sumMerge(valueSumState)`;
+    case AggregationType.Count:
+      return `countMerge(valueCountState)`;
+    case AggregationType.Min:
+      return `minMerge(valueMinState)`;
+    case AggregationType.Max:
+      return `maxMerge(valueMaxState)`;
+    default:
+      return `if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))`;
+  }
+}
+
+/**
  * Distribution-aware per-bucket expression for scalar aggregations
  * over `value`. Distribution rows (histogram/summary — identified by
  * a non-null `count`) carry the datapoint's observation total in

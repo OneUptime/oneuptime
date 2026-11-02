@@ -126,6 +126,7 @@ import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUni
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
@@ -933,6 +934,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new BindInfrastructureMonitorSteps(),
+  /*
+   * The loss and latency Meraki measures on an appliance's uplinks: adds the
+   * two columns that hold them (NetworkTrafficUsageV1.lossPercent, latencyMs).
+   * Metadata-only and idempotent; rows written before it read as "nothing
+   * measured". No ordering requirement, so it sits above the runbook moves,
+   * which keep their places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new AddNetworkTrafficUsageUplinkHealthColumns(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

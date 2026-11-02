@@ -277,6 +277,32 @@ describe("ProjectService project creation - subscription_started", () => {
       expect(getEmittedData(spies)["is_paid_conversion"]).toBe(true);
     });
 
+    it("should say when the plan has started on a free trial, and until when", async () => {
+      const spies: CreateSpies = setup();
+
+      spies.subscribeToPlan.mockResolvedValue({
+        subscriptionId: "sub_main_created",
+        meteredSubscriptionId: "sub_metered_created",
+        trialEndsAt: new Date("2026-11-16T09:14:22.187Z"),
+      } as never);
+
+      await createProject(fakeProject());
+
+      expect(getEmittedData(spies)["is_trial"]).toBe(true);
+      expect(getEmittedData(spies)["trial_ends_at"]).toBe(
+        "2026-11-16T09:14:22.187Z",
+      );
+    });
+
+    it("should say when a plan started with no trial", async () => {
+      const spies: CreateSpies = setup();
+
+      await createProject(fakeProject());
+
+      expect(getEmittedData(spies)["is_trial"]).toBe(false);
+      expect(getEmittedData(spies)).not.toHaveProperty("trial_ends_at");
+    });
+
     it("should capture the same conversion in product analytics", async () => {
       const spies: CreateSpies = setup();
 

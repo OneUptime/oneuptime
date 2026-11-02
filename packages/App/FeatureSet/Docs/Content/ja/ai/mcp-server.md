@@ -250,6 +250,7 @@ API キーもサインインもなしで、クライアントは公開ツール�
 
 - **`oneuptime_help`**: OneUptime の MCP ツールについてのヘルプとガイダンス
 - **`oneuptime_list_resources`**: リソースと、それぞれでできること
+- **`oneuptime_describe_resource`**: リソースのフィールドと、それらで絞り込み、並べ替え、選択する方法
 - **`get_public_status_page_overview`**: 公開ステータスページの概要
 - **`get_public_status_page_incidents`**: 公開ステータスページのインシデント
 - **`get_public_status_page_scheduled_maintenance`**: その定期メンテナンスイベント
@@ -353,6 +354,8 @@ curl https://oneuptime.com/mcp/tools
 ```
 
 演算子は `EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search`、`Includes` です。並べ替えの値は `"ASC"` か `"DESC"` です。
+
+`list_` と `count_` のツールはどのフィールドでも受け付けるため、ツールの一覧はクライアントが一度に読み込める大きさに収まります。リソースのフィールド、それぞれの意味、使える演算子を知るには、エージェントがリソースかそのツールのひとつ(`Incident` や `list_incidents` など)を指定して `oneuptime_describe_resource` を呼び出します。
 
 ## フィールドの選択とページング
 

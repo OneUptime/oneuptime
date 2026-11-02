@@ -3,11 +3,16 @@
  *
  * Verifies that oneuptime_list_resources derives tool names via
  * sanitizeToolName (matching ToolGenerator exactly) and only lists the
- * operations a resource actually has.
+ * operations a resource actually has. Tests/DescribeResource covers
+ * oneuptime_describe_resource.
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { handleHelperTool, isHelperTool } from "../Tools/HelperTools";
+import {
+  generateHelperTools,
+  handleHelperTool,
+  isHelperTool,
+} from "../Tools/HelperTools";
 import { McpToolInfo } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
@@ -43,8 +48,46 @@ describe("HelperTools", () => {
     it("recognizes helper tools and rejects others", () => {
       expect(isHelperTool("oneuptime_help")).toBe(true);
       expect(isHelperTool("oneuptime_list_resources")).toBe(true);
+      expect(isHelperTool("oneuptime_describe_resource")).toBe(true);
       expect(isHelperTool("list_incidents")).toBe(false);
       expect(isHelperTool("oneuptime_whoami")).toBe(false);
+    });
+  });
+
+  describe("generateHelperTools", () => {
+    it("makes every helper tool, and isHelperTool knows each one", () => {
+      const names: Array<string> = generateHelperTools().map(
+        (tool: McpToolInfo): string => {
+          return tool.name;
+        },
+      );
+
+      expect(names).toEqual([
+        "oneuptime_help",
+        "oneuptime_list_resources",
+        "oneuptime_describe_resource",
+      ]);
+      expect(names.every(isHelperTool)).toBe(true);
+    });
+
+    it("sends an agent to the resources rather than list them all in the help tool's description", () => {
+      const help: McpToolInfo = generateHelperTools()[0] as McpToolInfo;
+
+      expect(help.description).toContain("oneuptime_list_resources");
+      expect(help.description).toContain("oneuptime_describe_resource");
+      expect(help.description).not.toContain("AVAILABLE RESOURCES");
+    });
+  });
+
+  describe("oneuptime_help", () => {
+    it("tells an agent to read a resource's fields before filtering", () => {
+      const response: { data: { quickStart: Array<string> } } = JSON.parse(
+        handleHelperTool("oneuptime_help", {}, []),
+      ) as { data: { quickStart: Array<string> } };
+
+      expect(response.data.quickStart.join("\n")).toContain(
+        "oneuptime_describe_resource",
+      );
     });
   });
 

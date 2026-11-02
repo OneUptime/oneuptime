@@ -792,6 +792,15 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
+        name: "MCP Server for AI Agents",
+        plans: {
+          free: false,
+          growth: true,
+          scale: true,
+          enterprise: true,
+        },
+      },
+      {
         name: "Advanced Workflows",
         plans: {
           free: false,

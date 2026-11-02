@@ -206,7 +206,7 @@ function getSuggestionForStatusCode(
 ): string {
   switch (statusCode) {
     case 400:
-      return "The request was invalid. Check required parameters and value formats against the tool's input schema; the details field usually names the offending field.";
+      return "The request was invalid. Check required parameters and value formats against the tool's input schema; the details field usually names the offending field. oneuptime_describe_resource lists a resource's fields and how to filter on them.";
     case 401:
       return isOAuth
         ? "The sign-in was not accepted for this request. The user may have left the project or been blocked; ask them to connect this MCP client again."

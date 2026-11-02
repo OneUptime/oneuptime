@@ -2390,6 +2390,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     plan: SubscriptionPlan;
     planId: string;
     seats: number;
+    trialEndsAt: Date | null;
   }): void {
     if (!data.project.createdOwnerEmail) {
       return;
@@ -2420,6 +2421,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
        */
       is_paid_conversion: true,
       has_custom_pricing: data.plan.isCustomPricing(),
+      /*
+       * A plan with a free trial starts it here, with no card: value is then
+       * what the plan will cost, not money received, and a receiver has to be
+       * able to tell the two apart.
+       */
+      is_trial: Boolean(data.trialEndsAt),
+      ...(data.trialEndsAt
+        ? { trial_ends_at: OneUptimeDate.toString(data.trialEndsAt) }
+        : {}),
       ...utmAnalyticsProperties(data.project as unknown as JSONObject),
       click_ids: data.project.clickIds || {},
     };
@@ -2876,6 +2886,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         plan: plan,
         planId: createdItem.paymentProviderPlanId!,
         seats: 1,
+        trialEndsAt: trialEndsAt || null,
       });
 
       // mark the promo code as used it it exists.

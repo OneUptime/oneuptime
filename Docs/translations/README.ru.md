@@ -45,6 +45,7 @@ OneUptime — платформа наблюдаемости с открытым 
 - **[Рабочие процессы и сборники инструкций](https://oneuptime.com/docs/ru/workflows/index)**: Автоматизировать рутинную работу и подключать Jira, ServiceNow и другие инструменты, которыми уже пользуется ваша команда.
 - **[OneUptime AI](https://oneuptime.com/docs/ru/ai/ai-sre)**: Расследует новые инциденты и оповещения и публикует анализ первопричины со ссылками. Если включить исправление, он может открыть запрос на слияние с исправлением, которое проверит ваша команда.
 - **[API, CLI и Terraform](https://oneuptime.com/docs/ru/api-reference/api-reference)**: Автоматизировать OneUptime из ваших скриптов и CI и управлять мониторами, страницами статуса и дежурствами как кодом.
+- **[Сервер MCP](https://oneuptime.com/docs/ru/ai/mcp-server)** (`https://oneuptime.com/mcp`): Подключите Claude, Cursor, VS Code с GitHub Copilot или любой другой клиент Model Context Protocol (MCP) и попросите его разобраться с инцидентом, запросить логи и трассировки, подтвердить оповещение или настроить монитор.
 
 Всё остальное есть в [документации](https://oneuptime.com/docs/ru/introduction/getting-started).
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40026,
-    "untranslated": 12793
+    "keys": 40054,
+    "untranslated": 12792
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -251,6 +251,8 @@
     "Type",
     "UTC",
     "Up · In",
+    "Uplink",
+    "Uplink {{uplink}}",
     "Uplinks",
     "Uploads",
     "VLAN",
@@ -339,6 +341,7 @@
     "{{count}} alarm",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
     "{{count}} container",
@@ -353,6 +356,8 @@
     "{{count}} filter ({{condition}})",
     "{{count}} filters",
     "{{count}} filters ({{condition}})",
+    "{{count}} flow",
+    "{{count}} flows",
     "{{count}} host",
     "{{count}} hosts",
     "{{count}} incident",

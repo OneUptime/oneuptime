@@ -250,6 +250,7 @@ API कुंजी या साइन-इन के बिना, क्ला
 
 - **`oneuptime_help`**: OneUptime के MCP टूल के बारे में मदद और मार्गदर्शन
 - **`oneuptime_list_resources`**: संसाधन, और हर एक के साथ आप क्या कर सकते हैं
+- **`oneuptime_describe_resource`**: किसी संसाधन के फ़ील्ड, और उन पर फ़िल्टर, सॉर्ट और चयन करने का तरीका
 - **`get_public_status_page_overview`**: किसी सार्वजनिक स्टेटस पेज का अवलोकन
 - **`get_public_status_page_incidents`**: किसी सार्वजनिक स्टेटस पेज की घटनाएं
 - **`get_public_status_page_scheduled_maintenance`**: उसके निर्धारित रखरखाव इवेंट
@@ -353,6 +354,8 @@ curl https://oneuptime.com/mcp/tools
 ```
 
 ऑपरेटर हैं `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` और `Includes`। सॉर्ट मान `"ASC"` या `"DESC"` हैं।
+
+`list_` और `count_` टूल कोई भी फ़ील्ड लेते हैं, जिससे टूल की सूची इतनी छोटी रहती है कि क्लाइंट उसे एक बार में लोड कर सके। किसी संसाधन के फ़ील्ड, हर फ़ील्ड का अर्थ और वह कौन-से ऑपरेटर लेता है, यह देखने के लिए एजेंट `oneuptime_describe_resource` को संसाधन या उसके किसी टूल के साथ कॉल करता है, जैसे `Incident` या `list_incidents`।
 
 ## फ़ील्ड चयन और पेजिनेशन
 
