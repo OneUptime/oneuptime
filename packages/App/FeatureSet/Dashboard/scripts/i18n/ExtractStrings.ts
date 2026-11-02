@@ -250,6 +250,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Kubernetes/KubernetesHealth.ts",
     kind: "keys",
   },
+  /*
+   * A host's status and what needs attention on it, by one set of rules:
+   * the Hosts list and its Needs attention card, a host's hero and page,
+   * and its Topology say them in the reader's language. Only the words the
+   * file marks are read: mount points and unit names are drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Host/HostHealth.ts",
+    kind: "keys",
+  },
 ];
 
 /*

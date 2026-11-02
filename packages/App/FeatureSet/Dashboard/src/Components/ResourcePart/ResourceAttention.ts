@@ -63,6 +63,11 @@ export interface ResourceAttentionItem {
    * under the reasons, two lines at most. Never translated.
    */
   message?: string | undefined;
+  /*
+   * When the part last reported, for a part that has stopped: drawn under
+   * its name as "Last reported 3 hours ago", in the reader's language.
+   */
+  lastReportAt?: Date | undefined;
   // The part's own page.
   route?: Route | undefined;
 }

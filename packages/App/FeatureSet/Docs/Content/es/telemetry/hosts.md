@@ -4,6 +4,7 @@ Añade una máquina Linux, Windows o macOS a OneUptime con un solo comando. El c
 
 :::cards
 - [Añadir un host](#añadir-un-host): Un comando en Linux, Windows o macOS.
+- [Ver qué hosts requieren atención](#ver-qué-hosts-requieren-atención): Primero lo que está roto, después la salud, la CPU, la memoria y el disco de cada host.
 - [Cambiar lo que recopilan los hosts](#cambiar-lo-que-recopilan-los-hosts): Configuraciones del recolector por sistema y etiqueta, con cada versión guardada.
 - [Revisar el recolector de un host](#revisar-el-recolector-de-un-host): La configuración que ejecuta, su versión y por qué una configuración no arrancó.
 - [Qué puede hacer una configuración](#qué-puede-hacer-una-configuración): Leer el host y enviar solo a esta instancia de OneUptime.
@@ -75,8 +76,29 @@ Cada instancia de OneUptime sirve sus propios instaladores, así que una instanc
 
 ### Espera al host
 
-El último paso del diálogo indica cuándo se conecta el host, con un enlace a él. En la lista aparece como **Iniciando** hasta que llegan sus primeras métricas, normalmente en menos de un minuto, y después como conectado, con su recolector **En ejecución**. La página **Topología** del host dibuja en un solo mapa lo que se ejecuta en él, lo que lo llama y lo que llama: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
+El último paso del diálogo indica cuándo se conecta el host, con un enlace a él. En la lista aparece como **Iniciando** hasta que llegan sus primeras métricas, normalmente en menos de un minuto, y después con su salud, **En buen estado** cuando nada en él necesita revisión, y su recolector **En ejecución**. La página **Topología** del host dibuja en un solo mapa lo que se ejecuta en él, lo que lo llama y lo que llama: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
 :::
+
+## Ver qué hosts requieren atención
+
+La lista **Hosts** empieza con **Requiere atención**: cada host que está roto o necesita revisión, primero lo más urgente, cada uno con el motivo y un paso a su página. Un host que dejó de informar dice cuándo lo hizo por última vez. Cuando nada requiere atención, no hay tarjeta.
+
+Debajo, el **Estado** de cada host dice en una palabra cómo está, con el motivo debajo, y **CPU**, **Memoria** y **Disco** muestran lo último que informó:
+
+| Estado | Cuándo |
+| --- | --- |
+| **En buen estado** | Informa, y nada en él necesita revisión. |
+| **Degradado** | Algo necesita revisión: un sistema de archivos o sus inodos llenos en más del 85 %, la memoria usada en más del 90 %, el swap usado en más del 80 %, una carga media de 15 minutos por encima del doble de sus núcleos, una unidad de systemd fallida o una configuración del recolector que no arrancó. |
+| **Con problemas** | Algo es crítico: un sistema de archivos o sus inodos llenos en más del 95 %, o la memoria usada en más del 95 %. |
+| **Sin informar** | No ha llegado nada de él en 15 minutos. Sus últimas lecturas ya no son ciertas, así que su fila no muestra números y dice cuándo informó por última vez. |
+| **Iniciando** | Su recolector se registró en los últimos diez minutos y sus primeras métricas están en camino. Un host que no ha enviado nada después de eso muestra **Aún no hay datos**. |
+| **Informando** | Informa, pero no envía ninguna de las lecturas que juzgan estas reglas, como un host cuyo recolector se configuró sin `hostmetrics`. |
+
+Las lecturas son el último informe del host, que OneUptime guarda en el host aproximadamente una vez por minuto, así que la lista no tiene un rango de tiempo que elegir. Una barra se vuelve ámbar donde un host necesita revisión y roja donde es crítico. **CPU** es el tiempo ocupado en todos los núcleos y se vuelve ámbar por encima del 90 %, nunca roja: una CPU ocupada es un host trabajando, y la carga media dice cuándo se acumula el trabajo. **Disco** es el sistema de archivos más lleno, con su punto de montaje debajo, tal como `df` imprime su `Use%`: el espacio reservado para root no cuenta.
+
+La **Vista general** de un host dice lo mismo: su salud junto al estado de su recolector, cuánto tiempo lleva activo y **Requiere atención** para sus propios sistemas de archivos, memoria, swap y carga, su recolector y cada unidad de systemd fallida, que abre la página de esa unidad. **Alertas del host** enumera las [alertas que OneUptime recomienda](/docs/monitor/host-monitor#plantillas-de-alerta-listas-para-usar) para un host y cuáles vigilan este, y su botón abre **Recomendaciones** con las demás seleccionadas.
+
+Cuánto tiempo lleva activo un host viene de `system.uptime`, que envía el scraper `system` de la configuración predeterminada de OneUptime. Una configuración propia también necesita ese scraper: consulte [Recolector de OpenTelemetry para hosts](/docs/telemetry/host-otel-collector).
 
 ## Etiquetar hosts
 
@@ -224,6 +246,10 @@ Su página **Recolector** muestra por qué no arrancó la configuración. El hos
 
 :::details El host muestra «Sin informar»
 OneUptime no tiene noticias del supervisor del host desde hace más de 15 minutos. Comprueba que el servicio `oneuptime-collector` se está ejecutando y que el host todavía puede llegar a OneUptime.
+:::
+
+:::details La CPU, la memoria o el disco de un host muestran un guion
+OneUptime prefiere no mostrar ningún número antes que uno viejo: el host no ha informado en 15 minutos, o su recolector no envía `hostmetrics`. Un recolector que configuró usted mismo necesita el receiver `hostmetrics` con sus scrapers `cpu`, `memory` y `filesystem`, como en [Recolector de OpenTelemetry para hosts](/docs/telemetry/host-otel-collector).
 :::
 
 ## Próximos pasos

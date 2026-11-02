@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -24,6 +25,13 @@ export interface GoldenMetricTileProps {
   iconColor: GoldenMetricTileColor;
   value: string;
   sublabel?: string | undefined;
+  /*
+   * The sublabel is a value as the resource wrote it - a mount point, a
+   * device - rather than a sentence: it reads in its own direction, so
+   * /var/lib/postgresql keeps its leading slash on a Persian page, and a
+   * long one breaks after its slashes rather than running out of the tile.
+   */
+  isSublabelAsWritten?: boolean | undefined;
   percent?: number | null | undefined;
   thresholds?: { warn: number; danger: number } | undefined;
   /*
@@ -125,7 +133,18 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
         {props.value}
       </div>
       {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
+        <div
+          className="mt-1 text-xs text-gray-500"
+          data-testid="golden-metric-tile-sublabel"
+        >
+          {props.isSublabelAsWritten ? (
+            <bdi>
+              <BreakableName text={props.sublabel} />
+            </bdi>
+          ) : (
+            props.sublabel
+          )}
+        </div>
       ) : (
         <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
       )}

@@ -4,7 +4,7 @@ En värdmonitor övervakar en maskin – dess CPU, minne, diskar, belastning och
 
 :::cards
 - [Skapa monitorn](#skapa-en-värdmonitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-larmmallar): Sex färdiga larm för en tyst värd, CPU, minne, disk, belastning och processer.
+- [Mallar](#färdiga-larmmallar): Tio färdiga larm för en tyst eller omstartad värd, CPU, minne, swap, disk, inoder, belastning, processer och misslyckade systemd-enheter.
 - [Mätvärden](#insamlade-mätvärden): De värdmått som du kan varna på, och deras enheter.
 - [Värd eller Server / VM?](#värdmonitor-eller-server-vm-monitor): Vilken av de två maskinmonitorerna du ska använda.
 :::
@@ -95,27 +95,35 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-Listan under **Vad som ska larmas om** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder tio mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
+| Host Restarted | Varning | `system.uptime`, Min, senaste 5 minuterna | Något värde är under 600 (tio minuter) | Alla värden är vid eller över 660 |
 | High CPU Utilization | Varning | `system.cpu.utilization` för tillstånden `user` och `system`, adderade och visade som procent, senaste 5 minuterna | Över 80 % | Vid eller under 72 % |
 | High Memory Utilization | Varning | `system.memory.utilization` för tillståndet `used`, som procent, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
+| High Swap Usage | Varning | `system.paging.usage` för tillstånden `used` och `free`, använt delat med använt plus ledigt, som procent, senaste 5 minuterna | Över 80 % | Vid eller under 72 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max per `mountpoint` och `device`, som procent, senaste 5 minuterna | Över 90 % | Vid eller under 81 % |
+| Running Out of Inodes | Kritisk | `system.filesystem.inodes.usage` för tillstånden `used` och `free`, använt delat med använt plus ledigt, per `mountpoint` och `device`, som procent, senaste 5 minuterna | Över 90 % | Vid eller under 81 % |
 | High Load Average (1m) | Varning | `system.cpu.load_average.1m`, Avg, senaste 5 minuterna | Över 4 | Vid eller under 3,6 |
 | High Process Count | Varning | `system.processes.count`, Max, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
+| Systemd Unit Failed | Varning | `systemd.unit.state` med `systemd.unit.active_state = failed`, Max per `resource.systemd.unit.name`, senaste 5 minuterna | Över 0 | Vid eller under 0 |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 
 - **Host Stopped Reporting** utlöses när ingenting kommer från värden på tio minuter: maskinen är nere eller onåbar, eller dess collector har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
+- **Host Restarted** utlöses vid den första rapporten efter en uppstart: värden har varit uppe i mindre än tio minuter. Den läser `system.uptime` från collectorns skrapa `system`, som OneUptimes standardkonfigurationer slår på, och återställs av sig själv ungefär en kvart efter uppstarten, när varje värde i dess femminutersfönster är minst elva minuter. En värd som är nere utlöser i stället **Host Stopped Reporting**.
 - **CPU** är upptagen tid (`user` plus `system`), samma siffra som värdens **Översikt** visar i diagram. Iowait och steal är utelämnade.
 - **Minne** utesluter buffertar och sidcache, så att en värd som mest innehåller cache inte utlöser den.
+- **Swap** är använt swaputrymme delat med använt plus ledigt, över alla swapenheter, så som `free` och `swapon` visar det. En värd utan swap rapporterar inget och utlöses aldrig.
 - **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla: OneUptimes collector-konfigurationer utelämnar dem från skrapan `filesystem` med `exclude_fs_types`, och en egen konfiguration behöver detsamma.
+- **Inoder** öppnar en incident per montering, precis som **Filsystem**. När ett filsystem får slut på inoder går det inte längre att skapa filer där, hur mycket utrymme som än är ledigt. Ett filsystem utan egen inodtabell, som btrfs, rapporterar inga och utlöses aldrig.
 - **Belastningsmedelvärde** är en rå längd på körkön, inte delad med antalet kärnor: 4 är mättnad på en värd med 2 kärnor och rutin på en med 32, så höj den på stora värdar.
 - **Antal processer** jämför det största enskilda processtillståndet (`running`, `sleeping`, …), inte värdens totala antal, så det stämmer inte med en processlista. Skraparen för processer rapporterar på Linux, macOS och BSD, inte på Windows.
+- **Systemd Unit Failed** öppnar ett larm per systemd-tjänst i tillståndet `failed`, från collectorns mottagare `systemd`, som OneUptimes standardkonfiguration läser på Linux-värdar med systemd. Den återställs när enheten körs igen, eller när `systemctl reset-failed` rensar den.
 
 ## Insamlade mätvärden
 
