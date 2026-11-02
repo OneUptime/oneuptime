@@ -9,6 +9,10 @@ import { ProxmoxPartKind } from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
 export const PROXMOX_PART_READ_ERROR_TEST_ID: string =
   "proxmox-part-read-error";
 
+// The card it is drawn in, with a card's gutter on a phone.
+export const PROXMOX_PART_READ_ERROR_CLASS_NAME: string =
+  "rounded-xl border border-gray-200 bg-white px-5 shadow-sm sm:px-0";
+
 /*
  * What a Proxmox node's, guest's or storage's page says when the read of its
  * inventory failed: that it could not be loaded, the server's answer, and
@@ -41,9 +45,15 @@ const ProxmoxPartReadError: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
+    /*
+     * A card's own gutter on a phone (px-5, as Card's), where the empty
+     * state has none and its Try again button takes the line's whole
+     * width: without it the button ran into the card's borders. From sm up
+     * the empty state pads itself.
+     */
     <div
       data-testid={PROXMOX_PART_READ_ERROR_TEST_ID}
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
+      className={PROXMOX_PART_READ_ERROR_CLASS_NAME}
     >
       <TableEmptyState
         kind={TableEmptyStateKind.Error}

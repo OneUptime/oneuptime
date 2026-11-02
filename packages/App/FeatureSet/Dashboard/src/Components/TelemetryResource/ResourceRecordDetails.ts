@@ -49,6 +49,17 @@ export const HERO_AND_HEADER_COLUMNS: ReadonlyArray<string> = [
 // Two columns from 640px, one on a phone (DetailGridLayout).
 export const RESOURCE_RECORD_DETAILS_COLUMNS: number = 2;
 
+/*
+ * The card's header (one of Card's CardHeaderLayout values, written out
+ * here so this module stays free of React): the title and "Edit in
+ * Settings" centred on each other. With no description under the title,
+ * the default header left the button hanging 7px below the title's middle.
+ */
+export type ResourceRecordDetailsHeaderLayout = "stacked";
+
+export const RESOURCE_RECORD_DETAILS_HEADER_LAYOUT: ResourceRecordDetailsHeaderLayout =
+  "stacked";
+
 // What a card with nothing reported yet says, in place of an empty grid.
 export const RESOURCE_RECORD_DETAILS_EMPTY_MESSAGE: string = translationKey(
   "No details reported yet.",

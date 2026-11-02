@@ -13,6 +13,7 @@ import {
   isReportedDetailValue,
   RESOURCE_RECORD_DETAILS_COLUMNS,
   RESOURCE_RECORD_DETAILS_EMPTY_MESSAGE,
+  RESOURCE_RECORD_DETAILS_HEADER_LAYOUT,
 } from "./ResourceRecordDetails";
 
 /*
@@ -119,6 +120,14 @@ const ResourceRecordDetailsCard: <TBaseModel extends BaseModel>(
         refresher={Boolean(props.refresher)}
         cardProps={{
           title: props.title,
+          /*
+           * The title and "Edit in Settings" centred on each other. The
+           * card has no description, and in the default header the 38px
+           * button hung 7px below a title it is level with only at the
+           * top; the stacked header centres a title with nothing under it
+           * on its actions, as an event's detail cards do.
+           */
+          headerLayout: RESOURCE_RECORD_DETAILS_HEADER_LAYOUT,
           buttons: [
             <EditInSettingsLink
               key="edit-in-settings"

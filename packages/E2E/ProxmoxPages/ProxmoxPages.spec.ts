@@ -27,6 +27,9 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const CLUSTER_ID: string = "71000000-0000-4000-8000-000000000001";
 const CLUSTER_PATH: string = `/dashboard/${PROJECT_ID}/proxmox/${CLUSTER_ID}`;
 
+// An attribute that holds something.
+const NON_EMPTY: RegExp = /\S/;
+
 function nodePath(name: string): string {
   return `${CLUSTER_PATH}/nodes/${encodeURIComponent(`node/${name}`)}`;
 }
@@ -603,6 +606,48 @@ test.describe("the cluster's Details card says what the hero does not", () => {
     await screenshot(page, "cluster-details-laptop");
   });
 
+  /*
+   * The UI review of #5553: with no description under it, the card's title
+   * hung 7px above the middle of the 38px Edit in Settings beside it - the
+   * two were level only at the top. They share one middle now, at a
+   * laptop's width and beside a tablet's side menu, and the header is no
+   * taller than it was.
+   */
+  for (const width of [1280, 1024]) {
+    test(`at ${width}px its title and Edit in Settings share one middle`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openOverview(page);
+      const card: Locator = page
+        .getByTestId("card")
+        .filter({ has: page.locator(`[id="${CLUSTER_DETAILS}"]`) })
+        .last();
+      await card.scrollIntoViewIfNeeded();
+
+      // Read in one frame, once the header has settled.
+      await expect
+        .poll(async (): Promise<number> => {
+          return await card.evaluate((element: Element): number => {
+            const title: DOMRect = element
+              .querySelector('[data-testid="card-details-heading"]')!
+              .getBoundingClientRect();
+            const button: DOMRect = element
+              .querySelector('[data-testid="edit-in-settings"] a')!
+              .getBoundingClientRect();
+            return Math.round(
+              Math.abs(
+                title.top + title.height / 2 - (button.top + button.height / 2),
+              ),
+            );
+          });
+        })
+        .toBeLessThanOrEqual(1);
+    });
+  }
+
   test("the description is the hero's line, under the cluster's name", async ({
     page,
   }: {
@@ -744,7 +789,93 @@ test.describe("a part whose inventory cannot be read says so", () => {
       ).toHaveCount(0);
     }
   });
+
+  /*
+   * The UI review of #5553: the empty state has no gutter of its own on a
+   * phone, where Try again takes the line's whole width, and the button ran
+   * into the card's borders. The card keeps a card's own 20px there.
+   */
+  test("on a phone, Try again sits inside its card, a card's gutter on each side", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openPage(page, nodePath("pve2"), "fail=inventory");
+
+    const error: Locator = page.getByTestId("proxmox-part-read-error");
+    await expect(error.getByTestId("refresh-button")).toBeVisible();
+
+    // The card's and the button's boxes, read in one frame once settled.
+    await expect
+      .poll(async (): Promise<{ start: number; end: number }> => {
+        return await error.evaluate(
+          (card: Element): { start: number; end: number } => {
+            const box: DOMRect = card.getBoundingClientRect();
+            const button: DOMRect = card
+              .querySelector('[data-testid="refresh-button"]')!
+              .getBoundingClientRect();
+            return {
+              start: Math.round(button.left - box.left),
+              end: Math.round(box.right - button.right),
+            };
+          },
+        );
+      })
+      // 20px of padding inside the card's 1px border, on both sides.
+      .toEqual({ start: 21, end: 21 });
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "node-inventory-failed-phone");
+  });
+
+  /*
+   * The server's answer is in English. On a Persian page, laid out right to
+   * left, it put its full stop first (".Something went wrong on the
+   * server. Please try again") - on the Overview and in the node's lists
+   * alike, since both say it with the table's empty state.
+   */
+  test("in Persian, the server's answer reads as written, its full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, nodePath("pve2"), "fail=inventory&lang=fa");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    const overview: Locator = page.getByTestId("proxmox-part-read-error");
+    await expect(overview).toBeVisible();
+    await expectAnswerReadsAsWritten(overview.locator('bdi[dir="ltr"]'));
+
+    await openTab(page, "Guests");
+    await expectAnswerReadsAsWritten(
+      page
+        .getByTestId("proxmox-node-guests-guests-table-load-error")
+        .locator('bdi[dir="ltr"]'),
+    );
+    await screenshot(page, "node-inventory-failed-guests-persian");
+  });
 });
+
+// The server's English answer, drawn left to right: its stop after its first letter.
+async function expectAnswerReadsAsWritten(answer: Locator): Promise<void> {
+  await expect(answer).toHaveText(
+    "Something went wrong on the server. Please try again.",
+  );
+
+  const ends: { first: number; last: number } = await answer.evaluate(
+    (element: Element): { first: number; last: number } => {
+      const text: Text = element.firstChild as Text;
+      const range: Range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+      const first: number = range.getBoundingClientRect().left;
+      range.setStart(text, text.length - 1);
+      range.setEnd(text, text.length);
+      return { first: first, last: range.getBoundingClientRect().left };
+    },
+  );
+  expect(ends.last).toBeGreaterThan(ends.first);
+}
 
 test.describe("a node's page", () => {
   test("pve2: who it is, what on it needs a look, how busy it is, the guests keeping it busy, and its details", async ({
@@ -1482,7 +1613,12 @@ test.describe("the cluster's side menu", () => {
     await expect(toggle).not.toContainText("Navigation");
 
     await toggle.click();
-    // The menu the button opens, by the id it names.
+    /*
+     * The menu the button opens, by the id it names - once the menu it
+     * opens is drawn: read at once after the click, it was sometimes still
+     * empty on a busy machine.
+     */
+    await expect(toggle).toHaveAttribute("aria-controls", NON_EMPTY);
     const opened: string = (await toggle.getAttribute("aria-controls")) || "";
     expect(opened).not.toBe("");
     const current: Locator = page

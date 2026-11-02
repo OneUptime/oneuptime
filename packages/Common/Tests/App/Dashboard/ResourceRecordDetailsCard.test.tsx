@@ -92,7 +92,14 @@ import ResourceRecordDetailsCard, {
 import {
   RESOURCE_RECORD_DETAILS_COLUMNS,
   RESOURCE_RECORD_DETAILS_EMPTY_MESSAGE,
+  RESOURCE_RECORD_DETAILS_HEADER_LAYOUT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceRecordDetails";
+import {
+  CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES,
+  CARD_HEADER_LAYOUTS,
+  CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
+  CARD_HEADER_TITLE_LINE_CLASS_NAMES,
+} from "../../../UI/Components/Card/Card";
 import { RESOURCE_LABELS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceLabelsCard";
 import { EDIT_IN_SETTINGS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/EditInSettingsLink";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -332,6 +339,49 @@ describe("the card's shape", () => {
     expect(link).toHaveTextContent("Edit in Settings");
     // No Edit button opening a second form for the same fields.
     expect(screen.queryByRole("button", { name: /^Edit/ })).toBeNull();
+  });
+
+  /*
+   * The UI review of #5553: in the default header a title with nothing
+   * under it hung 7px above the middle of the 38px "Edit in Settings"
+   * beside it (they were level only at the top). The stacked header centres
+   * the two on each other and keeps the header as tall as the title's line.
+   */
+  test("its title and Edit in Settings are centred on each other: a stacked header", async () => {
+    renderCard({ item: host(REPORTED) });
+    await detail();
+
+    expect(RESOURCE_RECORD_DETAILS_HEADER_LAYOUT).toBe("stacked");
+    expect(CARD_HEADER_LAYOUTS).toContain(
+      RESOURCE_RECORD_DETAILS_HEADER_LAYOUT,
+    );
+
+    const header: HTMLElement = screen.getByTestId("card-header");
+    expect(header).toHaveAttribute("data-header-layout", "stacked");
+
+    // The title's line centres the actions on it, from md up.
+    const titleRow: HTMLElement = within(header).getByTestId(
+      "card-header-title-row",
+    );
+    expect(titleRow).toHaveClass(
+      CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions,
+    );
+
+    // Nothing follows the line: the button hangs only above it ...
+    const actions: HTMLElement = within(header).getByTestId(
+      "card-header-actions",
+    );
+    expect(actions).toHaveClass(
+      CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
+    );
+    expect(actions).toContainElement(
+      screen.getByTestId(EDIT_IN_SETTINGS_TEST_ID),
+    );
+    // ... and the title takes the same room under it.
+    expect(within(header).getByTestId("card-header-title-block")).toHaveClass(
+      CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
+    );
+    expect(within(header).queryByTestId("card-description")).toBeNull();
   });
 });
 

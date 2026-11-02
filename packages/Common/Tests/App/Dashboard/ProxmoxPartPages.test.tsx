@@ -176,7 +176,10 @@ import ProxmoxClusterNodeDetail from "../../../../App/FeatureSet/Dashboard/src/P
 import ProxmoxClusterGuestDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/GuestDetail";
 import ProxmoxClusterStorageDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/StorageDetail";
 import ProxmoxClusterStorage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Storage";
-import { PROXMOX_PART_READ_ERROR_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Proxmox/Part/ProxmoxPartReadError";
+import {
+  PROXMOX_PART_READ_ERROR_CLASS_NAME,
+  PROXMOX_PART_READ_ERROR_TITLES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Proxmox/Part/ProxmoxPartReadError";
 import fs from "fs";
 import path from "path";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -826,6 +829,35 @@ describe("a part whose inventory cannot be read says so", () => {
     // The hero still names the node from its page's address.
     expect(screen.getByTestId("proxmox-node-hero-name")).toHaveTextContent(
       "pve1",
+    );
+  });
+
+  /*
+   * The UI review of #5553: the empty state has no gutter of its own on a
+   * phone, where its Try again takes the line's whole width, so the button
+   * ran into the card's borders. The card keeps a card's own gutter there
+   * (Card's px-5); from sm up the empty state pads itself.
+   */
+  test("it is drawn as a card, with a card's gutter on a phone", async () => {
+    mockInventoryDown = true;
+    await renderPage(
+      ProxmoxClusterNodeDetail,
+      "node%2Fpve1",
+      "proxmox-node-hero",
+    );
+
+    expect(readError().className).toBe(PROXMOX_PART_READ_ERROR_CLASS_NAME);
+    expect(readError()).toHaveClass(
+      "rounded-xl",
+      "border",
+      "bg-white",
+      "shadow-sm",
+      "px-5",
+      "sm:px-0",
+    );
+    // The empty state inside it takes over the gutter from sm up.
+    expect(within(readError()).getByTestId("table-empty-state")).toHaveClass(
+      "sm:px-6",
     );
   });
 
