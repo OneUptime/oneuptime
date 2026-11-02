@@ -45,6 +45,7 @@ import {
 } from "../Utils/VMwareHealth";
 import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
 import VMwareDatastoreOverview from "../../../Components/VMware/Part/VMwareDatastoreOverview";
+import VMwarePartReadError from "../../../Components/VMware/Part/VMwarePartReadError";
 import {
   VMwarePartRoutes,
   getVMwarePartRoutes,
@@ -79,6 +80,8 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // Why the datastore's own row could not be read: said in its Overview.
+  const [rowError, setRowError] = useState<string>("");
 
   /*
    * Days until this datastore is 100% full at the linear growth rate
@@ -195,6 +198,37 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     }
   };
 
+  // The datastore's row, and its growth forecast once it is read.
+  const fetchRow: (vcenterName: string) => Promise<void> = async (
+    vcenterName: string,
+  ): Promise<void> => {
+    try {
+      const inventoryRow: VMwareResourceModel | null =
+        await fetchVMwareInventoryRow({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.Datastore,
+          externalId: externalId,
+        });
+      setRow(inventoryRow);
+      setRowError("");
+      if (vcenterName && inventoryRow) {
+        void loadGrowthProjection(vcenterName, inventoryRow);
+      }
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
+    }
+    setIsLoadingRow(false);
+  };
+
+  // Try again after a failed read: the loader while it reads again.
+  const retryRow: () => void = (): void => {
+    setIsLoadingRow(true);
+    fetchRow(vcenter?.name || "").catch((err: Error) => {
+      setRowError(API.getFriendlyMessage(err));
+      setIsLoadingRow(false);
+    });
+  };
+
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     let vcenterName: string = "";
@@ -213,21 +247,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     }
     setIsLoading(false);
 
-    try {
-      const inventoryRow: VMwareResourceModel | null =
-        await fetchVMwareInventoryRow({
-          vmwareVCenterId: modelId,
-          kind: VMwareResourceKind.Datastore,
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-      if (vcenterName && inventoryRow) {
-        void loadGrowthProjection(vcenterName, inventoryRow);
-      }
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
-    }
-    setIsLoadingRow(false);
+    await fetchRow(vcenterName);
   };
 
   useEffect(() => {
@@ -343,6 +363,12 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
       name: "Overview",
       children: isLoadingRow ? (
         <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <VMwarePartReadError
+          kind={VMwareResourceKind.Datastore}
+          message={rowError}
+          onRetry={retryRow}
+        />
       ) : (
         <VMwareDatastoreOverview
           vcenterId={modelId}
@@ -384,7 +410,8 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     <div data-testid="vmware-datastore-page">
       <VMwarePartHero
         kind={VMwareResourceKind.Datastore}
-        row={isLoadingRow ? null : row}
+        row={row}
+        isRowRead={!isLoadingRow && !rowError}
         externalId={externalId}
         datacenters={[]}
         hosts={[]}

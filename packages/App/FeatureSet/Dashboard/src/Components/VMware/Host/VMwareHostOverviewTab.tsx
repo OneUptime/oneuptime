@@ -97,12 +97,12 @@ const SATURATION_THRESHOLDS: { warn: number; danger: number } = {
 
 /*
  * An ESXi host's Overview: the same story the host page outside VMware
- * tells, from what vCenter reports - how busy the host is now (tiles), how
- * that moved over the selected range (charts), what is wrong with it
- * (open incidents and alerts), what keeps it busy (its virtual machines),
- * whether anyone will hear when it is in trouble (Host alerts), its
- * hardware (network adapters and storage devices), its details and the AI
- * agent that can look at it.
+ * tells, from what vCenter reports - what on it and its VMs needs attention,
+ * how busy the host is now (tiles), what is wrong with it (open incidents
+ * and alerts), how that moved over the selected range (charts), what keeps
+ * it busy (its virtual machines), its hardware (network adapters and
+ * storage devices), whether anyone will hear when it is in trouble (Host
+ * alerts), its details and the AI agent that can look at it.
  *
  * The tiles, charts and tables follow the time picker and refresh with it;
  * the virtual machines and the details are the latest inventory, which the
@@ -647,10 +647,17 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         />
       )}
 
+      <VMwareHostNetworkAdaptersCard
+        adapters={metrics?.networkAdapters || []}
+      />
+
+      <VMwareHostStorageDevicesCard devices={metrics?.storageDevices || []} />
+
       {/*
-       * Whether anyone hears when this host is in trouble, before the
-       * hardware tables: the page's one step to observing the host, and
-       * its "Turn on N alerts" no longer three cards down.
+       * Whether anyone hears when this host is in trouble: after what the
+       * host is doing (its tiles, charts, VMs and hardware) and before its
+       * Details, as every part's page orders its alerts (a Proxmox node's,
+       * a host's outside VMware).
        */}
       <ResourcePartAlertsCard
         testId="vmware-host-alerts"
@@ -664,12 +671,6 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         getMonitorRoute={props.getMonitorRoute}
         refreshToken={refreshToken}
       />
-
-      <VMwareHostNetworkAdaptersCard
-        adapters={metrics?.networkAdapters || []}
-      />
-
-      <VMwareHostStorageDevicesCard devices={metrics?.storageDevices || []} />
 
       <VMwareHostDetailsCard
         identity={props.identity}

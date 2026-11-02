@@ -49,6 +49,8 @@ export interface HostsTableProps {
   getViewRoute: (externalId: string) => Route | undefined;
   onRefreshClick?: (() => void) | undefined;
   isLoading?: boolean | undefined;
+  // Why the rows could not be read: said in the table, with Refresh.
+  error?: string | undefined;
   description?: string | undefined;
 }
 
@@ -91,6 +93,7 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
     <ResourceTable
       onRefreshClick={props.onRefreshClick}
       isLoading={props.isLoading}
+      error={props.error}
       title="Hosts"
       description={
         props.description ||
@@ -132,6 +135,8 @@ export interface VirtualMachinesTableProps {
   getViewRoute: (externalId: string) => Route | undefined;
   onRefreshClick?: (() => void) | undefined;
   isLoading?: boolean | undefined;
+  // Why the rows could not be read: said in the table, with Refresh.
+  error?: string | undefined;
   description?: string | undefined;
   emptyMessage?: string | undefined;
 }
@@ -202,6 +207,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
     <ResourceTable
       onRefreshClick={props.onRefreshClick}
       isLoading={props.isLoading}
+      error={props.error}
       title="Virtual Machines"
       description={
         props.description ||

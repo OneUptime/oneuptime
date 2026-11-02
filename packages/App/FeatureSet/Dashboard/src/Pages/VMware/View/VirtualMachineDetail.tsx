@@ -36,6 +36,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
 import VMwareVirtualMachineOverview from "../../../Components/VMware/Part/VMwareVirtualMachineOverview";
+import VMwarePartReadError from "../../../Components/VMware/Part/VMwarePartReadError";
 import {
   VMwarePartRoutes,
   getVMwarePartRoutes,
@@ -80,23 +81,15 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // Why the VM's own row could not be read: said in its Overview, with Try again.
+  const [rowError, setRowError] = useState<string>("");
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const item: VMwareVCenter | null = await ModelAPI.getItem({
-        modelType: VMwareVCenter,
-        id: modelId,
-        select: {
-          name: true,
-        },
-      });
-      setVCenter(item);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-
+  /*
+   * The VM's row, and where it runs - its host and cluster, for the hero's
+   * links, and the host's and datacenters' rows, which say whether vCenter
+   * can reach its host (on one it cannot, the VM is Disconnected).
+   */
+  const fetchRow: PromiseVoidFunction = async (): Promise<void> => {
     try {
       const inventoryRow: VMwareResourceModel | null =
         await fetchVMwareInventoryRow({
@@ -104,16 +97,12 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
           kind: VMwareResourceKind.VirtualMachine,
           externalId: externalId,
         });
-      setRow(inventoryRow);
-      setIsLoadingRow(false);
 
-      // Where it runs: best-effort, for the hero's links and its host's state.
+      let hosts: Array<VMwareResourceModel> = [];
+      let clusters: Array<VMwareResourceModel> = [];
+      let datacenters: Array<VMwareResourceModel> = [];
       if (inventoryRow?.hostName) {
-        const [hosts, clusters, datacenters]: [
-          Array<VMwareResourceModel>,
-          Array<VMwareResourceModel>,
-          Array<VMwareResourceModel>,
-        ] = await Promise.all([
+        [hosts, clusters, datacenters] = await Promise.all([
           fetchVMwareInventoryRows({
             vmwareVCenterId: modelId,
             kind: VMwareResourceKind.Host,
@@ -133,14 +122,44 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
             kind: VMwareResourceKind.Datacenter,
           }),
         ]);
-        setHostRow(hosts[0] || null);
-        setClusterRow(clusters[0] || null);
-        setDatacenterRows(datacenters);
       }
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
+      setRow(inventoryRow);
+      setHostRow(hosts[0] || null);
+      setClusterRow(clusters[0] || null);
+      setDatacenterRows(datacenters);
+      setRowError("");
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
     }
     setIsLoadingRow(false);
+  };
+
+  // Try again after a failed read: the loader while it reads again.
+  const retryRow: () => void = (): void => {
+    setIsLoadingRow(true);
+    fetchRow().catch((err: Error) => {
+      setRowError(API.getFriendlyMessage(err));
+      setIsLoadingRow(false);
+    });
+  };
+
+  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const item: VMwareVCenter | null = await ModelAPI.getItem({
+        modelType: VMwareVCenter,
+        id: modelId,
+        select: {
+          name: true,
+        },
+      });
+      setVCenter(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+
+    await fetchRow();
   };
 
   useEffect(() => {
@@ -470,6 +489,12 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
       name: "Overview",
       children: isLoadingRow ? (
         <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <VMwarePartReadError
+          kind={VMwareResourceKind.VirtualMachine}
+          message={rowError}
+          onRetry={retryRow}
+        />
       ) : (
         <VMwareVirtualMachineOverview
           vcenterId={modelId}
@@ -513,7 +538,8 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     <div data-testid="vmware-vm-page">
       <VMwarePartHero
         kind={VMwareResourceKind.VirtualMachine}
-        row={isLoadingRow ? null : row}
+        row={row}
+        isRowRead={!isLoadingRow && !rowError}
         externalId={externalId}
         datacenters={datacenterRows}
         hosts={hostRow ? [hostRow] : []}

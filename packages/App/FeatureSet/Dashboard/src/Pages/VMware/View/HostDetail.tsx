@@ -43,6 +43,7 @@ import RecommendationFilterUtil, {
   RECOMMENDATION_SELECTION_QUERY_PARAM,
 } from "../../../Components/Recommendations/RecommendationFilterUtil";
 import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
+import VMwarePartReadError from "../../../Components/VMware/Part/VMwarePartReadError";
 import { getVMwareClusterExternalId } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import VMwareHostReportNotice from "../../../Components/VMware/Host/VMwareHostReportNotice";
 import VMwareHostOverviewTab from "../../../Components/VMware/Host/VMwareHostOverviewTab";
@@ -103,6 +104,13 @@ const VMwareVCenterHostDetail: FunctionComponent<
   const [isLoadingVirtualMachines, setIsLoadingVirtualMachines] =
     useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * Why the host's own rows could not be read: its Overview says so with
+   * Try again, and its Virtual Machines tab with Refresh - never "Not in
+   * inventory", which would send someone to a vCenter that was working.
+   */
+  const [rowError, setRowError] = useState<string>("");
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
 
   /*
    * "View all virtual machines" on the Overview opens the Virtual Machines
@@ -173,10 +181,24 @@ const VMwareVCenterHostDetail: FunctionComponent<
     setIsLoadingVirtualMachines(false);
   };
 
+  // The host's rows; a failed read is said on the page, not thrown.
+  const readInventory: (vcenterName: string) => Promise<void> = async (
+    vcenterName: string,
+  ): Promise<void> => {
+    try {
+      await fetchInventory(vcenterName);
+      setRowError("");
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
+    }
+    setIsLoadingVirtualMachines(false);
+  };
+
   const fetchData: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
+    let vcenterName: string = "";
     try {
       const item: VMwareVCenter | null = await ModelAPI.getItem({
         modelType: VMwareVCenter,
@@ -194,12 +216,27 @@ const VMwareVCenterHostDetail: FunctionComponent<
       }
 
       setVCenter(item);
-      await fetchInventory(item.name);
+      vcenterName = item.name;
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
+      return;
     }
 
+    await readInventory(vcenterName);
     setIsLoading(false);
+  };
+
+  // Try again after a failed read: the loader while it reads again.
+  const retryInventory: () => void = (): void => {
+    if (!vcenter?.name) {
+      return;
+    }
+    setIsRetrying(true);
+    // readInventory says its own failures; it never rejects.
+    void readInventory(vcenter.name).then(() => {
+      setIsRetrying(false);
+    });
   };
 
   useEffect(() => {
@@ -300,7 +337,15 @@ const VMwareVCenterHostDetail: FunctionComponent<
   const tabs: Array<Tab> = [
     {
       name: VMWARE_HOST_TAB_OVERVIEW,
-      children: (
+      children: isRetrying ? (
+        <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <VMwarePartReadError
+          kind={VMwareResourceKind.Host}
+          message={rowError}
+          onRetry={retryInventory}
+        />
+      ) : (
         <VMwareHostOverviewTab
           vcenterId={modelId}
           identity={identity}
@@ -349,9 +394,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
           rows={virtualMachineRows}
           hostRow={row}
           datacenterRow={datacenterRow}
-          isLoading={isLoadingVirtualMachines}
+          isLoading={isLoadingVirtualMachines || isRetrying}
+          error={rowError}
           getVirtualMachineRoute={getVirtualMachineRoute}
-          onRefreshClick={refreshInventory}
+          onRefreshClick={rowError ? retryInventory : refreshInventory}
         />
       ),
     },
@@ -386,6 +432,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
       <VMwarePartHero
         kind={VMwareResourceKind.Host}
         row={row}
+        isRowRead={!rowError && !isRetrying}
         externalId={externalId}
         datacenters={datacenterRow ? [datacenterRow] : []}
         hosts={row ? [row] : []}

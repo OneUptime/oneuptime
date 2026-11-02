@@ -15,7 +15,6 @@ import React, {
 } from "react";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { VMwareVirtualMachinesTable } from "../../../Components/VMware/VMwareResourceTables";
 import { getVMwarePartRoutes } from "../../../Components/VMware/Part/VMwarePartRoutes";
@@ -46,6 +45,7 @@ const VMwareVCenterVirtualMachines: FunctionComponent<
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
+    setError("");
     try {
       const [vms, hosts, datacenters]: [
         Array<VMwareResourceModel>,
@@ -84,12 +84,9 @@ const VMwareVCenterVirtualMachines: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   return (
     <VMwareVirtualMachinesTable
+      error={error}
       rows={rows}
       context={{
         datacenters: datacenterRows,

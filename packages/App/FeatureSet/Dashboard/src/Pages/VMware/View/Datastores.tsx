@@ -18,7 +18,6 @@ import React, {
 } from "react";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -37,6 +36,7 @@ const VMwareVCenterDatastores: FunctionComponent<
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
+    setError("");
     try {
       /*
        * Postgres inventory read (VMwareResource, kind=Datastore). Used /
@@ -67,12 +67,9 @@ const VMwareVCenterDatastores: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   return (
     <ResourceTable
+      error={error}
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}

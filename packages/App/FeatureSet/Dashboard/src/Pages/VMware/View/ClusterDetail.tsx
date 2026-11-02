@@ -43,6 +43,7 @@ import {
 import { summarizeVMwareHostVirtualMachines } from "../Utils/VMwareHostData";
 import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
 import VMwareClusterOverview from "../../../Components/VMware/Part/VMwareClusterOverview";
+import VMwarePartReadError from "../../../Components/VMware/Part/VMwarePartReadError";
 import {
   VMwarePartRoutes,
   getVMwarePartRoutes,
@@ -93,31 +94,24 @@ const VMwareVCenterClusterDetail: FunctionComponent<
   const [vmRows, setVmRows] = useState<Array<VMwareResourceModel> | null>(
     null,
   );
+  // Why the VMs could not be read: the tab says so, with Refresh.
+  const [vmError, setVmError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * Why the cluster's own rows could not be read: its Overview says so with
+   * Try again, and its hosts tab with Refresh.
+   */
+  const [rowError, setRowError] = useState<string>("");
   // "View all hosts" opens the hosts tab: Tabs keeps its own selection.
   const [tabsKey, setTabsKey] = useState<number>(0);
   const [initialTabName, setInitialTabName] = useState<string>(
     VMWARE_CLUSTER_TAB_OVERVIEW,
   );
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const item: VMwareVCenter | null = await ModelAPI.getItem({
-        modelType: VMwareVCenter,
-        id: modelId,
-        select: {
-          name: true,
-        },
-      });
-      setVCenter(item);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-
+  // The cluster's row, its hosts, the datacenters and its VMs that may need a look.
+  const fetchRow: PromiseVoidFunction = async (): Promise<void> => {
     try {
       const inventoryRow: VMwareResourceModel | null =
         await fetchVMwareInventoryRow({
@@ -158,10 +152,39 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       setHostRows(hosts);
       setDatacenterRows(datacenters);
       setAttentionVmRows(attentionVms);
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
+      setRowError("");
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
     }
     setIsLoadingRow(false);
+  };
+
+  // Try again after a failed read: the loader while it reads again.
+  const retryRow: () => void = (): void => {
+    setIsLoadingRow(true);
+    fetchRow().catch((err: Error) => {
+      setRowError(API.getFriendlyMessage(err));
+      setIsLoadingRow(false);
+    });
+  };
+
+  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const item: VMwareVCenter | null = await ModelAPI.getItem({
+        modelType: VMwareVCenter,
+        id: modelId,
+        select: {
+          name: true,
+        },
+      });
+      setVCenter(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+
+    await fetchRow();
   };
 
   const fetchVirtualMachines: () => Promise<void> =
@@ -179,8 +202,11 @@ const VMwareVCenterClusterDetail: FunctionComponent<
             datacenterName: row.datacenterName || undefined,
           }),
         );
-      } catch {
+        setVmError("");
+      } catch (err) {
+        // Said in the tab, never as a cluster that runs no VMs.
         setVmRows([]);
+        setVmError(API.getFriendlyMessage(err));
       }
     };
 
@@ -461,6 +487,12 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       name: VMWARE_CLUSTER_TAB_OVERVIEW,
       children: isLoadingRow ? (
         <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <VMwarePartReadError
+          kind={VMwareResourceKind.Cluster}
+          message={rowError}
+          onRetry={retryRow}
+        />
       ) : (
         <VMwareClusterOverview
           vcenterId={modelId}
@@ -489,6 +521,8 @@ const VMwareVCenterClusterDetail: FunctionComponent<
           }}
           scope="cluster"
           isLoading={isLoadingRow}
+          error={rowError}
+          onRefreshClick={retryRow}
           description="The ESXi hosts of this cluster, whether vCenter can reach each one, and how busy it is."
           getViewRoute={(hostExternalId: string) => {
             return routes.getPartRoute(VMwareResourceKind.Host, hostExternalId);
@@ -502,6 +536,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       children: (
         <ClusterVirtualMachinesTab
           rows={vmRows}
+          error={vmError}
           hosts={clusterHosts}
           datacenters={datacenterRows}
           onOpen={() => {
@@ -554,7 +589,8 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     <div data-testid="vmware-cluster-page">
       <VMwarePartHero
         kind={VMwareResourceKind.Cluster}
-        row={isLoadingRow ? null : row}
+        row={row}
+        isRowRead={!isLoadingRow && !rowError}
         externalId={externalId}
         datacenters={datacenterRows}
         hosts={clusterHosts}
@@ -577,6 +613,8 @@ const VMwareVCenterClusterDetail: FunctionComponent<
  */
 const ClusterVirtualMachinesTab: FunctionComponent<{
   rows: Array<VMwareResourceModel> | null;
+  // Why they could not be read.
+  error: string;
   // The cluster's hosts and the datacenters: what tells a disconnected VM.
   hosts: Array<VMwareResourceModel>;
   datacenters: Array<VMwareResourceModel>;
@@ -586,6 +624,7 @@ const ClusterVirtualMachinesTab: FunctionComponent<{
   now: Date;
 }> = (props: {
   rows: Array<VMwareResourceModel> | null;
+  error: string;
   hosts: Array<VMwareResourceModel>;
   datacenters: Array<VMwareResourceModel>;
   onOpen: () => void;
@@ -607,6 +646,7 @@ const ClusterVirtualMachinesTab: FunctionComponent<{
       }}
       scope="cluster"
       isLoading={props.rows === null}
+      error={props.error}
       onRefreshClick={props.onRefresh}
       description="The virtual machines (and VM templates) in this cluster, their state, and their current resource usage. CPU is reported only for powered-on VMs."
       emptyMessage="This cluster runs no virtual machines."

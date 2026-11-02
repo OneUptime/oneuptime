@@ -49,6 +49,12 @@ export interface ComponentProps {
   kind: VMwarePartHeroKind;
   // The part's inventory row; null while it has not reported, or once gone.
   row: VMwareResource | null;
+  /*
+   * Whether the row was read. While it loads, or when its read failed, the
+   * hero says nothing of the part's state: "Not in inventory" there would
+   * be a guess (the page says the read failed, with Try again).
+   */
+  isRowRead?: boolean | undefined;
   externalId: string;
   // The vCenter's datacenters and hosts: a host's state and a cluster's read them.
   datacenters: Array<VMwareResource>;
@@ -108,11 +114,16 @@ export function getVMwarePartHeroName(
 export function getVMwarePartHeroStatus(data: {
   kind: VMwarePartHeroKind;
   row: VMwareResource | null;
+  // False while the row loads or when its read failed: no status then.
+  isRowRead?: boolean | undefined;
   datacenters: Array<VMwareResource>;
   hosts: Array<VMwareResource>;
   now: Date;
-}): ResourcePartStatus {
+}): ResourcePartStatus | undefined {
   const row: VMwareResource | null = data.row;
+  if (data.isRowRead === false) {
+    return undefined;
+  }
   if (!row) {
     return NOT_IN_INVENTORY;
   }
@@ -414,6 +425,7 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
       status={getVMwarePartHeroStatus({
         kind: props.kind,
         row: row,
+        isRowRead: props.isRowRead,
         datacenters: props.datacenters,
         hosts: props.hosts,
         now: props.now,

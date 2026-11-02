@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 12639
+    "keys": 40228,
+    "untranslated": 12634
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -33,6 +33,7 @@
     "Client",
     "Cloud",
     "Cluster",
+    "Cluster {{cluster}}",
     "Collector",
     "Console",
     "Container",
@@ -76,6 +77,7 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "In standby",
     "Info",
     "Insight",
     "IoT",
@@ -125,6 +127,7 @@
     "Pod · data",
     "Pod · production",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Privacy",
@@ -231,6 +234,7 @@
     "syslog",
     "tag",
     "timeout|connection refused",
+    "vApp {{name}}",
     "vCenter",
     "vSphere Client",
     "z",

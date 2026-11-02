@@ -40262,5 +40262,9 @@
   "{{count}} in maintenance mode": "{{count}} in maintenance mode",
   "{{count}} not responding": "{{count}} not responding",
   "{{count}} off or in standby": "{{count}} off or in standby",
-  "{{count}} reporting no usage": "{{count}} reporting no usage"
+  "{{count}} reporting no usage": "{{count}} reporting no usage",
+  "Couldn't load this ESXi host": "Couldn't load this ESXi host",
+  "Couldn't load this cluster": "Couldn't load this cluster",
+  "Couldn't load this datastore": "Couldn't load this datastore",
+  "Couldn't load this virtual machine": "Couldn't load this virtual machine"
 }

@@ -19,6 +19,8 @@ export interface ComponentProps {
   hostRow: VMwareResourceModel | null;
   datacenterRow: VMwareResourceModel | null;
   isLoading: boolean;
+  // Why the host's rows could not be read: said in the table, with Refresh.
+  error?: string | undefined;
   getVirtualMachineRoute: (externalId: string) => Route;
   onRefreshClick: () => void;
 }
@@ -36,6 +38,7 @@ const VMwareHostVirtualMachinesTab: FunctionComponent<ComponentProps> = (
       }}
       scope="host"
       isLoading={props.isLoading}
+      error={props.error}
       onRefreshClick={props.onRefreshClick}
       description="The virtual machines (and VM templates) on this host, their state, and their current resource usage. CPU is reported only for powered-on VMs."
       emptyMessage="This host runs no virtual machines."
