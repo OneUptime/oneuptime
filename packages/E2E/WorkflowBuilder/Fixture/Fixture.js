@@ -73,6 +73,10 @@
  * ?page=builder-page      the Dashboard's real Builder page around the
  *                         canvas: its toolbar and the notice shown while
  *                         the workflow is off (BuilderPage.js)
+ *
+ * &view=1, with any scenario: the canvas is a view (WorkflowViewOnly), as
+ * the Builder is for someone who may not change the workflow - its steps
+ * open to be read.
  */
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -604,6 +608,10 @@ if (
 // What Run Workflow started, for the spec to read.
 window.__runs = [];
 
+// Why the reader may not change the workflow, with &view=1.
+const VIEW_ONLY_REASON =
+  "Changing this workflow takes permission to edit it. You need this permission: Edit Workflow.";
+
 function App() {
   const [showPicker, setShowPicker] = useState(false);
   const [showRun, setShowRun] = useState(false);
@@ -653,6 +661,9 @@ function App() {
           });
         }}
         runsAreTestRuns={params.get("off") === "1"}
+        editDisabledReason={
+          params.get("view") === "1" ? VIEW_ONLY_REASON : undefined
+        }
         webhookSecretKey={huntressScenario ? HUNTRESS_WEBHOOK_KEY : undefined}
         canSeeWebhookSecretKey={
           huntressScenario ? params.get("url") !== "hidden" : undefined

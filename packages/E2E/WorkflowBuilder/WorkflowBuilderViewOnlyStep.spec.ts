@@ -30,6 +30,10 @@ const REQUEST_BODY: string = '{"service": "checkout", "status": "deployed"}';
 const REQUEST_AUTHORIZATION: string = "Bearer deploy-token";
 const SCRIPT_CODE: string = "return { ok: args.status === 'deployed' };";
 
+// A Switch / Case's parts (Switch/SwitchEditor's SWITCH_TEST_IDS).
+const SWITCH_ADD_CASE: string = "switch-add-case";
+const SWITCH_COMPARE_AS: string = "switch-compare-as";
+
 async function openBuilder(page: Page, role: string): Promise<void> {
   await page.goto(`/?page=builder-page&graph=request${role}`);
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
@@ -323,5 +327,152 @@ test.describe("Workflow builder, a view: a step's settings are read, its code co
     await expect(box.getByTestId("code-editor-read-only")).toHaveCount(0);
     await expect(box.getByTestId("code-editor-format-button")).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Save" })).toBeVisible();
+  });
+});
+
+/*
+ * The settings that are editors of their own, on a canvas that is a view
+ * (the fixture's &view=1): a Switch / Case, an If / Else and a record
+ * trigger's field lists. They hold what changes them still and leave what
+ * only reads them usable - Compare as opens - and a Switch case's grip picks
+ * nothing up: no form control, so no disabled fieldset ever stopped it, and
+ * from the keyboard Space picked a case up and the arrow keys moved it.
+ */
+test.describe("Workflow builder, a view: the editors of their own hold still, and still open to be read", () => {
+  let pageErrors: Array<string> = [];
+
+  test.beforeEach(async ({ page }: { page: Page }) => {
+    pageErrors = [];
+    page.on("pageerror", (error: Error) => {
+      pageErrors.push(error.message);
+    });
+  });
+
+  test.afterEach(() => {
+    expect(pageErrors).toEqual([]);
+  });
+
+  async function openSettings(
+    page: Page,
+    scenario: string,
+    componentId: string,
+  ): Promise<Locator> {
+    await page.goto(`/?scenario=${scenario}&view=1`);
+    await expect(page.locator(".react-flow__node").first()).toBeVisible();
+    await stepCard(page, componentId).focus();
+    await page.keyboard.press("Enter");
+
+    const dialog: Locator = page.locator(SETTINGS_DIALOG);
+
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByTestId("workflow-component-view-only-note"),
+    ).toBeVisible();
+
+    return dialog;
+  }
+
+  // The cases' ids, in the order the settings list them.
+  async function caseOrder(dialog: Locator): Promise<Array<string | null>> {
+    return dialog
+      .locator("[data-case-id]")
+      .evaluateAll((cases: Array<Element>): Array<string | null> => {
+        return cases.map((element: Element): string | null => {
+          return element.getAttribute("data-case-id");
+        });
+      });
+  }
+
+  test("a Switch / Case's grip picks no case up, and nothing in a case can be changed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openSettings(page, "switch", "switch-1");
+
+    await expect(dialog.locator("[data-case-id]")).toHaveCount(2);
+    expect(await caseOrder(dialog)).toEqual(["case-1", "case-2"]);
+
+    const grip: Locator = dialog
+      .getByTestId("switch-case-0")
+      .getByTestId("drag-handle");
+
+    // Locked, as every control a view holds still looks.
+    await expect(grip).toHaveAttribute("aria-disabled", "true");
+
+    await grip.focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Space");
+
+    expect(await caseOrder(dialog)).toEqual(["case-1", "case-2"]);
+
+    await expect(
+      dialog.getByRole("button", { name: "Remove case 1" }),
+    ).toBeDisabled();
+    await expect(dialog.getByTestId(SWITCH_ADD_CASE)).toBeDisabled();
+    await expect(dialog.getByTestId("switch-case-value-0")).toHaveAttribute(
+      "contenteditable",
+      "false",
+    );
+  });
+
+  test("a Switch / Case's Compare as still opens, to read how each case compares", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openSettings(page, "switch", "switch-1");
+    const compareAs: Locator = dialog.getByTestId(SWITCH_COMPARE_AS);
+    const header: Locator = compareAs.getByRole("button").first();
+
+    await expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(await pointerReaches(header)).toBe(true);
+
+    await header.click();
+
+    await expect(header).toHaveAttribute("aria-expanded", "true");
+
+    const radios: Locator = compareAs.getByRole("radio");
+
+    expect(await radios.count()).toBeGreaterThan(0);
+
+    for (const radio of await radios.all()) {
+      await expect(radio).toBeDisabled();
+    }
+  });
+
+  test("an If / Else's condition and a record trigger's field lists are read, and held still", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    let dialog: Locator = await openSettings(
+      page,
+      "record-branch",
+      "if-else-1",
+    );
+
+    await expect(
+      dialog.getByRole("combobox", { name: "Comparison" }),
+    ).toBeDisabled();
+    await expect(
+      dialog.getByRole("textbox", { name: "Compare with" }),
+    ).toHaveText("database");
+    await expect(
+      dialog.getByRole("textbox", { name: "Compare with" }),
+    ).toHaveAttribute("contenteditable", "false");
+
+    await dialog.getByTestId("modal-footer-close-button").click();
+    await expect(page.locator(SETTINGS_DIALOG)).toHaveCount(0);
+
+    await stepCard(page, "incident-on-update-1").focus();
+    await page.keyboard.press("Enter");
+    dialog = page.locator(SETTINGS_DIALOG);
+
+    await expect(dialog.getByTestId("fields-to-pass-on-chip")).toHaveCount(1);
+    await expect(dialog.getByTestId("fields-to-pass-on-remove")).toBeDisabled();
+    await expect(dialog.getByTestId("fields-to-pass-on-add")).toBeDisabled();
+    await expect(dialog.getByTestId("fields-to-watch-add")).toBeDisabled();
   });
 });
