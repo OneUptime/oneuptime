@@ -495,7 +495,7 @@ describe("the CLI installed from it", () => {
   it("prints the same help as the sources, every resource command included", async () => {
     const source: Command = buildProgram();
     // A pipe has no width: commander lays the help out for 80 columns then.
-    source.configureHelp({ helpWidth: 80 });
+    source.configureHelp({ ...source.configureHelp(), helpWidth: 80 });
 
     const result: RunResult = await Smoke.runCli(installation, ["--help"]);
 
@@ -513,7 +513,7 @@ describe("the CLI installed from it", () => {
     ) as Command;
     // Made as the program dispatches to it, as the installed CLI makes them.
     addResourceSubcommands(incident);
-    incident.configureHelp({ helpWidth: 80 });
+    incident.configureHelp({ ...incident.configureHelp(), helpWidth: 80 });
 
     const result: RunResult = await Smoke.runCli(installation, [
       "incident",

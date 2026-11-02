@@ -20,6 +20,7 @@ import {
   isJsonOutputRequested,
   printInfo,
   printError,
+  printSuccess,
   printWarning,
   resolveOutputFormat,
 } from "../Core/OutputFormatter";
@@ -106,6 +107,9 @@ export function versionsMatch(
 
   return cliVersion === serverVersion;
 }
+
+// What `whoami --check` says first when OneUptime takes the key.
+export const KEY_TAKEN: string = "OneUptime takes this API key.";
 
 // What to do when they are not: install the CLI of OneUptime's version.
 export function getVersionMismatchWarning(
@@ -275,6 +279,14 @@ export function registerUtilityCommands(program: Command): void {
           // eslint-disable-next-line no-console
           console.log(formatOutput(answer, resolveOutputFormat(cmd)));
         } else {
+          /*
+           * What --check was asked first: a key OneUptime refused never
+           * gets here, it exits with 2 (handleError).
+           */
+          if (options.check) {
+            printSuccess(KEY_TAKEN);
+          }
+
           // eslint-disable-next-line no-console
           console.log(`URL:     ${creds.apiUrl}`);
           // eslint-disable-next-line no-console

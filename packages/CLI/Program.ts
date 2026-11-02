@@ -7,6 +7,7 @@ import {
   registerUtilityCommands,
 } from "./Commands/UtilityCommands";
 import { createJsonOption, createOutputOption } from "./Core/OutputFormatter";
+import { useHelpLayout } from "./Core/HelpLayout";
 
 /*
  * Build the CLI program. Kept out of Index.ts so tests can assert on the
@@ -27,6 +28,12 @@ export function buildProgram(): Command {
     .addOption(createOutputOption())
     .addOption(createJsonOption())
     .option("--no-color", "Disable colored output");
+
+  /*
+   * Before any command is made: each takes its help's layout from its
+   * parent when it is made (Core/HelpLayout).
+   */
+  useHelpLayout(program);
 
   // Register command groups
   registerConfigCommands(program);

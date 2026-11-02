@@ -460,8 +460,9 @@ describe("the dashboard's buttons as commands", () => {
         },
       }),
     );
+    // It names the record, as acknowledge and resolve do.
     expect(internal.printed.join("\n")).toBe(
-      "Added the note to the Incident. Only your team sees it.",
+      `Added the note to Incident ${INCIDENT_ID}. Only your team sees it.`,
     );
 
     mockExecuteApiRequest.mockReset();
@@ -483,6 +484,22 @@ describe("the dashboard's buttons as commands", () => {
       recordId: INCIDENT_ID,
       visibility: "public",
     });
+
+    mockExecuteApiRequest.mockReset();
+    project({ target: null, current: null });
+
+    const posted: CliRun = await runCli([
+      "incident",
+      "add-note",
+      INCIDENT_ID,
+      "--note",
+      "We found the cause.",
+      "--public",
+    ]);
+
+    expect(posted.printed.join("\n")).toBe(
+      `Posted the note on the status pages that show Incident ${INCIDENT_ID}.`,
+    );
   });
 
   it("give an alert, which has no status page notes, no --public", async () => {
@@ -490,6 +507,8 @@ describe("the dashboard's buttons as commands", () => {
     const help: string = run.printed.join("\n");
 
     expect(help).toContain("--note <markdown>");
+    // Commander marks no option required: the description says it.
+    expect(help).toContain("Required. The note, in Markdown");
     expect(help).not.toContain("--public");
 
     const incident: CliRun = await runCli(["incident", "add-note", "--help"]);

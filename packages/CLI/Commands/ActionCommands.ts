@@ -308,7 +308,7 @@ function registerAddNoteCommand(
         ? `Add a note to the ${resource.singularName}: internal, for your team, or --public, on its status pages`
         : `Add an internal note to the ${resource.singularName}, for your team`,
     )
-    .requiredOption("--note <markdown>", "The note, in Markdown");
+    .requiredOption("--note <markdown>", "Required. The note, in Markdown");
 
   if (target.publicNoteModelType) {
     command.option(
@@ -375,8 +375,8 @@ function registerAddNoteCommand(
 
           printSuccess(
             isPublic
-              ? `Posted the note on the ${resource.singularName}'s status pages.`
-              : `Added the note to the ${resource.singularName}. Only your team sees it.`,
+              ? `Posted the note on the status pages that show ${resource.singularName} ${id}.`
+              : `Added the note to ${resource.singularName} ${id}. Only your team sees it.`,
           );
         } catch (error) {
           handleError(error, {

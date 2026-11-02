@@ -17,6 +17,7 @@ jest.mock("../Core/ApiClient", () => {
 import { isJsonRequested } from "../Core/OutputFormatter";
 import {
   getVersionMismatchWarning,
+  KEY_TAKEN,
   maskApiKey,
   readCliVersion,
   versionsMatch,
@@ -384,7 +385,9 @@ describe("whoami", () => {
       }),
     );
     expect(mockGetServerVersion).toHaveBeenCalledWith(TEST_URL);
+    // The answer to --check first, then what it found.
     expect(run.printed).toEqual([
+      KEY_TAKEN,
       `URL:     ${TEST_URL}`,
       `API Key: ${maskApiKey(TEST_API_KEY)}`,
       `Project: Acme (${PROJECT_ID})`,
@@ -429,6 +432,8 @@ describe("whoami", () => {
     const run: CliRun = await runCli(["whoami", "--check"], { isTTY: true });
 
     expect(run.exitCode).toBeUndefined();
+    // OneUptime took the key: it only refused to show the project.
+    expect(run.printed[0]).toBe(KEY_TAKEN);
     expect(run.printed).toContain("Project: this key may not read its project");
     expect(run.printed).toContain("Server:  did not say its version");
   });
@@ -444,6 +449,15 @@ describe("whoami", () => {
 
     expect(refused.exitCode).toBe(2);
     expect(JSON.parse(refused.errors[0] as string).error.exitCode).toBe(2);
+
+    // In a terminal too, and never with the line that it took the key.
+    const refusedHere: CliRun = await runCli(["whoami", "--check"], {
+      isTTY: true,
+    });
+
+    expect(refusedHere.exitCode).toBe(2);
+    expect(refusedHere.printed).not.toContain(KEY_TAKEN);
+    expect(refusedHere.errors[0]).toContain("Invalid API Key");
 
     clearTestCredentials();
 

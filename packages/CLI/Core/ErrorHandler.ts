@@ -75,7 +75,7 @@ function authHint(message: string, status: number | null): string | null {
     return "Pass --api-key, set ONEUPTIME_API_KEY, or run `oneuptime login <api-key> <instance-url>`.";
   }
 
-  return `Copy the key again from ${KEYS_PAGE}, where its Expires date is too, then run \`oneuptime login\` again or set ONEUPTIME_API_KEY.`;
+  return `Copy the key again from ${KEYS_PAGE}, and check its Expires date there. Then run \`oneuptime login\` again, or set ONEUPTIME_API_KEY.`;
 }
 
 function notFoundHint(context: ErrorContext): string {
