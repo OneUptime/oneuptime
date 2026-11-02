@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40050,
-    "untranslated": 12695
+    "untranslated": 12682
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -136,9 +136,11 @@
     "Label",
     "Label: {{name}}",
     "Labels",
+    "Link-local",
     "Live",
     "Locks",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -149,6 +151,7 @@
     "Matrix",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Mesh / VPN",
     "Messaging",
     "Mexico (+52)",
     "Model",

@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40050,
-    "untranslated": 12624
+    "untranslated": 12611
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -77,9 +77,11 @@
     "Kernel",
     "LXC 201 · pve3",
     "Link",
+    "Link-local",
     "Links",
     "Local",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -88,6 +90,7 @@
     "Marketplace",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Mesh / VPN",
     "Monitor",
     "Namespace",
     "Namespaces",

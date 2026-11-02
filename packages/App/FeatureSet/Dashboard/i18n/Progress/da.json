@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40050,
-    "untranslated": 12653
+    "untranslated": 12640
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -96,10 +96,12 @@
     "Job",
     "LXC 201 · pve3",
     "Link",
+    "Link-local",
     "Links",
     "Live",
     "Log",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -110,6 +112,7 @@
     "Median (P50)",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Mesh / VPN",
     "Messaging",
     "Mexico (+52)",
     "Model",

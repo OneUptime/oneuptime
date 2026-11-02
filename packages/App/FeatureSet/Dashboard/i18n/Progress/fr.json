@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40050,
-    "untranslated": 7249
+    "untranslated": 7242
   },
   "sameAsEnglish": [
     " incidents",
@@ -373,6 +373,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Prompt",
+    "Public",
     "Pull request",
     "Pull requests",
     "Push",

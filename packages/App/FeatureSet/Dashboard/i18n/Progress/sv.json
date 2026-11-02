@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 40050,
-    "untranslated": 12641
+    "untranslated": 12628
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -81,6 +81,7 @@
     "LXC 201 · pve3",
     "Live",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -90,6 +91,7 @@
     "Median (P50)",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Mesh / VPN",
     "Min",
     "N/A",
     "Nav",
