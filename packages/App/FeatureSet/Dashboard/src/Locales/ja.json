@@ -40061,7 +40061,7 @@
   "Runs on {{count}} node it should not": "本来実行すべきでない {{count}} ノードで実行",
   "AI and machine learning": "AI と機械学習",
   "Added manually": "手動で追加",
-  "Application traces": "アプリケーションのトレース",
+  "Application traces": "アプリケーショントレース",
   "Broker Metrics Last Received": "ブローカーメトリクスの最終受信",
   "Broker metrics": "ブローカーメトリクス",
   "Compute": "コンピューティング",

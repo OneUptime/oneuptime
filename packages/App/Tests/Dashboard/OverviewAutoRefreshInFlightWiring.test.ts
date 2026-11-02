@@ -95,6 +95,15 @@ const HOST_TIMER: (loader: string, setError: string) => string = (
 };
 
 /*
+ * A host's Overview reads its Host Details again with every load a tick
+ * starts (#5307's follow-up: one card that reads the host itself, where the
+ * four cards it replaced drew the page's own read); a tick that waits for a
+ * load still running asks for nothing, the details included.
+ */
+const HOST_OVERVIEW_TIMER: string =
+  "setInterval(() => { if (fetchInFlightRef.current) { return; } fetchStatsRef.current().catch((err: Error) => { setStatsError(API.getFriendlyMessage(err)); }); setDetailsRefresher((prev: boolean) => { return !prev; }); }, ms);";
+
+/*
  * Docker and Podman flip the details card's refresher on every tick, while
  * the stats fetch runs or not: Last Seen and Agent Version keep refreshing.
  */
@@ -108,7 +117,7 @@ const GUARDED_PAGES: Array<[string, GuardedPage]> = [
       file: "Host/View/Overview.tsx",
       seqRef: "fetchSeqRef",
       inFlightRef: "fetchInFlightRef",
-      timer: HOST_TIMER("fetchStatsRef", "setStatsError"),
+      timer: HOST_OVERVIEW_TIMER,
     },
   ],
   [

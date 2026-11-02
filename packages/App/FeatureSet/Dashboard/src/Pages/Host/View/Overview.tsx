@@ -1118,6 +1118,11 @@ const HostOverview: FunctionComponent<
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });
+      /*
+       * Host Details reads the host again with every load the tick starts,
+       * so its agent version and what it reports keep up with the page; a
+       * tick that waits for a load still running asks for nothing.
+       */
       setDetailsRefresher((prev: boolean) => {
         return !prev;
       });
@@ -1944,154 +1949,163 @@ const HostOverview: FunctionComponent<
        * It was four cards - Identification, Hardware & Runtime, Operating
        * System and Network - in one column or two, the first repeating the
        * hero's name and description. Edited on the host's Settings page, in
-       * the card of the same title.
+       * the card of the same title. Drawn once the host is read, as those
+       * were: a host that is not found has nothing to detail.
        */}
-      <ResourceRecordDetailsCard<Host>
-        modelType={Host}
-        modelId={modelId}
-        id="host-details"
-        title="Host Details"
-        refresher={detailsRefresher}
-        settingsRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
-          { modelId: modelId },
-        )}
-        facts={[
-          {
-            field: {
-              hostIdentifier: true,
+      {host ? (
+        <ResourceRecordDetailsCard<Host>
+          modelType={Host}
+          modelId={modelId}
+          id="host-details"
+          title="Host Details"
+          refresher={detailsRefresher}
+          settingsRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
+            { modelId: modelId },
+          )}
+          facts={[
+            {
+              field: {
+                hostIdentifier: true,
+              },
+              title: "Host Name (host.name)",
+              fieldType: FieldType.Text,
             },
-            title: "Host Name (host.name)",
-            fieldType: FieldType.Text,
-          },
-          {
-            field: {
-              hostType: true,
+            {
+              field: {
+                hostType: true,
+              },
+              title: "Host Type",
+              fieldType: FieldType.Text,
             },
-            title: "Host Type",
-            fieldType: FieldType.Text,
-          },
-          {
-            field: {
-              osType: true,
+            {
+              field: {
+                osType: true,
+              },
+              title: "OS Type",
+              fieldType: FieldType.Element,
+              getElement: renderOsTypeChip,
             },
-            title: "OS Type",
-            fieldType: FieldType.Element,
-            getElement: renderOsTypeChip,
-          },
-          {
-            field: {
-              osVersion: true,
+            {
+              field: {
+                osVersion: true,
+              },
+              title: "OS Version",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return <OsVersionDisplay text={String(item.osVersion)} />;
+              },
             },
-            title: "OS Version",
-            fieldType: FieldType.Element,
-            getElement: (item: Host): ReactElement => {
-              return <OsVersionDisplay text={String(item.osVersion)} />;
+            {
+              field: {
+                hostArch: true,
+              },
+              title: "Architecture",
+              fieldType: FieldType.Element,
+              getElement: renderArchChip,
             },
-          },
-          {
-            field: {
-              hostArch: true,
+            {
+              field: {
+                cpuCores: true,
+              },
+              title: "CPU Cores",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return (
+                  <span>
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} core",
+                        other: "{{count}} cores",
+                      },
+                      Number(item.cpuCores),
+                    )}
+                  </span>
+                );
+              },
             },
-            title: "Architecture",
-            fieldType: FieldType.Element,
-            getElement: renderArchChip,
-          },
-          {
-            field: {
-              cpuCores: true,
+            {
+              field: {
+                totalMemoryBytes: true,
+              },
+              title: "Total Memory",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return (
+                  <span>
+                    {formatMemoryBytes(Number(item.totalMemoryBytes))}
+                  </span>
+                );
+              },
             },
-            title: "CPU Cores",
-            fieldType: FieldType.Element,
-            getElement: (item: Host): ReactElement => {
-              return (
-                <span>
-                  {translator.translatePlural(
-                    {
-                      one: "{{count}} core",
-                      other: "{{count}} cores",
-                    },
-                    Number(item.cpuCores),
-                  )}
-                </span>
-              );
+            {
+              field: {
+                containerRuntime: true,
+              },
+              title: "Container Runtime",
+              fieldType: FieldType.Text,
             },
-          },
-          {
-            field: {
-              totalMemoryBytes: true,
+            {
+              field: {
+                processCount: true,
+              },
+              title: "Process Count (cached)",
+              description: HOST_METRIC_DESCRIPTIONS.processCountCached,
+              fieldType: FieldType.Number,
             },
-            title: "Total Memory",
-            fieldType: FieldType.Element,
-            getElement: (item: Host): ReactElement => {
-              return (
-                <span>{formatMemoryBytes(Number(item.totalMemoryBytes))}</span>
-              );
+            {
+              field: {
+                agentVersion: true,
+              },
+              title: "Agent Version",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                /*
+                 * A sign beside a collector older than the release the host
+                 * guide pins opens how to upgrade it: the config saved again
+                 * from the setup guide (it holds the ingestion key), then the
+                 * new release, for the install methods this host's OS can
+                 * have.
+                 */
+                return (
+                  <AgentVersion
+                    kind={AgentKind.HostCollector}
+                    version={item.agentVersion}
+                    setupGuideRoute={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+                      { modelId: modelId },
+                    )}
+                    upgradeGuideContext={{
+                      hostOsType: item.osType,
+                      isHostCollectorManaged: Boolean(
+                        item.collectorInstanceUid,
+                      ),
+                    }}
+                  />
+                );
+              },
             },
-          },
-          {
-            field: {
-              containerRuntime: true,
+            /*
+             * A row of its own: a host can report a dozen addresses, IPv6
+             * among them.
+             */
+            {
+              field: {
+                hostIpAddresses: true,
+              },
+              title: "IP Addresses",
+              fieldType: FieldType.Element,
+              colSpan: 2,
+              getElement: renderIpAddresses,
             },
-            title: "Container Runtime",
-            fieldType: FieldType.Text,
-          },
-          {
-            field: {
-              processCount: true,
-            },
-            title: "Process Count (cached)",
-            description: HOST_METRIC_DESCRIPTIONS.processCountCached,
-            fieldType: FieldType.Number,
-          },
-          {
-            field: {
-              agentVersion: true,
-            },
-            title: "Agent Version",
-            fieldType: FieldType.Element,
-            getElement: (item: Host): ReactElement => {
-              /*
-               * A sign beside a collector older than the release the host
-               * guide pins opens how to upgrade it: the config saved again
-               * from the setup guide (it holds the ingestion key), then the
-               * new release, for the install methods this host's OS can
-               * have.
-               */
-              return (
-                <AgentVersion
-                  kind={AgentKind.HostCollector}
-                  version={item.agentVersion}
-                  setupGuideRoute={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
-                    { modelId: modelId },
-                  )}
-                  upgradeGuideContext={{
-                    hostOsType: item.osType,
-                    isHostCollectorManaged: Boolean(item.collectorInstanceUid),
-                  }}
-                />
-              );
-            },
-          },
-          /*
-           * A row of its own: a host can report a dozen addresses, IPv6
-           * among them.
-           */
-          {
-            field: {
-              hostIpAddresses: true,
-            },
-            title: "IP Addresses",
-            fieldType: FieldType.Element,
-            colSpan: 2,
-            getElement: renderIpAddresses,
-          },
-        ]}
-        selectMoreFields={{
-          collectorInstanceUid: true,
-        }}
-      />
+          ]}
+          selectMoreFields={{
+            collectorInstanceUid: true,
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       {/*
        * Last on the page: the Host AI agent's connection, whether AI may

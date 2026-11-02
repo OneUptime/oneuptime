@@ -5,7 +5,9 @@ import { createInstance, i18n } from "i18next";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
-import ResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import italianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/it.json";
@@ -93,6 +95,7 @@ function renderHero(
           chips={[]}
           tiles={[]}
           detailRows={[]}
+          detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         />
       </MemoryRouter>
     </I18nextProvider>,

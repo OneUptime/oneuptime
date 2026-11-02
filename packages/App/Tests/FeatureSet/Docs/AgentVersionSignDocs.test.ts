@@ -314,8 +314,9 @@ describe("the English guides' other commands are the ones the upgrade dialog sho
         "telemetry/databases",
         "### Upgrading and uninstalling",
       );
+      // The database's Details row, Title Case as every Details row's is.
       expect(section).toContain(
-        `**${drawnLabelIn(language, "Agent version")}**`,
+        `**${drawnLabelIn(language, "Agent Version")}**`,
       );
       expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
       expect(section).toContain("`install.sh`");
