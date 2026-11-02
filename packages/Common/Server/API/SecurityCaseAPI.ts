@@ -87,6 +87,7 @@ import {
   SECURITY_CONNECTION_MAX_ENTITIES,
   SecurityConnectionKind,
   SecurityConnectionsJson,
+  SecurityTelemetryMentionsJson,
 } from "../../Types/SecurityCase/SecurityConnection";
 import {
   SecurityEntity,
@@ -94,6 +95,7 @@ import {
 } from "../../Types/SecurityCase/SecurityEntity";
 import { SecurityLogResource } from "../../Utils/SecurityCase/SecurityConnectionMatch";
 import SecurityConnections from "../Utils/SecurityEvent/Connections/SecurityConnections";
+import SecurityTelemetryMentions from "../Utils/SecurityEvent/Connections/SecurityTelemetryMentions";
 import { getLogResourceKind } from "../Utils/SecurityEvent/Connections/SecurityConnectedRecords";
 import ResourceSecurity from "../Utils/SecurityEvent/Connections/ResourceSecurity";
 import IncidentSecurity from "../Utils/SecurityEvent/Connections/IncidentSecurity";
@@ -230,6 +232,9 @@ function readWholeNumber(
  *   POST /security-case/connections        what a case or an event names in
  *                                          the rest of OneUptime (Connected
  *                                          Signals)
+ *   POST /security-case/connections/telemetry
+ *                                          where what it names appears in
+ *                                          the logs and traces themselves
  *   POST /security-case/resource-security  what Security Events says about a
  *                                          host, cluster, service or member
  *   POST /security-case/incident-security  the cases behind an incident and
@@ -400,6 +405,73 @@ export default class SecurityCaseAPI extends BaseAPI<
               time,
               logResources: readLogResources(body["logResources"]),
               readLogResources: body["readLogResources"] === true,
+              props,
+            })) as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * In your logs and traces: where the values a case - or an event's or an
+     * entity's - names appear in the project's logs and traces, over the
+     * window Connected Signals reads. The same request as the connections,
+     * read on its own so the records show first. Takes the right to read
+     * security events; the logs and the traces are then searched with the
+     * caller's own read of each (a signal their role cannot read is said to
+     * be, never searched).
+     */
+    this.router.post(
+      `${basePath}/connections/telemetry`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          this.assertCanReadSecurityEvents(props);
+
+          const body: JSONObject = readBody(req);
+          const caseId: JSONValue | undefined = body["caseId"];
+
+          if (caseId !== undefined && caseId !== null) {
+            if (typeof caseId !== "string" || !ObjectID.isValidUUID(caseId)) {
+              throw new BadDataException("A valid case ID is required.");
+            }
+
+            const mentions: SecurityTelemetryMentionsJson | null =
+              await SecurityTelemetryMentions.forCase({
+                projectId,
+                securityCaseId: new ObjectID(caseId),
+                props,
+              });
+
+            if (!mentions) {
+              throw new NotFoundException("This case could not be found.");
+            }
+
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              mentions as unknown as JSONObject,
+            );
+          }
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            (await SecurityTelemetryMentions.forEntities({
+              projectId,
+              entities: readSecurityEntities(body["entities"]).slice(
+                0,
+                SECURITY_CONNECTION_MAX_ENTITIES,
+              ),
+              time: readOptionalDate(body["time"]),
               props,
             })) as unknown as JSONObject,
           );

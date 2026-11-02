@@ -12,9 +12,9 @@ import ts from "typescript";
  * columns every infrastructure list opens on. Collected By and Agent Version
  * start hidden (isHiddenByDefault), and Customize Columns turns them back on;
  * neither is hideOnMobile, so that works on a phone too. What they said stays
- * on the vCenter's own pages: the Overview's vCenter Details shows the Agent
- * Version with its upgrade sign, and the Data Collection cards say how the
- * vCenter is collected.
+ * on the vCenter's own pages: the Overview's vCenter Details says how it is
+ * collected (Collected By) and shows the Agent Version with its upgrade
+ * sign, and the Data Collection cards say how the collection is going.
  *
  * VMware's other lists, and the other agent-collected inventories, show
  * neither by default. These read the page sources (the App suite has no
@@ -378,7 +378,7 @@ describe("the vCenter's own pages keep what the list leaves out", () => {
   }
 
   test("the Overview shows the Agent Version among the vCenter's details", () => {
-    expect(readPage(OVERVIEW)).toContain('name="vCenter Details"');
+    expect(readPage(OVERVIEW)).toContain('title="vCenter Details"');
     expect(
       objectsTitled(OVERVIEW, "Agent Version").map(
         (field: DeclaredColumn): Array<string> => {
@@ -388,6 +388,43 @@ describe("the vCenter's own pages keep what the list leaves out", () => {
     ).toEqual([["agentVersion"]]);
     // With its upgrade sign: AgentVersionDisplayGuard holds the page to it.
     expect(readPage(OVERVIEW)).toContain("kind={AgentKind.VMwareAgent}");
+  });
+
+  /*
+   * And how it is collected, first: the VMware Agent, or the probe that
+   * logs in to it. The card draws only what the vCenter reported, so a
+   * vCenter a probe collects - which has no agent, and no Agent Version -
+   * says why there, rather than "No details reported yet."
+   */
+  test("the Overview's vCenter Details says how the vCenter is collected, always, before its Agent Version", () => {
+    const source: string = readPage(OVERVIEW).replace(/\s+/g, " ");
+
+    expect(
+      objectsTitled(OVERVIEW, "Collected By").map(
+        (field: DeclaredColumn): Array<string> => {
+          return field.fields;
+        },
+      ),
+    ).toEqual([["collectionMethod"]]);
+    const card: string = source.slice(
+      source.indexOf("<ResourceRecordDetailsCard<VMwareVCenter>"),
+    );
+    expect(card.indexOf('title: "Collected By"')).toBeGreaterThan(-1);
+    expect(card.indexOf('title: "Collected By"')).toBeLessThan(
+      card.indexOf('title: "Agent Version"'),
+    );
+    // Drawn for every vCenter, collected one way or the other.
+    expect(card).toContain(
+      'title: "Collected By", fieldType: FieldType.Element, showIf: (): boolean => { return true; },',
+    );
+    // The probe's name, read with the vCenter.
+    expect(card).toContain(
+      "selectMoreFields={{ collectionProbe: { name: true, }, }}",
+    );
+    expect(card).toContain(
+      'translator.translateTemplate("Probe: {{name}}", { name: item.collectionProbe.name, })',
+    );
+    expect(card).toContain('translator.translateText("VMware Agent")');
   });
 
   test("the Overview of a vCenter a probe collects shows how its collection is going", () => {

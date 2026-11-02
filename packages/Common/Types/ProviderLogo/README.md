@@ -76,6 +76,8 @@ is drawn by Duke, OpenJDK's BSD-licensed mark.
 
 - **Sign in with Microsoft** (the sign-in pages): Microsoft's sign-in
   branding asks for its four-colour logo on the button.
+- **Continue with Google** (the sign-in pages): Google's sign-in branding
+  asks for its standard full-colour "G", unchanged, on the button.
 - **Mobile Apps** (Settings): Google Play's mark in its colours on the store
   badge, as Google's badge guidelines ask. Apple's mark is one colour
   already.

@@ -4604,7 +4604,7 @@ async function recordPartsCutOff(page: Page): Promise<Array<string>> {
 
       panel
         .querySelectorAll(
-          "[data-testid='security-connected-record'], [data-testid='security-connected-record'] *",
+          "[data-testid='security-connected-record'], [data-testid='security-connected-record'] *, [data-testid='security-telemetry-mentions'] *",
         )
         .forEach((element: Element): void => {
           const box: DOMRect = element.getBoundingClientRect();
@@ -4739,13 +4739,79 @@ test.describe("an event's Connected tab", () => {
       "Possible match",
     );
 
-    // Everything it names was found: no "not in OneUptime" line.
+    // Everything it names was found: no "no matching record" line.
     await expect(
       eventDrawer(page).getByTestId("security-connected-not-found"),
     ).toHaveCount(0);
     await expect(
       eventDrawer(page).getByTestId("security-connected-window"),
     ).toContainText("Signals from");
+
+    /*
+     * Under the records, where what it names appears in the logs and traces
+     * of the same hour - its email and its address; web-03 is a bare name,
+     * which its record answers for. One read, of the same values and time.
+     */
+    const telemetry: Locator = eventDrawer(page).getByTestId(
+      "security-telemetry-mentions",
+    );
+    await expect(telemetry.getByTestId("security-telemetry-value")).toHaveCount(
+      2,
+      { timeout: 30000 },
+    );
+    const telemetryReads: Array<RecordedApiRequest> = (
+      await fixture(page)
+    ).apiRequests.filter((request: RecordedApiRequest): boolean => {
+      return (
+        request.method === "POST" &&
+        new URL(request.url).pathname.endsWith(
+          "/security-case/connections/telemetry",
+        )
+      );
+    });
+    expect(telemetryReads).toHaveLength(1);
+    expect(telemetryReads[0]!.body).toEqual({
+      entities: reads[0]!.body!["entities"],
+      time: EVENT_TIME,
+    });
+
+    const kaiLines: Locator = telemetry
+      .getByTestId("security-telemetry-value")
+      .filter({
+        has: page
+          .getByTestId("security-telemetry-value-name")
+          .getByText("k.morgan@acme-commerce.example", { exact: true }),
+      });
+    await expect(
+      kaiLines
+        .getByTestId("security-telemetry-logs")
+        .getByTestId("security-connected-fact-label"),
+    ).toHaveText("In 3 log lines");
+    await expect(
+      kaiLines
+        .getByTestId("security-telemetry-spans")
+        .getByTestId("security-connected-fact-label"),
+    ).toHaveText("In 5 spans");
+    const web03Lines: Locator = telemetry
+      .getByTestId("security-telemetry-value")
+      .filter({
+        has: page
+          .getByTestId("security-telemetry-value-name")
+          .getByText("203.0.113.30", { exact: true }),
+      });
+    await expect(web03Lines.getByTestId("security-telemetry-place")).toHaveText(
+      /In the message\s*60/,
+    );
+    expect(
+      JSON.parse(
+        new URL(
+          (await web03Lines
+            .getByTestId("security-telemetry-place")
+            .getAttribute("href"))!,
+          `http://127.0.0.1:${PORT}`,
+        ).searchParams.get("filters") || "[]",
+      ),
+    ).toEqual([["body", ["203.0.113.30"]]]);
   });
 
   for (const view of [

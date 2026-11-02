@@ -5,8 +5,8 @@ import path from "path";
 
 /*
  * A resource's Overview drawn with ResourceOverview - a service's, a
- * database's and a queue's - in a browser, against the offline fixture
- * (ResourceOverviews/Fixture).
+ * database's, a queue's and a serverless function's - in a browser, against
+ * the offline fixture (ResourceOverviews/Fixture).
  *
  * #5298 merged with its UI review unfinished; the review finished here:
  *
@@ -35,10 +35,12 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const SERVICE_ID: string = "71000000-0000-4000-8000-000000000001";
 const DATABASE_ID: string = "73000000-0000-4000-8000-000000000001";
 const QUEUE_ID: string = "74000000-0000-4000-8000-000000000001";
+const FUNCTION_ID: string = "77000000-0000-4000-8000-000000000001";
 
 const SERVICE_PAGE: string = `/dashboard/${PROJECT_ID}/service/${SERVICE_ID}`;
 const DATABASE_PAGE: string = `/dashboard/${PROJECT_ID}/databases/${DATABASE_ID}`;
 const QUEUE_PAGE: string = `/dashboard/${PROJECT_ID}/queues/${QUEUE_ID}`;
+const FUNCTION_PAGE: string = `/dashboard/${PROJECT_ID}/serverless/${FUNCTION_ID}`;
 
 const DESCRIPTION: string =
   "Takes the basket to an order: prices it, reserves stock and charges the card.";
@@ -72,6 +74,91 @@ const GERMAN: Record<string, string> = JSON.parse(
     "utf8",
   ),
 ) as Record<string, string>;
+
+// The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+const PERSIAN: Record<string, string> = JSON.parse(
+  fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+    ),
+    "utf8",
+  ),
+) as Record<string, string>;
+
+/*
+ * Each Overview's Details labels, in English, in the order a busy resource
+ * of the fixture's draws them (#5307's follow-up: one casing, Title Case,
+ * as every details card's labels are).
+ */
+const DETAIL_LABELS: Array<[string, Array<string>]> = [
+  [
+    "service",
+    [
+      "Technology",
+      "Runtime",
+      "Service Version",
+      "Deployment Environment",
+      "Service Namespace",
+      "Cloud Provider",
+      "Cloud Platform",
+      "Cloud Region",
+      "Cloud Account ID",
+    ],
+  ],
+  [
+    "database",
+    [
+      "Engine (db.system.name)",
+      "Version",
+      "Discovered From",
+      "Endpoints",
+      "Engine Metrics",
+    ],
+  ],
+  [
+    "queue",
+    [
+      "Messaging System",
+      "Destination",
+      "Broker Address",
+      "Discovered From",
+      "Queue Identifier",
+    ],
+  ],
+];
+
+// What each Details card says its rows are, under its title.
+const DETAILS_LINES: Record<string, string> = {
+  service: "Metadata captured from OpenTelemetry resource attributes.",
+  database:
+    "Its engine and endpoints, where OneUptime found it, and its engine metrics.",
+  queue:
+    "Its broker and destination, where OneUptime found it, and its broker metrics.",
+};
+
+/*
+ * Title Case: each word after the first starts with a capital, but for the
+ * short words Title Case keeps small. What is in brackets is the attribute
+ * the value is read from, as the telemetry names it.
+ */
+const SMALL_WORDS: Array<string> = ["a", "and", "by", "in", "of", "on", "the"];
+const IN_BRACKETS: RegExp = /\([^)]*\)/g;
+const BLANKS: RegExp = /\s+/;
+
+function isTitleCase(label: string): boolean {
+  return label
+    .replace(IN_BRACKETS, " ")
+    .split(BLANKS)
+    .filter(Boolean)
+    .every((word: string, index: number): boolean => {
+      const first: string = word.charAt(0);
+      return (
+        (index > 0 && SMALL_WORDS.includes(word)) ||
+        first === first.toUpperCase()
+      );
+    });
+}
 
 interface Recorded {
   unhandled: Array<Record<string, unknown>>;
@@ -378,11 +465,11 @@ test.describe("the Details card ends with the record's ID line", () => {
       );
     };
 
-    await expect(valueOfRow(page, "Discovered from")).toHaveText(
+    await expect(valueOfRow(page, "Discovered From")).toHaveText(
       "Application traces",
     );
-    expect(await fontOf("Discovered from")).not.toMatch(/mono/i);
-    expect(await fontOf("Engine metrics")).not.toMatch(/mono/i);
+    expect(await fontOf("Discovered From")).not.toMatch(/mono/i);
+    expect(await fontOf("Engine Metrics")).not.toMatch(/mono/i);
     expect(await fontOf("Version")).toMatch(/mono/i);
     expect(await fontOf("Endpoints")).toMatch(/mono/i);
   });
@@ -416,6 +503,142 @@ test.describe("the Details card ends with the record's ID line", () => {
     );
     expect(labels).toContain(GERMAN["Cloud Account ID"]);
     expect(GERMAN["Cloud Account ID"]).not.toBe("Cloud Account ID");
+  });
+});
+
+/*
+ * #5307's follow-up: the Details rows read "Discovered from", "Engine
+ * metrics" and "Recording health" beside "Service Version" and "Cloud
+ * Provider"; a database's and a queue's card said its rows were "Metadata
+ * captured from OpenTelemetry resource attributes."; and where a database
+ * or a queue was found, and its engine metrics' status, read English on a
+ * German or a Persian page - in the hero's chips and in the rows.
+ */
+test.describe("one casing, a line of its own and its words in the reader's language", () => {
+  const PAGES: Record<string, string> = {
+    service: SERVICE_PAGE,
+    database: DATABASE_PAGE,
+    queue: QUEUE_PAGE,
+  };
+
+  test("every Details label is Title Case, on a service's, a database's and a queue's card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, labels] of DETAIL_LABELS) {
+      await openOverview(page, PAGES[name]!);
+
+      const drawn: Array<string> = (await detailRows(page)).map(
+        (row: string): string => {
+          return row.split(": ")[0]!;
+        },
+      );
+      expect({ name, drawn }).toEqual({ name, drawn: labels });
+      expect(
+        drawn.filter((label: string): boolean => {
+          return !isTitleCase(label);
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("each card's line says where its rows come from: a database's and a queue's are their own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, line] of Object.entries(DETAILS_LINES)) {
+      await openOverview(page, PAGES[name]!);
+
+      await expect(page.getByText(line, { exact: true })).toBeVisible();
+      for (const other of Object.values(DETAILS_LINES)) {
+        if (other !== line) {
+          await expect(page.getByText(other, { exact: true })).toHaveCount(0);
+        }
+      }
+    }
+  });
+
+  test("in German, where a database was found and its engine metrics read in German, in its chips and its rows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const found: string = GERMAN["Application traces"]!;
+    const notConnected: string = GERMAN["Not connected"]!;
+    expect(found).toBeTruthy();
+    expect(found).not.toBe("Application traces");
+    expect(notConnected).toBeTruthy();
+    expect(notConnected).not.toBe("Not connected");
+
+    await openOverview(page, DATABASE_PAGE, "lang=de");
+
+    await expect(valueOfRow(page, GERMAN["Discovered From"]!)).toHaveText(
+      found,
+    );
+    await expect(valueOfRow(page, GERMAN["Engine Metrics"]!)).toHaveText(
+      notConnected,
+    );
+    // The hero's chips, under its top row, say the same in the same words.
+    const hero: Locator = page
+      .getByTestId("resource-overview-header-row")
+      .locator("xpath=..");
+    await expect(hero.getByText(found, { exact: true })).toBeVisible();
+    await expect(hero).toContainText(notConnected);
+    await expect(hero).not.toContainText("Application traces");
+    await expect(hero).not.toContainText("Not connected");
+    await expect(
+      page.getByText(
+        GERMAN[
+          "Its engine and endpoints, where OneUptime found it, and its engine metrics."
+        ]!,
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await screenshot(page, "resource-overview-database-german");
+  });
+
+  test("in German, where a queue was found reads in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, QUEUE_PAGE, "lang=de");
+
+    await expect(valueOfRow(page, GERMAN["Discovered From"]!)).toHaveText(
+      GERMAN["Application traces"]!,
+    );
+  });
+
+  test("in Persian, every Details label of the three cards reads in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, labels] of DETAIL_LABELS) {
+      await openOverview(page, PAGES[name]!, "lang=fa");
+
+      const drawn: Array<string> = (await detailRows(page)).map(
+        (row: string): string => {
+          return row.split(": ")[0]!;
+        },
+      );
+      expect({ name, drawn }).toEqual({
+        name,
+        drawn: labels.map((english: string): string => {
+          return PERSIAN[english]!;
+        }),
+      });
+      // Persian lacked several of them: none is English now.
+      for (const english of labels) {
+        expect({ english, persian: PERSIAN[english] }).not.toEqual({
+          english,
+          persian: english,
+        });
+      }
+    }
+    await screenshot(page, "resource-overview-queue-persian");
   });
 });
 
@@ -1333,7 +1556,12 @@ test.describe("dark, and what the pages read", () => {
   }: {
     page: Page;
   }) => {
-    for (const pagePath of [SERVICE_PAGE, DATABASE_PAGE, QUEUE_PAGE]) {
+    for (const pagePath of [
+      SERVICE_PAGE,
+      DATABASE_PAGE,
+      QUEUE_PAGE,
+      FUNCTION_PAGE,
+    ]) {
       await openOverview(page, pagePath);
       const recorded: {
         itemRequests: Array<{ modelName: string }>;
@@ -1351,4 +1579,321 @@ test.describe("dark, and what the pages read", () => {
       expect(recorded.itemRequests.length).toBeGreaterThan(0);
     }
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The Security card: what Security Events read from a record's own logs
+ * ---------------------------------------------------------------------------
+ *
+ * A service and a serverless function have no name or address an event
+ * would name them by: Security Events tells about them by the events read
+ * from their own logs, so their card counts those events and findings,
+ * opens Security Events on their logs, and has no open cases or risk to
+ * show (Components/SecurityConnections, ?security=). The service's card was
+ * drawn here first; the serverless function's is the same card on its own
+ * Overview (Pages/Serverless/View/Overview.tsx), and is drawn and measured
+ * the same way.
+ */
+const SECURITY_NEWS: string =
+  "What Security Events found in its logs in the last 7 days.";
+const SECURITY_QUIET: string =
+  "No security event was read from its logs in the last 7 days.";
+
+interface LogSource {
+  // How a test names it.
+  noun: string;
+  // Its screenshots' name.
+  slug: string;
+  // What the page asks Security Events about.
+  kind: "Service" | "ServerlessFunction";
+  id: string;
+  page: string;
+}
+
+const LOG_SOURCES: Array<LogSource> = [
+  {
+    noun: "service",
+    slug: "service",
+    kind: "Service",
+    id: SERVICE_ID,
+    page: SERVICE_PAGE,
+  },
+  {
+    noun: "serverless function",
+    slug: "serverless-function",
+    kind: "ServerlessFunction",
+    id: FUNCTION_ID,
+    page: FUNCTION_PAGE,
+  },
+];
+
+interface SecurityRead {
+  method: string;
+  url: string;
+  body: { kind?: string; id?: string };
+}
+
+function securityCard(page: Page): Locator {
+  return page.getByTestId("resource-security-card");
+}
+
+// What the page asked Security Events about.
+async function securityReads(page: Page): Promise<Array<SecurityRead>> {
+  const requests: Array<SecurityRead> = await page.evaluate(
+    (): Array<SecurityRead> => {
+      return JSON.parse(
+        JSON.stringify(
+          (
+            window as unknown as {
+              __resourceOverviewsFixture: {
+                apiRequests: Array<SecurityRead>;
+              };
+            }
+          ).__resourceOverviewsFixture.apiRequests,
+        ),
+      );
+    },
+  );
+
+  // The fixture records each request's path.
+  return requests.filter((request: SecurityRead): boolean => {
+    return new URL(request.url, "http://127.0.0.1").pathname.endsWith(
+      "/security-case/resource-security",
+    );
+  });
+}
+
+// The card's parts that reach past its own edges: none, where it reads whole.
+async function partsOutside(card: Locator): Promise<Array<string>> {
+  return await card.evaluate((root: Element): Array<string> => {
+    const box: DOMRect = root.getBoundingClientRect();
+    const found: Array<string> = [];
+    root.querySelectorAll("*").forEach((element: Element): void => {
+      const part: DOMRect = element.getBoundingClientRect();
+      if (
+        part.width > 0 &&
+        part.height > 0 &&
+        (part.left < box.left - 1 || part.right > box.right + 1)
+      ) {
+        found.push((element.textContent || "").trim().slice(0, 40));
+      }
+    });
+    return found;
+  });
+}
+
+for (const source of LOG_SOURCES) {
+  test.describe(`the Security card: what Security Events read from the ${source.noun}'s own logs`, () => {
+    test(`a project that uses no Security Events is told nothing: the ${source.noun} is asked about, and no card is drawn`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openOverview(page, source.page);
+      await expect
+        .poll(
+          async (): Promise<number> => {
+            return (await securityReads(page)).length;
+          },
+          { timeout: 30000 },
+        )
+        .toBeGreaterThan(0);
+
+      // It asks about this record, by its kind and its own id - and only it.
+      const asked: Array<{ kind: string; id: string }> = (
+        await securityReads(page)
+      ).map((read: SecurityRead): { kind: string; id: string } => {
+        return { kind: read.body.kind || "", id: read.body.id || "" };
+      });
+      expect(asked).toEqual([{ kind: source.kind, id: source.id }]);
+      await expect(securityCard(page)).toHaveCount(0);
+    });
+
+    test("its week of events and findings, each opening Security Events on its own logs - and no cases or risk, which need a name", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize(LAPTOP);
+      await openOverview(page, source.page, "security=news");
+      const card: Locator = securityCard(page);
+      await expect(card).toBeVisible({ timeout: 30000 });
+      await expect(card).toHaveAttribute("data-state", "news");
+      await expect(card).toContainText(SECURITY_NEWS);
+
+      const events: Locator = card.getByTestId("resource-security-open");
+      await expect(events).toHaveText("312");
+      const search: URL = new URL(
+        (await events.getAttribute("href"))!,
+        "http://127.0.0.1",
+      );
+      expect(search.pathname).toBe(`/dashboard/${PROJECT_ID}/security-events`);
+      expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
+        `@oneuptime.log.resource.id:${source.id}`,
+      );
+      await expect(card).toContainText("Last seen 40 minutes ago");
+      await expect(card).toContainText("Critical");
+
+      // Two figures: the events and the findings. No case or risk names it.
+      const figures: Locator = card.getByRole("group", { name: "Security" });
+      await expect(figures).toContainText("Events");
+      await expect(figures).toContainText("Findings");
+      await expect(figures).not.toContainText("Open Cases");
+      await expect(figures).not.toContainText("Risk");
+      await expect(card.getByTestId("resource-security-cases")).toHaveCount(0);
+
+      // Open in Security Events opens its logs' events too: it has no page there.
+      expect(
+        await card
+          .getByRole("link", { name: "Open in Security Events" })
+          .getAttribute("href"),
+      ).toBe(await events.getAttribute("href"));
+    });
+
+    test("a week with nothing read from its logs says so in one line", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openOverview(page, source.page, "security=quiet");
+      const card: Locator = securityCard(page);
+      await expect(card).toBeVisible({ timeout: 30000 });
+      await expect(card).toHaveAttribute("data-state", "quiet");
+      await expect(card).toContainText(SECURITY_QUIET);
+      await expect(card.getByRole("group", { name: "Security" })).toHaveCount(
+        0,
+      );
+    });
+
+    test("Refresh reads it again, and the card stays", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize(LAPTOP);
+      await openOverview(page, source.page, "security=news");
+      const card: Locator = securityCard(page);
+      await expect(card).toBeVisible({ timeout: 30000 });
+      expect(await securityReads(page)).toHaveLength(1);
+
+      await page
+        .getByTestId("resource-overview-controls")
+        .getByRole("button", { name: "Refresh" })
+        .click();
+      await expect
+        .poll(
+          async (): Promise<number> => {
+            return (await securityReads(page)).length;
+          },
+          { timeout: 30000 },
+        )
+        .toBe(2);
+      await expect(card).toHaveAttribute("data-state", "news");
+      await expect(card.getByTestId("resource-security-open")).toHaveText(
+        "312",
+      );
+    });
+
+    for (const [name, size, theme] of [
+      ["phone", PHONE, undefined],
+      ["phone, dark", PHONE, "dark"],
+      ["tablet", TABLET, undefined],
+      ["laptop", LAPTOP, undefined],
+      ["laptop, dark", LAPTOP, "dark"],
+    ] as Array<
+      [string, { width: number; height: number }, "dark" | undefined]
+    >) {
+      test(`on a ${name} page the card reads whole, its two figures side by side, and nothing scrolls sideways`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize(size);
+        await openOverview(
+          page,
+          source.page,
+          `security=news${theme ? `&theme=${theme}` : ""}`,
+        );
+        const card: Locator = securityCard(page);
+        await expect(card.getByTestId("resource-security-open")).toBeVisible({
+          timeout: 30000,
+        });
+
+        await expectNoSidewaysScroll(page);
+        expect(await partsOutside(card)).toEqual([]);
+
+        // Two short figures share a row from 16rem of the card's own width: on every page here.
+        const tops: Array<number> = await card
+          .getByRole("group", { name: "Security" })
+          .evaluate((bar: Element): Array<number> => {
+            return Array.from(bar.children).map((cell: Element): number => {
+              return Math.round(cell.getBoundingClientRect().top);
+            });
+          });
+        expect(tops).toHaveLength(2);
+        expect(new Set(tops).size).toBe(1);
+
+        await fsPromises.mkdir(SCREENSHOTS, { recursive: true });
+        await card.scrollIntoViewIfNeeded();
+        await page.mouse.move(0, 0);
+        await card.screenshot({
+          path: path.join(
+            SCREENSHOTS,
+            `${source.slug}-security-card-${name.replace(", ", "-")}-synthetic.png`,
+          ),
+          animations: "disabled",
+        });
+      });
+    }
+  });
+}
+
+/*
+ * The serverless function's card in the reader's language: its sentence and
+ * its link in German, and in Persian right to left, where the link keeps to
+ * the header's end - the left - and the card still reads whole on a phone.
+ */
+test.describe("the serverless function's Security card in German and in Persian", () => {
+  for (const [language, words, query, isRightToLeft] of [
+    ["German", GERMAN, "lang=de", false],
+    ["Persian, right to left", PERSIAN, "lang=fa&dir=rtl", true],
+  ] as Array<[string, Record<string, string>, string, boolean]>) {
+    test(`${language}: the card's words in the reader's language, whole on a phone and at a laptop's width`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const sentence: string | undefined = words[SECURITY_NEWS];
+      const link: string | undefined = words["Open in Security Events"];
+      // Translated, not the English left in place.
+      expect(sentence).toBeTruthy();
+      expect(sentence).not.toBe(SECURITY_NEWS);
+      expect(link).toBeTruthy();
+      expect(link).not.toBe("Open in Security Events");
+
+      for (const size of [PHONE, LAPTOP]) {
+        await page.setViewportSize(size);
+        await openOverview(page, FUNCTION_PAGE, `security=news&${query}`);
+        const card: Locator = securityCard(page);
+        await expect(card).toBeVisible({ timeout: 30000 });
+        await expect(card).toContainText(sentence!);
+        await expect(card.getByRole("link", { name: link! })).toBeVisible();
+
+        await expectNoSidewaysScroll(page);
+        expect(await partsOutside(card)).toEqual([]);
+
+        if (isRightToLeft) {
+          // Right to left, the header's link sits at its end: the card's left.
+          const cardBox: Box = await boxOf(card);
+          const linkBox: Box = await boxOf(
+            card.getByTestId("resource-security-open-in-security-events"),
+          );
+          expect(linkBox.x - cardBox.x).toBeLessThan(
+            cardBox.x + cardBox.width - (linkBox.x + linkBox.width),
+          );
+        }
+      }
+    });
+  }
 });

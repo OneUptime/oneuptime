@@ -1,7 +1,11 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import IconProp from "../../../Types/Icon/IconProp";
-import useTranslateValue from "../../Utils/Translation";
+import { getLineDirection } from "../../Utils/LineDirection";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslateValue, { TranslatableValue } from "../../Utils/Translation";
+import useTranslator from "../../Utils/UseTranslator";
 import { toHeadline } from "./EmptyTableMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -129,6 +133,29 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue, translateString } = useTranslateValue();
+  // The page's language: the way its lines read.
+  const translator: Translator = useTranslator();
+
+  /*
+   * The sentence under the title, in the reader's language - or, for a
+   * failed load, the server's answer as the server wrote it ("Something
+   * went wrong on the server. Please try again."). On a page that reads the
+   * other way from it (an English answer on a Persian page) it is set apart
+   * in an isolate of its own, as ErrorMessage sets it, so it keeps its full
+   * stop at its end: drawn as it was, it read ".Something went wrong on the
+   * server. Please try again". Words in the page's own way are drawn as
+   * they always were.
+   */
+  const translatedDescription: TranslatableValue = props.description
+    ? translateValue(props.description)
+    : undefined;
+  const description: TranslatableValue =
+    typeof translatedDescription === "string" &&
+    getLineDirection(translatedDescription, translator.language) ? (
+      <IsolatedText text={translatedDescription} />
+    ) : (
+      translatedDescription
+    );
 
   /*
    * A title given as a sentence ("No services match the current filters.")
@@ -192,7 +219,7 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
           className="mt-1.5 max-w-lg text-balance text-sm leading-6 text-gray-500"
           data-testid={`${testId}-description`}
         >
-          {translateValue(props.description)}
+          {description}
         </div>
       ) : (
         <></>

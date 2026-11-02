@@ -418,7 +418,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 重新執行 `install.sh`：它會重複使用現有 `.env` 中的所有值，以目前版本取代 `docker-compose.yml`、`otel-collector-config.yaml` 和 systemd 單元，並重新建立代理程式的容器，讓新設定生效。你編輯過的檔案（`network_mode: host`、`filelog` 接收器及其掛接、額外的指標）會以 `<file>.bak.<timestamp>` 的形式保留在新檔案旁邊，指令碼會在最後列出它，方便你重新套用修改。對 `.env` 或 `otel-collector-config.yaml` 的任何修改都要用 `docker compose up -d --force-recreate` 套用：Collector 只在啟動時讀取設定，而當只有設定檔變更時，一般的 `docker compose up -d` 不會動到正在執行的容器。指令碼會在 `.agent-files.sha256` 中記錄它安裝的內容，因此沒有人編輯過的檔案會直接被取代而不保留副本，無論新版本改動多大；在沒有該記錄的目錄（你手動設定的目錄）中，每個與新版本不同的檔案都會被保留，因為它可能包含修改。若要移除代理程式，請執行 `cd /opt/oneuptime-database-agent && docker compose down`，然後刪除監控使用者（以及 AI 代理程式專用的登入帳戶，如果你建立過）。
 
-代理程式會把其檔案所固定的 Collector 版本回報為它的 **Agent version**。當該版本低於此 OneUptime 版本所固定的版本時，資料庫的 **概覽** 上會在它旁邊顯示一個警告標誌。選取它即可查看升級方法：透過安裝指令碼、使用 Docker Compose，或者對於 Kubernetes 中的資料庫，使用設定指南中的 Deployment。
+代理程式會把其檔案所固定的 Collector 版本回報為它的 **代理程式版本**。當該版本低於此 OneUptime 版本所固定的版本時，資料庫的 **概覽** 上會在它旁邊顯示一個警告標誌。選取它即可查看升級方法：透過安裝指令碼、使用 Docker Compose，或者對於 Kubernetes 中的資料庫，使用設定指南中的 Deployment。
 
 ## AI 代理程式
 

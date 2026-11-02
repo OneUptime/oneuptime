@@ -75,12 +75,6 @@ export const MORE_STATUS_PAGES_TEMPLATE: PluralTemplate = {
   other: "{{count}} more status pages",
 };
 
-// A service's languages and frameworks.
-export const MORE_TECHNOLOGIES_TEMPLATE: PluralTemplate = {
-  one: "{{count}} more technology",
-  other: "{{count}} more technologies",
-};
-
 // Every sentence above, for the tests that hold each language to them.
 export const MORE_ITEMS_TEMPLATES: ReadonlyArray<PluralTemplate> = [
   MORE_RESOURCES_TEMPLATE,
@@ -95,5 +89,4 @@ export const MORE_ITEMS_TEMPLATES: ReadonlyArray<PluralTemplate> = [
   MORE_SEVERITIES_TEMPLATE,
   MORE_RUNNERS_TEMPLATE,
   MORE_STATUS_PAGES_TEMPLATE,
-  MORE_TECHNOLOGIES_TEMPLATE,
 ];

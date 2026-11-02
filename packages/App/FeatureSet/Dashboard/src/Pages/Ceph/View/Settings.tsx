@@ -38,7 +38,7 @@ const CephClusterSettings: FunctionComponent<
             field: {
               fsid: true,
             },
-            title: "Cluster fsid",
+            title: "Cluster FSID",
             fieldType: FieldType.Text,
           },
         ]}

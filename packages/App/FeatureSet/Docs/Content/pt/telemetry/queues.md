@@ -15,7 +15,7 @@ Funciona da mesma forma para todo broker (Apache Kafka, RabbitMQ, Apache ActiveM
 
 | Fonte | O que ela precisa de você | O que ela acrescenta à página da fila |
 | --- | --- | --- |
-| **Traces de aplicativos** | Aplicativos instrumentados (OpenTelemetry); veja [Instrumentar aplicativos](#instrumentar-aplicativos) | Mensagens publicadas e consumidas, erros e tempo de processamento, os serviços de cada lado e os próprios traces |
+| **Traços de aplicações** | Aplicativos instrumentados (OpenTelemetry); veja [Instrumentar aplicativos](#instrumentar-aplicativos) | Mensagens publicadas e consumidas, erros e tempo de processamento, os serviços de cada lado e os próprios traces |
 | **Métricas do broker** (um OpenTelemetry Collector) | O receptor do coletor ou a coleta para o seu broker; veja [Métricas de saúde do broker](#métricas-de-saúde-do-broker) | **Saúde do broker**: acúmulo, atraso dos consumidores, mensagens mortas, idade da mensagem mais antiga, limitação e as taxas de mensagens do próprio broker |
 
 ```mermaid title="Duas fontes, uma página de fila"

@@ -15,7 +15,7 @@ A maioria dos bancos de dados aparece sozinha. O OneUptime monta cada um a parti
 
 | Fonte | O que ela precisa de você | O que ela acrescenta à página do banco de dados |
 | --- | --- | --- |
-| **Traces de aplicações** | Aplicações instrumentadas (OpenTelemetry) | Consultas das aplicações: taxa de chamadas, erros, latência e os serviços que o chamam |
+| **Traços de aplicações** | Aplicações instrumentadas (OpenTelemetry) | Consultas das aplicações: taxa de chamadas, erros, latência e os serviços que o chamam |
 | **Kubernetes** | O [agente Kubernetes do OneUptime](/docs/telemetry/kubernetes-agent) | Onde ele é executado: pods, CPU e memória, e os logs dos pods |
 | **Docker / Podman** | O [agente Docker](/docs/telemetry/docker-host) ou o [agente Podman](/docs/telemetry/podman-host) | Onde ele é executado: os contêineres, a CPU e a memória deles, e os logs deles |
 | **Database Agent** (um OpenTelemetry Collector) | O [Database Agent](#o-database-agent) ou o seu próprio coletor | **Engine metrics**: conexões, throughput, taxa de acertos do cache, bloqueios, atraso de replicação, memória, na medida em que o mecanismo os tem (veja [O que é coletado](#o-que-é-coletado)), além de amostras de consultas opcionais, principais consultas e o arquivo de log do mecanismo |
@@ -418,7 +418,7 @@ A unidade pressupõe `/opt/oneuptime-database-agent` (o padrão do script de ins
 
 Execute `install.sh` de novo: ele reutiliza todos os valores do seu `.env` existente, substitui `docker-compose.yml`, `otel-collector-config.yaml` e a unidade do systemd pelas versões atuais e recria o contêiner do agente para que a nova configuração entre em vigor. Um arquivo que você tinha editado (`network_mode: host`, um receptor `filelog` e a montagem dele, métricas extras) é mantido ao lado do novo como `<file>.bak.<timestamp>`, e o script o lista no final para que você possa reaplicar a edição. Aplique qualquer edição em `.env` ou em `otel-collector-config.yaml` com `docker compose up -d --force-recreate`: o coletor só lê a configuração ao iniciar, e um simples `docker compose up -d` deixa o contêiner em execução como está quando só o arquivo de configuração mudou. O script registra o que instalou em `.agent-files.sha256`, então um arquivo que ninguém editou é substituído sem cópia, por mais que a nova versão tenha mudado; em um diretório sem esse registro (um que você montou à mão), todo arquivo que difere da nova versão é mantido, já que pode conter edições. Para remover o agente: `cd /opt/oneuptime-database-agent && docker compose down`, e depois exclua o usuário de monitoramento (e o login próprio do agente de IA, se você criou um).
 
-O agente informa como sua **Agent version** a versão do coletor que os arquivos dele fixam. Quando ela é mais antiga que a versão que esta versão do OneUptime fixa, um sinal de aviso aparece ao lado dela na **Visão geral** do banco de dados. Selecione-o para ver como atualizar: pelo script de instalação, com o Docker Compose ou, para um banco de dados no Kubernetes, com o Deployment do guia de configuração.
+O agente informa como sua **Versão do agente** a versão do coletor que os arquivos dele fixam. Quando ela é mais antiga que a versão que esta versão do OneUptime fixa, um sinal de aviso aparece ao lado dela na **Visão geral** do banco de dados. Selecione-o para ver como atualizar: pelo script de instalação, com o Docker Compose ou, para um banco de dados no Kubernetes, com o Deployment do guia de configuração.
 
 ## Agente de IA
 

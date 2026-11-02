@@ -106,6 +106,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -554,6 +555,21 @@ const DatabaseServerOverview: FunctionComponent<
     r.lastSeenAt,
   );
   const hasQueries: boolean = m.total > 0;
+  /*
+   * Where OneUptime found it and its engine metrics' status, in the
+   * reader's language: the product's own words ("Application traces",
+   * "Connected"), which the hero's chips and the Details rows used to draw
+   * in English on every page.
+   */
+  const discoverySourceLabel: string = getDatabaseServerDiscoverySourceLabel(
+    r.discoverySource,
+  );
+  const discoveredFrom: string =
+    translator.translateText(discoverySourceLabel) || discoverySourceLabel;
+  const engineStatusLabel: string =
+    getDatabaseEngineMetricsStatusLabel(engineStatus);
+  const engineMetricsWords: string =
+    translator.translateText(engineStatusLabel) || engineStatusLabel;
 
   const populate: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
@@ -566,14 +582,12 @@ const DatabaseServerOverview: FunctionComponent<
     },
     {
       icon: IconProp.Search,
-      label: getDatabaseServerDiscoverySourceLabel(r.discoverySource),
+      label: discoveredFrom,
     },
     {
       icon: IconProp.ChartBar,
       label: translator.translateTemplate("Engine metrics: {{status}}", {
-        status: translatableTerm(
-          getDatabaseEngineMetricsStatusLabel(engineStatus),
-        ),
+        status: translatableTerm(engineStatusLabel),
       }),
     },
   ];
@@ -674,12 +688,17 @@ const DatabaseServerOverview: FunctionComponent<
     </div>
   );
 
+  /*
+   * Title Case, as every details card's labels are (a host's, a cluster's,
+   * a service's): the database's and the queue's were the two Overviews
+   * that read "Discovered from" and "Engine metrics".
+   */
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Engine (db.system.name)", value: r.dbSystem },
     { label: "Version", value: r.dbVersion },
     {
-      label: "Discovered from",
-      value: getDatabaseServerDiscoverySourceLabel(r.discoverySource),
+      label: "Discovered From",
+      value: discoveredFrom,
       mono: false,
     },
     {
@@ -688,7 +707,7 @@ const DatabaseServerOverview: FunctionComponent<
       mono: true,
     },
     {
-      label: "Runs on",
+      label: "Runs On",
       value: platform ? runsOn : undefined,
       // Linked to the cluster or host it runs on, as in the Runtime card.
       element: (
@@ -697,12 +716,12 @@ const DatabaseServerOverview: FunctionComponent<
     },
     { label: "Workload", value: workload || undefined, mono: true },
     {
-      label: "Engine metrics",
-      value: getDatabaseEngineMetricsStatusLabel(engineStatus),
+      label: "Engine Metrics",
+      value: engineMetricsWords,
       mono: false,
     },
     {
-      label: "Agent version",
+      label: "Agent Version",
       value: r.agentVersion,
       /*
        * A sign beside an outdated Database agent opens how to upgrade it:
@@ -723,7 +742,7 @@ const DatabaseServerOverview: FunctionComponent<
       ),
     },
     {
-      label: "Engine metrics last received",
+      label: "Engine Metrics Last Received",
       value: r.collectorLastSeenAt
         ? OneUptimeDate.getDateAsLocalFormattedString(r.collectorLastSeenAt)
         : undefined,
@@ -786,6 +805,9 @@ const DatabaseServerOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        detailsDescription={translationKey(
+          "Its engine and endpoints, where OneUptime found it, and its engine metrics.",
+        )}
         recordId={modelId.toString()}
         labels={r.labels}
         settingsRoute={populate(PageMap.DATABASE_SERVER_VIEW_SETTINGS)}

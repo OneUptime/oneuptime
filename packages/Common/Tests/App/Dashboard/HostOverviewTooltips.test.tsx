@@ -7,9 +7,18 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import type { SpyInstance } from "jest-mock";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 import {
   explanationOnFocus,
   explanationOnHover,
@@ -404,11 +413,32 @@ describe("Host overview, loaded", () => {
     expect(infoLabels()).toContain("Utilization");
   });
 
-  test("the cached process count is captioned in the Hardware & Runtime card", async () => {
-    await renderLoaded();
+  /*
+   * In the one Host Details card (#5307's follow-up), which reads the host
+   * itself: drawn for a reader who may read the column, as every details
+   * card's rows are. It was the Hardware & Runtime card's.
+   */
+  test("the cached process count is captioned in the Host Details card", async () => {
+    const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([Permission.ProjectAdmin]);
 
-    expect(screen.getByText("Process Count (cached)")).toBeInTheDocument();
-    expect(screen.getByText(D.processCountCached)).toBeInTheDocument();
+    try {
+      await renderLoaded();
+
+      const details: HTMLElement = document.getElementById("host-details")!;
+      expect(details).not.toBeNull();
+      expect(
+        within(details).getByText("Process Count (cached)"),
+      ).toBeInTheDocument();
+      expect(
+        within(details).getByText(D.processCountCached),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Hardware & Runtime")).toBeNull();
+    } finally {
+      permissions.mockRestore();
+    }
   });
 
   test("the tiles show the numbers the texts describe", async () => {

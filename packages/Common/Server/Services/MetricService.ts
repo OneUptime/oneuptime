@@ -35,6 +35,7 @@ import {
 } from "../../Utils/Telemetry/EntityKey";
 import { keyForContainer } from "../Utils/Telemetry/TelemetryEntity";
 import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
+import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import { getEntityBudget } from "../Utils/Telemetry/EntityRegistry";
 import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -170,6 +171,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Metric, database: clickhouseDatabase });
+  }
+
+  // Its resource's retention for metrics, as on ingest.
+  protected override async getRetentionDateOnCreate(
+    metric: Metric,
+  ): Promise<Date | null> {
+    return await TelemetryRowRetention.getRetentionDate({
+      row: metric,
+      pillar: "metrics",
+    });
   }
 
   public override async aggregateBy(

@@ -61,7 +61,10 @@ import {
  *      a vCenter, a Proxmox cluster and an IoT fleet cut it to one line that
  *      never wrapped: half a sentence on a phone, and at 1280 the line
  *      claimed the identity's whole width and pushed Refresh under the
- *      name. ResourceOverview draws it the same way, in its title.
+ *      name. ResourceOverview draws it the same way, in its title. Since
+ *      #5307's follow-up every resource Overview's hero says it: a host's,
+ *      a Docker or Podman host's, a Kubernetes or Ceph cluster's and a
+ *      storage array's left it to a Description row at the page's foot.
  *   6. ResourceOverview lays its hero's row out with the same three class
  *      names: its own row wrapped its controls to the left, and its 24rem
  *      title basis kept them beside a long name at a laptop's width and
@@ -527,15 +530,29 @@ describe("no file that draws the refresh control keeps the old hero row", () => 
  */
 const DESCRIPTION_COMPONENT: string = "ResourceHeroDescription";
 
-// The heroes that show their resource's description.
+/*
+ * The heroes that show their resource's description: every resource
+ * Overview's. A Docker Swarm, an IoT fleet, a Proxmox cluster and a vCenter
+ * drew it in their hero from the start; a host, a Docker and a Podman host,
+ * a Kubernetes cluster, a Ceph cluster and a storage array said it as a
+ * Description row of the Details card at the page's foot, which said what
+ * the hero did not (#5307's follow-up: ResourceRecordDetails). A host's
+ * process, service and systemd unit pages have no description of their own.
+ */
 const DESCRIBED_HEROES: Array<string> = [
+  "Pages/Ceph/View/Index.tsx",
+  "Pages/Docker/View/Overview.tsx",
   "Pages/DockerSwarm/View/Index.tsx",
+  "Pages/Host/View/Overview.tsx",
   "Pages/IoT/View/Index.tsx",
+  "Pages/Kubernetes/View/Index.tsx",
+  "Pages/Podman/View/Overview.tsx",
   "Pages/Proxmox/View/Index.tsx",
+  "Pages/StorageArray/View/Index.tsx",
   "Pages/VMware/View/Index.tsx",
 ];
 
-// The line those four drew before: one line, cut short.
+// The line the first four drew before: one line, cut short.
 const OLD_DESCRIPTION_LINE: string = "mt-1 truncate text-sm text-gray-500";
 
 // The identity element of a hero's top row.
@@ -705,15 +722,17 @@ describe("rule 5: every hero draws its description one way", () => {
     // The Details card's own line says what its rows are, at every width.
     expect(component).not.toContain("description={ props.description ||");
     /*
-     * The resource attributes its telemetry reported, unless the page says
-     * its rows come from somewhere else (a cloud account's, a listed cloud
-     * resource's): never the hero's description.
+     * In the page's own words: every page says where its rows come from
+     * (detailsDescription is required), never the hero's description. It
+     * used to default to the resource attributes' line, which a database's
+     * and a queue's card said about rows that are not (#5307's follow-up).
      */
     expect(component).toContain(
-      '<Card title="Details" description={ props.detailsDescription || RESOURCE_OVERVIEW_DETAILS_DESCRIPTION }',
+      '<Card title="Details" description={props.detailsDescription}',
     );
+    expect(component).toContain("detailsDescription: string;");
     expect(component).toContain(
-      'export const RESOURCE_OVERVIEW_DETAILS_DESCRIPTION: string = "Metadata captured from OpenTelemetry resource attributes.";',
+      'export const RESOURCE_OVERVIEW_DETAILS_DESCRIPTION: string = translationKey( "Metadata captured from OpenTelemetry resource attributes.", );',
     );
   });
 });

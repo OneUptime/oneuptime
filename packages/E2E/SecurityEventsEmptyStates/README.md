@@ -131,8 +131,12 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
   nothing up; the Connected tab reads once, with the event's user, host and address and its
   time; `web-03` by the name it reports, its signals on the host and the hour around the
   event (ending by now), its open incidents and monitors; Kai Morgan by email; the staging
-  host as a possible match, with why; at 1280 and 390, light and dark, every record whole
-  inside the drawer, nothing cut off, every text AA-readable and no white surface in the dark.
+  host as a possible match, with why; under them, where what the event names appears in the
+  logs and traces of the same hour (`POST /security-case/connections/telemetry`, read once with
+  the same values and time, answered by `../SecurityOperations/Fixture/TelemetryMentionsFixture.js`):
+  Kai's email in 3 log lines and 5 spans, `203.0.113.30` in 60 messages; at 1280 and 390, light
+  and dark, every record and that section whole inside the drawer, nothing cut off, every text
+  AA-readable and no white surface in the dark.
 
 Every test pins the clock and puts up a network fence that aborts anything leaving the
 fixture server. `afterEach` fails a test on an uncaught page error, on any request the fence

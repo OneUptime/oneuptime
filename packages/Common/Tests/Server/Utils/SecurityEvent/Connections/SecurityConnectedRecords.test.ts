@@ -1,14 +1,19 @@
+import CloudResourceService from "../../../../../Server/Services/CloudResourceService";
 import DockerHostService from "../../../../../Server/Services/DockerHostService";
 import HostService from "../../../../../Server/Services/HostService";
 import KubernetesClusterService from "../../../../../Server/Services/KubernetesClusterService";
+import MonitorService from "../../../../../Server/Services/MonitorService";
 import NetworkDeviceService from "../../../../../Server/Services/NetworkDeviceService";
 import PodmanHostService from "../../../../../Server/Services/PodmanHostService";
+import ServerlessFunctionService from "../../../../../Server/Services/ServerlessFunctionService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import UserService from "../../../../../Server/Services/UserService";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityConnectedRecords, {
   LOG_RESOURCE_KINDS,
+  MAX_MONITORS_READ,
+  MAX_ROWS_PER_READ,
   SecurityConnectedRecord,
   SecurityConnectedRecordsResult,
   getLogResourceKind,
@@ -18,8 +23,14 @@ import {
   SECURITY_CONNECTION_LOOKUP_KINDS,
   wasLookedUpEverywhere,
 } from "../../../../../Utils/SecurityCase/SecurityConnectionMatch";
+import Hostname from "../../../../../Types/API/Hostname";
+import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Color from "../../../../../Types/Color";
 import Email from "../../../../../Types/Email";
+import IP from "../../../../../Types/IP/IP";
+import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../../../Types/Monitor/MonitorSteps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -54,6 +65,11 @@ const CLUSTER_ID: string = "55555555-5555-4555-8555-555555555555";
 const DEVICE_ID: string = "66666666-6666-4666-8666-666666666666";
 const SERVICE_ID: string = "77777777-7777-4777-8777-777777777777";
 const MEMBER_ID: string = "88888888-8888-4888-8888-888888888888";
+const MONITOR_ID: string = "99999999-9999-4999-8999-999999999991";
+const OTHER_MONITOR_ID: string = "99999999-9999-4999-8999-999999999992";
+const CLOUD_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+const OTHER_CLOUD_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
+const FUNCTION_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1";
 
 const CALLER: DatabaseCommonInteractionProps = {
   userId: USER_ID,
@@ -90,6 +106,44 @@ function host(
     name: hostIdentifier,
     ...extra,
   };
+}
+
+// A monitor checking these destinations, with its status as the read selects it.
+function monitor(
+  id: string,
+  name: string,
+  destinations: Array<URL | Hostname | IP>,
+  status: { name: string; color: string } = {
+    name: "Operational",
+    color: "#22c55e",
+  },
+): unknown {
+  const steps: MonitorSteps = new MonitorSteps();
+
+  steps.setMonitorStepsInstanceArray(
+    destinations.map((destination: URL | Hostname | IP): MonitorStep => {
+      return new MonitorStep().setMonitorDestination(destination);
+    }),
+  );
+
+  return {
+    id: new ObjectID(id),
+    _id: id,
+    name,
+    monitorSteps: steps,
+    currentMonitorStatus: {
+      name: status.name,
+      color: new Color(status.color),
+    },
+  };
+}
+
+function cloudResource(
+  id: string,
+  name: string,
+  extra: Record<string, unknown> = {},
+): unknown {
+  return { id: new ObjectID(id), _id: id, name, ...extra };
 }
 
 let spies: Record<string, jest.SpyInstance>;
@@ -130,6 +184,11 @@ beforeEach(() => {
     service: jest.spyOn(ServiceService, "findBy").mockResolvedValue([]),
     user: jest.spyOn(UserService, "findBy").mockResolvedValue([]),
     member: jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]),
+    monitor: jest.spyOn(MonitorService, "findBy").mockResolvedValue([]),
+    cloud: jest.spyOn(CloudResourceService, "findBy").mockResolvedValue([]),
+    serverless: jest
+      .spyOn(ServerlessFunctionService, "findBy")
+      .mockResolvedValue([]),
   };
 });
 
@@ -138,7 +197,7 @@ afterEach(() => {
 });
 
 describe("the kinds of record a log row names", () => {
-  test("a service's, a host's, a container host's, a cluster's and a device's logs; nothing else", () => {
+  test("a service's, a host's, a container host's, a cluster's, a device's, a cloud resource's and a function's logs; nothing else", () => {
     expect(getLogResourceKind(ServiceType.OpenTelemetry)).toBe(
       SecurityConnectionKind.Service,
     );
@@ -148,9 +207,16 @@ describe("the kinds of record a log row names", () => {
     expect(getLogResourceKind(ServiceType.KubernetesCluster)).toBe(
       SecurityConnectionKind.KubernetesCluster,
     );
+    expect(getLogResourceKind(ServiceType.CloudResource)).toBe(
+      SecurityConnectionKind.CloudResource,
+    );
+    expect(getLogResourceKind(ServiceType.ServerlessFunction)).toBe(
+      SecurityConnectionKind.ServerlessFunction,
+    );
+    // A monitor's logs are OneUptime's own checks of it, not its target's.
     expect(getLogResourceKind(ServiceType.Monitor)).toBeNull();
     expect(getLogResourceKind("Unknown")).toBeNull();
-    expect(LOG_RESOURCE_KINDS.length).toBe(6);
+    expect(LOG_RESOURCE_KINDS.length).toBe(8);
   });
 
   test("a read refused for who is asking is told from one that failed", () => {
@@ -657,6 +723,651 @@ describe("the logs an event was read from", () => {
     expect(boundValues(serviceRead.query["_id"])).toEqual([SERVICE_ID]);
     expect(serviceRead.props).toBe(CALLER);
   });
+
+  test("a cloud resource and a serverless function whose logs they were: exact, by id, with the caller's permissions", async () => {
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "checkout-alb", {
+        providerResourceId:
+          "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/checkout/1",
+      }),
+    ] as never);
+    spies["serverless"]!.mockResolvedValue([
+      {
+        id: new ObjectID(FUNCTION_ID),
+        name: "",
+        functionIdentifier: "checkout-handler",
+      },
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolve([], CALLER, [
+      { type: ServiceType.CloudResource, id: CLOUD_ID },
+      { type: ServiceType.ServerlessFunction, id: FUNCTION_ID },
+    ]);
+
+    expect(
+      result.records.map((item: SecurityConnectedRecord) => {
+        return [
+          item.kind,
+          item.id,
+          item.name,
+          item.identity,
+          item.certainty,
+          item.matches[0]?.reason,
+        ];
+      }),
+    ).toEqual([
+      [
+        SecurityConnectionKind.CloudResource,
+        CLOUD_ID,
+        "checkout-alb",
+        undefined,
+        SecurityConnectionCertainty.Exact,
+        SecurityConnectionReason.LogSource,
+      ],
+      [
+        SecurityConnectionKind.ServerlessFunction,
+        FUNCTION_ID,
+        // Unnamed: its faas.name stands for it.
+        "checkout-handler",
+        "checkout-handler",
+        SecurityConnectionCertainty.Exact,
+        SecurityConnectionReason.LogSource,
+      ],
+    ]);
+
+    for (const spy of [spies["cloud"]!, spies["serverless"]!]) {
+      const read: FindArgs = spy.mock.calls[0]![0] as FindArgs;
+
+      expect(read.query["projectId"]).toBe(PROJECT_ID);
+      expect(read.props).toBe(CALLER);
+    }
+
+    expect(
+      boundValues(
+        (spies["serverless"]!.mock.calls[0]![0] as FindArgs).query["_id"],
+      ),
+    ).toEqual([FUNCTION_ID]);
+  });
+});
+
+describe("the names of the records log lines and spans were sent under", () => {
+  test("each kind read once, by id, inside the project, with the caller's permissions; by kind and id", async () => {
+    spies["host"]!.mockResolvedValue([host(HOST_ID, "edge-1")] as never);
+    spies["service"]!.mockResolvedValue([
+      { id: new ObjectID(SERVICE_ID), name: "checkout-api" },
+    ] as never);
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "checkout-alb"),
+    ] as never);
+
+    const names: Map<string, { kind: SecurityConnectionKind; name: string }> =
+      await SecurityConnectedRecords.readNamesOfLogResources({
+        projectId: PROJECT_ID,
+        resources: [
+          { type: ServiceType.Host, id: HOST_ID },
+          { type: ServiceType.OpenTelemetry, id: SERVICE_ID },
+          // The same record twice is read once.
+          { type: ServiceType.OpenTelemetry, id: SERVICE_ID.toUpperCase() },
+          { type: ServiceType.CloudResource, id: CLOUD_ID },
+          // A kind no connection names, and an id that is none: never read.
+          { type: ServiceType.Monitor, id: OTHER_HOST_ID },
+          { type: ServiceType.Host, id: "edge-1" },
+        ],
+        props: CALLER,
+      });
+
+    expect(Array.from(names.entries())).toEqual(
+      expect.arrayContaining([
+        [
+          `${SecurityConnectionKind.Host}:${HOST_ID}`,
+          { kind: SecurityConnectionKind.Host, name: "edge-1" },
+        ],
+        [
+          `${SecurityConnectionKind.Service}:${SERVICE_ID}`,
+          { kind: SecurityConnectionKind.Service, name: "checkout-api" },
+        ],
+        [
+          `${SecurityConnectionKind.CloudResource}:${CLOUD_ID}`,
+          { kind: SecurityConnectionKind.CloudResource, name: "checkout-alb" },
+        ],
+      ]),
+    );
+    expect(names.size).toBe(3);
+
+    expect(spies["host"]).toHaveBeenCalledTimes(1);
+    expect(spies["service"]).toHaveBeenCalledTimes(1);
+    expect(spies["monitor"]).not.toHaveBeenCalled();
+
+    const serviceRead: FindArgs = spies["service"]!.mock
+      .calls[0]![0] as FindArgs;
+
+    expect(serviceRead.query["projectId"]).toBe(PROJECT_ID);
+    expect(boundValues(serviceRead.query["_id"])).toEqual([SERVICE_ID]);
+    expect(serviceRead.props).toBe(CALLER);
+  });
+
+  test("a kind the caller's role cannot read names none of its records, and is not an error", async () => {
+    spies["host"]!.mockRejectedValue(new NotAuthorizedException("no"));
+    spies["service"]!.mockRejectedValue(new Error("Postgres is down"));
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "checkout-alb"),
+    ] as never);
+
+    const names: Map<string, { kind: SecurityConnectionKind; name: string }> =
+      await SecurityConnectedRecords.readNamesOfLogResources({
+        projectId: PROJECT_ID,
+        resources: [
+          { type: ServiceType.Host, id: HOST_ID },
+          { type: ServiceType.OpenTelemetry, id: SERVICE_ID },
+          { type: ServiceType.CloudResource, id: CLOUD_ID },
+        ],
+        props: CALLER,
+      });
+
+    expect(Array.from(names.keys())).toEqual([
+      `${SecurityConnectionKind.CloudResource}:${CLOUD_ID}`,
+    ]);
+    // The refusal is no error; the failure is.
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(String((logger.error as jest.Mock).mock.calls[0]![0])).toContain(
+      "Service",
+    );
+  });
+
+  test("a record with no name is not named; nothing to read reads nothing", async () => {
+    spies["service"]!.mockResolvedValue([
+      { id: new ObjectID(SERVICE_ID), name: "" },
+    ] as never);
+
+    expect(
+      (
+        await SecurityConnectedRecords.readNamesOfLogResources({
+          projectId: PROJECT_ID,
+          resources: [{ type: ServiceType.OpenTelemetry, id: SERVICE_ID }],
+          props: CALLER,
+        })
+      ).size,
+    ).toBe(0);
+
+    spies["service"]!.mockClear();
+
+    expect(
+      (
+        await SecurityConnectedRecords.readNamesOfLogResources({
+          projectId: PROJECT_ID,
+          resources: [],
+          props: CALLER,
+        })
+      ).size,
+    ).toBe(0);
+    expect(spies["service"]).not.toHaveBeenCalled();
+  });
+
+  test(`at most ${MAX_ROWS_PER_READ} of one kind`, async () => {
+    const resources: Array<{ type: string; id: string }> = [];
+
+    for (let index: number = 0; index < MAX_ROWS_PER_READ + 5; index++) {
+      resources.push({
+        type: ServiceType.OpenTelemetry,
+        id: ObjectID.generate().toString(),
+      });
+    }
+
+    await SecurityConnectedRecords.readNamesOfLogResources({
+      projectId: PROJECT_ID,
+      resources,
+      props: CALLER,
+    });
+
+    const read: FindArgs = spies["service"]!.mock.calls[0]![0] as FindArgs;
+
+    expect(boundValues(read.query["_id"]).length).toBe(MAX_ROWS_PER_READ);
+    expect(read.limit).toBe(MAX_ROWS_PER_READ);
+  });
+});
+
+describe("monitors", () => {
+  test("a monitor checking the host a case names: exact, with its status, read with the caller's own permissions", async () => {
+    spies["monitor"]!.mockResolvedValue([
+      monitor(MONITOR_ID, "Checkout site", [
+        URL.fromString("https://shop.acme.example/health"),
+      ]),
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Domain, value: "SHOP.acme.example" },
+    ]);
+
+    expect(result.records).toEqual([
+      {
+        kind: SecurityConnectionKind.Monitor,
+        id: MONITOR_ID,
+        name: "Checkout site",
+        status: { name: "Operational", color: "#22c55e" },
+        certainty: SecurityConnectionCertainty.Exact,
+        matches: [
+          {
+            entity: {
+              type: SecurityEntityType.Domain,
+              value: "SHOP.acme.example",
+            },
+            certainty: SecurityConnectionCertainty.Exact,
+            reason: SecurityConnectionReason.MonitorTarget,
+            matchedValue: "shop.acme.example",
+          },
+        ],
+      },
+    ]);
+    expect(result.unmatched).toEqual([]);
+
+    const read: FindArgs = spies["monitor"]!.mock.calls[0]![0] as FindArgs;
+
+    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    // An archived monitor checks nothing.
+    expect(read.query["isArchived"]).toBe(false);
+    expect(read.props).toBe(CALLER);
+    expect(read.limit).toBe(MAX_MONITORS_READ);
+    // Narrowed in the database to the monitors whose steps mention the value.
+    expect(boundValues(read.query["monitorSteps"])).toEqual([
+      '%"shop.acme.example"%',
+      "%//shop.acme.example%",
+      "%@shop.acme.example%",
+      '%"shop"%',
+      "%//shop/%",
+      "%//shop:%",
+      '%//shop"%',
+    ]);
+    expect(read.select).toEqual(
+      expect.objectContaining({
+        monitorSteps: true,
+        currentMonitorStatus: { name: true, color: true },
+      }),
+    );
+  });
+
+  test("a URL on the host it checks, a public address and a private one: exact, exact, possible", async () => {
+    spies["monitor"]!.mockResolvedValue([
+      monitor(MONITOR_ID, "Checkout site", [
+        URL.fromString("https://shop.acme.example/"),
+      ]),
+      monitor(OTHER_MONITOR_ID, "Edge ping", [
+        new IP("203.0.113.7"),
+        new IP("10.0.3.17"),
+      ]),
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      {
+        type: SecurityEntityType.Url,
+        value: "https://shop.acme.example/admin/login",
+      },
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
+      { type: SecurityEntityType.IpAddress, value: "10.0.3.17" },
+    ]);
+    const checkout: SecurityConnectedRecord | undefined = record(
+      result,
+      SecurityConnectionKind.Monitor,
+      MONITOR_ID,
+    );
+    const edge: SecurityConnectedRecord | undefined = record(
+      result,
+      SecurityConnectionKind.Monitor,
+      OTHER_MONITOR_ID,
+    );
+
+    expect(checkout?.matches).toEqual([
+      {
+        entity: {
+          type: SecurityEntityType.Url,
+          value: "https://shop.acme.example/admin/login",
+        },
+        certainty: SecurityConnectionCertainty.Exact,
+        reason: SecurityConnectionReason.MonitorTarget,
+        matchedValue: "shop.acme.example",
+      },
+    ]);
+    expect(
+      edge?.matches.map((match: { reason: SecurityConnectionReason }) => {
+        return match.reason;
+      }),
+    ).toEqual([
+      SecurityConnectionReason.MonitorTarget,
+      SecurityConnectionReason.PrivateAddress,
+    ]);
+    expect(edge?.certainty).toBe(SecurityConnectionCertainty.Exact);
+    expect(result.unmatched).toEqual([]);
+  });
+
+  test("a mention that is not what it checks - a header, a criterion, a longer name - is dropped", async () => {
+    spies["monitor"]!.mockResolvedValue([
+      monitor(MONITOR_ID, "Checkout API", [
+        URL.fromString("https://api.acme.example/"),
+      ]),
+      monitor(OTHER_MONITOR_ID, "Web 10", [
+        new Hostname("web-10.acme.example"),
+      ]),
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Host, value: "web-1.acme.example" },
+    ]);
+
+    expect(result.records).toEqual([]);
+    expect(result.unmatched).toEqual([
+      { type: SecurityEntityType.Host, value: "web-1.acme.example" },
+    ]);
+  });
+
+  test("a short form, or a value not said to be a host: possible", async () => {
+    spies["monitor"]!.mockResolvedValue([
+      monitor(MONITOR_ID, "Web 1", [new Hostname("web-1.acme.internal")]),
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Host, value: "web-1" },
+    ]);
+
+    expect(
+      result.records.map((item: SecurityConnectedRecord) => {
+        return [
+          item.certainty,
+          item.matches[0]?.reason,
+          item.matches[0]?.matchedValue,
+        ];
+      }),
+    ).toEqual([
+      [
+        SecurityConnectionCertainty.Possible,
+        SecurityConnectionReason.ShortHostName,
+        "web-1.acme.internal",
+      ],
+    ]);
+  });
+
+  test("monitors the role cannot read are unreadable, and a value they could be is never called not in OneUptime", async () => {
+    spies["monitor"]!.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read monitors.",
+      ),
+    );
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Url, value: "https://shop.acme.example/" },
+      { type: SecurityEntityType.Host, value: "db-9" },
+    ]);
+
+    expect(result.unreadableKinds).toEqual([SecurityConnectionKind.Monitor]);
+    expect(result.unmatched).toEqual([]);
+  });
+
+  test("nothing a monitor could check reads no monitor", async () => {
+    await resolve([
+      { type: SecurityEntityType.User, value: "kim@acme.example" },
+      {
+        type: SecurityEntityType.Other,
+        value: "arn:aws:s3:::acme-prod-data",
+      },
+    ]);
+
+    expect(spies["monitor"]).not.toHaveBeenCalled();
+  });
+});
+
+describe("cloud resources", () => {
+  test("by its own ID: exact, whatever the value was typed as, read with the caller's own permissions", async () => {
+    const arn: string = "arn:aws:s3:::acme-prod-data";
+
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      return call.query["providerResourceId"] &&
+        boundValues(call.query["providerResourceId"]).includes(arn)
+        ? [
+            cloudResource(CLOUD_ID, "acme-prod-data", {
+              providerResourceId: arn,
+            }),
+          ]
+        : [];
+    });
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Other, value: "ARN:aws:s3:::acme-prod-data" },
+    ]);
+
+    expect(result.records).toEqual([
+      {
+        kind: SecurityConnectionKind.CloudResource,
+        id: CLOUD_ID,
+        name: "acme-prod-data",
+        certainty: SecurityConnectionCertainty.Exact,
+        matches: [
+          {
+            entity: {
+              type: SecurityEntityType.Other,
+              value: "ARN:aws:s3:::acme-prod-data",
+            },
+            certainty: SecurityConnectionCertainty.Exact,
+            reason: SecurityConnectionReason.ResourceId,
+            matchedValue: arn,
+          },
+        ],
+      },
+    ]);
+
+    const read: FindArgs = spies["cloud"]!.mock.calls.map(
+      (call: Array<unknown>): FindArgs => {
+        return call[0] as FindArgs;
+      },
+    ).find((args: FindArgs): boolean => {
+      return Boolean(args.query["providerResourceId"]);
+    })!;
+
+    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    expect(read.props).toBe(CALLER);
+  });
+
+  test("by a name it answers on: exact when the event says it is a host, possible when it does not, never by a short form", async () => {
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      return call.query["cloudEndpoints"]
+        ? [
+            cloudResource(CLOUD_ID, "checkout-alb", {
+              cloudEndpoints: [
+                "checkout-1234.us-east-1.elb.amazonaws.com",
+                "203.0.113.50",
+              ],
+            }),
+          ]
+        : [];
+    });
+
+    const typed: SecurityConnectedRecordsResult = await resolve([
+      {
+        type: SecurityEntityType.Domain,
+        value: "checkout-1234.us-east-1.elb.amazonaws.com",
+      },
+    ]);
+
+    expect(
+      typed.records.map((item: SecurityConnectedRecord) => {
+        return [item.kind, item.certainty, item.matches[0]?.reason];
+      }),
+    ).toEqual([
+      [
+        SecurityConnectionKind.CloudResource,
+        SecurityConnectionCertainty.Exact,
+        SecurityConnectionReason.CloudEndpoint,
+      ],
+    ]);
+
+    const untyped: SecurityConnectedRecordsResult = await resolve([
+      {
+        type: SecurityEntityType.Other,
+        value: "checkout-1234.us-east-1.elb.amazonaws.com",
+      },
+    ]);
+
+    expect(untyped.records[0]?.certainty).toBe(
+      SecurityConnectionCertainty.Possible,
+    );
+
+    // "checkout-1234" is the endpoint's first label, and names nothing on its own.
+    const short: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Host, value: "checkout-1234" },
+    ]);
+
+    expect(
+      short.records.filter((item: SecurityConnectedRecord): boolean => {
+        return item.kind === SecurityConnectionKind.CloudResource;
+      }),
+    ).toEqual([]);
+  });
+
+  test("by an address it answers on: counted among the cloud resources alone, so the host it runs stays exact too", async () => {
+    spies["host"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      if (call.query["hostIpAddresses"]) {
+        return [host(HOST_ID, "web-1", { hostIpAddresses: "203.0.113.50" })];
+      }
+
+      return call.query["_id"] ? [host(HOST_ID, "web-1")] : [];
+    });
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      if (call.query["_id"]) {
+        return [cloudResource(CLOUD_ID, "i-0abc (web-1)")];
+      }
+
+      return call.query["cloudEndpoints"]
+        ? [
+            cloudResource(CLOUD_ID, "i-0abc (web-1)", {
+              cloudEndpoints: ["203.0.113.50"],
+            }),
+            // Mentions it inside a longer address: not one of its own.
+            cloudResource(OTHER_CLOUD_ID, "other", {
+              cloudEndpoints: ["203.0.113.501.example"],
+            }),
+          ]
+        : [];
+    });
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.50" },
+    ]);
+
+    expect(
+      result.records.map((item: SecurityConnectedRecord) => {
+        return [item.kind, item.id, item.certainty, item.matches[0]?.reason];
+      }),
+    ).toEqual([
+      [
+        SecurityConnectionKind.Host,
+        HOST_ID,
+        SecurityConnectionCertainty.Exact,
+        SecurityConnectionReason.Address,
+      ],
+      [
+        SecurityConnectionKind.CloudResource,
+        CLOUD_ID,
+        SecurityConnectionCertainty.Exact,
+        SecurityConnectionReason.Address,
+      ],
+    ]);
+
+    const holders: FindArgs = spies["cloud"]!.mock.calls.map(
+      (call: Array<unknown>): FindArgs => {
+        return call[0] as FindArgs;
+      },
+    ).find((args: FindArgs): boolean => {
+      return (
+        Boolean(args.query["cloudEndpoints"]) && Boolean(args.props.isRoot)
+      );
+    })!;
+    const visible: FindArgs = spies["cloud"]!.mock.calls.map(
+      (call: Array<unknown>): FindArgs => {
+        return call[0] as FindArgs;
+      },
+    ).find((args: FindArgs): boolean => {
+      return Boolean(args.query["_id"]);
+    })!;
+
+    // Counted as OneUptime, listed only as the caller may read them.
+    expect(holders.props).toEqual({ isRoot: true });
+    expect(visible.props).toBe(CALLER);
+    expect(boundValues(visible.query["_id"])).toEqual([CLOUD_ID]);
+  });
+
+  test("two cloud resources answering on one address: each only possible", async () => {
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      if (call.query["_id"]) {
+        return [
+          cloudResource(CLOUD_ID, "a"),
+          cloudResource(OTHER_CLOUD_ID, "b"),
+        ];
+      }
+
+      return call.query["cloudEndpoints"]
+        ? [
+            cloudResource(CLOUD_ID, "a", { cloudEndpoints: ["203.0.113.60"] }),
+            cloudResource(OTHER_CLOUD_ID, "b", {
+              cloudEndpoints: ["203.0.113.60"],
+            }),
+          ]
+        : [];
+    });
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.60" },
+    ]);
+
+    expect(
+      result.records.map((item: SecurityConnectedRecord) => {
+        return [item.id, item.certainty, item.matches[0]?.reason];
+      }),
+    ).toEqual([
+      [
+        CLOUD_ID,
+        SecurityConnectionCertainty.Possible,
+        SecurityConnectionReason.SharedAddress,
+      ],
+      [
+        OTHER_CLOUD_ID,
+        SecurityConnectionCertainty.Possible,
+        SecurityConnectionReason.SharedAddress,
+      ],
+    ]);
+  });
+
+  test("a cloud resource the caller may not read is not listed, and the kind is said to be unreadable", async () => {
+    spies["cloud"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+
+      if (call.query["_id"]) {
+        throw new NotAuthorizedException(
+          "You do not have permission to read cloud resources.",
+        );
+      }
+
+      return call.query["cloudEndpoints"]
+        ? [cloudResource(CLOUD_ID, "a", { cloudEndpoints: ["203.0.113.60"] })]
+        : [];
+    });
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.60" },
+    ]);
+
+    expect(result.records).toEqual([]);
+    expect(result.unreadableKinds).toEqual([
+      SecurityConnectionKind.CloudResource,
+    ]);
+    expect(result.unmatched).toEqual([]);
+  });
 });
 
 describe("one record, every way it is named", () => {
@@ -836,7 +1547,13 @@ describe("what the caller's role keeps from them, and what fails", () => {
   test("nothing to look up reads nothing", async () => {
     const result: SecurityConnectedRecordsResult = await resolve([
       { type: SecurityEntityType.User, value: "root" },
-      { type: SecurityEntityType.Url, value: "https://evil.example" },
+      {
+        type: SecurityEntityType.FileHash,
+        value: "44d88612fea8a8f36de82e1278abb02f",
+      },
+      { type: SecurityEntityType.Process, value: "powershell.exe -enc" },
+      // A URL on a local address names no machine.
+      { type: SecurityEntityType.Url, value: "http://127.0.0.1/admin" },
     ]);
 
     expect(result).toEqual({

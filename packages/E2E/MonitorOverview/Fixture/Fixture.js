@@ -82,6 +82,14 @@
  *   ?lang=     de | fa: the page in German or Persian, from the Dashboard's
  *              own locale files, its <html lang> and dir set by the
  *              production helper. English without it.
+ *   ?security= what Security Events says about the hosts the subject
+ *              monitor checks, on its Security card (POST /security-case/
+ *              resource-security): news (an open case, a week of events
+ *              and findings, some risk) or quiet (nothing named them this
+ *              week). Left out, the project uses no Security Events and the
+ *              card draws nothing. Only a monitor that checks a host (API,
+ *              Website, SSL Certificate) asks, and only a role that may read
+ *              security events.
  *   ?criteria= logs | several: a Logs monitor, "Checkout logs", whose
  *              Criteria page (/monitors/<TELEMETRY_MONITOR_ID>/criteria) is
  *              the production one rather than the stub every other monitor
@@ -225,6 +233,7 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import MonitorUptimeSummaryUtil from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
+import { getMonitorTargetHosts } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
 
 /*
@@ -301,6 +310,10 @@ const criteriaMode = ["logs", "several"].includes(params.get("criteria"))
 const previewMode = ["empty", "fail"].includes(params.get("preview"))
   ? params.get("preview")
   : "counts";
+// What Security Events says about the hosts the subject monitor checks.
+const securityMode = ["news", "quiet"].includes(params.get("security"))
+  ? params.get("security")
+  : "none";
 
 /*
  * The components the External Status Page monitor watches with
@@ -414,6 +427,7 @@ const fixture = {
     probes: probesMode,
     cloud: cloudMode,
     maintenance: maintenanceMode,
+    security: securityMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -3105,6 +3119,76 @@ AnalyticsModelAPI.aggregate = async (options) => {
 let hasFailedUptimeSummary = false;
 let hasFailedPreview = false;
 
+/*
+ * POST /security-case/resource-security for a monitor, as the server answers
+ * it (Server/Utils/SecurityEvent/Connections/ResourceSecurity): what named
+ * the hosts it checks this week, read off its own steps with the same
+ * reader the server uses. The case, the counts and the risk are made up,
+ * for the subject monitor; any other monitor is quiet.
+ */
+function monitorSecurity(body) {
+  const monitor = table(Monitor).find((item) => {
+    return String(item._id) === String(body.id);
+  });
+
+  if (body.kind !== "Monitor" || !monitor) {
+    throw fail(404, "This record could not be found.");
+  }
+
+  const targets = getMonitorTargetHosts(monitor.monitorSteps);
+  const isSubject =
+    String(body.id) === ID.monitor(MONITOR_DEFINITIONS[subjectType].number);
+  const host = targets[0] || "";
+  const quiet = {
+    eventCount: 0,
+    findingCount: 0,
+    maxSeverityId: 0,
+    lastSeen: null,
+    openCases: { count: 0, items: [] },
+    risk: null,
+  };
+  const news = {
+    eventCount: 23,
+    findingCount: 2,
+    maxSeverityId: 4,
+    lastSeen: ago(3 * HOUR).toISOString(),
+    openCases: {
+      count: 2,
+      items: [
+        {
+          id: uuid("25000000", 151),
+          number: "SEC-151",
+          title: `Credential stuffing against ${host}`,
+          priorityName: "High",
+          priorityColor: "#f97316",
+          statusName: "Investigating",
+          statusColor: "#3b82f6",
+          lastDetectedAt: ago(3 * HOUR).toISOString(),
+        },
+      ],
+    },
+    risk: { score: 41, entityValue: host, entityType: "Host" },
+  };
+  const figures =
+    securityMode === "news" && isSubject
+      ? news
+      : securityMode === "none"
+        ? { ...quiet, openCases: null }
+        : quiet;
+
+  return ok({
+    kind: "Monitor",
+    id: String(body.id),
+    name: monitor.name,
+    isInUse: securityMode !== "none",
+    windowDays: 7,
+    values: targets,
+    isSearchedByLogs: false,
+    entity: host ? { type: "Host", value: host } : null,
+    ...figures,
+  });
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -3276,6 +3360,14 @@ async function handleApi(method, options) {
       startTime: range.startTime.toISOString(),
       endTime: range.endTime.toISOString(),
     });
+  }
+
+  // What Security Events says about the hosts a monitor checks (?security=).
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/security-case/resource-security")
+  ) {
+    return monitorSecurity(body);
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

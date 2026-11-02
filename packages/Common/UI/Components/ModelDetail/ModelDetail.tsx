@@ -40,6 +40,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   selectMoreFields?: Select<TBaseModel>;
   // Forwarded to Detail. Leave unset for the default layout.
   style?: DetailStyle | undefined;
+  /*
+   * Forwarded to Detail: the one line it says when none of the fields has
+   * anything to show.
+   */
+  emptyMessage?: string | undefined;
 }
 
 const ModelDetail: <TBaseModel extends BaseModel>(
@@ -392,6 +397,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       fields={getDetailFields()}
       showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
       style={props.style}
+      emptyMessage={props.emptyMessage}
     />
   );
 };

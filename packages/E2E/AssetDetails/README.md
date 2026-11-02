@@ -4,7 +4,8 @@ An offline harness for where each asset detail came from, and when (issue #5185)
 **Asset Details** card of a network device's or a host's item
 (`Components/Inventory/InventoryAssetDetailsCard`, `AssetFactValue`, `AssetFactSourceText`), the
 **Inventory** card of a network device's Overview (`Components/NetworkDevice/DeviceInventoryCard`),
-and the device's **Overview** page itself (`Pages/NetworkDevice/View/Index`).
+the device's **Overview** page itself (`Pages/NetworkDevice/View/Index`), and an Inventory item's own
+**Overview** page (`Pages/Inventory/View/Index`) with its Security card.
 
 Run from `packages/E2E`:
 
@@ -24,6 +25,7 @@ its own.
 
 Every refresh asked of the server is recorded on `window.__assetDetailsFixture.state.refreshAsks`,
 and `itemReloads` counts how often the item page read its item again after a refresh landed.
+`securityAsks` holds what each Security card asked Security Events about (`{ kind, id }`).
 
 ## What the cards say
 
@@ -51,7 +53,10 @@ Picked with query parameters:
 
 - `page=item` (default): Inventory's Asset Details card. `page=device`: the device Overview's
   Inventory card. `page=overview`: the device's Overview page, opened at
-  `/network-devices/<device id>`.
+  `/network-devices/<device id>`. `page=inventory`: the Inventory item's own Overview page, opened
+  at `/inventory/<item id>` - its header card (with `scenario=host`, a link to the host's page),
+  Asset Details, Security card and attributes, all real; the project defined no custom field, so
+  that card draws nothing.
 - `scenario=pinged` (default): a switch OneUptime only pings. A discovery scan read its SNMP system
   group and reverse-DNS name two hours ago, and a router's ARP table its MAC three hours ago.
 - `scenario=refound`: the same switch, found at its address again ten minutes ago without
@@ -86,6 +91,13 @@ Picked with query parameters:
   not edit them, who is offered no **Refresh**.
 - `frame=<pixels>`: the card's width. `lang=ja|de|fa` (Persian is drawn right to left, as the
   Dashboard draws it), `theme=dark`.
+- `security=news|quiet`: what Security Events found about the device this week, on its
+  Overview's Security card (`POST /security-case/resource-security`, named by the device's
+  name): `news` (an open case naming it, 46 events, a finding at Medium and a risk of 27) or
+  `quiet` (nothing named it). Left out, the project uses no Security Events and the card draws
+  nothing. With `page=inventory`, the same for the Inventory item, as the server tells a machine's
+  item (named by its display name): `news` is an open case naming it (SEC-141), 18 events, two
+  findings at High and a risk of 41.
 
 The page is drawn in Inter, as production draws it (`server.js` serves the font and the Dashboard's
 universal font rule from `index.ejs`), so the widths the specs measure are the real ones.

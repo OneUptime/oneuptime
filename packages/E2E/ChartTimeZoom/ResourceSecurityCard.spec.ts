@@ -9,13 +9,14 @@ import fs from "fs/promises";
 import path from "path";
 
 /*
- * The way back from Security Events: a host's and a Kubernetes cluster's
- * page carries a Security card - the open security cases naming it, how
- * many security events and findings named it this week and the worst of
- * them, and its risk - each opening Security Events on it. A project that
- * uses no Security Events is told nothing about it: no card at all.
+ * The way back from Security Events: a host's, a Kubernetes cluster's, a
+ * Docker host's and a Podman host's page carries a Security card - the open
+ * security cases naming it, how many security events and findings named it
+ * this week and the worst of them, and its risk - each opening Security
+ * Events on it. A project that uses no Security Events is told nothing
+ * about it: no card at all.
  *
- * On the zoom fixture's host and cluster (Fixture/Fixture.js, ?security=),
+ * On the zoom fixture's hosts and cluster (Fixture/Fixture.js, ?security=),
  * with the clock pinned and the network fenced; afterEach fails a test on
  * an uncaught page error, an aborted request or anything the fixture does
  * not model.
@@ -24,10 +25,14 @@ import path from "path";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const HOST_ID: string = "62000000-0000-4000-8000-000000000001";
 const CLUSTER_ID: string = "60000000-0000-4000-8000-000000000001";
+const DOCKER_HOST_ID: string = "67000000-0000-4000-8000-000000000001";
+const PODMAN_HOST_ID: string = "68000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-21T12:00:00.000Z");
 const DASHBOARD: string = `/dashboard/${PROJECT_ID}`;
 const HOST_PATH: string = `${DASHBOARD}/host/${HOST_ID}`;
 const CLUSTER_PATH: string = `${DASHBOARD}/kubernetes/${CLUSTER_ID}`;
+const DOCKER_HOST_PATH: string = `${DASHBOARD}/docker/${DOCKER_HOST_ID}`;
+const PODMAN_HOST_PATH: string = `${DASHBOARD}/podman/${PODMAN_HOST_ID}`;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -374,5 +379,194 @@ test.describe("a cluster's Security card", () => {
     await open(page, CLUSTER_PATH);
     await securityRead(page);
     await expect(card(page)).toHaveCount(0);
+  });
+});
+
+/*
+ * A Docker host's and a Podman host's Overview carry the card too, under
+ * their Activity cards: named by the name the host reports and an address
+ * only it holds, as a host is.
+ */
+test.describe("a Docker host's Security card", () => {
+  test("its open case, its week of events and findings, and its risk, each opening Security Events on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOCKER_HOST_PATH, { security: "news" });
+    await expect(card(page)).toBeVisible({ timeout: 30000 });
+    await expect(card(page)).toHaveAttribute("data-state", "news");
+    await expect(card(page)).toContainText(
+      "What Security Events found about it in the last 7 days.",
+    );
+
+    const events: Locator = card(page).getByTestId("resource-security-open");
+    await expect(events).toHaveText("19");
+    const search: URL = new URL(
+      (await events.getAttribute("href"))!,
+      "http://127.0.0.1:4233",
+    );
+    expect(search.pathname).toBe(`${DASHBOARD}/security-events`);
+    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
+      "observable:(docker-edge-01 OR 203.0.113.61)",
+    );
+    await expect(card(page)).toContainText("38");
+
+    const cases: Locator = card(page).getByTestId("resource-security-cases");
+    await expect(cases.getByTestId("resource-security-case")).toHaveCount(1);
+    expect(
+      await cases
+        .getByRole("link", {
+          name: /Container escape attempt on docker-edge-01/,
+        })
+        .getAttribute("href"),
+    ).toBe(
+      `${DASHBOARD}/security-events/cases/20000000-0000-4000-8000-000000000144`,
+    );
+    const entity: URL = new URL(
+      (await card(page)
+        .getByRole("link", { name: "Open in Security Events" })
+        .getAttribute("href"))!,
+      "http://127.0.0.1:4233",
+    );
+    expect(entity.pathname).toBe(
+      `${DASHBOARD}/security-events/entity-risk/entity`,
+    );
+    expect(entity.searchParams.get("value")).toBe("docker-edge-01");
+
+    // Asked as a Docker host, by its own id.
+    const asked: Array<{ body?: { kind?: string; id?: string } }> =
+      await page.evaluate(() => {
+        const fixture: {
+          requests?: Array<{
+            kind: string;
+            url?: string;
+            body?: { kind?: string; id?: string };
+          }>;
+        } =
+          (
+            window as unknown as {
+              __chartTimeZoomFixture?: {
+                requests?: Array<{
+                  kind: string;
+                  url?: string;
+                  body?: { kind?: string; id?: string };
+                }>;
+              };
+            }
+          ).__chartTimeZoomFixture || {};
+        return JSON.parse(
+          JSON.stringify(
+            (fixture.requests || []).filter(
+              (request: { kind: string; url?: string }) => {
+                return (
+                  request.kind === "api" &&
+                  String(request.url || "").endsWith(
+                    "/security-case/resource-security",
+                  )
+                );
+              },
+            ),
+          ),
+        );
+      });
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked[0]!.body).toMatchObject({
+      kind: "DockerHost",
+      id: DOCKER_HOST_ID,
+    });
+  });
+
+  test("a project that uses no Security Events is told nothing: no card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOCKER_HOST_PATH);
+    await securityRead(page);
+    await expect(
+      page.getByRole("heading", { name: "Docker Host - docker-edge-01" }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(card(page)).toHaveCount(0);
+  });
+
+  for (const [width, theme] of [
+    [1280, undefined],
+    [390, "dark"],
+  ] as Array<[number, "dark" | undefined]>) {
+    test(`at ${width}${theme ? `, ${theme}` : ""}, the card reads whole and nothing scrolls sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, DOCKER_HOST_PATH, {
+        width,
+        security: "news",
+        ...(theme ? { theme } : {}),
+      });
+      await expect(
+        card(page).getByTestId("resource-security-case").first(),
+      ).toBeVisible({ timeout: 30000 });
+
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      expect(await partsOutsideTheCard(page)).toEqual([]);
+      const figures: { width: number; rows: number } = await figureRows(page);
+      const rowsByWidth: number =
+        figures.width >= 36 * 16 ? 1 : figures.width >= 16 * 16 ? 2 : 4;
+      expect(figures.rows, `${Math.round(figures.width)}px`).toBe(rowsByWidth);
+      expect(figures.rows).toBe(width === 390 ? 2 : 1);
+      await screenshot(
+        page,
+        `docker-host-security-card-${width}${theme ? `-${theme}` : ""}`,
+      );
+    });
+  }
+});
+
+test.describe("a Podman host's Security card", () => {
+  test("a week with no open case and no risk: its events and findings, and the two tiles that say none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PODMAN_HOST_PATH, { security: "news" });
+    await expect(card(page)).toBeVisible({ timeout: 30000 });
+    await expect(card(page)).toHaveAttribute("data-state", "news");
+    await expect(card(page).getByTestId("resource-security-open")).toHaveText(
+      "7",
+    );
+    const figures: Locator = card(page).getByRole("group", {
+      name: "Security",
+    });
+    await expect(figures).toContainText("Open Cases");
+    await expect(figures).toContainText("Risk");
+    await expect(card(page).getByTestId("resource-security-cases")).toHaveCount(
+      0,
+    );
+    const search: URL = new URL(
+      (await card(page)
+        .getByTestId("resource-security-open")
+        .getAttribute("href"))!,
+      "http://127.0.0.1:4233",
+    );
+    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
+      "observable:podman-build-02",
+    );
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await partsOutsideTheCard(page)).toEqual([]);
+    await screenshot(page, "podman-host-security-card-1280");
+  });
+
+  test("a host nothing named this week says so in one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PODMAN_HOST_PATH, { security: "quiet" });
+    await expect(card(page)).toBeVisible({ timeout: 30000 });
+    await expect(card(page)).toHaveAttribute("data-state", "quiet");
+    await expect(card(page)).toContainText(
+      "No security event named it in the last 7 days.",
+    );
   });
 });

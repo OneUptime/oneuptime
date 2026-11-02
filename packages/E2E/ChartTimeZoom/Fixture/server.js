@@ -47,6 +47,29 @@ const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
  */
 const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};`;
 /*
+ * Inter, as production serves it: index.ejs declares the font and gives
+ * EVERY element Inter with a universal `*` rule. Without it the page falls
+ * back to the machine's font (DejaVu on a CI runner), and the screenshots do
+ * not show the product's.
+ */
+const inter = path.join(
+  repository,
+  "packages/Common/Server/Static/Vendor/fonts/InterVariable.woff2",
+);
+const dashboardIndex = fs.readFileSync(
+  path.join(repository, "packages/App/FeatureSet/Dashboard/views/index.ejs"),
+  "utf8",
+);
+const universalRule = dashboardIndex.match(/^\s*\*\s*\{[^}]*\}/m);
+
+if (!universalRule) {
+  throw new Error(
+    "Dashboard index.ejs no longer has its universal `*` font rule",
+  );
+}
+
+const fontRules = `@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("/fonts/InterVariable.woff2") format("woff2");}${universalRule[0]}`;
+/*
  * HOST is a made-up domain. Nothing is ever fetched from it: the data
  * boundary is stubbed in the page and the spec aborts any request that
  * leaves this server.
@@ -56,7 +79,7 @@ const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFam
  * version is ever outdated. `?appVersion=14.0.14` sets it for one page load
  * (AgentVersionSign.spec.ts).
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chart time zoom preview</title><script>window.process={env:{HOST:"oneuptime.acme-platform.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}var appVersion=new URLSearchParams(location.search).get("appVersion");if(appVersion){window.process.env.APP_VERSION=appVersion}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chart time zoom preview</title><script>window.process={env:{HOST:"oneuptime.acme-platform.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}var appVersion=new URLSearchParams(location.search).get("appVersion");if(appVersion){window.process.env.APP_VERSION=appVersion}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>${fontRules}body{margin:0;background:#f9fafb}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -87,6 +110,11 @@ async function main() {
     if (url.pathname === "/theme.css") {
       response.setHeader("Content-Type", "text/css");
       fs.createReadStream(theme).pipe(response);
+      return;
+    }
+    if (url.pathname === "/fonts/InterVariable.woff2") {
+      response.setHeader("Content-Type", "font/woff2");
+      fs.createReadStream(inter).pipe(response);
       return;
     }
     if (url.pathname.startsWith("/dist/")) {

@@ -43,6 +43,8 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import AppLink from "../../../Components/AppLink/AppLink";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import CloudResourceInventoryCards from "../../../Components/Cloud/CloudResourceInventoryCards";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 
 /*
  * The Overview of a Cloud Resource - one a cloud connection lists from its
@@ -216,10 +218,16 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         : undefined,
       mono: false,
     },
+    /*
+     * The category in the reader's language: one of the product's own
+     * words ("Databases and caches"), which read English on every page.
+     */
     {
       label: "Category",
       value: descriptor
-        ? CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category]
+        ? translator.translateText(
+            CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category],
+          ) || CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category]
         : undefined,
       mono: false,
     },
@@ -307,6 +315,14 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           resourceQueryKey="cloudResources"
           incidentsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS)}
           alertsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_ALERTS)}
+        />
+        {/*
+         * What Security Events found about it this week, for whoever may
+         * read it (Components/SecurityConnections).
+         */}
+        <ResourceSecurityCard
+          kind={SecurityConnectionKind.CloudResource}
+          modelId={modelId}
         />
       </div>
 

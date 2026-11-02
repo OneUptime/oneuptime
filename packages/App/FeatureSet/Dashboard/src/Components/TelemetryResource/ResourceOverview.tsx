@@ -6,7 +6,6 @@ import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import DetailRecordLine from "Common/UI/Components/Detail/DetailRecordLine";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -25,6 +24,7 @@ import {
 } from "./TileTitleWords";
 import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
 import ResourceHeroDescription from "./ResourceHeroDescription";
+import ResourceLabelsCard from "./ResourceLabelsCard";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_IDENTITY_CLASS_NAME,
@@ -139,14 +139,18 @@ export interface ResourceOverviewProps {
    */
   detailRows: Array<ResourceOverviewDetailRow>;
   /*
-   * What the Details card's rows are, under its title. Left out, they are
-   * the resource attributes its telemetry reported
-   * (RESOURCE_OVERVIEW_DETAILS_DESCRIPTION); a page whose rows come from
-   * somewhere else - a cloud account, a resource its cloud's inventory
-   * lists - says where. Never the resource's own description: that is in
-   * the hero, under its name.
+   * What the Details card's rows are, under its title, in the page's own
+   * words: every page says where its rows come from. A service's, a
+   * serverless function's and a cloud environment's are the resource
+   * attributes its telemetry reported (RESOURCE_OVERVIEW_DETAILS_DESCRIPTION);
+   * a database's and a queue's come from its spans, the broker and its
+   * agent, a RUM application's from its SDK and its recordings, a cloud
+   * account's and a cloud resource's from their cloud. It used to default to
+   * the resource attributes' line, which a database's and a queue's card
+   * then said about rows that are not (#5298's UI review). Never the
+   * resource's own description: that is in the hero, under its name.
    */
-  detailsDescription?: string | undefined;
+  detailsDescription: string;
   /*
    * The resource's own record id: the small ID line every details card ends
    * with (DetailRecordLine - "ID", its first characters, a copy button), in
@@ -166,9 +170,14 @@ export interface ResourceOverviewProps {
   settingsRoute?: Route | undefined;
 }
 
-// What a Details card's rows are when its page says nothing else (English).
-export const RESOURCE_OVERVIEW_DETAILS_DESCRIPTION: string =
-  "Metadata captured from OpenTelemetry resource attributes.";
+/*
+ * What a Details card's rows are when they are the resource attributes its
+ * telemetry reported (English): a service's, a serverless function's, a
+ * cloud environment's.
+ */
+export const RESOURCE_OVERVIEW_DETAILS_DESCRIPTION: string = translationKey(
+  "Metadata captured from OpenTelemetry resource attributes.",
+);
 
 const tileColorClasses: Record<
   ResourceOverviewTileColor,
@@ -579,9 +588,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
       {/* Details */}
       <Card
         title="Details"
-        description={
-          props.detailsDescription || RESOURCE_OVERVIEW_DETAILS_DESCRIPTION
-        }
+        description={props.detailsDescription}
         buttons={
           props.settingsRoute
             ? [
@@ -664,20 +671,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
        * them here repeated them, as the Explore telemetry card repeated the
        * side menu (#4980).
        */}
-      {props.labels && props.labels.length > 0 ? (
-        <div data-testid="resource-overview-labels" className="mt-6 sm:hidden">
-          <Card
-            title="Labels"
-            description="Labels attached to this resource (manual or via label rules)."
-          >
-            <div className="-mt-2">
-              <LabelsElement labels={props.labels} />
-            </div>
-          </Card>
-        </div>
-      ) : (
-        <></>
-      )}
+      <ResourceLabelsCard labels={props.labels} />
     </Fragment>
   );
 };

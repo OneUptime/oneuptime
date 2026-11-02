@@ -1,6 +1,7 @@
 import {
   SecurityConnectionKind,
   SecurityConnectionReason,
+  SecurityTelemetrySignal,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -11,8 +12,10 @@ import {
 /*
  * The words of Security Events' connections to the rest of OneUptime: a
  * case's Connected Signals, an event's Connected tab and an entity's
- * Connected Signals card (what they name, the other way), and the Security
- * card on a host's, a cluster's, a service's, a device's, a user's and an
+ * Connected Signals card (what they name, the other way, and where it
+ * appears in the logs and traces themselves), and the Security
+ * card on a host's, a cluster's, a device's, a cloud resource's, a
+ * serverless function's, a service's, a monitor's, a user's and an
  * incident's page (the way back). Each is an en.json key, looked up where
  * it is drawn.
  *
@@ -46,12 +49,17 @@ export const CONNECTED_WINDOW: string = translationKey(
   "Signals from {{start}} to {{end}}",
 );
 
+/*
+ * Said of the records alone: what it names may still be in the logs and
+ * traces, which "In your logs and traces" says below.
+ */
 export const CONNECTED_EMPTY_TITLE: string = translationKey(
-  "Nothing it names is in OneUptime.",
+  "No record matches what it names.",
 );
 
+// Where OneUptime looked: every kind of record a value can match.
 export const CONNECTED_EMPTY_DESCRIPTION: string = translationKey(
-  "OneUptime looked for its hosts, addresses and users among your hosts, clusters, devices, services and users, and found none of them.",
+  "OneUptime looked for them among your hosts, clusters, devices, cloud resources, services, monitors and users, and found none.",
 );
 
 /*
@@ -60,23 +68,29 @@ export const CONNECTED_EMPTY_DESCRIPTION: string = translationKey(
  * said to be missing from OneUptime.
  */
 export const CONNECTED_PARTIAL_EMPTY_TITLE: string = translationKey(
-  "Nothing it names was found.",
+  "No matching record was found.",
 );
 
 export const CONNECTED_PARTIAL_EMPTY_DESCRIPTION: string = translationKey(
-  "Some kinds of record could not be read, so it may still be in OneUptime.",
+  "Some kinds of record could not be read, so one may still match.",
 );
 
+/*
+ * It names only what no record is keyed by - a file hash, a process, a
+ * user's bare name. Said of the records alone: a file hash may still be in
+ * the logs and traces, which "In your logs and traces" says below.
+ */
 export const CONNECTED_NOTHING_TO_LOOK_UP_TITLE: string = translationKey(
-  "It names no host, address or user to look for.",
+  "Nothing it names can be matched to a record.",
 );
 
 export const CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION: string = translationKey(
-  "Only hosts, addresses and users with an email can be found in OneUptime.",
+  "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.",
 );
 
+// The values looked for that no record matches.
 export const CONNECTED_NOT_FOUND_TITLE: string =
-  translationKey("Not in OneUptime");
+  translationKey("No matching record");
 
 export const CONNECTED_MORE_RECORDS: string = translationKey(
   "It names more records than are shown here.",
@@ -130,6 +144,20 @@ export const CONNECTED_NOTHING_ACTIVE: string = translationKey(
   "No active incidents or alerts.",
 );
 
+// A member's: the on-call schedules they are on, and the teams they are in.
+export const CONNECTED_ON_CALL_SCHEDULES: PluralTemplate = {
+  one: "On {{count}} on-call schedule",
+  other: "On {{count}} on-call schedules",
+};
+
+// Beside a schedule the member is the one on call for now.
+export const CONNECTED_ON_CALL_NOW: string = translationKey("On call now");
+
+export const CONNECTED_TEAMS: PluralTemplate = {
+  one: "In {{count}} team",
+  other: "In {{count}} teams",
+};
+
 // "+2 more" after the listed incidents, alerts or monitors.
 export const CONNECTED_MORE: PluralTemplate = {
   one: "+{{count}} more",
@@ -162,6 +190,92 @@ export const SIGNAL_LINKS_ARIA_LABEL: string = translationKey(
   "Signals of {{name}} in this window",
 );
 
+// ---------- In your logs and traces ----------
+
+export const TELEMETRY_MENTIONS_TITLE: string = translationKey(
+  "In your logs and traces",
+);
+
+// "Where the values it names appear in your logs and traces from Oct 14, 10:02 to 11:40."
+export const TELEMETRY_MENTIONS_DESCRIPTION: string = translationKey(
+  "Where the values it names appear in your logs and traces from {{start}} to {{end}}.",
+);
+
+/*
+ * While the search runs, one quiet line under the records, which show
+ * first: no heading yet, as a case that names nothing searched for has no
+ * section at all once the answer is in.
+ */
+export const TELEMETRY_SEARCHING: string = translationKey(
+  "Searching your logs and traces…",
+);
+
+// A value's rows: how many log lines, and how many spans, named it.
+export const TELEMETRY_LOG_LINES: PluralTemplate = {
+  one: "In {{count}} log line",
+  other: "In {{count}} log lines",
+};
+
+export const TELEMETRY_SPANS: PluralTemplate = {
+  one: "In {{count}} span",
+  other: "In {{count}} spans",
+};
+
+/*
+ * How many of them a record sent, beside its name under the row: "1,284
+ * lines" under "In 1,344 log lines", "312 spans" under "In 312 spans" - a
+ * bare number beside a name said nothing of what it counted.
+ */
+export const TELEMETRY_SOURCE_LINES: PluralTemplate = {
+  one: "{{count}} line",
+  other: "{{count}} lines",
+};
+
+export const TELEMETRY_SOURCE_SPANS: PluralTemplate = {
+  one: "{{count}} span",
+  other: "{{count}} spans",
+};
+
+// The records that sent them, as a screen reader names their list.
+export const TELEMETRY_SOURCES_LABEL: string = translationKey("Sent by");
+
+/*
+ * Where in them it was: a log line's message, or an attribute - shown by
+ * its key, as the telemetry writes it.
+ */
+export const TELEMETRY_PLACE_MESSAGE: string = translationKey("In the message");
+
+// What a place's link opens, as its tooltip.
+export const TELEMETRY_OPEN_IN_LOGS: string = translationKey("Open in Logs");
+
+export const TELEMETRY_OPEN_IN_TRACES: string =
+  translationKey("Open in Traces");
+
+// The values searched for in every signal and named by none.
+export const TELEMETRY_NOT_FOUND_TITLE: string = translationKey(
+  "Not in your logs or traces",
+);
+
+export const TELEMETRY_UNREADABLE: string = translationKey(
+  "Your role cannot read {{signals}}, so they were not searched.",
+);
+
+export const TELEMETRY_FAILED: string = translationKey(
+  "{{signals}} could not be searched just now.",
+);
+
+export const TELEMETRY_MORE_VALUES: string = translationKey(
+  "It names more values than were searched for.",
+);
+
+// The signals, as the notes name them.
+export const TELEMETRY_SIGNAL_LABELS: Readonly<
+  Record<SecurityTelemetrySignal, string>
+> = {
+  [SecurityTelemetrySignal.Logs]: translationKey("Logs"),
+  [SecurityTelemetrySignal.Traces]: translationKey("Traces"),
+};
+
 // ---------- The kinds of record ----------
 
 export const CONNECTION_KIND_LABELS: Readonly<
@@ -173,7 +287,12 @@ export const CONNECTION_KIND_LABELS: Readonly<
   [SecurityConnectionKind.KubernetesCluster]:
     translationKey("Kubernetes Cluster"),
   [SecurityConnectionKind.NetworkDevice]: translationKey("Network Device"),
+  [SecurityConnectionKind.CloudResource]: translationKey("Cloud Resource"),
+  [SecurityConnectionKind.ServerlessFunction]: translationKey(
+    "Serverless Function",
+  ),
   [SecurityConnectionKind.Service]: translationKey("Service"),
+  [SecurityConnectionKind.Monitor]: translationKey("Monitor"),
   [SecurityConnectionKind.User]: translationKey("User"),
   [SecurityConnectionKind.InventoryItem]: translationKey("Inventory Item"),
 };
@@ -189,7 +308,12 @@ export const CONNECTION_KIND_PLURALS: Readonly<
     "Kubernetes Clusters",
   ),
   [SecurityConnectionKind.NetworkDevice]: translationKey("Network Devices"),
+  [SecurityConnectionKind.CloudResource]: translationKey("Cloud Resources"),
+  [SecurityConnectionKind.ServerlessFunction]: translationKey(
+    "Serverless Functions",
+  ),
   [SecurityConnectionKind.Service]: translationKey("Services"),
+  [SecurityConnectionKind.Monitor]: translationKey("Monitors"),
   [SecurityConnectionKind.User]: translationKey("Users"),
   [SecurityConnectionKind.InventoryItem]: translationKey("Inventory Items"),
 };
@@ -202,7 +326,12 @@ export const CONNECTION_KIND_ICONS: Readonly<
   [SecurityConnectionKind.PodmanHost]: IconProp.Podman,
   [SecurityConnectionKind.KubernetesCluster]: IconProp.Kubernetes,
   [SecurityConnectionKind.NetworkDevice]: IconProp.Signal,
+  // As the explorers' resource facets draw them (ResourceFacetCatalog).
+  [SecurityConnectionKind.CloudResource]: IconProp.Cloud,
+  [SecurityConnectionKind.ServerlessFunction]: IconProp.Bolt,
   [SecurityConnectionKind.Service]: IconProp.Cube,
+  // As the product switcher draws Monitors.
+  [SecurityConnectionKind.Monitor]: IconProp.AltGlobe,
   [SecurityConnectionKind.User]: IconProp.User,
   [SecurityConnectionKind.InventoryItem]: IconProp.Cube,
 };
@@ -242,7 +371,37 @@ export const CONNECTION_REASON_TEXT: Readonly<
   [SecurityConnectionReason.Email]: translationKey(
     "Named by {{value}}, their email.",
   ),
+  [SecurityConnectionReason.ResourceId]: translationKey(
+    "Named {{value}}, its cloud resource ID.",
+  ),
+  [SecurityConnectionReason.CloudEndpoint]: translationKey(
+    "Named {{value}}, a name it answers on.",
+  ),
+  [SecurityConnectionReason.MonitorTarget]: translationKey(
+    "Named {{value}}, the address it checks.",
+  ),
 };
+
+/*
+ * What a monitor is connected by, in a monitor's own words: it checks an
+ * address rather than holding a name of its own. {{matched}} is the
+ * address it checks.
+ */
+export const MONITOR_REASON_TEXT: Readonly<
+  Partial<Record<SecurityConnectionReason, string>>
+> = {
+  [SecurityConnectionReason.ShortHostName]: translationKey(
+    "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.",
+  ),
+  [SecurityConnectionReason.PrivateAddress]: translationKey(
+    "Named by {{value}}, a private address it checks. Another network can give it to another machine.",
+  ),
+};
+
+// A URL a monitor checks the host of: "Named https://shop.example/login, on shop.example, ...".
+export const MONITOR_URL_REASON_TEXT: string = translationKey(
+  "Named {{value}}, on {{matched}}, the address it checks.",
+);
 
 // ---------- The Security card on a record's page ----------
 
@@ -262,6 +421,15 @@ export const RESOURCE_SECURITY_QUIET: string = translationKey(
 
 export const RESOURCE_SECURITY_SERVICE_QUIET: string = translationKey(
   "No security event was read from its logs in the last 7 days.",
+);
+
+// A monitor's: about what it checks, not about itself.
+export const RESOURCE_SECURITY_MONITOR_DESCRIPTION: string = translationKey(
+  "What Security Events found about what it checks in the last 7 days.",
+);
+
+export const RESOURCE_SECURITY_MONITOR_QUIET: string = translationKey(
+  "No security event named what it checks in the last 7 days.",
 );
 
 export const RESOURCE_SECURITY_OPEN_CASES: string =
@@ -331,6 +499,10 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   alerts: string;
   monitors: string;
   changes: string;
+  schedules: string;
+  teams: string;
+  onCallNow: string;
+  monitorStatus: string;
   nothingActive: string;
   notFound: string;
   moreRecords: string;
@@ -348,6 +520,20 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   incidentSecurity: string;
   incidentSecurityDeclared: string;
   incidentSecurityNaming: string;
+  telemetry: string;
+  telemetryValue: string;
+  telemetryValueName: string;
+  telemetryLogs: string;
+  telemetrySpans: string;
+  telemetryPlace: string;
+  telemetrySource: string;
+  telemetrySourceCount: string;
+  telemetryNotFound: string;
+  telemetryUnreadable: string;
+  telemetryFailed: string;
+  telemetryMoreValues: string;
+  telemetryError: string;
+  telemetryLoading: string;
 } = {
   connectedSignals: "security-connected-signals",
   window: "security-connected-window",
@@ -365,6 +551,10 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   alerts: "security-connected-alerts",
   monitors: "security-connected-monitors",
   changes: "security-connected-changes",
+  schedules: "security-connected-schedules",
+  teams: "security-connected-teams",
+  onCallNow: "security-connected-on-call-now",
+  monitorStatus: "security-connected-monitor-status",
   nothingActive: "security-connected-nothing-active",
   notFound: "security-connected-not-found",
   moreRecords: "security-connected-more-records",
@@ -382,4 +572,18 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   incidentSecurity: "incident-security-card",
   incidentSecurityDeclared: "incident-security-declared",
   incidentSecurityNaming: "incident-security-naming",
+  telemetry: "security-telemetry-mentions",
+  telemetryValue: "security-telemetry-value",
+  telemetryValueName: "security-telemetry-value-name",
+  telemetryLogs: "security-telemetry-logs",
+  telemetrySpans: "security-telemetry-spans",
+  telemetryPlace: "security-telemetry-place",
+  telemetrySource: "security-telemetry-source",
+  telemetrySourceCount: "security-telemetry-source-count",
+  telemetryNotFound: "security-telemetry-not-found",
+  telemetryUnreadable: "security-telemetry-unreadable",
+  telemetryFailed: "security-telemetry-failed",
+  telemetryMoreValues: "security-telemetry-more-values",
+  telemetryError: "security-telemetry-error",
+  telemetryLoading: "security-telemetry-loading",
 };
