@@ -120,10 +120,16 @@ describe("people named by email address", () => {
       }),
     );
     expect(lookup.select).toEqual(
-      expect.objectContaining({ userId: true, user: { _id: true, email: true } }),
+      expect.objectContaining({
+        userId: true,
+        user: { _id: true, email: true },
+      }),
     );
     expect(writes()).toHaveLength(1);
-    expect(writes()[0]?.data).toEqual({ incidentId: INCIDENT_ID, userId: USER_ID });
+    expect(writes()[0]?.data).toEqual({
+      incidentId: INCIDENT_ID,
+      userId: USER_ID,
+    });
     expect(writes()[0]?.miscDataProps).toEqual({});
   });
 
@@ -184,7 +190,10 @@ describe("people named by email address", () => {
   });
 
   it("take a list of people by address, every one found, in the order given", async () => {
-    projectMembers({ "alice@example.com": USER_ID, "bob@example.com": OTHER_USER_ID });
+    projectMembers({
+      "alice@example.com": USER_ID,
+      "bob@example.com": OTHER_USER_ID,
+    });
 
     await runCli([
       commandOf("IncidentOwnerRule"),
@@ -252,7 +261,9 @@ describe("people named by email address", () => {
 
   it("say what the key needs when it may not read the project's members", async () => {
     mockExecuteApiRequest.mockRejectedValue(
-      new Error("API error (422): You do not have permissions to read Team Member."),
+      new Error(
+        "API error (422): You do not have permissions to read Team Member.",
+      ),
     );
 
     const run: CliRun = await runCli([
@@ -276,7 +287,14 @@ describe("people named by email address", () => {
   it("leave a person named by ID as it is, without a lookup", async () => {
     projectMembers({});
 
-    await runCli(["team-member", "create", "--team-id", TEAM_ID, "--user-id", USER_ID]);
+    await runCli([
+      "team-member",
+      "create",
+      "--team-id",
+      TEAM_ID,
+      "--user-id",
+      USER_ID,
+    ]);
 
     expect(requests()).toHaveLength(1);
     expect(writes()[0]?.data).toEqual({ teamId: TEAM_ID, userId: USER_ID });

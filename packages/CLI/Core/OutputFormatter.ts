@@ -73,7 +73,9 @@ const OUTPUT_FLAG_WITH_VALUE: ReadonlyArray<string> = [
  * prints its error as JSON too, so a script or an agent reads a failure the
  * way it reads an answer. Only when asked: a pipe alone keeps the sentence.
  */
-export function isJsonRequested(argv: ReadonlyArray<string> = process.argv): boolean {
+export function isJsonRequested(
+  argv: ReadonlyArray<string> = process.argv,
+): boolean {
   for (let index: number = 0; index < argv.length; index++) {
     const word: string = argv[index] as string;
 

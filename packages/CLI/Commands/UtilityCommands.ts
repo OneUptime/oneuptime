@@ -257,7 +257,10 @@ export function registerUtilityCommands(program: Command): void {
             serverVersion = null;
           }
 
-          const match: boolean | null = versionsMatch(cliVersion, serverVersion);
+          const match: boolean | null = versionsMatch(
+            cliVersion,
+            serverVersion,
+          );
 
           answer["project"] = project;
           answer["serverVersion"] = serverVersion;

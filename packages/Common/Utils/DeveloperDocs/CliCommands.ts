@@ -231,6 +231,11 @@ const SERVER_SET_COLUMNS: ReadonlyArray<string> = [
   "deletedByUserId",
 ];
 
+// Whether the server fills a column in, whatever a create or an update sends.
+export function isCliServerSetColumn(columnName: string): boolean {
+  return SERVER_SET_COLUMNS.includes(columnName);
+}
+
 /*
  * OPERATIONS
  */
@@ -510,7 +515,10 @@ export function getCliActions(tableName: string): Array<CliAction> {
   const actions: Array<CliAction> = [];
   const machine: CliStateMachine | undefined = getCliStateMachine(tableName);
 
-  if (machine && getTerraformModelOperations(machine.timelineModelType).canCreate) {
+  if (
+    machine &&
+    getTerraformModelOperations(machine.timelineModelType).canCreate
+  ) {
     actions.push(
       ...machine.changes.map((change: CliStateChange): CliAction => {
         return change.action;
@@ -628,7 +636,7 @@ export function isCliFieldFlagAllowed(flag: string): boolean {
 function canHaveFlag(descriptor: TerraformAttributeDescriptor): boolean {
   return (
     descriptor.kind !== TerraformValueKind.Unsupported &&
-    !SERVER_SET_COLUMNS.includes(descriptor.columnName) &&
+    !isCliServerSetColumn(descriptor.columnName) &&
     isCliFieldFlagAllowed(toCliFlag(descriptor.columnName))
   );
 }
@@ -766,9 +774,7 @@ export function getCliFieldFlagHelp(
   const parts: Array<string> = [];
 
   if (operation === CliOperation.Create && flag.isRequired) {
-    parts.push(
-      flag.person ? `Required, or ${flag.person.flag}.` : "Required.",
-    );
+    parts.push(flag.person ? `Required, or ${flag.person.flag}.` : "Required.");
   }
 
   if (flag.description) {
@@ -957,7 +963,10 @@ export function parseCliFieldValue(
         );
       }
     default:
-      if (flag.valueName === "<id>" && flag.columnType === TableColumnType.ObjectID) {
+      if (
+        flag.valueName === "<id>" &&
+        flag.columnType === TableColumnType.ObjectID
+      ) {
         assertIds(flag, [raw.trim()]);
         return raw.trim();
       }
@@ -993,9 +1002,7 @@ export function getCliAnalyticsFields(
       columnName: column.key,
       title: column.title || column.key,
       type: column.type,
-      description: (column.description || "")
-        .replace(LINE_BREAKS, " ")
-        .trim(),
+      description: (column.description || "").replace(LINE_BREAKS, " ").trim(),
       isRequired: column.required,
       inCreate: (column.accessControl?.create || []).length > 0,
       inUpdate: (column.accessControl?.update || []).length > 0,

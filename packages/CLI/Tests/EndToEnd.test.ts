@@ -120,10 +120,14 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-cli-e2e-"));
 
     if (!fs.existsSync(BUNDLE)) {
-      const build: SpawnSyncReturns<string> = spawnSync("npm", ["run", "build"], {
-        cwd: CLI_ROOT,
-        encoding: "utf8",
-      });
+      const build: SpawnSyncReturns<string> = spawnSync(
+        "npm",
+        ["run", "build"],
+        {
+          cwd: CLI_ROOT,
+          encoding: "utf8",
+        },
+      );
 
       expect(build.status).toBe(0);
     }
@@ -175,20 +179,44 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
 
     expect(found.map((row: Row) => idOf(row._id))).toEqual([labelId]);
 
-    ok(["label", "update", labelId, "--description", "Changed by the CLI", "--json"]);
+    ok([
+      "label",
+      "update",
+      labelId,
+      "--description",
+      "Changed by the CLI",
+      "--json",
+    ]);
 
-    const read: Row = ok(["label", "get", labelId, "--fields", "name,description", "--json"]);
+    const read: Row = ok([
+      "label",
+      "get",
+      labelId,
+      "--fields",
+      "name,description",
+      "--json",
+    ]);
 
     expect(read["description"]).toBe("Changed by the CLI");
 
     const all: Array<Row> = ok(["label", "list", "--all", "--json"]);
 
     expect(all.map((row: Row) => idOf(row._id))).toContain(labelId);
-    expect(ok<number>(["label", "count", "--query", JSON.stringify({ _id: labelId }), "--json"])).toBe(1);
+    expect(
+      ok<number>([
+        "label",
+        "count",
+        "--query",
+        JSON.stringify({ _id: labelId }),
+        "--json",
+      ]),
+    ).toBe(1);
   });
 
   it("creates a monitor with a label, by flags", () => {
-    const labelId: string = (created.find(([resource]) => resource === "label") || ["", ""])[1];
+    const labelId: string = (created.find(
+      ([resource]) => resource === "label",
+    ) || ["", ""])[1];
     const monitor: Row = ok([
       "monitor",
       "create",
@@ -204,7 +232,14 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
 
     created.push(["monitor", monitorId]);
 
-    const read: Row = ok(["monitor", "get", monitorId, "--fields", "name,labels", "--json"]);
+    const read: Row = ok([
+      "monitor",
+      "get",
+      monitorId,
+      "--fields",
+      "name,labels",
+      "--json",
+    ]);
 
     expect(read["name"]).toBe(`${run} monitor`);
     expect(JSON.stringify(read["labels"])).toContain(labelId);
@@ -220,7 +255,9 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
       "1",
       "--json",
     ]);
-    const monitorId: string = (created.find(([resource]) => resource === "monitor") || ["", ""])[1];
+    const monitorId: string = (created.find(
+      ([resource]) => resource === "monitor",
+    ) || ["", ""])[1];
     const incident: Row = ok([
       "incident",
       "create",
@@ -245,7 +282,14 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
 
     expect(acknowledged.changed).toBe(true);
     // Twice is once: nothing changes the second time.
-    expect(ok<{ changed: boolean }>(["incident", "acknowledge", incidentId, "--json"]).changed).toBe(false);
+    expect(
+      ok<{ changed: boolean }>([
+        "incident",
+        "acknowledge",
+        incidentId,
+        "--json",
+      ]).changed,
+    ).toBe(false);
 
     const note: { _id: string; visibility: string } = ok([
       "incident",
@@ -257,9 +301,14 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
     ]);
 
     expect(note.visibility).toBe("internal");
-    expect(idOf(ok<Row>(["incident-internal-note", "get", note._id, "--json"])._id)).toBe(note._id);
+    expect(
+      idOf(ok<Row>(["incident-internal-note", "get", note._id, "--json"])._id),
+    ).toBe(note._id);
 
-    expect(ok<{ changed: boolean }>(["incident", "resolve", incidentId, "--json"]).changed).toBe(true);
+    expect(
+      ok<{ changed: boolean }>(["incident", "resolve", incidentId, "--json"])
+        .changed,
+    ).toBe(true);
 
     const state: Row = ok([
       "incident",
@@ -323,7 +372,9 @@ describeAgainstServer("the CLI against a real OneUptime", () => {
   it("deletes what it made, answering JSON", () => {
     const [resource, id] = created.pop() as [string, string];
 
-    expect(ok<{ deleted: boolean }>([resource, "delete", id, "--json"])).toEqual({
+    expect(
+      ok<{ deleted: boolean }>([resource, "delete", id, "--json"]),
+    ).toEqual({
       _id: id,
       deleted: true,
     });

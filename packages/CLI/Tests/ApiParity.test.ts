@@ -60,11 +60,21 @@ function toSpecRequest(method: string, path: string): SpecRequest {
   };
 
   if (method === "post" && path.endsWith("/get-list")) {
-    return { method, path, apiPath: at("/get-list"), operation: CliOperation.List };
+    return {
+      method,
+      path,
+      apiPath: at("/get-list"),
+      operation: CliOperation.List,
+    };
   }
 
   if (method === "post" && path.endsWith("/count")) {
-    return { method, path, apiPath: at("/count"), operation: CliOperation.Count };
+    return {
+      method,
+      path,
+      apiPath: at("/count"),
+      operation: CliOperation.Count,
+    };
   }
 
   if (method === "post" && path.endsWith(`${ID_SEGMENT}/get-item`)) {
@@ -77,11 +87,21 @@ function toSpecRequest(method: string, path: string): SpecRequest {
   }
 
   if (method === "put" && path.endsWith(ID_SEGMENT)) {
-    return { method, path, apiPath: at(ID_SEGMENT), operation: CliOperation.Update };
+    return {
+      method,
+      path,
+      apiPath: at(ID_SEGMENT),
+      operation: CliOperation.Update,
+    };
   }
 
   if (method === "delete" && path.endsWith(ID_SEGMENT)) {
-    return { method, path, apiPath: at(ID_SEGMENT), operation: CliOperation.Delete };
+    return {
+      method,
+      path,
+      apiPath: at(ID_SEGMENT),
+      operation: CliOperation.Delete,
+    };
   }
 
   if (method === "post") {
@@ -94,7 +114,9 @@ function toSpecRequest(method: string, path: string): SpecRequest {
 }
 
 // Whether a list of read permissions names nobody an API key can be.
-function readsOnlyForItsUser(permissions: Array<Permission> | undefined): boolean {
+function readsOnlyForItsUser(
+  permissions: Array<Permission> | undefined,
+): boolean {
   return (permissions || []).every((permission: Permission): boolean => {
     return (
       permission === Permission.CurrentUser || permission === Permission.Public
@@ -130,7 +152,9 @@ describe("the CLI and the API", () => {
 
   it("reads the spec: thousands of requests, of hundreds of resources", () => {
     expect(requests.length).toBeGreaterThan(2000);
-    expect(new Set(requests.map((request: SpecRequest) => request.apiPath)).size).toBeGreaterThan(400);
+    expect(
+      new Set(requests.map((request: SpecRequest) => request.apiPath)).size,
+    ).toBeGreaterThan(400);
     expect(resources.length).toBeGreaterThan(400);
   });
 
@@ -177,10 +201,16 @@ describe("the CLI and the API", () => {
           return new modelType();
         },
       ).find((candidate: DatabaseBaseModel): boolean => {
-        return `/${(candidate.crudApiPath?.toString() || "").replace(/^\/+/, "")}` === apiPath;
+        return (
+          `/${(candidate.crudApiPath?.toString() || "").replace(/^\/+/, "")}` ===
+          apiPath
+        );
       });
 
-      expect({ apiPath, isUserOwned: readsOnlyForItsUser(model?.readRecordPermissions) }).toEqual({
+      expect({
+        apiPath,
+        isUserOwned: readsOnlyForItsUser(model?.readRecordPermissions),
+      }).toEqual({
         apiPath,
         isUserOwned: true,
       });
@@ -211,9 +241,11 @@ describe("the CLI and the API", () => {
   });
 
   it("names every resource the way its model says, and no two alike", () => {
-    const names: Array<string> = resources.map((resource: ResourceInfo): string => {
-      return resource.name;
-    });
+    const names: Array<string> = resources.map(
+      (resource: ResourceInfo): string => {
+        return resource.name;
+      },
+    );
 
     expect(new Set(names).size).toBe(names.length);
 
@@ -222,8 +254,10 @@ describe("the CLI and the API", () => {
      * a new model sharing another's singular name needs an override in
      * CLI_COMMAND_NAME_OVERRIDES, or a name of its own.
      */
-    const modelsByTable: Map<string, { singularName: string; tableName: string }> =
-      new Map();
+    const modelsByTable: Map<
+      string,
+      { singularName: string; tableName: string }
+    > = new Map();
 
     for (const modelType of DatabaseModels) {
       const model: DatabaseBaseModel = new modelType();
@@ -296,7 +330,10 @@ describe("the CLI and the API", () => {
         },
       );
 
-      expect({ resource: resource.name, has: subcommands.slice(0, resource.operations.length) }).toEqual({
+      expect({
+        resource: resource.name,
+        has: subcommands.slice(0, resource.operations.length),
+      }).toEqual({
         resource: resource.name,
         has: resource.operations,
       });
@@ -304,12 +341,16 @@ describe("the CLI and the API", () => {
   });
 
   it("reads and writes telemetry as the API does, with get, update and delete where its permissions allow", () => {
-    const log: ResourceInfo | undefined = resources.find((resource: ResourceInfo) => {
-      return resource.name === "log";
-    });
-    const auditLog: ResourceInfo | undefined = resources.find((resource: ResourceInfo) => {
-      return resource.name === "audit-log";
-    });
+    const log: ResourceInfo | undefined = resources.find(
+      (resource: ResourceInfo) => {
+        return resource.name === "log";
+      },
+    );
+    const auditLog: ResourceInfo | undefined = resources.find(
+      (resource: ResourceInfo) => {
+        return resource.name === "audit-log";
+      },
+    );
 
     expect(log?.operations).toEqual([
       CliOperation.List,

@@ -85,7 +85,7 @@ describe("the CLI's install script", () => {
       "curl",
       [
         'if [ -n "${FAKE_CURL_FAIL:-}" ]; then exit 22; fi',
-        'printf \'%s\' "$FAKE_VERSION_ANSWER"',
+        "printf '%s' \"$FAKE_VERSION_ANSWER\"",
       ].join("\n"),
     );
     writeStandIn(
@@ -163,7 +163,9 @@ describe("the CLI's install script", () => {
     const result: Result = run({});
 
     expect(result.status).toBe(0);
-    expect(result.calls.some((call: string) => call.startsWith("curl"))).toBe(false);
+    expect(result.calls.some((call: string) => call.startsWith("curl"))).toBe(
+      false,
+    );
     expect(result.calls).toContain(
       "npm install --global --no-fund --no-audit @oneuptime/cli",
     );
@@ -183,7 +185,9 @@ describe("the CLI's install script", () => {
     expect(chosen.calls).toContain(
       "npm install --global --no-fund --no-audit @oneuptime/cli@14.0.99",
     );
-    expect(chosen.calls.some((call: string) => call.startsWith("curl"))).toBe(false);
+    expect(chosen.calls.some((call: string) => call.startsWith("curl"))).toBe(
+      false,
+    );
 
     const wrong: Result = run({ ONEUPTIME_CLI_VERSION: "latest; rm -rf /" });
 
@@ -191,7 +195,9 @@ describe("the CLI's install script", () => {
     expect(wrong.stderr).toContain(
       'ONEUPTIME_CLI_VERSION takes a version such as 14.0.101, and "latest; rm -rf /" is not one.',
     );
-    expect(wrong.calls.some((call: string) => call.startsWith("npm install"))).toBe(false);
+    expect(
+      wrong.calls.some((call: string) => call.startsWith("npm install")),
+    ).toBe(false);
   });
 
   it("stops before npm on a Node.js older than 22, saying where to get one", () => {
@@ -201,7 +207,9 @@ describe("the CLI's install script", () => {
     expect(result.stderr).toContain(
       "The OneUptime CLI needs Node.js 22 or later, and this is Node.js v20.18.0. Install a newer one from https://nodejs.org, then run this script again.",
     );
-    expect(result.calls.some((call: string) => call.startsWith("npm"))).toBe(false);
+    expect(result.calls.some((call: string) => call.startsWith("npm"))).toBe(
+      false,
+    );
   });
 
   it("stops when the address does not answer, naming what to check", () => {

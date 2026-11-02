@@ -280,7 +280,10 @@ function registerStateChangeCommand(
           `${resource.singularName} ${id} is ${DONE[change.action]} already: it is in ${result.state.name}. Nothing changed.`,
         );
       } catch (error) {
-        handleError(error, { resource: resource.name, operation: change.action });
+        handleError(error, {
+          resource: resource.name,
+          operation: change.action,
+        });
       }
     });
 }

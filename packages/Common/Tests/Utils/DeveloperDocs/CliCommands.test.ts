@@ -146,7 +146,10 @@ describe("names", () => {
     ["Status Page Announcement", "status-page-announcement"],
     ["IoT Fleet", "iot-fleet"],
     ["vCenter", "vcenter"],
-    ["User's On-Call Duty Escalation Rule", "users-on-call-duty-escalation-rule"],
+    [
+      "User's On-Call Duty Escalation Rule",
+      "users-on-call-duty-escalation-rule",
+    ],
     ["WhatsApp Log", "whatsapp-log"],
   ])("%s is the command %s", (singularName: string, command: string) => {
     expect(toCliCommandName(singularName)).toBe(command);
@@ -166,7 +169,10 @@ describe("names", () => {
 
       const typeName: string = getTerraformTypeName(modelType) as string;
 
-      expect({ table: model.tableName, name: getCliResourceName(model) }).toEqual({
+      expect({
+        table: model.tableName,
+        name: getCliResourceName(model),
+      }).toEqual({
         table: model.tableName,
         name: typeName.replace("oneuptime_", "").replace(UNDERSCORES, "-"),
       });
@@ -181,7 +187,10 @@ describe("names", () => {
     );
 
     for (const name of COMMANDS_BEFORE) {
-      expect({ name, kept: names.includes(name) }).toEqual({ name, kept: true });
+      expect({ name, kept: names.includes(name) }).toEqual({
+        name,
+        kept: true,
+      });
     }
   });
 
@@ -206,23 +215,25 @@ describe("names", () => {
     ["vmwareVCenters", "--vmware-v-centers", "vmwareVCenters"],
     ["isSSOEnabled", "--is-sso-enabled", "isSsoEnabled"],
     ["apiKey", "--api-key", "apiKey"],
-  ])("the field %s is %s, which Commander stores as %s", (
-    column: string,
-    flag: string,
-    attribute: string,
-  ) => {
-    expect(toCliFlag(column)).toBe(flag);
-    expect(toCommanderAttributeName(flag)).toBe(attribute);
-  });
+  ])(
+    "the field %s is %s, which Commander stores as %s",
+    (column: string, flag: string, attribute: string) => {
+      expect(toCliFlag(column)).toBe(flag);
+      expect(toCommanderAttributeName(flag)).toBe(attribute);
+    },
+  );
 });
 
 describe("resources and their operations", () => {
   test("follow the API's own rule for every record: Terraform's operations, in the CLI's order", () => {
     for (const modelType of Models) {
       const model: DatabaseBaseModel = new modelType();
-      const operations: Array<CliOperation> = getCliDatabaseOperations(modelType);
+      const operations: Array<CliOperation> =
+        getCliDatabaseOperations(modelType);
 
-      if (!(model.tableName && model.enableDocumentation && model.crudApiPath)) {
+      if (
+        !(model.tableName && model.enableDocumentation && model.crudApiPath)
+      ) {
         expect(operations).toEqual([]);
         continue;
       }
@@ -232,18 +243,20 @@ describe("resources and their operations", () => {
 
       expect({ table: model.tableName, operations }).toEqual({
         table: model.tableName,
-        operations: CLI_OPERATIONS.filter((operation: CliOperation): boolean => {
-          switch (operation) {
-            case CliOperation.Create:
-              return terraform.canCreate;
-            case CliOperation.Update:
-              return terraform.canUpdate;
-            case CliOperation.Delete:
-              return terraform.canDelete;
-            default:
-              return terraform.canRead;
-          }
-        }),
+        operations: CLI_OPERATIONS.filter(
+          (operation: CliOperation): boolean => {
+            switch (operation) {
+              case CliOperation.Create:
+                return terraform.canCreate;
+              case CliOperation.Update:
+                return terraform.canUpdate;
+              case CliOperation.Delete:
+                return terraform.canDelete;
+              default:
+                return terraform.canRead;
+            }
+          },
+        ),
       });
     }
   });
@@ -265,7 +278,9 @@ describe("resources and their operations", () => {
           return new candidate().tableName === tableName;
         });
 
-      return getCliAnalyticsOperations(modelType as new () => AnalyticsBaseModel);
+      return getCliAnalyticsOperations(
+        modelType as new () => AnalyticsBaseModel,
+      );
     };
 
     expect(operationsOf("LogItemV3")).toEqual(CLI_OPERATIONS);
@@ -281,9 +296,11 @@ describe("resources and their operations", () => {
     const names: Array<string> = resources.map((resource: CliResource) => {
       return resource.name;
     });
-    const firstTelemetry: number = resources.findIndex((resource: CliResource) => {
-      return resource.modelType === "analytics";
-    });
+    const firstTelemetry: number = resources.findIndex(
+      (resource: CliResource) => {
+        return resource.modelType === "analytics";
+      },
+    );
 
     expect(resources.length).toBeGreaterThan(400);
     expect(new Set(names).size).toBe(names.length);
@@ -321,9 +338,18 @@ describe("the dashboard's buttons as actions", () => {
   test.each([
     ["Incident", [CliAction.Acknowledge, CliAction.Resolve, CliAction.AddNote]],
     ["Alert", [CliAction.Acknowledge, CliAction.Resolve, CliAction.AddNote]],
-    ["IncidentEpisode", [CliAction.Acknowledge, CliAction.Resolve, CliAction.AddNote]],
-    ["AlertEpisode", [CliAction.Acknowledge, CliAction.Resolve, CliAction.AddNote]],
-    ["ScheduledMaintenance", [CliAction.Start, CliAction.End, CliAction.AddNote]],
+    [
+      "IncidentEpisode",
+      [CliAction.Acknowledge, CliAction.Resolve, CliAction.AddNote],
+    ],
+    [
+      "AlertEpisode",
+      [CliAction.Acknowledge, CliAction.Resolve, CliAction.AddNote],
+    ],
+    [
+      "ScheduledMaintenance",
+      [CliAction.Start, CliAction.End, CliAction.AddNote],
+    ],
     ["Monitor", []],
   ])("%s has %j", (tableName: string, actions: Array<CliAction>) => {
     expect(getCliActions(tableName)).toEqual(actions);
@@ -343,50 +369,57 @@ describe("the dashboard's buttons as actions", () => {
     CLI_STATE_MACHINES.map((machine) => {
       return [machine.tableName, machine];
     }),
-  )("%s's states are where the action says: the columns and flags exist", (
-    _tableName: string,
-    machine: (typeof CLI_STATE_MACHINES)[number],
-  ) => {
-    const timeline: Record<string, unknown> = getTableColumns(
-      new machine.timelineModelType(),
-    );
-    const record: Record<string, { type: TableColumnType }> = getTableColumns(
-      new (modelFor(machine.tableName))(),
-    ) as Record<string, { type: TableColumnType }>;
-    const state: Record<string, unknown> = getTableColumns(
-      new machine.stateModelType(),
-    );
+  )(
+    "%s's states are where the action says: the columns and flags exist",
+    (_tableName: string, machine: (typeof CLI_STATE_MACHINES)[number]) => {
+      const timeline: Record<string, unknown> = getTableColumns(
+        new machine.timelineModelType(),
+      );
+      const record: Record<string, { type: TableColumnType }> = getTableColumns(
+        new (modelFor(machine.tableName))(),
+      ) as Record<string, { type: TableColumnType }>;
+      const state: Record<string, unknown> = getTableColumns(
+        new machine.stateModelType(),
+      );
 
-    expect(timeline[machine.recordColumn]).toBeDefined();
-    expect(timeline[machine.stateColumn]).toBeDefined();
-    expect(record[machine.currentStateRelation]?.type).toBe(TableColumnType.Entity);
+      expect(timeline[machine.recordColumn]).toBeDefined();
+      expect(timeline[machine.stateColumn]).toBeDefined();
+      expect(record[machine.currentStateRelation]?.type).toBe(
+        TableColumnType.Entity,
+      );
 
-    for (const change of machine.changes) {
-      expect({ flag: change.stateFlag, exists: Boolean(state[change.stateFlag]) }).toEqual({
-        flag: change.stateFlag,
-        exists: true,
-      });
-    }
-  });
+      for (const change of machine.changes) {
+        expect({
+          flag: change.stateFlag,
+          exists: Boolean(state[change.stateFlag]),
+        }).toEqual({
+          flag: change.stateFlag,
+          exists: true,
+        });
+      }
+    },
+  );
 
   test.each(
     CLI_NOTE_TARGETS.map((target) => {
       return [target.tableName, target];
     }),
-  )("%s's notes name it and hold their text", (
-    _tableName: string,
-    target: (typeof CLI_NOTE_TARGETS)[number],
-  ) => {
-    for (const modelType of [
-      target.internalNoteModelType,
-      ...(target.publicNoteModelType ? [target.publicNoteModelType] : []),
-    ]) {
-      const columns: Record<string, unknown> = getTableColumns(new modelType());
+  )(
+    "%s's notes name it and hold their text",
+    (_tableName: string, target: (typeof CLI_NOTE_TARGETS)[number]) => {
+      for (const modelType of [
+        target.internalNoteModelType,
+        ...(target.publicNoteModelType ? [target.publicNoteModelType] : []),
+      ]) {
+        const columns: Record<string, unknown> = getTableColumns(
+          new modelType(),
+        );
 
-      expect(columns[target.recordColumn]).toBeDefined();
-      expect(columns[CLI_NOTE_COLUMN]).toBeDefined();
-    }
-  });
+        expect(columns[target.recordColumn]).toBeDefined();
+        expect(columns[CLI_NOTE_COLUMN]).toBeDefined();
+      }
+    },
+  );
 });
 
 describe("field flags", () => {
@@ -418,9 +451,8 @@ describe("field flags", () => {
       );
 
       for (const flag of getCliFieldFlags(modelType)) {
-        const attribute: TerraformAttributeDescriptor | undefined = attributes.get(
-          flag.columnName,
-        );
+        const attribute: TerraformAttributeDescriptor | undefined =
+          attributes.get(flag.columnName);
 
         if (!flag.person) {
           continue;
@@ -456,7 +488,11 @@ describe("field flags", () => {
 
   test("take what each field holds: text, an ID of a resource, IDs, a switch, a date, JSON", () => {
     expect(flagFor(Incident, "title")).toEqual(
-      expect.objectContaining({ flag: "--title", valueName: "<text>", isRequired: true }),
+      expect.objectContaining({
+        flag: "--title",
+        valueName: "<text>",
+        isRequired: true,
+      }),
     );
     expect(flagFor(Incident, "incidentSeverityId")).toEqual(
       expect.objectContaining({
@@ -472,7 +508,9 @@ describe("field flags", () => {
         relatedResource: "monitor",
       }),
     );
-    expect(flagFor(Incident, "isVisibleOnStatusPage").valueName).toBe("[true|false]");
+    expect(flagFor(Incident, "isVisibleOnStatusPage").valueName).toBe(
+      "[true|false]",
+    );
     expect(flagFor(Incident, "declaredAt").valueName).toBe("<date>");
     expect(flagFor(Incident, "customFields").valueName).toBe("<json>");
     expect(flagFor(Monitor, "monitorSteps").valueName).toBe("<json>");
@@ -480,16 +518,18 @@ describe("field flags", () => {
   });
 
   test("are given to a create or an update as its schema takes them", () => {
-    const createFlags: Array<string> = getCliFieldFlagsFor(Monitor, CliOperation.Create).map(
-      (flag: CliFieldFlag): string => {
-        return flag.flag;
-      },
-    );
-    const updateFlags: Array<string> = getCliFieldFlagsFor(Monitor, CliOperation.Update).map(
-      (flag: CliFieldFlag): string => {
-        return flag.flag;
-      },
-    );
+    const createFlags: Array<string> = getCliFieldFlagsFor(
+      Monitor,
+      CliOperation.Create,
+    ).map((flag: CliFieldFlag): string => {
+      return flag.flag;
+    });
+    const updateFlags: Array<string> = getCliFieldFlagsFor(
+      Monitor,
+      CliOperation.Update,
+    ).map((flag: CliFieldFlag): string => {
+      return flag.flag;
+    });
 
     // A monitor's type is set when it is made, never changed.
     expect(createFlags).toContain("--monitor-type");
@@ -503,19 +543,21 @@ describe("field flags", () => {
     expect(getCliFieldFlagHelp(flagFor(Incident, "title"), create)).toBe(
       "Required. Title of this incident.",
     );
-    expect(getCliFieldFlagHelp(flagFor(Incident, "incidentSeverityId"), create)).toBe(
+    expect(
+      getCliFieldFlagHelp(flagFor(Incident, "incidentSeverityId"), create),
+    ).toBe(
       "Required. Incident Severity ID. An ID from `oneuptime incident-severity list`.",
     );
-    expect(getCliFieldFlagHelp(flagFor(Incident, "monitors"), create)).toContain(
-      "IDs separated by commas, from `oneuptime monitor list`.",
-    );
+    expect(
+      getCliFieldFlagHelp(flagFor(Incident, "monitors"), create),
+    ).toContain("IDs separated by commas, from `oneuptime monitor list`.");
     expect(getCliFieldFlagHelp(flagFor(TeamMember, "userId"), create)).toBe(
       "Required, or --user-email. ID of the person in the team.",
     );
     // An update requires nothing.
-    expect(getCliFieldFlagHelp(flagFor(Incident, "title"), CliOperation.Update)).toBe(
-      "Title of this incident.",
-    );
+    expect(
+      getCliFieldFlagHelp(flagFor(Incident, "title"), CliOperation.Update),
+    ).toBe("Title of this incident.");
   });
 });
 
@@ -531,7 +573,9 @@ describe("a flag's value", () => {
   const other: string = "1d7b0c3e-2a4f-4b6c-8d9e-0f1a2b3c4d5e";
 
   test("is text as given", () => {
-    expect(parseCliFieldValue(title, "Checkout is down")).toBe("Checkout is down");
+    expect(parseCliFieldValue(title, "Checkout is down")).toBe(
+      "Checkout is down",
+    );
   });
 
   test("is an ID, checked", () => {
@@ -546,7 +590,9 @@ describe("a flag's value", () => {
       { _id: id },
       { _id: other },
     ]);
-    expect(parseCliFieldValue(monitors, JSON.stringify([id]))).toEqual([{ _id: id }]);
+    expect(parseCliFieldValue(monitors, JSON.stringify([id]))).toEqual([
+      { _id: id },
+    ]);
     expect(parseCliFieldValue(monitors, "")).toEqual([]);
   });
 
@@ -579,7 +625,9 @@ describe("a flag's value", () => {
   });
 
   test("is JSON parsed", () => {
-    expect(parseCliFieldValue(custom, '{"region":"eu"}')).toEqual({ region: "eu" });
+    expect(parseCliFieldValue(custom, '{"region":"eu"}')).toEqual({
+      region: "eu",
+    });
     expect(() => {
       return parseCliFieldValue(custom, "{region}");
     }).toThrow("In Bash and zsh, wrap it in single quotes.");
@@ -613,13 +661,19 @@ describe("telemetry's fields", () => {
       return field.columnName === "body";
     });
 
-    expect(body).toEqual(expect.objectContaining({ isReadable: true, inCreate: true }));
+    expect(body).toEqual(
+      expect.objectContaining({ isReadable: true, inCreate: true }),
+    );
   });
 
   test("with no read rule, only the ones every select may name", () => {
     expect(isAnalyticsColumnReadable("_id", undefined)).toBe(true);
     expect(isAnalyticsColumnReadable("attributes", undefined)).toBe(false);
-    expect(isAnalyticsColumnReadable("body", [Permission.CurrentUser])).toBe(false);
-    expect(isAnalyticsColumnReadable("body", [Permission.ProjectMember])).toBe(true);
+    expect(isAnalyticsColumnReadable("body", [Permission.CurrentUser])).toBe(
+      false,
+    );
+    expect(isAnalyticsColumnReadable("body", [Permission.ProjectMember])).toBe(
+      true,
+    );
   });
 });

@@ -91,12 +91,18 @@ describe("field flags", () => {
         continue;
       }
 
-      for (const operation of [CliOperation.Create, CliOperation.Update] as const) {
+      for (const operation of [
+        CliOperation.Create,
+        CliOperation.Update,
+      ] as const) {
         if (!resource.operations.includes(operation)) {
           continue;
         }
 
-        const command: Command = subcommand(program, [resource.name, operation]);
+        const command: Command = subcommand(program, [
+          resource.name,
+          operation,
+        ]);
         const model: DatabaseBaseModelType = modelType(resource.tableName);
 
         // Commander refuses an option whose flag another already has.
@@ -113,12 +119,22 @@ describe("field flags", () => {
 
   it("never take a flag the CLI uses itself, nor one Commander would read as turning an option off", () => {
     for (const model of DatabaseModels) {
-      for (const operation of [CliOperation.Create, CliOperation.Update] as const) {
+      for (const operation of [
+        CliOperation.Create,
+        CliOperation.Update,
+      ] as const) {
         for (const flag of getCliFieldFlagsFor(model, operation)) {
-          const flags: Array<string> = [flag.flag, ...(flag.person ? [flag.person.flag] : [])];
+          const flags: Array<string> = [
+            flag.flag,
+            ...(flag.person ? [flag.person.flag] : []),
+          ];
 
           for (const name of flags) {
-            expect({ table: new model().tableName, name, reserved: CLI_RESERVED_FLAGS.includes(name) }).toEqual({
+            expect({
+              table: new model().tableName,
+              name,
+              reserved: CLI_RESERVED_FLAGS.includes(name),
+            }).toEqual({
               table: new model().tableName,
               name,
               reserved: false,
@@ -146,10 +162,14 @@ describe("field flags", () => {
     expect(help).toContain("--monitor-type <text>");
     expect(help).toContain("--monitor-steps <json>");
     expect(help).toContain("--labels <ids>");
-    expect(help).toContain("IDs separated by commas, from `oneuptime label list`.");
+    expect(help).toContain(
+      "IDs separated by commas, from `oneuptime label list`.",
+    );
     expect(help).not.toContain("--project-id");
     // The output options come last, as on every other command.
-    expect(help.indexOf("--json")).toBeGreaterThan(help.indexOf("--monitor-type"));
+    expect(help.indexOf("--json")).toBeGreaterThan(
+      help.indexOf("--monitor-type"),
+    );
   });
 
   it("send each field as the API takes it: IDs as records, switches as booleans, dates as ISO 8601, JSON parsed", async () => {
@@ -211,13 +231,27 @@ describe("field flags", () => {
       "incident.json",
     );
 
-    fs.writeFileSync(file, JSON.stringify({ title: "From the file", rootCause: "A deploy" }));
+    fs.writeFileSync(
+      file,
+      JSON.stringify({ title: "From the file", rootCause: "A deploy" }),
+    );
 
-    await runCli(["incident", "update", INCIDENT_ID, "--file", file, "--title", "Renamed"]);
+    await runCli([
+      "incident",
+      "update",
+      INCIDENT_ID,
+      "--file",
+      file,
+      "--title",
+      "Renamed",
+    ]);
 
     expect(lastRequest().operation).toBe("update");
     expect(lastRequest().id).toBe(INCIDENT_ID);
-    expect(lastRequest().data).toEqual({ title: "Renamed", rootCause: "A deploy" });
+    expect(lastRequest().data).toEqual({
+      title: "Renamed",
+      rootCause: "A deploy",
+    });
   });
 
   it("send only what an update gives", async () => {
@@ -247,23 +281,56 @@ describe("field flags", () => {
       'takes an ID, such as 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11, and "critical" is not one. Find them with `oneuptime incident-severity list`.',
     ],
     [["--monitors", "api,web"], "--monitors takes IDs"],
-    [["--is-visible-on-status-page", "maybe"], '--is-visible-on-status-page takes true or false, and "maybe" is neither.'],
-    [["--declared-at", "yesterday"], "--declared-at takes a date and time, such as 2026-11-01T10:00:00Z"],
+    [
+      ["--is-visible-on-status-page", "maybe"],
+      '--is-visible-on-status-page takes true or false, and "maybe" is neither.',
+    ],
+    [
+      ["--declared-at", "yesterday"],
+      "--declared-at takes a date and time, such as 2026-11-01T10:00:00Z",
+    ],
     [["--custom-fields", "{region: eu}"], "--custom-fields takes JSON"],
-  ])("refuse %j with what the flag takes", async (flags: Array<string>, message: string) => {
-    const run: CliRun = await runCli(["incident", "create", "--title", "X", ...flags]);
+  ])(
+    "refuse %j with what the flag takes",
+    async (flags: Array<string>, message: string) => {
+      const run: CliRun = await runCli([
+        "incident",
+        "create",
+        "--title",
+        "X",
+        ...flags,
+      ]);
 
-    expect(mockExecuteApiRequest).not.toHaveBeenCalled();
-    expect(run.exitCode).toBe(1);
-    expect(run.errors.join("\n")).toContain(message);
-  });
+      expect(mockExecuteApiRequest).not.toHaveBeenCalled();
+      expect(run.exitCode).toBe(1);
+      expect(run.errors.join("\n")).toContain(message);
+    },
+  );
 
   it("take a label's color, while the program's own --no-color stays its own", async () => {
-    await runCli(["label", "create", "--name", "Team: payments", "--color", "#32a852"]);
+    await runCli([
+      "label",
+      "create",
+      "--name",
+      "Team: payments",
+      "--color",
+      "#32a852",
+    ]);
 
-    expect(lastRequest().data).toEqual({ name: "Team: payments", color: "#32a852" });
+    expect(lastRequest().data).toEqual({
+      name: "Team: payments",
+      color: "#32a852",
+    });
 
-    await runCli(["--no-color", "label", "create", "--name", "Plain", "--color", "#000000"]);
+    await runCli([
+      "--no-color",
+      "label",
+      "create",
+      "--name",
+      "Plain",
+      "--color",
+      "#000000",
+    ]);
 
     expect(lastRequest().data).toEqual({ name: "Plain", color: "#000000" });
   });
@@ -313,17 +380,31 @@ describe("field flags", () => {
     expect(user?.person?.flag).toBe("--user-email");
     // The provider's, the dashboard's and the CLI's one sentence.
     expect(help).toContain(
-      describePersonEmail({ idName: "--user-id", isList: false, invitesByEmail: true }),
+      describePersonEmail({
+        idName: "--user-id",
+        isList: false,
+        invitesByEmail: true,
+      }),
     );
   });
 
   it("are Commander options whose stored value names their field", () => {
-    for (const resource of discoverResources().filter((candidate: ResourceInfo) => {
-      return ["incident", "monitor", "team-member", "on-call-policy"].includes(candidate.name);
-    })) {
+    for (const resource of discoverResources().filter(
+      (candidate: ResourceInfo) => {
+        return [
+          "incident",
+          "monitor",
+          "team-member",
+          "on-call-policy",
+        ].includes(candidate.name);
+      },
+    )) {
       const model: DatabaseBaseModel = new (modelType(resource.tableName))();
 
-      for (const flag of getCliFieldFlagsFor(modelType(resource.tableName), CliOperation.Create)) {
+      for (const flag of getCliFieldFlagsFor(
+        modelType(resource.tableName),
+        CliOperation.Create,
+      )) {
         const option: Option = new Option(`${flag.flag} ${flag.valueName}`);
 
         expect(option.long).toBe(flag.flag);

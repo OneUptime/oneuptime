@@ -722,7 +722,14 @@ describe("the CLI installed from it", () => {
         "false",
         "--json",
       ],
-      ["incident", "update", RECORD_ID, "--title", "Checkout is fast", "--json"],
+      [
+        "incident",
+        "update",
+        RECORD_ID,
+        "--title",
+        "Checkout is fast",
+        "--json",
+      ],
       [
         "incident",
         "get",

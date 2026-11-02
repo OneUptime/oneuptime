@@ -45,9 +45,12 @@ function requests(): Array<ApiRequestOptions> {
 }
 
 function rows(count: number, from: number = 0): Array<JSONObject> {
-  return Array.from({ length: count }, (_: unknown, index: number): JSONObject => {
-    return { _id: `row-${from + index}` };
-  });
+  return Array.from(
+    { length: count },
+    (_: unknown, index: number): JSONObject => {
+      return { _id: `row-${from + index}` };
+    },
+  );
 }
 
 describe("reading records", () => {
@@ -63,9 +66,19 @@ describe("reading records", () => {
 
   describe("--fields", () => {
     it("asks for the fields it names, the ID always among them", async () => {
-      await runCli(["incident", "list", "--fields", "title, createdAt", "--json"]);
+      await runCli([
+        "incident",
+        "list",
+        "--fields",
+        "title, createdAt",
+        "--json",
+      ]);
 
-      expect(requests()[0]?.select).toEqual({ _id: true, title: true, createdAt: true });
+      expect(requests()[0]?.select).toEqual({
+        _id: true,
+        title: true,
+        createdAt: true,
+      });
     });
 
     it("asks for a relation's ID and name, or for the field a dot names", async () => {
@@ -87,7 +100,12 @@ describe("reading records", () => {
     });
 
     it("refuses a field the resource does not have, naming the command that lists them", async () => {
-      const run: CliRun = await runCli(["incident", "list", "--fields", "titel"]);
+      const run: CliRun = await runCli([
+        "incident",
+        "list",
+        "--fields",
+        "titel",
+      ]);
 
       expect(run.exitCode).toBe(1);
       expect(mockExecuteApiRequest).not.toHaveBeenCalled();
@@ -99,9 +117,18 @@ describe("reading records", () => {
     it("works for telemetry, by its columns", async () => {
       await runCli(["log", "list", "--fields", "body,severityText", "--json"]);
 
-      expect(requests()[0]?.select).toEqual({ _id: true, body: true, severityText: true });
+      expect(requests()[0]?.select).toEqual({
+        _id: true,
+        body: true,
+        severityText: true,
+      });
 
-      const unknown: CliRun = await runCli(["log", "list", "--fields", "message"]);
+      const unknown: CliRun = await runCli([
+        "log",
+        "list",
+        "--fields",
+        "message",
+      ]);
 
       expect(unknown.exitCode).toBe(1);
     });
@@ -111,18 +138,27 @@ describe("reading records", () => {
     it("reads page after page until one comes back short, and prints them all", async () => {
       mockExecuteApiRequest
         .mockResolvedValueOnce(rows(LIST_ALL_PAGE_SIZE))
-        .mockResolvedValueOnce({ data: rows(LIST_ALL_PAGE_SIZE, LIST_ALL_PAGE_SIZE) })
+        .mockResolvedValueOnce({
+          data: rows(LIST_ALL_PAGE_SIZE, LIST_ALL_PAGE_SIZE),
+        })
         .mockResolvedValueOnce(rows(3, LIST_ALL_PAGE_SIZE * 2));
 
       const run: CliRun = await runCli(["monitor", "list", "--all", "--json"]);
 
       expect(run.exitCode).toBeUndefined();
-      expect(requests().map((request: ApiRequestOptions) => [request.skip, request.limit])).toEqual([
+      expect(
+        requests().map((request: ApiRequestOptions) => [
+          request.skip,
+          request.limit,
+        ]),
+      ).toEqual([
         [0, LIST_ALL_PAGE_SIZE],
         [LIST_ALL_PAGE_SIZE, LIST_ALL_PAGE_SIZE],
         [LIST_ALL_PAGE_SIZE * 2, LIST_ALL_PAGE_SIZE],
       ]);
-      expect((printedJson(run) as Array<unknown>).length).toBe(LIST_ALL_PAGE_SIZE * 2 + 3);
+      expect((printedJson(run) as Array<unknown>).length).toBe(
+        LIST_ALL_PAGE_SIZE * 2 + 3,
+      );
     });
 
     it("keeps the query and the sort on every page", async () => {
@@ -147,18 +183,28 @@ describe("reading records", () => {
 
       const run: CliRun = await runCli(["monitor", "list", "--all", "--json"]);
 
-      expect(requests()).toHaveLength(LIST_ALL_MAX_RECORDS / LIST_ALL_PAGE_SIZE);
+      expect(requests()).toHaveLength(
+        LIST_ALL_MAX_RECORDS / LIST_ALL_PAGE_SIZE,
+      );
       expect(run.errors.join("\n")).toContain(
         `Stopped after ${LIST_ALL_MAX_RECORDS} records.`,
       );
     });
 
     it("cannot be given with --limit or --skip", async () => {
-      const run: CliRun = await runCli(["monitor", "list", "--all", "--limit", "5"]);
+      const run: CliRun = await runCli([
+        "monitor",
+        "list",
+        "--all",
+        "--limit",
+        "5",
+      ]);
 
       expect(run.exitCode).toBe(1);
       expect(mockExecuteApiRequest).not.toHaveBeenCalled();
-      expect(run.errors.join("\n")).toContain("cannot be used with option '--limit <n>'");
+      expect(run.errors.join("\n")).toContain(
+        "cannot be used with option '--limit <n>'",
+      );
     });
 
     it("is for records only: telemetry is read a page at a time", async () => {
@@ -182,7 +228,9 @@ describe("reading records", () => {
             "API error (422): You do not have permissions to select on - postmortemNote. No permission allows it: the column is not readable through the API.",
           ),
         )
-        .mockResolvedValueOnce([{ _id: INCIDENT_ID, title: "Checkout is down" }]);
+        .mockResolvedValueOnce([
+          { _id: INCIDENT_ID, title: "Checkout is down" },
+        ]);
 
       const run: CliRun = await runCli(["incident", "list", "--json"]);
 
@@ -191,7 +239,9 @@ describe("reading records", () => {
       expect(requests()[0]?.select?.["rootCause"]).toBe(true);
       expect(requests()[1]?.select?.["rootCause"]).toBeUndefined();
       expect(requests()[2]?.select?.["postmortemNote"]).toBeUndefined();
-      expect(printedJson(run)).toEqual([{ _id: INCIDENT_ID, title: "Checkout is down" }]);
+      expect(printedJson(run)).toEqual([
+        { _id: INCIDENT_ID, title: "Checkout is down" },
+      ]);
       expect(run.errors).toEqual([
         "Left out fields this API key may not read: rootCause, postmortemNote.",
       ]);
@@ -206,7 +256,12 @@ describe("reading records", () => {
         )
         .mockResolvedValueOnce({ _id: INCIDENT_ID });
 
-      const run: CliRun = await runCli(["incident", "get", INCIDENT_ID, "--json"]);
+      const run: CliRun = await runCli([
+        "incident",
+        "get",
+        INCIDENT_ID,
+        "--json",
+      ]);
 
       expect(run.exitCode).toBeUndefined();
       expect(requests()).toHaveLength(2);
@@ -219,7 +274,12 @@ describe("reading records", () => {
         ),
       );
 
-      const run: CliRun = await runCli(["incident", "list", "--fields", "rootCause"]);
+      const run: CliRun = await runCli([
+        "incident",
+        "list",
+        "--fields",
+        "rootCause",
+      ]);
 
       expect(run.exitCode).toBe(1);
       expect(requests()).toHaveLength(1);
@@ -265,8 +325,14 @@ describe("reading records", () => {
   });
 
   it.each([
-    [["--limit", "ten"], '--limit takes a whole number, such as 10, and "ten" is not one.'],
-    [["--skip", "-5"], '--skip takes a whole number, such as 10, and "-5" is not one.'],
+    [
+      ["--limit", "ten"],
+      '--limit takes a whole number, such as 10, and "ten" is not one.',
+    ],
+    [
+      ["--skip", "-5"],
+      '--skip takes a whole number, such as 10, and "-5" is not one.',
+    ],
   ])("refuses %j as a page", async (flags: Array<string>, message: string) => {
     const run: CliRun = await runCli(["incident", "list", ...flags]);
 

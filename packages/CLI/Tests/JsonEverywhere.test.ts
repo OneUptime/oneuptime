@@ -46,7 +46,11 @@ import * as path from "path";
  * when JSON is asked for. And `whoami --check`, which asks OneUptime.
  */
 
-const CONFIG_FILE: string = path.join(os.homedir(), ".oneuptime", "config.json");
+const CONFIG_FILE: string = path.join(
+  os.homedir(),
+  ".oneuptime",
+  "config.json",
+);
 const PROJECT_ID: string = "0a6f5e2b-1c3d-4e5f-8a9b-0c1d2e3f4a5b";
 
 function requests(): Array<ApiRequestOptions> {
@@ -61,7 +65,9 @@ describe("JSON on every command", () => {
   beforeEach(() => {
     mockExecuteApiRequest.mockReset();
     mockGetServerVersion.mockReset();
-    mockExecuteApiRequest.mockResolvedValue([{ _id: INCIDENT_ID, title: "Down" }]);
+    mockExecuteApiRequest.mockResolvedValue([
+      { _id: INCIDENT_ID, title: "Down" },
+    ]);
 
     if (fs.existsSync(CONFIG_FILE)) {
       fs.unlinkSync(CONFIG_FILE);
@@ -77,8 +83,12 @@ describe("JSON on every command", () => {
     it("prints what -o json prints, in a terminal too", async () => {
       useTestCredentials();
 
-      const json: CliRun = await runCli(["incident", "list", "--json"], { isTTY: true });
-      const output: CliRun = await runCli(["incident", "list", "-o", "json"], { isTTY: true });
+      const json: CliRun = await runCli(["incident", "list", "--json"], {
+        isTTY: true,
+      });
+      const output: CliRun = await runCli(["incident", "list", "-o", "json"], {
+        isTTY: true,
+      });
 
       expect(json.printed).toEqual(output.printed);
       expect(printedJson(json)).toEqual([{ _id: INCIDENT_ID, title: "Down" }]);
@@ -87,9 +97,12 @@ describe("JSON on every command", () => {
     it("wins over -o table, wherever it is on the command line", async () => {
       useTestCredentials();
 
-      const run: CliRun = await runCli(["--json", "incident", "list", "-o", "table"], {
-        isTTY: true,
-      });
+      const run: CliRun = await runCli(
+        ["--json", "incident", "list", "-o", "table"],
+        {
+          isTTY: true,
+        },
+      );
 
       expect(printedJson(run)).toEqual([{ _id: INCIDENT_ID, title: "Down" }]);
     });
@@ -108,7 +121,10 @@ describe("JSON on every command", () => {
       ]) {
         const run: CliRun = await runCli([...command, "--help"]);
 
-        expect({ command, json: run.printed.join("\n").includes("--json") }).toEqual({
+        expect({
+          command,
+          json: run.printed.join("\n").includes("--json"),
+        }).toEqual({
           command,
           json: true,
         });
@@ -121,11 +137,23 @@ describe("JSON on every command", () => {
       useTestCredentials();
       mockExecuteApiRequest.mockResolvedValue({});
 
-      const terminal: CliRun = await runCli(["incident", "delete", INCIDENT_ID], { isTTY: true });
-      const pipe: CliRun = await runCli(["incident", "delete", INCIDENT_ID], { isTTY: false });
-      const json: CliRun = await runCli(["incident", "delete", INCIDENT_ID, "--json"]);
+      const terminal: CliRun = await runCli(
+        ["incident", "delete", INCIDENT_ID],
+        { isTTY: true },
+      );
+      const pipe: CliRun = await runCli(["incident", "delete", INCIDENT_ID], {
+        isTTY: false,
+      });
+      const json: CliRun = await runCli([
+        "incident",
+        "delete",
+        INCIDENT_ID,
+        "--json",
+      ]);
 
-      expect(terminal.printed).toEqual([`Incident ${INCIDENT_ID} deleted successfully.`]);
+      expect(terminal.printed).toEqual([
+        `Incident ${INCIDENT_ID} deleted successfully.`,
+      ]);
       expect(pipe.printed).toEqual(terminal.printed);
       expect(printedJson(json)).toEqual({ _id: INCIDENT_ID, deleted: true });
     });
@@ -154,33 +182,50 @@ describe("JSON on every command", () => {
         isCurrent: true,
       });
 
-      await runCli(["login", "sk-staging-key-0123456789", TEST_URL, "--context-name", "staging"]);
+      await runCli([
+        "login",
+        "sk-staging-key-0123456789",
+        TEST_URL,
+        "--context-name",
+        "staging",
+      ]);
 
-      expect(printedJson(await runCli(["context", "use", "production", "--json"]))).toEqual({
+      expect(
+        printedJson(await runCli(["context", "use", "production", "--json"])),
+      ).toEqual({
         name: "production",
         isCurrent: true,
       });
-      expect(printedJson(await runCli(["context", "current", "--json"]))).toEqual({
+      expect(
+        printedJson(await runCli(["context", "current", "--json"])),
+      ).toEqual({
         name: "production",
         apiUrl: TEST_URL,
         apiKey: maskApiKey(TEST_API_KEY),
       });
-      expect(printedJson(await runCli(["context", "delete", "staging", "--json"]))).toEqual({
+      expect(
+        printedJson(await runCli(["context", "delete", "staging", "--json"])),
+      ).toEqual({
         name: "staging",
         deleted: true,
       });
 
       await runCli(["context", "delete", "production"]);
 
-      expect(printedJson(await runCli(["context", "current", "--json"]))).toBeNull();
+      expect(
+        printedJson(await runCli(["context", "current", "--json"])),
+      ).toBeNull();
     });
 
     it("records a deploy, answering what OneUptime took", async () => {
       jest
         .spyOn(API, "post")
-        .mockResolvedValue(new HTTPResponse<JSONObject>(200, { ingested: 1, skipped: 0 }, {}));
+        .mockResolvedValue(
+          new HTTPResponse<JSONObject>(200, { ingested: 1, skipped: 0 }, {}),
+        );
       process.env["ONEUPTIME_URL"] = TEST_URL;
-      process.env["ONEUPTIME_TELEMETRY_INGESTION_KEY"] = "ingestion-key-0123456789";
+      process.env["ONEUPTIME_TELEMETRY_INGESTION_KEY"] =
+        "ingestion-key-0123456789";
 
       const run: CliRun = await runCli([
         "deploy",
@@ -209,7 +254,9 @@ describe("JSON on every command", () => {
     it("are one JSON object on standard error when JSON is asked for, with the same fields every time", async () => {
       useTestCredentials();
       mockExecuteApiRequest.mockRejectedValue(
-        new Error("API error (422): You do not have permissions to read Incident."),
+        new Error(
+          "API error (422): You do not have permissions to read Incident.",
+        ),
       );
 
       const run: CliRun = await runCli(["incident", "list", "--json"]);
@@ -219,7 +266,8 @@ describe("JSON on every command", () => {
       expect(run.errors).toHaveLength(1);
       expect(JSON.parse(run.errors[0] as string)).toEqual({
         error: {
-          message: "API error (422): You do not have permissions to read Incident.",
+          message:
+            "API error (422): You do not have permissions to read Incident.",
           status: 422,
           exitCode: 1,
           hint: "Give the API key one of the permissions the message names, in Project Settings → Advanced → API Keys.",
@@ -229,9 +277,13 @@ describe("JSON on every command", () => {
 
     it("say what to do next, on the line after the error, in a terminal", async () => {
       useTestCredentials();
-      mockExecuteApiRequest.mockRejectedValue(new Error("API error (404): Incident not found."));
+      mockExecuteApiRequest.mockRejectedValue(
+        new Error("API error (404): Incident not found."),
+      );
 
-      const run: CliRun = await runCli(["incident", "get", INCIDENT_ID], { isTTY: true });
+      const run: CliRun = await runCli(["incident", "get", INCIDENT_ID], {
+        isTTY: true,
+      });
 
       expect(run.exitCode).toBe(3);
       expect(run.errors).toEqual([
@@ -243,10 +295,17 @@ describe("JSON on every command", () => {
     it("name the fields command when OneUptime refuses a create's data", async () => {
       useTestCredentials();
       mockExecuteApiRequest.mockRejectedValue(
-        new Error('API error (400): Invalid data. "titel" is not a field of Incident.'),
+        new Error(
+          'API error (400): Invalid data. "titel" is not a field of Incident.',
+        ),
       );
 
-      const run: CliRun = await runCli(["incident", "create", "--data", '{"titel":"x"}']);
+      const run: CliRun = await runCli([
+        "incident",
+        "create",
+        "--data",
+        '{"titel":"x"}',
+      ]);
 
       expect(run.errors[1]).toBe(
         "`oneuptime incident fields` lists every field, and the flag that sets it.",
@@ -309,7 +368,9 @@ describe("whoami", () => {
 
   it("with --check, asks OneUptime for the key's project and its version", async () => {
     useTestCredentials();
-    mockExecuteApiRequest.mockResolvedValue([{ _id: PROJECT_ID, name: "Acme" }]);
+    mockExecuteApiRequest.mockResolvedValue([
+      { _id: PROJECT_ID, name: "Acme" },
+    ]);
     mockGetServerVersion.mockResolvedValue(readCliVersion());
 
     const run: CliRun = await runCli(["whoami", "--check"], { isTTY: true });
@@ -335,7 +396,9 @@ describe("whoami", () => {
 
   it("with --check, warns when the CLI is of another release than OneUptime, and says what to install", async () => {
     useTestCredentials();
-    mockExecuteApiRequest.mockResolvedValue([{ _id: PROJECT_ID, name: "Acme" }]);
+    mockExecuteApiRequest.mockResolvedValue([
+      { _id: PROJECT_ID, name: "Acme" },
+    ]);
     mockGetServerVersion.mockResolvedValue("14.0.2");
 
     const run: CliRun = await runCli(["whoami", "--check", "--json"]);
@@ -348,14 +411,18 @@ describe("whoami", () => {
         versionsMatch: false,
       }),
     );
-    expect(run.errors).toEqual([getVersionMismatchWarning(readCliVersion(), "14.0.2")]);
+    expect(run.errors).toEqual([
+      getVersionMismatchWarning(readCliVersion(), "14.0.2"),
+    ]);
     expect(run.errors[0]).toContain("npm install -g @oneuptime/cli@14.0.2");
   });
 
   it("with --check, still answers for a key that may not read its project", async () => {
     useTestCredentials();
     mockExecuteApiRequest.mockRejectedValue(
-      new Error("API error (422): You do not have permissions to read Project."),
+      new Error(
+        "API error (422): You do not have permissions to read Project.",
+      ),
     );
     mockGetServerVersion.mockResolvedValue(null);
 
@@ -368,7 +435,9 @@ describe("whoami", () => {
 
   it("with --check, exits with 2 for a key OneUptime refuses, and for no key at all", async () => {
     useTestCredentials();
-    mockExecuteApiRequest.mockRejectedValue(new Error("API error (400): Invalid API Key"));
+    mockExecuteApiRequest.mockRejectedValue(
+      new Error("API error (400): Invalid API Key"),
+    );
     mockGetServerVersion.mockResolvedValue("14.0.2");
 
     const refused: CliRun = await runCli(["whoami", "--check", "--json"]);
@@ -390,9 +459,12 @@ describe("whoami", () => {
     ["14.0.101", null, null],
     ["1.0.0", "14.0.101", null],
     ["14.0.101", "1.0.0", null],
-  ])("compares the CLI %s with OneUptime %s: %s", (cli: string, server: string | null, match: boolean | null) => {
-    expect(versionsMatch(cli, server)).toBe(match);
-  });
+  ])(
+    "compares the CLI %s with OneUptime %s: %s",
+    (cli: string, server: string | null, match: boolean | null) => {
+      expect(versionsMatch(cli, server)).toBe(match);
+    },
+  );
 
   it("masks every key but its first and last four characters", () => {
     expect(maskApiKey("sk-1234567890abcdef")).toBe("sk-1****cdef");

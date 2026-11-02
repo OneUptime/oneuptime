@@ -71,7 +71,9 @@ describe("a resource's fields", () => {
   });
 
   it("say what the resource is and every subcommand it has", () => {
-    const incident: ResourceDescription = describeResource(resource("incident"));
+    const incident: ResourceDescription = describeResource(
+      resource("incident"),
+    );
 
     expect({
       resource: incident.resource,
@@ -110,7 +112,9 @@ describe("a resource's fields", () => {
   });
 
   it("say which a create must give, the flag that sets it, and the resource an ID is of", () => {
-    const incident: ResourceDescription = describeResource(resource("incident"));
+    const incident: ResourceDescription = describeResource(
+      resource("incident"),
+    );
 
     expect(field(incident, "title")).toEqual(
       expect.objectContaining({
@@ -131,14 +135,31 @@ describe("a resource's fields", () => {
     expect(field(incident, "monitors")?.relatedResource).toBe("monitor");
     // Read, never written: no flag.
     expect(field(incident, "createdAt")).toEqual(
-      expect.objectContaining({ read: true, create: false, update: false, flag: null }),
+      expect.objectContaining({
+        read: true,
+        create: false,
+        update: false,
+        flag: null,
+      }),
     );
-    // The project comes from the key: no flag sets it.
-    expect(field(incident, "projectId")?.flag).toBeNull();
+    // The project comes from the key: no flag sets it, and no write sends it.
+    expect(field(incident, "projectId")).toEqual(
+      expect.objectContaining({
+        read: true,
+        required: false,
+        create: false,
+        update: false,
+        flag: null,
+      }),
+    );
+    expect(describeFlag(field(incident, "projectId"))).toBe("");
   });
 
   it("name a person's flag by address beside its ID's", () => {
-    const member: DescribedField = field(describeResource(resource("team-member")), "userId");
+    const member: DescribedField = field(
+      describeResource(resource("team-member")),
+      "userId",
+    );
 
     expect(member).toEqual(
       expect.objectContaining({ flag: "--user-id", emailFlag: "--user-email" }),
@@ -147,7 +168,10 @@ describe("a resource's fields", () => {
   });
 
   it("say a field whose name the CLI uses itself is set in --data", () => {
-    const url: DescribedField = field(describeResource(resource("data-source")), "url");
+    const url: DescribedField = field(
+      describeResource(resource("data-source")),
+      "url",
+    );
 
     expect(url).toEqual(expect.objectContaining({ create: true, flag: null }));
     expect(describeFlag(url)).toBe("in --data");
@@ -172,7 +196,9 @@ describe("a resource's fields", () => {
   });
 
   it("print as a table for people, with how to set a field without a flag", async () => {
-    const run: CliRun = await runCli(["data-source", "fields"], { isTTY: true });
+    const run: CliRun = await runCli(["data-source", "fields"], {
+      isTTY: true,
+    });
     const table: string = run.printed.join("\n");
 
     expect(table).toContain("Field");
@@ -188,12 +214,23 @@ describe("a resource's fields", () => {
   });
 
   it("word what a field may be written by", () => {
-    const base: DescribedField = field(describeResource(resource("incident")), "title");
+    const base: DescribedField = field(
+      describeResource(resource("incident")),
+      "title",
+    );
 
-    expect(describeWrites({ ...base, create: true, update: true })).toBe("create, update");
-    expect(describeWrites({ ...base, create: true, update: false })).toBe("create");
-    expect(describeWrites({ ...base, create: false, update: true })).toBe("update");
-    expect(describeWrites({ ...base, create: false, update: false })).toBe("read only");
+    expect(describeWrites({ ...base, create: true, update: true })).toBe(
+      "create, update",
+    );
+    expect(describeWrites({ ...base, create: true, update: false })).toBe(
+      "create",
+    );
+    expect(describeWrites({ ...base, create: false, update: true })).toBe(
+      "update",
+    );
+    expect(describeWrites({ ...base, create: false, update: false })).toBe(
+      "read only",
+    );
   });
 
   it("table every resource without an error", () => {

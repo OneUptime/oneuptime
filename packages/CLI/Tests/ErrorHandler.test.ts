@@ -243,7 +243,8 @@ describe("ErrorHandler", () => {
         hint: "In Bash and zsh, wrap JSON in single quotes. Or put it in a file and use --file.",
       },
       {
-        error: "Request failed to https://oneuptime.example.com/api/incident/get-list",
+        error:
+          "Request failed to https://oneuptime.example.com/api/incident/get-list",
         exitCode: ExitCode.GeneralError,
         status: null,
         hint: "Check the address with `oneuptime whoami`: it is the one you open OneUptime at, such as https://oneuptime.com.",

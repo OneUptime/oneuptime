@@ -109,7 +109,7 @@ function generalHint(
     return "Check the address with `oneuptime whoami`: it is the one you open OneUptime at, such as https://oneuptime.com.";
   }
 
-  if (message.startsWith("Context \"") && message.endsWith("does not exist.")) {
+  if (message.startsWith('Context "') && message.endsWith("does not exist.")) {
     return "`oneuptime context list` shows the saved contexts.";
   }
 
@@ -172,10 +172,7 @@ export function describeError(
  *
  *   {"error":{"message":"...","status":422,"exitCode":1,"hint":"..."}}
  */
-export function handleError(
-  error: unknown,
-  context: ErrorContext = {},
-): never {
+export function handleError(error: unknown, context: ErrorContext = {}): never {
   const described: DescribedError = describeError(error, context);
 
   if (isJsonRequested()) {

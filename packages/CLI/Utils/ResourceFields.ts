@@ -19,6 +19,7 @@ import {
   getCliDatabaseOperations,
   getCliFieldFlags,
   getCliResourceName,
+  isCliServerSetColumn,
 } from "Common/Utils/DeveloperDocs/CliCommands";
 import {
   getTerraformAttributes,
@@ -107,7 +108,10 @@ function getRelatedModels(
       related[name] = modelType;
     }
 
-    if (column.type === TableColumnType.Entity && column.manyToOneRelationColumn) {
+    if (
+      column.type === TableColumnType.Entity &&
+      column.manyToOneRelationColumn
+    ) {
       related[column.manyToOneRelationColumn] = modelType;
     }
   }
@@ -141,9 +145,11 @@ function describeDatabaseFields(
     ),
   );
   const flags: Map<string, CliFieldFlag> = new Map(
-    getCliFieldFlags(modelType).map((flag: CliFieldFlag): [string, CliFieldFlag] => {
-      return [flag.columnName, flag];
-    }),
+    getCliFieldFlags(modelType).map(
+      (flag: CliFieldFlag): [string, CliFieldFlag] => {
+        return [flag.columnName, flag];
+      },
+    ),
   );
   const fields: Array<DescribedField> = [];
 
@@ -158,15 +164,20 @@ function describeDatabaseFields(
     }
 
     const flag: CliFieldFlag | undefined = flags.get(name);
+    /*
+     * The project comes from the API key, and who created or deleted a
+     * record from the request: no create or update sets them.
+     */
+    const writable: boolean = !isCliServerSetColumn(name);
 
     fields.push({
       name,
       title: column.title || name,
       type: column.type,
       description: oneLine(column.description),
-      required: Boolean(descriptor?.isRequired),
-      create: Boolean(descriptor?.inCreateSchema),
-      update: Boolean(descriptor?.inUpdateSchema),
+      required: writable && Boolean(descriptor?.isRequired),
+      create: writable && Boolean(descriptor?.inCreateSchema),
+      update: writable && Boolean(descriptor?.inUpdateSchema),
       read,
       flag: flag?.flag || null,
       emailFlag: flag?.person?.flag || null,

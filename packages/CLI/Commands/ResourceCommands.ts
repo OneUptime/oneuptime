@@ -269,10 +269,7 @@ function registerListCommand(
             ? parseJsonArg(options.sort)
             : undefined;
 
-          const read: (
-            skip: number,
-            limit: number,
-          ) => Promise<JSONValue> = (
+          const read: (skip: number, limit: number) => Promise<JSONValue> = (
             skip: number,
             limit: number,
           ): Promise<JSONValue> => {
@@ -376,9 +373,7 @@ function readDataOptions(options: {
 }
 
 // The record's model, for its people named by email address.
-function databaseModelOf(
-  resource: ResourceInfo,
-): DatabaseBaseModelType | null {
+function databaseModelOf(resource: ResourceInfo): DatabaseBaseModelType | null {
   const found: CliResource | null = getCliResource(resource.name);
 
   return found ? getCliDatabaseModelType(found) : null;
@@ -653,8 +648,7 @@ function addFieldFlagsWhenRun(
         return;
       }
 
-      const modelType: DatabaseBaseModelType | null =
-        databaseModelOf(resource);
+      const modelType: DatabaseBaseModelType | null = databaseModelOf(resource);
 
       if (modelType) {
         addFieldFlags({ command: subcommand, modelType, operation: name });

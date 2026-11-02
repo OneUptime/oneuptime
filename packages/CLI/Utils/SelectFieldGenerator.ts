@@ -46,7 +46,10 @@ function shouldIncludeField(
 }
 
 // Whether a key may read a record's column (shouldIncludeField).
-export function isReadableColumn(model: BaseModel, columnName: string): boolean {
+export function isReadableColumn(
+  model: BaseModel,
+  columnName: string,
+): boolean {
   return shouldIncludeField(
     columnName,
     (model.getColumnAccessControlForAllColumns() || {}) as Record<

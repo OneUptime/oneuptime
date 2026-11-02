@@ -133,10 +133,7 @@ export function readFieldFlags(
       continue;
     }
 
-    data[flag.columnName] = parseCliFieldValue(
-      flag,
-      value as string | boolean,
-    );
+    data[flag.columnName] = parseCliFieldValue(flag, value as string | boolean);
   }
 
   return data;

@@ -129,7 +129,11 @@ async function requestOf(command: CliExample): Promise<ApiRequestOptions> {
 
   const run: CliRun = await runCli(command.args);
 
-  expect({ command: command.command, exitCode: run.exitCode, errors: run.errors }).toEqual({
+  expect({
+    command: command.command,
+    exitCode: run.exitCode,
+    errors: run.errors,
+  }).toEqual({
     command: command.command,
     exitCode: undefined,
     errors: [],
@@ -219,175 +223,184 @@ describe("the Developer > CLI pages' commands", () => {
     expect(PROFILED.length).toBeGreaterThan(30);
   });
 
-  it.each(PROFILED)("create %s with the data the API page sends", async (
-    _tableName: string,
-    modelType: DatabaseBaseModelType,
-  ) => {
-    if (!getCliDatabaseOperations(modelType).includes(CliOperation.Create)) {
-      return;
-    }
+  it.each(PROFILED)(
+    "create %s with the data the API page sends",
+    async (_tableName: string, modelType: DatabaseBaseModelType) => {
+      if (!getCliDatabaseOperations(modelType).includes(CliOperation.Create)) {
+        return;
+      }
 
-    const api: DeveloperDocsApiBody = getApiCreateExample({
-      modelType,
-      context: listContext(),
-    });
-
-    if (Object.keys(api.body).length === 0) {
-      return;
-    }
-
-    const command: CliExample = getCliCreateExample({
-      modelType,
-      values: api.body,
-      emailsById: EMAILS_BY_ID,
-    });
-
-    expectReadsBack(command);
-
-    const request: ApiRequestOptions = await requestOf(command);
-
-    expect(request.operation).toBe("create");
-    expect(request.data).toEqual(api.body);
-  });
-
-  it.each(PROFILED)("filter %s with the query, fields and order the API page sends", async (
-    _tableName: string,
-    modelType: DatabaseBaseModelType,
-  ) => {
-    const filters: Array<DeveloperDocsApiFilter> = getApiFilters({
-      modelType,
-      context: listContext(),
-    });
-
-    for (const filter of filters) {
-      const command: CliExample = getCliListExample({
+      const api: DeveloperDocsApiBody = getApiCreateExample({
         modelType,
-        query: filter.body["query"] as JSONObject,
-        select: filter.body["select"] as JSONObject,
-        sort: filter.body["sort"] as JSONObject,
-        limit: 10,
+        context: listContext(),
+      });
+
+      if (Object.keys(api.body).length === 0) {
+        return;
+      }
+
+      const command: CliExample = getCliCreateExample({
+        modelType,
+        values: api.body,
+        emailsById: EMAILS_BY_ID,
       });
 
       expectReadsBack(command);
 
       const request: ApiRequestOptions = await requestOf(command);
 
-      expect({ filter: filter.title, query: request.query, select: request.select, limit: request.limit }).toEqual({
-        filter: filter.title,
-        query: filter.body["query"],
-        select: filter.body["select"],
-        limit: 10,
+      expect(request.operation).toBe("create");
+      expect(request.data).toEqual(api.body);
+    },
+  );
+
+  it.each(PROFILED)(
+    "filter %s with the query, fields and order the API page sends",
+    async (_tableName: string, modelType: DatabaseBaseModelType) => {
+      const filters: Array<DeveloperDocsApiFilter> = getApiFilters({
+        modelType,
+        context: listContext(),
       });
 
-      // Newest first is the CLI's own order: left out, it is no sort.
-      const sort: JSONObject = filter.body["sort"] as JSONObject;
-
-      if (JSON.stringify(sort) !== JSON.stringify({ createdAt: "DESC" })) {
-        expect(request.sort).toEqual(sort);
-      }
-    }
-  });
-
-  it.each(PROFILED)("read %s with the fields the API page asks for", async (
-    _tableName: string,
-    modelType: DatabaseBaseModelType,
-  ) => {
-    if (!getCliDatabaseOperations(modelType).includes(CliOperation.Get)) {
-      return;
-    }
-
-    const select: JSONObject = getApiReadSelect(modelType);
-    const command: CliExample = getCliGetExample({
-      modelType,
-      id: FIXTURE_RECORD_ID,
-      select,
-    });
-
-    expectReadsBack(command);
-
-    const request: ApiRequestOptions = await requestOf(command);
-
-    expect(request.operation).toBe("read");
-    expect(request.id).toBe(FIXTURE_RECORD_ID);
-    expect(request.select).toEqual(select);
-  });
-
-  it.each(PROFILED)("change %s as the API page does", async (
-    _tableName: string,
-    modelType: DatabaseBaseModelType,
-  ) => {
-    if (!getCliDatabaseOperations(modelType).includes(CliOperation.Update)) {
-      return;
-    }
-
-    const update: { data: JSONObject; description: string } | null =
-      getApiUpdateExample({ modelType, context: viewContext() });
-
-    if (!update) {
-      return;
-    }
-
-    const command: CliExample = getCliUpdateExample({
-      modelType,
-      id: FIXTURE_RECORD_ID,
-      values: update.data,
-      emailsById: EMAILS_BY_ID,
-    });
-
-    expectReadsBack(command);
-
-    const request: ApiRequestOptions = await requestOf(command);
-
-    expect(request.operation).toBe("update");
-    expect(request.data).toEqual(update.data);
-  });
-
-  it.each(PROFILED)("run %s's tasks as the API page does, where the CLI has no button of its own for them", async (
-    _tableName: string,
-    modelType: DatabaseBaseModelType,
-  ) => {
-    const tasks: Array<DeveloperDocsApiTask> = getApiTasks({
-      modelType,
-      scope: "view",
-      context: viewContext(),
-    });
-
-    for (const task of tasks) {
-      if (getCliDatabaseOperations(task.modelType).length === 0) {
-        continue;
-      }
-
-      if (task.operation === "create") {
-        const command: CliExample = getCliCreateExample({
-          modelType: task.modelType,
-          values: task.body["data"] as JSONObject,
-          emailsById: EMAILS_BY_ID,
+      for (const filter of filters) {
+        const command: CliExample = getCliListExample({
+          modelType,
+          query: filter.body["query"] as JSONObject,
+          select: filter.body["select"] as JSONObject,
+          sort: filter.body["sort"] as JSONObject,
+          limit: 10,
         });
 
         expectReadsBack(command);
-        expect((await requestOf(command)).data).toEqual(task.body["data"]);
-        continue;
+
+        const request: ApiRequestOptions = await requestOf(command);
+
+        expect({
+          filter: filter.title,
+          query: request.query,
+          select: request.select,
+          limit: request.limit,
+        }).toEqual({
+          filter: filter.title,
+          query: filter.body["query"],
+          select: filter.body["select"],
+          limit: 10,
+        });
+
+        // Newest first is the CLI's own order: left out, it is no sort.
+        const sort: JSONObject = filter.body["sort"] as JSONObject;
+
+        if (JSON.stringify(sort) !== JSON.stringify({ createdAt: "DESC" })) {
+          expect(request.sort).toEqual(sort);
+        }
+      }
+    },
+  );
+
+  it.each(PROFILED)(
+    "read %s with the fields the API page asks for",
+    async (_tableName: string, modelType: DatabaseBaseModelType) => {
+      if (!getCliDatabaseOperations(modelType).includes(CliOperation.Get)) {
+        return;
       }
 
-      const command: CliExample = getCliListExample({
-        modelType: task.modelType,
-        query: task.body["query"] as JSONObject,
-        select: task.body["select"] as JSONObject,
-        sort: task.body["sort"] as JSONObject,
-        limit: 10,
+      const select: JSONObject = getApiReadSelect(modelType);
+      const command: CliExample = getCliGetExample({
+        modelType,
+        id: FIXTURE_RECORD_ID,
+        select,
       });
 
       expectReadsBack(command);
 
       const request: ApiRequestOptions = await requestOf(command);
 
-      expect({ task: task.title, query: request.query, select: request.select }).toEqual({
-        task: task.title,
-        query: task.body["query"],
-        select: task.body["select"],
+      expect(request.operation).toBe("read");
+      expect(request.id).toBe(FIXTURE_RECORD_ID);
+      expect(request.select).toEqual(select);
+    },
+  );
+
+  it.each(PROFILED)(
+    "change %s as the API page does",
+    async (_tableName: string, modelType: DatabaseBaseModelType) => {
+      if (!getCliDatabaseOperations(modelType).includes(CliOperation.Update)) {
+        return;
+      }
+
+      const update: { data: JSONObject; description: string } | null =
+        getApiUpdateExample({ modelType, context: viewContext() });
+
+      if (!update) {
+        return;
+      }
+
+      const command: CliExample = getCliUpdateExample({
+        modelType,
+        id: FIXTURE_RECORD_ID,
+        values: update.data,
+        emailsById: EMAILS_BY_ID,
       });
-    }
-  });
+
+      expectReadsBack(command);
+
+      const request: ApiRequestOptions = await requestOf(command);
+
+      expect(request.operation).toBe("update");
+      expect(request.data).toEqual(update.data);
+    },
+  );
+
+  it.each(PROFILED)(
+    "run %s's tasks as the API page does, where the CLI has no button of its own for them",
+    async (_tableName: string, modelType: DatabaseBaseModelType) => {
+      const tasks: Array<DeveloperDocsApiTask> = getApiTasks({
+        modelType,
+        scope: "view",
+        context: viewContext(),
+      });
+
+      for (const task of tasks) {
+        if (getCliDatabaseOperations(task.modelType).length === 0) {
+          continue;
+        }
+
+        if (task.operation === "create") {
+          const command: CliExample = getCliCreateExample({
+            modelType: task.modelType,
+            values: task.body["data"] as JSONObject,
+            emailsById: EMAILS_BY_ID,
+          });
+
+          expectReadsBack(command);
+          expect((await requestOf(command)).data).toEqual(task.body["data"]);
+          continue;
+        }
+
+        const command: CliExample = getCliListExample({
+          modelType: task.modelType,
+          query: task.body["query"] as JSONObject,
+          select: task.body["select"] as JSONObject,
+          sort: task.body["sort"] as JSONObject,
+          limit: 10,
+        });
+
+        expectReadsBack(command);
+
+        const request: ApiRequestOptions = await requestOf(command);
+
+        expect({
+          task: task.title,
+          query: request.query,
+          select: request.select,
+        }).toEqual({
+          task: task.title,
+          query: task.body["query"],
+          select: task.body["select"],
+        });
+      }
+    },
+  );
 
   it("name a person by the viewer's address, and send their ID", async () => {
     const command: CliExample = getCliCreateExample({

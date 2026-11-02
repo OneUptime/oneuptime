@@ -157,7 +157,12 @@ describe("the dashboard's buttons as commands", () => {
   it("acknowledge an incident: the project's acknowledged state, the incident's own, then a timeline row", async () => {
     project({ target: ACKNOWLEDGED, current: CREATED });
 
-    const run: CliRun = await runCli(["incident", "acknowledge", INCIDENT_ID, "--json"]);
+    const run: CliRun = await runCli([
+      "incident",
+      "acknowledge",
+      INCIDENT_ID,
+      "--json",
+    ]);
 
     expect(run.exitCode).toBeUndefined();
 
@@ -203,13 +208,17 @@ describe("the dashboard's buttons as commands", () => {
   it("leave an acknowledged incident as it is, exit 0, and say nothing changed", async () => {
     project({ target: ACKNOWLEDGED, current: ACKNOWLEDGED });
 
-    const run: CliRun = await runCli(["incident", "acknowledge", INCIDENT_ID, "--json"]);
+    const run: CliRun = await runCli([
+      "incident",
+      "acknowledge",
+      INCIDENT_ID,
+      "--json",
+    ]);
 
     expect(run.exitCode).toBeUndefined();
-    expect(requests().map((request: ApiRequestOptions) => request.operation)).toEqual([
-      "list",
-      "read",
-    ]);
+    expect(
+      requests().map((request: ApiRequestOptions) => request.operation),
+    ).toEqual(["list", "read"]);
     expect(printedJson(run)).toEqual({
       _id: INCIDENT_ID,
       action: "acknowledge",
@@ -229,7 +238,11 @@ describe("the dashboard's buttons as commands", () => {
 
     project({ target: ACKNOWLEDGED, current: investigating });
 
-    const later: CliRun = await runCli(["incident", "acknowledge", INCIDENT_ID]);
+    const later: CliRun = await runCli([
+      "incident",
+      "acknowledge",
+      INCIDENT_ID,
+    ]);
 
     expect(later.exitCode).toBeUndefined();
     expect(later.printed.join("\n")).toBe(
@@ -239,12 +252,21 @@ describe("the dashboard's buttons as commands", () => {
     mockExecuteApiRequest.mockReset();
     project({
       target: ACKNOWLEDGED,
-      current: { ...investigating, name: "Resolved", order: 4, isResolvedState: true },
+      current: {
+        ...investigating,
+        name: "Resolved",
+        order: 4,
+        isResolvedState: true,
+      },
     });
 
     await runCli(["incident", "acknowledge", INCIDENT_ID]);
 
-    expect(requests().some((request: ApiRequestOptions) => request.operation === "create")).toBe(false);
+    expect(
+      requests().some(
+        (request: ApiRequestOptions) => request.operation === "create",
+      ),
+    ).toBe(false);
   });
 
   it("resolve an incident unless it is resolved, and say so in a terminal", async () => {
@@ -261,22 +283,53 @@ describe("the dashboard's buttons as commands", () => {
     const run: CliRun = await runCli(["incident", "resolve", INCIDENT_ID]);
 
     expect(requests()[0]?.query).toEqual({ isResolvedState: true });
-    expect(requests()[2]?.data).toEqual({ incidentId: INCIDENT_ID, incidentStateId: STATE_ID });
-    expect(run.printed.join("\n")).toBe(`Incident ${INCIDENT_ID} resolved: it is in Resolved now.`);
+    expect(requests()[2]?.data).toEqual({
+      incidentId: INCIDENT_ID,
+      incidentStateId: STATE_ID,
+    });
+    expect(run.printed.join("\n")).toBe(
+      `Incident ${INCIDENT_ID} resolved: it is in Resolved now.`,
+    );
 
     mockExecuteApiRequest.mockReset();
     project({ target: resolved, current: resolved });
 
-    const again: CliRun = await runCli(["incident", "resolve", INCIDENT_ID, "--json"]);
+    const again: CliRun = await runCli([
+      "incident",
+      "resolve",
+      INCIDENT_ID,
+      "--json",
+    ]);
 
     expect((printedJson(again) as { changed: boolean }).changed).toBe(false);
     expect(requests()).toHaveLength(2);
   });
 
   it.each([
-    ["alert", "/alert-state", "/alert-state-timeline", "alertId", "alertStateId", "currentAlertState"],
-    ["incident-episode", "/incident-state", "/incident-episode-state-timeline", "incidentEpisodeId", "incidentStateId", "currentIncidentState"],
-    ["alert-episode", "/alert-state", "/alert-episode-state-timeline", "alertEpisodeId", "alertStateId", "currentAlertState"],
+    [
+      "alert",
+      "/alert-state",
+      "/alert-state-timeline",
+      "alertId",
+      "alertStateId",
+      "currentAlertState",
+    ],
+    [
+      "incident-episode",
+      "/incident-state",
+      "/incident-episode-state-timeline",
+      "incidentEpisodeId",
+      "incidentStateId",
+      "currentIncidentState",
+    ],
+    [
+      "alert-episode",
+      "/alert-state",
+      "/alert-episode-state-timeline",
+      "alertEpisodeId",
+      "alertStateId",
+      "currentAlertState",
+    ],
   ])(
     "acknowledge %s through its own states and timeline",
     async (
@@ -287,9 +340,18 @@ describe("the dashboard's buttons as commands", () => {
       stateColumn: string,
       relation: string,
     ) => {
-      project({ target: ACKNOWLEDGED, current: CREATED, currentRelation: relation });
+      project({
+        target: ACKNOWLEDGED,
+        current: CREATED,
+        currentRelation: relation,
+      });
 
-      const run: CliRun = await runCli([name, "acknowledge", INCIDENT_ID, "--json"]);
+      const run: CliRun = await runCli([
+        name,
+        "acknowledge",
+        INCIDENT_ID,
+        "--json",
+      ]);
 
       expect(run.exitCode).toBeUndefined();
       expect(requests()[0]?.apiPath).toBe(statePath);
@@ -305,11 +367,21 @@ describe("the dashboard's buttons as commands", () => {
   );
 
   it("start and end scheduled maintenance through its ongoing and ended states", async () => {
-    const ongoing: StateRow = { _id: STATE_ID, name: "Ongoing", order: 2, isOngoingState: true };
+    const ongoing: StateRow = {
+      _id: STATE_ID,
+      name: "Ongoing",
+      order: 2,
+      isOngoingState: true,
+    };
 
     project({
       target: ongoing,
-      current: { _id: OTHER_STATE_ID, name: "Scheduled", order: 1, isOngoingState: false },
+      current: {
+        _id: OTHER_STATE_ID,
+        name: "Scheduled",
+        order: 1,
+        isOngoingState: false,
+      },
       currentRelation: "currentScheduledMaintenanceState",
     });
 
@@ -380,7 +452,10 @@ describe("the dashboard's buttons as commands", () => {
       expect.objectContaining({
         apiPath: "/incident-internal-note",
         operation: "create",
-        data: { incidentId: INCIDENT_ID, note: "Rolled back the 14:05 deploy." },
+        data: {
+          incidentId: INCIDENT_ID,
+          note: "Rolled back the 14:05 deploy.",
+        },
       }),
     );
     expect(internal.printed.join("\n")).toBe(
@@ -424,9 +499,17 @@ describe("the dashboard's buttons as commands", () => {
     const missing: CliRun = await runCli(["incident", "add-note", INCIDENT_ID]);
 
     expect(missing.exitCode).toBe(1);
-    expect(missing.errors.join("\n")).toContain("required option '--note <markdown>' not specified");
+    expect(missing.errors.join("\n")).toContain(
+      "required option '--note <markdown>' not specified",
+    );
 
-    const blank: CliRun = await runCli(["incident", "add-note", INCIDENT_ID, "--note", "  "]);
+    const blank: CliRun = await runCli([
+      "incident",
+      "add-note",
+      INCIDENT_ID,
+      "--note",
+      "  ",
+    ]);
 
     expect(blank.exitCode).toBe(1);
     expect(blank.errors.join("\n")).toContain("--note needs the note's text.");
