@@ -44,6 +44,7 @@ import { TerraformVariableCollector } from "../../../Utils/DeveloperDocs/Terrafo
 import {
   FIXTURE_NOW,
   FIXTURE_RECORD_ID,
+  FIXTURE_USER_EMAIL,
   FIXTURE_USER_ID,
   fixtureRecordId,
   getEmptyFixtureLiveData,
@@ -90,6 +91,18 @@ function incidentPage(
       displayName: "Checkout requests are failing",
       json,
       terraformAddress: "oneuptime_incident.checkout_requests_are_failing",
+    },
+  };
+}
+
+function teamPage(): DeveloperDocsExampleContext {
+  return {
+    live: getFixtureLiveData(),
+    record: {
+      id: FIXTURE_RECORD_ID,
+      displayName: "Platform",
+      json: {},
+      terraformAddress: "oneuptime_team.platform",
     },
   };
 }
@@ -515,7 +528,7 @@ describe("recipes", () => {
     expect(recipe.isPlaceholder).toBe(true);
   });
 
-  test("a weekly rotation adds you to it", () => {
+  test("a weekly rotation adds you to it, by your email address", () => {
     const recipe: DeveloperDocsTerraformRecipe = getTerraformRecipes({
       modelType: OnCallDutyPolicySchedule,
       scope: "list",
@@ -523,9 +536,42 @@ describe("recipes", () => {
     })[0] as DeveloperDocsTerraformRecipe;
 
     expect(recipe.hcl).toContain(
-      `user_id                               = "${FIXTURE_USER_ID}" # you`,
+      `user_email                            = "${FIXTURE_USER_EMAIL}"`,
     );
+    expect(recipe.hcl).not.toContain(FIXTURE_USER_ID);
     expect(recipe.hcl).toContain('intervalType = "Week"');
+  });
+
+  test("a team and its first member: you, by your email address", () => {
+    const recipe: DeveloperDocsTerraformRecipe = getTerraformRecipes({
+      modelType: Team,
+      scope: "list",
+      context: project(),
+    })[0] as DeveloperDocsTerraformRecipe;
+
+    expect(recipe.title).toBe("Team with a member");
+    expect(recipe.description).toBe(
+      "A team and its first member, you. Add the others the same way, by their email addresses: anyone not in the project yet is invited.",
+    );
+    expect(recipe.hcl).toContain('resource "oneuptime_team_member" "me" {');
+    expect(recipe.hcl).toContain("team_id    = oneuptime_team.platform.id");
+    expect(recipe.hcl).toContain(`user_email = "${FIXTURE_USER_EMAIL}"`);
+    expect(recipe.hcl).not.toContain("user_id");
+    expect(recipe.hcl).not.toContain("has_accepted_invitation");
+  });
+
+  test("without your address, you are named by your user ID, as before", () => {
+    const live: DeveloperDocsLiveData = getFixtureLiveData();
+    delete live.currentUserEmail;
+
+    const recipe: DeveloperDocsTerraformRecipe = getTerraformRecipes({
+      modelType: Team,
+      scope: "view",
+      context: { ...teamPage(), live },
+    })[0] as DeveloperDocsTerraformRecipe;
+
+    expect(recipe.hcl).toContain(`user_id = "${FIXTURE_USER_ID}" # you`);
+    expect(recipe.hcl).not.toContain("user_email");
   });
 
   test("a data source for a model named by its title is refused", () => {

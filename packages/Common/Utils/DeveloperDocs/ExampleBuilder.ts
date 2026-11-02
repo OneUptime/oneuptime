@@ -946,6 +946,33 @@ export function getDeveloperDocsTerraformBlock(data: {
     }
 
     let item: HclBodyItem | null;
+    const viewerEmail: string | undefined =
+      data.context.live.currentUserEmail;
+
+    if (
+      descriptor.personEmail &&
+      !descriptor.personEmail.isList &&
+      field.value?.kind === "me" &&
+      viewerEmail
+    ) {
+      /*
+       * You, named the way a configuration names a person: by email address
+       * (user_email beside user_id), never by an ID nobody knows.
+       */
+      body.push(
+        Hcl.attribute(
+          descriptor.personEmail.attributeName,
+          Hcl.string(viewerEmail),
+        ),
+      );
+      rows.push({
+        name: descriptor.personEmail.attributeName,
+        about: getDeveloperDocsFieldAbout({ modelType: data.modelType, field }),
+        required: descriptor.isRequired,
+      });
+      usesProjectData = true;
+      continue;
+    }
 
     if (descriptor.secretKind) {
       item = Hcl.attribute(
