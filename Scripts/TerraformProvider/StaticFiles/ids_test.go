@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -63,6 +64,49 @@ func TestRecordIDValidatorRefusesANameAndSaysWhatToWrite(t *testing.T) {
 			!strings.Contains(detail, "oneuptime_team.<name>.id") {
 			t.Fatalf("%q: %s: %s", value, resp.Diagnostics[0].Summary(), detail)
 		}
+	}
+}
+
+// A record OneUptime makes itself (an AI run, a scan) has a data source and
+// no resource: the refusal points at the data source, never at a resource
+// a configuration cannot have.
+func TestRecordIDValidatorOfADataSourceOnlyTypePointsAtTheDataSource(t *testing.T) {
+	one := validateRecordID(dataSourceRecordIDValidators("oneuptime_ai_run")[0].(recordIDValidator), types.StringValue("last-night"))
+	if !one.Diagnostics.HasError() {
+		t.Fatal("a name was taken for an ID")
+	}
+	if detail := one.Diagnostics[0].Detail(); !strings.Contains(detail, "is not the ID of a oneuptime_ai_run") ||
+		!strings.Contains(detail, "Read the ID with the oneuptime_ai_run data source.") ||
+		strings.Contains(detail, "oneuptime_ai_run.<name>.id") {
+		t.Fatalf("detail: %s", detail)
+	}
+
+	// A set and a list of them say the same, and take UUIDs.
+	for _, set := range dataSourceRecordIDSetValidators("oneuptime_ai_run") {
+		resp := &validator.SetResponse{}
+		set.ValidateSet(context.Background(), validator.SetRequest{
+			Path:        path.Root("ai_run_ids"),
+			ConfigValue: types.SetValueMust(types.StringType, []attr.Value{types.StringValue("last-night"), types.StringValue("550e8400-e29b-41d4-a716-446655440000")}),
+		}, resp)
+		if resp.Diagnostics.ErrorsCount() != 1 || !strings.Contains(resp.Diagnostics[0].Detail(), "Read the ID with the oneuptime_ai_run data source.") {
+			t.Fatalf("set: %v", resp.Diagnostics)
+		}
+	}
+	for _, list := range dataSourceRecordIDListValidators("oneuptime_ai_run") {
+		resp := &validator.ListResponse{}
+		list.ValidateList(context.Background(), validator.ListRequest{
+			Path:        path.Root("ai_run_ids"),
+			ConfigValue: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("550e8400-e29b-41d4-a716-446655440000")}),
+		}, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("list: %v", resp.Diagnostics)
+		}
+	}
+
+	// A person is still named by their address, whatever the type has.
+	resp := validateRecordID(recordIDValidator{resourceType: personResourceType, dataSourceOnly: true}, types.StringValue("alice"))
+	if detail := resp.Diagnostics[0].Detail(); !strings.Contains(detail, "is not a user ID") {
+		t.Fatalf("person: %s", detail)
 	}
 }
 

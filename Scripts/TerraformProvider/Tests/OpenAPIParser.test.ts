@@ -334,7 +334,11 @@ describe("relations", () => {
     const attr: TerraformAttribute | undefined = getMonitor().schema["labels"];
 
     // Label has only a list endpoint in the fixture: a data source, no resource.
-    expect(attr?.relation).toEqual({ name: "label", isList: true });
+    expect(attr?.relation).toEqual({
+      name: "label",
+      isList: true,
+      dataSourceOnly: true,
+    });
     expect(attr?.description).toBe(
       "Attached labels. IDs of `oneuptime_label` records.",
     );

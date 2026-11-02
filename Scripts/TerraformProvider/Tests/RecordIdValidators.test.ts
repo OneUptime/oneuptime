@@ -119,7 +119,7 @@ describe("a resource's attributes that hold IDs of other records", () => {
           const settable: boolean = flags.required || flags.optional;
           const expected: string | null =
             attr.relation && settable && name !== "project_id"
-              ? `Validators: ${ResourceGenerator.RECORD_ID_VALIDATORS[attr.type]}("oneuptime_${attr.relation.name}")`
+              ? `Validators: ${ResourceGenerator.getRecordIdValidators(attr.relation, attr.type)}("oneuptime_${attr.relation.name}")`
               : null;
 
           if (expected) {
@@ -178,11 +178,65 @@ describe("a resource's attributes that hold IDs of other records", () => {
       path.join(STATIC_FILES, "ids.go"),
       "utf-8",
     );
-    for (const helper of Object.values(
-      ResourceGenerator.RECORD_ID_VALIDATORS,
-    )) {
+    for (const helper of [
+      ...Object.values(ResourceGenerator.RECORD_ID_VALIDATORS),
+      ...Object.values(ResourceGenerator.DATA_SOURCE_RECORD_ID_VALIDATORS),
+    ]) {
       expect(idsGo).toContain(`func ${helper}(resourceType string)`);
     }
+  });
+
+  /*
+   * A record OneUptime makes itself - an AI run, a scan, a log entry - has a
+   * data source and no resource: an ID of one is refused pointing at the
+   * data source, never at a resource a configuration cannot have.
+   */
+  test("the ID of a type with no resource of its own is held by the data source's validators", () => {
+    expect(
+      ResourceGenerator.getRecordIdValidators(
+        { name: "team", isList: false },
+        "string",
+      ),
+    ).toBe("recordIDValidators");
+    for (const [type, helper] of [
+      ["string", "dataSourceRecordIDValidators"],
+      ["set", "dataSourceRecordIDSetValidators"],
+      ["list", "dataSourceRecordIDListValidators"],
+    ]) {
+      expect(
+        ResourceGenerator.getRecordIdValidators(
+          { name: "ai_run", isList: type !== "string", dataSourceOnly: true },
+          type as string,
+        ),
+      ).toBe(helper);
+    }
+
+    // The parser marks a relation to a model with no create endpoint so.
+    const marked: Array<string> = [];
+    for (const fixture of fixtures) {
+      for (const owner of [...fixture.resources, ...fixture.dataSources]) {
+        for (const [name, attr] of Object.entries(owner.schema)) {
+          if (!attr.relation) {
+            continue;
+          }
+          const isResource: boolean = fixture.resources.some(
+            (resource: TerraformResource): boolean => {
+              return resource.name === attr.relation!.name;
+            },
+          );
+          expect([
+            owner.name,
+            name,
+            Boolean(attr.relation.dataSourceOnly),
+          ]).toEqual([owner.name, name, !isResource]);
+          if (attr.relation.dataSourceOnly) {
+            marked.push(`${owner.name}.${name}`);
+          }
+        }
+      }
+    }
+    // Who made a record names a person, which no resource makes.
+    expect(marked.length).toBeGreaterThan(0);
   });
 });
 
@@ -213,7 +267,7 @@ describe("a data source's lookups by the ID of another record", () => {
 
           if (isIDLookup) {
             expect(block).toContain(
-              `Validators: recordIDValidators("oneuptime_${attr.relation!.name}")`,
+              `Validators: ${ResourceGenerator.getRecordIdValidators(attr.relation!, "string")}("oneuptime_${attr.relation!.name}")`,
             );
             checked.push(`${dataSource.name}.${name}`);
           } else {
@@ -261,6 +315,10 @@ describe("ids.go", () => {
   test("says what to write instead of a name", () => {
     expect(idsGo).toContain(
       "Refer to the resource instead (%s.<name>.id), or read the ID with the %s data source.",
+    );
+    // A type with no resource: only its data source reads an ID.
+    expect(idsGo).toContain(
+      '"%q is not the ID of a %s: %s Read the ID with the %s data source."',
     );
     expect(idsGo).toContain(
       "Name the person by their email address, in %s, instead.",

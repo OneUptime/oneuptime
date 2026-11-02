@@ -96,6 +96,12 @@ export interface OpenAPISpec {
 export interface TerraformRelation {
   name: string;
   isList: boolean;
+  /*
+   * A type with a data source and no resource - a record OneUptime makes
+   * itself, such as an AI run or a scan: its ID is read with the data
+   * source, never referred to as a resource's.
+   */
+  dataSourceOnly?: boolean;
 }
 
 export interface TerraformResource {

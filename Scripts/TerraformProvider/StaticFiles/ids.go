@@ -36,6 +36,10 @@ type recordIDValidator struct {
 	resourceType string
 	// A person's ID: the attribute that names them by address instead.
 	emailAttribute string
+	// A record OneUptime makes itself - an AI run, a scan, a log entry -
+	// has a data source and no resource: its ID is read with the data
+	// source, never referred to as a resource's.
+	dataSourceOnly bool
 }
 
 func (v recordIDValidator) Description(ctx context.Context) string {
@@ -75,6 +79,13 @@ func (v recordIDValidator) detail(value string) string {
 		return fmt.Sprintf("%q is not a user ID: %s Read someone's ID with data.oneuptime_user.", value, looksLike)
 	}
 
+	if v.dataSourceOnly {
+		return fmt.Sprintf(
+			"%q is not the ID of a %s: %s Read the ID with the %s data source.",
+			value, v.resourceType, looksLike, v.resourceType,
+		)
+	}
+
 	return fmt.Sprintf(
 		"%q is not the ID of a %s: %s Refer to the resource instead (%s.<name>.id), or read the ID with the %s data source.",
 		value, v.resourceType, looksLike, v.resourceType, v.resourceType,
@@ -94,4 +105,22 @@ func recordIDSetValidators(resourceType string) []validator.Set {
 // recordIDListValidators: the IDs of records of resourceType, in order.
 func recordIDListValidators(resourceType string) []validator.List {
 	return []validator.List{listvalidator.ValueStringsAre(recordIDValidator{resourceType: resourceType})}
+}
+
+// dataSourceRecordIDValidators: the ID of one record of resourceType, a
+// type with a data source and no resource.
+func dataSourceRecordIDValidators(resourceType string) []validator.String {
+	return []validator.String{recordIDValidator{resourceType: resourceType, dataSourceOnly: true}}
+}
+
+// dataSourceRecordIDSetValidators: the IDs of records of resourceType, a
+// type with a data source and no resource, as a set.
+func dataSourceRecordIDSetValidators(resourceType string) []validator.Set {
+	return []validator.Set{setvalidator.ValueStringsAre(recordIDValidator{resourceType: resourceType, dataSourceOnly: true})}
+}
+
+// dataSourceRecordIDListValidators: the IDs of records of resourceType, a
+// type with a data source and no resource, in order.
+func dataSourceRecordIDListValidators(resourceType string) []validator.List {
+	return []validator.List{listvalidator.ValueStringsAre(recordIDValidator{resourceType: resourceType, dataSourceOnly: true})}
 }

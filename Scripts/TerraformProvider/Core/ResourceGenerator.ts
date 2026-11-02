@@ -3,6 +3,7 @@ import {
   OpenAPISpec,
   TerraformResource,
   TerraformAttribute,
+  TerraformRelation,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
@@ -57,6 +58,31 @@ export class ResourceGenerator {
     set: "recordIDSetValidators",
     list: "recordIDListValidators",
   };
+
+  /*
+   * The same for the ID of a type with a data source and no resource (an
+   * AI run, a scan): the refusal says to read the ID with the data source,
+   * not to refer to a resource there is none of.
+   */
+  public static readonly DATA_SOURCE_RECORD_ID_VALIDATORS: Readonly<
+    Record<string, string>
+  > = {
+    string: "dataSourceRecordIDValidators",
+    set: "dataSourceRecordIDSetValidators",
+    list: "dataSourceRecordIDListValidators",
+  };
+
+  // The ID validators of an attribute of `type` that holds `relation`'s IDs.
+  public static getRecordIdValidators(
+    relation: TerraformRelation,
+    type: string,
+  ): string | undefined {
+    return (
+      relation.dataSourceOnly
+        ? ResourceGenerator.DATA_SOURCE_RECORD_ID_VALIDATORS
+        : ResourceGenerator.RECORD_ID_VALIDATORS
+    )[type];
+  }
 
   /*
    * Read-only attributes the server sets once, at create, and never changes
@@ -1320,7 +1346,7 @@ ${this.generateValidObjectTypesMap()}
     } else if (attr.relation && !isComputedOnly && !isProjectIdField) {
       // The ID of another record, a UUID (StaticFiles/ids.go).
       const helper: string | undefined =
-        ResourceGenerator.RECORD_ID_VALIDATORS[attr.type];
+        ResourceGenerator.getRecordIdValidators(attr.relation, attr.type);
       if (helper) {
         validators = `,
                 Validators: ${helper}("${this.providerName}_${attr.relation.name}")`;

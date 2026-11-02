@@ -540,7 +540,11 @@ export class OpenAPIParser {
       const isList: boolean =
         attribute.type === "list" || attribute.type === "set";
 
-      attribute.relation = { name, isList };
+      attribute.relation = {
+        name,
+        isList,
+        ...(targets.resources.has(name) ? {} : { dataSourceOnly: true }),
+      };
 
       const target: string = `\`oneuptime_${name}\``;
       const sentence: string = isList

@@ -5,6 +5,7 @@ import {
   TerraformAttribute,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
+import { ResourceGenerator } from "./ResourceGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
@@ -323,7 +324,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
     } else if (attr.isLookupFilter && attr.relation && attr.type === "string") {
       // Looked up by the ID of another record, a UUID (ids.go).
       options.push(
-        `Validators: recordIDValidators("${this.providerName}_${attr.relation.name}")`,
+        `Validators: ${ResourceGenerator.getRecordIdValidators(attr.relation, "string")}("${this.providerName}_${attr.relation.name}")`,
       );
     }
     if (attr.personEmailOf) {
