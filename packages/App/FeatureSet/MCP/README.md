@@ -328,6 +328,10 @@ To publish before the next release, run the script by hand from the repository r
 
 [`ChatGPTPlugin/`](ChatGPTPlugin/README.md) is the package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and Codex share: the listing, five positive and three negative review test cases, and `mcp.json`, which points at `https://oneuptime.com/mcp` and signs in with OAuth for read and write access. `npm run build-chatgpt-plugin` builds the ZIP. Its README lists what else a submission needs: a verified developer identity, a domain-verification token served at `https://oneuptime.com/.well-known/openai-apps-challenge`, reviewer credentials for a demo project, and a demo video. `Tests/ChatGPTPlugin.test.ts` holds the package to the Agent Plugins schemas and OpenAI's limits, and checks that every tool a test case names is one this server has.
 
+## Coding agent plugin
+
+[`CodingAgentPlugin/`](CodingAgentPlugin/README.md) is the plugin OneUptime lists for coding agents in Cursor's Marketplace and the Claude directory. It holds the hosted server's address and four skills: adding OpenTelemetry, setting up monitors and a status page, investigating an incident, and using the CLI in scripts and CI. `npm run build-coding-agent-plugin` builds a folder with the Agent Plugins, Cursor and Claude manifests side by side, taking the listing's words, links and icon from `ChatGPTPlugin/`. Both directories read a plugin from a public Git repository of its own, which a maintainer creates and submits: its README lists those steps. `Tests/CodingAgentPlugin.test.ts` runs the build, checks the folder against the Agent Plugins schemas and each directory's rules, and checks every tool and JSON example a skill names against this server.
+
 ## Development
 
 The MCP server lives in `packages/App/FeatureSet/MCP` and is mounted into the App service at startup (`packages/App/Index.ts`). Tests live in `packages/App/FeatureSet/MCP/Tests` and run as part of the App test suite:
