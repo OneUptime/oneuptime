@@ -8,6 +8,7 @@ import {
 } from "./Types";
 import { StringUtils } from "./StringUtils";
 import {
+  describePersonEmail,
   getPersonEmailColumnName,
   isDecidedBySomeoneElse,
   isInvitedByEmail,
@@ -593,21 +594,21 @@ export class OpenAPIParser {
     };
   }
 
-  // What a person attribute's email companion says it is.
+  /*
+   * What a person attribute's email companion says it is: Common's words
+   * (PeopleByEmail.describePersonEmail), which the dashboard's Terraform
+   * examples use for the same attribute.
+   */
   public static getPersonEmailDescription(data: {
     idAttribute: string;
     isList: boolean;
     invitesByEmail: boolean;
   }): string {
-    if (data.isList) {
-      return `The email addresses of the people in \`${data.idAttribute}\`, instead of their IDs: each one of someone in this project, or invited to it. Give one of the two.`;
-    }
-
-    if (data.invitesByEmail) {
-      return `The email address of the person in \`${data.idAttribute}\`, instead of their ID. Someone who is not in the project yet is invited to it, as the dashboard's Invite does: OneUptime emails them, and they join when they accept. Give one of the two.`;
-    }
-
-    return `The email address of the person in \`${data.idAttribute}\`, instead of their ID: someone in this project, or invited to it. Give one of the two.`;
+    return describePersonEmail({
+      idName: data.idAttribute,
+      isList: data.isList,
+      invitesByEmail: data.invitesByEmail,
+    });
   }
 
   /*

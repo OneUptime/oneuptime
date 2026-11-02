@@ -108,18 +108,6 @@ func (d *peopleDirectory) lookupID(id string) *projectPerson {
 	return d.byID[strings.ToLower(id)]
 }
 
-// forget drops what is remembered of a person whose memberships changed.
-func (d *peopleDirectory) forget(id string, email string) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if person := d.byID[strings.ToLower(id)]; person != nil {
-		delete(d.byEmail, normalizePersonEmail(person.Email))
-	}
-	delete(d.byID, strings.ToLower(id))
-	delete(d.byEmail, normalizePersonEmail(email))
-}
-
 // normalizePersonEmail is how two addresses compare: OneUptime stores every
 // address trimmed and in lower case.
 func normalizePersonEmail(email string) string {
@@ -828,7 +816,7 @@ func personEmailsAfterRead(ctx context.Context, client *Client, priorIDs types.S
 		return types.SetNull(types.StringType)
 	}
 
-	if !priorEmails.IsNull() && !priorEmails.IsUnknown() && sameIDSets(context.Background(), priorIDs, ids) {
+	if !priorEmails.IsNull() && !priorEmails.IsUnknown() && sameIDSets(ctx, priorIDs, ids) {
 		return priorEmails
 	}
 

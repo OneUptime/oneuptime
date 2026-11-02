@@ -78,6 +78,28 @@ export function getPersonEmailColumnName(
   return `${columnName}Email`;
 }
 
+/*
+ * What the companion says it is, wherever a client describes it: the
+ * provider's attribute (`user_email`), the dashboard's field list under a
+ * Terraform example, and the CLI's flag. `idName` is the client's name for
+ * the column it sits beside: `user_id` in Terraform.
+ */
+export function describePersonEmail(data: {
+  idName: string;
+  isList: boolean;
+  invitesByEmail: boolean;
+}): string {
+  if (data.isList) {
+    return `The email addresses of the people in \`${data.idName}\`, instead of their IDs: each one of someone in this project, or invited to it. Give one of the two.`;
+  }
+
+  if (data.invitesByEmail) {
+    return `The email address of the person in \`${data.idName}\`, instead of their ID. Someone who is not in the project yet is invited to it, as the dashboard's Invite does: OneUptime emails them, and they join when they accept. Give one of the two.`;
+  }
+
+  return `The email address of the person in \`${data.idName}\`, instead of their ID: someone in this project, or invited to it. Give one of the two.`;
+}
+
 // Whether a column that refers to `relatedTableName` names a person.
 export function isPersonRelation(
   relatedTableName: string | null | undefined,

@@ -283,24 +283,6 @@ func TestPeopleReadBypassesWhatIsRemembered(t *testing.T) {
 	}
 }
 
-func TestPeopleForget(t *testing.T) {
-	api, client := newDirectoryAPI(t, func(body map[string]interface{}) (int, interface{}) {
-		return page(membership("u7", "team-a", true, "erin@example.com", nil))
-	})
-	ctx := context.Background()
-
-	if _, err := client.findPersonByEmail(ctx, "erin@example.com"); err != nil {
-		t.Fatalf("findPersonByEmail: %s", err)
-	}
-	client.people.forget("u7", "")
-	if _, err := client.findPersonByEmail(ctx, "erin@example.com"); err != nil {
-		t.Fatalf("findPersonByEmail: %s", err)
-	}
-	if api.requestCount() != 2 {
-		t.Fatalf("%d requests, want the forgotten person asked again", api.requestCount())
-	}
-}
-
 func TestPeopleEmailAddressValidator(t *testing.T) {
 	for value, valid := range map[string]bool{
 		"alice@example.com":              true,

@@ -25,6 +25,7 @@ import {
   DeveloperDocsLiveRecord,
   pickDeveloperDocsLiveRecord,
 } from "./LiveData";
+import { describePersonEmail } from "./PeopleByEmail";
 import {
   COMMON_FIELD_ABOUT,
   DeveloperDocsField,
@@ -966,7 +967,14 @@ export function getDeveloperDocsTerraformBlock(data: {
       );
       rows.push({
         name: descriptor.personEmail.attributeName,
-        about: getDeveloperDocsFieldAbout({ modelType: data.modelType, field }),
+        // The address's own line, not the ID column's ("ID of the person...").
+        about:
+          field.about ||
+          describePersonEmail({
+            idName: descriptor.attributeName,
+            isList: descriptor.personEmail.isList,
+            invitesByEmail: descriptor.personEmail.invitesByEmail,
+          }),
         required: descriptor.isRequired,
       });
       usesProjectData = true;

@@ -4,7 +4,9 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
@@ -19,6 +21,7 @@ import {
   DeveloperDocsApiTask,
   DeveloperDocsExampleContext,
   DeveloperDocsExampleError,
+  DeveloperDocsFieldRow,
   DeveloperDocsTerraformExample,
   DeveloperDocsTerraformRecipe,
   getApiCreateExample,
@@ -40,6 +43,8 @@ import {
 } from "../../../Utils/DeveloperDocs/ExampleBuilder";
 import { printHclDocument } from "../../../Utils/DeveloperDocs/Hcl";
 import { DeveloperDocsLiveData } from "../../../Utils/DeveloperDocs/LiveData";
+import { describePersonEmail } from "../../../Utils/DeveloperDocs/PeopleByEmail";
+import { DeveloperDocsField } from "../../../Utils/DeveloperDocs/ResourceProfiles";
 import { TerraformVariableCollector } from "../../../Utils/DeveloperDocs/TerraformValues";
 import {
   FIXTURE_NOW,
@@ -618,6 +623,73 @@ describe("blocks", () => {
 
     expect(hcl).toContain('name  = "SEV-1"');
     expect(hcl).toMatch(/color = "/);
+  });
+
+  test("you, named by your address, get the address's line in the field list, not the user ID's", () => {
+    const rowsOf: (
+      modelType: DatabaseBaseModelType,
+      fields: Array<DeveloperDocsField>,
+    ) => Array<DeveloperDocsFieldRow> = (
+      modelType: DatabaseBaseModelType,
+      fields: Array<DeveloperDocsField>,
+    ): Array<DeveloperDocsFieldRow> => {
+      return getDeveloperDocsTerraformBlock({
+        modelType,
+        fields,
+        context: project(),
+        variables: new TerraformVariableCollector(),
+      }).rows;
+    };
+    const emailRow: (
+      rows: Array<DeveloperDocsFieldRow>,
+    ) => DeveloperDocsFieldRow | undefined = (
+      rows: Array<DeveloperDocsFieldRow>,
+    ): DeveloperDocsFieldRow | undefined => {
+      return rows.find((row: DeveloperDocsFieldRow): boolean => {
+        return row.name === "user_email";
+      });
+    };
+
+    const member: Array<DeveloperDocsFieldRow> = rowsOf(TeamMember, [
+      { column: "teamId" },
+      { column: "userId", value: { kind: "me" } },
+    ]);
+    const memberEmail: DeveloperDocsFieldRow | undefined = emailRow(member);
+
+    // Who it is, by address: a team member invites someone new.
+    expect(memberEmail?.about).toBe(
+      describePersonEmail({
+        idName: "user_id",
+        isList: false,
+        invitesByEmail: true,
+      }),
+    );
+    // Not the ID column's line: "ID of the person in the team."
+    expect(memberEmail?.about).not.toContain("ID of");
+    expect(memberEmail?.required).toBe(true);
+    expect(
+      member.map((row: DeveloperDocsFieldRow): string => {
+        return row.name;
+      }),
+    ).not.toContain("user_id");
+
+    // Anyone else is found among the project's people, never invited.
+    const layerUser: Array<DeveloperDocsFieldRow> = rowsOf(
+      OnCallDutyPolicyScheduleLayerUser,
+      [
+        { column: "onCallDutyPolicyScheduleId" },
+        { column: "onCallDutyPolicyScheduleLayerId" },
+        { column: "userId", value: { kind: "me" } },
+      ],
+    );
+
+    expect(emailRow(layerUser)?.about).toBe(
+      describePersonEmail({
+        idName: "user_id",
+        isList: false,
+        invitesByEmail: false,
+      }),
+    );
   });
 
   test("a field that is not an attribute the resource can be created with is refused", () => {
