@@ -5,7 +5,8 @@ import path from "path";
  * Where each asset detail came from, and when (OneUptime issue #5185), end
  * to end in a browser, against the fixture's in-page API
  * (AssetDetails/Fixture.js): Inventory's Asset Details card, a network
- * device's own Inventory card and its Overview, for a switch OneUptime only
+ * device's own Inventory card and its Overview (and an Inventory item's own
+ * page, with its Security card), for a switch OneUptime only
  * pings (its details from a discovery scan, its MAC from a router's ARP
  * table), a switch walked over SNMP, one walked days ago and scanned since,
  * values someone saved that discovery reads differently, values typed by
@@ -670,6 +671,235 @@ test.describe("the device's Overview", () => {
     await expect(page.getByText("Device Details")).toBeVisible();
     await expect(card).toHaveCount(0);
   });
+});
+
+/*
+ * The way back from Security Events on an Inventory item's own page
+ * (Pages/Inventory/View/Index.tsx): a Windows host its collector reports,
+ * whose Security card names it by its name - its address is a private one,
+ * which names no machine for sure - with the open case naming it, its week
+ * of events and findings, and its risk (?page=inventory&scenario=host).
+ */
+const ITEM_ID: string = "60000000-0000-4000-8000-000000000001";
+const HOST_ITEM_NAME: string = "wbqajdebsv001";
+
+interface SecurityAsk {
+  kind: string;
+  id: string;
+}
+
+// The item's page, at its own address; its header card names it.
+async function openInventoryItem(
+  page: Page,
+  query: string = "",
+): Promise<void> {
+  await page.goto(`/inventory/${ITEM_ID}?page=inventory&scenario=host${query}`);
+  await expect(page.getByTestId("fixture-page")).toBeVisible();
+  await expect(page.getByTestId("inventory-asset-details")).toBeVisible();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
+/*
+ * A case row's number beside its title's first line, in the page's reading
+ * direction: the gap from the number's end to the title's start, and
+ * whether the two share a line. The number comes first, at the line's
+ * start, with its gap between them - on a right-to-left page too, where a
+ * number and a title written in Latin letters once ran together as one
+ * left-to-right run, the number on the far side.
+ */
+async function caseNumberBesideTitle(
+  row: Locator,
+  number: string,
+): Promise<{ gap: number; isOneLine: boolean }> {
+  return await row.evaluate((element: Element, numberText: string) => {
+    const leaves: Array<Element> = Array.from(
+      element.querySelectorAll("*"),
+    ).filter((candidate: Element): boolean => {
+      return candidate.children.length === 0;
+    });
+    const numberPart: Element = leaves.find((candidate: Element): boolean => {
+      return (candidate.textContent || "").trim() === numberText;
+    })!;
+    // The title: the next leaf with words in it, after the number.
+    const titlePart: Element = leaves
+      .slice(leaves.indexOf(numberPart) + 1)
+      .find((candidate: Element): boolean => {
+        return (candidate.textContent || "").trim().length > 0;
+      })!;
+    const numberBox: DOMRect = numberPart.getBoundingClientRect();
+    const titleLine: DOMRect = titlePart.getClientRects()[0]!;
+    const isRightToLeft: boolean =
+      getComputedStyle(element).direction === "rtl";
+    return {
+      gap: isRightToLeft
+        ? numberBox.left - titleLine.right
+        : titleLine.left - numberBox.right,
+      isOneLine: Math.abs(numberBox.top - titleLine.top) < 4,
+    };
+  }, number);
+}
+
+// What the page's Security card asked Security Events about.
+async function securityAsks(page: Page): Promise<Array<SecurityAsk>> {
+  return await page.evaluate(() => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __assetDetailsFixture: { state: { securityAsks: unknown } };
+          }
+        ).__assetDetailsFixture.state.securityAsks,
+      ),
+    );
+  });
+}
+
+test.describe("an Inventory item's page: its Security card", () => {
+  test("it asks about the item by its kind and id, and draws the case naming it, its week and its risk, each opening Security Events", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = [];
+    page.on("pageerror", (error: Error) => {
+      errors.push(String(error));
+    });
+    const dashboard: string = "/dashboard/10000000-0000-4000-8000-000000000001";
+    await openInventoryItem(page, "&security=news");
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "news");
+    await expect(card).toContainText(
+      "What Security Events found about it in the last 7 days.",
+    );
+    expect(await securityAsks(page)).toEqual([
+      { kind: "InventoryItem", id: ITEM_ID },
+    ]);
+
+    const events: Locator = card.getByTestId("resource-security-open");
+    await expect(events).toHaveText("18");
+    const search: URL = new URL(
+      (await events.getAttribute("href"))!,
+      "http://127.0.0.1",
+    );
+    expect(search.pathname).toBe(`${dashboard}/security-events`);
+    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
+      `observable:${HOST_ITEM_NAME}`,
+    );
+    await expect(card).toContainText("41");
+    await expect(card).toContainText("High");
+
+    const cases: Locator = card.getByTestId("resource-security-cases");
+    await expect(cases.getByTestId("resource-security-case")).toHaveCount(1);
+    expect(
+      await cases
+        .getByRole("link", { name: /Repeated failed RDP sign-ins/ })
+        .getAttribute("href"),
+    ).toBe(
+      `${dashboard}/security-events/cases/20000000-0000-4000-8000-000000000141`,
+    );
+    const entity: URL = new URL(
+      (await card
+        .getByRole("link", { name: "Open in Security Events" })
+        .getAttribute("href"))!,
+      "http://127.0.0.1",
+    );
+    expect(entity.pathname).toBe(
+      `${dashboard}/security-events/entity-risk/entity`,
+    );
+    expect(entity.searchParams.get("value")).toBe(HOST_ITEM_NAME);
+
+    /*
+     * The rest of the page is the real one around it: the item's header
+     * card links to its host page, and nothing the fixture does not model
+     * was read (an unmodelled read throws, and the page would say so).
+     */
+    expect(
+      await page
+        .getByRole("link", { name: "Open host dashboard" })
+        .getAttribute("href"),
+    ).toBe(`${dashboard}/host/70000000-0000-4000-8000-000000000001`);
+    await expect(
+      page.getByText("This inventory item could not be found."),
+    ).toHaveCount(0);
+    expect(errors).toEqual([]);
+
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await card.scrollIntoViewIfNeeded();
+    await card.screenshot({
+      path: path.join(SCREENSHOTS, "inventory-security-card-1280-light.png"),
+      animations: "disabled",
+    });
+  });
+
+  test("a quiet week says so in one line, and a project that uses no Security Events is told nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openInventoryItem(page, "&security=quiet");
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "quiet");
+    await expect(card).toContainText(
+      "No security event named it in the last 7 days.",
+    );
+
+    await openInventoryItem(page);
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return (await securityAsks(page)).length;
+        },
+        { timeout: 30000 },
+      )
+      .toBe(1);
+    await expect(card).toHaveCount(0);
+  });
+
+  for (const [name, query, slug] of [
+    ["390, dark", "&theme=dark", "390-dark"],
+    ["390, Persian right to left", "&lang=fa", "390-fa"],
+  ] as Array<[string, string, string]>) {
+    test(`at ${name}: the card reads whole, its case inside it, and nothing scrolls sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openInventoryItem(page, `&security=news${query}`);
+      const card: Locator = page.getByTestId("resource-security-card");
+      await expect(card.getByTestId("resource-security-case")).toBeVisible({
+        timeout: 30000,
+      });
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      expect(
+        await staysInside(card.getByTestId("resource-security-case"), card),
+      ).toBe(true);
+      const cardBox: { x: number; width: number } = (await card.boundingBox())!;
+      const caseBox: { x: number; width: number } = (await card
+        .getByTestId("resource-security-case")
+        .boundingBox())!;
+      expect(caseBox.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+
+      // The case's number first, its gap between it and the title.
+      const beside: { gap: number; isOneLine: boolean } =
+        await caseNumberBesideTitle(
+          card.getByTestId("resource-security-case"),
+          "SEC-141",
+        );
+      expect(beside.isOneLine).toBe(true);
+      expect(beside.gap).toBeGreaterThanOrEqual(4);
+      expect(beside.gap).toBeLessThan(12);
+      await card.scrollIntoViewIfNeeded();
+      await card.screenshot({
+        path: path.join(SCREENSHOTS, `inventory-security-card-${slug}.png`),
+        animations: "disabled",
+      });
+    });
+  }
 });
 
 test.describe("at a phone's width, in the dark and in other languages", () => {

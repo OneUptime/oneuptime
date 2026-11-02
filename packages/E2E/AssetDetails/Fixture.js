@@ -12,10 +12,13 @@ import "Common/UI/Styles/Theme.css";
 import InventoryAssetDetailsCard from "../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetDetailsCard";
 import DeviceInventoryCard from "../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
 import NetworkDeviceView from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/Index";
+import InventoryItemOverview from "../../App/FeatureSet/Dashboard/src/Pages/Inventory/View/Index";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import Host from "Common/Models/DatabaseModels/Host";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -59,6 +62,11 @@ import {
  *               | overview (the device's Overview page, opened at
  *               /network-devices/<device id>; server.js stands its other
  *               cards in with placeholders, each a story of its own)
+ *               | inventory (the Inventory item's own Overview page, opened
+ *               at /inventory/<item id>: its header card, Asset Details,
+ *               Security card and attributes, all real; with
+ *               ?scenario=host the item is a Windows host its collector
+ *               reports, which links to its host page)
  *   ?scenario=  pinged (default: a switch OneUptime only pings, its details
  *               from a discovery scan, its MAC from a router's ARP table)
  *               | refound (the same, found at its address again ten
@@ -105,8 +113,9 @@ const language = ["ja", "de", "fa"].includes(params.get("lang"))
 const hasProbe = params.get("probe") !== "none";
 /*
  * What Security Events says about the device this week, on its Overview's
- * Security card: news (an open case naming it, events, findings and its
- * risk) or quiet (nothing named it). Left out, the project uses no Security
+ * Security card - and about the Inventory item, on its page's (?page=
+ * inventory): news (an open case naming it, events, findings and its risk)
+ * or quiet (nothing named it). Left out, the project uses no Security
  * Events and the card draws nothing.
  */
 const securityMode = ["news", "quiet"].includes(params.get("security"))
@@ -141,6 +150,9 @@ const ITEM_ID = "60000000-0000-4000-8000-000000000001";
 const SCAN_ID = "80000000-0000-4000-8000-000000000001";
 const ROUTER_ID = "40000000-0000-4000-8000-000000000099";
 const PROBE_ID = "30000000-0000-4000-8000-000000000001";
+// The host page the Windows host's Inventory item links to (?scenario=host).
+const HOST_ID = "70000000-0000-4000-8000-000000000001";
+const HOST_NAME = "wbqajdebsv001";
 
 const project = new Project();
 project._id = PROJECT_ID;
@@ -485,6 +497,8 @@ const state = {
   refreshAsks: [],
   // How often the item page read its item again after a refresh landed.
   itemReloads: 0,
+  // What a Security card asked Security Events about: { kind, id }.
+  securityAsks: [],
 };
 
 /*
@@ -585,9 +599,9 @@ function hostItem() {
   Object.assign(item, {
     entityType: EntityType.Host,
     source: EntitySource.Discovered,
-    displayName: "wbqajdebsv001",
+    displayName: HOST_NAME,
     entityKey: "c39ab1f24e7d9a02",
-    identifyingAttributes: { "host.name": "wbqajdebsv001" },
+    identifyingAttributes: { "host.name": HOST_NAME },
     descriptiveAttributes: {
       "host.arch": "amd64",
       "host.ip": "10.210.72.109",
@@ -621,6 +635,14 @@ ModelAPI.getItem = async (args) => {
     return readDevice();
   }
 
+  /*
+   * The Inventory item's page reads its item (useInventoryItem), and its
+   * Custom Fields card reads the item's values (none here).
+   */
+  if (args.modelType === InventoryItem && args.id?.toString() === ITEM_ID) {
+    return scenario === "host" ? hostItem() : mirroredItem();
+  }
+
   throw new Error(`The fixture models no read of ${args.modelType.name}.`);
 };
 
@@ -638,6 +660,27 @@ ModelAPI.getList = async (args) => {
     access.key = "accessSwitch";
     access.name = "Access Switch";
     return { data: [role, access], count: 2, skip: 0, limit: args.limit };
+  }
+
+  // The project defined no custom field for Inventory items: no card.
+  if (args.modelType === InventoryItemCustomField) {
+    return { data: [], count: 0, skip: 0, limit: args.limit };
+  }
+
+  /*
+   * The Inventory item's page links a host's item to its host page, found
+   * by the host's identifier (resolveTypedRowLink).
+   */
+  if (args.modelType === Host) {
+    const host = new Host();
+    host._id = HOST_ID;
+    const isFound = args.query?.hostIdentifier === HOST_NAME;
+    return {
+      data: isFound ? [host] : [],
+      count: isFound ? 1 : 0,
+      skip: 0,
+      limit: args.limit,
+    };
   }
 
   throw new Error(`The fixture models no list of ${args.modelType.name}.`);
@@ -699,11 +742,80 @@ API.post = async (options) => {
   }
 
   /*
+   * The Inventory item's Security card (?page=inventory&security=), as the
+   * server tells a machine's item: named by its display name - its address
+   * is a private one, which names no machine for sure - with the case
+   * naming it and its risk.
+   */
+  if (
+    url.endsWith("/security-case/resource-security") &&
+    options.data?.kind === "InventoryItem"
+  ) {
+    state.securityAsks.push({
+      kind: options.data?.kind,
+      id: options.data?.id,
+    });
+    const isItem = options.data?.id === ITEM_ID;
+    const name = isItem
+      ? scenario === "host"
+        ? HOST_NAME
+        : deviceFields.name || ""
+      : "";
+    const news = securityMode === "news" && isItem;
+
+    return new HTTPResponse(
+      200,
+      {
+        kind: options.data?.kind,
+        id: options.data?.id,
+        name,
+        isInUse: securityMode !== "none",
+        windowDays: 7,
+        values: name && securityMode !== "none" ? [name] : [],
+        isSearchedByLogs: false,
+        entity: name ? { type: "Host", value: name } : null,
+        eventCount: news ? 18 : 0,
+        findingCount: news ? 2 : 0,
+        maxSeverityId: news ? 4 : 0,
+        lastSeen: news ? minutesAgo(25) : null,
+        openCases:
+          securityMode === "none"
+            ? null
+            : news
+              ? {
+                  count: 1,
+                  items: [
+                    {
+                      id: "20000000-0000-4000-8000-000000000141",
+                      number: "SEC-141",
+                      title: `Repeated failed RDP sign-ins on ${name}`,
+                      priorityName: "High",
+                      priorityColor: "#f97316",
+                      statusName: "Investigating",
+                      statusColor: "#3b82f6",
+                      lastDetectedAt: minutesAgo(25),
+                    },
+                  ],
+                }
+              : { count: 0, items: [] },
+        risk: news
+          ? { score: 41, entityValue: name, entityType: "Host" }
+          : null,
+      },
+      {},
+    );
+  }
+
+  /*
    * The device's Security card (?security=), as the server tells a network
    * device: named by its name (its address is a private one, which names no
    * machine for sure), with the case naming it and its risk.
    */
   if (url.endsWith("/security-case/resource-security")) {
+    state.securityAsks.push({
+      kind: options.data?.kind,
+      id: options.data?.id,
+    });
     const isDevice =
       options.data?.kind === "NetworkDevice" && options.data?.id === DEVICE_ID;
     const name = isDevice ? DEVICES[scenario]?.name || "" : "";
@@ -771,6 +883,8 @@ function Shell() {
           <DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />
         ) : page === "overview" ? (
           <NetworkDeviceView />
+        ) : page === "inventory" ? (
+          <InventoryItemOverview />
         ) : (
           <InventoryAssetDetailsCard
             item={scenario === "host" ? hostItem() : mirroredItem()}

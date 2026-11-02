@@ -37,18 +37,27 @@ const SecurityCaseSummaryRow: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const securityCase: ResourceSecurityCaseJson = props.securityCase;
   const route: Route | null = getSecurityCaseRoute(securityCase.id);
+  /*
+   * The number and the title are each isolated (<bdi>): on a right-to-left
+   * page, a number and a title both written in Latin letters ran together
+   * as one left-to-right run - "SEC-141Repeated failed..." - with the
+   * number's gap on its far side. Isolated, the number keeps the line's
+   * start. Its gap is on the span around it, which reads in the page's
+   * direction, so the gap stays between the two either way (a <bdi> reads
+   * in its own text's direction, and its end would be the far side again).
+   */
   const title: ReactElement = (
     <>
       {securityCase.number ? (
         <span className="mr-1.5 font-medium text-gray-500">
-          {securityCase.number}
+          <bdi>{securityCase.number}</bdi>
         </span>
       ) : (
         <></>
       )}
-      <span className="font-medium text-gray-900 group-hover:text-indigo-700">
+      <bdi className="font-medium text-gray-900 group-hover:text-indigo-700">
         {securityCase.title}
-      </span>
+      </bdi>
     </>
   );
 

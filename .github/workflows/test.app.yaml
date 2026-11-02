@@ -1130,6 +1130,11 @@ jobs:
           # (2 tests, about 11 seconds locally: its open case, week and risk
           # at 1280 and 390 pixels, dark, a quiet week and no card without
           # Security Events): still about 22.
+          # On 2026-11-02 it gained an Inventory item's own page with its
+          # Security card (4 tests, about 15 seconds locally: the case naming
+          # it, its week and risk, a quiet week, no card without Security
+          # Events, at 1280 and 390 pixels, dark and Persian right to left):
+          # still about 22.
           - group: 13
             suites: >-
               test-asset-details-ui
