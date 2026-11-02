@@ -84,7 +84,9 @@ function SettingsPage(props) {
   const project = useTabProject();
 
   if (!project) {
-    return <p data-testid="unknown-project">Not one of the fixture's projects.</p>;
+    return (
+      <p data-testid="unknown-project">Not one of the fixture's projects.</p>
+    );
   }
 
   const base = `/dashboard/${project._id}/settings`;

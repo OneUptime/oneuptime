@@ -21,7 +21,12 @@ const OWNED_PROJECT = {
   id: "8f100000-0000-4000-8000-000000000001",
   name: "Acme Production",
   // The defaults every member holds, and the Owners team's role.
-  permissions: ["CurrentUser", "UnAuthorizedSsoUser", "ProjectUser", "ProjectOwner"],
+  permissions: [
+    "CurrentUser",
+    "UnAuthorizedSsoUser",
+    "ProjectUser",
+    "ProjectOwner",
+  ],
 };
 
 const VIEWED_PROJECT = {

@@ -30,12 +30,7 @@ const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
-const {
-  PERSON,
-  PROJECTS,
-  labelsOf,
-  projectOf,
-} = require("./Projects.js");
+const { PERSON, PROJECTS, labelsOf, projectOf } = require("./Projects.js");
 
 const repository = path.resolve(__dirname, "../../../..");
 const common = path.join(repository, "packages/Common");
@@ -77,7 +72,10 @@ const tailwind = path.join(
   "Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
 // The Dashboard's own font, so the pages are laid out as they are drawn.
-const font = path.join(common, "Server/Static/Vendor/fonts/InterVariable.woff2");
+const font = path.join(
+  common,
+  "Server/Static/Vendor/fonts/InterVariable.woff2",
+);
 
 /*
  * What the Dashboard's server puts in env.js. HOST is this server, so the
