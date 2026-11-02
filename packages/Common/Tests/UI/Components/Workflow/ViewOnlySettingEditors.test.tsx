@@ -518,9 +518,11 @@ describe("a record step's field list on a view", () => {
   const renderPicker: (
     isViewOnly: boolean,
     value: string | JSONObject,
+    error?: string,
   ) => MockFunction = (
     isViewOnly: boolean,
     value: string | JSONObject,
+    error?: string,
   ): MockFunction => {
     const onChange: MockFunction = getJestMockFunction();
 
@@ -530,6 +532,7 @@ describe("a record step's field list on a view", () => {
         tableName="Incident"
         mode={FieldPickerMode.PassOn}
         initialValue={value}
+        error={error}
         onChange={(next: string) => {
           onChange(next);
         }}
@@ -538,6 +541,24 @@ describe("a record step's field list on a view", () => {
 
     return onChange;
   };
+
+  test("a list with an error still says what is wrong, with no way out to JSON beside it", async () => {
+    renderPicker(true, {}, "Fields to pass on is required.");
+
+    await screen.findByTestId("fields-to-pass-on-empty");
+
+    expect(harness()).toHaveTextContent("Pick at least one field.");
+    expect(screen.queryByTestId("fields-to-pass-on-edit-json")).toBeNull();
+    expect(findActionsAViewDraws(harness())).toEqual([]);
+  });
+
+  test("outside a view, the same list has Edit as JSON beside its error", async () => {
+    renderPicker(false, {}, "Fields to pass on is required.");
+
+    await screen.findByTestId("fields-to-pass-on-empty");
+
+    expect(screen.getByTestId("fields-to-pass-on-edit-json")).toBeEnabled();
+  });
 
   test("its chips are read, and nothing to take one off or add one is drawn", async () => {
     renderPicker(true, { title: true, description: true });

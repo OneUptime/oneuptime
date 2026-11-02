@@ -40,7 +40,7 @@ import TemplateTextEditor, {
 import ValueSingleField, {
   ValueSingleFieldKind,
 } from "../../../../UI/Components/Workflow/ValuePicker/ValueSingleField";
-import { describeReference } from "../../../../UI/Components/Workflow/ValuePicker/ReferenceDescription";
+import { ReferenceDescription } from "../../../../UI/Components/Workflow/ValuePicker/ReferenceDescription";
 import { WorkflowViewOnlyContext } from "../../../../UI/Components/Workflow/WorkflowViewOnly";
 import {
   DictionaryFilterOperator,
@@ -250,6 +250,7 @@ describe("Add field's list", () => {
     typeLabel: "Text",
     columnType: "Text",
     group: FieldGroupId.Main,
+    aliases: [],
   };
 
   const panel: ReactElement = (
@@ -294,7 +295,9 @@ describe("an empty value box that is only read", () => {
           onChange={getJestMockFunction()}
           multiline={false}
           placeholder="Name <email@company.com>"
-          describeReference={describeReference}
+          describeReference={(): ReferenceDescription | null => {
+            return null;
+          }}
           disabled={data.disabled}
           dataTestId="from"
         />
