@@ -16,6 +16,7 @@ import UserSessionService, {
 } from "Common/Server/Services/UserSessionService";
 import Attribution from "Common/Server/Utils/Attribution";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -107,7 +108,6 @@ export interface SignInProvider {
 const MESSAGE_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
 const STATE_TTL_IN_SECONDS: number = 10 * 60;
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
 /*
  * Who a sign-in is for, and whether it just made their account: that is a
@@ -462,10 +462,7 @@ const createProviderSignInRouter: (
           expressResponse: res,
           user: user,
           isGlobalLogin: true,
-          sessionId: sessionMetadata.session.id!,
-          refreshToken: sessionMetadata.refreshToken,
-          refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-          accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+          ...getSessionCookieFields(sessionMetadata),
         });
 
         logger.info(

@@ -5,16 +5,17 @@ import React from "react";
 
 /*
  * What the custom role, IP allowlist and status page cards, and the Admin
- * Dashboard's Custom Channels page, show above themselves when the
- * Enterprise license has lapsed, leaves their feature out, or is about to
- * lapse (EnterpriseSettingLicenseNotice).
+ * Dashboard's Custom Channels and Session Length pages, show above
+ * themselves when the Enterprise license has lapsed, leaves their feature
+ * out, or is about to lapse (EnterpriseSettingLicenseNotice).
  *
  * The rules: nothing with a valid license, on the Cloud or while the state is
  * unknown; a danger notice once the configuration is read-only, a warning
  * before; and each one says what keeps applying - custom roles, allowlists
  * and access controls keep applying and can be removed, Powered by OneUptime
- * is shown again on every status page, and custom channels are kept but
- * nothing is sent to them, and a channel can still be deleted.
+ * is shown again on every status page, custom channels are kept but nothing
+ * is sent to them, and a channel can still be deleted, and the session
+ * lengths already set still sign people out, and can still be removed.
  */
 
 import EnterpriseSettingLicenseNotice, {
@@ -38,6 +39,7 @@ const FEATURES: Array<EnterpriseSettingFeature> = [
   LicensedFeature.StatusPageAccessControls,
   LicensedFeature.StatusPageBranding,
   LicensedFeature.CustomNotificationChannels,
+  LicensedFeature.SessionLength,
 ];
 
 afterEach(() => {
@@ -116,6 +118,7 @@ describe("getEnterpriseSettingNoticeCopy", () => {
     [LicensedFeature.CustomRoles, "keep giving teams their permissions"],
     [LicensedFeature.IpAllowlists, "is still enforced"],
     [LicensedFeature.StatusPageAccessControls, "still apply"],
+    [LicensedFeature.SessionLength, "still sign people out"],
   ] as Array<[EnterpriseSettingFeature, string]>)(
     "%s says what is set keeps applying, and can still be removed",
     (feature: EnterpriseSettingFeature, keepsApplying: string) => {
@@ -177,6 +180,46 @@ describe("getEnterpriseSettingNoticeCopy", () => {
     ).toBe(
       "No valid Enterprise license: custom channels stop when the trial or grace period ends.",
     );
+  });
+
+  test("session lengths: the titles say they cannot be set or changed, never that sign-ins stop being held to them", () => {
+    expect(
+      getEnterpriseSettingNoticeCopy(
+        EnterpriseLicenseMode.ReadOnly,
+        LicensedFeature.SessionLength,
+      )?.title,
+    ).toBe(
+      "Enterprise license required: session lengths cannot be set or changed.",
+    );
+    expect(
+      getEnterpriseSettingNoticeCopy(
+        EnterpriseLicenseMode.NotIncluded,
+        LicensedFeature.SessionLength,
+      )?.title,
+    ).toBe(
+      "Your Enterprise license does not include session lengths: they cannot be set or changed.",
+    );
+    expect(
+      getEnterpriseSettingNoticeCopy(
+        EnterpriseLicenseMode.Grace,
+        LicensedFeature.SessionLength,
+      )?.title,
+    ).toBe(
+      "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.",
+    );
+
+    for (const mode of [
+      EnterpriseLicenseMode.ReadOnly,
+      EnterpriseLicenseMode.NotIncluded,
+      EnterpriseLicenseMode.Grace,
+    ]) {
+      expect(
+        getEnterpriseSettingNoticeCopy(mode, LicensedFeature.SessionLength)
+          ?.description,
+      ).toContain(
+        "The lengths already set still sign people out, and you can still remove them.",
+      );
+    }
   });
 
   test("Powered by OneUptime says every status page shows it again, and that the switch is kept", () => {

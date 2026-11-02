@@ -306,6 +306,7 @@
     "SendGrid Inbound Email": "Входящие письма SendGrid",
     "Private Network Access": "Доступ к частной сети",
     "Behind a VPN or Firewall": "За VPN или брандмауэром",
+    "Session Length": "Длительность сеанса",
     "Update and Security Checks": "Проверки обновлений и безопасности",
     "Architecture": "Архитектура",
     "Enterprise Edition": "Редакция Enterprise",

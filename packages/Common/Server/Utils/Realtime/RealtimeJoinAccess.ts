@@ -1,8 +1,12 @@
+import EnterpriseEdition from "../../Enterprise/EnterpriseEdition";
 import type UserMiddlewareType from "../../Middleware/UserAuthorization";
 import type { RequestSession } from "../../Middleware/UserAuthorization";
 import { ExpressRequest, ExpressResponse, OneUptimeRequest } from "../Express";
 import JSONWebToken from "../JsonWebToken";
-import type { RealtimeSocketSession } from "./RealtimeSessions";
+import type {
+  RealtimeSessionFacts,
+  RealtimeSocketSession,
+} from "./RealtimeSessions";
 import Dictionary from "../../../Types/Dictionary";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
@@ -11,6 +15,10 @@ import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
+import {
+  getSessionEnd,
+  SessionLengths,
+} from "../../../Types/UserSession/SessionLength";
 import CookieParser from "cookie-parser";
 
 /*
@@ -155,6 +163,32 @@ export default class RealtimeJoinAccess {
       };
     }
 
+    /*
+     * And with the session, under the server's session lengths as they are
+     * now (Common/Types/UserSession/SessionLength.ts): the token was signed
+     * to end with it, but the lengths may have been shortened since. A
+     * failed read of them throws, as it does for every request.
+     */
+    const sessionFacts: RealtimeSessionFacts | undefined =
+      RealtimeJoinAccess.getSessionFacts(requestSession.session);
+
+    const expiresAtMs: number = sessionFacts
+      ? Math.min(
+          times.expiresAtMs,
+          RealtimeJoinAccess.getSessionEndsAtMs(
+            sessionFacts,
+            await EnterpriseEdition.getUserSessionLengths(),
+          ),
+        )
+      : times.expiresAtMs;
+
+    if (expiresAtMs <= Date.now()) {
+      return {
+        allowed: false,
+        refusal: RealtimeJoinRefusal.AuthenticationRequired,
+      };
+    }
+
     const projectId: ObjectID = new ObjectID(tenantId);
 
     // As the API's request middleware sets them before it asks about the project.
@@ -190,7 +224,8 @@ export default class RealtimeJoinAccess {
       userId: tokenData.userId.toString(),
       isMasterAdmin: Boolean(tokenData.isMasterAdmin),
       sessionId: tokenData.sessionId?.toString() || undefined,
-      expiresAtMs: times.expiresAtMs,
+      expiresAtMs: expiresAtMs,
+      ...(sessionFacts ? { sessionFacts: sessionFacts } : {}),
     };
 
     /*
@@ -208,6 +243,48 @@ export default class RealtimeJoinAccess {
       issuedAtMs: times.issuedAtMs,
       tenantPermission: tenantPermission,
     };
+  }
+
+  /*
+   * What a session's end under the server's session lengths is counted
+   * from, as its access token says it (JSONWebTokenData.signedInAtMs and
+   * lastActiveAtMs), or undefined for a token that does not say - one an
+   * earlier release signed, which ends with its own expiry.
+   */
+  public static getSessionFacts(
+    tokenData: JSONWebTokenData,
+  ): RealtimeSessionFacts | undefined {
+    if (
+      typeof tokenData.signedInAtMs !== "number" ||
+      !Number.isFinite(tokenData.signedInAtMs)
+    ) {
+      return undefined;
+    }
+
+    return {
+      signedInAtMs: tokenData.signedInAtMs,
+      lastActiveAtMs:
+        typeof tokenData.lastActiveAtMs === "number" &&
+        Number.isFinite(tokenData.lastActiveAtMs)
+          ? tokenData.lastActiveAtMs
+          : tokenData.signedInAtMs,
+      isSsoSignIn: !tokenData.isGlobalLogin,
+    };
+  }
+
+  // When a session ends under `lengths` (null: none), as Date.now() counts.
+  public static getSessionEndsAtMs(
+    facts: RealtimeSessionFacts,
+    lengths: SessionLengths | null,
+  ): number {
+    return getSessionEnd(
+      {
+        signedInAt: new Date(facts.signedInAtMs),
+        lastActiveAt: new Date(facts.lastActiveAtMs),
+        isSsoSignIn: facts.isSsoSignIn,
+      },
+      lengths,
+    ).endsAt.getTime();
   }
 
   /*

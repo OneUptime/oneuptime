@@ -7,9 +7,11 @@ description: Investigate an active OneUptime incident. Find it, take ownership, 
 
 Work an incident through the OneUptime MCP server: find it, acknowledge it, read its telemetry, write down what you learn, and close it.
 
+The person's own instructions come before these steps: where they ask for something else, do what they ask.
+
 ## Before you start
 
-- The tools come from the `oneuptime` MCP server. The first time a tool needs an identity, the person signs in to OneUptime in the browser (in Claude Code, from `/mcp`), picks one project and chooses read and write or read only.
+- The tools come from the `oneuptime` MCP server. The first time a tool needs an identity, the person signs in to OneUptime in the browser, from the client's MCP or connector settings, picks one project and chooses read and write or read only.
 - On OneUptime Cloud, connecting an MCP client and using API keys need the Growth plan or higher. The public status page tools need no credential.
 - You act with the signed-in person's permissions, in one project. Ask before anything that changes a record, unless the person already told you to do it.
 

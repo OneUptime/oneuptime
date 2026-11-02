@@ -10,6 +10,7 @@ import type { ProductBranding } from "../../Types/Branding/ProductBranding";
 import type { JSONObject } from "../../Types/JSON";
 import type CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import type ObjectID from "../../Types/ObjectID";
+import type { SessionLengths } from "../../Types/UserSession/SessionLength";
 
 /*
  * The contract between core (Apache-2.0, everything outside ee/) and the
@@ -211,6 +212,27 @@ export default interface EnterpriseServerModule {
    * Must not throw.
    */
   getProjectBillingHooks?(): ProjectBillingHooks | null;
+
+  /*
+   * How long sign-ins last on this server (Types/UserSession/
+   * SessionLength.ts): the session lengths and idle timeouts a master admin
+   * set on Admin Dashboard > Settings > Session Length, or null for none -
+   * every sign-in lasting as it does on the Community Edition, which is
+   * also what core does when the module has no such method at all. Asked at
+   * every sign-in, renewal and request that carries a session, so it
+   * answers from the module's own copy, read again once that is a little
+   * old, and at once after forgetUserSessionLengths. Throws only while it
+   * has never been read: a session check that cannot know the lengths
+   * refuses, rather than let a session last longer than it may.
+   */
+  getUserSessionLengths?(): Promise<SessionLengths | null>;
+
+  /*
+   * Drops the module's copy of the session lengths, so the next ask reads
+   * them again: they have just changed, on this server or on another one
+   * (RealtimeAccessChanges). Must not throw.
+   */
+  forgetUserSessionLengths?(): void;
 }
 
 const REQUIRED_MODULE_FUNCTIONS: ReadonlyArray<string> = [
@@ -228,6 +250,8 @@ const OPTIONAL_MODULE_FUNCTIONS: ReadonlyArray<string> = [
   "getProductBrandingLogo",
   "getBillingProvider",
   "getProjectBillingHooks",
+  "getUserSessionLengths",
+  "forgetUserSessionLengths",
 ];
 
 const REQUIRED_LICENSING_FUNCTIONS: ReadonlyArray<string> = [

@@ -20,6 +20,21 @@ import JsonWebTokenKeys from "./JsonWebTokenKeys";
 export const PURPOSE_CLAIM: string = "purpose";
 
 /*
+ * A session's access token's claims of when the session signed in and when
+ * its person was last active, in milliseconds (JSONWebTokenData.signedInAtMs
+ * and lastActiveAtMs).
+ */
+export const SIGNED_IN_AT_CLAIM: string = "signedInAt";
+
+export const LAST_ACTIVE_AT_CLAIM: string = "lastActiveAt";
+
+/*
+ * How long a session's access token lives when it is signed without a
+ * usable lifetime: fifteen minutes, as every access token does at most.
+ */
+export const DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS: number = 15 * 60;
+
+/*
  * How long a session's access token lived when an earlier release signed it,
  * without a purpose: fifteen minutes, from every sign-in and every refresh.
  */
@@ -47,14 +62,57 @@ class JSONWebToken {
       // If this is OneUptime username and password login. This is true, if this is SSO login. Then, this is false.
       isGlobalLogin: boolean;
       sessionId: ObjectID;
+      /*
+       * When the session signed in, and when its person was last active, as
+       * the session knows them now (UserSessionService's SessionMetadata):
+       * the server's session lengths are asked against them on every
+       * request.
+       */
+      signedInAt?: Date | undefined;
+      lastActiveAt?: Date | undefined;
     };
+    /*
+     * The session's own access token lifetime (SessionMetadata.
+     * accessTokenExpiresInSeconds): fifteen minutes, or less when the
+     * session ends sooner. A lifetime that is not a number at all is
+     * fifteen minutes: a session's token never goes without an expiry.
+     */
     expiresInSeconds: number;
   }): string {
+    const { signedInAt, lastActiveAt, ...tokenData } = data.tokenData;
+
+    const claims: JSONObject = {
+      ...tokenData,
+    } as unknown as JSONObject;
+
+    if (JSONWebToken.isUsableDate(signedInAt)) {
+      claims[SIGNED_IN_AT_CLAIM] = signedInAt.getTime();
+    }
+
+    if (JSONWebToken.isUsableDate(lastActiveAt)) {
+      claims[LAST_ACTIVE_AT_CLAIM] = lastActiveAt.getTime();
+    }
+
     return JSONWebToken.sign({
-      data: data.tokenData,
-      expiresInSeconds: data.expiresInSeconds,
+      data: claims,
+      expiresInSeconds:
+        typeof data.expiresInSeconds === "number" &&
+        Number.isFinite(data.expiresInSeconds)
+          ? Math.floor(data.expiresInSeconds)
+          : DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
       purpose: JsonWebTokenPurpose.UserSession,
     });
+  }
+
+  private static isUsableDate(value: unknown): value is Date {
+    return value instanceof Date && Number.isFinite(value.getTime());
+  }
+
+  // A claim of milliseconds, if it is one.
+  private static readMsClaim(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? value
+      : undefined;
   }
 
   /*
@@ -105,6 +163,12 @@ class JSONWebToken {
         sessionId: data.sessionId?.toString() || undefined,
         // A decoded token's issue time is not a claim of the new one.
         issuedAtMs: undefined,
+        /*
+         * Nor what a decoded session token said of its session: only
+         * signUserLoginToken writes those, from the session itself.
+         */
+        signedInAtMs: undefined,
+        lastActiveAtMs: undefined,
       };
     }
 
@@ -320,6 +384,14 @@ class JSONWebToken {
           ? (decoded["ssoProviderType"] as SsoProviderType)
           : undefined,
         issuedAtMs: issuedAtMs,
+        signedInAtMs:
+          purpose === JsonWebTokenPurpose.UserSession
+            ? JSONWebToken.readMsClaim(decoded[SIGNED_IN_AT_CLAIM])
+            : undefined,
+        lastActiveAtMs:
+          purpose === JsonWebTokenPurpose.UserSession
+            ? JSONWebToken.readMsClaim(decoded[LAST_ACTIVE_AT_CLAIM])
+            : undefined,
       };
     } catch (e) {
       logger.error(e);

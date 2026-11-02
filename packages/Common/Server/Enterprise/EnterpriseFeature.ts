@@ -56,6 +56,14 @@ enum EnterpriseFeature {
    * it. Its runtime: while it is not active, nothing is sent to a channel.
    */
   CustomNotificationChannels = "custom-notification-channels",
+  /*
+   * How long sign-ins last: the session length and the idle timeout, for
+   * SSO sign-ins and for every other sign-in (Admin Dashboard > Settings >
+   * Session Length, Types/UserSession/SessionLength.ts). Setting or changing
+   * them needs it; what is set keeps applying when the license lapses, and
+   * can always be removed. Only the Enterprise module enforces them.
+   */
+  SessionLength = "session-length",
 }
 
 export const ALL_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> =
