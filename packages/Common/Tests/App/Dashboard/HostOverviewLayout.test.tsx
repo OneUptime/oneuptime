@@ -1,14 +1,19 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import fs from "fs";
+import i18next from "i18next";
+import path from "path";
 import * as React from "react";
+import { initReactI18next } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { settle } from "./HostTooltipHarness";
 
@@ -98,11 +103,15 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
+// What each chart was handed: its y axis says Up and Down for availability.
+const lineChartMock: MockFunction = getJestMockFunction();
+
 // Recharts has nothing to measure under jsdom; the chart body is not under test.
 jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   return {
     __esModule: true,
-    default: () => {
+    default: (props: unknown) => {
+      lineChartMock(props);
       return <div data-testid="line-chart" />;
     },
   };
@@ -146,7 +155,9 @@ jest.mock(
   },
 );
 
-import HostOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Overview";
+import HostOverview, {
+  HOST_OVERVIEW_TILES_GRID_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 type Row = {
@@ -273,15 +284,44 @@ async function renderOverview(): Promise<void> {
   await settle();
 }
 
+const LOCALES_DIR: string = path.resolve(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Locales",
+);
+
+function readLocale(language: string): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+  ) as Record<string, string>;
+}
+
+const PERSIAN: Record<string, string> = readLocale("fa");
+
+beforeAll(async () => {
+  await i18next.use(initReactI18next).init({
+    lng: "en",
+    fallbackLng: "en",
+    resources: {
+      en: { translation: readLocale("en") },
+      fa: { translation: PERSIAN },
+    },
+    interpolation: { escapeValue: false },
+  });
+});
+
 beforeEach(() => {
   jest.useFakeTimers();
   getItemMock.mockReset();
   aggregateMock.mockReset();
+  lineChartMock.mockReset();
 });
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   jest.useRealTimers();
+  await act(async () => {
+    await i18next.changeLanguage("en");
+  });
 });
 
 describe("the Filesystem tile", () => {
@@ -429,6 +469,81 @@ describe("the hero's connection pill", () => {
     const pill: HTMLElement = screen.getByTestId("host-hero-connection");
     expect(pill).toHaveTextContent("Connected");
     expect(pill.querySelector(".motion-safe\\:animate-ping")).toBeNull();
+  });
+});
+
+describe("the tiles", () => {
+  /*
+   * At 1024 beside the side menu five tiles a row left each some 110px,
+   * and their titles broke inside the word ("MEMO RY", "PROC ESSES"):
+   * three a row from lg and five from xl, as a Proxmox cluster's page.
+   */
+  test("lay out three a row from lg and five only from xl", async () => {
+    getItemMock.mockResolvedValue(reportingHost());
+    aggregateMock.mockImplementation((call: unknown) => {
+      return Promise.resolve({
+        data: rowsWithLoad(1)(call as AggregateCall),
+      });
+    });
+
+    await renderOverview();
+
+    const grid: HTMLElement = tile("CPU").parentElement as HTMLElement;
+    expect(grid.className).toBe(HOST_OVERVIEW_TILES_GRID_CLASS_NAME);
+    expect(grid).toHaveClass("lg:grid-cols-3");
+    expect(grid).toHaveClass("xl:grid-cols-5");
+    expect(grid).not.toHaveClass("lg:grid-cols-5");
+  });
+});
+
+describe("the availability chart, in the reader's language", () => {
+  /*
+   * Its y axis said Up and Down in English on every page, and the line
+   * over it "Per-bucket presence of host heartbeats" in thirteen
+   * languages.
+   */
+  test("says Up and Down, and what it shows, in Persian", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("fa");
+    });
+    getItemMock.mockResolvedValue(reportingHost());
+    aggregateMock.mockImplementation((call: unknown) => {
+      return Promise.resolve({
+        data: rowsWithLoad(1)(call as AggregateCall),
+      });
+    });
+
+    await renderOverview();
+
+    const availability: {
+      yAxis: { options: { formatter: (v: number) => string } };
+    } = lineChartMock.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          yAxis: { options: { formatter: (v: number) => string } };
+        };
+      })
+      .find(
+        (props: {
+          yAxis: { options: { formatter: (v: number) => string } };
+        }): boolean => {
+          return props.yAxis.options.formatter(0) !== "0%";
+        },
+      )!;
+
+    expect(PERSIAN["Up"]).not.toBe("Up");
+    expect(availability.yAxis.options.formatter(100)).toBe(PERSIAN["Up"]);
+    expect(availability.yAxis.options.formatter(0)).toBe(PERSIAN["Down"]);
+    expect(availability.yAxis.options.formatter(50)).toBe("50%");
+
+    const line: string =
+      PERSIAN[
+        "Whether metrics arrived from this host, over the selected time range"
+      ]!;
+    expect(line).not.toBe(
+      "Whether metrics arrived from this host, over the selected time range",
+    );
+    expect(screen.getByText(line)).toBeInTheDocument();
   });
 });
 

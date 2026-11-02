@@ -30,6 +30,7 @@ import {
 } from "../../../Types/Host/HostHealth";
 import {
   HOST_CPU_BUSY_PERCENT,
+  HOST_LOAD_QUEUING_PERCENT,
   getHostUsageTone,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/HostFacts";
 
@@ -383,10 +384,16 @@ describe("denominators, units and caps", () => {
   test("load average is compared with the core count and can pass 100%", () => {
     expect(D.loadAverage).toContain("number of cores");
     expect(D.loadAverage).toContain("over 100% means work is queuing");
-    // The tile's danger threshold is exactly that 100%.
-    expect(readPage("Overview.tsx")).toContain(
-      "thresholds={{ warn: 70, danger: 100 }}",
-    );
+    /*
+     * The tile turns amber exactly there, and never red: the rules call a
+     * high load one to look at, never critical (the host's UI review - the
+     * bar was red from 100% beside an amber "15-minute load" in Needs
+     * attention).
+     */
+    expect(HOST_LOAD_QUEUING_PERCENT).toBe(100);
+    const overview: string = readPage("Overview.tsx");
+    expect(overview).toContain("warn: HOST_LOAD_QUEUING_PERCENT,");
+    expect(overview).not.toContain("thresholds={{ warn: 70, danger: 100 }}");
   });
 
   test("filesystem percentages are df's Use%, space reserved for root left out", () => {

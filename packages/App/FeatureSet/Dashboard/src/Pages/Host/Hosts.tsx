@@ -84,10 +84,11 @@ export const HOSTS_NAME_CELL_WIDTH_CLASS_NAME: string =
  * else, the whole of it under the pointer. Cut to one line, "Payments
  * database" read "Payments datab..." in German at 1280, where the longer
  * column headings leave the name its least width. A table's cell keeps its
- * values on one line (whitespace-nowrap), so the name says it wraps.
+ * values on one line (whitespace-nowrap), so the name says it wraps, and
+ * its two lines sit as close as a name's do (leading-5), not a cell's.
  */
 export const HOSTS_NAME_LINE_CLASS_NAME: string =
-  "line-clamp-2 whitespace-normal [overflow-wrap:anywhere]";
+  "line-clamp-2 whitespace-normal text-sm leading-5 [overflow-wrap:anywhere]";
 
 const isIPv4: (ip: string) => boolean = (ip: string): boolean => {
   return ip.includes(".") && !ip.includes(":");
