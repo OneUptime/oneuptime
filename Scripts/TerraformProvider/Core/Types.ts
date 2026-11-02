@@ -76,6 +76,11 @@ export interface OpenAPISpec {
      * formerSingularName): the first is kept as a deprecated alias.
      */
     "x-former-names"?: Array<string>;
+    /*
+     * A telemetry table's (logs, spans, metrics...): records the product
+     * keeps for a while, which the provider reads but never manages.
+     */
+    "x-oneuptime-telemetry"?: boolean;
   }>;
 }
 

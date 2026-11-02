@@ -5,6 +5,12 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import Models from "../../../Models/DatabaseModels/Index";
 import OpenAPIUtil from "../../../Server/Utils/OpenAPI";
 import { JSONObject } from "../../../Types/JSON";
+import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
+import { StringUtils } from "../../../../../Scripts/TerraformProvider/Core/StringUtils";
+import {
+  TerraformDataSource,
+  TerraformResource,
+} from "../../../../../Scripts/TerraformProvider/Core/Types";
 
 /*
  * The published OpenAPI specification, as a contract.
@@ -623,6 +629,115 @@ describe("OpenAPI specification", () => {
       }
 
       expect(problems).toEqual([]);
+    });
+  });
+
+  describe("telemetry creates and updates", () => {
+    /*
+     * The same `type` in AnalyticsModelSchema.getCreateModelSchema left every
+     * telemetry create with no field, and every update with it: an update
+     * was a copy of the create. A create lists its fields now, and an update
+     * those somebody may update - on a telemetry table, none
+     * (Tests/Utils/Schema/AnalyticsModelSchema holds both to what the API
+     * takes).
+     */
+    it("lists the fields of every telemetry table's create, and none of its update", () => {
+      const problems: Array<string> = [];
+      let creates: number = 0;
+      let updates: number = 0;
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        const create: JSONObject | undefined = schemas[
+          `${model.tableName}CreateSchema`
+        ] as JSONObject | undefined;
+        const update: JSONObject | undefined = schemas[
+          `${model.tableName}UpdateSchema`
+        ] as JSONObject | undefined;
+
+        if (create) {
+          creates++;
+
+          if (!Object.keys((create["properties"] || {}) as JSONObject).length) {
+            problems.push(`${model.tableName}CreateSchema: no fields`);
+          }
+        }
+
+        if (update) {
+          updates++;
+
+          if (Object.keys((update["properties"] || {}) as JSONObject).length) {
+            problems.push(`${model.tableName}UpdateSchema: has fields`);
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+      expect(creates).toBeGreaterThan(5);
+      expect(updates).toBeGreaterThan(5);
+    });
+
+    /*
+     * A log line or a span is a record the product keeps for a while, not
+     * something to manage. Its table's tag says so, and the Terraform
+     * provider reads the table and makes no resource of it - which, with a
+     * create that lists its fields, it otherwise would.
+     */
+    it("marks every telemetry table's tag, so the Terraform provider reads the table and manages none of it", () => {
+      const telemetryTags: Array<string> = AnalyticsModels.map(
+        (modelType: { new (): AnalyticsBaseModel }): AnalyticsBaseModel => {
+          return new modelType();
+        },
+      )
+        .filter((model: AnalyticsBaseModel): boolean => {
+          return Boolean(model.crudApiPath);
+        })
+        .map((model: AnalyticsBaseModel): string => {
+          return model.singularName || (model.tableName as string);
+        });
+
+      expect(
+        (spec["tags"] as Array<JSONObject>)
+          .filter((tag: JSONObject): boolean => {
+            return tag["x-oneuptime-telemetry"] === true;
+          })
+          .map((tag: JSONObject): string => {
+            return tag["name"] as string;
+          })
+          .sort(),
+      ).toEqual([...telemetryTags].sort());
+
+      const parser: OpenAPIParser = new OpenAPIParser();
+      parser.setSpec(spec as never);
+
+      const resources: Array<string> = parser
+        .getResources()
+        .map((resource: TerraformResource): string => {
+          return resource.name;
+        });
+      const dataSources: Array<string> = parser
+        .getDataSources()
+        .map((dataSource: TerraformDataSource): string => {
+          return dataSource.name;
+        });
+
+      for (const tag of telemetryTags) {
+        const name: string = StringUtils.toSnakeCase(tag);
+
+        expect([
+          name,
+          resources.includes(name),
+          dataSources.includes(name),
+          parser.warnings.filter((warning: string): boolean => {
+            return warning.includes(`"${name}"`);
+          }),
+        ]).toEqual([name, false, true, []]);
+      }
     });
   });
 

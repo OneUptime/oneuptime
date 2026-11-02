@@ -53,13 +53,25 @@ export class OpenAPIParser {
 
     const resources: TerraformResource[] = [];
 
+    const telemetryNames: Set<string> = this.getTelemetryNames();
+
     for (const [resourceName, operations] of this.groupOperationsByResource()) {
       /*
        * A Terraform resource must be creatable. Models that only expose
-       * list/count/read endpoints (log tables, insight tables, ...) are not
-       * manageable infrastructure — they surface as data sources instead.
+       * list/count/read endpoints (insight tables, ...) are not manageable
+       * infrastructure — they surface as data sources instead.
        */
       if (!operations.create) {
+        continue;
+      }
+
+      /*
+       * Neither is telemetry, which the API can create: a log line or a
+       * span is a record the product keeps for a while, not something to
+       * manage - no field of one can be updated, and it expires with its
+       * table's retention. It is a data source only.
+       */
+      if (telemetryNames.has(resourceName)) {
         continue;
       }
 
@@ -237,6 +249,17 @@ export class OpenAPIParser {
     return map;
   }
 
+  // The resources whose tag marks them telemetry (x-oneuptime-telemetry).
+  private getTelemetryNames(): Set<string> {
+    const names: Set<string> = new Set<string>();
+    for (const tag of this.spec?.tags || []) {
+      if (tag.name && tag["x-oneuptime-telemetry"]) {
+        names.add(StringUtils.toSnakeCase(tag.name));
+      }
+    }
+    return names;
+  }
+
   /*
    * Resource names that changed: new name -> the name it had before. A
    * model renamed in the product names its former name on its tag
@@ -264,15 +287,16 @@ export class OpenAPIParser {
   }
 
   /*
-   * Every name a relation can point at: the resources (creatable models) and
-   * the data sources (readable ones).
+   * Every name a relation can point at: the resources (creatable models, but
+   * telemetry) and the data sources (readable ones).
    */
   private getRelationTargets(): { resources: Set<string>; all: Set<string> } {
     if (!this.relationTargets) {
+      const telemetryNames: Set<string> = this.getTelemetryNames();
       const resources: Set<string> = new Set<string>();
       const all: Set<string> = new Set<string>();
       for (const [name, operations] of this.groupOperationsByResource()) {
-        if (operations.create) {
+        if (operations.create && !telemetryNames.has(name)) {
           resources.add(name);
         }
         if (operations.create || operations.read || operations.list) {
