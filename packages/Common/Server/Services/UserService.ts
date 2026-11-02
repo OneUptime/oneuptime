@@ -1187,8 +1187,14 @@ export class Service extends DatabaseService<Model> {
      */
     if (data.attribution) {
       Object.assign(user, data.attribution.utm);
-      user.clickIds = data.attribution.clickIds;
-      user.firstTouchAttribution = data.attribution.firstTouch;
+
+      if (data.attribution.clickIds) {
+        user.clickIds = data.attribution.clickIds;
+      }
+
+      if (data.attribution.firstTouch) {
+        user.firstTouchAttribution = data.attribution.firstTouch;
+      }
     }
 
     if (!IsBillingEnabled) {
