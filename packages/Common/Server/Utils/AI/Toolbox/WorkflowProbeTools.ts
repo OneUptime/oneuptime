@@ -33,6 +33,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACLs so the tool gates can never drift from RBAC.
@@ -442,12 +443,24 @@ export const QueryWorkflowsTool: ObservabilityTool = {
                       ? undefined
                       : "This workflow is disabled.",
                 columns: [
-                  { key: "status", title: "Status", type: "text" },
-                  { key: "startedAt", title: "Started", type: "date" },
-                  { key: "completedAt", title: "Completed", type: "date" },
+                  {
+                    key: "status",
+                    title: translationKey("Status"),
+                    type: "text",
+                  },
+                  {
+                    key: "startedAt",
+                    title: translationKey("Started"),
+                    type: "date",
+                  },
+                  {
+                    key: "completedAt",
+                    title: translationKey("Completed"),
+                    type: "date",
+                  },
                   {
                     key: "durationSeconds",
-                    title: "Duration (s)",
+                    title: translationKey("Duration (s)"),
                     type: "number",
                   },
                 ],
@@ -626,13 +639,25 @@ export const QueryWorkflowsTool: ObservabilityTool = {
               title: `Workflows (${rows.length})`,
               description: `Run outcomes from the last ${RECENT_RUNS_LOOKBACK} runs across these workflows`,
               columns: [
-                { key: "name", title: "Name", type: "text" },
-                { key: "enabled", title: "Enabled", type: "text" },
-                { key: "lastRunStatus", title: "Last run", type: "text" },
-                { key: "lastRunAt", title: "Last run at", type: "date" },
+                { key: "name", title: translationKey("Name"), type: "text" },
+                {
+                  key: "enabled",
+                  title: translationKey("Enabled"),
+                  type: "text",
+                },
+                {
+                  key: "lastRunStatus",
+                  title: translationKey("Last run"),
+                  type: "text",
+                },
+                {
+                  key: "lastRunAt",
+                  title: translationKey("Last run at"),
+                  type: "date",
+                },
                 {
                   key: "recentFailures",
-                  title: "Recent failures",
+                  title: translationKey("Recent failures"),
                   type: "number",
                 },
               ],
@@ -823,12 +848,32 @@ export const QueryProbesTool: ObservabilityTool = {
               title: `Probes (${rows.length})`,
               description: `Disconnected = no heartbeat in the last ${PROBE_STALE_CUTOFF_IN_MINUTES} minutes`,
               columns: [
-                { key: "name", title: "Name", type: "text" },
-                { key: "status", title: "Status", type: "text" },
-                { key: "lastAlive", title: "Last alive", type: "date" },
-                { key: "probeVersion", title: "Version", type: "text" },
-                { key: "monitorsServed", title: "Monitors", type: "number" },
-                { key: "isGlobalProbe", title: "Global", type: "text" },
+                { key: "name", title: translationKey("Name"), type: "text" },
+                {
+                  key: "status",
+                  title: translationKey("Status"),
+                  type: "text",
+                },
+                {
+                  key: "lastAlive",
+                  title: translationKey("Last alive"),
+                  type: "date",
+                },
+                {
+                  key: "probeVersion",
+                  title: translationKey("Version"),
+                  type: "text",
+                },
+                {
+                  key: "monitorsServed",
+                  title: translationKey("Monitors"),
+                  type: "number",
+                },
+                {
+                  key: "isGlobalProbe",
+                  title: translationKey("Global"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: { type: AIChatCitationTargetType.Probes },

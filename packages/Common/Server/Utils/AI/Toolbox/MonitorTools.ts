@@ -23,6 +23,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -485,9 +486,13 @@ export const QueryMonitorsTool: ObservabilityTool = {
                 ? "Only monitors whose current status is not operational"
                 : "Non-operational monitors first",
               columns: [
-                { key: "name", title: "Monitor", type: "text" },
-                { key: "type", title: "Type", type: "text" },
-                { key: "currentStatus", title: "Status", type: "text" },
+                { key: "name", title: translationKey("Monitor"), type: "text" },
+                { key: "type", title: translationKey("Type"), type: "text" },
+                {
+                  key: "currentStatus",
+                  title: translationKey("Status"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: { type: AIChatCitationTargetType.Monitors },

@@ -69,6 +69,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Vital",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

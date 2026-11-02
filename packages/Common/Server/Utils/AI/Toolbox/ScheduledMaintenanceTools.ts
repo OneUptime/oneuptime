@@ -15,6 +15,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -156,13 +157,29 @@ export const QueryScheduledMaintenanceTool: ObservabilityTool = {
                 title:
                   `Scheduled maintenance #${event?.scheduledMaintenanceNumber ?? ""}`.trim(),
                 columns: [
-                  { key: "title", title: "Title", type: "text" },
-                  { key: "state", title: "State", type: "text" },
-                  { key: "startsAt", title: "Starts", type: "date" },
-                  { key: "endsAt", title: "Ends", type: "date" },
+                  {
+                    key: "title",
+                    title: translationKey("Title"),
+                    type: "text",
+                  },
+                  {
+                    key: "state",
+                    title: translationKey("State"),
+                    type: "text",
+                  },
+                  {
+                    key: "startsAt",
+                    title: translationKey("Starts"),
+                    type: "date",
+                  },
+                  {
+                    key: "endsAt",
+                    title: translationKey("Ends"),
+                    type: "date",
+                  },
                   {
                     key: "affectedMonitors",
-                    title: "Affected monitors",
+                    title: translationKey("Affected monitors"),
                     type: "text",
                   },
                 ],
@@ -260,13 +277,17 @@ export const QueryScheduledMaintenanceTool: ObservabilityTool = {
               columns: [
                 {
                   key: "scheduledMaintenanceNumber",
-                  title: "#",
+                  title: translationKey("#"),
                   type: "number",
                 },
-                { key: "title", title: "Title", type: "text" },
-                { key: "state", title: "State", type: "text" },
-                { key: "startsAt", title: "Starts", type: "date" },
-                { key: "endsAt", title: "Ends", type: "date" },
+                { key: "title", title: translationKey("Title"), type: "text" },
+                { key: "state", title: translationKey("State"), type: "text" },
+                {
+                  key: "startsAt",
+                  title: translationKey("Starts"),
+                  type: "date",
+                },
+                { key: "endsAt", title: translationKey("Ends"), type: "date" },
               ],
               rows: rows,
               link: {
