@@ -45,6 +45,7 @@ import crypto from "crypto";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import HostCollectorAgentCache from "../Utils/HostCollector/HostCollectorAgentCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
+import { HostReadingColumns } from "../Utils/Telemetry/HostReadingsScan";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -389,6 +390,12 @@ export class Service extends ProjectReferencesService<Model> {
       cloudPlatform?: string | undefined;
       cloudRegion?: string | undefined;
       cloudAccountId?: string | undefined;
+      /*
+       * What the host reported in this batch - CPU, memory, swap, the
+       * fullest disk, inodes, load, when it started, failed systemd units
+       * (HostReadingsScan). Only what the batch carried is set.
+       */
+      readings?: HostReadingColumns | undefined;
     },
   ): Promise<ResourceHeartbeatResult> {
     /*
@@ -471,6 +478,24 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * The host's readings ride along with the rest of its metadata, and say
+     * when they were taken. Like the process count they are gauges that
+     * move on every scrape, so they are not part of the fingerprint below:
+     * they are written with whichever write the throttle admits, about once
+     * a minute, never forcing one of their own.
+     */
+    const readingKeys: Array<string> = Object.keys(extra?.readings || {});
+    if (extra?.readings && readingKeys.length > 0) {
+      for (const key of readingKeys) {
+        const value: unknown = (extra.readings as Record<string, unknown>)[key];
+        if (value !== undefined) {
+          metadata[key] = value;
+        }
+      }
+      metadata.readingsUpdatedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    /*
      * One gated, non-blocking heartbeat write. The gates, the fail-open /
      * fail-closed split and the liveness-only fallback all live in
      * ResourceHeartbeat — see there for why this row's throttle used to
@@ -525,7 +550,9 @@ export class Service extends ProjectReferencesService<Model> {
        * every time and the 60s window never engaged — for exactly the hosts
        * producing the most batches, which is the worst possible place to lose
        * a throttle. The columns are still written; they simply ride along on
-       * whatever write the throttle admits rather than forcing one.
+       * whatever write the throttle admits rather than forcing one. The
+       * host's readings (CPU, memory, disk, load, uptime, failed units) are
+       * left out for the same reason.
        */
       containerRuntime: extra?.containerRuntime ?? null,
       dockerHostId: extra?.dockerHostId?.toString() ?? null,
