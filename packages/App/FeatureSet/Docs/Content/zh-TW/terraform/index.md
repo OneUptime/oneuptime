@@ -153,6 +153,7 @@ moved {
 | 文字、數字、真或假 | 原樣書寫 | `is_public_status_page = false` |
 | 對另一條記錄的引用 | 它的 ID，通常是另一個資源的 `id` | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | 引用列表 | 一組 ID，順序無關緊要 | `labels = [oneuptime_label.critical.id]` |
+| 一個人 | 此人的電子郵件地址，寫在使用者 ID 旁邊：見 [人員與團隊](/docs/terraform/people-and-teams) | `user_email = "alice@example.com"` |
 | 顏色、網域和其他包裝值 | 它們的普通值 | `color = "#FF5733"` |
 | 日期和時間 | RFC 3339 格式的文字 | `starts_at = "2030-06-01T02:00:00Z"` |
 | 監測器的檢查 | 有類型的巢狀屬性：請參閱 [監控步驟](/docs/terraform/monitor-steps) | `monitor_steps = [{ ... }]` |

@@ -377,8 +377,9 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
+    required: true,
     title: "User ID",
-    description: "ID of the user who is in this escalation rule.",
+    description: "ID of the person this escalation rule pages.",
   })
   @Column({
     type: ColumnType.ObjectID,

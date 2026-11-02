@@ -13,6 +13,7 @@ import {
 
 export const FIXTURE_NOW: Date = new Date("2026-10-02T15:30:00.000Z");
 export const FIXTURE_USER_ID: string = "0aa1b2c3-d4e5-4f60-8a7b-9c0d1e2f3a4b";
+export const FIXTURE_USER_EMAIL: string = "you@acme.example";
 export const FIXTURE_RECORD_ID: string = "99999999-9999-4999-8999-999999999999";
 
 // `a0000001-0000-4000-8000-000000000001` and so on: a valid UUID, prefix in hex.
@@ -80,6 +81,7 @@ export function getFixtureLiveData(): DeveloperDocsLiveData {
     ...getEmptyDeveloperDocsLiveData(FIXTURE_NOW),
     records: { ...FIXTURE_RECORDS },
     currentUserId: FIXTURE_USER_ID,
+    currentUserEmail: FIXTURE_USER_EMAIL,
   };
 
   for (const table of Object.keys(live.records)) {

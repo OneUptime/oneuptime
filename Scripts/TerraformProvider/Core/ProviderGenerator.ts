@@ -192,6 +192,10 @@ type Client struct {
     HTTPClient *http.Client
     ApiKey     string
     UserAgent  string
+
+    // The people this provider process has found by email address or ID
+    // (people.go), so one person named by many resources is looked up once.
+    people peopleDirectory
 }
 
 // NewClient creates a new API client
