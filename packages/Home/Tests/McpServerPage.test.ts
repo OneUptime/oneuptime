@@ -185,14 +185,12 @@ describe("the MCP server page", () => {
       expect(html).toContain(tool.description);
     }
 
-    for (const invented of [
-      "query_logs",
-      "get_metrics",
-      "search_traces",
-      "get_monitor_status",
-    ]) {
+    for (const invented of ["query_logs", "get_metrics", "search_traces"]) {
       expect(html).not.toContain(invented);
     }
+
+    // A real tool, but it reads a status's definition, not a monitor's health.
+    expect(html).not.toContain("get_monitor_status");
   });
 
   test("describes signing in, not only API keys", () => {
