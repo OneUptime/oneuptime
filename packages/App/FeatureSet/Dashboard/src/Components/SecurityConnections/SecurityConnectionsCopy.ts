@@ -57,8 +57,9 @@ export const CONNECTED_EMPTY_TITLE: string = translationKey(
   "No record matches what it names.",
 );
 
+// Where OneUptime looked: every kind of record a value can match.
 export const CONNECTED_EMPTY_DESCRIPTION: string = translationKey(
-  "OneUptime looked for its hosts, addresses and users among your hosts, clusters, devices, services and users, and found none of them.",
+  "OneUptime looked for them among your hosts, clusters, devices, cloud resources, services, monitors and users, and found none.",
 );
 
 /*
@@ -74,12 +75,17 @@ export const CONNECTED_PARTIAL_EMPTY_DESCRIPTION: string = translationKey(
   "Some kinds of record could not be read, so one may still match.",
 );
 
+/*
+ * It names only what no record is keyed by - a file hash, a process, a
+ * user's bare name. Said of the records alone: a file hash may still be in
+ * the logs and traces, which "In your logs and traces" says below.
+ */
 export const CONNECTED_NOTHING_TO_LOOK_UP_TITLE: string = translationKey(
-  "It names no host, address or user to look for.",
+  "Nothing it names can be matched to a record.",
 );
 
 export const CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION: string = translationKey(
-  "Only hosts, addresses and users with an email can be found in OneUptime.",
+  "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.",
 );
 
 // The values looked for that no record matches.
@@ -190,9 +196,18 @@ export const TELEMETRY_MENTIONS_TITLE: string = translationKey(
   "In your logs and traces",
 );
 
-// "Where what it names appears in your logs and traces from Oct 14, 10:02 to 11:40."
+// "Where the values it names appear in your logs and traces from Oct 14, 10:02 to 11:40."
 export const TELEMETRY_MENTIONS_DESCRIPTION: string = translationKey(
-  "Where what it names appears in your logs and traces from {{start}} to {{end}}.",
+  "Where the values it names appear in your logs and traces from {{start}} to {{end}}.",
+);
+
+/*
+ * While the search runs, one quiet line under the records, which show
+ * first: no heading yet, as a case that names nothing searched for has no
+ * section at all once the answer is in.
+ */
+export const TELEMETRY_SEARCHING: string = translationKey(
+  "Searching your logs and traces…",
 );
 
 // A value's rows: how many log lines, and how many spans, named it.
@@ -205,6 +220,24 @@ export const TELEMETRY_SPANS: PluralTemplate = {
   one: "In {{count}} span",
   other: "In {{count}} spans",
 };
+
+/*
+ * How many of them a record sent, beside its name under the row: "1,284
+ * lines" under "In 1,344 log lines", "312 spans" under "In 312 spans" - a
+ * bare number beside a name said nothing of what it counted.
+ */
+export const TELEMETRY_SOURCE_LINES: PluralTemplate = {
+  one: "{{count}} line",
+  other: "{{count}} lines",
+};
+
+export const TELEMETRY_SOURCE_SPANS: PluralTemplate = {
+  one: "{{count}} span",
+  other: "{{count}} spans",
+};
+
+// The records that sent them, as a screen reader names their list.
+export const TELEMETRY_SOURCES_LABEL: string = translationKey("Sent by");
 
 /*
  * Where in them it was: a log line's message, or an attribute - shown by
@@ -494,11 +527,13 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   telemetrySpans: string;
   telemetryPlace: string;
   telemetrySource: string;
+  telemetrySourceCount: string;
   telemetryNotFound: string;
   telemetryUnreadable: string;
   telemetryFailed: string;
   telemetryMoreValues: string;
   telemetryError: string;
+  telemetryLoading: string;
 } = {
   connectedSignals: "security-connected-signals",
   window: "security-connected-window",
@@ -544,9 +579,11 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   telemetrySpans: "security-telemetry-spans",
   telemetryPlace: "security-telemetry-place",
   telemetrySource: "security-telemetry-source",
+  telemetrySourceCount: "security-telemetry-source-count",
   telemetryNotFound: "security-telemetry-not-found",
   telemetryUnreadable: "security-telemetry-unreadable",
   telemetryFailed: "security-telemetry-failed",
   telemetryMoreValues: "security-telemetry-more-values",
   telemetryError: "security-telemetry-error",
+  telemetryLoading: "security-telemetry-loading",
 };

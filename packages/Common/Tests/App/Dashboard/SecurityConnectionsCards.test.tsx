@@ -96,10 +96,13 @@ import ConnectedSignals, {
   CONNECTED_CHANGE_ITEM_CLASS_NAME,
   CONNECTED_CHANGE_TITLE_CLASS_NAME,
   CONNECTED_FACT_ROW_CLASS_NAME,
+  CONNECTED_NO_RECORD_TITLE_CLASS_NAME,
   CONNECTED_RECORD_TEXT_CLASS_NAME,
   TELEMETRY_SECTION_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ConnectedSignals";
+import { CONNECTED_ENTRY_ICON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/SecurityConnectionsLayout";
 import {
+  TELEMETRY_FAILED_LINE_CLASS_NAME,
   TELEMETRY_PLACE_LINK_CLASS_NAME,
   TELEMETRY_ROW_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/TelemetryMentions";
@@ -973,17 +976,61 @@ describe("Connected Signals", () => {
 
     await drawConnectedSignals();
 
-    // An empty state's title is a headline: its sentence without the stop.
-    expect(await screen.findByTestId(IDS.empty)).toHaveTextContent(
-      "No record matches what it names",
-    );
-    expect(screen.getByTestId(IDS.notFound)).toHaveTextContent(
-      "No matching record",
+    const empty: HTMLElement = await screen.findByTestId(IDS.empty);
+
+    expect(empty).toHaveTextContent("No record matches what it names.");
+    expect(empty).toHaveTextContent(
+      "OneUptime looked for them among your hosts, clusters, devices, cloud resources, services, monitors and users, and found none.",
     );
     expect(screen.getByTestId(IDS.notFound)).toHaveTextContent("kiosk-17");
     expect(screen.queryByTestId(IDS.partialEmpty)).toBeNull();
     // A window over no record says nothing.
     expect(screen.queryByTestId(IDS.window)).toBeNull();
+
+    /*
+     * An entry of the list, as a record's is drawn - the list's icon in its
+     * square, its sentence beside it - not a page's large empty state that
+     * pushes the logs and traces below out of sight. What it looked for is
+     * under the sentence that says none matched, not repeated under a
+     * heading of its own.
+     */
+    expect(screen.queryByTestId("table-empty-state")).toBeNull();
+    expect((empty.firstElementChild as HTMLElement).className).toBe(
+      CONNECTED_ENTRY_ICON_CLASS_NAME,
+    );
+    const text: HTMLElement = empty.lastElementChild as HTMLElement;
+
+    expect(text.className).toBe(CONNECTED_RECORD_TEXT_CLASS_NAME);
+    expect((text.firstElementChild as HTMLElement).className).toBe(
+      CONNECTED_NO_RECORD_TITLE_CLASS_NAME,
+    );
+    expect(text).toContainElement(screen.getByTestId(IDS.notFound));
+    expect(screen.queryByText("No matching record")).toBeNull();
+  });
+
+  test("beside records, what it looked for that no record matches follows them under a heading of its own", async () => {
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        unmatched: [{ type: SecurityEntityType.Host, value: "kiosk-17" }],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    await screen.findByTestId(IDS.record);
+
+    const notFound: HTMLElement = screen.getByTestId(IDS.notFound);
+
+    expect(
+      within(notFound).getByRole("heading", { level: 3 }),
+    ).toHaveTextContent("No matching record");
+    expect(notFound).toHaveTextContent("kiosk-17");
+    expect(notFound.className).toContain("border-t");
+    expect(
+      screen.getByTestId(IDS.record).compareDocumentPosition(notFound) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByTestId(IDS.empty)).toBeNull();
   });
 
   test("what it looked for and did not find, what the role keeps from it, and what could not be read, with a way to read it again", async () => {
@@ -1018,9 +1065,13 @@ describe("Connected Signals", () => {
     expect(document.body).not.toHaveTextContent(
       "No record matches what it names",
     );
-    expect(document.body).not.toHaveTextContent("found none of them");
+    expect(document.body).not.toHaveTextContent("and found none");
+    // What it looked for, under the sentence that says one may still match.
     expect(screen.getByTestId(IDS.notFound)).toHaveTextContent(
       "kim@acme.example",
+    );
+    expect(screen.getByTestId(IDS.partialEmpty)).toContainElement(
+      screen.getByTestId(IDS.notFound),
     );
     expect(screen.getByTestId(IDS.unreadable)).toHaveTextContent(
       "Your role cannot see Services and Users, so none is shown.",
@@ -1048,13 +1099,20 @@ describe("Connected Signals", () => {
 
     await drawConnectedSignals();
 
+    /*
+     * Said of the records alone, and of every value a record can be found
+     * by - a URL and a cloud resource ID among them: a file hash it names
+     * may still be in the logs and traces below.
+     */
     expect(await screen.findByTestId(IDS.nothingToLookUp)).toHaveTextContent(
-      "It names no host, address or user to look for",
+      "Nothing it names can be matched to a record.",
     );
     expect(screen.getByTestId(IDS.nothingToLookUp)).toHaveTextContent(
-      "Only hosts, addresses and users with an email can be found in OneUptime.",
+      "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.",
     );
+    expect(document.body).not.toHaveTextContent("can be found in OneUptime");
     expect(screen.queryByTestId(IDS.empty)).toBeNull();
+    expect(screen.queryByTestId(IDS.notFound)).toBeNull();
   });
 
   test("more records than are shown are said to exist", async () => {
@@ -1243,7 +1301,7 @@ describe("In your logs and traces, under Connected Signals", () => {
 
     expect(section()).toHaveTextContent("In your logs and traces");
     expect(section()).toHaveTextContent(
-      "Where what it names appears in your logs and traces from",
+      "Where the values it names appear in your logs and traces from",
     );
     expect(value).toHaveTextContent("203.0.113.7");
 
@@ -1263,6 +1321,15 @@ describe("In your logs and traces, under Connected Signals", () => {
     const name: HTMLElement = within(value).getByTestId(IDS.telemetryValueName);
     expect(name.querySelector("bdi")).toHaveTextContent("203.0.113.7");
     expect(name).toHaveTextContent("IP Address");
+    /*
+     * Its isolate sits in a box that reads as the page does, as a record's
+     * name does: a long value that wraps keeps its lines at the page's
+     * start on a right-to-left page.
+     */
+    expect(name.querySelector("bdi")!.parentElement!.tagName).toBe("SPAN");
+    expect(name.querySelector("bdi")!.parentElement!.parentElement).toBe(name);
+    // Its monospace face on the isolate itself, which "* { font-family }" would reset.
+    expect(name.querySelector("bdi")).toHaveClass("font-mono");
 
     // Where in them: the message, then an attribute by its key, each with its count.
     const places: Array<HTMLElement> = within(logs).getAllByTestId(
@@ -1310,7 +1377,15 @@ describe("In your logs and traces, under Connected Signals", () => {
       }),
     ).toEqual(["checkout-api", "edge-1"]);
     expect(sources[0]).toHaveTextContent("Service");
-    expect(sources[0]).toHaveTextContent("1,200");
+    // How many of the lines each sent, said as lines: never a bare number.
+    expect(
+      within(sources[0]!).getByTestId(IDS.telemetrySourceCount),
+    ).toHaveTextContent(/^1,200 lines$/);
+    expect(
+      within(sources[1]!).getByTestId(IDS.telemetrySourceCount),
+    ).toHaveTextContent(/^80 lines$/);
+    // Their list is named for a screen reader: who sent them.
+    expect(sources[0]!.closest("ul")).toHaveAttribute("aria-label", "Sent by");
     expect(href(sources[0]!.querySelector("bdi")!)).toBe(
       `${BASE}/service/${SERVICE_ID}`,
     );
@@ -1342,6 +1417,64 @@ describe("In your logs and traces, under Connected Signals", () => {
       "@client.address:203.0.113.7",
     );
     expect(spans).not.toHaveTextContent("more");
+    // A span's sender counts spans.
+    expect(
+      within(spans).getByTestId(IDS.telemetrySourceCount),
+    ).toHaveTextContent(/^312 spans$/);
+  });
+
+  test("one line and one span from a sender are said in the singular", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockResolvedValue(
+      mentions({
+        values: [
+          {
+            ...attacker,
+            logs: hits({
+              count: 1,
+              sources: [
+                {
+                  kind: SecurityConnectionKind.Service,
+                  id: SERVICE_ID,
+                  name: "checkout-api",
+                  count: 1,
+                },
+              ],
+              sourceCount: 1,
+              places: [{ key: SECURITY_TELEMETRY_MESSAGE_PLACE, count: 1 }],
+            }),
+            traces: hits({
+              count: 1,
+              sources: [
+                {
+                  kind: SecurityConnectionKind.Service,
+                  id: SERVICE_ID,
+                  name: "checkout-api",
+                  count: 1,
+                },
+              ],
+              sourceCount: 1,
+              places: [{ key: "client.address", count: 1 }],
+            }),
+          },
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const value: HTMLElement = await screen.findByTestId(IDS.telemetryValue);
+
+    expect(
+      within(within(value).getByTestId(IDS.telemetryLogs)).getByTestId(
+        IDS.telemetrySourceCount,
+      ),
+    ).toHaveTextContent(/^1 line$/);
+    expect(
+      within(within(value).getByTestId(IDS.telemetrySpans)).getByTestId(
+        IDS.telemetrySourceCount,
+      ),
+    ).toHaveTextContent(/^1 span$/);
   });
 
   test("a value only one signal named shows that one; the values every signal was searched for and none named follow, under their own heading", async () => {
@@ -1442,6 +1575,10 @@ describe("In your logs and traces, under Connected Signals", () => {
     await waitFor(() => {
       expect(getTelemetryMentionsMock).toHaveBeenCalled();
     });
+    // Its answer in, not even the line that said it was searching stays.
+    await waitFor(() => {
+      expect(screen.queryByTestId(IDS.telemetryLoading)).toBeNull();
+    });
     expect(screen.queryByTestId(IDS.telemetry)).toBeNull();
     expect(document.body).not.toHaveTextContent("In your logs and traces");
   });
@@ -1456,7 +1593,22 @@ describe("In your logs and traces, under Connected Signals", () => {
 
     const error: HTMLElement = await screen.findByTestId(IDS.telemetryError);
 
-    expect(error).toHaveTextContent("This query took longer than 15 seconds.");
+    /*
+     * One line under the section's heading, said as a signal that could not
+     * be searched is - then why, as the server put it, in an isolate of its
+     * own - and Try again: never the app's large centred error block.
+     */
+    expect(error).toHaveTextContent(
+      "Logs and Traces could not be searched just now. This query took longer than 15 seconds. Try again",
+    );
+    expect(error.className).toBe(TELEMETRY_FAILED_LINE_CLASS_NAME);
+    expect(error.querySelector("bdi")).toHaveTextContent(
+      "This query took longer than 15 seconds.",
+    );
+    expect(within(error).queryByTestId("refresh-button")).toBeNull();
+    expect(section()).toHaveTextContent("In your logs and traces");
+    // No window is said for a search that did not answer.
+    expect(section()).not.toHaveTextContent("Where the values it names");
     expect(screen.getByTestId(IDS.record)).toBeInTheDocument();
     expect(screen.queryByTestId(IDS.error)).toBeNull();
 
@@ -1465,10 +1617,82 @@ describe("In your logs and traces, under Connected Signals", () => {
     );
 
     await act(async () => {
-      fireEvent.click(within(error).getByRole("button"));
+      fireEvent.click(within(error).getByRole("button", { name: "Try again" }));
     });
 
     expect(await screen.findByTestId(IDS.telemetryValue)).toBeInTheDocument();
+    expect(screen.queryByTestId(IDS.telemetryError)).toBeNull();
+  });
+
+  test("while the search runs, one quiet line under the records says so - no heading yet - and its answer takes the line's place", async () => {
+    let resolveSearch: (
+      value: SecurityTelemetryMentionsJson,
+    ) => void = () => {};
+
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockReturnValue(
+      new Promise<SecurityTelemetryMentionsJson>(
+        (done: (value: SecurityTelemetryMentionsJson) => void) => {
+          resolveSearch = done;
+        },
+      ) as never,
+    );
+
+    await drawConnectedSignals();
+
+    await screen.findByTestId(IDS.record);
+
+    const searching: HTMLElement = screen.getByTestId(IDS.telemetryLoading);
+
+    expect(searching).toHaveTextContent("Searching your logs and traces…");
+    // Said once to a screen reader, and not a page's loader band.
+    expect(searching).toHaveAttribute("role", "status");
+    expect(screen.queryByTestId("component-loader")).toBeNull();
+    // Under the records, a rule between, as the answer will be.
+    expect(searching.parentElement!.className).toBe(
+      TELEMETRY_SECTION_CLASS_NAME,
+    );
+    expect(
+      screen.getByTestId(IDS.record).compareDocumentPosition(searching) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // No heading or section until there is something to say.
+    expect(screen.queryByTestId(IDS.telemetry)).toBeNull();
+    expect(document.body).not.toHaveTextContent("In your logs and traces");
+
+    await act(async () => {
+      resolveSearch(mentions({ values: [attacker] }));
+    });
+
+    expect(screen.getByTestId(IDS.telemetryValue)).toBeInTheDocument();
+    expect(screen.queryByTestId(IDS.telemetryLoading)).toBeNull();
+  });
+
+  test("a search that answers nothing searched for leaves no line behind it", async () => {
+    let resolveSearch: (
+      value: SecurityTelemetryMentionsJson,
+    ) => void = () => {};
+
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockReturnValue(
+      new Promise<SecurityTelemetryMentionsJson>(
+        (done: (value: SecurityTelemetryMentionsJson) => void) => {
+          resolveSearch = done;
+        },
+      ) as never,
+    );
+
+    await drawConnectedSignals();
+
+    expect(await screen.findByTestId(IDS.telemetryLoading)).toBeInTheDocument();
+
+    await act(async () => {
+      resolveSearch(mentions());
+    });
+
+    expect(screen.queryByTestId(IDS.telemetryLoading)).toBeNull();
+    expect(screen.queryByTestId(IDS.telemetry)).toBeNull();
+    expect(screen.getByTestId(IDS.record)).toBeInTheDocument();
   });
 
   test("records that fail to read take nothing from the logs and traces", async () => {

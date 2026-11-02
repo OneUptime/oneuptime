@@ -23,7 +23,11 @@ import {
   TELEMETRY_OPEN_IN_LOGS,
   TELEMETRY_OPEN_IN_TRACES,
   TELEMETRY_PLACE_MESSAGE,
+  TELEMETRY_SEARCHING,
   TELEMETRY_SIGNAL_LABELS,
+  TELEMETRY_SOURCES_LABEL,
+  TELEMETRY_SOURCE_LINES,
+  TELEMETRY_SOURCE_SPANS,
   TELEMETRY_SPANS,
   TELEMETRY_UNREADABLE,
 } from "./SecurityConnectionsCopy";
@@ -52,9 +56,9 @@ import {
   SecurityEntityType,
   getSecurityEntityIcon,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -81,6 +85,9 @@ import React, {
  *
  * Nothing at all for a case that names nothing searched for (a bare host
  * name, a user's bare name, a process): the records above are its answer.
+ * While the search runs, one quiet line says so - no heading, no loader's
+ * blank band under the records; a search that fails says why on one line,
+ * with Try again, as a signal that could not be searched does.
  */
 
 export interface ComponentProps {
@@ -96,6 +103,16 @@ export interface ComponentProps {
 // A section's heading in the card, as Possible matches and No matching record are.
 const SECTION_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
+
+/*
+ * A line that says what could not be searched, with Try again after it: a
+ * search that failed whole, and a signal that could not be searched.
+ */
+export const TELEMETRY_FAILED_LINE_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-amber-700";
+
+const TRY_AGAIN_BUTTON_CLASS_NAME: string =
+  "rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * A place's link: where in the lines or spans the value was, and how many,
@@ -199,10 +216,17 @@ const PlaceLink: FunctionComponent<{
   );
 };
 
-// One record that sent the lines or spans: its name, opening its page, its kind and how many.
+/*
+ * One record that sent the lines or spans: its name, opening its page, its
+ * kind, and how many of them it sent - "1,284 lines", "312 spans".
+ */
 const SourceItem: FunctionComponent<{
+  signal: SecurityTelemetrySignal;
   source: SecurityTelemetrySourceJson;
-}> = (props: { source: SecurityTelemetrySourceJson }): ReactElement => {
+}> = (props: {
+  signal: SecurityTelemetrySignal;
+  source: SecurityTelemetrySourceJson;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const route: Route | null = getTelemetrySourceRoute(props.source);
   const name: ReactElement = <bdi>{props.source.name}</bdi>;
@@ -227,8 +251,16 @@ const SourceItem: FunctionComponent<{
       <span className="text-xs text-gray-500">
         {translator.translateText(CONNECTION_KIND_LABELS[props.source.kind])}
       </span>
-      <span className="text-xs tabular-nums text-gray-500">
-        {translator.formatNumber(props.source.count)}
+      <span
+        className="text-xs tabular-nums text-gray-500"
+        data-testid={SECURITY_CONNECTIONS_TEST_IDS.telemetrySourceCount}
+      >
+        {translator.translatePlural(
+          props.signal === SecurityTelemetrySignal.Logs
+            ? TELEMETRY_SOURCE_LINES
+            : TELEMETRY_SOURCE_SPANS,
+          props.source.count,
+        )}
       </span>
     </li>
   );
@@ -293,12 +325,19 @@ const SignalRow: FunctionComponent<{
           <></>
         )}
         {props.hits.sources.length > 0 || moreSources > 0 ? (
-          <ul className="space-y-0.5">
+          <ul
+            className="space-y-0.5"
+            aria-label={
+              translator.translateText(TELEMETRY_SOURCES_LABEL) ||
+              TELEMETRY_SOURCES_LABEL
+            }
+          >
             {props.hits.sources.map(
               (source: SecurityTelemetrySourceJson): ReactElement => {
                 return (
                   <SourceItem
                     key={`${source.kind}:${source.id}`}
+                    signal={props.signal}
                     source={source}
                   />
                 );
@@ -386,16 +425,55 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  let body: ReactElement;
-
-  if (error) {
-    body = (
-      <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.telemetryError}>
-        <ErrorMessage message={error} onRefreshClick={reread} />
+  // Still searching: one quiet line under the records, which show first.
+  if (!error && !mentions) {
+    return (
+      <div className={props.className || ""}>
+        <InlineLoadingLine
+          text={TELEMETRY_SEARCHING}
+          dataTestId={SECURITY_CONNECTIONS_TEST_IDS.telemetryLoading}
+        />
       </div>
     );
-  } else if (!mentions) {
-    body = <ComponentLoader />;
+  }
+
+  let body: ReactElement;
+
+  if (error || !mentions) {
+    /*
+     * The search failed whole: said as a signal that could not be searched
+     * is - "Logs and Traces could not be searched just now." - then why, as
+     * the server put it (read the way it is written, on a right-to-left
+     * page too), and Try again, on one line under the heading.
+     */
+    const message: string = translator.translateText(error) || error;
+
+    body = (
+      <p
+        className={TELEMETRY_FAILED_LINE_CLASS_NAME}
+        data-testid={SECURITY_CONNECTIONS_TEST_IDS.telemetryError}
+      >
+        <span>
+          {translator.translateTemplate(TELEMETRY_FAILED, {
+            signals: composedValue((sentence: Translator): string => {
+              return signalNames(sentence, [...SECURITY_TELEMETRY_SIGNALS]);
+            }),
+          })}
+        </span>{" "}
+        {/*
+         * The spaces between the pieces are for what reads the line as
+         * text - a screen reader, a copy: the flex gap draws the room.
+         */}
+        <IsolatedText text={message} />{" "}
+        <button
+          type="button"
+          className={TRY_AGAIN_BUTTON_CLASS_NAME}
+          onClick={reread}
+        >
+          {translator.translateText(CONNECTED_TRY_AGAIN)}
+        </button>
+      </p>
+    );
   } else {
     const groups: TelemetryMentionsGroups =
       getTelemetryMentionsGroups(mentions);
@@ -434,10 +512,19 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
                             SECURITY_CONNECTIONS_TEST_IDS.telemetryValueName
                           }
                         >
-                          {/* The value is someone's data, read the way it is written. */}
-                          <bdi className="min-w-0 font-mono text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]">
-                            {value.entityValue}
-                          </bdi>
+                          {/*
+                           * The value is someone's data, read the way it is
+                           * written - in an isolate inside a box that reads
+                           * as the page does, as a record's name is: a long
+                           * email that wraps on a Persian phone keeps its
+                           * lines at the page's start, not the far side.
+                           * Its typeface is set on the isolate itself: every
+                           * frontend's "* { font-family }" rule would draw an
+                           * element inside a monospace box in Inter.
+                           */}
+                          <span className="min-w-0 text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]">
+                            <bdi className="font-mono">{value.entityValue}</bdi>
+                          </span>
                           <span className="text-xs font-medium text-gray-500">
                             {translator.translateText(
                               readEntityType(value.entityType),
@@ -535,7 +622,7 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
 
         {mentions.failedSignals.length > 0 ? (
           <p
-            className="flex flex-wrap items-center gap-x-2 text-sm text-amber-700"
+            className={TELEMETRY_FAILED_LINE_CLASS_NAME}
             data-testid={SECURITY_CONNECTIONS_TEST_IDS.telemetryFailed}
           >
             <span>
@@ -547,7 +634,7 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
             </span>
             <button
               type="button"
-              className="rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className={TRY_AGAIN_BUTTON_CLASS_NAME}
               onClick={reread}
             >
               {translator.translateText(CONNECTED_TRY_AGAIN)}
@@ -568,7 +655,7 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
       <h3 className={SECTION_HEADING_CLASS_NAME}>
         {translator.translateText(TELEMETRY_MENTIONS_TITLE)}
       </h3>
-      {mentions && mentions.windowStart && mentions.windowEnd ? (
+      {!error && mentions && mentions.windowStart && mentions.windowEnd ? (
         <p className="mb-4 mt-0.5 text-sm text-gray-500 text-pretty">
           {translator.translateTemplate(TELEMETRY_MENTIONS_DESCRIPTION, {
             start: OneUptimeDate.getDateAsLocalShortDateTimeString(
@@ -580,7 +667,7 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
           })}
         </p>
       ) : (
-        <div className="mb-3" />
+        <div className="mb-1.5" />
       )}
       {body}
     </section>

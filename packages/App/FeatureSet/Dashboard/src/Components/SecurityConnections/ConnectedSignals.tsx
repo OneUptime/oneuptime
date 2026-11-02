@@ -86,9 +86,6 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import TableEmptyState, {
-  TableEmptyStateKind,
-} from "Common/UI/Components/Table/TableEmptyState";
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -119,6 +116,11 @@ import React, {
  * reader's role keeps from them. Under them, on a read of its own, where
  * what it names appears in the logs and traces themselves
  * (TelemetryMentions).
+ *
+ * No record at all is said as an entry of the list, not as a page's empty
+ * state: its sentence beside the list's icon, what it looked for under it -
+ * so the logs and traces below, often the answer then, are not pushed down
+ * under a large illustration that says nothing was found.
  *
  * The same answer the case's triage reads, so OneUptime AI and the person
  * reading the case see the same connections.
@@ -257,6 +259,77 @@ const ScheduleItem: FunctionComponent<{
         <></>
       )}
     </li>
+  );
+};
+
+// What it looked for and no record matches: each as the case names it.
+const NotFoundChips: FunctionComponent<{
+  values: Array<SecurityEntity>;
+  className?: string | undefined;
+}> = (props: {
+  values: Array<SecurityEntity>;
+  className?: string | undefined;
+}): ReactElement => {
+  return (
+    <div className={`flex flex-wrap gap-1.5 ${props.className || ""}`.trim()}>
+      {props.values.map((entity: SecurityEntity, index: number) => {
+        return (
+          <SecurityEntityChip
+            key={`${entity.type}-${entity.value}-${index}`}
+            entity={{
+              type: entity.type || SecurityEntityType.Other,
+              value: entity.value,
+            }}
+            isLink={false}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+/*
+ * No record: an entry of the list, as a record's is drawn - the list's
+ * icon in its square, the sentence beside it and why under it - with what
+ * it looked for and found no record of, when it says.
+ */
+export const CONNECTED_NO_RECORD_TITLE_CLASS_NAME: string =
+  "flex min-h-[2rem] items-center text-sm font-medium text-gray-900 text-pretty";
+
+const NoRecordEntry: FunctionComponent<{
+  testId: string;
+  title: string;
+  description: string;
+  notFound: Array<SecurityEntity>;
+}> = (props: {
+  testId: string;
+  title: string;
+  description: string;
+  notFound: Array<SecurityEntity>;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div className="flex items-start gap-3" data-testid={props.testId}>
+      <span className={CONNECTED_ENTRY_ICON_CLASS_NAME}>
+        <Icon icon={IconProp.Link} className="h-4 w-4 text-gray-400" />
+      </span>
+      <div className={CONNECTED_RECORD_TEXT_CLASS_NAME}>
+        <p className={CONNECTED_NO_RECORD_TITLE_CLASS_NAME}>
+          {translator.translateText(props.title)}
+        </p>
+        <p className="text-sm text-gray-500 text-pretty">
+          {translator.translateText(props.description)}
+        </p>
+        {props.notFound.length > 0 ? (
+          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.notFound}>
+            <NotFoundChips values={props.notFound} className="mt-2" />
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -824,55 +897,40 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {/*
+         * No record: every kind read and none matches; a kind could not be
+         * read, so one may still match; or nothing it names can match one.
+         * What it looked for goes under the sentence that says so.
+         */}
         {state === "nothing-found" ? (
-          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.empty}>
-            <TableEmptyState
-              kind={TableEmptyStateKind.Empty}
-              icon={IconProp.Link}
-              title={translator.translateText(CONNECTED_EMPTY_TITLE) || ""}
-              description={translator.translateText(
-                CONNECTED_EMPTY_DESCRIPTION,
-              )}
-              isCompact={true}
-            />
-          </div>
+          <NoRecordEntry
+            testId={SECURITY_CONNECTIONS_TEST_IDS.empty}
+            title={CONNECTED_EMPTY_TITLE}
+            description={CONNECTED_EMPTY_DESCRIPTION}
+            notFound={notFound}
+          />
         ) : (
           <></>
         )}
 
         {state === "partly-read" ? (
-          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.partialEmpty}>
-            <TableEmptyState
-              kind={TableEmptyStateKind.Empty}
-              icon={IconProp.Link}
-              title={
-                translator.translateText(CONNECTED_PARTIAL_EMPTY_TITLE) || ""
-              }
-              description={translator.translateText(
-                CONNECTED_PARTIAL_EMPTY_DESCRIPTION,
-              )}
-              isCompact={true}
-            />
-          </div>
+          <NoRecordEntry
+            testId={SECURITY_CONNECTIONS_TEST_IDS.partialEmpty}
+            title={CONNECTED_PARTIAL_EMPTY_TITLE}
+            description={CONNECTED_PARTIAL_EMPTY_DESCRIPTION}
+            notFound={notFound}
+          />
         ) : (
           <></>
         )}
 
         {state === "nothing-to-look-up" ? (
-          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.nothingToLookUp}>
-            <TableEmptyState
-              kind={TableEmptyStateKind.Empty}
-              icon={IconProp.Link}
-              title={
-                translator.translateText(CONNECTED_NOTHING_TO_LOOK_UP_TITLE) ||
-                ""
-              }
-              description={translator.translateText(
-                CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION,
-              )}
-              isCompact={true}
-            />
-          </div>
+          <NoRecordEntry
+            testId={SECURITY_CONNECTIONS_TEST_IDS.nothingToLookUp}
+            title={CONNECTED_NOTHING_TO_LOOK_UP_TITLE}
+            description={CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION}
+            notFound={[]}
+          />
         ) : (
           <></>
         )}
@@ -888,7 +946,8 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {notFound.length > 0 ? (
+        {/* Beside records: what it looked for that no record matches. */}
+        {state === "records" && notFound.length > 0 ? (
           <div
             className="border-t border-gray-100 pt-3"
             data-testid={SECURITY_CONNECTIONS_TEST_IDS.notFound}
@@ -896,20 +955,7 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
             <h3 className={`mb-1.5 ${SECTION_HEADING_CLASS_NAME}`}>
               {translator.translateText(CONNECTED_NOT_FOUND_TITLE)}
             </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {notFound.map((entity: SecurityEntity, index: number) => {
-                return (
-                  <SecurityEntityChip
-                    key={`${entity.type}-${entity.value}-${index}`}
-                    entity={{
-                      type: entity.type || SecurityEntityType.Other,
-                      value: entity.value,
-                    }}
-                    isLink={false}
-                  />
-                );
-              })}
-            </div>
+            <NotFoundChips values={notFound} />
           </div>
         ) : (
           <></>

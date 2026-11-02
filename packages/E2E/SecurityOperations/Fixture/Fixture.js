@@ -615,6 +615,22 @@ const fixture = {
 };
 window.__securityOperationsFixture = fixture;
 
+/*
+ * ?telemetry=slow: the first logs and traces search waits until the spec
+ * lets it answer, so the page can be read while it runs; every later one
+ * answers at once.
+ */
+let releaseTelemetrySearch = () => {};
+const heldTelemetrySearch =
+  telemetryScenario === "slow"
+    ? new Promise((resolve) => {
+        releaseTelemetrySearch = resolve;
+      })
+    : null;
+fixture.releaseTelemetrySearch = () => {
+  releaseTelemetrySearch();
+};
+
 function serialize(value) {
   return JSON.parse(JSON.stringify(value === undefined ? null : value));
 }
@@ -4148,6 +4164,9 @@ async function handleApi(method, options) {
     method === "POST" &&
     path.endsWith("/security-case/connections/telemetry")
   ) {
+    if (heldTelemetrySearch) {
+      await heldTelemetrySearch;
+    }
     const answer = telemetryMentions.answer(options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})

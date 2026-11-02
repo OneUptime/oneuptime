@@ -63,7 +63,7 @@ interface OpenOptions {
   lang?: "de" | "fa";
   role?: "viewer";
   connections?: "fail" | "partial" | "busy";
-  telemetry?: "fail" | "limited";
+  telemetry?: "fail" | "limited" | "slow";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -1461,6 +1461,15 @@ async function sourceNames(row: Locator): Promise<Array<string>> {
   });
 }
 
+// How many of the lines or spans each sender sent, as each says it.
+async function sourceCounts(row: Locator): Promise<Array<string>> {
+  return (
+    await row.getByTestId("security-telemetry-source-count").allInnerTexts()
+  ).map((text: string): string => {
+    return text.replace(/\s+/g, " ").trim();
+  });
+}
+
 function telemetryReads(
   requests: Array<{ url: string; body: Record<string, unknown> }>,
 ): Array<{ url: string; body: Record<string, unknown> }> {
@@ -1545,6 +1554,41 @@ async function telemetryRowLayouts(
   );
 }
 
+/*
+ * The lines of each value's name that do not end at its row's right edge,
+ * on a right-to-left page: none may - a value that wraps keeps every line at
+ * the page's start.
+ */
+async function valueLinesOffTheStart(page: Page): Promise<Array<string>> {
+  return telemetry(page).evaluate((root: Element): Array<string> => {
+    const off: Array<string> = [];
+
+    root
+      .querySelectorAll("[data-testid='security-telemetry-value-name']")
+      .forEach((row: Element): void => {
+        const value: Element | null = row.querySelector("bdi");
+
+        if (!value) {
+          return;
+        }
+
+        const rowRight: number = row.getBoundingClientRect().right;
+        const words: Range = document.createRange();
+        words.selectNodeContents(value);
+
+        Array.from(words.getClientRects()).forEach((line: DOMRect): void => {
+          if (Math.abs(line.right - rowRight) > 2) {
+            off.push(
+              `${(value.textContent || "").slice(0, 32)}: a line ends at ${Math.round(line.right)}, its row at ${Math.round(rowRight)}`,
+            );
+          }
+        });
+      });
+
+    return off;
+  });
+}
+
 // The parts of the section that run past the card around it: none may.
 async function telemetryPartsOutside(page: Page): Promise<Array<string>> {
   return connected(page).evaluate((root: Element): Array<string> => {
@@ -1589,7 +1633,7 @@ test.describe("In your logs and traces", () => {
       "In your logs and traces",
     );
     await expect(telemetry(page)).toContainText(
-      "Where what it names appears in your logs and traces from",
+      "Where the values it names appear in your logs and traces from",
     );
     const below: boolean = await page.evaluate((): boolean => {
       const section: Element | null = document.querySelector(
@@ -1620,6 +1664,20 @@ test.describe("In your logs and traces", () => {
 
     // The values found, in the order the case names them.
     await expect(telemetryValues(page)).toHaveCount(2);
+    /*
+     * Each as it is written, in the product's monospace face, as its chips
+     * draw values - set on its isolate, which the page's "* { font-family }"
+     * rule would otherwise draw in Inter.
+     */
+    expect(
+      await telemetryValues(page)
+        .first()
+        .getByTestId("security-telemetry-value-name")
+        .locator("bdi")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).fontFamily;
+        }),
+    ).toContain("monospace");
     await expect(telemetryValues(page).nth(0)).toContainText("203.0.113.47");
     await expect(telemetryValues(page).nth(1)).toContainText(
       "k.morgan@acme-commerce.example",
@@ -1636,6 +1694,8 @@ test.describe("In your logs and traces", () => {
       "client_ip 84",
     ]);
     expect(await sourceNames(logs)).toEqual(["okta-gateway", "waf"]);
+    // How many of the lines each sent, said as lines - never a bare number.
+    expect(await sourceCounts(logs)).toEqual(["1,284 lines", "20 lines"]);
     // A service the reader cannot name is counted, never listed.
     await expect(logs).toContainText("+1 more");
 
@@ -1685,6 +1745,7 @@ test.describe("In your logs and traces", () => {
       "net.peer.ip 12",
     ]);
     expect(await sourceNames(spans)).toEqual(["auth"]);
+    expect(await sourceCounts(spans)).toEqual(["312 spans"]);
     const traces: URL = linkOf(
       await spans
         .getByTestId("security-telemetry-place")
@@ -1788,7 +1849,7 @@ test.describe("In your logs and traces", () => {
     await expect(connected(page)).not.toContainText("In your logs and traces");
   });
 
-  test("a search that fails says so in its own place, and its Refresh searches again; the records stay", async ({
+  test("a search that fails says so on one line under its heading, why, and Try again searches again; the records stay", async ({
     page,
   }: {
     page: Page;
@@ -1799,11 +1860,110 @@ test.describe("In your logs and traces", () => {
     const error: Locator = page.getByTestId("security-telemetry-error");
     await expect(error).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId("security-connected-error")).toHaveCount(0);
+    // Said as a signal that could not be searched is, then why, then Try again.
+    await expect(error).toHaveText(
+      "Logs and Traces could not be searched just now. Server Error Try again",
+    );
+    await expect(telemetry(page).getByRole("heading", { level: 3 })).toHaveText(
+      "In your logs and traces",
+    );
+    // One line under the heading - never the app's large centred error.
+    await expect(telemetry(page).getByTestId("refresh-button")).toHaveCount(0);
+    const line: Box = await error.evaluate((element: Element): Box => {
+      const box: DOMRect = element.getBoundingClientRect();
+      return {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+      };
+    });
+    expect(line.bottom - line.top).toBeLessThan(32);
+    const heading: Box = await telemetry(page)
+      .getByRole("heading", { level: 3 })
+      .evaluate((element: Element): Box => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return {
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+        };
+      });
+    // At the heading's start, right under it.
+    expect(Math.abs(line.left - heading.left)).toBeLessThanOrEqual(1);
+    expect(line.top - heading.bottom).toBeLessThan(16);
+    await telemetry(page).screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "case-telemetry-mentions-failed-synthetic.png",
+      ),
+      animations: "disabled",
+    });
 
-    await error.getByRole("button").first().click();
+    await error.getByRole("button", { name: "Try again" }).click();
     await waitForTelemetry(page);
     await expect(error).toHaveCount(0);
     await expect(records(page).first()).toBeVisible();
+  });
+
+  test("while the search runs, the records show first, one quiet line under them says it is searching, and its answer takes the line's place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE, { width: 1280, telemetry: "slow" });
+    await waitForRecords(page);
+
+    const searching: Locator = page.getByTestId("security-telemetry-loading");
+    await expect(searching).toHaveText("Searching your logs and traces…");
+    await expect(searching).toHaveAttribute("role", "status");
+    // No heading, and no loader's blank band, while nothing is known.
+    await expect(telemetry(page)).toHaveCount(0);
+    await expect(connected(page).getByTestId("component-loader")).toHaveCount(
+      0,
+    );
+    const lastRecord: Box = await records(page)
+      .last()
+      .evaluate((element: Element): Box => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return {
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+        };
+      });
+    const line: Box = await searching.evaluate((element: Element): Box => {
+      const box: DOMRect = element.getBoundingClientRect();
+      return {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+      };
+    });
+    // Under the records, one line high.
+    expect(line.top).toBeGreaterThan(lastRecord.bottom);
+    expect(line.bottom - line.top).toBeLessThan(28);
+    await connected(page).screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "case-telemetry-mentions-searching-synthetic.png",
+      ),
+      animations: "disabled",
+    });
+
+    await page.evaluate((): void => {
+      (
+        window as unknown as {
+          __securityOperationsFixture: { releaseTelemetrySearch: () => void };
+        }
+      ).__securityOperationsFixture.releaseTelemetrySearch();
+    });
+    await waitForTelemetry(page);
+    await expect(searching).toHaveCount(0);
+    await expect(telemetryValues(page)).toHaveCount(2);
   });
 
   test("what the role keeps from it and what could not be searched are said - never that a value is not in them - and Try again searches", async ({
@@ -1908,6 +2068,10 @@ test.describe("In your logs and traces", () => {
       "In 1.344 Protokollzeilen",
     );
     expect((await placeTexts(logs))[0]).toBe("In der Nachricht 1.260");
+    expect(await sourceCounts(logs)).toEqual(["1.284 Zeilen", "20 Zeilen"]);
+    await expect(telemetry(page)).toContainText(
+      "Wo die Werte, die es nennt, in Ihren Protokollen und Traces vorkommen",
+    );
     await expect(
       telemetry(page).getByTestId("security-telemetry-not-found"),
     ).toContainText("Nicht in Ihren Protokollen oder Traces");
@@ -1949,6 +2113,13 @@ test.describe("In your logs and traces", () => {
         }
       }
 
+      /*
+       * A value is written left to right, and its lines start at the
+       * page's start all the same: Kai's email, which wraps on a phone,
+       * keeps each of its lines on the right, as a record's long name does.
+       */
+      expect(await valueLinesOffTheStart(page)).toEqual([]);
+
       expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
       expect(await telemetryPartsOutside(page)).toEqual([]);
       await screenshot(page, `case-telemetry-mentions-fa-${width}`);
@@ -1983,4 +2154,75 @@ test.describe("In your logs and traces", () => {
     expect(Object.keys(read?.body || {}).sort()).toEqual(["entities", "time"]);
     await screenshot(page, "entity-telemetry-mentions-1280");
   });
+
+  for (const view of [
+    { width: 1280, theme: undefined },
+    { width: 390, theme: "dark" as const },
+  ]) {
+    test(`at ${view.width}${view.theme ? ", dark" : ""}, no record: one entry of the list, its value under its sentence, the logs and traces close under it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const query: URLSearchParams = new URLSearchParams({
+        value: "203.0.113.47",
+        type: "IP Address",
+      });
+      await open(page, `${PRODUCT}/entity-risk/entity?${query.toString()}`, {
+        width: view.width,
+        theme: view.theme,
+      });
+      await waitForTelemetry(page);
+
+      const empty: Locator = page.getByTestId("security-connected-empty");
+      await expect(empty).toContainText("No record matches what it names.");
+      await expect(empty).toContainText(
+        "OneUptime looked for them among your hosts, clusters, devices, cloud resources, services, monitors and users, and found none.",
+      );
+      // What it looked for, under its sentence - not again under a heading.
+      await expect(
+        empty.getByTestId("security-connected-not-found"),
+      ).toContainText("203.0.113.47");
+      await expect(
+        page.getByTestId("security-connected-not-found"),
+      ).toHaveCount(1);
+      await expect(connected(page)).not.toContainText("No matching record");
+      // Not a page's large empty state.
+      await expect(
+        connected(page).getByTestId("table-empty-state"),
+      ).toHaveCount(0);
+
+      const boxOf: (locator: Locator) => Promise<Box> = async (
+        locator: Locator,
+      ): Promise<Box> => {
+        return locator.evaluate((element: Element): Box => {
+          const box: DOMRect = element.getBoundingClientRect();
+          return {
+            left: box.left,
+            right: box.right,
+            top: box.top,
+            bottom: box.bottom,
+          };
+        });
+      };
+      const entry: Box = await boxOf(empty);
+      const section: Box = await boxOf(telemetry(page));
+      const firstValue: Box = await boxOf(telemetryValues(page).first());
+      // An entry's height, and the found value's icon on the same left edge as its own.
+      expect(entry.bottom - entry.top).toBeLessThan(
+        view.width === 390 ? 220 : 140,
+      );
+      expect(section.top - entry.bottom).toBeLessThan(48);
+      expect(Math.abs(entry.left - firstValue.left)).toBeLessThanOrEqual(1);
+
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await connected(page).screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `entity-no-record-${view.width}${view.theme ? `-${view.theme}` : ""}-synthetic.png`,
+        ),
+        animations: "disabled",
+      });
+    });
+  }
 });

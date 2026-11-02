@@ -31,10 +31,13 @@
  * runner's address.
  *
  * Scenarios (?telemetry=):
- *   fail      the first read fails (a 500); the section's Refresh reads it
+ *   fail      the first read fails (a 500); the section's Try again reads it
  *   limited   the reader's role cannot read logs, and the traces could not
  *             be searched this time (Try again searches them); the next
  *             read answers in full
+ *   slow      the first read is held until the spec lets it answer
+ *             (window.__securityOperationsFixture.releaseTelemetrySearch()),
+ *             so what the page shows while the search runs can be read
  */
 import {
   getCaseConnectionWindow,
@@ -52,7 +55,7 @@ import {
   SecurityTelemetrySignal,
 } from "Common/Types/SecurityCase/SecurityConnection";
 
-export const TELEMETRY_SCENARIOS = ["fail", "limited"];
+export const TELEMETRY_SCENARIOS = ["fail", "limited", "slow"];
 
 export const TELEMETRY_SPRAY_IP = "203.0.113.47";
 
