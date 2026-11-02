@@ -1,4 +1,7 @@
 import {
+  BLOG_POSTS_PER_TOPIC,
+  BLOG_TOPICS,
+  BlogTopicPosts,
   generateLlmsTxt,
   generateLlmsFullTxt,
   generateMcpManifest,
@@ -8,6 +11,7 @@ import {
   generateProductsJson,
   generateCompareIndexJson,
   generateResellersMarkdown,
+  getBlogPostsByTopic,
   RecentBlogPostLink,
 } from "../Utils/AIDiscovery";
 import { getResellersPageContent } from "../Utils/Resellers";
@@ -32,6 +36,7 @@ describe("AIDiscovery", () => {
         title: "Some Post",
         description: "Some description",
         fileName: "2026-01-01-some-post",
+        tags: ["Monitoring"],
       },
     ];
     const txt: string = generateLlmsTxt(homeUrl, posts);
@@ -48,7 +53,7 @@ describe("AIDiscovery", () => {
 
   test("llms.txt omits the blog section when no posts are available", () => {
     const txt: string = generateLlmsTxt(homeUrl, []);
-    expect(txt).not.toContain("## Recent Blog Posts");
+    expect(txt).not.toContain("## Blog");
   });
 
   test("llms.txt normalizes a trailing slash on the home url", () => {
@@ -739,5 +744,208 @@ describe("the cloud marketplaces, for machines", () => {
     expect(PageSEOConfig["/resellers"]!.description).toContain(
       "cloud marketplace",
     );
+  });
+});
+
+/*
+ * The blog in llms.txt and llms-full.txt: the newest posts on each topic
+ * OneUptime covers, each linked by its page - the address to cite - with its
+ * Markdown copy beside it. They used to list the 15 newest posts, on
+ * whatever they were about, linked only by their Markdown copies.
+ */
+describe("the blog, for machines", () => {
+  // A post on the given tags, named after its position in the list.
+  const post: (name: string, tags: Array<string>) => RecentBlogPostLink = (
+    name: string,
+    tags: Array<string>,
+  ): RecentBlogPostLink => {
+    return {
+      title: `Post ${name}`,
+      description: `About ${name}.`,
+      fileName: `2026-09-29-${name}`,
+      tags: tags,
+    };
+  };
+
+  const fileNamesByTopic: (
+    topics: Array<BlogTopicPosts>,
+  ) => Array<[string, Array<string>]> = (
+    topics: Array<BlogTopicPosts>,
+  ): Array<[string, Array<string>]> => {
+    return topics.map((topic: BlogTopicPosts): [string, Array<string>] => {
+      return [
+        topic.name,
+        topic.posts.map((listed: RecentBlogPostLink): string => {
+          return listed.fileName;
+        }),
+      ];
+    });
+  };
+
+  test("each post links its page and its Markdown copy, under its topic", () => {
+    const txt: string = generateLlmsTxt(homeUrl, [
+      post("missing-telemetry", ["OneUptime", "OpenTelemetry"]),
+      post("shadow-commander", ["Incident Response", "SRE"]),
+    ]);
+
+    expect(txt).toContain(
+      "\n## Blog\n\n- [All posts](https://oneuptime.com/blog): every post, newest first\n",
+    );
+    expect(txt).toContain(
+      "\n## Blog: Using OneUptime\n\n- [Post missing-telemetry](https://oneuptime.com/blog/post/2026-09-29-missing-telemetry/view): About missing-telemetry. ([Markdown](https://oneuptime.com/blog/post/2026-09-29-missing-telemetry/markdown))\n",
+    );
+    expect(txt).toContain(
+      "\n## Blog: Incident management and on-call\n\n- [Post shadow-commander](https://oneuptime.com/blog/post/2026-09-29-shadow-commander/view): About shadow-commander. ([Markdown](https://oneuptime.com/blog/post/2026-09-29-shadow-commander/markdown))\n",
+    );
+    // A topic no post is on has no section.
+    expect(txt).not.toContain("## Blog: Status pages");
+    // The blog comes before the optional section, which stays last.
+    expect(txt.indexOf("## Blog")).toBeLessThan(txt.indexOf("## Optional"));
+  });
+
+  test("a post on no topic is not listed, and with none on any the blog has no section", () => {
+    const offTopic: Array<RecentBlogPostLink> = [
+      post("rook-on-raspberry-pi", ["Rook", "Ceph", "Kubernetes"]),
+      post("mysql-column-grants", ["MySQL", "Security"]),
+    ];
+
+    expect(getBlogPostsByTopic(offTopic)).toEqual([]);
+    expect(generateLlmsTxt(homeUrl, offTopic)).not.toContain("## Blog");
+    expect(generateLlmsFullTxt(homeUrl, offTopic)).not.toContain("## Blog");
+  });
+
+  test("a topic lists its newest posts, as many as BLOG_POSTS_PER_TOPIC", () => {
+    const posts: Array<RecentBlogPostLink> = Array.from(
+      { length: BLOG_POSTS_PER_TOPIC + 3 },
+      (_: unknown, index: number): RecentBlogPostLink => {
+        return post(`status-${index}`, ["Status Page"]);
+      },
+    );
+
+    expect(fileNamesByTopic(getBlogPostsByTopic(posts))).toEqual([
+      [
+        "Status pages",
+        posts
+          .slice(0, BLOG_POSTS_PER_TOPIC)
+          .map((listed: RecentBlogPostLink): string => {
+            return listed.fileName;
+          }),
+      ],
+    ]);
+  });
+
+  test("tags match by slug, as tag pages do", () => {
+    expect(
+      fileNamesByTopic(
+        getBlogPostsByTopic([
+          post("lowercase", ["on call"]),
+          post("spaced", ["  Status page "]),
+          post("capitals", ["OPENTELEMETRY COLLECTOR"]),
+        ]),
+      ),
+    ).toEqual([
+      ["Incident management and on-call", ["2026-09-29-lowercase"]],
+      ["Status pages", ["2026-09-29-spaced"]],
+      ["OpenTelemetry", ["2026-09-29-capitals"]],
+    ]);
+  });
+
+  test("a post on several topics is listed once, under the first with room", () => {
+    const usingOneUptime: Array<RecentBlogPostLink> = Array.from(
+      { length: BLOG_POSTS_PER_TOPIC },
+      (_: unknown, index: number): RecentBlogPostLink => {
+        return post(`product-${index}`, ["OneUptime", "Monitoring"]);
+      },
+    );
+
+    const topics: Array<[string, Array<string>]> = fileNamesByTopic(
+      getBlogPostsByTopic([
+        ...usingOneUptime,
+        // "Using OneUptime" is full: this one goes to its next topic.
+        post("product-and-monitoring", ["Monitoring", "OneUptime"]),
+      ]),
+    );
+
+    expect(topics).toEqual([
+      [
+        "Using OneUptime",
+        usingOneUptime.map((listed: RecentBlogPostLink): string => {
+          return listed.fileName;
+        }),
+      ],
+      ["Monitoring", ["2026-09-29-product-and-monitoring"]],
+    ]);
+  });
+
+  test("topics come in BLOG_TOPICS order, whatever order the posts are in", () => {
+    const topics: Array<BlogTopicPosts> = getBlogPostsByTopic(
+      BLOG_TOPICS.map((topic: { tags: Array<string> }, index: number) => {
+        return post(`topic-${index}`, [topic.tags[0] as string]);
+      }).reverse(),
+    );
+
+    expect(
+      topics.map((topic: BlogTopicPosts): string => {
+        return topic.name;
+      }),
+    ).toEqual(
+      BLOG_TOPICS.map((topic: { name: string }): string => {
+        return topic.name;
+      }),
+    );
+  });
+
+  test("it stops reading the posts once every topic is full", () => {
+    const filling: Array<RecentBlogPostLink> = BLOG_TOPICS.flatMap(
+      (topic: { tags: Array<string> }, index: number) => {
+        return Array.from(
+          { length: BLOG_POSTS_PER_TOPIC },
+          (_: unknown, number: number): RecentBlogPostLink => {
+            return post(`topic-${index}-${number}`, [topic.tags[0] as string]);
+          },
+        );
+      },
+    );
+
+    // The rest of 61,000 posts, none of which may be read.
+    const unread: RecentBlogPostLink = post("never-read", []);
+    Object.defineProperty(unread, "tags", {
+      get: (): Array<string> => {
+        throw new Error("Read a post after every topic was full.");
+      },
+    });
+
+    const topics: Array<BlogTopicPosts> = getBlogPostsByTopic([
+      ...filling,
+      ...Array.from({ length: 61000 }, (): RecentBlogPostLink => {
+        return unread;
+      }),
+    ]);
+
+    expect(topics).toHaveLength(BLOG_TOPICS.length);
+  });
+
+  test("llms-full.txt lists the same posts, linked the same way", () => {
+    const posts: Array<RecentBlogPostLink> = [
+      post("burn-rate-alerts", ["SLO", "Alerting"]),
+    ];
+
+    const full: string = generateLlmsFullTxt(homeUrl, posts);
+
+    expect(full).toContain(
+      "\n## Blog: Incident management and on-call\n\n- [Post burn-rate-alerts](https://oneuptime.com/blog/post/2026-09-29-burn-rate-alerts/view): About burn-rate-alerts. ([Markdown](https://oneuptime.com/blog/post/2026-09-29-burn-rate-alerts/markdown))\n",
+    );
+    expect(full).not.toContain("## Blog: SRE and reliability");
+  });
+
+  test("the resources say every post's page answers a request for Markdown", () => {
+    for (const txt of [
+      generateLlmsTxt(homeUrl, []),
+      generateLlmsFullTxt(homeUrl, []),
+    ]) {
+      expect(txt).toContain(
+        "- [Blog RSS feed](https://oneuptime.com/blog/rss.xml): every post's page answers `Accept: text/markdown` with the post as Markdown, which is also at /blog/post/<post>/markdown",
+      );
+    }
   });
 });

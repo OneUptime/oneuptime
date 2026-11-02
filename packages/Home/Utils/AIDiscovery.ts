@@ -36,6 +36,7 @@ import ProductCompare, {
   UseCaseComparison,
   getProductCompareSlugs,
 } from "./ProductCompare";
+import BlogTag from "./BlogTag";
 import {
   McpServerClientSetup,
   McpServerDocsMarkdownPath,
@@ -50,12 +51,205 @@ import { McpOAuthScopeUtil } from "Common/Types/Mcp/McpOAuthScope";
 
 /*
  * Minimal blog post shape so this module does not depend on the blog utils
- * (which pull in server-only modules and the blog filesystem).
+ * (which pull in server-only modules and the blog filesystem). The blog's
+ * post list (BlogPostHeader) is one.
  */
 export interface RecentBlogPostLink {
   title: string;
   description: string;
   fileName: string;
+  tags: Array<string>;
+}
+
+// A topic llms.txt lists blog posts under, and the tags its posts carry.
+export interface BlogTopic {
+  name: string;
+  tags: Array<string>;
+}
+
+export interface BlogTopicPosts {
+  name: string;
+  posts: Array<RecentBlogPostLink>;
+}
+
+/*
+ * What OneUptime does, as the blog tags it. Most of the blog's posts are on
+ * other subjects - Kubernetes storage, Terraform, databases - so the newest
+ * posts are often on none of these; llms.txt lists the newest on each one
+ * instead. "Using OneUptime" comes first: its posts are about the product.
+ */
+export const BLOG_TOPICS: ReadonlyArray<BlogTopic> = [
+  { name: "Using OneUptime", tags: ["OneUptime"] },
+  {
+    name: "Monitoring",
+    tags: [
+      "Monitoring",
+      "Uptime Monitoring",
+      "Synthetic Monitoring",
+      "Website Monitoring",
+      "API Monitoring",
+      "Cloud Monitoring",
+      "Network Monitoring",
+      "Performance Monitoring",
+    ],
+  },
+  {
+    name: "Incident management and on-call",
+    tags: [
+      "Incident Management",
+      "Incident Response",
+      "On-Call",
+      "Alerting",
+      "Runbook",
+      "Postmortem",
+    ],
+  },
+  { name: "Status pages", tags: ["Status Page"] },
+  { name: "OpenTelemetry", tags: ["OpenTelemetry", "OpenTelemetry Collector"] },
+  {
+    name: "Logs, metrics and traces",
+    tags: [
+      "Observability",
+      "Logging",
+      "Log Management",
+      "Metric",
+      "Metrics",
+      "Tracing",
+      "Distributed Tracing",
+      "APM",
+    ],
+  },
+  {
+    name: "SRE and reliability",
+    tags: [
+      "SRE",
+      "Site Reliability Engineering",
+      "Reliability",
+      "SLO",
+      "Error Budget",
+      "Chaos Engineering",
+    ],
+  },
+];
+
+export const BLOG_POSTS_PER_TOPIC: number = 5;
+
+// A topic, where it comes in BLOG_TOPICS, and the posts it lists so far.
+interface BlogTopicSlot {
+  order: number;
+  topic: BlogTopicPosts;
+}
+
+/*
+ * The newest posts on each of BLOG_TOPICS, from posts listed newest first
+ * (BlogPostUtil.getBlogPostList): each topic gets its newest posts that an
+ * earlier topic does not list, so a post on several topics is listed once.
+ * A topic with no posts is left out. Tags match as tag pages do, by slug
+ * (BlogTag.getSlug), so "On-Call" and "on call" are one tag. One pass over
+ * the posts, which stops once every topic is full.
+ */
+export function getBlogPostsByTopic(
+  posts: ReadonlyArray<RecentBlogPostLink>,
+): Array<BlogTopicPosts> {
+  const topics: Array<BlogTopicPosts> = [];
+  const slotOfSlug: Map<string, BlogTopicSlot> = new Map();
+
+  for (const topic of BLOG_TOPICS) {
+    const slot: BlogTopicSlot = {
+      order: topics.length,
+      topic: { name: topic.name, posts: [] },
+    };
+
+    topics.push(slot.topic);
+
+    for (const tag of topic.tags) {
+      const slug: string = BlogTag.getSlug(tag);
+
+      if (!slotOfSlug.has(slug)) {
+        slotOfSlug.set(slug, slot);
+      }
+    }
+  }
+
+  // Each tag as written, slugged once: the posts carry about 21,000.
+  const slugOfTag: Map<string, string> = new Map();
+  let openTopics: number = topics.length;
+
+  for (const post of posts) {
+    if (openTopics === 0) {
+      break;
+    }
+
+    // The first of the post's topics that still has room.
+    let first: BlogTopicSlot | undefined = undefined;
+
+    for (const tag of post.tags) {
+      let slug: string | undefined = slugOfTag.get(tag);
+
+      if (slug === undefined) {
+        slug = BlogTag.getSlug(tag);
+        slugOfTag.set(tag, slug);
+      }
+
+      const slot: BlogTopicSlot | undefined = slotOfSlug.get(slug);
+
+      if (
+        slot &&
+        slot.topic.posts.length < BLOG_POSTS_PER_TOPIC &&
+        (!first || slot.order < first.order)
+      ) {
+        first = slot;
+      }
+    }
+
+    if (first) {
+      first.topic.posts.push(post);
+
+      if (first.topic.posts.length === BLOG_POSTS_PER_TOPIC) {
+        openTopics--;
+      }
+    }
+  }
+
+  return topics.filter((topic: BlogTopicPosts): boolean => {
+    return topic.posts.length > 0;
+  });
+}
+
+/*
+ * The blog, a section per topic: each post's page, the address to cite, and
+ * its Markdown copy beside it. Nothing while no post is on any topic, as when
+ * the blog's checkout is missing.
+ */
+function blogSections(
+  baseUrl: string,
+  posts: ReadonlyArray<RecentBlogPostLink>,
+): Array<string> {
+  const topics: Array<BlogTopicPosts> = getBlogPostsByTopic(posts);
+
+  if (topics.length === 0) {
+    return [];
+  }
+
+  const lines: Array<string> = [
+    "## Blog",
+    "",
+    `- [All posts](${baseUrl}/blog): every post, newest first`,
+  ];
+
+  for (const topic of topics) {
+    lines.push("", `## Blog: ${topic.name}`, "");
+
+    for (const post of topic.posts) {
+      const postUrl: string = `${baseUrl}/blog/post/${post.fileName}`;
+
+      lines.push(
+        `- [${post.title}](${postUrl}/view): ${post.description} ([Markdown](${postUrl}/markdown))`,
+      );
+    }
+  }
+
+  return lines;
 }
 
 function normalizeBaseUrl(homeUrl: string): string {
@@ -125,7 +319,7 @@ const machineReadableSection: (baseUrl: string) => Array<string> = (
     `- [Comparisons (JSON)](${baseUrl}/data/compare.json): OneUptime vs other tools`,
     `- [Customer reviews (JSON)](${baseUrl}/data/reviews.json)`,
     `- [Governed claims matrix (JSON)](${baseUrl}/data/claims.json): every published claim about service levels, support, compliance, encryption, deployment, migration, scale, discounts, and contract terms, with its status, qualifier, evidence, and source document`,
-    `- [Blog RSS feed](${baseUrl}/blog/rss.xml): every post also has a raw markdown variant at /blog/post/<post>/markdown`,
+    `- [Blog RSS feed](${baseUrl}/blog/rss.xml): every post's page answers \`Accept: text/markdown\` with the post as Markdown, which is also at /blog/post/<post>/markdown`,
   ];
 };
 
@@ -146,7 +340,7 @@ function integrationsSection(baseUrl: string): Array<string> {
 
 export function generateLlmsTxt(
   homeUrl: string,
-  recentPosts: Array<RecentBlogPostLink>,
+  blogPosts: ReadonlyArray<RecentBlogPostLink>,
 ): string {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const lines: Array<string> = [];
@@ -244,16 +438,11 @@ export function generateLlmsTxt(
     "- [Source code on GitHub](https://github.com/OneUptime/oneuptime)",
   );
 
-  if (recentPosts.length > 0) {
+  const blog: Array<string> = blogSections(baseUrl, blogPosts);
+
+  if (blog.length > 0) {
     lines.push("");
-    lines.push("## Recent Blog Posts");
-    lines.push("");
-    for (const post of recentPosts) {
-      lines.push(
-        `- [${post.title}](${baseUrl}/blog/post/${post.fileName}/markdown): ${post.description}`,
-      );
-    }
-    lines.push(`- [All posts](${baseUrl}/blog)`);
+    lines.push(...blog);
   }
 
   lines.push("");
@@ -269,7 +458,7 @@ export function generateLlmsTxt(
 
 export function generateLlmsFullTxt(
   homeUrl: string,
-  recentPosts: Array<RecentBlogPostLink>,
+  blogPosts: ReadonlyArray<RecentBlogPostLink>,
 ): string {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const lines: Array<string> = [];
@@ -324,15 +513,11 @@ export function generateLlmsFullTxt(
   lines.push("");
   lines.push(...integrationsSection(baseUrl));
 
-  if (recentPosts.length > 0) {
+  const blog: Array<string> = blogSections(baseUrl, blogPosts);
+
+  if (blog.length > 0) {
     lines.push("");
-    lines.push("## Recent Blog Posts");
-    lines.push("");
-    for (const post of recentPosts) {
-      lines.push(
-        `- [${post.title}](${baseUrl}/blog/post/${post.fileName}/markdown): ${post.description}`,
-      );
-    }
+    lines.push(...blog);
   }
 
   lines.push("");
