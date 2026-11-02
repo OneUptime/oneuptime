@@ -420,9 +420,13 @@ test.describe("a reporting host at a laptop's width", () => {
       ).toBeVisible();
     }
 
-    // CPU Ready from 5%: db-primary (6.2%) and ci-runner-01 (12.4%) only.
+    /*
+     * CPU Ready past 10%, where VM CPU Ready Contention fires and Needs
+     * attention marks a VM: ci-runner-01 (12.4%) only - db-primary's 6.2%
+     * is under it.
+     */
     const ready: Locator = busiest.getByTestId("vmware-host-busy-vm-cpu-ready");
-    await expect(ready).toHaveText(["CPU Ready 6.2%", "CPU Ready 12.4%"]);
+    await expect(ready).toHaveText(["CPU Ready 12.4%"]);
     await expect(rows.nth(0)).toContainText("58.0 GiB of 64.0 GiB memory");
     await expect(rows.nth(0)).toContainText("78.4%");
 

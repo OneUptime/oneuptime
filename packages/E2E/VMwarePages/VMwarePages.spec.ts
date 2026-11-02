@@ -522,6 +522,16 @@ test.describe("the vCenter's Overview", () => {
     );
     expect(await backgroundOf(tileBar(tile))).toBe(RED_500);
 
+    /*
+     * esx03, which vCenter lost, reports 0 MiB of its 512 GiB: left out of
+     * the vCenter's memory, not counted as 512 GiB nobody uses (3.5 TiB).
+     */
+    await expect(
+      goldenTile(page, "Host Memory").getByTestId(
+        "golden-metric-tile-sublabel",
+      ),
+    ).toHaveText("1.4 TiB of 3.0 TiB");
+
     // Five tiles, none with a title broken inside a word at a laptop's width.
     await expect(goldenTile(page, "Host CPU")).toBeVisible();
     await expect(goldenTile(page, "VM CPU Ready")).toBeVisible();
@@ -560,6 +570,42 @@ test.describe("the vCenter's Overview", () => {
     await expect(
       hosts.nth(1).getByTestId("vmware-hosts-card-cpu"),
     ).toContainText("94%");
+
+    /*
+     * The top consumers, coloured by the lines their alerts fire at: esx02's
+     * 94% CPU amber, never red; ds-prod-01 93% full red, ds-prod-02 84%
+     * amber, ds-west 62% green (they were red, red and amber); ci-runner-01
+     * waits 14% of the time for a CPU, amber.
+     */
+    const topBar: (section: string, name: string) => Locator = (
+      section: string,
+      name: string,
+    ): Locator => {
+      return page
+        .getByTestId(section)
+        .getByTestId("vmware-top-consumer")
+        .filter({ hasText: name })
+        .first()
+        .getByTestId("vmware-top-consumer-bar");
+    };
+    expect(
+      await backgroundOf(topBar("vmware-top-host-cpu", "esx02.acme.example")),
+    ).toBe(AMBER_500);
+    expect(
+      await backgroundOf(topBar("vmware-top-host-cpu", "esx01.acme.example")),
+    ).toBe(EMERALD_500);
+    expect(
+      await backgroundOf(topBar("vmware-top-datastores", "ds-prod-01")),
+    ).toBe(RED_500);
+    expect(
+      await backgroundOf(topBar("vmware-top-datastores", "ds-prod-02")),
+    ).toBe(AMBER_500);
+    expect(await backgroundOf(topBar("vmware-top-datastores", "ds-west"))).toBe(
+      EMERALD_500,
+    );
+    expect(
+      await backgroundOf(topBar("vmware-top-vm-cpu-ready", "ci-runner-01")),
+    ).toBe(AMBER_500);
 
     // A host's whole row is the step to its page.
     await hosts.nth(1).getByTestId("vmware-hosts-card-cpu").click();
@@ -622,6 +668,13 @@ test.describe("the vCenter's Overview", () => {
       "Health Unknown",
     );
     await expect(page.getByTestId("vmware-needs-attention")).toHaveCount(0);
+    /*
+     * Its clusters' counts are three days old: Effective hosts says nothing
+     * rather than "2 in maintenance mode" for a host it had lost.
+     */
+    const effective: Locator = goldenTile(page, "Effective hosts");
+    await expect(effective).toContainText("—");
+    await expect(effective).not.toContainText("maintenance mode");
   });
 
   test("forty hosts: the first eight, the one vCenter lost first, and a way to all of them", async ({
@@ -671,17 +724,31 @@ test.describe("the vCenter's Overview", () => {
   }) => {
     await openPage(page, VCENTER_PATH, "fail=inventory");
 
-    await expect(
-      page
-        .getByText("Something went wrong on the server. Please try again.", {
-          exact: false,
-        })
-        .first(),
-    ).toBeVisible();
+    // Said in Needs attention's own frame, with a way to read it again.
+    const error: Locator = page.getByTestId("vmware-needs-attention-error");
+    await expect(error).toBeVisible();
+    await expect(error).toContainText(
+      "Something went wrong on the server. Please try again.",
+    );
+    await expect(error.getByRole("button")).toBeVisible();
     await expect(page.getByTestId("vmware-needs-attention")).toHaveCount(0);
     await expect(page.getByTestId("vmware-hosts-card")).toHaveCount(0);
     // "Healthy" over a vCenter it could not read would be a guess.
     await expect(page.getByTestId("vmware-hero-health")).toHaveCount(0);
+    // Nor four "No ... data available." boxes, as an empty vCenter draws.
+    await expect(page.getByTestId("vmware-top-consumers")).toHaveCount(0);
+
+    /*
+     * A host whose row cannot be read says so with Try again - and not
+     * that it left the vCenter's inventory, which nobody could tell.
+     */
+    await openPage(
+      page,
+      hostPath("dc-east", "esx02.acme.example"),
+      "fail=inventory",
+    );
+    await expect(page.getByTestId("vmware-part-read-error")).toBeVisible();
+    await expect(page.getByTestId("vmware-host-report-notice")).toHaveCount(0);
   });
 
   test("a vCenter that has reported nothing yet has no health to tell", async ({
@@ -893,6 +960,20 @@ test.describe("an ESXi host's page", () => {
       "[VMware] Host CPU Saturation (>90%) - vcenter-prod",
     ]);
     await expect(page.getByTestId("vmware-host-busiest-vms")).toBeVisible();
+    /*
+     * ci-runner-01 waits 14.2% of the time for a CPU: amber, as Needs
+     * attention's "CPU ready 14%" just above it (the badge was red); its
+     * 64.1% CPU green, as the Virtual Machines tab draws it.
+     */
+    const runner: Locator = page
+      .getByTestId("vmware-host-busy-vm")
+      .filter({ hasText: "ci-runner-01" });
+    expect(
+      await colourOf(runner.getByTestId("vmware-host-busy-vm-cpu-ready")),
+    ).toBe(AMBER_700);
+    expect(
+      await backgroundOf(runner.getByTestId("vmware-host-busy-vm-cpu-bar")),
+    ).toBe("rgb(34, 197, 94)");
   });
 
   test("Turn on 6 alerts opens Recommendations with exactly the host alerts selected", async ({
@@ -1155,6 +1236,13 @@ test.describe("a cluster's page", () => {
       effective.getByTestId("golden-metric-tile-sublabel"),
     ).toHaveText("1 in maintenance mode");
     expect(await backgroundOf(tileBar(effective))).toBe(AMBER_500);
+    // Host failure cannot be told while a host is not effective, and says so.
+    await expect(
+      goldenTile(
+        page.getByTestId("vmware-cluster-tiles"),
+        "Host failure",
+      ).getByTestId("golden-metric-tile-sublabel"),
+    ).toHaveText("Not known while a host is not effective");
   });
 });
 
@@ -1169,6 +1257,38 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
     await openOverview(page);
     await expect(page.getByTestId("vmware-needs-attention")).toBeVisible();
     await expectNoSidewaysScroll(page);
+    /*
+     * The top consumers' names whole: "esx-wes..." and "esx-we..." were two
+     * hosts nobody could tell apart.
+     */
+    const names: Array<{ text: string; cut: boolean }> = await page
+      .getByTestId("vmware-top-consumer-name")
+      .evaluateAll(
+        (elements: Array<Element>): Array<{ text: string; cut: boolean }> => {
+          return elements.map((element: Element) => {
+            return {
+              text: element.textContent || "",
+              cut: element.scrollWidth > element.clientWidth + 1,
+            };
+          });
+        },
+      );
+    expect(names.length).toBeGreaterThan(0);
+    expect(
+      names.filter((name: { text: string; cut: boolean }): boolean => {
+        return name.cut;
+      }),
+    ).toEqual([]);
+    // A host's facts never break "512 GiB" from "memory".
+    const facts: Locator = page.getByTestId("vmware-hosts-card-facts").first();
+    const memoryFact: Locator = facts.locator("span", {
+      hasText: "GiB memory",
+    });
+    expect(
+      await memoryFact.evaluate((element: Element): number => {
+        return element.getClientRects().length;
+      }),
+    ).toBe(1);
     await screenshot(page, "phone-overview");
 
     await openPage(page, `${VCENTER_PATH}/hosts`);
@@ -1236,6 +1356,16 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
     await expect(page.getByTestId("vmware-hero-datacenters")).toHaveText(
       (GERMAN["{{count}} datacenters"] as string).replace("{{count}}", "2"),
     );
+    // And the tiles, the charts and the top consumers: they were English.
+    expect(GERMAN["Effective hosts"]).not.toBe("Effective hosts");
+    await expect(
+      goldenTile(page, GERMAN["Effective hosts"] as string),
+    ).toContainText("6/8");
+    await expect(
+      page
+        .getByTestId("vmware-top-datastores")
+        .getByText(GERMAN["Datastore Utilization"] as string, { exact: true }),
+    ).toBeVisible();
     await screenshot(page, "german-overview");
 
     await openHost(page, "dc-east", "esx03.acme.example", "lang=de");
