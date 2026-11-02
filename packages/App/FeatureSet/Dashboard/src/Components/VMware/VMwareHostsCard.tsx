@@ -254,9 +254,39 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
                           {tx(status.label)}
                         </span>
                       </div>
+                      {/*
+                       * Each fact whole on its line - on a phone "512" ended
+                       * one line and "GiB memory" began the next - while a
+                       * long cluster name may still break after its dots.
+                       */}
                       {facts.length > 0 ? (
-                        <div className="mt-0.5 text-xs text-gray-500">
-                          {facts.join(" · ")}
+                        <div
+                          className="mt-0.5 text-xs text-gray-500"
+                          data-testid={`${testId}-facts`}
+                        >
+                          {facts.map(
+                            (fact: string, index: number): ReactElement => {
+                              return (
+                                <React.Fragment key={`${fact}-${index}`}>
+                                  {index > 0 ? " · " : ""}
+                                  <span
+                                    className={
+                                      index === 0 && props.showCluster !== false
+                                        ? "[overflow-wrap:anywhere]"
+                                        : "whitespace-nowrap"
+                                    }
+                                  >
+                                    {index === 0 &&
+                                    props.showCluster !== false ? (
+                                      <BreakableName text={fact} />
+                                    ) : (
+                                      fact
+                                    )}
+                                  </span>
+                                </React.Fragment>
+                              );
+                            },
+                          )}
                         </div>
                       ) : (
                         <></>

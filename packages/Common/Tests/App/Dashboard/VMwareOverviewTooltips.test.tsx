@@ -10,7 +10,15 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React from "react";
 
 /*
@@ -20,6 +28,12 @@ import React from "react";
  * tile, chart card and top-5 section has an (i) beside its title, the (i)
  * says the right thing, the chart cards have it from the first paint (while
  * their data is still loading), and the hero's counts open their lists.
+ *
+ * And what its numbers say (the UI review): a host vCenter cannot reach is
+ * no idle capacity in the vCenter's CPU and memory, the top consumers are
+ * coloured by the lines their alerts fire at, a failed inventory read says
+ * so in Needs attention's frame with Refresh, and a vCenter with nothing to
+ * rank has no Top Resource Consumers card.
  */
 
 interface Gate {
@@ -45,6 +59,10 @@ let mockRows: Array<unknown> = [];
 let mockListGate: Promise<void> = Promise.resolve();
 let mockAggregateGate: Promise<void> = Promise.resolve();
 let mockAggregateFails: boolean = false;
+// What each metric's aggregate answers, by its name.
+let mockAggregateData: Record<string, Array<unknown>> = {};
+// Every inventory read fails, as a server that answers 500 does.
+let mockListFails: boolean = false;
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -59,6 +77,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       }): Promise<unknown> => {
         mockGetListCalls.push(request);
         await mockListGate;
+        if (mockListFails) {
+          throw new Error("The server could not be reached.");
+        }
         /*
          * The rows of the kinds the read asks for: one kind, or several
          * (the Overview reads every kind but the VMs at once).
@@ -94,7 +115,12 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
         if (mockAggregateFails) {
           throw new Error("ClickHouse is not reachable");
         }
-        return { data: [] };
+        const name: unknown = (
+          request as { aggregateBy?: { query?: { name?: unknown } } }
+        ).aggregateBy?.query?.name;
+        return {
+          data: typeof name === "string" ? mockAggregateData[name] || [] : [],
+        };
       },
     },
   };
@@ -318,6 +344,8 @@ beforeEach(() => {
   mockListGate = Promise.resolve();
   mockAggregateGate = Promise.resolve();
   mockAggregateFails = false;
+  mockAggregateData = {};
+  mockListFails = false;
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
@@ -380,6 +408,29 @@ describe("VMware overview: an (i) beside every number", () => {
     expect(row.textContent).toContain("1/1 VM powered on");
     expect(row.textContent).toContain("1 datastore");
     expect(row.lastElementChild).toBe(button);
+  });
+
+  test("with an agent version, the counts' (i) still follows the last count, before the agent's chip", async () => {
+    mockVCenter = vcenterModel({
+      datacenterCount: 1,
+      clusterCount: 1,
+      hostCount: 1,
+      vmCount: 1,
+      poweredOnVmCount: 1,
+      datastoreCount: 1,
+      agentVersion: "1.2.3",
+    });
+    await renderLoaded();
+
+    const [button] = infoButtonsFor("vCenter inventory counts");
+    /*
+     * After the agent's chip it read as that chip's (i) - alone with it on
+     * the row's second line where the chips wrap.
+     */
+    expect(button!.previousElementSibling?.textContent).toContain(
+      "1 datastore",
+    );
+    expect(button!.nextElementSibling?.textContent).toContain("Agent 1.2.3");
   });
 
   test("a hero with only the agent version chip gets no counts (i)", async () => {
@@ -569,5 +620,287 @@ describe("VMware overview: the hero's counts open their lists", () => {
     await renderLoaded();
 
     expect(screen.getByTestId("vmware-hero-datacenters").tagName).toBe("SPAN");
+  });
+});
+
+/*
+ * Two hosts of 10 GHz and 128 GiB each: esx01 runs, half busy; vCenter has
+ * lost esx03, and reports it at 0 MHz and 0 MiB.
+ */
+function hostSeries(): Record<string, Array<unknown>> {
+  const at: Date = new Date(Date.now() - 2 * 60 * 1000);
+  const of: (host: string, value: number) => Record<string, unknown> = (
+    host: string,
+    value: number,
+  ): Record<string, unknown> => {
+    return {
+      timestamp: at,
+      value: value,
+      attributes: {
+        "resource.vcenter.datacenter.name": "dc1",
+        "resource.vcenter.host.name": host,
+      },
+    };
+  };
+  return {
+    "vcenter.host.cpu.utilization": [of("esx01", 50), of("esx03", 0)],
+    "vcenter.host.cpu.capacity": [of("esx01", 10000), of("esx03", 10000)],
+    "vcenter.host.memory.usage": [of("esx01", 64 * 1024), of("esx03", 0)],
+    "vcenter.host.memory.capacity": [
+      of("esx01", 128 * 1024),
+      of("esx03", 128 * 1024),
+    ],
+  };
+}
+
+// A golden tile, by its (i).
+function goldenTile(title: string): HTMLElement {
+  const button: HTMLElement | undefined = infoButtonsFor(title)[0];
+  const tile: HTMLElement | null = button
+    ? (button.closest("div.rounded-xl") as HTMLElement | null)
+    : null;
+  if (!tile) {
+    throw new Error(`no tile ${title}`);
+  }
+  return tile;
+}
+
+describe("VMware overview: a host vCenter cannot reach is no idle capacity", () => {
+  test("Host CPU and Host Memory count the hosts that report their use", async () => {
+    mockAggregateData = hostSeries();
+    await renderLoaded();
+
+    /*
+     * esx01 at 50% of its 10 GHz is the vCenter's 50%: counted, esx03's
+     * 0 MHz of 10 GHz made it 25%, as if half the capacity were free.
+     */
+    await waitFor(() => {
+      expect(goldenTile("Host CPU")).toHaveTextContent("50.0%");
+    });
+    const memory: HTMLElement = goldenTile("Host Memory");
+    expect(memory).toHaveTextContent("50.0%");
+    expect(memory).toHaveTextContent("64.0 GiB of 128 GiB");
+    expect(memory).not.toHaveTextContent("of 256 GiB");
+  });
+
+  test("while every host runs, every host counts", async () => {
+    const series: Record<string, Array<unknown>> = hostSeries();
+    // esx03 back: 32 GiB in use, idle CPU.
+    series["vcenter.host.memory.usage"] = [
+      (
+        series["vcenter.host.memory.usage"] as Array<Record<string, unknown>>
+      )[0],
+      {
+        ...(
+          series["vcenter.host.memory.usage"] as Array<Record<string, unknown>>
+        )[1],
+        value: 32 * 1024,
+      },
+    ];
+    mockAggregateData = series;
+    await renderLoaded();
+
+    await waitFor(() => {
+      expect(goldenTile("Host CPU")).toHaveTextContent("25.0%");
+    });
+    expect(goldenTile("Host Memory")).toHaveTextContent("96.0 GiB of 256 GiB");
+  });
+});
+
+describe("VMware overview: the top consumers, coloured as their alerts read them", () => {
+  function busyInventory(): Array<unknown> {
+    const now: Date = new Date();
+    const base: Array<unknown> = inventory().filter((row: unknown): boolean => {
+      const kind: unknown = (row as { kind?: unknown }).kind;
+      return (
+        kind !== "Host" && kind !== "Datastore" && kind !== "VirtualMachine"
+      );
+    });
+    const busyHost: (name: string, cpu: number, memory: number) => unknown = (
+      name: string,
+      cpu: number,
+      memory: number,
+    ): unknown => {
+      return inventoryRow({
+        kind: "Host",
+        externalId: `host/dc1/${name}`,
+        name: name,
+        hostName: name,
+        datacenterName: "dc1",
+        clusterName: "cl1",
+        latestCpuPercent: cpu,
+        latestCpuMhz: cpu * 100,
+        latestMemoryBytes: (memory / 100) * 128 * GIB,
+        latestMemoryPercent: memory,
+        maxMemoryBytes: 128 * GIB,
+        metricsUpdatedAt: now,
+      });
+    };
+    const datastore: (name: string, percent: number) => unknown = (
+      name: string,
+      percent: number,
+    ): unknown => {
+      return inventoryRow({
+        kind: "Datastore",
+        externalId: `datastore/dc1/${name}`,
+        name: name,
+        datacenterName: "dc1",
+        latestDiskBytes: percent * GIB,
+        maxDiskBytes: 100 * GIB,
+        latestDiskPercent: percent,
+        metricsUpdatedAt: now,
+      });
+    };
+    const waitingVm: (name: string, ready: number) => unknown = (
+      name: string,
+      ready: number,
+    ): unknown => {
+      return inventoryRow({
+        kind: "VirtualMachine",
+        externalId: `vm/${name}`,
+        name: name,
+        hostName: "esx01",
+        datacenterName: "dc1",
+        isTemplate: false,
+        isPoweredOn: true,
+        cpuReadinessPercent: ready,
+        metricsUpdatedAt: now,
+      });
+    };
+    return [
+      ...base,
+      busyHost("esx01", 94.2, 67),
+      busyHost("esx02", 80, 91),
+      busyHost("esx03", 41.6, 62),
+      datastore("ds-full", 93),
+      datastore("ds-filling", 84),
+      datastore("ds-calm", 62),
+      waitingVm("ci-runner-01", 14.2),
+      waitingVm("db-primary", 6.2),
+    ];
+  }
+
+  function tonesIn(sectionTestId: string): Array<[string, string | null]> {
+    return within(screen.getByTestId(sectionTestId))
+      .getAllByTestId("vmware-top-consumer")
+      .map((row: HTMLElement): [string, string | null] => {
+        return [
+          within(row).getByTestId("vmware-top-consumer-name").textContent || "",
+          row.getAttribute("data-tone"),
+        ];
+      });
+  }
+
+  test("a host amber past 90%, never red; a datastore amber past 80% and red past 90%; a VM amber past 10% CPU ready", async () => {
+    mockRows = busyInventory();
+    await renderLoaded();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("vmware-top-host-cpu")).toBeInTheDocument();
+    });
+
+    // 94.2% CPU amber, never red; 80% green (the table's generic 60/80 made it red).
+    expect(tonesIn("vmware-top-host-cpu")).toEqual([
+      ["esx01", "warning"],
+      ["esx02", "positive"],
+      ["esx03", "positive"],
+    ]);
+    // By its own memory share: 91% amber, 67% and 62% green.
+    expect(tonesIn("vmware-top-host-memory")).toEqual([
+      ["esx02", "warning"],
+      ["esx01", "positive"],
+      ["esx03", "positive"],
+    ]);
+    // 93% red, 84% amber (was red), 62% green (was amber).
+    expect(tonesIn("vmware-top-datastores")).toEqual([
+      ["ds-full", "danger"],
+      ["ds-filling", "warning"],
+      ["ds-calm", "positive"],
+    ]);
+    // 14.2% waits past the VM CPU Ready Contention line: amber.
+    expect(tonesIn("vmware-top-vm-cpu-ready")).toEqual([
+      ["ci-runner-01", "warning"],
+      ["db-primary", "positive"],
+    ]);
+
+    const bar: HTMLElement = within(
+      screen.getByTestId("vmware-top-datastores"),
+    ).getAllByTestId("vmware-top-consumer-bar")[1]!;
+    expect(bar.className).toContain("bg-amber-500");
+    expect(bar.className).not.toContain("bg-red-500");
+  });
+
+  test("a name is never cut short: it breaks after its dots, whole", async () => {
+    mockRows = busyInventory();
+    await renderLoaded();
+
+    const name: HTMLElement = within(
+      screen.getByTestId("vmware-top-host-cpu"),
+    ).getAllByTestId("vmware-top-consumer-name")[0]!;
+    expect(name.className).not.toContain("truncate");
+    expect(name.className).toContain("[overflow-wrap:anywhere]");
+  });
+});
+
+describe("VMware overview: when the inventory cannot be read, or there is nothing to rank", () => {
+  test("a failed read says so in Needs attention's frame, with Refresh that reads it again", async () => {
+    mockListFails = true;
+    render(<VMwareVCenterOverview {...PAGE_PROPS} />);
+
+    const error: HTMLElement = await screen.findByTestId(
+      "vmware-needs-attention-error",
+    );
+    expect(error).toHaveTextContent("Needs attention");
+    expect(error).toHaveTextContent("The server could not be reached.");
+    // Four "No ... data available." boxes would read as an empty vCenter.
+    expect(screen.queryByTestId("vmware-top-consumers")).toBeNull();
+    expect(screen.queryByText("No host CPU data available.")).toBeNull();
+    // Nor a health it could not judge.
+    expect(screen.queryByTestId("vmware-hero-health")).toBeNull();
+
+    const readsBefore: number = mockGetListCalls.length;
+    mockListFails = false;
+    fireEvent.click(within(error).getByRole("button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("vmware-needs-attention-error")).toBeNull();
+    });
+    expect(mockGetListCalls.length).toBeGreaterThan(readsBefore);
+    expect(await screen.findByTestId("vmware-hero-health")).toHaveTextContent(
+      "Healthy",
+    );
+    expect(screen.getByTestId("vmware-top-consumers")).toBeInTheDocument();
+  });
+
+  test("a vCenter with nothing to rank has no Top Resource Consumers card", async () => {
+    mockRows = inventory().filter((row: unknown): boolean => {
+      const kind: unknown = (row as { kind?: unknown }).kind;
+      return kind === "Datacenter" || kind === "Cluster";
+    });
+    render(<VMwareVCenterOverview {...PAGE_PROPS} />);
+
+    await waitFor(() => {
+      expect(infoButtonsFor("vCenter Health")).toHaveLength(1);
+    });
+    expect(screen.queryByTestId("vmware-top-consumers")).toBeNull();
+    expect(screen.queryByText("Top Resource Consumers")).toBeNull();
+  });
+
+  test("while the inventory loads, the card holds its place with a loader", async () => {
+    const list: Gate = gate();
+    mockListGate = list.promise;
+
+    render(<VMwareVCenterOverview {...PAGE_PROPS} />);
+
+    expect(
+      await screen.findByTestId("vmware-top-consumers"),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      list.open();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("vmware-top-host-cpu")).toBeInTheDocument();
+    });
   });
 });

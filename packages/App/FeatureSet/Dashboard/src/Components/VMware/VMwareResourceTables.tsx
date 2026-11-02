@@ -85,7 +85,7 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
     showTitleWhenFolded: true,
     getValue: (resource: InfrastructureResource): string => {
       const raw: string = resource.additionalAttributes["cpuCapacityMhz"] || "";
-      return raw ? formatMhz(Number(raw)) : "N/A";
+      return raw ? formatMhz(Number(raw)).replace(" ", "\u00a0") : "N/A";
     },
   });
 

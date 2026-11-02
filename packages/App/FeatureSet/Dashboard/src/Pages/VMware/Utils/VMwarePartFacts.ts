@@ -4,6 +4,10 @@ import { VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID } from "Common/Types/Monitor/VMw
 import { ResourceAttentionSeverity } from "../../../Components/ResourcePart/ResourceAttention";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  VMWARE_CPU_READY_WARNING_PERCENT,
+  VMWARE_DATASTORE_CRITICAL_PERCENT,
+  VMWARE_DATASTORE_WARNING_PERCENT,
+  VMWARE_HOST_SATURATION_PERCENT,
   VMwareHostState,
   assessVMwareHost,
   findVMwareDatacenter,
@@ -259,6 +263,14 @@ export function countVMwareNotEffectiveHosts(data: {
     offOrStandby: 0,
   };
   for (const cluster of data.clusters) {
+    /*
+     * A cluster that has not reported for a while says nothing about now:
+     * its hosts read Not reporting, so its old count of hosts not effective
+     * would all read as maintenance mode.
+     */
+    if (!hasFreshVMwareReadings(cluster, data.now)) {
+      continue;
+    }
     counts.inMaintenance += getVMwareClusterUnexplainedNotEffective({
       cluster: cluster,
       hosts: data.hosts,
@@ -365,6 +377,68 @@ export function sortVMwareHostsForGlance(data: {
     .map((entry: { host: VMwareResource; rank: number }): VMwareResource => {
       return entry.host;
     });
+}
+
+/*
+ * The colour a part's reading is drawn in wherever a page ranks or charts
+ * it - the Overview's top consumers, a host's busiest VMs - by the lines
+ * its alert fires at, as Needs attention and the lists colour it.
+ */
+export type VMwareUsageTone = "positive" | "warning" | "danger";
+
+// A host's or a VM's CPU or memory: amber past 90%, never red.
+export function getVMwareHostLoadTone(
+  percent: number | null | undefined,
+): VMwareUsageTone {
+  return percent !== null &&
+    percent !== undefined &&
+    percent > VMWARE_HOST_SATURATION_PERCENT
+    ? "warning"
+    : "positive";
+}
+
+// How full a datastore is: amber past 80%, red past 90%.
+export function getVMwareDatastoreFullTone(
+  percent: number | null | undefined,
+): VMwareUsageTone {
+  if (percent === null || percent === undefined) {
+    return "positive";
+  }
+  if (percent > VMWARE_DATASTORE_CRITICAL_PERCENT) {
+    return "danger";
+  }
+  return percent > VMWARE_DATASTORE_WARNING_PERCENT ? "warning" : "positive";
+}
+
+// How long a VM waits for a free CPU: amber past 10%, never red.
+export function getVMwareCpuReadyPercentTone(
+  percent: number | null | undefined,
+): VMwareUsageTone {
+  return percent !== null &&
+    percent !== undefined &&
+    percent > VMWARE_CPU_READY_WARNING_PERCENT
+    ? "warning"
+    : "positive";
+}
+
+/*
+ * The hosts a vCenter-wide CPU or memory figure leaves out at one point in
+ * time: those whose memory in use reads 0. vCenter reports 0 for a host it
+ * cannot reach, or that is off or in standby, and a running ESXi host
+ * always uses some memory: counted, it would add capacity nobody can use as
+ * an idle host's. Keyed as the caller keys its series (a host's datacenter
+ * and name).
+ */
+export function getVMwareHostsReportingNoMemory(
+  memoryInUseByHost: ReadonlyMap<string, number> | undefined,
+): Set<string> {
+  const hosts: Set<string> = new Set<string>();
+  memoryInUseByHost?.forEach((memoryInUse: number, host: string): void => {
+    if (memoryInUse === 0) {
+      hosts.add(host);
+    }
+  });
+  return hosts;
 }
 
 /*

@@ -233,6 +233,10 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "{{amount}} of memory ballooned",
     "CPU ready {{percent}}",
     "Not enough memory to lose a host",
+    // Why a cluster's Host failure has no answer, under its dash.
+    "Not known while a host is not effective",
+    "Needs at least two running hosts",
+    "A host's memory size is not reported",
     "{{count}} hosts not effective",
     "{{count}} hosts not responding",
     "{{count}} hosts with a critical alarm",
@@ -437,7 +441,7 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.",
     "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).",
     "The highest latency of any of this host's storage devices in each interval of the selected range, in milliseconds.",
-    "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).",
+    "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM that waits for a physical CPU more than 10% of the time.",
     "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.",
     "This host's total CPU: all its cores added together, in MHz or GHz, from the latest report.",
     // What the reworked pages say about a host's, a cluster's and a list's state.

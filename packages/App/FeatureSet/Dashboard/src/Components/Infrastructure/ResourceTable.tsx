@@ -610,7 +610,18 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       key: "status",
       headerTooltip: props.builtInColumnDescriptions?.status,
       ...(hasStatusReasons
-        ? { wrapContent: true, wrapMaxWidthClassName: "max-w-[12rem]" }
+        ? {
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-[12rem]",
+            /*
+             * Its own floor rather than a column of prose's 10rem: the
+             * reason under the pill is a few words, and beside a side menu
+             * at 1024px the 10rem left a host's name 56px ("esx01.a",
+             * "cme.e..."). The pill keeps to one line (whitespace-nowrap),
+             * so a longer one widens the column instead.
+             */
+            contentClassName: "min-w-[7rem]",
+          }
         : {}),
       getElement: (resource: InfrastructureResource): ReactElement => {
         if (!resource.status) {
@@ -619,7 +630,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         const pill: ReactElement = (
           <span
             data-tone={resource.statusTone}
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+            className={`inline-flex whitespace-nowrap px-2 py-0.5 text-xs font-medium rounded ${
               resource.statusTone
                 ? RESOURCE_STATUS_TONE_CLASS_NAMES[resource.statusTone]
                 : getStatusBadgeClass(resource.status)

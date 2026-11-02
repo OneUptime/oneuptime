@@ -747,6 +747,19 @@ describe("a datastore's page", () => {
 });
 
 describe("a cluster's page", () => {
+  // One of its tiles, by its title.
+  function clusterTile(title: string): HTMLElement {
+    const found: Element | undefined = Array.from(
+      screen.getByTestId("vmware-cluster-tiles").children,
+    ).find((tile: Element): boolean => {
+      return (tile.textContent || "").startsWith(title);
+    });
+    if (!found) {
+      throw new Error(`no tile ${title}`);
+    }
+    return found as HTMLElement;
+  }
+
   async function openCluster(): Promise<void> {
     window.history.pushState(
       {},
@@ -799,6 +812,13 @@ describe("a cluster's page", () => {
     const tiles: HTMLElement = screen.getByTestId("vmware-cluster-tiles");
     expect(tiles).toHaveTextContent("2/3");
     expect(tiles).toHaveTextContent("1 not responding");
+    /*
+     * Host failure has no answer while a host is not effective, and says
+     * so under its dash rather than a bare "—".
+     */
+    expect(clusterTile("Host failure")).toHaveTextContent(
+      "Host failure—Not known while a host is not effective",
+    );
 
     const hosts: Array<string | null> = within(
       screen.getByTestId("vmware-cluster-hosts-card"),
@@ -843,6 +863,41 @@ describe("a cluster's page", () => {
     expect(screen.getByTestId("vmware-cluster-attention")).toHaveTextContent(
       "This cluster",
     );
+  });
+
+  test("Host failure says why it has no answer: one running host, or a host of unknown size", async () => {
+    mockRowsByKind["Cluster"] = [
+      cluster({ hostCount: 1, effectiveHostCount: 1 }),
+    ];
+    mockRowsByKind["Host"] = [host("esx01")];
+    await openCluster();
+
+    expect(clusterTile("Host failure")).toHaveTextContent(
+      "Host failure—Needs at least two running hosts",
+    );
+    cleanup();
+
+    mockRowsByKind["Cluster"] = [cluster()];
+    mockRowsByKind["Host"] = [
+      host("esx01"),
+      host("esx02", { maxMemoryBytes: undefined }),
+    ];
+    await openCluster();
+
+    expect(clusterTile("Host failure")).toHaveTextContent(
+      "Host failure—A host's memory size is not reported",
+    );
+  });
+
+  test("Host failure with an answer says nothing about why", async () => {
+    mockRowsByKind["Cluster"] = [cluster()];
+    mockRowsByKind["Host"] = [host("esx01"), host("esx02")];
+    await openCluster();
+
+    const tile: HTMLElement = clusterTile("Host failure");
+    expect(tile).toHaveTextContent("Covered");
+    expect(tile).not.toHaveTextContent("Not known");
+    expect(tile).not.toHaveTextContent("Needs at least two running hosts");
   });
 
   test("the cluster alerts: its hosts not effective and its vSAN, one step to turn them on", async () => {

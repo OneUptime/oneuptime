@@ -443,12 +443,22 @@ const VMwareVCenterHostDetail: FunctionComponent<
         now={OneUptimeDate.getCurrentDate()}
       />
 
-      <VMwareHostReportNotice
-        reportState={reportState}
-        lastReportAt={lastReportAt}
-        vcenterRoute={populate(PageMap.VMWARE_VCENTER_VIEW)}
-        hostsRoute={populate(PageMap.VMWARE_VCENTER_VIEW_HOSTS)}
-      />
+      {/*
+       * Whether vCenter still reports the host, once its row was read: when
+       * the read failed, the Overview says so with Try again, and "This host
+       * is not in the vCenter's inventory" beside it would send someone to a
+       * vCenter that was working.
+       */}
+      {rowError || isRetrying ? (
+        <></>
+      ) : (
+        <VMwareHostReportNotice
+          reportState={reportState}
+          lastReportAt={lastReportAt}
+          vcenterRoute={populate(PageMap.VMWARE_VCENTER_VIEW)}
+          hostsRoute={populate(PageMap.VMWARE_VCENTER_VIEW_HOSTS)}
+        />
+      )}
 
       {/*
        * The tab row wraps on a phone, so Logs is never out of sight past

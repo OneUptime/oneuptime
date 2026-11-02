@@ -9,9 +9,6 @@ import {
 import { ResourcePartStatus } from "../ResourcePart/ResourcePartTypes";
 import { ResourceAttentionText } from "../ResourcePart/ResourceAttention";
 import {
-  VMWARE_CPU_READY_WARNING_PERCENT,
-  VMWARE_DATASTORE_CRITICAL_PERCENT,
-  VMWARE_DATASTORE_WARNING_PERCENT,
   VMWARE_HOST_SATURATION_PERCENT,
   VMwareAssessment,
   assessVMwareClusterWithHosts,
@@ -29,7 +26,10 @@ import {
 } from "../../Pages/VMware/Utils/VMwareHealth";
 import {
   VMwareClusterUsage,
+  VMwareUsageTone,
   getVMwareClusterUsage,
+  getVMwareCpuReadyPercentTone,
+  getVMwareDatastoreFullTone,
 } from "../../Pages/VMware/Utils/VMwarePartFacts";
 import { toInfrastructureResource } from "../../Pages/VMware/Utils/VMwareResourceUtils";
 
@@ -146,7 +146,16 @@ export function toVMwareListResource(
       const shown: InfrastructureResource = isVMwareVirtualMachineDisconnected(
         vmContext,
       )
-        ? { ...resource, cpuUtilization: null, memoryUsageBytes: null }
+        ? {
+            ...resource,
+            cpuUtilization: null,
+            memoryUsageBytes: null,
+            // Its CPU Ready too: "0.0%" read as a VM that never waits.
+            additionalAttributes: {
+              ...resource.additionalAttributes,
+              cpuReadinessPercent: "",
+            },
+          }
         : resource;
       return withStatus(
         shown,
@@ -229,16 +238,8 @@ export function getVMwareDatastoreUsedTone(
       : used !== null && total !== null && total > 0
         ? (used / total) * 100
         : null;
-  if (percent === null) {
-    return undefined;
-  }
-  if (percent > VMWARE_DATASTORE_CRITICAL_PERCENT) {
-    return "danger";
-  }
-  if (percent > VMWARE_DATASTORE_WARNING_PERCENT) {
-    return "warning";
-  }
-  return undefined;
+  const tone: VMwareUsageTone = getVMwareDatastoreFullTone(percent);
+  return tone === "positive" ? undefined : tone;
 }
 
 // A VM's CPU Ready cell: amber past 10%, as its alert and Needs attention.
@@ -248,7 +249,7 @@ export function getVMwareCpuReadyTone(
   const ready: number | null = toVMwareNumber(
     resource.additionalAttributes["cpuReadinessPercent"],
   );
-  return ready !== null && ready > VMWARE_CPU_READY_WARNING_PERCENT
+  return getVMwareCpuReadyPercentTone(ready) === "warning"
     ? "warning"
     : undefined;
 }

@@ -31,7 +31,6 @@ const WHITESPACE: RegExp = /\s+/g;
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const REFERENCE: RegExp = /VMWARE_METRIC_DESCRIPTIONS\.(\w+)/g;
-const TILE_TITLE: RegExp = /title="([^"]+)"/;
 const TILE_DESCRIPTION: RegExp =
   /description=\{VMWARE_METRIC_DESCRIPTIONS\.(\w+)\}/;
 const CARD_TOOLTIP: RegExp = /tooltip=\{VMWARE_METRIC_DESCRIPTIONS\.(\w+)\}/;
@@ -401,7 +400,11 @@ describe("VMware overview (Index.tsx)", () => {
       between(hero, "const specChips:", "const hasCountChips"),
     ).not.toContain("agentVersion");
 
-    // The (i) sits in the chip row, after the chips, not inside one.
+    /*
+     * The (i) sits in the chip row right after the count chips, not inside
+     * one, and before the agent version chip: after it, it read as that
+     * chip's (i), alone with it where the row wraps.
+     */
     const row: string = between(
       hero,
       "{(specChips.length > 0 || Boolean(vcenter.agentVersion)) && (",
@@ -409,7 +412,8 @@ describe("VMware overview (Index.tsx)", () => {
     );
 
     expect(row).toContain("{specChips.map(");
-    expect(row).toContain(
+    expect(row).not.toContain("<AgentVersion");
+    expect(between(hero, "{hasCountChips && (", "</div>")).toContain(
       '<AgentVersion kind={AgentKind.VMwareAgent} version={vcenter.agentVersion} variant="chip" />',
     );
   });
@@ -421,9 +425,10 @@ describe("VMware overview (Index.tsx)", () => {
       "const renderChartCard:",
     );
     const tiles: Array<string> = piecesAfter(golden, "<GoldenMetricTile", "/>");
+    // Titles in the reader's language: a tile draws its title as given.
     const pairs: Pairs = tiles.map((tile: string): [string, string | null] => {
       return [
-        firstMatch(tile, TILE_TITLE) || "",
+        firstMatch(tile, TRANSLATED_TITLE) || "",
         firstMatch(tile, TILE_DESCRIPTION),
       ];
     });
@@ -486,11 +491,12 @@ describe("VMware overview (Index.tsx)", () => {
     expect(countOf(card, "return (")).toBe(2);
     expect(countOf(card, "{header}")).toBe(2);
     /*
-     * ...and the title is drawn nowhere else (once as text, once as the
-     * (i)'s label), so no branch can lose the (i).
+     * ...and the title is drawn nowhere else (once as text, in the reader's
+     * language, once as the (i)'s label), so no branch can lose the (i).
      */
-    expect(countOf(card, "{params.title}")).toBe(2);
-    expect(countOf(card, "{params.title} </span>")).toBe(1);
+    expect(countOf(card, "params.title")).toBe(2);
+    expect(countOf(card, "{tx(params.title)} </span>")).toBe(1);
+    expect(countOf(card, "label={params.title}")).toBe(1);
 
     const skeleton: string = between(
       card,

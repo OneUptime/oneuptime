@@ -758,23 +758,24 @@ describe("VMware metric descriptions: an ESXi host's page", () => {
     expect(D.hostPageDiskLatency).toContain("Host Disk Latency High alert");
   });
 
-  test("the busiest VMs are the inventory's fresh readings, CPU Ready marked at the overview's levels", () => {
-    const warn: number = numericConstant(
-      HOST_BUSIEST,
-      "VM_CPU_READY_WARN_PERCENT",
-    );
-    const danger: number = numericConstant(
-      HOST_BUSIEST,
-      "VM_CPU_READY_DANGER_PERCENT",
+  test("the busiest VMs are the inventory's fresh readings, CPU Ready marked where its alert fires", () => {
+    const cpuReady: number = numericConstant(
+      HEALTH,
+      "VMWARE_CPU_READY_WARNING_PERCENT",
     );
 
-    expect([warn, danger]).toEqual([
-      5,
-      numericConstant(HEALTH, "VMWARE_CPU_READY_WARNING_PERCENT"),
-    ]);
+    /*
+     * One level, the VM CPU Ready Contention alert's, as the VM list and
+     * Needs attention read it: the card marked 5% amber and 10% red, under
+     * an amber "CPU ready 14%" in Needs attention.
+     */
+    expect(HOST_BUSIEST).toContain("getVMwareCpuReadyPercentTone(");
+    expect(HOST_BUSIEST).not.toContain("VM_CPU_READY_DANGER_PERCENT");
+    expect(HOST_BUSIEST).not.toContain("bg-red-50");
     expect(D.hostPageBusiestVirtualMachines).toContain(
-      `amber from ${warn}%, red from ${danger}%`,
+      `more than ${cpuReady}% of the time`,
     );
+    expect(D.hostPageBusiestVirtualMachines).not.toContain("red from");
     expect(D.hostPageBusiestVirtualMachines).toContain("physical CPU");
     expect(D.hostPageBusiestVirtualMachines).toContain(
       `last ${staleMinutes} minutes`,
@@ -817,18 +818,19 @@ describe("VMware metric descriptions: what each number is made of", () => {
   });
 
   test("the Host Memory chart is a percentage, the Datastore Used chart is summed bytes", () => {
-    expect(OVERVIEW).toContain('seriesName: "Host Memory %"');
+    // Its series names in the reader's language, as its tooltip shows them.
+    expect(OVERVIEW).toContain('seriesName: tx("Host Memory %")');
     expect(D.overviewHostMemoryChart).toContain(
       "as a share of their combined RAM",
     );
-    expect(OVERVIEW).toContain('seriesName: "Datastore Used"');
+    expect(OVERVIEW).toContain('seriesName: tx("Datastore Used")');
     expect(D.overviewDatastoreUsedChart).toContain("added up");
     expect(D.overviewDatastoreUsedChart).toContain("bytes");
   });
 
   test("the VM CPU Ready chart names both of its lines", () => {
-    expect(OVERVIEW).toContain('seriesName: "Avg"');
-    expect(OVERVIEW).toContain('seriesName: "Max"');
+    expect(OVERVIEW).toContain('seriesName: tx("Avg")');
+    expect(OVERVIEW).toContain('seriesName: tx("Max")');
     expect(D.overviewVmCpuReadyChart).toContain("Avg is the average");
     expect(D.overviewVmCpuReadyChart).toContain("Max the highest single VM");
   });

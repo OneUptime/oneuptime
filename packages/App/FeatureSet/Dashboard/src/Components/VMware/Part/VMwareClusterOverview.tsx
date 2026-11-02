@@ -19,11 +19,14 @@ import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEvent
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import VMwareHostsCard from "../VMwareHostsCard";
 import {
+  VMWARE_CLUSTER_HEADROOM_GAP_WORDS,
   VMWARE_HOST_SATURATION_PERCENT,
   VMwareClusterHeadroom,
+  VMwareClusterHeadroomGap,
   getVMwareAttentionItems,
   getVMwareAttentionKey,
   getVMwareClusterHeadroom,
+  getVMwareClusterHeadroomGap,
   hasFreshVMwareReadings,
   isVMwareIssueAbout,
   toVMwareDate,
@@ -137,6 +140,21 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
     datacenters: props.datacenters,
     now: props.now,
   });
+  /*
+   * Why Host failure has no answer, said under its dash: a bare "—" left
+   * the reader to guess whether the cluster was safe.
+   */
+  const headroomGap: VMwareClusterHeadroomGap | null = headroom
+    ? null
+    : getVMwareClusterHeadroomGap({
+        cluster: row,
+        hosts: props.hosts,
+        datacenters: props.datacenters,
+        now: props.now,
+      });
+  const headroomGapWords: string | null = headroomGap
+    ? VMWARE_CLUSTER_HEADROOM_GAP_WORDS[headroomGap]
+    : null;
 
   const headroomPercent: number | null =
     headroom && headroom.remainingMemoryBytes > 0
@@ -312,7 +330,9 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
                       ),
                     },
                   )
-              : undefined
+              : headroomGapWords
+                ? tx(headroomGapWords)
+                : undefined
           }
           percent={headroomPercent}
           /*

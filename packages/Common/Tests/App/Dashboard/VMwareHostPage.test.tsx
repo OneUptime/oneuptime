@@ -305,7 +305,8 @@ jest.mock(
 );
 
 import HostDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/HostDetail";
-import { getCpuBarColor } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
+import { getThresholdBarColor } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
+import { VMWARE_USAGE_BAR_THRESHOLDS } from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareResourceColumns";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -658,6 +659,12 @@ describe("the hero says which host this is and whether vCenter still reports it"
     await waitFor(() => {
       expect(screen.getAllByText("Disconnected").length).toBeGreaterThan(0);
     });
+    /*
+     * Their CPU Ready is no reading either, as their CPU and memory are
+     * not: db-primary's last 12.4% read as a VM still waiting for a CPU on
+     * a host nobody can reach.
+     */
+    expect(screen.queryByText("12.4%")).toBeNull();
   });
 
   test("a host vSphere DPM put in standby is calm: grey In standby, nothing to look at", async () => {
@@ -946,19 +953,89 @@ describe("the cards", () => {
     const bars: Array<string> = within(
       screen.getByTestId("vmware-host-busiest-vms"),
     )
-      .getAllByTestId("vmware-host-busy-vm")
-      .map((row: HTMLElement): string => {
-        const bar: Element | null = row.querySelector(
-          "div.h-1\\.5.rounded-full[style]",
-        );
-        return bar?.className || "";
+      .getAllByTestId("vmware-host-busy-vm-cpu-bar")
+      .map((bar: HTMLElement): string => {
+        return bar.className;
       });
 
-    // 78.4% and 31.9%: the VM list's thresholds (60 and 80), not 70 and 90.
-    expect(bars[0]).toContain(getCpuBarColor(78.4));
-    expect(getCpuBarColor(78.4)).toBe("bg-yellow-500");
-    expect(bars[1]).toContain(getCpuBarColor(31.9));
-    expect(getCpuBarColor(31.9)).toBe("bg-green-500");
+    /*
+     * 78.4% and 31.9%: green, as the Virtual Machines tab draws them -
+     * amber only past 90%, where VM CPU Saturation fires, and never red.
+     * The card used the table's own 60 and 80, so 78.4% was amber here and
+     * green in the tab.
+     */
+    expect(bars).toHaveLength(2);
+    expect(bars[0]).toContain(
+      getThresholdBarColor(78.4, VMWARE_USAGE_BAR_THRESHOLDS, "bg-green-500"),
+    );
+    expect(bars[0]).toContain("bg-green-500");
+    expect(bars[1]).toContain("bg-green-500");
+    expect(
+      getThresholdBarColor(94, VMWARE_USAGE_BAR_THRESHOLDS, "bg-green-500"),
+    ).toBe("bg-amber-500");
+    expect(
+      getThresholdBarColor(99.9, VMWARE_USAGE_BAR_THRESHOLDS, "bg-green-500"),
+    ).toBe("bg-amber-500");
+  });
+
+  test("a busy VM's bar is amber past 90%, and its CPU Ready badge amber past 10% as Needs attention says it", async () => {
+    mockVirtualMachines = [
+      vm(1, {
+        name: "batch-01",
+        isPoweredOn: true,
+        latestCpuPercent: 94.2,
+        cpuReadinessPercent: 6.2,
+      }),
+      vm(2, {
+        name: "ci-runner-01",
+        isPoweredOn: true,
+        latestCpuPercent: 64.1,
+        cpuReadinessPercent: 14.2,
+      }),
+    ];
+    await renderPage();
+
+    const rows: Array<HTMLElement> = within(
+      screen.getByTestId("vmware-host-busiest-vms"),
+    ).getAllByTestId("vmware-host-busy-vm");
+    expect(
+      rows.map((row: HTMLElement): string => {
+        return within(row).getByRole("link").textContent || "";
+      }),
+    ).toEqual(["batch-01", "ci-runner-01"]);
+
+    // 94.2% CPU: amber, never red.
+    const busyBar: HTMLElement = within(rows[0]!).getByTestId(
+      "vmware-host-busy-vm-cpu-bar",
+    );
+    expect(busyBar.className).toContain("bg-amber-500");
+    expect(busyBar.className).not.toContain("bg-red-500");
+    // 64.1%: green.
+    expect(
+      within(rows[1]!).getByTestId("vmware-host-busy-vm-cpu-bar").className,
+    ).toContain("bg-green-500");
+
+    // 6.2% CPU Ready is under the alert's 10%: no badge.
+    expect(
+      within(rows[0]!).queryByTestId("vmware-host-busy-vm-cpu-ready"),
+    ).toBeNull();
+    // 14.2% is past it: amber, as Needs attention's "CPU ready 14%" above it.
+    const badge: HTMLElement = within(rows[1]!).getByTestId(
+      "vmware-host-busy-vm-cpu-ready",
+    );
+    expect(badge).toHaveTextContent("CPU Ready 14.2%");
+    expect(badge.className).toContain("bg-amber-50");
+    expect(badge.className).not.toContain("bg-red-50");
+
+    const attentionRow: HTMLElement | undefined = within(
+      screen.getByTestId("vmware-host-attention"),
+    )
+      .getAllByTestId("vmware-host-attention-item")
+      .find((item: HTMLElement): boolean => {
+        return item.getAttribute("data-key") === "VirtualMachine:vm/uuid-2";
+      });
+    expect(attentionRow).toBeDefined();
+    expect(attentionRow).toHaveAttribute("data-severity", "warning");
   });
 
   test("a host that runs no VM has no busiest list", async () => {
@@ -1491,6 +1568,15 @@ describe("refreshing and failing", () => {
     expect(screen.getByTestId("vmware-host-hero-name")).toHaveTextContent(HOST);
     expect(screen.queryByTestId("vmware-host-hero-status")).toBeNull();
     expect(screen.queryByText("Not in inventory")).toBeNull();
+    /*
+     * Nor the notice above the tabs: "This host is not in the vCenter's
+     * inventory" beside "Couldn't load this ESXi host" said two things at
+     * once, the one a guess.
+     */
+    expect(screen.queryByTestId("vmware-host-report-notice")).toBeNull();
+    expect(
+      screen.queryByText("This host is not in the vCenter's inventory"),
+    ).toBeNull();
     // The Virtual Machines tab says the same in its table, with Refresh.
     fireEvent.click(screen.getByRole("tab", { name: /^Virtual Machines/ }));
     expect(

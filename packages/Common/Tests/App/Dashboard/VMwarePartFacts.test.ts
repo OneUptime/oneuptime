@@ -23,7 +23,11 @@ import {
   VMwareNotEffectiveHosts,
   countVMwareNotEffectiveHosts,
   getVMwareClusterUsage,
+  getVMwareCpuReadyPercentTone,
+  getVMwareDatastoreFullTone,
   getVMwareHostLoad,
+  getVMwareHostLoadTone,
+  getVMwareHostsReportingNoMemory,
   getVMwareNotEffectiveHostsTone,
   getVMwareVirtualMachinesOfCluster,
   getVMwareVirtualMachinesOfHost,
@@ -437,6 +441,67 @@ describe("why clustered hosts are not effective", () => {
     });
   });
 
+  /*
+   * A cluster quiet for days still holds its last counts: its hosts read
+   * Not reporting, none of them running nor down, so its old 2 of 8 hosts
+   * not effective all read as maintenance mode on the vCenter's Overview.
+   */
+  test("a cluster that has not reported for a while counts nothing", () => {
+    const quietCluster: VMwareResource = cluster({
+      hostCount: 4,
+      effectiveHostCount: 2,
+      metricsUpdatedAt: STALE,
+    });
+    const counts: VMwareNotEffectiveHosts = countVMwareNotEffectiveHosts({
+      clusters: [quietCluster],
+      hosts: [
+        host("esx01", { metricsUpdatedAt: STALE }),
+        silentHost("esx02", { metricsUpdatedAt: STALE }),
+        host("esx03", { metricsUpdatedAt: STALE }),
+        host("esx04", { metricsUpdatedAt: STALE }),
+      ],
+      datacenters: [
+        datacenter({
+          metricsUpdatedAt: STALE,
+          notRespondingHostCount: 1,
+          poweredOnHostCount: 3,
+        }),
+      ],
+      now: NOW,
+    });
+    expect(counts).toEqual({
+      notResponding: 0,
+      inMaintenance: 0,
+      noUsage: 0,
+      offOrStandby: 0,
+    });
+    expect(getVMwareNotEffectiveHostsTone(counts)).toBe("positive");
+
+    // The same cluster, reporting: one host lost, one in maintenance mode.
+    expect(
+      countVMwareNotEffectiveHosts({
+        clusters: [
+          { ...quietCluster, metricsUpdatedAt: FRESH } as VMwareResource,
+        ],
+        hosts: [
+          host("esx01"),
+          silentHost("esx02"),
+          host("esx03"),
+          host("esx04"),
+        ],
+        datacenters: [
+          datacenter({ notRespondingHostCount: 1, poweredOnHostCount: 3 }),
+        ],
+        now: NOW,
+      }),
+    ).toEqual({
+      notResponding: 1,
+      inMaintenance: 1,
+      noUsage: 0,
+      offOrStandby: 0,
+    });
+  });
+
   test("red while vCenter cannot reach one, amber for maintenance or no usage, calm for hosts off", () => {
     const tone: (counts: Partial<VMwareNotEffectiveHosts>) => string = (
       counts: Partial<VMwareNotEffectiveHosts>,
@@ -454,6 +519,61 @@ describe("why clustered hosts are not effective", () => {
     expect(tone({ noUsage: 1 })).toBe("warning");
     expect(tone({ offOrStandby: 4 })).toBe("positive");
     expect(tone({})).toBe("positive");
+  });
+});
+
+describe("the colour of a part's reading, by the line its alert fires at", () => {
+  /*
+   * The Overview's top consumers and a host's busiest VMs colour a part as
+   * Needs attention and the lists do: green, amber past its alert's line,
+   * red only where the rules call it broken.
+   */
+  test("a host's or a VM's CPU and memory: amber past 90%, never red", () => {
+    expect(getVMwareHostLoadTone(null)).toBe("positive");
+    expect(getVMwareHostLoadTone(undefined)).toBe("positive");
+    expect(getVMwareHostLoadTone(0)).toBe("positive");
+    expect(getVMwareHostLoadTone(67)).toBe("positive");
+    // 80% was amber, and 94% red, by the table's generic 60 and 80.
+    expect(getVMwareHostLoadTone(80)).toBe("positive");
+    expect(getVMwareHostLoadTone(90)).toBe("positive");
+    expect(getVMwareHostLoadTone(90.1)).toBe("warning");
+    expect(getVMwareHostLoadTone(94.2)).toBe("warning");
+    expect(getVMwareHostLoadTone(100)).toBe("warning");
+  });
+
+  test("a datastore: amber past 80% full, red past 90%", () => {
+    expect(getVMwareDatastoreFullTone(null)).toBe("positive");
+    expect(getVMwareDatastoreFullTone(62)).toBe("positive");
+    expect(getVMwareDatastoreFullTone(80)).toBe("positive");
+    expect(getVMwareDatastoreFullTone(84)).toBe("warning");
+    expect(getVMwareDatastoreFullTone(90)).toBe("warning");
+    expect(getVMwareDatastoreFullTone(93)).toBe("danger");
+  });
+
+  test("a VM's CPU ready: amber past 10%, never red", () => {
+    expect(getVMwareCpuReadyPercentTone(null)).toBe("positive");
+    expect(getVMwareCpuReadyPercentTone(6.2)).toBe("positive");
+    expect(getVMwareCpuReadyPercentTone(10)).toBe("positive");
+    expect(getVMwareCpuReadyPercentTone(14.2)).toBe("warning");
+    expect(getVMwareCpuReadyPercentTone(60)).toBe("warning");
+  });
+});
+
+describe("the hosts a vCenter-wide CPU and memory leave out", () => {
+  test("a host whose memory in use reads 0 is not running: left out", () => {
+    const memoryInUse: Map<string, number> = new Map<string, number>([
+      ["host/dc-east/esx01", 262144],
+      ["host/dc-east/esx03", 0],
+      ["host/dc-west/esx-w1", 1],
+    ]);
+    expect(Array.from(getVMwareHostsReportingNoMemory(memoryInUse))).toEqual([
+      "host/dc-east/esx03",
+    ]);
+  });
+
+  test("no readings, no hosts left out", () => {
+    expect(getVMwareHostsReportingNoMemory(undefined).size).toBe(0);
+    expect(getVMwareHostsReportingNoMemory(new Map()).size).toBe(0);
   });
 });
 

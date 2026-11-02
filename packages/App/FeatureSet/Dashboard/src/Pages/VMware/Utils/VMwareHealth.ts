@@ -690,26 +690,59 @@ export function getVMwareHostsOfCluster(
 }
 
 /*
- * Whether the cluster could lose its largest running host (see
- * VMwareClusterHeadroom). Null when there is nothing to work it out from:
- * fewer than two running hosts, a running host whose memory size vCenter
- * does not report, or hosts that are not effective (a host in maintenance
+ * Why a cluster's Host failure has no answer (getVMwareClusterHeadroom is
+ * null), so its tile says why under its dash instead of a bare "—".
+ */
+export enum VMwareClusterHeadroomGap {
+  // Its newest reading is older than VMWARE_READINGS_STALE_MS: its hero says so.
+  NotReporting = "not-reporting",
+  // A host is not effective - in maintenance mode, not responding or off.
+  HostNotEffective = "host-not-effective",
+  // Fewer than two hosts run: none is left to restart the VMs on.
+  TooFewRunningHosts = "too-few-running-hosts",
+  // vCenter does not report the memory size of a running host.
+  MemorySizeUnknown = "memory-size-unknown",
+}
+
+/*
+ * The words under a Host failure tile with no answer, English, looked up in
+ * the reader's language. Not reporting has none: the cluster's hero says it.
+ */
+export const VMWARE_CLUSTER_HEADROOM_GAP_WORDS: Readonly<
+  Record<VMwareClusterHeadroomGap, string | null>
+> = {
+  [VMwareClusterHeadroomGap.NotReporting]: null,
+  [VMwareClusterHeadroomGap.HostNotEffective]: translationKey(
+    "Not known while a host is not effective",
+  ),
+  [VMwareClusterHeadroomGap.TooFewRunningHosts]: translationKey(
+    "Needs at least two running hosts",
+  ),
+  [VMwareClusterHeadroomGap.MemorySizeUnknown]: translationKey(
+    "A host's memory size is not reported",
+  ),
+};
+
+/*
+ * What a cluster's headroom is worked out from, or why there is nothing to
+ * work it out from: hosts that are not effective (a host in maintenance
  * mode still reports its memory but runs no VMs, so the sum would count
  * room that is not there - the not-effective hosts are a finding of their
- * own).
+ * own), fewer than two running hosts, or a running host whose memory size
+ * vCenter does not report.
  */
-export function getVMwareClusterHeadroom(data: {
+function readVMwareClusterHeadroom(data: {
   cluster: VMwareResource;
   hosts: Array<VMwareResource>;
   datacenters: Array<VMwareResource>;
   now: Date;
-}): VMwareClusterHeadroom | null {
+}): { headroom: VMwareClusterHeadroom } | { gap: VMwareClusterHeadroomGap } {
   const total: number | null = toVMwareNumber(data.cluster.hostCount);
   const effective: number | null = toVMwareNumber(
     data.cluster.effectiveHostCount,
   );
   if (total !== null && effective !== null && effective < total) {
-    return null;
+    return { gap: VMwareClusterHeadroomGap.HostNotEffective };
   }
 
   const running: Array<VMwareResource> = data.hosts.filter(
@@ -727,7 +760,7 @@ export function getVMwareClusterHeadroom(data: {
     },
   );
   if (running.length < 2) {
-    return null;
+    return { gap: VMwareClusterHeadroomGap.TooFewRunningHosts };
   }
 
   let used: number = 0;
@@ -737,7 +770,7 @@ export function getVMwareClusterHeadroom(data: {
     const memory: number | null = toVMwareNumber(host.latestMemoryBytes);
     const size: number | null = toVMwareNumber(host.maxMemoryBytes);
     if (memory === null || size === null || size <= 0) {
-      return null;
+      return { gap: VMwareClusterHeadroomGap.MemorySizeUnknown };
     }
     used += memory;
     capacity += size;
@@ -746,13 +779,51 @@ export function getVMwareClusterHeadroom(data: {
 
   const remaining: number = capacity - largest;
   return {
-    runningHostCount: running.length,
-    usedMemoryBytes: used,
-    capacityMemoryBytes: capacity,
-    largestHostMemoryBytes: largest,
-    remainingMemoryBytes: remaining,
-    canLoseAHost: used <= remaining,
+    headroom: {
+      runningHostCount: running.length,
+      usedMemoryBytes: used,
+      capacityMemoryBytes: capacity,
+      largestHostMemoryBytes: largest,
+      remainingMemoryBytes: remaining,
+      canLoseAHost: used <= remaining,
+    },
   };
+}
+
+/*
+ * Whether the cluster could lose its largest running host (see
+ * VMwareClusterHeadroom). Null when there is nothing to work it out from
+ * (readVMwareClusterHeadroom; getVMwareClusterHeadroomGap says why).
+ */
+export function getVMwareClusterHeadroom(data: {
+  cluster: VMwareResource;
+  hosts: Array<VMwareResource>;
+  datacenters: Array<VMwareResource>;
+  now: Date;
+}): VMwareClusterHeadroom | null {
+  const reading:
+    | { headroom: VMwareClusterHeadroom }
+    | { gap: VMwareClusterHeadroomGap } = readVMwareClusterHeadroom(data);
+  return "headroom" in reading ? reading.headroom : null;
+}
+
+/*
+ * Why getVMwareClusterHeadroom has no answer for the cluster, or null when
+ * it has one. A cluster that has not reported for a while is not judged.
+ */
+export function getVMwareClusterHeadroomGap(data: {
+  cluster: VMwareResource;
+  hosts: Array<VMwareResource>;
+  datacenters: Array<VMwareResource>;
+  now: Date;
+}): VMwareClusterHeadroomGap | null {
+  if (!hasFreshVMwareReadings(data.cluster, data.now)) {
+    return VMwareClusterHeadroomGap.NotReporting;
+  }
+  const reading:
+    | { headroom: VMwareClusterHeadroom }
+    | { gap: VMwareClusterHeadroomGap } = readVMwareClusterHeadroom(data);
+  return "gap" in reading ? reading.gap : null;
 }
 
 /*

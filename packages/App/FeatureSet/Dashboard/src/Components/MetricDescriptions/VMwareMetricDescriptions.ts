@@ -117,10 +117,10 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Clustered ESXi hosts that can run VMs, out of all hosts in clusters, from the latest inventory rather than the selected range. A host in maintenance mode or not responding is not effective, and standalone hosts are not counted.",
   ),
   overviewHostCpu: translationKey(
-    "Share of the combined CPU capacity of all ESXi hosts in use, with bigger hosts counting for more. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data); the chart below covers the whole range.",
+    "Share of the combined CPU capacity of the connected ESXi hosts in use, with bigger hosts counting for more. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data); the chart below covers the whole range.",
   ),
   overviewHostMemory: translationKey(
-    "Share of the combined RAM of all ESXi hosts in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The line below shows used and total RAM at the latest point.",
+    "Share of the combined RAM of the connected ESXi hosts in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The line below shows used and total RAM at the latest point.",
   ),
   overviewDatastores: translationKey(
     "How full your fullest datastore is (used space as a share of capacity) at its latest report, however old, named below; until the inventory loads, the fullest over the last 5 minutes of the range. Amber from 80%, red from 90%: the levels that mark the vCenter Degraded and Unhealthy.",
@@ -131,10 +131,10 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Overview: golden chart cards -------------------------------------
   overviewHostCpuChart: translationKey(
-    "CPU in use across all ESXi hosts in each interval of the selected range, as a share of their combined CPU capacity. Hosts with more CPU count for more.",
+    "CPU in use across the connected ESXi hosts in each interval of the selected range, as a share of their combined CPU capacity. Hosts with more CPU count for more.",
   ),
   overviewHostMemoryChart: translationKey(
-    "RAM in use across all ESXi hosts in each interval of the selected range, as a share of their combined RAM.",
+    "RAM in use across the connected ESXi hosts in each interval of the selected range, as a share of their combined RAM.",
   ),
   overviewDatastoreUsedChart: translationKey(
     "Used space added up across all datastores in each interval of the selected range, in bytes.",
@@ -198,7 +198,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- ESXi host page: cards and tables ---------------------------------
   hostPageBusiestVirtualMachines: translationKey(
-    "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).",
+    "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM that waits for a physical CPU more than 10% of the time.",
   ),
   hostPageAdapterThroughput: translationKey(
     "Data the adapter received and sent per second, averaged over the selected range.",

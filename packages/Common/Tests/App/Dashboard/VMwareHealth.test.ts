@@ -14,6 +14,7 @@ import {
 } from "../../../Types/Monitor/VMwareAlertTemplates";
 import {
   VMWARE_ATTENTION_KIND_ORDER,
+  VMWARE_CLUSTER_HEADROOM_GAP_WORDS,
   VMWARE_CPU_READY_WARNING_PERCENT,
   VMWARE_DATASTORE_CRITICAL_PERCENT,
   VMWARE_DATASTORE_WARNING_PERCENT,
@@ -21,6 +22,7 @@ import {
   VMWARE_READINGS_STALE_MS,
   VMwareAssessment,
   VMwareClusterHeadroom,
+  VMwareClusterHeadroomGap,
   VMwareDatacenterFinding,
   VMwareHostState,
   assessVMwareCluster,
@@ -36,6 +38,7 @@ import {
   getVMwareAttentionItems,
   getVMwareAttentionKey,
   getVMwareClusterHeadroom,
+  getVMwareClusterHeadroomGap,
   getVMwareClusterName,
   getVMwareClusterStatus,
   getVMwareClusterUnexplainedNotEffective,
@@ -1041,6 +1044,76 @@ describe("a cluster", () => {
       now: NOW,
     });
     expect([single, unsized, maintenance]).toEqual([null, null, null]);
+  });
+
+  /*
+   * The cluster's Host failure tile said a bare "—" whenever there was no
+   * answer: it says why now, each reason in its own words.
+   */
+  test("says why it has no headroom to tell, in the order it looks", () => {
+    const gapOf: (data: {
+      cluster: VMwareResource;
+      hosts: Array<VMwareResource>;
+    }) => VMwareClusterHeadroomGap | null = (data: {
+      cluster: VMwareResource;
+      hosts: Array<VMwareResource>;
+    }): VMwareClusterHeadroomGap | null => {
+      return getVMwareClusterHeadroomGap({
+        cluster: data.cluster,
+        hosts: data.hosts,
+        datacenters: [dc],
+        now: NOW,
+      });
+    };
+
+    // A host in maintenance mode: not effective, whatever else is true.
+    expect(
+      gapOf({
+        cluster: cluster("c", { hostCount: 3, effectiveHostCount: 2 }),
+        hosts: [host("esx01"), host("esx02"), host("esx03")],
+      }),
+    ).toBe(VMwareClusterHeadroomGap.HostNotEffective);
+    // One running host: none to restart its VMs on.
+    expect(gapOf({ cluster: cluster("c"), hosts: [host("esx01")] })).toBe(
+      VMwareClusterHeadroomGap.TooFewRunningHosts,
+    );
+    expect(gapOf({ cluster: cluster("c"), hosts: [] })).toBe(
+      VMwareClusterHeadroomGap.TooFewRunningHosts,
+    );
+    // A running host whose memory size vCenter does not report.
+    expect(
+      gapOf({
+        cluster: cluster("c"),
+        hosts: [host("esx01"), host("esx02", { maxMemoryBytes: undefined })],
+      }),
+    ).toBe(VMwareClusterHeadroomGap.MemorySizeUnknown);
+    // An answer: nothing to say why.
+    expect(
+      gapOf({ cluster: cluster("c"), hosts: [host("esx01"), host("esx02")] }),
+    ).toBeNull();
+    // A cluster quiet for a while is not judged: its hero says Not reporting.
+    expect(
+      gapOf({
+        cluster: cluster("c", {
+          metricsUpdatedAt: new Date(
+            NOW.getTime() - VMWARE_READINGS_STALE_MS - 60 * 1000,
+          ),
+        }),
+        hosts: [host("esx01")],
+      }),
+    ).toBe(VMwareClusterHeadroomGap.NotReporting);
+  });
+
+  test("each reason has its words, but Not reporting, which the hero says", () => {
+    expect(VMWARE_CLUSTER_HEADROOM_GAP_WORDS).toEqual({
+      [VMwareClusterHeadroomGap.NotReporting]: null,
+      [VMwareClusterHeadroomGap.HostNotEffective]:
+        "Not known while a host is not effective",
+      [VMwareClusterHeadroomGap.TooFewRunningHosts]:
+        "Needs at least two running hosts",
+      [VMwareClusterHeadroomGap.MemorySizeUnknown]:
+        "A host's memory size is not reported",
+    });
   });
 
   test("a host not effective for no reason its own row says is counted: maintenance mode", () => {
