@@ -73,7 +73,6 @@ export const SessionLengthCopy: {
   idleLabel: string;
   idleDefaultDescription: string;
   idleSetDescription: string;
-  moreSettingsDescription: string;
   ssoCardTitle: string;
   ssoCardDescription: string;
   separateTitle: string;
@@ -82,9 +81,12 @@ export const SessionLengthCopy: {
   notSessionsNote: string;
   loadFailed: string;
   confirmTitle: string;
+  confirmOnlyYouTitle: string;
   confirmIncludesYou: string;
+  confirmOnlyYou: string;
   confirmUnknown: string;
   confirmButton: string;
+  confirmOnlyYouButton: string;
   confirmUnknownButton: string;
 } = {
   cardTitle: translationKey("Session Length"),
@@ -97,17 +99,14 @@ export const SessionLengthCopy: {
     "People stay signed in for as long as they keep using OneUptime.",
   ),
   lengthSetDescription: translationKey(
-    "Everyone signs in again this long after they signed in, however active they are.",
+    "Counted from when each person signed in, however active they are.",
   ),
   idleLabel: translationKey("Sign people out after inactivity"),
   idleDefaultDescription: translationKey(
-    "People who have not used OneUptime for 30 days sign in again. It cannot be longer.",
+    "People who have not used OneUptime for 30 days sign in again.",
   ),
   idleSetDescription: translationKey(
-    "People who have not clicked, typed or scrolled in OneUptime for this long sign in again.",
-  ),
-  moreSettingsDescription: translationKey(
-    "Lengths of their own for sign-ins through SSO.",
+    "Counted from the last time each person clicked, typed or scrolled in OneUptime.",
   ),
   ssoCardTitle: translationKey("SSO Sign-ins"),
   ssoCardDescription: translationKey(
@@ -125,13 +124,22 @@ export const SessionLengthCopy: {
   ),
   loadFailed: translationKey("The session lengths could not be read."),
   confirmTitle: translationKey("Sign people out now?"),
+  confirmOnlyYouTitle: translationKey("Sign out now?"),
   confirmIncludesYou: translationKey(
     "That includes you: you will go to the sign-in page, and back to this page once you sign in.",
+  ),
+  /*
+   * When the one person a change signs out is the master admin making it -
+   * the first thing most do on a new server, where nobody else is signed in.
+   */
+  confirmOnlyYou: translationKey(
+    "Saving this signs you out right away: your sign-in is already older, or has been idle longer, than it allows. You will go to the sign-in page, and back to this page once you sign in.",
   ),
   confirmUnknown: translationKey(
     "This signs out everyone whose sign-in is already older, or has been idle longer, than it allows.",
   ),
   confirmButton: translationKey("Save and sign them out"),
+  confirmOnlyYouButton: translationKey("Save and sign me out"),
   confirmUnknownButton: translationKey("Save"),
 };
 
@@ -179,7 +187,10 @@ export const getDurationLabel: (
   return { label: COUNT_MINUTES, labelValues: { count: String(minutes) } };
 };
 
-// A choice's words in the reader's language.
+/*
+ * A choice's words in the reader's language, its number written as that
+ * language writes numbers: "۱۲ ساعت" in Persian, as its "۱ ساعت" is.
+ */
 export const getChoiceText: (
   choice: Pick<SessionLengthChoice, "label" | "labelValues">,
   translator: Translator,
@@ -187,9 +198,22 @@ export const getChoiceText: (
   choice: Pick<SessionLengthChoice, "label" | "labelValues">,
   translator: Translator,
 ): string => {
-  return choice.labelValues
-    ? translator.translateTemplate(choice.label, choice.labelValues)
-    : translator.translateText(choice.label) || choice.label;
+  if (!choice.labelValues) {
+    return translator.translateText(choice.label) || choice.label;
+  }
+
+  const values: Record<string, string> = {};
+
+  for (const [name, value] of Object.entries(choice.labelValues)) {
+    const asNumber: number = Number(value);
+
+    values[name] =
+      value.trim() !== "" && Number.isFinite(asNumber)
+        ? translator.formatNumber(asNumber)
+        : value;
+  }
+
+  return translator.translateTemplate(choice.label, values);
 };
 
 // The minutes listed, with a saved one the list does not offer in its place by length.

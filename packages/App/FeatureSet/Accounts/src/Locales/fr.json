@@ -60,7 +60,7 @@
     "title": "Connectez-vous à votre compte",
     "subtitle": "Utilisez votre mot de passe, le SSO de votre organisation ou une clé d’accès.",
     "sessionEnded": {
-      "lengthReached": "Par sécurité, ce serveur déconnecte tout le monde après une durée définie. Reconnectez-vous pour reprendre là où vous en étiez.",
+      "lengthReached": "Vous avez été déconnecté, car votre session a atteint sa limite de durée. Reconnectez-vous pour reprendre là où vous en étiez.",
       "inactive": "Vous avez été déconnecté après une période d’inactivité. Reconnectez-vous pour reprendre là où vous en étiez."
     },
     "submitButton": "Connexion",

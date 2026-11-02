@@ -39,6 +39,10 @@ const SsoSignInsCard: FunctionComponent<SessionLengthCardProps> = (
         <div className="px-5 py-4 md:px-6">
           <SessionLengthSeparateSsoRow
             initialValue={props.settings.useSeparateSsoSessionLengths}
+            sessionLengthInMinutes={props.settings.sessionLengthInMinutes}
+            sessionIdleTimeoutInMinutes={
+              props.settings.sessionIdleTimeoutInMinutes
+            }
             isLocked={props.isLocked}
             confirmChange={props.confirmChange}
             onSaved={props.onSaved}

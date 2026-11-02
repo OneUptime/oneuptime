@@ -2,6 +2,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   DEFAULT_CHOICE_VALUE,
   fromChoiceValue,
+  getChoiceText,
   getDurationLabel,
   getIdleChoices,
   getIdleDescription,
@@ -28,6 +29,10 @@ import {
 } from "Common/Types/UserSession/SessionLength";
 import { FOLDED_SECTION_ON } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import API from "Common/UI/Utils/API/API";
+import {
+  createTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Session Length page's words and values, kept apart from React
@@ -78,6 +83,35 @@ describe("how a length reads", () => {
       );
     },
   );
+});
+
+describe("a length's words in the reader's language", () => {
+  // The Admin Dashboard's Persian words for the lengths, as its locale has them.
+  const PERSIAN: Record<string, string> = {
+    "1 hour": "۱ ساعت",
+    "{{count}} hours": "{{count}} ساعت",
+    "{{count}} days": "{{count}} روز",
+  };
+
+  const persian: Translator = createTranslator((text: string) => {
+    return PERSIAN[text];
+  }, "fa");
+
+  test("writes its number as the language writes numbers, as the words with no number already do", () => {
+    expect(getChoiceText(getDurationLabel(12 * 60), persian)).toBe("۱۲ ساعت");
+    expect(getChoiceText(getDurationLabel(30 * 24 * 60), persian)).toBe(
+      "۳۰ روز",
+    );
+    expect(getChoiceText(getDurationLabel(60), persian)).toBe("۱ ساعت");
+  });
+
+  test("in English, as written", () => {
+    const english: Translator = createTranslator(undefined, "en");
+
+    expect(getChoiceText(getDurationLabel(12 * 60), english)).toBe("12 hours");
+    expect(getChoiceText(getDurationLabel(60), english)).toBe("1 hour");
+    expect(getChoiceText({ label: "No limit" }, english)).toBe("No limit");
+  });
 });
 
 describe("what the dropdowns offer and write", () => {

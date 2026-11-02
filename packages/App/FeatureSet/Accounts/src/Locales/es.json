@@ -60,7 +60,7 @@
     "title": "Inicie sesión en su cuenta",
     "subtitle": "Usa tu contraseña, el SSO de tu organización o una clave de acceso.",
     "sessionEnded": {
-      "lengthReached": "Por seguridad, este servidor cierra la sesión de todos tras un tiempo establecido. Vuelve a iniciar sesión para seguir donde lo dejaste.",
+      "lengthReached": "Se cerró tu sesión porque alcanzó su límite de tiempo. Vuelve a iniciar sesión para seguir donde lo dejaste.",
       "inactive": "Se cerró tu sesión tras un periodo de inactividad. Vuelve a iniciar sesión para seguir donde lo dejaste."
     },
     "submitButton": "Iniciar sesión",

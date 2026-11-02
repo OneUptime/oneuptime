@@ -12,11 +12,13 @@ import SessionLengthCopy, {
   toIdleChoiceValue,
   toLengthChoiceValue,
 } from "./SessionLengthCopy";
-import { saveSessionLengthSetting } from "./SessionLengthSettingsAPI";
+import {
+  saveSessionLengthChange,
+  SessionLengthChange,
+} from "./SessionLengthSettingsAPI";
 import {
   SessionLengthColumn,
   SessionLengthKind,
-  SessionLengthSettingColumn,
   SessionLengthSettings,
 } from "Common/Types/UserSession/SessionLength";
 import Dropdown, {
@@ -45,6 +47,11 @@ import React, {
  * beside it, and a pick the server refuses goes back to what is set, with
  * the reason under it - as the status pages' Reader Sessions card does.
  *
+ * A length's row reads as a form field does: what it sets, what the pick
+ * means, then the dropdown, with "Saved" after it. So every dropdown on the
+ * page starts at the same edge as the switch above them, and "Saved"
+ * appearing never moves the dropdown or the words beside it.
+ *
  * Before a pick is saved the page is asked (confirmChange): a change that
  * signs people out at once - everyone already signed in, or idle, for
  * longer than it allows - is saved only once the master admin confirms it.
@@ -56,8 +63,7 @@ import React, {
  */
 
 export type ConfirmSessionLengthChange = (
-  column: SessionLengthSettingColumn,
-  value: number | boolean | null,
+  change: SessionLengthChange,
 ) => Promise<boolean>;
 
 // What each of the page's cards (SessionLengthCard, SsoSignInsCard) is handed.
@@ -65,10 +71,7 @@ export interface SessionLengthCardProps {
   settings: SessionLengthSettings;
   isLocked: boolean;
   confirmChange: ConfirmSessionLengthChange;
-  onSaved: (
-    column: SessionLengthSettingColumn,
-    value: number | boolean | null,
-  ) => void;
+  onSaved: (change: SessionLengthChange) => void;
 }
 
 export interface DropdownRowProps {
@@ -80,7 +83,7 @@ export interface DropdownRowProps {
   initialValue: number | null;
   isLocked: boolean;
   confirmChange: ConfirmSessionLengthChange;
-  onSaved: (column: SessionLengthSettingColumn, value: number | null) => void;
+  onSaved: (change: SessionLengthChange) => void;
 }
 
 export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
@@ -95,10 +98,10 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
   const setting: SaveOnChange<number | null> = useSaveOnChange<number | null>({
     initialValue: props.initialValue,
     save: async (value: number | null): Promise<void> => {
-      await saveSessionLengthSetting(props.column, value);
+      await saveSessionLengthChange({ [props.column]: value });
     },
     onSaved: (value: number | null): void => {
-      props.onSaved(props.column, value);
+      props.onSaved({ [props.column]: value });
     },
   });
 
@@ -149,7 +152,7 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
     setPending({ value });
 
     props
-      .confirmChange(props.column, value)
+      .confirmChange({ [props.column]: value })
       .then((isConfirmed: boolean): void => {
         setPending(null);
 
@@ -164,39 +167,13 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
 
   return (
     <div data-testid={testId}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <span
-          id={labelId}
-          className="min-w-0 text-sm font-medium text-gray-900"
-        >
-          {translator.translateText(props.label)}
-        </span>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <div className="w-full sm:w-44" data-testid={`${testId}-dropdown`}>
-            <Dropdown
-              options={options}
-              value={selectedOption}
-              ariaLabelledby={labelId}
-              ariaDescribedby={descriptionId}
-              isClearable={false}
-              className="relative w-full overflow-visible rounded-md"
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ): void => {
-                if (typeof value !== "number") {
-                  return;
-                }
-
-                pick(fromChoiceValue(value));
-              }}
-            />
-          </div>
-          <SaveStatus
-            state={setting.saveState}
-            dataTestId={`${testId}-status`}
-          />
-        </div>
-      </div>
+      <span
+        id={labelId}
+        className="block text-sm font-medium text-gray-900"
+        data-testid={`${testId}-label`}
+      >
+        {translator.translateText(props.label)}
+      </span>
       <p
         id={descriptionId}
         className="mt-1 text-sm text-gray-500"
@@ -204,9 +181,35 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
       >
         {translator.translateText(description)}
       </p>
+      {/*
+       * The dropdown, and "Saved" after it - on a phone under it, where the
+       * dropdown takes the whole width.
+       */}
+      <div className="mt-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="w-full sm:w-48" data-testid={`${testId}-dropdown`}>
+          <Dropdown
+            options={options}
+            value={selectedOption}
+            ariaLabelledby={labelId}
+            ariaDescribedby={descriptionId}
+            isClearable={false}
+            className="relative w-full overflow-visible rounded-md"
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              if (typeof value !== "number") {
+                return;
+              }
+
+              pick(fromChoiceValue(value));
+            }}
+          />
+        </div>
+        <SaveStatus state={setting.saveState} dataTestId={`${testId}-status`} />
+      </div>
       {setting.error ? (
         <p
-          className="mt-1 text-sm text-red-600"
+          className="mt-2 text-sm text-red-600"
           role="alert"
           data-testid={`${testId}-error`}
         >
@@ -221,24 +224,72 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
 
 export interface SwitchRowProps {
   initialValue: boolean;
+  /*
+   * The lengths every sign-in has now: SSO sign-ins start at them when the
+   * switch is turned on.
+   */
+  sessionLengthInMinutes: number | null;
+  sessionIdleTimeoutInMinutes: number | null;
   isLocked: boolean;
   confirmChange: ConfirmSessionLengthChange;
-  onSaved: (column: SessionLengthSettingColumn, value: boolean) => void;
+  onSaved: (change: SessionLengthChange) => void;
 }
 
 export const SEPARATE_SSO_SWITCH_TEST_ID: string =
   "session-length-separate-sso";
 
+/*
+ * What flipping the switch writes. Turned on, SSO sign-ins start at the
+ * lengths every sign-in has now, so turning it on signs nobody out and lets
+ * nobody stay longer: until a different length is picked under it, SSO
+ * sign-ins last as they did. (Their columns could hold lengths from an
+ * earlier time it was on, or none - which would be No limit and 30 days.)
+ * Turned off, SSO sign-ins follow the lengths above again, and their own
+ * are left as they are, unused.
+ */
+export const getSeparateSsoChange: (
+  isOn: boolean,
+  lengths: Pick<
+    SessionLengthSettings,
+    "sessionLengthInMinutes" | "sessionIdleTimeoutInMinutes"
+  >,
+) => SessionLengthChange = (
+  isOn: boolean,
+  lengths: Pick<
+    SessionLengthSettings,
+    "sessionLengthInMinutes" | "sessionIdleTimeoutInMinutes"
+  >,
+): SessionLengthChange => {
+  if (!isOn) {
+    return { useSeparateSsoSessionLengths: false };
+  }
+
+  return {
+    useSeparateSsoSessionLengths: true,
+    ssoSessionLengthInMinutes: lengths.sessionLengthInMinutes,
+    ssoSessionIdleTimeoutInMinutes: lengths.sessionIdleTimeoutInMinutes,
+  };
+};
+
 export const SessionLengthSeparateSsoRow: FunctionComponent<SwitchRowProps> = (
   props: SwitchRowProps,
 ): ReactElement => {
+  const getChange: (isOn: boolean) => SessionLengthChange = (
+    isOn: boolean,
+  ): SessionLengthChange => {
+    return getSeparateSsoChange(isOn, {
+      sessionLengthInMinutes: props.sessionLengthInMinutes,
+      sessionIdleTimeoutInMinutes: props.sessionIdleTimeoutInMinutes,
+    });
+  };
+
   const setting: SaveOnChange<boolean> = useSaveOnChange<boolean>({
     initialValue: props.initialValue,
     save: async (value: boolean): Promise<void> => {
-      await saveSessionLengthSetting("useSeparateSsoSessionLengths", value);
+      await saveSessionLengthChange(getChange(value));
     },
     onSaved: (value: boolean): void => {
-      props.onSaved("useSeparateSsoSessionLengths", value);
+      props.onSaved(getChange(value));
     },
   });
 
@@ -269,7 +320,7 @@ export const SessionLengthSeparateSsoRow: FunctionComponent<SwitchRowProps> = (
             setPending({ value });
 
             props
-              .confirmChange("useSeparateSsoSessionLengths", value)
+              .confirmChange(getChange(value))
               .then((isConfirmed: boolean): void => {
                 setPending(null);
 

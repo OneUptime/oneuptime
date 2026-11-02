@@ -62,7 +62,7 @@ flowchart TB
 
 ## SSO-pålogginger
 
-Pålogginger via enkel pålogging følger de samme to innstillingene. For å gi dem egne lengder åpner du **Flere innstillinger** på siden **Øktlengde** og slår på **Egne lengder for SSO-pålogginger**. De to innstillingene under gjelder da for pålogginger via et prosjekts SAML- eller OpenID Connect-leverandør, eller serverens egen [globale SSO](/docs/identity/global-sso), og de to øverst på siden for alle andre pålogginger.
+Pålogginger via enkel pålogging følger de samme to innstillingene. For å gi dem egne lengder åpner du **Flere innstillinger** på siden **Øktlengde** og slår på **Egne lengder for SSO-pålogginger**. De to innstillingene under gjelder da for pålogginger via et prosjekts SAML- eller OpenID Connect-leverandør, eller serverens egen [globale SSO](/docs/identity/global-sso), og de to øverst på siden for alle andre pålogginger. De starter med de samme lengdene som alle andre pålogginger, så å slå den på endrer ingenting før du velger andre.
 
 Et prosjekt som krever SSO, slipper dessuten bare inn en økt så lenge SSO-påloggingen varer, og det er aldri lenger enn lengden SSO-pålogginger følger.
 

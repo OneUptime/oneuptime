@@ -62,7 +62,7 @@ flowchart TB
 
 ## Connexions SSO
 
-Les connexions par authentification unique suivent les deux mêmes paramètres. Pour leur donner leurs propres durées, ouvrez **Plus de paramètres** sur la page **Durée de session** et activez **Durées distinctes pour les connexions SSO**. Les deux paramètres situés en dessous s'appliquent alors aux connexions via le fournisseur SAML ou OpenID Connect d'un projet, ou via le [SSO global](/docs/identity/global-sso) du serveur, et les deux en haut de la page à toutes les autres connexions.
+Les connexions par authentification unique suivent les deux mêmes paramètres. Pour leur donner leurs propres durées, ouvrez **Plus de paramètres** sur la page **Durée de session** et activez **Durées distinctes pour les connexions SSO**. Les deux paramètres situés en dessous s'appliquent alors aux connexions via le fournisseur SAML ou OpenID Connect d'un projet, ou via le [SSO global](/docs/identity/global-sso) du serveur, et les deux en haut de la page à toutes les autres connexions. Elles démarrent avec les mêmes durées que toute autre connexion, donc l'activer ne change rien tant que vous n'en choisissez pas d'autres.
 
 Un projet qui exige le SSO ne laisse aussi entrer une session que tant que sa connexion SSO dure, ce qui n'est jamais plus long que la durée que suivent les connexions SSO.
 

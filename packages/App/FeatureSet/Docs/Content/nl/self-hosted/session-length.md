@@ -62,7 +62,7 @@ flowchart TB
 
 ## SSO-aanmeldingen
 
-Aanmeldingen via single sign-on volgen dezelfde twee instellingen. Om ze een eigen duur te geven, opent u **Meer instellingen** op de pagina **Sessieduur** en zet u **Aparte duur voor SSO-aanmeldingen** aan. De twee instellingen daaronder gelden dan voor aanmeldingen via de SAML- of OpenID Connect-provider van een project, of via de eigen [globale SSO](/docs/identity/global-sso) van de server, en de twee bovenaan de pagina voor elke andere aanmelding.
+Aanmeldingen via single sign-on volgen dezelfde twee instellingen. Om ze een eigen duur te geven, opent u **Meer instellingen** op de pagina **Sessieduur** en zet u **Aparte duur voor SSO-aanmeldingen** aan. De twee instellingen daaronder gelden dan voor aanmeldingen via de SAML- of OpenID Connect-provider van een project, of via de eigen [globale SSO](/docs/identity/global-sso) van de server, en de twee bovenaan de pagina voor elke andere aanmelding. Ze beginnen met dezelfde duur als elke andere aanmelding, dus aanzetten verandert niets totdat u een andere kiest.
 
 Een project dat SSO vereist, laat een sessie bovendien alleen toe zolang de SSO-aanmelding ervan duurt, en die is nooit langer dan de duur die SSO-aanmeldingen volgen.
 

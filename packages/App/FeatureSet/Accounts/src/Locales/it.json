@@ -60,7 +60,7 @@
     "title": "Accedi al tuo account",
     "subtitle": "Usa la password, l’SSO della tua organizzazione o una passkey.",
     "sessionEnded": {
-      "lengthReached": "Per sicurezza, questo server disconnette tutti dopo un tempo prestabilito. Accedi di nuovo per riprendere da dove avevi lasciato.",
+      "lengthReached": "Sei stato disconnesso perché la tua sessione ha raggiunto il limite di tempo. Accedi di nuovo per riprendere da dove avevi lasciato.",
       "inactive": "Sei stato disconnesso dopo un periodo di inattività. Accedi di nuovo per riprendere da dove avevi lasciato."
     },
     "submitButton": "Accedi",

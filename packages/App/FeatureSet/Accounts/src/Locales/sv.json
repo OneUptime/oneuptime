@@ -60,7 +60,7 @@
     "title": "Logga in på ditt konto",
     "subtitle": "Använd ditt lösenord, organisationens SSO eller en passnyckel.",
     "sessionEnded": {
-      "lengthReached": "Av säkerhetsskäl loggar den här servern ut alla efter en bestämd tid. Logga in igen för att fortsätta där du slutade.",
+      "lengthReached": "Du loggades ut eftersom din session nådde sin tidsgräns. Logga in igen för att fortsätta där du slutade.",
       "inactive": "Du loggades ut efter en tid utan aktivitet. Logga in igen för att fortsätta där du slutade."
     },
     "submitButton": "Logga in",

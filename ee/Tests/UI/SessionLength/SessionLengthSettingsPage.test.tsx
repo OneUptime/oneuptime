@@ -34,7 +34,11 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
  *     the server cannot say, in general words; Cancel saves nothing, and the
  *     row goes back;
  *   - SSO sign-ins' own lengths are folded under More settings, behind a
- *     switch, whose header says "SSO Sign-ins: On" while it is;
+ *     switch, whose header says "SSO Sign-ins: On" while it is; turned on,
+ *     they start at the lengths above, so nobody is signed out or kept
+ *     longer by it;
+ *   - each length reads as a form field does - what it sets, what the pick
+ *     means, then the dropdown, with "Saved" after it;
  *   - without a license that includes session lengths, the page says so, and
  *     offers only the defaults - what is set can always be removed.
  *
@@ -139,7 +143,10 @@ import SessionLengthCopy, {
   SESSION_LENGTH_MORE_SETTINGS_TEST_ID,
   SSO_SESSION_LENGTH_CARD_TEST_ID,
 } from "../../../AdminDashboard/SessionLength/SessionLengthCopy";
-import { SEPARATE_SSO_SWITCH_TEST_ID } from "../../../AdminDashboard/SessionLength/SessionLengthSettingRows";
+import {
+  getSeparateSsoChange,
+  SEPARATE_SSO_SWITCH_TEST_ID,
+} from "../../../AdminDashboard/SessionLength/SessionLengthSettingRows";
 import { SESSION_LENGTH_PREVIEW_PATH } from "../../../AdminDashboard/SessionLength/SessionLengthSettingsAPI";
 import { LicensedFeature } from "../../../Dashboard/Identity/License/EnterpriseLicenseMode";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
@@ -386,6 +393,51 @@ describe("what the page reads and shows", () => {
     expect(description(IDLE)).toBe(SessionLengthCopy.idleDefaultDescription);
   });
 
+  test("each length reads as a form field: what it sets, what the pick means, then the dropdown, with Saved after it", async () => {
+    stored = { sessionLengthInMinutes: 480 };
+
+    await openPage();
+
+    for (const column of [LENGTH, IDLE]) {
+      const testId: string = getSessionLengthRowTestId(column);
+      const label: HTMLElement = screen.getByTestId(`${testId}-label`);
+      const meaning: HTMLElement = screen.getByTestId(`${testId}-description`);
+      const dropdown: HTMLElement = screen.getByTestId(`${testId}-dropdown`);
+      const status: HTMLElement = screen.getByTestId(`${testId}-status`);
+
+      // In this order on the page, and so for a screen reader too.
+      expect(
+        label.compareDocumentPosition(meaning) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        meaning.compareDocumentPosition(dropdown) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        dropdown.compareDocumentPosition(status) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
+      // The dropdown is named by what it sets, and described by what the pick means.
+      expect(box(column).getAttribute("aria-labelledby")).toBe(label.id);
+      expect(box(column).getAttribute("aria-describedby") || "").toContain(
+        meaning.id,
+      );
+    }
+
+    await pick(LENGTH, "14 days");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${getSessionLengthRowTestId(LENGTH)}-status`),
+      ).toHaveTextContent("Saved");
+    });
+    expect(
+      screen.getByTestId(`${getSessionLengthRowTestId(IDLE)}-status`),
+    ).toHaveTextContent("");
+  });
+
   test("says that API keys and MCP connections are not sign-ins", async () => {
     await openPage();
 
@@ -546,8 +598,8 @@ describe("a pick that signs people out right away", () => {
     expect(confirmation()).toBeNull();
   });
 
-  test("one person, the master admin among them: says so, and that they come back here", async () => {
-    preview = { peopleSignedOut: 1, includesYou: true };
+  test("one person, not the master admin: the one form of the sentence", async () => {
+    preview = { peopleSignedOut: 1, includesYou: false };
 
     await openPage();
     await pick(LENGTH, "1 hour");
@@ -555,9 +607,60 @@ describe("a pick that signs people out right away", () => {
     expect(confirmation()).toHaveTextContent(
       "Saving this signs out 1 person right away: their sign-in is already older, or has been idle longer, than it allows.",
     );
+    expect(confirmation()).not.toHaveTextContent(
+      SessionLengthCopy.confirmIncludesYou,
+    );
+    expect(
+      screen.getByRole("button", { name: SessionLengthCopy.confirmButton }),
+    ).toBeInTheDocument();
+  });
+
+  test("many people, the master admin among them: says so, and that they come back here", async () => {
+    preview = { peopleSignedOut: 37, includesYou: true };
+
+    await openPage();
+    await pick(LENGTH, "1 hour");
+
+    expect(
+      screen.getByText(SessionLengthCopy.confirmTitle),
+    ).toBeInTheDocument();
+    expect(confirmation()).toHaveTextContent(
+      "Saving this signs out 37 people right away: their sign-ins are already older, or have been idle longer, than it allows.",
+    );
     expect(confirmation()).toHaveTextContent(
       SessionLengthCopy.confirmIncludesYou,
     );
+    expect(
+      screen.getByRole("button", { name: SessionLengthCopy.confirmButton }),
+    ).toBeInTheDocument();
+  });
+
+  test("only the master admin making it: asks them to sign themselves out, in words of their own", async () => {
+    preview = { peopleSignedOut: 1, includesYou: true };
+
+    await openPage();
+    await pick(LENGTH, "1 hour");
+
+    expect(
+      screen.getByText(SessionLengthCopy.confirmOnlyYouTitle),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(SessionLengthCopy.confirmTitle)).toBeNull();
+    expect(confirmation()).toHaveTextContent(SessionLengthCopy.confirmOnlyYou);
+    expect(confirmation()).not.toHaveTextContent("1 person");
+    expect(
+      screen.queryByRole("button", { name: SessionLengthCopy.confirmButton }),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: SessionLengthCopy.confirmOnlyYouButton,
+      }),
+    );
+    await flush();
+
+    await waitFor(() => {
+      expect(writes()).toEqual([{ sessionLengthInMinutes: 60 }]);
+    });
   });
 
   test("Cancel saves nothing, and the row goes back to what is set", async () => {
@@ -688,8 +791,8 @@ describe("SSO sign-ins, under More settings", () => {
     expect(shown(SSO_IDLE)).toBe("30 days");
   });
 
-  test("turning the switch on with SSO lengths no shorter saves at once, and shows the SSO lengths", async () => {
-    stored = { sessionLengthInMinutes: 480 };
+  test("turning the switch on starts SSO sign-ins at the lengths above, in one write, without asking anyone", async () => {
+    stored = { sessionLengthInMinutes: 480, sessionIdleTimeoutInMinutes: 60 };
 
     await openPage();
     await openMoreSettings();
@@ -698,16 +801,47 @@ describe("SSO sign-ins, under More settings", () => {
     await flush();
 
     await waitFor(() => {
-      expect(writes()).toEqual([{ useSeparateSsoSessionLengths: true }]);
+      expect(writes()).toEqual([
+        {
+          useSeparateSsoSessionLengths: true,
+          ssoSessionLengthInMinutes: 480,
+          ssoSessionIdleTimeoutInMinutes: 60,
+        },
+      ]);
     });
     expect(previewsAsked()).toEqual([]);
+    expect(confirmation()).toBeNull();
+    // Its two rows show what SSO sign-ins now follow: the same lengths.
+    await waitFor(() => {
+      expect(shown(SSO_LENGTH)).toBe("8 hours");
+    });
+    expect(shown(SSO_IDLE)).toBe("1 hour");
+  });
+
+  test("with nothing set, turning it on leaves SSO sign-ins at No limit and 30 days, as every sign-in is", async () => {
+    await openPage();
+    await openMoreSettings();
+
+    fireEvent.click(ssoSwitch());
+    await flush();
+
+    await waitFor(() => {
+      expect(writes()).toEqual([
+        {
+          useSeparateSsoSessionLengths: true,
+          ssoSessionLengthInMinutes: null,
+          ssoSessionIdleTimeoutInMinutes: null,
+        },
+      ]);
+    });
     await waitFor(() => {
       expect(shown(SSO_LENGTH)).toBe("No limit");
     });
+    expect(shown(SSO_IDLE)).toBe("30 days");
   });
 
-  test("turning it on when SSO's own lengths are shorter asks first, as any shortening does", async () => {
-    stored = { ssoSessionLengthInMinutes: 60 };
+  test("SSO lengths left from an earlier time it was on never come back: turning it on asks nothing and starts again from the lengths above", async () => {
+    stored = { sessionLengthInMinutes: 480, ssoSessionLengthInMinutes: 60 };
     preview = { peopleSignedOut: 4, includesYou: false };
 
     await openPage();
@@ -716,14 +850,91 @@ describe("SSO sign-ins, under More settings", () => {
     fireEvent.click(ssoSwitch());
     await flush();
 
-    expect(previewsAsked()[0]).toEqual(
-      expect.objectContaining({
-        useSeparateSsoSessionLengths: true,
-        ssoSessionLengthInMinutes: 60,
-      }),
-    );
-    expect(confirmation()).toHaveTextContent("Saving this signs out 4 people");
+    expect(previewsAsked()).toEqual([]);
+    expect(confirmation()).toBeNull();
+    await waitFor(() => {
+      expect(writes()).toEqual([
+        {
+          useSeparateSsoSessionLengths: true,
+          ssoSessionLengthInMinutes: 480,
+          ssoSessionIdleTimeoutInMinutes: null,
+        },
+      ]);
+    });
+    await waitFor(() => {
+      expect(shown(SSO_LENGTH)).toBe("8 hours");
+    });
+  });
+
+  test("turning it off when SSO sign-ins last longer asks first, since they then follow the shorter lengths above", async () => {
+    stored = {
+      sessionLengthInMinutes: 480,
+      useSeparateSsoSessionLengths: true,
+      ssoSessionLengthInMinutes: null,
+    };
+    preview = { peopleSignedOut: 2, includesYou: false };
+
+    await openPage();
+    await openMoreSettings();
+
+    fireEvent.click(ssoSwitch());
+    await flush();
+
+    expect(previewsAsked()).toEqual([
+      {
+        sessionLengthInMinutes: 480,
+        sessionIdleTimeoutInMinutes: null,
+        useSeparateSsoSessionLengths: false,
+        ssoSessionLengthInMinutes: null,
+        ssoSessionIdleTimeoutInMinutes: null,
+      },
+    ]);
+    expect(confirmation()).toHaveTextContent("Saving this signs out 2 people");
     expect(writes()).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await flush();
+
+    expect(writes()).toEqual([]);
+    expect(ssoSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("what the switch writes, on and off", () => {
+    expect(
+      getSeparateSsoChange(true, {
+        sessionLengthInMinutes: 10080,
+        sessionIdleTimeoutInMinutes: 15,
+      }),
+    ).toEqual({
+      useSeparateSsoSessionLengths: true,
+      ssoSessionLengthInMinutes: 10080,
+      ssoSessionIdleTimeoutInMinutes: 15,
+    });
+    expect(
+      getSeparateSsoChange(false, {
+        sessionLengthInMinutes: 10080,
+        sessionIdleTimeoutInMinutes: 15,
+      }),
+    ).toEqual({ useSeparateSsoSessionLengths: false });
+  });
+
+  test("its fold, holding one card, says nothing of its own once open: the card says it", async () => {
+    await openPage();
+    await openMoreSettings();
+
+    const section: HTMLElement = screen.getByTestId(
+      SESSION_LENGTH_MORE_SETTINGS_TEST_ID,
+    );
+
+    expect(
+      within(section).getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(section).queryByTestId("folded-section-description"),
+    ).toBeNull();
+    expect(
+      within(section).getByText(SessionLengthCopy.ssoCardDescription),
+    ).toBeInTheDocument();
   });
 });
 

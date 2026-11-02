@@ -20,6 +20,7 @@ import { ConfirmSessionLengthChange } from "./SessionLengthSettingRows";
 import {
   fetchSessionLengthSettings,
   previewSessionLengthSettings,
+  SessionLengthChange,
   SessionLengthPreview,
 } from "./SessionLengthSettingsAPI";
 import SsoSignInsCard from "./SsoSignInsCard";
@@ -30,7 +31,6 @@ import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import {
   doesShortenAnySession,
-  SessionLengthSettingColumn,
   SessionLengthSettings,
   toSessionLengths,
 } from "Common/Types/UserSession/SessionLength";
@@ -67,12 +67,14 @@ import { useTranslation } from "react-i18next";
  *   - More settings, folded: SSO Sign-ins, a switch that gives sign-ins
  *     through SSO two lengths of their own - most installations want one
  *     rule for everyone, so it stays out of the way, and the folded header
- *     says "SSO Sign-ins: On" while it is.
+ *     says "SSO Sign-ins: On" while it is. Turned on, they start at the
+ *     lengths above, so nothing changes until another is picked. A fold
+ *     that holds one card says nothing of its own: the card says it.
  *
  * A change applies to everyone signed in now. One that signs people out at
  * once is asked first, with how many (the preview route), and whether the
- * master admin making it is one of them; anything that only lengthens a
- * sign-in is saved as it is picked. Without a license that includes it, the
+ * master admin making it is one of them - or is the only one; anything that
+ * only lengthens a sign-in is saved as it is picked. Without a license that includes it, the
  * page says so and offers only the defaults: what is set keeps applying,
  * and can always be removed.
  */
@@ -127,8 +129,7 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
    * away - then once the master admin confirms it.
    */
   const confirmChange: ConfirmSessionLengthChange = async (
-    column: SessionLengthSettingColumn,
-    value: number | boolean | null,
+    change: SessionLengthChange,
   ): Promise<boolean> => {
     const current: SessionLengthSettings | null = settingsRef.current;
 
@@ -138,7 +139,7 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
 
     const proposed: SessionLengthSettings = {
       ...current,
-      [column]: value,
+      ...change,
     };
 
     if (
@@ -170,12 +171,12 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
     );
   };
 
-  const onSaved: (
-    column: SessionLengthSettingColumn,
-    value: number | boolean | null,
-  ) => void = (
-    column: SessionLengthSettingColumn,
-    value: number | boolean | null,
+  /*
+   * What a saved change leaves, in one update: the SSO lengths a switch
+   * turned on starts at are there as its two rows first draw.
+   */
+  const onSaved: (change: SessionLengthChange) => void = (
+    change: SessionLengthChange,
   ): void => {
     const current: SessionLengthSettings | null = settingsRef.current;
 
@@ -183,9 +184,18 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
       return;
     }
 
-    const next: SessionLengthSettings = { ...current, [column]: value };
+    const next: SessionLengthSettings = { ...current, ...change };
     settingsRef.current = next;
     setSettings(next);
+  };
+
+  // The one person a change signs out is the master admin making it.
+  const isOnlyYou: (preview: SessionLengthPreview | null) => boolean = (
+    preview: SessionLengthPreview | null,
+  ): boolean => {
+    return Boolean(
+      preview && preview.includesYou && preview.peopleSignedOut === 1,
+    );
   };
 
   const answer: (isConfirmed: boolean) => void = (
@@ -200,6 +210,10 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
   ): string => {
     if (!pending.preview) {
       return translator.translateText(SessionLengthCopy.confirmUnknown) || "";
+    }
+
+    if (isOnlyYou(pending.preview)) {
+      return translator.translateText(SessionLengthCopy.confirmOnlyYou) || "";
     }
 
     const signsOut: string = translator.translatePlural(
@@ -253,7 +267,6 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
           onSaved={onSaved}
         />
         <AdvancedPageSection
-          description={SessionLengthCopy.moreSettingsDescription}
           items={[getSsoFoldedItem(settings.useSeparateSsoSessionLengths)]}
           dataTestId={SESSION_LENGTH_MORE_SETTINGS_TEST_ID}
         >
@@ -266,6 +279,18 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
         </AdvancedPageSection>
       </>
     );
+  };
+
+  const getConfirmButtonText: (pending: PendingConfirmation) => string = (
+    pending: PendingConfirmation,
+  ): string => {
+    if (!pending.preview) {
+      return SessionLengthCopy.confirmUnknownButton;
+    }
+
+    return isOnlyYou(pending.preview)
+      ? SessionLengthCopy.confirmOnlyYouButton
+      : SessionLengthCopy.confirmButton;
   };
 
   return (
@@ -298,13 +323,13 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
       </div>
       {confirmation ? (
         <ConfirmModal
-          title={SessionLengthCopy.confirmTitle}
-          description={getConfirmationDescription(confirmation)}
-          submitButtonText={
-            confirmation.preview
-              ? SessionLengthCopy.confirmButton
-              : SessionLengthCopy.confirmUnknownButton
+          title={
+            isOnlyYou(confirmation.preview)
+              ? SessionLengthCopy.confirmOnlyYouTitle
+              : SessionLengthCopy.confirmTitle
           }
+          description={getConfirmationDescription(confirmation)}
+          submitButtonText={getConfirmButtonText(confirmation)}
           submitButtonType={ButtonStyleType.DANGER}
           onSubmit={() => {
             answer(true);

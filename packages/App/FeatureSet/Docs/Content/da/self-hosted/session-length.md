@@ -62,7 +62,7 @@ flowchart TB
 
 ## SSO-logins
 
-Logins via single sign-on følger de samme to indstillinger. For at give dem deres egne længder skal du åbne **Yderligere indstillinger** på siden **Sessionslængde** og slå **Separate længder for SSO-logins** til. De to indstillinger under den gælder så for logins via et projekts SAML- eller OpenID Connect-udbyder eller serverens egen [globale SSO](/docs/identity/global-sso), og de to øverst på siden for alle andre logins.
+Logins via single sign-on følger de samme to indstillinger. For at give dem deres egne længder skal du åbne **Yderligere indstillinger** på siden **Sessionslængde** og slå **Separate længder for SSO-logins** til. De to indstillinger under den gælder så for logins via et projekts SAML- eller OpenID Connect-udbyder eller serverens egen [globale SSO](/docs/identity/global-sso), og de to øverst på siden for alle andre logins. De starter med de samme længder som alle andre logins, så det ændrer intet at slå den til, før du vælger andre.
 
 Et projekt, der kræver SSO, lukker desuden kun en session ind, så længe dens SSO-login varer, og det er aldrig længere end den længde, SSO-logins følger.
 

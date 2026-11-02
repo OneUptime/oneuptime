@@ -62,7 +62,7 @@ flowchart TB
 
 ## SSO Sign-ins
 
-Sign-ins through single sign-on follow the same two settings. To give them lengths of their own, open **More settings** on the **Session Length** page and turn on **Separate lengths for SSO sign-ins**. The two settings under it then apply to sign-ins through a project's SAML or OpenID Connect provider, or the server's own [Global SSO](/docs/identity/global-sso), and the two at the top of the page to every other sign-in.
+Sign-ins through single sign-on follow the same two settings. To give them lengths of their own, open **More settings** on the **Session Length** page and turn on **Separate lengths for SSO sign-ins**. The two settings under it then apply to sign-ins through a project's SAML or OpenID Connect provider, or the server's own [Global SSO](/docs/identity/global-sso), and the two at the top of the page to every other sign-in. They start at the same lengths as every other sign-in, so turning it on changes nothing until you pick others.
 
 A project that requires SSO also lets a session in only while its SSO sign-in lasts, which is never longer than the length SSO sign-ins follow.
 

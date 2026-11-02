@@ -62,7 +62,7 @@ flowchart TB
 
 ## SSO-Anmeldungen
 
-Anmeldungen über Single Sign-On folgen denselben beiden Einstellungen. Um ihnen eigene Dauern zu geben, öffnen Sie **Weitere Einstellungen** auf der Seite **Sitzungsdauer** und schalten **Eigene Dauern für SSO-Anmeldungen** ein. Die beiden Einstellungen darunter gelten dann für Anmeldungen über den SAML- oder OpenID-Connect-Anbieter eines Projekts oder über das [globale SSO](/docs/identity/global-sso) des Servers, und die beiden oben auf der Seite für jede andere Anmeldung.
+Anmeldungen über Single Sign-On folgen denselben beiden Einstellungen. Um ihnen eigene Dauern zu geben, öffnen Sie **Weitere Einstellungen** auf der Seite **Sitzungsdauer** und schalten **Eigene Dauern für SSO-Anmeldungen** ein. Die beiden Einstellungen darunter gelten dann für Anmeldungen über den SAML- oder OpenID-Connect-Anbieter eines Projekts oder über das [globale SSO](/docs/identity/global-sso) des Servers, und die beiden oben auf der Seite für jede andere Anmeldung. Sie beginnen mit denselben Dauern wie jede andere Anmeldung, sodass das Einschalten nichts ändert, bis Sie andere wählen.
 
 Ein Projekt, das SSO verlangt, lässt eine Sitzung außerdem nur so lange hinein, wie ihre SSO-Anmeldung andauert, und das ist nie länger als die Dauer, der SSO-Anmeldungen folgen.
 

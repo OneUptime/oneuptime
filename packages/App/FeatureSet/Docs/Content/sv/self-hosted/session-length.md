@@ -62,7 +62,7 @@ flowchart TB
 
 ## SSO-inloggningar
 
-Inloggningar via enkel inloggning följer samma två inställningar. För att ge dem egna längder öppnar du **Fler inställningar** på sidan **Sessionslängd** och slår på **Separata längder för SSO-inloggningar**. De två inställningarna under den gäller då för inloggningar via ett projekts SAML- eller OpenID Connect-leverantör, eller serverns egen [globala SSO](/docs/identity/global-sso), och de två högst upp på sidan för alla andra inloggningar.
+Inloggningar via enkel inloggning följer samma två inställningar. För att ge dem egna längder öppnar du **Fler inställningar** på sidan **Sessionslängd** och slår på **Separata längder för SSO-inloggningar**. De två inställningarna under den gäller då för inloggningar via ett projekts SAML- eller OpenID Connect-leverantör, eller serverns egen [globala SSO](/docs/identity/global-sso), och de två högst upp på sidan för alla andra inloggningar. De börjar med samma längder som alla andra inloggningar, så att slå på den ändrar ingenting förrän du väljer andra.
 
 Ett projekt som kräver SSO släpper dessutom bara in en session så länge dess SSO-inloggning varar, och det är aldrig längre än den längd som SSO-inloggningar följer.
 

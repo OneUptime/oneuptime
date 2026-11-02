@@ -57,20 +57,34 @@ export const fetchSessionLengthSettings: () => Promise<SessionLengthSettings> =
     );
   };
 
-// Writes one column of the setting; throws with the server's reason when refused.
-export const saveSessionLengthSetting: (
-  column: SessionLengthSettingColumn,
-  value: number | boolean | null,
-) => Promise<void> = async (
-  column: SessionLengthSettingColumn,
-  value: number | boolean | null,
-): Promise<void> => {
+/*
+ * A change to the setting: the columns it writes, each to what it holds
+ * after the change - one for a pick, three for SSO sign-ins' switch turned
+ * on (which starts them at the lengths every sign-in has).
+ */
+export type SessionLengthChange = Partial<SessionLengthSettings>;
+
+/*
+ * Writes the columns of a change in one write; throws with the server's
+ * reason when refused, and then nothing of it is saved.
+ */
+export const saveSessionLengthChange: (
+  change: SessionLengthChange,
+) => Promise<void> = async (change: SessionLengthChange): Promise<void> => {
+  const data: JSONObject = {};
+
+  for (const column of SESSION_LENGTH_SETTING_COLUMNS) {
+    const value: number | boolean | null | undefined = change[column];
+
+    if (value !== undefined) {
+      data[column] = value;
+    }
+  }
+
   await AdminModelAPI.updateById<GlobalConfig>({
     modelType: GlobalConfig,
     id: ObjectID.getZeroObjectID(),
-    data: {
-      [column]: value,
-    },
+    data: data,
   });
 };
 

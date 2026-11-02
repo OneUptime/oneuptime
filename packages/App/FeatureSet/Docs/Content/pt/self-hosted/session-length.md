@@ -62,7 +62,7 @@ flowchart TB
 
 ## Entradas por SSO
 
-As entradas por login único seguem as mesmas duas configurações. Para dar a elas durações próprias, abra **Mais configurações** na página **Duração da sessão** e ative **Durações separadas para entradas por SSO**. As duas configurações abaixo passam então a valer para as entradas pelo provedor SAML ou OpenID Connect de um projeto, ou pelo [SSO global](/docs/identity/global-sso) do próprio servidor, e as duas no topo da página para todas as outras entradas.
+As entradas por login único seguem as mesmas duas configurações. Para dar a elas durações próprias, abra **Mais configurações** na página **Duração da sessão** e ative **Durações separadas para entradas por SSO**. As duas configurações abaixo passam então a valer para as entradas pelo provedor SAML ou OpenID Connect de um projeto, ou pelo [SSO global](/docs/identity/global-sso) do próprio servidor, e as duas no topo da página para todas as outras entradas. Elas começam com as mesmas durações de qualquer outra entrada, então ativá-la não muda nada até que você escolha outras.
 
 Um projeto que exige SSO, além disso, só deixa uma sessão entrar enquanto a entrada por SSO dela durar, o que nunca é mais longo que a duração seguida pelas entradas por SSO.
 

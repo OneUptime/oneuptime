@@ -62,7 +62,7 @@ flowchart TB
 
 ## Inicios de sesión con SSO
 
-Los inicios de sesión con inicio de sesión único siguen los mismos dos ajustes. Para darles duraciones propias, abra **Más ajustes** en la página **Duración de la sesión** y active **Duraciones distintas para los inicios de sesión con SSO**. Los dos ajustes que hay debajo se aplican entonces a los inicios de sesión a través del proveedor SAML u OpenID Connect de un proyecto, o del [SSO global](/docs/identity/global-sso) del propio servidor, y los dos de la parte superior de la página a todos los demás inicios de sesión.
+Los inicios de sesión con inicio de sesión único siguen los mismos dos ajustes. Para darles duraciones propias, abra **Más ajustes** en la página **Duración de la sesión** y active **Duraciones distintas para los inicios de sesión con SSO**. Los dos ajustes que hay debajo se aplican entonces a los inicios de sesión a través del proveedor SAML u OpenID Connect de un proyecto, o del [SSO global](/docs/identity/global-sso) del propio servidor, y los dos de la parte superior de la página a todos los demás inicios de sesión. Empiezan con las mismas duraciones que cualquier otro inicio de sesión, así que activarlo no cambia nada hasta que elija otras.
 
 Un proyecto que exige SSO, además, solo deja entrar a una sesión mientras dura su inicio de sesión con SSO, que nunca es más largo que la duración que siguen los inicios de sesión con SSO.
 

@@ -62,7 +62,7 @@ flowchart TB
 
 ## Accessi SSO
 
-Gli accessi tramite single sign-on seguono le stesse due impostazioni. Per dare loro durate proprie, aprite **Altre impostazioni** nella pagina **Durata della sessione** e attivate **Durate separate per gli accessi SSO**. Le due impostazioni sottostanti valgono allora per gli accessi tramite il provider SAML o OpenID Connect di un progetto, o tramite l'[SSO globale](/docs/identity/global-sso) del server, e le due in cima alla pagina per tutti gli altri accessi.
+Gli accessi tramite single sign-on seguono le stesse due impostazioni. Per dare loro durate proprie, aprite **Altre impostazioni** nella pagina **Durata della sessione** e attivate **Durate separate per gli accessi SSO**. Le due impostazioni sottostanti valgono allora per gli accessi tramite il provider SAML o OpenID Connect di un progetto, o tramite l'[SSO globale](/docs/identity/global-sso) del server, e le due in cima alla pagina per tutti gli altri accessi. Partono dalle stesse durate di ogni altro accesso, quindi l'attivazione non cambia nulla finché non ne scegliete altre.
 
 Un progetto che richiede l'SSO, inoltre, lascia entrare una sessione solo finché dura il suo accesso SSO, che non è mai più lungo della durata seguita dagli accessi SSO.
 
