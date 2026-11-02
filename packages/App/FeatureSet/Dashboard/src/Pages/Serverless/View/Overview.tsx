@@ -30,6 +30,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
   ResourceOverviewTile,
@@ -433,6 +434,7 @@ const ServerlessFunctionOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         recordId={modelId.toString()}
         settingsRoute={populate(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS)}
         labels={fn.labels}

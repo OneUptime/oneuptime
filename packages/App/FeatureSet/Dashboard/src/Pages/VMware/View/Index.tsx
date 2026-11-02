@@ -3,12 +3,10 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
@@ -2607,82 +2605,76 @@ const VMwareVCenterOverview: FunctionComponent<
       {renderTopConsumers()}
 
       {/*
-       * vCenter Details: read here, edited in one place - the same card at
-       * the top of the vCenter's Settings page (ResourceDetailsCard).
+       * What the vCenter reported about itself, and only that
+       * (ResourceRecordDetailsCard): its name, description and when it was
+       * last seen are the hero's, its labels the header's (a phone's own
+       * card under this one). Edited on its Settings page, in the card of
+       * the same title.
        */}
-      <CardModelDetail<VMwareVCenter>
-        name="vCenter Details"
+      <ResourceRecordDetailsCard<VMwareVCenter>
+        modelType={VMwareVCenter}
+        modelId={modelId}
+        id="vmware-vcenter-overview"
+        title="vCenter Details"
         refresher={detailsRefresher}
-        cardProps={{
-          title: "vCenter Details",
-          buttons: [
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.VMWARE_VCENTER_VIEW_SETTINGS] as Route,
-                { modelId: modelId },
-              )}
-            />,
-          ],
+        settingsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.VMWARE_VCENTER_VIEW_SETTINGS] as Route,
+          { modelId: modelId },
+        )}
+        selectMoreFields={{
+          collectionProbe: {
+            name: true,
+          },
         }}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: VMwareVCenter,
-          id: "vmware-vcenter-overview",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "vCenter Name",
-              fieldType: FieldType.Text,
+        facts={[
+          /*
+           * How its data reaches OneUptime: the VMware Agent, or a probe
+           * that logs in to it (the vCenters list's Collected By). Every
+           * vCenter is collected one way or the other, so the row is
+           * always there - and it says why a probe's vCenter has no Agent
+           * Version.
+           */
+          {
+            field: {
+              collectionMethod: true,
             },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
+            title: "Collected By",
+            fieldType: FieldType.Element,
+            showIf: (): boolean => {
+              return true;
             },
-            {
-              field: {
-                lastSeenAt: true,
-              },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
+            getElement: (item: VMwareVCenter): ReactElement => {
+              if (!isProbeCollected(item)) {
+                return <span>{translator.translateText("VMware Agent")}</span>;
+              }
+
+              return (
+                <span>
+                  {item.collectionProbe?.name
+                    ? translator.translateTemplate("Probe: {{name}}", {
+                        name: item.collectionProbe.name,
+                      })
+                    : translator.translateText("Probe")}
+                </span>
+              );
             },
-            {
-              field: {
-                agentVersion: true,
-              },
-              title: "Agent Version",
-              fieldType: FieldType.Element,
-              getElement: (item: VMwareVCenter): ReactElement => {
-                return (
-                  <AgentVersion
-                    kind={AgentKind.VMwareAgent}
-                    version={item.agentVersion}
-                    placeholder="Not reported"
-                  />
-                );
-              },
+          },
+          {
+            field: {
+              agentVersion: true,
             },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: VMwareVCenter): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
+            title: "Agent Version",
+            fieldType: FieldType.Element,
+            getElement: (item: VMwareVCenter): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.VMwareAgent}
+                  version={item.agentVersion}
+                />
+              );
             },
-          ],
-        }}
+          },
+        ]}
       />
 
       {/*

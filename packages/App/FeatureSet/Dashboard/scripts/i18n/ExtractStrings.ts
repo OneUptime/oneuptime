@@ -250,6 +250,27 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Kubernetes/KubernetesHealth.ts",
     kind: "keys",
   },
+  /*
+   * Where a database or a queue was found ("Application traces", "Added
+   * manually") and what kind of cloud resource one is ("Databases and
+   * caches"): a database's and a queue's Overview, their lists and a cloud
+   * resource's Details say them in the reader's language. Only the words
+   * each file marks are read: the server writes the same labels in English
+   * (a database's Feed), and the rest of the files are not shown.
+   */
+  {
+    directory:
+      "packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Models/DatabaseModels/MessageQueue.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceCatalog.ts",
+    kind: "keys",
+  },
 ];
 
 /*

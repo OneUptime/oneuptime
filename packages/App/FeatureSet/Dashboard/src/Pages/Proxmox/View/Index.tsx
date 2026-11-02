@@ -4,12 +4,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Link from "Common/UI/Components/Link/Link";
 import Card from "Common/UI/Components/Card/Card";
@@ -2601,90 +2599,46 @@ const ProxmoxClusterOverview: FunctionComponent<
       {renderTopGuests()}
 
       {/*
-       * Cluster Details: read here, edited in one place - the same card at
-       * the top of the cluster's Settings page (ResourceDetailsCard).
+       * What the cluster reported about itself, and only that
+       * (ResourceRecordDetailsCard): its name, description and when it was
+       * last seen are the hero's, its labels the header's (a phone's own
+       * card under this one). Edited on its Settings page, in the card of
+       * the same title.
        */}
-      <CardModelDetail<ProxmoxCluster>
-        name="Cluster Details"
+      <ResourceRecordDetailsCard<ProxmoxCluster>
+        modelType={ProxmoxCluster}
+        modelId={modelId}
+        id="proxmox-cluster-overview"
+        title="Cluster Details"
         refresher={detailsRefresher}
-        cardProps={{
-          title: "Cluster Details",
-          buttons: [
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS] as Route,
-                { modelId: modelId },
-              )}
-            />,
-          ],
-        }}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: ProxmoxCluster,
-          id: "proxmox-cluster-overview",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Cluster Name",
-              fieldType: FieldType.Text,
+        settingsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS] as Route,
+          { modelId: modelId },
+        )}
+        facts={[
+          {
+            field: {
+              pveVersion: true,
             },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
+            title: "PVE Version",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              agentVersion: true,
             },
-            {
-              field: {
-                lastSeenAt: true,
-              },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
+            title: "Agent Version",
+            fieldType: FieldType.Element,
+            getElement: (item: ProxmoxCluster): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.ProxmoxAgent}
+                  version={item.agentVersion}
+                />
+              );
             },
-            {
-              field: {
-                pveVersion: true,
-              },
-              title: "PVE Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
-            },
-            {
-              field: {
-                agentVersion: true,
-              },
-              title: "Agent Version",
-              fieldType: FieldType.Element,
-              getElement: (item: ProxmoxCluster): ReactElement => {
-                return (
-                  <AgentVersion
-                    kind={AgentKind.ProxmoxAgent}
-                    version={item.agentVersion}
-                    placeholder="Not reported"
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: ProxmoxCluster): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-          ],
-        }}
+          },
+        ]}
       />
 
       {/*
