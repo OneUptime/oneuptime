@@ -1208,6 +1208,11 @@ jobs:
           # too: about 17.5. Status Timeline (2.3) and Runbook Triggers (1.8)
           # from group 11, which took 25.7: about 21.5. The second run took it
           # 15.5: Kubernetes Events (3.5) from group 9: about 19.
+          # Host Pages (19 tests, 1.4 minutes locally plus its bundle,
+          # Chromium only: the Hosts list - which hosts need attention first,
+          # each host's health and readings - and a host's Overview, Turn on
+          # N alerts into Recommendations, at 1280 and 390 pixels, dark,
+          # German and Persian) joined it on 2026-11-02: about 21.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1218,6 +1223,7 @@ jobs:
               test-status-timeline-ui
               test-runbook-triggers-ui
               test-kubernetes-events-ui
+              test-host-pages-ui
           # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
           # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
           # 28 minutes and groups 6, 7, 9, 12 and 13 to 24 to 26: Monitor
@@ -1495,4 +1501,6 @@ jobs:
             output/playwright/proxmox-pages-ui/test-results
             output/playwright/kubernetes-pages-ui/*.png
             output/playwright/kubernetes-pages-ui/test-results
+            output/playwright/host-pages-ui/*.png
+            output/playwright/host-pages-ui/test-results
           retention-days: 7

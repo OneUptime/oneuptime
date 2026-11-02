@@ -9,6 +9,7 @@ import {
   RESOURCE_CONNECTED_LABEL,
   RESOURCE_DISCONNECTED_LABEL,
   RESOURCE_HEALTH_UNKNOWN_LABEL,
+  RESOURCE_STARTING_LABEL,
   ResourceHealth,
   getResourceConnectionLabel,
   getResourceHealthLabel,
@@ -144,6 +145,62 @@ describe("the connection pill", () => {
   test("its words are the Dashboard's keys", () => {
     expect(RESOURCE_CONNECTED_LABEL).toBe("Connected");
     expect(RESOURCE_DISCONNECTED_LABEL).toBe("Disconnected");
+    expect(RESOURCE_STARTING_LABEL).toBe("Starting");
+  });
+
+  /*
+   * A host's collector OneUptime installed, a minute after Add Host: its
+   * hero said an amber "Disconnected" above a card saying "This host is
+   * starting", while its row in the Hosts list said "Starting".
+   */
+  test("says Starting while an agent OneUptime set up waits for its first data", () => {
+    expect(
+      getResourceConnectionLabel({
+        translator: ENGLISH,
+        isConnected: false,
+        status: "disconnected",
+        isStarting: true,
+      }),
+    ).toBe("Starting");
+    expect(
+      getResourceConnectionLabel({
+        translator: GERMAN,
+        isConnected: false,
+        status: "disconnected",
+        isStarting: true,
+      }),
+    ).toBe(GERMAN_WORDS["Starting"]);
+    expect(
+      getResourceConnectionLabel({
+        translator: PERSIAN,
+        isConnected: false,
+        status: null,
+        isStarting: true,
+      }),
+    ).toBe(PERSIAN_WORDS["Starting"]);
+    expect(GERMAN_WORDS["Starting"]).not.toBe("Starting");
+  });
+
+  test("an agent that reports is Connected, whatever starting says", () => {
+    expect(
+      getResourceConnectionLabel({
+        translator: ENGLISH,
+        isConnected: true,
+        status: "connected",
+        isStarting: true,
+      }),
+    ).toBe("Connected");
+  });
+
+  test("without isStarting, an agent that never reported is still Disconnected", () => {
+    expect(
+      getResourceConnectionLabel({
+        translator: ENGLISH,
+        isConnected: false,
+        status: "disconnected",
+        isStarting: false,
+      }),
+    ).toBe("Disconnected");
   });
 });
 
@@ -233,6 +290,7 @@ describe("every Dashboard language words the pills", () => {
   const PILL_WORDS: Array<string> = [
     "Connected",
     "Disconnected",
+    "Starting",
     "Healthy",
     "Degraded",
     "Unhealthy",

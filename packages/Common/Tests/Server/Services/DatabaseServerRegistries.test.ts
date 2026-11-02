@@ -382,6 +382,7 @@ describe("OpenTelemetryIngestService.findResourceRetention", () => {
   ) => Promise<{
     retainTelemetryDataForDays: number | null;
     telemetryRetentionConfig: unknown;
+    projectId: ObjectID | null;
   }>;
 
   function findResourceRetention(): FindResourceRetention {
@@ -394,12 +395,14 @@ describe("OpenTelemetryIngestService.findResourceRetention", () => {
 
   test("reads a database's retention override from the database row", async () => {
     const databaseServerId: ObjectID = ObjectID.generate();
+    const projectId: ObjectID = ObjectID.generate();
     const findOneById: MockFunction = jest
       .spyOn(DatabaseServerService, "findOneById")
       .mockResolvedValue(
         Object.assign(new DatabaseServer(), {
           retainTelemetryDataForDays: 45,
           telemetryRetentionConfig: { logs: { default: 7 } },
+          projectId: projectId,
         }),
       ) as unknown as MockFunction;
     const cephLookup: MockFunction = jest.spyOn(
@@ -410,6 +413,7 @@ describe("OpenTelemetryIngestService.findResourceRetention", () => {
     const retention: {
       retainTelemetryDataForDays: number | null;
       telemetryRetentionConfig: unknown;
+      projectId: ObjectID | null;
     } = await findResourceRetention()(
       databaseServerId,
       ServiceType.DatabaseServer,
@@ -418,6 +422,7 @@ describe("OpenTelemetryIngestService.findResourceRetention", () => {
     expect(retention).toEqual({
       retainTelemetryDataForDays: 45,
       telemetryRetentionConfig: { logs: { default: 7 } },
+      projectId: projectId,
     });
     expect(findOneById).toHaveBeenCalledTimes(1);
     expect(findOneById).toHaveBeenCalledWith({
@@ -425,6 +430,7 @@ describe("OpenTelemetryIngestService.findResourceRetention", () => {
       select: {
         retainTelemetryDataForDays: true,
         telemetryRetentionConfig: true,
+        projectId: true,
       },
       props: { isRoot: true },
     });
@@ -439,6 +445,7 @@ describe("OpenTelemetryIngestService.findResourceRetention", () => {
     ).resolves.toEqual({
       retainTelemetryDataForDays: null,
       telemetryRetentionConfig: null,
+      projectId: null,
     });
   });
 });

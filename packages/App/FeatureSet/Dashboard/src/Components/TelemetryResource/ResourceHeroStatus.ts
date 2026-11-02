@@ -22,21 +22,34 @@ export const RESOURCE_CONNECTED_LABEL: string = translationKey("Connected");
 export const RESOURCE_DISCONNECTED_LABEL: string =
   translationKey("Disconnected");
 
+export const RESOURCE_STARTING_LABEL: string = translationKey("Starting");
+
 /*
  * The connection pill: "Connected" while the agent reports, "Disconnected"
  * when it has stopped or never started, and any other state the agent's
  * record holds as it holds it, capitalized - in the reader's words when the
- * Dashboard has them.
+ * Dashboard has them. "Starting" while an agent OneUptime set up waits for
+ * its first data (isStarting): a host's collector a minute after Add Host
+ * read "Disconnected" beside a card saying the host is starting.
  */
 export const getResourceConnectionLabel: (input: {
   translator: Translator;
   isConnected: boolean;
   status: string | null | undefined;
+  isStarting?: boolean | undefined;
 }) => string = (input: {
   translator: Translator;
   isConnected: boolean;
   status: string | null | undefined;
+  isStarting?: boolean | undefined;
 }): string => {
+  if (input.isStarting && !input.isConnected) {
+    return (
+      input.translator.translateText(RESOURCE_STARTING_LABEL) ||
+      RESOURCE_STARTING_LABEL
+    );
+  }
+
   if (input.isConnected) {
     return (
       input.translator.translateText(RESOURCE_CONNECTED_LABEL) ||

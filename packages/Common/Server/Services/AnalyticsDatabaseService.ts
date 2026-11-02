@@ -2609,6 +2609,43 @@ export default class AnalyticsDatabaseService<
     return data;
   }
 
+  /*
+   * The retentionDate of a row created without one, or null for a table
+   * whose rows get none here, so that a create must send it. A telemetry
+   * table's service gives its rows the retention of the resource they
+   * belong to, as ingest stamps them (TelemetryRowRetention). The row has
+   * its createdAt by now.
+   */
+  protected async getRetentionDateOnCreate(
+    _data: TBaseModel,
+  ): Promise<Date | null> {
+    return null;
+  }
+
+  // Whether the row was given its retentionDate here.
+  private async setRetentionDateOnCreate(data: TBaseModel): Promise<boolean> {
+    if (!data.getTableColumn("retentionDate")) {
+      return false;
+    }
+
+    const sentRetentionDate: unknown = data.getColumnValue("retentionDate");
+
+    if (sentRetentionDate !== null && sentRetentionDate !== undefined) {
+      return false;
+    }
+
+    const retentionDate: Date | null =
+      await this.getRetentionDateOnCreate(data);
+
+    if (!retentionDate) {
+      return false;
+    }
+
+    data.setColumnValue("retentionDate", retentionDate);
+
+    return true;
+  }
+
   public useDefaultDatabase(): void {
     this.database = ClickhouseAppInstance;
     this.databaseClient = this.database.getDataSource();
@@ -2934,6 +2971,17 @@ export default class AnalyticsDatabaseService<
 
       data = this.sanitizeCreate(data);
       data = this.generateDefaultValues(data);
+
+      /*
+       * retentionDate is the server's to write. A row created without one -
+       * every create through the REST API, which may not write the column -
+       * gets the one its table's retention gives (getRetentionDateOnCreate),
+       * which the column check below lets through. One a caller sent is
+       * still refused there.
+       */
+      const columnsSetByServer: Array<string> =
+        (await this.setRetentionDateOnCreate(data)) ? ["retentionDate"] : [];
+
       data = this.checkRequiredFields(data);
 
       if (!this.isValid(data)) {
@@ -2965,10 +3013,21 @@ export default class AnalyticsDatabaseService<
         this.modelType,
         data,
         createBy.props,
+        columnsSetByServer,
       );
 
       items.push(data);
     }
+
+    /*
+     * Every row is of a resource the caller may both create and read rows
+     * of (ModelPermission.checkCreateScope), worked out once for the batch.
+     */
+    await ModelPermission.checkCreateScope(
+      this.modelType,
+      items,
+      createBy.props,
+    );
 
     try {
       const insertStatement: string = this.statementGenerator.toCreateStatement(

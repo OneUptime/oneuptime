@@ -6,7 +6,8 @@ import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
+import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import {
   ResourceAttentionCounts,
   ResourceAttentionItem,
@@ -67,6 +68,11 @@ export interface ComponentProps {
   error?: string | undefined;
   // Reads it again; the error offers it as Refresh.
   onRetry?: (() => void) | undefined;
+  /*
+   * False when every row is the same kind of part - a list of hosts - so
+   * the kind's chip would say "Host" on every row.
+   */
+  showKind?: boolean | undefined;
 }
 
 const SEVERITY_CLASS_NAMES: Record<
@@ -92,6 +98,7 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
 
   const testId: string = props.testId || "needs-attention";
   const limit: number = props.shown ?? NEEDS_ATTENTION_SHOWN;
+  const showKind: boolean = props.showKind !== false;
 
   if (props.error) {
     return (
@@ -120,18 +127,25 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
   const reasonText: (reason: ResourceAttentionText) => string = (
     reason: ResourceAttentionText,
   ): string => {
-    // Its numbers in the sentence's digits ("۲ از ۳ در دسترس").
+    /*
+     * Its numbers in the sentence's digits ("۲ از ۳ در دسترس"), and each
+     * value set apart from the words around it (SentenceOptions): a mount
+     * such as /var/lib/postgresql in a Persian reason kept its slash at the
+     * wrong end.
+     */
     if (reason.plural) {
       return translator.translatePlural(
         { one: reason.plural.one, other: reason.text },
         reason.plural.count,
         withSentenceDigits(reason.values),
+        { setsValuesApart: true },
       );
     }
     return reason.values
       ? translator.translateTemplate(
           reason.text,
           withSentenceDigits(reason.values),
+          { setsValuesApart: true },
         )
       : tx(reason.text);
   };
@@ -228,13 +242,20 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                         data-testid={`${testId}-name`}
                         className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
                       >
+                        {/*
+                         * A name reads the way it is written: a mount's
+                         * leading slash stays at its start on a Persian
+                         * page.
+                         */}
                         {isCurrent && props.current ? (
                           tx(props.current.label)
                         ) : (
-                          <BreakableName text={item.name} />
+                          <bdi>
+                            <BreakableName text={item.name} />
+                          </bdi>
                         )}
                       </span>
-                      {isCurrent ? (
+                      {isCurrent || !showKind ? (
                         <></>
                       ) : (
                         <span
@@ -263,6 +284,34 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                         },
                       )}
                     </div>
+                    {/*
+                     * A part that stopped reporting: when it last did, in
+                     * the sentence's language (the hero's own words).
+                     */}
+                    {item.lastReportAt ? (
+                      <p
+                        data-testid={`${testId}-last-report`}
+                        className="mt-0.5 text-xs text-gray-500"
+                      >
+                        {translator.translateTemplate(
+                          "Last reported {{time}}",
+                          {
+                            time: composedValue(
+                              (sentence: Translator): string => {
+                                return formatRelativeTime({
+                                  date: item.lastReportAt as Date,
+                                  now: new Date(),
+                                  language: sentence.language,
+                                });
+                              },
+                            ),
+                          },
+                          { setsValuesApart: true },
+                        )}
+                      </p>
+                    ) : (
+                      <></>
+                    )}
                     {item.detail && !isCurrent ? (
                       <p
                         data-testid={`${testId}-detail`}

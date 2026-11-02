@@ -243,7 +243,13 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "High Container CPU Usage",
     ...CRITERIA_NAMES,
   ],
-  [HOST]: [...FORM_NAMES, "Host Stopped Reporting", ...CRITERIA_NAMES],
+  [HOST]: [
+    ...FORM_NAMES,
+    "Host Stopped Reporting",
+    "Host Restarted",
+    "Systemd Unit Failed",
+    ...CRITERIA_NAMES,
+  ],
   [PODMAN]: [
     ...FORM_NAMES,
     "Host Stopped Reporting",
@@ -340,6 +346,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Check the host is registered.",
     "Load average",
     "Process count",
+    // The swap and inodes templates' notes: "- **Swap** is used swap ...".
+    "Swap",
+    "Inodes",
   ],
   [PODMAN]: [
     "Install the Podman Agent",
