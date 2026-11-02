@@ -30,7 +30,7 @@ function chip(overrides: Partial<ActiveFilter>): ActiveFilter {
 
 describe("the logs chip row: a value left out", () => {
   test("reads 'Severity is not', in red, and its x removes exactly that chip", () => {
-    const onRemove: jest.Mock = jest.fn();
+    const onRemove: ReturnType<typeof jest.fn> = jest.fn();
 
     render(
       <ActiveFilterChips
