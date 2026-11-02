@@ -295,9 +295,11 @@ beforeEach(() => {
     .mockImplementation((async (findBy: any): Promise<any> => {
       const query: JSONObject = findBy.query as JSONObject;
 
+      // As Postgres answers: a query that names no project finds it in any.
       if (
         query["_id"] === SERVICE_ID.toString() &&
-        String(query["projectId"]) === serviceProjectId.toString()
+        (query["projectId"] === undefined ||
+          String(query["projectId"]) === serviceProjectId.toString())
       ) {
         return {
           retainTelemetryDataForDays: SERVICE_RETENTION_DAYS,
