@@ -1,12 +1,18 @@
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
+import MetricService, { MetricEntityRollup } from "./MetricService";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
+import GlobalCache from "../Infrastructure/GlobalCache";
+import Metric from "../../Models/AnalyticsModels/Metric";
 import MetricBaselineHourly from "../../Models/AnalyticsModels/MetricBaselineHourly";
 import { AggregateUtil } from "../Types/AnalyticsDatabase/AggregateBy";
+import Query from "../Types/AnalyticsDatabase/Query";
 import {
   getDistributionAwareAggregationExpression,
+  getRollupAggregationExpression,
   isDistributionPointType,
 } from "../Utils/AnalyticsDatabase/DistributionAggregation";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import logger, { LogAttributes } from "../Utils/Logger";
 import MetricHourBaseline, {
   METRIC_ROUNDING_SHARE,
@@ -17,19 +23,26 @@ import MetricHourBaseline, {
   MetricHourReading,
 } from "../Utils/Monitor/MetricHourBaseline";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType, {
+  getPercentileLevel,
   isPercentileAggregation,
 } from "../../Types/BaseDatabase/AggregationType";
 import {
   ANOMALY_SIGMA_BY_SENSITIVITY,
-  ANOMALY_WINDOW_DAYS_OPTIONS,
   AnomalyDetectionSensitivity,
   DEFAULT_ANOMALY_WINDOW_DAYS,
 } from "../../Types/Monitor/CriteriaFilter";
 import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
+import MetricSeriesFingerprint from "../../Utils/Metrics/MetricSeriesFingerprint";
+import crypto from "crypto";
 
 /**
  * Result of a baseline lookup for a single (metric, service, hour-of-week)
@@ -64,9 +77,10 @@ export interface BaselineSummary {
    */
   isReliable: boolean;
   /**
-   * Every earlier sample held one value and this hour's own have left it.
-   * Such a baseline has no spread, and a data point off that value is outside
-   * it by any measure (`getBand`).
+   * Every earlier sample held one value and this hour's own have left it, or
+   * the samples are the query's own data points, which any data point off that
+   * value has left. Such a baseline has no spread, and a data point off that
+   * value is outside it by any measure (`getBand`).
    */
   leftFlatHistory?: boolean | undefined;
   /** Window the baseline was computed over (days). */
@@ -85,6 +99,63 @@ export interface MetricBaselineQuery {
   isNarrowedByAttributes: boolean;
   // How long one of its data points is.
   interval: AggregationInterval;
+  // What narrows it, when that can be read back.
+  scope?: MetricBaselineScope | undefined;
+  // How long the window it judges is: what its hours stay in use for.
+  windowInMs?: number | undefined;
+}
+
+/*
+ * What a query reads besides a metric and its services: the attribute filters
+ * it was read with, a monitor's own among them, and the attributes it is split
+ * into series by.
+ */
+export interface MetricBaselineScope {
+  attributes: Dictionary<unknown>;
+  groupByAttributeKeys: Array<string>;
+}
+
+/*
+ * One hour's baselines of a query: a series' own, by its fingerprint, and what
+ * judges a series its own history cannot (MetricHourBaseline.keepsWeeksNeeded).
+ */
+export interface MetricSeriesBaselines {
+  series: Map<string, BaselineSummary>;
+  fallback: BaselineSummary | null;
+}
+
+// What asks for an hour's baseline.
+export interface MetricBaselineRequest {
+  projectId: ObjectID | string;
+  metricName: string;
+  primaryEntityId?: MetricBaselineEntity;
+  hourOfWeek: number;
+  judgedAt?: Date | undefined;
+  windowDays?: number | undefined;
+  minSamples?: number | undefined;
+  query?: MetricBaselineQuery | undefined;
+}
+
+// The same, worked out.
+interface HourRead {
+  projectId: string;
+  projectIdStr: string;
+  metricNameStr: string;
+  primaryEntityIdClause: string;
+  primaryEntityIds: Array<string>;
+  hourOfWeek: number;
+  judgedDay: string;
+  windowDays: number;
+  minSamples: number;
+  query?: MetricBaselineQuery | undefined;
+}
+
+// What the days before an hour say of a query, which stays so for the hour.
+interface DataPointBaselines {
+  series: Dictionary<BaselineSummary>;
+  // A series with no baseline of its own that holds is judged by the cell.
+  readsCell: boolean;
+  readFailed?: boolean | undefined;
 }
 
 // One service's rows, or several's: what a monitor names, in place of them all.
@@ -144,6 +215,18 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   // The longest a read of a metric's own rows may take: it fails, not thins out.
   private static readonly DATA_POINT_READ_MAX_EXECUTION_SECONDS: number = 45;
 
+  private static readonly DATA_POINT_CACHE_NAMESPACE: string =
+    "metric-data-point-baselines";
+
+  /*
+   * An hour's earlier days do not change, so they are read once and kept for as
+   * long as a check still judges that hour: an hour, and the check's window.
+   */
+  private static readonly DATA_POINT_CACHE_SECONDS: number = 60 * 60;
+
+  // How long a read that failed is left before a check tries it again.
+  private static readonly FAILED_READ_CACHE_SECONDS: number = 5 * 60;
+
   /**
    * Default minimum samples per (hour-of-week) cell to call a baseline
    * reliable, the hour's own included. Below this, callers treat the
@@ -168,14 +251,6 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * caller intent.
    */
   public static readonly MAX_WINDOW_DAYS: number = 90;
-  /**
-   * Window options exposed by the criterion form. Constrained to a
-   * small set so the UI stays a dropdown and so we don't have to TTL
-   * the table for every conceivable value. Adding a longer option
-   * requires bumping `MAX_WINDOW_DAYS` and the table TTL together.
-   */
-  public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> =
-    ANOMALY_WINDOW_DAYS_OPTIONS;
   /**
    * Hard cap on rows returned per drift window. Params travel in the
    * ClickHouse HTTP URI and the detector joins both windows in JS, so an
@@ -202,70 +277,101 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * read just after midnight is of yesterday, and its own day is not today.
    *
    * `query` is what a monitor's query makes of the metric. A query whose
-   * data points no table holds has no baseline, and gets null.
+   * data points no table holds has no baseline, and gets null. One split into
+   * series reads them with getSeriesBaselines.
    */
-  public async getBaseline(input: {
-    projectId: ObjectID | string;
-    metricName: string;
-    primaryEntityId?: MetricBaselineEntity;
-    hourOfWeek: number;
-    judgedAt?: Date | undefined;
-    windowDays?: number | undefined;
-    minSamples?: number | undefined;
-    query?: MetricBaselineQuery | undefined;
-  }): Promise<BaselineSummary | null> {
-    const windowDays: number = Math.min(
-      input.windowDays || MetricBaselineService.DEFAULT_WINDOW_DAYS,
-      MetricBaselineService.MAX_WINDOW_DAYS,
-    );
-    const minSamples: number =
-      input.minSamples || MetricBaselineService.DEFAULT_MIN_SAMPLES;
+  public async getBaseline(
+    input: MetricBaselineRequest,
+  ): Promise<BaselineSummary | null> {
+    const read: HourRead = this.toHourRead(input);
 
-    const projectIdStr: string = this.escapeString(
+    if (!read.query) {
+      return await this.getCellBaseline(read);
+    }
+
+    const baselines: DataPointBaselines =
+      await this.getDataPointBaselines(read);
+    const own: BaselineSummary | undefined =
+      baselines.series[MetricSeriesFingerprint.WholeMonitorFingerprint];
+
+    if (own?.isReliable || !baselines.readsCell) {
+      return own || null;
+    }
+
+    return await this.getCellBaseline(read);
+  }
+
+  /*
+   * An hour's baselines of a query that reads its own rows: one a series, each
+   * from that series' own data points on the days before the one judged. A
+   * query that is not split into series has one, of
+   * MetricSeriesFingerprint.WholeMonitorFingerprint.
+   */
+  public async getSeriesBaselines(
+    input: MetricBaselineRequest & { query: MetricBaselineQuery },
+  ): Promise<MetricSeriesBaselines> {
+    const read: HourRead = this.toHourRead(input);
+    const baselines: DataPointBaselines =
+      await this.getDataPointBaselines(read);
+
+    return {
+      series: new Map<string, BaselineSummary>(
+        Object.entries(baselines.series),
+      ),
+      fallback: baselines.readsCell ? await this.getCellBaseline(read) : null,
+    };
+  }
+
+  // What judges a series, of the hour's baselines.
+  public static getSeriesBaseline(data: {
+    baselines: MetricSeriesBaselines;
+    seriesFingerprint: string | undefined;
+  }): BaselineSummary | null {
+    const own: BaselineSummary | undefined = data.baselines.series.get(
+      data.seriesFingerprint || MetricSeriesFingerprint.WholeMonitorFingerprint,
+    );
+
+    return own?.isReliable ? own : data.baselines.fallback || own || null;
+  }
+
+  private toHourRead(input: MetricBaselineRequest): HourRead {
+    const projectId: string =
       input.projectId instanceof ObjectID
         ? input.projectId.toString()
-        : input.projectId,
-    );
-    const metricNameStr: string = this.escapeString(input.metricName);
-    const hour: number = Math.max(
-      0,
-      Math.min(167, Math.floor(input.hourOfWeek)),
-    );
-    const judgedDay: string = MetricHourBaseline.toDayText(
-      input.judgedAt || OneUptimeDate.getCurrentDate(),
-    );
+        : input.projectId;
 
-    const primaryEntityIdClause: string = this.getEntityClause(
-      input.primaryEntityId,
-    );
+    return {
+      projectId,
+      projectIdStr: this.escapeString(projectId),
+      metricNameStr: this.escapeString(input.metricName),
+      primaryEntityIds: this.toEntityIds(input.primaryEntityId),
+      primaryEntityIdClause: this.getEntityClause(input.primaryEntityId),
+      hourOfWeek: Math.max(0, Math.min(167, Math.floor(input.hourOfWeek))),
+      judgedDay: MetricHourBaseline.toDayText(
+        input.judgedAt || OneUptimeDate.getCurrentDate(),
+      ),
+      windowDays: Math.min(
+        input.windowDays || MetricBaselineService.DEFAULT_WINDOW_DAYS,
+        MetricBaselineService.MAX_WINDOW_DAYS,
+      ),
+      minSamples: input.minSamples || MetricBaselineService.DEFAULT_MIN_SAMPLES,
+      query: input.query,
+    };
+  }
 
-    const source: MetricBaselineSource | null = input.query
-      ? await this.getSource({
-          query: input.query,
-          projectIdStr,
-          metricNameStr,
-          hourOfWeek: hour,
-          judgedDay,
-        })
-      : MetricBaselineSource.Samples;
-
-    if (!source) {
-      return null;
-    }
-
-    if (input.query && source !== MetricBaselineSource.Samples) {
-      return await this.getDataPointBaseline({
-        source,
-        query: input.query,
-        projectIdStr,
-        metricNameStr,
-        primaryEntityIdClause,
-        hourOfWeek: hour,
-        judgedDay,
-        windowDays,
-        minSamples,
-      });
-    }
+  // An hour's cell of samples, the hour's own samples in what it reads.
+  private async getCellBaseline(
+    read: HourRead,
+  ): Promise<BaselineSummary | null> {
+    const {
+      projectIdStr,
+      metricNameStr,
+      primaryEntityIdClause,
+      judgedDay,
+      windowDays,
+      minSamples,
+    } = read;
+    const hour: number = read.hourOfWeek;
 
     const sql: string = `
       SELECT
@@ -754,17 +860,23 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     );
   }
 
-  // One service, or any of several. Naming none reads them all.
-  private getEntityClause(primaryEntityId: MetricBaselineEntity): string {
+  private toEntityIds(primaryEntityId: MetricBaselineEntity): Array<string> {
     const entities: Array<ObjectID | string> = Array.isArray(primaryEntityId)
       ? primaryEntityId
       : primaryEntityId
         ? [primaryEntityId]
         : [];
 
-    const quoted: Array<string> = entities.map(
-      (entity: ObjectID | string): string => {
-        return `'${this.escapeString(entity.toString())}'`;
+    return entities.map((entity: ObjectID | string): string => {
+      return entity.toString();
+    });
+  }
+
+  // One service, or any of several. Naming none reads them all.
+  private getEntityClause(primaryEntityId: MetricBaselineEntity): string {
+    const quoted: Array<string> = this.toEntityIds(primaryEntityId).map(
+      (entity: string): string => {
+        return `'${this.escapeString(entity)}'`;
       },
     );
 
@@ -784,26 +896,6 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         return MetricHourBaseline.toStoredHour(hour);
       })
       .join(", ");
-  }
-
-  private async getSource(data: {
-    query: MetricBaselineQuery;
-    projectIdStr: string;
-    metricNameStr: string;
-    hourOfWeek: number;
-    judgedDay: string;
-  }): Promise<MetricBaselineSource | null> {
-    const { aggregationType, interval } = data.query;
-
-    return MetricHourBaseline.getSource({
-      isTotal:
-        aggregationType === AggregationType.Sum ||
-        aggregationType === AggregationType.Count,
-      isPercentile: isPercentileAggregation(aggregationType),
-      isDistribution: await this.isDistributionMetric(data),
-      isNarrowedByAttributes: data.query.isNarrowedByAttributes,
-      bucketInMinutes: MetricBaselineService.getBucketInMinutes(interval),
-    });
   }
 
   /*
@@ -855,136 +947,383 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   }
 
   /*
-   * A query's baseline read from its own data points: the same read as a cell
-   * of samples, of one sample per data point.
+   * What the days before an hour say of a query. They do not change, so one
+   * check of the hour reads them and the others find them here: the cache only
+   * saves a read, and without it a check still reads and judges.
    */
-  private async getDataPointBaseline(data: {
-    source: MetricBaselineSource;
-    query: MetricBaselineQuery;
-    projectIdStr: string;
-    metricNameStr: string;
-    primaryEntityIdClause: string;
-    hourOfWeek: number;
-    judgedDay: string;
-    windowDays: number;
-    minSamples: number;
-  }): Promise<BaselineSummary | null> {
-    const rows: Array<MetricDataPointDayRow> =
-      await this.getDataPointRows(data);
+  private async getDataPointBaselines(
+    read: HourRead,
+  ): Promise<DataPointBaselines> {
+    const key: string = this.getDataPointCacheKey(read);
+    const cached: DataPointBaselines | null =
+      await this.getCachedDataPointBaselines(key);
 
-    const cell: MetricDataPointCell | null = MetricHourBaseline.fold({
-      rows,
-      hourOfWeek: data.hourOfWeek,
-      judgedDay: data.judgedDay,
+    if (cached) {
+      return cached;
+    }
+
+    const baselines: DataPointBaselines =
+      await this.readDataPointBaselines(read);
+
+    await this.cacheDataPointBaselines({
+      key,
+      baselines,
+      keptFor: baselines.readFailed
+        ? MetricBaselineService.FAILED_READ_CACHE_SECONDS
+        : MetricBaselineService.DATA_POINT_CACHE_SECONDS +
+          Math.ceil((read.query?.windowInMs || 0) / 1000),
     });
 
-    if (!cell) {
+    return baselines;
+  }
+
+  private getDataPointCacheKey(read: HourRead): string {
+    const scope: string = JSON.stringify(
+      JSONFunctions.anyObjectToJSONObject({
+        metricName: read.metricNameStr,
+        primaryEntityIds: read.primaryEntityIds,
+        hourOfWeek: read.hourOfWeek,
+        judgedDay: read.judgedDay,
+        windowDays: read.windowDays,
+        minSamples: read.minSamples,
+        aggregationType: read.query?.aggregationType,
+        interval: read.query?.interval,
+        isNarrowedByAttributes: read.query?.isNarrowedByAttributes,
+        scope: read.query?.scope,
+      }),
+    );
+
+    return `${read.projectId}:${crypto
+      .createHash("sha256")
+      .update(scope)
+      .digest("hex")}`;
+  }
+
+  private async getCachedDataPointBaselines(
+    key: string,
+  ): Promise<DataPointBaselines | null> {
+    try {
+      return (await GlobalCache.getJSONObject(
+        MetricBaselineService.DATA_POINT_CACHE_NAMESPACE,
+        key,
+      )) as unknown as DataPointBaselines | null;
+    } catch (err) {
+      logger.debug("Could not read a metric's baselines from cache");
+      logger.debug(err);
+      return null;
+    }
+  }
+
+  private async cacheDataPointBaselines(data: {
+    key: string;
+    baselines: DataPointBaselines;
+    keptFor: number;
+  }): Promise<void> {
+    try {
+      await GlobalCache.setJSON(
+        MetricBaselineService.DATA_POINT_CACHE_NAMESPACE,
+        data.key,
+        data.baselines as unknown as JSONObject,
+        { expiresInSeconds: data.keptFor },
+      );
+    } catch (err) {
+      logger.debug("Could not cache a metric's baselines");
+      logger.debug(err);
+    }
+  }
+
+  // What samples can judge: not a total, nor anything of a histogram.
+  private isOnSamplesScale(data: {
+    query: MetricBaselineQuery;
+    isDistribution: boolean;
+  }): boolean {
+    return (
+      !data.isDistribution &&
+      data.query.aggregationType !== AggregationType.Sum &&
+      data.query.aggregationType !== AggregationType.Count
+    );
+  }
+
+  // The rollup of the one entity a query is filtered to, if it is that and no more.
+  private async getEntityRollup(
+    read: HourRead,
+  ): Promise<MetricEntityRollup | null> {
+    const scope: MetricBaselineScope | undefined = read.query?.scope;
+
+    if (
+      !scope ||
+      scope.groupByAttributeKeys.length > 0 ||
+      read.primaryEntityIds.length > 0
+    ) {
       return null;
     }
 
-    const reading: MetricHourReading = MetricHourBaseline.read({
-      rows,
-      hourOfWeek: data.hourOfWeek,
-      judgedDay: data.judgedDay,
-      stddev: cell.stddev,
-      windowDays: data.windowDays,
-      // minSamples counts minutes, so a data point of five counts as five.
-      minSamples: Math.ceil(
-        data.minSamples /
-          MetricBaselineService.getBucketInMinutes(data.query.interval),
-      ),
+    return await MetricService.getEntityRollup({
+      projectId: read.projectId,
+      attributes: scope.attributes,
+    } as unknown as Query<Metric>);
+  }
+
+  private async readDataPointBaselines(
+    read: HourRead,
+  ): Promise<DataPointBaselines> {
+    const query: MetricBaselineQuery = read.query!;
+    const isDistribution: boolean = await this.isDistributionMetric(read);
+    const entityRollup: MetricEntityRollup | null =
+      await this.getEntityRollup(read);
+    const bucketInMinutes: number = MetricBaselineService.getBucketInMinutes(
+      query.interval,
+    );
+    const isOnSamplesScale: boolean = this.isOnSamplesScale({
+      query,
+      isDistribution,
     });
 
-    return {
-      ...cell,
-      stddev: reading.stddev,
-      isReliable: reading.isReliable,
-      ...(reading.leftFlatHistory ? { leftFlatHistory: true } : {}),
-      windowDays: data.windowDays,
-      hourOfWeek: data.hourOfWeek,
+    const source: MetricBaselineSource | null = MetricHourBaseline.getSource({
+      isTotal:
+        query.aggregationType === AggregationType.Sum ||
+        query.aggregationType === AggregationType.Count,
+      isPercentile: isPercentileAggregation(query.aggregationType),
+      isDistribution,
+      isNarrowedByAttributes: query.isNarrowedByAttributes,
+      bucketInMinutes,
+      hasScope: Boolean(query.scope),
+      hasEntityRollup: Boolean(entityRollup),
+    });
+
+    if (!source || source === MetricBaselineSource.Samples) {
+      return {
+        series: {},
+        readsCell: source === MetricBaselineSource.Samples,
+      };
+    }
+
+    let rowsBySeries: Map<string, Array<MetricDataPointDayRow>>;
+
+    try {
+      rowsBySeries = await this.getDataPointRows({
+        read,
+        source,
+        entityRollup,
+      });
+    } catch (err) {
+      /*
+       * A read of rows can outgrow its limit, and would again on every check,
+       * holding up the monitor's other criteria each time. It is left for a
+       * while, and the query is judged as if it could not be read. It never
+       * thins out: it has a whole answer or none.
+       */
+      logger.error(`A read of ${read.metricNameStr}'s data points failed.`, {
+        projectId: read.projectId,
+      } as LogAttributes);
+      logger.error(err);
+
+      return { series: {}, readsCell: isOnSamplesScale, readFailed: true };
+    }
+
+    const baselines: DataPointBaselines = { series: {}, readsCell: false };
+
+    for (const [fingerprint, rows] of rowsBySeries) {
+      const cell: MetricDataPointCell | null = MetricHourBaseline.fold({
+        rows,
+        hourOfWeek: read.hourOfWeek,
+        judgedDay: read.judgedDay,
+      });
+
+      if (!cell) {
+        continue;
+      }
+
+      const reading: MetricHourReading = MetricHourBaseline.read({
+        rows,
+        hourOfWeek: read.hourOfWeek,
+        judgedDay: read.judgedDay,
+        stddev: cell.stddev,
+        windowDays: read.windowDays,
+        // minSamples counts minutes, so a data point of five counts as five.
+        minSamples: Math.ceil(read.minSamples / bucketInMinutes),
+        isOfDataPoints: true,
+      });
+
+      baselines.series[fingerprint] = {
+        ...cell,
+        stddev: reading.stddev,
+        isReliable: reading.isReliable,
+        ...(reading.leftFlatHistory ? { leftFlatHistory: true } : {}),
+        windowDays: read.windowDays,
+        hourOfWeek: read.hourOfWeek,
+      };
+
+      /*
+       * A series that cannot hold the weeks a baseline asks for will never
+       * have its own, however long it waits: it is judged by all the samples
+       * of its services instead. One that is only young learns.
+       */
+      baselines.readsCell =
+        baselines.readsCell ||
+        (isOnSamplesScale &&
+          !reading.isReliable &&
+          !MetricHourBaseline.keepsWeeksNeeded({
+            rows,
+            windowDays: read.windowDays,
+          }));
+    }
+
+    return baselines;
+  }
+
+  private getDataPointExpression(data: {
+    source: MetricBaselineSource;
+    aggregationType: AggregationType;
+  }): string {
+    if (data.source !== MetricBaselineSource.Rows) {
+      return getRollupAggregationExpression(data.aggregationType);
+    }
+
+    // Only a plain metric's percentile comes here, one of its values.
+    const percentile: number | null = getPercentileLevel(data.aggregationType);
+
+    return percentile === null
+      ? getDistributionAwareAggregationExpression(data.aggregationType, "value")
+      : `quantileExact(${percentile})(toFloat64(value))`;
+  }
+
+  // Which of a table's rows a read of a query's data points is held to.
+  private getDataPointFilter(data: {
+    read: HourRead;
+    source: MetricBaselineSource;
+    entityRollup: MetricEntityRollup | null;
+  }): Statement {
+    if (data.source === MetricBaselineSource.EntityRollup) {
+      return SQL`AND `.append(data.entityRollup!.keyColumn).append(
+        SQL` IN ${{
+          value: data.entityRollup!.keys,
+          type: TableColumnType.ArrayText,
+        }}`,
+      );
+    }
+
+    const attributes: Dictionary<unknown> | undefined =
+      data.read.query?.scope?.attributes;
+
+    if (
+      data.source !== MetricBaselineSource.Rows ||
+      !attributes ||
+      Object.keys(attributes).length === 0
+    ) {
+      return SQL``;
+    }
+
+    const filter: Record<string, unknown> = {
+      ...(MetricService.withRawEntityKeyPrune({
+        projectId: data.read.projectId,
+        attributes,
+      } as unknown as Query<Metric>) as unknown as Record<string, unknown>),
     };
+
+    // The read names the project itself, as every read here does.
+    delete filter["projectId"];
+
+    return MetricService.statementGenerator.toWhereStatement(
+      filter as unknown as Query<Metric>,
+    );
   }
 
   /*
-   * A query's data points of the hour on every day from the start of the
-   * baseline window on, the day judged included, one row a day: as getDayRows
-   * reads the rollup. toDayOfWeek here is in its default mode, so these hours
-   * are the code's own and not the rollup's. The hours are named one by one
-   * so that the sort key skips the other 23 hours of a day of the metric's
-   * rows.
+   * A query's data points of the hour on every day of the baseline window
+   * before the day judged, one row a day and a series: as getDayRows reads the
+   * rollup. toDayOfWeek here is in its default mode, so these hours are the
+   * code's own and not the rollup's. The hours are named one by one so that the
+   * sort key skips the other 23 hours of a day of the metric's rows.
    */
   private async getDataPointRows(data: {
+    read: HourRead;
     source: MetricBaselineSource;
-    query: MetricBaselineQuery;
-    projectIdStr: string;
-    metricNameStr: string;
-    primaryEntityIdClause: string;
-    hourOfWeek: number;
-    judgedDay: string;
-    windowDays: number;
-  }): Promise<Array<MetricDataPointDayRow>> {
-    const isRollup: boolean = data.source === MetricBaselineSource.MinuteRollup;
-    const timeColumn: string = isRollup ? "bucketTime" : "time";
-    const table: string = isRollup
-      ? AnalyticsTableName.MetricItemAggMV1m
-      : AnalyticsTableName.Metric;
-    const rollupPoint: string =
-      data.query.aggregationType === AggregationType.Count
-        ? "countMerge(valueCountState)"
-        : "sumMerge(valueSumState)";
-    const point: string = isRollup
-      ? rollupPoint
-      : getDistributionAwareAggregationExpression(
-          data.query.aggregationType,
-          "value",
-        );
+    entityRollup: MetricEntityRollup | null;
+  }): Promise<Map<string, Array<MetricDataPointDayRow>>> {
+    const { read, source, entityRollup } = data;
+    const query: MetricBaselineQuery = read.query!;
+    const isRows: boolean = source === MetricBaselineSource.Rows;
+    const timeColumn: string = isRows ? "time" : "bucketTime";
+    const table: string = isRows
+      ? AnalyticsTableName.Metric
+      : entityRollup?.tableName || AnalyticsTableName.MetricItemAggMV1m;
+    const seriesKeys: Array<string> = query.scope?.groupByAttributeKeys || [];
+    const seriesColumns: Array<string> = seriesKeys.map(
+      (_: string, index: number): string => {
+        return `seriesKey${index}`;
+      },
+    );
+    const inSeries: string = seriesColumns
+      .map((column: string): string => {
+        return `, ${column}`;
+      })
+      .join("");
 
     const hours: string = MetricHourBaseline.getHourStarts({
-      hourOfWeek: data.hourOfWeek,
-      judgedDay: data.judgedDay,
-      windowDays: data.windowDays,
+      hourOfWeek: read.hourOfWeek,
+      judgedDay: read.judgedDay,
+      windowDays: read.windowDays,
     })
+      .slice(0, -1)
       .map((hourStart: string): string => {
         return `(${timeColumn} >= toDateTime('${hourStart}') AND ${timeColumn} < toDateTime('${hourStart}') + INTERVAL 1 HOUR)`;
       })
       .join(" OR ");
 
-    const sql: string = `
+    const statement: Statement = SQL``;
+
+    statement.append(`
       SELECT
         toString(toDate(pointTime)) AS rowDay,
-        toUInt8((toDayOfWeek(pointTime) - 1) * 24 + toHour(pointTime)) AS hourOfWeek,
+        toUInt8((toDayOfWeek(pointTime) - 1) * 24 + toHour(pointTime)) AS hourOfWeek${inSeries},
         count(point)                AS sampleCount,
         avg(point)                  AS mean,
         varPop(point)               AS variance,
         quantile(0.5)(point)        AS median,
         quantile(0.95)(point)       AS p95,
         min(point)                  AS minObserved,
-        max(point)                  AS maxObserved
+        max(point)                  AS maxObserved,
+        toString(max(rowKeptUntil)) AS keptUntil
       FROM (
         SELECT
-          ${AggregateUtil.buildBucketTimestampExpression(data.query.interval, timeColumn)} AS pointTime,
-          ${point} AS point
+          ${AggregateUtil.buildBucketTimestampExpression(query.interval, timeColumn)} AS pointTime,
+          ${this.getDataPointExpression({ source, aggregationType: query.aggregationType })} AS point,
+          max(retentionDate) AS rowKeptUntil`);
+
+    seriesKeys.forEach((key: string, index: number): void => {
+      statement
+        .append(
+          SQL`, attributes[${{ value: key, type: TableColumnType.Text }}]`,
+        )
+        .append(` AS ${seriesColumns[index]}`);
+    });
+
+    statement.append(`
         FROM ${table}
-        WHERE projectId = '${data.projectIdStr}'
-          AND name = '${data.metricNameStr}'
-          ${data.primaryEntityIdClause}
+        WHERE projectId = '${read.projectIdStr}'
+          AND name = '${read.metricNameStr}'
+          ${read.primaryEntityIdClause}
           AND (${hours})
           AND retentionDate >= now()
-        GROUP BY pointTime
+          `);
+    statement.append(this.getDataPointFilter({ read, source, entityRollup }));
+    statement.append(`
+        GROUP BY pointTime${inSeries}
       )
-      GROUP BY rowDay, hourOfWeek
+      GROUP BY rowDay, hourOfWeek${inSeries}
       ${getQuerySettings({
         maxExecutionTimeInSeconds:
           MetricBaselineService.DATA_POINT_READ_MAX_EXECUTION_SECONDS,
         timeoutOverflowMode: "throw",
       })}
-    `;
+    `);
 
     const resultSet: {
       json: () => Promise<{
         data: Array<Record<string, number | string>>;
       }>;
-    } = (await this.executeQuery(sql)) as unknown as {
+    } = (await this.executeQuery(statement)) as unknown as {
       json: () => Promise<{
         data: Array<Record<string, number | string>>;
       }>;
@@ -993,20 +1332,54 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     const parsed: { data: Array<Record<string, number | string>> } =
       await resultSet.json();
 
-    return parsed.data.map(
-      (row: Record<string, number | string>): MetricDataPointDayRow => {
-        return {
-          day: String(row["rowDay"]),
-          hourOfWeek: this.toNumber(row["hourOfWeek"]),
-          sampleCount: this.toNumber(row["sampleCount"]),
-          mean: this.toNumber(row["mean"]),
-          variance: this.toNumber(row["variance"]),
-          median: this.toNumber(row["median"]),
-          p95: this.toNumber(row["p95"]),
-          minObserved: this.toNumber(row["minObserved"]),
-          maxObserved: this.toNumber(row["maxObserved"]),
-        };
-      },
+    const rowsBySeries: Map<string, Array<MetricDataPointDayRow>> = new Map();
+
+    for (const row of parsed.data) {
+      const fingerprint: string = this.toSeriesFingerprint({
+        row,
+        seriesKeys,
+      });
+      const rows: Array<MetricDataPointDayRow> =
+        rowsBySeries.get(fingerprint) || [];
+
+      rows.push({
+        day: String(row["rowDay"]),
+        hourOfWeek: this.toNumber(row["hourOfWeek"]),
+        sampleCount: this.toNumber(row["sampleCount"]),
+        mean: this.toNumber(row["mean"]),
+        variance: this.toNumber(row["variance"]),
+        median: this.toNumber(row["median"]),
+        p95: this.toNumber(row["p95"]),
+        minObserved: this.toNumber(row["minObserved"]),
+        maxObserved: this.toNumber(row["maxObserved"]),
+        keptUntil: String(row["keptUntil"]),
+      });
+      rowsBySeries.set(fingerprint, rows);
+    }
+
+    return rowsBySeries;
+  }
+
+  // The fingerprint the worker gave a series, from what its row of a read holds.
+  private toSeriesFingerprint(data: {
+    row: Record<string, number | string>;
+    seriesKeys: Array<string>;
+  }): string {
+    if (data.seriesKeys.length === 0) {
+      return MetricSeriesFingerprint.WholeMonitorFingerprint;
+    }
+
+    const attributes: Dictionary<string> = {};
+
+    data.seriesKeys.forEach((key: string, index: number): void => {
+      attributes[key] = String(data.row[`seriesKey${index}`] ?? "");
+    });
+
+    return MetricSeriesFingerprint.computeFingerprint(
+      MetricSeriesFingerprint.extractSeriesLabels({
+        sample: { attributes } as unknown as AggregatedModel,
+        attributeKeys: data.seriesKeys,
+      }),
     );
   }
 
