@@ -4,7 +4,7 @@ import {
   GoogleAnalyticsMeasurementProtocolApiSecret,
   GoogleTagManagerEnabled,
 } from "../../EnvironmentConfig";
-import { AttributionSource } from "./MarketingEventUtil";
+import type { AttributionSource } from "./MarketingEventUtil";
 import {
   UtmPropertyKeys,
   UtmUrlPropertyKey,
@@ -166,7 +166,9 @@ export default class GoogleAnalyticsMeasurementProtocol {
     return `${digest.readUInt32BE(0)}.${digest.readUInt32BE(4)}`;
   }
 
-  public static buildRequestBody(purchase: GoogleAnalyticsPurchase): JSONObject {
+  public static buildRequestBody(
+    purchase: GoogleAnalyticsPurchase,
+  ): JSONObject {
     const campaignDetails: JSONObject | null = this.getCampaignDetails(
       purchase.attributionSource,
     );

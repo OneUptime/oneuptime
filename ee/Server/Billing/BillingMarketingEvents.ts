@@ -468,8 +468,7 @@ export default class BillingMarketingEvents {
 
         if (
           otherPaidAt < paidAt ||
-          (otherPaidAt === paidAt &&
-            (other.id || "") < (data.invoice.id || ""))
+          (otherPaidAt === paidAt && (other.id || "") < (data.invoice.id || ""))
         ) {
           isFirst = false;
           return false;
@@ -649,7 +648,10 @@ export default class BillingMarketingEvents {
         },
       });
 
-    if (!deletedProject?.projectId || !deletedProject.projectCreatedByUserEmail) {
+    if (
+      !deletedProject?.projectId ||
+      !deletedProject.projectCreatedByUserEmail
+    ) {
       return null;
     }
 

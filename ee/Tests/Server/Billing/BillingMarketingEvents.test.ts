@@ -52,12 +52,15 @@ jest.mock("Common/Server/Utils/ProductAnalytics", () => {
   return { __esModule: true, default: { capture: jest.fn() } };
 });
 
-jest.mock("Common/Server/Utils/Marketing/GoogleAnalyticsMeasurementProtocol", () => {
-  return {
-    __esModule: true,
-    default: { sendPurchaseInBackground: jest.fn() },
-  };
-});
+jest.mock(
+  "Common/Server/Utils/Marketing/GoogleAnalyticsMeasurementProtocol",
+  () => {
+    return {
+      __esModule: true,
+      default: { sendPurchaseInBackground: jest.fn() },
+    };
+  },
+);
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -203,7 +206,9 @@ function invoicePaidEvent(
   } as unknown as Stripe.Event;
 }
 
-function fakeSubscription(overrides?: Record<string, unknown>): Stripe.Subscription {
+function fakeSubscription(
+  overrides?: Record<string, unknown>,
+): Stripe.Subscription {
   return {
     id: SUBSCRIPTION_ID,
     object: "subscription",
@@ -318,9 +323,7 @@ describe("first_payment", () => {
 
     expect(event.eventType).toBe("first_payment");
     expect(event.email).toBe(OWNER_EMAIL);
-    expect(event.occurredAt).toBe(
-      new Date(PAID_AT_UNIX * 1000).toISOString(),
-    );
+    expect(event.occurredAt).toBe(new Date(PAID_AT_UNIX * 1000).toISOString());
     expect(event.data).toMatchObject({
       project_id: PROJECT_ID.toString(),
       invoice_id: "in_trial_end_001",
@@ -901,7 +904,9 @@ describe("subscription_ended", () => {
 
 describe("reportInBackground", () => {
   it("neither throws nor rejects when Stripe or the database fails", async () => {
-    stripe.invoices.list.mockRejectedValue(new Error("Stripe is down") as never);
+    stripe.invoices.list.mockRejectedValue(
+      new Error("Stripe is down") as never,
+    );
 
     expect(() => {
       marketingEvents.reportInBackground(invoicePaidEvent(fakeInvoice()));

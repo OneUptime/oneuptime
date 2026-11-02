@@ -857,10 +857,11 @@ export const GoogleAnalyticsMeasurementProtocolApiSecret: string =
 /*
  * Outbound marketing conversion webhooks.
  *
- * OneUptime does not store conversions. Signups and plan
- * upgrades/downgrades are POSTed to this endpoint as they happen and kept
- * nowhere afterwards, so an unset URL means those moments are simply not
- * measured — nothing accumulates waiting for one to be configured.
+ * OneUptime does not store conversions. Signups, plan changes, first
+ * payments, subscriptions ending and issued licences are POSTed to this
+ * endpoint as they happen and kept nowhere afterwards, so an unset URL means
+ * those moments are simply not measured — nothing accumulates waiting for
+ * one to be configured.
  *
  * Both are required. The payload carries email addresses and campaign data,
  * so a URL set without a secret is refused rather than sent unsigned. The

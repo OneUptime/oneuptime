@@ -81,7 +81,9 @@ export default class ProductAnalytics {
           ...(data.deduplicationKey
             ? { uuid: this.getDeterministicUuid(data.deduplicationKey) }
             : {}),
-          ...(data.timestamp ? { timestamp: data.timestamp.toISOString() } : {}),
+          ...(data.timestamp
+            ? { timestamp: data.timestamp.toISOString() }
+            : {}),
           properties: {
             source: "oneuptime-server",
             ...(data.properties || {}),
