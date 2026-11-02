@@ -40085,5 +40085,8 @@
   "Uploads refused": "Opplastinger avvist",
   "Uploads stopped": "Opplastingene har stoppet",
   "Web and API hosting": "Web- og API-hosting",
-  "What its SDK reports, and the health of its session recordings.": "Hva SDK-en rapporterer, og tilstanden til øktopptakene."
+  "What its SDK reports, and the health of its session recordings.": "Hva SDK-en rapporterer, og tilstanden til øktopptakene.",
+  "Couldn't load this guest": "Kunne ikke laste inn denne gjesten",
+  "Couldn't load this node": "Kunne ikke laste inn denne noden",
+  "Couldn't load this storage": "Kunne ikke laste inn denne lagringen"
 }

@@ -40085,5 +40085,8 @@
   "Uploads refused": "Uploads refused",
   "Uploads stopped": "Uploads stopped",
   "Web and API hosting": "Web and API hosting",
-  "What its SDK reports, and the health of its session recordings.": "What its SDK reports, and the health of its session recordings."
+  "What its SDK reports, and the health of its session recordings.": "What its SDK reports, and the health of its session recordings.",
+  "Couldn't load this guest": "Couldn't load this guest",
+  "Couldn't load this node": "Couldn't load this node",
+  "Couldn't load this storage": "Couldn't load this storage"
 }

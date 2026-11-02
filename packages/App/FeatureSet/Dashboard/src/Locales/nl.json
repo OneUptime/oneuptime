@@ -40085,5 +40085,8 @@
   "Uploads refused": "Uploads geweigerd",
   "Uploads stopped": "Uploads gestopt",
   "Web and API hosting": "Web- en API-hosting",
-  "What its SDK reports, and the health of its session recordings.": "Wat de SDK meldt, en de status van de sessieopnamen."
+  "What its SDK reports, and the health of its session recordings.": "Wat de SDK meldt, en de status van de sessieopnamen.",
+  "Couldn't load this guest": "Kan deze gast niet laden",
+  "Couldn't load this node": "Kan dit knooppunt niet laden",
+  "Couldn't load this storage": "Kan deze opslag niet laden"
 }

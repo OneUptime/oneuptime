@@ -708,19 +708,21 @@ test.describe("a part whose inventory cannot be read says so", () => {
     await openPage(page, nodePath("pve2"), "fail=inventory");
 
     const error: Locator = page.getByTestId("proxmox-part-read-error");
+    await expect(error).toContainText("Couldn't load this node");
     await expect(error).toContainText(SERVER_ERROR);
     await expect(error.getByTestId("refresh-button")).toBeVisible();
     await expect(page.getByTestId("proxmox-node-not-reported")).toHaveCount(0);
     await expect(
       page.getByText("not reported yet", { exact: false }),
     ).toHaveCount(0);
+    await screenshot(page, "node-inventory-failed-overview");
 
     await openTab(page, "Guests");
     await expect(
       page.getByTestId("proxmox-node-guests-guests-table-load-error"),
     ).toContainText(SERVER_ERROR);
     await expect(page.getByText("No guests on this node.")).toHaveCount(0);
-    await screenshot(page, "node-inventory-failed");
+    await screenshot(page, "node-inventory-failed-guests");
   });
 
   test("a guest's and a storage's page say so too", async ({
@@ -728,15 +730,15 @@ test.describe("a part whose inventory cannot be read says so", () => {
   }: {
     page: Page;
   }) => {
-    for (const pathname of [
-      guestPath("qemu/102"),
-      storagePath("pve2", "local-zfs"),
-    ]) {
+    for (const [pathname, title] of [
+      [guestPath("qemu/102"), "Couldn't load this guest"],
+      [storagePath("pve2", "local-zfs"), "Couldn't load this storage"],
+    ] as Array<[string, string]>) {
       await openPage(page, pathname, "fail=inventory");
 
-      await expect(page.getByTestId("proxmox-part-read-error")).toContainText(
-        SERVER_ERROR,
-      );
+      const error: Locator = page.getByTestId("proxmox-part-read-error");
+      await expect(error).toContainText(title);
+      await expect(error).toContainText(SERVER_ERROR);
       await expect(
         page.getByText("not reported yet", { exact: false }),
       ).toHaveCount(0);

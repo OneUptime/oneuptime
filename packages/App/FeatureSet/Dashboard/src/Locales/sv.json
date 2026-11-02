@@ -40085,5 +40085,8 @@
   "Uploads refused": "Uppladdningar nekade",
   "Uploads stopped": "Uppladdningarna har stoppats",
   "Web and API hosting": "Webb- och API-hosting",
-  "What its SDK reports, and the health of its session recordings.": "Vad dess SDK rapporterar och hälsan hos dess sessionsinspelningar."
+  "What its SDK reports, and the health of its session recordings.": "Vad dess SDK rapporterar och hälsan hos dess sessionsinspelningar.",
+  "Couldn't load this guest": "Det gick inte att läsa in den här gästen",
+  "Couldn't load this node": "Det gick inte att läsa in den här noden",
+  "Couldn't load this storage": "Det gick inte att läsa in den här lagringen"
 }

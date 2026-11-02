@@ -176,6 +176,9 @@ import ProxmoxClusterNodeDetail from "../../../../App/FeatureSet/Dashboard/src/P
 import ProxmoxClusterGuestDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/GuestDetail";
 import ProxmoxClusterStorageDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/StorageDetail";
 import ProxmoxClusterStorage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Storage";
+import { PROXMOX_PART_READ_ERROR_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Proxmox/Part/ProxmoxPartReadError";
+import fs from "fs";
+import path from "path";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
@@ -812,7 +815,11 @@ describe("a part whose inventory cannot be read says so", () => {
       "proxmox-node-hero",
     );
 
+    expect(readError()).toHaveTextContent("Couldn't load this node");
     expect(readError()).toHaveTextContent(INVENTORY_DOWN);
+    expect(
+      within(readError()).getByRole("button", { name: /Try again/ }),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("proxmox-node-not-reported")).toBeNull();
     expect(screen.queryByText(/not reported yet/)).toBeNull();
     expect(screen.queryByTestId("proxmox-node-overview")).toBeNull();
@@ -866,6 +873,37 @@ describe("a part whose inventory cannot be read says so", () => {
     expect(attentionRows("proxmox-node-attention")[0]).toBe("pbs: Unavailable");
   });
 
+  test("each part's words are keys of every language the Dashboard ships", () => {
+    const locales: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Locales",
+    );
+    const files: Array<string> = fs
+      .readdirSync(locales)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json");
+      });
+    expect(files).toHaveLength(17);
+
+    for (const title of Object.values(PROXMOX_PART_READ_ERROR_TITLES)) {
+      for (const file of files) {
+        const words: Record<string, string> = JSON.parse(
+          fs.readFileSync(path.join(locales, file), "utf8"),
+        ) as Record<string, string>;
+        expect({ file, title, has: typeof words[title] }).toEqual({
+          file,
+          title,
+          has: "string",
+        });
+        expect({ file, title, translated: words[title] !== title }).toEqual({
+          file,
+          title,
+          translated: file !== "en.json",
+        });
+      }
+    }
+  });
+
   test("a node that has not reported still says so, when the read succeeds", async () => {
     await renderPage(
       ProxmoxClusterNodeDetail,
@@ -887,6 +925,7 @@ describe("a part whose inventory cannot be read says so", () => {
       "proxmox-guest-hero",
     );
 
+    expect(readError()).toHaveTextContent("Couldn't load this guest");
     expect(readError()).toHaveTextContent(INVENTORY_DOWN);
     expect(screen.queryByTestId("proxmox-guest-not-reported")).toBeNull();
 
@@ -907,6 +946,7 @@ describe("a part whose inventory cannot be read says so", () => {
       "proxmox-storage-hero",
     );
 
+    expect(readError()).toHaveTextContent("Couldn't load this storage");
     expect(readError()).toHaveTextContent(INVENTORY_DOWN);
     expect(screen.queryByText(/Storage details not reported yet/)).toBeNull();
 

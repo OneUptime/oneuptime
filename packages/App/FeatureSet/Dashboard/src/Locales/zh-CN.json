@@ -40085,5 +40085,8 @@
   "Uploads refused": "上传被拒绝",
   "Uploads stopped": "上传已停止",
   "Web and API hosting": "Web 和 API 托管",
-  "What its SDK reports, and the health of its session recordings.": "其 SDK 上报的内容，以及会话录制的健康状况。"
+  "What its SDK reports, and the health of its session recordings.": "其 SDK 上报的内容，以及会话录制的健康状况。",
+  "Couldn't load this guest": "无法加载此客户机",
+  "Couldn't load this node": "无法加载此节点",
+  "Couldn't load this storage": "无法加载此存储"
 }

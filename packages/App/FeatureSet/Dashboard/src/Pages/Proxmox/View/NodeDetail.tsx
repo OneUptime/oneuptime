@@ -412,6 +412,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
         <PageLoader isVisible={true} />
       ) : inventoryError ? (
         <ProxmoxPartReadError
+          kind="Node"
           message={inventoryError}
           onRetry={retryInventory}
         />

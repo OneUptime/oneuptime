@@ -22,7 +22,9 @@ import { translationKey } from "Common/Types/Translator";
  *     resource reported about itself - its platform, its versions, its
  *     agent - and only what it reported. Its identifier keeps a row, under
  *     the name the telemetry matches it by ("Host Name (host.name)"), whole
- *     and to copy: the hero cuts it to one line.
+ *     and to copy: the hero cuts it to one line. Some heroes sum a few of
+ *     these facts up in a line of chips ("linux", "amd64", "4 cores"); the
+ *     card names each one, as a row a reader can find it by.
  *   - Nothing reported yet is one line that says so; the card ends with the
  *     record's ID line, as every details card does.
  *

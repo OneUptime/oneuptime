@@ -40085,5 +40085,8 @@
   "Uploads refused": "بارگذاری‌ها رد می‌شوند",
   "Uploads stopped": "بارگذاری‌ها متوقف شده‌اند",
   "Web and API hosting": "میزبانی وب و API",
-  "What its SDK reports, and the health of its session recordings.": "آنچه SDK آن گزارش می‌دهد، و سلامت ضبط نشست‌های آن."
+  "What its SDK reports, and the health of its session recordings.": "آنچه SDK آن گزارش می‌دهد، و سلامت ضبط نشست‌های آن.",
+  "Couldn't load this guest": "بارگیری این مهمان ممکن نشد",
+  "Couldn't load this node": "بارگیری این گره ممکن نشد",
+  "Couldn't load this storage": "بارگیری این ذخیره‌سازی ممکن نشد"
 }

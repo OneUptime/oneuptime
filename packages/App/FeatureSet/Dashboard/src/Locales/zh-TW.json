@@ -40085,5 +40085,8 @@
   "Uploads refused": "上傳遭拒絕",
   "Uploads stopped": "上傳已停止",
   "Web and API hosting": "Web 與 API 代管",
-  "What its SDK reports, and the health of its session recordings.": "其 SDK 回報的內容，以及工作階段錄製的健康狀況。"
+  "What its SDK reports, and the health of its session recordings.": "其 SDK 回報的內容，以及工作階段錄製的健康狀況。",
+  "Couldn't load this guest": "無法載入此客體",
+  "Couldn't load this node": "無法載入此節點",
+  "Couldn't load this storage": "無法載入此儲存空間"
 }

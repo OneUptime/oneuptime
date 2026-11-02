@@ -40085,5 +40085,8 @@
   "Uploads refused": "업로드 거부됨",
   "Uploads stopped": "업로드 중단됨",
   "Web and API hosting": "웹 및 API 호스팅",
-  "What its SDK reports, and the health of its session recordings.": "SDK가 보고하는 내용과 세션 녹화 상태입니다."
+  "What its SDK reports, and the health of its session recordings.": "SDK가 보고하는 내용과 세션 녹화 상태입니다.",
+  "Couldn't load this guest": "이 게스트를 불러올 수 없습니다",
+  "Couldn't load this node": "이 노드를 불러올 수 없습니다",
+  "Couldn't load this storage": "이 스토리지를 불러올 수 없습니다"
 }

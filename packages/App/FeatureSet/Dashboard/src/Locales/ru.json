@@ -40085,5 +40085,8 @@
   "Uploads refused": "Выгрузки отклоняются",
   "Uploads stopped": "Выгрузки прекратились",
   "Web and API hosting": "Хостинг веб-приложений и API",
-  "What its SDK reports, and the health of its session recordings.": "Что сообщает его SDK и состояние записи сеансов."
+  "What its SDK reports, and the health of its session recordings.": "Что сообщает его SDK и состояние записи сеансов.",
+  "Couldn't load this guest": "Не удалось загрузить эту гостевую систему",
+  "Couldn't load this node": "Не удалось загрузить этот узел",
+  "Couldn't load this storage": "Не удалось загрузить это хранилище"
 }

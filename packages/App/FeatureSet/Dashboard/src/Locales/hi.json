@@ -40085,5 +40085,8 @@
   "Uploads refused": "अपलोड अस्वीकार हो रहे हैं",
   "Uploads stopped": "अपलोड बंद हो गए हैं",
   "Web and API hosting": "वेब और API होस्टिंग",
-  "What its SDK reports, and the health of its session recordings.": "इसका SDK क्या बताता है, और इसकी सेशन रिकॉर्डिंग की सेहत।"
+  "What its SDK reports, and the health of its session recordings.": "इसका SDK क्या बताता है, और इसकी सेशन रिकॉर्डिंग की सेहत।",
+  "Couldn't load this guest": "यह गेस्ट लोड नहीं हो सका",
+  "Couldn't load this node": "यह नोड लोड नहीं हो सका",
+  "Couldn't load this storage": "यह स्टोरेज लोड नहीं हो सका"
 }

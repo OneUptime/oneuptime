@@ -342,7 +342,11 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
       children: isLoadingRow ? (
         <PageLoader isVisible={true} />
       ) : rowError ? (
-        <ProxmoxPartReadError message={rowError} onRetry={retryRow} />
+        <ProxmoxPartReadError
+          kind="Storage"
+          message={rowError}
+          onRetry={retryRow}
+        />
       ) : (
         <ProxmoxStorageOverview
           clusterId={modelId}

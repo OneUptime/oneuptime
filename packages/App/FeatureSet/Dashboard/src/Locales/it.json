@@ -40085,5 +40085,8 @@
   "Uploads refused": "Caricamenti rifiutati",
   "Uploads stopped": "I caricamenti si sono fermati",
   "Web and API hosting": "Hosting web e API",
-  "What its SDK reports, and the health of its session recordings.": "Cosa riporta il suo SDK e lo stato delle sue registrazioni delle sessioni."
+  "What its SDK reports, and the health of its session recordings.": "Cosa riporta il suo SDK e lo stato delle sue registrazioni delle sessioni.",
+  "Couldn't load this guest": "Impossibile caricare questo guest",
+  "Couldn't load this node": "Impossibile caricare questo nodo",
+  "Couldn't load this storage": "Impossibile caricare questo storage"
 }

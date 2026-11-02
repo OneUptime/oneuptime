@@ -40085,5 +40085,8 @@
   "Uploads refused": "アップロードが拒否されています",
   "Uploads stopped": "アップロードが止まっています",
   "Web and API hosting": "Web と API のホスティング",
-  "What its SDK reports, and the health of its session recordings.": "SDK が報告する内容と、セッション録画の状態。"
+  "What its SDK reports, and the health of its session recordings.": "SDK が報告する内容と、セッション録画の状態。",
+  "Couldn't load this guest": "このゲストを読み込めませんでした",
+  "Couldn't load this node": "このノードを読み込めませんでした",
+  "Couldn't load this storage": "このストレージを読み込めませんでした"
 }
