@@ -735,6 +735,13 @@ jobs:
           # first gate run took this group 20.3 and group 8 27.5: about 23.5.
           # It moved on to group 3 when the second took this group 25.5:
           # about 20.
+          # Permissions Per Tab (5 tests, 26 seconds locally with its bundle,
+          # Chromium only: the real Labels and Danger Zone pages of two
+          # projects in two tabs of one browser, the person Project Owner of
+          # one and Viewer of the other, each tab keeping its own role while
+          # the other's answers come back, one tab moving between projects,
+          # and the name every project's permission snapshot shared ignored)
+          # joined it on 2026-11-02, the lightest group: about 21.
           - group: 7
             suites: >-
               test-profiles-ui
@@ -742,6 +749,7 @@ jobs:
               test-custom-roles-ui
               test-public-dashboard-theme-ui
               test-dashboard-table-thresholds-ui
+              test-permissions-per-tab-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -1508,6 +1516,8 @@ jobs:
             output/playwright/docker-swarm-pages-ui/test-results
             output/playwright/side-by-side-pages-ui/*.png
             output/playwright/side-by-side-pages-ui/test-results
+            output/playwright/permissions-per-tab-ui/*.png
+            output/playwright/permissions-per-tab-ui/test-results
             output/playwright/resource-overviews-ui/*.png
             output/playwright/resource-overviews-ui/test-results
             output/playwright/proxmox-pages-ui/*.png
