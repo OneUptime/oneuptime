@@ -159,6 +159,18 @@ any of these, the `enterpriseMarketplace` chart values, or anything in those lis
 how an installation is billed and licensed, how each edition is built, pushed, tested and submitted, and which steps
 only a maintainer may do.
 
+### Continue with Google
+
+The **Continue with Google** button on the sign-in and sign-up pages runs on a Google OAuth client in Google Cloud, not
+in this repository: merging code turns nothing on, and a server offers the button only once `GOOGLE_SIGN_IN_CLIENT_ID`
+and `GOOGLE_SIGN_IN_CLIENT_SECRET` are set (Helm `googleSignInApp`). Its code is the Google client in
+`packages/Common/Server/Utils/GoogleSignIn` and the provider sign-in it shares with Sign in with Microsoft
+(`packages/App/FeatureSet/Identity/Utils/ProviderSignIn.ts`: who may sign in, the state cookie, the campaign a new
+account keeps). Before changing that code, the button, or anything in Google Cloud, read
+[the Continue with Google guide](packages/Common/Server/Utils/GoogleSignIn/RELEASING.md). It says how to set up the
+consent screen and the OAuth client and their redirect URI, what the button must look like under Google's branding
+rules, how to test it end to end, and which steps only a maintainer may do.
+
 ### Infrastructure agent package managers
 
 Each release publishes the infrastructure agent (`agents/InfrastructureAgent`) to apt and yum (packages.oneuptime.com,

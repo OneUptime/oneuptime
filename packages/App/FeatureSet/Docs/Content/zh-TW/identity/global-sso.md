@@ -100,8 +100,8 @@ flowchart TB
 
 在整個執行個體要求使用 SSO 期間：
 
-- 登入頁面只提供 SSO：每個已啟用的全域提供者一個按鈕，沒有密碼、密碼金鑰、Microsoft 登入和註冊。用來尋找專案自有提供者的電子郵件查詢，只在有專案擁有自有提供者時保留。
-- OneUptime 會以 "This server requires single sign-on (SSO). Sign in with SSO instead." 拒絕密碼、密碼金鑰、Microsoft 登入和註冊。只有主管理員的密碼或密碼金鑰仍能用於登入。使用者透過 SSO 登入或接受邀請來取得帳戶。
+- 登入頁面只提供 SSO：每個已啟用的全域提供者一個按鈕，沒有密碼、密碼金鑰、Google 或 Microsoft 登入和註冊。用來尋找專案自有提供者的電子郵件查詢，只在有專案擁有自有提供者時保留。
+- OneUptime 會以 "This server requires single sign-on (SSO). Sign in with SSO instead." 拒絕密碼、密碼金鑰、Google 或 Microsoft 登入和註冊。只有主管理員的密碼或密碼金鑰仍能用於登入。使用者透過 SSO 登入或接受邀請來取得帳戶。
 - 已經用密碼登入的人要開啟專案，需要用 SSO 登入。他們會來到專案的單一登入頁面，該頁面提供專案自有的提供者，以及能讓人登入該專案的全域提供者。
 - 主管理員在 `/accounts/admin-login` 用密碼登入，登入頁面不會連結到這個位址。**要求使用 SSO** 卡片在開關下方以 **主要管理員登入** 顯示完整位址：請保存它，以便在身分提供者停止運作時關閉該要求。
 
@@ -162,7 +162,7 @@ flowchart TB
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-整個執行個體要求使用 SSO，而這是一次使用密碼、密碼金鑰或 Microsoft 的登入，或是一次註冊。請改用登入頁面上的某個 SSO 按鈕登入。主管理員在 `/accounts/admin-login` 用密碼登入；若要讓所有人重新可以用密碼登入，請在 **單一登入** 上關閉 **登入時要求使用 SSO**。
+整個執行個體要求使用 SSO，而這是一次使用密碼、密碼金鑰、Google 或 Microsoft 的登入，或是一次註冊。請改用登入頁面上的某個 SSO 按鈕登入。主管理員在 `/accounts/admin-login` 用密碼登入；若要讓所有人重新可以用密碼登入，請在 **單一登入** 上關閉 **登入時要求使用 SSO**。
 :::
 
 ## 後續步驟

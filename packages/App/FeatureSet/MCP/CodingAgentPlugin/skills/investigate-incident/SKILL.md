@@ -71,6 +71,7 @@ Telemetry tables are large, so always filter by a time range and keep `limit` be
 - `list_exception_instances` takes the same `time` filter and returns `exceptionType`, `message`, `stackTrace`, `release` and `traceId`.
 - `list_spans` filters on `startTime`, or on the `traceId` of a log or an exception, to show one request.
 - `list_change_events` shows the deploys and other changes recorded around that time.
+- For a field these examples do not show, `oneuptime_describe_resource` lists every field of a resource, and how to filter, sort and select on it. Pass `resource`, such as `list_logs`.
 
 If the repository is open, compare the stack traces with the code and the recent commits. Keep what you measured apart from what you infer, and tell the person which is which.
 

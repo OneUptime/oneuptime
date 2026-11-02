@@ -1329,7 +1329,9 @@ function metricValue(name, series, time) {
   if (name.includes("memory")) {
     return isPod ? 310 * MIB + 20 * MIB * swing : 8.6 * GIB + 0.4 * GIB * swing;
   }
-  if (name.includes("network.io")) {
+  // A metric's name, matched whole: a substring that reads like a host name
+  // is what code scanning takes for a URL check (js/incomplete-url-substring-sanitization).
+  if (/^k8s\.(?:node|pod)\.network\.io$/.test(name)) {
     // Cumulative bytes: the page turns them into a rate.
     return (time / 1000) * (2.2e6 + 0.3e6 * swing);
   }

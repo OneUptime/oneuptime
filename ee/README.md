@@ -496,8 +496,8 @@ module answers null (billing off) and when it throws - never an error:
   left in Redis gets a no-op placeholder where `ee/` does not register it.
 
 What every edition uses stays in core: the HTTP client and the token verifier
-Sign in with Microsoft is built on (`MarketplaceHttp.ts`,
-`RemoteJwtVerifier.ts`), the Vercel log drain and its signature check
+Sign in with Microsoft and Continue with Google are built on
+(`MarketplaceHttp.ts`, `RemoteJwtVerifier.ts`), the Vercel log drain and its signature check
 (`VercelSignature.ts`), the models, migrations and CRUD services
 (`MarketplaceSubscriptionService` keeps its lookups), the plan limits, and the
 balance and pay-as-you-go services, which reach Stripe only through

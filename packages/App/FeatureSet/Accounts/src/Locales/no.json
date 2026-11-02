@@ -23,7 +23,8 @@
     "newPassword": "Nytt passord",
     "code": "Kode",
     "yourCompany": "Ditt firma",
-    "or": "eller"
+    "or": "eller",
+    "continueWithGoogle": "Fortsett med Google"
   },
   "language": {
     "label": "Språk",
