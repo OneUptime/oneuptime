@@ -14420,7 +14420,6 @@
   "Per site": "Por sitio",
   "Per-application Policy": "Política por aplicación",
   "Per-bucket presence of cluster heartbeats over the selected time range": "Presencia por bucket de latidos del clúster durante el intervalo de tiempo seleccionado",
-  "Per-bucket presence of host heartbeats over the selected time range": "Presencia por bucket de latidos del host durante el intervalo de tiempo seleccionado",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Credenciales MQTT por dispositivo de la pestaña Registro de dispositivos de la flota, con aislamiento de temas y revocación.",
   "Per-interface bandwidth utilization. One series per interface.": "Utilización del ancho de banda por interfaz. Una serie por interfaz.",
   "Per-second client IOPS and throughput summed across all pools.": "IOPS y rendimiento de clientes por segundo, sumados en todos los pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "La salud del host según las reglas de su tarjeta Requiere atención: Con problemas cuando algo es crítico (un sistema de archivos o la memoria por encima del 95 %), Degradado cuando algo necesita revisión, Sin informar cuando no ha llegado nada en 15 minutos. Debajo, el motivo.",
   "15-minute load {{load}} on {{count}} core": "Carga de 15 min {{load}} en {{count}} núcleo",
   "15-minute load {{load}} on {{count}} cores": "Carga de 15 min {{load}} en {{count}} núcleos",
-  "15-minute load {{load}} on {{count}} cores_one": "Carga de 15 min {{load}} en {{count}} núcleo"
+  "15-minute load {{load}} on {{count}} cores_one": "Carga de 15 min {{load}} en {{count}} núcleo",
+  "Whether metrics arrived from this host, over the selected time range": "Si llegaron métricas de este host durante el intervalo de tiempo seleccionado"
 }

@@ -14420,7 +14420,6 @@
   "Per site": "サイトごと",
   "Per-application Policy": "アプリケーションごとのポリシー",
   "Per-bucket presence of cluster heartbeats over the selected time range": "選択した期間における、バケットごとのクラスターのハートビートの有無",
-  "Per-bucket presence of host heartbeats over the selected time range": "選択した期間における、バケットごとのホストのハートビートの有無",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "フリートの「デバイスレジストリ」タブで設定するデバイスごとの MQTT 認証情報。トピックの分離と失効に対応します。",
   "Per-interface bandwidth utilization. One series per interface.": "インターフェースごとの帯域幅の使用率。インターフェースごとに 1 系列です。",
   "Per-second client IOPS and throughput summed across all pools.": "全プールで合計した、1 秒あたりのクライアント IOPS とスループット。",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "ホストの「対応が必要」カードと同じルールによるヘルスです。重大な問題（ファイルシステムまたはメモリが 95% 超）があれば異常、確認が必要なものがあれば機能低下、15 分間何も届いていなければ報告なしです。下はその理由です。",
   "15-minute load {{load}} on {{count}} core": "{{count}} コアで 15 分間の負荷 {{load}}",
   "15-minute load {{load}} on {{count}} cores": "{{count}} コアで 15 分間の負荷 {{load}}",
-  "15-minute load {{load}} on {{count}} cores_one": "{{count}} コアで 15 分間の負荷 {{load}}"
+  "15-minute load {{load}} on {{count}} cores_one": "{{count}} コアで 15 分間の負荷 {{load}}",
+  "Whether metrics arrived from this host, over the selected time range": "選択した期間に、このホストからメトリクスが届いていたかどうか"
 }

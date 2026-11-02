@@ -7718,7 +7718,7 @@
   "Aggregated across containers over the selected time range": "Aggregated across containers over the selected time range",
   "Aggregated across nodes (CPU/memory), storage volumes, and guests (network) over the selected time range": "在所選時間範圍內彙總節點（CPU/記憶體）、儲存空間和客體（網路）",
   "Aggregated across nodes over the selected time range": "所選時間範圍內所有節點的彙總",
-  "Aggregated over the selected time range": "Aggregated over the selected time range",
+  "Aggregated over the selected time range": "所選時間範圍內的彙總",
   "Aggregated over the selected time range for this process": "Aggregated over the selected time range for this process",
   "Aggregation Temporality": "Aggregation Temporality",
   "Aggregation type": "Aggregation type",
@@ -9471,7 +9471,7 @@
   "Current User Count": "Current User Count",
   "Current User ID On Roster": "Current User ID On Roster",
   "Current User On Roster": "Current User On Roster",
-  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "影響此資源的目前事件、警示和排定維護。點擊卡片即可查看完整清單。",
   "Current memory usage, 0-100.": "Current memory usage, 0-100.",
   "Current resource status will be shown beside every monitor this rule adds.": "將在此規則新增的每個監測器旁顯示目前資源狀態。",
   "Current state": "目前狀態",
@@ -14420,7 +14420,6 @@
   "Per site": "Per site",
   "Per-application Policy": "Per-application Policy",
   "Per-bucket presence of cluster heartbeats over the selected time range": "所選時間範圍內各時段的叢集心跳情況",
-  "Per-bucket presence of host heartbeats over the selected time range": "Per-bucket presence of host heartbeats over the selected time range",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.",
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "依主機「需要注意」卡片的規則判定的健康狀態：有嚴重問題（檔案系統或記憶體超過 95%）時為不健康，有需要查看的內容時為效能下降，15 分鐘內未收到任何資料時為未回報。下方為原因。",
   "15-minute load {{load}} on {{count}} core": "{{count}} 核心上 15 分鐘負載 {{load}}",
   "15-minute load {{load}} on {{count}} cores": "{{count}} 核心上 15 分鐘負載 {{load}}",
-  "15-minute load {{load}} on {{count}} cores_one": "{{count}} 核心上 15 分鐘負載 {{load}}"
+  "15-minute load {{load}} on {{count}} cores_one": "{{count}} 核心上 15 分鐘負載 {{load}}",
+  "Whether metrics arrived from this host, over the selected time range": "所選時間範圍內是否收到來自此主機的指標"
 }

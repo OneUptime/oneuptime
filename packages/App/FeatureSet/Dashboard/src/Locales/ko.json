@@ -7718,7 +7718,7 @@
   "Aggregated across containers over the selected time range": "Aggregated across containers over the selected time range",
   "Aggregated across nodes (CPU/memory), storage volumes, and guests (network) over the selected time range": "선택한 기간 동안 노드(CPU/메모리), 스토리지, 게스트(네트워크)를 합산한 값",
   "Aggregated across nodes over the selected time range": "선택한 기간 동안 전체 노드에서 집계",
-  "Aggregated over the selected time range": "Aggregated over the selected time range",
+  "Aggregated over the selected time range": "선택한 기간 동안 집계",
   "Aggregated over the selected time range for this process": "Aggregated over the selected time range for this process",
   "Aggregation Temporality": "Aggregation Temporality",
   "Aggregation type": "Aggregation type",
@@ -9471,7 +9471,7 @@
   "Current User Count": "Current User Count",
   "Current User ID On Roster": "Current User ID On Roster",
   "Current User On Roster": "Current User On Roster",
-  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "이 리소스에 영향을 주는 현재 인시던트, 경고 및 예정된 유지 관리입니다. 카드를 클릭하면 전체 목록을 볼 수 있습니다.",
   "Current memory usage, 0-100.": "Current memory usage, 0-100.",
   "Current resource status will be shown beside every monitor this rule adds.": "이 규칙이 추가하는 모든 모니터 옆에 현재 리소스 상태가 표시됩니다.",
   "Current state": "현재 상태",
@@ -14420,7 +14420,6 @@
   "Per site": "Per site",
   "Per-application Policy": "Per-application Policy",
   "Per-bucket presence of cluster heartbeats over the selected time range": "선택한 기간 동안 구간별 클러스터 하트비트 수신 여부",
-  "Per-bucket presence of host heartbeats over the selected time range": "Per-bucket presence of host heartbeats over the selected time range",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.",
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "호스트의 확인 필요 카드와 같은 규칙에 따른 상태입니다. 심각한 문제(파일 시스템 또는 메모리 95% 초과)가 있으면 비정상, 확인이 필요하면 저하됨, 15분 동안 아무것도 도착하지 않으면 보고 없음입니다. 아래는 그 이유입니다.",
   "15-minute load {{load}} on {{count}} core": "코어 {{count}}개에서 15분 부하 {{load}}",
   "15-minute load {{load}} on {{count}} cores": "코어 {{count}}개에서 15분 부하 {{load}}",
-  "15-minute load {{load}} on {{count}} cores_one": "코어 {{count}}개에서 15분 부하 {{load}}"
+  "15-minute load {{load}} on {{count}} cores_one": "코어 {{count}}개에서 15분 부하 {{load}}",
+  "Whether metrics arrived from this host, over the selected time range": "선택한 기간 동안 이 호스트에서 메트릭이 들어왔는지 여부"
 }

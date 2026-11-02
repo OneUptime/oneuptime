@@ -7718,7 +7718,7 @@
   "Aggregated across containers over the selected time range": "Aggregated across containers over the selected time range",
   "Aggregated across nodes (CPU/memory), storage volumes, and guests (network) over the selected time range": "Samengevoegd over knooppunten (CPU/geheugen), opslag en gasten (netwerk) in het geselecteerde tijdsbereik",
   "Aggregated across nodes over the selected time range": "Samengevoegd over nodes in het geselecteerde tijdsbereik",
-  "Aggregated over the selected time range": "Aggregated over the selected time range",
+  "Aggregated over the selected time range": "Samengevoegd in het geselecteerde tijdsbereik",
   "Aggregated over the selected time range for this process": "Aggregated over the selected time range for this process",
   "Aggregation Temporality": "Aggregation Temporality",
   "Aggregation type": "Aggregation type",
@@ -9471,7 +9471,7 @@
   "Current User Count": "Current User Count",
   "Current User ID On Roster": "Current User ID On Roster",
   "Current User On Roster": "Current User On Roster",
-  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "Lopende incidenten, waarschuwingen en gepland onderhoud voor deze resource. Klik op een kaart om de volledige lijst te zien.",
   "Current memory usage, 0-100.": "Current memory usage, 0-100.",
   "Current resource status will be shown beside every monitor this rule adds.": "De huidige status van de resource wordt getoond naast elke monitor die deze regel toevoegt.",
   "Current state": "Huidige status",
@@ -14420,7 +14420,6 @@
   "Per site": "Per site",
   "Per-application Policy": "Per-application Policy",
   "Per-bucket presence of cluster heartbeats over the selected time range": "Aanwezigheid van cluster-heartbeats per interval in het geselecteerde tijdsbereik",
-  "Per-bucket presence of host heartbeats over the selected time range": "Per-bucket presence of host heartbeats over the selected time range",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.",
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "De gezondheid van de host volgens de regels van zijn kaart Vraagt aandacht: Ongezond als iets kritiek is (een bestandssysteem of het geheugen boven 95%), Verminderd als iets aandacht nodig heeft, Rapporteert niet als er 15 minuten niets is binnengekomen. Eronder de reden.",
   "15-minute load {{load}} on {{count}} core": "15-minutenbelasting {{load}} op {{count}} kern",
   "15-minute load {{load}} on {{count}} cores": "15-minutenbelasting {{load}} op {{count}} kernen",
-  "15-minute load {{load}} on {{count}} cores_one": "15-minutenbelasting {{load}} op {{count}} kern"
+  "15-minute load {{load}} on {{count}} cores_one": "15-minutenbelasting {{load}} op {{count}} kern",
+  "Whether metrics arrived from this host, over the selected time range": "Of er in het geselecteerde tijdsbereik metrieken van deze host binnenkwamen"
 }

@@ -7718,7 +7718,7 @@
   "Aggregated across containers over the selected time range": "Aggregated across containers over the selected time range",
   "Aggregated across nodes (CPU/memory), storage volumes, and guests (network) over the selected time range": "تجمیع‌شده روی گره‌ها (CPU/حافظه)، ذخیره‌سازی‌ها و مهمان‌ها (شبکه) در بازه زمانی انتخاب‌شده",
   "Aggregated across nodes over the selected time range": "تجمیع‌شده در همه گره‌ها در بازه زمانی انتخاب‌شده",
-  "Aggregated over the selected time range": "Aggregated over the selected time range",
+  "Aggregated over the selected time range": "تجمیع‌شده در بازه زمانی انتخاب‌شده",
   "Aggregated over the selected time range for this process": "Aggregated over the selected time range for this process",
   "Aggregation Temporality": "Aggregation Temporality",
   "Aggregation type": "Aggregation type",
@@ -9471,7 +9471,7 @@
   "Current User Count": "Current User Count",
   "Current User ID On Roster": "Current User ID On Roster",
   "Current User On Roster": "Current User On Roster",
-  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "حوادث، هشدارها و تعمیر و نگهداری‌های زمان‌بندی‌شده جاری که بر این منبع اثر می‌گذارند. برای دیدن فهرست کامل روی یک کارت کلیک کنید.",
   "Current memory usage, 0-100.": "Current memory usage, 0-100.",
   "Current resource status will be shown beside every monitor this rule adds.": "وضعیت فعلی منبع کنار هر مانیتوری که این قاعده اضافه می‌کند نشان داده می‌شود.",
   "Current state": "وضعیت فعلی",
@@ -14420,7 +14420,6 @@
   "Per site": "Per site",
   "Per-application Policy": "Per-application Policy",
   "Per-bucket presence of cluster heartbeats over the selected time range": "حضور ضربان‌های خوشه در هر بازه، در بازه زمانی انتخاب‌شده",
-  "Per-bucket presence of host heartbeats over the selected time range": "Per-bucket presence of host heartbeats over the selected time range",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.",
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "سلامت میزبان طبق قواعد کارت «نیاز به توجه» آن: ناسالم وقتی چیزی بحرانی است (یک سامانه فایل یا حافظه بالای ۹۵٪)، کاهش کارایی وقتی چیزی نیاز به بررسی دارد، بدون گزارش‌دهی وقتی ۱۵ دقیقه چیزی نرسیده است. زیر آن، دلیل.",
   "15-minute load {{load}} on {{count}} core": "بار ۱۵ دقیقه‌ای {{load}} روی {{count}} هسته",
   "15-minute load {{load}} on {{count}} cores": "بار ۱۵ دقیقه‌ای {{load}} روی {{count}} هسته",
-  "15-minute load {{load}} on {{count}} cores_one": "بار ۱۵ دقیقه‌ای {{load}} روی {{count}} هسته"
+  "15-minute load {{load}} on {{count}} cores_one": "بار ۱۵ دقیقه‌ای {{load}} روی {{count}} هسته",
+  "Whether metrics arrived from this host, over the selected time range": "اینکه در بازه زمانی انتخاب‌شده متریک‌ها از این میزبان رسیده‌اند یا نه"
 }

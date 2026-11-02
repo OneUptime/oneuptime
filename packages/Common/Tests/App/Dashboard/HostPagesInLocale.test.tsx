@@ -83,6 +83,11 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "of {{total}}",
     "{{count}} cores",
   ],
+  // The Activity cards every resource's Overview draws, a host's among them.
+  "App/FeatureSet/Dashboard/src/Components/ResourceActivity/ResourceActivityCards.tsx":
+    [
+      "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+    ],
   "App/FeatureSet/Dashboard/src/Pages/Host/Utils/HostAttention.ts": [
     "Collector",
     "Filesystem",
@@ -92,6 +97,8 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "What is broken or needs a look, the most urgent first. More hosts need attention than one read holds: these are the most urgent.",
   ],
   "App/FeatureSet/Dashboard/src/Pages/Host/View/Overview.tsx": [
+    // The section headings' lines, English in most languages until its review.
+    "Aggregated over the selected time range",
     "Booted",
     "Details",
     "Filesystem",
@@ -103,6 +110,7 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "The alerts OneUptime recommends for a host: which watch this one, and one step to turn on the rest.",
     "Up {{duration}}",
     "What this host is and runs, as its collector reports it.",
+    "Whether metrics arrived from this host, over the selected time range",
     "across {{count}} cores",
     "of {{total}}",
     "running · {{total}} total",

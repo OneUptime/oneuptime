@@ -151,6 +151,10 @@ const HOST_ALERT_TEMPLATE_IDS: Array<string> = getAllHostAlertTemplates().map(
   },
 );
 
+// The five tiles: one a row on a phone, two, three, then five from xl.
+export const HOST_OVERVIEW_TILES_GRID_CLASS_NAME: string =
+  "mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5";
+
 interface OverviewStats {
   cpuPercent: number | null;
   memoryPercent: number | null;
@@ -1600,9 +1604,13 @@ const HostOverview: FunctionComponent<
      * Each bar is coloured where the Hosts list colours it (HostFacts): a
      * busy CPU amber, never red - a host at work, its load says when work
      * queues; memory amber and red where Needs attention lists it.
+     *
+     * Five tiles a row only from xl, as a Proxmox cluster's page lays its
+     * tiles: at 1024 beside the side menu each was some 110px wide and
+     * their titles broke inside the word ("MEMO RY", "PROC ESSES").
      */
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className={HOST_OVERVIEW_TILES_GRID_CLASS_NAME}>
         <GoldenMetricTile
           title={tx("CPU")}
           icon={IconProp.ChartBar}
@@ -1934,12 +1942,13 @@ const HostOverview: FunctionComponent<
         min: 0,
         max: 100,
         precision: YAxisPrecision.NoDecimals,
+        // Up and Down in the reader's words, as the chart's (i) says them.
         formatter: (value: number): string => {
           if (value >= 100) {
-            return "Up";
+            return tx("Up");
           }
           if (value <= 0) {
-            return "Down";
+            return tx("Down");
           }
           return `${Math.round(value)}%`;
         },
@@ -1987,8 +1996,13 @@ const HostOverview: FunctionComponent<
                 {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
+                {/*
+                 * What the chart shows in plain words, as the Docker and
+                 * Podman hosts' pages say it: "Per-bucket presence of host
+                 * heartbeats" was the code's own name for it.
+                 */}
                 {translator.translateText(
-                  "Per-bucket presence of host heartbeats over the selected time range",
+                  "Whether metrics arrived from this host, over the selected time range",
                 )}
               </p>
             </div>

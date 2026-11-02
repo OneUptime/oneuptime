@@ -14420,7 +14420,6 @@
   "Per site": "Per site",
   "Per-application Policy": "Per-application Policy",
   "Per-bucket presence of cluster heartbeats over the selected time range": "Présence des pulsations du cluster par intervalle sur la plage de temps sélectionnée",
-  "Per-bucket presence of host heartbeats over the selected time range": "Per-bucket presence of host heartbeats over the selected time range",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.",
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "La santé de l'hôte selon les règles de sa carte Attention requise : Défaillant quand quelque chose est critique (un système de fichiers ou la mémoire au-delà de 95 %), Dégradé quand quelque chose mérite un coup d'œil, Ne remonte plus de données quand rien n'est arrivé depuis 15 minutes. En dessous, la raison.",
   "15-minute load {{load}} on {{count}} core": "Charge sur 15 min {{load}} pour {{count}} cœur",
   "15-minute load {{load}} on {{count}} cores": "Charge sur 15 min {{load}} pour {{count}} cœurs",
-  "15-minute load {{load}} on {{count}} cores_one": "Charge sur 15 min {{load}} pour {{count}} cœur"
+  "15-minute load {{load}} on {{count}} cores_one": "Charge sur 15 min {{load}} pour {{count}} cœur",
+  "Whether metrics arrived from this host, over the selected time range": "Si des métriques sont arrivées de cet hôte sur la plage de temps sélectionnée"
 }

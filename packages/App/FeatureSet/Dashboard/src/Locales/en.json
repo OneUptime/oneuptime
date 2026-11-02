@@ -14420,7 +14420,6 @@
   "Per site": "Per site",
   "Per-application Policy": "Per-application Policy",
   "Per-bucket presence of cluster heartbeats over the selected time range": "Per-bucket presence of cluster heartbeats over the selected time range",
-  "Per-bucket presence of host heartbeats over the selected time range": "Per-bucket presence of host heartbeats over the selected time range",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.",
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.",
   "15-minute load {{load}} on {{count}} core": "15-minute load {{load}} on {{count}} core",
   "15-minute load {{load}} on {{count}} cores": "15-minute load {{load}} on {{count}} cores",
-  "15-minute load {{load}} on {{count}} cores_one": "15-minute load {{load}} on {{count}} core"
+  "15-minute load {{load}} on {{count}} cores_one": "15-minute load {{load}} on {{count}} core",
+  "Whether metrics arrived from this host, over the selected time range": "Whether metrics arrived from this host, over the selected time range"
 }

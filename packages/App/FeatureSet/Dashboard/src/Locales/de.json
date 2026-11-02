@@ -14420,7 +14420,6 @@
   "Per site": "Pro Standort",
   "Per-application Policy": "Richtlinie pro Anwendung",
   "Per-bucket presence of cluster heartbeats over the selected time range": "Vorhandensein von Cluster-Heartbeats pro Intervall im ausgewählten Zeitraum",
-  "Per-bucket presence of host heartbeats over the selected time range": "Vorhandensein von Host-Heartbeats pro Intervall im ausgewählten Zeitraum",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Gerätespezifische MQTT-Anmeldedaten aus dem Tab „Geräteregister“ der Flotte, mit Topic-Isolation und Widerruf.",
   "Per-interface bandwidth utilization. One series per interface.": "Bandbreitenauslastung pro Schnittstelle. Eine Reihe pro Schnittstelle.",
   "Per-second client IOPS and throughput summed across all pools.": "Client-IOPS und Durchsatz pro Sekunde, summiert über alle Pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Die Integrität des Hosts nach den Regeln seiner Karte „Erfordert Aufmerksamkeit“: Fehlerhaft, wenn etwas kritisch ist (ein Dateisystem oder der Arbeitsspeicher über 95 %), Beeinträchtigt, wenn etwas geprüft werden sollte, Meldet nicht, wenn 15 Minuten lang nichts angekommen ist. Darunter der Grund.",
   "15-minute load {{load}} on {{count}} core": "15-Minuten-Last {{load}} auf {{count}} Kern",
   "15-minute load {{load}} on {{count}} cores": "15-Minuten-Last {{load}} auf {{count}} Kernen",
-  "15-minute load {{load}} on {{count}} cores_one": "15-Minuten-Last {{load}} auf {{count}} Kern"
+  "15-minute load {{load}} on {{count}} cores_one": "15-Minuten-Last {{load}} auf {{count}} Kern",
+  "Whether metrics arrived from this host, over the selected time range": "Ob im ausgewählten Zeitraum Metriken von diesem Host angekommen sind"
 }

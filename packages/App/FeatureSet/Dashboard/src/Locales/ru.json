@@ -7718,7 +7718,7 @@
   "Aggregated across containers over the selected time range": "Aggregated across containers over the selected time range",
   "Aggregated across nodes (CPU/memory), storage volumes, and guests (network) over the selected time range": "Сводно по узлам (CPU/память), хранилищам и гостевым системам (сеть) за выбранный период",
   "Aggregated across nodes over the selected time range": "Суммарно по узлам за выбранный период",
-  "Aggregated over the selected time range": "Aggregated over the selected time range",
+  "Aggregated over the selected time range": "Суммарно за выбранный период",
   "Aggregated over the selected time range for this process": "Aggregated over the selected time range for this process",
   "Aggregation Temporality": "Aggregation Temporality",
   "Aggregation type": "Aggregation type",
@@ -9471,7 +9471,7 @@
   "Current User Count": "Current User Count",
   "Current User ID On Roster": "Current User ID On Roster",
   "Current User On Roster": "Current User On Roster",
-  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+  "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.": "Текущие инциденты, оповещения и плановое обслуживание этого ресурса. Нажмите на карточку, чтобы увидеть полный список.",
   "Current memory usage, 0-100.": "Current memory usage, 0-100.",
   "Current resource status will be shown beside every monitor this rule adds.": "Текущий статус ресурса будет показан рядом с каждым монитором, который добавляет это правило.",
   "Current state": "Текущее состояние",
@@ -14420,7 +14420,6 @@
   "Per site": "Per site",
   "Per-application Policy": "Per-application Policy",
   "Per-bucket presence of cluster heartbeats over the selected time range": "Наличие heartbeat кластера по интервалам за выбранный период",
-  "Per-bucket presence of host heartbeats over the selected time range": "Per-bucket presence of host heartbeats over the selected time range",
   "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.": "Per-device MQTT credentials from the fleet's Device Registry tab, with topic isolation and revocation.",
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
@@ -40135,5 +40134,6 @@
   "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.": "Состояние хоста по правилам его карточки «Требует внимания»: Неисправно, когда что-то критично (файловая система или память заполнены более чем на 95 %), Деградация, когда что-то требует проверки, Не передаёт данные, когда за 15 минут ничего не пришло. Ниже — причина.",
   "15-minute load {{load}} on {{count}} core": "Нагрузка за 15 мин {{load}} на {{count}} ядре",
   "15-minute load {{load}} on {{count}} cores": "Нагрузка за 15 мин {{load}} на {{count}} ядрах",
-  "15-minute load {{load}} on {{count}} cores_one": "Нагрузка за 15 мин {{load}} на {{count}} ядре"
+  "15-minute load {{load}} on {{count}} cores_one": "Нагрузка за 15 мин {{load}} на {{count}} ядре",
+  "Whether metrics arrived from this host, over the selected time range": "Поступали ли метрики от этого хоста за выбранный период"
 }
