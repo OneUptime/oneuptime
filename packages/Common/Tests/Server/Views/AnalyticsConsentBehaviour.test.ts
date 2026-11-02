@@ -30,6 +30,18 @@ const PARTIAL_PATH: string = path.resolve(
   "AnalyticsConsent.ejs",
 );
 
+// Ahead of this partial on Accounts: it decides whether the URL may be reported.
+const SENSITIVE_URL_TOKEN_PATH: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Server",
+  "Views",
+  "Partials",
+  "SensitiveUrlToken.ejs",
+);
+
 const CONTAINER_URL: string =
   "https://www.googletagmanager.com/gtm.js?id=GTM-PKQD5WH";
 const ANALYTICS_URL: string =
@@ -71,6 +83,8 @@ interface Visit {
   cookies?: Array<string> | undefined;
   storageThrows?: boolean | undefined;
   sensitiveTokenPending?: boolean | undefined;
+  // SensitiveUrlToken.ejs ahead of this partial, in <head>, as Accounts has it.
+  sensitiveUrlBootstrap?: boolean | undefined;
   // enableGoogleTagManager: OneUptime Cloud (true) or self-hosted (false).
   tags?: boolean | undefined;
   googleTagMode?: "tag-manager" | "analytics-only" | undefined;
@@ -128,11 +142,23 @@ const fakeIntl: (timeZone: string | null) => unknown = (
   };
 };
 
+const renderSensitiveUrlBootstrap: () => string = (): string => {
+  return ejs.render(
+    fs.readFileSync(SENSITIVE_URL_TOKEN_PATH, "utf8"),
+    {},
+    { filename: SENSITIVE_URL_TOKEN_PATH },
+  );
+};
+
 const open: (visit: Visit) => OpenedPage = (visit: Visit): OpenedPage => {
   const captured: Array<Record<string, string>> = [];
 
+  const bootstrap: string = visit.sensitiveUrlBootstrap
+    ? renderSensitiveUrlBootstrap()
+    : "";
+
   const dom: JSDOM = new JSDOM(
-    `<!DOCTYPE html><html><head>${renderPartial(visit)}</head><body></body></html>`,
+    `<!DOCTYPE html><html><head>${bootstrap}${renderPartial(visit)}</head><body></body></html>`,
     {
       url: visit.url || "https://oneuptime.com/pricing",
       runScripts: "dangerously",
@@ -761,6 +787,97 @@ describe("the Google tag", () => {
 
     expect(googleTagSources(page)).toEqual([]);
     page.window.close();
+  });
+
+  /*
+   * An invitation's sign-up link carries the invitee's address and the token
+   * that claims their account in its query string, where the sign-up page
+   * reads them - so they stay in the address bar, and the tag that would
+   * report it as page_location does not load. Run with the bootstrap ahead
+   * of this partial, as Accounts includes them.
+   */
+  describe("on an invitation's sign-up link", () => {
+    const INVITED_EMAIL: string = "alice@company.com";
+    const CLAIM_TOKEN: string = "1522e9be-84cd-44b7-8fc9-606545bfa732";
+    const INVITATION_URL: string = `https://oneuptime.com/accounts/register?email=${encodeURIComponent(INVITED_EMAIL)}&token=${CLAIM_TOKEN}`;
+
+    const invitation: (timeZone: string) => OpenedPage = (
+      timeZone: string,
+    ): OpenedPage => {
+      return open({
+        url: INVITATION_URL,
+        timeZone,
+        googleTagMode: "analytics-only",
+        sensitiveUrlBootstrap: true,
+      });
+    };
+
+    test("does not load, where measurement runs until refused", () => {
+      const page: OpenedPage = invitation(NEW_YORK);
+
+      expect(page.window.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__).toBe(true);
+      expect(googleTagSources(page)).toEqual([]);
+      // Never configured, so nothing holds a page_location to send.
+      expect(dataLayerCommands(page)).not.toContainEqual([
+        "config",
+        "G-76XZF1WF3Z",
+      ]);
+      page.window.close();
+    });
+
+    test('does not load on "Accept all" either', () => {
+      const page: OpenedPage = invitation(BERLIN);
+
+      page.consent.grant();
+
+      expect(googleTagSources(page)).toEqual([]);
+      page.window.close();
+    });
+
+    test("leaves the sign_up the page reports with nothing to send it", () => {
+      /*
+       * Register reports a completed sign-up through gtag. An invited
+       * teammate is not an acquisition: with no tag, it is only queued.
+       */
+      const page: OpenedPage = invitation(NEW_YORK);
+
+      page.window.gtag("event", "sign_up", { funnel_stage: "signup" });
+
+      expect(dataLayerCommands(page)).toContainEqual([
+        "event",
+        "sign_up",
+        { funnel_stage: "signup" },
+      ]);
+      expect(googleTagSources(page)).toEqual([]);
+      page.window.close();
+    });
+
+    test("leaves the address and token where the page reads them", () => {
+      const page: OpenedPage = invitation(NEW_YORK);
+      const query: URLSearchParams = new URLSearchParams(
+        page.window.location.search as string,
+      );
+
+      expect(query.get("email")).toBe(INVITED_EMAIL);
+      expect(query.get("token")).toBe(CLAIM_TOKEN);
+      page.window.close();
+    });
+
+    test("a sign-up link from an ad still loads it", () => {
+      const page: OpenedPage = open({
+        url: "https://oneuptime.com/accounts/register?utm_source=google&utm_medium=cpc&gclid=abc123",
+        timeZone: NEW_YORK,
+        googleTagMode: "analytics-only",
+        sensitiveUrlBootstrap: true,
+      });
+
+      expect(googleTagSources(page)).toEqual([ANALYTICS_URL]);
+      expect(dataLayerCommands(page)).toContainEqual([
+        "config",
+        "G-76XZF1WF3Z",
+      ]);
+      page.window.close();
+    });
   });
 
   describe("on a self-hosted install", () => {

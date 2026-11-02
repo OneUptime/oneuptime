@@ -293,6 +293,31 @@ All four wait for consent like everything else: gtag holds the calls until
 Google Analytics loads, and on a self-hosted install there is no Google tag to
 send them to.
 
+**Sign-up never reports an address that holds an email address or a
+credential.** Google Analytics reports each page's full URL, query string
+included, as `page_location`, and its terms forbid sending it personal data.
+`packages/Common/Server/Views/Partials/SensitiveUrlToken.ejs` runs first in
+sign-up's `<head>`. A token in the path (password reset, email verification) it
+moves out of the address bar before the tag loads. A value in the query string
+has to stay, because the page reads it there: an invitation's sign-up link is
+`/accounts/register?email=<address>&token=<claim token>`, and the token claims
+the invited account. So when the query holds `email` or `token` (in any case),
+or anything with an `@` in it, the partial sets
+`__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__` and the Google tag does not load on
+that page at all. The page view is lost, and so is the invitee's `sign_up`, on
+purpose: an invited teammate is not an acquisition. A campaign's own parameters
+(UTM values, click IDs, `promoCode`, `partnerId`) do not trip it, so the funnel
+a campaign is judged on is measured as before.
+`packages/Common/Tests/App/SensitiveUrlTokenBootstrap.test.ts` and
+`packages/Common/Tests/Server/Views/AnalyticsConsentBehaviour.test.ts` pin it.
+The dashboard does not include the partial, so its query strings reach Google
+Analytics as they are.
+
+GA4's data redaction (Admin → Data streams → the web stream → Redact data) can
+also redact email addresses and named query parameters before they are stored.
+It is a second layer, not a replacement, and only a maintainer of the property
+can turn it on.
+
 ## Deliberately not implemented
 
 1. **A server-side record of a booking.** Bookings are not received, stored, or
