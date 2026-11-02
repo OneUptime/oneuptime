@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "دقت درصد زمان کارکرد که روی منابع افزوده‌شده با این قاعده نمایش داده می‌شود",
   "Precision of uptime percent of this group for the last 90 days": "دقت درصد زمان کارکرد این گروه در ۹۰ روز گذشته",
   "Precision of uptime percent of this monitor for the last 90 days": "دقت درصد زمان کارکرد این مانیتور در ۹۰ روز گذشته",
-  "Relation to Labels Array where this object is categorized in.": "رابطه با برچسب‌هایی که این شیء با آن‌ها دسته‌بندی شده است.",
+  "Labels to group and filter by.": "برچسب‌هایی برای گروه‌بندی و فیلتر کردن.",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "توضیح کوتاه این هشدار. در صفحه وضعیت نمایش داده می‌شود. با قالب markdown است.",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "توضیح کوتاه این حادثه. با قالب markdown است و در صفحه وضعیت نمایش داده می‌شود.",
   "Should this incident be visible on the status page?": "این حادثه در صفحه وضعیت دیده شود؟",

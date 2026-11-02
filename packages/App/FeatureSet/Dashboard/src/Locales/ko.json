@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "이 규칙이 추가하는 리소스에 표시되는 가동 시간 비율의 정밀도",
   "Precision of uptime percent of this group for the last 90 days": "최근 90일 동안 이 그룹의 가동 시간 비율 정밀도",
   "Precision of uptime percent of this monitor for the last 90 days": "최근 90일 동안 이 모니터의 가동 시간 비율 정밀도",
-  "Relation to Labels Array where this object is categorized in.": "이 객체를 분류하는 레이블과의 관계입니다.",
+  "Labels to group and filter by.": "그룹화하고 필터링하는 데 쓰는 레이블입니다.",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "이 경고의 짧은 설명입니다. 상태 페이지에 표시됩니다. 마크다운 형식입니다.",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "이 인시던트의 짧은 설명입니다. 마크다운 형식이며 상태 페이지에 표시됩니다.",
   "Should this incident be visible on the status page?": "이 인시던트를 상태 페이지에 표시해야 합니까?",

@@ -425,7 +425,8 @@ export default class TeamPermission extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description: "Relation to Labels Array where this permission is scoped at.",
+    description:
+      "Labels that limit the permission to the resources carrying one of them. Empty means every resource.",
     example: [{ name: "Production" }, { name: "Critical" }],
   })
   @ManyToMany(

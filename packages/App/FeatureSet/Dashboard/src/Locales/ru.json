@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "Точность процента аптайма, показываемого на ресурсах, которые добавляет это правило",
   "Precision of uptime percent of this group for the last 90 days": "Точность процента аптайма этой группы за последние 90 дней",
   "Precision of uptime percent of this monitor for the last 90 days": "Точность процента аптайма этого монитора за последние 90 дней",
-  "Relation to Labels Array where this object is categorized in.": "Связь с метками, по которым классифицирован этот объект.",
+  "Labels to group and filter by.": "Метки для группировки и фильтрации.",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "Краткое описание этого оповещения. Оно будет видно на странице статуса. В формате markdown.",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "Краткое описание этого инцидента. В формате markdown, будет видно на странице статуса.",
   "Should this incident be visible on the status page?": "Должен ли этот инцидент быть виден на странице статуса?",

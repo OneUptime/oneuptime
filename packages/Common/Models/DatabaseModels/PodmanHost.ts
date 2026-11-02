@@ -910,7 +910,7 @@ export default class PodmanHost extends BaseModel {
     modelType: Label,
     title: "Labels",
     description:
-      "Relation to Labels Array where this object is categorized in.",
+      "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {

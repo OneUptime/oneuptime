@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "Presisjon for oppetidsprosenten som vises på ressursene denne regelen legger til",
   "Precision of uptime percent of this group for the last 90 days": "Presisjon for oppetidsprosenten for denne gruppen de siste 90 dagene",
   "Precision of uptime percent of this monitor for the last 90 days": "Presisjon for oppetidsprosenten for denne monitoren de siste 90 dagene",
-  "Relation to Labels Array where this object is categorized in.": "Relasjon til etikettene som dette objektet er kategorisert under.",
+  "Labels to group and filter by.": "Etiketter å gruppere og filtrere etter.",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "Kort beskrivelse av dette varselet. Den vises på statussiden. Den er i markdown.",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "Kort beskrivelse av denne hendelsen. Den er i markdown og vises på statussiden.",
   "Should this incident be visible on the status page?": "Skal denne hendelsen være synlig på statussiden?",

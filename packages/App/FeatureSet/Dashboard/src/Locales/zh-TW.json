@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "此規則新增的資源上顯示的正常運作時間百分比的精確度",
   "Precision of uptime percent of this group for the last 90 days": "此群組過去 90 天正常運作時間百分比的精確度",
   "Precision of uptime percent of this monitor for the last 90 days": "此監測器過去 90 天正常運作時間百分比的精確度",
-  "Relation to Labels Array where this object is categorized in.": "與為此物件分類之標籤的關聯。",
+  "Labels to group and filter by.": "用於分組和篩選的標籤。",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "此警示的簡短描述。將顯示在狀態頁面上。採用 markdown 格式。",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "此事件的簡短描述。採用 markdown 格式，並將顯示在狀態頁面上。",
   "Should this incident be visible on the status page?": "此事件是否應在狀態頁面上顯示？",

@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "このルールが追加するリソースに表示される稼働率の精度",
   "Precision of uptime percent of this group for the last 90 days": "このグループの過去 90 日間の稼働率の精度",
   "Precision of uptime percent of this monitor for the last 90 days": "このモニターの過去 90 日間の稼働率の精度",
-  "Relation to Labels Array where this object is categorized in.": "このオブジェクトを分類するラベルへのリレーション。",
+  "Labels to group and filter by.": "グループ化と絞り込みに使うラベル。",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "このアラートの短い説明。ステータスページに表示されます。markdown 形式です。",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "このインシデントの短い説明。markdown 形式で、ステータスページに表示されます。",
   "Should this incident be visible on the status page?": "このインシデントをステータスページに表示しますか？",

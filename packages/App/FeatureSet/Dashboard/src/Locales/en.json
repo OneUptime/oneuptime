@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "Precision of the uptime percent shown on the resources this rule adds",
   "Precision of uptime percent of this group for the last 90 days": "Precision of uptime percent of this group for the last 90 days",
   "Precision of uptime percent of this monitor for the last 90 days": "Precision of uptime percent of this monitor for the last 90 days",
-  "Relation to Labels Array where this object is categorized in.": "Relation to Labels Array where this object is categorized in.",
+  "Labels to group and filter by.": "Labels to group and filter by.",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "Short description of this alert. This will be visible on the status page. This is in markdown.",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "Short description of this incident. This is in markdown and will be visible on the status page.",
   "Should this incident be visible on the status page?": "Should this incident be visible on the status page?",

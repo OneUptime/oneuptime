@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "Precisión del porcentaje de tiempo de actividad que se muestra en los recursos que añade esta regla",
   "Precision of uptime percent of this group for the last 90 days": "Precisión del porcentaje de tiempo de actividad de este grupo en los últimos 90 días",
   "Precision of uptime percent of this monitor for the last 90 days": "Precisión del porcentaje de tiempo de actividad de este monitor en los últimos 90 días",
-  "Relation to Labels Array where this object is categorized in.": "Relación con las etiquetas que clasifican este objeto.",
+  "Labels to group and filter by.": "Etiquetas para agrupar y filtrar.",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "Descripción breve de esta alerta. Será visible en la página de estado. Está en markdown.",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "Descripción breve de este incidente. Está en markdown y será visible en la página de estado.",
   "Should this incident be visible on the status page?": "¿Debe este incidente ser visible en la página de estado?",

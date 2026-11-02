@@ -39617,7 +39617,7 @@
   "Precision of the uptime percent shown on the resources this rule adds": "Precisie van het uptimepercentage dat wordt getoond bij de resources die deze regel toevoegt",
   "Precision of uptime percent of this group for the last 90 days": "Precisie van het uptimepercentage van deze groep over de afgelopen 90 dagen",
   "Precision of uptime percent of this monitor for the last 90 days": "Precisie van het uptimepercentage van deze monitor over de afgelopen 90 dagen",
-  "Relation to Labels Array where this object is categorized in.": "Relatie met de labels waarmee dit object is ingedeeld.",
+  "Labels to group and filter by.": "Labels om op te groeperen en te filteren.",
   "Short description of this alert. This will be visible on the status page. This is in markdown.": "Korte beschrijving van deze waarschuwing. Deze is zichtbaar op de statuspagina. Dit is in markdown.",
   "Short description of this incident. This is in markdown and will be visible on the status page.": "Korte beschrijving van dit incident. Deze is in markdown en zichtbaar op de statuspagina.",
   "Should this incident be visible on the status page?": "Moet dit incident zichtbaar zijn op de statuspagina?",
