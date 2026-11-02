@@ -52,6 +52,7 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | Alertas de saúde do PostgreSQL e do Valkey (Redis) | Não | Sim | Não se aplica |
 | [Backups](/docs/installation/backups) do PostgreSQL e do ClickHouse em um armazenamento próprio, com agendamento e restauração | Não | Sim | Não se aplica |
 | [Canais de notificação personalizados](/docs/self-hosted/custom-notification-channels): acionar as pessoas pelo seu próprio serviço, como o app da sua empresa | Não | Sim | Não se aplica |
+| [Duração da sessão](/docs/self-hosted/session-length): por quanto tempo as pessoas permanecem conectadas, e por quanto tempo sem usar o OneUptime | Não | Sim | Não se aplica |
 | Visão de capacidade do ClickHouse, alertas de capacidade e limpeza automática de disco | Sim | Sim | Não se aplica |
 | Status das migrações, pacote de suporte e probes globais no painel do administrador | Sim | Sim | Não se aplica |
 | Gestão da licença Enterprise, de assentos e de instâncias | Não | Sim | Não se aplica |
@@ -203,6 +204,7 @@ O que **não** para:
 - **O monitoramento principal nunca é afetado**: monitores, alertas, incidentes, plantão, páginas de status e telemetria continuam funcionando.
 - **Os administradores master sempre podem entrar com a sua senha.**
 - **Funções personalizadas, listas de IPs permitidos e controles de acesso das páginas de status continuam valendo.** Você pode removê-los, mas não criá-los nem alterá-los.
+- **As durações da sessão continuam valendo.** Você pode removê-las, mas não defini-las nem alterá-las.
 - **Nada é excluído.** A configuração do SCIM, os logs de auditoria e as substituições de retenção ficam como estão.
 
 **Tudo volta a funcionar assim que uma licença é ativada**, sem reiniciar: o provisionamento SCIM, o registro de auditoria e as substituições de retenção voltam com a configuração que você tem. O OneUptime só os desliga quando sabe que a licença expirou. Enquanto não consegue ler o estado da licença, por exemplo por um momento enquanto o servidor inicia, SCIM, o registro de auditoria e as substituições de retenção continuam ligados.
@@ -220,6 +222,7 @@ A sua configuração fica no banco de dados. Voltar para a imagem Enterprise res
 - **As substituições de retenção deixam de valer.** A telemetria nova é mantida pela retenção padrão do projeto, e os cartões de retenção em **Configurações do projeto > Telemetria e APM > Retenção de dados** e na página de configurações de cada serviço e de cada recurso mostram um convite para fazer upgrade. As substituições ficam no banco de dados e voltam a valer quando você volta.
 - **As páginas de status voltam a mostrar Powered by OneUptime.** A configuração fica no banco de dados e oculta a linha de novo quando você volta.
 - **Funções personalizadas, listas de IPs permitidos e controles de acesso das páginas de status continuam valendo.** As configurações deles mostram um convite para fazer upgrade, com o que ainda está configurado e um botão para remover.
+- **As durações da sessão deixam de valer.** Cada entrada dura o mesmo que na Community Edition. As durações ficam no banco de dados e voltam a valer quando você voltar.
 - **As páginas de configurações enterprise mostram um convite para fazer upgrade.** Pela API você ainda pode ler e excluir a configuração enterprise e redefinir um token bearer do SCIM, mas não criar nem alterar mais nada. O registro de auditoria não pode ser ativado.
 - **Os painéis Health enterprise, a Query Console e os alertas de saúde do PostgreSQL e do Valkey param.** O monitoramento de capacidade e a limpeza do ClickHouse, o status das migrações e o pacote de suporte continuam funcionando.
 

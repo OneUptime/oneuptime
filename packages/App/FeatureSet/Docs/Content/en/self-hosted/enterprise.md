@@ -52,6 +52,7 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 | PostgreSQL and Valkey (Redis) health alerts | No | Yes | Not applicable |
 | [Backups](/docs/installation/backups) of PostgreSQL and ClickHouse to storage you own, on a schedule, with restore | No | Yes | Not applicable |
 | [Custom notification channels](/docs/self-hosted/custom-notification-channels): page people through your own service, such as your company's app | No | Yes | Not applicable |
+| [Session length](/docs/self-hosted/session-length): how long people stay signed in, and how long without using OneUptime | No | Yes | Not applicable |
 | ClickHouse capacity view, capacity alerts and automatic disk pruning | Yes | Yes | Not applicable |
 | Migration status, support bundle and global probes in the Admin Dashboard | Yes | Yes | Not applicable |
 | Enterprise license, seat and instance management | No | Yes | Not applicable |
@@ -203,6 +204,7 @@ What does **not** stop:
 - **Core monitoring is never affected**: monitors, alerts, incidents, on-call, status pages and telemetry all keep working.
 - **Master admins can always sign in with their password.**
 - **Custom roles, IP allowlists and status page access controls keep applying.** You can remove them, but not create or change them.
+- **Session lengths keep applying.** You can remove them, but not set or change them.
 - **Nothing is deleted.** SCIM configuration, audit logs and retention overrides stay as they are.
 
 **Everything resumes as soon as a license is activated**, without a restart: SCIM provisioning, audit logging and retention overrides come back with the configuration you have. OneUptime only switches them off when it knows the license has lapsed. While it cannot read the license state, for example for a moment while the server starts, SCIM, audit logging and retention overrides stay on.
@@ -220,6 +222,7 @@ Your configuration stays in the database. Switching back to the Enterprise image
 - **Retention overrides stop applying.** New telemetry is kept for the project's default retention, and the retention cards on **Project Settings > Telemetry & APM > Data Retention** and on every service and resource Settings page show an upgrade prompt. The overrides stay in the database and apply again when you switch back.
 - **Status pages show Powered by OneUptime again.** The setting stays in the database and hides the line again when you switch back.
 - **Custom roles, IP allowlists and status page access controls keep applying.** Their settings show an upgrade prompt, with what is still set and a button to remove it.
+- **Session lengths stop.** Every sign-in lasts as it does on the Community Edition. The lengths stay in the database and apply again when you switch back.
 - **Enterprise settings pages show an upgrade prompt.** Through the API you can still read and delete enterprise configuration and reset a SCIM bearer token, but not create or change anything else. Audit logging cannot be turned on.
 - **The enterprise Health dashboards, the Query Console, and the PostgreSQL and Valkey health alerts stop.** ClickHouse capacity monitoring and pruning, migration status and the support bundle keep working.
 

@@ -52,6 +52,7 @@ Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait
 | Health-alerts voor PostgreSQL en Valkey (Redis) | Nee | Ja | Niet van toepassing |
 | [Back-ups](/docs/installation/backups) van PostgreSQL en ClickHouse naar uw eigen opslag, volgens een schema, met terugzetten | Nee | Ja | Niet van toepassing |
 | [Aangepaste meldingskanalen](/docs/self-hosted/custom-notification-channels): mensen oproepen via uw eigen dienst, zoals de app van uw bedrijf | Nee | Ja | Niet van toepassing |
+| [Sessieduur](/docs/self-hosted/session-length): hoe lang mensen aangemeld blijven, en hoe lang zonder OneUptime te gebruiken | Nee | Ja | Niet van toepassing |
 | Capaciteitsweergave van ClickHouse, capaciteitsalerts en automatisch opschonen van de schijf | Ja | Ja | Niet van toepassing |
 | Migratiestatus, supportbundel en globale probes in het Admin-dashboard | Ja | Ja | Niet van toepassing |
 | Beheer van de Enterprise-licentie, de plaatsen en de instanties | Nee | Ja | Niet van toepassing |
@@ -203,6 +204,7 @@ Wat **niet** stopt:
 - **De kernmonitoring wordt nooit geraakt**: monitors, alerts, incidenten, piketdienst, statuspagina's en telemetrie blijven allemaal werken.
 - **Hoofdbeheerders kunnen zich altijd aanmelden met hun wachtwoord.**
 - **Aangepaste rollen, IP-toelatingslijsten en toegangsbeheer voor statuspagina's blijven gelden.** U kunt ze verwijderen, maar niet aanmaken of wijzigen.
+- **De sessieduur blijft gelden.** U kunt die verwijderen, maar niet instellen of wijzigen.
 - **Er wordt niets verwijderd.** SCIM-configuratie, auditlogboeken en bewaar-overschrijvingen blijven zoals ze zijn.
 
 **Alles werkt weer zodra een licentie is geactiveerd**, zonder herstart: SCIM-provisioning, auditlogging en bewaar-overschrijvingen komen terug met de configuratie die u hebt. OneUptime schakelt ze alleen uit als het weet dat de licentie is verlopen. Zolang het de licentiestatus niet kan lezen, bijvoorbeeld een moment terwijl de server start, blijven SCIM, auditlogging en bewaar-overschrijvingen aan.
@@ -220,6 +222,7 @@ Uw configuratie blijft in de database. Terugwisselen naar de Enterprise-image he
 - **Bewaar-overschrijvingen gelden niet meer.** Nieuwe telemetrie wordt bewaard volgens de standaardbewaartermijn van het project, en de bewaarkaarten op **Projectinstellingen > Telemetrie & APM > Gegevensbewaring** en op de instellingenpagina van elke service en elke resource tonen een upgradeprompt. De overschrijvingen blijven in de database en gelden weer als u terugwisselt.
 - **Statuspagina's tonen weer Powered by OneUptime.** De instelling blijft in de database en verbergt de regel weer als u terugwisselt.
 - **Aangepaste rollen, IP-toelatingslijsten en toegangsbeheer voor statuspagina's blijven gelden.** Hun instellingen tonen een upgradeprompt, met wat nog is ingesteld en een knop om het te verwijderen.
+- **De sessieduur geldt niet meer.** Elke aanmelding duurt zo lang als in de Community Edition. De duur blijft in de database staan en geldt weer wanneer u terugschakelt.
 - **Enterprise-instellingspagina's tonen een upgradeprompt.** Via de API kunt u de enterpriseconfiguratie nog lezen en verwijderen en een SCIM-bearertoken opnieuw instellen, maar niets anders aanmaken of wijzigen. Auditlogging kan niet worden ingeschakeld.
 - **De enterprise Health-dashboards, de Query Console en de Health-alerts voor PostgreSQL en Valkey stoppen.** Capaciteitsbewaking en opschoning van ClickHouse, de migratiestatus en de supportbundel blijven werken.
 

@@ -59,8 +59,16 @@ import TwoFactorBackupCode from "Common/Server/Utils/TwoFactorBackupCode";
 import TwoFactorBackupCodeNotification from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import UserSessionService, {
   SessionMetadata,
+  SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
+import SessionEndedException from "Common/Types/Exception/SessionEndedException";
+import {
+  INACTIVE_FOR_IN_SECONDS_FIELD,
+  readReportedInactivityInSeconds,
+  SessionEndReason,
+} from "Common/Types/UserSession/SessionLength";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -197,8 +205,6 @@ const verificationEmailResendRateLimit: (
   IdentityRateLimitBucket.VerificationEmailResend,
 );
 
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
-
 interface FinalizeUserLoginResult {
   sessionMetadata: SessionMetadata;
   accessToken: string;
@@ -233,10 +239,7 @@ const finalizeUserLogin: (
       expressResponse: res,
       user,
       isGlobalLogin,
-      sessionId: sessionMetadata.session.id!,
-      refreshToken: sessionMetadata.refreshToken,
-      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-      accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      ...getSessionCookieFields(sessionMetadata),
     });
   }
 
@@ -250,8 +253,10 @@ const finalizeUserLogin: (
       isMasterAdmin: user.isMasterAdmin!,
       isGlobalLogin: isGlobalLogin,
       sessionId: sessionMetadata.session.id!,
+      signedInAt: sessionMetadata.signedInAt,
+      lastActiveAt: sessionMetadata.lastActiveAt,
     },
-    expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+    expiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
   });
 
   return { sessionMetadata, accessToken };
@@ -1957,11 +1962,24 @@ router.post(
         await UserSessionService.findActiveSessionByRefreshToken(refreshToken);
 
       if (!session || !session.id) {
+        /*
+         * A session the server's session lengths ended already - a master
+         * admin shortened them, and every session past them was ended at
+         * once (UserSessionService.endSessionsPastLengths) - says why, as
+         * it would have had this refresh been the one to end it.
+         */
+        const endReason: SessionEndReason | null =
+          await UserSessionService.getSessionLengthEndReason(refreshToken);
+
         CookieUtil.removeAllCookies(req, res);
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
+          endReason
+            ? new SessionEndedException(endReason)
+            : new NotAuthenticatedException(
+                "Session expired. Please login again.",
+              ),
         );
       }
 
@@ -2046,9 +2064,43 @@ router.post(
           ? (additionalInfo["isGlobalLogin"] as boolean)
           : true;
 
+      /*
+       * How long a sign-in lasts (Common/Types/UserSession/SessionLength.ts):
+       * the session ends once the server's session length has passed since
+       * it signed in, or its person has not used OneUptime for the idle
+       * timeout - by what the session knows, and while an idle timeout is
+       * set, by what the Dashboard says of how long its person has not
+       * clicked, typed or scrolled (inactiveForInSeconds). Decided here,
+       * never left to the browser.
+       */
+      const decision: SessionRenewalDecision =
+        await UserSessionService.decideRenewal({
+          session,
+          reportedInactivityInSeconds: readReportedInactivityInSeconds(
+            (req.body as JSONObject | undefined)?.[
+              INACTIVE_FOR_IN_SECONDS_FIELD
+            ],
+          ),
+        });
+
+      if (decision.hasEnded) {
+        await UserSessionService.endSessionByLength(
+          session.id,
+          decision.reason,
+        );
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new SessionEndedException(decision.reason),
+        );
+      }
+
       const renewedSession: SessionMetadata =
         await UserSessionService.renewSessionWithNewRefreshToken({
           session,
+          lastActiveAt: decision.lastActiveAt,
+          lengths: decision.lengths,
           ipAddress: getClientIp(req),
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
@@ -2058,10 +2110,7 @@ router.post(
         expressResponse: res,
         user,
         isGlobalLogin,
-        sessionId: renewedSession.session.id!,
-        refreshToken: renewedSession.refreshToken,
-        refreshTokenExpiresAt: renewedSession.refreshTokenExpiresAt,
-        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        ...getSessionCookieFields(renewedSession),
       });
 
       // Generate access token for response body (used by mobile clients)
@@ -2074,8 +2123,10 @@ router.post(
           isMasterAdmin: user.isMasterAdmin!,
           isGlobalLogin: isGlobalLogin,
           sessionId: renewedSession.session.id!,
+          signedInAt: renewedSession.signedInAt,
+          lastActiveAt: renewedSession.lastActiveAt,
         },
-        expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+        expiresInSeconds: renewedSession.accessTokenExpiresInSeconds,
       });
 
       return Response.sendJsonObjectResponse(req, res, {

@@ -10,9 +10,9 @@ import {
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * What the custom role, IP allowlist and status page cards show above
- * themselves when the Enterprise license has lapsed, leaves their feature
- * out, or is about to lapse.
+ * What the custom role, IP allowlist, status page, custom channel and
+ * session length screens show above themselves when the Enterprise license
+ * has lapsed, leaves their feature out, or is about to lapse.
  *
  * These are configuration: once the trial or the grace period is over, the
  * server refuses to set or change them (EditionPermissions), and removing
@@ -35,7 +35,8 @@ export type EnterpriseSettingFeature =
   | LicensedFeature.IpAllowlists
   | LicensedFeature.StatusPageBranding
   | LicensedFeature.StatusPageAccessControls
-  | LicensedFeature.CustomNotificationChannels;
+  | LicensedFeature.CustomNotificationChannels
+  | LicensedFeature.SessionLength;
 
 interface FeatureSentences {
   readOnlyTitle: string;
@@ -85,6 +86,16 @@ const FEATURE_SENTENCES: Record<EnterpriseSettingFeature, FeatureSentences> = {
       "No valid Enterprise license: custom channels stop when the trial or grace period ends.",
     afterTheLapse:
       "Your channels and the on-call rules that use them are kept, but no page or notification is sent to them. You can still delete a channel.",
+  },
+  [LicensedFeature.SessionLength]: {
+    readOnlyTitle:
+      "Enterprise license required: session lengths cannot be set or changed.",
+    notIncludedTitle:
+      "Your Enterprise license does not include session lengths: they cannot be set or changed.",
+    graceTitle:
+      "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.",
+    afterTheLapse:
+      "The lengths already set still sign people out, and you can still remove them.",
   },
   [LicensedFeature.StatusPageBranding]: {
     readOnlyTitle:

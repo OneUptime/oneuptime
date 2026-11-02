@@ -1,16 +1,17 @@
 # ChatGPT plugin
 
-The package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and Codex share, to list its hosted MCP server, `https://oneuptime.com/mcp`. It follows OpenAI's [plugin package format](https://developers.openai.com/plugins/build/plugins): the portable Agent Plugins format, with OpenAI's settings under `extensions["com.openai"]`.
+The package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and Codex share, to list its hosted MCP server, `https://oneuptime.com/mcp`. It follows OpenAI's [plugin package format](https://developers.openai.com/plugins/build/plugins): the portable Agent Plugins format, with OpenAI's settings under `extensions["com.openai"]`. It also carries the coding agent plugin's four skills, which ChatGPT and Codex load from `skills/`.
 
-| File          | What it holds                                                                                                  |
-| ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `plugin.json` | The listing (name, descriptions, links, icons), the review test cases and the release notes.                   |
-| `mcp.json`    | The server: streamable HTTP at `https://oneuptime.com/mcp`, signed in to with OAuth for read and write access. |
-| `assets/`     | The listing icon (512px) and the composer icon (192px): OneUptime's app icon.                                  |
+| File          | What it holds                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `plugin.json` | The listing (name, descriptions, links, icons), the review test cases and the release notes.                             |
+| `mcp.json`    | The server: streamable HTTP at `https://oneuptime.com/mcp`, signed in to with OAuth for read and write access.           |
+| `assets/`     | The listing icon (512px) and the composer icon (192px): OneUptime's app icon.                                            |
+| `skills/`     | Not in this folder: the build takes the four skills from `../CodingAgentPlugin/skills/`, so one set serves every client. |
 
 `mcp.json` declares the server's sign-in under `extensions["com.openai"].auth`, where OpenAI's portal reads it. Agent Plugins 1.0.0 itself defines no authentication fields, so a client that only knows that format reads the server entry as invalid; this package is built for OpenAI's.
 
-`../Tests/ChatGPTPlugin.test.ts` holds both files to the published Agent Plugins schemas (copied in `../Tests/AgentPlugins/`) and to OpenAI's submission limits, and checks that every tool a test case names is one the server has.
+`../Tests/ChatGPTPlugin.test.ts` holds both files to the published Agent Plugins schemas (copied in `../Tests/AgentPlugins/`) and to OpenAI's submission limits, and checks that every tool a test case names is one the server has. It holds the skills to what OpenAI reads and asks of a skill: a name and a description, a line saying the person's own instructions come first, and no client named, since Cursor, Claude, ChatGPT and Codex load the same text. `../Tests/CodingAgentPlugin.test.ts` holds what the skills say to the server.
 
 ## Build the ZIP
 
@@ -18,7 +19,7 @@ The package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and
 npm run build-chatgpt-plugin
 ```
 
-This writes `build/chatgpt-plugin/oneuptime-chatgpt-plugin.zip`, with `plugin.json`, `mcp.json` and `assets/` at its root. This README stays out of it.
+This writes `build/chatgpt-plugin/oneuptime-chatgpt-plugin.zip`, with `plugin.json`, `mcp.json`, `assets/` and `skills/` at its root. This README stays out of it.
 
 ## What the submission needs besides the ZIP
 
@@ -41,4 +42,4 @@ The third case acknowledges an incident and adds an internal note to it. Running
 
 ## Updating the listing
 
-Changes to the server's tools need no new ZIP: the directory picks them up from the server and checks them. A change to the listing, the test cases or the icons needs one: raise `version` in `plugin.json`, build the ZIP, and upload it to the existing plugin. See OpenAI's [submission guide](https://developers.openai.com/plugins/deploy/submission).
+Changes to the server's tools need no new ZIP: the directory picks them up from the server and checks them. A change to the listing, the test cases, the icons or a skill needs one: raise `version` in `plugin.json`, build the ZIP, and upload it to the existing plugin. OpenAI scans the skills of each upload, and its required scans must pass before the plugin can be submitted. See OpenAI's [submission guide](https://developers.openai.com/plugins/deploy/submission).

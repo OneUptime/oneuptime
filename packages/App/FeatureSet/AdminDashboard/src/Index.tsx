@@ -11,6 +11,7 @@ import NewVersion, {
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
 import ThemeUtil from "Common/UI/Utils/Theme";
 import UserUtil from "Common/UI/Utils/User";
+import UserActivity from "Common/UI/Utils/UserActivity";
 import API from "Common/UI/Utils/API/API";
 import { enablePrivateImageSessionRefresh } from "Common/UI/Components/Markdown.tsx/SessionAwareImage";
 import React from "react";
@@ -24,6 +25,13 @@ import { BrowserRouter } from "react-router-dom";
  * ForeignDomMutationGuard).
  */
 ForeignDomMutationGuard.install();
+
+/*
+ * When the person last clicked, typed or scrolled, in any tab: every renewal
+ * of the session says how long ago that was, and the server's idle timeout
+ * is counted from it (Common/UI/Utils/UserActivity).
+ */
+UserActivity.install();
 
 ThemeUtil.initialize();
 
