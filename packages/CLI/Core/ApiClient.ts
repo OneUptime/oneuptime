@@ -113,10 +113,18 @@ function buildRequestData(options: ApiRequestOptions): JSONObject | undefined {
 export const SERVER_VERSION_PATH: string = "/api/version";
 
 /*
+ * A release's version: three numbers. A OneUptime built without one (from
+ * source, or an image built without APP_VERSION) answers "unknown", which
+ * names no release: install.sh's is_release_version reads it the same way.
+ */
+const RELEASE_VERSION: RegExp = /^\d+\.\d+\.\d+$/;
+
+/*
  * The release of the OneUptime at this address - "14.0.101" - or null when
- * it does not say (an address that is not OneUptime, one too old to answer).
- * The CLI is released with OneUptime under the same version, so a
- * difference means the CLI may not know the server's newest resources.
+ * it does not say (an address that is not OneUptime, one too old to answer,
+ * one built without a release). The CLI is released with OneUptime under
+ * the same version, so a difference means the CLI may not know the
+ * server's newest resources.
  */
 export async function getServerVersion(apiUrl: string): Promise<string | null> {
   const url: URL = URL.fromString(apiUrl);
@@ -132,7 +140,7 @@ export async function getServerVersion(apiUrl: string): Promise<string | null> {
 
   const version: unknown = response.data?.["version"];
 
-  return typeof version === "string" && version.trim()
+  return typeof version === "string" && RELEASE_VERSION.test(version.trim())
     ? version.trim()
     : null;
 }
