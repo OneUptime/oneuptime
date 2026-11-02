@@ -381,6 +381,50 @@ describe("VMwareOtlpBuilder", () => {
     );
   });
 
+  test("a host vCenter reports no quick stats for (not connected) reports 0, as the receiver does", () => {
+    /*
+     * vCenter leaves a host's overallMemoryUsage and overallCpuUsage out
+     * while the host is not connected; the receiver records the zero
+     * govmomi reads for them, and OneUptime reads "0 MiB used" as "this host
+     * is not running" - so the probe must send it too, not leave it out.
+     */
+    const result: VMwareOtlpBuildResult = VMwareOtlpBuilder.build(
+      snapshotOf({
+        hosts: new Map([
+          [
+            "host-1",
+            host({
+              powerState: "unknown",
+              overallMemoryUsage: null,
+              overallCpuUsage: null,
+              overallStatus: "red",
+            }),
+          ],
+        ]),
+      }),
+      "x",
+    );
+    const esx: Record<string, string> = {
+      "vcenter.host.name": "esx-01.example.com",
+    };
+
+    expect(points(result, esx, "vcenter.host.memory.usage")[0]!.value).toBe(0);
+    expect(points(result, esx, "vcenter.host.cpu.usage")[0]!.value).toBe(0);
+    expect(
+      points(result, esx, "vcenter.host.memory.utilization")[0]!.value,
+    ).toBe(0);
+    expect(points(result, esx, "vcenter.host.cpu.utilization")[0]!.value).toBe(
+      0,
+    );
+    // The hardware numbers vCenter keeps for it are reported as ever.
+    expect(points(result, esx, "vcenter.host.memory.capacity")[0]!.value).toBe(
+      65536,
+    );
+    expect(points(result, esx, "vcenter.host.cpu.capacity")[0]!.value).toBe(
+      9600,
+    );
+  });
+
   test("a host with no hardware numbers gets no utilization (no division by zero)", () => {
     const result: VMwareOtlpBuildResult = VMwareOtlpBuilder.build(
       snapshotOf({

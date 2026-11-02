@@ -19,6 +19,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -185,9 +186,21 @@ export const QueryTeamsTool: ObservabilityTool = {
                 title: `Team: ${team.name}`,
                 description: team.description,
                 columns: [
-                  { key: "name", title: "Member", type: "text" },
-                  { key: "email", title: "Email", type: "text" },
-                  { key: "status", title: "Status", type: "text" },
+                  {
+                    key: "name",
+                    title: translationKey("Member"),
+                    type: "text",
+                  },
+                  {
+                    key: "email",
+                    title: translationKey("Email"),
+                    type: "text",
+                  },
+                  {
+                    key: "status",
+                    title: translationKey("Status"),
+                    type: "text",
+                  },
                 ],
                 rows: memberRows,
                 link: { type: AIChatCitationTargetType.Teams },
@@ -314,9 +327,17 @@ export const QueryTeamsTool: ObservabilityTool = {
                 ? `Showing ${rows.length} of ${totalCount} teams`
                 : undefined,
               columns: [
-                { key: "name", title: "Name", type: "text" },
-                { key: "memberCount", title: "Members", type: "number" },
-                { key: "description", title: "Description", type: "text" },
+                { key: "name", title: translationKey("Name"), type: "text" },
+                {
+                  key: "memberCount",
+                  title: translationKey("Members"),
+                  type: "number",
+                },
+                {
+                  key: "description",
+                  title: translationKey("Description"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: { type: AIChatCitationTargetType.Teams },

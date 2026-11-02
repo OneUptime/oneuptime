@@ -47,9 +47,10 @@ import Link from "Common/Types/Link";
 
 /*
  * A playbook's page, which opens on its own, and an entity's page, a
- * watchlist's page and a hunt's page, under the section their lists are in.
- * A watchlist's crumb and a hunt's are named for the record once its page
- * has read it (nameRecordInTrail, as a playbook's is).
+ * watchlist's page, a hunt's page and a case note template's page, under
+ * the section their lists are in. A watchlist's crumb and a hunt's are named
+ * for the record once its page has read it (nameRecordInTrail, as a
+ * playbook's is).
  */
 const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
   [
@@ -67,6 +68,10 @@ const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
   [
     PageMap.SECURITY_EVENTS_HUNT_VIEW,
     ["Security Events", "Events", "Hunts", "Hunt"],
+  ],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW,
+    ["Security Events", "Settings", "Note Templates", "Note Template"],
   ],
 ];
 
@@ -102,6 +107,10 @@ const DETAIL_LISTS: Array<[PageMap, PageMap]> = [
   ],
   [PageMap.SECURITY_EVENTS_WATCHLIST_VIEW, PageMap.SECURITY_EVENTS_WATCHLISTS],
   [PageMap.SECURITY_EVENTS_HUNT_VIEW, PageMap.SECURITY_EVENTS_HUNTS],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW,
+    PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES,
+  ],
 ];
 
 function getDetailListOf(page: PageMap): PageMap | undefined {
@@ -159,6 +168,10 @@ function getSectionOf(page: PageMap): SecurityEventsMenuSection | undefined {
       );
     case PageMap.SECURITY_EVENTS_HUNT_VIEW:
       return getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_HUNTS);
+    case PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW:
+      return getSecurityEventsMenuSectionFor(
+        PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES,
+      );
     default:
       return getSecurityEventsMenuSectionFor(page);
   }

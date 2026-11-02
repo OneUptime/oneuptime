@@ -184,6 +184,7 @@ describe("the saved views each resource's custom fields appear in", () => {
         "MonitorCustomField",
         "OnCallDutyPolicyCustomField",
         "ScheduledMaintenanceCustomField",
+        "SecurityCaseCustomField",
         "StatusPageCustomField",
         "TeamCustomField",
         "TeamMemberCustomField",
@@ -214,6 +215,10 @@ describe("the saved views each resource's custom fields appear in", () => {
     ).toEqual(["all-scheduled-maintenance-events-table"]);
     expect(getCustomFieldSavedViewTableIds("InventoryItemCustomField")).toEqual(
       ["inventory-items-table", "inventory-archived-table"],
+    );
+    // The case queue offers no saved views: each of its pages is a view.
+    expect(getCustomFieldSavedViewTableIds("SecurityCaseCustomField")).toEqual(
+      [],
     );
   });
 

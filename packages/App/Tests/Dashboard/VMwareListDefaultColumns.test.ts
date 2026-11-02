@@ -327,20 +327,42 @@ describe("All vCenters opens without Collected By and Agent Version", () => {
 });
 
 /*
+ * The hosts and virtual machines lists draw their columns from one shared
+ * file, VMwareResourceTables.tsx (a cluster's page and a host's draw the
+ * same tables): the check reads the file that declares them.
+ */
+const VMWARE_RESOURCE_TABLES: string =
+  "../Components/VMware/VMwareResourceTables.tsx";
+
+/*
  * The lists a vCenter's side menu opens (its hosts, virtual machines,
  * datastores, clusters and resource pools) and the archived vCenters: none
  * of them shows either column.
  */
 const OTHER_VMWARE_LISTS: ReadonlyArray<string> = [
   "VMware/Archived.tsx",
-  "VMware/View/Hosts.tsx",
-  "VMware/View/VirtualMachines.tsx",
+  VMWARE_RESOURCE_TABLES,
   "VMware/View/Datastores.tsx",
   "VMware/View/Clusters.tsx",
   "VMware/View/ResourcePools.tsx",
 ];
 
 describe("VMware's other lists show neither column", () => {
+  test.each([
+    ["VMware/View/Hosts.tsx", "VMwareHostsTable"],
+    ["VMware/View/VirtualMachines.tsx", "VMwareVirtualMachinesTable"],
+  ])(
+    "%s draws the shared table, whose columns are checked",
+    (file: string, table: string) => {
+      const source: string = readPage(file);
+
+      expect(source).toContain(
+        `import { ${table} } from "../../../Components/VMware/VMwareResourceTables";`,
+      );
+      expect(source).toContain(`<${table}`);
+    },
+  );
+
   test.each(OTHER_VMWARE_LISTS)("%s", (file: string) => {
     expect(
       columnLikeObjects(file)

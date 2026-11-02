@@ -13,13 +13,10 @@ import React, {
   useState,
 } from "react";
 import { Outlet, useParams } from "react-router-dom";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import URL from "Common/Types/API/URL";
-import { APP_API_URL } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import { JSONObject } from "Common/Types/JSON";
+import {
+  VMwareInventorySummary,
+  fetchVMwareInventorySummary,
+} from "../Utils/VMwareResourceUtils";
 
 const VMwareVCenterViewLayout: FunctionComponent<
   PageComponentProps
@@ -42,36 +39,20 @@ const VMwareVCenterViewLayout: FunctionComponent<
          * written by the ingest path from the SAME inventory buffer
          * (single-source rule), so no write-back is needed here.
          */
-        const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
-          .addRoute("/vmware-resource/inventory-summary/")
-          .addRoute(modelId.toString());
+        const summary: VMwareInventorySummary | null =
+          await fetchVMwareInventorySummary(modelId);
 
-        const summaryResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: summaryUrl,
-            data: {},
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
-
-        if (summaryResponse instanceof HTTPErrorResponse) {
+        if (!summary) {
           return;
         }
 
-        const summary: JSONObject = summaryResponse.data;
-        const readNum: (k: string) => number = (k: string): number => {
-          const v: unknown = summary[k];
-          return typeof v === "number" ? v : 0;
-        };
-
         setResourceCounts({
-          hosts: readNum("hostCount"),
+          hosts: summary.hostCount,
           // Non-template VMs — the same population the vCenter list counts.
-          virtualMachines: readNum("virtualMachineCount"),
-          datastores: readNum("datastoreCount"),
-          clusters: readNum("clusterCount"),
-          resourcePools: readNum("resourcePoolCount"),
+          virtualMachines: summary.virtualMachineCount,
+          datastores: summary.datastoreCount,
+          clusters: summary.clusterCount,
+          resourcePools: summary.resourcePoolCount,
         });
       } catch {
         // Counts are supplementary, don't fail the layout

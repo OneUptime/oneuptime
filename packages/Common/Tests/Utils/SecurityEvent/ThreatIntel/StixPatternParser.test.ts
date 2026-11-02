@@ -3,6 +3,7 @@ import StixPatternParser, {
 } from "../../../../Utils/SecurityEvent/ThreatIntel/StixPatternParser";
 import { ThreatIntelIndicatorType } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 
 /*
  * The STIX pattern subset contract: plain IOC equality parses into
@@ -277,5 +278,18 @@ describe("StixPatternParser — unsupported patterns return null, whole", () => 
         "[ipv4-addr:value = '198.51.100.7'] garbage [domain-name:value = 'evil.example']",
       ),
     ).toBeNull();
+  });
+});
+
+describe("StixPatternParser: words named after what every object inherits", () => {
+  test("a hash named after one is no hash this product reads", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        parsed: StixPatternParser.parse(
+          `[file:hashes.'${name}' = 'd41d8cd98f00b204e9800998ecf8427e']`,
+        ),
+      }).toEqual({ name, parsed: null });
+    }
   });
 });

@@ -19,6 +19,7 @@ import AttributeKeySentence, {
 import TelemetrySearchSuggestions from "./TelemetrySearchSuggestions";
 import TelemetrySearchHelp from "./TelemetrySearchHelp";
 import { SearchHelpRow } from "../types";
+import { readOwnValue } from "../../../../Utils/LookupTable";
 
 export interface TelemetrySearchBarProps {
   value: string;
@@ -260,10 +261,12 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
                * what's actually in the data); otherwise accept the typed
                * value as-is so users aren't blocked when no suggestion exists.
                */
-              const resolvedField: string =
-                fieldAliasMap[fieldPrefix.toLowerCase()] || fieldPrefix;
+              const resolvedField: string = resolveTelemetrySearchField(
+                fieldPrefix,
+                fieldAliasMap,
+              );
               const availableValues: Array<string> =
-                (props.valueSuggestions || {})[resolvedField] || [];
+                readOwnValue(props.valueSuggestions, resolvedField) || [];
               const lowerPartial: string = partialValue.toLowerCase();
               const exactMatch: string | undefined = availableValues.find(
                 (v: string): boolean => {
@@ -573,6 +576,19 @@ function extractCurrentWord(value: string): string {
   return parts[parts.length - 1] || "";
 }
 
+/*
+ * The field a typed name filters: the page's alias for it, by any case, or
+ * the name as typed (an attribute's, whose case is kept). Read among the
+ * aliases' own names only - `constructor:` is a field of that name, never
+ * Object's constructor (Common/Utils/LookupTable).
+ */
+export function resolveTelemetrySearchField(
+  fieldName: string,
+  aliasMap: Readonly<Record<string, string>>,
+): string {
+  return readOwnValue(aliasMap, fieldName.toLowerCase()) || fieldName;
+}
+
 function getValueSuggestions(
   fieldName: string,
   partialValue: string,
@@ -580,9 +596,20 @@ function getValueSuggestions(
   aliasMap: Record<string, string>,
 ): Array<string> {
   // Case-insensitive alias lookup, preserve original case as fallback for attributes
-  const resolvedField: string = aliasMap[fieldName.toLowerCase()] || fieldName;
+  const resolvedField: string = resolveTelemetrySearchField(
+    fieldName,
+    aliasMap,
+  );
 
-  const values: Array<string> | undefined = valueSuggestions[resolvedField];
+  /*
+   * The suggestions the field itself holds: a field named after something
+   * every object inherits has none, where reading the plain object handed
+   * its function on as the list.
+   */
+  const values: Array<string> | undefined = readOwnValue(
+    valueSuggestions,
+    resolvedField,
+  );
 
   if (!values || values.length === 0) {
     return [];

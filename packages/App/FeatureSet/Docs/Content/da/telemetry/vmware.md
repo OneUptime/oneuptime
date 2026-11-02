@@ -244,22 +244,40 @@ Receiveren sender ingen metrik for en VM's strømtilstand. Den sender `vcenter.v
 
 ![vCenter-oversigten med antallet af datacentre, klynger, ESXi-værter, virtuelle maskiner og datastores sammen med værternes CPU og hukommelse, datastore-forbrug og VM-CPU-ready](/docs/static/images/VMwareVCenterOverview.png)
 
-Siden **Oversigt** besvarer først "er dette vCenter sundt": de effektive værter, værternes CPU og hukommelse vægtet efter kapacitet, den fyldteste datastore og den værste CPU-ready-tid for en VM. Når noget er forringet, navngiver den det ansvarlige objekt, så du ikke skal lede.
+Siden **Oversigt** besvarer først "er dette vCenter sundt". Dens sidehoved viser, om der kommer data, og hvordan vCenter har det: **Sund**, **Forringet** mens noget trænger til et kig, **Usund** mens noget kræver nogen nu, eller **Tilstand ukendt** mens vCenter er afbrudt, fordi dets seneste rapport så ikke længere er sandheden. Dens chips tæller datacentrene, klyngerne, de ESXi-værter, vCenter når, ud af alle, de tændte VM'er ud af alle, skabelonerne og datastorene, og alle undtagen datacentrene åbner deres liste.
+
+Derefter kommer **Kræver opmærksomhed**: alt, hvad der kræver nogen, det mest presserende først, hver med årsagen og et skridt fra sin side. En ESXi-vært, som vCenter ikke når, en datastore, der er mere end 90 % fuld, og en VM, hvis hukommelse værten swapper til disk, er kritiske. En vært, der er mere end 90 % optaget, en datastore, der er mere end 80 % fuld, en VM, der venter på en ledig CPU, eller hvis hukommelse værten tager tilbage, en klynge med værter, der ikke er effektive, eller uden hukommelsen til at miste en af dem, og de alarmer, vCenter tæller i hvert datacenter, trænger til et kig. Hver tærskel er den, som dens [advarselsskabelon](/docs/monitor/vmware-monitor#færdige-advarselsskabeloner) udløses ved. Når intet kræver opmærksomhed, er der intet kort.
+
+Under det står de effektive værter, værternes CPU og hukommelse vægtet efter kapacitet, den fyldteste datastore og den værste CPU-ready-tid for en VM, med deres diagrammer; **ESXi-værter**, hver værts status og belastning et skridt fra dens side; og de største forbrugere.
+
+### Hvad en værts status siger
+
+vCenter rapporterer kun en værts CPU- og hukommelsesforbrug, mens værten er forbundet og kører, og en ESXi-vært, der kører, bruger altid hukommelse. En vært, der slet ikke rapporterer noget forbrug, er altså nede, og det, dens datacenter tæller (værter, vCenter har mistet forbindelsen til, slukkede værter og værter i standby), siger på hvilken måde:
+
+| Status | Hvornår |
+| --- | --- |
+| **Forbundet** | vCenter når den, og den rapporterer, hvad den bruger. Den trænger til et kig, mens dens CPU eller hukommelse er mere end 90 % optaget. |
+| **Svarer ikke** | vCenter har mistet forbindelsen til den: den gik ned, mistede strømmen eller sit administrationsnetværk, eller blev afbrudt. Kritisk: dens VM'er viser **Afbrudt** og er nede, medmindre vSphere HA har genstartet dem et andet sted. |
+| **Slukket** | Nogen slukkede den via vCenter. Ikke et problem i sig selv. |
+| **I standby** | vSphere DPM satte den på standby for at spare strøm og vækker den, når klyngen har brug for den. Ikke et problem i sig selv. |
+| **Slukket eller i standby** | Den rapporterer intet forbrug, og dens datacenter har slukkede værter og andre i standby. |
+| **Intet forbrug rapporteret** | Den rapporterer intet forbrug, og det, dens datacenter tæller, siger ikke hvorfor. Den trænger til et kig. |
+| **Rapporterer ikke** | vCenter har ikke rapporteret den i mere end 15 minutter. |
 
 ### ESXi-værter
 
 ![Siden med værter, der viser hver ESXi-vært med dens klynge, datacenter og CPU- og hukommelsesudnyttelse](/docs/static/images/VMwareHosts.png)
 
-Vælg en vært for at åbne dens side. Den svarer på det, siden for en vært uden for VMware svarer på, med det, vCenter ved om en hypervisor:
+Listen **Værter** giver hver værts status, med årsagen til at den trænger til et kig nedenunder, og dens CPU og hukommelse, gule over 90 %. Vælg en vært for at åbne dens side. Den svarer på det, siden for en vært uden for VMware svarer på, med det, vCenter ved om en hypervisor:
 
-- **Oversigt**: CPU, hukommelse, den langsomste disks latens og netværksgennemløb i det tidsinterval, du vælger, som felter og diagrammer (træk hen over et diagram for at zoome ind); de hændelser og advarsler, der er åbne på værten; dens mest belastede virtuelle maskiner, hvor dem, der venter på en fysisk CPU, er markeret; dens fysiske netværksadaptere og lagerenheder, hvor pakkefejl og langsomme diske er markeret; hvilke værtsadvarsler der er slået til; og værtens detaljer.
+- **Oversigt**: **Kræver opmærksomhed** for værten og de VM'er, den kører; CPU, hukommelse, den langsomste disks latens og netværksgennemløb i det tidsinterval, du vælger, som felter og diagrammer (træk hen over et diagram for at zoome ind); de hændelser og advarsler, der er åbne på værten; dens mest belastede virtuelle maskiner, hvor dem, der venter på en fysisk CPU, er markeret; dens fysiske netværksadaptere og lagerenheder, hvor pakkefejl og langsomme diske er markeret; hvilke værtsadvarsler der er slået til; og værtens detaljer.
 - **Virtuelle maskiner**: værtens VM'er og skabeloner med deres status, ressourcepulje, CPU ready, CPU og hukommelse.
 - **Metrikker**: værtens CPU-, hukommelses-, netværks- og diskserier som diagrammer, pr. netværksadapter og lagerenhed, som hver kan åbnes i metrik-explorer.
 - **Protokoller**: værtens egen syslog, når den sender den (se [Send ESXi-syslog](#valgfrit-send-esxi-syslog)). Indtil da giver fanen de kommandoer, der peger denne vært, eller hele dens klynge, mod agenten. En vCenter, som en sonde indsamler, har ingen syslog, fordi en sonde ikke modtager den.
 
 Når vCenter holder op med at rapportere en vært, siger siden det over sine faner, med hvornår vCenter sidst rapporterede den. Efter 15 minutter uden rapport forlader værten inventaret: dens side siger det så og viser stadig dens tidligere metrikker.
 
-De fem værtsadvarsler (CPU- og hukommelsesmætning, høj disklatens, netværkspakkefejl og droppede pakker) overvåger hver især alle værter i vCenter og udløses for hver vært, der overskrider dem. Kortet **Værtsadvarsler** på en værts side viser, hvilke der er slået til, og dets knap åbner vCenters **Anbefalinger** med de manglende allerede valgt: Opret dem der, én gang, for alle værter.
+De seks værtsadvarsler (en vært, der ikke svarer, CPU- og hukommelsesmætning, høj disklatens, netværkspakkefejl og droppede pakker) overvåger hver især alle værter i vCenter og udløses for hver vært, der overskrider dem. Kortet **Værtsadvarsler** på en værts side viser, hvilke der er slået til, og dets knap åbner vCenters **Anbefalinger** med de manglende allerede valgt: Opret dem der, én gang, for alle værter.
 
 ### Virtuelle maskiner
 
@@ -267,9 +285,19 @@ De fem værtsadvarsler (CPU- og hukommelsesmætning, høj disklatens, netværksp
 
 Slukkede virtuelle maskiner og skabeloner vises også. vCenter rapporterer kun CPU-tællere for tændte VM'er, så deres CPU-kolonner viser N/A i stedet for et misvisende nul.
 
+En VM's side siger, hvad den laver (**Kører**, **Slukket**, **Skabelon**, eller **Afbrudt** mens vCenter ikke når dens vært), og hvor den kører, med dens vært og klynge et skridt væk. Dens **Oversigt** har **Kræver opmærksomhed** for VM'en, dens CPU, CPU ready, hukommelse og disk, de hændelser og advarsler, der er åbne på den, hvilke af de syv VM-advarsler der er slået til, og dens detaljer. **Metrikker** har dens diagrammer.
+
 ### Datastores
 
 ![Siden med datastores, der viser hver datastore med brugt og samlet kapacitet og en udnyttelsesbjælke](/docs/static/images/VMwareDatastores.png)
+
+En datastores side siger, hvor fuld den er, rød over 90 % og gul over 80 %, hvor meget der er ledigt, og, mens den vokser, hvor mange dage der er tilbage, før den er fuld. Den viser de hændelser og advarsler, der er åbne på den, og hvilke af dens to kapacitetsadvarsler der er slået til.
+
+### Klynger
+
+En klynges side siger, om den er **Sund**, **Forringet** eller **Usund**: hvor mange af dens værter der er effektive, hvor meget af dens effektive CPU og hukommelse dens værter bruger, og om dens andre værter kunne overtage den største værts VM'er (**Værtsnedbrud**). Dens **Kræver opmærksomhed** omfatter dens værter og deres VM'er, dens faner **ESXi-værter** og **Virtuelle maskiner** viser dem, og **Klyngeadvarsler** viser, hvilke af dens tre advarsler der er slået til.
+
+En side, hvis data ikke kan læses, siger det, med **Prøv igen**, og en liste siger det i sin tabel, med **Opdater**.
 
 ## Valgfrit — Send ESXi-syslog
 
@@ -459,6 +487,10 @@ Rollen Read-Only blev tildelt på vCenter-objektet uden **Propagate to children*
 
 :::details Alle VM'er vises som slukkede
 En VM's strømtilstand udledes af `vcenter.vm.cpu.*`-datapunkter, der ankommer i den samme indsamling som dens hukommelses- og diskdatapunkter (se [VM'ers strømtilstand](#vmers-strømtilstand)). Hvis du har ændret processoren `batch` og tilføjet en `send_batch_max_size`, deles et stort inventar over flere eksporter, og CPU-datapunkterne lander i en anden forespørgsel end resten: Sæt de medfølgende batch-indstillinger tilbage.
+:::
+
+:::details En vært viser Svarer ikke eller Intet forbrug rapporteret
+vCenter rapporterer intet CPU- eller hukommelsesforbrug for værten, så den er ikke forbundet til vCenter eller kører ikke (se [Hvad en værts status siger](#hvad-en-værts-status-siger)). Ved **Svarer ikke** skal du tjekke værtens out-of-band-administration (iDRAC, iLO eller BMC) for en strøm- eller hardwarefejl og dens administrationsnetværk, og derefter om vSphere HA har genstartet dens VM'er. **Intet forbrug rapporteret** betyder, at dens datacenter har mistet forbindelsen til en vært og har andre slukkede eller i standby, eller at dens optællinger ikke er nået frem endnu: visningen **Hosts and Clusters** i vCenter siger, hvad der gælder for denne vært.
 :::
 
 :::details Store inventarer: langsomme indsamlinger, fejl med vpxd.stats.maxQueryMetrics

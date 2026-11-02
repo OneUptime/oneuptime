@@ -7,8 +7,6 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { JSONObject } from "Common/Types/JSON";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What an ESXi host's page reads and works out, free of React so the page,
@@ -216,55 +214,6 @@ export function getVMwareHostReportState(data: {
   return data.now.getTime() - metricsTime <= VMWARE_METRIC_STALE_MS
     ? VMwareHostReportState.Reporting
     : VMwareHostReportState.NotReporting;
-}
-
-export type VMwareHostStatusTone = "positive" | "warning" | "neutral";
-
-export interface VMwareHostReportStateLook {
-  label: string;
-  tone: VMwareHostStatusTone;
-  // What the pill means, read out on hover and by screen readers.
-  description: string;
-}
-
-const REPORT_STATE_LOOKS: Record<
-  VMwareHostReportState,
-  VMwareHostReportStateLook
-> = {
-  [VMwareHostReportState.Reporting]: {
-    label: translationKey("Reporting"),
-    tone: "positive",
-    description: translationKey(
-      "vCenter reported this host's metrics in the last 15 minutes.",
-    ),
-  },
-  [VMwareHostReportState.NotReporting]: {
-    label: translationKey("Not reporting"),
-    tone: "warning",
-    description: translationKey(
-      "vCenter has sent no metrics for this host for more than 15 minutes.",
-    ),
-  },
-  [VMwareHostReportState.NoDataYet]: {
-    label: translationKey("No data yet"),
-    tone: "neutral",
-    description: translationKey(
-      "vCenter lists this host, but has sent no metrics for it yet.",
-    ),
-  },
-  [VMwareHostReportState.NotInInventory]: {
-    label: translationKey("Not in inventory"),
-    tone: "neutral",
-    description: translationKey(
-      "This host is not in the vCenter's inventory any more.",
-    ),
-  },
-};
-
-export function getVMwareHostReportStateLook(
-  state: VMwareHostReportState,
-): VMwareHostReportStateLook {
-  return REPORT_STATE_LOOKS[state];
 }
 
 /*
@@ -1136,45 +1085,6 @@ export const VMWARE_DISK_LATENCY_GAUGE_THRESHOLDS: {
   warn: (VMWARE_DISK_LATENCY_WARN_MS / VMWARE_DISK_LATENCY_DANGER_MS) * 100,
   danger: 100,
 };
-
-// ---- Incidents and alerts about this host --------------------------------
-
-/*
- * The series labels that name an ESXi host: the VMware alert templates
- * group by resource.vcenter.host.name, and a monitor someone built by hand
- * may group by the bare key.
- */
-export const VMWARE_HOST_NAME_LABEL_KEYS: ReadonlyArray<string> = [
-  "resource.vcenter.host.name",
-  "vcenter.host.name",
-];
-
-/*
- * Whether an incident's or alert's series labels name this host. A grouped
- * VMware monitor opens one per host that breaches, and its labels are the
- * only place that says which host; names are compared without regard to
- * case or surrounding spaces.
- */
-export function seriesLabelsNameVMwareHost(
-  seriesLabels: JSONObject | null | undefined,
-  hostName: string,
-): boolean {
-  const wanted: string = (hostName || "").trim().toLowerCase();
-
-  if (!wanted || !seriesLabels || typeof seriesLabels !== "object") {
-    return false;
-  }
-
-  for (const key of VMWARE_HOST_NAME_LABEL_KEYS) {
-    const value: unknown = (seriesLabels as Record<string, unknown>)[key];
-
-    if (typeof value === "string" && value.trim().toLowerCase() === wanted) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 // ---- Formatting -----------------------------------------------------------
 

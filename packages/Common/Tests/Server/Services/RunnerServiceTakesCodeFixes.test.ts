@@ -2,7 +2,7 @@ import RunnerService from "../../../Server/Services/RunnerService";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../../Models/DatabaseModels/Runner";
-import { AddRunnerTakesCodeFixes1808863000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808863000000-AddRunnerTakesCodeFixes";
+import { AddRunnerTakesCodeFixes1808872000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808872000000-AddRunnerTakesCodeFixes";
 import Migrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
@@ -159,8 +159,8 @@ describe("the migration that adds it", () => {
         queries.push(sql);
       },
     } as unknown as QueryRunner;
-    const migration: AddRunnerTakesCodeFixes1808863000000 =
-      new AddRunnerTakesCodeFixes1808863000000();
+    const migration: AddRunnerTakesCodeFixes1808872000000 =
+      new AddRunnerTakesCodeFixes1808872000000();
 
     await migration.up(runner);
     expect(queries).toEqual([
@@ -173,7 +173,7 @@ describe("the migration that adds it", () => {
       `ALTER TABLE "Runner" DROP COLUMN "takesCodeFixes"`,
     ]);
 
-    expect(migration.name).toBe("AddRunnerTakesCodeFixes1808863000000");
+    expect(migration.name).toBe("AddRunnerTakesCodeFixes1808872000000");
   });
 
   test("is registered, so it runs", () => {
@@ -183,6 +183,6 @@ describe("the migration that adds it", () => {
       },
     );
 
-    expect(names).toContain("AddRunnerTakesCodeFixes1808863000000");
+    expect(names).toContain("AddRunnerTakesCodeFixes1808872000000");
   });
 });

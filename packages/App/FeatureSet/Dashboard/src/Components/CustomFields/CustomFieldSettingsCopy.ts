@@ -203,6 +203,10 @@ export const CUSTOM_FIELD_RECORD_NAMES: Record<string, CustomFieldRecordName> =
       singular: "Inventory Item",
       plural: "Inventory Items",
     },
+    SecurityCaseCustomField: {
+      singular: "Security Case",
+      plural: "Security Cases",
+    },
   };
 
 export const getCustomFieldRecordName: (

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityLogFormat, {
   SECURITY_LOG_FORMAT_ATTRIBUTE,
@@ -185,7 +186,7 @@ describe("WindowsEventLogParser - every way a Windows event arrives", () => {
 });
 
 describe("WindowsEventLogParser - sign-ins", () => {
-  test.each(Object.keys(KEPT_LOGON_TYPES))(
+  test.each([...KEPT_LOGON_TYPES.keys()])(
     "a successful logon of type %s, made by a person, is an event",
     (logonType: string) => {
       const event: NormalizedSecurityEvent = viaCollector(
@@ -196,7 +197,7 @@ describe("WindowsEventLogParser - sign-ins", () => {
       expect(event.severityName).toBe("Informational");
       expect(event.principalUser).toBe("alice");
       expect(event.message).toBe(
-        `CORP\\alice signed in to WIN-01.corp.example ${KEPT_LOGON_TYPES[logonType]} from 198.51.100.23`,
+        `CORP\\alice signed in to WIN-01.corp.example ${KEPT_LOGON_TYPES.get(logonType)} from 198.51.100.23`,
       );
     },
   );
@@ -247,7 +248,7 @@ describe("WindowsEventLogParser - sign-ins", () => {
   });
 
   test.each(
-    Object.entries(WINDOWS_FAILURE_REASONS).filter(
+    [...WINDOWS_FAILURE_REASONS.entries()].filter(
       ([code]: [string, string]): boolean => {
         return code.startsWith("0xc");
       },
@@ -1366,5 +1367,68 @@ describe("WindowsEventLogParser - long lines", () => {
     });
 
     expect(run.inMs).toBeLessThan(2000);
+  });
+});
+
+/*
+ * The logon types, failure reasons, Defender's severities and the readers
+ * by provider were plain objects read by the event's own words.
+ */
+describe("WindowsEventLogParser: words named after what every object inherits", () => {
+  test("a logon type named after one keeps no sign-in, and a failure code named after one gives no reason", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        events: parse(collectorOtlpBody(successfulSignIn({ LogonType: name }))),
+      }).toEqual({ name, events: [] });
+
+      const failed: NormalizedSecurityEvent = viaCollector(
+        failedSignIn({
+          LogonType: name,
+          Status: name,
+          SubStatus: name,
+        }),
+      );
+
+      expect(failed.statusName).toBe("Failure");
+      expect(typeof failed.message).toBe("string");
+      expect(failed.message).not.toContain("function");
+      expect(failed.message).not.toContain("[object");
+    }
+  });
+
+  test("Defender's severity named after one is read as High, and a provider named after one has no events", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      const event: NormalizedSecurityEvent = viaCollector(
+        windowsEvent(
+          1116,
+          DEFENDER,
+          "Microsoft-Windows-Windows Defender/Operational",
+          [
+            ["Threat Name", "Trojan:Win32/Wacatac.B!ml"],
+            ["Severity Name", name],
+            ["Category Name", "Trojan"],
+            ["Path", "file:_C:\\Users\\alice\\Downloads\\invoice.exe"],
+            ["Detection User", "CORP\\alice"],
+            ["Action Name", "Quarantine"],
+          ],
+        ),
+      );
+
+      expect({ name, severity: event.severityName }).toEqual({
+        name,
+        severity: "High",
+      });
+      expect({ name, ids: getWindowsEventIds(name) }).toEqual({
+        name,
+        ids: [],
+      });
+      expect({
+        name,
+        events: parse(
+          collectorOtlpBody(windowsEvent(4624, name, "Security", [])),
+        ),
+      }).toEqual({ name, events: [] });
+    }
   });
 });

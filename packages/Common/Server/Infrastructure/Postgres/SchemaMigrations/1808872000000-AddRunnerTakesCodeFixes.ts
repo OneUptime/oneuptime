@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * next heartbeat, and NULL is how a Runner of a release that does not say is
  * read - by that release.
  */
-export class AddRunnerTakesCodeFixes1808863000000
+export class AddRunnerTakesCodeFixes1808872000000
   implements MigrationInterface
 {
-  public name: string = "AddRunnerTakesCodeFixes1808863000000";
+  public name: string = "AddRunnerTakesCodeFixes1808872000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

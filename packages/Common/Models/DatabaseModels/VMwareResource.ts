@@ -50,7 +50,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * Count columns that fan out over datapoint attributes (status,
  * power_state, effective) are SUMMED across the newest timestamp for
- * that (resource, metric) — never "newest datapoint wins".
+ * that (resource, metric) — never "newest datapoint wins". A
+ * datacenter's counts by power state and by status (hosts vCenter
+ * cannot reach, hosts in standby, red and yellow hosts, red VMs and
+ * clusters) are vCenter's own roll-up of its alarms: the receiver
+ * reports them per datacenter, never per object.
  *
  * The list/detail pages read this table instead of groupBy-ing over
  * 24h of ClickHouse metric data. Rows are upserted per collection and
@@ -1021,6 +1025,120 @@ export default class VMwareResource extends BaseModel {
     type: ColumnType.Number,
   })
   public clusterCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Not Responding Host Count",
+    description:
+      "Hosts vCenter has lost contact with: vcenter.datacenter.host.count{power_state=unknown}, every status. Datacenter kinds only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public notRespondingHostCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Standby Host Count",
+    description:
+      "Hosts vSphere DPM put in standby: vcenter.datacenter.host.count{power_state=standby}, every status. Datacenter kinds only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public standbyHostCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Critical Host Count",
+    description:
+      "Hosts with a critical (red) overall status in vCenter: vcenter.datacenter.host.count{status=red}. Datacenter kinds only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public criticalHostCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Warning Host Count",
+    description:
+      "Hosts with a warning (yellow) overall status in vCenter: vcenter.datacenter.host.count{status=yellow}. Datacenter kinds only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public warningHostCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Critical VM Count",
+    description:
+      "Virtual machines with a critical (red) overall status: vcenter.datacenter.vm.count{status=red}. Datacenter kinds only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public criticalVmCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Critical Cluster Count",
+    description:
+      "Clusters with a critical (red) overall status: vcenter.datacenter.cluster.count{status=red}. Datacenter kinds only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public criticalClusterCount?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

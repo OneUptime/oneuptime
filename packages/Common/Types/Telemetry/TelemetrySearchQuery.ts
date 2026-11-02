@@ -20,6 +20,7 @@ import {
 } from "../BaseDatabase/WildcardPattern";
 import ObjectID from "../ObjectID";
 import { JSONObject } from "../JSON";
+import { readOwnValue } from "../../Utils/LookupTable";
 
 /*
  * The OneUptime telemetry search language — one grammar for logs, traces,
@@ -558,6 +559,23 @@ type ParseSearchQueryFunction = (
   options?: ParseSearchQueryOptions | undefined,
 ) => Array<SearchToken>;
 
+/*
+ * The column a typed field name is an alias of, looked up lowercased among
+ * the aliases' own names only. Every object inherits "constructor",
+ * "toString" and "__proto__", so `constructor:x` read the plain table as
+ * Object's constructor and handed a function on as the token's key - which
+ * broke every search surface that read the key as text. It is a field of
+ * that name now, as any other unknown one is.
+ */
+function getFieldAlias(
+  aliases: Readonly<Record<string, string>> | undefined,
+  rawKey: string,
+): string | undefined {
+  const alias: unknown = readOwnValue(aliases, rawKey.toLowerCase());
+
+  return typeof alias === "string" ? alias : undefined;
+}
+
 /**
  * Parse a whole search string into tokens.
  *
@@ -671,7 +689,7 @@ export const parseSearchQuery: ParseSearchQueryFunction = (
 
     const key: string = isAttribute
       ? rawKey
-      : options?.fieldAliases?.[rawKey.toLowerCase()] || rawKey;
+      : getFieldAlias(options?.fieldAliases, rawKey) || rawKey;
 
     tokens.push({
       type: isAttribute ? SearchTokenType.Attribute : SearchTokenType.Field,

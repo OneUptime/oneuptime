@@ -91,7 +91,7 @@ Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet
 | **Översikt** | **Översikt**, **Tidslinje** |
 | **Utredning** | **Förlopp**, **Detektioner**, **Entiteter**, **Kopplade signaler**, **Bevis**, **Uppgifter**, **Playbooks** |
 | **Anteckningar** | **Privata anteckningar** |
-| **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
+| **Avancerad** | **Anpassade fält**, **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
 
 Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Kör playbook**, **Deklarera incident** och **Stäng ärende**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Tilldela någon annan**, **Ändra status**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**. När ärendets prioritet har svarsmål visar huvudet också när nästa förfaller ([Svarsmål](#svarsmål)).
 
@@ -107,7 +107,8 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Bevis**: filerna, länkarna och säkerhetshändelserna som sparas i ärendet, var och en med vem som lade till den och när. Med **Lägg till fil** laddar du upp en fil på upp till 10 MB, och SHA-256 för det som laddades upp sparas, så att den som laddar ner den senare kan kontrollera att det är det som sparades; med **Lägg till länk** pekar du på bevis som sparas någon annanstans. Bara en Security Admin kan ta bort bevis, och ärendets **Tidslinje** visar vad som lades till och togs bort. En säkerhetshändelse sparas här som den var, med **Lägg till i ärende** under **Händelser** eller på en [hunts](/docs/telemetry/security-events#hunts) sida, och **Visa händelse** öppnar den. En playbooks steg **Preserve the evidence** sparar också här händelserna bakom ärendets detektioner.
 - **Uppgifter**: vad som måste göras i ärendet, vem som gör det och om det är gjort. Lägg till en uppgift som en rad, ge den till någon och bocka av den när den är klar. Den som får uppgiften får veta det, om inte personen tog den själv, och menyn visar bredvid **Uppgifter** hur många uppgifter som är öppna. En playbooks steg **Lägg till uppgifter** lägger också till uppgifter och hoppar över dem som ärendet redan har.
 - **Playbooks**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbooks**.
-- **Privata anteckningar**: vad teamet skrev om ärendet.
+- **Privata anteckningar**: vad teamet skrev om ärendet. Redigerarens meny **Mallar** lägger in en av projektets anteckningsmallar i en anteckning.
+- **Anpassade fält**: projektets egna fält, ifyllda för det här ärendet, och **Redigera fält** för att ändra dem. Så snart projektet har ett fält visar **Översikt** dem också, i sitt sista kort. Se [Anpassade fält, anteckningsmallar och numrering](#anpassade-fält-anteckningsmallar-och-numrering).
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
 - **Ta bort ärende**: tar bort ärendet för gott, med dess detektioner, anteckningar, tidslinje och playbook-körningar. För att behålla det som dokumentation, stäng det i stället med en bedömning.
 
@@ -184,6 +185,16 @@ Här syns målen:
 - Ärendets huvud nämner nästa mål och hur mycket tid som är kvar, eller hur länge det har varit försenat: grått medan det finns tid, bärnstensgult under den sista femtedelen, rött när det är missat.
 - På ärendets **Översikt**, under **Tid till bekräftelse** och **Tid till begränsning**: hur ärendet ligger till mot varje mål, eller hur långt över det ärendet gick.
 - I köns listor: raden under varje ärendes prioritet, och en kolumn **Förfaller** som du kan slå på och sortera efter. Medan kolumnen är på visas inte raden under prioriteten. Listorna visar dem bara när någon av projektets prioriteter har ett mål.
+
+## Anpassade fält, anteckningsmallar och numrering
+
+Tre inställningar till gör ärendena till ditt projekts egna, under **Produkter → Säkerhetshändelser → Inställningar**:
+
+- **Anpassade fält**: fälten ditt team fyller i för varje ärende, till exempel affärsenheten det gäller eller dess biljett i ett annat verktyg. Ett fält rymmer text, ett tal, ett datum, ett ja eller nej, ett val ur en lista eller en fil. Ett ärendes sida **Anpassade fält**, under **Avancerad**, visar varje fält med ärendets värde, och **Redigera fält** ändrar dem. I köns listor är varje fält en kolumn som du kan slå på under **Kolumner**.
+- **Anteckningsmallar**: färdig text för anteckningarna ditt team skriver i ärende efter ärende, till exempel en checklista för begränsning eller en överlämning till nästa skift. På ett ärendes **Privata anteckningar** lägger redigerarens meny **Mallar** in en i anteckningen, som du kan redigera innan den publiceras, och **Hantera mallar** öppnar listan.
+- **Numrering**: texten framför ärendenumren, `CASE-` i `CASE-42` om du inte väljer en egen, och numret som nästa ärende får. Byter du från ett annat verktyg? Börja efter dess sista ärendenummer, så att ett nummer aldrig betyder två ärenden. Ett nytt prefix eller en ny start gäller bara nya ärenden, och en start måste vara högre än det högsta numret hittills.
+
+En Security Admin hanterar de anpassade fälten och anteckningsmallarna, och en Security Member fyller i ett ärendes fält; på OneUptime Cloud kräver de Growth-planen eller högre. Numreringen ställs in av en Project Owner eller Project Admin, precis som för incidenter och aviseringar.
 
 ## Aviseringar
 

@@ -531,6 +531,41 @@ export function resolveMitreTacticId(value: string): string | undefined {
 }
 
 /*
+ * A tactic as a source names it in words, read by its letters alone in any
+ * case: "Initial Access" (Security Hub's TTPs, Splunk's annotations),
+ * "InitialAccess" (Sentinel's tactics, Defender XDR's categories),
+ * "initial_access", "INITIAL-ACCESS". The connectors that carry a tactic
+ * as prose read it here, so they agree with each other and with the
+ * matrix - Stealth and Defense Impairment included, and Defense Evasion,
+ * the name rules and sources wrote before v19, as TA0005.
+ *
+ * A Map, never a plain object: a source naming its tactic "constructor"
+ * names no tactic (Utils/LookupTable).
+ */
+const TACTIC_IDS_BY_LETTERS: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>(
+  Object.entries(MITRE_TACTIC_SHORT_NAMES).map(
+    ([shortName, id]: [string, string]): [string, string] => {
+      return [shortName.split("_").join(""), id];
+    },
+  ),
+);
+
+const NOT_A_LETTER_REGEX: RegExp = /[^A-Za-z]/g;
+
+// The letters a tactic's name is read by: "Command and Control" -> "commandandcontrol".
+export function getMitreTacticNameKey(name: string): string {
+  return (name || "").replace(NOT_A_LETTER_REGEX, "").toLowerCase();
+}
+
+// The tactic id a source's tactic name stands for, or undefined for any other words.
+export function findMitreTacticIdByName(name: string): string | undefined {
+  return TACTIC_IDS_BY_LETTERS.get(getMitreTacticNameKey(name));
+}
+
+/*
  * The parent technique a technique or sub-technique id counts toward in the
  * current matrix: `T1110.003` -> `T1110`, a revoked id -> its replacement.
  * Undefined when the id names no technique of this version.

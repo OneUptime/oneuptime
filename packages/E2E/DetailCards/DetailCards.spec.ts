@@ -1194,6 +1194,35 @@ test.describe("other pages built on detail cards", () => {
         `status page custom fields at ${width}`,
       );
       await expectNothingRunsOff(page, `status page at ${width}`);
+
+      /*
+       * The Custom Fields card's fields' box is a detail card's
+       * (CustomFieldsDetail, since #5577): its rule meets the card's edges,
+       * no further, and its fields start where its title does. It pulled
+       * itself out 24px whatever the card's padding: on a phone the rule
+       * ran past the card and the fields sat 8px left of the title.
+       */
+      const fieldsCard: Locator = cardTitled(page, "Custom Fields");
+      await expectFieldsUnderTitle(
+        fieldsCard,
+        `status page custom fields at ${width}`,
+      );
+      const fieldsCardBox: Box = await box(fieldsCard);
+      const fieldsBody: Box = await box(
+        fieldsCard.getByTestId("custom-fields-detail-body"),
+      );
+      expect(
+        Math.abs(fieldsBody.x - (fieldsCardBox.x + 1)),
+        `the rule's start at ${width}`,
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(
+          fieldsBody.x +
+            fieldsBody.width -
+            (fieldsCardBox.x + fieldsCardBox.width - 1),
+        ),
+        `the rule's end at ${width}`,
+      ).toBeLessThanOrEqual(1);
     }
     await screenshot(page, "status-page-1280");
   });

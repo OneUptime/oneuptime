@@ -60,6 +60,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * THE SECURITY CASE TOOLS: how OneUptime AI reads a security case and the
@@ -313,11 +314,23 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
           ? WidgetBuilder.table({
               title: `Security cases (${rows.length})`,
               columns: [
-                { key: "case", title: "Case", type: "text" },
-                { key: "title", title: "Title", type: "text" },
-                { key: "status", title: "Status", type: "text" },
-                { key: "priority", title: "Priority", type: "text" },
-                { key: "aiVerdict", title: "AI Verdict", type: "text" },
+                { key: "case", title: translationKey("Case"), type: "text" },
+                { key: "title", title: translationKey("Title"), type: "text" },
+                {
+                  key: "status",
+                  title: translationKey("Status"),
+                  type: "text",
+                },
+                {
+                  key: "priority",
+                  title: translationKey("Priority"),
+                  type: "text",
+                },
+                {
+                  key: "aiVerdict",
+                  title: translationKey("AI Verdict"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: target,
@@ -601,10 +614,14 @@ export const LookupThreatIntelTool: ObservabilityTool = {
       widget: WidgetBuilder.table({
         title: `Threat intel (${best.size} of ${values.length} known-bad)`,
         columns: [
-          { key: "value", title: "Value", type: "text" },
-          { key: "match", title: "Match", type: "text" },
-          { key: "feed", title: "Feed", type: "text" },
-          { key: "confidence", title: "Confidence", type: "number" },
+          { key: "value", title: translationKey("Value"), type: "text" },
+          { key: "match", title: translationKey("Match"), type: "text" },
+          { key: "feed", title: translationKey("Feed"), type: "text" },
+          {
+            key: "confidence",
+            title: translationKey("Confidence"),
+            type: "number",
+          },
         ],
         rows,
         link: { type: AIChatCitationTargetType.ThreatIntel },
@@ -728,11 +745,19 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
         title: "Entity activity",
         description: `The last ${hours} ${hours === 1 ? "hour" : "hours"}`,
         columns: [
-          { key: "value", title: "Value", type: "text" },
-          { key: "events", title: "Events", type: "number" },
-          { key: "findings", title: "Findings", type: "number" },
-          { key: "firstSeen", title: "First Seen", type: "date" },
-          { key: "lastSeen", title: "Last Seen", type: "date" },
+          { key: "value", title: translationKey("Value"), type: "text" },
+          { key: "events", title: translationKey("Events"), type: "number" },
+          {
+            key: "findings",
+            title: translationKey("Findings"),
+            type: "number",
+          },
+          {
+            key: "firstSeen",
+            title: translationKey("First Seen"),
+            type: "date",
+          },
+          { key: "lastSeen", title: translationKey("Last Seen"), type: "date" },
         ],
         rows,
         link: { type: AIChatCitationTargetType.SecurityEvents },

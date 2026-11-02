@@ -49,7 +49,7 @@ import {
   resolveMitreTacticId,
   resolveMitreTechniqueId,
 } from "../../Types/SecurityEvent/MitreAttack";
-import { formatSecurityCaseNumber } from "../../Types/SecurityCase/SecurityCaseNumber";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import {
   assigneeChangedMarkdown,
   caseOpenedByPersonMarkdown,
@@ -447,11 +447,19 @@ export class Service extends ProjectReferencesService<Model> {
       delete data.verdict;
     }
 
-    const counter: number =
+    /*
+     * The case's number, with the prefix the project writes it with as it
+     * stands now (Security Events > Settings > Numbering): a case keeps the
+     * number it was given when the prefix changes later.
+     */
+    const taken: { counter: number; prefix: string | undefined } =
       await ProjectService.incrementAndGetSecurityCaseCounter(data.projectId);
 
-    data.caseNumber = counter;
-    data.caseNumberWithPrefix = formatSecurityCaseNumber(counter);
+    createBy.data.caseNumber = taken.counter;
+    createBy.data.caseNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      taken.prefix,
+      taken.counter,
+    );
 
     return { createBy: createBy, carryForward: undefined };
   }

@@ -238,28 +238,46 @@ Les unités sont les unités OTLP propres au récepteur, que OneUptime met à l'
 
 ### État d'alimentation des VM
 
-Le récepteur n'envoie aucune métrique d'état d'alimentation pour une VM. Il envoie `vcenter.vm.cpu.*` **uniquement pour les VM allumées** : OneUptime déduit donc l'état de ce qui est arrivé dans chaque collecte. Une VM qui a remonté des métriques CPU est **Powered on** ; une VM qui n'a remonté que l'utilisation mémoire et disque est **Éteinte** (ou suspendue : vSphere ne distingue pas les deux ici). Les modèles de VM n'ont pas d'état d'alimentation. Cela lit **une collecte entière à la fois**, c'est pourquoi le processeur `batch` fourni a un grand `send_batch_size` et, à dessein, aucun `send_batch_max_size` : une collecte répartie sur deux exports remettrait à zéro les comptages d'inventaire et ferait passer des VM à « éteintes ». Conservez les réglages de batch tels que livrés.
+Le récepteur n'envoie aucune métrique d'état d'alimentation pour une VM. Il envoie `vcenter.vm.cpu.*` **uniquement pour les VM allumées** : OneUptime déduit donc l'état de ce qui est arrivé dans chaque collecte. Une VM qui a remonté des métriques CPU est **Powered on** ; une VM qui n'a remonté que l'utilisation mémoire et disque est **Hors tension** (ou suspendue : vSphere ne distingue pas les deux ici). Les modèles de VM n'ont pas d'état d'alimentation. Cela lit **une collecte entière à la fois**, c'est pourquoi le processeur `batch` fourni a un grand `send_batch_size` et, à dessein, aucun `send_batch_max_size` : une collecte répartie sur deux exports remettrait à zéro les comptages d'inventaire et ferait passer des VM à « éteintes ». Conservez les réglages de batch tels que livrés.
 
 ## Le vCenter dans OneUptime
 
 ![La vue d'ensemble du vCenter montrant le nombre de datacenters, de clusters, d'hôtes ESXi, de machines virtuelles et de datastores, ainsi que le CPU des hôtes, la mémoire des hôtes, l'utilisation des datastores et le CPU ready des VM](/docs/static/images/VMwareVCenterOverview.png)
 
-La page **Vue d'ensemble** répond d'abord à la question « ce vCenter est-il en bonne santé » : les hôtes effectifs, le CPU et la mémoire des hôtes pondérés par la capacité, le datastore le plus plein et le pire temps de CPU ready d'une VM. Quand quelque chose est dégradé, elle nomme l'objet responsable : vous n'avez pas à le chercher.
+La page **Vue d'ensemble** répond d'abord à la question « ce vCenter est-il en bonne santé ». Son en-tête dit si les données arrivent et comment va le vCenter : **Sain**, **Dégradé** tant que quelque chose demande un coup d'œil, **Défaillant** tant que quelque chose demande quelqu'un tout de suite, ou **Santé inconnue** tant que le vCenter est déconnecté, car son dernier rapport n'est plus la vérité. Ses puces comptent les datacenters, les clusters, les hôtes ESXi que vCenter joint sur l'ensemble, les VM allumées sur l'ensemble, les modèles et les datastores, et toutes sauf les datacenters ouvrent leur liste.
+
+Vient ensuite **Attention requise** : tout ce qui demande quelqu'un, le plus urgent d'abord, chaque élément avec sa raison et à un pas de sa page. Un hôte ESXi que vCenter ne joint plus, un datastore plein à plus de 90 % et une VM dont l'hôte envoie la mémoire sur disque sont critiques. Un hôte occupé à plus de 90 %, un datastore plein à plus de 80 %, une VM qui attend un CPU libre ou dont l'hôte reprend la mémoire, un cluster avec des hôtes non effectifs ou sans la mémoire pour en perdre un, et les alarmes que vCenter compte dans chaque datacenter demandent un coup d'œil. Chaque seuil est celui auquel son [modèle d'alerte](/docs/monitor/vmware-monitor#modèles-dalerte-prédéfinis) se déclenche. Quand rien ne demande d'attention, il n'y a pas de carte.
+
+En dessous viennent les hôtes effectifs, le CPU et la mémoire des hôtes pondérés par la capacité, le datastore le plus plein et le pire temps de CPU ready d'une VM, avec leurs graphiques ; **Hôtes ESXi**, l'état et la charge de chaque hôte à un pas de sa page ; et les plus grands consommateurs.
+
+### Ce que dit l'état d'un hôte
+
+vCenter ne remonte l'utilisation du CPU et de la mémoire d'un hôte que tant que l'hôte est connecté et en marche, et un hôte ESXi en marche utilise toujours de la mémoire. Un hôte qui ne remonte aucune utilisation est donc arrêté, et ce que compte son datacenter (hôtes avec lesquels vCenter a perdu le contact, hôtes hors tension et hôtes en veille) dit de quelle manière :
+
+| État | Quand |
+| --- | --- |
+| **Connecté** | vCenter le joint et il remonte ce qu'il utilise. Il demande un coup d'œil tant que son CPU ou sa mémoire est occupé à plus de 90 %. |
+| **Ne répond pas** | vCenter a perdu le contact avec lui : il a planté, perdu son alimentation ou son réseau de gestion, ou a été déconnecté. Critique : ses VM affichent **Déconnecté** et sont arrêtées, sauf si vSphere HA les a redémarrées ailleurs. |
+| **Hors tension** | Quelqu'un l'a mis hors tension depuis vCenter. Pas un problème en soi. |
+| **En veille** | vSphere DPM l'a mis en veille pour économiser de l'énergie, et le réveille quand le cluster en a besoin. Pas un problème en soi. |
+| **Hors tension ou en veille** | Il ne remonte aucune utilisation, et son datacenter a des hôtes hors tension et d'autres en veille. |
+| **Aucune utilisation signalée** | Il ne remonte aucune utilisation, et ce que compte son datacenter ne dit pas pourquoi. Il demande un coup d'œil. |
+| **Ne remonte plus de données** | vCenter ne l'a pas remonté depuis plus de 15 minutes. |
 
 ### Hôtes ESXi
 
 ![La page des hôtes listant chaque hôte ESXi avec son cluster, son datacenter, son utilisation CPU et mémoire](/docs/static/images/VMwareHosts.png)
 
-Sélectionnez un hôte pour ouvrir sa page. Elle répond à ce que répond la page d'un hôte hors de VMware, avec ce que vCenter sait d'un hyperviseur :
+La liste **Hôtes** donne l'état de chaque hôte, avec en dessous la raison pour laquelle il demande un coup d'œil, et son CPU et sa mémoire, en orange au-delà de 90 %. Sélectionnez un hôte pour ouvrir sa page. Elle répond à ce que répond la page d'un hôte hors de VMware, avec ce que vCenter sait d'un hyperviseur :
 
-- **Vue d'ensemble** : le CPU, la mémoire, la latence du disque le plus lent et le débit réseau sur la plage de temps que vous choisissez, en tuiles et en graphiques (faites glisser sur un graphique pour zoomer) ; les incidents et alertes ouverts sur l'hôte ; ses machines virtuelles les plus chargées, celles qui attendent un CPU physique étant signalées ; ses cartes réseau physiques et ses périphériques de stockage, les erreurs de paquets et les disques lents étant signalés ; les alertes d'hôte activées ; et les détails de l'hôte.
+- **Vue d'ensemble** : **Attention requise** pour l'hôte et les VM qu'il exécute ; le CPU, la mémoire, la latence du disque le plus lent et le débit réseau sur la plage de temps que vous choisissez, en tuiles et en graphiques (faites glisser sur un graphique pour zoomer) ; les incidents et alertes ouverts sur l'hôte ; ses machines virtuelles les plus chargées, celles qui attendent un CPU physique étant signalées ; ses cartes réseau physiques et ses périphériques de stockage, les erreurs de paquets et les disques lents étant signalés ; les alertes d'hôte activées ; et les détails de l'hôte.
 - **Machines virtuelles** : les VM et les modèles de l'hôte, avec leur état, leur pool de ressources, leur CPU ready, leur CPU et leur mémoire.
 - **Métriques** : les séries CPU, mémoire, réseau et disque de l'hôte en graphiques, par carte réseau et par périphérique de stockage, chacun s'ouvrant dans l'explorateur de métriques.
 - **Journaux** : le syslog de l'hôte lui-même, dès qu'il l'envoie (voir [Envoyer le syslog ESXi](#facultatif-envoyer-le-syslog-esxi)). D'ici là, l'onglet donne les commandes qui dirigent cet hôte, ou tout son cluster, vers l'agent. Un vCenter qu'une sonde collecte n'a pas de syslog, car une sonde ne le reçoit pas.
 
 Quand vCenter cesse de signaler un hôte, la page le dit au-dessus de ses onglets, avec le moment où vCenter l'a signalé pour la dernière fois. Après 15 minutes sans rapport, l'hôte quitte l'inventaire : sa page le dit alors, et affiche toujours ses métriques précédentes.
 
-Les cinq alertes d'hôte (saturation du CPU et de la mémoire, latence disque élevée, erreurs de paquets réseau et paquets abandonnés) surveillent chacune tous les hôtes du vCenter et se déclenchent pour chaque hôte qui dépasse leur seuil. La carte **Alertes d'hôte** sur la page d'un hôte indique celles qui sont activées, et son bouton ouvre les **Recommandations** du vCenter avec les manquantes déjà sélectionnées : créez-les là, une fois, pour tous les hôtes.
+Les six alertes d'hôte (un hôte qui ne répond pas, saturation du CPU et de la mémoire, latence disque élevée, erreurs de paquets réseau et paquets abandonnés) surveillent chacune tous les hôtes du vCenter et se déclenchent pour chaque hôte qui dépasse leur seuil. La carte **Alertes d'hôte** sur la page d'un hôte indique celles qui sont activées, et son bouton ouvre les **Recommandations** du vCenter avec les manquantes déjà sélectionnées : créez-les là, une fois, pour tous les hôtes.
 
 ### Machines virtuelles
 
@@ -267,9 +285,19 @@ Les cinq alertes d'hôte (saturation du CPU et de la mémoire, latence disque é
 
 Les machines virtuelles éteintes et les modèles sont listés aussi. vCenter ne remonte les compteurs CPU que pour les VM allumées : leurs colonnes CPU affichent donc N/A plutôt qu'un zéro trompeur.
 
+La page d'une VM dit ce qu'elle fait (**En cours d'exécution**, **Hors tension**, **Modèle**, ou **Déconnecté** tant que vCenter ne joint pas son hôte) et où elle tourne, son hôte et son cluster à un pas. Sa **Vue d'ensemble** comporte **Attention requise** pour la VM, son CPU, son CPU ready, sa mémoire et son disque, les incidents et alertes ouverts sur elle, celles des sept alertes de VM qui sont activées, et ses détails. **Métriques** contient ses graphiques.
+
 ### Datastores
 
 ![La page des datastores listant chaque datastore avec sa capacité utilisée et totale et une barre d'utilisation](/docs/static/images/VMwareDatastores.png)
+
+La page d'un datastore dit à quel point il est plein, en rouge au-delà de 90 % et en orange au-delà de 80 %, combien d'espace reste libre et, tant qu'il grandit, combien de jours restent avant qu'il soit plein. Elle liste les incidents et alertes ouverts sur lui, et celles de ses deux alertes de capacité qui sont activées.
+
+### Clusters
+
+La page d'un cluster dit s'il est **Sain**, **Dégradé** ou **Défaillant** : combien de ses hôtes sont effectifs, quelle part de son CPU et de sa mémoire effectifs ses hôtes utilisent, et si ses autres hôtes pourraient reprendre les VM de son plus gros hôte (**Panne d'hôte**). Son **Attention requise** inclut ses hôtes et leurs VM, ses onglets **Hôtes ESXi** et **Machines virtuelles** les listent, et **Alertes de cluster** indique celles de ses trois alertes qui sont activées.
+
+Une page dont les données ne peuvent pas être lues le dit, avec **Réessayer**, et une liste le dit dans son tableau, avec **Actualiser**.
 
 ## Facultatif — Envoyer le syslog ESXi
 
@@ -459,6 +487,10 @@ Le rôle Read-Only a été attribué sur l'objet vCenter sans **Propagate to chi
 
 :::details Toutes les VM apparaissent éteintes
 L'état d'alimentation d'une VM est déduit des points de données `vcenter.vm.cpu.*` qui arrivent dans la même collecte que ses points de données mémoire et disque (voir [État d'alimentation des VM](#état-dalimentation-des-vm)). Si vous avez modifié le processeur `batch` et ajouté un `send_batch_max_size`, un grand inventaire est réparti sur plusieurs exports et les points de données CPU arrivent dans une autre requête que le reste : remettez les réglages de batch fournis.
+:::
+
+:::details Un hôte affiche Ne répond pas ou Aucune utilisation signalée
+vCenter ne remonte aucune utilisation du CPU ni de la mémoire pour l'hôte : il n'est donc pas connecté à vCenter ou n'est pas en marche (voir [Ce que dit l'état d'un hôte](#ce-que-dit-létat-dun-hôte)). Pour **Ne répond pas**, vérifiez la gestion hors bande de l'hôte (iDRAC, iLO ou BMC) à la recherche d'une panne d'alimentation ou matérielle, et son réseau de gestion, puis si vSphere HA a redémarré ses VM. **Aucune utilisation signalée** signifie que son datacenter a perdu le contact avec un hôte et en a d'autres hors tension ou en veille, ou que ses comptages ne sont pas encore arrivés : la vue **Hosts and Clusters** de vCenter dit lequel de ces cas vaut pour cet hôte.
 :::
 
 :::details Grands inventaires : collectes lentes, erreurs vpxd.stats.maxQueryMetrics

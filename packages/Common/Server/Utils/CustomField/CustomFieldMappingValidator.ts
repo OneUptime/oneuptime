@@ -208,7 +208,7 @@ export const validateCustomFieldMappingOnCreate: ValidateCustomFieldMappingOnCre
 
     if (!target) {
       /*
-       * Six of the nine definition tables carry the columns for lockstep with
+       * Seven of the ten definition tables carry the columns for lockstep with
        * their siblings but have no reachable source. Refusing a value there is
        * better than accepting one that could never resolve.
        */

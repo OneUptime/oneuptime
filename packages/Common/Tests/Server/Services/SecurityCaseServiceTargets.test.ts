@@ -101,7 +101,7 @@ beforeEach(() => {
 
   jest
     .spyOn(ProjectService, "incrementAndGetSecurityCaseCounter")
-    .mockResolvedValue(7 as never);
+    .mockResolvedValue({ counter: 7, prefix: "CASE-" } as never);
   jest
     .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
     .mockResolvedValue(undefined as never);
