@@ -40274,5 +40274,12 @@
   "Couldn't load this virtual machine": "यह वर्चुअल मशीन लोड नहीं हो सकी",
   "Not known while a host is not effective": "जब तक कोई होस्ट प्रभावी नहीं है, तब तक अज्ञात",
   "Needs at least two running hosts": "कम से कम दो चालू होस्ट चाहिए",
-  "A host's memory size is not reported": "किसी होस्ट का मेमोरी आकार रिपोर्ट नहीं हुआ है"
+  "A host's memory size is not reported": "किसी होस्ट का मेमोरी आकार रिपोर्ट नहीं हुआ है",
+  "Google Ads Campaign ID": "Google Ads अभियान आईडी",
+  "Google Ads Source": "Google Ads स्रोत",
+  "SSO Session Idle Timeout (Minutes)": "SSO सत्र निष्क्रियता टाइमआउट (मिनट)",
+  "SSO Session Length (Minutes)": "SSO सत्र की अवधि (मिनट)",
+  "Separate Session Lengths for SSO": "SSO के लिए अलग सत्र अवधि",
+  "Session Idle Timeout (Minutes)": "सत्र निष्क्रियता टाइमआउट (मिनट)",
+  "Session Length (Minutes)": "सत्र की अवधि (मिनट)"
 }

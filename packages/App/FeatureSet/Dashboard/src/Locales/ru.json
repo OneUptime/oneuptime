@@ -40274,5 +40274,12 @@
   "Couldn't load this virtual machine": "Не удалось загрузить эту виртуальную машину",
   "Not known while a host is not effective": "Неизвестно, пока есть нерабочий хост",
   "Needs at least two running hosts": "Нужны хотя бы два работающих хоста",
-  "A host's memory size is not reported": "Объём памяти одного из хостов не сообщается"
+  "A host's memory size is not reported": "Объём памяти одного из хостов не сообщается",
+  "Google Ads Campaign ID": "ID кампании Google Ads",
+  "Google Ads Source": "Источник Google Ads",
+  "SSO Session Idle Timeout (Minutes)": "Тайм-аут бездействия сеанса SSO (минуты)",
+  "SSO Session Length (Minutes)": "Длительность сеанса SSO (минуты)",
+  "Separate Session Lengths for SSO": "Отдельная длительность сеансов для SSO",
+  "Session Idle Timeout (Minutes)": "Тайм-аут бездействия сеанса (минуты)",
+  "Session Length (Minutes)": "Длительность сеанса (минуты)"
 }

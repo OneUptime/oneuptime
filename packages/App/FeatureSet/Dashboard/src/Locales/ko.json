@@ -40274,5 +40274,12 @@
   "Couldn't load this virtual machine": "이 가상 머신을 불러올 수 없습니다",
   "Not known while a host is not effective": "유효하지 않은 호스트가 있는 동안에는 알 수 없음",
   "Needs at least two running hosts": "실행 중인 호스트가 2개 이상 필요함",
-  "A host's memory size is not reported": "호스트의 메모리 크기가 보고되지 않음"
+  "A host's memory size is not reported": "호스트의 메모리 크기가 보고되지 않음",
+  "Google Ads Campaign ID": "Google Ads 캠페인 ID",
+  "Google Ads Source": "Google Ads 소스",
+  "SSO Session Idle Timeout (Minutes)": "SSO 세션 유휴 시간 제한(분)",
+  "SSO Session Length (Minutes)": "SSO 세션 길이(분)",
+  "Separate Session Lengths for SSO": "SSO 전용 세션 길이",
+  "Session Idle Timeout (Minutes)": "세션 유휴 시간 제한(분)",
+  "Session Length (Minutes)": "세션 길이(분)"
 }

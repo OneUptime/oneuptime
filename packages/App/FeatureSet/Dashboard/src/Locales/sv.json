@@ -40274,5 +40274,12 @@
   "Couldn't load this virtual machine": "Det gick inte att läsa in den här virtuella maskinen",
   "Not known while a host is not effective": "Okänt så länge en värd inte är effektiv",
   "Needs at least two running hosts": "Kräver minst två värdar som körs",
-  "A host's memory size is not reported": "En värds minnesstorlek rapporteras inte"
+  "A host's memory size is not reported": "En värds minnesstorlek rapporteras inte",
+  "Google Ads Campaign ID": "Google Ads-kampanj-ID",
+  "Google Ads Source": "Google Ads-källa",
+  "SSO Session Idle Timeout (Minutes)": "Tidsgräns vid inaktivitet för SSO-sessionen (minuter)",
+  "SSO Session Length (Minutes)": "SSO-sessionslängd (minuter)",
+  "Separate Session Lengths for SSO": "Separata sessionslängder för SSO",
+  "Session Idle Timeout (Minutes)": "Tidsgräns vid inaktivitet för sessionen (minuter)",
+  "Session Length (Minutes)": "Sessionslängd (minuter)"
 }

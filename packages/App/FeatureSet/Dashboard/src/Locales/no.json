@@ -40274,5 +40274,12 @@
   "Couldn't load this virtual machine": "Kunne ikke laste inn denne virtuelle maskinen",
   "Not known while a host is not effective": "Ukjent så lenge en vert ikke er effektiv",
   "Needs at least two running hosts": "Krever minst to kjørende verter",
-  "A host's memory size is not reported": "Minnestørrelsen til en vert rapporteres ikke"
+  "A host's memory size is not reported": "Minnestørrelsen til en vert rapporteres ikke",
+  "Google Ads Campaign ID": "Google Ads-kampanje-ID",
+  "Google Ads Source": "Google Ads-kilde",
+  "SSO Session Idle Timeout (Minutes)": "Tidsavbrudd ved inaktivitet for SSO-økten (minutter)",
+  "SSO Session Length (Minutes)": "SSO-øktvarighet (minutter)",
+  "Separate Session Lengths for SSO": "Egne øktvarigheter for SSO",
+  "Session Idle Timeout (Minutes)": "Tidsavbrudd ved inaktivitet for økten (minutter)",
+  "Session Length (Minutes)": "Øktvarighet (minutter)"
 }

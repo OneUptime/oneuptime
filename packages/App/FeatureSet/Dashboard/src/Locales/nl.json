@@ -40274,5 +40274,12 @@
   "Couldn't load this virtual machine": "Kan deze virtuele machine niet laden",
   "Not known while a host is not effective": "Onbekend zolang een host niet effectief is",
   "Needs at least two running hosts": "Vereist minstens twee draaiende hosts",
-  "A host's memory size is not reported": "De geheugengrootte van een host wordt niet gemeld"
+  "A host's memory size is not reported": "De geheugengrootte van een host wordt niet gemeld",
+  "Google Ads Campaign ID": "Google Ads-campagne-ID",
+  "Google Ads Source": "Google Ads-bron",
+  "SSO Session Idle Timeout (Minutes)": "Time-out bij inactiviteit van de SSO-sessie (minuten)",
+  "SSO Session Length (Minutes)": "SSO-sessieduur (minuten)",
+  "Separate Session Lengths for SSO": "Aparte sessieduur voor SSO",
+  "Session Idle Timeout (Minutes)": "Time-out bij inactiviteit van de sessie (minuten)",
+  "Session Length (Minutes)": "Sessieduur (minuten)"
 }
