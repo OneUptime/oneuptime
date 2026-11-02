@@ -1,8 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import VMwareResource from "../../../Models/DatabaseModels/VMwareResource";
-import { VMwareResourceKind } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepVMwareMonitor, {
+  VMwareResourceKind,
+} from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
-import MonitorStepVMwareMonitor from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import ObjectID from "../../../Types/ObjectID";
 import {
   VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID,

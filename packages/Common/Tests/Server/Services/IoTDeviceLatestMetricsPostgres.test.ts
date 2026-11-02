@@ -597,9 +597,9 @@ describePostgres("latest-metric mirror writes against Postgres", () => {
       }> = await readMirror("VMwareResource", "clusterCount");
       expect(rows).toEqual([{ value: "3", metricsUpdatedAt: T1 }]);
       // A datacenter's roll-up counts land in their integer columns too.
-      expect(
-        await readMirror("VMwareResource", "criticalVmCount"),
-      ).toEqual([{ value: "2", metricsUpdatedAt: T1 }]);
+      expect(await readMirror("VMwareResource", "criticalVmCount")).toEqual([
+        { value: "2", metricsUpdatedAt: T1 },
+      ]);
     });
 
     test("DockerSwarmResourceService", async () => {
