@@ -43,6 +43,7 @@ import {
   INSERT_VALUE_BUTTON_CLASS,
   INSERT_VALUE_BUTTON_IDLE_CLASS,
 } from "../ValuePicker/ValueTextField";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import {
   RecordListEntry,
   RecordListEntryType,
@@ -54,7 +55,7 @@ import {
   withReference,
   withoutEntry,
 } from "./RecordListValue";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 
 // What { } says here: the value names the records, it is not text put in.
 export const USE_VALUE_FOR_LIST_LABEL: string = translationKey(
@@ -142,6 +143,12 @@ const RecordListField: FunctionComponent<RecordListFieldProps> = (
   props: RecordListFieldProps,
 ): ReactElement => {
   const picker: ValuePickerContextValue = useValuePicker();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the picks and values as
+   * chips to read, with no Add and no remove on a chip - nothing here can
+   * change them, so nothing offers to.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const dataTestId: string = props.dataTestId || "record-list-field";
   const copy: RecordListCopy = RECORD_LIST_COPY[props.kind];
 
@@ -177,7 +184,9 @@ const RecordListField: FunctionComponent<RecordListFieldProps> = (
           data-entry-type={entry.type}
           data-tone={tone}
           title={reference ? chipTitle(description, reference) : entry.value}
-          className={`inline-flex max-w-full items-center gap-1.5 rounded-full py-0.5 pl-2.5 pr-1 text-sm ring-1 ring-inset ${
+          className={`inline-flex max-w-full items-center gap-1.5 rounded-full py-0.5 pl-2.5 ${
+            isViewOnly ? "pr-2.5" : "pr-1"
+          } text-sm ring-1 ring-inset ${
             isValue
               ? VALUE_CHIP_CLASS[tone]
               : "bg-white text-gray-900 ring-gray-200"
@@ -192,22 +201,26 @@ const RecordListField: FunctionComponent<RecordListFieldProps> = (
             </span>
           ) : null}
           <span className="min-w-0 truncate">{name}</span>
-          <button
-            type="button"
-            aria-label={removeLabel}
-            title={removeLabel}
-            data-testid={`${dataTestId}-value-chip-remove`}
-            onClick={() => {
-              props.onChange(withoutEntry(entries, entry));
-            }}
-            className={`flex flex-shrink-0 items-center justify-center rounded-full p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-              isValue
-                ? VALUE_CHIP_REMOVE_CLASS[tone]
-                : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            }`}
-          >
-            <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-          </button>
+          {isViewOnly ? (
+            <></>
+          ) : (
+            <button
+              type="button"
+              aria-label={removeLabel}
+              title={removeLabel}
+              data-testid={`${dataTestId}-value-chip-remove`}
+              onClick={() => {
+                props.onChange(withoutEntry(entries, entry));
+              }}
+              className={`flex flex-shrink-0 items-center justify-center rounded-full p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                isValue
+                  ? VALUE_CHIP_REMOVE_CLASS[tone]
+                  : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              }`}
+            >
+              <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+            </button>
+          )}
         </span>
       );
     },
@@ -228,6 +241,7 @@ const RecordListField: FunctionComponent<RecordListFieldProps> = (
       addButtonText={copy.addButtonText}
       searchPlaceholder={copy.searchPlaceholder}
       emptyText={copy.emptyText}
+      readOnly={isViewOnly}
       ariaLabelledby={props.ariaLabelledby}
       error={props.error}
       dataTestId={dataTestId}

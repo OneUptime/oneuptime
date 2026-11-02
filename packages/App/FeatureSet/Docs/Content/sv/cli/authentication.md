@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 Den svarar `Logged in successfully. Context "production" is now active.` Ett snedstreck i slutet av adressen tas bort, och en ny inloggning under samma namn ersätter den kontexten.
 
 > [!NOTE]
-> `login` sparar nyckeln utan att fråga OneUptime om den. Kör ett kommando, till exempel `oneuptime incident count`, för att se att nyckeln fungerar.
+> `login` sparar nyckeln utan att fråga OneUptime om den. Kör `oneuptime whoami --check` för att se att OneUptime godtar den.
 
 ## Kontexter
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-Bara nyckelns fyra första och fyra sista tecken visas. Raden `Context` visas bara när URL:en och nyckeln är kontextens egna, inte värden som en flagga eller en miljövariabel har ersatt. `whoami` läser dina inställningar utan att anropa OneUptime: den visar vad ett kommando kommer att skicka, inte om OneUptime godtar det. Är inget sparat eller satt, svarar den:
+Bara nyckelns fyra första och fyra sista tecken visas. Raden `Context` visas bara när URL:en och nyckeln är kontextens egna, inte värden som en flagga eller en miljövariabel har ersatt. Ensamt läser `whoami` dina inställningar utan att anropa OneUptime: den visar vad ett kommando kommer att skicka, inte om OneUptime godtar det. Om inget är sparat eller satt svarar den:
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check` frågar även OneUptime. Den lägger till nyckelns projekt, ditt OneUptimes version och CLI:ns, och när de två versionerna skiljer sig åt, kommandot som installerar CLI:n i ditt OneUptimes version. En nyckel som OneUptime avvisar stoppar den med slutkoden `2`:
+
+```bash
+oneuptime whoami --check
 ```
 
 ## Konfigurationsfilen

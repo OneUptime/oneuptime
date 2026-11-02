@@ -85,7 +85,7 @@ Las páginas de lista (por ejemplo **Incidentes** o **Monitores**) tienen la mis
 
 Los secretos nunca se muestran en estas páginas. Cuando la configuración necesita uno (por ejemplo, la cabecera `Authorization` de un monitor), lo lee de una variable de Terraform marcada como `sensitive`. Los secretos que no necesita se dejan fuera, y Terraform los deja como están en OneUptime.
 
-La misma sección tiene una página **API**, con comandos `curl` para el recurso, y una página **Asistentes de IA**, que conecta Claude, GitHub Copilot o Cursor con el [servidor MCP](/docs/ai/mcp-server).
+La misma sección tiene una página **API**, con comandos `curl` para el recurso, una página **CLI**, con las mismas solicitudes como comandos `oneuptime`, y una página **Asistentes de IA**, que conecta Claude, GitHub Copilot o Cursor con el [servidor MCP](/docs/ai/mcp-server).
 
 ## Qué puede gestionar
 

@@ -5,7 +5,7 @@
 :::cards
 - [전역 옵션](#전역-옵션): 모든 명령이 받는 옵션.
 - [로그인과 컨텍스트](#로그인과-컨텍스트): login과 context 명령.
-- [리소스 명령](#리소스-명령): list, get, create, update, delete, count.
+- [리소스 명령](#리소스-명령): 모든 리소스의 작업, 필드, 동작.
 - [기타 명령](#기타-명령): deploy, whoami, resources, version, help.
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>등 모든 리소스"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | 이 명령에 쓸 OneUptime 주소 | `ONEUPTIME_URL`, 그다음 컨텍스트의 URL |
 | `--context <name>` | 이 명령에 쓸 저장된 컨텍스트 | 현재 컨텍스트 |
 | `-o, --output <format>` | `json`, `table` 또는 `wide` | 터미널에서는 `table`, 파이프에서는 `json` |
+| `--json` | `-o json`과 같습니다 | |
 | `--no-color` | 색 없이 출력합니다 | 색 있음(`NO_COLOR`가 설정되지 않은 경우) |
 | `-V, --version` | CLI 버전을 출력합니다 | |
 | `-h, --help` | 명령의 도움말을 보여 줍니다 | |
 
 옵션은 명령 앞이나 뒤에 씁니다. `oneuptime --context staging incident list`와 `oneuptime incident list --context staging`은 같은 일을 합니다.
+
+모든 명령이 `-o`와 `--json`을 받으므로 아래 표에서는 생략합니다. `delete`처럼 응답이 문장인 명령은 `-o json`이나 `--json`으로 JSON을 요청하지 않는 한 문장을 출력합니다. [출력 형식](/docs/cli/output-formats#json)을 참조하세요.
 
 ## 로그인과 컨텍스트
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-저장된 컨텍스트를 나열합니다. `*`가 현재 것을 표시합니다. API 키는 목록에 절대 나오지 않습니다.
+저장된 컨텍스트를 나열합니다. `*`는 현재 컨텍스트를 표시합니다. API 키는 나열되지 않으며, JSON에는 각 컨텍스트의 `name`, `apiUrl`, `isCurrent`가 나옵니다.
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| 옵션 | 필수 | 설명 |
-| --- | --- | --- |
-| `-o, --output <format>` | 아니요 | `json`, `table` 또는 `wide`. JSON은 각 컨텍스트의 `name`, `apiUrl`, `isCurrent`를 줍니다 |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## 리소스 명령
 
-`<resource>`는 [리소스](#리소스) 표에 있는 레코드 종류의 명령입니다(예: `incident`, `monitor`). 예시는 [리소스 작업](/docs/cli/resource-operations)을 참조하세요.
+`<resource>`는 [리소스](#리소스) 표에 있는 레코드 종류의 명령입니다(예: `incident`, `monitor`). 리소스에는 API가 받는 작업이 있으며 대부분은 여섯 가지 모두이고, 그 리소스의 작업은 `oneuptime <resource> --help`가 나열합니다. 예시는 [리소스 작업](/docs/cli/resource-operations)을 참조하세요.
 
 ### `oneuptime <resource> list`
 
 레코드를 최신순으로 나열합니다. 레이블은 대신 이름순으로 나열되며, 번호가 붙은 레이블이 먼저 옵니다(`2. Team`이 `10. Owner`보다 앞).
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | 옵션 | 하는 일 | 기본값 |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | 반환할 레코드의 최대 수, 최대 10,000 | `10` |
 | `--skip <n>` | 먼저 건너뛸 레코드의 수 | `0` |
 | `--sort <json>` | JSON으로 쓴 순서: `{"<field>":"ASC"}` 또는 `{"<field>":"DESC"}` | 최신순 |
-| `-o, --output <format>` | `json`, `table` 또는 `wide` | 터미널에서는 `table`, 파이프에서는 `json` |
+| `--fields <names>` | 반환할 필드. 쉼표로 구분하며, 관련 레코드의 필드는 `currentIncidentState.name`처럼 점 뒤에 씁니다 | 키가 읽을 수 있는 모든 필드 |
+| `--all` | 일치하는 모든 레코드를 한 번에 100개씩, 최대 100,000개까지 `--limit`과 `--skip` 대신 가져옵니다. 레코드 전용: 텔레메트리에는 `--all`이 없습니다 | |
 
 ### `oneuptime <resource> get`
 
-레코드 하나를 읽습니다. 레코드 전용: 텔레메트리에는 `get`이 없습니다.
+레코드 하나를 읽습니다.
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | 인수 또는 옵션 | 필수 | 설명 |
 | --- | --- | --- |
 | `<id>` | 예 | 레코드의 ID(UUID) |
-| `-o, --output <format>` | 아니요 | `json`, `table` 또는 `wide` |
+| `--fields <names>` | 아니요 | 반환할 필드. 쉼표로 구분합니다. 기본값: 키가 읽을 수 있는 모든 필드 |
 
 ### `oneuptime <resource> create`
 
 레코드를 만들고 출력합니다.
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | 옵션 | 필수 | 설명 |
 | --- | --- | --- |
-| `--data <json>` | 둘 중 하나 | JSON으로 쓴 레코드 |
-| `--file <path>` | 둘 중 하나 | 레코드가 든 JSON 파일. `--data`와 함께 주면 파일이 쓰입니다 |
-| `-o, --output <format>` | 아니요 | `json`, `table` 또는 `wide` |
+| `--<field> <value>` | 만들기에 필수인 필드 | 필드의 값: `--title <text>`, `--incident-severity-id <id>`, `--labels <ids>`. `oneuptime <resource> create --help`가 나열합니다. 레코드 전용 |
+| `--data <json>` | 아니요 | JSON으로 된 레코드 |
+| `--file <path>` | 아니요 | 레코드가 든 JSON 파일. `--data`와 함께 주면 파일이 쓰입니다 |
+
+플래그는 `--data`나 `--file` 위에 적용됩니다. 사용자 ID로 사람을 지정하는 필드에는 이메일 주소로 지정하는 플래그도 있습니다. `--user-email`은 `--user-id`와 짝을 이룹니다.
 
 ### `oneuptime <resource> update`
 
-지정한 필드를 바꿉니다. 레코드 전용: 텔레메트리에는 `update`가 없습니다.
+준 필드를 바꿉니다.
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | 인수 또는 옵션 | 필수 | 설명 |
 | --- | --- | --- |
 | `<id>` | 예 | 레코드의 ID |
-| `--data <json>` | 예 | JSON으로 쓴, 바꿀 필드 |
-| `-o, --output <format>` | 아니요 | `json`, `table` 또는 `wide` |
+| `--<field> <value>` | 아니요 | 바꿀 필드: `oneuptime <resource> update --help`가 나열합니다. 레코드 전용 |
+| `--data <json>` | 아니요 | JSON으로 된 바꿀 필드 |
+| `--file <path>` | 아니요 | 바꿀 필드가 든 JSON 파일. `--data`와 함께 주면 파일이 쓰입니다 |
 
 ### `oneuptime <resource> delete`
 
-묻지 않고 레코드를 바로 삭제합니다. 레코드 전용: 텔레메트리에는 `delete`가 없습니다.
+묻지 않고 레코드를 바로 삭제합니다.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 레코드 개수를 세어 숫자를 출력합니다.
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | 옵션 | 필수 | 설명 |
 | --- | --- | --- |
 | `--query <json>` | 아니요 | JSON으로 쓴 필터. 없으면 키가 읽을 수 있는 모든 레코드 |
-| `-o, --output <format>` | 아니요 | `json`, `table` 또는 `wide` |
+
+### `oneuptime <resource> fields`
+
+리소스의 필드를 나열합니다. 용도, 형식, 만들기에 필수인지 여부, 그것을 설정하는 플래그를 보여 줍니다. API 키도 요청도 없이 CLI 자체에서 읽습니다.
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+인시던트, 알림 또는 그 에피소드를 대시보드 버튼처럼 프로젝트의 인지됨 상태로 옮깁니다. 이미 인지됨이거나 그보다 뒤의 상태인 레코드는 그대로 둡니다.
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| 인수 | 필수 | 설명 |
+| --- | --- | --- |
+| `<id>` | 예 | 레코드의 ID |
+
+### `oneuptime <resource> resolve`
+
+인시던트, 알림 또는 그 에피소드를 프로젝트의 해결됨 상태로 옮깁니다.
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| 인수 | 필수 | 설명 |
+| --- | --- | --- |
+| `<id>` | 예 | 레코드의 ID |
+
+### `oneuptime <resource> start`
+
+예정된 유지 관리 이벤트를 프로젝트의 진행 중 상태로 옮깁니다.
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| 인수 | 필수 | 설명 |
+| --- | --- | --- |
+| `<id>` | 예 | 이벤트의 ID |
+
+### `oneuptime <resource> end`
+
+예정된 유지 관리 이벤트를 프로젝트의 종료됨 상태로 옮깁니다.
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| 인수 | 필수 | 설명 |
+| --- | --- | --- |
+| `<id>` | 예 | 이벤트의 ID |
+
+### `oneuptime <resource> add-note`
+
+인시던트, 알림, 그 에피소드 또는 예정된 유지 관리 이벤트에 메모를 추가합니다.
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| 인수 또는 옵션 | 필수 | 설명 |
+| --- | --- | --- |
+| `<id>` | 예 | 레코드의 ID |
+| `--note <markdown>` | 예 | Markdown으로 된 메모 |
+| `--public` | 아니요 | 레코드의 상태 페이지에 메모를 올리고 구독자에게 알립니다. 인시던트, 그 에피소드, 예정된 유지 관리 전용 |
 
 ### 리소스
 
-레코드는 `list`, `get`, `create`, `update`, `delete`, `count`를 받습니다.
+OneUptime API의 모든 리소스는 명령이며, API가 받는 작업, `fields`, 그리고 동작이 있는 레코드라면 그 동작을 가집니다.
 
-| 영역 | 명령 |
-| --- | --- |
-| 모니터링 | `monitor`, `monitor-status`, `monitor-status-event` |
-| 인시던트 | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| 알림 | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| 상태 페이지 | `status-page`, `status-page-announcement` |
-| 예약된 유지 관리 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| 팀과 온콜 | `team`, `on-call-policy` |
-| 보안 | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| 데이터 보안 | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| 레이블 | `label` |
-
-텔레메트리는 `list`, `create`, `count`를 받습니다.
-
-| 영역 | 명령 |
-| --- | --- |
-| 관측성 | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| 보안 | `security-event`, `threat-intel-indicator` |
-| 변경과 비용 | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 CLI는 OneUptime과 함께 릴리스되므로 `oneuptime resources`는 설치한 버전의 명령을 나열합니다.
 
@@ -220,6 +275,8 @@ CLI는 OneUptime과 함께 릴리스되므로 `oneuptime resources`는 설치한
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | 없음 |
 | `count` | `POST /api/<path>/count` | `query` |
+
+동작은 프로젝트의 상태와 레코드를 읽은 다음, 대시보드 버튼처럼 레코드의 상태 타임라인에 행을 만듭니다. 인시던트에 대한 `acknowledge`는 `incident-state-timeline`을 만듭니다. `add-note`는 `incident-internal-note`를 만들고, `--public`을 붙이면 `incident-public-note`를 만듭니다. 이메일 플래그는 먼저 그 주소를 가진 프로젝트의 팀 구성원을 나열합니다. 키가 읽을 수 없는 필드를 OneUptime이 거부하면, 목록이나 읽기는 그 필드를 빼고 다시 요청합니다.
 
 ## 기타 명령
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-다음 명령이 사용할 URL과 API 키(키는 가린 채)와 그 값을 가져온 컨텍스트를 보여 줍니다. OneUptime은 호출하지 않습니다. [CLI가 사용할 값 확인](/docs/cli/authentication#cli가-사용할-값-확인)을 참조하세요.
+다음 명령이 사용할 URL과 API 키(키는 가려짐), 그리고 그 값을 가져온 컨텍스트를 보여 줍니다. `--check`가 없으면 OneUptime을 호출하지 않습니다. [CLI가 사용할 값 확인](/docs/cli/authentication#cli가-사용할-값-확인)을 참조하세요.
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| 옵션 | 필수 | 설명 |
+| --- | --- | --- |
+| `--check` | 아니요 | OneUptime에 키를 받아들이는지 묻고, 키의 프로젝트, 사용 중인 OneUptime 버전과 CLI 버전을 보여 줍니다 |
 
 ### `oneuptime resources`
 
-CLI에 명령이 있는 모든 레코드 종류를 나열합니다. 명령, 단수와 복수 이름, 유형, API 경로, 그리고 전체 개수를 보여 줍니다.
+CLI에 명령이 있는 모든 레코드 종류를 명령, 단수형과 복수형 이름, 유형, API 경로, 그리고 합계와 함께 나열합니다. JSON에는 각각의 `name`, `singularName`, `pluralName`, `modelType`, `apiPath`, `operations`, `actions`가 나옵니다.
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | 옵션 | 필수 | 설명 | 기본값 |
 | --- | --- | --- | --- |
 | `--type <type>` | 아니요 | 레코드는 `database`, 텔레메트리는 `analytics` | 둘 다 |
-| `-o, --output <format>` | 아니요 | `json`, `table` 또는 `wide`. JSON은 각각의 `name`, `singularName`, `pluralName`, `modelType`, `apiPath`를 줍니다 | 터미널에서는 `table`, 파이프에서는 `json` |
 
 ### `oneuptime version`
 

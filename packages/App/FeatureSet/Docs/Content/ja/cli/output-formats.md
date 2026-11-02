@@ -1,11 +1,11 @@
 # 出力形式
 
-CLI は、応答をターミナルで読むときは表を、スクリプトやほかのプログラムが読むときは JSON を出力します。どのコマンドでも `-o` または `--output` で形式を選べます。
+CLI は、応答をターミナルで読むときは表を、スクリプトやほかのプログラムが読むときは JSON を出力します。どのコマンドでも `-o` または `--output` で形式を選べ、`--json` で JSON を指定できます。
 
 :::cards
 - [形式の決まり方](#形式の決まり方): ターミナルには表、パイプには JSON。
 - [表](#表): 6 列、各値は 60 文字で切り詰め。
-- [JSON](#json): すべてのフィールドを切り詰めずに、スクリプトと jq のために。
+- [JSON](#json): すべてのフィールドを完全な形で。スクリプト、jq、AI エージェント向け。
 - [ワイド](#ワイド): すべての列を含む表。
 :::
 
@@ -25,7 +25,7 @@ flowchart TB
 | `json` | OneUptime が送ったままの応答を、二つの空白でインデント | スクリプト、`jq`、ファイル |
 | `wide` | フィールドごとに列を持つ表 | 多くのフィールドを一度に見比べる |
 
-`-o` は、レコードを出力するすべてのコマンド、つまりリソースの `list`、`get`、`create`、`update`、`count` と、`oneuptime resources`、`oneuptime context list` で使えます。コマンドラインのどこに書いてもかまいません。それ以外の値は、リクエストを送る前に拒否されます。
+`-o` と `--json` はすべてのコマンドで、コマンドラインのどこに書いても使えます。レコードを出力するコマンドは、図のとおりに形式を選びます。`delete` や `acknowledge` のように応答が文になるコマンドは、`-o json` または `--json` で JSON を求めない限り、ターミナルでもパイプでも文を出力します。`-o` にそれ以外の値を指定すると、リクエストを送る前に拒否されます。
 
 ```text
 error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choices are json, table, wide.
@@ -39,26 +39,36 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 ┌────────────────────────────┬────────────────────────────┬─────────────────────────────┬───────────┬─────────────────────────────┐
 │ Command                    │ Singular                   │ Plural                      │ Type      │ API Path                    │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+│ audit-log                  │ Audit Log                  │ Audit Logs                  │ analytics │ /audit-log                  │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
-├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ monitor-log                │ Monitor Log                │ Monitor Logs                │ analytics │ /monitor-log                │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+│ network-flow               │ Network Flow               │ Network Flows               │ analytics │ /network-flow               │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile                    │ Profile                    │ Profiles                    │ analytics │ /profile                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile-sample             │ ProfileSample              │ ProfileSamples              │ analytics │ /profile-sample             │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ security-event             │ Security Event             │ Security Events             │ analytics │ /security-events            │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
+│ slo-history                │ SLO History                │ SLO History                 │ analytics │ /slo-history                │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 9 resources
+Total: 14 resources
 ```
 
 レコードの一覧の場合、表には最大 6 列が表示されます。まず `_id`、`name`、`title`、`status`、`createdAt`、`updatedAt` のうちレコードにあるもの、次にレコードの残りのフィールドが順に並びます。列は最初のレコードから取られます。60 文字を超える値は先頭の 57 文字に切り詰められ、その後に `...` が付きます。
@@ -100,6 +110,16 @@ oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 `oneuptime incident list | jq '.[].title'` のように出力先がターミナルでない場合、CLI は `-o json` を付けなくても JSON を出力します。それでもスクリプトには `-o json` を書いて、この動作に依存しないようにしてください。
 
+`--json` は `-o json` と同じです。応答が文になるコマンドは、代わりにオブジェクトで応答します。`delete` はレコードの `_id` と `"deleted": true` で、`acknowledge` はレコードが今ある `state` で応答します。JSON を求めた場合、エラーは標準エラー出力上の 1 つのオブジェクトになり、キーは毎回同じで、`exitCode` はコマンドの終了コードです。
+
+```bash
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --json
+```
+
+```json
+{"error":{"message":"API error (404): Incident not found.","status":404,"exitCode":3,"hint":"`oneuptime incident list` shows the ones this key may read."}}
+```
+
 ## ワイド
 
 `-o wide` は、レコードのフィールドごとに列を持つ表です。各値は引き続き 60 文字で切り詰められ、レコードにはフィールドが多いため、ワイドの表はとても横長になります。`less -S` で表示してください。
@@ -110,7 +130,7 @@ oneuptime incident list -o wide | less -S
 
 ## 色
 
-表の見出しはシアン、メッセージは成功時が緑、情報が青、エラーが赤です。`--no-color` を付けるか、`NO_COLOR` に任意の値を設定すると色が消えます。
+表の見出しはシアン、メッセージは成功時が緑、情報が青、警告とエラーへの対処が黄、エラーが赤です。`--no-color` を付けるか、`NO_COLOR` に任意の値を設定すると色が消えます。
 
 ```bash
 oneuptime incident list --no-color
@@ -119,7 +139,7 @@ NO_COLOR=1 oneuptime incident list
 
 ## 各コマンドの出力
 
-レコードと件数は標準出力に、エラーは標準エラー出力に出るため、パイプは応答だけを読み取ります。
+レコードと件数は標準出力に、エラーと警告は標準エラー出力に出るため、パイプは応答だけを読み取ります。
 
 | コマンド | 表の場合 | JSON の場合 |
 | --- | --- | --- |
@@ -127,7 +147,9 @@ NO_COLOR=1 oneuptime incident list
 | `get` または `create` | フィールドごとに一行 | レコード |
 | `count` | 数値 | 数値 |
 | `update` | 空の行 | `{}` |
-| `delete` | `Monitor <id> deleted successfully.` | 同じ行 |
+| `delete` | `Monitor <id> deleted successfully.` | レコードの `_id` と `"deleted": true` |
+| `acknowledge`、`resolve`、`start`、`end` | `Incident <id> acknowledged: it is in Acknowledged now.` | レコードの `_id`、`action`、変わったかどうかの `changed`、`state` |
+| エラー | エラーと、その対処 | `{"error": {...}}`、標準エラー出力 |
 
 ## 次のステップ
 

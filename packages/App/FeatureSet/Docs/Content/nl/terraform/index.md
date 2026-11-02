@@ -85,7 +85,7 @@ De lijstpagina's (bijvoorbeeld **Incidenten** of **Monitoren**) hebben dezelfde 
 
 Geheimen worden nooit op deze pagina's getoond. Als de configuratie er een nodig heeft (bijvoorbeeld de `Authorization`-header van een monitor), leest ze die uit een Terraform-variabele die als `sensitive` is gemarkeerd. Geheimen die ze niet nodig heeft, blijven weg, en Terraform laat ze zoals ze in OneUptime zijn.
 
-Dezelfde sectie heeft een pagina **API**, met `curl`-opdrachten voor de resource, en een pagina **AI-assistenten**, die Claude, GitHub Copilot of Cursor met de [MCP-server](/docs/ai/mcp-server) verbindt.
+Dezelfde sectie heeft een pagina **API**, met `curl`-opdrachten voor de resource, een pagina **CLI**, met dezelfde verzoeken als `oneuptime`-opdrachten, en een pagina **AI-assistenten**, die Claude, GitHub Copilot of Cursor met de [MCP-server](/docs/ai/mcp-server) verbindt.
 
 ## Wat je kunt beheren
 

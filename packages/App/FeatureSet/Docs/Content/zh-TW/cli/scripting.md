@@ -63,7 +63,7 @@ case $? in
 esac
 ```
 
-錯誤訊息輸出到標準錯誤，因此 `incident.json` 只包含回應。
+錯誤訊息輸出到標準錯誤，因此 `incident.json` 只包含回應。使用 `-o json` 時，錯誤也是 JSON，其中包含結束代碼：請參閱 [JSON](/docs/cli/output-formats#json)。
 
 ## 用 jq 讀取回應
 
@@ -74,13 +74,16 @@ esac
 oneuptime incident list -o json | jq -r '.[].title'
 
 # The ID of a new monitor
-MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
+MONITOR_ID=$(oneuptime monitor create --name "Checkout API" --monitor-type Manual -o json | jq -r '._id')
 
 # When each incident was created: dates come as objects
 oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 # The newest 100 incidents as CSV
 oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
+
+# Every incident, page after page, with only the two fields the script reads
+oneuptime incident list --all --fields title,createdAt -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 ```
 
 統計只印出一個數字，可直接用於比較：

@@ -126,12 +126,39 @@ describe("the list", () => {
     expect(new Set(folders).size).toBe(folders.length);
 
     for (const item of INSTALL_SCRIPTS) {
-      if (item.name === InstallScriptName.KubernetesAgent) {
+      if (
+        item.name === InstallScriptName.KubernetesAgent ||
+        item.name === InstallScriptName.Cli
+      ) {
         continue;
       }
 
       expect(item.sourceDirectory).toMatch(/^agents\/[A-Za-z]+Agent$/);
     }
+  });
+
+  /*
+   * The CLI is no agent: its installer lives beside its code, and installs
+   * the npm package of the server's version - one script, nothing else to
+   * download.
+   */
+  test("the CLI's installer is packages/CLI/Install/install.sh, and only that", () => {
+    const cli: InstallScriptEntry | null = getInstallScriptEntry(
+      InstallScriptName.Cli,
+    );
+
+    expect(cli).toEqual({
+      name: "cli",
+      title: "OneUptime CLI",
+      sourceDirectory: "packages/CLI/Install",
+      script: INSTALL_SCRIPT_FILE,
+      files: [INSTALL_SCRIPT_FILE],
+    });
+    expect(
+      fs.existsSync(
+        path.join(REPO_ROOT, "packages", "CLI", "Install", INSTALL_SCRIPT_FILE),
+      ),
+    ).toBe(true);
   });
 
   test("every agent with a diagnostic script in its folder serves it", () => {
@@ -212,7 +239,9 @@ describe("an address names an entry and a file exactly", () => {
     ["ProxmoxAgent"],
     ["agents/ProxmoxAgent"],
     [".."],
-    ["cli"],
+    // The CLI's entry is "cli" (above), in lower case only.
+    ["CLI"],
+    ["cli/"],
     ["constructor"],
     ["__proto__"],
     ["toString"],

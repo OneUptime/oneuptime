@@ -1,11 +1,12 @@
 # Resursoperationer
 
-Varje sorts post är ett eget kommando, till exempel `incident`, `monitor` eller `status-page`, och vart och ett tar samma operationer: `list`, `get`, `create`, `update`, `delete` och `count`. Den här sidan visar varje operation, med filter, sidor och den JSON som en post skrivs i.
+Varje sorts post är ett eget kommando, till exempel `incident`, `monitor` eller `status-page`, med de operationer som API:et tar för den: för de flesta `list`, `get`, `create`, `update`, `delete` och `count`. Den här sidan visar varje operation, med filter, sidor och de flaggor som en post skrivs med, och de kommandon som gör det som instrumentpanelens knappar gör.
 
 :::cards
 - [Hitta kommandot för en post](#hitta-kommandot-för-en-post): oneuptime resources listar dem alla.
 - [Lista poster](#lista-poster): Filtrera, sortera och bläddra.
-- [Skapa en post](#skapa-en-post): Från JSON på kommandoraden eller i en fil.
+- [Skapa en post](#skapa-en-post): En flagga för varje fält, eller posten som JSON.
+- [Bekräfta, lös och lägg till anteckningar](#bekräfta-lös-och-lägg-till-anteckningar): Instrumentpanelens knappar som kommandon.
 - [Ta bort en post](#ta-bort-en-post): Direkt, utan ångra.
 :::
 
@@ -31,17 +32,29 @@ oneuptime resources
 
 Listan visar varje sorts post med dess kommando, dess namn, dess typ och dess API-sökväg. Det finns två typer:
 
-| Typ | Vad den innehåller | Operationer |
-| --- | --- | --- |
-| `database` | Poster som du hanterar: monitorer, incidenter, larm, statussidor, team och mer | `list`, `get`, `create`, `update`, `delete`, `count` |
-| `analytics` | Telemetri: loggar, spans, mätvärden, undantag och andra händelser | `list`, `create`, `count` |
+| Typ | Vad den innehåller |
+| --- | --- |
+| `database` | Poster som du hanterar: monitorer, incidenter, larm, statussidor, team och mer |
+| `analytics` | Telemetri: loggar, spann, mätvärden, undantag och andra händelser |
 
 Visa en typ med `oneuptime resources --type database` eller `--type analytics`. [Kommandoreferensen](/docs/cli/command-reference#resurser) listar varje kommando.
+
+En resurs tar de operationer som API:et tar för den. De flesta tar alla sex; en som OneUptime själv skriver, till exempel en e-postlogg, kan bara läsas. `oneuptime <resource> --help` listar en resurs underkommandon.
+
+## Se en resurs fält
+
+`fields` listar en resurs fält från själva CLI:n, utan API-nyckel och utan begäran:
+
+```bash
+oneuptime incident fields
+```
+
+Varje fält har sin typ, vad det används till, om ett skapande måste ange det, och den flagga som sätter det. Ett fält som innehåller ett ID nämner resursen som ID:t hör till: `incidentSeverityId` tar ett från `oneuptime incident-severity list`. Med `-o json` läser ett skript eller en AI-agent samma sak, med samma nycklar för varje fält: `name`, `title`, `type`, `description`, `required`, `create`, `update`, `read`, `flag`, `emailFlag` och `relatedResource`.
 
 ## Lista poster
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all] [-o <format>]
 ```
 
 | Alternativ | Vad det gör | Standard |
@@ -50,6 +63,8 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | Det högsta antalet poster att returnera, upp till 10 000 | `10` |
 | `--skip <n>` | Hur många matchande poster som hoppas över först | `0` |
 | `--sort <json>` | Ordningen, till exempel `{"createdAt":"ASC"}`, eller `"DESC"` för de nyaste först | De nyaste först |
+| `--fields <names>` | Fälten som ska returneras, åtskilda av kommatecken, till exempel `title,createdAt` | Varje fält som nyckeln får läsa |
+| `--all` | Varje post som matchar, sida efter sida, i stället för `--limit` och `--skip`. Bara poster | |
 | `-o, --output <format>` | `table`, `json` eller `wide` | `table` i en terminal, `json` i en pipe |
 
 ```bash
@@ -61,9 +76,12 @@ oneuptime monitor list --sort '{"createdAt":"ASC"}' --limit 50 --skip 50
 
 # Every field of each incident, as JSON
 oneuptime incident list -o json
+
+# The title, the state and the creation date of every incident
+oneuptime incident list --all --fields title,currentIncidentState.name,createdAt -o json
 ```
 
-En lista ber OneUptime om varje fält i varje post som nyckeln får läsa. En tabell visar sex av dem; JSON visar alla (se [Utdataformat](/docs/cli/output-formats)). För att bläddra igenom alla poster ökar du `--skip` med `--limit` tills en sida kommer tillbaka tom; `count` säger hur många det finns.
+En lista ber OneUptime om varje fält i varje post som nyckeln får läsa. `--fields` ber i stället om de fält den nämner, och efter en punkt om ett fält i en kopplad post, som i `currentIncidentState.name`. En tabell visar sex fält; JSON visar alla (se [Utdataformat](/docs/cli/output-formats)). `--all` läser varje sida, 100 poster åt gången, upp till 100 000; `count` säger hur många det finns.
 
 Etiketter listas efter namn i stället för de nyaste först: etiketter vars namn börjar med en siffra kommer först, i ordning efter talet (`2. Team` före `10. Owner`), sedan de övriga i bokstavsordning. Vill du ha dem i en annan ordning anger du `--sort`.
 
@@ -87,7 +105,7 @@ oneuptime incident list --query '{"title":{"_type":"Search","value":"checkout"}}
 ## Läs en post
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>] [-o <format>]
 ```
 
 ```bash
@@ -99,21 +117,28 @@ En tabell visar en rad för varje fält i posten, med varje värde avkortat vid 
 ## Skapa en post
 
 ```bash
-oneuptime <resource> create --data <json> [-o <format>]
-oneuptime <resource> create --file <path> [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>] [-o <format>]
 ```
 
-`--data` tar posten som JSON, och `--file` läser den från en JSON-fil. Ange en av de två; anger du båda används filen. Fälten är API:ets, och [API-referensen](/reference) listar varje resurs fält. Projektet kommer från API-nyckeln, så en post nämner det aldrig.
+Varje fält som ett skapande tar har en flagga: `--title <text>`, `--incident-severity-id <id>`, `--labels <ids>` för ID:n åtskilda av kommatecken, `--is-visible-on-status-page [true|false]` för ett ja-eller-nej-fält, sant när den anges ensam, och `--monitor-steps <json>` för ett fält som innehåller JSON. `oneuptime <resource> create --help` listar dem, och [`fields`](#se-en-resurs-fält) säger vad varje fält används till. Projektet kommer från API-nyckeln, så en post nämner det aldrig.
 
 ```bash
 # A manual monitor
-oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}'
+oneuptime monitor create --name "Checkout API" --monitor-type Manual
 
 # An incident with one of your severities
-oneuptime incident create --data '{"title":"Checkout API is down","incidentSeverityId":"<severity-id>"}'
+oneuptime incident create --title "Checkout API is down" --incident-severity-id <severity-id>
 
 # The same incident, from a file
 oneuptime incident create --file incident.json
+```
+
+`--data` tar posten som JSON, och `--file` läser den från en JSON-fil, med API:ets fält: [API-referensen](/reference) listar varje resurs fält. Anger du båda används filen, och flaggor läggs ovanpå vilken som helst av dem.
+
+Ett fält som nämner en person med användar-ID har en andra flagga som nämner personen med e-postadress: `--user-email` bredvid `--user-id`, `--owner-user-emails` bredvid `--owner-users`. CLI:n hittar personen bland medlemmarna i API-nyckelns projekt och de personer som är inbjudna till det. En teammedlem som nämns med en adress som ingen i projektet har bjuds in till det, som när du bjuder in från instrumentpanelen:
+
+```bash
+oneuptime team-member create --team-id <team-id> --user-email alice@example.com
 ```
 
 CLI:n skriver ut den nya posten med dess `_id`. En incident börjar i ditt projekts skapad-tillstånd, om inte `currentIncidentStateId` nämner ett annat: se [Tillståndet som en ny post börjar i](/docs/api-reference/api-reference#tillståndet-som-en-ny-post-börjar-i). Så hittar du ID:na för dina allvarlighetsgrader:
@@ -123,29 +148,49 @@ oneuptime incident-severity list -o json | jq -r '.[] | "\(._id)  \(.name)"'
 ```
 
 > [!TIP]
-> På Windows lägger du JSON:en i en fil och använder `--file`: PowerShell och kommandotolken citerar JSON på kommandoraden på ett annat sätt än Bash.
+> På Windows anger du fälten med deras flaggor, eller lägger JSON:en i en fil och använder `--file`: PowerShell och kommandotolken citerar JSON på kommandoraden på ett annat sätt än Bash.
 
 ## Uppdatera en post
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>] [-o <format>]
 ```
 
-`--data` krävs och innehåller bara de fält som ska ändras:
+Ange bara de fält som ska ändras, med deras flaggor eller som JSON:
 
 ```bash
 # Rename a monitor
-oneuptime monitor update <monitor-id> --data '{"name":"Checkout API (EU)"}'
+oneuptime monitor update <monitor-id> --name "Checkout API (EU)"
 
-# Move an incident to your resolved state
-oneuptime incident update <incident-id> --data '{"currentIncidentStateId":"<resolved-state-id>"}'
+# Record an incident's root cause
+oneuptime incident update <incident-id> --root-cause "A full disk on the primary database"
 ```
 
-OneUptime svarar på en uppdatering med ett tomt objekt: CLI:n skriver ut en tom rad, eller `{}` med `-o json`. Kör `get` för att se posten som den är nu. Flyttar du en incident till ett annat tillstånd på det här sättet registreras ändringen på dess tidslinje, som instrumentpanelen gör, och ett tillstånd före det aktuella avvisas. Så hittar du ID:t för det lösta tillståndet, det första i ditt projekts ordning:
+OneUptime svarar på en uppdatering med ett tomt objekt: CLI:n skriver ut en tom rad, eller `{}` med `-o json`. Kör `get` för att se posten som den är nu. För att flytta en incident till ett annat tillstånd anger du `--current-incident-state-id`: ändringen registreras på dess tidslinje, som instrumentpanelen gör, och ett tillstånd före det nuvarande avvisas. [`acknowledge` och `resolve`](#bekräfta-lös-och-lägg-till-anteckningar) hittar tillståndet åt dig. Så hittar du ID:t för löst-tillståndet, det första i ditt projekts ordning:
 
 ```bash
 oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order":"ASC"}' --limit 1 -o json | jq -r '.[0]._id'
 ```
+
+## Bekräfta, lös och lägg till anteckningar
+
+Incidenter, larm, deras episoder och schemalagda underhållshändelser har kommandon för det som instrumentpanelens knappar gör på dem:
+
+| Kommando | Vad det gör | Resurser |
+| --- | --- | --- |
+| `acknowledge <id>` | Flyttar posten till ditt projekts bekräftad-tillstånd | `incident`, `alert`, `incident-episode`, `alert-episode` |
+| `resolve <id>` | Flyttar den till ditt projekts löst-tillstånd | Samma fyra |
+| `start <id>` | Flyttar händelsen till ditt projekts pågående tillstånd | `scheduled-maintenance-event` |
+| `end <id>` | Flyttar den till ditt projekts avslutad-tillstånd | `scheduled-maintenance-event` |
+| `add-note <id> --note <markdown>` | Lägger till en anteckning som ditt team ser, eller med `--public` en på postens statussidor | Alla fem |
+
+```bash
+oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
+oneuptime incident add-note 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --note "Rolled back the 14:05 deploy."
+oneuptime incident resolve 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
+```
+
+`acknowledge` svarar `Incident 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 acknowledged: it is in Acknowledged now.` En post som redan är i det tillståndet, eller förbi det, lämnas som den är: kommandot säger det och avslutas med `0`. Med `-o json` svarar det med postens `_id`, `action`, om något ändrades (`changed`), och tillståndet `state` som posten är i. Larm och larmepisoder tar bara interna anteckningar.
 
 ## Ta bort en post
 
@@ -157,7 +202,7 @@ oneuptime <resource> delete <id>
 oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-Den svarar `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.`
+Den svarar `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` Med `-o json` svarar den med postens `_id` och `"deleted": true`.
 
 > [!CAUTION]
 > `delete` tar bort posten direkt. CLI:n ber dig inte bekräfta, och det går inte att ångra. Den godtar `--force`, för skript som skrivits med det, och `--force` ändrar ingenting.
@@ -178,33 +223,26 @@ oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":fal
 
 CLI:n skriver ut ett tal, samma i en tabell och i JSON, så att ett skript kan läsa det som det är.
 
-## Vad varje typ kan
-
-| Operation | `database` | `analytics` |
-| --- | --- | --- |
-| `list` | Ja | Ja |
-| `get` | Ja | Nej |
-| `create` | Ja | Ja |
-| `update` | Ja | Nej |
-| `delete` | Ja | Nej |
-| `count` | Ja | Ja |
-
 ## Felsökning
 
 :::details Meddelandet ”Not found: API error (404)”
 Posten finns inte, ligger i ett annat projekt, eller nyckeln får inte läsa den: OneUptime svarar likadant i varje fall. Kontrollera ID:t med `list`, och nyckelns behörigheter. Kommandot avslutas med koden `3`.
 :::
 
-:::details Meddelandet ”API error (422): You do not have permissions to select on”
-En lista eller en läsning ber om varje fält i posten, och nyckeln får inte läsa ett av dem: meddelandet nämner fältet och de behörigheter som får läsa det. Ge nyckeln en av de behörigheterna.
+:::details Meddelandet ”Left out fields this API key may not read”
+En lista eller en läsning ber om varje fält i posten, och OneUptime avvisar ett fält som nyckeln inte får läsa: CLI:n frågar igen utan fältet och nämner de utelämnade fälten på standard fel. Ge nyckeln en behörighet som läser dem, eller nämn de fält du behöver med `--fields`: ett nämnt fält som nyckeln inte får läsa stoppar kommandot med `API error (422)`.
 :::
 
 :::details Meddelandet ”Error: Invalid JSON”
-Värdet för `--query`, `--sort` eller `--data` är inte JSON. I Bash och zsh sätter du det inom enkla citattecken; på Windows lägger du en post i en fil och använder `--file`.
+Värdet för `--query`, `--sort` eller `--data` är inte JSON. I Bash och zsh sätter du det inom enkla citattecken; på Windows anger du fälten med deras flaggor, eller lägger en post i en fil och använder `--file`.
 :::
 
 :::details API error (400) vid ett skapande eller en uppdatering
-OneUptime avvisade ett fält: meddelandet nämner det. `No fields to update` betyder att `--data` inte innehöll något fält att ändra.
+OneUptime avvisade ett fält: meddelandet nämner det, och `oneuptime <resource> fields` listar fälten med de flaggor som sätter dem. Ett kommando som inte anger något fält alls avvisas innan det skickas, med de flaggor som ska anges.
+:::
+
+:::details Meddelandet ”No one in this project, or invited to it, has the email address”
+En e-postflagga nämner någon som varken är medlem i API-nyckelns projekt eller inbjuden till det. Bjud in personen med `oneuptime team-member create --team-id <team-id> --user-email <email>`, eller nämn personen med användar-ID.
 :::
 
 ## Nästa steg
