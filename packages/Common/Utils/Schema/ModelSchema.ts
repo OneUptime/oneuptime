@@ -172,6 +172,9 @@ const RELATION_SELECT_SCHEMAS: Map<string, ModelSchemaType> = new Map();
 
 const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
 
+// What a column's description may already end its sentence with.
+const SENTENCE_END_PUNCTUATION: ReadonlyArray<string> = [".", "!", "?"];
+
 const EXAMPLE_TIME: string = "2026-01-01T00:00:00.000Z";
 
 // Type for schema method functions
@@ -218,6 +221,38 @@ export class ModelSchema extends BaseSchema {
     );
 
     return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;
+  }
+
+  /*
+   * A column's description as the spec writes it: the column's own words as
+   * one sentence, then its permissions clause. A full stop is added only to
+   * words that end without one - most columns' descriptions end with their
+   * own ("Date and Time when the object was created."), and joining them
+   * with ". " wrote "created.. Permissions - ..." for more than half the
+   * spec's columns, which the API reference and every client reading the
+   * spec showed.
+   */
+  public static describeColumnWithPermissions(
+    description: string,
+    permissionsDescription: string,
+  ): string {
+    const words: string = description.trim();
+
+    if (!permissionsDescription) {
+      return words;
+    }
+
+    if (!words) {
+      return permissionsDescription;
+    }
+
+    const endsWithItsOwnPunctuation: boolean = SENTENCE_END_PUNCTUATION.some(
+      (mark: string) => {
+        return words.endsWith(mark);
+      },
+    );
+
+    return `${words}${endsWithItsOwnPunctuation ? "" : "."} ${permissionsDescription}`;
   }
 
   public static getModelSchema(data: {
@@ -554,16 +589,11 @@ export class ModelSchema extends BaseSchema {
         finalDescription = column.title;
       }
 
-      // Add permissions description, prefixed to the column description
-      const permissionsDescription: string =
-        this.getColumnPermissionsDescription(model, key);
-      if (permissionsDescription) {
-        if (finalDescription) {
-          finalDescription = `${finalDescription}. ${permissionsDescription}`;
-        } else {
-          finalDescription = permissionsDescription;
-        }
-      }
+      // The column's description, then who may read and write it.
+      finalDescription = ModelSchema.describeColumnWithPermissions(
+        finalDescription,
+        this.getColumnPermissionsDescription(model, key),
+      );
 
       // Set the final combined description
       zodType = this.annotateColumn({
@@ -1372,16 +1402,11 @@ export class ModelSchema extends BaseSchema {
         finalDescription = column.title;
       }
 
-      // Add permissions description, prefixed to the column description
-      const permissionsDescription: string =
-        this.getColumnPermissionsDescription(model, key);
-      if (permissionsDescription) {
-        if (finalDescription) {
-          finalDescription = `${finalDescription}. ${permissionsDescription}`;
-        } else {
-          finalDescription = permissionsDescription;
-        }
-      }
+      // The column's description, then who may read and write it.
+      finalDescription = ModelSchema.describeColumnWithPermissions(
+        finalDescription,
+        this.getColumnPermissionsDescription(model, key),
+      );
 
       // Set the final combined description
       zodType = this.annotateColumn({
