@@ -57,6 +57,9 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Case Priorities** | Settings | How urgent a case is: the project's own priorities, most urgent first |
 | **Response Targets** | Settings | How fast a case at each priority must be taken on and contained |
 | **Case Statuses** | Settings | The steps a case moves through, and what a case in each counts as |
+| **Custom Fields** | Settings | The fields your team fills in on every case, such as the business unit it is about |
+| **Note Templates** | Settings | Ready-made text for the notes your team writes on its cases |
+| **Numbering** | Settings | The text in front of case numbers, and the number the next case gets |
 | **Risk Scoring** | Settings | Whether an entity's risk opens a case, at what risk, and how much each entity matters |
 
 **Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.

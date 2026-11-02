@@ -49,7 +49,17 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityCaseNavigation";
 import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
+import SecurityCaseNoteTemplate from "Common/Models/DatabaseModels/SecurityCaseNoteTemplate";
+import Project from "Common/Models/DatabaseModels/Project";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import {
+  SECURITY_CASE_NUMBER_PREFIX,
+  formatSecurityCaseNumber,
+} from "Common/Types/SecurityCase/SecurityCaseNumber";
+import { SECURITY_CASE_NEXT_NUMBERS } from "../../../FeatureSet/Dashboard/src/Components/NextNumber/NextNumberSettings";
+import { SECURITY_CASE_NUMBER_PREFIXES } from "../../../FeatureSet/Dashboard/src/Components/NumberPrefix/NumberPrefixSettings";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -749,12 +759,175 @@ describe("Security Cases and Playbooks docs", () => {
       // How fast a case at each priority must be worked, beside the priorities.
       RESPONSE_TARGETS_COPY.title,
       STATE_SETTINGS_COPY[StateListType.SecurityCaseStatus].title,
+      // The project's own case fields, note templates and case numbers.
+      "Custom Fields",
+      "Note Templates",
+      "Numbering",
       // When an entity's risk opens a case (Entity Risk's docs page).
       "Risk Scoring",
     ]);
     expect(settings?.startsCollapsed).toBe(true);
     expect(flat(section(page, "Case priorities and statuses"))).toContain(
       "Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**.",
+    );
+  });
+
+  it("describes the case custom fields, note templates and numbering where the menu puts them, in its order", () => {
+    const setup: string = flat(
+      section(page, "Custom fields, note templates and numbering"),
+    );
+    const settings: SecurityEventsMenuSection | undefined =
+      SECURITY_EVENTS_MENU.find((menu: SecurityEventsMenuSection): boolean => {
+        return menu.title === "Settings";
+      });
+    const titles: Array<string> = (settings?.items || []).map(
+      (item: SecurityEventsMenuItem): string => {
+        return item.title;
+      },
+    );
+
+    expect(setup).toContain(
+      "Three more settings make cases your project's own, under **Products → Security Events → Settings**:",
+    );
+    // One item each, in the menu's order, by the menu's own titles.
+    const described: Array<string> = setup
+      .split(" - **")
+      .slice(1)
+      .map((item: string): string => {
+        return item.slice(0, item.indexOf("**"));
+      });
+    expect(described).toEqual(["Custom Fields", "Note Templates", "Numbering"]);
+    expect(
+      titles.slice(
+        titles.indexOf("Custom Fields"),
+        titles.indexOf("Numbering") + 1,
+      ),
+    ).toEqual(described);
+  });
+
+  it("says where a case's own fields are filled in and shown, as the pages draw them", () => {
+    const setup: string = flat(
+      section(page, "Custom fields, note templates and numbering"),
+    );
+    const advanced: SecurityCaseMenuSection | undefined =
+      SECURITY_CASE_MENU.find((menuSection: SecurityCaseMenuSection) => {
+        return menuSection.title === "Advanced";
+      });
+
+    // The case's page, under Advanced, and its button (CustomFieldsDetail).
+    expect(
+      advanced?.items.map((item: SecurityCaseMenuItem): string => {
+        return item.title;
+      }),
+    ).toContain("Custom Fields");
+    expect(setup).toContain(
+      "A case's **Custom Fields** page, under **Advanced**, lists every field with the case's value, and **Edit Fields** changes them.",
+    );
+    expect(
+      source("Common/UI/Components/CustomFields/CustomFieldsDetail.tsx"),
+    ).toContain('title: "Edit Fields",');
+    // The Overview's last card, while the project has a field.
+    const overview: string = source(
+      `${DASHBOARD}/Pages/SecurityEvents/CaseView/Index.tsx`,
+    );
+    expect(overview).toContain("customFieldType={SecurityCaseCustomField}");
+    expect(flat(section(page, "Work a case"))).toContain(
+      "Once the project has a field, the **Overview** shows them too, in its last card.",
+    );
+    // A column of the queue's, picked in Columns.
+    expect(
+      source(`${DASHBOARD}/Components/SecurityCase/SecurityCasesTable.tsx`),
+    ).toContain("customFieldsModelType={SecurityCaseCustomField}");
+    expect(
+      source("Common/UI/Components/Table/TableHeaderControls.tsx"),
+    ).toContain('translationKey("Columns")');
+    expect(setup).toContain(
+      "In the queue's lists, each field is a column you can turn on in **Columns**.",
+    );
+  });
+
+  it("says where note templates are picked, as the composer offers them", () => {
+    const setup: string = flat(
+      section(page, "Custom fields, note templates and numbering"),
+    );
+    const menu: string = source(
+      `${DASHBOARD}/Components/EventNotes/NoteTemplateMenu.tsx`,
+    );
+    const kind: string = flat(
+      source(`${DASHBOARD}/Components/SecurityCase/SecurityCaseNoteKind.ts`),
+    );
+
+    expect(menu).toContain('tx("Templates")');
+    expect(menu).toContain('tx("Manage templates")');
+    // The case's composer offers the case templates, and links to their list.
+    expect(kind).toContain("modelType: SecurityCaseNoteTemplate,");
+    expect(kind).toContain("PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES");
+    expect(setup).toContain(
+      "On a case's **Private Notes**, the composer's **Templates** menu puts one in the note, to edit before it is posted, and **Manage templates** opens the list.",
+    );
+  });
+
+  it("gives the case numbers' prefix and next number as the Numbering page sets them", () => {
+    const setup: string = flat(
+      section(page, "Custom fields, note templates and numbering"),
+    );
+    const prefixColumn: string = SECURITY_CASE_NUMBER_PREFIXES.rows[0]!.column;
+
+    // CASE- in CASE-42, the prefix every project starts with.
+    expect(SECURITY_CASE_NUMBER_PREFIX).toBe("CASE-");
+    expect(formatSecurityCaseNumber(42)).toBe("CASE-42");
+    expect(prefixColumn).toBe("securityCaseNumberPrefix");
+    expect(
+      new Project().getTableColumnMetadata("securityCaseNumberPrefix")
+        .defaultValue,
+    ).toBe(SECURITY_CASE_NUMBER_PREFIX);
+    expect(setup).toContain(
+      "the text in front of case numbers, `CASE-` in `CASE-42` unless you set your own, and the number the next case gets.",
+    );
+    // What the cards say: only new cases take a change; a start counts on from the highest.
+    expect(SECURITY_CASE_NUMBER_PREFIXES.editDescription).toBe(
+      "Only new cases use the new prefix. Existing cases keep their numbers.",
+    );
+    expect(SECURITY_CASE_NEXT_NUMBERS.cardDescription).toContain(
+      "Moving from another tool? Start after its last number, so a number never means two cases.",
+    );
+    expect(setup).toContain(
+      "Moving from another tool? Start after its last case number, so a number never means two cases. A new prefix or start applies to new cases only, and a start must be higher than the highest number used so far.",
+    );
+  });
+
+  it("says who manages the case setup, and on which plan, as the models allow", () => {
+    const setup: string = flat(
+      section(page, "Custom fields, note templates and numbering"),
+    );
+    const fields: SecurityCaseCustomField = new SecurityCaseCustomField();
+    const templates: SecurityCaseNoteTemplate = new SecurityCaseNoteTemplate();
+    const caseFieldsColumn: Array<Permission> =
+      new SecurityCase().getColumnAccessControlFor("customFields")?.update ||
+      [];
+    const prefixColumn: Array<Permission> =
+      new Project().getColumnAccessControlFor("securityCaseNumberPrefix")
+        ?.update || [];
+
+    for (const model of [fields, templates]) {
+      expect(model.getCreatePermissions()).toContain(Permission.SecurityAdmin);
+      expect(model.getCreatePermissions()).not.toContain(
+        Permission.SecurityMember,
+      );
+      expect(model.getReadPermissions()).toContain(Permission.SecurityMember);
+      expect(model.getCreateBillingPlan()).toBe(PlanType.Growth);
+    }
+    // A Security Member fills in a case's fields; numbering is the project's.
+    expect(caseFieldsColumn).toContain(Permission.SecurityMember);
+    expect(prefixColumn).toEqual(
+      expect.arrayContaining([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+      ]),
+    );
+    expect(prefixColumn).not.toContain(Permission.SecurityAdmin);
+    expect(setup).toContain(
+      "A Security Admin manages the custom fields and note templates, and a Security Member fills in a case's fields; on OneUptime Cloud they take the Growth plan or above. Numbering is set by a Project Owner or Project Admin, as it is for incidents and alerts.",
     );
   });
 

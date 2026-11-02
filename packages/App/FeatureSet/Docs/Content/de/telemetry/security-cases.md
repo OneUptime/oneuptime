@@ -91,7 +91,7 @@ Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls 
 | **Übersicht** | **Übersicht**, **Zeitachse** |
 | **Untersuchung** | **Hergang**, **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Belege**, **Aufgaben**, **Playbooks** |
 | **Notizen** | **Private Notizen** |
-| **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
+| **Erweitert** | **Benutzerdefinierte Felder**, **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
 
 Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel, **Mir zuweisen**, **Playbook ausführen**, **Vorfall melden** und **Fall schließen**, und im Menü ⋯ daneben **Priorität setzen**, **Jemand anderem zuweisen**, **Status ändern**, **Fall bearbeiten** und **Fall löschen**. So lässt sich der Fall von jeder seiner Seiten aus bearbeiten, und ein Link zum Fall öffnet weiterhin seine **Übersicht**. Hat die Priorität des Falls Reaktionsziele, zeigt der Kopf auch, wann das nächste fällig ist ([Reaktionsziele](#reaktionsziele)).
 
@@ -107,7 +107,8 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 - **Belege**: die Dateien, Links und Sicherheitsereignisse, die zum Fall aufbewahrt werden, jeweils mit Person und Zeitpunkt des Hinzufügens. Mit **Datei hinzufügen** laden Sie eine Datei mit bis zu 10 MB hoch, und der SHA-256 des Hochgeladenen wird festgehalten, damit jeder, der sie später herunterlädt, prüfen kann, dass es das Aufbewahrte ist; mit **Link hinzufügen** verweisen Sie auf Belege, die anderswo liegen. Nur ein Security Admin kann einen Beleg entfernen, und die **Zeitachse** des Falls zeigt, was hinzugefügt und entfernt wurde. Ein Sicherheitsereignis wird so aufbewahrt, wie es war, mit **Zum Fall hinzufügen** unter **Ereignisse** oder auf der Seite einer [Bedrohungssuche](/docs/telemetry/security-events#bedrohungssuchen), und **Ereignis anzeigen** öffnet es. Der Schritt **Preserve the evidence** eines Playbooks bewahrt hier auch die Ereignisse hinter den Erkennungen des Falls auf.
 - **Aufgaben**: was im Fall zu tun ist, wer es erledigt und ob es erledigt ist. Fügen Sie eine Aufgabe als Zeile hinzu, geben Sie sie jemandem und haken Sie sie ab, wenn sie erledigt ist. Wer die Aufgabe bekommt, wird benachrichtigt, außer er hat sie sich selbst genommen, und das Menü zeigt neben **Aufgaben**, wie viele Aufgaben offen sind. Der Schritt **Aufgaben hinzufügen** eines Playbooks fügt ebenfalls Aufgaben hinzu und lässt jede weg, die der Fall schon hat.
 - **Playbooks**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbooks**, wie viele es sind.
-- **Private Notizen**: was das Team zum Fall geschrieben hat.
+- **Private Notizen**: was das Team zum Fall geschrieben hat. Das Menü **Vorlagen** des Eingabefelds fügt eine der Notizvorlagen des Projekts in eine Notiz ein.
+- **Benutzerdefinierte Felder**: die eigenen Felder des Projekts, für diesen Fall ausgefüllt, und **Felder bearbeiten**, um sie zu ändern. Sobald das Projekt ein Feld hat, zeigt die **Übersicht** sie ebenfalls, in ihrer letzten Karte. Siehe [Benutzerdefinierte Felder, Notizvorlagen und Nummerierung](#benutzerdefinierte-felder-notizvorlagen-und-nummerierung).
 - **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
 - **Fall löschen**: löscht den Fall mit seinen Erkennungen, Notizen, seiner Zeitachse und seinen Playbook-Ausführungen endgültig. Um ihn als Nachweis zu behalten, schließen Sie ihn stattdessen mit einer Bewertung.
 
@@ -184,6 +185,16 @@ Wo die Ziele zu sehen sind:
 - Der Kopf des Falls nennt das nächste Ziel und wie viel Zeit bleibt, oder wie lange es überfällig ist: grau, solange Zeit bleibt, bernsteinfarben im letzten Fünftel, rot, sobald es verfehlt ist.
 - In der **Übersicht** des Falls, unter **Zeit bis zur Bestätigung** und **Zeit bis zur Eindämmung**: wie der Fall zu jedem Ziel steht, oder wie weit er darüber lag.
 - In den Listen der Warteschlange: die Zeile unter der Priorität jedes Falls und eine Spalte **Fällig**, die Sie einblenden und nach der Sie sortieren können. Solange die Spalte eingeblendet ist, entfällt die Zeile unter der Priorität. Die Listen zeigen sie nur, wenn eine Priorität des Projekts ein Ziel hat.
+
+## Benutzerdefinierte Felder, Notizvorlagen und Nummerierung
+
+Drei weitere Einstellungen machen Fälle zu denen Ihres Projekts, unter **Produkte → Sicherheitsereignisse → Einstellungen**:
+
+- **Benutzerdefinierte Felder**: die Felder, die Ihr Team in jedem Fall ausfüllt, etwa den Geschäftsbereich, um den es geht, oder sein Ticket in einem anderen Tool. Ein Feld enthält Text, eine Zahl, ein Datum, ein Ja oder Nein, eine Auswahl aus einer Liste oder eine Datei. Die Seite **Benutzerdefinierte Felder** eines Falls, unter **Erweitert**, listet jedes Feld mit dem Wert des Falls auf, und **Felder bearbeiten** ändert sie. In den Listen der Warteschlange ist jedes Feld eine Spalte, die Sie unter **Spalten** einblenden können.
+- **Notiz-Vorlagen**: fertige Texte für die Notizen, die Ihr Team Fall für Fall schreibt, etwa eine Checkliste zur Eindämmung oder eine Übergabe an die nächste Schicht. Unter **Private Notizen** eines Falls fügt das Menü **Vorlagen** des Eingabefelds eine davon in die Notiz ein, die Sie vor dem Veröffentlichen anpassen, und **Vorlagen verwalten** öffnet die Liste.
+- **Nummerierung**: der Text vor den Fallnummern, `CASE-` in `CASE-42`, sofern Sie keinen eigenen festlegen, und die Nummer, die der nächste Fall erhält. Sie wechseln von einem anderen Tool? Beginnen Sie nach dessen letzter Fallnummer, damit eine Nummer nie zwei Fälle bezeichnet. Ein neues Präfix oder ein neuer Beginn gilt nur für neue Fälle, und ein Beginn muss höher sein als die bisher höchste Nummer.
+
+Ein Security Admin verwaltet die benutzerdefinierten Felder und Notizvorlagen, und ein Security Member füllt die Felder eines Falls aus; auf OneUptime Cloud setzen sie den Plan Growth oder höher voraus. Die Nummerierung legt ein Project Owner oder Project Admin fest, wie bei Vorfällen und Warnungen.
 
 ## Benachrichtigungen
 
