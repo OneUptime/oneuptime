@@ -446,9 +446,7 @@ const TelemetryMentions: FunctionComponent<ComponentProps> = (
                         </div>
                         <dl className="mt-2 space-y-2 text-sm text-gray-600">
                           {SECURITY_TELEMETRY_SIGNALS.map(
-                            (
-                              signal: SecurityTelemetrySignal,
-                            ): ReactElement => {
+                            (signal: SecurityTelemetrySignal): ReactElement => {
                               const hits: SecurityTelemetryHitsJson | null =
                                 getTelemetryHits(value, signal);
 

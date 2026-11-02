@@ -1677,9 +1677,9 @@ test.describe("In your logs and traces", () => {
 
     // Its spans: one place each key holding it, opening the Traces explorer's search.
     const spans: Locator = attacker.getByTestId("security-telemetry-spans");
-    await expect(
-      spans.getByTestId("security-connected-fact-label"),
-    ).toHaveText("In 312 spans");
+    await expect(spans.getByTestId("security-connected-fact-label")).toHaveText(
+      "In 312 spans",
+    );
     expect(await placeTexts(spans)).toEqual([
       "client.address 300",
       "net.peer.ip 12",
@@ -1742,7 +1742,10 @@ test.describe("In your logs and traces", () => {
     await expect(logs.getByTestId("security-connected-fact-label")).toHaveText(
       "In 24 log lines",
     );
-    expect(await sourceNames(logs)).toEqual(["build-runner-07", "egress-proxy"]);
+    expect(await sourceNames(logs)).toEqual([
+      "build-runner-07",
+      "egress-proxy",
+    ]);
     await expect(
       logs.getByTestId("security-telemetry-source").first(),
     ).toContainText("Host");
@@ -1751,9 +1754,9 @@ test.describe("In your logs and traces", () => {
       .getByTestId("security-telemetry-spans")
       .getByTestId("security-telemetry-place");
     await expect(span).toHaveText(/server\.address\s*2/);
-    expect(linkOf(await span.getAttribute("href")).searchParams.get("search")).toBe(
-      "@server.address:UPDATE-SYNC.BAD-CDN.EXAMPLE",
-    );
+    expect(
+      linkOf(await span.getAttribute("href")).searchParams.get("search"),
+    ).toBe("@server.address:UPDATE-SYNC.BAD-CDN.EXAMPLE");
 
     // The runner's address in the proxy's 6 CONNECTs - never the 120 heartbeats that only came from it.
     await expect(
@@ -1811,11 +1814,12 @@ test.describe("In your logs and traces", () => {
     await open(page, SPRAY_CASE, { width: 1280, telemetry: "limited" });
     await waitForRecords(page);
 
-    await expect(
-      page.getByTestId("security-telemetry-unreadable"),
-    ).toHaveText("Your role cannot read Logs, so they were not searched.", {
-      timeout: 30000,
-    });
+    await expect(page.getByTestId("security-telemetry-unreadable")).toHaveText(
+      "Your role cannot read Logs, so they were not searched.",
+      {
+        timeout: 30000,
+      },
+    );
     const failed: Locator = page.getByTestId("security-telemetry-failed");
     await expect(failed).toContainText(
       "Traces could not be searched just now.",
@@ -1922,7 +1926,9 @@ test.describe("In your logs and traces", () => {
 
       await expect(
         telemetry(page).getByRole("heading", { level: 3 }),
-      ).toHaveText("\u{062F}\u{0631} \u{0644}\u{0627}\u{06AF}\u{200C}\u{0647}\u{0627} \u{0648} \u{062A}\u{0631}\u{0650}\u{06CC}\u{0633}\u{200C}\u{0647}\u{0627}\u{06CC} \u{0634}\u{0645}\u{0627}");
+      ).toHaveText(
+        "\u{062F}\u{0631} \u{0644}\u{0627}\u{06AF}\u{200C}\u{0647}\u{0627} \u{0648} \u{062A}\u{0631}\u{0650}\u{06CC}\u{0633}\u{200C}\u{0647}\u{0627}\u{06CC} \u{0634}\u{0645}\u{0627}",
+      );
 
       const rows: Array<TelemetryRowLayout> = await telemetryRowLayouts(page);
       for (const row of rows) {

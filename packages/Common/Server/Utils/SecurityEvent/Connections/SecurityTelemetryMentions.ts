@@ -88,7 +88,8 @@ const SIGNAL_TABLES: Readonly<
   [SecurityTelemetrySignal.Logs]: {
     table: SecurityTelemetryTable.Logs,
     modelType: Log,
-    service: LogService as unknown as AnalyticsDatabaseService<AnalyticsBaseModel>,
+    service:
+      LogService as unknown as AnalyticsDatabaseService<AnalyticsBaseModel>,
   },
   [SecurityTelemetrySignal.Traces]: {
     table: SecurityTelemetryTable.Spans,
@@ -126,9 +127,7 @@ export function toTelemetryHitsJson(
 
   for (const source of row.sources) {
     // The kind of record a line's or a span's resource type names.
-    const kind: SecurityConnectionKind | null = getLogResourceKind(
-      source.type,
-    );
+    const kind: SecurityConnectionKind | null = getLogResourceKind(source.type);
     const named: { kind: SecurityConnectionKind; name: string } | undefined =
       kind ? names.get(`${kind}:${source.id.toLowerCase()}`) : undefined;
 
@@ -296,9 +295,7 @@ export default class SecurityTelemetryMentions {
         return {
           entityType: value.entity.type,
           entityValue: value.entity.value,
-          logs: logs.rows
-            ? toTelemetryHitsJson(rowOf(logs.rows), names)
-            : null,
+          logs: logs.rows ? toTelemetryHitsJson(rowOf(logs.rows), names) : null,
           traces: traces.rows
             ? toTelemetryHitsJson(rowOf(traces.rows), names)
             : null,
@@ -340,8 +337,8 @@ export default class SecurityTelemetryMentions {
       const statement: Statement | null =
         buildSecurityTelemetryMentionsStatement({
           table: target.table,
-          databaseName: target.service.database.getDatasourceOptions()
-            .database!,
+          databaseName:
+            target.service.database.getDatasourceOptions().database!,
           tableName: target.service.model.tableName,
           projectId: data.projectId,
           startTime: data.window.start,
@@ -361,11 +358,9 @@ export default class SecurityTelemetryMentions {
 
       return {
         rows: (response.data || [])
-          .map(
-            (row: JSONObject): SecurityTelemetryMentionRow | null => {
-              return readSecurityTelemetryMentionRow(row, data.values.length);
-            },
-          )
+          .map((row: JSONObject): SecurityTelemetryMentionRow | null => {
+            return readSecurityTelemetryMentionRow(row, data.values.length);
+          })
           .filter(
             (
               row: SecurityTelemetryMentionRow | null,

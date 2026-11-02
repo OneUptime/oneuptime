@@ -72,9 +72,12 @@ function read(relative) {
   return fs.readFileSync(path.join(E2E_DIR, relative), "utf8");
 }
 
+// An HTML document's first line, in any case.
+const DOCTYPE_PATTERN = /<!doctype html>/i;
+
 // A server that answers with a page of its own: an HTML document.
 function servesAPage(source) {
-  return /<!doctype html>/i.test(source) || source.includes("text/html");
+  return DOCTYPE_PATTERN.test(source) || source.includes("text/html");
 }
 
 function servesInter(source) {

@@ -207,7 +207,6 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import { RESOURCE_SECURITY_MAX_CASES } from "Common/Types/SecurityCase/SecurityConnection";
-import { getEntityRiskKey } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -278,7 +277,10 @@ import {
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { computeSecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
-import { getEntityCaseGroupingKey } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
+import {
+  getEntityCaseGroupingKey,
+  getEntityRiskKey,
+} from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";

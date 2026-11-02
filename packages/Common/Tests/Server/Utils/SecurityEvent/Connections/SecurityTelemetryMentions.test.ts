@@ -92,10 +92,7 @@ const LOG_ROWS: Array<JSONObject> = [
       ["60", ServiceType.Host, EDGE_ID],
       ["4", ServiceType.Monitor, UNNAMED_ID],
     ],
-    places: [
-      [`client_ip${PLACE_SEPARATOR}203.0.113.7`],
-      ["84"],
-    ],
+    places: [[`client_ip${PLACE_SEPARATOR}203.0.113.7`], ["84"]],
   },
 ];
 
@@ -264,8 +261,7 @@ describe("the search", () => {
     expect(spies.spans).toHaveBeenCalledTimes(1);
 
     const logStatement: Statement = spies.logs.mock.calls[0]![0] as Statement;
-    const spanStatement: Statement = spies.spans.mock
-      .calls[0]![0] as Statement;
+    const spanStatement: Statement = spies.spans.mock.calls[0]![0] as Statement;
 
     expect(logStatement.query).toContain("primaryEntityId NOT IN (");
     expect(logStatement.query).toContain(`.${new Log().tableName} `);

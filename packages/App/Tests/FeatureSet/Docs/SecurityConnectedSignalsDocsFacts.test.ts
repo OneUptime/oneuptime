@@ -555,8 +555,10 @@ describe("the Connected Signals page", () => {
         [SecurityEntityType.Other, "arn:aws:s3:::acme-exports"],
         [SecurityEntityType.FileHash, "d41d8cd98f00b204e9800998ecf8427e"],
       ] as Array<[SecurityEntityType, string]>) {
-        expect({ value, shape: getTelemetryValueShape({ type, value }) }).not
-          .toEqual({ value, shape: null });
+        expect({
+          value,
+          shape: getTelemetryValueShape({ type, value }),
+        }).not.toEqual({ value, shape: null });
       }
 
       // Never: an address every machine has, a bare host name, a user's bare name, a process.
@@ -566,14 +568,19 @@ describe("the Connected Signals page", () => {
         [SecurityEntityType.User, "kmorgan"],
         [SecurityEntityType.Process, "powershell.exe"],
       ] as Array<[SecurityEntityType, string]>) {
-        expect({ value, shape: getTelemetryValueShape({ type, value }) }).toEqual(
-          { value, shape: null },
-        );
+        expect({
+          value,
+          shape: getTelemetryValueShape({ type, value }),
+        }).toEqual({ value, shape: null });
       }
 
       const many: Array<{ type: SecurityEntityType; value: string }> = [];
 
-      for (let index: number = 1; index <= SECURITY_TELEMETRY_MAX_VALUES + 2; index++) {
+      for (
+        let index: number = 1;
+        index <= SECURITY_TELEMETRY_MAX_VALUES + 2;
+        index++
+      ) {
         many.push({
           type: SecurityEntityType.IpAddress,
           value: `198.51.100.${index}`,
@@ -595,9 +602,11 @@ describe("the Connected Signals page", () => {
         "i",
       );
 
-      expect(rows.map((row: Array<string>): string => {
-        return row[0] as string;
-      })).toEqual([
+      expect(
+        rows.map((row: Array<string>): string => {
+          return row[0] as string;
+        }),
+      ).toEqual([
         "A log line's message",
         "An attribute of a log line or a span",
       ]);
@@ -617,7 +626,11 @@ describe("the Connected Signals page", () => {
           "Web-1.Acme.Example",
           SecurityTelemetryValueShape.Name,
         ),
-      ).toEqual(["Web-1.Acme.Example", "web-1.acme.example", "WEB-1.ACME.EXAMPLE"]);
+      ).toEqual([
+        "Web-1.Acme.Example",
+        "web-1.acme.example",
+        "WEB-1.ACME.EXAMPLE",
+      ]);
       expect(
         getTelemetryAttributeSpellings(
           "2001:0db8:0:0:0:0:0:7",

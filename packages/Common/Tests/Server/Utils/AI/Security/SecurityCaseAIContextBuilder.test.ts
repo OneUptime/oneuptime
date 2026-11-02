@@ -1104,7 +1104,9 @@ describe("where the case's values appear in the logs and traces", () => {
       makeTriage({ telemetryMentions: mentions }),
     ).contextSummary;
 
-    expect(text.indexOf("## The OneUptime records its entities are")).toBeLessThan(
+    expect(
+      text.indexOf("## The OneUptime records its entities are"),
+    ).toBeLessThan(
       text.indexOf("## Where its values appear in the logs and traces"),
     );
   });

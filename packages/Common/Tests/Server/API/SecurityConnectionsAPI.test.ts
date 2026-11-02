@@ -415,11 +415,7 @@ describe("POST /security-case/connections/telemetry", () => {
   test("a case the caller cannot read, or of another project, is not found", async () => {
     jest.spyOn(SecurityTelemetryMentions, "forCase").mockResolvedValue(null);
 
-    await route(TELEMETRY)(
-      request({ caseId: CASE_ID.toString() }),
-      res,
-      next,
-    );
+    await route(TELEMETRY)(request({ caseId: CASE_ID.toString() }), res, next);
 
     expect(next).toHaveBeenCalledWith(expect.any(NotFoundException));
   });
@@ -516,11 +512,7 @@ describe("POST /security-case/connections/telemetry", () => {
       .spyOn(SecurityTelemetryMentions, "forCase")
       .mockRejectedValue(new Error("Postgres is down"));
 
-    await route(TELEMETRY)(
-      request({ caseId: CASE_ID.toString() }),
-      res,
-      next,
-    );
+    await route(TELEMETRY)(request({ caseId: CASE_ID.toString() }), res, next);
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();

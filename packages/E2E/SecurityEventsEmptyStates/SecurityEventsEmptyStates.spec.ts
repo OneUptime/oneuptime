@@ -4545,9 +4545,10 @@ test.describe("an event's Connected tab", () => {
     const telemetry: Locator = eventDrawer(page).getByTestId(
       "security-telemetry-mentions",
     );
-    await expect(
-      telemetry.getByTestId("security-telemetry-value"),
-    ).toHaveCount(2, { timeout: 30000 });
+    await expect(telemetry.getByTestId("security-telemetry-value")).toHaveCount(
+      2,
+      { timeout: 30000 },
+    );
     const telemetryReads: Array<RecordedApiRequest> = (
       await fixture(page)
     ).apiRequests.filter((request: RecordedApiRequest): boolean => {
@@ -4588,9 +4589,9 @@ test.describe("an event's Connected tab", () => {
           .getByTestId("security-telemetry-value-name")
           .getByText("203.0.113.30", { exact: true }),
       });
-    await expect(
-      web03Lines.getByTestId("security-telemetry-place"),
-    ).toHaveText(/In the message\s*60/);
+    await expect(web03Lines.getByTestId("security-telemetry-place")).toHaveText(
+      /In the message\s*60/,
+    );
     expect(
       JSON.parse(
         new URL(

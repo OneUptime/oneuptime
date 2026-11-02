@@ -1019,9 +1019,7 @@ function readTelemetryHits(
     return null;
   }
 
-  const sources: Array<SecurityTelemetrySourceJson> = readArray(
-    hits["sources"],
-  )
+  const sources: Array<SecurityTelemetrySourceJson> = readArray(hits["sources"])
     .map((item: JSONValue): SecurityTelemetrySourceJson | null => {
       const source: JSONObject | null = readObject(item);
       const id: string = readString(source?.["id"]);

@@ -235,7 +235,9 @@ describe("In your logs and traces", () => {
     expect(call).toContain('"/security-case/connections/telemetry"');
     expect(call).toContain('"caseId" in request');
     expect(call).toContain("entities: request.entities.map(");
-    expect(call).toContain("request.time ? { time: request.time.toISOString() }");
+    expect(call).toContain(
+      "request.time ? { time: request.time.toISOString() }",
+    );
     // The records' knobs mean nothing to it.
     expect(call).not.toContain("logResources");
     expect(call).not.toContain("readLogResources");

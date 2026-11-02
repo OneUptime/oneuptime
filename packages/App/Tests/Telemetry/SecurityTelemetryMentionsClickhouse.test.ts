@@ -95,7 +95,9 @@ const database: string = `security_telemetry_test_${process.pid}_${Date.now()}`;
 const MINUTE: number = 60 * 1000;
 
 // The window the reads look at, ending at a fixed minute: the rows are written around it.
-const END: Date = new Date(Math.floor(Date.now() / MINUTE) * MINUTE - 60 * MINUTE);
+const END: Date = new Date(
+  Math.floor(Date.now() / MINUTE) * MINUTE - 60 * MINUTE,
+);
 const START: Date = new Date(END.getTime() - 120 * MINUTE);
 
 function inside(minutesBeforeEnd: number): Date {
@@ -187,9 +189,7 @@ function spanRow(data: {
   time: Date;
   attributes: Record<string, string>;
 }): JSONObject {
-  const startNs: string = String(
-    BigInt(data.time.getTime()) * BigInt(1000000),
-  );
+  const startNs: string = String(BigInt(data.time.getTime()) * BigInt(1000000));
 
   return {
     _id: ObjectID.generateTimeOrdered().toString(),
@@ -651,8 +651,10 @@ integration("In your logs and traces, against ClickHouse", () => {
     });
 
     test("the attacker's log lines: in a message or an attribute, never a longer address or a resource attribute, the records that sent them the most first", async () => {
-      const logs: SecurityTelemetryHitsJson = valueOf(await search(), ATTACKER)
-        .logs!;
+      const logs: SecurityTelemetryHitsJson = valueOf(
+        await search(),
+        ATTACKER,
+      ).logs!;
 
       // checkout-api's two, edge-1's one and the hidden service's one.
       expect(logs.count).toBe(4);
@@ -767,8 +769,10 @@ integration("In your logs and traces, against ClickHouse", () => {
         .spyOn(TelemetryReadAccess, "getServiceFilter")
         .mockResolvedValue({ excludedServiceIds: [hidden.id] });
 
-      const logs: SecurityTelemetryHitsJson = valueOf(await search(), ATTACKER)
-        .logs!;
+      const logs: SecurityTelemetryHitsJson = valueOf(
+        await search(),
+        ATTACKER,
+      ).logs!;
 
       expect(logs.count).toBe(3);
       expect(logs.sourceCount).toBe(2);

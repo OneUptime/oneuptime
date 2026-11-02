@@ -128,7 +128,9 @@ function isWordCharacter(code: number): boolean {
  * space, at least SECURITY_TELEMETRY_MIN_VALUE_LENGTH characters and at most
  * a URL's MAX_URL_LENGTH.
  */
-export function isTelemetrySearchText(value: string | undefined | null): boolean {
+export function isTelemetrySearchText(
+  value: string | undefined | null,
+): boolean {
   const text: string = value || "";
 
   if (
@@ -501,9 +503,7 @@ export function getTelemetryMessageSearchText(value: string): string {
   const text: string = (value || "").trim();
   const address: string | null = canonicalAddress(text);
 
-  return address && address.includes(":")
-    ? getShortIpv6Address(address)
-    : text;
+  return address && address.includes(":") ? getShortIpv6Address(address) : text;
 }
 
 // Whether an attribute's key is a resource attribute's: who sent it, not what it says.
@@ -546,7 +546,10 @@ export function getTelemetryPlaces(data: {
 
   return places
     .sort(
-      (a: SecurityTelemetryPlaceJson, b: SecurityTelemetryPlaceJson): number => {
+      (
+        a: SecurityTelemetryPlaceJson,
+        b: SecurityTelemetryPlaceJson,
+      ): number => {
         if (a.count !== b.count) {
           return b.count - a.count;
         }

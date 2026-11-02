@@ -215,7 +215,8 @@ export const TELEMETRY_PLACE_MESSAGE: string = translationKey("In the message");
 // What a place's link opens, as its tooltip.
 export const TELEMETRY_OPEN_IN_LOGS: string = translationKey("Open in Logs");
 
-export const TELEMETRY_OPEN_IN_TRACES: string = translationKey("Open in Traces");
+export const TELEMETRY_OPEN_IN_TRACES: string =
+  translationKey("Open in Traces");
 
 // The values searched for in every signal and named by none.
 export const TELEMETRY_NOT_FOUND_TITLE: string = translationKey(

@@ -117,7 +117,9 @@ describe("which text is ever searched for", () => {
 describe("the shape a value is searched for as", () => {
   test("an address every machine has names nothing; any other address is searched for", () => {
     expect(
-      getTelemetryValueShape(entity(SecurityEntityType.IpAddress, "203.0.113.7")),
+      getTelemetryValueShape(
+        entity(SecurityEntityType.IpAddress, "203.0.113.7"),
+      ),
     ).toBe(SecurityTelemetryValueShape.Ipv4Address);
     expect(
       getTelemetryValueShape(entity(SecurityEntityType.IpAddress, "10.0.3.17")),
@@ -127,7 +129,9 @@ describe("the shape a value is searched for as", () => {
       getTelemetryValueShape(entity(SecurityEntityType.Other, "198.51.100.4")),
     ).toBe(SecurityTelemetryValueShape.Ipv4Address);
     expect(
-      getTelemetryValueShape(entity(SecurityEntityType.IpAddress, "2001:db8::7")),
+      getTelemetryValueShape(
+        entity(SecurityEntityType.IpAddress, "2001:db8::7"),
+      ),
     ).toBe(SecurityTelemetryValueShape.Ipv6Address);
 
     for (const local of [
@@ -201,9 +205,9 @@ describe("the shape a value is searched for as", () => {
       "/subscriptions/1111/resourceGroups/prod/providers/Microsoft.Compute/virtualMachines/web-1",
       "//compute.googleapis.com/projects/acme/zones/us-east1-b/instances/web-1",
     ]) {
-      expect(
-        getTelemetryValueShape(entity(SecurityEntityType.Other, id)),
-      ).toBe(SecurityTelemetryValueShape.ResourceId);
+      expect(getTelemetryValueShape(entity(SecurityEntityType.Other, id))).toBe(
+        SecurityTelemetryValueShape.ResourceId,
+      );
     }
 
     expect(
@@ -227,9 +231,9 @@ describe("the shape a value is searched for as", () => {
       SecurityEntityType.Domain,
       SecurityEntityType.Other,
     ]) {
-      expect(
-        getTelemetryValueShape(entity(type, "evil-c2.example.net")),
-      ).toBe(SecurityTelemetryValueShape.Name);
+      expect(getTelemetryValueShape(entity(type, "evil-c2.example.net"))).toBe(
+        SecurityTelemetryValueShape.Name,
+      );
     }
 
     for (const bare of ["web-1", "WEB-1", "prod", "fin-ws-112"]) {
@@ -279,7 +283,9 @@ describe("the shape a value is searched for as", () => {
         value: undefined as unknown as string,
       }),
     ).toBeNull();
-    expect(getTelemetryValueShape(null as unknown as SecurityEntity)).toBeNull();
+    expect(
+      getTelemetryValueShape(null as unknown as SecurityEntity),
+    ).toBeNull();
   });
 
   test("a long outside value costs no more than its length: 400,000 characters read in a moment", () => {
@@ -334,7 +340,11 @@ describe("the spellings an attribute's value is compared with", () => {
         "2001:0DB8:0:0:0:0:0:7",
         SecurityTelemetryValueShape.Ipv6Address,
       ),
-    ).toEqual(["2001:0DB8:0:0:0:0:0:7", "2001:0db8:0:0:0:0:0:7", "2001:db8::7"]);
+    ).toEqual([
+      "2001:0DB8:0:0:0:0:0:7",
+      "2001:0db8:0:0:0:0:0:7",
+      "2001:db8::7",
+    ]);
   });
 
   test("a name and a hash as written, in lower and in upper case; an email, a URL and an ID as written and in lower case", () => {
@@ -343,7 +353,11 @@ describe("the spellings an attribute's value is compared with", () => {
         "Web-1.Acme.Example",
         SecurityTelemetryValueShape.Name,
       ),
-    ).toEqual(["Web-1.Acme.Example", "web-1.acme.example", "WEB-1.ACME.EXAMPLE"]);
+    ).toEqual([
+      "Web-1.Acme.Example",
+      "web-1.acme.example",
+      "WEB-1.ACME.EXAMPLE",
+    ]);
     expect(
       getTelemetryAttributeSpellings(
         "d41d8cd98f00b204e9800998ecf8427e",
@@ -396,7 +410,7 @@ describe("a log line's message names a value whole", () => {
       "[10.0.0.1]",
       "Blocked 10.0.0.1.",
       "::ffff:10.0.0.1",
-      "\"client\":\"10.0.0.1\"",
+      '"client":"10.0.0.1"',
     ]) {
       expect(namedBy("10.0.0.1", shape, message)).toBe(true);
     }
@@ -601,11 +615,18 @@ describe("the values searched for", () => {
   test(`at most ${SECURITY_TELEMETRY_MAX_VALUES}, and it says when it names more`, () => {
     const addresses: Array<SecurityEntity> = [];
 
-    for (let index: number = 1; index <= SECURITY_TELEMETRY_MAX_VALUES; index++) {
-      addresses.push(entity(SecurityEntityType.IpAddress, `203.0.113.${index}`));
+    for (
+      let index: number = 1;
+      index <= SECURITY_TELEMETRY_MAX_VALUES;
+      index++
+    ) {
+      addresses.push(
+        entity(SecurityEntityType.IpAddress, `203.0.113.${index}`),
+      );
     }
 
-    const exactly: SecurityTelemetrySearch = getTelemetrySearchValues(addresses);
+    const exactly: SecurityTelemetrySearch =
+      getTelemetrySearchValues(addresses);
 
     expect(exactly.values.length).toBe(SECURITY_TELEMETRY_MAX_VALUES);
     expect(exactly.hasMoreValues).toBe(false);

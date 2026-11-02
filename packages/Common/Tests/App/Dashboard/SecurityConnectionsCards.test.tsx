@@ -1256,9 +1256,9 @@ describe("In your logs and traces, under Connected Signals", () => {
     // A record's fact row, in a text column of the record's own: the columns line up.
     expect(logs.className).toBe(TELEMETRY_ROW_CLASS_NAME);
     expect(TELEMETRY_ROW_CLASS_NAME).toBe(CONNECTED_FACT_ROW_CLASS_NAME);
-    expect(
-      (logs.closest("dl")!.parentElement as HTMLElement).className,
-    ).toBe(CONNECTED_RECORD_TEXT_CLASS_NAME);
+    expect((logs.closest("dl")!.parentElement as HTMLElement).className).toBe(
+      CONNECTED_RECORD_TEXT_CLASS_NAME,
+    );
     // The value as it is written, and what it is.
     const name: HTMLElement = within(value).getByTestId(IDS.telemetryValueName);
     expect(name.querySelector("bdi")).toHaveTextContent("203.0.113.7");

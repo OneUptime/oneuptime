@@ -222,9 +222,7 @@ export function createTelemetryMentionsFixture(options) {
       const inMessage = Boolean(pattern && row.body && pattern.test(row.body));
       const keys = Object.entries(row.attributes || {}).filter(
         ([key, held]) => {
-          return (
-            !isResourceAttributeKey(key) && value.spellings.includes(held)
-          );
+          return !isResourceAttributeKey(key) && value.spellings.includes(held);
         },
       );
 
@@ -290,9 +288,7 @@ export function createTelemetryMentionsFixture(options) {
               return {
                 entityType: value.entity.type,
                 entityValue: value.entity.value,
-                logs: limits
-                  ? null
-                  : hitsOf(LOG_LINES, value, true, window),
+                logs: limits ? null : hitsOf(LOG_LINES, value, true, window),
                 traces: limits ? null : hitsOf(SPANS, value, false, window),
               };
             }),
