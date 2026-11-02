@@ -4,6 +4,7 @@ import RunnerService from "../../../Server/Services/RunnerService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import AIAgent from "../../../Models/DatabaseModels/AIAgent";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -35,9 +36,11 @@ function props(): DatabaseCommonInteractionProps {
   return { tenantId: PROJECT_ID, isRoot: true };
 }
 
-type OnBeforeCreate<T> = (createBy: CreateBy<T>) => Promise<OnCreate<T>>;
+type OnBeforeCreate<T extends BaseModel> = (
+  createBy: CreateBy<T>,
+) => Promise<OnCreate<T>>;
 
-function hookOf<T>(service: unknown): OnBeforeCreate<T> {
+function hookOf<T extends BaseModel>(service: unknown): OnBeforeCreate<T> {
   const hook: OnBeforeCreate<T> = (
     service as { onBeforeCreate: OnBeforeCreate<T> }
   ).onBeforeCreate;
