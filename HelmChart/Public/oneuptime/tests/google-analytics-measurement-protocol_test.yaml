@@ -1,0 +1,59 @@
+# GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET lets the server send Google
+# Analytics the purchase a converted free trial makes, which no browser is
+# present for. It is a secret a maintainer creates in Google Analytics, so the
+# chart ships it empty - and empty must reach the app as empty, which sends
+# nothing - while a value set under analytics.googleAnalytics must reach it
+# exactly as written.
+suite: google analytics measurement protocol api secret
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: is empty when the operator never set it
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET
+            value: ""
+
+  - it: stays empty when the analytics block exists without it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      analytics:
+        host: https://eu.posthog.com
+        key: some-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET
+            value: ""
+
+  - it: carries the secret the operator set
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      analytics:
+        googleAnalytics:
+          measurementProtocolApiSecret: mp-secret-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET
+            value: mp-secret-value

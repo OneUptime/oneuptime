@@ -128,6 +128,44 @@ test("copies the skills, the licence and the ChatGPT listing's icon byte for byt
   }
 });
 
+// The version each of the three manifests carries.
+function versionsIn(output) {
+  return [
+    "plugin.json",
+    ".claude-plugin/plugin.json",
+    ".cursor-plugin/plugin.json",
+  ].map((file) => {
+    return JSON.parse(fs.readFileSync(path.join(output, file), "utf8")).version;
+  });
+}
+
+test("stamps every manifest with the repository's VERSION, or with the version --version names", () => {
+  const release = fs
+    .readFileSync(path.join(REPO_ROOT, "VERSION"), "utf8")
+    .trim();
+  const byDefault = path.join(workDir, "default-version");
+  expect(build([byDefault]).status).toBe(0);
+  expect(versionsIn(byDefault)).toEqual([release, release, release]);
+
+  const named = path.join(workDir, "named-version");
+  expect(build(["--version", "9.8.7", named]).status).toBe(0);
+  expect(versionsIn(named)).toEqual(["9.8.7", "9.8.7", "9.8.7"]);
+});
+
+test("refuses a version that is not major.minor.patch, and an option it does not know, and writes nothing", () => {
+  const output = path.join(workDir, "refused");
+
+  const badVersion = build(["--version", "next", output]);
+  expect(badVersion.status).toBe(1);
+  expect(badVersion.stderr).toContain('not "next"');
+
+  const unknown = build(["--force", output]);
+  expect(unknown.status).toBe(1);
+  expect(unknown.stderr).toContain("Unknown option --force");
+
+  expect(fs.existsSync(output)).toBe(false);
+});
+
 test("replaces an earlier build, and keeps the .git of a clone", () => {
   const output = path.join(workDir, "clone");
   expect(build([output]).status).toBe(0);

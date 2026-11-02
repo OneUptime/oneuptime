@@ -548,9 +548,10 @@ describe("GET /microsoft/callback", () => {
 
       const { clearCookie } = await runCallback();
 
+      // Every provider's sign-in reads it (SignInAttributionCookiePath).
       expect(clearCookie).toHaveBeenCalledWith(
         "oneuptime-sign-in-attribution",
-        expect.objectContaining({ path: "/identity/microsoft" }),
+        expect.objectContaining({ path: "/identity" }),
       );
     });
 

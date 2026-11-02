@@ -141,6 +141,7 @@ export ONEUPTIME_API_KEY="$API_KEY"
 export TF_VAR_api_key="$API_KEY"
 export TF_VAR_project_id="$PROJECT_ID"
 export TF_VAR_oneuptime_url="$ONEUPTIME_URL"
+export TF_VAR_test_user_email="$TEST_EMAIL"
 EOF
 
 chmod +x "$TEST_DIR/test-env.sh"

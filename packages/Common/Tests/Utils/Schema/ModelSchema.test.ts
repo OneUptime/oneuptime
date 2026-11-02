@@ -15,6 +15,7 @@ import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { ALWAYS_READABLE_COLUMNS } from "../../../Utils/Schema/BaseSchema";
 
 /*
  * Unit tests for ModelSchema — the Zod schema generator behind the public API
@@ -212,7 +213,7 @@ describe("ModelSchema (Postgres)", () => {
   });
 
   describe("getSortModelSchema", () => {
-    test("includes only sortable column types", () => {
+    test("includes the readable, documented columns of a sortable type", () => {
       const model: Label = new Label();
       const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
       const schema: any = ModelSchema.getSortModelSchema({ modelType: Label });
@@ -223,12 +224,22 @@ describe("ModelSchema (Postgres)", () => {
         if (!column) {
           continue;
         }
-        if (SORTABLE_TYPES.includes(column.type)) {
+
+        // A sort names what a select may: a column somebody may read.
+        const isReadable: boolean =
+          !column.hideColumnInDocumentation &&
+          (ALWAYS_READABLE_COLUMNS.includes(key) ||
+            (model.getColumnAccessControlFor(key)?.read || []).length > 0);
+
+        if (isReadable && SORTABLE_TYPES.includes(column.type)) {
           expect(keys).toContain(key);
         } else {
           expect(keys).not.toContain(key);
         }
       }
+
+      // The version every model has is not documented.
+      expect(keys).not.toContain("version");
     });
 
     test("accepts only ASC/DESC values", () => {

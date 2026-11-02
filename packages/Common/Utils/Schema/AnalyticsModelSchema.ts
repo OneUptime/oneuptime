@@ -5,7 +5,12 @@ import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { z as ZodTypes } from "zod";
-import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
+import {
+  ALWAYS_READABLE_COLUMNS,
+  BaseSchema,
+  SchemaExample,
+  ShapeRecord,
+} from "./BaseSchema";
 import {
   getDateSchema,
   getIPSchema,
@@ -71,20 +76,6 @@ const OPERATORS_BY_COLUMN_TYPE: Record<TableColumnType, Array<string>> = {
   // A pre-aggregate's state, which nothing compares with.
   [TableColumnType.AggregateFunction]: [],
 };
-
-/*
- * Columns a query may name though no permission reads them: the API lets
- * these through before it looks at a column's readers
- * (ModelPermission.getExcludedColumnNames). It refuses any other column
- * nobody may read, such as a table's retentionDate.
- */
-const ALWAYS_QUERYABLE_COLUMNS: Array<string> = [
-  "_id",
-  "createdAt",
-  "deletedAt",
-  "updatedAt",
-  "version",
-];
 
 const TIME_COLUMN_TYPES: Array<TableColumnType> = [
   TableColumnType.Date,
@@ -566,10 +557,11 @@ export class AnalyticsModelSchema extends BaseSchema {
       model,
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
-        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column: AnalyticsTableColumn) => {
-          return { key: column.key, type: column.type };
-        });
+        return this.getReadableColumns(model).map(
+          (column: AnalyticsTableColumn) => {
+            return { key: column.key, type: column.type };
+          },
+        );
       },
       getSelectSchemaExample: () => {
         return this.getSelectSchemaExample(modelType);
@@ -625,10 +617,11 @@ export class AnalyticsModelSchema extends BaseSchema {
       model,
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
-        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column: AnalyticsTableColumn) => {
-          return { key: column.key, type: column.type };
-        });
+        return this.getReadableColumns(model).map(
+          (column: AnalyticsTableColumn) => {
+            return { key: column.key, type: column.type };
+          },
+        );
       },
       getGroupableTypes: () => {
         return [
@@ -681,22 +674,33 @@ export class AnalyticsModelSchema extends BaseSchema {
     return OPERATORS_BY_COLUMN_TYPE[columnType] || [];
   }
 
-  // Those somebody may read, and those the API lets through all the same.
+  // Those of the columns a query may name that it can compare with something.
   private static getQueryableColumns(
+    model: AnalyticsBaseModel,
+  ): Array<AnalyticsTableColumn> {
+    return this.getReadableColumns(model).filter(
+      (column: AnalyticsTableColumn): boolean => {
+        return this.getValidOperatorsForColumnType(column.type).length > 0;
+      },
+    );
+  }
+
+  /*
+   * The columns a query, select or group by may name: those somebody may
+   * read, and those the API lets through all the same. It refuses any other
+   * column nobody may read, such as a table's retentionDate.
+   */
+  private static getReadableColumns(
     model: AnalyticsBaseModel,
   ): Array<AnalyticsTableColumn> {
     return model
       .getTableColumns()
       .filter((column: AnalyticsTableColumn): boolean => {
-        if (this.getValidOperatorsForColumnType(column.type).length === 0) {
-          return false;
-        }
-
         const accessControl: ColumnAccessControl | null =
           model.getColumnAccessControlFor(column.key);
 
         return (
-          ALWAYS_QUERYABLE_COLUMNS.includes(column.key) ||
+          ALWAYS_READABLE_COLUMNS.includes(column.key) ||
           (accessControl?.read || []).length > 0
         );
       });

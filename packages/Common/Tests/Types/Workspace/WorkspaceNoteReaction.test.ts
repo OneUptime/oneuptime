@@ -166,6 +166,38 @@ describe("WorkspaceNoteReactionUtil.getNoteType", () => {
     });
   });
 
+  describe("colons around a name", () => {
+    test.each([
+      ["pushpin", WorkspaceNoteType.Private],
+      [":pushpin:", WorkspaceNoteType.Private],
+      ["::pushpin::", WorkspaceNoteType.Private],
+      [":::megaphone", WorkspaceNoteType.Public],
+      ["megaphone:::", WorkspaceNoteType.Public],
+      [" :Round Pushpin: ", WorkspaceNoteType.Private],
+    ])(
+      "%p is taken off both ends",
+      (value: string, type: WorkspaceNoteType) => {
+        expect(WorkspaceNoteReactionUtil.getNoteType(value)).toBe(type);
+      },
+    );
+
+    test.each([":", ":::", "push:pin", ":push::pin:"])(
+      "%p: colons inside a name, or nothing but colons, make no note",
+      (value: string) => {
+        expect(WorkspaceNoteReactionUtil.getNoteType(value)).toBeNull();
+      },
+    );
+
+    test("a long run of colons is read in one pass", () => {
+      const colons: string = ":".repeat(200_000);
+
+      expect(WorkspaceNoteReactionUtil.getNoteType(`${colons}x`)).toBeNull();
+      expect(
+        WorkspaceNoteReactionUtil.getNoteType(`${colons}pushpin${colons}`),
+      ).toBe(WorkspaceNoteType.Private);
+    });
+  });
+
   test("isNoteReaction mirrors getNoteType", () => {
     expect(WorkspaceNoteReactionUtil.isNoteReaction("pushpin")).toBe(true);
     expect(WorkspaceNoteReactionUtil.isNoteReaction("📢")).toBe(true);

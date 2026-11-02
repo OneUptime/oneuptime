@@ -290,5 +290,9 @@ export const GitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
 export const MicrosoftSignInClientId: string | null =
   env("MICROSOFT_SIGN_IN_CLIENT_ID") || null;
 
+// Set when this server offers Continue with Google; the sign-in pages show the button.
+export const GoogleSignInClientId: string | null =
+  env("GOOGLE_SIGN_IN_CLIENT_ID") || null;
+
 export const INBOUND_EMAIL_DOMAIN: string | undefined =
   env("INBOUND_EMAIL_DOMAIN") || undefined;
