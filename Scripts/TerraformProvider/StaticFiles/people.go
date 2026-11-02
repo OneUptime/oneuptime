@@ -999,10 +999,12 @@ func importIDOfMembership(ctx context.Context, client *Client, importID string, 
 }
 
 // alreadyInvitedHint is what a create that finds the person already in the
-// team adds: how to take that membership over instead.
+// team adds: how to take that membership over instead. A paragraph of its
+// own, whatever the server's message ends with (it ends with no full stop),
+// and the command on a line of its own, to copy.
 func alreadyInvitedHint(err error, resourceType string, parentAttribute string) string {
 	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "already been invited") {
 		return ""
 	}
-	return fmt.Sprintf(" They are in this team already: to manage that membership with Terraform, import it - terraform import %s.<name> <%s>/<email address>.", resourceType, parentAttribute)
+	return fmt.Sprintf("\n\nThey are in this team already. To manage that membership with Terraform, import it:\n\n  terraform import %s.<name> <%s>/<email address>", resourceType, parentAttribute)
 }

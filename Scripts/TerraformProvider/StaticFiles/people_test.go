@@ -409,6 +409,11 @@ func TestPeopleAlreadyInvitedHint(t *testing.T) {
 	if !strings.Contains(hint, "terraform import oneuptime_team_member.<name> <team_id>/<email address>") {
 		t.Fatalf("hint: %q", hint)
 	}
+	// The server's message ends with no full stop: the hint is a paragraph
+	// of its own, and the command a line of its own, never run on into it.
+	if !strings.HasPrefix(hint, "\n\nThey are in this team already. ") || !strings.Contains(hint, "\n\n  terraform import ") {
+		t.Fatalf("the hint runs on into the server's message: %q", hint)
+	}
 	if alreadyInvitedHint(errorString("something else"), "oneuptime_team_member", "team_id") != "" {
 		t.Fatalf("another error got the hint")
 	}
