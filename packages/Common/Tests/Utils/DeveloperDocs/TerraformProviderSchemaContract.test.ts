@@ -8,6 +8,7 @@ import {
   getTerraformAttributes,
   getTerraformModelOperations,
   getTerraformTypeName,
+  isRequiredInTerraform,
   TerraformAttributeDescriptor,
   TerraformValueKind,
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
@@ -32,6 +33,11 @@ import {
  * "changing it replaces the resource". A change to the models, ModelSchema or
  * the generator that would make the dashboard's configuration wrong fails
  * here first.
+ *
+ * People named by email address (Common/Utils/DeveloperDocs/PeopleByEmail.ts)
+ * are part of it: each person column's companion (user_email beside
+ * user_id), the person no longer required by ID alone, and no attribute for
+ * what someone else decides (has_accepted_invitation, is_owner_notified).
  */
 
 /*
@@ -153,8 +159,27 @@ function mirroredAttributes(
   provider: Array<ProviderAttribute>,
 ): Array<MirroredAttribute> {
   const hasUpdate: boolean = getTerraformModelOperations(modelType).canUpdate;
+  const descriptors: Array<TerraformAttributeDescriptor> =
+    getTerraformAttributes(modelType);
 
-  return getTerraformAttributes(modelType)
+  // The address beside each person column: never sent, never replacing.
+  const personEmails: Array<MirroredAttribute> = descriptors
+    .filter((descriptor: TerraformAttributeDescriptor): boolean => {
+      return Boolean(descriptor.personEmail);
+    })
+    .map((descriptor: TerraformAttributeDescriptor): MirroredAttribute => {
+      return {
+        name: descriptor.personEmail!.attributeName,
+        type: descriptor.personEmail!.isList ? "set" : "string",
+        required: false,
+        default: null,
+        isComplexObject: false,
+        isDateTime: false,
+        forceNew: false,
+      };
+    });
+
+  return descriptors
     .map((descriptor: TerraformAttributeDescriptor): MirroredAttribute => {
       const providerType: string | undefined = provider.find(
         (attribute: ProviderAttribute): boolean => {
@@ -170,7 +195,7 @@ function mirroredAttributes(
           providerType && allowed.includes(providerType)
             ? providerType
             : (allowed[0] as string),
-        required: descriptor.isRequired,
+        required: isRequiredInTerraform(descriptor),
         default: descriptor.defaultValue ?? null,
         isComplexObject:
           descriptor.kind === TerraformValueKind.Json ||
@@ -180,6 +205,7 @@ function mirroredAttributes(
           descriptor.inCreateSchema && !descriptor.inUpdateSchema && hasUpdate,
       };
     })
+    .concat(personEmails)
     .sort((a: MirroredAttribute, b: MirroredAttribute): number => {
       return a.name.localeCompare(b.name);
     });
