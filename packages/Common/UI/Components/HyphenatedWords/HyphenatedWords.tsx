@@ -22,7 +22,11 @@ export interface ComponentProps {
 const HyphenatedWords: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const drawn: DrawnWords = getDrawnWords(props);
+  const drawn: DrawnWords = getDrawnWords({
+    text: props.text,
+    lang: props.lang,
+    rule: props.rule,
+  });
 
   return (
     <>

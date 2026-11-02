@@ -489,7 +489,9 @@ describe("the infrastructure products' row pages", () => {
       const list: MenuLink = listEntryOf(row);
 
       expect(activeLinkTitles()).toEqual([list.title]);
-      expect(currentEntries()).toEqual([{ title: list.title, current: "true" }]);
+      expect(currentEntries()).toEqual([
+        { title: list.title, current: "true" },
+      ]);
     },
   );
 
@@ -501,7 +503,9 @@ describe("the infrastructure products' row pages", () => {
 
       const list: MenuLink = listEntryOf(row);
 
-      expect(currentEntries()).toEqual([{ title: list.title, current: "page" }]);
+      expect(currentEntries()).toEqual([
+        { title: list.title, current: "page" },
+      ]);
     },
   );
 
@@ -525,7 +529,9 @@ describe("the infrastructure products' row pages", () => {
         },
       )!;
 
-      expect(currentEntries()).toEqual([{ title: list.title, current: "true" }]);
+      expect(currentEntries()).toEqual([
+        { title: list.title, current: "true" },
+      ]);
       expect(summary).toBe(
         section.toLowerCase() === list.title.toLowerCase()
           ? `Navigate to${list.title}`

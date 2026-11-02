@@ -200,9 +200,7 @@ describe("finding them", () => {
      * no longer marks it by hand.
      */
     const routes: string = readCode(`${DASHBOARD_SRC}/Utils/RouteMap.ts`);
-    expect(routes).toContain(
-      '[PageMap.DASHBOARD_PLAYLISTS]: "playlists",',
-    );
+    expect(routes).toContain('[PageMap.DASHBOARD_PLAYLISTS]: "playlists",');
     expect(routes).toContain(
       "[PageMap.DASHBOARD_PLAYLIST_VIEW]: `playlists/${RouteParams.ModelID}`,",
     );

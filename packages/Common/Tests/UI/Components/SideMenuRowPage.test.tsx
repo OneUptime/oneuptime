@@ -357,9 +357,9 @@ describe("the entry that leads to the list (isRowListLink)", () => {
         nodes,
       ),
     ).toBe(false);
-    expect(isRowListLink({ title: "Overview", to: new Route(SWARM) }, nodes)).toBe(
-      false,
-    );
+    expect(
+      isRowListLink({ title: "Overview", to: new Route(SWARM) }, nodes),
+    ).toBe(false);
     expect(
       isRowListLink({ title: "Nodes", to: new Route(`${SWARM}/nodes`) }, null),
     ).toBe(false);
