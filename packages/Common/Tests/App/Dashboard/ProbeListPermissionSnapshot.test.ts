@@ -12,6 +12,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Permission from "../../../Types/Permission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { getProjectPermissionsStorageKey } from "../../../UI/Utils/Permission";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -32,8 +33,9 @@ function holdInProject(permissions: Array<Permission>): void {
   localStorage.setItem("user_id", USER_ID);
   localStorage.setItem("is_master_admin", "false");
   sessionStorage.setItem("current_project_id", PROJECT_ID);
+  // The snapshot the browser keeps for the project the tab shows.
   localStorage.setItem(
-    "project_permissions",
+    getProjectPermissionsStorageKey(PROJECT_ID)!,
     JSON.stringify({
       projectId: PROJECT_ID,
       permissions: permissions.map((permission: Permission) => {

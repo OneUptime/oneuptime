@@ -231,16 +231,22 @@ export default class ProjectUtil {
         data.paymentProviderSubscriptionStatus,
       );
 
-    // save this to local storage
-    LocalStorage.setItem(
-      currentProjectId?.toString() + "_isSubscriptionInactive",
-      isSubscriptionInactive,
-    );
+    /*
+     * Kept for the project, under names that end in its id. A tab that shows
+     * no project keeps nothing: one name for every such tab
+     * ("undefined_isSubscriptionInactive") would be every project's.
+     */
+    if (currentProjectId) {
+      LocalStorage.setItem(
+        currentProjectId.toString() + "_isSubscriptionInactive",
+        isSubscriptionInactive,
+      );
 
-    LocalStorage.setItem(
-      currentProjectId?.toString() + "_isSubscriptionOverdue",
-      isSubscriptionOverdue,
-    );
+      LocalStorage.setItem(
+        currentProjectId.toString() + "_isSubscriptionOverdue",
+        isSubscriptionOverdue,
+      );
+    }
 
     return isSubscriptionInactive || isSubscriptionOverdue;
   }
@@ -248,10 +254,15 @@ export default class ProjectUtil {
   public static isSubscriptionInactive(): boolean {
     const currentProjectId: string | undefined =
       this.getCurrentProjectId()?.toString();
+
+    if (!currentProjectId) {
+      return false;
+    }
+
     return (
       Boolean(
         LocalStorage.getItem(
-          currentProjectId?.toString() + "_isSubscriptionInactive",
+          currentProjectId.toString() + "_isSubscriptionInactive",
         ),
       ) || false
     );

@@ -160,7 +160,11 @@ const Settings: FunctionComponent<ComponentProps> = (
         }
         onDeleteSuccess={() => {
           ProjectUtil.clearCurrentProject();
-          PermissionUtil.clearProjectPermissions();
+          /*
+           * The deleted project's permission snapshot only: another tab
+           * may be showing another project, whose snapshot it still reads.
+           */
+          PermissionUtil.clearProjectPermissions(projectId);
           props.onProjectDeleted();
         }}
       />
