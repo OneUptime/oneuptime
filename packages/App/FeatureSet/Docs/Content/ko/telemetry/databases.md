@@ -418,7 +418,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고, `docker-compose.yml`, `otel-collector-config.yaml`, systemd 유닛을 현재 버전으로 바꾸며, 새 구성이 적용되도록 에이전트의 컨테이너를 다시 만듭니다. 편집했던 파일(`network_mode: host`, `filelog` 리시버와 그 마운트, 추가 메트릭)은 새 파일 옆에 `<file>.bak.<timestamp>`로 보존되며, 스크립트가 마지막에 이를 나열하므로 편집 내용을 다시 적용할 수 있습니다. `.env`나 `otel-collector-config.yaml`의 편집은 `docker compose up -d --force-recreate`로 적용하세요. Collector는 시작할 때만 구성을 읽으며, 구성 파일만 바뀐 경우 일반 `docker compose up -d`는 실행 중인 컨테이너를 그대로 둡니다. 스크립트는 설치한 내용을 `.agent-files.sha256`에 기록하므로, 아무도 편집하지 않은 파일은 새 버전이 얼마나 바뀌었든 사본 없이 교체됩니다. 그 기록이 없는 디렉터리(직접 구성한 디렉터리)에서는 편집 내용이 있을 수 있으므로 새 버전과 다른 파일을 모두 보존합니다. 에이전트를 제거하려면 `cd /opt/oneuptime-database-agent && docker compose down`을 실행한 다음 모니터링 사용자(와 만들었다면 AI 에이전트 전용 로그인)를 삭제하세요.
 
-에이전트는 파일에 고정된 Collector 버전을 **Agent version**으로 보고합니다. 그 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 데이터베이스의 **개요**에서 그 옆에 경고 표시가 나타납니다. 선택하면 업그레이드 방법이 표시됩니다. 설치 스크립트, Docker Compose, 또는 Kubernetes의 데이터베이스라면 설정 가이드의 Deployment를 사용합니다.
+에이전트는 파일에 고정된 Collector 버전을 **에이전트 버전**으로 보고합니다. 그 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 데이터베이스의 **개요**에서 그 옆에 경고 표시가 나타납니다. 선택하면 업그레이드 방법이 표시됩니다. 설치 스크립트, Docker Compose, 또는 Kubernetes의 데이터베이스라면 설정 가이드의 Deployment를 사용합니다.
 
 ## AI 에이전트
 

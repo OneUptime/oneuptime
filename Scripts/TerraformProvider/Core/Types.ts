@@ -80,6 +80,11 @@ export interface OpenAPISpec {
     "x-former-names"?: Array<string>;
     // The model's table: two models can share a singular name, so a tag's.
     "x-oneuptime-table"?: string;
+    /*
+     * A telemetry table's (logs, spans, metrics...): records the product
+     * keeps for a while, which the provider reads but never manages.
+     */
+    "x-oneuptime-telemetry"?: boolean;
   }>;
 }
 

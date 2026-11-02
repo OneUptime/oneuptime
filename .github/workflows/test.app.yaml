@@ -370,6 +370,13 @@ jobs:
           # Navigation Search, on a runner about a fifth slower (Chart Time Zoom
           # 12.7, the rest 12.1): Navigation Search moved on to group 16. About
           # 21.
+          # Chart Time Zoom's fixture draws its pages in Inter since
+          # 2026-11-01, as production does (Tests/Ops/E2EFixtureFonts), and
+          # ResourceSecurityCard.spec.ts gained a Docker host's and a Podman
+          # host's Security card the same day (6 tests, about 20 seconds
+          # locally: their open case, week and risk, a quiet week, no card
+          # without Security Events, at 1280 and 390 pixels, dark): about
+          # 21.5.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -437,6 +444,12 @@ jobs:
           # goes to group 16: about 14.6. Meraki Traffic (3.0) from group 7 and
           # Security Events Empty States (3.7) from group 14, which took 25.5
           # and past 28 on that run: about 21.5.
+          # MonitorSecurityCard.spec.ts joined Monitor Overview the same day
+          # (11 tests, 52 seconds locally, about half of them in each half: a
+          # monitor's Security card about the hosts it checks - its open case,
+          # week and risk, a quiet week, none for a heartbeat or a role that
+          # may not read security events, read again on Refresh, its stacked
+          # header in the side column at 1440 and 390 pixels, dark): about 22.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
@@ -556,6 +569,19 @@ jobs:
           # took this group 25.5 minutes, the new suite 8.2 of them, and group
           # 11 15.1: Status Timeline (2.2 minutes there) and Runbook Triggers
           # (1.7) moved to group 11 the same day: about 21.5 at that pace.
+          # ConnectedSignals.spec.ts gained 3 tests on 2026-11-01 (about 10
+          # seconds locally: a monitor, a cloud resource and a serverless
+          # function among a case's records, a member's on-call schedules
+          # and teams, and a member's own page with its Security card, at
+          # 1280 and 390 pixels, dark): still about 21.5. It gained 14 more
+          # on 2026-11-02 (about 31 seconds locally: In your logs and traces
+          # under a case's records - the values found, with their log lines,
+          # spans, places and senders, a failed and a limited search, at 390
+          # to 1280 pixels, dark, in German and Persian, and on an entity's
+          # page): about 22. Its UI review added 3 more the same day (about 8
+          # seconds locally: the line that says the search is running, and an
+          # entity no record matches at 1280 and 390 pixels, dark): still
+          # about 22.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -825,6 +851,11 @@ jobs:
           # 28 minutes (Cloud Connect 7.4, Time Range 5.0): Security Events
           # Empty States (3.7) moved to group 14 and Meraki Traffic (3.0) to
           # group 7. About 21.
+          # Cloud Connect gained a cloud resource's Security card on
+          # 2026-11-01 (2 tests on each of its two projects, about 22 seconds
+          # locally: its open case and week, opening Security Events on the
+          # name it answers on, a quiet week and no card without Security
+          # Events): still about 21.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -1059,6 +1090,15 @@ jobs:
           # minutes locally with its bundle, from 1.3): about 20.5.
           # Ask AI (3.4) moved to group 16 on 2026-11-01, when 14.0.100's second
           # gate run took this group 25.9: about 20.
+          # Resource Overviews gained a service's Security card the same day
+          # (8 tests, about 36 seconds locally: the events read from its own
+          # logs and their findings, a quiet week, no card without Security
+          # Events, at 390, 768 and 1280 pixels, dark): about 20.5.
+          # On 2026-11-02 it gained a serverless function's Security card and
+          # Refresh for both cards (12 tests, about 40 seconds locally: the
+          # same card on the function's own Overview, at 390, 768 and 1280
+          # pixels, dark, German and Persian right to left; the whole suite
+          # took 3.6 minutes with its bundle on a loaded machine): about 21.
           - group: 12
             suites: >-
               test-code-ui
@@ -1089,6 +1129,15 @@ jobs:
           # 14.0.100's first gate run (2026-11-01) took this group 24.1 minutes
           # (Data Security 3.2 of them, before #5500 grew it to 71 walks, about
           # 4.5): Navigation Search (3.6) moved to group 2. About 22.
+          # Asset Details gained a network device's Security card the same day
+          # (2 tests, about 11 seconds locally: its open case, week and risk
+          # at 1280 and 390 pixels, dark, a quiet week and no card without
+          # Security Events): still about 22.
+          # On 2026-11-02 it gained an Inventory item's own page with its
+          # Security card (4 tests, about 15 seconds locally: the case naming
+          # it, its week and risk, a quiet week, no card without Security
+          # Events, at 1280 and 390 pixels, dark and Persian right to left):
+          # still about 22.
           - group: 13
             suites: >-
               test-asset-details-ui
@@ -1162,6 +1211,11 @@ jobs:
           # too: about 17.5. Status Timeline (2.3) and Runbook Triggers (1.8)
           # from group 11, which took 25.7: about 21.5. The second run took it
           # 15.5: Kubernetes Events (3.5) from group 9: about 19.
+          # Host Pages (19 tests, 1.4 minutes locally plus its bundle,
+          # Chromium only: the Hosts list - which hosts need attention first,
+          # each host's health and readings - and a host's Overview, Turn on
+          # N alerts into Recommendations, at 1280 and 390 pixels, dark,
+          # German and Persian) joined it on 2026-11-02: about 21.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1172,12 +1226,16 @@ jobs:
               test-status-timeline-ui
               test-runbook-triggers-ui
               test-kubernetes-events-ui
+              test-host-pages-ui
           # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
           # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
           # 28 minutes and groups 6, 7, 9, 12 and 13 to 24 to 26: Monitor
           # Overview's second half (124 tests, about 7 minutes) from group 3,
           # Navigation Search (3.6) from group 2, Discovery (5.6) from group 6
           # and Ask AI (3.4) from group 12: about 19.5.
+          # MonitorSecurityCard.spec.ts joined Monitor Overview the same day
+          # (11 tests, 52 seconds locally, about half of them in this half; see
+          # group 3): about 20.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1446,4 +1504,6 @@ jobs:
             output/playwright/proxmox-pages-ui/test-results
             output/playwright/kubernetes-pages-ui/*.png
             output/playwright/kubernetes-pages-ui/test-results
+            output/playwright/host-pages-ui/*.png
+            output/playwright/host-pages-ui/test-results
           retention-days: 7

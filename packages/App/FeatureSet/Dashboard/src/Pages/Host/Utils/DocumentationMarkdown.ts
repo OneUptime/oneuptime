@@ -203,6 +203,8 @@ ${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}
       network:
       processes:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       process:
         mute_process_name_error: true
         mute_process_exe_error: true

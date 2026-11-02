@@ -549,7 +549,7 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
-        "Date after which this row is eligible for TTL deletion, computed at ingest time as windowStart + the cluster's (or project's) telemetry retention days",
+        "Date after which this row is eligible for TTL deletion: windowStart plus the cluster's (or project's) telemetry retention days. Set by the server, on ingest and on create.",
       required: true,
       type: TableColumnType.Date,
       defaultValue: undefined,

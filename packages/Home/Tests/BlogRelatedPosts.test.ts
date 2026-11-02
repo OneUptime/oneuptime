@@ -8,6 +8,7 @@ import {
   buildRelatedPostsIndex,
   findRelatedPosts,
 } from "../Utils/BlogRelatedPosts";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * The posts a blog post's page lists as related (Utils/BlogRelatedPosts.ts).
@@ -259,20 +260,32 @@ describe("findRelatedPosts", () => {
       },
     );
 
-    const builtFrom: number = Date.now();
-    const index: RelatedPostsIndex<RelatablePost> = buildRelatedPostsIndex(
-      posts,
-      slugOf,
-    );
-    expect(Date.now() - builtFrom).toBeLessThan(5000);
+    // Each timed as the fastest of a few runs: a busy runner can stall any one.
+    const built: FastestRun<RelatedPostsIndex<RelatablePost>> = fastestRun({
+      run: (): RelatedPostsIndex<RelatablePost> => {
+        return buildRelatedPostsIndex(posts, slugOf);
+      },
+      limitInMs: 5000,
+    });
+    const index: RelatedPostsIndex<RelatablePost> = built.result;
+    expect(built.inMs).toBeLessThan(5000);
 
-    const readFrom: number = Date.now();
-    for (let place: number = 0; place < 200; place++) {
-      expect(
-        findRelatedPosts(index, `post-${place * 300}`).length,
-      ).toBeGreaterThan(0);
-    }
-    // Two hundred pages' worth.
-    expect(Date.now() - readFrom).toBeLessThan(2000);
+    // Two hundred pages' worth, each of which has related posts.
+    const read: FastestRun<number> = fastestRun({
+      run: (): number => {
+        let pagesWithRelatedPosts: number = 0;
+
+        for (let place: number = 0; place < 200; place++) {
+          if (findRelatedPosts(index, `post-${place * 300}`).length > 0) {
+            pagesWithRelatedPosts++;
+          }
+        }
+
+        return pagesWithRelatedPosts;
+      },
+      limitInMs: 2000,
+    });
+    expect(read.result).toBe(200);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });

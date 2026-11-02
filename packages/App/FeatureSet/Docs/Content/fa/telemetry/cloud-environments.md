@@ -129,7 +129,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **میزبان‌ها** | ماشین مجازی یک میزبان است. [کالکتور OpenTelemetry روی میزبان](/docs/telemetry/host-otel-collector) را ببینید |
 | EKS، GKE، AKS، Kubernetes خودمدیریت | **Kubernetes** | با ویژگی‌های `k8s.*` مسیریابی می‌شود. [عامل Kubernetes](/docs/telemetry/kubernetes-agent) را ببینید |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **توابع بدون سرور** | با `faas.name` مسیریابی می‌شود، یا با `service.name` وقتی `cloud.platform` از نوع FaaS باشد. [توابع بدون سرور](/docs/telemetry/serverless-functions) را ببینید |
-| متعادل‌کننده‌های بار، باکت‌ها، پایگاه‌های دادهٔ مدیریت‌شده و دیگر منابع IaaS یا PaaS | **Cloud Resources** | از متریک‌هایی که Azure Monitor، CloudWatch و Cloud Monitoring منتشر می‌کنند کشف می‌شوند. [منابع ابری](/docs/telemetry/cloud-resources) را ببینید |
+| متعادل‌کننده‌های بار، باکت‌ها، پایگاه‌های دادهٔ مدیریت‌شده و دیگر منابع IaaS یا PaaS | **منابع ابری** | از متریک‌هایی که Azure Monitor، CloudWatch و Cloud Monitoring منتشر می‌کنند کشف می‌شوند. [منابع ابری](/docs/telemetry/cloud-resources) را ببینید |
 
 > [!NOTE]
 > Cloud Run و App Engine عمداً در دو جا نمایش داده می‌شوند. تشخیص‌دهندهٔ آن‌ها هم یک `cloud.platform` مدیریت‌شده و هم `faas.name` را تنظیم می‌کند، پس هر سرویس یک **تابع بدون سرور** مستقل هم هست، در حالی که **محیط ابری** همهٔ سرویس‌های آن پروژه و منطقه را گرد می‌آورد. همان تله‌متری زیر هر دو ثبت می‌شود.

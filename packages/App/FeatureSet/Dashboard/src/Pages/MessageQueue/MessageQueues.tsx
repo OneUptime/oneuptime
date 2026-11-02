@@ -52,6 +52,8 @@ import useShowcaseCreateForm, {
 } from "../../Components/ResourceShowcase/UseShowcaseCreateForm";
 import MESSAGE_QUEUE_SHOWCASE from "../../Components/MessageQueue/MessageQueueShowcase";
 import MessageQueueAddedModal from "./Utils/MessageQueueAddedModal";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   MESSAGE_QUEUE_DESTINATION_DESCRIPTION,
   MESSAGE_QUEUE_NAMESPACE_DESCRIPTION,
@@ -158,6 +160,7 @@ function renderHint(
 const MessageQueues: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<MessageQueue>({
     modelType: MessageQueue,
   });
@@ -614,9 +617,13 @@ const MessageQueues: FunctionComponent<
             // Also a filter above the table.
             isHiddenByDefault: true,
             getElement: (item: MessageQueue): ReactElement => {
+              // The product's own words, in the reader's language.
+              const discoveredFrom: string = getMessageQueueDiscoveryLabel(
+                item.discoverySource,
+              );
               return (
                 <span className="text-sm text-gray-700">
-                  {getMessageQueueDiscoveryLabel(item.discoverySource)}
+                  {translator.translateText(discoveredFrom) || discoveredFrom}
                 </span>
               );
             },

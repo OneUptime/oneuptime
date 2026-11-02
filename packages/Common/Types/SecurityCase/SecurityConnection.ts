@@ -7,13 +7,16 @@ import { SecurityEntity } from "./SecurityEntity";
  * A security event names its entities by value - "web-1", "10.0.3.17",
  * "k.morgan@acme.example" - and the rest of OneUptime knows the same things
  * by its own keys: a host by the host.name its collector reports, a
- * Kubernetes cluster by k8s.cluster.name, a project member by their email,
- * the service whose logs a line came from by its id. A connection is one of
- * those meeting the other, and how sure OneUptime is of it:
+ * Kubernetes cluster by k8s.cluster.name, a cloud resource by its provider's
+ * ID and the names and addresses it answers on, a monitor by the host it
+ * checks, a project member by their email, the service or function whose
+ * logs a line came from by its id. A connection is one of those meeting the
+ * other, and how sure OneUptime is of it:
  *
  *   Exact     the same thing: a host reporting this very name, the cluster
  *             of this name, the member with this email, the only resource
- *             holding this public address, the resource whose logs the
+ *             holding this public address, the cloud resource of this ARN,
+ *             the monitor checking this host, the resource whose logs the
  *             event was read from.
  *   Possible  probably the same thing, for a reason a person should weigh:
  *             one name is the other's short form (web-1 and
@@ -42,7 +45,17 @@ export enum SecurityConnectionKind {
   PodmanHost = "PodmanHost",
   KubernetesCluster = "KubernetesCluster",
   NetworkDevice = "NetworkDevice",
+  /*
+   * A cloud resource a cloud connection lists or telemetry reports: by its
+   * provider's ID (an ARN, an Azure resource ID, a Google Cloud resource
+   * name), the names and addresses it answers on, and its logs.
+   */
+  CloudResource = "CloudResource",
+  // A serverless function, by its logs: it has no name an event gives.
+  ServerlessFunction = "ServerlessFunction",
   Service = "Service",
+  // A monitor, by the host, address or URL it checks.
+  Monitor = "Monitor",
   User = "User",
   /*
    * An inventory item: only ever looked up the way back, for its page's
@@ -52,7 +65,11 @@ export enum SecurityConnectionKind {
   InventoryItem = "InventoryItem",
 }
 
-// The order connections are listed in: machines, then clusters, services, people.
+/*
+ * The order connections are listed in: machines, then clusters, devices,
+ * cloud resources and functions, services, the monitors that check them,
+ * people.
+ */
 export const SECURITY_CONNECTION_KINDS: ReadonlyArray<SecurityConnectionKind> =
   [
     SecurityConnectionKind.Host,
@@ -60,7 +77,10 @@ export const SECURITY_CONNECTION_KINDS: ReadonlyArray<SecurityConnectionKind> =
     SecurityConnectionKind.PodmanHost,
     SecurityConnectionKind.KubernetesCluster,
     SecurityConnectionKind.NetworkDevice,
+    SecurityConnectionKind.CloudResource,
+    SecurityConnectionKind.ServerlessFunction,
     SecurityConnectionKind.Service,
+    SecurityConnectionKind.Monitor,
     SecurityConnectionKind.User,
     SecurityConnectionKind.InventoryItem,
   ];
@@ -96,15 +116,34 @@ export enum SecurityConnectionReason {
   SharedAddress = "SharedAddress",
   // The project member with this email.
   Email = "Email",
+  /*
+   * The cloud resource of this ID: an ARN, an Azure resource ID or a Google
+   * Cloud resource name, which name one resource and nothing else.
+   */
+  ResourceId = "ResourceId",
+  // A host name the cloud resource answers on (a load balancer's DNS name).
+  CloudEndpoint = "CloudEndpoint",
+  /*
+   * The monitor checks this host, this address, or the host of this URL:
+   * a website, API, ping, port, SSL, DNS or domain monitor's target.
+   */
+  MonitorTarget = "MonitorTarget",
 }
 
-// Exact reasons, and the reasons that only ever make a possible connection.
+/*
+ * Exact reasons, and the reasons that only ever make a possible connection,
+ * each in the order a record's matches are listed: its logs, then its own
+ * names and IDs, then what it checks, then its addresses.
+ */
 export const EXACT_SECURITY_CONNECTION_REASONS: ReadonlyArray<SecurityConnectionReason> =
   [
     SecurityConnectionReason.LogSource,
     SecurityConnectionReason.HostName,
     SecurityConnectionReason.ClusterName,
     SecurityConnectionReason.DeviceName,
+    SecurityConnectionReason.ResourceId,
+    SecurityConnectionReason.CloudEndpoint,
+    SecurityConnectionReason.MonitorTarget,
     SecurityConnectionReason.Address,
     SecurityConnectionReason.Email,
   ];
@@ -195,6 +234,25 @@ export interface SecurityConnectionChangeJson {
   eventType: string;
 }
 
+// One on-call schedule a member is on, and whether they are on call for it now.
+export interface SecurityConnectionScheduleJson {
+  id: string;
+  name: string;
+  isOnCallNow: boolean;
+}
+
+export interface SecurityConnectionScheduleListJson {
+  count: number;
+  // The schedules they are on call for now first, then by name.
+  items: Array<SecurityConnectionScheduleJson>;
+}
+
+// Where a monitor stands now: its current status.
+export interface SecurityConnectionStatusJson {
+  name: string;
+  color?: string | undefined;
+}
+
 // One OneUptime record a case, an event or an entity is connected to, with what is happening on it.
 export interface SecurityConnectedResourceJson {
   kind: SecurityConnectionKind;
@@ -219,6 +277,16 @@ export interface SecurityConnectedResourceJson {
   recentChanges: Array<SecurityConnectionChangeJson> | null;
   // Its inventory record, when Inventory has one.
   inventoryItemId?: string | undefined;
+  // A monitor's current status.
+  status?: SecurityConnectionStatusJson | undefined;
+  /*
+   * A member's on-call schedules and teams: who to reach, and whether the
+   * account the case is about is the one on call now. Left out for every
+   * other kind of record; null when the reader's role cannot read them, or
+   * the read failed.
+   */
+  onCallSchedules?: SecurityConnectionScheduleListJson | null | undefined;
+  teams?: SecurityConnectionRecordListJson | null | undefined;
 }
 
 // What a case, an event or an entity is connected to.
@@ -234,6 +302,100 @@ export interface SecurityConnectionsJson {
   unreadableKinds: Array<SecurityConnectionKind>;
   // Kinds of record that could not be read this time.
   failedKinds: Array<SecurityConnectionKind>;
+}
+
+// ---------- In your logs and traces ----------
+
+/*
+ * Where the values a case, an event or an entity names appear in the logs
+ * and traces themselves - an attacker's address in a web server's access
+ * log, a leaked email in an application's error, a domain in a span's
+ * server.address - rather than which record each value is (above). Read
+ * over the same window, with the reader's own role:
+ *
+ *   a log line   names a value when its message names it whole (10.0.0.1 in
+ *                "from 10.0.0.1:52144", never in "10.0.0.12"), or when one
+ *                of its attributes is exactly the value;
+ *   a span       when one of its attributes is exactly the value.
+ *
+ * Common/Utils/SecurityCase/SecurityTelemetrySearch says which values are
+ * searched, and how.
+ */
+export enum SecurityTelemetrySignal {
+  Logs = "Logs",
+  Traces = "Traces",
+}
+
+export const SECURITY_TELEMETRY_SIGNALS: ReadonlyArray<SecurityTelemetrySignal> =
+  [SecurityTelemetrySignal.Logs, SecurityTelemetrySignal.Traces];
+
+// The most values one search looks for, in the order they are named.
+export const SECURITY_TELEMETRY_MAX_VALUES: number = 10;
+
+// The most records and places listed for one value in one signal.
+export const SECURITY_TELEMETRY_MAX_LISTED: number = 3;
+
+/*
+ * The place a log line names a value in when it is its message (the log's
+ * body); any other place is the key of the attribute holding it.
+ */
+export const SECURITY_TELEMETRY_MESSAGE_PLACE: string = "";
+
+// A record whose log lines or spans named a value, and how many.
+export interface SecurityTelemetrySourceJson {
+  kind: SecurityConnectionKind;
+  id: string;
+  name: string;
+  count: number;
+}
+
+// Where in them the value was: the message, or an attribute's key.
+export interface SecurityTelemetryPlaceJson {
+  key: string;
+  count: number;
+  /*
+   * An attribute's: the value as the attribute holds it (the spelling most
+   * of them hold), which its explorer is opened on - an attribute is
+   * matched exactly there.
+   */
+  value?: string | undefined;
+}
+
+// The log lines, or the spans, naming one value in the window.
+export interface SecurityTelemetryHitsJson {
+  count: number;
+  // The records they were sent under, the most first, the reader's own.
+  sources: Array<SecurityTelemetrySourceJson>;
+  // How many records sent them in all: more than are listed, at times.
+  sourceCount: number;
+  // Where in them it was found, the most first.
+  places: Array<SecurityTelemetryPlaceJson>;
+  lastSeen: string | null;
+}
+
+export interface SecurityTelemetryValueJson {
+  entityType: string;
+  entityValue: string;
+  /*
+   * Each null when that signal was not searched: the reader's role cannot
+   * read it, or the read failed. Never a zero for "unknown".
+   */
+  logs: SecurityTelemetryHitsJson | null;
+  traces: SecurityTelemetryHitsJson | null;
+}
+
+// Where what a case, an event or an entity names appears in the logs and traces.
+export interface SecurityTelemetryMentionsJson {
+  windowStart: string;
+  windowEnd: string;
+  // Every value searched, in the order named, found or not.
+  values: Array<SecurityTelemetryValueJson>;
+  // It names more values to search for than were searched.
+  hasMoreValues: boolean;
+  // Signals the reader's role cannot read, so none was searched.
+  unreadableSignals: Array<SecurityTelemetrySignal>;
+  // Signals that could not be searched this time.
+  failedSignals: Array<SecurityTelemetrySignal>;
 }
 
 // One open case naming a resource, as the resource's page lists it.
@@ -285,6 +447,12 @@ export interface ResourceSecurityJson {
   windowDays: number;
   // What the security events were searched for: the record's exact identities.
   values: Array<string>;
+  /*
+   * Searched for by the events read from its logs instead: a service, a
+   * serverless function, and a cloud resource with no ID or address of its
+   * own to search for.
+   */
+  isSearchedByLogs: boolean;
   // The entity its Security Events page is opened on: its main name.
   entity: SecurityEntity | null;
   eventCount: number;

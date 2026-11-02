@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12621
+    "keys": 40050,
+    "untranslated": 12568
   },
   "sameAsEnglish": [
     "2xx",
@@ -33,7 +33,9 @@
     "IoT",
     "Job",
     "LXC 201 · pve3",
+    "Link-local",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",

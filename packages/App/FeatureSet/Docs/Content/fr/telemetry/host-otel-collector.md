@@ -31,7 +31,7 @@ flowchart TB
 
 | Ce que vous voyez sur l'hôte | D'où cela vient |
 | --- | --- |
-| **Vue d'ensemble** et **Métriques** | Le receiver `hostmetrics` : CPU, mémoire, disques, systèmes de fichiers, réseau, charge, pagination. |
+| **Vue d'ensemble** et **Métriques** | Le receiver `hostmetrics` : CPU, mémoire, disques, systèmes de fichiers, réseau, charge, pagination, temps de fonctionnement. |
 | **Processus** | Le scraper `process` de `hostmetrics` : un ensemble de séries par processus. |
 | **Journaux** | Les receivers `filelog`, `journald` et `windowseventlog`. |
 | **Unités systemd** (Linux) | Le receiver `systemd`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

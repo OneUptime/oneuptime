@@ -2,6 +2,17 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { withRouteQueryParams } from "../../Utils/TelemetryTabScope";
 import { getSecurityEventsTimeRangeLinkParams } from "../SecurityEvents/SecurityEventsTimeRange";
+import {
+  CONNECTION_REASON_TEXT,
+  MONITOR_REASON_TEXT,
+  MONITOR_URL_REASON_TEXT,
+  RESOURCE_SECURITY_DESCRIPTION,
+  RESOURCE_SECURITY_MONITOR_DESCRIPTION,
+  RESOURCE_SECURITY_MONITOR_QUIET,
+  RESOURCE_SECURITY_QUIET,
+  RESOURCE_SECURITY_SERVICE_DESCRIPTION,
+  RESOURCE_SECURITY_SERVICE_QUIET,
+} from "./SecurityConnectionsCopy";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -21,7 +32,18 @@ import {
   SecurityConnectionReason,
   SecurityConnectionRecordJson,
   SecurityConnectionRecordListJson,
+  SecurityConnectionScheduleJson,
+  SecurityConnectionScheduleListJson,
+  SecurityConnectionStatusJson,
   SecurityConnectionsJson,
+  SECURITY_TELEMETRY_MESSAGE_PLACE,
+  SECURITY_TELEMETRY_SIGNALS,
+  SecurityTelemetryHitsJson,
+  SecurityTelemetryMentionsJson,
+  SecurityTelemetryPlaceJson,
+  SecurityTelemetrySignal,
+  SecurityTelemetrySourceJson,
+  SecurityTelemetryValueJson,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import {
   SECURITY_EVENT_ENTITY_FIELDS,
@@ -39,14 +61,16 @@ import {
   toTracesExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { getTelemetryMessageSearchText } from "Common/Utils/SecurityCase/SecurityTelemetrySearch";
 
 /*
  * What the Connected Signals views and the Security cards draw from the
  * server's answers (Common/Types/SecurityCase/SecurityConnection), and where
  * each of their links goes: a record's own page, its logs and traces in the
  * explorers on it and the window, its metrics, events and topology, its
- * inventory item, an incident, alert or monitor on it, and Security Events
- * on the security events that name it.
+ * inventory item, an incident, alert or monitor on it, a member's on-call
+ * schedules and teams, and Security Events on the security events that name
+ * it.
  *
  * React-free, so every link and every reading of a malformed answer is
  * pinned in a plain test. Answers are read defensively: a field the server
@@ -180,6 +204,62 @@ function readKinds(
   return readArray(value).filter(isKind) as Array<SecurityConnectionKind>;
 }
 
+// A monitor's status, when the answer has one.
+function readStatus(
+  value: JSONValue | undefined,
+): SecurityConnectionStatusJson | undefined {
+  const status: JSONObject | null = readObject(value);
+  const name: string = readString(status?.["name"]);
+
+  if (!status || !name) {
+    return undefined;
+  }
+
+  return {
+    name,
+    ...(readOptionalString(status["color"])
+      ? { color: readOptionalString(status["color"]) }
+      : {}),
+  };
+}
+
+// A member's schedules: null when not known, nothing at all when left out.
+function readSchedules(
+  value: JSONValue | undefined,
+): SecurityConnectionScheduleListJson | null {
+  const list: JSONObject | null = readObject(value);
+
+  if (!list) {
+    return null;
+  }
+
+  return {
+    count: readNumber(list["count"]),
+    items: readArray(list["items"])
+      .map((item: JSONValue): SecurityConnectionScheduleJson | null => {
+        const schedule: JSONObject | null = readObject(item);
+        const id: string = readString(schedule?.["id"]);
+
+        if (!schedule || !id) {
+          return null;
+        }
+
+        return {
+          id,
+          name: readString(schedule["name"]),
+          isOnCallNow: schedule["isOnCallNow"] === true,
+        };
+      })
+      .filter(
+        (
+          schedule: SecurityConnectionScheduleJson | null,
+        ): schedule is SecurityConnectionScheduleJson => {
+          return schedule !== null;
+        },
+      ),
+  };
+}
+
 export function parseSecurityConnections(
   json: JSONObject,
 ): SecurityConnectionsJson {
@@ -238,6 +318,16 @@ export function parseSecurityConnections(
                   resource["inventoryItemId"],
                 ),
               }
+            : {}),
+          ...(readStatus(resource["status"])
+            ? { status: readStatus(resource["status"]) }
+            : {}),
+          // A member's facts: kept as the server said them, null or a list.
+          ...(resource["onCallSchedules"] !== undefined
+            ? { onCallSchedules: readSchedules(resource["onCallSchedules"]) }
+            : {}),
+          ...(resource["teams"] !== undefined
+            ? { teams: readRecordList(resource["teams"]) }
             : {}),
         };
       })
@@ -299,15 +389,24 @@ function readCases(
     );
 }
 
+// The kinds of record only ever searched for by their logs.
+export const SEARCHED_BY_LOGS_KINDS: ReadonlyArray<SecurityConnectionKind> = [
+  SecurityConnectionKind.Service,
+  SecurityConnectionKind.ServerlessFunction,
+];
+
 export function parseResourceSecurity(json: JSONObject): ResourceSecurityJson {
   const openCases: JSONObject | null = readObject(json["openCases"]);
   const risk: JSONObject | null = readObject(json["risk"]);
   const entities: Array<SecurityEntity> = readSecurityEntities(
     json["entity"] ? [json["entity"]] : [],
   );
+  const kind: SecurityConnectionKind = isKind(json["kind"])
+    ? json["kind"]
+    : SecurityConnectionKind.Host;
 
   return {
-    kind: isKind(json["kind"]) ? json["kind"] : SecurityConnectionKind.Host,
+    kind,
     id: readString(json["id"]),
     name: readString(json["name"]),
     isInUse: json["isInUse"] === true,
@@ -318,6 +417,11 @@ export function parseResourceSecurity(json: JSONObject): ResourceSecurityJson {
         return typeof value === "string" && value.length > 0;
       },
     ),
+    // An answer that does not say: as the kind always is.
+    isSearchedByLogs:
+      typeof json["isSearchedByLogs"] === "boolean"
+        ? json["isSearchedByLogs"]
+        : SEARCHED_BY_LOGS_KINDS.includes(kind),
     entity: entities[0] || null,
     eventCount: readNumber(json["eventCount"]),
     findingCount: readNumber(json["findingCount"]),
@@ -435,7 +539,10 @@ const RECORD_PAGES: Readonly<Record<SecurityConnectionKind, PageMap>> = {
   [SecurityConnectionKind.PodmanHost]: PageMap.PODMAN_HOST_VIEW,
   [SecurityConnectionKind.KubernetesCluster]: PageMap.KUBERNETES_CLUSTER_VIEW,
   [SecurityConnectionKind.NetworkDevice]: PageMap.NETWORK_DEVICE_VIEW,
+  [SecurityConnectionKind.CloudResource]: PageMap.CLOUD_RESOURCE_VIEW,
+  [SecurityConnectionKind.ServerlessFunction]: PageMap.SERVERLESS_FUNCTION_VIEW,
   [SecurityConnectionKind.Service]: PageMap.SERVICE_VIEW,
+  [SecurityConnectionKind.Monitor]: PageMap.MONITOR_VIEW,
   [SecurityConnectionKind.User]: PageMap.USER_VIEW,
   [SecurityConnectionKind.InventoryItem]: PageMap.INVENTORY_VIEW,
 };
@@ -482,6 +589,8 @@ const RESOURCE_FACET_KEYS: Partial<Record<SecurityConnectionKind, string>> = {
   [SecurityConnectionKind.DockerHost]: "dockerHostId",
   [SecurityConnectionKind.PodmanHost]: "podmanHostId",
   [SecurityConnectionKind.KubernetesCluster]: "kubernetesClusterId",
+  [SecurityConnectionKind.CloudResource]: "cloudResourceId",
+  [SecurityConnectionKind.ServerlessFunction]: "serverlessFunctionId",
 };
 
 const METRICS_PAGES: Partial<Record<SecurityConnectionKind, PageMap>> = {
@@ -491,7 +600,11 @@ const METRICS_PAGES: Partial<Record<SecurityConnectionKind, PageMap>> = {
   [SecurityConnectionKind.KubernetesCluster]:
     PageMap.KUBERNETES_CLUSTER_VIEW_METRICS,
   [SecurityConnectionKind.NetworkDevice]: PageMap.NETWORK_DEVICE_VIEW_METRICS,
+  [SecurityConnectionKind.CloudResource]: PageMap.CLOUD_RESOURCE_VIEW_METRICS,
+  [SecurityConnectionKind.ServerlessFunction]:
+    PageMap.SERVERLESS_FUNCTION_VIEW_METRICS,
   [SecurityConnectionKind.Service]: PageMap.SERVICE_VIEW_METRICS,
+  [SecurityConnectionKind.Monitor]: PageMap.MONITOR_VIEW_METRICS,
 };
 
 const TOPOLOGY_PAGES: Partial<Record<SecurityConnectionKind, PageMap>> = {
@@ -533,8 +646,9 @@ function readWindow(
  * A record's signals, each opening where it is read best, on the record and
  * the window:
  *   - logs and traces in their explorers, filtered to the record (a host, a
- *     container host or a cluster by its resource facet, a service by its
- *     id) and pinned to the window;
+ *     container host, a cluster, a cloud resource or a serverless function
+ *     by its resource facet, a service by its id) and pinned to the window;
+ *     a device's and a monitor's logs on their own Logs page;
  *   - metrics on the record's own Metrics page, over the window;
  *   - a service's exceptions in the Exceptions explorer;
  *   - a cluster's Kubernetes events, and a record's own topology;
@@ -601,6 +715,9 @@ export function getSignalLinks(data: {
     );
   } else if (kind === SecurityConnectionKind.NetworkDevice) {
     add("logs", pageRoute(PageMap.NETWORK_DEVICE_VIEW_LOGS, id));
+  } else if (kind === SecurityConnectionKind.Monitor) {
+    // What the monitor saw on each check.
+    add("logs", pageRoute(PageMap.MONITOR_VIEW_LOGS, id));
   }
 
   const metricsPage: PageMap | undefined = METRICS_PAGES[kind];
@@ -668,19 +785,66 @@ export function getSecurityCaseRoute(id: string): Route | null {
   return pageRoute(PageMap.SECURITY_CASE_VIEW, id);
 }
 
+export function getOnCallScheduleRoute(id: string): Route | null {
+  return pageRoute(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW, id);
+}
+
+export function getTeamRoute(id: string): Route | null {
+  return pageRoute(PageMap.TEAM_VIEW, id);
+}
+
+/*
+ * The sentence under a record's name, saying why OneUptime connects it: the
+ * reason's own words, or - for a monitor, which checks an address rather
+ * than holding a name - the monitor's, with a URL's own wording when the
+ * case named a URL on the address the monitor checks. Its {{value}} is what
+ * the case named, {{matched}} what the record holds or checks.
+ */
+export function getConnectionReasonTemplate(data: {
+  kind: SecurityConnectionKind;
+  match: Pick<
+    SecurityConnectedResourceJson["matches"][number],
+    "reason" | "entityType" | "entityValue" | "matchedValue"
+  >;
+}): string {
+  const { kind, match } = data;
+
+  if (kind === SecurityConnectionKind.Monitor) {
+    if (
+      match.reason === SecurityConnectionReason.MonitorTarget &&
+      (match.entityType === SecurityEntityType.Url ||
+        match.entityValue.trim().toLowerCase() !==
+          match.matchedValue.trim().toLowerCase())
+    ) {
+      return MONITOR_URL_REASON_TEXT;
+    }
+
+    const own: string | undefined = MONITOR_REASON_TEXT[match.reason];
+
+    if (own) {
+      return own;
+    }
+  }
+
+  return CONNECTION_REASON_TEXT[match.reason];
+}
+
 /*
  * Security Events on the events about a record, over the Security card's
  * week: the events naming any of its exact identities, or - a service - the
  * events read from its logs.
  */
 export function getRecordSecurityEventsRoute(data: {
-  security: Pick<ResourceSecurityJson, "kind" | "id" | "values" | "windowDays">;
+  security: Pick<
+    ResourceSecurityJson,
+    "kind" | "id" | "values" | "windowDays" | "isSearchedByLogs"
+  >;
   now: Date;
 }): Route | null {
   const { security } = data;
   let search: string = "";
 
-  if (security.kind === SecurityConnectionKind.Service) {
+  if (security.isSearchedByLogs) {
     if (!ObjectID.isValidUUID(security.id)) {
       return null;
     }
@@ -709,6 +873,36 @@ export function getRecordSecurityEventsRoute(data: {
       data.now,
     ),
   });
+}
+
+/*
+ * What a record's Security card says it is about: what named the record,
+ * what was read from its logs (a service, a serverless function, a cloud
+ * resource with no name or address of its own), or - a monitor - what
+ * named the hosts it checks.
+ */
+export function getResourceSecurityDescription(data: {
+  kind: SecurityConnectionKind;
+  isSearchedByLogs: boolean;
+}): { news: string; quiet: string } {
+  if (data.isSearchedByLogs) {
+    return {
+      news: RESOURCE_SECURITY_SERVICE_DESCRIPTION,
+      quiet: RESOURCE_SECURITY_SERVICE_QUIET,
+    };
+  }
+
+  if (data.kind === SecurityConnectionKind.Monitor) {
+    return {
+      news: RESOURCE_SECURITY_MONITOR_DESCRIPTION,
+      quiet: RESOURCE_SECURITY_MONITOR_QUIET,
+    };
+  }
+
+  return {
+    news: RESOURCE_SECURITY_DESCRIPTION,
+    quiet: RESOURCE_SECURITY_QUIET,
+  };
 }
 
 // ---------- What a record's connections say at a glance ----------
@@ -804,4 +998,232 @@ export function getLeadingMatch(
     resource.matches[0] ||
     null
   );
+}
+
+// ---------- In your logs and traces ----------
+
+function isSignal(value: unknown): value is SecurityTelemetrySignal {
+  return (
+    typeof value === "string" &&
+    (SECURITY_TELEMETRY_SIGNALS as ReadonlyArray<string>).includes(value)
+  );
+}
+
+// One signal's hits for a value: null when the answer says it was not searched.
+function readTelemetryHits(
+  value: JSONValue | undefined,
+): SecurityTelemetryHitsJson | null {
+  const hits: JSONObject | null = readObject(value);
+
+  if (!hits) {
+    return null;
+  }
+
+  const sources: Array<SecurityTelemetrySourceJson> = readArray(hits["sources"])
+    .map((item: JSONValue): SecurityTelemetrySourceJson | null => {
+      const source: JSONObject | null = readObject(item);
+      const id: string = readString(source?.["id"]);
+
+      if (!source || !isKind(source["kind"]) || !id) {
+        return null;
+      }
+
+      return {
+        kind: source["kind"],
+        id,
+        name: readString(source["name"]),
+        count: readNumber(source["count"]),
+      };
+    })
+    .filter(
+      (
+        source: SecurityTelemetrySourceJson | null,
+      ): source is SecurityTelemetrySourceJson => {
+        return source !== null;
+      },
+    );
+
+  const places: Array<SecurityTelemetryPlaceJson> = readArray(hits["places"])
+    .map((item: JSONValue): SecurityTelemetryPlaceJson | null => {
+      const place: JSONObject | null = readObject(item);
+
+      if (!place || typeof place["key"] !== "string") {
+        return null;
+      }
+
+      return {
+        key: place["key"],
+        count: readNumber(place["count"]),
+        ...(readOptionalString(place["value"])
+          ? { value: readOptionalString(place["value"]) }
+          : {}),
+      };
+    })
+    .filter(
+      (
+        place: SecurityTelemetryPlaceJson | null,
+      ): place is SecurityTelemetryPlaceJson => {
+        return place !== null && place.count > 0;
+      },
+    );
+
+  return {
+    count: readNumber(hits["count"]),
+    sources,
+    sourceCount: Math.max(readNumber(hits["sourceCount"]), sources.length),
+    places,
+    lastSeen: readOptionalString(hits["lastSeen"]) || null,
+  };
+}
+
+export function parseSecurityTelemetryMentions(
+  json: JSONObject,
+): SecurityTelemetryMentionsJson {
+  return {
+    windowStart: readString(json["windowStart"]),
+    windowEnd: readString(json["windowEnd"]),
+    values: readArray(json["values"])
+      .map((item: JSONValue): SecurityTelemetryValueJson | null => {
+        const value: JSONObject | null = readObject(item);
+        const entityValue: string = readString(value?.["entityValue"]);
+
+        if (!value || !entityValue) {
+          return null;
+        }
+
+        return {
+          entityType: readString(value["entityType"]),
+          entityValue,
+          logs: readTelemetryHits(value["logs"]),
+          traces: readTelemetryHits(value["traces"]),
+        };
+      })
+      .filter(
+        (
+          value: SecurityTelemetryValueJson | null,
+        ): value is SecurityTelemetryValueJson => {
+          return value !== null;
+        },
+      ),
+    hasMoreValues: json["hasMoreValues"] === true,
+    unreadableSignals: readArray(json["unreadableSignals"]).filter(
+      isSignal,
+    ) as Array<SecurityTelemetrySignal>,
+    failedSignals: readArray(json["failedSignals"]).filter(
+      isSignal,
+    ) as Array<SecurityTelemetrySignal>,
+  };
+}
+
+// A value's hits in one signal, when it has any.
+export function getTelemetryHits(
+  value: SecurityTelemetryValueJson,
+  signal: SecurityTelemetrySignal,
+): SecurityTelemetryHitsJson | null {
+  const hits: SecurityTelemetryHitsJson | null =
+    signal === SecurityTelemetrySignal.Logs ? value.logs : value.traces;
+
+  return hits && hits.count > 0 ? hits : null;
+}
+
+/*
+ * The values, as the section lists them:
+ *   - found: named by a log line or a span, in the order searched;
+ *   - notFound: searched in every signal, and named by none - the one
+ *     answer that may say it is not in the logs or traces. A value a
+ *     signal could not be searched for (a role, a failed read) and that
+ *     the other did not find is in neither: nothing can be said of it.
+ */
+export interface TelemetryMentionsGroups {
+  found: Array<SecurityTelemetryValueJson>;
+  notFound: Array<SecurityTelemetryValueJson>;
+}
+
+export function getTelemetryMentionsGroups(
+  mentions: Pick<SecurityTelemetryMentionsJson, "values">,
+): TelemetryMentionsGroups {
+  const groups: TelemetryMentionsGroups = { found: [], notFound: [] };
+
+  for (const value of mentions.values) {
+    const isFound: boolean = SECURITY_TELEMETRY_SIGNALS.some(
+      (signal: SecurityTelemetrySignal): boolean => {
+        return getTelemetryHits(value, signal) !== null;
+      },
+    );
+
+    if (isFound) {
+      groups.found.push(value);
+    } else if (value.logs && value.traces) {
+      groups.notFound.push(value);
+    }
+  }
+
+  return groups;
+}
+
+/*
+ * Where one place a value was found opens, on the window: the Logs
+ * explorer on the lines whose message contains it (an IPv6 address in the
+ * short form logs write it in), or on the lines - the Traces explorer on
+ * the spans - whose attribute holds it, as that attribute holds it (an
+ * attribute is matched exactly there).
+ */
+export function getTelemetryPlaceRoute(data: {
+  signal: SecurityTelemetrySignal;
+  entityValue: string;
+  place: SecurityTelemetryPlaceJson;
+  windowStart: string;
+  windowEnd: string;
+}): Route | null {
+  const window: { start: Date; end: Date } | null = readWindow(
+    data.windowStart,
+    data.windowEnd,
+  );
+  const scope: TelemetryCrossSignalScope = {
+    ...(window ? { startTime: window.start, endTime: window.end } : {}),
+  };
+  const isMessage: boolean =
+    data.place.key === SECURITY_TELEMETRY_MESSAGE_PLACE;
+
+  if (isMessage) {
+    if (data.signal !== SecurityTelemetrySignal.Logs) {
+      return null;
+    }
+
+    const text: string = getTelemetryMessageSearchText(data.entityValue);
+
+    if (!text) {
+      return null;
+    }
+
+    return withRouteQueryParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+      toLogsExplorerQueryParams({ ...scope, bodyContains: text }).params,
+    );
+  }
+
+  const held: string = data.place.value || data.entityValue.trim();
+
+  if (!held) {
+    return null;
+  }
+
+  const attributes: Dictionary<string> = { [data.place.key]: held };
+
+  return data.signal === SecurityTelemetrySignal.Logs
+    ? withRouteQueryParams(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+        toLogsExplorerQueryParams({ ...scope, attributes }).params,
+      )
+    : withRouteQueryParams(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+        toTracesExplorerQueryParams({ ...scope, attributes }).params,
+      );
+}
+
+// A record that sent the lines or spans: its own page.
+export function getTelemetrySourceRoute(
+  source: Pick<SecurityTelemetrySourceJson, "kind" | "id">,
+): Route | null {
+  return getConnectedRecordRoute(source.kind, source.id);
 }

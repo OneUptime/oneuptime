@@ -53,14 +53,6 @@ const LOCALES: string = path.resolve(
   "../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const INTER_FONT_FILE: string = path.resolve(
-  __dirname,
-  "../../Common/Server/Static/Vendor/fonts/InterVariable.woff2",
-);
-
-const PRODUCTION_FONT_CSS: string =
-  '@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dashboard/assets/fonts/InterVariable.woff2) format("woff2")} *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}';
-
 // Why a change is locked on a private incident, as the Dashboard keys it.
 const WHY_KEY: string =
   "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.";
@@ -202,14 +194,12 @@ async function openIncident(page: Page, query: string): Promise<void> {
   ).toHaveCount(0, { timeout: 30000 });
 }
 
-async function loadProductionFont(page: Page): Promise<void> {
-  await page.route(
-    "**/dashboard/assets/fonts/InterVariable.woff2",
-    async (route: PlaywrightRoute) => {
-      await route.fulfill({ path: INTER_FONT_FILE });
-    },
-  );
-  await page.addStyleTag({ content: PRODUCTION_FONT_CSS });
+/*
+ * The page is drawn in production's Inter, which the fixture serves as
+ * views/index.ejs declares it (Fixture/server.js): measure once it has
+ * loaded, not in the fallback a swap shows first.
+ */
+async function waitForProductionFont(page: Page): Promise<void> {
   expect(
     await page.evaluate(async (): Promise<number> => {
       return (await document.fonts.load("600 14px Inter")).length;
@@ -301,7 +291,7 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
     page: Page;
   }) => {
     await openIncident(page, MAINTAINERS_CASE);
-    await loadProductionFont(page);
+    await waitForProductionFont(page);
 
     await expect(heroActions(page).getByRole("button")).toHaveText([
       "Acknowledge",
@@ -494,7 +484,7 @@ for (const look of LOOKS) {
         // dir=auto: <html lang> and its reading direction, as the Dashboard writes them.
         `${MAINTAINERS_CASE}${look.language === "en" ? "" : `&lang=${look.language}&dir=auto`}${look.theme === "dark" ? "&theme=dark" : ""}`,
       );
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
 
       if (look.language === "fa") {
         await expect(page.locator("html")).toHaveAttribute("dir", "rtl");

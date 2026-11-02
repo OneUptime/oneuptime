@@ -58,6 +58,8 @@ import {
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import { readChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
 import ChangeEventService from "../../../Services/ChangeEventService";
+import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
+import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
 import DockerHostOwnerTeamService from "../../../Services/DockerHostOwnerTeamService";
 import DockerHostOwnerUserService from "../../../Services/DockerHostOwnerUserService";
 import HostOwnerTeamService from "../../../Services/HostOwnerTeamService";
@@ -66,6 +68,8 @@ import HostService from "../../../Services/HostService";
 import InventoryItemService from "../../../Services/InventoryItemService";
 import KubernetesClusterOwnerTeamService from "../../../Services/KubernetesClusterOwnerTeamService";
 import KubernetesClusterOwnerUserService from "../../../Services/KubernetesClusterOwnerUserService";
+import MonitorOwnerTeamService from "../../../Services/MonitorOwnerTeamService";
+import MonitorOwnerUserService from "../../../Services/MonitorOwnerUserService";
 import MonitorService from "../../../Services/MonitorService";
 import NetworkDeviceOwnerTeamService from "../../../Services/NetworkDeviceOwnerTeamService";
 import NetworkDeviceOwnerUserService from "../../../Services/NetworkDeviceOwnerUserService";
@@ -76,6 +80,8 @@ import PodmanHostOwnerUserService from "../../../Services/PodmanHostOwnerUserSer
 import SecurityEventService, {
   SECURITY_CONNECTION_READ_TIME_LIMIT,
 } from "../../../Services/SecurityEventService";
+import ServerlessFunctionOwnerTeamService from "../../../Services/ServerlessFunctionOwnerTeamService";
+import ServerlessFunctionOwnerUserService from "../../../Services/ServerlessFunctionOwnerUserService";
 import ServiceOwnerTeamService from "../../../Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../Services/ServiceOwnerUserService";
 import StatusPageResourceService from "../../../Services/StatusPageResourceService";
@@ -85,7 +91,10 @@ import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import NetworkTrafficSummaryUtil from "../../NetworkFlow/NetworkTrafficSummary";
 import SecurityConnections, {
-  RECORD_RELATION_COLUMNS,
+  FactRelation,
+  hasRecentChanges,
+  monitorRelation,
+  relationQuery,
 } from "../../SecurityEvent/Connections/SecurityConnections";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
@@ -183,6 +192,21 @@ const OWNER_TABLES: Partial<Record<SecurityConnectionKind, OwnerTables>> = {
     column: "networkDeviceId",
     teams: NetworkDeviceOwnerTeamService as unknown as OwnerRowsReader,
     users: NetworkDeviceOwnerUserService as unknown as OwnerRowsReader,
+  },
+  [SecurityConnectionKind.CloudResource]: {
+    column: "cloudResourceId",
+    teams: CloudResourceOwnerTeamService as unknown as OwnerRowsReader,
+    users: CloudResourceOwnerUserService as unknown as OwnerRowsReader,
+  },
+  [SecurityConnectionKind.ServerlessFunction]: {
+    column: "serverlessFunctionId",
+    teams: ServerlessFunctionOwnerTeamService as unknown as OwnerRowsReader,
+    users: ServerlessFunctionOwnerUserService as unknown as OwnerRowsReader,
+  },
+  [SecurityConnectionKind.Monitor]: {
+    column: "monitorId",
+    teams: MonitorOwnerTeamService as unknown as OwnerRowsReader,
+    users: MonitorOwnerUserService as unknown as OwnerRowsReader,
   },
 };
 
@@ -750,10 +774,7 @@ export default class SecurityCaseImpact {
     const keyOfId: Map<string, string> = new Map();
 
     for (const resource of data.resources) {
-      if (
-        resource.kind !== SecurityConnectionKind.User &&
-        resource.kind !== SecurityConnectionKind.NetworkDevice
-      ) {
+      if (hasRecentChanges(resource.kind)) {
         keyOfId.set(resource.id, recordKey(resource.kind, resource.id));
       }
     }
@@ -834,8 +855,9 @@ export default class SecurityCaseImpact {
   }
 
   /*
-   * The status pages that show a monitor watching one of the case's records:
-   * customers would see what the case breaks there.
+   * The status pages that show a monitor watching one of the case's records,
+   * or a monitor the case names itself: customers would see what the case
+   * breaks there.
    */
   private static async readStatusPages(data: {
     projectId: ObjectID;
@@ -847,16 +869,26 @@ export default class SecurityCaseImpact {
     for (const [kind, ids] of Array.from(
       groupIdsByKind(data.resources).entries(),
     )) {
-      const column: string | undefined = RECORD_RELATION_COLUMNS[kind];
+      // A monitor the case names is one of them already.
+      if (kind === SecurityConnectionKind.Monitor) {
+        for (const id of ids) {
+          monitorIds.add(id);
+        }
 
-      if (!column || ids.length === 0) {
+        continue;
+      }
+
+      const relation: FactRelation | null = monitorRelation(kind);
+
+      if (!relation || ids.length === 0) {
         continue;
       }
 
       const monitors: Array<Monitor> = await MonitorService.findBy({
         query: {
           projectId: data.projectId,
-          [column]: QueryHelper.inRelationArray(
+          [relation.column]: relationQuery(
+            relation,
             ids.map((id: string): ObjectID => {
               return new ObjectID(id);
             }),

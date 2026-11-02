@@ -65,6 +65,11 @@
  *            record from, or a case naming one record of every kind with
  *            every fact and four possible matches. (ConnectionsFixture.js
  *            lays the records out.)
+ *   ?telemetry= fail or limited: where what a case or an entity names
+ *            appears in the logs and traces - a first read that fails, or
+ *            one whose logs the role cannot read and whose traces could not
+ *            be searched. (TelemetryMentionsFixture.js lays the lines and
+ *            spans out.)
  *   ?retrohunt= quiet, noisy or fail: what Run on Past Events answers - a
  *            rule that would not have fired, one that would have fired more
  *            than a person can look at, or YAML the run refuses.
@@ -110,6 +115,8 @@ import SecurityCaseStoryPage from "../../../App/FeatureSet/Dashboard/src/Pages/S
 import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals";
+import UserViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Users/View/Layout";
+import UserViewIndex from "../../../App/FeatureSet/Dashboard/src/Pages/Users/View/Index";
 import SecurityCaseEvidencePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Evidence";
 import SecurityCaseTasksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Tasks";
 import SecurityCasePlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/PlaybookRuns";
@@ -147,6 +154,10 @@ import {
   CONNECTION_SCENARIOS,
   createConnectionsFixture,
 } from "./ConnectionsFixture";
+import {
+  TELEMETRY_SCENARIOS,
+  createTelemetryMentionsFixture,
+} from "./TelemetryMentionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
 import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
 import { createWatchlistsFixture } from "./WatchlistsFixture";
@@ -194,6 +205,8 @@ import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus"
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
+import { RESOURCE_SECURITY_MAX_CASES } from "Common/Types/SecurityCase/SecurityConnection";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -264,7 +277,10 @@ import {
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { computeSecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
-import { getEntityCaseGroupingKey } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
+import {
+  getEntityCaseGroupingKey,
+  getEntityRiskKey,
+} from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
@@ -515,6 +531,10 @@ const connectionsScenario = CONNECTION_SCENARIOS.includes(
 )
   ? params.get("connections")
   : "";
+// ?telemetry=: TelemetryMentionsFixture.js's scenarios.
+const telemetryScenario = TELEMETRY_SCENARIOS.includes(params.get("telemetry"))
+  ? params.get("telemetry")
+  : "";
 let statusReads = 0;
 let overviewReads = 0;
 // The recommended rule the partly scenario leaves undone the first time.
@@ -594,6 +614,22 @@ const fixture = {
   unhandled: [],
 };
 window.__securityOperationsFixture = fixture;
+
+/*
+ * ?telemetry=slow: the first logs and traces search waits until the spec
+ * lets it answer, so the page can be read while it runs; every later one
+ * answers at once.
+ */
+let releaseTelemetrySearch = () => {};
+const heldTelemetrySearch =
+  telemetryScenario === "slow"
+    ? new Promise((resolve) => {
+        releaseTelemetrySearch = resolve;
+      })
+    : null;
+fixture.releaseTelemetrySearch = () => {
+  releaseTelemetrySearch();
+};
 
 function serialize(value) {
   return JSON.parse(JSON.stringify(value === undefined ? null : value));
@@ -2596,6 +2632,8 @@ for (const modelType of [
   SecurityProtectedEntity,
   Team,
   TeamMember,
+  // A member's page asks for the project's member fields: it has none.
+  TeamMemberCustomField,
   WorkspaceProjectAuthToken,
 ]) {
   table(modelType);
@@ -3108,7 +3146,11 @@ UserUtil.getProfilePictureRoute = (userId) => {
   const user = Object.values(people).find((item) => {
     return item._id === userId.toString();
   });
-  const initials = (user ? user.name.toString() : "?")
+  // A member Connected Signals names, on their own page.
+  const member = connections.members.find((item) => {
+    return item.id === userId.toString();
+  });
+  const initials = (user ? user.name.toString() : member ? member.name : "?")
     .split(" ")
     .map((part) => {
       return part[0] || "";
@@ -3206,6 +3248,139 @@ function withRelations(modelName, record) {
   return record;
 }
 
+/*
+ * A member's page (Pages/Users/View) reads the member's own row by their
+ * user id. The members Connected Signals links to (ConnectionsFixture.js)
+ * are on no team the case pickers offer, so their rows are kept out of the
+ * TeamMember table the pickers read, and answered here.
+ */
+function memberPageRows(modelName, query) {
+  if (modelName !== tableName(TeamMember) || !query?.userId) {
+    return null;
+  }
+
+  const member = connections.members.find((item) => {
+    return item.id === String(query.userId);
+  });
+
+  if (!member) {
+    return null;
+  }
+
+  return [
+    {
+      _id: uuid("82000000", 21),
+      projectId: projectObjectId,
+      userId: new ObjectID(member.id),
+      user: make(User, {
+        _id: member.id,
+        name: new Name(member.name),
+        email: new Email(member.email),
+      }),
+      createdAt: NOW,
+    },
+  ];
+}
+
+/*
+ * POST /security-case/resource-security for a member's page, as the server
+ * answers it (Server/Utils/SecurityEvent/Connections/ResourceSecurity): the
+ * events, findings and open cases naming their email this week, and its
+ * risk - read off this project's own cases and Entity Risk, so the card
+ * says what the case pages say.
+ */
+function memberSecurity(body) {
+  const member = connections.members.find((item) => {
+    return body?.kind === "User" && item.id === body?.id;
+  });
+
+  if (!member) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "This record could not be found." },
+      {},
+    );
+  }
+
+  const email = member.email.toLowerCase();
+  const naming = openCases()
+    .filter((item) => {
+      return (item.entities || []).some((entityItem) => {
+        return String(entityItem.value || "").toLowerCase() === email;
+      });
+    })
+    .sort((a, b) => {
+      return (
+        new Date(b.lastDetectedAt).getTime() -
+        new Date(a.lastDetectedAt).getTime()
+      );
+    });
+  const priorities = table(SecurityCasePriority);
+  const statuses = table(SecurityCaseStatus);
+  const risk = table(SecurityEntityRisk).find((row) => {
+    return row.entityKey === getEntityRiskKey(email);
+  });
+
+  return new HTTPResponse(
+    200,
+    {
+      kind: "User",
+      id: member.id,
+      name: member.name,
+      // ?empty=1: a project that has not used Security Events yet.
+      isInUse: !isEmpty,
+      windowDays: 7,
+      values: [email],
+      isSearchedByLogs: false,
+      entity: { type: "User", value: member.email },
+      // The spray's sign-ins and the travel, when the project has them.
+      eventCount: hasHistory ? 58 : 0,
+      findingCount: hasHistory ? 2 : 0,
+      maxSeverityId: hasHistory ? 4 : 0,
+      lastSeen: naming[0]
+        ? new Date(naming[0].lastDetectedAt).toISOString()
+        : null,
+      openCases: {
+        count: naming.length,
+        items: naming.slice(0, RESOURCE_SECURITY_MAX_CASES).map((item) => {
+          const priority = priorities.find((row) => {
+            return String(row._id) === String(item.securityCasePriorityId);
+          });
+          const status = statuses.find((row) => {
+            return String(row._id) === String(item.securityCaseStatusId);
+          });
+          return {
+            id: String(item._id),
+            number: item.caseNumberWithPrefix,
+            title: item.title,
+            ...(priority
+              ? {
+                  priorityName: priority.name,
+                  priorityColor: priority.color.toString(),
+                }
+              : {}),
+            ...(status
+              ? {
+                  statusName: status.name,
+                  statusColor: status.color.toString(),
+                }
+              : {}),
+            lastDetectedAt: new Date(item.lastDetectedAt).toISOString(),
+          };
+        }),
+      },
+      risk: risk
+        ? {
+            score: risk.riskScore,
+            entityValue: risk.entityValue,
+            entityType: risk.entityType,
+          }
+        : null,
+    },
+    {},
+  );
+}
+
 function knownTable(modelType, kind, extra) {
   const name = tableName(modelType);
   if (!tables.has(name)) {
@@ -3243,9 +3418,11 @@ ModelAPI.getList = async (options) => {
     query: serialize(options.query),
   });
   const records = sortRecords(
-    (known?.records || []).filter((record) => {
-      return matches(record, options.query);
-    }),
+    (memberPageRows(modelName, options.query) || known?.records || []).filter(
+      (record) => {
+        return matches(record, options.query);
+      },
+    ),
     options.sort,
   );
   return {
@@ -3868,6 +4045,18 @@ const connections = createConnectionsFixture({
 });
 
 /*
+ * ...and where what they name appears in the project's logs and traces,
+ * on lines and spans of the fixture's own, with the server's own rules.
+ */
+const telemetryMentions = createTelemetryMentionsFixture({
+  now: NOW,
+  uuid,
+  scenario: telemetryScenario,
+  findCase,
+  runnerHostId: connections.hosts[0].id,
+});
+
+/*
  * ---------------------------------------------------------------------------
  * A case's response targets, and the spray case's tasks and evidence
  * (CaseWorkFixture.js lays them out). After every case is in: the targets
@@ -3970,6 +4159,22 @@ async function handleApi(method, options) {
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/security-case/connections/telemetry")
+  ) {
+    if (heldTelemetrySearch) {
+      await heldTelemetrySearch;
+    }
+    const answer = telemetryMentions.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  // A member's page's Security card: what Security Events found about them.
+  if (method === "POST" && path.endsWith("/security-case/resource-security")) {
+    return memberSecurity(options.data);
   }
   const context = path.match(/\/security-case-context\/(story|impact)$/);
   if (method === "POST" && context) {
@@ -4193,6 +4398,16 @@ const PlaybookView = withParams(
   PageMap.SECURITY_PLAYBOOK_VIEW,
 );
 
+/*
+ * A member's page, where a connected member's name leads (Pages/Users/View,
+ * as Routes/UsersRoutes.tsx mounts it): their details, and the Security
+ * card - the way back from Security Events.
+ */
+function FixtureUserLayout() {
+  useNavigationHooks();
+  return <UserViewLayout />;
+}
+
 function FixtureApp() {
   const location = useLocation();
   Navigation.setNavigateHook(useNavigate());
@@ -4244,6 +4459,15 @@ function FixtureApp() {
             }`}
             element={<PlaybookView />}
           />
+          <Route
+            path={RouteMap[PageMap.USER_VIEW].toString()}
+            element={<FixtureUserLayout />}
+          >
+            <Route
+              index
+              element={<UserViewIndex {...pageProps(PageMap.USER_VIEW)} />}
+            />
+          </Route>
           <Route
             path={RouteMap[PageMap.SECURITY_EVENTS].toString()}
             element={<FixtureLayout />}

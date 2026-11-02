@@ -233,15 +233,34 @@ describe("metric data points are read with the metric permissions", () => {
 });
 
 describe("metric data points are written with the metric permissions", () => {
-  test("a data point is created by exactly the metric creators, each on its own", () => {
+  /*
+   * A data point belongs to a resource and is created only for one its
+   * creator may read (ModelPermission.checkCreateScope), so each permission
+   * is asked beside Read Telemetry Service Metrics, which creates nothing.
+   */
+  test("a data point is created by exactly the metric creators, each beside a permission to read metrics", () => {
     // And Create All Operational Resources, as for every operational resource.
+    expect(
+      GRANTABLE.filter((permission: Permission) => {
+        return mayCreate([permission, Permission.ReadTelemetryServiceMetrics]);
+      }),
+    ).toEqual(
+      [...METRIC_CREATORS, Permission.CreateAllOperationalResources].sort(),
+    );
+  });
+
+  test("on its own, a creator creates one only when it reads metrics too", () => {
     expect(
       GRANTABLE.filter((permission: Permission) => {
         return mayCreate([permission]);
       }),
     ).toEqual(
-      [...METRIC_CREATORS, Permission.CreateAllOperationalResources].sort(),
+      METRIC_CREATORS.filter((permission: Permission): boolean => {
+        return METRIC_READERS.includes(permission);
+      }),
     );
+    expect(mayCreate([Permission.CreateTelemetryServiceMetrics])).toBe(false);
+    expect(mayCreate([Permission.CreateAllOperationalResources])).toBe(false);
   });
 
   test("the trace and log create permissions, even together, do not create one", () => {

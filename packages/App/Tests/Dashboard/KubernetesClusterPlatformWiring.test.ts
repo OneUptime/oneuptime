@@ -7,9 +7,10 @@ import path from "path";
  * EKS, GKE, ...) shows in the cluster list's Platform column and on the
  * overview's Cluster Details card. Both read the stored value through
  * getKubernetesClusterProviderLabel, so the column's default ("unknown")
- * shows as nothing known - a dash in the list, "Not reported" on the card,
- * the words the Agent Version beside it uses - and never as the word
- * "unknown".
+ * shows as nothing known - a dash in the list, and no row at all on the
+ * card, which draws only what the cluster reported (ResourceRecordDetails:
+ * it used to read "Not reported", as its Agent Version did) - and never as
+ * the word "unknown".
  *
  * The pages compose model tables and cards that no node harness renders, so
  * the wiring is pinned here by reading the sources, comments stripped and
@@ -83,20 +84,29 @@ describe("the cluster list", () => {
 describe("the overview's Cluster Details", () => {
   const code: string = source("Pages/Kubernetes/View/Index.tsx");
 
-  test("show the platform, or Not reported, as the Agent Version does", () => {
+  test("show the platform only when the cluster reported one it has a name for: no Not reported row", () => {
     const entry: string = providerEntry(code);
 
     expect(entry).toContain('title: "Platform"');
     expect(entry).toContain("fieldType: FieldType.Element");
+    // No row for "unknown" or a platform this build has no name for.
     expect(entry).toContain(
-      'getKubernetesClusterProviderLabel(item.provider) || translator.translateText("Not reported")',
+      "showIf: (item: KubernetesCluster): boolean => { return Boolean(getKubernetesClusterProviderLabel(item.provider)); }",
     );
-    expect(code).toContain('placeholder="Not reported"');
+    expect(entry).toContain(
+      "<span>{getKubernetesClusterProviderLabel(item.provider)}</span>",
+    );
+    expect(entry).not.toContain("Not reported");
+    // Nor does the Agent Version beside it say "Not reported": no row instead.
+    expect(code).not.toContain('placeholder="Not reported"');
   });
 
   test("put it right after the cluster's name, in the details card", () => {
-    const card: string = code.slice(code.indexOf('name="Cluster Details"'));
+    const card: string = code.slice(
+      code.indexOf("<ResourceRecordDetailsCard<KubernetesCluster>"),
+    );
 
+    expect(card).toContain('title="Cluster Details"');
     expect(card.indexOf('title: "Cluster Name (clusterName)"')).toBeGreaterThan(
       -1,
     );
@@ -104,8 +114,10 @@ describe("the overview's Cluster Details", () => {
       card.indexOf('title: "Platform"'),
     );
     expect(card.indexOf('title: "Platform"')).toBeLessThan(
-      card.indexOf('title: "Description"'),
+      card.indexOf('title: "Agent Version"'),
     );
+    // The description is the hero's line, under the name: no row of it.
+    expect(card).not.toContain('title: "Description"');
   });
 
   test("import the label helper", () => {

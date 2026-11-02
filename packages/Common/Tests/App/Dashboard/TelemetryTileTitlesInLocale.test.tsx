@@ -52,6 +52,7 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
 });
 
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewTile,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ChartCard";
@@ -241,6 +242,7 @@ function renderTiles(
           chips={[]}
           tiles={tiles}
           detailRows={[]}
+          detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         />
       </MemoryRouter>
     </I18nextProvider>,

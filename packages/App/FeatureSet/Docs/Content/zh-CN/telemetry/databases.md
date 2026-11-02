@@ -418,7 +418,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 重新运行 `install.sh`：它会重用现有 `.env` 中的所有值，用当前版本替换 `docker-compose.yml`、`otel-collector-config.yaml` 和 systemd 单元，并重新创建代理的容器，使新配置生效。你编辑过的文件（`network_mode: host`、`filelog` 接收器及其挂载、额外的指标）会以 `<file>.bak.<timestamp>` 的形式保留在新文件旁边，脚本会在最后列出它，方便你重新应用修改。对 `.env` 或 `otel-collector-config.yaml` 的任何修改都要用 `docker compose up -d --force-recreate` 应用：Collector 只在启动时读取配置，而当只有配置文件发生变化时，普通的 `docker compose up -d` 不会动正在运行的容器。脚本会在 `.agent-files.sha256` 中记录它安装的内容，因此没有人编辑过的文件会直接被替换而不保留副本，无论新版本改动多大；在没有该记录的目录（你手动设置的目录）中，每个与新版本不同的文件都会被保留，因为它可能包含修改。要移除代理，请运行 `cd /opt/oneuptime-database-agent && docker compose down`，然后删除监控用户（以及 AI 代理专用的登录账号，如果你创建过）。
 
-代理会把其文件所固定的 Collector 版本报告为它的 **Agent version**。当该版本低于此 OneUptime 版本所固定的版本时，数据库的 **概览** 上会在它旁边显示一个警告标志。选择它即可查看升级方法：通过安装脚本、使用 Docker Compose，或者对于 Kubernetes 中的数据库，使用设置指南中的 Deployment。
+代理会把其文件所固定的 Collector 版本报告为它的 **代理版本**。当该版本低于此 OneUptime 版本所固定的版本时，数据库的 **概览** 上会在它旁边显示一个警告标志。选择它即可查看升级方法：通过安装脚本、使用 Docker Compose，或者对于 Kubernetes 中的数据库，使用设置指南中的 Deployment。
 
 ## AI 代理
 

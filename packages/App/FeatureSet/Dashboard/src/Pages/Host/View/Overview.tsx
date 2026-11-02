@@ -2,15 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
-import Detail from "Common/UI/Components/Detail/Detail";
-import DetailField from "Common/UI/Components/Detail/Field";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
 import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Card from "Common/UI/Components/Card/Card";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -77,7 +76,44 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
-import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import {
+  ResourceHealth,
+  getResourceConnectionLabel,
+  getResourceHealthLabel,
+} from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import { withSentenceDigits } from "../../../Components/ResourcePart/SentenceDigits";
+import ResourcePartAlertsCard from "../../../Components/ResourcePart/ResourcePartAlertsCard";
+import RecommendationFilterUtil, {
+  RECOMMENDATION_SELECTION_QUERY_PARAM,
+} from "../../../Components/Recommendations/RecommendationFilterUtil";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  HostAlertTemplate,
+  getAllHostAlertTemplates,
+} from "Common/Types/Monitor/HostAlertTemplates";
+import {
+  HOST_DISK_FULL_PERCENT,
+  HOST_DISK_NEAR_FULL_PERCENT,
+  HOST_MEMORY_CRITICAL_PERCENT,
+  HOST_MEMORY_HIGH_PERCENT,
+  HostHealthAssessment,
+  assessHost,
+  isHostReporting,
+} from "Common/Types/Host/HostHealth";
+import {
+  HOST_ATTENTION_CURRENT,
+  getHostOwnAttentionItems,
+} from "../Utils/HostAttention";
+import {
+  HOST_CPU_BUSY_PERCENT,
+  HOST_LOAD_QUEUING_PERCENT,
+  getHostUptimeSeconds,
+  isHostStarting,
+} from "../Utils/HostFacts";
+import { encodeUnitNameForUrl } from "../Utils/SystemdUnits";
+import { getHostCollectorConfigLabel } from "../../../Components/HostCollector/HostCollectorStatus";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -104,12 +140,25 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
+
+// Every alert OneUptime recommends for a host, as its Recommendations lists.
+const HOST_ALERT_TEMPLATE_IDS: Array<string> = getAllHostAlertTemplates().map(
+  (template: HostAlertTemplate): string => {
+    return template.id;
+  },
+);
+
+// The five tiles: one a row on a phone, two, three, then five from xl.
+export const HOST_OVERVIEW_TILES_GRID_CLASS_NAME: string =
+  "mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5";
 
 interface OverviewStats {
   cpuPercent: number | null;
   memoryPercent: number | null;
+  // How full the fullest mount is, and which one it is.
   filesystemPercent: number | null;
+  filesystemMountpoint: string | null;
   load1m: number | null;
   runningProcessCount: number | null;
 }
@@ -185,6 +234,9 @@ const HostOverview: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
 
   const [host, setHost] = useState<Host | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(null);
@@ -216,6 +268,11 @@ const HostOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string>("");
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  /*
+   * Toggled on every auto and manual refresh, so Host Details re-reads the
+   * agent's version and what it reports along with the rest of the page.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
   const [autoRefreshInterval, setAutoRefreshInterval] =
     useState<AutoRefreshInterval>(() => {
       if (typeof window === "undefined") {
@@ -282,6 +339,25 @@ const HostOverview: FunctionComponent<
           agentVersion: true,
           collectorInstanceUid: true,
           collectorRegisteredAt: true,
+          // What its health and Needs attention are worked out from.
+          createdAt: true,
+          collectorConfigStatus: true,
+          isCollectorHealthy: true,
+          collectorConfig: {
+            name: true,
+          },
+          latestCpuPercent: true,
+          latestMemoryPercent: true,
+          latestSwapPercent: true,
+          latestDiskPercent: true,
+          latestDiskMountpoint: true,
+          latestInodesPercent: true,
+          latestInodesMountpoint: true,
+          latestLoadAverage15m: true,
+          bootedAt: true,
+          failedSystemdUnitCount: true,
+          failedSystemdUnits: true,
+          readingsUpdatedAt: true,
         },
       });
 
@@ -691,9 +767,13 @@ const HostOverview: FunctionComponent<
        * (time bucket × mountpoint × device × state). Average each
        * (mountpoint, state) across buckets — a 5-min window of a
        * gauge is essentially flat, so the avg matches what `df`
-       * reports right now. Total capacity is used + free + reserved;
-       * any mount missing both used and free is dropped (typically
-       * pseudo-fs the OS reports without size, e.g. `tmpfs` of 0 B).
+       * reports right now. Size is used + free + reserved, as df's
+       * Size; how full a mount is, is used over used + free - df's Use%,
+       * the collector's own system.filesystem.utilization and what the
+       * host's Needs attention and the Hosts list read (HostReadingsScan):
+       * space reserved for root is space nobody else can write. Any mount
+       * missing both used and free is dropped (typically pseudo-fs the OS
+       * reports without size, e.g. `tmpfs` of 0 B).
        */
       type StateBucket = { sum: number; count: number };
       const mountAggregation: Map<
@@ -762,7 +842,7 @@ const HostOverview: FunctionComponent<
         const free: number = avgFor(info.byState, "free");
         const reserved: number = avgFor(info.byState, "reserved");
         const total: number = used + free + reserved;
-        if (total <= 0) {
+        if (total <= 0 || used + free <= 0) {
           continue;
         }
         mountList.push({
@@ -771,7 +851,7 @@ const HostOverview: FunctionComponent<
           type: info.type,
           totalBytes: total,
           usedBytes: used,
-          utilizationPercent: (used / total) * 100,
+          utilizationPercent: (used / (used + free)) * 100,
         });
       }
       mountList.sort((a: MountInfo, b: MountInfo): number => {
@@ -780,17 +860,26 @@ const HostOverview: FunctionComponent<
       setMounts(mountList);
 
       /*
-       * Filesystem tile reads from the largest mount by capacity
-       * (mountList is sorted desc on totalBytes), so the tile works
-       * regardless of OS — Linux hosts get `/`, Windows hosts get
-       * `C:`. The previous hardcoded `mountpoint=/` filter left the
-       * tile blank on Windows even though the Filesystems table
-       * below it rendered fine. `null` when no mount produced a
-       * non-zero capacity.
+       * The Filesystem tile reads the fullest mount - whichever is filling
+       * up, `/` on one host, `C:` or `/var` on another - so it says what
+       * the host's Needs attention and the Hosts list say, and names the
+       * mount under the number. The Filesystems table below lists every
+       * mount. `null` when no mount produced a non-zero capacity.
        */
-      const largestMount: MountInfo | undefined = mountList[0];
-      const filesystemPercent: number | null = largestMount
-        ? largestMount.utilizationPercent
+      const fullestMount: MountInfo | undefined = mountList.reduce(
+        (
+          fullest: MountInfo | undefined,
+          mount: MountInfo,
+        ): MountInfo | undefined => {
+          return !fullest ||
+            mount.utilizationPercent > fullest.utilizationPercent
+            ? mount
+            : fullest;
+        },
+        undefined,
+      );
+      const filesystemPercent: number | null = fullestMount
+        ? fullestMount.utilizationPercent
         : null;
 
       /*
@@ -838,6 +927,7 @@ const HostOverview: FunctionComponent<
         cpuPercent: cpuPct,
         memoryPercent: meanFromBuckets(memResult, 100),
         filesystemPercent: filesystemPercent,
+        filesystemMountpoint: fullestMount ? fullestMount.mountpoint : null,
         load1m: latestFromBuckets(loadResult),
         runningProcessCount: runningProcessCount,
       });
@@ -861,22 +951,21 @@ const HostOverview: FunctionComponent<
 
       /*
        * Disk-utilization chart series tracks the same mount the tile
-       * shows (largest by capacity). We walk fsUsageResult bucket by
-       * bucket for that mountpoint, summing used + free + reserved
-       * per bucket to recover total capacity at that moment, then
-       * divide used by total. Doing this in the client avoids a
-       * second mountpoint-specific query — the per-mount data is
-       * already in fsUsageResult thanks to groupBy attributes.
+       * shows (the fullest). We walk fsUsageResult bucket by bucket for
+       * that mountpoint and divide used by used + free per bucket, as
+       * the tile does. Doing this in the client avoids a second
+       * mountpoint-specific query — the per-mount data is already in
+       * fsUsageResult thanks to groupBy attributes.
        */
-      const largestMountSeries: Array<TimeValuePoint> = (() => {
-        if (!largestMount) {
+      const fullestMountSeries: Array<TimeValuePoint> = (() => {
+        if (!fullestMount) {
           return [];
         }
         const buckets: Map<number, Map<string, number>> = new Map();
         for (const p of fsUsageResult.data || []) {
           const attrs: Record<string, unknown> =
             (p["attributes"] as Record<string, unknown>) || {};
-          if (attrs["mountpoint"] !== largestMount.mountpoint) {
+          if (attrs["mountpoint"] !== fullestMount.mountpoint) {
             continue;
           }
           const state: string = (attrs["state"] as string) || "";
@@ -899,12 +988,10 @@ const HostOverview: FunctionComponent<
         for (const [t, perState] of buckets.entries()) {
           const used: number = perState.get("used") || 0;
           const free: number = perState.get("free") || 0;
-          const reserved: number = perState.get("reserved") || 0;
-          const total: number = used + free + reserved;
-          if (total <= 0) {
+          if (used + free <= 0) {
             continue;
           }
-          out.push({ x: new Date(t), y: (used / total) * 100 });
+          out.push({ x: new Date(t), y: (used / (used + free)) * 100 });
         }
         out.sort((a: TimeValuePoint, b: TimeValuePoint): number => {
           return a.x.getTime() - b.x.getTime();
@@ -1014,8 +1101,8 @@ const HostOverview: FunctionComponent<
           : [],
       );
       setDiskSeries(
-        largestMountSeries.length > 0
-          ? [{ seriesName: "Disk %", data: largestMountSeries }]
+        fullestMountSeries.length > 0
+          ? [{ seriesName: "Disk %", data: fullestMountSeries }]
           : [],
       );
       setNetworkSeries(
@@ -1114,6 +1201,14 @@ const HostOverview: FunctionComponent<
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });
+      /*
+       * Host Details reads the host again with every load the tick starts,
+       * so its agent version and what it reports keep up with the page; a
+       * tick that waits for a load still running asks for nothing.
+       */
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
+      });
     }, ms);
     return () => {
       clearInterval(timer);
@@ -1132,6 +1227,9 @@ const HostOverview: FunctionComponent<
   const onManualRefresh: () => void = (): void => {
     fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
+    });
+    setDetailsRefresher((prev: boolean) => {
+      return !prev;
     });
   };
 
@@ -1213,18 +1311,100 @@ const HostOverview: FunctionComponent<
         label: String(host.containerRuntime),
       });
     }
+    /*
+     * How long it has been up, from when its collector says it started
+     * (system.uptime), in the reader's words: "Up 12d 4h".
+     */
+    const uptimeSeconds: number | null = getHostUptimeSeconds({
+      row: host,
+      now: new Date(),
+    });
+    if (uptimeSeconds !== null) {
+      specChips.push({
+        icon: IconProp.Clock,
+        label: translator.translateTemplate(
+          "Up {{duration}}",
+          {
+            duration: composedValue((sentence: Translator): string => {
+              return formatDurationCompactInLanguage(
+                uptimeSeconds,
+                sentence.language,
+              );
+            }),
+          },
+          { setsValuesApart: true },
+        ),
+      });
+    }
 
-    const statusBadgeClass: string = isConnected
-      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-      : "bg-amber-50 text-amber-700 ring-amber-200";
-    const statusDotClass: string = isConnected
-      ? "bg-emerald-500"
-      : "bg-amber-500";
+    /*
+     * Its health beside its connection, by the rules its Needs attention
+     * card and the Hosts list follow (HostHealth). While it is not
+     * reporting, what it last reported is no longer the truth: "Health
+     * Unknown", as every hero says it. A host that reports but has sent
+     * nothing to judge yet - or never reported at all - shows no health:
+     * "Healthy" would be a guess.
+     */
+    const assessment: HostHealthAssessment = assessHost(host, {
+      now: new Date(),
+    });
+
+    /*
+     * A host OneUptime installed the collector on, still waiting for its
+     * first metrics, says "Starting" - as its row in the Hosts list and the
+     * "This host is starting" card under the hero say - not an amber
+     * "Disconnected" a minute after Add Host. A host set up by hand keeps
+     * "Disconnected", which its card explains.
+     */
+    const isStarting: boolean = isHostStarting({
+      row: host,
+      now: new Date(),
+    });
+
+    const statusBadgeClass: string = isStarting
+      ? "bg-blue-50 text-blue-700 ring-blue-200"
+      : isConnected
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+        : "bg-amber-50 text-amber-700 ring-amber-200";
+    const statusDotClass: string = isStarting
+      ? "bg-blue-500"
+      : isConnected
+        ? "bg-emerald-500"
+        : "bg-amber-500";
     const statusLabel: string = getResourceConnectionLabel({
       translator: translator,
       isConnected: isConnected,
       status: status,
+      isStarting: isStarting,
     });
+    const health: ResourceHealth =
+      assessment.state === "unhealthy"
+        ? "Unhealthy"
+        : assessment.state === "degraded"
+          ? "Degraded"
+          : "Healthy";
+    const showHealth: boolean = assessment.isReporting
+      ? assessment.hasFreshReadings || assessment.severity !== null
+      : Boolean(host.lastSeenAt);
+    const healthLabel: string = getResourceHealthLabel({
+      translator: translator,
+      health: health,
+      isConnected: assessment.isReporting,
+    });
+    const healthBadgeClass: string = !assessment.isReporting
+      ? "bg-gray-50 text-gray-600 ring-gray-200"
+      : health === "Healthy"
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+        : health === "Degraded"
+          ? "bg-amber-50 text-amber-700 ring-amber-200"
+          : "bg-red-50 text-red-700 ring-red-200";
+    const healthDotClass: string = !assessment.isReporting
+      ? "bg-gray-400"
+      : health === "Healthy"
+        ? "bg-emerald-500"
+        : health === "Degraded"
+          ? "bg-amber-500"
+          : "bg-red-500";
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1263,14 +1443,59 @@ const HostOverview: FunctionComponent<
                       {displayName}
                     </h1>
                     <span
+                      data-testid="host-hero-connection"
+                      data-starting={isStarting ? "true" : undefined}
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
                     >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
-                      />
+                      {/*
+                       * Starting pulses, as the Hosts list's pill does
+                       * (Pill's isPulsing); still for anyone who asked
+                       * for less motion.
+                       */}
+                      <span className="relative flex h-1.5 w-1.5">
+                        {isStarting ? (
+                          <span
+                            className={`absolute inline-flex h-full w-full rounded-full opacity-75 motion-safe:animate-ping ${statusDotClass}`}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                        <span
+                          className={`relative inline-flex h-1.5 w-1.5 rounded-full ${statusDotClass}`}
+                        />
+                      </span>
                       {statusLabel}
                     </span>
+                    {showHealth ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span
+                          data-testid="host-hero-health"
+                          data-health={assessment.state}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                          />
+                          {healthLabel}
+                        </span>
+                        <InfoTooltip
+                          label="Host Health"
+                          text={HOST_METRIC_DESCRIPTIONS.hostHealth}
+                        />
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </div>
+                  {/*
+                   * What the host is, in its owner's words: under its
+                   * name, as every resource hero says it. It used to be a
+                   * Description row of the Identification card at the
+                   * page's foot.
+                   */}
+                  <ResourceHeroDescription
+                    text={host.description as string | undefined}
+                  />
                   {hostIdentifier && (
                     <div className="mt-1 truncate font-mono text-sm text-gray-500">
                       {hostIdentifier}
@@ -1305,7 +1530,13 @@ const HostOverview: FunctionComponent<
                           icon={chip.icon}
                           className="h-3 w-3 text-gray-500"
                         />
-                        <span className="font-medium">{chip.label}</span>
+                        {/*
+                         * Each chip reads the way it is written: "64 GiB"
+                         * stays "64 GiB" on a Persian page.
+                         */}
+                        <span className="font-medium">
+                          <bdi>{chip.label}</bdi>
+                        </span>
                       </span>
                     );
                   },
@@ -1350,10 +1581,20 @@ const HostOverview: FunctionComponent<
 
     const cpuSublabel: string | undefined =
       cores !== undefined
-        ? `across ${cores} core${cores === 1 ? "" : "s"}`
+        ? translator.translatePlural(
+            { one: "across {{count}} core", other: "across {{count}} cores" },
+            cores,
+          )
         : undefined;
+    // "of 64 GiB", the size set apart in a Persian sentence.
     const memSublabel: string | undefined =
-      totalMem !== undefined ? `of ${formatMemoryBytes(totalMem)}` : undefined;
+      totalMem !== undefined
+        ? translator.translateTemplate(
+            "of {{total}}",
+            { total: formatMemoryBytes(totalMem) },
+            { setsValuesApart: true },
+          )
+        : undefined;
 
     /*
      * Load average isn't a percent — it's the average number of
@@ -1366,58 +1607,97 @@ const HostOverview: FunctionComponent<
 
     const loadSublabel: string | undefined = (() => {
       if (loadSaturationPct !== null && cores !== undefined) {
-        return `${Math.round(loadSaturationPct)}% of ${cores} core${
-          cores === 1 ? "" : "s"
-        }`;
+        return translator.translatePlural(
+          {
+            one: "{{percent}}% of {{count}} core",
+            other: "{{percent}}% of {{count}} cores",
+          },
+          cores,
+          withSentenceDigits({
+            percent: String(Math.round(loadSaturationPct)),
+          }),
+          { setsValuesApart: true },
+        );
       }
-      if (cores !== undefined) {
-        return `across ${cores} core${cores === 1 ? "" : "s"}`;
-      }
-      return undefined;
+      return cpuSublabel;
     })();
 
+    /*
+     * Each bar is coloured where the Hosts list colours it (HostFacts): a
+     * busy CPU amber, never red - a host at work, its load says when work
+     * queues; memory amber and red where Needs attention lists it.
+     *
+     * Five tiles a row only from xl, as a Proxmox cluster's page lays its
+     * tiles: at 1024 beside the side menu each was some 110px wide and
+     * their titles broke inside the word ("MEMO RY", "PROC ESSES").
+     */
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className={HOST_OVERVIEW_TILES_GRID_CLASS_NAME}>
         <GoldenMetricTile
-          title="CPU"
+          title={tx("CPU")}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.cpuPercent)}
           sublabel={cpuSublabel}
           percent={s.cpuPercent}
+          thresholds={{
+            warn: HOST_CPU_BUSY_PERCENT,
+            danger: Number.POSITIVE_INFINITY,
+          }}
           description={HOST_METRIC_DESCRIPTIONS.cpu}
         />
         <GoldenMetricTile
-          title="Memory"
+          title={tx("Memory")}
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.memoryPercent)}
           sublabel={memSublabel}
           percent={s.memoryPercent}
+          thresholds={{
+            warn: HOST_MEMORY_HIGH_PERCENT,
+            danger: HOST_MEMORY_CRITICAL_PERCENT,
+          }}
           description={HOST_METRIC_DESCRIPTIONS.memory}
         />
+        {/*
+         * The fullest mount, named under its number as the host wrote it
+         * (its slashes where they are on a Persian page); amber and red
+         * where the host's Needs attention starts to list it.
+         */}
         <GoldenMetricTile
-          title="Filesystem"
+          title={tx("Filesystem")}
           icon={IconProp.Cube}
           iconColor="amber"
           value={formatPercent(s.filesystemPercent)}
-          sublabel="largest mount"
+          sublabel={s.filesystemMountpoint || undefined}
+          isSublabelAsWritten={true}
           percent={s.filesystemPercent}
-          thresholds={{ warn: 75, danger: 90 }}
+          thresholds={{
+            warn: HOST_DISK_NEAR_FULL_PERCENT,
+            danger: HOST_DISK_FULL_PERCENT,
+          }}
           description={HOST_METRIC_DESCRIPTIONS.filesystem}
         />
+        {/*
+         * Amber once there is more work than cores, never red: the rules
+         * call a high load one to look at, never critical, and the host's
+         * Needs attention says so in amber.
+         */}
         <GoldenMetricTile
-          title="Load avg (1m)"
+          title={tx("Load avg (1m)")}
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={formatNumber(s.load1m)}
           sublabel={loadSublabel}
           percent={loadSaturationPct}
-          thresholds={{ warn: 70, danger: 100 }}
+          thresholds={{
+            warn: HOST_LOAD_QUEUING_PERCENT,
+            danger: Number.POSITIVE_INFINITY,
+          }}
           description={HOST_METRIC_DESCRIPTIONS.loadAverage}
         />
         <GoldenMetricTile
-          title="Processes"
+          title={tx("Processes")}
           icon={IconProp.List}
           iconColor="slate"
           value={formatInt(runningProcessCount)}
@@ -1426,9 +1706,13 @@ const HostOverview: FunctionComponent<
               return undefined;
             }
             if (totalProcessCount !== null) {
-              return `running · ${totalProcessCount} total`;
+              return translator.translateTemplate(
+                "running · {{total}} total",
+                withSentenceDigits({ total: String(totalProcessCount) }),
+                { setsValuesApart: true },
+              );
             }
-            return "running";
+            return tx("running");
           })()}
           description={HOST_METRIC_DESCRIPTIONS.processes}
         />
@@ -1680,12 +1964,13 @@ const HostOverview: FunctionComponent<
         min: 0,
         max: 100,
         precision: YAxisPrecision.NoDecimals,
+        // Up and Down in the reader's words, as the chart's (i) says them.
         formatter: (value: number): string => {
           if (value >= 100) {
-            return "Up";
+            return tx("Up");
           }
           if (value <= 0) {
-            return "Down";
+            return tx("Down");
           }
           return `${Math.round(value)}%`;
         },
@@ -1733,8 +2018,13 @@ const HostOverview: FunctionComponent<
                 {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
+                {/*
+                 * What the chart shows in plain words, as the Docker and
+                 * Podman hosts' pages say it: "Per-bucket presence of host
+                 * heartbeats" was the code's own name for it.
+                 */}
                 {translator.translateText(
-                  "Per-bucket presence of host heartbeats over the selected time range",
+                  "Whether metrics arrived from this host, over the selected time range",
                 )}
               </p>
             </div>
@@ -1827,14 +2117,9 @@ const HostOverview: FunctionComponent<
   const renderOsTypeChip: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
-    const osType: string | undefined =
-      (item.osType as string | undefined) ?? undefined;
-    if (!osType) {
-      return <span className="text-sm text-gray-400">—</span>;
-    }
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200 capitalize">
-        {osType}
+        {String(item.osType)}
       </span>
     );
   };
@@ -1842,14 +2127,9 @@ const HostOverview: FunctionComponent<
   const renderArchChip: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
-    const arch: string | undefined =
-      (item.hostArch as string | undefined) ?? undefined;
-    if (!arch) {
-      return <span className="text-sm text-gray-400">—</span>;
-    }
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 text-xs font-mono ring-1 ring-inset ring-gray-200">
-        {arch}
+        {String(item.hostArch)}
       </span>
     );
   };
@@ -1894,6 +2174,47 @@ const HostOverview: FunctionComponent<
       ) : (
         <></>
       )}
+      {/*
+       * What on this host needs someone, the most urgent first, before any
+       * number: the host itself ("This host": memory, swap, load), each
+       * filesystem, its collector and each failed systemd unit, by the rules
+       * the Hosts list follows (HostHealth). Nothing to look at draws no
+       * card. A host that is not reporting has the connection card above
+       * instead: what it last reported is no longer the truth, and "Not
+       * reporting" would only say again what that card says.
+       */}
+      {host && isHostReporting(host) ? (
+        <NeedsAttentionCard
+          testId="host-needs-attention"
+          items={getHostOwnAttentionItems({
+            host: host,
+            now: new Date(),
+            collectorName: getHostCollectorConfigLabel(
+              {
+                configName: host.collectorConfig?.name,
+                osType: host.osType,
+              },
+              translator,
+            ),
+            collectorRoute: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+              { modelId: modelId },
+            ),
+            getUnitRoute: (unitName: string): Route => {
+              return RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW] as Route,
+                {
+                  modelId: modelId,
+                  subModelId: encodeUnitNameForUrl(unitName),
+                },
+              );
+            },
+          })}
+          current={HOST_ATTENTION_CURRENT}
+        />
+      ) : (
+        <></>
+      )}
       {renderSummaryCards()}
       <ResourceActivityCards
         modelId={modelId}
@@ -1924,273 +2245,223 @@ const HostOverview: FunctionComponent<
       {renderCharts()}
       <div className="mb-6">{renderCrossLinks()}</div>
       {renderMounts()}
+      {/*
+       * "Will I hear about it when this host is in trouble?": the alerts
+       * OneUptime recommends for a host, which are on for this one, and one
+       * step to turn on the rest - its Recommendations, with exactly those
+       * ticked. After what the host is doing (its numbers, charts and
+       * filesystems), before its Details, as a Proxmox node's page puts its
+       * alerts: ten rows above the charts pushed them a screen down.
+       */}
+      {host?.hostIdentifier ? (
+        <ResourcePartAlertsCard
+          testId="host-alerts"
+          title="Host alerts"
+          description="The alerts OneUptime recommends for a host: which watch this one, and one step to turn on the rest."
+          resourceType={MonitorRecommendationResourceType.Host}
+          templateIds={HOST_ALERT_TEMPLATE_IDS}
+          resourceId={modelId}
+          resourceIdentifier={host.hostIdentifier}
+          getRecommendationsRoute={(
+            recommendationIds: Array<string>,
+          ): Route => {
+            return RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: modelId },
+            ).addQueryParams({
+              [RECOMMENDATION_SELECTION_QUERY_PARAM]:
+                RecommendationFilterUtil.toSelectionQuery(recommendationIds),
+            });
+          }}
+          getMonitorRoute={(monitorId: ObjectID): Route => {
+            return RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_VIEW] as Route,
+              { modelId: monitorId },
+            );
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
-      {host && (
-        <div className="flex flex-col gap-x-6 lg:flex-row lg:items-start">
-          <div className="min-w-0 flex-1">
-            <Card
-              title="Identification"
-              description="How this host is named and classified."
-              // Edited in one place: the Host Details card on its Settings page.
-              buttons={[
-                <EditInSettingsLink
-                  key="edit-in-settings"
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
-                    { modelId: modelId },
-                  )}
-                />,
-              ]}
-            >
-              <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
-                <Detail<Host>
-                  id="host-identification"
-                  item={host}
-                  fields={
-                    [
+      {/*
+       * One Host Details card, as every resource Overview ends with: what
+       * the host reported about itself, and only that
+       * (ResourceRecordDetailsCard), in two columns. Its name, description
+       * and when it was last seen are the hero's, its labels the header's
+       * (a phone's own card under this one).
+       *
+       * It was four cards - Identification, Hardware & Runtime, Operating
+       * System and Network - in one column or two, the first repeating the
+       * hero's name and description. Edited on the host's Settings page, in
+       * the card of the same title. Drawn once the host is read, as those
+       * were: a host that is not found has nothing to detail.
+       */}
+      {host ? (
+        <ResourceRecordDetailsCard<Host>
+          modelType={Host}
+          modelId={modelId}
+          id="host-details"
+          title="Host Details"
+          refresher={detailsRefresher}
+          settingsRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
+            { modelId: modelId },
+          )}
+          facts={[
+            {
+              field: {
+                hostIdentifier: true,
+              },
+              title: "Host Name (host.name)",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                hostType: true,
+              },
+              title: "Host Type",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                osType: true,
+              },
+              title: "OS Type",
+              fieldType: FieldType.Element,
+              getElement: renderOsTypeChip,
+            },
+            {
+              field: {
+                osVersion: true,
+              },
+              title: "OS Version",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return <OsVersionDisplay text={String(item.osVersion)} />;
+              },
+            },
+            {
+              field: {
+                hostArch: true,
+              },
+              title: "Architecture",
+              fieldType: FieldType.Element,
+              getElement: renderArchChip,
+            },
+            {
+              field: {
+                cpuCores: true,
+              },
+              title: "CPU Cores",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return (
+                  <span>
+                    {translator.translatePlural(
                       {
-                        key: "name",
-                        title: "Display Name",
-                        fieldType: FieldType.Text,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.name);
-                        },
+                        one: "{{count}} core",
+                        other: "{{count}} cores",
                       },
-                      {
-                        key: "hostIdentifier",
-                        title: "Host Name (host.name)",
-                        fieldType: FieldType.Text,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.hostIdentifier);
-                        },
-                      },
-                      {
-                        key: "description",
-                        title: "Description",
-                        fieldType: FieldType.Text,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.description);
-                        },
-                      },
-                      {
-                        key: "hostType",
-                        title: "Host Type",
-                        fieldType: FieldType.Text,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.hostType);
-                        },
-                      },
-                      {
-                        key: "agentVersion",
-                        title: "Agent Version",
-                        fieldType: FieldType.Element,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.agentVersion);
-                        },
-                        getElement: (item: Host): ReactElement => {
-                          /*
-                           * A sign beside a collector older than the
-                           * release the host guide pins opens how to
-                           * upgrade it: the config saved again from the
-                           * setup guide (it holds the ingestion key), then
-                           * the new release, for the install methods this
-                           * host's OS can have.
-                           */
-                          return (
-                            <AgentVersion
-                              kind={AgentKind.HostCollector}
-                              version={item.agentVersion}
-                              setupGuideRoute={RouteUtil.populateRouteParams(
-                                RouteMap[
-                                  PageMap.HOST_VIEW_DOCUMENTATION
-                                ] as Route,
-                                { modelId: modelId },
-                              )}
-                              upgradeGuideContext={{
-                                hostOsType: item.osType,
-                                isHostCollectorManaged: Boolean(
-                                  item.collectorInstanceUid,
-                                ),
-                              }}
-                            />
-                          );
-                        },
-                      },
-                    ] as Array<DetailField<Host>>
-                  }
-                />
-              </div>
-            </Card>
-
-            <Card
-              title="Hardware & Runtime"
-              description="CPU, memory, processes, and container runtime."
-            >
-              <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
-                <Detail<Host>
-                  id="host-hardware"
-                  item={host}
-                  showDetailsInNumberOfColumns={2}
-                  fields={
-                    [
-                      {
-                        key: "cpuCores",
-                        title: "CPU Cores",
-                        fieldType: FieldType.Element,
-                        getElement: (item: Host): ReactElement => {
-                          const cores: number | undefined =
-                            (item.cpuCores as number | undefined) ?? undefined;
-                          if (cores === undefined || cores === null) {
-                            return (
-                              <span className="text-sm text-gray-400">—</span>
-                            );
-                          }
-                          return (
-                            <span className="text-sm text-gray-900">
-                              {translator.translatePlural(
-                                {
-                                  one: "{{count}} core",
-                                  other: "{{count}} cores",
-                                },
-                                cores,
-                              )}
-                            </span>
-                          );
-                        },
-                        showIf: (item: Host): boolean => {
-                          return (
-                            item.cpuCores !== undefined &&
-                            item.cpuCores !== null
-                          );
-                        },
-                      },
-                      {
-                        key: "totalMemoryBytes",
-                        title: "Total Memory",
-                        fieldType: FieldType.Element,
-                        getElement: (item: Host): ReactElement => {
-                          const bytes: number | undefined =
-                            (item.totalMemoryBytes as number | undefined) ??
-                            undefined;
-                          return (
-                            <span className="text-sm text-gray-900">
-                              {formatMemoryBytes(bytes)}
-                            </span>
-                          );
-                        },
-                        showIf: (item: Host): boolean => {
-                          return (
-                            item.totalMemoryBytes !== undefined &&
-                            item.totalMemoryBytes !== null
-                          );
-                        },
-                      },
-                      {
-                        key: "processCount",
-                        title: "Process Count (cached)",
-                        description:
-                          HOST_METRIC_DESCRIPTIONS.processCountCached,
-                        fieldType: FieldType.Number,
-                        showIf: (item: Host): boolean => {
-                          return (
-                            item.processCount !== undefined &&
-                            item.processCount !== null
-                          );
-                        },
-                      },
-                      {
-                        key: "containerRuntime",
-                        title: "Container Runtime",
-                        fieldType: FieldType.Text,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.containerRuntime);
-                        },
-                      },
-                    ] as Array<DetailField<Host>>
-                  }
-                />
-              </div>
-            </Card>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <Card
-              title="Operating System"
-              description="Operating system details reported by the agent."
-            >
-              <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
-                <Detail<Host>
-                  id="host-os"
-                  item={host}
-                  fields={
-                    [
-                      {
-                        key: "osType",
-                        title: "OS Type",
-                        fieldType: FieldType.Element,
-                        getElement: renderOsTypeChip,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.osType);
-                        },
-                      },
-                      {
-                        key: "osVersion",
-                        title: "OS Version",
-                        fieldType: FieldType.Element,
-                        getElement: (item: Host): ReactElement => {
-                          const osVersion: string | undefined =
-                            (item.osVersion as string | undefined) ?? undefined;
-                          if (!osVersion) {
-                            return (
-                              <span className="text-sm text-gray-400">—</span>
-                            );
-                          }
-                          return <OsVersionDisplay text={osVersion} />;
-                        },
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.osVersion);
-                        },
-                      },
-                      {
-                        key: "hostArch",
-                        title: "Architecture",
-                        fieldType: FieldType.Element,
-                        getElement: renderArchChip,
-                        showIf: (item: Host): boolean => {
-                          return Boolean(item.hostArch);
-                        },
-                      },
-                    ] as Array<DetailField<Host>>
-                  }
-                />
-              </div>
-            </Card>
-
-            {host.hostIpAddresses ? (
-              <Card
-                title="Network"
-                description="IP addresses observed on this host."
-              >
-                <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
-                  <Detail<Host>
-                    id="host-network"
-                    item={host}
-                    fields={
-                      [
-                        {
-                          key: "hostIpAddresses",
-                          title: "IP Addresses",
-                          fieldType: FieldType.Element,
-                          getElement: renderIpAddresses,
-                        },
-                      ] as Array<DetailField<Host>>
-                    }
+                      Number(item.cpuCores),
+                    )}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                totalMemoryBytes: true,
+              },
+              title: "Total Memory",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return (
+                  <span>
+                    {formatMemoryBytes(Number(item.totalMemoryBytes))}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                containerRuntime: true,
+              },
+              title: "Container Runtime",
+              fieldType: FieldType.Text,
+            },
+            /*
+             * When it last started, from the uptime its collector reports:
+             * the hero's "Up 12d 4h" chip, as a date to look up.
+             */
+            {
+              field: {
+                bootedAt: true,
+              },
+              title: "Booted",
+              description: HOST_METRIC_DESCRIPTIONS.booted,
+              fieldType: FieldType.DateTime,
+            },
+            {
+              field: {
+                processCount: true,
+              },
+              title: "Process Count (cached)",
+              description: HOST_METRIC_DESCRIPTIONS.processCountCached,
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                agentVersion: true,
+              },
+              title: "Agent Version",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                /*
+                 * A sign beside a collector older than the release the host
+                 * guide pins opens how to upgrade it: the config saved again
+                 * from the setup guide (it holds the ingestion key), then the
+                 * new release, for the install methods this host's OS can
+                 * have.
+                 */
+                return (
+                  <AgentVersion
+                    kind={AgentKind.HostCollector}
+                    version={item.agentVersion}
+                    setupGuideRoute={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+                      { modelId: modelId },
+                    )}
+                    upgradeGuideContext={{
+                      hostOsType: item.osType,
+                      isHostCollectorManaged: Boolean(
+                        item.collectorInstanceUid,
+                      ),
+                    }}
                   />
-                </div>
-              </Card>
-            ) : null}
-          </div>
-        </div>
+                );
+              },
+            },
+            /*
+             * A row of its own: a host can report a dozen addresses, IPv6
+             * among them.
+             */
+            {
+              field: {
+                hostIpAddresses: true,
+              },
+              title: "IP Addresses",
+              fieldType: FieldType.Element,
+              colSpan: 2,
+              getElement: renderIpAddresses,
+            },
+          ]}
+          selectMoreFields={{
+            collectorInstanceUid: true,
+          }}
+        />
+      ) : (
+        <></>
       )}
 
       {/*

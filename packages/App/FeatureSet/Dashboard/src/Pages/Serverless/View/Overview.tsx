@@ -30,6 +30,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
   ResourceOverviewTile,
@@ -47,6 +48,8 @@ import {
   SpanMetrics,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import { SERVERLESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServerlessMetricDescriptions";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -433,10 +436,23 @@ const ServerlessFunctionOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         recordId={modelId.toString()}
         settingsRoute={populate(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS)}
         labels={fn.labels}
       />
+
+      {/*
+       * What Security Events read from its logs this week, for whoever
+       * may read it (Components/SecurityConnections).
+       */}
+      <div className="mt-6">
+        <ResourceSecurityCard
+          kind={SecurityConnectionKind.ServerlessFunction}
+          modelId={modelId}
+          refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+        />
+      </div>
     </TimeRangeZoomScope>
   );
 };

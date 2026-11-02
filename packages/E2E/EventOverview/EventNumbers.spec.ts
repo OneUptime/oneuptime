@@ -41,15 +41,6 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/event-overview-ui",
 );
 
-// The font the dashboard ships (views/index.ejs); the fixture does not load it.
-const INTER_FONT_FILE: string = path.resolve(
-  __dirname,
-  "../../Common/Server/Static/Vendor/fonts/InterVariable.woff2",
-);
-
-const PRODUCTION_FONT_CSS: string =
-  '@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dashboard/assets/fonts/InterVariable.woff2) format("woff2")} *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}';
-
 // The heading's line: text-xl leading-7.
 const HEADING_LINE_HEIGHT: number = 28;
 
@@ -193,14 +184,6 @@ test.beforeEach(async ({ page }: { page: Page }) => {
     await route.abort();
   });
 
-  // The dashboard's own font, so the heading is measured as it is drawn.
-  await page.route(
-    "**/dashboard/assets/fonts/InterVariable.woff2",
-    async (route: PlaywrightRoute) => {
-      await route.fulfill({ path: INTER_FONT_FILE });
-    },
-  );
-
   await page.clock.setFixedTime(NOW);
 });
 
@@ -264,7 +247,10 @@ async function open(
   await expect(page.getByTestId("breadcrumb-record-name")).toBeVisible({
     timeout: 30000,
   });
-  await page.addStyleTag({ content: PRODUCTION_FONT_CSS });
+  /*
+   * The dashboard's own font, which the fixture serves as views/index.ejs
+   * declares it: the heading is measured once it has loaded, as it is drawn.
+   */
   expect(
     await page.evaluate(async (): Promise<number> => {
       return (await document.fonts.load("600 20px Inter")).length;

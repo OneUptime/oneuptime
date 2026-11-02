@@ -3,13 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Label from "Common/Models/DatabaseModels/Label";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
@@ -778,18 +776,6 @@ const CephClusterOverview: FunctionComponent<
     RouteMap[PageMap.CEPH_CLUSTER_VIEW_OSDS] as Route,
     { modelId: modelId },
   );
-  const poolsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CEPH_CLUSTER_VIEW_POOLS] as Route,
-    { modelId: modelId },
-  );
-  const daemonsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CEPH_CLUSTER_VIEW_DAEMONS] as Route,
-    { modelId: modelId },
-  );
-  const metricsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CEPH_CLUSTER_VIEW_METRICS] as Route,
-    { modelId: modelId },
-  );
 
   const renderHealthPill: (health: HealthState) => ReactElement = (
     health: HealthState,
@@ -974,6 +960,14 @@ const CephClusterOverview: FunctionComponent<
                       />
                     </span>
                   </div>
+                  {/*
+                   * What the cluster is, in its owner's words: under its
+                   * name, as every resource hero says it. It used to be a
+                   * Description row of the Details card at the page's foot.
+                   */}
+                  <ResourceHeroDescription
+                    text={cluster.description as string | undefined}
+                  />
                   {cluster.fsid && (
                     <div className="mt-1 truncate font-mono text-sm text-gray-500">
                       {String(cluster.fsid)}
@@ -1563,70 +1557,6 @@ const CephClusterOverview: FunctionComponent<
     );
   };
 
-  const renderQuickLinks: () => ReactElement = (): ReactElement => {
-    return (
-      <Card
-        title="Quick Links"
-        description="Jump to key views for this Ceph cluster."
-      >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Link
-            to={osdsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("OSDs")}
-            </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateText(
-                "Object storage daemons with up / in state.",
-              )}
-            </div>
-          </Link>
-          <Link
-            to={poolsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Pools")}
-            </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateText(
-                "Storage pools with stored bytes, capacity, and IOPS.",
-              )}
-            </div>
-          </Link>
-          <Link
-            to={daemonsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Daemons")}
-            </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateText(
-                "Mon / mgr / mds / rgw daemons with quorum status.",
-              )}
-            </div>
-          </Link>
-          <Link
-            to={metricsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Metrics")}
-            </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateText(
-                "Explore every metric this cluster reports.",
-              )}
-            </div>
-          </Link>
-        </div>
-      </Card>
-    );
-  };
-
   if (isInitialLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -1674,123 +1604,54 @@ const CephClusterOverview: FunctionComponent<
       {renderPgDistribution()}
       {renderGoldenCharts()}
       {renderTopPools()}
-      <div className="mb-6">{renderQuickLinks()}</div>
-      <CardModelDetail<CephCluster>
-        name="Ceph Cluster Details"
+      {/*
+       * What the cluster reported about itself, and only that
+       * (ResourceRecordDetailsCard): its name, description and when it was
+       * last seen are the hero's, its labels the header's (a phone's own
+       * card under this one). Edited on its Settings page, in the card of
+       * the same title.
+       */}
+      <ResourceRecordDetailsCard<CephCluster>
+        modelType={CephCluster}
+        modelId={modelId}
+        id="ceph-cluster-details"
+        title="Ceph Cluster Details"
         refresher={detailsRefresher}
-        cardProps={{
-          title: "Ceph Cluster Details",
-          // Edited in one place: the same card on the cluster's Settings page.
-          buttons: [
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CEPH_CLUSTER_VIEW_SETTINGS] as Route,
-                { modelId: modelId },
-              )}
-            />,
-          ],
-        }}
-        modelDetailProps={{
-          modelType: CephCluster,
-          id: "ceph-cluster-details",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-              showIf: (item: CephCluster): boolean => {
-                return Boolean(item.name);
-              },
+        settingsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.CEPH_CLUSTER_VIEW_SETTINGS] as Route,
+          { modelId: modelId },
+        )}
+        facts={[
+          {
+            field: {
+              fsid: true,
             },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-              showIf: (item: CephCluster): boolean => {
-                return Boolean(item.description);
-              },
+            title: "Cluster FSID",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              cephVersion: true,
             },
-            {
-              field: {
-                fsid: true,
-              },
-              title: "Cluster fsid",
-              fieldType: FieldType.Text,
-              showIf: (item: CephCluster): boolean => {
-                return Boolean(item.fsid);
-              },
+            title: "Ceph Version",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              agentVersion: true,
             },
-            /*
-             * No "Collector Status" row: the hero's pill says whether the
-             * collector is connected, in words; the row repeated it as the
-             * stored lowercase value ("connected").
-             */
-            {
-              field: {
-                lastSeenAt: true,
-              },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
-              showIf: (item: CephCluster): boolean => {
-                return Boolean(item.lastSeenAt);
-              },
+            title: "Agent Version",
+            fieldType: FieldType.Element,
+            getElement: (item: CephCluster): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.CephAgent}
+                  version={item.agentVersion}
+                />
+              );
             },
-            {
-              field: {
-                cephVersion: true,
-              },
-              title: "Ceph Version",
-              fieldType: FieldType.Text,
-              showIf: (item: CephCluster): boolean => {
-                return Boolean(item.cephVersion);
-              },
-            },
-            {
-              field: {
-                agentVersion: true,
-              },
-              title: "Agent Version",
-              fieldType: FieldType.Element,
-              showIf: (item: CephCluster): boolean => {
-                return Boolean(item.agentVersion);
-              },
-              getElement: (item: CephCluster): ReactElement => {
-                return (
-                  <AgentVersion
-                    kind={AgentKind.CephAgent}
-                    version={item.agentVersion}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: CephCluster): ReactElement => {
-                return (
-                  <LabelsElement labels={item["labels"] as Array<Label>} />
-                );
-              },
-              showIf: (item: CephCluster): boolean => {
-                const labels: Array<Label> | undefined =
-                  (item.labels as Array<Label> | undefined) ?? undefined;
-                return Array.isArray(labels) && labels.length > 0;
-              },
-            },
-          ],
-        }}
+          },
+        ]}
       />
 
       {/*

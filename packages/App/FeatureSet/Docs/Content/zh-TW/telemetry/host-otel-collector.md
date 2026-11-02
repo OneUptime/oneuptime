@@ -31,7 +31,7 @@ flowchart TB
 
 | 你在主機上看到的內容 | 來源 |
 | --- | --- |
-| **概覽** 和 **指標** | `hostmetrics` 接收器：CPU、記憶體、磁碟、檔案系統、網路、負載、分頁。 |
+| **概覽** 和 **指標** | `hostmetrics` 接收器：CPU、記憶體、磁碟、檔案系統、網路、負載、分頁、運行時間。 |
 | **處理程序** | `hostmetrics` 的 `process` 抓取器：每個處理程序一組序列。 |
 | **日誌** | `filelog`、`journald` 和 `windowseventlog` 接收器。 |
 | **Systemd 單元**（Linux） | `systemd` 接收器。 |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

@@ -56,6 +56,8 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 
 // The Connected tab's read: what the event names in the rest of OneUptime.
 const getConnectionsMock: MockFunction = getJestMockFunction();
+// ...and where it appears in the logs and traces.
+const getTelemetryMentionsMock: MockFunction = getJestMockFunction();
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi",
@@ -65,6 +67,9 @@ jest.mock(
       default: {
         getConnections: (...args: Array<unknown>) => {
           return getConnectionsMock(...args);
+        },
+        getTelemetryMentions: (...args: Array<unknown>) => {
+          return getTelemetryMentionsMock(...args);
         },
       },
     };
@@ -451,6 +456,34 @@ describe("what the event names in the rest of OneUptime", () => {
 
   test("is read when Connected is opened: its entities, its time and the record its log was sent under", async () => {
     getConnectionsMock.mockReset();
+    getTelemetryMentionsMock.mockReset();
+    getTelemetryMentionsMock.mockResolvedValue({
+      windowStart: "2026-09-17T09:30:00.000Z",
+      windowEnd: "2026-09-17T10:30:00.000Z",
+      values: [
+        {
+          entityType: SecurityEntityType.IpAddress,
+          entityValue: "10.0.0.4",
+          logs: {
+            count: 3,
+            sources: [],
+            sourceCount: 1,
+            places: [{ key: "", count: 3 }],
+            lastSeen: null,
+          },
+          traces: {
+            count: 0,
+            sources: [],
+            sourceCount: 0,
+            places: [],
+            lastSeen: null,
+          },
+        },
+      ],
+      hasMoreValues: false,
+      unreadableSignals: [],
+      failedSignals: [],
+    } as never);
     getConnectionsMock.mockResolvedValue({
       windowStart: "2026-09-17T09:30:00.000Z",
       windowEnd: "2026-09-17T10:30:00.000Z",
@@ -493,6 +526,7 @@ describe("what the event names in the rest of OneUptime", () => {
     );
 
     expect(getConnectionsMock).not.toHaveBeenCalled();
+    expect(getTelemetryMentionsMock).not.toHaveBeenCalled();
 
     fireEvent.click(tab("Connected"));
 
@@ -518,6 +552,17 @@ describe("what the event names in the rest of OneUptime", () => {
         SECURITY_CONNECTIONS_TEST_IDS.recordReason,
       ),
     ).toHaveTextContent("Read from its logs.");
+
+    // Where its values appear in the logs and traces of the same hour.
+    expect(getTelemetryMentionsMock).toHaveBeenCalledTimes(1);
+    expect(getTelemetryMentionsMock.mock.calls[0]![0]).toEqual(
+      getConnectionsMock.mock.calls[0]![0],
+    );
+    expect(
+      await within(connected).findByTestId(
+        SECURITY_CONNECTIONS_TEST_IDS.telemetryLogs,
+      ),
+    ).toHaveTextContent("In 3 log lines");
   });
 });
 
