@@ -24,7 +24,8 @@ import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
  * in a span of its own beside shorter words (Common's HyphenatedWords),
  * so Safari, which reads no hyphenate-limit-chars, keeps to it too. jsdom
  * lays nothing out, so the jest suite can only pin the classes: here every
- * word is measured where it is drawn, in Chromium, Firefox and WebKit.
+ * word is measured where it is drawn, in Chromium and Firefox, and the
+ * tests of what may be hyphenated run in WebKit too, Safari's engine.
  */
 
 const PORT: string = process.env["RULES_MENU_SECTION_FIXTURE_PORT"] || "4385";
@@ -283,14 +284,15 @@ test.describe("where a side menu's words break", () => {
  * now, in a span of its own (Common's HyphenatedWords).
  *
  * Playwright's WebKit on Linux has no hyphenation dictionaries, so where
- * Safari breaks words cannot be measured in it (and the browser jobs'
- * image installs Chromium and Firefox only: Tests/Ops'
- * ContainerImageHardening). Firefox hyphenates as Safari does, so here
- * Firefox is made to read no hyphenate-limit-chars either, and the menu is
- * drawn at every width from 176 to 320 pixels: no word that fits a line of
- * its own breaks at any of them. What Safari itself is told - hyphens on
- * the long words only, and -webkit-hyphenate-limit-before and -after - is
- * pinned by the jest suites (SideMenuDrawnLanguage, HyphenatedWords).
+ * Safari breaks words cannot be measured in it. Firefox hyphenates as
+ * Safari does, so here Firefox is made to read no hyphenate-limit-chars
+ * either, and the menu is drawn at every width from 176 to 320 pixels: no
+ * word that fits a line of its own breaks at any of them. What Safari
+ * itself is told - hyphens on the long words only, five letters either
+ * side by -webkit-hyphenate-limit-before and -after - is read back in
+ * WebKit (the config's webkit project runs the tests whose names say "may
+ * be hyphenated"), and pinned by the jest suites (SideMenuDrawnLanguage,
+ * HyphenatedWords).
  */
 
 // The menu pages whose German titles hold a long word beside short ones.
@@ -308,7 +310,11 @@ const MIXED_TITLE_PAGES: Array<{ address: string; title: string }> = [
 interface HyphenatedElement {
   text: string;
   hyphens: string;
+  // Chrome's and Firefox's limit; WebKit reads none.
   limitChars: string;
+  // WebKit's own limits, which Chrome and Firefox do not read.
+  webkitLimitBefore: string;
+  webkitLimitAfter: string;
 }
 
 // Every element in the menu that may be hyphenated, with how it is limited.
@@ -335,6 +341,12 @@ async function hyphenatedElements(
           text: element.textContent || "",
           hyphens: style.hyphens,
           limitChars: style.getPropertyValue("hyphenate-limit-chars"),
+          webkitLimitBefore: style.getPropertyValue(
+            "-webkit-hyphenate-limit-before",
+          ),
+          webkitLimitAfter: style.getPropertyValue(
+            "-webkit-hyphenate-limit-after",
+          ),
         };
       });
   });
@@ -363,8 +375,10 @@ test.describe("only long words are hyphenated, in every engine", () => {
   for (const { address, title } of MIXED_TITLE_PAGES) {
     test(`de ${title}: the long word alone may be hyphenated, five letters either side`, async ({
       page,
+      browserName,
     }: {
       page: Page;
+      browserName: string;
     }) => {
       await open(page, address);
       const menu: Locator = desktopMenu(page);
@@ -391,7 +405,21 @@ test.describe("only long words are hyphenated, in every engine", () => {
         }).toEqual({ text: element.text, shortWords: [] });
 
         expect(element.hyphens).toBe("auto");
-        expect(element.limitChars).toMatch(LIMIT_CHARS);
+
+        /*
+         * Five letters either side of a hyphen, in each engine's own words:
+         * Safari's engine reads no hyphenate-limit-chars, so the long word
+         * says it with -webkit-hyphenate-limit-before and -after as well.
+         */
+        if (browserName === "webkit") {
+          expect({
+            text: element.text,
+            before: element.webkitLimitBefore,
+            after: element.webkitLimitAfter,
+          }).toEqual({ text: element.text, before: "5", after: "5" });
+        } else {
+          expect(element.limitChars).toMatch(LIMIT_CHARS);
+        }
       }
     });
   }
