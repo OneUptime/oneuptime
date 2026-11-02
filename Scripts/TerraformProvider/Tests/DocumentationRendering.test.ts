@@ -312,6 +312,8 @@ describe("renamed resources", () => {
     expect(indexDoc).toContain(
       "| `oneuptime_io_t_fleet` | [`oneuptime_iot_fleet`](./resources/iot_fleet) |",
     );
+    // Every old name here is still an alias: none is another resource's.
+    expect(indexDoc).not.toContain("another resource's now");
   });
 
   test("renamed data sources say so too", () => {

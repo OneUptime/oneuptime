@@ -2,15 +2,22 @@ import { TerraformProviderConfig, OpenAPISpec } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { GoCodeGenerator } from "./GoCodeGenerator";
+import {
+  API_KEY_ATTRIBUTE_DESCRIPTION,
+  PROVIDER_DESCRIPTION,
+  URL_ATTRIBUTE_DESCRIPTION,
+} from "./ProviderWords";
 
 export class ProviderGenerator {
   private config: TerraformProviderConfig;
-  private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
 
-  public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
+  /*
+   * The spec is no longer read here: the provider describes itself in its
+   * own words (ProviderWords), not with the API document's.
+   */
+  public constructor(config: TerraformProviderConfig, _spec: OpenAPISpec) {
     this.config = config;
-    this.spec = spec;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
@@ -59,15 +66,15 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Metadata
 
 func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
     resp.Schema = schema.Schema{
-        MarkdownDescription: "${GoCodeGenerator.escapeString(this.spec.info.description || `Terraform provider for ${this.config.providerName}`)}",
+        MarkdownDescription: "${GoCodeGenerator.escapeString(PROVIDER_DESCRIPTION)}",
 
         Attributes: map[string]schema.Attribute{
             "oneuptime_url": schema.StringAttribute{
-                MarkdownDescription: "The ${this.config.providerName} URL (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the URL.",
+                MarkdownDescription: "${GoCodeGenerator.escapeString(URL_ATTRIBUTE_DESCRIPTION)}",
                 Optional:            true,
             },
             "api_key": schema.StringAttribute{
-                MarkdownDescription: "Project-scoped API key for authentication. May also be set via the ${StringUtils.toConstantCase(this.config.providerName)}_API_KEY environment variable.",
+                MarkdownDescription: "${GoCodeGenerator.escapeString(API_KEY_ATTRIBUTE_DESCRIPTION)}",
                 Optional:            true,
                 Sensitive:           true,
             },

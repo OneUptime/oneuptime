@@ -534,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -606,26 +606,23 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 
 ## 프로브
 
-자체 프로브는 여러분의 네트워크에서 확인을 실행합니다. 그 키는 프로브가 로그인할 때 쓰는 시크릿이므로 변수로 전달하세요.
+자체 프로브는 여러분의 네트워크에서 확인을 실행합니다. 이름을 지정하면 OneUptime이 프로브가 로그인할 때 쓰는 시크릿인 `key`를 생성합니다. Terraform은 키를 플랜과 로그에 표시하지 않으며, 키를 내보내는 output에는 sensitive 표시를 해야 합니다.
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-`PROBE_ID`를 프로브의 `id`로, `PROBE_KEY`를 키로 설정해 프로브를 실행하세요. [사용자 지정 프로브](/docs/probe/custom-probe)를 참조하세요. 엔드투엔드 테스트 `23-probe-crud`가 프로브를 적용합니다.
+`PROBE_ID`를 프로브의 `id`로, `PROBE_KEY`를 키로 설정해 프로브를 실행하세요. 키는 `terraform output -raw eu_west_probe_key`가 출력합니다. [사용자 지정 프로브](/docs/probe/custom-probe)를 참조하세요. 키를 직접 정하려면 sensitive 변수에서 `key`를 설정하세요. 엔드투엔드 테스트 `23-probe-crud`와 `61-name-only-and-choices`가 프로브를 적용합니다.
 
 ## 다음 단계
 

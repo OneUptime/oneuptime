@@ -206,6 +206,7 @@ export default class SecurityWatchlist extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEntityType),
     canReadOnRelationQuery: true,
     title: "Holds",
     description:
@@ -227,6 +228,7 @@ export default class SecurityWatchlist extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityWatchlistSource),
     canReadOnRelationQuery: true,
     title: "Source",
     description:

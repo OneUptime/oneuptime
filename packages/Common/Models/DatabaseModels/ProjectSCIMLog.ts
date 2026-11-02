@@ -202,6 +202,7 @@ export default class ProjectSCIMLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SCIMLogStatus),
     title: "Status",
     description: "Status of the SCIM operation",
     canReadOnRelationQuery: true,

@@ -234,7 +234,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the scheduled maintenance template",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -314,8 +314,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Scheduled Maintenance Template ID",
-    description:
-      "ID of your OneUptime Scheduled Maintenance Template in which this object belongs",
+    description: "ID of the scheduled maintenance template the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

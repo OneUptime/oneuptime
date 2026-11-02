@@ -72,7 +72,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Team Member",
   pluralName: "Team Members",
   icon: IconProp.User,
-  tableDescription: "This model connects users and teams",
+  tableDescription: "Add users to your teams.",
 })
 export default class TeamMember extends BaseModel {
   @ColumnAccessControl({

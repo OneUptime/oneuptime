@@ -230,7 +230,7 @@ export default class NetworkDeviceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the network device",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,8 +309,7 @@ export default class NetworkDeviceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Network Device ID",
-    description:
-      "ID of your OneUptime Network Device in which this object belongs",
+    description: "ID of the network device the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

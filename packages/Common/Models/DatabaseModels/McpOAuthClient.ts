@@ -125,6 +125,7 @@ export default class McpOAuthClient extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(McpOAuthClientAuthMethod),
     required: true,
     title: "Token Endpoint Auth Method",
     description:

@@ -247,10 +247,11 @@ export default class EmailLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailStatus),
     title: "Status of the SMS",
     description: "Status of the SMS sent",
     canReadOnRelationQuery: false,
-    example: "Sent",
+    example: "Success",
   })
   @Column({
     nullable: false,

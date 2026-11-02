@@ -431,7 +431,7 @@
     {
       "id": "labels",
       "title": "Labels",
-      "description": "Relation to Labels Array where this object is categorized in.",
+      "description": "Labels to group and filter by.",
       "type": "Entity Array",
       "isRelation": true,
       "required": false,

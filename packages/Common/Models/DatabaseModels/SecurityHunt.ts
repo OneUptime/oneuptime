@@ -271,6 +271,7 @@ export default class SecurityHunt extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TimeRange),
     canReadOnRelationQuery: true,
     title: "Time Range",
     description:
@@ -291,6 +292,7 @@ export default class SecurityHunt extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityHuntSchedule),
     canReadOnRelationQuery: true,
     title: "Schedule",
     description:

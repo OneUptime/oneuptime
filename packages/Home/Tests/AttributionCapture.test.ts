@@ -906,6 +906,58 @@ describe("attribution capture and consent", () => {
       );
     });
 
+    /*
+     * Google Ads adds gad_source to its ad clicks even with auto-tagging off,
+     * and then, with no UTMs on the ad, it is all the visit carries.
+     */
+    test("counts a Google Ads parameter with no click id and no UTMs as a new touch", () => {
+      const harness: Harness = loadHarness(html, {
+        url: "https://oneuptime.com/?gad_source=1",
+        storedConsent: "true",
+      });
+
+      expect(harness.storage.store.get("gadSource")).toBe("1");
+      expect(harness.storage.store.get("utmUrl")).toBe(
+        "https://oneuptime.com/?gad_source=1",
+      );
+    });
+
+    /*
+     * Google appends its own parameters after the ad's, so on a long landing
+     * URL they are the part the 500-character bound cuts off.
+     */
+    test("keeps the campaign Google Ads names when the landing URL is cut", () => {
+      const harness: Harness = loadHarness(html, {
+        url:
+          `https://oneuptime.com/compare/pagerduty?utm_campaign=${"c".repeat(480)}` +
+          "&gad_source=1&gad_campaignid=23145678901&gclid=abc123",
+        storedConsent: "true",
+      });
+
+      expect(harness.storage.store.get("utmUrl")).toHaveLength(500);
+      expect(harness.storage.store.get("utmUrl")).not.toContain("gad_");
+      expect(harness.storage.store.get("gadSource")).toBe("1");
+      expect(harness.storage.store.get("gadCampaignId")).toBe("23145678901");
+      expect(JSON.parse(harness.storage.store.get("clickIds")!)).toEqual({
+        gclid: "abc123",
+      });
+    });
+
+    test("clears Google Ads' parameters when a campaign without them arrives", () => {
+      const harness: Harness = loadHarness(html, {
+        url: "https://oneuptime.com/?utm_source=newsletter",
+        storedConsent: "true",
+        storedAttribution: {
+          gadSource: "1",
+          gadCampaignId: "23145678901",
+        },
+      });
+
+      expect(harness.storage.store.get("utmSource")).toBe("newsletter");
+      expect(harness.storage.store.has("gadSource")).toBe(false);
+      expect(harness.storage.store.has("gadCampaignId")).toBe(false);
+    });
+
     test("stores nothing for a visit carrying no attribution at all", () => {
       const harness: Harness = loadHarness(html, {
         url: "https://oneuptime.com/pricing",

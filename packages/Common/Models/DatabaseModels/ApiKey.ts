@@ -382,6 +382,7 @@ export default class ApiKey extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     title: "API Key",

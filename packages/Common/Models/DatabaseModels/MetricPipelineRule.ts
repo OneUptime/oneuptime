@@ -338,6 +338,7 @@ export default class MetricPipelineRule extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MetricPipelineRuleType),
     canReadOnRelationQuery: true,
     title: "Rule Type",
     description:
@@ -375,6 +376,7 @@ export default class MetricPipelineRule extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FilterCondition),
     title: "Filter Condition",
     description:
       "How to combine filters: 'All' requires every filter to match (AND), 'Any' requires at least one to match (OR).",

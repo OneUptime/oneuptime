@@ -187,6 +187,7 @@ export default class InventoryItem extends DatabaseBaseModel {
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(EntityType),
     required: true,
     canReadOnRelationQuery: true,
     title: "Entity Type",
@@ -246,6 +247,7 @@ export default class InventoryItem extends DatabaseBaseModel {
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(EntitySource),
     required: true,
     title: "Source",
     description:
@@ -409,6 +411,7 @@ export default class InventoryItem extends DatabaseBaseModel {
   @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(InventoryLiveness),
     required: false,
     title: "Status",
     description:

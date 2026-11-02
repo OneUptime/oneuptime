@@ -205,6 +205,7 @@ export default class SecurityPlaybook extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityPlaybookTrigger),
     canReadOnRelationQuery: true,
     title: "Trigger",
     description:
@@ -269,6 +270,7 @@ export default class SecurityPlaybook extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityDetectionSource),
     canReadOnRelationQuery: true,
     title: "Detection Source",
     description:

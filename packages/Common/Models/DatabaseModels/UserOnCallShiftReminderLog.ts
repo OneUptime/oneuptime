@@ -278,6 +278,7 @@ export default class UserOnCallShiftReminderLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(UserOnCallShiftReminderLogKind),
     title: "Kind",
     description: "reminder, catch-up or reassigned",
     example: "reminder",

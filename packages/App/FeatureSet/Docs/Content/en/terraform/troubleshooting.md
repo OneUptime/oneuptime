@@ -30,6 +30,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `has been renamed to` | Rename the resource type, with a `moved` block: see [A renamed resource type](#a-renamed-resource-type) |
 | A monitor made with Terraform never shows its checks | Upgrade OneUptime: see [Monitors made before step IDs](#monitors-made-before-step-ids) |
 | `must contain at least 1 elements` | Leave the attribute out instead of empty: see [Empty values](#empty-values) |
+| `Not an ID` | Refer to the record instead of naming it: see [A name where an ID goes](#a-name-where-an-id-goes) |
 | JSON from the dashboard in a `.tf` file | Write it as HCL: see [JSON from the dashboard](#json-from-the-dashboard) |
 | `no available releases match the given constraints` | Use a version range, not one exact version: see [A version that was never published](#a-version-that-was-never-published) |
 | `x509: certificate signed by unknown authority` | Trust your certificate authority: see [Certificates](#certificates) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Leave the attribute out instead: an attribute that is not there is unset. [Monitor Steps](/docs/terraform/monitor-steps) lists what each part takes.
+
+### A name where an ID goes
+
+An attribute that holds the ID of another record, such as `team_id` or a monitor's `labels`, takes that record's ID: a UUID. A name or a slug there stops the plan:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Refer to the record's resource, as in `team_id = oneuptime_team.sre.id`, or read the record with a [data source](/docs/terraform/complete-guide#read-what-already-exists). Where the attribute names a person, give their email address in the attribute beside it, such as `user_email`.
 
 ### JSON from the dashboard
 

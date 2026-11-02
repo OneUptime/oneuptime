@@ -172,6 +172,7 @@ export default class SecurityEntityCriticality extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEntityType),
     canReadOnRelationQuery: true,
     title: "Type",
     description:
@@ -188,6 +189,7 @@ export default class SecurityEntityCriticality extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEntityCriticalityLevel),
     canReadOnRelationQuery: true,
     title: "Criticality",
     description:

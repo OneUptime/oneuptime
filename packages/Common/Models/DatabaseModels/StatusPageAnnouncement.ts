@@ -672,7 +672,10 @@ export default class StatusPageAnnouncement extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
+    description:
+      "Whether the status page's subscribers were told about the announcement: Pending until they are, then Success or Failed. Set by OneUptime.",
   })
   @Index()
   @Column({
@@ -750,6 +753,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     hideColumnInDocumentation: true,
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status on Announcement Updated",
     description:
       "Status of the notification sent to subscribers when this announcement was last updated. Empty until an update notification is requested.",

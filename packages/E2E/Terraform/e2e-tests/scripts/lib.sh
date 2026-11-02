@@ -205,6 +205,25 @@ assert_equals() {
     return 0
 }
 
+# Assert that the provider keeps an attribute's value out of what Terraform
+# prints - a key, a token, a passphrase: the state marks it sensitive, so a
+# plan, a log or an output shows (sensitive value). Reads the state, not the
+# API.
+# Usage: assert_sensitive "oneuptime_api_key.key" "api_key"
+assert_sensitive() {
+    local address="$1"
+    local attribute="$2"
+    local sensitive
+    sensitive=$(terraform show -json 2>/dev/null | jq -r --arg address "$address" --arg attribute "$attribute" \
+        '.values.root_module.resources[] | select(.address == $address) | .sensitive_values[$attribute] // false')
+    if [ "$sensitive" != "true" ]; then
+        echo "    ✗ FAILED: $address.$attribute is not sensitive (got '$sensitive'): Terraform would print it"
+        return 1
+    fi
+    echo "    ✓ $address.$attribute is sensitive"
+    return 0
+}
+
 # Make an API call to get a resource
 # Usage: api_get_resource "endpoint" "resource_id" "select_fields"
 # Example: api_get_resource "/api/label" "$LABEL_ID" '{"_id": true, "name": true}'
@@ -306,6 +325,7 @@ export -f unwrap_value
 export -f get_output
 export -f assert_not_empty
 export -f assert_equals
+export -f assert_sensitive
 export -f api_get_resource
 export -f verify_resource_exists
 export -f restore_terraformrc

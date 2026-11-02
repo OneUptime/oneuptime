@@ -700,8 +700,7 @@ export default class Service extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -774,6 +773,7 @@ export default class Service extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TechStack),
     canReadOnRelationQuery: true,
     title: "Service Language",
     description: "Language in which this service is written",

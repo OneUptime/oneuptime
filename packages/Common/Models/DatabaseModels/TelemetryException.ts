@@ -258,6 +258,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ServiceType),
     canReadOnRelationQuery: true,
     title: "Service Type",
     description:

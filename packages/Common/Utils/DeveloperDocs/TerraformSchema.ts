@@ -1,3 +1,4 @@
+import { getClientResourceName } from "./ClientResourceNames";
 import { splitCapitalRunsBeforeWords } from "../CapitalRuns";
 import DatabaseBaseModel, {
   DatabaseBaseModelType,
@@ -360,7 +361,10 @@ export function getTerraformTypeName(
   }
 
   const model: DatabaseBaseModel = new modelType();
-  const name: string = model.singularName || model.tableName || "";
+  const name: string = getClientResourceName(
+    model.tableName || "",
+    model.singularName || model.tableName || "",
+  );
 
   return `oneuptime_${toTerraformTypeSnakeCase(name)}`;
 }
@@ -384,7 +388,6 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
       return TerraformValueKind.StringSet;
     case TableColumnType.JSON:
     case TableColumnType.Permission:
-    case TableColumnType.CustomFieldType:
       return TerraformValueKind.Json;
     case TableColumnType.MonitorSteps:
       return TerraformValueKind.MonitorSteps;
@@ -415,6 +418,7 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.Port:
     case TableColumnType.MonitorType:
     case TableColumnType.WorkflowStatus:
+    case TableColumnType.CustomFieldType:
     case TableColumnType.HashedString:
     case TableColumnType.Password:
       return TerraformValueKind.String;
@@ -435,7 +439,8 @@ function getSecretKind(
     return TerraformSecretKind.Hashed;
   }
 
-  if (column.encrypted) {
+  // Encrypted, or marked a secret by its model (ModelSchema.isSecretColumn).
+  if (column.encrypted || column.secret) {
     return TerraformSecretKind.Secret;
   }
 
@@ -533,7 +538,6 @@ function isColumnInWriteSchema(data: {
 const COLUMN_TYPES_WITH_ANY_SCHEMA: ReadonlyArray<TableColumnType> = [
   TableColumnType.JSON,
   TableColumnType.Permission,
-  TableColumnType.CustomFieldType,
   TableColumnType.File,
   TableColumnType.Buffer,
 ];
@@ -680,6 +684,9 @@ export function getTerraformAttributes(
 
     if (column.example !== undefined) {
       descriptor.example = column.example as JSONValue;
+    } else if (column.allowedValues && column.allowedValues[0]) {
+      // A value it takes, when it takes one of a few ("aws").
+      descriptor.example = column.allowedValues[0];
     }
 
     if (column.description) {

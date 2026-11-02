@@ -466,6 +466,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(IncidentEpisodeFeedEventType),
     required: true,
     title: "Incident Episode Feed Event",
     description: "Incident Episode Feed Event Type",

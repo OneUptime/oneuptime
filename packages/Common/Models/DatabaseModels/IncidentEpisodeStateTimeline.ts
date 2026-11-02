@@ -677,6 +677,7 @@ export default class IncidentEpisodeStateTimeline extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status",
     description:
       "Status of notification sent to subscribers about this state change",

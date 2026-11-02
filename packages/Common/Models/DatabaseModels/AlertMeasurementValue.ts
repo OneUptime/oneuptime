@@ -368,6 +368,7 @@ export default class AlertMeasurementValue extends BaseModel {
     required: true,
     computed: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementStatus),
     title: "Status",
     description:
       "The outcome of evaluating this measurement: Recorded, Pending, Not Applicable or Invalid.",

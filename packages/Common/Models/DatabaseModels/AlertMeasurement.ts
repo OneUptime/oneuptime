@@ -321,6 +321,7 @@ export default class AlertMeasurement extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AlertMeasurementAnchorType),
     title: "Start Anchor Type",
     description:
       "Where this measurement starts. One of: Impact Started At, Created At, Timeline Start, State Entered, State Role Entered, First Paged At.",
@@ -358,6 +359,7 @@ export default class AlertMeasurement extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AlertMeasurementAnchorType),
     title: "End Anchor Type",
     description:
       "Where this measurement ends. One of: Impact Started At, Created At, Timeline Start, State Entered, State Role Entered, First Paged At.",
@@ -557,6 +559,7 @@ export default class AlertMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AlertStateRole),
     title: "Start Alert State Role",
     description:
       "The role of the state this measurement starts at - Created, Acknowledged or Resolved. Used when the Start Anchor Type is State Role Entered. Resolving by role keeps the measurement working when a project renames or replaces the state that plays that part.",
@@ -594,6 +597,7 @@ export default class AlertMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AlertStateRole),
     title: "End Alert State Role",
     description:
       "The role of the state this measurement ends at - Created, Acknowledged or Resolved. Used when the End Anchor Type is State Role Entered.",
@@ -631,6 +635,7 @@ export default class AlertMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementOccurrence),
     title: "Start State Occurrence",
     description:
       "Which entry to use when the start state is entered more than once - First or Last. First matches the built-in alert metrics; Last follows a reopened alert to its final pass through that state.",
@@ -671,6 +676,7 @@ export default class AlertMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementOccurrence),
     title: "End State Occurrence",
     description:
       "Which entry to use when the end state is entered more than once - First or Last. First matches the built-in alert metrics; Last follows a reopened alert to its final pass through that state.",
@@ -753,6 +759,7 @@ export default class AlertMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementAggregationType),
     title: "Aggregation Type",
     description:
       "How this measurement's chart sums up many alerts by default - Avg (the default), P50, P90, P95, P99, Max or Min. View Chart in the dashboard opens the chart this way. Sum is deliberately absent: adding durations up across alerts produces a number with no meaning.",

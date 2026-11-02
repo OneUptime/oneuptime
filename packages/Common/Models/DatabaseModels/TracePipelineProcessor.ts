@@ -12,6 +12,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import TracePipelineProcessorType from "../../Types/Trace/TracePipelineProcessorType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import ListOrderColumn from "../../Types/Database/ListOrderColumn";
@@ -277,6 +278,7 @@ export default class TracePipelineProcessor extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TracePipelineProcessorType),
     canReadOnRelationQuery: true,
     title: "Processor Type",
     description:

@@ -61,7 +61,10 @@ export default class AcmeCertificate extends BaseModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.VeryLongText })
+  @TableColumn({
+    secret: true,
+    type: TableColumnType.VeryLongText,
+  })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: false,

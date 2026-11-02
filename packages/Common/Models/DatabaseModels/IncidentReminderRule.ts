@@ -363,6 +363,7 @@ export default class IncidentReminderRule extends RelationOnlyRuleBaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ReminderStopState),
     title: "Stop Reminders When",
     description:
       "Stop sending reminders once the incident reaches this state. Select Acknowledged to stop reminders when the incident is acknowledged, or Resolved to keep reminding until the incident is resolved.",

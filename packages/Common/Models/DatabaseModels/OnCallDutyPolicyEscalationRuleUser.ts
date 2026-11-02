@@ -69,8 +69,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "User's On-Call Duty Escalation Rule",
   pluralName: "User's On-Call Duty Escalation Rules",
   icon: IconProp.Call,
-  tableDescription:
-    "Manage on-call duty escalation rule for the on-call policy.",
+  tableDescription: "Add users to your escalation rules.",
 })
 export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
   @ColumnAccessControl({
@@ -221,8 +220,7 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
-    description:
-      "ID of your On-Call Policy where this escalation rule belongs.",
+    description: "ID of the on-call policy the escalation rule is in",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -302,8 +300,7 @@ export default class OnCallDutyPolicyEscalationRuleUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Escalation Rule ID",
-    description:
-      "ID of your On-Call Policy Escalation Rule where this user belongs.",
+    description: "ID of the escalation rule that pages the person",
   })
   @Column({
     type: ColumnType.ObjectID,

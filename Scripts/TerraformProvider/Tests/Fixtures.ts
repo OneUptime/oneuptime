@@ -149,6 +149,11 @@ const monitorModelSchema: any = {
     tags: monitorCreateSchema.properties.tags,
     monitorSteps: { type: "object", "x-oneuptime-type": "MonitorSteps" },
     serverMeta: { type: "object" },
+    // Only the server writes it: read-only in the provider.
+    probeReport: {
+      type: "object",
+      description: "What the probes last reported",
+    },
     immutableRegion: { type: "string" },
     projectId: { type: "string" },
     serverToken: {

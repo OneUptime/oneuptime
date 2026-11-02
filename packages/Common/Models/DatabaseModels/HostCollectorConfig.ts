@@ -237,6 +237,7 @@ export default class HostCollectorConfig extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(HostCollectorOsType),
     canReadOnRelationQuery: true,
     title: "System",
     description:

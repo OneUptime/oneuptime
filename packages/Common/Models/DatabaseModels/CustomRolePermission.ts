@@ -366,6 +366,7 @@ export default class CustomRolePermission extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PermissionScope),
     title: "Scope",
     description:
       "Which resources this permission reaches. One of: All (every resource in the project), Owned (resources the team given the role, or one of its members, owns), Labels (resources carrying one of the labels). Defaults to All.",

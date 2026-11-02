@@ -124,6 +124,7 @@ class CustomNotificationChannel extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     title: "Signing Secret",
     required: true,
     unique: false,

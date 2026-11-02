@@ -207,6 +207,7 @@ export default class SecurityDetection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OcsfSeverity),
     canReadOnRelationQuery: true,
     title: "Severity",
     description:
@@ -226,6 +227,7 @@ export default class SecurityDetection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityDetectionSource),
     canReadOnRelationQuery: true,
     title: "Source",
     description:
