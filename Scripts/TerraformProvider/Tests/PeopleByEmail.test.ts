@@ -6,6 +6,7 @@ import { ResourceGenerator } from "../Core/ResourceGenerator";
 import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { DocumentationGenerator } from "../Core/DocumentationGenerator";
 import { ProviderGenerator } from "../Core/ProviderGenerator";
+import { GoCodeGenerator } from "../Core/GoCodeGenerator";
 import {
   TerraformAttribute,
   TerraformDataSource,
@@ -257,7 +258,7 @@ describe("the parser: oneuptime_user is written by hand", () => {
       HANDWRITTEN_DATA_SOURCES["user"]!.schema,
     )) {
       expect(source).toContain(
-        `MarkdownDescription: "${attr.description!.replace(/"/g, '\\"')}"`,
+        `MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description!)}"`,
       );
       expect(name).toBeTruthy();
     }
