@@ -155,14 +155,10 @@ const TITLES: Record<VMwareMetric, string> = {
   vmMemoryBallooned: "Memory Ballooned",
   vmMemorySwapped: "Memory Swapped",
   vmDisk: "Disk (Used / Provisioned)",
-  datastoreUsed: "Used",
-  datastoreCapacity: "Capacity",
   datastoreFree: "Free",
   datastoreUsedPercent: "Used %",
   datastoreGrowthForecast: "Growth Forecast",
   clusterHosts: "Hosts",
-  clusterVirtualMachines: "Virtual Machines",
-  clusterTemplates: "VM Templates",
   clusterCpu: "CPU (Effective / Total)",
   clusterMemory: "Memory (Effective / Total)",
   clusterCpuInUse: "CPU",
@@ -177,7 +173,6 @@ const TITLES: Record<VMwareMetric, string> = {
   vmListCpuReady: "CPU Ready",
   vmListCpu: "CPU",
   vmListMemory: "Memory",
-  vmListAge: "Age",
   datastoreListUsedCapacity: "Used / Capacity",
   clusterListHosts: "Hosts (effective / total)",
   clusterListVirtualMachines: "VMs (powered on / total)",
@@ -865,9 +860,17 @@ describe("VMware metric descriptions: what each number is made of", () => {
     expect(D.overviewInventoryCounts).toContain("templates excluded");
   });
 
-  test("the VM Age column is empty because the page never fills it", () => {
+  /*
+   * vCenter reports no creation or start time for a VM, so its lists draw
+   * no Age column of dashes - and no (i) explaining an empty column.
+   */
+  test("the VM lists have no Age column to explain", () => {
     expect(UTILS).toContain('age: "",');
-    expect(D.vmListAge).toContain("empty for every virtual machine");
+    expect(
+      readDashboard("Components/VMware/VMwareResourceTables.tsx").split(
+        "showAge={false}",
+      ).length - 1,
+    ).toBe(2);
   });
 
   test.each([

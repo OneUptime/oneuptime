@@ -64,6 +64,17 @@ export interface ComponentProps {
   hostRoute?: Route | undefined;
   // A host's or a cluster's VMs, for its chip.
   virtualMachines?: VMwareHostVirtualMachineSummary | undefined;
+  /*
+   * The datacenter its address names, for a part whose row is gone: a host
+   * no longer in the inventory still says where it was.
+   */
+  fallbackDatacenterName?: string | null | undefined;
+  /*
+   * Whether to say when vCenter last reported it. A host's page leaves it
+   * to the notice under the hero while the host is not reporting, which
+   * opens with that time: said once.
+   */
+  showLastReport?: boolean | undefined;
   now: Date;
 }
 
@@ -169,7 +180,8 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
   };
 
   const row: VMwareResource | null = props.row;
-  const datacenter: string = row?.datacenterName || "";
+  const datacenter: string =
+    row?.datacenterName || (row ? "" : props.fallbackDatacenterName || "");
   const cluster: string = row?.clusterName || "";
   const host: string = row?.hostName || "";
 
@@ -414,7 +426,9 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
   }
 
   const lastReportAt: Date | null =
-    toVMwareDate(row?.metricsUpdatedAt) || toVMwareDate(row?.lastSeenAt);
+    props.showLastReport === false
+      ? null
+      : toVMwareDate(row?.metricsUpdatedAt) || toVMwareDate(row?.lastSeenAt);
 
   return (
     <ResourcePartHero

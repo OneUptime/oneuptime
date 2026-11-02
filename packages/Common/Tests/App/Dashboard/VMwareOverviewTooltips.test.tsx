@@ -13,7 +13,6 @@ import "@testing-library/jest-dom";
 import {
   act,
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
@@ -23,11 +22,10 @@ import React from "react";
 /*
  * The VMware vCenter overview, rendered for real with the network and the
  * heavy children (charts, activity cards, the details card) replaced. It
- * checks what a customer sees: every tile, chart card, summary card and
- * top-5 section has an (i) beside its title, the (i) says the right thing,
- * the chart cards have it from the first paint (while their data is still
- * loading), and pressing an (i) on a clickable summary card explains
- * rather than navigates.
+ * checks what a customer sees: the hero's pills and count chips, every
+ * tile, chart card and top-5 section has an (i) beside its title, the (i)
+ * says the right thing, the chart cards have it from the first paint (while
+ * their data is still loading), and the hero's counts open their lists.
  */
 
 interface Gate {
@@ -62,10 +60,31 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         mockGetItemCalls.push(request);
         return Promise.resolve(mockVCenter);
       },
-      getList: async (request: unknown): Promise<unknown> => {
+      getList: async (request: {
+        query?: Record<string, unknown>;
+      }): Promise<unknown> => {
         mockGetListCalls.push(request);
         await mockListGate;
-        return { data: mockRows, count: mockRows.length };
+        /*
+         * The rows of the kinds the read asks for: one kind, or several
+         * (the Overview reads every kind but the VMs at once).
+         */
+        const kind: unknown = request.query?.["kind"];
+        const kinds: Array<unknown> | null =
+          typeof kind === "string"
+            ? [kind]
+            : kind && Array.isArray((kind as { values?: unknown }).values)
+              ? (kind as { values: Array<unknown> }).values
+              : null;
+        const rows: Array<unknown> = kinds
+          ? mockRows.filter((row: unknown): boolean => {
+              return kinds.includes((row as { kind?: unknown }).kind);
+            })
+          : mockRows;
+        return { data: rows, count: rows.length };
+      },
+      getCommonHeaders: (): Record<string, string> => {
+        return {};
       },
     },
   };
@@ -159,6 +178,7 @@ import {
   explanationOnFocus,
   explanationOnHover,
   expectNotNested,
+  infoButtons,
   infoButtonsFor,
   infoLabels,
   inventoryRow,
@@ -176,18 +196,22 @@ const PAGE_PROPS: PageComponentProps = {
   hasPaymentMethod: false,
 };
 
-// One (i) after the hero's count chips (datacenters, clusters, hosts...).
+/*
+ * The hero: the connection pill's (i), the health pill's once the
+ * inventory says what needs attention, and one (i) after the count chips.
+ */
 const HERO: Array<[string, string]> = [
+  ["Data Status", D.overviewAgentStatus],
+  ["vCenter Health", D.overviewVCenterHealth],
   ["vCenter inventory counts", D.overviewInventoryCounts],
 ];
 
 const TILES: Array<[string, string]> = [
-  ["Host Effectiveness", D.overviewHostEffectiveness],
+  ["Effective hosts", D.overviewHostEffectiveness],
   ["Host CPU", D.overviewHostCpu],
   ["Host Memory", D.overviewHostMemory],
   ["Datastores", D.overviewDatastores],
   ["VM CPU Ready", D.overviewVmCpuReady],
-  ["Virtual Machines", D.overviewVirtualMachines],
 ];
 
 const CHARTS: Array<[string, string]> = [
@@ -195,17 +219,6 @@ const CHARTS: Array<[string, string]> = [
   ["Host Memory", D.overviewHostMemoryChart],
   ["Datastore Used", D.overviewDatastoreUsedChart],
   ["VM CPU Ready", D.overviewVmCpuReadyChart],
-];
-
-const SUMMARY: Array<[string, string]> = [
-  ["vCenter Health", D.overviewVCenterHealth],
-  ["Datacenters", D.overviewDatacenterCount],
-  ["Clusters", D.overviewClusterCount],
-  ["Hosts", D.overviewHostCount],
-  ["Virtual Machines", D.overviewVirtualMachineCount],
-  ["Datastores", D.overviewDatastoreCount],
-  ["Resource Pools", D.overviewResourcePoolCount],
-  ["Data Status", D.overviewAgentStatus],
 ];
 
 const TOP: Array<[string, string]> = [
@@ -229,27 +242,35 @@ function inventory(): Array<unknown> {
       kind: "Datacenter",
       externalId: "datacenter/dc1",
       name: "dc1",
-      hostCount: 2,
-      poweredOnHostCount: 2,
+      datacenterName: "dc1",
+      hostCount: 1,
+      poweredOnHostCount: 1,
+      notRespondingHostCount: 0,
+      standbyHostCount: 0,
+      metricsUpdatedAt: now,
     }),
     inventoryRow({
       kind: "Cluster",
       externalId: "cluster/dc1/cl1",
       name: "cl1",
+      clusterName: "cl1",
       datacenterName: "dc1",
-      hostCount: 2,
-      effectiveHostCount: 2,
+      hostCount: 1,
+      effectiveHostCount: 1,
       metricsUpdatedAt: now,
     }),
     inventoryRow({
       kind: "Host",
       externalId: "host/dc1/esx01",
       name: "esx01",
+      hostName: "esx01",
       datacenterName: "dc1",
       clusterName: "cl1",
       latestCpuPercent: 42,
+      latestCpuMhz: 12000,
       latestMemoryBytes: 64 * GIB,
       latestMemoryPercent: 50,
+      maxMemoryBytes: 128 * GIB,
       metricsUpdatedAt: now,
     }),
     inventoryRow({
@@ -257,6 +278,7 @@ function inventory(): Array<unknown> {
       externalId: "vm/uuid-1",
       name: "web-01",
       hostName: "esx01",
+      datacenterName: "dc1",
       isTemplate: false,
       isPoweredOn: true,
       cpuReadinessPercent: 3,
@@ -280,8 +302,6 @@ function inventory(): Array<unknown> {
   ];
 }
 
-let navigateSpy: ReturnType<typeof getJestSpyOn>;
-
 beforeEach(() => {
   jest.useFakeTimers();
   window.history.pushState(
@@ -292,7 +312,14 @@ beforeEach(() => {
   mockGetItemCalls.length = 0;
   mockGetListCalls.length = 0;
   mockAggregateCalls.length = 0;
-  mockVCenter = vcenterModel();
+  mockVCenter = vcenterModel({
+    datacenterCount: 1,
+    clusterCount: 1,
+    hostCount: 1,
+    vmCount: 1,
+    poweredOnVmCount: 1,
+    datastoreCount: 1,
+  });
   mockRows = inventory();
   mockListGate = Promise.resolve();
   mockAggregateGate = Promise.resolve();
@@ -300,9 +327,7 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
-  navigateSpy = getJestSpyOn(Navigation, "navigate").mockImplementation(
-    (): void => {},
-  );
+  getJestSpyOn(Navigation, "navigate").mockImplementation((): void => {});
 });
 
 afterEach(() => {
@@ -315,22 +340,22 @@ afterEach(() => {
 async function renderLoaded(): Promise<void> {
   render(<VMwareVCenterOverview {...PAGE_PROPS} />);
 
-  // The last golden tile and the last top-5 section are both on screen.
+  // The last golden tile, the health pill and the last top-5 section are on screen.
   await waitFor(() => {
-    expect(infoButtonsFor("Host Effectiveness")).toHaveLength(1);
+    expect(infoButtonsFor("Effective hosts")).toHaveLength(1);
+    expect(infoButtonsFor("vCenter Health")).toHaveLength(1);
     expect(infoButtonsFor("Datastore Utilization")).toHaveLength(1);
   });
 }
 
 describe("VMware overview: an (i) beside every number", () => {
-  test("hero counts, tiles, chart cards, summary cards and top-5 sections, in page order", async () => {
+  test("the hero's pills and counts, tiles, chart cards and top-5 sections, in page order", async () => {
     await renderLoaded();
 
     expect(infoLabels()).toEqual([
       ...labelsOf(HERO),
       ...labelsOf(TILES),
       ...labelsOf(CHARTS),
-      ...labelsOf(SUMMARY),
       ...labelsOf(TOP),
     ]);
   });
@@ -342,7 +367,6 @@ describe("VMware overview: an (i) beside every number", () => {
       ...HERO,
       ...TILES,
       ...CHARTS,
-      ...SUMMARY,
       ...TOP,
     ]);
   });
@@ -357,13 +381,14 @@ describe("VMware overview: an (i) beside every number", () => {
     // The chips of the fixture inventory, then the (i) - last in the row.
     expect(row.textContent).toContain("1 datacenter");
     expect(row.textContent).toContain("1 cluster");
-    expect(row.textContent).toContain("1 ESXi host");
+    // How many hosts vCenter reaches, of all: the first number an admin looks for.
+    expect(row.textContent).toContain("1/1 ESXi host connected");
     expect(row.textContent).toContain("1/1 VM powered on");
     expect(row.textContent).toContain("1 datastore");
     expect(row.lastElementChild).toBe(button);
   });
 
-  test("a hero with only the agent version chip gets no (i)", async () => {
+  test("a hero with only the agent version chip gets no counts (i)", async () => {
     mockVCenter = vcenterModel({ agentVersion: "1.2.3" });
     mockRows = [];
 
@@ -377,6 +402,8 @@ describe("VMware overview: an (i) beside every number", () => {
     });
 
     expect(infoButtonsFor("vCenter inventory counts")).toHaveLength(0);
+    // A vCenter that has reported nothing has no health to tell: no guess.
+    expect(infoButtonsFor("vCenter Health")).toHaveLength(0);
   });
 
   test("the same explanation is reachable from the keyboard", async () => {
@@ -392,9 +419,7 @@ describe("VMware overview: an (i) beside every number", () => {
   test("each (i) sits right beside the title it explains", async () => {
     await renderLoaded();
 
-    for (const label of new Set(
-      labelsOf([...TILES, ...CHARTS, ...SUMMARY, ...TOP]),
-    )) {
+    for (const label of new Set(labelsOf([...TILES, ...CHARTS, ...TOP]))) {
       for (const button of infoButtonsFor(label)) {
         // The (i)'s own row holds the title and nothing else.
         expect({
@@ -405,14 +430,27 @@ describe("VMware overview: an (i) beside every number", () => {
     }
   });
 
+  test("each pill's (i) sits beside its pill", async () => {
+    await renderLoaded();
+
+    expect(
+      infoButtonsFor("Data Status")[0]!.parentElement?.textContent?.trim(),
+    ).toBe("Connected");
+    expect(
+      infoButtonsFor("vCenter Health")[0]!.parentElement?.textContent?.trim(),
+    ).toBe("Healthy");
+  });
+
   test("no (i) is nested in a link or another button", async () => {
     await renderLoaded();
 
     for (const label of new Set(
-      labelsOf([...HERO, ...TILES, ...CHARTS, ...SUMMARY, ...TOP]),
+      labelsOf([...HERO, ...TILES, ...CHARTS, ...TOP]),
     )) {
-      for (const button of infoButtonsFor(label)) {
-        expectNotNested(button);
+      for (const button of infoButtons()) {
+        if (button.getAttribute("aria-label") === `About ${label}`) {
+          expectNotNested(button);
+        }
       }
     }
   });
@@ -430,7 +468,7 @@ describe("VMware overview: the chart cards explain themselves while they load", 
     });
 
     // The golden tiles are skeletons with no titles yet...
-    expect(infoButtonsFor("Host Effectiveness")).toHaveLength(0);
+    expect(infoButtonsFor("Effective hosts")).toHaveLength(0);
     // ...but each chart card is drawn with its title and (i).
     expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(
       0,
@@ -470,28 +508,30 @@ describe("VMware overview: the chart cards explain themselves while they load", 
     );
   });
 
-  test("the summary cards are explained before the inventory arrives", async () => {
+  test("the health pill waits for the inventory: no guess while it loads", async () => {
     const list: Gate = gate();
     mockListGate = list.promise;
 
     render(<VMwareVCenterOverview {...PAGE_PROPS} />);
 
     await waitFor(() => {
-      expect(infoButtonsFor("vCenter Health")).toHaveLength(1);
+      expect(infoButtonsFor("Data Status")).toHaveLength(1);
     });
-
-    // Values are still the "…" placeholder, the (i)s are already there.
-    expect(screen.getAllByText("…").length).toBeGreaterThan(0);
-    expect(await explanationOnHover(infoButtonsFor("Resource Pools")[0]!)).toBe(
-      D.overviewResourcePoolCount,
-    );
+    expect(infoButtonsFor("vCenter Health")).toHaveLength(0);
 
     await act(async () => {
       list.open();
     });
+
+    await waitFor(() => {
+      expect(infoButtonsFor("vCenter Health")).toHaveLength(1);
+    });
+    expect(await explanationOnHover(infoButtonsFor("vCenter Health")[0]!)).toBe(
+      D.overviewVCenterHealth,
+    );
   });
 
-  test("when the metrics fail, the inventory cards keep their (i)s", async () => {
+  test("when the metrics fail, the inventory's (i)s stay", async () => {
     mockAggregateFails = true;
 
     render(<VMwareVCenterOverview {...PAGE_PROPS} />);
@@ -505,97 +545,35 @@ describe("VMware overview: the chart cards explain themselves while they load", 
       expect(infoButtonsFor("Datastore Utilization")).toHaveLength(1);
     });
 
-    /*
-     * No tiles and no charts - but the hero counts, the summary strip and
-     * the top-5 lists remain.
-     */
-    expect(infoLabels()).toEqual([
-      ...labelsOf(HERO),
-      ...labelsOf(SUMMARY),
-      ...labelsOf(TOP),
-    ]);
+    // No tiles and no charts - but the hero and the top-5 lists remain.
+    expect(infoLabels()).toEqual([...labelsOf(HERO), ...labelsOf(TOP)]);
   });
 });
 
-describe("VMware overview: an (i) on a clickable summary card explains, it does not navigate", () => {
-  const CLICKABLE: Array<[string, string]> = [
-    ["Clusters", "/clusters"],
-    ["Hosts", "/hosts"],
-    ["Virtual Machines", "/virtual-machines"],
-    ["Datastores", "/datastores"],
-    ["Resource Pools", "/resource-pools"],
-  ];
-
-  /*
-   * The summary card's (i), not the golden tile's: "Datastores" and
-   * "Virtual Machines" are both a tile and a card, and the tile comes first.
-   */
-  function summaryButton(label: string): HTMLElement {
-    const buttons: Array<HTMLElement> = infoButtonsFor(label);
-
-    return buttons[buttons.length === 1 ? 0 : 1]!;
-  }
-
-  test.each(CLICKABLE)(
-    "%s: clicking the (i) stays on the page, clicking the card opens the list",
-    async (label: string, routeSuffix: string) => {
+describe("VMware overview: the hero's counts open their lists", () => {
+  test.each([
+    ["vmware-hero-clusters", "/clusters"],
+    ["vmware-hero-hosts", "/hosts"],
+    ["vmware-hero-vms", "/virtual-machines"],
+    ["vmware-hero-datastores", "/datastores"],
+  ] as Array<[string, string]>)(
+    "%s is a link to the vCenter's %s",
+    async (testId: string, routeSuffix: string) => {
       await renderLoaded();
 
-      const info: HTMLElement = summaryButton(label);
-      /*
-       * The card's own click target is a separate button named after the
-       * card, laid over it - a sibling of the (i), never its ancestor.
-       */
-      const cardButton: HTMLElement = screen.getByRole("button", {
-        name: label,
-      });
-
-      expect(cardButton).not.toBe(info);
-      expect(cardButton.contains(info)).toBe(false);
-      expect(info.parentElement?.closest("button, a, [role='button']")).toBe(
-        null,
+      const chip: HTMLElement = screen.getByTestId(testId);
+      expect(chip.tagName).toBe("A");
+      expect(chip.getAttribute("href")).toBe(
+        `/dashboard/${PROJECT_ID}/vmware/${VCENTER_ID}${routeSuffix}`,
       );
-      expect(cardButton.parentElement?.contains(info)).toBe(true);
-      // Lifted above the overlay, so the pointer reaches the (i) first.
-      expect(info.className).toContain("z-10");
-
-      fireEvent.click(info);
-      expect(navigateSpy).not.toHaveBeenCalled();
-
-      fireEvent.keyDown(info, { key: "Enter" });
-      fireEvent.keyDown(info, { key: " " });
-      expect(navigateSpy).not.toHaveBeenCalled();
-
-      fireEvent.click(cardButton);
-      expect(navigateSpy).toHaveBeenCalledTimes(1);
-      expect(String(navigateSpy.mock.calls[0]![0])).toContain(
-        `/vmware/${VCENTER_ID}${routeSuffix}`,
-      );
+      // The (i) is never inside a chip.
+      expect(chip.querySelector("button")).toBeNull();
     },
   );
 
-  test("the (i) on a clickable card still shows its explanation", async () => {
+  test("datacenters have no list of their own: their chip is a plain count", async () => {
     await renderLoaded();
 
-    expect(await explanationOnHover(summaryButton("Clusters"))).toBe(
-      D.overviewClusterCount,
-    );
-    expect(await explanationOnHover(summaryButton("Datastores"))).toBe(
-      D.overviewDatastoreCount,
-    );
-    expect(navigateSpy).not.toHaveBeenCalled();
-  });
-
-  test("cards that do not navigate are not turned into buttons by the (i)", async () => {
-    await renderLoaded();
-
-    for (const label of ["vCenter Health", "Datacenters", "Data Status"]) {
-      const button: HTMLElement = infoButtonsFor(label)[0]!;
-
-      expect(button.parentElement?.closest("button, [role='button']")).toBe(
-        null,
-      );
-      expect(screen.queryByRole("button", { name: label })).toBeNull();
-    }
+    expect(screen.getByTestId("vmware-hero-datacenters").tagName).toBe("SPAN");
   });
 });

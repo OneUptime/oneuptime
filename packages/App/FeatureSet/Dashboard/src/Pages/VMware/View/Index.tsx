@@ -174,10 +174,14 @@ interface InventorySummary {
   hostCount: number;
   // Hosts vCenter reports usage for: up and connected.
   connectedHostCount: number;
-  /* Non-template VMs. */
-  vmTotal: number;
-  vmPoweredOn: number;
-  templateCount: number;
+  /*
+   * Non-template VMs, powered on and templates, as Postgres counts them;
+   * null when that count could not be read (the vCenter's own columns
+   * stand in then, never a 0 beside a count from elsewhere).
+   */
+  vmTotal: number | null;
+  vmPoweredOn: number | null;
+  templateCount: number | null;
   datastoreCount: number;
   worstDatastorePercent: number | null;
   worstDatastoreName: string;
@@ -525,9 +529,9 @@ const VMwareVCenterOverview: FunctionComponent<
         clusterCount: counts?.clusterCount ?? clusters.length,
         hostCount: counts?.hostCount ?? hosts.length,
         connectedHostCount: connectedHostCount,
-        vmTotal: counts?.virtualMachineCount ?? 0,
-        vmPoweredOn: counts?.poweredOnVirtualMachineCount ?? 0,
-        templateCount: counts?.virtualMachineTemplateCount ?? 0,
+        vmTotal: counts ? counts.virtualMachineCount : null,
+        vmPoweredOn: counts ? counts.poweredOnVirtualMachineCount : null,
+        templateCount: counts ? counts.virtualMachineTemplateCount : null,
         datastoreCount: counts?.datastoreCount ?? datastores.length,
         worstDatastorePercent,
         worstDatastoreName,
@@ -1195,10 +1199,9 @@ const VMwareVCenterOverview: FunctionComponent<
   const clusterCount: number =
     inventory?.clusterCount || vcenter.clusterCount || 0;
   const hostCount: number = inventory?.hostCount || vcenter.hostCount || 0;
-  const vmTotal: number = inventory?.vmTotal || vcenter.vmCount || 0;
-  const vmPoweredOn: number = inventory
-    ? inventory.vmPoweredOn
-    : vcenter.poweredOnVmCount || 0;
+  const vmTotal: number = inventory?.vmTotal ?? vcenter.vmCount ?? 0;
+  const vmPoweredOn: number =
+    inventory?.vmPoweredOn ?? vcenter.poweredOnVmCount ?? 0;
   /*
    * The ingest writes the vCenter's powered-on count once a collection
    * carried VMs: before that, power state is not known yet.
@@ -1423,14 +1426,15 @@ const VMwareVCenterOverview: FunctionComponent<
             ),
       });
     }
-    if (inventory && inventory.templateCount > 0) {
+    const templateCount: number = inventory?.templateCount ?? 0;
+    if (templateCount > 0) {
       specChips.push({
         icon: IconProp.DocumentDuplicate,
         route: virtualMachinesRoute,
         testId: "vmware-hero-templates",
         label: translator.translatePlural(
           { one: "{{count}} template", other: "{{count}} templates" },
-          inventory.templateCount,
+          templateCount,
         ),
       });
     }

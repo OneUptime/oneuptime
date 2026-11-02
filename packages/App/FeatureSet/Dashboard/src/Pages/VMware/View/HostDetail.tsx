@@ -438,6 +438,8 @@ const VMwareVCenterHostDetail: FunctionComponent<
         hosts={row ? [row] : []}
         clusterRoute={clusterRoute}
         virtualMachines={virtualMachineSummary}
+        fallbackDatacenterName={identity.datacenterName}
+        showLastReport={reportState === VMwareHostReportState.Reporting}
         now={OneUptimeDate.getCurrentDate()}
       />
 

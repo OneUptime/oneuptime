@@ -30,7 +30,10 @@ import {
   toVMwareDate,
   toVMwareNumber,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
-import { VMWARE_VIRTUAL_MACHINE_ALERT_TEMPLATE_IDS } from "../../../Pages/VMware/Utils/VMwarePartFacts";
+import {
+  VMWARE_VIRTUAL_MACHINE_ALERT_TEMPLATE_IDS,
+  isVMwareRootResourcePool,
+} from "../../../Pages/VMware/Utils/VMwarePartFacts";
 import {
   formatBytes,
   formatMhz,
@@ -195,20 +198,31 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
       ),
     });
   }
+  /*
+   * The pool or vApp it runs in, as the hero's chip and the lists say it:
+   * not its cluster's root pool, which vSphere names "Resources" and never
+   * shows (a VM in it is in no pool of anyone's making).
+   */
+  const isInRootPool: boolean =
+    !row.virtualAppName &&
+    isVMwareRootResourcePool({
+      name: row.resourcePoolName,
+      path: row.resourcePoolPath,
+    });
   if (row.virtualAppName) {
     detailRows.push({
       key: "vapp",
       label: "vApp",
       value: row.virtualAppName,
     });
-  } else if (row.resourcePoolName) {
+  } else if (row.resourcePoolName && !isInRootPool) {
     detailRows.push({
       key: "pool",
       label: "Resource Pool",
       value: row.resourcePoolName,
     });
   }
-  if (row.resourcePoolPath) {
+  if (row.resourcePoolPath && !isInRootPool) {
     detailRows.push({
       key: "path",
       label: "Inventory Path",

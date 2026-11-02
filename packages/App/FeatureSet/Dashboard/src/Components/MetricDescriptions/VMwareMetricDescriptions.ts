@@ -74,15 +74,11 @@ export type VMwareMetric =
   | "vmMemorySwapped"
   | "vmDisk"
   // Datastore detail.
-  | "datastoreUsed"
-  | "datastoreCapacity"
   | "datastoreFree"
   | "datastoreUsedPercent"
   | "datastoreGrowthForecast"
   // Cluster detail.
   | "clusterHosts"
-  | "clusterVirtualMachines"
-  | "clusterTemplates"
   | "clusterCpu"
   | "clusterMemory"
   | "clusterCpuInUse"
@@ -100,7 +96,6 @@ export type VMwareMetric =
   | "vmListCpuReady"
   | "vmListCpu"
   | "vmListMemory"
-  | "vmListAge"
   // Datastores list.
   | "datastoreListUsedCapacity"
   // Clusters list.
@@ -248,12 +243,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
 
   // ---- Datastore detail -------------------------------------------------
-  datastoreUsed: translationKey(
-    "Space taken up on this datastore by VM disks, snapshots and other files, from the latest report.",
-  ),
-  datastoreCapacity: translationKey(
-    "Total size of this datastore, worked out as used space plus free space from the latest report.",
-  ),
   datastoreFree: translationKey(
     "Space still free on this datastore: its capacity minus the used space, from the latest report.",
   ),
@@ -267,12 +256,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   // ---- Cluster detail ---------------------------------------------------
   clusterHosts: translationKey(
     "Hosts in this cluster that vSphere can place VMs on (effective), out of all its hosts, from the latest report. A host in maintenance mode, not responding, powered off or in standby is not effective.",
-  ),
-  clusterVirtualMachines: translationKey(
-    "Powered-on VMs out of all VMs in this cluster, as counted by vCenter itself at the latest report.",
-  ),
-  clusterTemplates: translationKey(
-    "VM templates in this cluster: master copies used to create new VMs. Templates are never powered on, so they use no CPU or memory.",
   ),
   clusterCpu: translationKey(
     "CPU capacity available to run VMs (effective) against the cluster's total CPU capacity, in MHz or GHz, from the latest report. Hosts in maintenance mode or not responding are left out of effective.",
@@ -316,9 +299,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
   vmListMemory: translationKey(
     "Memory the VM's operating system is actively using, as estimated by ESXi, against its configured memory, from its latest report. N/A when nothing arrived in the last 15 minutes.",
-  ),
-  vmListAge: translationKey(
-    "The VMware agent does not report when a VM was created or started, so this column is empty for every virtual machine.",
   ),
 
   // ---- Datastores list --------------------------------------------------
