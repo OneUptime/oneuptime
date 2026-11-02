@@ -1387,3 +1387,134 @@ describe("Status page overview - beside another status page in another tab", () 
     }
   });
 });
+
+describe("Status page overview - auto-expanding groups with non-operational monitors", () => {
+  const navigate: typeof Navigation.navigate = Navigation.navigate;
+
+  beforeEach(() => {
+    postCallCount = 0;
+    localStorage.clear();
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
+    window.history.replaceState({}, "", "/");
+    Navigation.navigate = (): void => {};
+    setDocumentVisibility("visible");
+    mockRespondToPost = (): PostResponse => {
+      return successResponse(overviewPayload());
+    };
+  });
+
+  afterEach(() => {
+    Navigation.navigate = navigate;
+    jest.clearAllMocks();
+  });
+
+  test("a collapsed group auto-expands when a monitor inside it is non-operational", async () => {
+    const offlineStatus: JSONObject = {
+      _id: OFFLINE_STATUS_ID,
+      name: "Offline",
+      priority: 2,
+      isOperationalState: false,
+      color: color("#ef4444"),
+    };
+
+    const payload: JSONObject = overviewPayload();
+    (payload["monitorStatuses"] as Array<JSONObject>).push(offlineStatus);
+
+    const resources: Array<JSONObject> = payload[
+      "statusPageResources"
+    ] as Array<JSONObject>;
+    (payload["statusPage"] as JSONObject)["downtimeMonitorStatuses"] = [
+      offlineStatus,
+    ];
+
+    const checkoutResource: JSONObject | undefined = resources.find(
+      (r: JSONObject) => {
+        return r["displayName"] === "Checkout API";
+      },
+    );
+    if (checkoutResource) {
+      checkoutResource["monitor"] = {
+        _id: "monitor-resource-checkout",
+        name: "Checkout API",
+        currentMonitorStatusId: objectId(OFFLINE_STATUS_ID),
+      };
+    }
+
+    mockRespondToPost = (): PostResponse => {
+      return successResponse(payload);
+    };
+
+    await renderOverview();
+
+    // Europe and Germany auto-expand because Checkout API is offline
+    expect(screen.getByText("Checkout API")).toBeInTheDocument();
+    // Asia contains only operational resources (Payments Gateway), so it stays collapsed
+    expect(screen.queryByText("Payments Gateway")).not.toBeInTheDocument();
+  });
+
+  test("groups remain collapsed when all monitors are operational", async () => {
+    mockRespondToPost = (): PostResponse => {
+      return successResponse(overviewPayload());
+    };
+
+    await renderOverview();
+
+    // When everything is operational, collapsed groups stay collapsed
+    expect(screen.queryByText("Checkout API")).not.toBeInTheDocument();
+    expect(screen.queryByText("Payments Gateway")).not.toBeInTheDocument();
+  });
+
+  test("recovering to operational collapses the auto-expanded group back", async () => {
+    const offlineStatus: JSONObject = {
+      _id: OFFLINE_STATUS_ID,
+      name: "Offline",
+      priority: 2,
+      isOperationalState: false,
+      color: color("#ef4444"),
+    };
+
+    const payload: JSONObject = overviewPayload();
+    (payload["monitorStatuses"] as Array<JSONObject>).push(offlineStatus);
+    (payload["statusPage"] as JSONObject)["downtimeMonitorStatuses"] = [
+      offlineStatus,
+    ];
+
+    const resources: Array<JSONObject> = payload[
+      "statusPageResources"
+    ] as Array<JSONObject>;
+    const checkoutResource: JSONObject | undefined = resources.find(
+      (r: JSONObject) => {
+        return r["displayName"] === "Checkout API";
+      },
+    );
+    if (checkoutResource) {
+      checkoutResource["monitor"] = {
+        _id: "monitor-resource-checkout",
+        name: "Checkout API",
+        currentMonitorStatusId: objectId(OFFLINE_STATUS_ID),
+      };
+    }
+
+    mockRespondToPost = (): PostResponse => {
+      return successResponse(payload);
+    };
+
+    await renderOverview();
+
+    // Europe and Germany auto-expand because Checkout API is offline
+    expect(screen.getByText("Checkout API")).toBeInTheDocument();
+
+    // Now the monitor recovers back to operational
+    mockRespondToPost = (): PostResponse => {
+      return successResponse(overviewPayload());
+    };
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("status-page-refresh-button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Checkout API")).not.toBeInTheDocument();
+    });
+  });
+});
