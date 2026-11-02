@@ -95,8 +95,10 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityCaseNoteTemplate from "../../../Models/DatabaseModels/SecurityCaseNoteTemplate";
 import Route from "../../../Types/API/Route";
+import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { PageBreadcrumbsContext } from "../../../UI/Components/Page/Page";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -333,6 +335,105 @@ describe("a case note template's page", () => {
     expect((note["formFields"] as Array<RecordedFormField>).map(keyOf)).toEqual(
       ["note"],
     );
+  });
+
+  /*
+   * Its two cards' Edit dialogs name the template as the list, its Create
+   * and its Delete do - "Edit Note Template" - not by the model's longer
+   * name ("Edit Security Case Note Template").
+   */
+  test("names a template as the list does in both cards' edit dialogs", async () => {
+    await draw(<SecurityCaseNoteTemplateViewPage {...PAGE_PROPS} />);
+
+    const cards: Array<Record<string, unknown>> = allProps("CardModelDetail");
+
+    expect(
+      cards.map((card: Record<string, unknown>): unknown => {
+        return card["singularName"];
+      }),
+    ).toEqual([
+      SECURITY_CASE_NOTE_TEMPLATES_COPY.singularName,
+      SECURITY_CASE_NOTE_TEMPLATES_COPY.singularName,
+    ]);
+    expect(SECURITY_CASE_NOTE_TEMPLATES_COPY.singularName).toBe(
+      "Note Template",
+    );
+  });
+
+  /*
+   * The trail and the browser's tab name the template once it is read -
+   * "Note Templates > Containment checklist" - as a hunt's, a watchlist's
+   * and a playbook's pages in Security Events do, and follow a rename.
+   * Before the read, the layout's own trail stands.
+   */
+  test("names the template in its trail once it is read, and after a rename", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/security-events/settings/note-templates/${TEMPLATE_ID}`,
+    );
+    const trails: Array<Array<Link> | null> = [];
+    const setLinks: (links: Array<Link> | null) => void = (
+      links: Array<Link> | null,
+    ): void => {
+      trails.push(links);
+    };
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <PageBreadcrumbsContext.Provider value={setLinks}>
+            <SecurityCaseNoteTemplateViewPage {...PAGE_PROPS} />
+          </PageBreadcrumbsContext.Provider>
+        </MemoryRouter>,
+      );
+    });
+
+    // Not read yet: the layout's trail, "Note Template", stays.
+    expect(trails[trails.length - 1]).toBeNull();
+
+    const details: Record<string, unknown> = allProps("CardModelDetail")[0]!;
+    const onItemLoaded: (item: SecurityCaseNoteTemplate) => void = (
+      details["modelDetailProps"] as Record<string, unknown>
+    )["onItemLoaded"] as (item: SecurityCaseNoteTemplate) => void;
+
+    const read: (name: string) => Promise<Array<Link>> = async (
+      name: string,
+    ): Promise<Array<Link>> => {
+      const template: SecurityCaseNoteTemplate = new SecurityCaseNoteTemplate(
+        new ObjectID(TEMPLATE_ID),
+      );
+      template.templateName = name;
+
+      await act(async () => {
+        onItemLoaded(template);
+      });
+
+      const trail: Array<Link> | null = trails[trails.length - 1] || null;
+
+      expect(trail).not.toBeNull();
+
+      return trail!;
+    };
+
+    const named: Array<Link> = await read("Containment checklist");
+
+    expect(
+      named.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual([
+      "Project",
+      "Security Events",
+      "Settings",
+      "Note Templates",
+      "Note Template",
+    ]);
+    // The template's own crumb carries its name; the list's is the list's.
+    expect(named[named.length - 1]!.recordName).toBe("Containment checklist");
+    expect(String(named[named.length - 2]!.to)).toBe(LIST_ROUTE());
+
+    const renamed: Array<Link> = await read("Eradication summary");
+
+    expect(renamed[renamed.length - 1]!.recordName).toBe("Eradication summary");
   });
 
   test("Delete removes the template and goes back to the list", async () => {

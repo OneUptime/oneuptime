@@ -6,12 +6,21 @@ import PermissionGate, {
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
-import { ButtonStyleType } from "../Button/Button";
+import Button, { ButtonStyleType } from "../Button/Button";
 import Card, { CardButtonSchema, CardHeaderLayout } from "../Card/Card";
+import { useIsCardSection } from "../Card/CardSurface";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicFormModal from "../FormModal/BasicFormModal";
+import {
+  CARD_MODEL_DETAIL_BODY_CLASS_NAME,
+  CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME,
+} from "../ModelDetail/CardModelDetail";
+import {
+  TABLE_RETRY_BUTTON_TEST_ID,
+  TRY_AGAIN,
+} from "../Table/TableEmptyStateBuilders";
 import {
   buildCustomFieldFormFields,
   CustomFieldFormDefinition,
@@ -25,6 +34,8 @@ import {
 } from "./CustomFieldFormFields";
 import CustomFieldFileList from "./CustomFieldFileList";
 import { APP_API_URL } from "../../Config";
+import Navigation from "../../Utils/Navigation";
+import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import {
   CustomFieldFile,
@@ -52,6 +63,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 import {
   translateNamedAction,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -100,12 +112,48 @@ export interface ComponentProps {
   onValuesLoaded?: ((customFields: JSONObject) => void) | undefined;
   // Handed to the Card; "stacked" suits a narrow column.
   headerLayout?: CardHeaderLayout | undefined;
+  /*
+   * While the project has no fields of this kind, what the card says, and
+   * where they are added - the product's own Settings > Custom Fields - for
+   * an Add Custom Fields button under it. Without them the card says, as it
+   * always has, that none have been added.
+   */
+  emptyMessage?: string | undefined;
+  addFieldsRoute?: Route | undefined;
 }
+
+export const NO_CUSTOM_FIELDS_MESSAGE: string = translationKey(
+  "No custom fields have been added for this resource. You may add custom fields in Project Settings.",
+);
+
+export const ADD_CUSTOM_FIELDS_BUTTON_TITLE: string =
+  translationKey("Add Custom Fields");
+
+/*
+ * The fields' box: a detail card's (CardModelDetail's), so a record's
+ * Custom Fields card and the detail card above it on an Overview draw their
+ * rule and line their fields up alike - a rule across the card under its
+ * header, and the fields padded as the card is, their left edge the title's
+ * at every width. In a section of a card, no rule and no box of its own.
+ *
+ * It used to pull itself out by 24px on every side whatever the card's
+ * padding, and pad its fields 16px: on a phone, where a card is padded
+ * 20px, the rule ran 4px past the card's edges and the fields sat 8px left
+ * of the title (seen on a security case's Overview, #5577).
+ */
+export const getCustomFieldsDetailBodyClassName: (
+  isCardSection: boolean,
+) => string = (isCardSection: boolean): string => {
+  return isCardSection
+    ? CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME
+    : CARD_MODEL_DETAIL_BODY_CLASS_NAME;
+};
 
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isCardSection: boolean = useIsCardSection();
   /*
    * On a private incident, alert or episode's page, what the reader holds
    * on it: its custom fields are changed only by a team of theirs that owns
@@ -478,12 +526,51 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
       buttons={cardButtons}
       headerLayout={props.headerLayout}
     >
-      <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+      <div
+        className={getCustomFieldsDetailBodyClassName(isCardSection)}
+        data-testid="custom-fields-detail-body"
+      >
         {isLoading && !loadError && <ComponentLoader />}
         {!isLoading && !loadError && schemaList.length === 0 && (
-          <ErrorMessage message="No custom fields have been added for this resource. You may add custom fields in Project Settings." />
+          <ErrorMessage
+            message={props.emptyMessage || NO_CUSTOM_FIELDS_MESSAGE}
+            action={
+              props.addFieldsRoute ? (
+                <Button
+                  title={ADD_CUSTOM_FIELDS_BUTTON_TITLE}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  icon={IconProp.Add}
+                  dataTestId="custom-fields-add-fields"
+                  onClick={() => {
+                    if (props.addFieldsRoute) {
+                      Navigation.navigate(props.addFieldsRoute);
+                    }
+                  }}
+                />
+              ) : undefined
+            }
+          />
         )}
-        {loadError && <ErrorMessage message={loadError} />}
+        {/*
+         * A read that failed may work again: Try again reads the fields and
+         * the record again, as a list's failed read offers it.
+         */}
+        {loadError && (
+          <ErrorMessage
+            message={loadError}
+            action={
+              <Button
+                title={TRY_AGAIN}
+                buttonStyle={ButtonStyleType.NORMAL}
+                icon={IconProp.Refresh}
+                dataTestId={TABLE_RETRY_BUTTON_TEST_ID}
+                onClick={() => {
+                  void onLoad();
+                }}
+              />
+            }
+          />
+        )}
         {/*
          * Above the values, which are still the ones on the record: the save
          * did not happen, so what is on screen below is what is stored.

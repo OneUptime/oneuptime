@@ -20655,7 +20655,7 @@
   "Creating {{count}} monitors adds up to {{total}} per month to your bill ({{price}} per monitor per month)._one": "Creating {{count}} monitor adds up to {{total}} per month to your bill ({{price}} per monitor per month).",
   "Criteria for condition {{number}}": "Criteria for condition {{number}}",
   "Custom Range...": "Benutzerdefinierter Bereich...",
-  "Custom fields for this {{itemName}}.": "Custom fields for this {{itemName}}.",
+  "Custom fields for this {{itemName}}.": "Benutzerdefinierte Felder dieses Eintrags ({{itemName}}).",
   "Customer-facing updates about this {{event}}. They appear on your status page, and subscribers can be notified when you post one.": "Customer-facing updates about this {{event}}. They appear on your status page, and subscribers can be notified when you post one.",
   "Dashboard variables interpolate with {{variableSyntax}}.": "Dashboard variables interpolate with {{variableSyntax}}.",
   "Dashboards you archived. They are hidden from the Dashboards list and their public links do not work. Select dashboards to unarchive them.": "Dashboards you archived. They are hidden from the Dashboards list and their public links do not work. Select dashboards to unarchive them.",
@@ -40218,5 +40218,9 @@
   "What was contained, how, and what is still open.": "Was eingedämmt wurde, wie, und was noch offen ist.",
   "The short text in front of case numbers, like CASE- in CASE-42.": "Der kurze Text vor den Fallnummern, etwa CASE- in CASE-42.",
   "Only new cases use the new prefix. Existing cases keep their numbers.": "Nur neue Fälle erhalten das neue Präfix. Bestehende Fälle behalten ihre Nummern.",
-  "Shown before every case number. Leave empty for #.": "Steht vor jeder Fallnummer. Leer lassen, um # zu verwenden."
+  "Shown before every case number. Leave empty for #.": "Steht vor jeder Fallnummer. Leer lassen, um # zu verwenden.",
+  "Add Custom Fields": "Benutzerdefinierte Felder hinzufügen",
+  "Case Custom Field": "Benutzerdefiniertes Fallfeld",
+  "The fields your team fills in on every case, such as its business unit or its ticket in another tool.": "Die Felder, die Ihr Team bei jedem Fall ausfüllt, etwa seinen Geschäftsbereich oder sein Ticket in einem anderen Tool.",
+  "This project has no custom fields for its cases yet.": "Dieses Projekt hat noch keine benutzerdefinierten Felder für seine Fälle."
 }

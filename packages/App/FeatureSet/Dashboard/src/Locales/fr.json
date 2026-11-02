@@ -15644,7 +15644,7 @@
   "Save payment method": "Save payment method",
   "Save the collector config": "Save the collector config",
   "Save the gateway's collector config": "Save the gateway's collector config",
-  "Save the updates you write most often as templates and reuse them here.": "Save the updates you write most often as templates and reuse them here.",
+  "Save the updates you write most often as templates and reuse them here.": "Enregistrez comme modèles les mises à jour que vous rédigez le plus souvent et réutilisez-les ici.",
   "Save them in a password manager or download a copy. Each code works once, after your password.": "Save them in a password manager or download a copy. Each code works once, after your password.",
   "Save these codes to keep a way back into your account.": "Save these codes to keep a way back into your account.",
   "Save this as docker-compose.yml in a folder on the Docker host you want to monitor.": "Save this as docker-compose.yml in a folder on the Docker host you want to monitor.",
@@ -17895,7 +17895,7 @@
   "Untitled incident": "Incident sans titre",
   "Untitled monitor": "Moniteur sans titre",
   "Untitled runbook": "Runbook sans titre",
-  "Untitled template": "Untitled template",
+  "Untitled template": "Modèle sans titre",
   "Unverified": "Non vérifié",
   "Up": "En service",
   "Up & In": "Up & In",
@@ -20655,7 +20655,7 @@
   "Creating {{count}} monitors adds up to {{total}} per month to your bill ({{price}} per monitor per month)._one": "Creating {{count}} monitor adds up to {{total}} per month to your bill ({{price}} per monitor per month).",
   "Criteria for condition {{number}}": "Criteria for condition {{number}}",
   "Custom Range...": "Plage personnalisée...",
-  "Custom fields for this {{itemName}}.": "Custom fields for this {{itemName}}.",
+  "Custom fields for this {{itemName}}.": "Champs personnalisés de cet élément ({{itemName}}).",
   "Customer-facing updates about this {{event}}. They appear on your status page, and subscribers can be notified when you post one.": "Customer-facing updates about this {{event}}. They appear on your status page, and subscribers can be notified when you post one.",
   "Dashboard variables interpolate with {{variableSyntax}}.": "Dashboard variables interpolate with {{variableSyntax}}.",
   "Dashboards you archived. They are hidden from the Dashboards list and their public links do not work. Select dashboards to unarchive them.": "Dashboards you archived. They are hidden from the Dashboards list and their public links do not work. Select dashboards to unarchive them.",
@@ -40218,5 +40218,9 @@
   "What was contained, how, and what is still open.": "Ce qui a été confiné, comment, et ce qui reste ouvert.",
   "The short text in front of case numbers, like CASE- in CASE-42.": "Le court texte placé devant les numéros de dossier, comme CASE- dans CASE-42.",
   "Only new cases use the new prefix. Existing cases keep their numbers.": "Le nouveau préfixe ne s'applique qu'aux nouveaux dossiers. Les dossiers existants gardent leur numéro.",
-  "Shown before every case number. Leave empty for #.": "Affiché devant chaque numéro de dossier. Laissez vide pour utiliser #."
+  "Shown before every case number. Leave empty for #.": "Affiché devant chaque numéro de dossier. Laissez vide pour utiliser #.",
+  "Add Custom Fields": "Ajouter des champs personnalisés",
+  "Case Custom Field": "Champ personnalisé des dossiers",
+  "The fields your team fills in on every case, such as its business unit or its ticket in another tool.": "Les champs que votre équipe remplit sur chaque dossier, comme son entité métier ou son ticket dans un autre outil.",
+  "This project has no custom fields for its cases yet.": "Ce projet n'a pas encore de champs personnalisés pour ses dossiers."
 }

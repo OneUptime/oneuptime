@@ -644,6 +644,33 @@ describe("each other page of a case", () => {
     );
   });
 
+  /*
+   * A project with no case fields: the card says so in the case's words and
+   * offers Add Custom Fields, which opens Security Events > Settings >
+   * Custom Fields - not "Project Settings", where the shared card's own
+   * sentence sent people and where a case's fields are not.
+   */
+  test("the Custom Fields page of a project with no case fields says so, and leads to where they are added", () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT._id!.toString()));
+
+    drawPage(
+      <SecurityCaseCustomFieldsPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const props: Record<string, unknown> = lastProps("CustomFieldsDetail");
+
+    expect(props["emptyMessage"]).toBe(
+      "This project has no custom fields for its cases yet.",
+    );
+    expect(String(props["emptyMessage"])).not.toContain("Project Settings");
+    expect(String(props["addFieldsRoute"])).toMatch(
+      /\/dashboard\/[^/]+\/security-events\/settings\/custom-fields$/,
+    );
+  });
+
   test("the Custom Fields page waits for the project it is in", () => {
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
 

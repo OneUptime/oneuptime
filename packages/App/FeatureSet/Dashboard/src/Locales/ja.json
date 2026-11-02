@@ -40218,5 +40218,9 @@
   "What was contained, how, and what is still open.": "何を、どのように封じ込めたか、まだ残っていることは何か。",
   "The short text in front of case numbers, like CASE- in CASE-42.": "ケース番号の前に付ける短いテキストです（例: CASE-42 の CASE-）。",
   "Only new cases use the new prefix. Existing cases keep their numbers.": "新しいプレフィックスは新しいケースにのみ使われます。既存のケースは番号がそのまま残ります。",
-  "Shown before every case number. Leave empty for #.": "すべてのケース番号の前に表示されます。空欄にすると # が使われます。"
+  "Shown before every case number. Leave empty for #.": "すべてのケース番号の前に表示されます。空欄にすると # が使われます。",
+  "Add Custom Fields": "カスタムフィールドを追加",
+  "Case Custom Field": "ケースのカスタムフィールド",
+  "The fields your team fills in on every case, such as its business unit or its ticket in another tool.": "チームがすべてのケースに入力するフィールドです。たとえば事業部門や、別のツールでのチケットなどです。",
+  "This project has no custom fields for its cases yet.": "このプロジェクトには、ケース用のカスタムフィールドがまだありません。"
 }

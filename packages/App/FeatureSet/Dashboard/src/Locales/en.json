@@ -40218,5 +40218,9 @@
   "What was contained, how, and what is still open.": "What was contained, how, and what is still open.",
   "The short text in front of case numbers, like CASE- in CASE-42.": "The short text in front of case numbers, like CASE- in CASE-42.",
   "Only new cases use the new prefix. Existing cases keep their numbers.": "Only new cases use the new prefix. Existing cases keep their numbers.",
-  "Shown before every case number. Leave empty for #.": "Shown before every case number. Leave empty for #."
+  "Shown before every case number. Leave empty for #.": "Shown before every case number. Leave empty for #.",
+  "Add Custom Fields": "Add Custom Fields",
+  "Case Custom Field": "Case Custom Field",
+  "The fields your team fills in on every case, such as its business unit or its ticket in another tool.": "The fields your team fills in on every case, such as its business unit or its ticket in another tool.",
+  "This project has no custom fields for its cases yet.": "This project has no custom fields for its cases yet."
 }

@@ -144,6 +144,20 @@ export interface ComponentProps<CustomFieldsBaseModels>
   extends PageComponentProps {
   title: string;
   modelType: { new (): CustomFieldsBaseModels };
+  /*
+   * What the card says the fields are for, in place of what custom fields
+   * are ("Custom fields help you add new fields to your resources in
+   * OneUptime."). A model whose fields are dragged into order (a
+   * ListOrderColumn) keeps its card's word on dragging either way.
+   */
+  description?: string | undefined;
+  /*
+   * A field's name on the card's buttons, dialogs and count - "Create Case
+   * Custom Field" - where the page's title names the fields shorter than
+   * the model does ("Security Case Custom Field").
+   */
+  singularName?: string | undefined;
+  pluralName?: string | undefined;
 }
 
 const CustomFieldsPageBase: (
@@ -538,11 +552,13 @@ const CustomFieldsPageBase: (
         onBeforeEdit={optionsField.onBeforeEdit}
         onBeforeUpdate={optionsField.onBeforeUpdate}
         refreshToggle={refreshToggle.toString()}
+        {...(props.singularName ? { singularName: props.singularName } : {})}
+        {...(props.pluralName ? { pluralName: props.pluralName } : {})}
         cardProps={{
           title: props.title,
           description: listOrder
             ? CUSTOM_FIELDS_REORDER_DESCRIPTION
-            : CUSTOM_FIELDS_DESCRIPTION,
+            : props.description || CUSTOM_FIELDS_DESCRIPTION,
           buttons: mappedFieldButtons,
         }}
         noItemsMessage={"No custom fields found."}

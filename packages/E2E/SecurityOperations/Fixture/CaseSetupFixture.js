@@ -17,6 +17,16 @@
  *
  * ?empty=1: a new project's - no fields and no templates; its numbering as
  * every project's starts.
+ *
+ * ?casesetup= (CASE_SETUP_SCENARIOS), on the busy month:
+ *
+ *   none  the project has no case fields and no note templates yet: a
+ *         case's Custom Fields page says where to add them, its Overview
+ *         draws no Custom Fields card, and the composer's Templates menu
+ *         offers to create one.
+ *   fail  the first read of the case fields, and the first of the note
+ *         templates, fails as a server error would (a 500); the next read
+ *         answers.
  */
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
@@ -41,8 +51,12 @@ export const HAND_OVER_TEMPLATE_NOTE = [
   "**Next steps:** ",
 ].join("\n\n");
 
+export const CASE_SETUP_SCENARIOS = ["none", "fail"];
+
 export function createCaseSetupFixture(options) {
-  const { insert, table, ID, isEmpty } = options;
+  const { insert, table, ID, isEmpty, scenario } = options;
+  // The tables whose first read ?casesetup=fail fails, and the reads so far.
+  const readsSoFar = new Map();
 
   function tableName(modelType) {
     return new modelType().tableName;
@@ -53,7 +67,7 @@ export function createCaseSetupFixture(options) {
     table(SecurityCaseCustomField);
     table(SecurityCaseNoteTemplate);
 
-    if (isEmpty) {
+    if (isEmpty || scenario === "none") {
       return;
     }
 
@@ -131,5 +145,17 @@ export function createCaseSetupFixture(options) {
     );
   }
 
-  return { seed, numbering, isCaseSetupTable };
+  // ?casesetup=fail: each table's first read fails, the next answers.
+  function failsRead(modelName) {
+    if (scenario !== "fail" || !isCaseSetupTable(modelName)) {
+      return false;
+    }
+
+    const reads = (readsSoFar.get(modelName) || 0) + 1;
+    readsSoFar.set(modelName, reads);
+
+    return reads === 1;
+  }
+
+  return { seed, numbering, isCaseSetupTable, failsRead };
 }

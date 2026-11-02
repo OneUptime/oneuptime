@@ -71,6 +71,10 @@
  *            one whose logs the role cannot read and whose traces could not
  *            be searched. (TelemetryMentionsFixture.js lays the lines and
  *            spans out.)
+ *   ?casesetup= none or fail: a busy project that has no case fields
+ *            and no note templates yet, or whose first read of either
+ *            fails (a 500) and the next answers. (CaseSetupFixture.js lays
+ *            the fields, templates and numbering out.)
  *   ?retrohunt= quiet, noisy or fail: what Run on Past Events answers - a
  *            rule that would not have fired, one that would have fired more
  *            than a person can look at, or YAML the run refuses.
@@ -169,7 +173,10 @@ import {
 } from "./TelemetryMentionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
 import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
-import { createCaseSetupFixture } from "./CaseSetupFixture";
+import {
+  CASE_SETUP_SCENARIOS,
+  createCaseSetupFixture,
+} from "./CaseSetupFixture";
 import { createWatchlistsFixture } from "./WatchlistsFixture";
 import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
@@ -438,6 +445,10 @@ const readFailure = READ_FAILURES.includes(params.get("fail"))
  * card says so, with Try again, and the rest of the Overview is drawn.
  */
 const isRiskiestUnreadable = params.get("riskiest") === "fail";
+// ?casesetup=: CaseSetupFixture.js's scenarios.
+const caseSetupScenario = CASE_SETUP_SCENARIOS.includes(params.get("casesetup"))
+  ? params.get("casesetup")
+  : "";
 /*
  * ?ranked=: how much the Overview's ranked lists hold, beside the queue of
  * open cases (always the project's priorities and open statuses) and the
@@ -3464,6 +3475,10 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+  // ?casesetup=fail: the first read of the case fields or templates fails.
+  if (caseSetup.failsRead(modelName)) {
+    throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
+  }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
@@ -4134,7 +4149,13 @@ caseWork.seedTargets();
  * The project's case fields, note templates and numbering
  * (CaseSetupFixture.js), and the spray case's values of its fields.
  */
-const caseSetup = createCaseSetupFixture({ insert, table, ID, isEmpty });
+const caseSetup = createCaseSetupFixture({
+  insert,
+  table,
+  ID,
+  isEmpty,
+  scenario: caseSetupScenario,
+});
 caseSetup.seed();
 fixture.ids.tasks = [ID.task(1), ID.task(2), ID.task(3)];
 fixture.ids.evidence = [ID.evidence(1), ID.evidence(2)];
