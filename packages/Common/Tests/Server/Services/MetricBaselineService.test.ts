@@ -18,6 +18,7 @@ import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -1452,6 +1453,44 @@ describe("MetricBaselineService", () => {
         );
 
         expect(kept).toEqual([3600, 3600 + 6 * 3600]);
+      });
+
+      // The kept copy has been through the JSON the cache writes and reads back.
+      test("what is kept reads back as it was, through the cache's own JSON", async () => {
+        answerWith({
+          cell: [CELL],
+          days: TWO_WEEKS,
+          points: [
+            pointRow({ day: "2026-11-16", series: ["a"] }),
+            pointRow({ day: "2026-11-23", series: ["a"] }),
+          ],
+        });
+
+        jest
+          .spyOn(GlobalCache, "getJSONObject")
+          .mockImplementation(async (_: string, key: string) => {
+            const written: JSONObject | undefined = cached.get(key) as
+              | JSONObject
+              | undefined;
+
+            return written
+              ? (JSONFunctions.deserialize(
+                  JSON.parse(
+                    JSON.stringify(JSONFunctions.serialize(written)),
+                  ) as JSONObject,
+                ) as JSONObject)
+              : null;
+          });
+
+        const first: MetricSeriesBaselines = await readSeries({
+          groupByAttributeKeys: ["host"],
+        });
+        const second: MetricSeriesBaselines = await readSeries({
+          groupByAttributeKeys: ["host"],
+        });
+
+        expect(first.series.size).toBe(1);
+        expect(second.series).toEqual(first.series);
       });
 
       test("a check still reads and judges when the cache is away", async () => {

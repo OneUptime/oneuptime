@@ -33,7 +33,6 @@ import AggregationType, {
 } from "../../Types/BaseDatabase/AggregationType";
 import {
   ANOMALY_SIGMA_BY_SENSITIVITY,
-  ANOMALY_WINDOW_DAYS_OPTIONS,
   AnomalyDetectionSensitivity,
   DEFAULT_ANOMALY_WINDOW_DAYS,
 } from "../../Types/Monitor/CriteriaFilter";
@@ -252,14 +251,6 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * caller intent.
    */
   public static readonly MAX_WINDOW_DAYS: number = 90;
-  /**
-   * Window options exposed by the criterion form. Constrained to a
-   * small set so the UI stays a dropdown and so we don't have to TTL
-   * the table for every conceivable value. Adding a longer option
-   * requires bumping `MAX_WINDOW_DAYS` and the table TTL together.
-   */
-  public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> =
-    ANOMALY_WINDOW_DAYS_OPTIONS;
   /**
    * Hard cap on rows returned per drift window. Params travel in the
    * ClickHouse HTTP URI and the detector joins both windows in JS, so an
