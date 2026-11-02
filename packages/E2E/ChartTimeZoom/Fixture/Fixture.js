@@ -176,6 +176,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
+import { readKubernetesNeedsAttention } from "Common/Tests/Helpers/KubernetesPartReads";
 import Label from "Common/Models/DatabaseModels/Label";
 import ExceptionSavedView from "Common/Models/DatabaseModels/ExceptionSavedView";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
@@ -3307,6 +3308,24 @@ async function handleApi(method, options) {
       throw fail(404, "Kubernetes cluster not found.");
     }
     return ok(INVENTORY_SUMMARY);
+  }
+
+  /*
+   * What needs attention in the cluster, as KubernetesResourceService
+   * answers it (Common/Tests/Helpers/KubernetesPartReads): nothing, on a
+   * calm cluster of Ready nodes.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/kubernetes-resource/needs-attention/")
+  ) {
+    const clusterId = parsed.pathname.split("/").pop();
+    if (clusterId !== CLUSTER_ID) {
+      throw fail(404, "Kubernetes cluster not found.");
+    }
+    return ok(
+      serialize(readKubernetesNeedsAttention(table(KubernetesResource))),
+    );
   }
 
   /*

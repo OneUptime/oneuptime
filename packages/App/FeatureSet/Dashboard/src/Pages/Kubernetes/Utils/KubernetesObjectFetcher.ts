@@ -259,7 +259,11 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
         },
         limit: 1,
         skip: 0,
-        sort: {},
+        /*
+         * Without a namespace, the first of that name by namespace - the
+         * one the page's other reads (getPart) open too.
+         */
+        sort: { namespaceKey: SortOrder.Ascending },
       });
 
     const row: KubernetesResource | undefined = listResult.data[0];
@@ -325,7 +329,11 @@ export async function fetchRawK8sObject(
         },
         limit: 1,
         skip: 0,
-        sort: {},
+        /*
+         * Without a namespace, the first of that name by namespace - the
+         * one the page's other reads (getPart) open too.
+         */
+        sort: { namespaceKey: SortOrder.Ascending },
       });
 
     const row: KubernetesResource | undefined = listResult.data[0];

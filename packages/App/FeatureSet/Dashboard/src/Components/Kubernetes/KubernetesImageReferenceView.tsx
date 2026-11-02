@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import {
   ParsedKubernetesImageReference,
   parseKubernetesImageReference,
@@ -22,11 +23,17 @@ const KubernetesImageReferenceView: FunctionComponent<ComponentProps> = (
       className="flex min-w-0 max-w-full flex-wrap items-center gap-2 text-sm"
       data-testid="kubernetes-image-reference"
     >
+      {/*
+       * The image's name breaks after its own slashes and dots first -
+       * "registry.acme-retail.example/" / "checkout" - never mid-word
+       * ("registry.acme-retail.example/c" / "heckout"), as names do across
+       * the product (BreakableName). Its digest, a hash, breaks anywhere.
+       */}
       <span
-        className="min-w-0 max-w-full break-all whitespace-normal font-mono text-gray-900"
+        className="min-w-0 max-w-full whitespace-normal font-mono text-gray-900 [overflow-wrap:anywhere]"
         data-testid="kubernetes-image-reference-name"
       >
-        {parsedReference.name}
+        <BreakableName text={parsedReference.name} />
       </span>
       {parsedReference.tag && (
         <span

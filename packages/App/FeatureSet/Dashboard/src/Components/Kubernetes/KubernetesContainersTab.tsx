@@ -17,6 +17,35 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/KubernetesResourceMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import OneUptimeDate from "Common/Types/Date";
+import { KUBERNETES_FAILING_WAIT_REASONS } from "Common/Types/Kubernetes/KubernetesHealth";
+
+/*
+ * A container's state as kubectl shows it: the reason when Kubernetes
+ * gives one ("CrashLoopBackOff", "OOMKilled", "Completed"), else the state
+ * itself; red when it cannot run or ended in an error.
+ */
+export function getContainerStateBadge(status: KubernetesContainerStatus): {
+  text: string;
+  type: StatusBadgeType;
+} {
+  const text: string = status.reason || status.state;
+  if (status.state === "running") {
+    return { text: text, type: StatusBadgeType.Success };
+  }
+  if (status.state === "waiting") {
+    return {
+      text: text,
+      type: KUBERNETES_FAILING_WAIT_REASONS.has(status.reason)
+        ? StatusBadgeType.Danger
+        : StatusBadgeType.Warning,
+    };
+  }
+  if (status.state === "terminated" && status.reason === "Completed") {
+    return { text: text, type: StatusBadgeType.Neutral };
+  }
+  return { text: text, type: StatusBadgeType.Danger };
+}
 
 function formatK8sResourceValue(key: string, value: string): string {
   if (!value) {
@@ -159,6 +188,12 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
     Object.keys(props.container.resources.requests).length > 0 ||
     Object.keys(props.container.resources.limits).length > 0;
 
+  // Its state as its badge colours it: red when it cannot run.
+  const isCritical: boolean = Boolean(
+    props.status &&
+      getContainerStateBadge(props.status).type === StatusBadgeType.Danger,
+  );
+
   return (
     <Card
       title={translator.translateTemplate(
@@ -175,16 +210,12 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               title="State"
               tooltip={KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerState}
               value={
-                <StatusBadge
-                  text={props.status.state}
-                  type={
-                    props.status.state === "running"
-                      ? StatusBadgeType.Success
-                      : props.status.state === "waiting"
-                        ? StatusBadgeType.Warning
-                        : StatusBadgeType.Danger
-                  }
-                />
+                <span data-testid="kubernetes-container-state">
+                  <StatusBadge
+                    text={getContainerStateBadge(props.status).text}
+                    type={getContainerStateBadge(props.status).type}
+                  />
+                </span>
               }
             />
             <InfoCard
@@ -218,6 +249,83 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               }
             />
           </div>
+        )}
+
+        {/*
+         * Why it is not running, and how its last run ended - the first
+         * thing kubectl describe is opened for: the kubelet's own words
+         * about a wait, and an OOM kill or an exit code with when it
+         * happened. Red beside a red state (CrashLoopBackOff, an error),
+         * as its badge above is; amber otherwise.
+         */}
+        {props.status &&
+        (props.status.message || props.status.lastTerminationReason) ? (
+          <div
+            data-testid="kubernetes-container-diagnosis"
+            data-tone={isCritical ? "danger" : "warning"}
+            className={`space-y-1 rounded-lg border px-4 py-3 text-sm ${
+              isCritical
+                ? "border-red-200 bg-red-50 text-red-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            {props.status.message ? (
+              <p className="[overflow-wrap:anywhere]">
+                {props.status.reason ? (
+                  <span className="font-medium">
+                    <bdi>{props.status.reason}</bdi>
+                    {": "}
+                  </span>
+                ) : (
+                  <></>
+                )}
+                <bdi>{props.status.message}</bdi>
+              </p>
+            ) : (
+              <></>
+            )}
+            {props.status.lastTerminationReason ? (
+              <p data-testid="kubernetes-container-last-restart">
+                <span className="font-medium">
+                  {props.status.lastTerminationExitCode !== null &&
+                  props.status.lastTerminationExitCode !== undefined &&
+                  props.status.lastTerminationReason !== "OOMKilled" &&
+                  props.status.lastTerminationExitCode !== 0
+                    ? translator.translateTemplate(
+                        "Last restart: {{reason}}, exit code {{code}}",
+                        {
+                          reason: props.status.lastTerminationReason,
+                          code: String(props.status.lastTerminationExitCode),
+                        },
+                      )
+                    : translator.translateTemplate("Last restart: {{reason}}", {
+                        reason: props.status.lastTerminationReason,
+                      })}
+                </span>
+                {props.status.lastTerminatedAt &&
+                Number.isFinite(
+                  new Date(props.status.lastTerminatedAt).getTime(),
+                ) ? (
+                  <span
+                    className={isCritical ? "text-red-800" : "text-amber-800"}
+                  >
+                    {" · "}
+                    {translator.translateTemplate("Ended {{time}}", {
+                      time: OneUptimeDate.fromNow(
+                        new Date(props.status.lastTerminatedAt),
+                      ),
+                    })}
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
         )}
 
         {/* Command & Args */}

@@ -5,7 +5,7 @@ Un moniteur Kubernetes alerte sur les métriques que l'agent Kubernetes de OneUp
 :::cards
 - [Installer l'agent](/docs/monitor/kubernetes-agent): Une seule commande Helm fait entrer le cluster dans OneUptime.
 - [Créer le moniteur](#créer-un-moniteur-kubernetes): Choisir le cluster, puis un modèle, une métrique ou une requête.
-- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Dix-huit alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
+- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Vingt et une alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
 - [Critères](#critères-de-surveillance): Seuils statiques et détection d'anomalies.
 :::
 
@@ -86,9 +86,9 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 | Catégorie | Métriques |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nœud | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Nœud | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Conteneur | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Charge de travail | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Charge de travail | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Plan de contrôle | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ La liste de **Sur quoi alerter** présente ces modèles, regroupés par catégor
 | CrashLoopBackOff Detection | Charge de travail | Un conteneur a redémarré en 15 minutes et a été prêt moins de la moitié de ce temps | Critique |
 | Pod Stuck in Pending | Planification | Un pod est en phase Pending dans chaque mesure d'une fenêtre de 15 minutes | Avertissement |
 | Node Not Ready | Nœud | Un nœud signale NotReady ou cesse de signaler son état (Unknown) | Critique |
+| Node Under Pressure | Nœud | Un nœud signale MemoryPressure, DiskPressure ou PIDPressure pendant 10 minutes | Avertissement |
 | High Node CPU Utilization | Nœud | L'utilisation moyenne du CPU d'un nœud dépasse 90 % de son CPU allouable | Avertissement |
 | High Node Memory Utilization | Nœud | Le working set mémoire moyen d'un nœud dépasse 85 % de sa mémoire allouable | Avertissement |
 | Deployment Replica Mismatch | Charge de travail | Un deployment a moins de réplicas disponibles que souhaité pendant 15 minutes | Avertissement |
+| StatefulSet Replica Mismatch | Charge de travail | Un StatefulSet a moins de réplicas prêts que souhaité pendant 15 minutes | Avertissement |
 | Job Failures | Charge de travail | Un pod d'un job a échoué en 15 minutes | Avertissement |
 | etcd No Leader | Plan de contrôle | etcd n'a pas de leader élu | Critique |
 | API Server Request Saturation | Plan de contrôle | Le serveur d'API maintient 200 requêtes en cours ou plus pendant toute la fenêtre | Critique |
 | Scheduler Backlog | Planification | La file des pods en attente du scheduler n'est pas vide pendant 5 minutes | Avertissement |
 | High Node Disk Usage | Stockage | Le système de fichiers d'un nœud est plein à plus de 90 % | Avertissement |
+| DaemonSet Pods Not Ready | Charge de travail | Un DaemonSet a des nœuds sans aucun de ses pods prêt pendant 15 minutes | Avertissement |
 | DaemonSet Misscheduled Nodes | Charge de travail | Un DaemonSet exécute des pods sur des nœuds qui ne correspondent plus à son sélecteur de nœuds, à son affinité ou à ses tolérances | Avertissement |
 | High Node CPU Request Commitment | Nœud | La somme des requêtes CPU des conteneurs d'un nœud dépasse 90 % de son CPU allouable | Avertissement |
 | High Node Memory Request Commitment | Nœud | La somme des requêtes mémoire des conteneurs d'un nœud dépasse 90 % de sa mémoire allouable | Avertissement |

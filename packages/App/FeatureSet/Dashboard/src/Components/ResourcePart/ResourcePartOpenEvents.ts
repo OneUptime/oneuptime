@@ -1,5 +1,6 @@
 import ObjectID from "Common/Types/ObjectID";
 import {
+  OpenIssueRelation,
   OpenIssuesResult,
   loadOpenIssues,
 } from "../ResourceTopology/ResourceTopologyIssuesLoader";
@@ -55,11 +56,18 @@ export async function loadResourcePartOpenEvents(data: {
   resourceId: ObjectID;
   // Whether a record is about this part, read from its series labels.
   isAbout: (record: OpenIssueRecord) => boolean;
+  /*
+   * Links to the resource's own inventory rows to read with each record
+   * (a Kubernetes incident names the pod's row it is about), so isAbout
+   * can match on them as well as on the labels.
+   */
+  relations?: Array<OpenIssueRelation> | undefined;
 }): Promise<ResourcePartOpenEvents> {
   const result: OpenIssuesResult = await loadOpenIssues({
     projectId: data.projectId,
     resourceRelation: data.resourceRelation,
     resourceId: data.resourceId,
+    relations: data.relations,
   });
 
   const records: Array<OpenIssueRecord> = result.records.filter(
