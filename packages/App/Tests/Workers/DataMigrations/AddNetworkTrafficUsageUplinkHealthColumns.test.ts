@@ -337,7 +337,7 @@ describe("AddNetworkTrafficUsageUplinkHealthColumns", () => {
     expect(service.execute).not.toHaveBeenCalled();
   });
 
-  test("runs once, before the slot AddAuditLogMcpClientColumns keeps for itself", () => {
+  test("runs once, above the runbook moves that keep their places before the slot AddAuditLogMcpClientColumns keeps for itself", () => {
     const index: string = fs
       .readFileSync(
         path.join(
@@ -366,9 +366,9 @@ describe("AddNetworkTrafficUsageUplinkHealthColumns", () => {
         return name === "AddNetworkTrafficUsageUplinkHealthColumns";
       }),
     ).toHaveLength(1);
-    expect(registered[registered.length - 2]).toBe(
-      "AddNetworkTrafficUsageUplinkHealthColumns",
-    );
+    expect(
+      registered.indexOf("AddNetworkTrafficUsageUplinkHealthColumns"),
+    ).toBeLessThan(registered.indexOf("MoveRunbookApprovalsBeforeTheirSteps"));
     expect(registered[registered.length - 1]).toBe(
       "AddAuditLogMcpClientColumns",
     );

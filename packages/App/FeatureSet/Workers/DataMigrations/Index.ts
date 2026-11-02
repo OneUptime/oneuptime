@@ -935,6 +935,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new BindInfrastructureMonitorSteps(),
   /*
+   * The loss and latency Meraki measures on an appliance's uplinks: adds the
+   * two columns that hold them (NetworkTrafficUsageV1.lossPercent, latencyMs).
+   * Metadata-only and idempotent; rows written before it read as "nothing
+   * measured". No ordering requirement, so it sits above the runbook moves,
+   * which keep their places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new AddNetworkTrafficUsageUplinkHealthColumns(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -968,14 +977,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
-  /*
-   * The loss and latency Meraki measures on an appliance's uplinks: adds the
-   * two columns that hold them (NetworkTrafficUsageV1.lossPercent, latencyMs).
-   * Metadata-only and idempotent; rows written before it read as "nothing
-   * measured". It sits before the last slot AddAuditLogMcpClientColumns
-   * asserts for itself.
-   */
-  new AddNetworkTrafficUsageUplinkHealthColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
