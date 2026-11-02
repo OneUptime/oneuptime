@@ -1519,7 +1519,7 @@
   "People reach this server over HTTPS.": "La gente accede a este servidor por HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Aún no está configurado: las contraseñas y las sesiones cruzan la red sin cifrar, y las claves de acceso necesitan HTTPS.",
   "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Casi: esta página llegó por HTTPS, pero OneUptime sigue configurado con HTTP, así que los enlaces que envía empiezan por http://. Establezca HTTP_PROTOCOL=https.",
-  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted. Open it over HTTPS.": "Casi: OneUptime está configurado con HTTPS, pero esta página llegó por HTTP, así que esta visita no está cifrada. Ábrala por HTTPS.",
+  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.": "Casi: OneUptime está configurado con HTTPS, pero esta página llegó por HTTP, así que esta visita no está cifrada.",
   "How to set up HTTPS": "Cómo configurar HTTPS",
   "Open over HTTPS": "Abrir por HTTPS",
   "Sign-ups": "Registros",

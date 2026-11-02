@@ -141,7 +141,7 @@ export const SERVER_SETUP_COPY: {
     onlyBeforeOneUptime:
       "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.",
     openedOverHttp:
-      "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted. Open it over HTTPS.",
+      "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.",
     action: "How to set up HTTPS",
     openOverHttps: "Open over HTTPS",
   },

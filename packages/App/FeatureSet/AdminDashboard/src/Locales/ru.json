@@ -1519,7 +1519,7 @@
   "People reach this server over HTTPS.": "Люди заходят на этот сервер по HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Еще не настроено: пароли и сеансы передаются по сети без шифрования, а ключам доступа нужен HTTPS.",
   "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Почти: эта страница пришла по HTTPS, но OneUptime всё ещё настроен на HTTP, поэтому ссылки, которые он отправляет, начинаются с http://. Задайте HTTP_PROTOCOL=https.",
-  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted. Open it over HTTPS.": "Почти: OneUptime настроен на HTTPS, но эта страница пришла по HTTP, поэтому этот визит не зашифрован. Откройте её по HTTPS.",
+  "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.": "Почти: OneUptime настроен на HTTPS, но эта страница пришла по HTTP, поэтому этот визит не зашифрован.",
   "How to set up HTTPS": "Как настроить HTTPS",
   "Open over HTTPS": "Открыть по HTTPS",
   "Sign-ups": "Регистрация",
