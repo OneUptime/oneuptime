@@ -109,7 +109,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       <div>
         {renderLiveStatus(item)}
         <p
-          className="mt-1 text-xs text-amber-700"
+          className="mt-1 break-words text-xs text-amber-700"
           data-testid={GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
         >
           {t(

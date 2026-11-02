@@ -331,7 +331,12 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
         }`}
       />
       <div className="min-w-0 flex-1">
-        <p className="leading-6">
+        {/*
+         * A sentence may name a setting with no break in it
+         * (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false): it wraps inside the
+         * notice, never past a phone's edge.
+         */}
+        <p className="leading-6 break-words">
           {namedRunnerTemplate ? (
             <TranslatedSentence
               template={namedRunnerTemplate}

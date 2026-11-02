@@ -524,7 +524,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     if (isForCodeRepository && getRunnerTakingNoCodeFixes(model)) {
       return (
         <span
-          className="text-amber-700"
+          className="text-amber-700 break-words"
           data-testid={`${dataTestId}-takes-no-code-fixes`}
         >
           {translator.translateText(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT)}

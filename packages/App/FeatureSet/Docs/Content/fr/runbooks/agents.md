@@ -73,6 +73,8 @@ Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi
 
 Un agent Runbook global prend aussi en charge les corrections de code de OneUptime AI, dans chaque dépôt de code qui travaille sur **Agent Runbook global**. Il écrit chaque correction et ouvre la pull request, mais n'exécute aucune commande, pas même les commandes de préparation, de compilation et de test du dépôt, si bien que la pull request indique que sa vérification a été ignorée. Il n'atteint que des serveurs Git sur Internet, en HTTPS, sauf sur un OneUptime auto-hébergé, où il peut aussi atteindre les serveurs Git privés que le serveur lui-même peut atteindre. Il n'agit que pour les corrections qu'il prend, et ne reçoit le jeton d'un dépôt que pendant qu'il y travaille sur une correction. Le jeton d'un dépôt GitHub n'atteint que ce seul dépôt et est révoqué à la fin de la correction.
 
+Un agent Runbook global antérieur à 14.0.94, ou démarré avec `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, ne prend aucune correction de code, et OneUptime ne le compte pas pour elles. Un dépôt sur **Agent Runbook global** indique alors qu'aucun agent Runbook global en ligne ne prend les corrections de code par IA, et la page **Agents Runbook globaux** du tableau de bord d'administration indique pourquoi sous le statut de cet agent.
+
 Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent s'exécute alors sur l'agent Runbook par défaut du projet ou, s'il n'y en a pas, échoue, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas. Un dépôt de code qui ne choisit aucun agent dans ses paramètres dans Code travaille lui aussi sur l'agent Runbook par défaut du projet ou, s'il n'y en a pas, sur un agent Runbook global, et a besoin de l'un des vôtres tant que l'option est désactivée ; voir [Code](/docs/ai/ai-agent#choisir-le-runner-du-dépôt).
 
 ### D'où viennent les agents Runbook globaux
@@ -256,7 +258,7 @@ L'agent lit ces variables au démarrage :
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | non | `10000` | La fréquence à laquelle l'agent renouvelle le bail d'une tâche en cours. Une valeur inférieure à `1000` revient à la valeur par défaut. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | non | `1` | Nombre maximal de tâches simultanées sur cet agent. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | non | — | Mettez `false` pour que cet agent ne prenne plus d'étapes de runbook, quoi qu'indique le tableau de bord. Ne peut que désactiver la capacité. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | non | — | Mettez `false` pour que cet agent ne prenne plus de corrections de code par IA, même pour un dépôt de code qui le choisit. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | non | — | Mettez `false` pour que cet agent ne prenne plus de corrections de code par IA, même pour un dépôt de code qui le choisit. Le dépôt indique alors que cet agent n'en prend aucune. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | non | — | Mettez `false` pour que cet agent n'exécute plus de commandes de remédiation IA, quoi qu'indique le tableau de bord. |
 
 ## Faire tourner la clé d'un agent

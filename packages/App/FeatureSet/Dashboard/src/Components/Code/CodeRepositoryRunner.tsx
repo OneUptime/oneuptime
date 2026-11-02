@@ -349,7 +349,7 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
         )}
         {takesNoCodeFixes ? (
           <p
-            className="mt-0.5 text-xs text-amber-700"
+            className="mt-0.5 break-words text-xs text-amber-700"
             data-testid={CODE_REPOSITORY_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
           >
             {translator.translateText(CODE_RUNNER_TAKES_NO_CODE_FIXES_TEXT)}

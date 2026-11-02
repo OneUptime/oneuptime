@@ -73,6 +73,8 @@ Um Runner global executa as etapas de muitos projetos, então cada etapa fica se
 
 Um Runner global também cuida das correções de código da OneUptime AI, em todo repositório de código que trabalha em **Runner global**. Ele escreve cada correção e abre o pull request, mas não executa nenhum comando, nem mesmo os comandos de preparação, compilação e teste do repositório, então o pull request diz que a verificação foi ignorada. Ele só alcança servidores Git na internet, por HTTPS, exceto num OneUptime auto-hospedado, onde também pode alcançar os servidores Git privados que o próprio servidor pode alcançar. Ele só age pelas correções que assume, e só recebe o token de um repositório enquanto trabalha numa correção nele. O token de um repositório do GitHub alcança só esse repositório e é revogado quando a correção termina.
 
+Um Runner global anterior a 14.0.94, ou iniciado com `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, não assume correções de código, e o OneUptime não o conta para elas. Um repositório em **Runner global** diz então que nenhum Runner global online assume correções de código por IA, e a página **Runners globais** do Painel de administração diz por quê sob o status desse Runner.
+
 Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a rodar no Runner padrão do projeto ou, se não houver um, a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha no Runner padrão do projeto ou, se não houver um, em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
 
 ### De onde vêm os Runners globais
@@ -256,7 +258,7 @@ O Runner lê estas variáveis ao iniciar:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | não | `10000` | Com que frequência o Runner renova o lease de um trabalho em andamento. Um valor abaixo de `1000` volta ao padrão. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | não | `1` | Número máximo de trabalhos simultâneos neste Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | não | — | Defina como `false` para que este Runner pare de assumir etapas de runbook, diga o que disser o painel. Só pode desligar a capacidade. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | não | — | Defina como `false` para que este Runner pare de assumir correções de código por IA, mesmo para um repositório de código que o escolhe. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | não | — | Defina como `false` para que este Runner pare de assumir correções de código por IA, mesmo para um repositório de código que o escolhe. O repositório então diz que este Runner não assume nenhuma. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | não | — | Defina como `false` para que este Runner pare de executar comandos de remediação por IA, diga o que disser o painel. |
 
 ## Trocar a chave de um agente

@@ -14,6 +14,11 @@ import {
   GLOBAL_RUNNER_STEP_TYPES,
   MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT,
 } from "Common/Types/Runner/GlobalRunnerWork";
+import {
+  GLOBAL_RUNNER_CODE_FIXES_SINCE_VERSION,
+  RunnerCodeFixRefusal,
+  getRunnerCodeFixRefusal,
+} from "Common/Types/Runner/RunnerCodeFixes";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -237,6 +242,59 @@ describe("the Global Runners section of runbooks/agents", () => {
         "globalRunner.enabled",
         "false",
       ]),
+    );
+  });
+
+  /*
+   * A global Runner that takes no code fixes is not counted for them
+   * (Types/Runner/RunnerCodeFixes): the release it is judged by, the switch
+   * its host turns them off with, what a repository then says and where a
+   * master admin sees why - each is the code's.
+   */
+  it("says which global Runners take no code fixes, and what the repository and the Admin Dashboard then say, as the code has it", () => {
+    expect(GLOBAL_RUNNER_CODE_FIXES_SINCE_VERSION).toBe("14.0.94");
+    expect(
+      getRunnerCodeFixRefusal({
+        isGlobalRunner: true,
+        agentVersion: "14.0.93",
+        lastAlive: new Date(),
+      }),
+    ).toBe(RunnerCodeFixRefusal.OlderRelease);
+    expect(
+      getRunnerCodeFixRefusal({ isGlobalRunner: true, takesCodeFixes: false }),
+    ).toBe(RunnerCodeFixRefusal.TurnedOffOnHost);
+
+    expect(SECTION).toContain(
+      `A global Runner older than ${GLOBAL_RUNNER_CODE_FIXES_SINCE_VERSION}, or one started with \`ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false\`, takes no code fixes, and OneUptime does not count it for them.`,
+    );
+    expect(readSource("packages/Runner/Config.ts")).toContain(
+      'parseCapabilityOverride(process.env["ONEUPTIME_RUNNER_ENABLE_CODE_FIXES"])',
+    );
+
+    // What a repository on Global Runner says: Code's notice, word for word.
+    expect(
+      readSource(`${DASHBOARD}/Components/Code/CodeTaskCopy.ts`),
+    ).toContain(
+      '"No global Runner online takes AI code fixes, so none can work in this repository.',
+    );
+    expect(SECTION).toContain(
+      "A repository on **Global Runner** then says that no global Runner online takes AI code fixes",
+    );
+
+    // Where a master admin sees why: under the Runner's status.
+    expect(ADMIN_PAGE).toContain(
+      "pages.settings.globalRunners.takesNoCodeFixesOlderRelease",
+    );
+    expect(ADMIN_PAGE).toContain(
+      "pages.settings.globalRunners.takesNoCodeFixesTurnedOff",
+    );
+    expect(SECTION).toContain(
+      "the Admin Dashboard's **Global Runners** page says why under that Runner's status.",
+    );
+
+    // Code's own page says the same about a task that waits for one.
+    expect(readPage("en", "ai/ai-agent")).toContain(
+      `A Runner that takes no code fixes counts as not connected: one started with \`ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false\`, or a global Runner older than ${GLOBAL_RUNNER_CODE_FIXES_SINCE_VERSION}.`,
     );
   });
 

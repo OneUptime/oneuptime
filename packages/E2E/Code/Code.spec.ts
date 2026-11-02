@@ -3692,6 +3692,110 @@ test.describe("a repository's Runner", () => {
     );
   });
 
+  /*
+   * A Runner that takes no AI code fixes is not counted as there to take a
+   * repository's work (Common/Types/Runner/RunnerCodeFixes): a global
+   * Runner of an older release, or one whose host turned them off. The
+   * settings say so, never that the Global Runner is connected or that the
+   * server runs none.
+   */
+  test("global Runners that take no AI code fixes: None and why on the card, and the picker says none on this server takes them", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(atRunner("gfix=0"));
+
+    const value: Locator = page.getByTestId("code-repository-runner");
+    await expect(value).toHaveText(
+      "None: no global Runner takes AI code fixes",
+    );
+    await expect(value).toHaveCSS("color", "rgb(180, 83, 9)");
+
+    await openRunnerStep(page);
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.",
+    );
+    await expect(
+      page.getByTestId("code-repository-runner-picker-global-waiting"),
+    ).toHaveCount(0);
+
+    // Only the project's own Runners to pick: no Global Runner choice.
+    await runnerPicker(page).getByRole("combobox").click();
+    await expect(page.getByRole("option")).toHaveText([
+      "office-runner · Disconnected",
+      "prod-eu-west-1 · Connected",
+    ]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-runner-no-code-fixes");
+  });
+
+  test("its own Runner whose host turned AI code fixes off: the card, the menu and the line under the picker say so, in amber", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(atRunner("runner=prod&prodfix=0"));
+
+    await expectRunnerValue(page, "prod-eu-west-1", "Connected");
+    const takesNone: Locator = page.getByTestId(
+      "code-repository-runner-takes-no-code-fixes",
+    );
+    await expect(takesNone).toHaveText(
+      "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    );
+    await expect(takesNone).toHaveCSS("color", "rgb(180, 83, 9)");
+
+    await openRunnerStep(page);
+    await expect(
+      page.getByTestId("code-repository-runner-picker-takes-no-code-fixes"),
+    ).toHaveText(
+      "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    );
+    // Not what AI would do on it.
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).not.toContainText("builds and tests its change");
+
+    await runnerPicker(page).getByRole("combobox").click();
+    const prod: Locator = page
+      .getByRole("option")
+      .filter({ hasText: "prod-eu-west-1" });
+    await expect(prod).toContainText(
+      "Takes no AI code fixes: its host turned them off.",
+    );
+    await expect(
+      page.getByRole("option").filter({ hasText: "office-runner" }),
+    ).not.toContainText("Takes no AI code fixes");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-runner-host-refuses");
+
+    // Code's notice names it, with the setting, and links its Runner.
+    await openRepository(
+      page,
+      REPOSITORY.checkout,
+      "blocker=RunnerTakesNoCodeFixes&runner=prod&prodfix=0",
+    );
+    const notice: Locator = page.getByTestId("code-blocker");
+    await expect(notice).toHaveAttribute(
+      "data-blocker",
+      "RunnerTakesNoCodeFixes",
+    );
+    await expect(notice).toContainText(
+      "The Runner this repository works on, prod-eu-west-1, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host.",
+    );
+    await expect(notice.getByTestId("code-blocker-runner")).toHaveText(
+      "prod-eu-west-1",
+    );
+    await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
+      "Pick a Runner",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-blocker-runner-host-refuses");
+  });
+
   test("a blocker's Pick a Runner opens the repository's settings at its Runner, More settings open there", async ({
     page,
   }: {
