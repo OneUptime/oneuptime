@@ -4,6 +4,7 @@ import InventoryItemCustomField from "../../../Models/DatabaseModels/InventoryIt
 import MonitorCustomField from "../../../Models/DatabaseModels/MonitorCustomField";
 import OnCallDutyPolicyCustomField from "../../../Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ScheduledMaintenanceCustomField from "../../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCaseCustomField";
 import StatusPageCustomField from "../../../Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "../../../Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "../../../Models/DatabaseModels/TeamMemberCustomField";
@@ -11,6 +12,7 @@ import { AddDropdownOptionsToCustomFields1779619108628 } from "../../../Server/I
 import { MigrationName1779790539196 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1779790539196-MigrationName";
 import { AddInventoryItemArchiveAndCustomFields1786900000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1786900000000-AddInventoryItemArchiveAndCustomFields";
 import { WidenCustomFieldDropdownOptions1791500000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1791500000000-WidenCustomFieldDropdownOptions";
+import { AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering1808871270000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808871270000-AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DatabaseModels from "../../../Models/DatabaseModels/Index";
 import ColumnType from "../../../Types/Database/ColumnType";
@@ -80,6 +82,32 @@ const CUSTOM_FIELD_MODELS: Array<CustomFieldModelUnderTest> = [
   { tableName: "TeamMemberCustomField", modelClass: TeamMemberCustomField },
 ];
 
+/*
+ * The custom-field tables created after the widening, each with its
+ * dropdownOptions text from the migration that creates it: held to the same
+ * entity declaration as the nine, but not to the widening's SQL, which never
+ * touches them.
+ */
+interface CreatedWideModel extends CustomFieldModelUnderTest {
+  createdBy: new () => {
+    up: (runner: QueryRunner) => Promise<void>;
+  };
+}
+
+const CREATED_WIDE_MODELS: Array<CreatedWideModel> = [
+  {
+    tableName: "SecurityCaseCustomField",
+    modelClass: SecurityCaseCustomField,
+    createdBy:
+      AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering1808871270000,
+  },
+];
+
+const EVERY_CUSTOM_FIELD_MODEL: Array<CustomFieldModelUnderTest> = [
+  ...CUSTOM_FIELD_MODELS,
+  ...CREATED_WIDE_MODELS,
+];
+
 function dropdownOptionsColumnArgs(
   modelClass: CustomFieldModelConstructor,
 ): ColumnMetadataArgs {
@@ -142,7 +170,7 @@ describe("custom-field dropdownOptions entity declarations", () => {
       })
       .sort();
 
-    const covered: Array<string> = CUSTOM_FIELD_MODELS.map(
+    const covered: Array<string> = EVERY_CUSTOM_FIELD_MODEL.map(
       (model: CustomFieldModelUnderTest) => {
         return model.modelClass.name;
       },
@@ -151,7 +179,27 @@ describe("custom-field dropdownOptions entity declarations", () => {
     expect(declaring).toEqual(covered);
   });
 
-  test.each(CUSTOM_FIELD_MODELS)(
+  test.each(CREATED_WIDE_MODELS)(
+    "$tableName is created with dropdownOptions as text, after the widening",
+    async ({ tableName, createdBy }: CreatedWideModel) => {
+      const { runner, query } = makeQueryRunner();
+      await new createdBy().up(runner);
+
+      const create: string | undefined = executedSql(query).find(
+        (sql: string): boolean => {
+          return sql.startsWith(`CREATE TABLE "${tableName}"`);
+        },
+      );
+
+      expect(create).toContain(`"dropdownOptions" text`);
+      expect(Number(createdBy.name.slice(-13))).toBeGreaterThan(
+        Number(WidenCustomFieldDropdownOptions1791500000000.name.slice(-13)),
+      );
+      expect(SchemaMigrations).toContain(createdBy);
+    },
+  );
+
+  test.each(EVERY_CUSTOM_FIELD_MODEL)(
     "$tableName is the table name the model itself declares",
     ({ tableName, modelClass }: CustomFieldModelUnderTest) => {
       /*
@@ -166,7 +214,7 @@ describe("custom-field dropdownOptions entity declarations", () => {
     },
   );
 
-  test.each(CUSTOM_FIELD_MODELS)(
+  test.each(EVERY_CUSTOM_FIELD_MODEL)(
     "$tableName.dropdownOptions is a text column, not a bounded varchar",
     ({ modelClass }: CustomFieldModelUnderTest) => {
       expect(dropdownOptionsColumnArgs(modelClass).options.type).toBe(
@@ -176,7 +224,7 @@ describe("custom-field dropdownOptions entity declarations", () => {
     },
   );
 
-  test.each(CUSTOM_FIELD_MODELS)(
+  test.each(EVERY_CUSTOM_FIELD_MODEL)(
     "$tableName.dropdownOptions declares no length — a length on a text column is what regenerates drift",
     ({ modelClass }: CustomFieldModelUnderTest) => {
       expect(
@@ -185,14 +233,14 @@ describe("custom-field dropdownOptions entity declarations", () => {
     },
   );
 
-  test.each(CUSTOM_FIELD_MODELS)(
+  test.each(EVERY_CUSTOM_FIELD_MODEL)(
     "$tableName.dropdownOptions is still nullable, so fields that are not dropdowns are unaffected",
     ({ modelClass }: CustomFieldModelUnderTest) => {
       expect(dropdownOptionsColumnArgs(modelClass).options.nullable).toBe(true);
     },
   );
 
-  test.each(CUSTOM_FIELD_MODELS)(
+  test.each(EVERY_CUSTOM_FIELD_MODEL)(
     "$tableName.dropdownOptions has TableColumn type VeryLongText — the half that gates writes and the form",
     ({ modelClass }: CustomFieldModelUnderTest) => {
       const metadata: TableColumnMetadata =
@@ -201,7 +249,7 @@ describe("custom-field dropdownOptions entity declarations", () => {
     },
   );
 
-  test.each(CUSTOM_FIELD_MODELS)(
+  test.each(EVERY_CUSTOM_FIELD_MODEL)(
     "$tableName.dropdownOptions has no max length, so neither the server check nor the form can reject a long list",
     ({ modelClass }: CustomFieldModelUnderTest) => {
       const metadata: TableColumnMetadata =
