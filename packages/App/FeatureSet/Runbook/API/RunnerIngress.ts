@@ -327,6 +327,7 @@ export default class RunnerIngressAPI {
       const body: JSONObject = (req.body as JSONObject) || {};
       const versionRaw: unknown = body["agentVersion"];
       const hostInfoRaw: unknown = body["hostInfo"];
+      const takesCodeFixesRaw: unknown = body["takesCodeFixes"];
 
       const versionValue: Version | undefined =
         typeof versionRaw === "string" && versionRaw.length > 0
@@ -342,6 +343,15 @@ export default class RunnerIngressAPI {
         agentId: agent.id,
         ...(versionValue ? { agentVersion: versionValue } : {}),
         ...(hostInfoValue ? { hostInfo: hostInfoValue } : {}),
+        /*
+         * Whether the Runner takes AI code fixes, as it says now - or, from
+         * a release that does not say, nothing: stored as empty, so a
+         * Runner put back on an older release is read by that release
+         * again (Types/Runner/RunnerCodeFixes), never by what a newer one
+         * said.
+         */
+        takesCodeFixes:
+          typeof takesCodeFixesRaw === "boolean" ? takesCodeFixesRaw : null,
       });
 
       return Response.sendJsonObjectResponse(

@@ -13,6 +13,7 @@ import RunnerService from "../../../Server/Services/RunnerService";
 import GlobalRunnerChoice from "../../../Server/Utils/Runner/GlobalRunnerChoice";
 import {
   GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
   NO_GLOBAL_RUNNER_ONLINE_DETAIL,
   NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
@@ -33,6 +34,8 @@ import OneUptimeDate from "../../../Types/Date";
 import RunnerLiveStatus, {
   getRunnerLiveStatus,
 } from "../../../Types/Runner/RunnerLiveStatus";
+import { getGlobalRunnerCodeFixAvailability } from "../../../Types/Runner/RunnerCodeFixes";
+import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
 import AIService from "../../../Server/Services/AIService";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
@@ -86,12 +89,24 @@ function fakeAgent(data: {
 }
 
 // A global Runner: a Runner OneUptime runs for every project.
-function fakeGlobalRunner(data: { lastAlive?: Date | undefined }): Runner {
+/*
+ * A global Runner of this release: it says on every heartbeat that it takes
+ * AI code fixes, unless a test says otherwise - or gives it the release of
+ * one that says nothing.
+ */
+function fakeGlobalRunner(data: {
+  lastAlive?: Date | undefined;
+  takesCodeFixes?: boolean | null | undefined;
+  agentVersion?: string | undefined;
+}): Runner {
   return {
     id: ObjectID.generate(),
     name: "Global Runner",
     isGlobalRunner: true,
     lastAlive: data.lastAlive,
+    takesCodeFixes:
+      data.takesCodeFixes === undefined ? true : data.takesCodeFixes,
+    agentVersion: data.agentVersion,
   } as unknown as Runner;
 }
 
@@ -162,22 +177,31 @@ function mockReadiness(data: ReadinessMocks): void {
     .spyOn(GlobalRunnerChoice, "doesProjectUseGlobalRunners")
     .mockResolvedValue(data.projectUsesGlobalRunners !== false);
   jest.spyOn(AIAgentService, "getOnlineProjectAIAgent").mockResolvedValue(null);
+  // The online global Runners, read by the one rule the server reads them by.
   jest
-    .spyOn(RunnerService, "hasOnlineGlobalRunner")
+    .spyOn(RunnerService, "getGlobalRunnerCodeFixAvailability")
     .mockResolvedValue(
-      Boolean(globalRunner) &&
-        getRunnerLiveStatus(globalRunner!.lastAlive) ===
-          RunnerLiveStatus.Connected,
+      getGlobalRunnerCodeFixAvailability(
+        globalRunner &&
+          getRunnerLiveStatus(globalRunner.lastAlive) ===
+            RunnerLiveStatus.Connected
+          ? [globalRunner]
+          : [],
+      ),
     );
 }
 
-function fakeRunner(data: { lastAlive?: Date | undefined }): Runner {
+function fakeRunner(data: {
+  lastAlive?: Date | undefined;
+  takesCodeFixes?: boolean | null | undefined;
+}): Runner {
   return {
     id: runnerId,
     _id: runnerId.toString(),
     name: "prod-eu-runner",
     lastAlive: data.lastAlive,
     hostInfo: {},
+    takesCodeFixes: data.takesCodeFixes,
   } as unknown as Runner;
 }
 
@@ -311,6 +335,111 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
     expect(check.ok).toBe(false);
     expect(check.detail).toBe(NO_GLOBAL_RUNNER_ONLINE_DETAIL);
+  });
+
+  /*
+   * Online, but no global Runner takes AI code fixes: it would never take
+   * the fix, and "no global Runner is online" would be wrong too.
+   */
+  test("fails agent check when the global Runners online take no code fixes, and says why - as Code's own blocker", async () => {
+    for (const globalRunner of [
+      fakeGlobalRunner({
+        lastAlive: OneUptimeDate.getCurrentDate(),
+        takesCodeFixes: false,
+      }),
+      // A release from before global Runners took code fixes says nothing.
+      fakeGlobalRunner({
+        lastAlive: OneUptimeDate.getCurrentDate(),
+        takesCodeFixes: null,
+        agentVersion: "14.0.93",
+      }),
+    ]) {
+      jest.restoreAllMocks();
+      mockBudgetNotExhausted();
+      mockReadiness({ globalRunner });
+
+      const readiness: AIFixReadiness =
+        await TelemetryExceptionService.getAIFixReadiness({
+          telemetryExceptionId: exceptionId,
+          props: { isRoot: true },
+        });
+
+      expect(readiness.ready).toBe(false);
+      const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
+      expect(check.ok).toBe(false);
+      expect(check.detail).toBe(GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL);
+      expect(check.blocker).toEqual({
+        type: CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+        message: GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
+      });
+    }
+  });
+
+  test("a global Runner of a release that says nothing, from the first that takes code fixes, is ready", async () => {
+    mockReadiness({
+      globalRunner: fakeGlobalRunner({
+        lastAlive: OneUptimeDate.getCurrentDate(),
+        takesCodeFixes: null,
+        agentVersion: "14.0.94",
+      }),
+    });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(readiness.ready).toBe(true);
+    expect(getCheck(readiness, "agentAvailable").title).toBe(
+      "Global Runner online",
+    );
+  });
+
+  test("the Runner the repository picks is connected but takes no code fixes: not ready, named, with the setting that does it", async () => {
+    mockReadiness({
+      repositoryRunner: fakeRunner({
+        lastAlive: OneUptimeDate.getSomeMinutesAgo(1),
+        takesCodeFixes: false,
+      }),
+    });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(readiness.ready).toBe(false);
+    const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
+    expect(check.ok).toBe(false);
+    expect(check.detail).toContain('The Runner "prod-eu-runner"');
+    expect(check.detail).toContain("does not take AI code fixes");
+    expect(check.detail).toContain("ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false");
+    expect(check.blocker?.type).toBe(
+      CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+    );
+    expect(check.blocker?.runnerName).toBe("prod-eu-runner");
+  });
+
+  test("the Runner the repository picks says nothing about code fixes (an older release): it takes them, as before", async () => {
+    mockReadiness({
+      repositoryRunner: fakeRunner({
+        lastAlive: OneUptimeDate.getSomeMinutesAgo(1),
+        takesCodeFixes: null,
+      }),
+    });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(readiness.ready).toBe(true);
+    expect(getCheck(readiness, "agentAvailable").title).toBe(
+      "Runner online: prod-eu-runner",
+    );
   });
 
   test("a repository that picks no Runner is ready on a live global Runner, said so", async () => {

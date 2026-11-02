@@ -3,6 +3,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { getRunnerLiveStatus } from "Common/Types/Runner/RunnerLiveStatus";
+import { doesRunnerTakeCodeFixes } from "Common/Types/Runner/RunnerCodeFixes";
 import { canBeProjectDefaultRunner } from "Common/Types/Runner/ProjectDefaultRunner";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -22,15 +23,22 @@ import { isKubernetesAgentRunnerRow } from "../../Pages/Kubernetes/Utils/Kuberne
  * (Project.useGlobalRunners).
  *
  * A code repository's picker (loadForCodeRepository) keeps every global
- * Runner, whether or not it takes runbook steps now - each takes the AI work
- * of every repository on the Global Runner - and leaves out the in-cluster
- * Runners the Kubernetes agent chart installed, which never work in a
- * repository.
+ * Runner that takes AI code fixes, whether or not it takes runbook steps
+ * now - each takes the AI work of every repository on the Global Runner -
+ * and leaves out the in-cluster Runners the Kubernetes agent chart
+ * installed, which never work in a repository.
  */
 
 export interface GlobalRunnerRow extends RunnerPickerRunner {
   description: string;
   runsRunbooks: boolean;
+  /*
+   * Whether it takes AI code fixes, as the server counts it
+   * (Common/Types/Runner/RunnerCodeFixes): not one of a release from before
+   * global Runners took them, nor one whose host turned them off. A server
+   * that does not say counts every one.
+   */
+  takesCodeFixes: boolean;
 }
 
 export interface RunnerChoices {
@@ -48,6 +56,12 @@ export interface RunnerChoices {
    * adding one.
    */
   areProjectRunnersUnread?: boolean | undefined;
+  /*
+   * A code repository's choices: the server runs global Runners, and none
+   * of them takes AI code fixes, so none is offered - said as that, not as
+   * a server that runs no global Runner.
+   */
+  globalRunnersTakeNoCodeFixes?: boolean | undefined;
 }
 
 export const GLOBAL_RUNNERS_ROUTE: string = "/runner/global-runners";
@@ -79,9 +93,12 @@ export default class RunnerChoicesLoader {
 
   /*
    * A code repository's Runner picker: the project's own Runners a
-   * repository may pick, every global Runner (each takes the AI work of the
-   * repositories on the Global Runner, whether or not it runs runbook steps
-   * now), and the project's switch for global Runners.
+   * repository may pick, every global Runner that takes AI code fixes (each
+   * takes the AI work of the repositories on the Global Runner, whether or
+   * not it runs runbook steps now) - as the server counts them, so the
+   * picker never calls the Global Runner connected for a repository while
+   * only global Runners that take no code fixes are - and the project's
+   * switch for global Runners.
    *
    * Each is read on its own: someone who may change a repository's settings
    * but not read Runners (Settings Member) is still told the repository is
@@ -105,10 +122,19 @@ export default class RunnerChoicesLoader {
       RunnerChoicesLoader.loadProjectUsesGlobalRunners(projectId),
     ]);
 
+    const codeFixRunners: Array<GlobalRunnerRow> = globalRunners.filter(
+      (runner: GlobalRunnerRow): boolean => {
+        return runner.takesCodeFixes;
+      },
+    );
+
     return {
       projectRunners,
-      globalRunners,
+      globalRunners: codeFixRunners,
       projectUsesGlobalRunners,
+      ...(globalRunners.length > 0 && codeFixRunners.length === 0
+        ? { globalRunnersTakeNoCodeFixes: true }
+        : {}),
     };
   }
 
@@ -188,6 +214,8 @@ export default class RunnerChoicesLoader {
         isProjectDefault: true,
         canRunRunbooks: true,
         hostInfo: true,
+        // Whether it takes AI code fixes, for a code repository's picker.
+        takesCodeFixes: true,
       },
       sort: { name: SortOrder.Ascending },
       limit: LIMIT_MAX,
@@ -210,6 +238,11 @@ export default class RunnerChoicesLoader {
           canBeProjectDefaultRunner(runner)
         ) {
           pickerRunner.isProjectDefault = true;
+        }
+
+        // Its host turned AI code fixes off, as it said on its last heartbeat.
+        if (!doesRunnerTakeCodeFixes(runner)) {
+          pickerRunner.takesNoCodeFixes = true;
         }
 
         return pickerRunner;
@@ -278,6 +311,7 @@ export default class RunnerChoicesLoader {
           description: true,
           lastAlive: true,
           canRunRunbooks: true,
+          takesCodeFixes: true,
         },
         sort: {},
         limit: LIMIT_MAX,
@@ -294,6 +328,12 @@ export default class RunnerChoicesLoader {
           description: runner.description || "",
           liveStatus: getRunnerLiveStatus(runner.lastAlive),
           runsRunbooks: runner.canRunRunbooks !== false,
+          /*
+           * The server's answer (RunnerService.findGlobalRunners), which
+           * already judged one of a release that does not say by that
+           * release: only a no is a no.
+           */
+          takesCodeFixes: runner.takesCodeFixes !== false,
         };
       });
     } catch {

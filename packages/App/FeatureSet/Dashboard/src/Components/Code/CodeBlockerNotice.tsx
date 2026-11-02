@@ -7,6 +7,7 @@ import {
   CODE_TASK_REPOSITORY_CONNECTION_GONE,
   CODE_TASK_REPOSITORY_SETTINGS_FIXES,
   CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
+  CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED,
   CodeTaskBlockerFix,
 } from "./CodeTaskCopy";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
@@ -179,6 +180,8 @@ export const getBlockerFixAccess: (
     case CodeTaskBlockerType.NoAgent:
     case CodeTaskBlockerType.RunnerNotOnline:
     case CodeTaskBlockerType.GlobalRunnersOff:
+    case CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes:
+    case CodeTaskBlockerType.RunnerTakesNoCodeFixes:
     case CodeTaskBlockerType.RepositoryNeedsOwnRunner:
       return toAccess(
         PermissionGate.check(new CodeRepository(), ModelAction.Update),
@@ -227,6 +230,17 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
   const isPermission: boolean =
     props.blocker.type === CodeTaskBlockerType.NoPermission;
   const sentence: string | undefined = copy.sentence;
+  /*
+   * A blocker about the one Runner the repository works on, when the server
+   * names it: its sentence with the Runner's name in bold.
+   */
+  const namedRunnerTemplate: string | undefined = props.blocker.runnerName
+    ? props.blocker.type === CodeTaskBlockerType.RunnerNotOnline
+      ? CODE_TASK_RUNNER_NOT_ONLINE_NAMED
+      : props.blocker.type === CodeTaskBlockerType.RunnerTakesNoCodeFixes
+        ? CODE_TASK_RUNNER_TAKES_NO_CODE_FIXES_NAMED
+        : undefined
+    : undefined;
   /*
    * GitHub connected from here, rather than on Repositories - only for a
    * repository on GitHub.
@@ -318,10 +332,9 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
       />
       <div className="min-w-0 flex-1">
         <p className="leading-6">
-          {props.blocker.type === CodeTaskBlockerType.RunnerNotOnline &&
-          props.blocker.runnerName ? (
+          {namedRunnerTemplate ? (
             <TranslatedSentence
-              template={CODE_TASK_RUNNER_NOT_ONLINE_NAMED}
+              template={namedRunnerTemplate}
               slots={{
                 runner: (
                   <span

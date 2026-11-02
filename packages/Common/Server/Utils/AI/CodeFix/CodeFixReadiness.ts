@@ -35,6 +35,24 @@ import {
 export const NO_GLOBAL_RUNNER_ONLINE_DETAIL: string =
   "No global Runner is online to work in this repository. Pick one of your Runners for it in the repository's settings in Code, or try again once the global Runner is back.";
 
+/*
+ * Global Runners are online, but none takes AI code fixes: each runs a
+ * release from before global Runners took them, or its host turned them off
+ * (Types/Runner/RunnerCodeFixes). Saying none is online would be wrong - the
+ * Runners page shows them connected - and only whoever runs OneUptime can
+ * change them.
+ */
+export const GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL: string =
+  "No global Runner online takes AI code fixes: each runs an older release or has code fixes turned off. Pick one of your Runners for this repository in its settings in Code, or ask your OneUptime administrator to let a global Runner take them.";
+
+/*
+ * The Runner a repository works on is online, but its host turned AI code
+ * fixes off (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false): the setting that
+ * stops it, and the two ways on.
+ */
+const CODE_FIXES_TURNED_OFF_ON_HOST: string =
+  "does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner in the repository's settings in Code.";
+
 export const GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL: string =
   "This project does not use global Runners, and this repository picks no Runner of its own. Pick one of your Runners for it in the repository's settings in Code, or turn global Runners on under Runbooks → Runners.";
 
@@ -65,6 +83,28 @@ export function getProjectDefaultRunnerOfflineDetail(
   return `${runner} which this repository works on, is not online. Check that its container is running, or pick another Runner in the repository's settings in Code.`;
 }
 
+// The Runner the repository picks is online but takes no AI code fixes.
+export function getRepositoryRunnerTakesNoCodeFixesDetail(
+  runnerName?: string | undefined,
+): string {
+  const runner: string = runnerName
+    ? `The Runner "${runnerName}" this repository picks`
+    : "The Runner this repository picks";
+
+  return `${runner} ${CODE_FIXES_TURNED_OFF_ON_HOST}`;
+}
+
+// The same, for the project's default Runner the repository follows.
+export function getProjectDefaultRunnerTakesNoCodeFixesDetail(
+  runnerName?: string | undefined,
+): string {
+  const runner: string = runnerName
+    ? `The project's default Runner, "${runnerName}", which this repository works on,`
+    : "The project's default Runner, which this repository works on,";
+
+  return `${runner} ${CODE_FIXES_TURNED_OFF_ON_HOST}`;
+}
+
 // Why nothing can do the repository's work now, or null while something can.
 export function describeRepositoryRunnerStatus(
   status: CodeRepositoryRunnerStatus,
@@ -75,11 +115,17 @@ export function describeRepositoryRunnerStatus(
 
   switch (status.decision.kind) {
     case CodeRepositoryRunnerChoiceKind.Custom:
-      return getRepositoryRunnerOfflineDetail(status.runnerName);
+      return status.takesNoCodeFixes
+        ? getRepositoryRunnerTakesNoCodeFixesDetail(status.runnerName)
+        : getRepositoryRunnerOfflineDetail(status.runnerName);
     case CodeRepositoryRunnerChoiceKind.ProjectDefault:
-      return getProjectDefaultRunnerOfflineDetail(status.runnerName);
+      return status.takesNoCodeFixes
+        ? getProjectDefaultRunnerTakesNoCodeFixesDetail(status.runnerName)
+        : getProjectDefaultRunnerOfflineDetail(status.runnerName);
     case CodeRepositoryRunnerChoiceKind.Global:
-      return NO_GLOBAL_RUNNER_ONLINE_DETAIL;
+      return status.takesNoCodeFixes
+        ? GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL
+        : NO_GLOBAL_RUNNER_ONLINE_DETAIL;
     case CodeRepositoryRunnerChoiceKind.NoRunner:
       return GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL;
     default: {
@@ -99,20 +145,27 @@ export function getRepositoryRunnerBlocker(
     return null;
   }
 
-  const type: CodeTaskBlockerType =
+  const isProjectRunner: boolean =
     status.decision.kind === CodeRepositoryRunnerChoiceKind.Custom ||
-    status.decision.kind === CodeRepositoryRunnerChoiceKind.ProjectDefault
-      ? CodeTaskBlockerType.RunnerNotOnline
-      : status.decision.kind === CodeRepositoryRunnerChoiceKind.NoRunner
-        ? CodeTaskBlockerType.GlobalRunnersOff
+    status.decision.kind === CodeRepositoryRunnerChoiceKind.ProjectDefault;
+
+  const type: CodeTaskBlockerType = isProjectRunner
+    ? status.takesNoCodeFixes
+      ? CodeTaskBlockerType.RunnerTakesNoCodeFixes
+      : CodeTaskBlockerType.RunnerNotOnline
+    : status.decision.kind === CodeRepositoryRunnerChoiceKind.NoRunner
+      ? CodeTaskBlockerType.GlobalRunnersOff
+      : status.takesNoCodeFixes
+        ? CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes
         : CodeTaskBlockerType.NoAgent;
 
   /*
-   * The Runner the repository picks is named, so Code's notice says which
-   * one to check: the person reading it may pick Runners for the project's
-   * repositories, and sees the name in the repository's settings anyway.
+   * The Runner the repository works on is named, so Code's notice says
+   * which one to check: the person reading it may pick Runners for the
+   * project's repositories, and sees the name in the repository's settings
+   * anyway.
    */
-  if (type === CodeTaskBlockerType.RunnerNotOnline && status.runnerName) {
+  if (isProjectRunner && status.runnerName) {
     return { type, message, runnerName: status.runnerName };
   }
 
@@ -300,14 +353,20 @@ export default class CodeFixReadiness {
         isGlobalRunnerPicked: params.repository.isGlobalRunnerPicked,
       });
 
-    const offline: string | null = describeRepositoryRunnerStatus(status);
+    const blocker: CodeTaskBlocker | null = getRepositoryRunnerBlocker(status);
 
-    if (offline) {
+    /*
+     * Which of Code's blockers it is rides along, so a page that draws the
+     * failure as Code's notice (an exception finding's Fix with AI) says
+     * what Code says.
+     */
+    if (blocker) {
       return {
         id: "agentAvailable",
         ok: false,
         title: "Runner online",
-        detail: offline,
+        detail: blocker.message,
+        blocker,
       };
     }
 

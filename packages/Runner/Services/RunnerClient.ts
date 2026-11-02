@@ -163,12 +163,21 @@ export default class AgentClient {
   public static async heartbeat(data: {
     agentVersion?: string | undefined;
     hostInfo?: JSONObject | undefined;
+    /*
+     * Whether this Runner takes AI code fixes when the server grants them
+     * (RunnerCapabilities.takesCodeFixes). A server that predates the key
+     * ignores it.
+     */
+    takesCodeFixes?: boolean | undefined;
   }): Promise<HeartbeatResult> {
     const res: AxiosResponse = await http.post(
       "/heartbeat",
       authBody({
         ...(data.agentVersion ? { agentVersion: data.agentVersion } : {}),
         ...(data.hostInfo ? { hostInfo: data.hostInfo } : {}),
+        ...(typeof data.takesCodeFixes === "boolean"
+          ? { takesCodeFixes: data.takesCodeFixes }
+          : {}),
       }),
     );
     if (res.status >= 200 && res.status < 300) {

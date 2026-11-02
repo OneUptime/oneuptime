@@ -10,6 +10,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import RunnerLiveStatus, {
   getRunnerLiveStatus,
 } from "Common/Types/Runner/RunnerLiveStatus";
+import {
+  RunnerCodeFixRefusal,
+  getRunnerCodeFixRefusal,
+} from "Common/Types/Runner/RunnerCodeFixes";
 import { getGlobalRunnerDockerCommand } from "Common/Types/Runner/RunnerContainer";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -25,6 +29,10 @@ import Runner from "Common/Models/DatabaseModels/Runner";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+// The line under a global Runner's status when it takes no AI code fixes.
+export const GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID: string =
+  "global-runner-takes-no-code-fixes";
+
 /*
  * Settings -> Runbooks -> Global Runners: the Runners OneUptime runs for
  * every project, which only a master admin creates. A global Runner is the
@@ -34,13 +42,17 @@ import { useTranslation } from "react-i18next";
  * global Runners - each in a sandbox of its own that reaches the internet
  * only - and the AI code fixes of the repositories that work on a global
  * Runner, never running a repository's own commands. Every project lists
- * these on its own Runners page.
+ * these on its own Runners page. A global Runner that takes no AI code
+ * fixes - one of a release from before global Runners took them, or one
+ * whose host turned them off - says so under its status, with what to do:
+ * the repositories on the Global Runner say no global Runner online takes
+ * them, and this is where the admin finds which one, and why.
  */
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const [currentRunner, setCurrentRunner] = useState<Runner | null>(null);
 
-  const renderStatus: (item: Runner) => ReactElement = (
+  const renderLiveStatus: (item: Runner) => ReactElement = (
     item: Runner,
   ): ReactElement => {
     const status: RunnerLiveStatus = getRunnerLiveStatus(item.lastAlive);
@@ -72,6 +84,41 @@ const Settings: FunctionComponent = (): ReactElement => {
         color={Red}
         shouldAnimate={false}
       />
+    );
+  };
+
+  /*
+   * How it is doing, and - for one that takes no AI code fixes, as it said
+   * on its last heartbeat or as its release does - why, and what to do.
+   */
+  const renderStatus: (item: Runner) => ReactElement = (
+    item: Runner,
+  ): ReactElement => {
+    const refusal: RunnerCodeFixRefusal | null = getRunnerCodeFixRefusal({
+      isGlobalRunner: true,
+      takesCodeFixes: item.takesCodeFixes,
+      agentVersion: item.agentVersion,
+      lastAlive: item.lastAlive,
+    });
+
+    if (!refusal) {
+      return renderLiveStatus(item);
+    }
+
+    return (
+      <div>
+        {renderLiveStatus(item)}
+        <p
+          className="mt-1 text-xs text-amber-700"
+          data-testid={GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
+        >
+          {t(
+            refusal === RunnerCodeFixRefusal.OlderRelease
+              ? "pages.settings.globalRunners.takesNoCodeFixesOlderRelease"
+              : "pages.settings.globalRunners.takesNoCodeFixesTurnedOff",
+          )}
+        </p>
+      </div>
     );
   };
 
@@ -159,6 +206,9 @@ const Settings: FunctionComponent = (): ReactElement => {
         selectMoreFields={{
           key: true,
           lastAlive: true,
+          // Whether it takes AI code fixes: what it said, or its release.
+          takesCodeFixes: true,
+          agentVersion: true,
         }}
         actionButtons={[
           {
