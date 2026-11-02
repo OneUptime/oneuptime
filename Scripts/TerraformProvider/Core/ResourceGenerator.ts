@@ -261,10 +261,7 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     );
     await this.copyStaticFile("acceptance_test.go", "internal/provider");
     // People named by email address: invitations, on-call, owners, lookups.
-    await this.copyStaticFile(
-      "acceptance_people_test.go",
-      "internal/provider",
-    );
+    await this.copyStaticFile("acceptance_people_test.go", "internal/provider");
 
     /*
      * Package-level ObjectType registry shared by every resource and the
@@ -669,11 +666,11 @@ ${
 `
     : ""
 }${
-  resource.legacyName
-    ? `var _ resource.ResourceWithMoveState = &${resourceTypeName}Resource{}
+      resource.legacyName
+        ? `var _ resource.ResourceWithMoveState = &${resourceTypeName}Resource{}
 `
-    : ""
-}
+        : ""
+    }
 func New${resourceTypeName}Resource() resource.Resource {
     return &${resourceTypeName}Resource{}
 }
@@ -1383,21 +1380,19 @@ ${lines.join("\n")}
     resource: TerraformResource,
     resourceVarName: string,
   ): string {
-    const invited: Array<PersonAttributeFields> =
-      this.getPersonAttributes(resource).filter(
-        (person: PersonAttributeFields) => {
-          return person.invitesByEmail;
-        },
-      );
+    const invited: Array<PersonAttributeFields> = this.getPersonAttributes(
+      resource,
+    ).filter((person: PersonAttributeFields) => {
+      return person.invitesByEmail;
+    });
 
     if (invited.length === 0) {
       return "";
     }
 
     return invited
-      .map(
-        (person: PersonAttributeFields) => {
-          return `
+      .map((person: PersonAttributeFields) => {
+        return `
     // Named by email address: invited by it (see people.go).
     if !data.${person.emailField}.IsNull() && !data.${person.emailField}.IsUnknown() {
         delete(${resourceVarName}Request["data"].(map[string]interface{}), "${person.apiFieldName}")
@@ -1405,8 +1400,7 @@ ${lines.join("\n")}
             "${INVITATION_EMAIL_FIELD}": data.${person.emailField}.ValueString(),
         }
     }`;
-        },
-      )
+      })
       .join("\n");
   }
 
@@ -1420,14 +1414,11 @@ ${lines.join("\n")}
     responseVar: string,
   ): string {
     const lines: Array<string> = this.getPersonAttributes(resource)
-      .filter(
-        (person: PersonAttributeFields) => {
-          return !person.isSet;
-        },
-      )
-      .map(
-        (person: PersonAttributeFields) => {
-          return `    if data.${person.idField}.IsUnknown() {
+      .filter((person: PersonAttributeFields) => {
+        return !person.isSet;
+      })
+      .map((person: PersonAttributeFields) => {
+        return `    if data.${person.idField}.IsUnknown() {
         created := ${responseVar}
         if wrapper, ok := ${responseVar}["data"].(map[string]interface{}); ok {
             created = wrapper
@@ -1438,8 +1429,7 @@ ${lines.join("\n")}
             data.${person.idField} = types.StringNull()
         }
     }`;
-        },
-      );
+      });
 
     if (lines.length === 0) {
       return "";

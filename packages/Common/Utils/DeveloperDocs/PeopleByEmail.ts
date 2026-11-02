@@ -79,7 +79,9 @@ export function getPersonEmailColumnName(
 }
 
 // Whether a column that refers to `relatedTableName` names a person.
-export function isPersonRelation(relatedTableName: string | undefined): boolean {
+export function isPersonRelation(
+  relatedTableName: string | null | undefined,
+): boolean {
   return relatedTableName === PERSON_TABLE_NAME;
 }
 
@@ -151,7 +153,9 @@ export function isDecidedByThePersonInvited(
   tableName: string,
   columnName: string,
 ): boolean {
-  return Boolean(DECIDED_BY_THE_PERSON_INVITED[tableName]?.includes(columnName));
+  return Boolean(
+    DECIDED_BY_THE_PERSON_INVITED[tableName]?.includes(columnName),
+  );
 }
 
 // Whether a column is someone else's to decide, and read-only to a client.

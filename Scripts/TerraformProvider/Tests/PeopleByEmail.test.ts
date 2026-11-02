@@ -119,9 +119,7 @@ describe("the parser: a person, and the address beside them", () => {
       isRequired: false,
       invitesByEmail: false,
     });
-    expect(
-      attribute("monitor_owner_rule", "owner_user_emails"),
-    ).toMatchObject({
+    expect(attribute("monitor_owner_rule", "owner_user_emails")).toMatchObject({
       type: "set",
       optional: true,
       computed: true,
@@ -163,9 +161,9 @@ describe("the parser: what someone else decides is read-only", () => {
         optional: false,
         required: false,
       });
-      expect(Object.keys(resource.operationSchemas?.create || {})).not.toContain(
-        name,
-      );
+      expect(
+        Object.keys(resource.operationSchemas?.create || {}),
+      ).not.toContain(name);
     }
   });
 
@@ -343,7 +341,9 @@ describe("the Go the generator writes", () => {
         path.join(outputDir, "internal/provider/data_source_user.go"),
         "utf-8",
       ),
-    ).toBe(fs.readFileSync(path.join(STATIC_FILES, "data_source_user.go"), "utf-8"));
+    ).toBe(
+      fs.readFileSync(path.join(STATIC_FILES, "data_source_user.go"), "utf-8"),
+    );
     expect(dataSourcesGo).toContain("NewUserDataSource,");
   });
 
@@ -354,8 +354,10 @@ describe("the Go the generator writes", () => {
     expect(userId).toContain(
       'Validators: personIDValidators("user_email", true)',
     );
-    // A plan modifier runs on a schema built from an unconfigured resource:
-    // no client to ask with.
+    /*
+     * A plan modifier runs on a schema built from an unconfigured resource:
+     * no client to ask with.
+     */
     expect(userId).not.toContain("PlanModifiers");
 
     expect(teamMemberGo).toContain(
@@ -376,7 +378,9 @@ describe("the Go the generator writes", () => {
 
   test("the address has the plan modifiers and validators of an address", () => {
     const email: string = between(teamMemberGo, '"user_email": schema', "},\n");
-    expect(email).toContain('PlanModifiers: personEmailPlanModifiers("user_id")');
+    expect(email).toContain(
+      'PlanModifiers: personEmailPlanModifiers("user_id")',
+    );
     expect(email).toContain("Validators: personEmailValidators()");
   });
 
@@ -450,7 +454,11 @@ describe("the Go the generator writes", () => {
     expect(owners).toContain(
       'Validators: personIDsValidators("owner_user_emails", false)',
     );
-    const emails: string = between(ruleGo, '"owner_user_emails": schema', "},\n");
+    const emails: string = between(
+      ruleGo,
+      '"owner_user_emails": schema',
+      "},\n",
+    );
     expect(emails).toContain("ElementType: types.StringType");
     expect(emails).toContain(
       'PlanModifiers: personEmailsPlanModifiers("owner_users")',
@@ -562,7 +570,9 @@ describe("the client remembers the people it found", () => {
         path.join(outputDir, "internal/provider/client.go"),
         "utf-8",
       );
-      const peopleField: RegExp = new RegExp("\\n\\s+people peopleDirectory\\n");
+      const peopleField: RegExp = new RegExp(
+        "\\n\\s+people peopleDirectory\\n",
+      );
       expect(clientGo).toMatch(peopleField);
     } finally {
       fs.rmSync(outputDir, { recursive: true, force: true });
@@ -618,9 +628,9 @@ describe("the reference pages", () => {
       expect(teamMember).toContain(heading);
     }
     // The guide sits between the example and the schema.
-    expect(teamMember.indexOf("## Invite people by email address")).toBeLessThan(
-      teamMember.indexOf("## Schema"),
-    );
+    expect(
+      teamMember.indexOf("## Invite people by email address"),
+    ).toBeLessThan(teamMember.indexOf("## Schema"));
     expect(teamMember.indexOf("## Example Usage")).toBeLessThan(
       teamMember.indexOf("## Invite people by email address"),
     );
@@ -635,9 +645,7 @@ describe("the reference pages", () => {
       teamMember.indexOf("## Import"),
     );
 
-    expect(importSection).toContain(
-      'id = "<team_id>/alice@example.com"',
-    );
+    expect(importSection).toContain('id = "<team_id>/alice@example.com"');
     expect(importSection).toContain(
       "terraform import oneuptime_team_member.example <team_id>/alice@example.com",
     );

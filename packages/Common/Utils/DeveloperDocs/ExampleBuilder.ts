@@ -946,8 +946,7 @@ export function getDeveloperDocsTerraformBlock(data: {
     }
 
     let item: HclBodyItem | null;
-    const viewerEmail: string | undefined =
-      data.context.live.currentUserEmail;
+    const viewerEmail: string | undefined = data.context.live.currentUserEmail;
 
     if (
       descriptor.personEmail &&

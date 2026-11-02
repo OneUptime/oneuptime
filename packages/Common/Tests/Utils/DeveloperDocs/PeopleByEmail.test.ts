@@ -75,22 +75,28 @@ describe("the address beside a person column", () => {
     // A bare suffix is a name of its own, not a suffix.
     ["Id", PersonColumnKind.One, "IdEmail"],
     ["Users", PersonColumnKind.Many, "UsersEmails"],
-  ])("%s (%s) -> %s", (column: string, kind: PersonColumnKind, email: string) => {
-    expect(getPersonEmailColumnName(column, kind)).toBe(email);
-  });
+  ])(
+    "%s (%s) -> %s",
+    (column: string, kind: PersonColumnKind, email: string) => {
+      expect(getPersonEmailColumnName(column, kind)).toBe(email);
+    },
+  );
 
   test("a person is a User", () => {
     expect(PERSON_TABLE_NAME).toBe(new User().tableName);
     expect(isPersonRelation("User")).toBe(true);
     expect(isPersonRelation("Team")).toBe(false);
     expect(isPersonRelation(undefined)).toBe(false);
+    expect(isPersonRelation(null)).toBe(false);
   });
 
   test("addresses compare trimmed and in any case, as OneUptime stores them", () => {
     expect(normalizePersonEmail("  Alice.Smith@Example.COM ")).toBe(
       "alice.smith@example.com",
     );
-    expect(EXAMPLE_PERSON_EMAIL).toBe(normalizePersonEmail(EXAMPLE_PERSON_EMAIL));
+    expect(EXAMPLE_PERSON_EMAIL).toBe(
+      normalizePersonEmail(EXAMPLE_PERSON_EMAIL),
+    );
   });
 });
 
@@ -126,7 +132,10 @@ describe("only a team member invites by address", () => {
         },
       ),
       ...Object.entries(MEMBERSHIP_IMPORTS).flatMap(
-        ([table, rule]: [string, { parentColumn: string; personColumn: string }]) => {
+        ([table, rule]: [
+          string,
+          { parentColumn: string; personColumn: string },
+        ]) => {
           return [
             [table, rule.parentColumn],
             [table, rule.personColumn],
@@ -153,17 +162,29 @@ describe("only a team member invites by address", () => {
 
 describe("what someone else decides", () => {
   test("the invitee decides whether they accepted, and when", () => {
-    expect(isDecidedByThePersonInvited("TeamMember", "hasAcceptedInvitation")).toBe(true);
-    expect(isDecidedByThePersonInvited("TeamMember", "invitationAcceptedAt")).toBe(true);
+    expect(
+      isDecidedByThePersonInvited("TeamMember", "hasAcceptedInvitation"),
+    ).toBe(true);
+    expect(
+      isDecidedByThePersonInvited("TeamMember", "invitationAcceptedAt"),
+    ).toBe(true);
     expect(isDecidedByThePersonInvited("TeamMember", "userId")).toBe(false);
-    expect(isDecidedByThePersonInvited("Monitor", "hasAcceptedInvitation")).toBe(false);
+    expect(
+      isDecidedByThePersonInvited("Monitor", "hasAcceptedInvitation"),
+    ).toBe(false);
   });
 
   test("OneUptime decides whether it has told the owners, on every table", () => {
     expect(DECIDED_BY_ONEUPTIME_IN_EVERY_TABLE).toEqual(["isOwnerNotified"]);
-    expect(isDecidedBySomeoneElse("MonitorOwnerUser", "isOwnerNotified")).toBe(true);
-    expect(isDecidedBySomeoneElse("IncidentStateTimeline", "isOwnerNotified")).toBe(true);
-    expect(isDecidedBySomeoneElse("TeamMember", "hasAcceptedInvitation")).toBe(true);
+    expect(isDecidedBySomeoneElse("MonitorOwnerUser", "isOwnerNotified")).toBe(
+      true,
+    );
+    expect(
+      isDecidedBySomeoneElse("IncidentStateTimeline", "isOwnerNotified"),
+    ).toBe(true);
+    expect(isDecidedBySomeoneElse("TeamMember", "hasAcceptedInvitation")).toBe(
+      true,
+    );
     expect(isDecidedBySomeoneElse("MonitorOwnerUser", "userId")).toBe(false);
   });
 
@@ -248,7 +269,9 @@ describe("the dashboard's view of the provider", () => {
   });
 
   test("a rule's owners are a set of addresses", () => {
-    expect(attributes(MonitorOwnerRule).get("owner_users")!.personEmail).toEqual({
+    expect(
+      attributes(MonitorOwnerRule).get("owner_users")!.personEmail,
+    ).toEqual({
       attributeName: "owner_user_emails",
       isList: true,
       invitesByEmail: false,

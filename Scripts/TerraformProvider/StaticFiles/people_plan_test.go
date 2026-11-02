@@ -398,30 +398,39 @@ type peopleTerraform struct {
 
 func newPeopleTerraform(t *testing.T) *peopleTerraform {
 	t.Helper()
-	ctx := context.Background()
-	api := newPeopleAPI(t)
+	tf := &peopleTerraform{t: t, ctx: context.Background(), api: newPeopleAPI(t)}
+	tf.restart()
+	return tf
+}
+
+// restart starts the provider again, as the next terraform command does: a
+// new process, which remembers nobody the last one found.
+func (tf *peopleTerraform) restart() {
+	tf.t.Helper()
 	server := providerserver.NewProtocol6(New("test")())()
 
-	schemas, err := server.GetProviderSchema(ctx, &tfprotov6.GetProviderSchemaRequest{})
+	schemas, err := server.GetProviderSchema(tf.ctx, &tfprotov6.GetProviderSchemaRequest{})
 	if err != nil {
-		t.Fatalf("GetProviderSchema: %s", err)
+		tf.t.Fatalf("GetProviderSchema: %s", err)
 	}
 
 	providerType := schemas.Provider.ValueType().(tftypes.Object)
 	providerConfig, err := tfprotov6.NewDynamicValue(providerType, objectWith(providerType, map[string]tftypes.Value{
-		"oneuptime_url": tftypes.NewValue(tftypes.String, api.server.URL),
+		"oneuptime_url": tftypes.NewValue(tftypes.String, tf.api.server.URL),
 		"api_key":       tftypes.NewValue(tftypes.String, peopleAPIKey),
 	}))
 	if err != nil {
-		t.Fatalf("encoding the provider configuration: %s", err)
+		tf.t.Fatalf("encoding the provider configuration: %s", err)
 	}
-	configured, err := server.ConfigureProvider(ctx, &tfprotov6.ConfigureProviderRequest{TerraformVersion: "1.9.8", Config: &providerConfig})
+	configured, err := server.ConfigureProvider(tf.ctx, &tfprotov6.ConfigureProviderRequest{TerraformVersion: "1.9.8", Config: &providerConfig})
 	if err != nil {
-		t.Fatalf("ConfigureProvider: %s", err)
+		tf.t.Fatalf("ConfigureProvider: %s", err)
 	}
-	failOnErrors(t, "configuring the provider", configured.Diagnostics)
+	failOnErrors(tf.t, "configuring the provider", configured.Diagnostics)
 
-	return &peopleTerraform{t: t, ctx: ctx, api: api, server: server, schemas: schemas.ResourceSchemas, sources: schemas.DataSourceSchemas}
+	tf.server = server
+	tf.schemas = schemas.ResourceSchemas
+	tf.sources = schemas.DataSourceSchemas
 }
 
 func (tf *peopleTerraform) objectType(typeName string) tftypes.Object {
@@ -941,7 +950,8 @@ func TestPeopleLayerUserByEmailChangesPersonInPlace(t *testing.T) {
 
 	// The same person, written in another case: the address is written
 	// again, and nothing else - not the person, nothing to the API, nobody
-	// looked up.
+	// looked up, even by a provider that has found nobody yet.
+	tf.restart()
 	lookups := tf.api.personLookups
 	otherCase := layerUserConfig(tf, map[string]tftypes.Value{"user_email": str("Alice@EXAMPLE.com")})
 	changed, replaced := tf.changes(layerUserType, state, otherCase)
@@ -996,6 +1006,8 @@ func TestPeopleAddressChangedInOneUptimeIsNoChange(t *testing.T) {
 	tf.api.people[aliceID].email = "alice.smith@example.com"
 	tf.api.mu.Unlock()
 
+	// The next terraform command: nobody found yet.
+	tf.restart()
 	state = tf.refresh(layerUserType, state)
 	if got := stringOf(t, state, "user_email"); got != "alice@example.com" {
 		t.Fatalf("the refresh moved the address to %q", got)

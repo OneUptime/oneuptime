@@ -245,6 +245,44 @@ func TestPeopleRefusalStopsFillingAddresses(t *testing.T) {
 	}
 }
 
+// The user data source reads who someone is now - their teams may have
+// changed earlier in the same run - and what it finds serves the
+// resources' lookups after it.
+func TestPeopleReadBypassesWhatIsRemembered(t *testing.T) {
+	teams := []string{"team-a"}
+	api, client := newDirectoryAPI(t, func(body map[string]interface{}) (int, interface{}) {
+		rows := []interface{}{}
+		for _, team := range teams {
+			rows = append(rows, membership("u8", team, true, "frank@example.com", nil))
+		}
+		return page(rows...)
+	})
+	ctx := context.Background()
+
+	if _, err := client.findPersonByEmail(ctx, "frank@example.com"); err != nil {
+		t.Fatalf("findPersonByEmail: %s", err)
+	}
+	teams = append(teams, "team-b")
+
+	person, err := client.readPersonByEmail(ctx, "frank@example.com")
+	if err != nil || person == nil || len(person.TeamIDs) != 2 {
+		t.Fatalf("readPersonByEmail found %+v, %v: want both teams", person, err)
+	}
+	byID, err := client.readPersonByID(ctx, "u8")
+	if err != nil || byID == nil || len(byID.TeamIDs) != 2 {
+		t.Fatalf("readPersonByID found %+v, %v: want both teams", byID, err)
+	}
+	if api.requestCount() != 3 {
+		t.Fatalf("%d requests, want each read to ask", api.requestCount())
+	}
+
+	// The resources' lookups use what the reads found.
+	again, err := client.findPersonByEmail(ctx, "frank@example.com")
+	if err != nil || len(again.TeamIDs) != 2 || api.requestCount() != 3 {
+		t.Fatalf("a lookup after a read asked again or found the old teams: %+v", again)
+	}
+}
+
 func TestPeopleForget(t *testing.T) {
 	api, client := newDirectoryAPI(t, func(body map[string]interface{}) (int, interface{}) {
 		return page(membership("u7", "team-a", true, "erin@example.com", nil))

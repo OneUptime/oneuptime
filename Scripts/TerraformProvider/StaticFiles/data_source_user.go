@@ -133,10 +133,10 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	switch given[0] {
 	case "email":
 		lookup = fmt.Sprintf("email = %q", data.Email.ValueString())
-		person, err = d.client.findPersonByEmail(ctx, data.Email.ValueString())
+		person, err = d.client.readPersonByEmail(ctx, data.Email.ValueString())
 	case "id":
 		lookup = fmt.Sprintf("id = %q", data.Id.ValueString())
-		person, err = d.client.findPersonByID(ctx, data.Id.ValueString())
+		person, err = d.client.readPersonByID(ctx, data.Id.ValueString())
 	case "name":
 		lookup = fmt.Sprintf("name = %q", data.Name.ValueString())
 		var people []*projectPerson

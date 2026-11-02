@@ -244,6 +244,13 @@ func (c *Client) findPersonByEmail(ctx context.Context, email string) (*projectP
 		return person, nil
 	}
 
+	return c.readPersonByEmail(ctx, email)
+}
+
+// readPersonByEmail is findPersonByEmail asking the API whatever is
+// remembered: for the user data source, whose teams and acceptance are what
+// a reader asks it for, and may have changed earlier in the same run.
+func (c *Client) readPersonByEmail(ctx context.Context, email string) (*projectPerson, error) {
 	people, err := c.listPeople(ctx, map[string]interface{}{
 		"user": map[string]interface{}{"email": normalizePersonEmail(email)},
 	})
@@ -268,6 +275,11 @@ func (c *Client) findPersonByID(ctx context.Context, id string) (*projectPerson,
 		return person, nil
 	}
 
+	return c.readPersonByID(ctx, id)
+}
+
+// readPersonByID is findPersonByID asking the API whatever is remembered.
+func (c *Client) readPersonByID(ctx context.Context, id string) (*projectPerson, error) {
 	people, err := c.listPeople(ctx, map[string]interface{}{"userId": id})
 	if err != nil {
 		return nil, err

@@ -736,7 +736,7 @@ terraform import ${provider}_${resource.name}.example <${resource.membershipImpo
 Imported by its address, the person's \`user_email\` stays as you wrote it. Its own ID works too.
 `
       : resource.operations?.read
-      ? `## Import
+        ? `## Import
 
 Import an existing ${resource.name.replace(/_/g, " ")} by its id, with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
 
@@ -753,7 +753,7 @@ or on the command line:
 terraform import ${provider}_${resource.name}.example <id>
 \`\`\`
 `
-      : `## Import
+        : `## Import
 
 This resource does not support import: the OneUptime API exposes no read endpoint for it.
 `;
@@ -931,7 +931,6 @@ If your identity provider manages your people over SCIM, let it: while SCIM Push
 
     await this.fileGenerator.writeFileInDir("docs/guides", "people.md", guide);
   }
-
 
   // The schema lines of the attributes a page's guide covers point at it.
   private withGuideLinks(

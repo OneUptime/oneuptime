@@ -132,7 +132,8 @@ const teamMemberUpdateSchema: any = {
   type: "object",
   description: "Update schema for TeamMember model. Update",
   properties: {
-    hasAcceptedInvitation: teamMemberCreateSchema.properties.hasAcceptedInvitation,
+    hasAcceptedInvitation:
+      teamMemberCreateSchema.properties.hasAcceptedInvitation,
     invitationAcceptedAt: dateTime,
   },
 };
@@ -355,7 +356,10 @@ export function buildPeopleFixtureSpec(): OpenAPISpec {
     tags: [
       { name: "User", description: "A signed up or invited OneUptime user." },
       { name: "Team", description: "Teams." },
-      { name: "Team Member", description: "This model connects users and teams" },
+      {
+        name: "Team Member",
+        description: "This model connects users and teams",
+      },
       { name: "Monitor Owner User", description: "Owners of a monitor." },
       {
         name: "On-Call Duty Policy Schedule Layer User",
