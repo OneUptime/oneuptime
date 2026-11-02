@@ -31,8 +31,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Overview leads with the case's figures, OneUptime AI's read and the
  * ATT&CK tactics; each other page is one part of the case on a page of its
  * own - the Timeline, the Detections, the Entities, the Playbooks, the
- * Private Notes, the Audit Logs and Delete Case. The cards themselves are
- * tested on their own; here they are stubs that say what they were given.
+ * Private Notes, the Custom Fields, the Audit Logs and Delete Case. The
+ * cards themselves are tested on their own; here they are stubs that say
+ * what they were given.
  */
 
 let permissionsForTest: Array<string> = ["ProjectOwner"];
@@ -170,7 +171,33 @@ jest.mock(
   },
 );
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/CustomFields/OverviewCustomFields",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        record("OverviewCustomFields", props);
+        return React.createElement("div", {
+          "data-testid": "overview-custom-fields",
+        });
+      },
+    };
+  },
+);
+
+jest.mock("../../../UI/Components/CustomFields/CustomFieldsDetail", () => {
+  return {
+    __esModule: true,
+    default: (props: Record<string, unknown>): React.ReactElement => {
+      record("CustomFieldsDetail", props);
+      return React.createElement("div", { "data-testid": "custom-fields" });
+    },
+  };
+});
+
 import SecurityCaseOverviewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Index";
+import SecurityCaseCustomFieldsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/CustomFields";
 import SecurityCaseTimelinePage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline";
 import SecurityCaseDetectionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
@@ -182,7 +209,10 @@ import SecurityCaseViewContext from "../../../../App/FeatureSet/Dashboard/src/Pa
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCaseCustomField";
 import SecurityCaseNote from "../../../Models/DatabaseModels/SecurityCaseNote";
+import SecurityCaseNoteTemplate from "../../../Models/DatabaseModels/SecurityCaseNoteTemplate";
+import ProjectUtil from "../../../UI/Utils/Project";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
@@ -426,6 +456,27 @@ describe("the Overview", () => {
     ).toBeInTheDocument();
   });
 
+  test("ends with the project's own case fields, which the card leaves out while there are none", () => {
+    drawPage(
+      <SecurityCaseOverviewPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const props: Record<string, unknown> = lastProps("OverviewCustomFields");
+
+    expect(props["modelType"]).toBe(SecurityCase);
+    expect(props["customFieldType"]).toBe(SecurityCaseCustomField);
+    expect((props["modelId"] as ObjectID).toString()).toBe(CASE_ID);
+    expect(props["resourceName"]).toBe("Security Case");
+    // After ATT&CK: the last card of the Overview.
+    expect(
+      screen
+        .getByText("MITRE ATT&CK")
+        .compareDocumentPosition(screen.getByTestId("overview-custom-fields")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("draws its parts in order: the figures, then OneUptime AI's read, then ATT&CK", () => {
     const { container } = drawPage(
       <SecurityCaseOverviewPage {...PAGE_PROPS} />,
@@ -551,6 +602,57 @@ describe("each other page of a case", () => {
     expect(props["description"]).toBe(
       "Notes for the team working this case: what you found, what you decided and what comes next.",
     );
+  });
+
+  test("the Private Notes composer offers the project's case note templates, and links to where they are kept", () => {
+    drawPage(
+      <SecurityCaseNotesPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const templates: Record<string, unknown> = lastProps("EventNotes")[
+      "templates"
+    ] as Record<string, unknown>;
+
+    expect(templates["modelType"]).toBe(SecurityCaseNoteTemplate);
+    expect(String(templates["settingsRoute"])).toMatch(
+      /\/security-events\/settings\/note-templates$/,
+    );
+  });
+
+  test("the Custom Fields page lists the project's own case fields with this case's values", () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT._id!.toString()));
+
+    drawPage(
+      <SecurityCaseCustomFieldsPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const props: Record<string, unknown> = lastProps("CustomFieldsDetail");
+
+    expect(props["title"]).toBe("Case Custom Fields");
+    expect(props["description"]).toBe(
+      "The project's own fields, filled in for this case.",
+    );
+    expect(props["modelType"]).toBe(SecurityCase);
+    expect(props["customFieldType"]).toBe(SecurityCaseCustomField);
+    expect((props["modelId"] as ObjectID).toString()).toBe(CASE_ID);
+    expect((props["projectId"] as ObjectID).toString()).toBe(
+      PROJECT._id!.toString(),
+    );
+  });
+
+  test("the Custom Fields page waits for the project it is in", () => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
+
+    drawPage(
+      <SecurityCaseCustomFieldsPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    expect(received["CustomFieldsDetail"]).toBeUndefined();
   });
 
   test("the Audit Logs page lists every change made to the case", () => {

@@ -103,6 +103,7 @@ const DELETABLE_SETTINGS_LISTS: Array<string> = [
   "Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx",
   "Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates.tsx",
   "Dashboard/src/Pages/Alerts/Settings/AlertNoteTemplates.tsx",
+  "Dashboard/src/Pages/SecurityEvents/Settings/NoteTemplates.tsx",
   "Dashboard/src/Pages/StatusPages/Settings/StatusPageAnnouncementTemplates.tsx",
   "Dashboard/src/Pages/StatusPages/Settings/SubscriberNotificationTemplates.tsx",
   "Dashboard/src/Pages/Monitor/Settings/MonitorTemplates.tsx",

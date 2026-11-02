@@ -54,7 +54,7 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { Fragment, ReactElement, useState } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-// The nine custom field definition models, one per resource.
+// The ten custom field definition models, one per resource.
 export type CustomFieldsBaseModels = CustomFieldDefinitionModel;
 
 const MAP_FROM_NONE_VALUE: string = "";

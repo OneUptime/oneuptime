@@ -1326,6 +1326,10 @@ describe("the project's forms", () => {
       ["templateName", "templateDescription", "note"],
     ],
     [
+      `${DASHBOARD}/Pages/SecurityEvents/Settings/NoteTemplates.tsx`,
+      ["templateName", "templateDescription", "note"],
+    ],
+    [
       `${DASHBOARD}/Pages/Incidents/Settings/IncidentPostmortemTemplates.tsx`,
       ["templateName", "templateDescription", "postmortemNote"],
     ],

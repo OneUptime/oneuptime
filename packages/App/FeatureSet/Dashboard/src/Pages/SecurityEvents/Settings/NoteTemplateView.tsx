@@ -128,10 +128,14 @@ const SecurityCaseNoteTemplateViewPage: FunctionComponent<
       <ModelDelete
         modelType={SecurityCaseNoteTemplate}
         modelId={modelId}
+        // "Delete Note Template", as the list and the trail name one.
+        singularName={copy.singularName}
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES] as Route,
+              RouteMap[
+                PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES
+              ] as Route,
             ),
           );
         }}
