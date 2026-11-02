@@ -1,11 +1,12 @@
 # Forbundne signaler
 
-En sikkerhedssag siger, hvilke brugere, værter og adresser den handler om. Forbundne signaler siger, hvilke af dem OneUptime allerede kender - dine værter, containerværter, Kubernetes-klynger, netværksenheder, cloud-ressourcer, serverløse funktioner, tjenester, de monitorer, der tjekker dem, og medlemmer - og hvad der skete på hver af dem omkring sagen: dens protokoller, spor og metrikker, de hændelser og advarsler, der er åbne på den, de monitorer, der overvåger den, og hvad der ændrede sig på den. Omvendt siger siden for en vært, en klynge, en cloud-ressource, en tjeneste, en monitor eller et medlem, hvad Security Events har fundet om den.
+En sikkerhedssag siger, hvilke brugere, værter og adresser den handler om. Forbundne signaler siger, hvilke af dem OneUptime allerede kender - dine værter, containerværter, Kubernetes-klynger, netværksenheder, cloud-ressourcer, serverløse funktioner, tjenester, de monitorer, der tjekker dem, og medlemmer - og hvad der skete på hver af dem omkring sagen: dens protokoller, spor og metrikker, de hændelser og advarsler, der er åbne på den, de monitorer, der overvåger den, og hvad der ændrede sig på den. Den søger også i selve dine protokoller og spor efter dem: en angribers adresse i en webservers adgangslog, en lækket e-mail i en applikations fejl. Omvendt siger siden for en vært, en klynge, en cloud-ressource, en tjeneste, en monitor eller et medlem, hvad Security Events har fundet om den.
 
 :::cards
 - [Hvor du ser det](#hvor-du-ser-det): En sags side, en begivenheds fane, en entitets side og siderne for det, de nævner.
 - [Hvordan en værdi matches](#hvordan-en-værdi-matches): Hvad der tæller som den samme post, og hvad der kun muligvis gør.
 - [Hvad hver post viser](#hvad-hver-post-viser): Dens signaler omkring sagen, og hvad der er åbent på den.
+- [I dine protokoller og spor](#i-dine-protokoller-og-spor): Hvor en adresse, et domæne eller en e-mail, den nævner, optræder i dine protokollinjer og spans.
 - [Hvem ser hvad](#hvem-ser-hvad): Hver post læses med læserens egen rolle.
 :::
 
@@ -53,7 +54,7 @@ Hver bruger, vært og adresse, som en sag eller en begivenhed nævner, slås op 
 | Et rent brugernavn, en filhash eller en proces | Intet: ingen post er nøglet efter dem | - |
 
 - Et muligt match viser **Muligt match** ved siden af navnet og siger hvorfor. Det tælles aldrig med på postens side, og en hændelse, som sagen erklærer, knyttes aldrig til det.
-- Det, der blev søgt efter og ikke er en post i projektet, står under **Ikke i OneUptime**. En værdi står aldrig der, når en slags post, den kunne være, ikke kunne læses.
+- Det, der blev søgt efter og ikke er en post i projektet, står under **Ingen matchende post**. En værdi står aldrig der, når en slags post, den kunne være, ikke kunne læses.
 - Der vises højst 10 poster for en sag, de præcise først.
 
 ## Hvad hver post viser
@@ -70,6 +71,20 @@ Hver bruger, vært og adresse, som en sag eller en begivenhed nævner, slås op 
 | En entitets side | 30 minutter før og efter dens seneste sikkerhedsbegivenhed |
 | En posts **Sikkerhed**-kort | De seneste 7 dage |
 
+## I dine protokoller og spor
+
+Under posterne søger Forbundne signaler i dine protokoller og spor, i det samme tidsrum, efter de værdier, den nævner, som kun kan betyde én ting: en IP-adresse (men ikke `127.0.0.1` og de andre, som alle maskiner har), et fuldt værts- eller domænenavn, en e-mail, en URL, en cloud-ressources ID og en filhash. Et bart værtsnavn, en brugers bare navn og en proces søges der aldrig efter: en protokollinje kan indeholde dem af enhver grund. Der søges efter højst 10 værdier.
+
+| Hvor | Den nævner en værdi, når |
+| --- | --- |
+| En protokollinjes besked | Den indeholder hele værdien, uanset store og små bogstaver: `10.0.0.1` i `from 10.0.0.1:52144`, aldrig i `10.0.0.12` eller `110.0.0.1` |
+| En attribut på en protokollinje eller et span | Dens værdi er præcis værdien: som skrevet, med små eller store bogstaver eller en IPv6-adresse i sin korte form |
+
+- Hver fundet værdi viser, hvor mange protokollinjer og spans der nævner den, hvor i dem den var - **I beskeden** eller en attribut efter dens nøgle - der hver åbner **Protokoller** eller **Spor** på de linjer eller spans og tidsrummet, og de poster, der sendte dem, de fleste først.
+- En ressourceattribut, såsom `resource.host.name`, siger kun, hvilken post der sendte en linje, og tælles aldrig med.
+- De værdier, der blev søgt efter og ikke nævnes af nogen af dem, står under **Ikke i dine protokoller eller spor**.
+- Der søges med din egen rolle: protokoller eller spor, din rolle ikke kan læse, nævnes, og der søges ikke i dem; dem, der ikke kunne søges i lige nu, siger det med **Prøv igen**. En søgning, der tager mere end 15 sekunder, stoppes og siger det.
+
 ## Hvem ser hvad
 
 - Forbundne signaler og en posts **Sikkerhed**-kort kræver en rolle, der kan læse sikkerhedsbegivenheder: Security Admin, Security Member, Security Viewer, Project Owner eller Project Admin. Alle andre ser ingen sikkerhedsdata på nogen side. Se [Roller](/docs/permissions/reference#roller).
@@ -83,12 +98,16 @@ Hver bruger, vært og adresse, som en sag eller en begivenhed nævner, slås op 
 
 ## OneUptime AI
 
-OneUptime AI's triage af en sag læser dens forbundne signaler: hvad der er åbent, og hvad der ændrede sig på de værter, tjenester, monitorer og medlemmer, som sagen nævner, og et medlems vagtplaner og teams. En hændelses undersøgelse læser den sikkerhedssag, der erklærede den, og de åbne sager, der nævner det, den berører. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
+OneUptime AI's triage af en sag læser dens forbundne signaler: hvad der er åbent, og hvad der ændrede sig på de værter, tjenester, monitorer og medlemmer, som sagen nævner, et medlems vagtplaner og teams, og hvor dens værdier optræder i dine protokoller og spor. En hændelses undersøgelse læser den sikkerhedssag, der erklærede den, og de åbne sager, der nævner det, den berører. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
 
 ## Fejlfinding
 
 :::details En vært, sagen nævner, står ikke på listen
 Kontrollér, at sagen nævner værten, som værten nævner sig selv, eller nævner en offentlig adresse, som kun den vært har. Et kort navn som `web-1` for `web-1.acme.internal` står som et muligt match, og et rent brugernavn, en filhash eller en proces slås slet ikke op. En URL slås kun op blandt de monitorer, der tjekker dens vært.
+:::
+
+:::details En adresse, sagen nævner, er ikke i dens protokoller og spor
+Kun sagens tidsrum gennemsøges, og kun de protokoller og spor, din rolle kan læse. En besked nævner kun en adresse som en helhed: `10.0.0.12` er en anden adresse, selv om beskedsøgningen i Protokoller også finder den. En attribut nævner den kun, når dens værdi er præcis adressen, og en ressourceattribut gør det aldrig.
 :::
 
 :::details Den rigtige vært står som et muligt match

@@ -1,11 +1,12 @@
 # Sinais conectados
 
-Um caso de segurança diz a quais usuários, hosts e endereços se refere. Sinais conectados diz quais deles o OneUptime já conhece - os seus hosts, hosts de contêineres, clusters do Kubernetes, dispositivos de rede, recursos de nuvem, funções serverless, serviços, os monitores que os verificam e membros - e o que acontecia em cada um em torno do caso: os seus registros, traços e métricas, os incidentes e alertas abertos nele, os monitores que o vigiam e o que mudou nele. No sentido inverso, a página de um host, de um cluster, de um recurso de nuvem, de um serviço, de um monitor ou de um membro diz o que o Security Events encontrou sobre ele.
+Um caso de segurança diz a quais usuários, hosts e endereços se refere. Sinais conectados diz quais deles o OneUptime já conhece - os seus hosts, hosts de contêineres, clusters do Kubernetes, dispositivos de rede, recursos de nuvem, funções serverless, serviços, os monitores que os verificam e membros - e o que acontecia em cada um em torno do caso: os seus registros, traços e métricas, os incidentes e alertas abertos nele, os monitores que o vigiam e o que mudou nele. Ele também os procura nos seus próprios registros e traços: o endereço de um atacante no registro de acesso de um servidor web, um e-mail vazado no erro de uma aplicação. No sentido inverso, a página de um host, de um cluster, de um recurso de nuvem, de um serviço, de um monitor ou de um membro diz o que o Security Events encontrou sobre ele.
 
 :::cards
 - [Onde você vê](#onde-você-vê): A página de um caso, a aba de um evento, a página de uma entidade e as páginas do que eles nomeiam.
 - [Como um valor é correspondido](#como-um-valor-é-correspondido): O que conta como o mesmo item e o que só possivelmente é.
 - [O que cada item mostra](#o-que-cada-item-mostra): Os seus sinais em torno do caso e o que está aberto nele.
+- [Nos seus registros e traços](#nos-seus-registros-e-traços): Onde um endereço, um domínio ou um e-mail que ele nomeia aparece nas suas linhas de registro e spans.
 - [Quem vê o quê](#quem-vê-o-quê): Cada item é lido com a função de quem lê.
 :::
 
@@ -53,7 +54,7 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 | Um simples nome de usuário, um hash de arquivo ou um processo | Nada: nenhum item é identificado por eles | - |
 
 - Uma possível correspondência mostra **Possível correspondência** ao lado do nome e diz por quê. Ela nunca é contada na página do item, e um incidente que o caso declara nunca é vinculado a ela.
-- O que foi procurado e não é um item do projeto é listado em **Não está no OneUptime**. Um valor nunca é listado ali quando um tipo de item que ele poderia ser não pôde ser lido.
+- O que foi procurado e não é um item do projeto é listado em **Nenhum item correspondente**. Um valor nunca é listado ali quando um tipo de item que ele poderia ser não pôde ser lido.
 - São listados no máximo 10 itens para um caso, os exatos primeiro.
 
 ## O que cada item mostra
@@ -70,6 +71,20 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 | A página de uma entidade | 30 minutos antes e depois do seu último evento de segurança |
 | O cartão **Segurança** de um item | Os últimos 7 dias |
 
+## Nos seus registros e traços
+
+Abaixo dos itens, Sinais conectados procura nos seus registros e traços, no mesmo intervalo, os valores que ele nomeia que só podem significar uma coisa: um endereço IP (exceto `127.0.0.1` e os outros que toda máquina tem), um nome completo de host ou de domínio, um e-mail, uma URL, o ID de um recurso de nuvem e um hash de arquivo. Um nome de host simples, o nome simples de um usuário e um processo nunca são procurados: uma linha de registro pode contê-los por qualquer motivo. São procurados no máximo 10 valores.
+
+| Onde | Ele nomeia um valor quando |
+| --- | --- |
+| A mensagem de uma linha de registro | Ela contém o valor inteiro, em maiúsculas ou minúsculas: `10.0.0.1` em `from 10.0.0.1:52144`, nunca em `10.0.0.12` ou `110.0.0.1` |
+| Um atributo de uma linha de registro ou de um span | O valor dele é exatamente o valor: como foi escrito, em minúsculas ou maiúsculas, ou um endereço IPv6 na forma curta |
+
+- Cada valor encontrado mostra quantas linhas de registro e spans o nomeiam, onde ele estava neles - **Na mensagem** ou um atributo pela chave -, cada um abrindo **Registros** ou **Traços** nessas linhas ou spans e no intervalo, e os itens que os enviaram, os que mais enviaram primeiro.
+- Um atributo de recurso, como `resource.host.name`, só diz qual item enviou uma linha, e nunca é contado.
+- Os valores procurados que nenhum dos dois nomeia são listados em **Não está nos seus registros nem traços**.
+- Eles são procurados com a sua própria função: os registros ou traços que a sua função não pode ler são indicados e não são procurados; os que não puderam ser procurados agora dizem isso, com **Tentar novamente**. Uma pesquisa que leva mais de 15 segundos é interrompida e diz isso.
+
 ## Quem vê o quê
 
 - Sinais conectados e o cartão **Segurança** de um item exigem uma função que possa ler eventos de segurança: Security Admin, Security Member, Security Viewer, Project Owner ou Project Admin. Ninguém mais vê dados de segurança em nenhuma página. Veja [Funções](/docs/permissions/reference#funções).
@@ -83,12 +98,16 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 
 ## OneUptime AI
 
-A triagem de um caso pelo OneUptime AI lê os seus sinais conectados: o que está aberto e o que mudou nos hosts, serviços, monitores e membros que o caso nomeia, e os agendamentos de plantão e as equipes de um membro. A investigação de um incidente lê o caso de segurança que o declarou e os casos abertos que nomeiam o que ele afeta. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
+A triagem de um caso pelo OneUptime AI lê os seus sinais conectados: o que está aberto e o que mudou nos hosts, serviços, monitores e membros que o caso nomeia, os agendamentos de plantão e as equipes de um membro, e onde os seus valores aparecem nos seus registros e traços. A investigação de um incidente lê o caso de segurança que o declarou e os casos abertos que nomeiam o que ele afeta. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
 
 ## Solução de problemas
 
 :::details Um host que o caso nomeia não aparece
 Verifique se o caso nomeia o host como o host nomeia a si mesmo, ou nomeia um endereço público que só esse host tem. Um nome curto, como `web-1` para `web-1.acme.internal`, aparece como possível correspondência, e um simples nome de usuário, um hash de arquivo ou um processo não é procurado de forma alguma. Uma URL só é procurada entre os monitores que verificam o seu host.
+:::
+
+:::details Um endereço que o caso nomeia não está nos seus registros e traços
+Só o intervalo do caso é procurado, e só nos registros e traços que a sua função pode ler. Uma mensagem só nomeia um endereço inteiro: `10.0.0.12` é outro endereço, embora a pesquisa de mensagens do explorador de Registros também o encontre. Um atributo só o nomeia quando o valor dele é exatamente o endereço, e um atributo de recurso nunca.
 :::
 
 :::details O host certo aparece como possível correspondência

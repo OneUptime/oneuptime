@@ -1,11 +1,12 @@
 # Tilkoblede signaler
 
-En sikkerhetssak sier hvilke brukere, verter og adresser den handler om. Tilkoblede signaler sier hvilke av dem OneUptime allerede kjenner - vertene, containervertene, Kubernetes-klyngene, nettverksenhetene, skyressursene, de serverløse funksjonene, tjenestene, monitorene som sjekker dem, og medlemmene dine - og hva som skjedde på hver av dem rundt saken: loggene, sporene og målingene, hendelsene og varslene som er åpne på den, monitorene som overvåker den, og hva som endret seg på den. Andre veien sier siden til en vert, en klynge, en skyressurs, en tjeneste, en monitor eller et medlem hva Security Events har funnet om den.
+En sikkerhetssak sier hvilke brukere, verter og adresser den handler om. Tilkoblede signaler sier hvilke av dem OneUptime allerede kjenner - vertene, containervertene, Kubernetes-klyngene, nettverksenhetene, skyressursene, de serverløse funksjonene, tjenestene, monitorene som sjekker dem, og medlemmene dine - og hva som skjedde på hver av dem rundt saken: loggene, sporene og målingene, hendelsene og varslene som er åpne på den, monitorene som overvåker den, og hva som endret seg på den. Den søker også i selve loggene og sporene dine etter dem: en angripers adresse i en webservers tilgangslogg, en lekket e-post i en applikasjons feil. Andre veien sier siden til en vert, en klynge, en skyressurs, en tjeneste, en monitor eller et medlem hva Security Events har funnet om den.
 
 :::cards
 - [Hvor du ser det](#hvor-du-ser-det): Siden til en sak, fanen til en hendelse, siden til en entitet og sidene til det de nevner.
 - [Hvordan en verdi kobles](#hvordan-en-verdi-kobles): Hva som teller som den samme oppføringen, og hva som bare kanskje gjør det.
 - [Hva hver oppføring viser](#hva-hver-oppføring-viser): Signalene rundt saken, og hva som er åpent på den.
+- [I loggene og sporene dine](#i-loggene-og-sporene-dine): Hvor en adresse, et domene eller en e-post den nevner, finnes i logglinjene og spansene dine.
 - [Hvem ser hva](#hvem-ser-hva): Hver oppføring leses med leserens egen rolle.
 :::
 
@@ -53,7 +54,7 @@ Hver bruker, vert og adresse en sak eller en hendelse nevner, slås opp blant pr
 | Et rent brukernavn, en filhash eller en prosess | Ingenting: ingen oppføring er nøklet etter dem | - |
 
 - Et mulig treff viser **Mulig treff** ved siden av navnet og sier hvorfor. Det telles aldri på oppføringens side, og en hendelse saken erklærer, knyttes aldri til det.
-- Det som ble lett etter og ikke er en oppføring i prosjektet, står under **Ikke i OneUptime**. En verdi står aldri der når en type oppføring den kunne være, ikke kunne leses.
+- Det som ble lett etter og ikke er en oppføring i prosjektet, står under **Ingen samsvarende oppføring**. En verdi står aldri der når en type oppføring den kunne være, ikke kunne leses.
 - Det vises høyst 10 oppføringer for en sak, de nøyaktige først.
 
 ## Hva hver oppføring viser
@@ -70,6 +71,20 @@ Hver bruker, vert og adresse en sak eller en hendelse nevner, slås opp blant pr
 | Siden til en entitet | 30 minutter før og etter den siste sikkerhetshendelsen |
 | En oppførings **Sikkerhet**-kort | De siste 7 dagene |
 
+## I loggene og sporene dine
+
+Under oppføringene søker Tilkoblede signaler i loggene og sporene dine, i det samme tidsrommet, etter verdiene den nevner som bare kan bety én ting: en IP-adresse (unntatt `127.0.0.1` og de andre som alle maskiner har), et fullt verts- eller domenenavn, en e-post, en URL, ID-en til en skyressurs og en filhash. Det søkes aldri etter et bart vertsnavn, en brukers bare navn eller en prosess: en logglinje kan inneholde dem av hvilken som helst grunn. Det søkes etter høyst 10 verdier.
+
+| Hvor | Den nevner en verdi når |
+| --- | --- |
+| Meldingen i en logglinje | Den inneholder hele verdien, uavhengig av store og små bokstaver: `10.0.0.1` i `from 10.0.0.1:52144`, aldri i `10.0.0.12` eller `110.0.0.1` |
+| Et attributt i en logglinje eller et span | Verdien er nøyaktig verdien: slik den er skrevet, med små eller store bokstaver, eller en IPv6-adresse i kortform |
+
+- Hver verdi som blir funnet, viser hvor mange logglinjer og spans som nevner den, hvor i dem den var - **I meldingen** eller et attributt etter nøkkelen - som hver åpner **Logger** eller **Spor** på de linjene eller spansene og tidsrommet, og oppføringene som sendte dem, de flest først.
+- Et ressursattributt, som `resource.host.name`, sier bare hvilken oppføring som sendte en linje, og telles aldri.
+- Verdiene det ble søkt etter og som ingen av dem nevner, står under **Ikke i loggene eller sporene dine**.
+- Det søkes med din egen rolle: logger eller spor som rollen din ikke kan lese, blir nevnt og ikke søkt i; de som ikke kunne søkes i akkurat nå, sier det, med **Prøv igjen**. Et søk som tar lenger enn 15 sekunder, stoppes og sier det.
+
 ## Hvem ser hva
 
 - Tilkoblede signaler og en oppførings **Sikkerhet**-kort krever en rolle som kan lese sikkerhetshendelser: Security Admin, Security Member, Security Viewer, Project Owner eller Project Admin. Ingen andre ser sikkerhetsdata på noen side. Se [Roller](/docs/permissions/reference#roller).
@@ -83,12 +98,16 @@ Hver bruker, vert og adresse en sak eller en hendelse nevner, slås opp blant pr
 
 ## OneUptime AI
 
-OneUptime AIs triage av en sak leser de tilkoblede signalene: hva som er åpent, og hva som endret seg på vertene, tjenestene, monitorene og medlemmene saken nevner, og vaktplanene og teamene til et medlem. Undersøkelsen av en hendelse leser sikkerhetssaken som erklærte den, og de åpne sakene som nevner det den berører. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
+OneUptime AIs triage av en sak leser de tilkoblede signalene: hva som er åpent, og hva som endret seg på vertene, tjenestene, monitorene og medlemmene saken nevner, vaktplanene og teamene til et medlem, og hvor verdiene dens finnes i loggene og sporene dine. Undersøkelsen av en hendelse leser sikkerhetssaken som erklærte den, og de åpne sakene som nevner det den berører. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
 
 ## Feilsøking
 
 :::details En vert saken nevner, står ikke på listen
 Sjekk at saken nevner verten slik verten nevner seg selv, eller nevner en offentlig adresse bare den verten har. Et kort navn som `web-1` for `web-1.acme.internal` står som et mulig treff, og et rent brukernavn, en filhash eller en prosess slås ikke opp i det hele tatt. En URL slås bare opp blant monitorene som sjekker verten dens.
+:::
+
+:::details En adresse saken nevner, er ikke i loggene og sporene dens
+Bare tidsrommet til saken blir søkt i, og bare loggene og sporene rollen din kan lese. En melding nevner en adresse bare som en helhet: `10.0.0.12` er en annen adresse, selv om meldingssøket i Logger også finner den. Et attributt nevner den bare når verdien er nøyaktig adressen, og et ressursattributt aldri.
 :::
 
 :::details Den riktige verten står som et mulig treff

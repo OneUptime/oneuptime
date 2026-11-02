@@ -1,11 +1,12 @@
 # Verbonden signalen
 
-Een beveiligingszaak zegt over welke gebruikers, hosts en adressen ze gaat. Verbonden signalen zegt welke daarvan OneUptime al kent - uw hosts, containerhosts, Kubernetes-clusters, netwerkapparaten, cloud-resources, serverless functies, services, de monitoren die ze controleren, en leden - en wat er op elk ervan gebeurde rond de zaak: de logboeken, traces en metrieken, de incidenten en waarschuwingen die erop openstaan, de monitoren die het bewaken en wat er is veranderd. Andersom zegt de pagina van een host, een cluster, een cloud-resource, een service, een monitor of een lid wat Security Events erover heeft gevonden.
+Een beveiligingszaak zegt over welke gebruikers, hosts en adressen ze gaat. Verbonden signalen zegt welke daarvan OneUptime al kent - uw hosts, containerhosts, Kubernetes-clusters, netwerkapparaten, cloud-resources, serverless functies, services, de monitoren die ze controleren, en leden - en wat er op elk ervan gebeurde rond de zaak: de logboeken, traces en metrieken, de incidenten en waarschuwingen die erop openstaan, de monitoren die het bewaken en wat er is veranderd. Het doorzoekt ook uw logboeken en traces zelf naar ze: het adres van een aanvaller in het toegangslogboek van een webserver, een gelekt e-mailadres in de fout van een applicatie. Andersom zegt de pagina van een host, een cluster, een cloud-resource, een service, een monitor of een lid wat Security Events erover heeft gevonden.
 
 :::cards
 - [Waar u het ziet](#waar-u-het-ziet): De pagina van een zaak, het tabblad van een gebeurtenis, de pagina van een entiteit en de pagina's van wat ze noemen.
 - [Hoe een waarde wordt gekoppeld](#hoe-een-waarde-wordt-gekoppeld): Wat telt als hetzelfde record, en wat alleen mogelijk.
 - [Wat elk record toont](#wat-elk-record-toont): De signalen rond de zaak, en wat erop openstaat.
+- [In uw logboeken en traces](#in-uw-logboeken-en-traces): Waar een adres, een domein of een e-mailadres dat het noemt in uw logregels en spans voorkomt.
 - [Wie wat ziet](#wie-wat-ziet): Elk record wordt gelezen met de eigen rol van de lezer.
 :::
 
@@ -53,7 +54,7 @@ Elke gebruiker, host en elk adres dat een zaak of een gebeurtenis noemt, wordt o
 | Een kale gebruikersnaam, een bestandshash of een proces | Niets: geen record wordt erop geïndexeerd | - |
 
 - Een mogelijke overeenkomst toont **Mogelijke overeenkomst** naast de naam en zegt waarom. Ze wordt nooit meegeteld op de pagina van het record, en een incident dat de zaak meldt, wordt er nooit aan gekoppeld.
-- Wat is gezocht en geen record van het project is, staat onder **Niet in OneUptime**. Een waarde staat daar nooit als een soort record dat ze zou kunnen zijn niet kon worden gelezen.
+- Wat is gezocht en geen record van het project is, staat onder **Geen overeenkomend record**. Een waarde staat daar nooit als een soort record dat ze zou kunnen zijn niet kon worden gelezen.
 - Voor een zaak worden hoogstens 10 records getoond, de exacte eerst.
 
 ## Wat elk record toont
@@ -70,6 +71,20 @@ Elke gebruiker, host en elk adres dat een zaak of een gebeurtenis noemt, wordt o
 | De pagina van een entiteit | 30 minuten voor en na de laatste beveiligingsgebeurtenis |
 | De kaart **Beveiliging** van een record | De afgelopen 7 dagen |
 
+## In uw logboeken en traces
+
+Onder de records doorzoekt Verbonden signalen uw logboeken en traces, over hetzelfde venster, naar de waarden die het noemt en die maar één ding kunnen betekenen: een IP-adres (behalve `127.0.0.1` en de andere die elke machine heeft), een volledige host- of domeinnaam, een e-mailadres, een URL, de ID van een cloud-resource en een bestandshash. Naar een kale hostnaam, de kale naam van een gebruiker en een proces wordt nooit gezocht: een logregel kan ze om elke reden bevatten. Er wordt naar hoogstens 10 waarden gezocht.
+
+| Waar | Het noemt een waarde als |
+| --- | --- |
+| Het bericht van een logregel | Het bevat de hele waarde, ongeacht hoofdletters: `10.0.0.1` in `from 10.0.0.1:52144`, nooit in `10.0.0.12` of `110.0.0.1` |
+| Een attribuut van een logregel of een span | De waarde is precies de waarde: zoals geschreven, in kleine letters of hoofdletters, of een IPv6-adres in de korte vorm |
+
+- Elke gevonden waarde toont hoeveel logregels en spans haar noemen, waar ze erin stond - **In het bericht** of een attribuut met zijn sleutel -, die elk **Logboeken** of **Traces** openen op die regels of spans en het venster, en de records die ze stuurden, de meeste eerst.
+- Een resource-attribuut, zoals `resource.host.name`, zegt alleen welk record een regel stuurde, en wordt nooit geteld.
+- De waarden waarnaar is gezocht en die geen van beide noemt, staan onder **Niet in uw logboeken of traces**.
+- Er wordt gezocht met uw eigen rol: logboeken of traces die uw rol niet kan lezen, worden genoemd en niet doorzocht; die welke zojuist niet konden worden doorzocht, zeggen dat, met **Opnieuw proberen**. Een zoekopdracht die langer dan 15 seconden duurt, wordt gestopt en zegt dat.
+
 ## Wie wat ziet
 
 - Verbonden signalen en de kaart **Beveiliging** van een record vereisen een rol die beveiligingsgebeurtenissen mag lezen: Security Admin, Security Member, Security Viewer, Project Owner of Project Admin. Niemand anders ziet op enige pagina beveiligingsgegevens. Zie [Rollen](/docs/permissions/reference#rollen).
@@ -83,12 +98,16 @@ Elke gebruiker, host en elk adres dat een zaak of een gebeurtenis noemt, wordt o
 
 ## OneUptime AI
 
-De triage van een zaak door OneUptime AI leest de verbonden signalen ervan: wat openstaat en wat er is veranderd op de hosts, services, monitoren en leden die de zaak noemt, en de bereikbaarheidsschema's en teams van een lid. Het onderzoek van een incident leest de beveiligingszaak die het meldde en de open zaken die noemen wat het raakt. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
+De triage van een zaak door OneUptime AI leest de verbonden signalen ervan: wat openstaat en wat er is veranderd op de hosts, services, monitoren en leden die de zaak noemt, de bereikbaarheidsschema's en teams van een lid, en waar de waarden ervan in uw logboeken en traces voorkomen. Het onderzoek van een incident leest de beveiligingszaak die het meldde en de open zaken die noemen wat het raakt. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
 
 ## Problemen oplossen
 
 :::details Een host die de zaak noemt, staat er niet bij
 Controleer of de zaak de host noemt zoals de host zichzelf noemt, of een openbaar adres noemt dat alleen die host heeft. Een korte naam, zoals `web-1` voor `web-1.acme.internal`, staat erbij als mogelijke overeenkomst, en een kale gebruikersnaam, een bestandshash of een proces wordt helemaal niet opgezocht. Een URL wordt alleen opgezocht onder de monitoren die de host ervan controleren.
+:::
+
+:::details Een adres dat de zaak noemt, staat niet in de logboeken en traces
+Alleen het venster van de zaak wordt doorzocht, en alleen de logboeken en traces die uw rol kan lezen. Een bericht noemt een adres alleen als geheel: `10.0.0.12` is een ander adres, al vindt de berichtzoekopdracht van de Logboeken-verkenner het ook. Een attribuut noemt het alleen als de waarde precies het adres is, en een resource-attribuut nooit.
 :::
 
 :::details De juiste host staat erbij als mogelijke overeenkomst

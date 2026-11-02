@@ -1,11 +1,12 @@
 # Verbundene Signale
 
-Ein Sicherheitsfall sagt, um welche Benutzer, Hosts und Adressen es geht. Verbundene Signale sagt, welche davon OneUptime bereits kennt - Ihre Hosts, Container-Hosts, Kubernetes-Cluster, Netzwerkgeräte, Cloud-Ressourcen, Serverless-Funktionen, Dienste, die Monitore, die sie prüfen, und Mitglieder - und was auf jedem davon rund um den Fall geschah: seine Protokolle, Traces und Metriken, die Vorfälle und Warnungen, die darauf offen sind, die Monitore, die ihn überwachen, und was sich daran geändert hat. Umgekehrt sagt die Seite eines Hosts, eines Clusters, einer Cloud-Ressource, eines Dienstes, eines Monitors oder eines Mitglieds, was Sicherheitsereignisse darüber gefunden hat.
+Ein Sicherheitsfall sagt, um welche Benutzer, Hosts und Adressen es geht. Verbundene Signale sagt, welche davon OneUptime bereits kennt - Ihre Hosts, Container-Hosts, Kubernetes-Cluster, Netzwerkgeräte, Cloud-Ressourcen, Serverless-Funktionen, Dienste, die Monitore, die sie prüfen, und Mitglieder - und was auf jedem davon rund um den Fall geschah: seine Protokolle, Traces und Metriken, die Vorfälle und Warnungen, die darauf offen sind, die Monitore, die ihn überwachen, und was sich daran geändert hat. Außerdem durchsucht es Ihre Protokolle und Traces selbst nach ihnen: die Adresse eines Angreifers im Zugriffsprotokoll eines Webservers, eine durchgesickerte E-Mail-Adresse im Fehler einer Anwendung. Umgekehrt sagt die Seite eines Hosts, eines Clusters, einer Cloud-Ressource, eines Dienstes, eines Monitors oder eines Mitglieds, was Sicherheitsereignisse darüber gefunden hat.
 
 :::cards
 - [Wo Sie es sehen](#wo-sie-es-sehen): Die Seite eines Falls, der Tab eines Ereignisses, die Seite einer Entität und die Seiten dessen, was sie nennen.
 - [Wie ein Wert zugeordnet wird](#wie-ein-wert-zugeordnet-wird): Was als derselbe Datensatz zählt und was nur möglicherweise.
 - [Was jeder Datensatz zeigt](#was-jeder-datensatz-zeigt): Seine Signale rund um den Fall und was darauf offen ist.
+- [In Ihren Protokollen und Traces](#in-ihren-protokollen-und-traces): Wo eine Adresse, eine Domain oder eine E-Mail-Adresse, die es nennt, in Ihren Protokollzeilen und Spans vorkommt.
 - [Wer was sieht](#wer-was-sieht): Jeder Datensatz wird mit der eigenen Rolle des Lesers gelesen.
 :::
 
@@ -53,7 +54,7 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 | Ein bloßer Benutzername, ein Datei-Hash oder ein Prozess | Nichts: Kein Datensatz ist danach geschlüsselt | - |
 
 - Eine mögliche Übereinstimmung zeigt **Mögliche Übereinstimmung** neben ihrem Namen und sagt, warum. Sie wird auf der Seite des Datensatzes nie gezählt, und ein Vorfall, den der Fall meldet, wird nie mit ihr verknüpft.
-- Was gesucht wurde und kein Datensatz des Projekts ist, steht unter **Nicht in OneUptime**. Ein Wert steht dort nie, wenn eine Art von Datensatz, die er sein könnte, nicht gelesen werden konnte.
+- Was gesucht wurde und kein Datensatz des Projekts ist, steht unter **Kein passender Datensatz**. Ein Wert steht dort nie, wenn eine Art von Datensatz, die er sein könnte, nicht gelesen werden konnte.
 - Für einen Fall werden höchstens 10 Datensätze aufgeführt, die exakten zuerst.
 
 ## Was jeder Datensatz zeigt
@@ -70,6 +71,20 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 | Die Seite einer Entität | 30 Minuten vor und nach ihrem letzten Sicherheitsereignis |
 | Die Karte **Sicherheit** eines Datensatzes | Die letzten 7 Tage |
 
+## In Ihren Protokollen und Traces
+
+Unter den Datensätzen durchsucht Verbundene Signale Ihre Protokolle und Traces im selben Zeitraum nach den Werten, die es nennt und die nur eines bedeuten können: eine IP-Adresse (außer `127.0.0.1` und den anderen, die jeder Rechner hat), ein vollständiger Host- oder Domainname, eine E-Mail-Adresse, eine URL, die ID einer Cloud-Ressource und ein Datei-Hash. Nach einem bloßen Hostnamen, dem bloßen Namen eines Benutzers und einem Prozess wird nie gesucht: Eine Protokollzeile kann sie aus jedem Grund enthalten. Es wird nach höchstens 10 Werten gesucht.
+
+| Wo | Es nennt einen Wert, wenn |
+| --- | --- |
+| Die Nachricht einer Protokollzeile | Sie enthält den ganzen Wert, unabhängig von Groß- und Kleinschreibung: `10.0.0.1` in `from 10.0.0.1:52144`, nie in `10.0.0.12` oder `110.0.0.1` |
+| Ein Attribut einer Protokollzeile oder eines Spans | Sein Wert ist genau der Wert: wie geschrieben, in Klein- oder Großbuchstaben oder eine IPv6-Adresse in ihrer Kurzform |
+
+- Jeder gefundene Wert zeigt, wie viele Protokollzeilen und Spans ihn nennen, wo er darin stand - **In der Nachricht** oder ein Attribut mit seinem Schlüssel -, jeweils mit **Protokolle** oder **Traces** geöffnet auf diesen Zeilen oder Spans und dem Zeitraum, und die Datensätze, die sie gesendet haben, die meisten zuerst.
+- Ein Ressourcenattribut wie `resource.host.name` sagt nur, welcher Datensatz eine Zeile gesendet hat, und wird nie gezählt.
+- Die Werte, nach denen gesucht wurde und die keines von beiden nennt, stehen unter **Nicht in Ihren Protokollen oder Traces**.
+- Sie werden mit Ihrer eigenen Rolle durchsucht: Protokolle oder Traces, die Ihre Rolle nicht lesen darf, werden genannt und nicht durchsucht; solche, die gerade nicht durchsucht werden konnten, sagen das, mit **Erneut versuchen**. Eine Suche, die länger als 15 Sekunden dauert, wird abgebrochen und sagt das.
+
 ## Wer was sieht
 
 - Verbundene Signale und die Karte **Sicherheit** eines Datensatzes erfordern eine Rolle, die Sicherheitsereignisse lesen darf: Security Admin, Security Member, Security Viewer, Project Owner oder Project Admin. Alle anderen sehen auf keiner Seite Sicherheitsdaten. Siehe [Rollen](/docs/permissions/reference#rollen).
@@ -83,12 +98,16 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 
 ## OneUptime AI
 
-Die Triage eines Falls durch OneUptime AI liest seine verbundenen Signale: was offen ist und was sich an den Hosts, Diensten, Monitoren und Mitgliedern geändert hat, die der Fall nennt, und die Bereitschaftspläne und Teams eines Mitglieds. Die Untersuchung eines Vorfalls liest den Sicherheitsfall, der ihn gemeldet hat, und die offenen Fälle, die nennen, was er betrifft. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+Die Triage eines Falls durch OneUptime AI liest seine verbundenen Signale: was offen ist und was sich an den Hosts, Diensten, Monitoren und Mitgliedern geändert hat, die der Fall nennt, die Bereitschaftspläne und Teams eines Mitglieds und wo seine Werte in Ihren Protokollen und Traces vorkommen. Die Untersuchung eines Vorfalls liest den Sicherheitsfall, der ihn gemeldet hat, und die offenen Fälle, die nennen, was er betrifft. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
 
 ## Fehlerbehebung
 
 :::details Ein Host, den der Fall nennt, wird nicht aufgeführt
 Prüfen Sie, ob der Fall den Host so nennt, wie der Host sich selbst nennt, oder eine öffentliche Adresse nennt, die nur dieser Host hat. Ein Kurzname wie `web-1` für `web-1.acme.internal` wird als mögliche Übereinstimmung aufgeführt, und ein bloßer Benutzername, ein Datei-Hash oder ein Prozess wird gar nicht gesucht. Eine URL wird nur unter den Monitoren gesucht, die ihren Host prüfen.
+:::
+
+:::details Eine Adresse, die der Fall nennt, ist nicht in seinen Protokollen und Traces
+Nur der Zeitraum des Falls wird durchsucht, und nur die Protokolle und Traces, die Ihre Rolle lesen darf. Eine Nachricht nennt eine Adresse nur als Ganzes: `10.0.0.12` ist eine andere Adresse, auch wenn die Nachrichtensuche des Protokoll-Explorers sie ebenfalls findet. Ein Attribut nennt sie nur, wenn sein Wert genau die Adresse ist, und ein Ressourcenattribut nie.
 :::
 
 :::details Der richtige Host wird als mögliche Übereinstimmung aufgeführt

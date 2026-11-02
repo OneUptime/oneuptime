@@ -14,6 +14,10 @@ import {
   RESOURCE_SECURITY_OPEN_IN_SECURITY,
   RESOURCE_SECURITY_TITLE,
   SIGNAL_LINK_LABELS,
+  TELEMETRY_MENTIONS_TITLE,
+  TELEMETRY_NOT_FOUND_TITLE,
+  TELEMETRY_PLACE_MESSAGE,
+  TELEMETRY_SIGNAL_LABELS,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityConnections/SecurityConnectionsCopy";
 import {
   SECURITY_CASE_MENU,
@@ -23,6 +27,7 @@ import {
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import { RECORD_RELATION_COLUMNS } from "Common/Server/Utils/SecurityEvent/Connections/SecurityConnections";
+import { SECURITY_TELEMETRY_READ_TIME_LIMIT } from "Common/Server/Utils/SecurityEvent/Connections/SecurityTelemetryStatements";
 import Permission from "Common/Types/Permission";
 import {
   RESOURCE_SECURITY_WINDOW_IN_DAYS,
@@ -30,9 +35,11 @@ import {
   SECURITY_CONNECTION_KINDS,
   SECURITY_CONNECTION_MAX_RESOURCES,
   SECURITY_CONNECTION_MAX_WINDOW_IN_HOURS,
+  SECURITY_TELEMETRY_MAX_VALUES,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
   SecurityConnectionReason,
+  SecurityTelemetrySignal,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
@@ -47,6 +54,15 @@ import {
   matchMonitorTarget,
   matchResourceId,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
+import {
+  RE2_CASE_INSENSITIVE_FLAG,
+  SecurityTelemetryValueShape,
+  getTelemetryAttributeSpellings,
+  getTelemetryMessagePattern,
+  getTelemetrySearchValues,
+  getTelemetryValueShape,
+  isResourceAttributeKey,
+} from "Common/Utils/SecurityCase/SecurityTelemetrySearch";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import IP from "Common/Types/IP/IP";
@@ -493,5 +509,157 @@ describe("the Connected Signals page", () => {
     expect(flat(section("Incidents a case declares"))).toContain(
       "A possible match is never linked, and neither is a monitor: an incident on a monitor can change its status and show on its status pages.",
     );
+  });
+
+  /*
+   * In your logs and traces: which values are searched for, how a log
+   * line's message and an attribute name one (each example run through the
+   * very pattern and spellings the read uses), what the section is called
+   * and labels, and how long a search may run.
+   */
+  describe("In your logs and traces", () => {
+    const LOGS_AND_TRACES: string = "In your logs and traces";
+
+    it("is a section of its own, titled as the Dashboard titles it, and carded at the top", () => {
+      expect(TELEMETRY_MENTIONS_TITLE).toBe(LOGS_AND_TRACES);
+      expect(
+        scanMarkdown(englishPage()).headings.find((heading: DocsHeading) => {
+          return heading.text === LOGS_AND_TRACES;
+        })?.level,
+      ).toBe(2);
+      expect(englishPage()).toContain(
+        `- [${LOGS_AND_TRACES}](#in-your-logs-and-traces): `,
+      );
+    });
+
+    it("names the values searched for as the rules pick them, and how many at most", () => {
+      const text: string = flat(section(LOGS_AND_TRACES));
+
+      expect(text).toContain(
+        "an IP address (but `127.0.0.1` and the others every machine has), a full host or domain name, an email, a URL, a cloud resource's ID and a file hash.",
+      );
+      expect(text).toContain(
+        "A bare host name, a user's bare name and a process are never searched for",
+      );
+      expect(text).toContain(
+        `At most ${SECURITY_TELEMETRY_MAX_VALUES} values are searched for.`,
+      );
+
+      // Searched for: what the page lists.
+      for (const [type, value] of [
+        [SecurityEntityType.IpAddress, "203.0.113.7"],
+        [SecurityEntityType.IpAddress, "10.0.3.17"],
+        [SecurityEntityType.Domain, "evil-c2.example.net"],
+        [SecurityEntityType.User, "k.morgan@acme.example"],
+        [SecurityEntityType.Url, "https://evil.example/payload.sh"],
+        [SecurityEntityType.Other, "arn:aws:s3:::acme-exports"],
+        [SecurityEntityType.FileHash, "d41d8cd98f00b204e9800998ecf8427e"],
+      ] as Array<[SecurityEntityType, string]>) {
+        expect({ value, shape: getTelemetryValueShape({ type, value }) }).not
+          .toEqual({ value, shape: null });
+      }
+
+      // Never: an address every machine has, a bare host name, a user's bare name, a process.
+      for (const [type, value] of [
+        [SecurityEntityType.IpAddress, "127.0.0.1"],
+        [SecurityEntityType.Host, "web-1"],
+        [SecurityEntityType.User, "kmorgan"],
+        [SecurityEntityType.Process, "powershell.exe"],
+      ] as Array<[SecurityEntityType, string]>) {
+        expect({ value, shape: getTelemetryValueShape({ type, value }) }).toEqual(
+          { value, shape: null },
+        );
+      }
+
+      const many: Array<{ type: SecurityEntityType; value: string }> = [];
+
+      for (let index: number = 1; index <= SECURITY_TELEMETRY_MAX_VALUES + 2; index++) {
+        many.push({
+          type: SecurityEntityType.IpAddress,
+          value: `198.51.100.${index}`,
+        });
+      }
+
+      expect(getTelemetrySearchValues(many).values.length).toBe(
+        SECURITY_TELEMETRY_MAX_VALUES,
+      );
+    });
+
+    it("gives how a message and an attribute name a value with examples the rules hold to", () => {
+      const rows: Array<Array<string>> = rowsOf(LOGS_AND_TRACES);
+      const pattern: RegExp = new RegExp(
+        getTelemetryMessagePattern(
+          "10.0.0.1",
+          SecurityTelemetryValueShape.Ipv4Address,
+        ).slice(RE2_CASE_INSENSITIVE_FLAG.length),
+        "i",
+      );
+
+      expect(rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      })).toEqual([
+        "A log line's message",
+        "An attribute of a log line or a span",
+      ]);
+      expect(rows[0]![1]).toBe(
+        "It holds the value whole, whatever its case: `10.0.0.1` in `from 10.0.0.1:52144`, never in `10.0.0.12` or `110.0.0.1`",
+      );
+      expect(pattern.test("from 10.0.0.1:52144")).toBe(true);
+      expect(pattern.test("10.0.0.12")).toBe(false);
+      expect(pattern.test("110.0.0.1")).toBe(false);
+
+      // As written, in lower or upper case, or an IPv6 address in its short form.
+      expect(rows[1]![1]).toBe(
+        "Its value is exactly the value: as written, in lower or upper case, or an IPv6 address in its short form",
+      );
+      expect(
+        getTelemetryAttributeSpellings(
+          "Web-1.Acme.Example",
+          SecurityTelemetryValueShape.Name,
+        ),
+      ).toEqual(["Web-1.Acme.Example", "web-1.acme.example", "WEB-1.ACME.EXAMPLE"]);
+      expect(
+        getTelemetryAttributeSpellings(
+          "2001:0db8:0:0:0:0:0:7",
+          SecurityTelemetryValueShape.Ipv6Address,
+        ),
+      ).toContain("2001:db8::7");
+
+      // A resource attribute only says who sent a line.
+      expect(isResourceAttributeKey("resource.host.name")).toBe(true);
+      expect(flat(section(LOGS_AND_TRACES))).toContain(
+        "A resource attribute, such as `resource.host.name`, only says which record sent a line, and is never counted.",
+      );
+      expect(flat(section("Troubleshooting"))).toContain(
+        "A message names an address only as a whole: `10.0.0.12` is another address,",
+      );
+    });
+
+    it("names the section's places and lists, and the explorers they open, as the Dashboard draws them", () => {
+      const text: string = flat(section(LOGS_AND_TRACES));
+
+      expect(text).toContain(
+        `where in them it was - ${bold(TELEMETRY_PLACE_MESSAGE)}, or an attribute by its key - each opening the ${bold(TELEMETRY_SIGNAL_LABELS[SecurityTelemetrySignal.Logs])} or ${bold(TELEMETRY_SIGNAL_LABELS[SecurityTelemetrySignal.Traces])} explorer`,
+      );
+      expect(text).toContain(
+        `listed under ${bold(TELEMETRY_NOT_FOUND_TITLE)}.`,
+      );
+      expect(text).toContain(`with ${bold(CONNECTED_TRY_AGAIN)}.`);
+    });
+
+    it("says how long a search may run, and that it says so when it stops", () => {
+      expect(SECURITY_TELEMETRY_READ_TIME_LIMIT.timeoutOverflowMode).toBe(
+        "throw",
+      );
+      expect(flat(section(LOGS_AND_TRACES))).toContain(
+        `A search that takes longer than ${SECURITY_TELEMETRY_READ_TIME_LIMIT.maxExecutionTimeInSeconds} seconds is stopped, and says so.`,
+      );
+    });
+
+    it("says OneUptime AI's triage reads it too", () => {
+      expect(flat(section("OneUptime AI"))).toContain(
+        "and where its values appear in your logs and traces.",
+      );
+    });
   });
 });

@@ -1,11 +1,12 @@
 # Connected Signals
 
-A security case says which users, hosts and addresses it is about. Connected Signals says which of them OneUptime already knows - your hosts, container hosts, Kubernetes clusters, network devices, cloud resources, serverless functions, services, the monitors that check them, and members - and what was happening on each around the case: its logs, traces and metrics, the incidents and alerts open on it, the monitors watching it and what changed on it. The other way round, the page of a host, a cluster, a cloud resource, a service, a monitor or a member says what Security Events found about it.
+A security case says which users, hosts and addresses it is about. Connected Signals says which of them OneUptime already knows - your hosts, container hosts, Kubernetes clusters, network devices, cloud resources, serverless functions, services, the monitors that check them, and members - and what was happening on each around the case: its logs, traces and metrics, the incidents and alerts open on it, the monitors watching it and what changed on it. It also searches your logs and traces themselves for them: an attacker's address in a web server's access log, a leaked email in an application's error. The other way round, the page of a host, a cluster, a cloud resource, a service, a monitor or a member says what Security Events found about it.
 
 :::cards
 - [Where you see it](#where-you-see-it): A case's page, an event's tab, an entity's page, and the pages of what they name.
 - [How a value is matched](#how-a-value-is-matched): What counts as the same record, and what only possibly is.
 - [What each record shows](#what-each-record-shows): Its signals around the case, and what is open on it.
+- [In your logs and traces](#in-your-logs-and-traces): Where an address, a domain or an email it names appears in your log lines and spans.
 - [Who sees what](#who-sees-what): Every record is read with the reader's own role.
 :::
 
@@ -53,7 +54,7 @@ Each user, host and address a case or an event names is looked up among the proj
 | A bare user name, a file hash or a process | Nothing: no record is keyed by them | - |
 
 - A possible match shows **Possible match** beside its name, and says why. It is never counted on the record's page, and an incident the case declares is never linked to it.
-- What was looked for and is not a record of the project is listed under **Not in OneUptime**. A value is never listed there when a kind of record it could be could not be read.
+- What was looked for and is not a record of the project is listed under **No matching record**. A value is never listed there when a kind of record it could be could not be read.
 - At most 10 records are listed for a case, the exact ones first.
 
 ## What each record shows
@@ -70,6 +71,20 @@ Each user, host and address a case or an event names is looked up among the proj
 | An entity's page | 30 minutes either side of its last security event |
 | A record's **Security** card | The last 7 days |
 
+## In your logs and traces
+
+Under the records, Connected Signals searches your logs and traces, over the same window, for the values it names that can only mean one thing: an IP address (but `127.0.0.1` and the others every machine has), a full host or domain name, an email, a URL, a cloud resource's ID and a file hash. A bare host name, a user's bare name and a process are never searched for: a log line can hold them for any reason. At most 10 values are searched for.
+
+| Where | It names a value when |
+| --- | --- |
+| A log line's message | It holds the value whole, whatever its case: `10.0.0.1` in `from 10.0.0.1:52144`, never in `10.0.0.12` or `110.0.0.1` |
+| An attribute of a log line or a span | Its value is exactly the value: as written, in lower or upper case, or an IPv6 address in its short form |
+
+- Each value found shows how many log lines and spans name it, where in them it was - **In the message**, or an attribute by its key - each opening the **Logs** or **Traces** explorer on those lines or spans and the window, and the records that sent them, the most first.
+- A resource attribute, such as `resource.host.name`, only says which record sent a line, and is never counted.
+- The values searched for and named by neither are listed under **Not in your logs or traces**.
+- They are searched with your own role: logs or traces your role cannot read are said to be, and not searched; ones that could not be searched just now say so, with **Try again**. A search that takes longer than 15 seconds is stopped, and says so.
+
 ## Who sees what
 
 - Connected Signals and a record's **Security** card take a role that can read security events: Security Admin, Security Member, Security Viewer, Project Owner or Project Admin. Anyone else sees no security data on any page. See [Roles](/docs/permissions/reference#roles).
@@ -83,12 +98,16 @@ Each user, host and address a case or an event names is looked up among the proj
 
 ## OneUptime AI
 
-OneUptime AI's triage of a case reads its Connected Signals: what is open and what changed on the hosts, services, monitors and members the case names, and a member's on-call schedules and teams. An incident's investigation reads the security case that declared it and the open cases naming what it affects. See [OneUptime AI in Security](/docs/telemetry/security-ai).
+OneUptime AI's triage of a case reads its Connected Signals: what is open and what changed on the hosts, services, monitors and members the case names, a member's on-call schedules and teams, and where its values appear in your logs and traces. An incident's investigation reads the security case that declared it and the open cases naming what it affects. See [OneUptime AI in Security](/docs/telemetry/security-ai).
 
 ## Troubleshooting
 
 :::details A host the case names is not listed
 Check that the case names the host as the host names itself, or names a public address only that host holds. A short name, such as `web-1` for `web-1.acme.internal`, is listed as a possible match, and a user's bare name, a file hash or a process is not looked up at all. A URL is looked up only among the monitors that check its host.
+:::
+
+:::details An address the case names is not in its logs and traces
+Only the case's window is searched, and only the logs and traces your role can read. A message names an address only as a whole: `10.0.0.12` is another address, though the Logs explorer's message search finds it too. An attribute names it only when its value is exactly the address, and a resource attribute never does.
 :::
 
 :::details The right host is listed as a possible match
