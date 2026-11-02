@@ -52,6 +52,7 @@ Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise E
 | Hälsolarm för PostgreSQL och Valkey (Redis) | Nej | Ja | Inte tillämpligt |
 | [Säkerhetskopior](/docs/installation/backups) av PostgreSQL och ClickHouse till din egen lagring, enligt ett schema, med återställning | Nej | Ja | Inte tillämpligt |
 | [Anpassade aviseringskanaler](/docs/self-hosted/custom-notification-channels): larma personer via din egen tjänst, till exempel ditt företags app | Nej | Ja | Inte tillämpligt |
+| [Sessionslängd](/docs/self-hosted/session-length): hur länge personer förblir inloggade, och hur länge utan att använda OneUptime | Nej | Ja | Inte tillämpligt |
 | Kapacitetsvy för ClickHouse, kapacitetslarm och automatisk rensning av disken | Ja | Ja | Inte tillämpligt |
 | Migreringsstatus, supportpaket och globala prober i administratörspanelen | Ja | Ja | Inte tillämpligt |
 | Hantering av Enterprise-licens, platser och instanser | Nej | Ja | Inte tillämpligt |
@@ -203,6 +204,7 @@ Vad som **inte** stoppas:
 - **Grundövervakningen påverkas aldrig**: övervakare, larm, incidenter, jour, statussidor och telemetri fortsätter alla att fungera.
 - **Huvudadministratörer kan alltid logga in med sitt lösenord.**
 - **Anpassade roller, IP-tillåtelselistor och åtkomstkontroller för statussidor fortsätter att gälla.** Du kan ta bort dem, men inte skapa eller ändra dem.
+- **Sessionslängder fortsätter att gälla.** Du kan ta bort dem, men inte ange eller ändra dem.
 - **Inget tas bort.** SCIM-konfiguration, granskningsloggar och åsidosättningar av lagringstid förblir som de är.
 
 **Allt fortsätter igen så snart en licens aktiveras**, utan omstart: SCIM-etablering, granskningsloggning och åsidosättningar av lagringstid kommer tillbaka med den konfiguration du har. OneUptime stänger bara av dem när det vet att licensen har löpt ut. Så länge det inte kan läsa licenstillståndet, till exempel en kort stund medan servern startar, förblir SCIM, granskningsloggning och åsidosättningar av lagringstid påslagna.
@@ -220,6 +222,7 @@ Din konfiguration ligger kvar i databasen. Ett byte tillbaka till Enterprise-avb
 - **Åsidosättningar av lagringstid slutar gälla.** Ny telemetri behålls enligt projektets standardlagringstid, och lagringskorten under **Projektinställningar > Telemetri och APM > Datalagring** och på inställningssidan för varje tjänst och varje resurs visar en uppmaning att uppgradera. Åsidosättningarna ligger kvar i databasen och gäller igen när du byter tillbaka.
 - **Statussidor visar Powered by OneUptime igen.** Inställningen ligger kvar i databasen och döljer raden igen när du byter tillbaka.
 - **Anpassade roller, IP-tillåtelselistor och åtkomstkontroller för statussidor fortsätter att gälla.** Deras inställningar visar en uppmaning att uppgradera, med det som fortfarande är inställt och en knapp för att ta bort det.
+- **Sessionslängder slutar gälla.** Varje inloggning varar som i Community Edition. Längderna finns kvar i databasen och gäller igen när du byter tillbaka.
 - **Enterprise-inställningssidor visar en uppmaning att uppgradera.** Via API:t kan du fortfarande läsa och ta bort enterprise-konfiguration och återställa en SCIM-bearer-token, men inte skapa eller ändra något annat. Granskningsloggning kan inte slås på.
 - **Enterprise-instrumentpanelerna under Health, Query Console och hälsolarmen för PostgreSQL och Valkey stoppas.** Kapacitetsövervakning och rensning för ClickHouse, migreringsstatus och supportpaketet fortsätter att fungera.
 

@@ -38,6 +38,8 @@ import RealtimeSessions, {
   RealtimeSocketSession,
 } from "./Realtime/RealtimeSessions";
 import RealtimeAccessChanges from "./Realtime/RealtimeAccessChanges";
+import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import { SessionLengths } from "../../Types/UserSession/SessionLength";
 
 // What became of one ListenToModelEvent request.
 export enum ListenToModelEventOutcome {
@@ -174,6 +176,17 @@ export default abstract class Realtime {
        */
       RealtimeAccessChanges.onProjectBlockChanged((projectId: string): void => {
         Realtime.recheckProjectAccess(projectId).catch((err: unknown) => {
+          logger.error(err);
+        });
+      });
+
+      /*
+       * A master admin changed how long sign-ins last, here or on another
+       * server: the sockets of this one hear only until their sessions end
+       * under the new lengths (RealtimeSessions.applySessionLengths).
+       */
+      RealtimeAccessChanges.onSessionLengthsChanged((): void => {
+        Realtime.applySessionLengths().catch((err: unknown) => {
           logger.error(err);
         });
       });
@@ -588,6 +601,18 @@ export default abstract class Realtime {
         return;
       }
     }
+  }
+
+  /*
+   * Holds this server's sockets to the session lengths as they are now. A
+   * failed read leaves them as they are: each still ends when its access
+   * token does, and its renewal is checked against the lengths.
+   */
+  public static async applySessionLengths(): Promise<number> {
+    const lengths: SessionLengths | null =
+      await EnterpriseEdition.getUserSessionLengths();
+
+    return RealtimeSessions.applySessionLengths(lengths);
   }
 
   private static async recheckSocketInProject(

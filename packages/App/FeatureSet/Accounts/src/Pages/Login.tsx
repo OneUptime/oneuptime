@@ -67,6 +67,7 @@ import QRCodeElement from "Common/UI/Components/QR/QR";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import LoginWithSsoPage from "./LoginWithSSO";
+import SessionEndedNotice from "../Components/SessionEndedNotice/SessionEndedNotice";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 
 /*
@@ -981,6 +982,11 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 ? t("adminLogin.subtitle")
                 : t("login.subtitle")}
             </p>
+            {/*
+             * Why they were signed out, when the server ended their
+             * session: its length or idle timeout was reached.
+             */}
+            <SessionEndedNotice className="mt-6 text-start" />
           </>
         )}
 

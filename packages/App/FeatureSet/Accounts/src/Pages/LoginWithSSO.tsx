@@ -3,6 +3,7 @@ import {
   SERVICE_PROVIDER_LOGIN_URL,
 } from "../Utils/ApiPaths";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
+import SessionEndedNotice from "../Components/SessionEndedNotice/SessionEndedNotice";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -306,6 +307,11 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
         <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
           {subtitle}
         </p>
+        {/*
+         * Why they were signed out, when the server ended their session
+         * and this page stands in for the sign-in page (SSO required).
+         */}
+        <SessionEndedNotice className="mt-6 text-start" />
       </div>
     );
   };

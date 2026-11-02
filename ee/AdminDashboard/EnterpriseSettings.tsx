@@ -8,6 +8,7 @@ import AuditLogExportPlugins from "./AuditLogExport/Plugins";
 import BackupsPlugins from "./Backups/Plugins";
 import CustomChannelsPlugins from "./CustomChannels/Plugins";
 import LicensePlugins from "./License/Plugins";
+import SessionLengthPlugins from "./SessionLength/Plugins";
 import WhiteLabelPlugins from "./WhiteLabel/Plugins";
 
 /*
@@ -18,7 +19,9 @@ import WhiteLabelPlugins from "./WhiteLabel/Plugins";
  *
  * Entries keep this order in the section they belong to. Each draws itself -
  * or nothing, for a page the license does not allow (White Label). License
- * comes first: it is what every page after it depends on.
+ * comes first: it is what every page after it depends on. Session Length
+ * follows it, nearest the sign-in pages above them (Authentication and
+ * Single Sign-On).
  */
 type SettingsArea = Pick<
   AdminDashboardEnterprisePlugins,
@@ -33,6 +36,7 @@ type SettingsSideMenuItemsKey =
 
 export const ENTERPRISE_SETTINGS_AREAS: ReadonlyArray<SettingsArea> = [
   LicensePlugins,
+  SessionLengthPlugins,
   AuditLogExportPlugins,
   BackupsPlugins,
   CustomChannelsPlugins,

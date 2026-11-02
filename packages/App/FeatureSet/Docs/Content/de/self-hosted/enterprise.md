@@ -52,6 +52,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | Health-Alarme für PostgreSQL und Valkey (Redis) | Nein | Ja | Nicht zutreffend |
 | [Backups](/docs/installation/backups) von PostgreSQL und ClickHouse in Ihren eigenen Speicher, nach Zeitplan, mit Wiederherstellung | Nein | Ja | Nicht zutreffend |
 | [Benutzerdefinierte Benachrichtigungskanäle](/docs/self-hosted/custom-notification-channels): Personen über Ihren eigenen Dienst alarmieren, etwa über die App Ihres Unternehmens | Nein | Ja | Nicht zutreffend |
+| [Sitzungsdauer](/docs/self-hosted/session-length): wie lange Personen angemeldet bleiben, und wie lange ohne OneUptime zu nutzen | Nein | Ja | Nicht zutreffend |
 | Kapazitätsansicht, Kapazitätsalarme und automatisches Bereinigen der Festplatte für ClickHouse | Ja | Ja | Nicht zutreffend |
 | Migrationsstatus, Support-Bundle und globale Probes im Admin-Dashboard | Ja | Ja | Nicht zutreffend |
 | Verwaltung von Enterprise-Lizenz, Plätzen und Instanzen | Nein | Ja | Nicht zutreffend |
@@ -203,6 +204,7 @@ Was **nicht** endet:
 - **Das Kern-Monitoring ist nie betroffen**: Monitore, Alarme, Incidents, Bereitschaftsdienst, Statusseiten und Telemetrie funktionieren alle weiter.
 - **Master-Admins können sich immer mit ihrem Passwort anmelden.**
 - **Benutzerdefinierte Rollen, IP-Zulassungslisten und die Zugriffssteuerung für Statusseiten gelten weiter.** Sie können sie entfernen, aber nicht anlegen oder ändern.
+- **Sitzungsdauern gelten weiter.** Sie können sie entfernen, aber nicht festlegen oder ändern.
 - **Nichts wird gelöscht.** SCIM-Konfiguration, Audit-Logs und Aufbewahrungs-Überschreibungen bleiben, wie sie sind.
 
 **Alles läuft wieder, sobald eine Lizenz aktiviert ist**, ohne Neustart: SCIM-Provisionierung, Audit-Protokollierung und Aufbewahrungs-Überschreibungen kehren mit Ihrer bestehenden Konfiguration zurück. OneUptime schaltet sie nur ab, wenn es weiß, dass die Lizenz abgelaufen ist. Solange es den Lizenzzustand nicht lesen kann, etwa einen Moment lang beim Start des Servers, bleiben SCIM, Audit-Protokollierung und Aufbewahrungs-Überschreibungen eingeschaltet.
@@ -220,6 +222,7 @@ Ihre Konfiguration bleibt in der Datenbank. Ein Wechsel zurück auf das Enterpri
 - **Aufbewahrungs-Überschreibungen gelten nicht mehr.** Neue Telemetrie wird für die Standard-Aufbewahrung des Projekts behalten, und die Aufbewahrungskarten unter **Projekteinstellungen > Telemetrie & APM > Datenaufbewahrung** und auf der Einstellungsseite jedes Dienstes und jeder Ressource zeigen einen Upgrade-Hinweis. Die Überschreibungen bleiben in der Datenbank und gelten wieder, wenn Sie zurückwechseln.
 - **Statusseiten zeigen wieder Powered by OneUptime.** Die Einstellung bleibt in der Datenbank und blendet die Zeile wieder aus, wenn Sie zurückwechseln.
 - **Benutzerdefinierte Rollen, IP-Zulassungslisten und die Zugriffssteuerung für Statusseiten gelten weiter.** Ihre Einstellungen zeigen einen Upgrade-Hinweis, mit dem, was noch gesetzt ist, und einer Schaltfläche zum Entfernen.
+- **Sitzungsdauern gelten nicht mehr.** Jede Anmeldung dauert so lange wie in der Community Edition. Die Dauern bleiben in der Datenbank und gelten wieder, wenn Sie zurückwechseln.
 - **Enterprise-Einstellungsseiten zeigen einen Upgrade-Hinweis.** Über die API können Sie die Enterprise-Konfiguration weiterhin lesen und löschen und ein SCIM-Bearer-Token zurücksetzen, aber nichts anderes anlegen oder ändern. Die Audit-Protokollierung lässt sich nicht einschalten.
 - **Die Enterprise-Dashboards unter Health, die Query Console sowie die Health-Alarme für PostgreSQL und Valkey enden.** Kapazitätsüberwachung und Bereinigung für ClickHouse, Migrationsstatus und das Support-Bundle funktionieren weiter.
 

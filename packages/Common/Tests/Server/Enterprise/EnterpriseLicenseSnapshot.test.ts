@@ -31,6 +31,7 @@ describe("EnterpriseFeature", () => {
     expect(EnterpriseFeature.CustomNotificationChannels).toBe(
       "custom-notification-channels",
     );
+    expect(EnterpriseFeature.SessionLength).toBe("session-length");
     expect(ENTERPRISE_FEATURE_WILDCARD).toBe("*");
   });
 
@@ -44,6 +45,7 @@ describe("EnterpriseFeature", () => {
         "instance-health",
         "ip-allowlists",
         "scim",
+        "session-length",
         "status-page-access-controls",
         "status-page-branding",
         "team-compliance",
