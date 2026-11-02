@@ -710,6 +710,11 @@ describe("the Postgres permission layer (ModelPermission)", () => {
 interface AnalyticsWriteEntryPoint {
   name: string;
   call: (props: DatabaseCommonInteractionProps) => Promise<unknown>;
+  /*
+   * The permission check it goes on to for a caller who may write: the
+   * model-level check, unless named here.
+   */
+  permissionCheck?: string;
 }
 
 function newLog(): Log {
@@ -753,6 +758,21 @@ const ANALYTICS_WRITE_ENTRY_POINTS: Array<AnalyticsWriteEntryPoint> = [
       );
     },
   },
+  {
+    /*
+     * Asked once a create's rows are ready: each is of a resource the caller
+     * may both create and read rows of. It goes on to work out whose.
+     */
+    name: "checkCreateScope",
+    permissionCheck: "getReadScope",
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await AnalyticsModelPermission.checkCreateScope(
+        Log,
+        [newLog()],
+        props,
+      );
+    },
+  },
 ];
 
 function analyticsEntryPoints(): Array<[string, AnalyticsWriteEntryPoint]> {
@@ -768,14 +788,18 @@ function analyticsEntryPoints(): Array<[string, AnalyticsWriteEntryPoint]> {
 const REACHED_THE_PERMISSION_CHECK: string = "reached the permission check";
 
 /*
- * Replaces the analytics layer's own model-level check with a marker, so a
- * test can tell "refused before any permission was looked at" from "went on
- * to the permission check" without depending on what Log's lists allow.
+ * Replaces the permission check an entry point goes on to - the analytics
+ * layer's own model-level check, unless the entry point names another -
+ * with a marker, so a test can tell "refused before any permission was
+ * looked at" from "went on to the permission check" without depending on
+ * what Log's lists allow.
  */
-function markAnalyticsPermissionCheck(): jest.SpyInstance<any, any> {
+function markAnalyticsPermissionCheck(
+  entryPoint: AnalyticsWriteEntryPoint,
+): jest.SpyInstance<any, any> {
   return getJestSpyOn(
     AnalyticsModelPermission,
-    "checkModelLevelPermissions",
+    entryPoint.permissionCheck || "checkModelLevelPermissions",
   ).mockImplementation((): never => {
     throw new Error(REACHED_THE_PERMISSION_CHECK);
   });
@@ -797,7 +821,7 @@ describe("the ClickHouse permission layer (AnalyticsDatabase/ModelPermission)", 
     "%s refuses it before any permission is looked at",
     async (_name: string, entryPoint: AnalyticsWriteEntryPoint) => {
       const permissionCheck: jest.SpyInstance<any, any> =
-        markAnalyticsPermissionCheck();
+        markAnalyticsPermissionCheck(entryPoint);
 
       expectReadOnlyRefusal(
         await rejectionOf((): Promise<unknown> => {
@@ -813,7 +837,7 @@ describe("the ClickHouse permission layer (AnalyticsDatabase/ModelPermission)", 
     "%s goes on to the permission check for a credential that may write (the control)",
     async (_name: string, entryPoint: AnalyticsWriteEntryPoint) => {
       const permissionCheck: jest.SpyInstance<any, any> =
-        markAnalyticsPermissionCheck();
+        markAnalyticsPermissionCheck(entryPoint);
 
       const error: unknown = await rejectionOf((): Promise<unknown> => {
         return entryPoint.call(ownerProps());
@@ -828,7 +852,7 @@ describe("the ClickHouse permission layer (AnalyticsDatabase/ModelPermission)", 
     "%s lets root through even with the read-only mark",
     async (_name: string, entryPoint: AnalyticsWriteEntryPoint) => {
       const permissionCheck: jest.SpyInstance<any, any> =
-        markAnalyticsPermissionCheck();
+        markAnalyticsPermissionCheck(entryPoint);
 
       expect(
         await rejectionOf((): Promise<unknown> => {
@@ -943,6 +967,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
     ],
     expectedWriteMethods: [
       "checkCreatePermissions",
+      "checkCreateScope",
       "checkDeletePermission",
       "checkUpdatePermissions",
     ],
