@@ -12,6 +12,7 @@ import BaseModel, {
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   getTableColumns,
   TableColumnMetadata,
@@ -445,6 +446,30 @@ export function getDocumentedDefaultValue(
 }
 
 /*
+ * A telemetry list's example query and sort: a time range on the table's
+ * time column, newest first, as every telemetry query should be bounded and
+ * sorted. The other pages' sort, {"createdAt": -1}, is no order a telemetry
+ * list takes (StatementGenerator reads "ASC" and "DESC"), and createdAt is
+ * not the time a telemetry table is sorted by.
+ */
+export function getTelemetryListExamples(model: AnalyticsBaseModel): {
+  simpleQueryExample: JSONObject;
+  simpleSortExample: JSONObject;
+} {
+  const timeColumn: string = model.defaultSortColumn;
+
+  return {
+    simpleQueryExample: {
+      [timeColumn]: {
+        _type: "GreaterThan",
+        value: "2026-01-01T00:00:00.000Z",
+      },
+    },
+    simpleSortExample: { [timeColumn]: SortOrder.Descending },
+  };
+}
+
+/*
  * Build a representative request body for the analytics-only /aggregate
  * endpoint. Picks the model's indexed timestamp column and the first
  * numeric column so the example is valid against the real schema.
@@ -826,10 +851,12 @@ export default class ServiceHandler {
     pageData["exampleObjectID"] = exampleObjectID;
 
     // Generate dynamic example objects from column metadata
-    const exampleObjects: ExampleObjects = generateExampleObjects(
-      tableColumns,
-      exampleObjectID,
-    );
+    const exampleObjects: ExampleObjects = {
+      ...generateExampleObjects(tableColumns, exampleObjectID),
+      ...(isAnalytics
+        ? getTelemetryListExamples(model as AnalyticsBaseModel)
+        : {}),
+    };
     pageData["exampleObjects"] = exampleObjects;
 
     // Construct the API path for the current resource
