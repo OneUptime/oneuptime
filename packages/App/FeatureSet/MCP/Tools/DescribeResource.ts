@@ -24,6 +24,7 @@ import {
 } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import { JSONObject } from "Common/Types/JSON";
+import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
 import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import { getSchemaFieldNames } from "Common/Utils/Schema/SchemaFields";
 import {
@@ -87,76 +88,6 @@ const OPERATOR_SYNTAX: Record<string, JSONObject> = {
   IsNull: { _type: "IsNull" },
   NotNull: { _type: "NotNull" },
 };
-
-const PRESENCE_OPERATORS: Array<string> = ["IsNull", "NotNull"];
-
-const EQUALITY_OPERATORS: Array<string> = [
-  "EqualTo",
-  "NotEqual",
-  ...PRESENCE_OPERATORS,
-];
-
-const ID_OPERATORS: Array<string> = [...EQUALITY_OPERATORS, "Includes"];
-
-const TEXT_OPERATORS: Array<string> = [
-  ...ID_OPERATORS,
-  "EqualToOrNull",
-  "Search",
-];
-
-const RANGE_OPERATORS: Array<string> = [
-  ...EQUALITY_OPERATORS,
-  "GreaterThan",
-  "GreaterThanOrEqual",
-  "LessThan",
-  "LessThanOrEqual",
-  "InBetween",
-];
-
-/*
- * What a telemetry column can be filtered with, as StatementGenerator compiles
- * it; Tests/DescribeResource runs every one of these through it.
- *
- * This is not AnalyticsModelSchema's list, which documents the REST API and
- * says less than the API does: it gives a DateTime64 or a UInt64 column no
- * range operators, though telemetry's own `time` is a DateTime64 and every
- * query should bound it, and a map column operators that throw.
- */
-const TELEMETRY_OPERATORS: Partial<Record<AnalyticsColumnType, Array<string>>> =
-  {
-    [AnalyticsColumnType.Text]: TEXT_OPERATORS,
-    [AnalyticsColumnType.ArrayText]: [...ID_OPERATORS, "Search"],
-    [AnalyticsColumnType.ObjectID]: ID_OPERATORS,
-    [AnalyticsColumnType.IP]: ID_OPERATORS,
-    [AnalyticsColumnType.Boolean]: EQUALITY_OPERATORS,
-    [AnalyticsColumnType.Date]: RANGE_OPERATORS,
-    [AnalyticsColumnType.DateTime64]: RANGE_OPERATORS,
-    [AnalyticsColumnType.Number]: RANGE_OPERATORS,
-    [AnalyticsColumnType.LongNumber]: RANGE_OPERATORS,
-    [AnalyticsColumnType.BigNumber]: RANGE_OPERATORS,
-    [AnalyticsColumnType.Decimal]: RANGE_OPERATORS,
-    [AnalyticsColumnType.UInt8]: RANGE_OPERATORS,
-    [AnalyticsColumnType.UInt64]: RANGE_OPERATORS,
-    [AnalyticsColumnType.Port]: RANGE_OPERATORS,
-    [AnalyticsColumnType.ArrayNumber]: PRESENCE_OPERATORS,
-    [AnalyticsColumnType.ArrayBigNumber]: PRESENCE_OPERATORS,
-    [AnalyticsColumnType.ArrayDecimal]: PRESENCE_OPERATORS,
-    [AnalyticsColumnType.JSON]: PRESENCE_OPERATORS,
-    [AnalyticsColumnType.JSONArray]: PRESENCE_OPERATORS,
-    [AnalyticsColumnType.MapStringString]: [...EQUALITY_OPERATORS, "Search"],
-  };
-
-// A telemetry column ClickHouse has no useful order for.
-const TELEMETRY_UNSORTABLE_TYPES: Array<AnalyticsColumnType> = [
-  AnalyticsColumnType.ArrayText,
-  AnalyticsColumnType.ArrayNumber,
-  AnalyticsColumnType.ArrayBigNumber,
-  AnalyticsColumnType.ArrayDecimal,
-  AnalyticsColumnType.JSON,
-  AnalyticsColumnType.JSONArray,
-  AnalyticsColumnType.MapStringString,
-  AnalyticsColumnType.AggregateFunction,
-];
 
 /*
  * Number columns ModelSchema's sort schema leaves out, though the API orders
@@ -275,15 +206,20 @@ function describeAnalyticsFields(
       field.description = column.description;
     }
 
-    const operators: Array<string> | undefined =
-      TELEMETRY_OPERATORS[column.type];
+    /*
+     * What the REST API's own schema says a column of this type takes, as
+     * StatementGenerator compiles it (Common's Tests/Utils/Schema/
+     * AnalyticsModelSchema, and Tests/DescribeResource here, hold it there).
+     */
+    const operators: Array<string> =
+      AnalyticsModelSchema.getValidOperatorsForColumnType(column.type);
 
-    if (operators) {
+    if (operators.length > 0) {
       field.filter = true;
       operatorsByType[column.type] = operators;
     }
 
-    if (!TELEMETRY_UNSORTABLE_TYPES.includes(column.type)) {
+    if (AnalyticsModelSchema.getSortableTypes().includes(column.type)) {
       field.sort = true;
     }
 
