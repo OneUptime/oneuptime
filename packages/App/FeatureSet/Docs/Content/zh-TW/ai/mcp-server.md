@@ -250,6 +250,7 @@ MCP 伺服器有三種運作方式。
 
 - **`oneuptime_help`**：關於 OneUptime MCP 工具的說明和指引
 - **`oneuptime_list_resources`**：資源以及每種資源可以做什麼
+- **`oneuptime_describe_resource`**：資源的欄位，以及如何依欄位篩選、排序和選取
 - **`get_public_status_page_overview`**：公開狀態頁的概覽
 - **`get_public_status_page_incidents`**：公開狀態頁的事件
 - **`get_public_status_page_scheduled_maintenance`**：它的排定維護事件
@@ -353,6 +354,8 @@ curl https://oneuptime.com/mcp/tools
 ```
 
 運算子有 `EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search` 和 `Includes`。排序值為 `"ASC"` 或 `"DESC"`。
+
+`list_` 和 `count_` 工具接受任意欄位，這樣工具清單就小到用戶端可以一次載入。要查看資源的欄位、每個欄位的意義以及它接受的運算子，代理程式會以資源或它的某個工具（例如 `Incident` 或 `list_incidents`）呼叫 `oneuptime_describe_resource`。
 
 ## 欄位選擇和分頁
 

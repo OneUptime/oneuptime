@@ -250,6 +250,7 @@ Sin una clave de API ni un inicio de sesión, un cliente puede usar las herramie
 
 - **`oneuptime_help`**: ayuda y orientación sobre las herramientas MCP de OneUptime
 - **`oneuptime_list_resources`**: los recursos y lo que puedes hacer con cada uno
+- **`oneuptime_describe_resource`**: los campos de un recurso y cómo filtrar, ordenar y seleccionar por ellos
 - **`get_public_status_page_overview`**: la vista general de una página de estado pública
 - **`get_public_status_page_incidents`**: los incidentes de una página de estado pública
 - **`get_public_status_page_scheduled_maintenance`**: sus eventos de mantenimiento programado
@@ -353,6 +354,8 @@ Consulta siempre la telemetría con un rango de tiempo. Un campo de consulta ace
 ```
 
 Los operadores son `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` e `Includes`. Los valores de ordenación son `"ASC"` o `"DESC"`.
+
+Las herramientas `list_` y `count_` aceptan cualquier campo, lo que mantiene la lista de herramientas lo bastante pequeña para que un cliente la cargue de una vez. Para ver los campos de un recurso, qué significa cada uno y qué operadores acepta, un agente llama a `oneuptime_describe_resource` con el recurso o una de sus herramientas, como `Incident` o `list_incidents`.
 
 ## Selección de campos y paginación
 

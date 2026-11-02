@@ -45,6 +45,7 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 - **[워크플로와 런북](https://oneuptime.com/docs/ko/workflows/index)**: 반복 작업을 자동화하고, Jira, ServiceNow 등 팀이 이미 쓰는 도구와 연결합니다.
 - **[OneUptime AI](https://oneuptime.com/docs/ko/ai/ai-sre)**: 새 인시던트와 경고를 조사하고, 출처가 달린 근본 원인 분석을 게시합니다. 수정을 켜면 팀이 검토할 수정 사항을 풀 리퀘스트로 열 수 있습니다.
 - **[API, CLI, Terraform](https://oneuptime.com/docs/ko/api-reference/api-reference)**: 스크립트와 CI에서 OneUptime을 자동화하고, 모니터, 상태 페이지, 온콜을 코드로 관리합니다.
+- **[MCP 서버](https://oneuptime.com/docs/ko/ai/mcp-server)** (`https://oneuptime.com/mcp`): Claude, Cursor, GitHub Copilot이 있는 VS Code 또는 Model Context Protocol(MCP)의 다른 클라이언트를 연결한 뒤, 인시던트를 살펴보고, 로그와 트레이스를 조회하고, 알림을 확인하고, 모니터를 설정해 달라고 요청하세요.
 
 나머지는 모두 [문서](https://oneuptime.com/docs/ko/introduction/getting-started)에 있습니다.
 

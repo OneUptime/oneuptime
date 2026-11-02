@@ -425,6 +425,11 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  /*
+   * What the MCP server does (packages/App/FeatureSet/MCP). These lines also
+   * go out in llms.txt, llms-full.txt, /tool/mcp-server.md, products.json and
+   * the page's structured data, so they say only what the docs say it does.
+   */
   "/tool/mcp-server": {
     title: "MCP Server | Model Context Protocol for AI | OneUptime",
     description:
@@ -444,15 +449,13 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       description:
         "Model Context Protocol server that connects AI agents and LLMs to OneUptime observability data for querying incidents, monitors, logs, metrics, and traces.",
       features: [
-        "Incident querying and management",
-        "Monitor status and health checks",
-        "Log search and filtering",
-        "Metrics time series retrieval",
-        "Distributed trace analysis",
-        "Compatible with Claude, Cursor, Windsurf",
-        "API key authentication",
-        "Fine-grained permissions",
-        "Real-time data access",
+        "Hosted at https://oneuptime.com/mcp, with nothing to install",
+        "Sign in with OneUptime, or use a project API key",
+        "Create, acknowledge and resolve incidents and alerts",
+        "Manage monitors, status pages, on-call policies and scheduled maintenance",
+        "Query logs, metrics, traces and exceptions",
+        "Works with Claude, Cursor, VS Code and any other MCP client",
+        "Uses your permissions and never more, with a read-only option",
         "Open protocol standard",
       ],
     },

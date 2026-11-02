@@ -1,6 +1,6 @@
 # OneUptime MCP Server
 
-A Model Context Protocol (MCP) server that exposes OneUptime to AI agents. It lets MCP-compatible clients (Claude, VS Code with Copilot, Cursor, and others) manage incidents, alerts, monitors, status pages, on-call, and telemetry through ~190 tools.
+A Model Context Protocol (MCP) server that exposes OneUptime to AI agents. It lets MCP-compatible clients (Claude, VS Code with Copilot, Cursor, and others) manage incidents, alerts, monitors, status pages, on-call, and telemetry through about 290 tools.
 
 ## How it works
 
@@ -103,7 +103,7 @@ Create a **project API key** in OneUptime under **Project Settings → Advanced 
 
 > **Warning — never give an AI agent a master key.** A OneUptime *master* API key is also accepted on this header and grants instance-wide admin access. Always use a project-scoped API key with least privilege for AI agents.
 
-Public status page tools and `oneuptime_help` / `oneuptime_list_resources` work without any credential.
+Public status page tools and `oneuptime_help` / `oneuptime_list_resources` / `oneuptime_describe_resource` work without any credential.
 
 ### OAuth sign-in
 
@@ -147,6 +147,7 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 ### Helper and public tools
 
 - `oneuptime_help`, `oneuptime_list_resources`
+- `oneuptime_describe_resource` — one resource's fields: what each means, the filter operators its type takes, and whether it can be sorted or must be selected. Accepts the resource's name or any of its tool names (`Incident`, `list_incidents`).
 - No credential needed: `get_public_status_page_overview`, `get_public_status_page_incidents`, `get_public_status_page_scheduled_maintenance`, `get_public_status_page_announcements`
 
 ### Annotations and results
@@ -159,7 +160,20 @@ Every tool has a title and states all three MCP hints, set in `Tools/ToolAnnotat
 
 MCP directories require them: the Claude Connectors Directory flags any tool without a `title` or a `readOnlyHint`/`destructiveHint`, and ChatGPT's requires all three hints as booleans. `Tests/ToolAnnotationsForDirectories.test.ts` fails on a tool that lacks one, or that breaks the rules above. On the server itself, `MCP_ALLOW_DESTRUCTIVE=false` removes the delete tools only, and `MCP_READ_ONLY=true` removes every tool that is not read-only (`Tests/WritePolicy.test.ts`). Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
 
+## The size of tools/list
+
+Many clients load every tool definition before the first question, so `tools/list` is paid for on every connection. On 2026-11-02 oneuptime.com answered it with 283 tools in 1,202,028 bytes (about 300,000 tokens at four characters a token), more than many models hold: each `list_` and `count_` tool listed every field of its model with its operators and an example. On the code that changed this, the answer went from 289 tools in 1,228,155 bytes to 290 tools in 237,400 bytes (about 59,000 tokens):
+
+- `list_` and `count_` tools take any field in `query` and `sort` and say how a filter is written; `oneuptime_describe_resource` gives the fields on demand, one resource at a time.
+- Generated schemas carry no examples. A typed value such as a date (`{"_type": "DateTime", "value": ...}`) or a color keeps its shape as schema, since its example was the only place that stated it.
+- `create_` tools explain only the fields a call cannot leave out, and `update_` tools name and type their fields without explaining them. Every field is still listed and typed, so a client that validates a call still can.
+- Tool names, titles and annotations are unchanged.
+
+`Tests/ToolListBudget.test.ts` reads `tools/list` through the SDK's client and fails above 250,000 bytes, or for any tool above 5,000 bytes. A new model adds about 4 KB. When a change goes over, make the tools say less, or raise the budget in the same change and say why.
+
 ## Query, sort, select, and pagination
+
+To find a resource's fields, call `oneuptime_describe_resource` with the resource or one of its tools. It answers with every field, its type and meaning, the operators each type takes and how each is written, and a worked example. `Tests/DescribeResource.test.ts` runs every field and operator it offers through the code the API runs on a query.
 
 ### Queries
 
@@ -174,7 +188,7 @@ Query fields accept a direct value or an operator object:
 }
 ```
 
-Operators: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes`.
+Operators: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween` (with `startValue` and `endValue`), `Search`, `Includes` (with an array). Which a field takes depends on its type. A telemetry map field such as `attributes` is filtered by its keys: `{"attributes": {"http.method": "GET"}}`.
 
 ### Sort
 
@@ -182,11 +196,11 @@ Operators: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `Greater
 { "sort": { "createdAt": "DESC" } }
 ```
 
-Values are `"ASC"` or `"DESC"`.
+Values are `"ASC"` or `"DESC"`. Each telemetry tool names the time column to filter and sort on (`time`, `startTime`, `windowStart` or `validFrom`).
 
 ### Select
 
-`get_` and `list_` tools take an optional `select` array of field names. By default all readable fields are returned **except** heavy ones (JSON / VeryLongText / HTML columns), which must be requested explicitly.
+`get_` and `list_` tools take an optional `select` array of field names, telemetry's included (a `{ "field": true }` object still works). By default all readable fields are returned **except** heavy ones (JSON / VeryLongText / HTML columns), which must be requested explicitly.
 
 ### Pagination
 
@@ -313,6 +327,10 @@ To publish before the next release, run the script by hand from the repository r
 ## ChatGPT plugin directory
 
 [`ChatGPTPlugin/`](ChatGPTPlugin/README.md) is the package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and Codex share: the listing, five positive and three negative review test cases, and `mcp.json`, which points at `https://oneuptime.com/mcp` and signs in with OAuth for read and write access. `npm run build-chatgpt-plugin` builds the ZIP. Its README lists what else a submission needs: a verified developer identity, a domain-verification token served at `https://oneuptime.com/.well-known/openai-apps-challenge`, reviewer credentials for a demo project, and a demo video. `Tests/ChatGPTPlugin.test.ts` holds the package to the Agent Plugins schemas and OpenAI's limits, and checks that every tool a test case names is one this server has.
+
+## Coding agent plugin
+
+[`CodingAgentPlugin/`](CodingAgentPlugin/README.md) is the plugin OneUptime lists for coding agents in Cursor's Marketplace and the Claude directory. It holds the hosted server's address and four skills: adding OpenTelemetry, setting up monitors and a status page, investigating an incident, and using the CLI in scripts and CI. `npm run build-coding-agent-plugin` builds a folder with the Agent Plugins, Cursor and Claude manifests side by side, taking the listing's words, links and icon from `ChatGPTPlugin/`. Both directories read a plugin from a public Git repository of its own, which a maintainer creates and submits: its README lists those steps. `Tests/CodingAgentPlugin.test.ts` runs the build, checks the folder against the Agent Plugins schemas and each directory's rules, and checks every tool and JSON example a skill names against this server.
 
 ## Development
 

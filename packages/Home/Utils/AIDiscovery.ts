@@ -37,6 +37,14 @@ import ProductCompare, {
   getProductCompareSlugs,
 } from "./ProductCompare";
 import BlogTag from "./BlogTag";
+import {
+  McpServerClientSetup,
+  McpServerDocsMarkdownPath,
+  McpServerPageContent,
+  McpServerPagePath,
+  McpServerPlanNote,
+  McpServerTool,
+} from "./McpServerPage";
 import { JSONObject } from "Common/Types/JSON";
 import { markdownTableCell } from "Common/Utils/Markdown/MarkdownTableCell";
 import { McpOAuthScopeUtil } from "Common/Types/Mcp/McpOAuthScope";
@@ -302,6 +310,7 @@ const machineReadableSection: (baseUrl: string) => Array<string> = (
     "",
     `- [OpenAPI specification](${baseUrl}/api/openapi/spec): full REST API schema for the OneUptime platform`,
     `- [MCP server manifest](${baseUrl}/.well-known/mcp.json): connect AI agents to OneUptime via Model Context Protocol (endpoint: ${baseUrl}/mcp)`,
+    `- [Connect an AI agent](${baseUrl}${McpServerPagePath}.md): the address, how to sign in, each client's setup and the plan it needs`,
     `- [Documentation index for LLMs](${baseUrl}/docs/llms.txt): all docs pages with raw markdown variants`,
     `- [API reference](${baseUrl}/reference): human-friendly API documentation`,
     `- [Pricing (JSON)](${baseUrl}/data/pricing.json): plans and feature matrix as JSON`,
@@ -669,6 +678,101 @@ function cloudMarketplacesMarkdown(
   );
 
   return lines;
+}
+
+/*
+ * /tool/mcp-server.md: how to connect an agent to OneUptime, from the same
+ * content the page renders (Utils/McpServerPage.ts) - the address, each
+ * client's setup, an API key for an agent nobody is there to sign in for, what
+ * it needs from a plan, and the tools to expect. llms.txt sends agents here,
+ * so this is all one needs to connect, not a summary of the page.
+ */
+export function generateMcpServerMarkdown(
+  homeUrl: string,
+  content: McpServerPageContent,
+): string {
+  const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const seo: PageSEOData | undefined = PageSEOConfig[McpServerPagePath];
+  const lines: Array<string> = [];
+
+  lines.push("# OneUptime MCP Server");
+  lines.push("");
+  if (seo) {
+    lines.push(`> ${seo.description}`);
+    lines.push("");
+  }
+  lines.push(`Canonical page: ${baseUrl}${McpServerPagePath}`);
+
+  lines.push("");
+  lines.push("## Connect");
+  lines.push("");
+  lines.push(
+    `Address: \`${content.endpoint}\` (streamable HTTP). There is nothing to install.`,
+  );
+  lines.push("");
+  lines.push(
+    `${content.signIn} Any other client that supports MCP authorization works the same way.`,
+  );
+
+  content.clientSetups.forEach((setup: McpServerClientSetup) => {
+    lines.push("");
+    lines.push(`### ${setup.client}`);
+    lines.push("");
+    lines.push(setup.instruction);
+    if (setup.code) {
+      lines.push("");
+      lines.push(`\`\`\`${setup.code.language}`);
+      lines.push(...setup.code.lines);
+      lines.push("```");
+    }
+  });
+
+  lines.push("");
+  lines.push("## Agents that run unattended");
+  lines.push("");
+  lines.push(content.apiKey);
+  lines.push("");
+  lines.push("```bash");
+  lines.push(content.apiKeyCommand);
+  lines.push("```");
+
+  lines.push("");
+  lines.push("## Plans");
+  lines.push("");
+  lines.push(`- ${content.plan}`);
+  lines.push(`- ${content.selfHosted}`);
+  lines.push(`- ${content.publicTools}`);
+
+  lines.push("");
+  lines.push("## What it can do");
+  lines.push("");
+  for (const feature of seo?.softwareApplication?.features || []) {
+    lines.push(`- ${feature}`);
+  }
+  lines.push("");
+  lines.push("Tools for reading what a person asks about:");
+  lines.push("");
+  content.tools.forEach((tool: McpServerTool) => {
+    lines.push(`- \`${tool.name}\`: ${tool.description}`);
+  });
+  lines.push("");
+  lines.push(`Every tool, by name: ${content.endpoint}/tools`);
+
+  lines.push("");
+  lines.push("## Learn More");
+  lines.push("");
+  lines.push(
+    `- [The full guide](${baseUrl}${McpServerDocsMarkdownPath}): every client, API keys, permissions and troubleshooting`,
+  );
+  lines.push(`- [MCP server manifest](${baseUrl}/.well-known/mcp.json)`);
+  lines.push(`- [Pricing](${baseUrl}/pricing.md)`);
+  lines.push(
+    `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
+  );
+  lines.push(`- [Sign up](${baseUrl}/accounts/register)`);
+  lines.push("");
+
+  return lines.join("\n");
 }
 
 /*
@@ -1185,7 +1289,7 @@ export function generateMcpManifest(
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const isOAuthEnabled: boolean = options?.isOAuthEnabled !== false;
 
-  const apiKeyInstructions: string = `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. See ${baseUrl}/docs/ai/mcp-server`;
+  const apiKeyInstructions: string = `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. ${McpServerPlanNote} See ${baseUrl}/docs/ai/mcp-server`;
 
   return {
     name: "OneUptime MCP Server",
@@ -1193,6 +1297,8 @@ export function generateMcpManifest(
       "Model Context Protocol server for OneUptime. Lets AI agents query and manage incidents, monitors, alerts, on-call schedules, status pages, logs, metrics and traces.",
     endpoint: `${baseUrl}/mcp`,
     transport: ["streamable-http"],
+    // As the MCP Registry's server.json writes it, which readers look for.
+    remotes: [{ type: "streamable-http", url: `${baseUrl}/mcp` }],
     authentication: isOAuthEnabled
       ? {
           type: "oauth2",
@@ -1219,12 +1325,6 @@ export function generateMcpManifest(
     documentation: `${baseUrl}/docs/ai/mcp-server`,
     website: `${baseUrl}/tool/mcp-server`,
     openapi: `${baseUrl}/api/openapi/spec`,
-    packages: [
-      {
-        registry: "npm",
-        name: "@oneuptime/mcp-server",
-      },
-    ],
   };
 }
 

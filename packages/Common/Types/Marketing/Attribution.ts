@@ -77,3 +77,22 @@ export const FirstTouchStringKeys: Array<string> = [
  * what an unauthenticated caller can push into the row.
  */
 export const MaxAttributionValueLength: number = 500;
+
+/*
+ * Signing up with Microsoft posts no form. The button is a link, the browser
+ * goes off to Microsoft, and the account is made on the way back, by a request
+ * that cannot read localStorage - where the attribution lives. So the button
+ * writes the attribution into this cookie as it is pressed, on a path only
+ * that sign-in's requests are sent, and the callback reads it.
+ */
+export const SignInAttributionCookieName: string =
+  "oneuptime-sign-in-attribution";
+export const SignInAttributionCookiePath: string = "/identity/microsoft";
+
+/*
+ * On the address a sign-in ends on when it made a new account. The sign-up
+ * page's reporting never runs for such a person, so the Dashboard - the first
+ * page they load - reports the sign-up, and takes this off the address.
+ */
+export const SignedUpWithQueryParam: string = "signed_up_with";
+export const SignedUpWithMicrosoft: string = "microsoft";

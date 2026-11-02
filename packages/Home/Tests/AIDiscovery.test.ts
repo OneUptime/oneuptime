@@ -20,6 +20,7 @@ import {
   CloudMarketplaceEntry,
   getCloudMarketplacesContent,
 } from "../Utils/CloudMarketplaces";
+import { McpServerPlanNote } from "../Utils/McpServerPage";
 import PageSEOConfig from "../Utils/PageSEO";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
 import McpOAuthConfig from "Common/Server/Utils/Mcp/McpOAuthConfig";
@@ -207,7 +208,7 @@ describe("AIDiscovery", () => {
       const instructions: string = String(authentication["instructions"]);
 
       expect(instructions).toBe(
-        "Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. See https://oneuptime.com/docs/ai/mcp-server",
+        `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. ${McpServerPlanNote} See https://oneuptime.com/docs/ai/mcp-server`,
       );
       expect(instructions.toLowerCase()).not.toContain("sign in");
       expect(instructions.toLowerCase()).not.toContain("oauth");

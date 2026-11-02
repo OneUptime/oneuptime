@@ -592,8 +592,10 @@ describe("Create New Project, OneUptime Cloud (billing on)", () => {
     expect(sentProjects()[0]!.paymentProviderPlanId).toBe("price_growth_year");
 
     await waitFor(() => {
-      expect(capturePurchaseMock).toHaveBeenCalledTimes(1);
+      expect(captureRevenueEventMock).toHaveBeenCalledTimes(2);
     });
+    // Free for 14 days with no card: a subscription started, nothing bought.
+    expect(capturePurchaseMock).not.toHaveBeenCalled();
     const events: Array<unknown> = captureRevenueEventMock.mock.calls.map(
       (call: Array<unknown>) => {
         return call[0];
@@ -608,6 +610,23 @@ describe("Create New Project, OneUptime Cloud (billing on)", () => {
     expect(started["plan"]).toBe("Growth");
     // The yearly price is quoted per month.
     expect(started["value"]).toBe(20);
+  });
+
+  test("a plan with no free trial is bought when the project is created", async () => {
+    planEnv = {
+      ...CLOUD_PLAN_ENV,
+      SUBSCRIPTION_PLAN_GROWTH:
+        "Growth,price_growth_month,price_growth_year,22,20,2,0",
+    };
+
+    await openDialog();
+    await typeName("Acme Production");
+    await pickPlan("Growth");
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(capturePurchaseMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("Monthly shows the monthly prices and sends the monthly price of the same plan", async () => {
