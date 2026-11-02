@@ -113,12 +113,12 @@ const USER_JSON: JSONObject = {
 const MICROSOFT_ROUTE: string = "/identity/microsoft/sign-in";
 const GOOGLE_ROUTE: string = "/identity/google/sign-in";
 
-// The "G" Google's sign-in branding asks for: its four colours, unchanged.
+// The "G" Google's sign-in branding asks for: its sample buttons' colours, unchanged.
 const GOOGLE_G_COLOURS: Array<string> = [
-  "#EA4335",
   "#4285F4",
-  "#FBBC05",
   "#34A853",
+  "#FBBC04",
+  "#E94235",
 ];
 
 // A filled button - what a primary button looks like, whatever its colour.

@@ -87,10 +87,10 @@ secret in the password manager with the other OneUptime Cloud secrets.
 
 ## 3. The servers' configuration
 
-| Environment variable           | Helm value                                                       | What it is                                    |
-| ------------------------------ | ---------------------------------------------------------------- | --------------------------------------------- |
-| `GOOGLE_SIGN_IN_CLIENT_ID`     | `googleSignInApp.clientId`                                       | The client ID. Public: it reaches `env.js`.   |
-| `GOOGLE_SIGN_IN_CLIENT_SECRET` | `googleSignInApp.clientSecret` (or `googleSignInApp.existingSecret`) | The client secret. Server side only.      |
+| Environment variable           | Helm value                                                           | What it is                                  |
+| ------------------------------ | -------------------------------------------------------------------- | ------------------------------------------- |
+| `GOOGLE_SIGN_IN_CLIENT_ID`     | `googleSignInApp.clientId`                                           | The client ID. Public: it reaches `env.js`. |
+| `GOOGLE_SIGN_IN_CLIENT_SECRET` | `googleSignInApp.clientSecret` (or `googleSignInApp.existingSecret`) | The client secret. Server side only.        |
 
 `googleSignInApp.existingSecret` names a Kubernetes secret and its
 `clientIdKey` and `clientSecretKey`. With docker compose they go in
@@ -140,13 +140,13 @@ On test.oneuptime.com first, then on oneuptime.com, in a private window:
 
 ## What the code needs from the client, and what breaks without it
 
-| Setting                                 | What breaks without it                                                                                                  |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Application type **Web application**    | Google refuses the code exchange (`invalid_client`): only a web client has a secret.                                    |
-| The redirect URI, exactly               | Google shows `Error 400: redirect_uri_mismatch` instead of the account chooser.                                         |
-| Publishing status **In production**     | Everyone but the listed test users sees "Access blocked".                                                               |
-| User type **External**                  | Only accounts of the project's own organization can sign in.                                                            |
-| The secret that matches the client      | Every callback fails with "We could not sign you in with Google." (`invalid_client` in the app's log).                  |
+| Setting                              | What breaks without it                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Application type **Web application** | Google refuses the code exchange (`invalid_client`): only a web client has a secret.                   |
+| The redirect URI, exactly            | Google shows `Error 400: redirect_uri_mismatch` instead of the account chooser.                        |
+| Publishing status **In production**  | Everyone but the listed test users sees "Access blocked".                                              |
+| User type **External**               | Only accounts of the project's own organization can sign in.                                           |
+| The secret that matches the client   | Every callback fails with "We could not sign you in with Google." (`invalid_client` in the app's log). |
 
 What OneUptime does with the account, and why, is in the code:
 [GoogleSignInClient.ts](GoogleSignInClient.ts) runs the OpenID Connect
@@ -168,7 +168,9 @@ is every provider sign-in's, shared with Sign in with Microsoft:
 follows [Google's sign-in branding guidelines](https://developers.google.com/identity/branding-guidelines),
 which Google's reviewers check:
 
-- Google's standard full-colour "G", unchanged, 20 px, 10 px before the words;
+- Google's full-colour "G", unchanged - the paths and colours of the sample
+  buttons on the guidelines page - 20 px, 10 px before the words, directly on
+  the fill in both themes, as those samples draw it;
 - the words **Continue with Google**, one of the three Google approves,
   translated into each of the page's 17 languages (Google encourages it) with
   "Google" itself never translated;

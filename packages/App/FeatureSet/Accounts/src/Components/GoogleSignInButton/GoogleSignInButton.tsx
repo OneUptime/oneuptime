@@ -43,8 +43,10 @@ const GoogleSignInButton: FunctionComponent<ComponentProps> = (
       }}
     >
       {/*
-       * The logo in the box every option's icon has (20px), so it sits on
-       * the words exactly as the shield and the fingerprint do.
+       * The "G" exactly as Google's own sample buttons draw it, on every
+       * theme's fill (developers.google.com/identity/branding-guidelines),
+       * in the box every option's icon has (20px), so it sits on the words
+       * exactly as the shield and the fingerprint do.
        */}
       <SignInOptionLabel
         icon={
@@ -52,25 +54,25 @@ const GoogleSignInButton: FunctionComponent<ComponentProps> = (
             aria-hidden="true"
             width="20"
             height="20"
-            viewBox="0 0 48 48"
+            viewBox="10 10 20 20"
             xmlns="http://www.w3.org/2000/svg"
             className={SIGN_IN_OPTION_ICON_CLASS}
           >
             <path
-              fill="#EA4335"
-              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-            />
-            <path
               fill="#4285F4"
-              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+              d="M29.6 20.2273C29.6 19.5182 29.5364 18.8364 29.4182 18.1818H20V22.05H25.3818C25.15 23.3 24.4455 24.3591 23.3864 25.0682V27.5773H26.6182C28.5091 25.8364 29.6 23.2727 29.6 20.2273Z"
             />
             <path
               fill="#34A853"
-              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+              d="M20 30C22.7 30 24.9636 29.1045 26.6181 27.5773L23.3863 25.0682C22.4909 25.6682 21.3454 26.0227 20 26.0227C17.3954 26.0227 15.1909 24.2636 14.4045 21.9H11.0636V24.4909C12.7091 27.7591 16.0909 30 20 30Z"
+            />
+            <path
+              fill="#FBBC04"
+              d="M14.4045 21.9C14.2045 21.3 14.0909 20.6591 14.0909 20C14.0909 19.3409 14.2045 18.7 14.4045 18.1V15.5091H11.0636C10.3864 16.8591 10 18.3864 10 20C10 21.6136 10.3864 23.1409 11.0636 24.4909L14.4045 21.9Z"
+            />
+            <path
+              fill="#E94235"
+              d="M20 13.9773C21.4681 13.9773 22.7863 14.4818 23.8227 15.4727L26.6909 12.6045C24.9591 10.9909 22.6954 10 20 10C16.0909 10 12.7091 12.2409 11.0636 15.5091L14.4045 18.1C15.1909 15.7364 17.3954 13.9773 20 13.9773Z"
             />
           </svg>
         }
