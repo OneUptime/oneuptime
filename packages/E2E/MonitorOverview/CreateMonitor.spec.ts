@@ -1230,7 +1230,15 @@ test.describe("Create Monitor, start to finish", () => {
  * seventeen rows used to put them a screen away from the row clicked.
  */
 test.describe("Quick Setup's alert templates", () => {
-  const KUBERNETES_TEMPLATE_COUNT: number = 18;
+  /*
+   * Every template getAllKubernetesAlertTemplates() returns
+   * (Common/Types/Monitor/KubernetesAlertTemplates): twenty-one since #5518
+   * added node pressure, a StatefulSet's replica mismatch and a DaemonSet's
+   * pods not ready. The spec cannot import
+   * the list: it loads Common's TypeORM models, whose decorators Playwright's
+   * transpiler does not run.
+   */
+  const KUBERNETES_TEMPLATE_COUNT: number = 21;
   const ETCD_DESCRIPTION_START: string =
     "Requires the agent's control-plane scrape";
 
