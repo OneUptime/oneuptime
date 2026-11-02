@@ -134,12 +134,10 @@ export const createSessionLengthRouter: (
             ? requestSession.session.sessionId
             : undefined;
 
-        const impact: SessionLengthsImpact = await deps.countPeoplePastLengths(
-          {
-            lengths,
-            sessionId,
-          },
-        );
+        const impact: SessionLengthsImpact = await deps.countPeoplePastLengths({
+          lengths,
+          sessionId,
+        });
 
         const preview: SessionLengthPreview = {
           peopleSignedOut: impact.peopleCount,

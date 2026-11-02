@@ -46,7 +46,9 @@ describe("SessionEndedException", () => {
     "its message reads back as its reason (%s)",
     (reason: SessionEndReason) => {
       expect(
-        SessionEndedException.getReason(new SessionEndedException(reason).message),
+        SessionEndedException.getReason(
+          new SessionEndedException(reason).message,
+        ),
       ).toBe(reason);
     },
   );
@@ -67,8 +69,7 @@ describe("SessionEndedException", () => {
   });
 
   test("a message must be exact to count: a lookalike or a padded one is no reason", () => {
-    const message: string =
-      SESSION_ENDED_MESSAGES[SessionEndReason.Inactive];
+    const message: string = SESSION_ENDED_MESSAGES[SessionEndReason.Inactive];
 
     expect(SessionEndedException.getReason(` ${message}`)).toBeNull();
     expect(SessionEndedException.getReason(message.toUpperCase())).toBeNull();

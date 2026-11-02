@@ -191,7 +191,9 @@ export default class UserMiddleware {
     if (await UserMiddleware.getSessionLengthEndReason(session)) {
       return {
         kind: "invalid",
-        error: new NotAuthenticatedException(SESSION_LENGTH_ENDED_TOKEN_MESSAGE),
+        error: new NotAuthenticatedException(
+          SESSION_LENGTH_ENDED_TOKEN_MESSAGE,
+        ),
       };
     }
 

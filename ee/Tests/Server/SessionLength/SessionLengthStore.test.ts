@@ -23,13 +23,11 @@ const NO_LENGTHS: SessionLengths = {
   sso: { lengthInMinutes: null, idleTimeoutInMinutes: null },
 };
 
-type FindOneById = typeof GlobalConfigService.findOneById;
-
 const holding: (
   row: Record<string, unknown> | null,
-) => jest.SpiedFunction<FindOneById> = (
+) => ReturnType<typeof jest.spyOn> = (
   row: Record<string, unknown> | null,
-): jest.SpiedFunction<FindOneById> => {
+): ReturnType<typeof jest.spyOn> => {
   return jest
     .spyOn(GlobalConfigService, "findOneById")
     .mockImplementation(async (): Promise<GlobalConfig | null> => {
@@ -49,7 +47,7 @@ afterEach(() => {
 
 describe("SessionLengthStore.readLengths", () => {
   test("reads the five columns of the one GlobalConfig row, as root", async () => {
-    const read: jest.SpiedFunction<FindOneById> = holding({});
+    const read: ReturnType<typeof jest.spyOn> = holding({});
 
     await SessionLengthStore.readLengths();
 

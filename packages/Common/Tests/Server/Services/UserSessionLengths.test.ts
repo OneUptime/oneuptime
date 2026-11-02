@@ -163,7 +163,11 @@ describe("how long the tokens a sign-in hands out live", () => {
     };
 
     expect(
-      Service.getAccessTokenExpiresInSeconds({ facts, lengths: null, now: NOW }),
+      Service.getAccessTokenExpiresInSeconds({
+        facts,
+        lengths: null,
+        now: NOW,
+      }),
     ).toBe(15 * 60);
     expect(
       Service.getAccessTokenExpiresInSeconds({
@@ -250,7 +254,10 @@ describe("UserSessionService.createSession", () => {
       .mockResolvedValue(new UserSession() as never);
 
     await expect(
-      UserSessionService.createSession({ userId: USER_ID, isGlobalLogin: true }),
+      UserSessionService.createSession({
+        userId: USER_ID,
+        isGlobalLogin: true,
+      }),
     ).rejects.toThrow("lengths unreadable");
     expect(create).not.toHaveBeenCalled();
   });
@@ -482,15 +489,19 @@ describe("UserSessionService.renewSessionWithNewRefreshToken", () => {
 
   test("reads the lengths itself when they are not handed over", async () => {
     fake.userSessionLengths = lengths({ length: 60 });
-    jest
-      .spyOn(UserSessionService, "updateOneByIdAndFetch")
-      .mockResolvedValue(
-        storedSession({ signedInAgoMs: 55 * MINUTE, lastActiveAgoMs: 0 }) as never,
-      );
+    jest.spyOn(UserSessionService, "updateOneByIdAndFetch").mockResolvedValue(
+      storedSession({
+        signedInAgoMs: 55 * MINUTE,
+        lastActiveAgoMs: 0,
+      }) as never,
+    );
 
     const metadata: SessionMetadata =
       await UserSessionService.renewSessionWithNewRefreshToken({
-        session: storedSession({ signedInAgoMs: 55 * MINUTE, lastActiveAgoMs: 0 }),
+        session: storedSession({
+          signedInAgoMs: 55 * MINUTE,
+          lastActiveAgoMs: 0,
+        }),
       });
 
     expect(fake.userSessionLengthsReads).toBe(1);
@@ -521,7 +532,8 @@ describe("ending a session the lengths ended", () => {
   test("a refresh after it learns why, from the reason the session was revoked with", async () => {
     const revoked: UserSession = new UserSession();
     revoked.id = SESSION_ID;
-    revoked.revokedReason = SESSION_END_REVOKED_REASONS[SessionEndReason.Inactive];
+    revoked.revokedReason =
+      SESSION_END_REVOKED_REASONS[SessionEndReason.Inactive];
     const find: ReturnType<typeof jest.spyOn> = jest
       .spyOn(UserSessionService, "findOneBy")
       .mockResolvedValue(revoked as never);

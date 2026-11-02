@@ -93,7 +93,8 @@ export enum SessionLengthKind {
 export const getSessionLengthColumnKind: (
   column: SessionLengthColumn,
 ) => SessionLengthKind = (column: SessionLengthColumn): SessionLengthKind => {
-  return column === SESSION_LENGTH_COLUMN || column === SSO_SESSION_LENGTH_COLUMN
+  return column === SESSION_LENGTH_COLUMN ||
+    column === SSO_SESSION_LENGTH_COLUMN
     ? SessionLengthKind.Length
     : SessionLengthKind.IdleTimeout;
 };
@@ -470,13 +471,16 @@ export enum SessionEndReason {
   Inactive = "inactive",
 }
 
-export const isSessionEndReason: (value: unknown) => value is SessionEndReason =
-  (value: unknown): value is SessionEndReason => {
-    return (
-      value === SessionEndReason.LengthReached ||
-      value === SessionEndReason.Inactive
-    );
-  };
+export const isSessionEndReason: (
+  value: unknown,
+) => value is SessionEndReason = (
+  value: unknown,
+): value is SessionEndReason => {
+  return (
+    value === SessionEndReason.LengthReached ||
+    value === SessionEndReason.Inactive
+  );
+};
 
 /*
  * Where the Dashboard sends a person whose session the server ended, the
@@ -485,10 +489,11 @@ export const isSessionEndReason: (value: unknown) => value is SessionEndReason =
 export const SESSION_ENDED_QUERY_PARAM: string = "sessionEnded";
 
 // The reason a sign-in page address names, or null for none it knows.
-export const readSessionEndReason: (value: unknown) => SessionEndReason | null =
-  (value: unknown): SessionEndReason | null => {
-    return isSessionEndReason(value) ? value : null;
-  };
+export const readSessionEndReason: (
+  value: unknown,
+) => SessionEndReason | null = (value: unknown): SessionEndReason | null => {
+  return isSessionEndReason(value) ? value : null;
+};
 
 /*
  * The field of a renewal (POST /identity/refresh-token) in which the

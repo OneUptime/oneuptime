@@ -202,7 +202,11 @@ const withSaved: (
 ): Array<number> => {
   const all: Array<number> = [...minutes];
 
-  if (saved !== null && saved !== DEFAULT_CHOICE_VALUE && !all.includes(saved)) {
+  if (
+    saved !== null &&
+    saved !== DEFAULT_CHOICE_VALUE &&
+    !all.includes(saved)
+  ) {
     all.push(saved);
     all.sort((first: number, second: number): number => {
       return first - second;

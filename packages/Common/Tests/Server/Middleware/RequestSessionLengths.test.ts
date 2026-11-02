@@ -209,9 +209,9 @@ describe("UserMiddleware.readRequestSession, under the server's session lengths"
   test("a session within its length is the user's", async () => {
     installFakeEnterpriseModule({ userSessionLengths: rule({ length: 60 }) });
 
-    expect((await read(sessionToken({ signedInAgoMs: 59 * MINUTE }))).kind).toBe(
-      "user",
-    );
+    expect(
+      (await read(sessionToken({ signedInAgoMs: 59 * MINUTE }))).kind,
+    ).toBe("user");
   });
 
   test("a session past its length is invalid at once, like an expired token, whatever its token's own expiry", async () => {
@@ -238,14 +238,20 @@ describe("UserMiddleware.readRequestSession, under the server's session lengths"
     expect(
       (
         await read(
-          sessionToken({ signedInAgoMs: 5 * HOUR, lastActiveAgoMs: 31 * MINUTE }),
+          sessionToken({
+            signedInAgoMs: 5 * HOUR,
+            lastActiveAgoMs: 31 * MINUTE,
+          }),
         )
       ).kind,
     ).toBe("invalid");
     expect(
       (
         await read(
-          sessionToken({ signedInAgoMs: 5 * HOUR, lastActiveAgoMs: 29 * MINUTE }),
+          sessionToken({
+            signedInAgoMs: 5 * HOUR,
+            lastActiveAgoMs: 29 * MINUTE,
+          }),
         )
       ).kind,
     ).toBe("user");

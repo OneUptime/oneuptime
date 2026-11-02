@@ -132,7 +132,8 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
     refreshToken?: string | undefined;
   }): Promise<ObjectID> => {
     const id: ObjectID = ObjectID.generate();
-    const refreshToken: string = data.refreshToken || ObjectID.generate().toString();
+    const refreshToken: string =
+      data.refreshToken || ObjectID.generate().toString();
 
     await query(
       `INSERT INTO "${schema}"."UserSession"
@@ -167,9 +168,13 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
   };
 
   const setLengths: (
-    values: Partial<Record<SessionLengthSettingColumn, number | boolean | null>>,
+    values: Partial<
+      Record<SessionLengthSettingColumn, number | boolean | null>
+    >,
   ) => Promise<void> = async (
-    values: Partial<Record<SessionLengthSettingColumn, number | boolean | null>>,
+    values: Partial<
+      Record<SessionLengthSettingColumn, number | boolean | null>
+    >,
   ): Promise<void> => {
     const full: Record<SessionLengthSettingColumn, number | boolean | null> = {
       sessionLengthInMinutes: null,
@@ -323,7 +328,10 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
     expect((await rowOf(withinIt)).isRevoked).toBe(false);
     // Over already: left as they were, their reason too.
     expect(await rowOf(signedOut)).toEqual(
-      expect.objectContaining({ isRevoked: true, revokedReason: "User logout" }),
+      expect.objectContaining({
+        isRevoked: true,
+        revokedReason: "User logout",
+      }),
     );
     expect((await rowOf(refreshTokenOver)).isRevoked).toBe(false);
 
@@ -511,9 +519,9 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
       );
 
     expect(session?.createdAt).toBeTruthy();
-    expect(Date.now() - new Date(session!.createdAt!).getTime()).toBeGreaterThan(
-      290 * 60 * 1000,
-    );
+    expect(
+      Date.now() - new Date(session!.createdAt!).getTime(),
+    ).toBeGreaterThan(290 * 60 * 1000);
 
     // Under a 4-hour length set now, that renewal is refused.
     await setLengths({ sessionLengthInMinutes: 240 });

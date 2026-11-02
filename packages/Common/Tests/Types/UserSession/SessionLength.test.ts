@@ -138,9 +138,12 @@ describe("the columns the setting is kept in", () => {
     [SSO_SESSION_LENGTH_COLUMN, SessionLengthKind.Length],
     [SESSION_IDLE_TIMEOUT_COLUMN, SessionLengthKind.IdleTimeout],
     [SSO_SESSION_IDLE_TIMEOUT_COLUMN, SessionLengthKind.IdleTimeout],
-  ])("%s holds a %s", (column: SessionLengthColumn, kind: SessionLengthKind) => {
-    expect(getSessionLengthColumnKind(column)).toBe(kind);
-  });
+  ])(
+    "%s holds a %s",
+    (column: SessionLengthColumn, kind: SessionLengthKind) => {
+      expect(getSessionLengthColumnKind(column)).toBe(kind);
+    },
+  );
 
   test("a session length runs from 15 minutes to a year, an idle timeout from 15 minutes to 30 days", () => {
     expect(MIN_SESSION_LENGTH_IN_MINUTES).toBe(15);
@@ -163,14 +166,19 @@ describe("the columns the setting is kept in", () => {
 });
 
 describe("what a write may hold", () => {
-  test.each(SESSION_LENGTH_COLUMNS.flatMap((column: SessionLengthColumn) => {
-    return [
-      [column, null],
-      [column, undefined],
-    ];
-  }))("%s: nothing (%p) is the default, and fine", (column: SessionLengthColumn, value: unknown) => {
-    expect(getSessionLengthProblem(column, value)).toBeNull();
-  });
+  test.each(
+    SESSION_LENGTH_COLUMNS.flatMap((column: SessionLengthColumn) => {
+      return [
+        [column, null],
+        [column, undefined],
+      ];
+    }),
+  )(
+    "%s: nothing (%p) is the default, and fine",
+    (column: SessionLengthColumn, value: unknown) => {
+      expect(getSessionLengthProblem(column, value)).toBeNull();
+    },
+  );
 
   test.each([15, 60, 480, 1440, 43200])(
     "a session length of %p whole minutes is fine",
@@ -230,14 +238,17 @@ describe("what a write may hold", () => {
     ["a boolean", true],
     ["an object", { minutes: 60 }],
     ["an array", [60]],
-  ])("%s is refused, with what a length may be", (_label: string, value: unknown) => {
-    expect(getSessionLengthProblem(SESSION_LENGTH_COLUMN, value)).toBe(
-      SESSION_LENGTH_PROBLEM,
-    );
-    expect(getSessionLengthProblem(SSO_SESSION_IDLE_TIMEOUT_COLUMN, value)).toBe(
-      SESSION_IDLE_TIMEOUT_PROBLEM,
-    );
-  });
+  ])(
+    "%s is refused, with what a length may be",
+    (_label: string, value: unknown) => {
+      expect(getSessionLengthProblem(SESSION_LENGTH_COLUMN, value)).toBe(
+        SESSION_LENGTH_PROBLEM,
+      );
+      expect(
+        getSessionLengthProblem(SSO_SESSION_IDLE_TIMEOUT_COLUMN, value),
+      ).toBe(SESSION_IDLE_TIMEOUT_PROBLEM);
+    },
+  );
 
   test("the refusals say the range and what empty means", () => {
     expect(SESSION_LENGTH_PROBLEM).toContain("15");
@@ -292,9 +303,7 @@ describe("what a stored value means", () => {
   });
 
   test("an empty row, or none at all, is no setting", () => {
-    expect(readSessionLengthSettings(null)).toEqual(
-      NO_SESSION_LENGTH_SETTINGS,
-    );
+    expect(readSessionLengthSettings(null)).toEqual(NO_SESSION_LENGTH_SETTINGS);
     expect(readSessionLengthSettings(undefined)).toEqual(
       NO_SESSION_LENGTH_SETTINGS,
     );
@@ -375,13 +384,22 @@ describe("what a stored value means", () => {
 
   test("a rule is set when either of its lengths is", () => {
     expect(
-      isSessionLengthRuleSet({ lengthInMinutes: null, idleTimeoutInMinutes: null }),
+      isSessionLengthRuleSet({
+        lengthInMinutes: null,
+        idleTimeoutInMinutes: null,
+      }),
     ).toBe(false);
     expect(
-      isSessionLengthRuleSet({ lengthInMinutes: 60, idleTimeoutInMinutes: null }),
+      isSessionLengthRuleSet({
+        lengthInMinutes: 60,
+        idleTimeoutInMinutes: null,
+      }),
     ).toBe(true);
     expect(
-      isSessionLengthRuleSet({ lengthInMinutes: null, idleTimeoutInMinutes: 15 }),
+      isSessionLengthRuleSet({
+        lengthInMinutes: null,
+        idleTimeoutInMinutes: 15,
+      }),
     ).toBe(true);
   });
 
@@ -412,10 +430,16 @@ describe("what a stored value means", () => {
 
   test("an idle timeout that is not set is the 30 days of a refresh token", () => {
     expect(
-      getIdleTimeoutInMinutes({ lengthInMinutes: null, idleTimeoutInMinutes: null }),
+      getIdleTimeoutInMinutes({
+        lengthInMinutes: null,
+        idleTimeoutInMinutes: null,
+      }),
     ).toBe(DEFAULT_SESSION_IDLE_TIMEOUT_IN_MINUTES);
     expect(
-      getIdleTimeoutInMinutes({ lengthInMinutes: null, idleTimeoutInMinutes: 45 }),
+      getIdleTimeoutInMinutes({
+        lengthInMinutes: null,
+        idleTimeoutInMinutes: 45,
+      }),
     ).toBe(45);
   });
 });
@@ -446,12 +470,12 @@ describe("when a session ends", () => {
   test("an idle timeout counts from the last activity", () => {
     const lastActiveAt: Date = new Date(SIGNED_IN_AT.getTime() + 3 * HOUR);
 
-    expect(getSessionEnd(facts({ lastActiveAt }), lengths({ idle: 30 }))).toEqual(
-      {
-        endsAt: new Date(lastActiveAt.getTime() + 30 * MINUTE),
-        reason: SessionEndReason.Inactive,
-      },
-    );
+    expect(
+      getSessionEnd(facts({ lastActiveAt }), lengths({ idle: 30 })),
+    ).toEqual({
+      endsAt: new Date(lastActiveAt.getTime() + 30 * MINUTE),
+      reason: SessionEndReason.Inactive,
+    });
   });
 
   test("with both set, the sooner ends it", () => {
@@ -611,12 +635,12 @@ describe("whether a change shortens a sign-in", () => {
   });
 
   test("setting a limit where there was none does", () => {
-    expect(doesShortenAnySession(NO_SESSION_LENGTHS, lengths({ length: 60 }))).toBe(
-      true,
-    );
-    expect(doesShortenAnySession(NO_SESSION_LENGTHS, lengths({ idle: 60 }))).toBe(
-      true,
-    );
+    expect(
+      doesShortenAnySession(NO_SESSION_LENGTHS, lengths({ length: 60 })),
+    ).toBe(true);
+    expect(
+      doesShortenAnySession(NO_SESSION_LENGTHS, lengths({ idle: 60 })),
+    ).toBe(true);
   });
 
   test("a longer one, the same one, or removing one does not", () => {
@@ -672,7 +696,9 @@ describe("the choices the Admin Dashboard offers", () => {
     );
 
     for (const minutes of SESSION_LENGTH_CHOICES_IN_MINUTES) {
-      expect(getSessionLengthProblem(SESSION_LENGTH_COLUMN, minutes)).toBeNull();
+      expect(
+        getSessionLengthProblem(SESSION_LENGTH_COLUMN, minutes),
+      ).toBeNull();
     }
   });
 

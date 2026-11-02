@@ -487,17 +487,18 @@ export class Service extends DatabaseService<Model> {
 
     query.andWhere(`(${sql.join(" OR ")})`, parameters);
 
-    const row: { peopleCount?: unknown; includesSession?: unknown } | undefined =
-      await query
-        .select('COUNT(DISTINCT session."userId")', "peopleCount")
-        .addSelect(
-          data.sessionId
-            ? `COALESCE(BOOL_OR(session._id = :countedSessionId), false)`
-            : "false",
-          "includesSession",
-        )
-        .setParameter("countedSessionId", data.sessionId?.toString() || null)
-        .getRawOne();
+    const row:
+      | { peopleCount?: unknown; includesSession?: unknown }
+      | undefined = await query
+      .select('COUNT(DISTINCT session."userId")', "peopleCount")
+      .addSelect(
+        data.sessionId
+          ? `COALESCE(BOOL_OR(session._id = :countedSessionId), false)`
+          : "false",
+        "includesSession",
+      )
+      .setParameter("countedSessionId", data.sessionId?.toString() || null)
+      .getRawOne();
 
     return {
       peopleCount: Number(row?.peopleCount || 0),
@@ -588,7 +589,10 @@ export class Service extends DatabaseService<Model> {
       const parameters: Record<string, unknown> = {};
       const rows: Array<{ sessionId?: unknown }> =
         await this.getLiveSessionsQuery()
-          .andWhere(Service.getPastLengthSql(condition, 0, parameters), parameters)
+          .andWhere(
+            Service.getPastLengthSql(condition, 0, parameters),
+            parameters,
+          )
           .select("session._id", "sessionId")
           .limit(SESSIONS_ENDED_PER_BATCH)
           .getRawMany();

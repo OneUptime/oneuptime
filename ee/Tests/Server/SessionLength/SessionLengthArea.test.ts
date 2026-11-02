@@ -33,10 +33,9 @@ describe("the SessionLength area", () => {
   });
 
   test("reads the lengths at boot, so the first request is checked against them", async () => {
-    const refresh: jest.SpiedFunction<typeof sessionLengthProvider.refresh> =
-      jest
-        .spyOn(sessionLengthProvider, "refresh")
-        .mockResolvedValue(LENGTHS as never);
+    const refresh: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(sessionLengthProvider, "refresh")
+      .mockResolvedValue(LENGTHS as never);
 
     await SessionLengthArea.init!();
 
@@ -82,8 +81,10 @@ describe("what core is told", () => {
   });
 
   test("forgetUserSessionLengths makes the provider read them again", () => {
-    const forget: jest.SpiedFunction<typeof sessionLengthProvider.forget> =
-      jest.spyOn(sessionLengthProvider, "forget");
+    const forget: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      sessionLengthProvider,
+      "forget",
+    );
 
     forgetUserSessionLengths();
     EnterpriseModule.forgetUserSessionLengths!();
