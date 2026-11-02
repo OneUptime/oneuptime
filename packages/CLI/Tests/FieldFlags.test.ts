@@ -157,12 +157,19 @@ describe("field flags", () => {
   it("give a monitor's create its name, type, steps and labels, and never its project", async () => {
     const run: CliRun = await runCli(["monitor", "create", "--help"]);
     const help: string = run.printed.join("\n");
+    // Its descriptions as one text: the help wraps them to the terminal.
+    const flowing: string = help
+      .split("\n")
+      .map((line: string): string => {
+        return line.trim();
+      })
+      .join(" ");
 
     expect(help).toContain("--name <text>");
     expect(help).toContain("--monitor-type <text>");
     expect(help).toContain("--monitor-steps <json>");
     expect(help).toContain("--labels <ids>");
-    expect(help).toContain(
+    expect(flowing).toContain(
       "IDs separated by commas, from `oneuptime label list`.",
     );
     expect(help).not.toContain("--project-id");

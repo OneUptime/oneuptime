@@ -477,11 +477,18 @@ describe("the commands the CLI README shows", () => {
     expect(shownFlags.length).toBeGreaterThanOrEqual(5);
 
     for (const flag of shownFlags) {
-      // "--labels <ids>" as the help prints it: "  --labels <ids>   ...".
-      expect({ flag, listed: helps.includes(`  ${flag} `) }).toEqual({
-        flag,
-        listed: true,
-      });
+      /*
+       * "--labels <ids>" as the help prints it: "  --labels <ids>   ...",
+       * or alone on its line when it is too long to keep its description
+       * beside it (Core/HelpLayout).
+       */
+      const listed: boolean = helps
+        .split("\n")
+        .some((line: string): boolean => {
+          return line === `  ${flag}` || line.startsWith(`  ${flag} `);
+        });
+
+      expect({ flag, listed }).toEqual({ flag, listed: true });
     }
   });
 
