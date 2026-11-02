@@ -6,12 +6,17 @@
  *
  *   - If / Else and Switch / Case: the sentence and the cases are held still
  *     (WorkflowViewOnlyFieldset), and Compare as still opens, to read how a
- *     value is compared. A Switch case's grip picks nothing up: the grip is
- *     no form control, so a disabled fieldset never stopped it, and from the
- *     keyboard Space picked a case up and the arrow keys moved it, in a view.
- *   - The field list and the record editor: their chips and rows are held
- *     still, and a value they keep as JSON is a code box to read, whose own
- *     Copy copies it.
+ *     value is compared. A Switch case has no grip on a view and is off as
+ *     a draggable: the grip is no form control, so a disabled fieldset never
+ *     stopped it, and from the keyboard Space picked a case up and the arrow
+ *     keys moved it, in a view.
+ *   - The field list and the record editor: their chips and rows are read
+ *     as they are, and a value they keep as JSON is a code box to read,
+ *     whose own Copy copies it.
+ *
+ * What only changes a setting is not drawn on a view at all - Add case,
+ * Remove, a grip, Add field, a chip's remove, Edit as JSON, Start over, Add
+ * a condition: held still, each looked as if it could be pressed.
  *
  * Everything else these editors do is tested in their own suites; here only
  * the view, beside the same editor outside one.
@@ -101,6 +106,7 @@ import { INCIDENT_COLUMNS } from "./FieldPicker/FieldPickerFixture";
 import {
   CODE_COPY_SELECTOR,
   LiveControl,
+  findActionsAViewDraws,
   findLiveControls,
   isHeldStill,
 } from "./ViewOnlyControls";
@@ -305,13 +311,16 @@ describe("Switch / Case on a view", () => {
     const live: Array<LiveControl> = findLiveControls(harness());
 
     expect(live).toEqual([]);
-    expect(
-      screen.getByRole("button", { name: "Remove case 1" }),
-    ).toBeDisabled();
-    expect(screen.getByTestId(SWITCH_TEST_IDS.addCase)).toBeDisabled();
+    // What only changes the cases is not drawn: no Remove, no Add case.
+    expect(screen.queryByRole("button", { name: "Remove case 1" })).toBeNull();
+    expect(screen.queryByTestId(SWITCH_TEST_IDS.addCase)).toBeNull();
+    expect(findActionsAViewDraws(harness())).toEqual([]);
     expect(
       screen.getByRole("combobox", { name: "Comparison for case 1" }),
     ).toBeDisabled();
+    // Each case still says which it is.
+    expect(screen.getByTestId("switch-case-place-0")).toHaveTextContent("1");
+    expect(screen.getByTestId("switch-case-place-1")).toHaveTextContent("2");
     // The values are read as they are.
     expect(screen.getByTestId("switch-case-value-0")).toHaveAttribute(
       "contenteditable",
@@ -320,20 +329,24 @@ describe("Switch / Case on a view", () => {
     expect(screen.getByTestId("switch-case-value-0")).toHaveTextContent("300");
   });
 
-  test("a case's grip picks nothing up: Space and the arrow keys move no case", async () => {
+  test("no case can be picked up: no grip is drawn, and Space and the arrow keys move no case", async () => {
     const onFormChange: MockFunction = renderStep(
       true,
       step(ComponentID.Switch, CASES, "switch-1"),
     );
 
-    const grip: HTMLElement = within(
-      screen.getByTestId("switch-case-0"),
-    ).getByTestId("drag-handle");
+    expect(screen.queryAllByTestId("drag-handle")).toEqual([]);
+    // Nothing carries what makes a row's grip: each case is off as a draggable.
+    expect(
+      harness().querySelectorAll("[data-rbd-drag-handle-draggable-id]"),
+    ).toHaveLength(0);
 
-    // Locked, as every control on a view looks.
-    expect(grip).toHaveAttribute("aria-disabled", "true");
+    // From the keyboard on the case itself, where a grip would be.
+    const firstCase: HTMLElement = screen.getByTestId("switch-case-0");
 
-    await dragFirstCaseDown();
+    await press(firstCase, SPACE);
+    await press(firstCase, ARROW_DOWN);
+    await press(firstCase, SPACE);
 
     expect(
       Array.from(document.querySelectorAll("[data-case-id]")).map(
@@ -343,6 +356,20 @@ describe("Switch / Case on a view", () => {
       ),
     ).toEqual(["case-1", "case-2"]);
     expect(lastCases(onFormChange)).not.toEqual(["case-2", "case-1"]);
+  });
+
+  test("each case sits beside its number, as a list is read", () => {
+    renderStep(true, step(ComponentID.Switch, CASES, "switch-1"));
+
+    // Two columns, the case in the second from a phone up; no Remove column.
+    const fields: HTMLElement = screen.getByTestId("switch-case-fields-0");
+
+    expect(fields.className).toContain("col-start-2");
+    expect(fields.className).toContain("row-start-1");
+    expect(fields.className).not.toContain("col-span-3");
+    expect(fields.parentElement!.className).toContain(
+      "grid-cols-[auto_minmax(0,1fr)]",
+    );
   });
 
   test("Compare as still opens, to read how each case compares - its choices held still", () => {
@@ -382,9 +409,13 @@ describe("Switch / Case on a view", () => {
       document.querySelector(WORKFLOW_VIEW_ONLY_FIELDSET_SELECTOR),
     ).toBeNull();
     expect(screen.getByRole("button", { name: "Remove case 1" })).toBeEnabled();
+    expect(screen.getByTestId(SWITCH_TEST_IDS.addCase)).toBeEnabled();
     expect(
       within(screen.getByTestId("switch-case-0")).getByTestId("drag-handle"),
     ).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByTestId("switch-case-fields-0").className).toContain(
+      "col-span-3",
+    );
 
     await dragFirstCaseDown();
 
@@ -452,6 +483,35 @@ describe("If / Else on a view", () => {
       screen.getByRole("textbox", { name: "Compare with" }),
     ).toHaveAttribute("contenteditable", "true");
   });
+
+  // The comparison itself taken from an earlier step, as a workflow may hold it.
+  const COMPARISON_FROM_A_STEP: JSONObject = {
+    ...PRODUCTION_CHECK,
+    operator: "{{local.components.webhook-1.returnValues.request-body.op}}",
+  };
+
+  test("a comparison taken from an earlier step is read as its value, with no Choose from the list", () => {
+    renderStep(
+      true,
+      step(ComponentID.IfElse, COMPARISON_FROM_A_STEP, "if-else-1"),
+    );
+
+    expect(screen.getByTestId("workflow-argument-operator")).toHaveAttribute(
+      "contenteditable",
+      "false",
+    );
+    expect(screen.queryByTestId("if-else-choose-comparison")).toBeNull();
+    expect(findActionsAViewDraws(harness())).toEqual([]);
+  });
+
+  test("outside a view, such a comparison has Choose from the list, to pick one instead", () => {
+    renderStep(
+      false,
+      step(ComponentID.IfElse, COMPARISON_FROM_A_STEP, "if-else-1"),
+    );
+
+    expect(screen.getByTestId("if-else-choose-comparison")).toBeEnabled();
+  });
 });
 
 describe("a record step's field list on a view", () => {
@@ -479,7 +539,7 @@ describe("a record step's field list on a view", () => {
     return onChange;
   };
 
-  test("its chips are read, and nothing takes one off or adds one", async () => {
+  test("its chips are read, and nothing to take one off or add one is drawn", async () => {
     renderPicker(true, { title: true, description: true });
 
     const chips: Array<HTMLElement> = await screen.findAllByTestId(
@@ -488,13 +548,29 @@ describe("a record step's field list on a view", () => {
 
     expect(chips).toHaveLength(2);
     expect(findLiveControls(harness())).toEqual([]);
+    expect(findActionsAViewDraws(harness())).toEqual([]);
 
-    for (const remove of screen.getAllByTestId("fields-to-pass-on-remove")) {
-      expect(remove).toBeDisabled();
-    }
+    expect(screen.queryAllByTestId("fields-to-pass-on-remove")).toEqual([]);
+    expect(screen.queryByTestId("fields-to-pass-on-add")).toBeNull();
+    expect(screen.queryByTestId("fields-to-pass-on-edit-json")).toBeNull();
+  });
 
-    expect(screen.getByTestId("fields-to-pass-on-add")).toBeDisabled();
-    expect(screen.getByTestId("fields-to-pass-on-edit-json")).toBeDisabled();
+  test("a chip is read as a chip, and an unknown field still says why", async () => {
+    renderPicker(true, { title: true, notAField: true });
+
+    const chips: Array<HTMLElement> = await screen.findAllByTestId(
+      "fields-to-pass-on-chip",
+    );
+    const unknown: HTMLElement = chips.find((chip: HTMLElement): boolean => {
+      return chip.getAttribute("data-unknown") === "true";
+    })!;
+
+    // Its reason is its title, which the pointer reaches on a view too.
+    expect(unknown.getAttribute("title")).toContain("notAField");
+    expect(isHeldStill(unknown)).toBe(false);
+    // As tall as a chip with its remove button, which it has not.
+    expect(unknown.className).toContain("py-0.5");
+    expect(unknown.className).toContain("pr-2");
   });
 
   test("a list it keeps as JSON is a code box to read, whose own Copy copies it", async () => {
@@ -514,7 +590,15 @@ describe("a record step's field list on a view", () => {
     expect(input.value).toBe(kept);
     expect(input).toHaveAttribute("readonly");
     expect(isHeldStill(input)).toBe(false);
-    expect(screen.getByTestId("fields-to-pass-on-start-over")).toBeDisabled();
+    // How to change it is not said: Start over and its sentence are left out.
+    expect(screen.queryByTestId("fields-to-pass-on-start-over")).toBeNull();
+    expect(
+      screen.getByTestId("fields-to-pass-on-kept-as-json"),
+    ).not.toHaveTextContent("Start over");
+    // What it says is read, and selected, as it is.
+    expect(
+      isHeldStill(screen.getByTestId("fields-to-pass-on-kept-as-json")),
+    ).toBe(false);
     expect(findLiveControls(harness())).toEqual([]);
 
     const copy: HTMLElement = box.querySelector(
@@ -602,15 +686,53 @@ describe("a record step's record and query editor on a view", () => {
     async (mode: ModelColumnEditorMode, value: string) => {
       renderEditor(true, mode, value);
 
-      await screen.findByTestId("model-column-json-toggle");
+      await screen.findAllByTestId("model-column-row");
 
       expect(findLiveControls(harness())).toEqual([]);
-      expect(screen.getByTestId("model-column-json-toggle")).toBeDisabled();
       expect(
         harness().querySelectorAll(WORKFLOW_VIEW_ONLY_FIELDSET_SELECTOR).length,
       ).toBeGreaterThan(0);
+      // Nothing that only changes them: Edit as JSON, Add, Remove.
+      expect(screen.queryByTestId("model-column-json-toggle")).toBeNull();
+      expect(screen.queryByTestId("model-column-add")).toBeNull();
+      expect(
+        harness().querySelectorAll('[data-testid^="model-column-remove-"]'),
+      ).toHaveLength(0);
+      expect(findActionsAViewDraws(harness())).toEqual([]);
     },
   );
+
+  test("a query's pickers have nothing to clear, and its columns line up with their header", async () => {
+    renderEditor(
+      true,
+      ModelColumnEditorMode.Query,
+      '{"title": "Checkout is down"}',
+    );
+
+    const row: HTMLElement = (
+      await screen.findAllByTestId("model-column-row")
+    )[0]!;
+
+    expect(row.className).toContain(
+      "sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)]",
+    );
+    expect(row.className).not.toContain("_auto]");
+    // The column and the comparison, each as it is, with nothing to clear.
+    expect(
+      row.querySelectorAll(".ou-select__control--is-disabled"),
+    ).toHaveLength(2);
+    expect(harness().querySelector(".ou-select__clear-indicator")).toBeNull();
+  });
+
+  test("a record with no fields says so, with no word on how to add one", async () => {
+    renderEditor(true, ModelColumnEditorMode.Record, "{}");
+
+    await screen.findByText("No fields set yet");
+
+    expect(
+      screen.queryByText("Pick a field below to start building this record."),
+    ).toBeNull();
+  });
 
   test("a value it keeps as JSON is a code box to read, whose own Copy copies it", async () => {
     const value: string = '{"labels":["a","b"]}';
@@ -620,7 +742,13 @@ describe("a record step's record and query editor on a view", () => {
       value,
     );
 
-    await screen.findByText(/Editing as JSON, because/);
+    // What it shows, not that it is being edited.
+    await screen.findByText("Shown as JSON, because:");
+
+    expect(harness().textContent?.includes("Editing")).toBe(false);
+    expect(
+      screen.getByText("The raw JSON this step will send."),
+    ).toBeInTheDocument();
 
     const input: HTMLTextAreaElement = screen.getByTestId(
       "code-editor-input",
@@ -650,11 +778,54 @@ describe("a record step's record and query editor on a view", () => {
 
     await screen.findByText(/Editing as JSON, because/);
 
+    expect(
+      screen.getByText("Editing the raw JSON this step will send."),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("code-editor-input")).not.toHaveAttribute(
       "readonly",
     );
     expect(
       document.querySelector(WORKFLOW_VIEW_ONLY_FIELDSET_SELECTOR),
     ).toBeNull();
+  });
+
+  test("outside a view, rows come with Edit as JSON, Add and Remove", async () => {
+    renderEditor(
+      false,
+      ModelColumnEditorMode.Query,
+      '{"title": "Checkout is down"}',
+    );
+
+    await screen.findByTestId("model-column-json-toggle");
+
+    expect(screen.getByTestId("model-column-add")).toBeInTheDocument();
+    expect(
+      harness().querySelectorAll('[data-testid^="model-column-remove-"]')
+        .length,
+    ).toBeGreaterThan(0);
+    // The column picker can be cleared, to pick another.
+    await waitFor(() => {
+      expect(
+        harness().querySelector(".ou-select__clear-indicator"),
+      ).not.toBeNull();
+    });
+    expect(
+      harness().querySelectorAll(".ou-select__control--is-disabled"),
+    ).toHaveLength(0);
+  });
+
+  test("when the columns cannot load, a view says the JSON is shown, not that it can be written", async () => {
+    (API.get as unknown as MockFunction).mockReset();
+    (API.get as unknown as MockFunction).mockRejectedValue(
+      new Error("The columns could not be loaded."),
+    );
+
+    renderEditor(true, ModelColumnEditorMode.Query, '{"title": "x"}');
+
+    await screen.findByText(
+      "Couldn't load this model's columns (The columns could not be loaded.). The query is shown as JSON.",
+    );
+
+    expect(harness().textContent?.includes("You can still write")).toBe(false);
   });
 });

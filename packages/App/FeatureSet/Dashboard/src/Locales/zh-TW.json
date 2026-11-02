@@ -40160,5 +40160,9 @@
   "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.": "記錄可透過主機名稱、位址、URL、雲端資源 ID 或使用者的電子郵件找到。",
   "Searching your logs and traces…": "正在搜尋你的日誌和追蹤…",
   "Where the values it names appear in your logs and traces from {{start}} to {{end}}.": "{{start}} 至 {{end}} 期間，它指向的值在你的日誌和追蹤中出現的位置。",
-  "excluded values": "已排除的值"
+  "excluded values": "已排除的值",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "無法載入此模型的欄位（{{error}}）。查詢以 JSON 顯示。",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "無法載入此模型的欄位（{{error}}）。這些欄位以 JSON 顯示。",
+  "Shown as JSON, because:": "以 JSON 顯示，因為：",
+  "The raw JSON this step will send.": "此步驟將傳送的原始 JSON。"
 }

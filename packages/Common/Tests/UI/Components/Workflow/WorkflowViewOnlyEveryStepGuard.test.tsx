@@ -14,9 +14,11 @@
  * values from earlier steps (chips where a box would be). In every one,
  * nothing in the settings or the identifier may still take a press, a key or
  * typing, every code box is read only with its Copy free, and More fields
- * is free to open. A new control in any step that ignores the view fails
- * here, whatever it is drawn with; WorkflowViewOnlyGuard reads the same rule
- * in the source.
+ * is free to open. Nor is anything drawn that only changes a setting - Add,
+ * Remove, Edit as JSON, Clear: held still, it looked as if it could be
+ * pressed, and a reader has no use for it. A new control in any step that
+ * ignores the view fails here, whatever it is drawn with;
+ * WorkflowViewOnlyGuard reads the same rule in the source.
  */
 
 import React from "react";
@@ -143,6 +145,7 @@ import {
   CODE_COPY_SELECTOR,
   FOLD_HEADER_SELECTOR,
   LiveControl,
+  findActionsAViewDraws,
   findLiveControls,
   isHeldStill,
 } from "./ViewOnlyControls";
@@ -511,11 +514,52 @@ describe("the sweep meets what it checks", () => {
     );
 
     expect(
-      settings!.querySelector('[data-testid="fields-to-pass-on"]'),
+      settings!.querySelector('[data-testid="fields-to-pass-on-chip"]'),
     ).not.toBeNull();
     expect(
-      settings!.querySelector('[data-testid="model-column-json-toggle"]'),
+      settings!.querySelector('[data-testid="model-column-row"]'),
     ).not.toBeNull();
+  });
+
+  test("the editors that add and remove things: rows of headers, cases, people", async () => {
+    // Drawn with what an editor adds and removes them with, every one.
+    for (const [id, actionTestId] of [
+      [ComponentID.ApiPost, "delete-Authorization"],
+      [ComponentID.Switch, "switch-add-case"],
+      [ComponentID.PageUsers, "people-picker-add-button"],
+      ["incident-find-one", "model-column-add"],
+    ] as Array<[string, string]>) {
+      const metadata: ComponentMetadata = stepWithId(id);
+      const args: JSONObject = argumentsFor(metadata, Variant.SetUp);
+
+      render(
+        <ComponentSettingsModal
+          title={metadata.title}
+          description={metadata.description}
+          onClose={getJestMockFunction()}
+          onSave={getJestMockFunction()}
+          onDelete={getJestMockFunction()}
+          component={stepOf(metadata, args)}
+          graphComponents={[stepOf(metadata, args)]}
+          workflowId={WORKFLOW_ID}
+        />,
+      );
+
+      await waitFor(() => {
+        expect([id, Boolean(screen.queryByTestId(actionTestId))]).toEqual([
+          id,
+          true,
+        ]);
+      });
+
+      expect(
+        findActionsAViewDraws(
+          screen.getByTestId("workflow-component-section-settings"),
+        ).length,
+      ).toBeGreaterThan(0);
+
+      cleanup();
+    }
   });
 
   test("values from earlier steps, as chips, and a number taken from one", async () => {
@@ -576,6 +620,12 @@ describe.each([Variant.JustAdded, Variant.SetUp, Variant.FromEarlierSteps])(
         if (!settings) {
           return;
         }
+
+        // Nothing is drawn that only changes a setting.
+        expect([metadata.id, findActionsAViewDraws(settings)]).toEqual([
+          metadata.id,
+          [],
+        ]);
 
         // Every code box shows its code to be read, its Copy free to press.
         for (const box of Array.from(

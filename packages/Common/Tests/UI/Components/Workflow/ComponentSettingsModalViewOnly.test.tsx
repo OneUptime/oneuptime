@@ -14,6 +14,12 @@
  *     its code, and More fields opens to show the settings folded there.
  *     Both sat in one disabled fieldset around the whole form, which
  *     disabled them with everything else (#5320's follow-up);
+ *   - what only changes a setting is not drawn at all: a header's Add and
+ *     Delete, a list's clear (UI review of #5580);
+ *   - the dialog starts on itself, never in a box that is only read: If /
+ *     Else and Switch / Case put the focus, and its ring, in Value to check;
+ *   - an empty value box keeps a line's height: it had shrunk to its
+ *     padding, its placeholder spilling out of it;
  *   - Close in place of Save and Cancel, and neither Delete nor Run just
  *     this step, which takes the same permission;
  *   - the footer says what the dialog is, with why under the pointer and
@@ -112,9 +118,11 @@ import ComponentMetadata, {
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import Components from "../../../../Types/Workflow/Components";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
+import { READ_ONLY_EMPTY_LINE_CLASS } from "../../../../UI/Components/Workflow/ValuePicker/TemplateTextEditor";
 import {
   CODE_COPY_SELECTOR,
   LiveControl,
+  findActionsAViewDraws,
   findLiveControls,
   isHeldStill,
 } from "./ViewOnlyControls";
@@ -463,6 +471,54 @@ describe("a step opened on a view", () => {
     expect(moreFields).toHaveAttribute("aria-expanded", "false");
   });
 
+  test("a header's row is read: no Add and no Delete beside it, and its type has nothing to clear", async () => {
+    renderView(apiPostStep());
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "More fields",
+      }),
+    );
+
+    await screen.findByDisplayValue("Authorization");
+
+    expect(screen.queryByTestId("delete-Authorization")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Add Request Headers" }),
+    ).toBeNull();
+    expect(
+      settingsView().querySelector(".ou-select__clear-indicator"),
+    ).toBeNull();
+    expect(findActionsAViewDraws(settingsView())).toEqual([]);
+  });
+
+  test("a step with no headers says None where they would be", async () => {
+    renderView(
+      makeNode(ComponentID.ApiPost, "api-post-1", {
+        url: "https://deploys.example.com/hooks/checkout",
+      }),
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "More fields",
+      }),
+    );
+
+    expect(await screen.findByTestId("dictionary-none")).toHaveTextContent(
+      "None",
+    );
+  });
+
+  test("an empty value box keeps the height of a line, its placeholder inside it", () => {
+    renderView(makeNode(ComponentID.Log, "log-1", { value: "" }));
+
+    const box: HTMLElement = screen.getByTestId("workflow-argument-value");
+
+    expect(box).toBeEmptyDOMElement();
+    expect(box.className).toContain(READ_ONLY_EMPTY_LINE_CLASS);
+  });
+
   test("every code box of a step with two is read only, each with its own Copy", () => {
     renderView(
       makeNode(ComponentID.JavaScriptCode, "javascript-1", {
@@ -560,6 +616,46 @@ describe("a step opened on a view", () => {
       }),
     ).not.toBeInTheDocument();
   });
+
+  /*
+   * If / Else and Switch / Case draw their first box at once, so the dialog
+   * found Value to check first and put the focus - and its ring - on a box
+   * that cannot be typed in. The dialog starts on itself instead.
+   */
+  test.each([
+    [
+      ComponentID.IfElse,
+      "if-else-1",
+      {
+        "input-1": "Deploy finished",
+        operator: "==",
+        "input-2": "Deploy finished",
+      },
+    ],
+    [
+      ComponentID.Switch,
+      "switch-1",
+      {
+        value: "Deploy finished",
+        cases: [
+          {
+            id: "case-1",
+            comparison: "==",
+            value: "production",
+            compareAs: "",
+          },
+        ],
+      },
+    ],
+  ])(
+    "%s opens with the focus on the dialog, not in a box that is only read",
+    (id: string, stepId: string, args: JSONObject) => {
+      renderView(makeNode(id, stepId, args));
+
+      expect(document.activeElement).toBe(screen.getByRole("dialog"));
+      expect(settingsView().contains(document.activeElement)).toBe(false);
+    },
+  );
 
   test("nothing in the settings takes the focus as the dialog opens: there is nothing to type", async () => {
     renderView(
@@ -704,6 +800,36 @@ describe("a step opened on a view", () => {
 });
 
 describe("a step opened by an editor", () => {
+  test("its If / Else starts in Value to check, to type the condition", () => {
+    renderModal(
+      makeNode(ComponentID.IfElse, "if-else-1", {
+        "input-1": "",
+        operator: "==",
+        "input-2": "",
+      }),
+    );
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId("workflow-argument-input-1"),
+    );
+  });
+
+  test("its header rows come with Add and Delete, and a type to clear", async () => {
+    renderModal(apiPostStep());
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "More fields",
+      }),
+    );
+
+    expect(await screen.findByTestId("delete-Authorization")).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Add Request Headers" }),
+    ).toBeEnabled();
+    expect(screen.queryByTestId("dictionary-none")).toBeNull();
+  });
+
   test("is a form as it always was: no view wrapper or fieldset, Save, Delete and no note", () => {
     renderModal(logStep());
 

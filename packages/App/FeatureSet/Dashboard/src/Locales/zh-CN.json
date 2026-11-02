@@ -40160,5 +40160,9 @@
   "Records are found by a host name, an address, a URL, a cloud resource ID or a user's email.": "记录可通过主机名、地址、URL、云资源 ID 或用户邮箱找到。",
   "Searching your logs and traces…": "正在搜索你的日志和追踪…",
   "Where the values it names appear in your logs and traces from {{start}} to {{end}}.": "{{start}} 至 {{end}} 期间，它指向的值在你的日志和追踪中出现的位置。",
-  "excluded values": "已排除的值"
+  "excluded values": "已排除的值",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "无法加载此模型的列（{{error}}）。查询以 JSON 显示。",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "无法加载此模型的列（{{error}}）。这些字段以 JSON 显示。",
+  "Shown as JSON, because:": "以 JSON 显示，因为：",
+  "The raw JSON this step will send.": "此步骤将发送的原始 JSON。"
 }

@@ -119,6 +119,45 @@ export const findLiveControls: FindLiveControlsFunction = (
   return live;
 };
 
+/*
+ * A button that shows a setting rather than acting on it: a switch, or one
+ * of a set of choices, pressed or not (a schedule's Common schedules or
+ * Custom cron).
+ */
+const isStateButton: IsReadingControlFunction = (element: Element): boolean => {
+  return (
+    element.getAttribute("role") === "switch" ||
+    element.hasAttribute("aria-pressed")
+  );
+};
+
+export type FindActionsFunction = (root: Element) => Array<LiveControl>;
+
+/*
+ * Every button under root that only changes a setting - Add, Remove, Edit as
+ * JSON, Clear, a way back to typing a value. A view draws none of them,
+ * held still or not: a reader has no use for them, and drawn they look as
+ * if they could be pressed. What is left reads a setting (a code box's
+ * Copy, a fold) or shows one (a switch, a choice pressed or not).
+ */
+export const findActionsAViewDraws: FindActionsFunction = (
+  root: Element,
+): Array<LiveControl> => {
+  const actions: Array<LiveControl> = [];
+
+  for (const button of Array.from(
+    root.querySelectorAll('button, [role="button"]'),
+  )) {
+    if (isReadingControl(button) || isStateButton(button)) {
+      continue;
+    }
+
+    actions.push({ kind: "action", element: openingTag(button) });
+  }
+
+  return actions;
+};
+
 export type IsHeldStillFunction = (element: Element) => boolean;
 
 /*

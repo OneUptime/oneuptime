@@ -568,18 +568,42 @@ describe("every Builder control honours the view", () => {
   });
 
   test("a step's settings that hold themselves still are drawn inside the fieldset", () => {
-    // The ones ArgumentsForm draws inside WorkflowViewOnlyFieldset.
+    /*
+     * The ones ArgumentsForm draws inside WorkflowViewOnlyFieldset. Some
+     * read the view too, to leave out what only changes them (a schedule's
+     * Clear, a list's Add and remove, a value's way back to typing): the
+     * fieldset still holds what they show.
+     */
     for (const file of [
       "CronScheduleField.tsx",
       "RecordList/RecordListField.tsx",
       "Choice/ChoiceSettingField.tsx",
       "ValuePicker/ValueSingleField.tsx",
     ]) {
-      expect([file, honourOf(builderFile(file))]).toEqual([
+      expect([file, isHeldWhereverDrawn(file)]).toEqual([file, true]);
+    }
+
+    expect(honourOf(builderFile("Choice/ChoiceSettingField.tsx"))).toBe(
+      Honour.HeldWhereverDrawn,
+    );
+
+    for (const file of [
+      "CronScheduleField.tsx",
+      "RecordList/RecordListField.tsx",
+      "ValuePicker/ValueSingleField.tsx",
+    ]) {
+      expect([file, builderFile(file).readings]).toEqual([
         file,
-        Honour.HeldWhereverDrawn,
+        expect.arrayContaining([ViewReading.ReadsTheContext]),
       ]);
     }
+  });
+
+  test("a list opened only from a control a view leaves out reads the view itself", () => {
+    // Add field's list: a view draws no Add field, and the list draws nothing there.
+    expect(honourOf(builderFile("FieldPicker/AddFieldsPanel.tsx"))).toBe(
+      Honour.ReadsTheView,
+    );
   });
 });
 

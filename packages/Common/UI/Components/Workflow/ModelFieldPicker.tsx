@@ -38,7 +38,6 @@ import {
 } from "./FieldPicker/FieldPickerOptions";
 import { ModelSchemaState, useModelSchema } from "./ModelSchema";
 import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
-import WorkflowViewOnlyFieldset from "./WorkflowViewOnlyFieldset";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CodeType from "../../../Types/Code/CodeType";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -143,9 +142,10 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   /*
-   * A step opened to be read (WorkflowViewOnly): the chips, Add field and
-   * every way to change the list are held still (WorkflowViewOnlyFieldset),
-   * and a list kept as JSON is a code box to read and copy.
+   * A step opened to be read (WorkflowViewOnly): the chips, to read - an
+   * unknown field still says why on hover - and none of the ways to change
+   * the list: no remove on a chip, no Add field, no Edit as JSON, no Start
+   * over. A list kept as JSON is a code box to read and copy.
    */
   const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const mode: FieldPickerMode = props.mode || FieldPickerMode.PassOn;
@@ -396,19 +396,20 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
         ) : null}
 
         {problems.length > 0 ? (
-          <WorkflowViewOnlyFieldset>
-            <div
-              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800"
-              data-testid={`${testId}-kept-as-json`}
-            >
-              <p className="font-semibold text-amber-900">
-                {translator.translateText(ModelFieldPickerCopy.keptAsJson)}
-              </p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                {problems.map((problem: string, index: number) => {
-                  return <li key={index}>{problem}</li>;
-                })}
-              </ul>
+          <div
+            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800"
+            data-testid={`${testId}-kept-as-json`}
+          >
+            <p className="font-semibold text-amber-900">
+              {translator.translateText(ModelFieldPickerCopy.keptAsJson)}
+            </p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              {problems.map((problem: string, index: number) => {
+                return <li key={index}>{problem}</li>;
+              })}
+            </ul>
+            {/* How to change it: not on a view, where nothing changes it. */}
+            {isViewOnly ? null : (
               <p className="mt-1">
                 <TranslatedSentence
                   template={ModelFieldPickerCopy.keptAsJsonHelp}
@@ -428,8 +429,8 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                   }}
                 />
               </p>
-            </div>
-          </WorkflowViewOnlyFieldset>
+            )}
+          </div>
         ) : null}
 
         {/*
@@ -454,7 +455,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           <p className="text-xs text-gray-500">
             {translator.translateText(ModelFieldPickerCopy.jsonHint)}
           </p>
-          {!schema.error && problems.length === 0 ? (
+          {!schema.error && problems.length === 0 && !isViewOnly ? (
             <button
               type="button"
               data-testid={`${testId}-back-to-list`}
@@ -506,58 +507,57 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
         });
       }}
     >
-      {/*
-       * In a view the chips, Add field and Edit as JSON are held still;
-       * the fieldset keeps the list's spacing between them.
-       */}
-      <WorkflowViewOnlyFieldset className="space-y-1">
-        <div
-          className={`rounded-md border bg-white px-2 py-2 shadow-sm ${
-            props.error ? "border-red-300" : "border-gray-300"
-          }`}
+      <div
+        className={`rounded-md border bg-white px-2 py-2 shadow-sm ${
+          props.error ? "border-red-300" : "border-gray-300"
+        }`}
+      >
+        <ul
+          ref={chipsRef}
+          aria-labelledby={props.ariaLabelledby}
+          aria-label={
+            props.ariaLabelledby
+              ? undefined
+              : translator.translateText(ModelFieldPickerCopy.chosenFields)
+          }
+          className="flex flex-wrap items-center gap-1.5"
+          data-testid={`${testId}-chips`}
         >
-          <ul
-            ref={chipsRef}
-            aria-labelledby={props.ariaLabelledby}
-            aria-label={
-              props.ariaLabelledby
-                ? undefined
-                : translator.translateText(ModelFieldPickerCopy.chosenFields)
-            }
-            className="flex flex-wrap items-center gap-1.5"
-            data-testid={`${testId}-chips`}
-          >
-            {chosen.map((path: string) => {
-              const isUnknown: boolean = unknownPaths.includes(path);
-              const title: string = chipTitle(path);
+          {chosen.map((path: string) => {
+            const isUnknown: boolean = unknownPaths.includes(path);
+            const title: string = chipTitle(path);
 
-              return (
-                <li
-                  key={path}
-                  data-testid={`${testId}-chip`}
-                  data-path={path}
-                  data-unknown={isUnknown ? "true" : "false"}
-                  title={
-                    isUnknown
-                      ? translator.translateTemplate(
-                          ModelFieldPickerCopy.unknownField,
-                          { key: path },
-                        )
-                      : title
-                  }
-                  className={`inline-flex max-w-full items-center gap-0.5 rounded-md border pl-2 text-sm ${
-                    isUnknown
-                      ? "border-amber-200 bg-amber-50 font-mono text-amber-800"
-                      : "border-gray-200 bg-gray-50 text-gray-800"
-                  }`}
-                >
-                  {isUnknown ? (
-                    <Icon
-                      icon={IconProp.ExclaimationCircle}
-                      className="h-3.5 w-3.5 shrink-0 text-amber-600"
-                    />
-                  ) : null}
-                  <span className="truncate">{title}</span>
+            return (
+              <li
+                key={path}
+                data-testid={`${testId}-chip`}
+                data-path={path}
+                data-unknown={isUnknown ? "true" : "false"}
+                title={
+                  isUnknown
+                    ? translator.translateTemplate(
+                        ModelFieldPickerCopy.unknownField,
+                        { key: path },
+                      )
+                    : title
+                }
+                className={`inline-flex max-w-full items-center gap-0.5 rounded-md border pl-2 text-sm ${
+                  // As tall as a chip with its remove button, which a view has not.
+                  isViewOnly ? "py-0.5 pr-2" : ""
+                } ${
+                  isUnknown
+                    ? "border-amber-200 bg-amber-50 font-mono text-amber-800"
+                    : "border-gray-200 bg-gray-50 text-gray-800"
+                }`}
+              >
+                {isUnknown ? (
+                  <Icon
+                    icon={IconProp.ExclaimationCircle}
+                    className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                  />
+                ) : null}
+                <span className="truncate">{title}</span>
+                {isViewOnly ? null : (
                   <button
                     type="button"
                     data-testid={`${testId}-remove`}
@@ -573,28 +573,30 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                   >
                     <Icon icon={IconProp.Close} className="h-3 w-3" />
                   </button>
-                </li>
-              );
-            })}
-            {chosen.length === 0 ? (
-              <li
-                className="px-1 text-sm text-gray-500"
-                data-testid={`${testId}-empty`}
-              >
-                {mode === FieldPickerMode.Watch
-                  ? translator.translateTemplate(
-                      props.createAlwaysRuns
-                        ? ModelFieldPickerCopy.emptyWatchWithCreate
-                        : ModelFieldPickerCopy.emptyWatch,
-                      {
-                        record: translatableTerm(recordName, {
-                          inSentence: true,
-                        }),
-                      },
-                    )
-                  : translator.translateText(ModelFieldPickerCopy.emptyPassOn)}
+                )}
               </li>
-            ) : null}
+            );
+          })}
+          {chosen.length === 0 ? (
+            <li
+              className="px-1 text-sm text-gray-500"
+              data-testid={`${testId}-empty`}
+            >
+              {mode === FieldPickerMode.Watch
+                ? translator.translateTemplate(
+                    props.createAlwaysRuns
+                      ? ModelFieldPickerCopy.emptyWatchWithCreate
+                      : ModelFieldPickerCopy.emptyWatch,
+                    {
+                      record: translatableTerm(recordName, {
+                        inSentence: true,
+                      }),
+                    },
+                  )
+                : translator.translateText(ModelFieldPickerCopy.emptyPassOn)}
+            </li>
+          ) : null}
+          {isViewOnly ? null : (
             <li>
               <button
                 ref={addButtonRef}
@@ -612,34 +614,37 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 {translator.translateText(ModelFieldPickerCopy.addField)}
               </button>
             </li>
-          </ul>
-        </div>
+          )}
+        </ul>
+      </div>
 
-        {isPanelOpen ? (
-          <AddFieldsPanel
-            options={options}
-            groups={groups}
-            chosen={chosen}
-            onToggle={toggle}
-            label={label}
-            dataTestId={testId}
-            toggleRef={addButtonRef}
-            onClose={(closeOptions: { returnFocus: boolean }) => {
-              setIsPanelOpen(false);
+      {isPanelOpen ? (
+        <AddFieldsPanel
+          options={options}
+          groups={groups}
+          chosen={chosen}
+          onToggle={toggle}
+          label={label}
+          dataTestId={testId}
+          toggleRef={addButtonRef}
+          onClose={(closeOptions: { returnFocus: boolean }) => {
+            setIsPanelOpen(false);
 
-              if (closeOptions.returnFocus) {
-                addButtonRef.current?.focus();
-              }
-            }}
-          />
-        ) : null}
+            if (closeOptions.returnFocus) {
+              addButtonRef.current?.focus();
+            }
+          }}
+        />
+      ) : null}
 
-        {/*
-         * One line under the list: what is wrong with it, where the eye is
-         * after the red border, and the way out to JSON at the far end. The
-         * message used to come after Edit as JSON, a line further from the
-         * list it is about.
-         */}
+      {/*
+       * One line under the list: what is wrong with it, where the eye is
+       * after the red border, and the way out to JSON at the far end. The
+       * message used to come after Edit as JSON, a line further from the
+       * list it is about. A view has no way out to JSON, so without an
+       * error it has no line here at all.
+       */}
+      {isViewOnly && !props.error ? null : (
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {props.error ? (
@@ -658,19 +663,21 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
               />
             ) : null}
           </div>
-          <button
-            type="button"
-            data-testid={`${testId}-edit-json`}
-            className="-mr-1 shrink-0 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
-            onClick={() => {
-              setIsPanelOpen(false);
-              setIsJson(true);
-            }}
-          >
-            {translator.translateText(ModelFieldPickerCopy.editAsJson)}
-          </button>
+          {isViewOnly ? null : (
+            <button
+              type="button"
+              data-testid={`${testId}-edit-json`}
+              className="-mr-1 shrink-0 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
+              onClick={() => {
+                setIsPanelOpen(false);
+                setIsJson(true);
+              }}
+            >
+              {translator.translateText(ModelFieldPickerCopy.editAsJson)}
+            </button>
+          )}
         </div>
-      </WorkflowViewOnlyFieldset>
+      )}
     </div>
   );
 };

@@ -732,6 +732,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 keyPlaceholder="Key"
                 valuePlaceholder="Value"
                 addButtonSuffix={arg.name}
+                // A view shows the rows, with no Add or Delete beside them.
+                readOnly={isViewOnly}
                 valueTypes={[
                   ValueType.Text,
                   ValueType.Number,

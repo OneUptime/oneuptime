@@ -392,9 +392,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   /*
-   * A step opened to be read (WorkflowViewOnly): the rows and the switch to
-   * JSON are held still (WorkflowViewOnlyFieldset), and a value kept as JSON
-   * is a code box to read and copy.
+   * A step opened to be read (WorkflowViewOnly): the rows are held still
+   * (WorkflowViewOnlyFieldset), with none of the ways to change them - no
+   * Edit as JSON, no Add, no Remove - and a value kept as JSON is a code box
+   * to read and copy, which says what it shows rather than that it is being
+   * edited.
    */
   const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const isQuery: boolean = props.mode === ModelColumnEditorMode.Query;
@@ -616,9 +618,13 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           />
           <p className="text-sm text-red-700">
             {translator.translateTemplate(
-              isQuery
-                ? "Couldn't load this model's columns ({{error}}). You can still write the query as JSON."
-                : "Couldn't load this model's columns ({{error}}). You can still write these fields as JSON.",
+              isViewOnly
+                ? isQuery
+                  ? "Couldn't load this model's columns ({{error}}). The query is shown as JSON."
+                  : "Couldn't load this model's columns ({{error}}). These fields are shown as JSON."
+                : isQuery
+                  ? "Couldn't load this model's columns ({{error}}). You can still write the query as JSON."
+                  : "Couldn't load this model's columns ({{error}}). You can still write these fields as JSON.",
               { error: schema.error },
             )}
           </p>
@@ -628,7 +634,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
       {isLockedToJson && compatibility.reasons.length > 0 && (
         <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
           <p className="text-sm text-amber-800">
-            {translator.translateText("Editing as JSON, because:")}
+            {translator.translateText(
+              isViewOnly
+                ? "Shown as JSON, because:"
+                : "Editing as JSON, because:",
+            )}
           </p>
           <ul className="mt-1 list-disc pl-5 text-sm text-amber-700">
             {compatibility.reasons.map((reason: string, i: number) => {
@@ -700,44 +710,45 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           ) : (
             <>
               {translator.translateText(
-                "Editing the raw JSON this step will send.",
+                isViewOnly
+                  ? "The raw JSON this step will send."
+                  : "Editing the raw JSON this step will send.",
               )}
             </>
           )}
         </p>
 
-        {!isLockedToJson && (
-          <WorkflowViewOnlyFieldset>
-            <button
-              type="button"
-              data-testid="model-column-json-toggle"
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              onClick={() => {
-                if (effectiveMode === "builder") {
-                  showJson();
-                  return;
-                }
+        {/* Not on a view, where the rows are only read. */}
+        {!isLockedToJson && !isViewOnly && (
+          <button
+            type="button"
+            data-testid="model-column-json-toggle"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            onClick={() => {
+              if (effectiveMode === "builder") {
+                showJson();
+                return;
+              }
 
-                showRows();
-              }}
-            >
-              <Icon
-                icon={
-                  effectiveMode === "builder"
-                    ? IconProp.Code
-                    : IconProp.ListBullet
-                }
-                className="h-3.5 w-3.5 text-gray-500"
-              />
-              {translator.translateText(
+              showRows();
+            }}
+          >
+            <Icon
+              icon={
                 effectiveMode === "builder"
-                  ? "Edit as JSON"
-                  : isQuery
-                    ? "Back to conditions"
-                    : "Back to fields",
-              )}
-            </button>
-          </WorkflowViewOnlyFieldset>
+                  ? IconProp.Code
+                  : IconProp.ListBullet
+              }
+              className="h-3.5 w-3.5 text-gray-500"
+            />
+            {translator.translateText(
+              effectiveMode === "builder"
+                ? "Edit as JSON"
+                : isQuery
+                  ? "Back to conditions"
+                  : "Back to fields",
+            )}
+          </button>
         )}
       </div>
 

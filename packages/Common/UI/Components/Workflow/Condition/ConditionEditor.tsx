@@ -33,6 +33,7 @@ import {
   useValuePicker,
 } from "../ValuePicker/ValuePickerContext";
 import ValueTextField from "../ValuePicker/ValueTextField";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import WorkflowViewOnlyFieldset from "../WorkflowViewOnlyFieldset";
 import {
   COMPARE_AS_LABEL,
@@ -77,6 +78,7 @@ import {
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -193,6 +195,12 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the condition is held still
+   * (WorkflowViewOnlyFieldset), and what only changes it is not drawn - a
+   * comparison taken from an earlier step has no Choose from the list.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const compareAsName: string = `if-else-compare-as-${useId()}`;
 
   const state: ConditionState = readConditionState(props.arguments);
@@ -335,18 +343,23 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
           markTouched("comparison");
         }}
       />
-      <button
-        type="button"
-        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
-        data-testid="if-else-choose-comparison"
-        onClick={() => {
-          props.onChange({
-            [CONDITION_ARGUMENT_IDS.comparison]: ConditionComparisonId.EqualTo,
-          });
-        }}
-      >
-        {translator.translateText(CHOOSE_FROM_LIST_LABEL)}
-      </button>
+      {isViewOnly ? (
+        <></>
+      ) : (
+        <button
+          type="button"
+          className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+          data-testid="if-else-choose-comparison"
+          onClick={() => {
+            props.onChange({
+              [CONDITION_ARGUMENT_IDS.comparison]:
+                ConditionComparisonId.EqualTo,
+            });
+          }}
+        >
+          {translator.translateText(CHOOSE_FROM_LIST_LABEL)}
+        </button>
+      )}
     </div>
   ) : (
     <Dropdown

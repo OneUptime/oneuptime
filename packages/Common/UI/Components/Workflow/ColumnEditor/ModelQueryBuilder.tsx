@@ -14,7 +14,13 @@ import { isOfferableColumn } from "./ColumnControl";
 import ColumnConditionRow from "./ColumnConditionRow";
 import { ModelColumnRow, makeColumnRow } from "./ColumnRow";
 import { ColumnUse } from "./ColumnUse";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useContext,
+  useState,
+} from "react";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
@@ -28,6 +34,11 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the conditions as they are,
+   * with no Add a condition under them and no Remove beside them.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   /*
    * The row just added from the picker, so its value control can take focus.
    * Without it the picker's list closes and focus falls to the document body,
@@ -78,11 +89,17 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
         ) : (
           <>
             {/* Column widths must stay in step with ColumnConditionRow's grid. */}
-            <div className="max-sm:hidden border-b border-gray-100 bg-gray-50/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto] sm:gap-2">
+            <div
+              className={`max-sm:hidden border-b border-gray-100 bg-gray-50/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 sm:grid sm:gap-2 ${
+                isViewOnly
+                  ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)]"
+                  : "sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto]"
+              }`}
+            >
               <span>{translator.translateText("Column")}</span>
               <span>{translator.translateText("Comparison")}</span>
               <span>{translator.translateText("Value")}</span>
-              <span className="w-8" />
+              {isViewOnly ? <></> : <span className="w-8" />}
             </div>
             <div className="divide-y divide-gray-100">
               {props.rows.map((row: ModelColumnRow, index: number) => {
@@ -110,28 +127,32 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
           </>
         )}
 
-        <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
-          <AddColumnPicker
-            columns={offerableColumns.filter((column: ModelSchemaColumn) => {
-              return !props.rows.some((row: ModelColumnRow) => {
-                return row.columnId === column.id;
-              });
-            })}
-            use={ColumnUse.Filter}
-            requiredColumnIds={[]}
-            triggerLabel={translationKey("Add a condition")}
-            allowCustomColumn={true}
-            dataTestId="model-column-add"
-            onAdd={(columnId: string) => {
-              const added: ModelColumnRow = makeColumnRow({
-                columnId: columnId,
-              });
+        {isViewOnly ? (
+          <></>
+        ) : (
+          <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
+            <AddColumnPicker
+              columns={offerableColumns.filter((column: ModelSchemaColumn) => {
+                return !props.rows.some((row: ModelColumnRow) => {
+                  return row.columnId === column.id;
+                });
+              })}
+              use={ColumnUse.Filter}
+              requiredColumnIds={[]}
+              triggerLabel={translationKey("Add a condition")}
+              allowCustomColumn={true}
+              dataTestId="model-column-add"
+              onAdd={(columnId: string) => {
+                const added: ModelColumnRow = makeColumnRow({
+                  columnId: columnId,
+                });
 
-              setJustAddedKey(added.key);
-              props.onChange([...props.rows, added]);
-            }}
-          />
-        </div>
+                setJustAddedKey(added.key);
+                props.onChange([...props.rows, added]);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

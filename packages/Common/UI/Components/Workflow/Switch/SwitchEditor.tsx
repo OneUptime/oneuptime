@@ -118,6 +118,33 @@ import useAfterPress, {
 } from "../../../Utils/UseAfterPress";
 import useTranslator from "../../../Utils/UseTranslator";
 
+/*
+ * Where a case's parts sit (renderCase). For whoever may change it: the grip
+ * and number, the case, and Remove, with the case on a line of its own on a
+ * phone. On a view, nothing moves or is removed: the number, with the case
+ * beside it at every width.
+ */
+interface SwitchCaseLayout {
+  grid: string;
+  fields: string;
+  notes: string;
+}
+
+const SWITCH_CASE_LAYOUT: SwitchCaseLayout = {
+  grid: "grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-1.5 gap-y-2 sm:gap-x-2",
+  fields:
+    "col-span-3 row-start-2 grid min-w-0 grid-cols-1 gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:grid-cols-[minmax(10rem,16rem)_minmax(0,1fr)]",
+  notes:
+    "col-span-3 row-start-3 min-w-0 space-y-1 sm:col-span-1 sm:col-start-2 sm:row-start-2",
+};
+
+const SWITCH_CASE_VIEW_LAYOUT: SwitchCaseLayout = {
+  grid: "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2 gap-y-2",
+  fields:
+    "col-start-2 row-start-1 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(10rem,16rem)_minmax(0,1fr)]",
+  notes: "col-start-2 row-start-2 min-w-0 space-y-1",
+};
+
 export interface SwitchEditorProps {
   // The step's settings as stored.
   arguments: JSONObject | undefined;
@@ -239,10 +266,12 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
   const translator: Translator = useTranslator();
   /*
    * A step opened to be read (WorkflowViewOnly): the cases are held still
-   * (WorkflowViewOnlyFieldset), Compare as still opens to be read, and no
-   * case is picked up by its grip. A disabled fieldset cannot stop that on
-   * its own: the grip is no form control, and from the keyboard Space
-   * picked a case up and the arrow keys moved it, in a view.
+   * (WorkflowViewOnlyFieldset), Compare as still opens to be read, and what
+   * only changes the cases is not drawn - no grip, no Remove, no Add case.
+   * Each case is off as a draggable too (isDragDisabled). A disabled
+   * fieldset cannot stop a drag on its own: the grip is no form control,
+   * and from the keyboard Space picked a case up and the arrow keys moved
+   * it, in a view.
    */
   const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const droppableId: string = `switch-cases-${useId()}`;
@@ -583,6 +612,10 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
       ...getCaseNotes(state.valueToCheck, switchCase),
     ];
 
+    const layout: SwitchCaseLayout = isViewOnly
+      ? SWITCH_CASE_VIEW_LAYOUT
+      : SWITCH_CASE_LAYOUT;
+
     return (
       <li
         ref={provided.innerRef}
@@ -598,20 +631,25 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
         {/*
           Three columns: the grip and number, the case, the remove button.
           On a phone the case drops to a line of its own, the whole width;
-          what it leads to sits under the case either way.
+          what it leads to sits under the case either way. On a view there
+          is nothing to move or remove: the number, and the case beside it
+          at every width.
         */}
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-1.5 gap-y-2 sm:gap-x-2">
+        <div className={layout.grid}>
           <div
             className="col-start-1 row-start-1 flex h-10 items-center gap-1.5"
             data-testid={`switch-case-place-${index}`}
           >
-            <DragHandle
-              dragHandleProps={provided.dragHandleProps}
-              isDisabled={isViewOnly}
-              itemLabel={translator.translateTemplate("Case {{number}}", {
-                number: number,
-              })}
-            />
+            {isViewOnly ? (
+              <></>
+            ) : (
+              <DragHandle
+                dragHandleProps={provided.dragHandleProps}
+                itemLabel={translator.translateTemplate("Case {{number}}", {
+                  number: number,
+                })}
+              />
+            )}
             <span
               aria-hidden="true"
               className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-md bg-gray-100 px-1.5 text-xs font-semibold tabular-nums text-gray-600"
@@ -620,7 +658,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
             </span>
           </div>
           <div
-            className="col-span-3 row-start-2 grid min-w-0 grid-cols-1 gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:grid-cols-[minmax(10rem,16rem)_minmax(0,1fr)]"
+            className={layout.fields}
             data-testid={`switch-case-fields-${index}`}
           >
             <Dropdown
@@ -685,24 +723,28 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
               <></>
             )}
           </div>
-          <div className="col-start-3 row-start-1 flex h-10 items-center justify-end">
-            <Button
-              title="Remove"
-              ariaLabel={translator.translateTemplate(
-                "Remove case {{number}}",
-                {
-                  number: number,
-                },
-              )}
-              buttonStyle={ButtonStyleType.ICON}
-              icon={IconProp.Trash}
-              dataTestId={`switch-case-remove-${index}`}
-              onClick={() => {
-                remove(switchCase);
-              }}
-            />
-          </div>
-          <div className="col-span-3 row-start-3 min-w-0 space-y-1 sm:col-span-1 sm:col-start-2 sm:row-start-2">
+          {isViewOnly ? (
+            <></>
+          ) : (
+            <div className="col-start-3 row-start-1 flex h-10 items-center justify-end">
+              <Button
+                title="Remove"
+                ariaLabel={translator.translateTemplate(
+                  "Remove case {{number}}",
+                  {
+                    number: number,
+                  },
+                )}
+                buttonStyle={ButtonStyleType.ICON}
+                icon={IconProp.Trash}
+                dataTestId={`switch-case-remove-${index}`}
+                onClick={() => {
+                  remove(switchCase);
+                }}
+              />
+            </div>
+          )}
+          <div className={layout.notes}>
             {props.connections ? (
               <ConnectionLine
                 steps={props.connections[switchCase.id]}
@@ -899,33 +941,37 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
             <></>
           )}
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Button
-              title={ADD_CASE_LABEL}
-              icon={IconProp.Add}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.NORMAL}
-              /*
-               * Flush with the cases above, not a modal footer's gap in from
-               * them. Once the step holds all it can it is plainly off, with
-               * Button's disabled look.
-               */
-              className="md:!ml-0"
-              dataTestId={SWITCH_TEST_IDS.addCase}
-              disabled={isFull}
-              onClick={add}
-            />
-            {isFull ? (
-              <span className="text-xs text-gray-500">
-                {translator.translateTemplate(
-                  "A step holds at most {{count}} cases.",
-                  { count: MAX_SWITCH_CASES },
-                )}
-              </span>
-            ) : (
-              <></>
-            )}
-          </div>
+          {isViewOnly ? (
+            <></>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Button
+                title={ADD_CASE_LABEL}
+                icon={IconProp.Add}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.NORMAL}
+                /*
+                 * Flush with the cases above, not a modal footer's gap in from
+                 * them. Once the step holds all it can it is plainly off, with
+                 * Button's disabled look.
+                 */
+                className="md:!ml-0"
+                dataTestId={SWITCH_TEST_IDS.addCase}
+                disabled={isFull}
+                onClick={add}
+              />
+              {isFull ? (
+                <span className="text-xs text-gray-500">
+                  {translator.translateTemplate(
+                    "A step holds at most {{count}} cases.",
+                    { count: MAX_SWITCH_CASES },
+                  )}
+                </span>
+              ) : (
+                <></>
+              )}
+            </div>
+          )}
         </div>
       </WorkflowViewOnlyFieldset>
 

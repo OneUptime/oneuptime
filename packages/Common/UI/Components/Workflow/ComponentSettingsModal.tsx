@@ -123,6 +123,13 @@ export interface ComponentProps {
   readOnlyReason?: string | undefined;
 }
 
+/*
+ * A box that is only read, on a view: a value box (aria-readonly) or a code
+ * box (readonly). The keyboard reaches one, to read it, but the dialog does
+ * not start there.
+ */
+const READ_ONLY_BOX_SELECTOR: string = '[aria-readonly="true"], [readonly]';
+
 // The view-only dialog's footer: what it is, before the reason.
 export const WORKFLOW_STEP_VIEW_ONLY_TEXT: string = translationKey(
   "You can look at this step but not change it.",
@@ -159,6 +166,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    * itself. BasicForm still focuses a first text setting when it renders, the
    * Webhook trigger keeps its focus on Copy URL, and Tab starts from the top.
    *
+   * On a view there is nothing to type, so a box that is only read is no
+   * place to start either: If / Else and Switch / Case draw their first box
+   * at once, and the dialog put the focus - and its ring - on it, as if it
+   * could be typed in. The focus goes back to the dialog from there too.
+   *
    * This runs after the Modal's own effect: React runs a child's effects
    * before its parent's.
    */
@@ -167,12 +179,16 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     const firstSection: Element | null = body ? body.firstElementChild : null;
     const focused: Element | null = document.activeElement;
 
+    const isOnABoxOnlyRead: boolean = Boolean(
+      isViewOnly && focused && focused.closest(READ_ONLY_BOX_SELECTOR),
+    );
+
     if (
       !body ||
       !firstSection ||
       !focused ||
       !body.contains(focused) ||
-      firstSection.contains(focused)
+      (firstSection.contains(focused) && !isOnABoxOnlyRead)
     ) {
       return;
     }
