@@ -417,11 +417,9 @@ export const BaselineAnomalyTool: ObservabilityTool = {
     });
     // Snap to the supported window options (they match the table's TTL).
     const windowDays: number =
-      [...ANOMALY_WINDOW_DAYS_OPTIONS]
-        .reverse()
-        .find((option: number) => {
-          return option <= requestedWindowDays;
-        }) || MetricBaselineServiceClass.DEFAULT_WINDOW_DAYS;
+      [...ANOMALY_WINDOW_DAYS_OPTIONS].reverse().find((option: number) => {
+        return option <= requestedWindowDays;
+      }) || MetricBaselineServiceClass.DEFAULT_WINDOW_DAYS;
 
     /*
      * The baseline queries are raw ClickHouse SQL scoped only by projectId -

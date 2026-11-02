@@ -798,14 +798,17 @@ describe("MetricBaselineService", () => {
   describe("a query narrowed by attributes it can name", () => {
     const HOST: string = "web-1.example.internal";
 
-    const scopeOf: (data: Partial<MetricBaselineScope>) => MetricBaselineScope =
-      (data: Partial<MetricBaselineScope>): MetricBaselineScope => {
-        return {
-          attributes: {},
-          groupByAttributeKeys: [],
-          ...data,
-        };
+    const scopeOf: (
+      data: Partial<MetricBaselineScope>,
+    ) => MetricBaselineScope = (
+      data: Partial<MetricBaselineScope>,
+    ): MetricBaselineScope => {
+      return {
+        attributes: {},
+        groupByAttributeKeys: [],
+        ...data,
       };
+    };
 
     const queryOf: (
       scope: Partial<MetricBaselineScope>,
@@ -1308,7 +1311,9 @@ describe("MetricBaselineService", () => {
       test("a query not split into series is the whole monitor's", () => {
         expect(
           judge({
-            series: [[MetricSeriesFingerprint.WholeMonitorFingerprint, SUMMARY]],
+            series: [
+              [MetricSeriesFingerprint.WholeMonitorFingerprint, SUMMARY],
+            ],
             fallback: null,
           }),
         ).toBe(SUMMARY);
@@ -1459,9 +1464,10 @@ describe("MetricBaselineService", () => {
           .spyOn(GlobalCache, "setJSON")
           .mockRejectedValue(new Error("Valkey is away"));
 
-        expect(
-          await readOne({ attributes: { state: "idle" } }),
-        ).toMatchObject({ mean: 40, isReliable: true });
+        expect(await readOne({ attributes: { state: "idle" } })).toMatchObject({
+          mean: 40,
+          isReliable: true,
+        });
       });
 
       test("a read that failed is left for a while, and not for the hour", async () => {
@@ -1489,9 +1495,9 @@ describe("MetricBaselineService", () => {
           failsPoints: true,
         });
 
-        expect(
-          await readOne({ attributes: { state: "idle" } }),
-        ).toMatchObject({ mean: 100 });
+        expect(await readOne({ attributes: { state: "idle" } })).toMatchObject({
+          mean: 100,
+        });
       });
 
       test("leaves a Sum with no baseline: the cell is not on its scale", async () => {
@@ -1527,9 +1533,10 @@ describe("MetricBaselineService", () => {
       test("an average kept too briefly is judged by the cell", async () => {
         answerWith({ cell: [CELL], days: TWO_WEEKS, points: WEEK_KEPT });
 
-        expect(
-          await readOne({ attributes: { state: "idle" } }),
-        ).toMatchObject({ mean: 100, isReliable: true });
+        expect(await readOne({ attributes: { state: "idle" } })).toMatchObject({
+          mean: 100,
+          isReliable: true,
+        });
       });
 
       test("a Sum kept too briefly keeps learning: the cell is not on its scale", async () => {
@@ -1547,9 +1554,10 @@ describe("MetricBaselineService", () => {
       test("a series that is only young learns: its own history is on the way", async () => {
         answerWith({ cell: [CELL], days: TWO_WEEKS, points: YOUNG });
 
-        expect(
-          await readOne({ attributes: { state: "idle" } }),
-        ).toMatchObject({ mean: 40, isReliable: false });
+        expect(await readOne({ attributes: { state: "idle" } })).toMatchObject({
+          mean: 40,
+          isReliable: false,
+        });
         expect(cellQueries()).toHaveLength(0);
       });
 

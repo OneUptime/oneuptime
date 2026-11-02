@@ -1221,9 +1221,13 @@ integration("A metric's baseline against ClickHouse", () => {
         );
 
         expect(
-          (await readOwn(project, { attributes }, {
-            aggregationType: AggregationType.Count,
-          }))!.mean,
+          (await readOwn(
+            project,
+            { attributes },
+            {
+              aggregationType: AggregationType.Count,
+            },
+          ))!.mean,
         ).toBeCloseTo(seriesRead, 6);
       },
     );
@@ -1423,7 +1427,11 @@ integration("A metric's baseline against ClickHouse", () => {
             attributes: { device: "sda" },
           }),
           ...earlierWeeks({ project, host: WEB_1, mean: 200 }),
-          ...earlierWeeks({ project, mean: 300, attributes: { device: "sdb" } }),
+          ...earlierWeeks({
+            project,
+            mean: 300,
+            attributes: { device: "sdb" },
+          }),
         ]);
 
         const start: Date = new Date(hourStart - WEEK);

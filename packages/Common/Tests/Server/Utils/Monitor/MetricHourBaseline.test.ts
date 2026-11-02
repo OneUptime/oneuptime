@@ -884,19 +884,24 @@ describe("MetricHourBaseline.read of a query's own data points", () => {
     });
   };
 
-  const earlier: (mean: number, sampleCount?: number) => Array<MetricBaselineDayRow> =
-    (mean: number, sampleCount: number = 2): Array<MetricBaselineDayRow> => {
-      return [7, 14].map((day: number): MetricBaselineDayRow => {
-        return rowOf({
-          day,
-          hourOfWeek: 9,
-          mean,
-          sampleCount,
-          low: mean,
-          high: mean,
-        });
+  const earlier: (
+    mean: number,
+    sampleCount?: number,
+  ) => Array<MetricBaselineDayRow> = (
+    mean: number,
+    sampleCount: number = 2,
+  ): Array<MetricBaselineDayRow> => {
+    return [7, 14].map((day: number): MetricBaselineDayRow => {
+      return rowOf({
+        day,
+        hourOfWeek: 9,
+        mean,
+        sampleCount,
+        low: mean,
+        high: mean,
       });
-    };
+    });
+  };
 
   /*
    * A check asks for an hour it holds a data point of, so a metric reporting
@@ -908,9 +913,7 @@ describe("MetricHourBaseline.read of a query's own data points", () => {
   });
 
   test("two earlier weeks are still asked for", () => {
-    expect(
-      readDataPointsOf(earlier(10, 30).slice(1)).isReliable,
-    ).toBe(false);
+    expect(readDataPointsOf(earlier(10, 30).slice(1)).isReliable).toBe(false);
   });
 
   // Nothing of the hour is read, so nothing can say it has left: any point can.
@@ -952,17 +955,14 @@ describe("MetricHourBaseline.keepsWeeksNeeded", () => {
     ["a longer retention", 90, true],
     ["13 days", 13, false],
     ["7 days", 7, false],
-  ])(
-    "%s",
-    (_: string, keptDays: number, keeps: boolean) => {
-      expect(
-        MetricHourBaseline.keepsWeeksNeeded({
-          rows: [rowKept(6, keptDays)],
-          windowDays: 14,
-        }),
-      ).toBe(keeps);
-    },
-  );
+  ])("%s", (_: string, keptDays: number, keeps: boolean) => {
+    expect(
+      MetricHourBaseline.keepsWeeksNeeded({
+        rows: [rowKept(6, keptDays)],
+        windowDays: 14,
+      }),
+    ).toBe(keeps);
+  });
 
   test("the newest row says, for a retention that was changed", () => {
     expect(

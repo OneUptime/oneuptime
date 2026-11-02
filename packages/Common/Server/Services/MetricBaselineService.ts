@@ -324,7 +324,9 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       await this.getDataPointBaselines(read);
 
     return {
-      series: new Map<string, BaselineSummary>(Object.entries(baselines.series)),
+      series: new Map<string, BaselineSummary>(
+        Object.entries(baselines.series),
+      ),
       fallback: baselines.readsCell ? await this.getCellBaseline(read) : null,
     };
   }
@@ -367,7 +369,9 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   }
 
   // An hour's cell of samples, the hour's own samples in what it reads.
-  private async getCellBaseline(read: HourRead): Promise<BaselineSummary | null> {
+  private async getCellBaseline(
+    read: HourRead,
+  ): Promise<BaselineSummary | null> {
     const {
       projectIdStr,
       metricNameStr,
@@ -1298,7 +1302,9 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
     seriesKeys.forEach((key: string, index: number): void => {
       statement
-        .append(SQL`, attributes[${{ value: key, type: TableColumnType.Text }}]`)
+        .append(
+          SQL`, attributes[${{ value: key, type: TableColumnType.Text }}]`,
+        )
         .append(` AS ${seriesColumns[index]}`);
     });
 
