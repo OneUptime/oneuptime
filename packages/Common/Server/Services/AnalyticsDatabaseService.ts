@@ -477,11 +477,16 @@ export default class AnalyticsDatabaseService<
         countBy = await this.onBeforeCount(countBy);
       }
 
+      // A grouped count counts the distinct values of its group-by column.
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
           countBy.query,
-          null,
+          ModelPermission.getSelectWithGroupBy(
+            this.modelType,
+            null,
+            countBy.groupBy,
+          ),
           countBy.props,
         );
 
@@ -1142,14 +1147,19 @@ export default class AnalyticsDatabaseService<
         );
       }
 
+      // Every row carries the columns the aggregate groups by.
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
           aggregateBy.query,
-          {
-            [aggregateBy.aggregateColumnName]: true,
-            [aggregateBy.aggregationTimestampColumnName]: true,
-          } as Select<TBaseModel>,
+          ModelPermission.getSelectWithGroupBy(
+            this.modelType,
+            {
+              [aggregateBy.aggregateColumnName]: true,
+              [aggregateBy.aggregationTimestampColumnName]: true,
+            } as Select<TBaseModel>,
+            aggregateBy.groupBy,
+          ),
           aggregateBy.props,
         );
 
@@ -1349,11 +1359,19 @@ export default class AnalyticsDatabaseService<
         (onBeforeFind.select as any)["_id"] = true;
       }
 
+      /*
+       * A group by is checked with the select: toFindStatement selects its
+       * columns in place of the select.
+       */
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
           onBeforeFind.query,
-          onBeforeFind.select || null,
+          ModelPermission.getSelectWithGroupBy(
+            this.modelType,
+            onBeforeFind.select || null,
+            onBeforeFind.groupBy,
+          ),
           onBeforeFind.props,
         );
 
