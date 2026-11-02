@@ -11,10 +11,12 @@ import {
   generateLlmsFullTxt,
   generateLlmsTxt,
   generateMcpManifest,
+  generateMcpServerMarkdown,
   generatePageMarkdown,
   generatePricingMarkdown,
   generateProductsJson,
 } from "../Utils/AIDiscovery";
+import { getMcpServerPageContent } from "../Utils/McpServerPage";
 import {
   DocsAddress,
   DocsAddressTarget,
@@ -168,6 +170,27 @@ const isDocsInstaller: (address: DocsAddress) => boolean = (
   );
 };
 
+/*
+ * A docs page's raw Markdown (/docs/as-markdown/<language>/<category>/<page>),
+ * which the website may name where it sends an agent to read the page: the
+ * docs' own llms.txt writes the same address. It leads somewhere when the
+ * language is one of the docs' and the docs list the page.
+ */
+const isDocsMarkdownCopy: (address: DocsAddress) => boolean = (
+  address: DocsAddress,
+): boolean => {
+  const [endpoint, language, ...names] = address.names;
+  const page: string = names.join("/").toLowerCase();
+
+  return (
+    endpoint === "as-markdown" &&
+    DOCS_LANGUAGES.includes(language || "") &&
+    address.anchor === null &&
+    NAV_PAGES.includes(page) &&
+    docsPageOf(page) !== null
+  );
+};
+
 // Where a docs address leads, or why it leads nowhere.
 const problemOf: (address: DocsAddress) => string | null = (
   address: DocsAddress,
@@ -208,7 +231,9 @@ const problemOf: (address: DocsAddress) => string | null = (
         : null;
     }
     default:
-      return isDocsInstaller(address) ? null : "not a page of the docs";
+      return isDocsInstaller(address) || isDocsMarkdownCopy(address)
+        ? null
+        : "not a page of the docs";
   }
 };
 
@@ -254,6 +279,10 @@ const aiDiscoveryFiles: () => Array<[string, string]> = (): Array<
     ["/llms.txt", generateLlmsTxt(HOME_URL, [])],
     ["/llms-full.txt", generateLlmsFullTxt(HOME_URL, [])],
     ["/pricing.md", generatePricingMarkdown(HOME_URL)],
+    [
+      "/tool/mcp-server.md",
+      generateMcpServerMarkdown(HOME_URL, getMcpServerPageContent(HOME_URL)),
+    ],
     ["/products.json", JSON.stringify(generateProductsJson(HOME_URL))],
     ["/compare.json", JSON.stringify(generateCompareIndexJson(HOME_URL))],
     ["/.well-known/mcp.json", JSON.stringify(generateMcpManifest(HOME_URL))],
@@ -624,6 +653,11 @@ describe("every docs address the website writes", () => {
       ['"/docs/static/scripts/infrastructure-agent/install.sh"', null],
       ['"/docs/static/scripts/no-such-agent/install.sh"', "not a page"],
       ['"/docs/static/scripts/../css/style.css"', "not a page"],
+      ['"/docs/as-markdown/en/ai/mcp-server"', null],
+      ['"/docs/as-markdown/de/ai/mcp-server"', null],
+      ['"/docs/as-markdown/en/ai/no-such-page"', "not a page"],
+      ['"/docs/as-markdown/xx/ai/mcp-server"', "not a page"],
+      ['"/docs/as-markdown/en/ai/mcp-server#a-heading"', "not a page"],
       // A page's title has no anchor: the docs show it above the page.
       [
         `"/docs/cli/index#${slugifyMarkdownHeading(docsPageOf("cli/index")!.title)}"`,

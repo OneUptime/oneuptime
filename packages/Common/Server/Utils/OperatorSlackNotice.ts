@@ -16,6 +16,18 @@ import FeedMarkdown, {
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
 
+// Who a click ID came from (AdClickIdKeys, Types/Marketing/Attribution.ts).
+const AD_PLATFORM_BY_CLICK_ID: Record<string, string> = {
+  gclid: "Google Ads",
+  wbraid: "Google Ads",
+  gbraid: "Google Ads",
+  msclkid: "Microsoft Ads",
+  fbclid: "Meta",
+  li_fat_id: "LinkedIn",
+  twclid: "X",
+  rdt_cid: "Reddit",
+};
+
 /*
  * What OneUptime tells its operator's own Slack channels - the incoming
  * webhooks set with NOTIFICATION_SLACK_WEBHOOK_ON_* (EnvironmentConfig):
@@ -317,6 +329,7 @@ export default class OperatorSlackNotice {
    */
   public static getUserCreatedText(data: UserCreatedNotice): string {
     const user: User = data.user;
+    const source: string | null = this.describeCampaign(user);
 
     return this.toSlackText([
       mdText`**New OneUptime User:**`,
@@ -324,7 +337,32 @@ export default class OperatorSlackNotice {
       mdText`**Name:** ${user.name?.toString() || "N/A"}`,
       mdText`**Phone:** ${user.companyPhoneNumber?.toString() || "N/A"}`,
       mdText`**Company:** ${user.companyName || "N/A"}`,
+      ...(source ? [mdText`**Source:** ${source}`] : []),
     ]);
+  }
+
+  /*
+   * The campaign a new user came from, for whoever picks the lead up, or null
+   * for one who came from none: most people, and everyone invited to a
+   * project. Google Ads' auto-tagging sends a click ID and no UTM values, so a
+   * click with nothing else is named by the platform it came from.
+   */
+  private static describeCampaign(user: User): string | null {
+    const campaign: string = [user.utmSource, user.utmMedium, user.utmCampaign]
+      .filter(Boolean)
+      .join(" / ");
+
+    if (campaign) {
+      return campaign;
+    }
+
+    for (const [clickId, platform] of Object.entries(AD_PLATFORM_BY_CLICK_ID)) {
+      if (user.clickIds?.[clickId]) {
+        return platform;
+      }
+    }
+
+    return null;
   }
 
   /*

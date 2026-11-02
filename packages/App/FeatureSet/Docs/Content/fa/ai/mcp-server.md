@@ -250,6 +250,7 @@ GitHub Copilot Chat را در حالت عامل باز کنید و برای نم
 
 - **`oneuptime_help`**: راهنما و توضیح دربارهٔ ابزارهای MCP در OneUptime
 - **`oneuptime_list_resources`**: منابع و کارهایی که با هر کدام می‌توانید بکنید
+- **`oneuptime_describe_resource`**: فیلدهای یک منبع و روش فیلتر، مرتب‌سازی و انتخاب بر اساس آن‌ها
 - **`get_public_status_page_overview`**: نمای کلی یک صفحهٔ وضعیت عمومی
 - **`get_public_status_page_incidents`**: حادثه‌های یک صفحهٔ وضعیت عمومی
 - **`get_public_status_page_scheduled_maintenance`**: رویدادهای نگهداری زمان‌بندی‌شدهٔ آن
@@ -353,6 +354,8 @@ curl https://oneuptime.com/mcp/tools
 ```
 
 عملگرها عبارت‌اند از `EqualTo`، `NotEqual`، `IsNull`، `NotNull`، `EqualToOrNull`، `GreaterThan`، `LessThan`، `GreaterThanOrEqual`، `LessThanOrEqual`، `InBetween`، `Search` و `Includes`. مقدارهای مرتب‌سازی `"ASC"` یا `"DESC"` هستند.
+
+ابزارهای `list_` و `count_` هر فیلدی را می‌پذیرند، و همین فهرست ابزارها را آن‌قدر کوچک نگه می‌دارد که یک کلاینت بتواند آن را یک‌جا بارگذاری کند. برای دیدن فیلدهای یک منبع، معنای هر کدام و عملگرهایی که می‌پذیرد، عامل `oneuptime_describe_resource` را با منبع یا یکی از ابزارهای آن، مانند `Incident` یا `list_incidents`، فراخوانی می‌کند.
 
 ## انتخاب فیلدها و صفحه‌بندی
 

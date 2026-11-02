@@ -15,6 +15,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 
 jest.mock("../Utils/MCPLogger");
 
+import { handleHelperTool } from "../Tools/HelperTools";
 import { generateToolsForDatabaseModel } from "../Tools/ToolGenerator";
 import { JSONSchema, JSONSchemaProperty, McpToolInfo } from "../Types/McpTypes";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -217,7 +218,25 @@ describe("archiving over MCP", () => {
         list.inputSchema,
       )["query"];
 
-      expect(propertiesOf(query)["isArchived"]).toBeDefined();
+      // The list tool takes any field; the helper says isArchived is one.
+      expect(query?.additionalProperties).toBe(true);
+
+      const described: {
+        fields: Record<string, { type: string; filter?: boolean }>;
+        operatorsByType: Record<string, Array<string>>;
+      } = JSON.parse(
+        handleHelperTool(
+          "oneuptime_describe_resource",
+          { resource: value.list },
+          tools,
+        ),
+      );
+
+      expect(described.fields["isArchived"]).toMatchObject({
+        type: "Boolean",
+        filter: true,
+      });
+      expect(described.operatorsByType["Boolean"]).toContain("EqualTo");
     });
   });
 });

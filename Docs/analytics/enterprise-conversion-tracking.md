@@ -124,7 +124,7 @@ in `packages/Common/Types/Marketing/Attribution.ts` so a key added for the brows
 be silently dropped on arrival, and `AttributionCapture.test.ts` asserts the
 browser's copy of those lists is identical to the contract's.
 
-It leaves the browser through two doors:
+It leaves the browser through three doors:
 
 1. **The signup form**, which posts it onto the User record
    (`packages/App/FeatureSet/Accounts/src/Pages/Register.tsx`, iterating the contract
@@ -133,6 +133,20 @@ It leaves the browser through two doors:
    `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as
    the embed `config`. Cal returns it on `BOOKING_CREATED` to the CRM, which is
    what makes a booked demo attributable to the ad that produced it.
+3. **The Sign in with Microsoft button.** Signing up that way posts no form: the
+   button is a link, and the account is made on Microsoft's way back, by a
+   request that cannot read localStorage. So the button leaves the attribution
+   in a ten-minute cookie on `/identity/microsoft`
+   (`packages/App/FeatureSet/Accounts/src/Utils/SignInAttribution.ts`), and the
+   callback puts it on the new user through the same whitelists as the form
+   (`Attribution.fromSignInCookie`). A cookie that is missing or malformed costs
+   the attribution, never the sign-in.
+
+A signup is never refused for its campaign. Every value is bounded to 500
+characters, the landing URL included, and the server cuts a campaign column to
+its width for a browser that already holds a longer value
+(`Attribution.boundUtmColumns`): a value wider than its column refuses the whole
+create, and the visitor could neither see nor correct it.
 
 Because it is read out of localStorage rather than off the current URL, it
 survives any number of internal navigations. It is written only while
@@ -256,18 +270,26 @@ Sign-up and the dashboard load Google Analytics alone, so
   (`GoogleAnalyticsEventParameters`), and nothing else.
 - **`purchase`.** Each paid conversion is also sent as GA4's `purchase`, so
   Google Analytics' revenue reports and Google Ads' return on ad spend have
-  something to count: a project created on a paid plan, and a free project
-  moving to a paid plan. A move between paid tiers is expansion and is not a
-  purchase; custom pricing has no amount and sends none. `transaction_id` is
-  the server's marketing event ID for the same conversion
-  (`subscription_started:{projectId}`, `subscription_upgraded:{projectId}:{time}`;
-  see `marketing-event-webhooks.md`), `value` the monthly recurring revenue
-  after the change, and the plan is the one item.
+  something to count: a project created on a paid plan with no free trial, and
+  a free project moving to a paid plan. A move between paid tiers is expansion
+  and is not a purchase; custom pricing has no amount and sends none; and a
+  plan that starts on a free trial sends none either, because a trial asks for
+  no card and nothing has been bought. `transaction_id` is the server's
+  marketing event ID for the same conversion (`subscription_started:{projectId}`,
+  `subscription_upgraded:{projectId}:{time}`; see
+  `marketing-event-webhooks.md`), `value` the monthly recurring revenue after
+  the change, and the plan is the one item.
 - **`user_id`.** Every signed-in dashboard page sets `user_id` to the internal
   user ID, never an email address, so one person's sessions join up across
   devices.
+- **`sign_up` from Microsoft.** A sign-in that made a new account never reaches
+  the sign-up page's reporting. The callback marks the address it sends them to
+  (`?signed_up_with=microsoft`), and the Dashboard reports `sign_up`, identifies
+  the person to product analytics and takes the mark off the address, so a
+  reload reports nothing
+  (`packages/App/FeatureSet/Dashboard/src/Utils/ReportSignUpFromSignIn.ts`).
 
-All three wait for consent like everything else: gtag holds the calls until
+All four wait for consent like everything else: gtag holds the calls until
 Google Analytics loads, and on a self-hosted install there is no Google tag to
 send them to.
 
@@ -341,3 +363,10 @@ can turn it on.
    canonical `meeting_booked` with the older `bookingSuccessful`-derived
    events. Separating them, and documenting the historical discontinuity, is
    follow-up work.
+10. **The first payment, and the end of a subscription.** On OneUptime Cloud every
+    paid plan starts with a 14 day trial that asks for no card, so
+    `subscription_started` reports a plan chosen, not money received. Nothing
+    reports the moment a trial becomes a payment, or a subscription ending: the
+    Stripe webhook handles `invoice.finalized` and nothing else. Until those
+    are events of their own, revenue from a trial that converts reaches neither
+    GA4 nor a receiver, and return on ad spend cannot be measured.

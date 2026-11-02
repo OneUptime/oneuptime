@@ -49,6 +49,7 @@ import {
   generateResellersMarkdown,
   generateAirGappedMarkdown,
   generateAirGappedTopicMarkdown,
+  generateMcpServerMarkdown,
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
@@ -56,7 +57,7 @@ import {
   generateMicrosoftIdentityAssociation,
   MicrosoftIdentityAssociationPaths,
 } from "./Utils/MicrosoftIdentityAssociation";
-import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
+import BlogPostUtil from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import {
   getAirGappedContent,
@@ -71,6 +72,10 @@ import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { getAppPlatformsPageContent } from "./Utils/AppPlatforms";
 import { getCliPageContent } from "./Utils/CliPage";
+import {
+  getMcpServerPageContent,
+  McpServerPagePath,
+} from "./Utils/McpServerPage";
 import { getResellersPageContent } from "./Utils/Resellers";
 import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";
 import {
@@ -287,26 +292,21 @@ const HomeFeatureSet: FeatureSet = {
      * same data that drives the HTML pages (see Utils/AIDiscovery.ts).
      */
 
-    type GetRecentBlogPostLinksFunction = () => Promise<
+    /*
+     * Every post, newest first: llms.txt and llms-full.txt list the newest
+     * on each of their topics (getBlogPostsByTopic in Utils/AIDiscovery.ts).
+     */
+    type GetBlogPostLinksFunction = () => Promise<Array<RecentBlogPostLink>>;
+    const getBlogPostLinks: GetBlogPostLinksFunction = async (): Promise<
       Array<RecentBlogPostLink>
-    >;
-    const getRecentBlogPostLinks: GetRecentBlogPostLinksFunction =
-      async (): Promise<Array<RecentBlogPostLink>> => {
-        try {
-          const posts: Array<BlogPostHeader> =
-            await BlogPostUtil.getBlogPostList();
-          return posts.slice(0, 15).map((post: BlogPostHeader) => {
-            return {
-              title: post.title,
-              description: post.description,
-              fileName: post.fileName,
-            };
-          });
-        } catch {
-          // Blog content may be unavailable (e.g. local dev without the blog repo).
-          return [];
-        }
-      };
+    > => {
+      try {
+        return await BlogPostUtil.getBlogPostList();
+      } catch {
+        // Blog content may be unavailable (e.g. local dev without the blog repo).
+        return [];
+      }
+    };
 
     type SendAITextResponseFunction = (
       res: ExpressResponse,
@@ -328,7 +328,7 @@ const HomeFeatureSet: FeatureSet = {
       try {
         const txt: string = generateLlmsTxt(
           res.locals["homeUrl"] as string,
-          await getRecentBlogPostLinks(),
+          await getBlogPostLinks(),
         );
         sendAITextResponse(res, txt, "text/plain; charset=utf-8");
       } catch {
@@ -342,7 +342,7 @@ const HomeFeatureSet: FeatureSet = {
         try {
           const txt: string = generateLlmsFullTxt(
             res.locals["homeUrl"] as string,
-            await getRecentBlogPostLinks(),
+            await getBlogPostLinks(),
           );
           sendAITextResponse(res, txt, "text/plain; charset=utf-8");
         } catch {
@@ -500,6 +500,11 @@ const HomeFeatureSet: FeatureSet = {
 
       if (pagePath === "/pricing") {
         markdown = generatePricingMarkdown(homeUrl);
+      } else if (pagePath === McpServerPagePath) {
+        markdown = generateMcpServerMarkdown(
+          homeUrl,
+          getMcpServerPageContent(homeUrl),
+        );
       } else if (pagePath === "/resellers") {
         markdown = generateResellersMarkdown(
           homeUrl,
@@ -1334,6 +1339,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/mcp-server`, {
           enableGoogleTagManager: GoogleTagManagerEnabled,
           seo,
+          mcpServer: getMcpServerPageContent(res.locals["homeUrl"] as string),
         });
       },
     );
