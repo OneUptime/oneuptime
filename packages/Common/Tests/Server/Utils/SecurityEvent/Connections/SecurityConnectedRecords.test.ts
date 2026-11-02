@@ -13,6 +13,7 @@ import logger from "../../../../../Server/Utils/Logger";
 import SecurityConnectedRecords, {
   LOG_RESOURCE_KINDS,
   MAX_MONITORS_READ,
+  MAX_ROWS_PER_READ,
   SecurityConnectedRecord,
   SecurityConnectedRecordsResult,
   getLogResourceKind,
@@ -786,6 +787,142 @@ describe("the logs an event was read from", () => {
         (spies["serverless"]!.mock.calls[0]![0] as FindArgs).query["_id"],
       ),
     ).toEqual([FUNCTION_ID]);
+  });
+});
+
+describe("the names of the records log lines and spans were sent under", () => {
+  test("each kind read once, by id, inside the project, with the caller's permissions; by kind and id", async () => {
+    spies["host"]!.mockResolvedValue([host(HOST_ID, "edge-1")] as never);
+    spies["service"]!.mockResolvedValue([
+      { id: new ObjectID(SERVICE_ID), name: "checkout-api" },
+    ] as never);
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "checkout-alb"),
+    ] as never);
+
+    const names: Map<string, { kind: SecurityConnectionKind; name: string }> =
+      await SecurityConnectedRecords.readNamesOfLogResources({
+        projectId: PROJECT_ID,
+        resources: [
+          { type: ServiceType.Host, id: HOST_ID },
+          { type: ServiceType.OpenTelemetry, id: SERVICE_ID },
+          // The same record twice is read once.
+          { type: ServiceType.OpenTelemetry, id: SERVICE_ID.toUpperCase() },
+          { type: ServiceType.CloudResource, id: CLOUD_ID },
+          // A kind no connection names, and an id that is none: never read.
+          { type: ServiceType.Monitor, id: OTHER_HOST_ID },
+          { type: ServiceType.Host, id: "edge-1" },
+        ],
+        props: CALLER,
+      });
+
+    expect(Array.from(names.entries())).toEqual(
+      expect.arrayContaining([
+        [
+          `${SecurityConnectionKind.Host}:${HOST_ID}`,
+          { kind: SecurityConnectionKind.Host, name: "edge-1" },
+        ],
+        [
+          `${SecurityConnectionKind.Service}:${SERVICE_ID}`,
+          { kind: SecurityConnectionKind.Service, name: "checkout-api" },
+        ],
+        [
+          `${SecurityConnectionKind.CloudResource}:${CLOUD_ID}`,
+          { kind: SecurityConnectionKind.CloudResource, name: "checkout-alb" },
+        ],
+      ]),
+    );
+    expect(names.size).toBe(3);
+
+    expect(spies["host"]).toHaveBeenCalledTimes(1);
+    expect(spies["service"]).toHaveBeenCalledTimes(1);
+    expect(spies["monitor"]).not.toHaveBeenCalled();
+
+    const serviceRead: FindArgs = spies["service"]!.mock
+      .calls[0]![0] as FindArgs;
+
+    expect(serviceRead.query["projectId"]).toBe(PROJECT_ID);
+    expect(boundValues(serviceRead.query["_id"])).toEqual([SERVICE_ID]);
+    expect(serviceRead.props).toBe(CALLER);
+  });
+
+  test("a kind the caller's role cannot read names none of its records, and is not an error", async () => {
+    spies["host"]!.mockRejectedValue(new NotAuthorizedException("no"));
+    spies["service"]!.mockRejectedValue(new Error("Postgres is down"));
+    spies["cloud"]!.mockResolvedValue([
+      cloudResource(CLOUD_ID, "checkout-alb"),
+    ] as never);
+
+    const names: Map<string, { kind: SecurityConnectionKind; name: string }> =
+      await SecurityConnectedRecords.readNamesOfLogResources({
+        projectId: PROJECT_ID,
+        resources: [
+          { type: ServiceType.Host, id: HOST_ID },
+          { type: ServiceType.OpenTelemetry, id: SERVICE_ID },
+          { type: ServiceType.CloudResource, id: CLOUD_ID },
+        ],
+        props: CALLER,
+      });
+
+    expect(Array.from(names.keys())).toEqual([
+      `${SecurityConnectionKind.CloudResource}:${CLOUD_ID}`,
+    ]);
+    // The refusal is no error; the failure is.
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(String((logger.error as jest.Mock).mock.calls[0]![0])).toContain(
+      "Service",
+    );
+  });
+
+  test("a record with no name is not named; nothing to read reads nothing", async () => {
+    spies["service"]!.mockResolvedValue([
+      { id: new ObjectID(SERVICE_ID), name: "" },
+    ] as never);
+
+    expect(
+      (
+        await SecurityConnectedRecords.readNamesOfLogResources({
+          projectId: PROJECT_ID,
+          resources: [{ type: ServiceType.OpenTelemetry, id: SERVICE_ID }],
+          props: CALLER,
+        })
+      ).size,
+    ).toBe(0);
+
+    spies["service"]!.mockClear();
+
+    expect(
+      (
+        await SecurityConnectedRecords.readNamesOfLogResources({
+          projectId: PROJECT_ID,
+          resources: [],
+          props: CALLER,
+        })
+      ).size,
+    ).toBe(0);
+    expect(spies["service"]).not.toHaveBeenCalled();
+  });
+
+  test(`at most ${MAX_ROWS_PER_READ} of one kind`, async () => {
+    const resources: Array<{ type: string; id: string }> = [];
+
+    for (let index: number = 0; index < MAX_ROWS_PER_READ + 5; index++) {
+      resources.push({
+        type: ServiceType.OpenTelemetry,
+        id: ObjectID.generate().toString(),
+      });
+    }
+
+    await SecurityConnectedRecords.readNamesOfLogResources({
+      projectId: PROJECT_ID,
+      resources,
+      props: CALLER,
+    });
+
+    const read: FindArgs = spies["service"]!.mock.calls[0]![0] as FindArgs;
+
+    expect(boundValues(read.query["_id"]).length).toBe(MAX_ROWS_PER_READ);
+    expect(read.limit).toBe(MAX_ROWS_PER_READ);
   });
 });
 

@@ -8,6 +8,7 @@ import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import IncidentSecurity from "../../../Server/Utils/SecurityEvent/Connections/IncidentSecurity";
 import ResourceSecurity from "../../../Server/Utils/SecurityEvent/Connections/ResourceSecurity";
 import SecurityConnections from "../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
+import SecurityTelemetryMentions from "../../../Server/Utils/SecurityEvent/Connections/SecurityTelemetryMentions";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -25,14 +26,16 @@ import {
   SECURITY_CONNECTION_MAX_ENTITIES,
   SecurityConnectionKind,
   SecurityConnectionsJson,
+  SecurityTelemetryMentionsJson,
 } from "../../../Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 
 /*
  * The routes behind Security Events' connections - a case's Connected
- * Signals, an event's and an entity's, a record page's Security card and
- * an incident's: who may call each (a reader without Security access sees
+ * Signals, an event's and an entity's, where what they name appears in the
+ * logs and traces, a record page's Security card and an incident's: who
+ * may call each (a reader without Security access sees
  * no security data on any other page), that each reads inside the caller's
  * project with the caller's own permissions, and what each refuses.
  */
@@ -67,6 +70,7 @@ const CASE_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const HOST_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
 const CONNECTIONS: string = "/security-case/connections";
+const TELEMETRY: string = "/security-case/connections/telemetry";
 const RESOURCE: string = "/security-case/resource-security";
 const INCIDENT: string = "/security-case/incident-security";
 
@@ -78,6 +82,15 @@ const ANSWER: SecurityConnectionsJson = {
   unmatched: [],
   unreadableKinds: [],
   failedKinds: [],
+};
+
+const TELEMETRY_ANSWER: SecurityTelemetryMentionsJson = {
+  windowStart: "2026-10-25T08:30:00.000Z",
+  windowEnd: "2026-10-25T10:30:00.000Z",
+  values: [],
+  hasMoreValues: false,
+  unreadableSignals: [],
+  failedSignals: [],
 };
 
 let props: DatabaseCommonInteractionProps;
@@ -140,7 +153,7 @@ afterEach(() => {
 });
 
 describe("route registration", () => {
-  test.each([CONNECTIONS, RESOURCE, INCIDENT])(
+  test.each([CONNECTIONS, TELEMETRY, RESOURCE, INCIDENT])(
     "%s resolves the user and requires authentication first",
     (uri: string) => {
       const found: { uri: string; handlers: Array<Handler> } | undefined =
@@ -325,6 +338,192 @@ describe("POST /security-case/connections", () => {
       readLogResources: true,
       time: undefined,
     });
+  });
+});
+
+describe("POST /security-case/connections/telemetry", () => {
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.SecurityViewer,
+    Permission.ReadSecurityEvent,
+  ])(
+    "answers %s with where a case's values appear in the logs and traces, searched as them",
+    async (permission: Permission) => {
+      setPermissions(permission);
+      const forCase: jest.SpyInstance = jest
+        .spyOn(SecurityTelemetryMentions, "forCase")
+        .mockResolvedValue(TELEMETRY_ANSWER);
+
+      await route(TELEMETRY)(
+        request({ caseId: CASE_ID.toString() }),
+        res,
+        next,
+      );
+
+      expect(next).not.toHaveBeenCalled();
+      expect(forCase).toHaveBeenCalledWith({
+        projectId: PROJECT,
+        securityCaseId: CASE_ID,
+        props,
+      });
+      expect(answered()).toEqual(TELEMETRY_ANSWER);
+    },
+  );
+
+  test.each([
+    Permission.ProjectMember,
+    Permission.TelemetryAdmin,
+    Permission.ReadTelemetryServiceLog,
+    Permission.ReadTelemetryServiceTraces,
+  ])(
+    "refuses %s: reading logs is not reading security data - not even which values a case names",
+    async (permission: Permission) => {
+      setPermissions(permission);
+      const forCase: jest.SpyInstance = jest.spyOn(
+        SecurityTelemetryMentions,
+        "forCase",
+      );
+      const forEntities: jest.SpyInstance = jest.spyOn(
+        SecurityTelemetryMentions,
+        "forEntities",
+      );
+
+      await route(TELEMETRY)(
+        request({ caseId: CASE_ID.toString() }),
+        res,
+        next,
+      );
+      await route(TELEMETRY)(
+        request({
+          entities: [{ type: "IP Address", value: "203.0.113.7" }],
+        }),
+        res,
+        next,
+      );
+
+      expect(next).toHaveBeenCalledTimes(2);
+      expect(next.mock.calls[0]![0]).toBeInstanceOf(NotAuthorizedException);
+      expect(next.mock.calls[1]![0]).toBeInstanceOf(NotAuthorizedException);
+      expect(forCase).not.toHaveBeenCalled();
+      expect(forEntities).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a case the caller cannot read, or of another project, is not found", async () => {
+    jest.spyOn(SecurityTelemetryMentions, "forCase").mockResolvedValue(null);
+
+    await route(TELEMETRY)(
+      request({ caseId: CASE_ID.toString() }),
+      res,
+      next,
+    );
+
+    expect(next).toHaveBeenCalledWith(expect.any(NotFoundException));
+  });
+
+  test("a case ID that is not one is refused before any read", async () => {
+    const forCase: jest.SpyInstance = jest.spyOn(
+      SecurityTelemetryMentions,
+      "forCase",
+    );
+
+    for (const caseId of ["case-1", 42, { id: "x" }]) {
+      next.mockClear();
+      await route(TELEMETRY)(request({ caseId } as never), res, next);
+      expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+    }
+
+    expect(forCase).not.toHaveBeenCalled();
+  });
+
+  test("an event's or an entity's values: its entities (a case's worth at most) and its time, nothing else", async () => {
+    const forEntities: jest.SpyInstance = jest
+      .spyOn(SecurityTelemetryMentions, "forEntities")
+      .mockResolvedValue(TELEMETRY_ANSWER);
+    const many: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < 80; index++) {
+      many.push({ type: "IP Address", value: `203.0.113.${index}` });
+    }
+
+    await route(TELEMETRY)(
+      request({
+        entities: [
+          { type: "Domain", value: "evil.example" },
+          { type: "Nonsense", value: "kept as Other" },
+          { value: "" },
+          "not an entity",
+          ...many,
+        ],
+        time: "2026-10-25T10:00:00.000Z",
+        // The connections' own knobs mean nothing here.
+        logResources: [{ type: ServiceType.Host, id: HOST_ID.toString() }],
+        readLogResources: true,
+      } as never),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(answered()).toEqual(TELEMETRY_ANSWER);
+
+    const args: JSONObject = forEntities.mock.calls[0]![0] as JSONObject;
+
+    expect(Object.keys(args).sort()).toEqual([
+      "entities",
+      "projectId",
+      "props",
+      "time",
+    ]);
+    expect(args["projectId"]).toBe(PROJECT);
+    expect(args["props"]).toBe(props);
+    expect((args["entities"] as Array<JSONObject>).length).toBe(
+      SECURITY_CONNECTION_MAX_ENTITIES,
+    );
+    expect((args["entities"] as Array<JSONObject>).slice(0, 2)).toEqual([
+      { type: SecurityEntityType.Domain, value: "evil.example" },
+      { type: SecurityEntityType.Other, value: "kept as Other" },
+    ]);
+    expect(args["time"]).toEqual(new Date("2026-10-25T10:00:00.000Z"));
+  });
+
+  test("a time no person could mean is no time: around now", async () => {
+    const forEntities: jest.SpyInstance = jest
+      .spyOn(SecurityTelemetryMentions, "forEntities")
+      .mockResolvedValue(TELEMETRY_ANSWER);
+
+    for (const time of ["yesterday", "", 42, "x".repeat(65)]) {
+      forEntities.mockClear();
+      await route(TELEMETRY)(
+        request({
+          entities: [{ type: "IP Address", value: "203.0.113.7" }],
+          time,
+        } as never),
+        res,
+        next,
+      );
+      expect(forEntities.mock.calls[0]![0]).toMatchObject({ time: undefined });
+    }
+
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("a failed search is the route's error, never an empty answer", async () => {
+    jest
+      .spyOn(SecurityTelemetryMentions, "forCase")
+      .mockRejectedValue(new Error("Postgres is down"));
+
+    await route(TELEMETRY)(
+      request({ caseId: CASE_ID.toString() }),
+      res,
+      next,
+    );
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });
 
