@@ -264,12 +264,17 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
    */
   const getFieldDescription: (
     schemaItem: BaseModel,
-  ) => string | ReactElement | undefined = (
+  ) => string | ReactElement = (
     schemaItem: BaseModel,
-  ): string | ReactElement | undefined => {
+  ): string | ReactElement => {
     const description: string | undefined = getMappedDescription(schemaItem);
 
-    if (!description || isMappedAndInherited(schemaItem)) {
+    // None: an empty line, which the row leaves out.
+    if (!description) {
+      return "";
+    }
+
+    if (isMappedAndInherited(schemaItem)) {
       return description;
     }
 
