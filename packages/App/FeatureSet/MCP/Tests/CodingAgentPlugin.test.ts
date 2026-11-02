@@ -24,7 +24,6 @@ jest.mock("../Utils/MCPLogger");
 import Ajv2020, { ValidateFunction } from "ajv/dist/2020";
 import { execFileSync } from "child_process";
 import fs from "fs";
-import YAML from "js-yaml";
 import os from "os";
 import path from "path";
 import { generatePublicStatusPageTools } from "../Tools/PublicStatusPageTools";
@@ -62,6 +61,21 @@ const OPEN_TELEMETRY_GUIDES: string = path.join(
   PACKAGES_DIRECTORY,
   "Home/Utils/Integrations/OpenTelemetry/GuideShared.ts",
 );
+
+/*
+ * js-yaml from Common/node_modules, as the Docs tests load it and for the same
+ * reason: Common declares js-yaml 4, App declares no YAML parser. Its `load`
+ * uses the safe schema, and a skill's front matter is YAML.
+ */
+interface JsYamlModule {
+  load: (text: string) => unknown;
+}
+
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+const YAML: JsYamlModule = require(
+  path.join(PACKAGES_DIRECTORY, "Common", "node_modules", "js-yaml"),
+);
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 const TEMPORARY_DIRECTORY: string = fs.mkdtempSync(
   path.join(os.tmpdir(), "coding-agent-plugin-"),
@@ -626,7 +640,8 @@ describe("the coding agent plugin", () => {
 
         expect([example.tool, Boolean(tool)]).toEqual([example.tool, true]);
 
-        const fields: JSONObject = tool!.inputSchema.properties as JSONObject;
+        const fields: JSONObject = tool!.inputSchema
+          .properties as unknown as JSONObject;
 
         expect([
           example.tool,
