@@ -21,6 +21,11 @@ fixture, "after" is this branch.
 - `docker-swarm-task-phone-menu-de-*`: a Swarm task's page on a phone, in
   German, with the menu open: "Task-Details" and nothing lit before;
   "Workloads / Aufgaben" with Aufgaben (Tasks) lit after.
+- `docker-swarm-task-trail-de-1280-*`: the same page's trail in German. Before,
+  "Aufgaben > Task-Details" named the list and its row in two languages, with
+  nothing lit in the menu. After, "Aufgaben > Aufgabendetails", Aufgaben lit.
+  Twenty-three such row crumbs in thirteen languages now use their list's
+  word (an OpenShift route's in ten).
 - `topology-map-trail-1280-*`: the Topology Map had no trail. After:
   Project > Inventory > Topology Map, as the Inventory menu beside it names it.
 - `proxmox-node-menu-768-fa-dark.png`: the node page's menu in Persian, dark,
