@@ -28,9 +28,11 @@ import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
  *     optional metric, the `used` share of system.memory.usage;
  *   - swap: system.paging.usage's used bytes over used plus free, across
  *     every swap device - no reading on a host without swap;
- *   - disk: each mount's used bytes over used, free and reserved
- *     (system.filesystem.usage; reserved space counts toward the total, as
- *     the Filesystems table counts it), the fullest mount kept with its
+ *   - disk: each mount's used bytes over used plus free
+ *     (system.filesystem.usage) - the Use% `df` prints, and the share the
+ *     collector's system.filesystem.utilization (High Filesystem Usage's
+ *     metric) reports: space reserved for root is not counted, since an
+ *     ordinary program cannot write to it - the fullest mount kept with its
  *     mount point; system.filesystem.utilization when usage is not sent;
  *   - inodes: each mount's used inodes over used plus free
  *     (system.filesystem.inodes.usage), the most-used mount kept;
@@ -493,7 +495,6 @@ export function scanHostReadings(input: {
         const fullest: MountShare | null = readFullestMount(metric, [
           "used",
           "free",
-          "reserved",
         ]);
         if (fullest) {
           readings.diskPercent = fullest.percent;

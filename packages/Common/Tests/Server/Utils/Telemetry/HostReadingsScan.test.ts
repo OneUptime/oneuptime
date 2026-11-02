@@ -354,7 +354,7 @@ describe("HostReadingsScan: swap", () => {
 });
 
 describe("HostReadingsScan: the fullest filesystem", () => {
-  test("is the mount with the highest used share, reserved space in the total", () => {
+  test("is the mount with the highest used share, as df's Use% writes it", () => {
     const readings: HostReadings = scan([
       filesystemUsage([
         { mountpoint: "/", used: 40 * GIB, free: 55 * GIB, reserved: 5 * GIB },
@@ -372,8 +372,24 @@ describe("HostReadingsScan: the fullest filesystem", () => {
         },
       ]),
     ]);
-    expect(readings.diskPercent).toBe(91);
+    // 91 / (91 + 4): root's reserved 5 GiB is space nobody else can write.
+    expect(readings.diskPercent).toBe(95.79);
     expect(readings.diskMountpoint).toBe("/var");
+  });
+
+  test("agrees with the collector's own system.filesystem.utilization", () => {
+    // Read from otelcol-contrib 0.161.0 on an ext4 /boot: 0.142387.
+    const readings: HostReadings = scan([
+      filesystemUsage([
+        {
+          mountpoint: "/boot",
+          used: 122241024,
+          free: 736272384,
+          reserved: 64643072,
+        },
+      ]),
+    ]);
+    expect(readings.diskPercent).toBe(14.24);
   });
 
   test("names the same mount for a tie, whatever order the points come in", () => {
@@ -434,12 +450,12 @@ describe("HostReadingsScan: the fullest filesystem", () => {
     expect(readings.diskMountpoint).toBe("/var/lib");
   });
 
-  test("prefers usage, as the Filesystems table reads it, over utilization", () => {
+  test("prefers usage, which every collector sends, over the optional utilization", () => {
     const readings: HostReadings = scan([
       gauge("system.filesystem.utilization", [
         { attributes: { mountpoint: "/" }, asDouble: 0.99 },
       ]),
-      filesystemUsage([{ mountpoint: "/", used: 60, free: 35, reserved: 5 }]),
+      filesystemUsage([{ mountpoint: "/", used: 60, free: 40, reserved: 5 }]),
     ]);
     expect(readings.diskPercent).toBe(60);
   });

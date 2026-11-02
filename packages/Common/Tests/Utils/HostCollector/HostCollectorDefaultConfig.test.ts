@@ -123,6 +123,37 @@ describe("every default config", () => {
   });
 
   /*
+   * The `system` scraper reports system.uptime: when the host last started
+   * (its page's "Up 12 days", HostReadingsScan's bootedAt) and the Host
+   * Restarted alert. The readings the Hosts list and Needs attention show -
+   * CPU, memory, swap (paging), filesystems and inodes, load - come from the
+   * scrapers beside it, so none of them may go.
+   */
+  test.each(everyDefault())(
+    "%s reads how long the host has been up, and every reading the Hosts list shows",
+    (_label: string, text: string) => {
+      const config: ParsedConfig = parse(text);
+      const scrapers: Record<string, unknown> = (
+        config.receivers["host_metrics"] as Record<string, unknown>
+      )["scrapers"] as Record<string, unknown>;
+
+      for (const scraper of [
+        "cpu",
+        "memory",
+        "filesystem",
+        "load",
+        "paging",
+        "processes",
+        "system",
+      ]) {
+        expect(Object.keys(scrapers)).toContain(scraper);
+      }
+      // system.uptime is on by default: the scraper needs no settings.
+      expect(scrapers["system"]).toBeNull();
+    },
+  );
+
+  /*
    * Read-only images (snap packages on Ubuntu, CDs, DVDs and ISO images) and
    * macOS's /dev are 100% used for as long as they are mounted. The default
    * used to measure them, so High Filesystem Usage fired on every Ubuntu host
