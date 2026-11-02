@@ -1,4 +1,5 @@
 import { AnalyticsModelSchema } from "../../../Utils/Schema/AnalyticsModelSchema";
+import { ALWAYS_READABLE_COLUMNS } from "../../../Utils/Schema/BaseSchema";
 import { z } from "zod";
 import {
   OpenAPIRegistry,
@@ -298,11 +299,20 @@ const checkQueryPermission: (
   ).checkQueryPermission(modelType, JSONFunctions.deserialize(query), OWNER);
 };
 
-// A table's query and sort schemas, as the OpenAPI spec writes them.
+// A table's query, sort, select and group by, as the OpenAPI spec writes them.
 const renderedSchemas: (modelType: ModelCtor) => {
   query: JSONObject;
   sort: JSONObject;
-} = (modelType: ModelCtor): { query: JSONObject; sort: JSONObject } => {
+  select: JSONObject;
+  groupBy: JSONObject;
+} = (
+  modelType: ModelCtor,
+): {
+  query: JSONObject;
+  sort: JSONObject;
+  select: JSONObject;
+  groupBy: JSONObject;
+} => {
   const registry: OpenAPIRegistry = new OpenAPIRegistry();
 
   registry.register(
@@ -313,6 +323,14 @@ const renderedSchemas: (modelType: ModelCtor) => {
     "Sort",
     AnalyticsModelSchema.getSortModelSchema({ modelType }),
   );
+  registry.register(
+    "Select",
+    AnalyticsModelSchema.getSelectModelSchema({ modelType }),
+  );
+  registry.register(
+    "GroupBy",
+    AnalyticsModelSchema.getGroupByModelSchema({ modelType }),
+  );
 
   const schemas: JSONObject = (new OpenApiGeneratorV3(
     registry.definitions,
@@ -321,7 +339,38 @@ const renderedSchemas: (modelType: ModelCtor) => {
   return {
     query: schemas["Query"] as JSONObject,
     sort: schemas["Sort"] as JSONObject,
+    select: schemas["Select"] as JSONObject,
+    groupBy: schemas["GroupBy"] as JSONObject,
   };
+};
+
+/*
+ * Whether a select, a group by or a query may name a column: somebody may
+ * read it, or the API lets it through all the same.
+ */
+const isReadable: (column: AnalyticsTableColumn) => boolean = (
+  column: AnalyticsTableColumn,
+): boolean => {
+  return (
+    ALWAYS_READABLE_COLUMNS.includes(column.key) ||
+    (column.accessControl?.read || []).length > 0
+  );
+};
+
+// What the API checks of a select's fields before it runs it.
+const checkSelectPermission: (
+  modelType: ModelCtor,
+  select: JSONObject,
+) => void = (modelType: ModelCtor, select: JSONObject): void => {
+  (
+    AnalyticsModelPermission as unknown as {
+      checkSelectPermission: (
+        modelType: ModelCtor,
+        select: JSONObject,
+        props: DatabaseCommonInteractionProps,
+      ) => void;
+    }
+  ).checkSelectPermission(modelType, select, OWNER);
 };
 
 /*
@@ -612,7 +661,7 @@ describe("AnalyticsModelSchema", () => {
   });
 
   describe("getGroupByModelSchema", () => {
-    test("includes only groupable column types", () => {
+    test("includes the readable columns of a groupable type", () => {
       const model: Log = new Log();
       const schema: any = AnalyticsModelSchema.getGroupByModelSchema({
         modelType: Log,
@@ -620,12 +669,15 @@ describe("AnalyticsModelSchema", () => {
       const keys: Array<string> = shapeKeys(schema);
 
       for (const column of model.getTableColumns()) {
-        if (GROUPABLE_TYPES.includes(column.type)) {
+        if (GROUPABLE_TYPES.includes(column.type) && isReadable(column)) {
           expect(keys).toContain(column.key);
         } else {
           expect(keys).not.toContain(column.key);
         }
       }
+
+      // Nobody may read a log's retention date, which is a Date.
+      expect(keys).not.toContain("retentionDate");
     });
 
     test("accepts only the literal true for a groupable field", () => {
@@ -1178,5 +1230,100 @@ describe("the OpenAPI spec lists a telemetry query's fields and operators", () =
         enum: [SortOrder.Ascending, SortOrder.Descending],
       });
     }
+  });
+});
+
+describe("the OpenAPI spec lists a telemetry select's and group by's fields", () => {
+  /*
+   * zod-to-openapi took the `type` BaseSchema gave .openapi() for the whole
+   * schema, so every telemetry select and group by was published as an
+   * object that allowed no field at all.
+   */
+  test("lists the fields a select may name: those somebody may read", () => {
+    for (const modelType of API_MODELS) {
+      const model: AnalyticsBaseModel = new modelType();
+      const select: JSONObject = renderedSchemas(modelType).select;
+
+      expect([
+        model.tableName,
+        Object.keys((select["properties"] || {}) as JSONObject),
+      ]).toEqual([
+        model.tableName,
+        model
+          .getTableColumns()
+          .filter(isReadable)
+          .map((column: AnalyticsTableColumn): string => {
+            return column.key;
+          }),
+      ]);
+      expect(select["additionalProperties"]).toBe(false);
+    }
+  });
+
+  test("the API takes every field the select lists, and refuses one nobody may read", () => {
+    for (const modelType of API_MODELS) {
+      for (const key of Object.keys(
+        (renderedSchemas(modelType).select["properties"] || {}) as JSONObject,
+      )) {
+        checkSelectPermission(modelType, { [key]: true });
+      }
+    }
+
+    expect(() => {
+      checkSelectPermission(Log, { retentionDate: true });
+    }).toThrow();
+  });
+
+  test("lists the readable fields of a groupable type as group-by fields", () => {
+    for (const modelType of API_MODELS) {
+      const model: AnalyticsBaseModel = new modelType();
+      const groupBy: JSONObject = renderedSchemas(modelType).groupBy;
+
+      expect([
+        model.tableName,
+        Object.keys((groupBy["properties"] || {}) as JSONObject),
+      ]).toEqual([
+        model.tableName,
+        model
+          .getTableColumns()
+          .filter((column: AnalyticsTableColumn): boolean => {
+            return GROUPABLE_TYPES.includes(column.type) && isReadable(column);
+          })
+          .map((column: AnalyticsTableColumn): string => {
+            return column.key;
+          }),
+      ]);
+      expect(groupBy["additionalProperties"]).toBe(false);
+    }
+  });
+
+  /*
+   * A group by's fields become the list's select (AnalyticsDatabaseService
+   * .toFindStatement), so each is one a select may name.
+   */
+  test("groups by every field the group by lists, each one a select may name", () => {
+    let grouped: number = 0;
+
+    for (const modelType of API_MODELS) {
+      for (const key of Object.keys(
+        (renderedSchemas(modelType).groupBy["properties"] || {}) as JSONObject,
+      )) {
+        checkSelectPermission(modelType, { [key]: true });
+
+        // GROUP BY the column, bound as an identifier.
+        const statement: Statement = generatorFor(modelType).toGroupByStatement(
+          { [key]: true } as never,
+        );
+
+        expect([
+          statement.query,
+          Object.values(statement.query_params),
+        ]).toEqual(["{p0:Identifier}", [key]]);
+
+        grouped++;
+      }
+    }
+
+    expect(grouped).toBeGreaterThan(30);
   });
 });
