@@ -79,20 +79,30 @@ export const FirstTouchStringKeys: Array<string> = [
 export const MaxAttributionValueLength: number = 500;
 
 /*
- * Signing up with Microsoft posts no form. The button is a link, the browser
- * goes off to Microsoft, and the account is made on the way back, by a request
- * that cannot read localStorage - where the attribution lives. So the button
- * writes the attribution into this cookie as it is pressed, on a path only
- * that sign-in's requests are sent, and the callback reads it.
+ * Signing up with Microsoft or Google posts no form. The button is a link, the
+ * browser goes off to the provider, and the account is made on the way back,
+ * by a request that cannot read localStorage - where the attribution lives. So
+ * the button writes the attribution into this cookie as it is pressed, and the
+ * callback reads it. Its path is the one every provider's sign-in sits under
+ * (/identity/microsoft, /identity/google): the page loads never carry it, and
+ * the callback spends it.
  */
 export const SignInAttributionCookieName: string =
   "oneuptime-sign-in-attribution";
-export const SignInAttributionCookiePath: string = "/identity/microsoft";
+export const SignInAttributionCookiePath: string = "/identity";
 
 /*
- * On the address a sign-in ends on when it made a new account. The sign-up
- * page's reporting never runs for such a person, so the Dashboard - the first
- * page they load - reports the sign-up, and takes this off the address.
+ * On the address a sign-in ends on when it made a new account, naming the
+ * provider. The sign-up page's reporting never runs for such a person, so the
+ * Dashboard - the first page they load - reports the sign-up, and takes this
+ * off the address.
  */
 export const SignedUpWithQueryParam: string = "signed_up_with";
 export const SignedUpWithMicrosoft: string = "microsoft";
+export const SignedUpWithGoogle: string = "google";
+
+// What the Dashboard reports a sign-up for: a provider that signs people up.
+export const SignedUpWithProviders: ReadonlyArray<string> = [
+  SignedUpWithMicrosoft,
+  SignedUpWithGoogle,
+];

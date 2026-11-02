@@ -64,6 +64,8 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "GITHUB_APP_NAME",
   // Public client id: the sign-in page offers Sign in with Microsoft when it is set.
   "MICROSOFT_SIGN_IN_CLIENT_ID",
+  // Public client id: the sign-in and sign-up pages offer Continue with Google when it is set.
+  "GOOGLE_SIGN_IN_CLIENT_ID",
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
   "INBOUND_EMAIL_DOMAIN",
@@ -1863,6 +1865,19 @@ export const MicrosoftSignInClientId: string | null =
   process.env["MICROSOFT_SIGN_IN_CLIENT_ID"] || null;
 export const MicrosoftSignInClientSecret: string | null =
   process.env["MICROSOFT_SIGN_IN_CLIENT_SECRET"] || null;
+
+/*
+ * Continue with Google: a Google OAuth client (web application) that lets
+ * anyone sign up for or sign in to OneUptime with their Google account -
+ * Gmail and Google Workspace alike - without the sign-up form. Offered only
+ * where both are set, so a server without one offers nothing new. The client
+ * id is public (the sign-in and sign-up pages show the button when it is
+ * set); the secret is not.
+ */
+export const GoogleSignInClientId: string | null =
+  process.env["GOOGLE_SIGN_IN_CLIENT_ID"] || null;
+export const GoogleSignInClientSecret: string | null =
+  process.env["GOOGLE_SIGN_IN_CLIENT_SECRET"] || null;
 
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =

@@ -2,6 +2,7 @@ import AuthenticationAPI from "./API/Authentication";
 import FirstAccountAPI from "./API/FirstAccount";
 import ResellerAPI from "./API/Reseller";
 import MicrosoftSignInAPI from "./API/MicrosoftSignIn";
+import GoogleSignInAPI from "./API/GoogleSignIn";
 import SignInMethodsAPI from "./API/SignInMethods";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
@@ -28,6 +29,9 @@ const IdentityFeatureSet: FeatureSet = {
 
     // Sign in with Microsoft (offered when MICROSOFT_SIGN_IN_CLIENT_ID is set).
     app.use([`/${APP_NAME}`, "/"], MicrosoftSignInAPI);
+
+    // Continue with Google (offered when GOOGLE_SIGN_IN_CLIENT_ID is set).
+    app.use([`/${APP_NAME}`, "/"], GoogleSignInAPI);
 
     /*
      * How this server signs people in - whether it requires single sign-on,
