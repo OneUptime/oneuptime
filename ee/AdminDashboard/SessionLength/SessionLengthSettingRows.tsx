@@ -17,6 +17,7 @@ import {
   SessionLengthColumn,
   SessionLengthKind,
   SessionLengthSettingColumn,
+  SessionLengthSettings,
 } from "Common/Types/UserSession/SessionLength";
 import Dropdown, {
   DropdownOption,
@@ -59,6 +60,17 @@ export type ConfirmSessionLengthChange = (
   value: number | boolean | null,
 ) => Promise<boolean>;
 
+// What each of the page's cards (SessionLengthCard, SsoSignInsCard) is handed.
+export interface SessionLengthCardProps {
+  settings: SessionLengthSettings;
+  isLocked: boolean;
+  confirmChange: ConfirmSessionLengthChange;
+  onSaved: (
+    column: SessionLengthSettingColumn,
+    value: number | boolean | null,
+  ) => void;
+}
+
 export interface DropdownRowProps {
   column: SessionLengthColumn;
   kind: SessionLengthKind;
@@ -91,9 +103,7 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
   });
 
   // A pick waiting for the page to say whether it may be saved.
-  const [pending, setPending] = useState<{ value: number | null } | null>(
-    null,
-  );
+  const [pending, setPending] = useState<{ value: number | null } | null>(null);
 
   const shownValue: number | null = pending ? pending.value : setting.value;
 
@@ -181,7 +191,10 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
               }}
             />
           </div>
-          <SaveStatus state={setting.saveState} dataTestId={`${testId}-status`} />
+          <SaveStatus
+            state={setting.saveState}
+            dataTestId={`${testId}-status`}
+          />
         </div>
       </div>
       <p

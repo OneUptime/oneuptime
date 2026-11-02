@@ -148,6 +148,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
+import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
 
 type Row = Partial<
   Record<
@@ -171,7 +172,7 @@ const NOTICE_TEST_ID_PREFIX: string = "enterprise-setting-license";
 let stored: Row | Error = {};
 // What the preview answers, or how it fails.
 let preview: JSONObject | "error" = { peopleSignedOut: 0, includesYou: false };
-let post: jest.SpiedFunction<typeof API.post>;
+let post: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   stored = {};
@@ -207,7 +208,7 @@ beforeEach(() => {
 
         return new HTTPResponse<JSONObject>(200, preview, {});
       },
-    ) as unknown as jest.SpiedFunction<typeof API.post>;
+    ) as unknown as ReturnType<typeof jest.spyOn>;
 });
 
 afterEach(() => {
@@ -607,6 +608,39 @@ describe("a pick that signs people out right away", () => {
 });
 
 describe("SSO sign-ins, under More settings", () => {
+  test("it starts folded, and a link to SSO Sign-ins opens it at the card", async () => {
+    await openPage();
+
+    expect(
+      within(
+        screen.getByTestId(SESSION_LENGTH_MORE_SETTINGS_TEST_ID),
+      ).getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    cleanup();
+
+    const place: string = getPageAnchorNameForTitle(
+      SessionLengthCopy.ssoCardTitle,
+    );
+
+    expect(place).toBe("sso-sign-ins");
+
+    window.history.replaceState(null, "", `#${place}`);
+
+    try {
+      await openPage();
+
+      expect(
+        within(
+          screen.getByTestId(SESSION_LENGTH_MORE_SETTINGS_TEST_ID),
+        ).getByTestId("folded-section-header"),
+      ).toHaveAttribute("aria-expanded", "true");
+      expect(ssoSwitch()).toBeInTheDocument();
+    } finally {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  });
+
   test("folded, its header names SSO Sign-ins, and says On while they have lengths of their own", async () => {
     await openPage();
 

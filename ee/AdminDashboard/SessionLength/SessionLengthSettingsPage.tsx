@@ -5,28 +5,24 @@ import {
   isEnterpriseConfigurationReadOnly,
 } from "../../Dashboard/Identity/License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../Dashboard/Identity/License/UseEnterpriseLicenseMode";
+import SessionLengthCard from "./SessionLengthCard";
 import SessionLengthCopy, {
   getSsoFoldedItem,
-  SESSION_LENGTH_CARD_TEST_ID,
   SESSION_LENGTH_MORE_SETTINGS_TEST_ID,
   SESSION_LENGTH_PAGE_TEST_ID,
   SESSION_LENGTH_SIGNS_OUT,
-  SSO_SESSION_LENGTH_CARD_TEST_ID,
 } from "./SessionLengthCopy";
 import {
   SESSION_LENGTH_SETTINGS_PAGE_PATH,
   SESSION_LENGTH_SETTINGS_PAGE_TITLE,
 } from "./SessionLengthPaths";
-import {
-  ConfirmSessionLengthChange,
-  SessionLengthDropdownRow,
-  SessionLengthSeparateSsoRow,
-} from "./SessionLengthSettingRows";
+import { ConfirmSessionLengthChange } from "./SessionLengthSettingRows";
 import {
   fetchSessionLengthSettings,
   previewSessionLengthSettings,
   SessionLengthPreview,
 } from "./SessionLengthSettingsAPI";
+import SsoSignInsCard from "./SsoSignInsCard";
 import { getEnterpriseSettingsPageRoute } from "@oneuptime/admin-dashboard/Enterprise/EnterprisePlugins";
 import DashboardSideMenu from "@oneuptime/admin-dashboard/Pages/Settings/SideMenu";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
@@ -34,19 +30,13 @@ import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import {
   doesShortenAnySession,
-  SESSION_IDLE_TIMEOUT_COLUMN,
-  SESSION_LENGTH_COLUMN,
-  SessionLengthKind,
   SessionLengthSettingColumn,
   SessionLengthSettings,
-  SSO_SESSION_IDLE_TIMEOUT_COLUMN,
-  SSO_SESSION_LENGTH_COLUMN,
   toSessionLengths,
 } from "Common/Types/UserSession/SessionLength";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -94,118 +84,6 @@ interface PendingConfirmation {
   resolve: (isConfirmed: boolean) => void;
 }
 
-interface SessionLengthCardsProps {
-  settings: SessionLengthSettings;
-  isLocked: boolean;
-  confirmChange: ConfirmSessionLengthChange;
-  onSaved: (
-    column: SessionLengthSettingColumn,
-    value: number | boolean | null,
-  ) => void;
-}
-
-// The SSO Sign-ins card, in More settings: drawn as one of its sections.
-const SsoSignInsCard: FunctionComponent<SessionLengthCardsProps> = (
-  props: SessionLengthCardsProps,
-): ReactElement => {
-  const ruledListClassName: string = useCardRuledListClassName();
-
-  return (
-    <Card
-      title={SessionLengthCopy.ssoCardTitle}
-      description={SessionLengthCopy.ssoCardDescription}
-    >
-      <div
-        className={ruledListClassName}
-        data-testid={SSO_SESSION_LENGTH_CARD_TEST_ID}
-      >
-        <div className="px-5 py-4 md:px-6">
-          <SessionLengthSeparateSsoRow
-            initialValue={props.settings.useSeparateSsoSessionLengths}
-            isLocked={props.isLocked}
-            confirmChange={props.confirmChange}
-            onSaved={props.onSaved}
-          />
-        </div>
-        {props.settings.useSeparateSsoSessionLengths ? (
-          <>
-            <div className="px-5 py-4 md:px-6">
-              <SessionLengthDropdownRow
-                column={SSO_SESSION_LENGTH_COLUMN}
-                kind={SessionLengthKind.Length}
-                label={SessionLengthCopy.lengthLabel}
-                initialValue={props.settings.ssoSessionLengthInMinutes}
-                isLocked={props.isLocked}
-                confirmChange={props.confirmChange}
-                onSaved={props.onSaved}
-              />
-            </div>
-            <div className="px-5 py-4 md:px-6">
-              <SessionLengthDropdownRow
-                column={SSO_SESSION_IDLE_TIMEOUT_COLUMN}
-                kind={SessionLengthKind.IdleTimeout}
-                label={SessionLengthCopy.idleLabel}
-                initialValue={props.settings.ssoSessionIdleTimeoutInMinutes}
-                isLocked={props.isLocked}
-                confirmChange={props.confirmChange}
-                onSaved={props.onSaved}
-              />
-            </div>
-          </>
-        ) : (
-          <></>
-        )}
-      </div>
-    </Card>
-  );
-};
-
-// The Session Length card: the two lengths every sign-in is held to.
-const SessionLengthCard: FunctionComponent<SessionLengthCardsProps> = (
-  props: SessionLengthCardsProps,
-): ReactElement => {
-  const ruledListClassName: string = useCardRuledListClassName();
-  const translator: Translator = useTranslator();
-
-  return (
-    <Card
-      title={SessionLengthCopy.cardTitle}
-      description={SessionLengthCopy.cardDescription}
-    >
-      <div className={ruledListClassName} data-testid={SESSION_LENGTH_CARD_TEST_ID}>
-        <div className="px-5 py-4 md:px-6">
-          <SessionLengthDropdownRow
-            column={SESSION_LENGTH_COLUMN}
-            kind={SessionLengthKind.Length}
-            label={SessionLengthCopy.lengthLabel}
-            initialValue={props.settings.sessionLengthInMinutes}
-            isLocked={props.isLocked}
-            confirmChange={props.confirmChange}
-            onSaved={props.onSaved}
-          />
-        </div>
-        <div className="px-5 py-4 md:px-6">
-          <SessionLengthDropdownRow
-            column={SESSION_IDLE_TIMEOUT_COLUMN}
-            kind={SessionLengthKind.IdleTimeout}
-            label={SessionLengthCopy.idleLabel}
-            initialValue={props.settings.sessionIdleTimeoutInMinutes}
-            isLocked={props.isLocked}
-            confirmChange={props.confirmChange}
-            onSaved={props.onSaved}
-          />
-        </div>
-        <p
-          className="px-5 py-3 text-sm text-gray-500 md:px-6"
-          data-testid={`${SESSION_LENGTH_CARD_TEST_ID}-note`}
-        >
-          {translator.translateText(SessionLengthCopy.notSessionsNote)}
-        </p>
-      </div>
-    </Card>
-  );
-};
-
 const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const translator: Translator = useTranslator();
@@ -217,8 +95,9 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
   const [settings, setSettings] = useState<SessionLengthSettings | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [confirmation, setConfirmation] =
-    useState<PendingConfirmation | null>(null);
+  const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(
+    null,
+  );
 
   // What the server holds, as last read or saved: every change is weighed against it.
   const settingsRef: MutableRefObject<SessionLengthSettings | null> =
@@ -316,9 +195,9 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
     setConfirmation(null);
   };
 
-  const getConfirmationDescription: (
+  const getConfirmationDescription: (pending: PendingConfirmation) => string = (
     pending: PendingConfirmation,
-  ) => string = (pending: PendingConfirmation): string => {
+  ): string => {
     if (!pending.preview) {
       return translator.translateText(SessionLengthCopy.confirmUnknown) || "";
     }
