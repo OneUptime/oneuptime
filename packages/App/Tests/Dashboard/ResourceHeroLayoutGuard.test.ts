@@ -795,6 +795,8 @@ const HEALTH_HEROES: Array<[string, string, string]> = [
     "<StorageArrayHealthPill",
   ],
   ["Pages/DockerSwarm/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  // A host's health by HostHealth's rules, beside its collector's pill.
+  ["Pages/Host/View/Overview.tsx", "{statusLabel}", "{healthLabel}"],
   ["Pages/Kubernetes/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
@@ -1067,7 +1069,7 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
     expect(withPill.sort()).toEqual([...CONNECTION_PILL_HEROES].sort());
   });
 
-  test("the four heroes that work out a health draw it from getResourceHealthLabel", () => {
+  test("the five heroes that work out a health draw it from getResourceHealthLabel", () => {
     const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
       return pillVariablesDrawn(hero).includes("healthLabel");
     }).map((hero: Hero): string => {
@@ -1077,6 +1079,7 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
     expect(withHealth.sort()).toEqual(
       [
         "Pages/DockerSwarm/View/Index.tsx",
+        "Pages/Host/View/Overview.tsx",
         "Pages/Kubernetes/View/Index.tsx",
         "Pages/Proxmox/View/Index.tsx",
         "Pages/VMware/View/Index.tsx",

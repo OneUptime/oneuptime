@@ -1497,6 +1497,32 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
+  /**
+   * The column's value is above another column of the same row times a
+   * factor: a host's 15-minute load above twice its cores is
+   * `latestLoadAverage15m: greaterThanOtherColumnTimes({ columnName:
+   * "cpuCores", factor: 2 })`. The factor is bound, never written into the
+   * SQL; the other column is named the way TypeORM names the row's own (see
+   * getColumnBeside). A row where either column is null does not match.
+   */
+  public static greaterThanOtherColumnTimes(data: {
+    columnName: string;
+    factor: number;
+  }): FindWhereProperty<any> {
+    if (!Number.isFinite(data.factor)) {
+      throw new BadDataException("The factor must be a finite number.");
+    }
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(${alias} > :${rid} * ${QueryHelper.getColumnBeside(alias, data.columnName)})`;
+      },
+      {
+        [rid]: data.factor,
+      },
+    ) as FindWhereProperty<any>;
+  }
+
   public static greaterThanOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {

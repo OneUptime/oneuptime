@@ -379,37 +379,54 @@ const UPDATABLE_MODELS: Array<ModelCtor> = API_MODELS.filter(
   },
 );
 
+// A value a create or update sends, and what the INSERT holds for it.
+interface WriteValue {
+  value: JSONValue;
+  written: string;
+}
+
 /*
  * The values a rendered create or update field takes, one of each form it
- * allows: a time, an ID, a string of digits, a number...
+ * allows: a time, an ID, a string of digits, a number, a map...
  */
-const writeValuesFor: (field: JSONObject) => Array<JSONValue> = (
+const writeValuesFor: (field: JSONObject) => Array<WriteValue> = (
   field: JSONObject,
-): Array<JSONValue> => {
+): Array<WriteValue> => {
   const forms: Array<JSONObject> = (field["anyOf"] as
     | Array<JSONObject>
     | undefined) || [field];
 
-  return forms.map((form: JSONObject): JSONValue => {
+  return forms.map((form: JSONObject): WriteValue => {
     if (form["format"] === "date-time") {
-      return A_TIME;
+      return { value: A_TIME, written: "2026-07-01 00:00:00" };
     }
 
     if (form["format"] === "uuid") {
-      return A_UUID;
+      return { value: A_UUID, written: A_UUID };
     }
 
     if (form["pattern"]) {
-      return A_WIDE_INTEGER;
+      return { value: A_WIDE_INTEGER, written: A_WIDE_INTEGER };
     }
 
     switch (form["type"]) {
       case "number":
-        return 5;
+        return { value: 5, written: "5" };
       case "boolean":
-        return true;
+        return { value: true, written: "true" };
       case "string":
-        return "sample";
+        return { value: "sample", written: "'sample'" };
+      case "array": {
+        const item: WriteValue = writeValuesFor(
+          form["items"] as JSONObject,
+        )[0] as WriteValue;
+
+        return { value: [item.value], written: item.written };
+      }
+      // A map of strings, an object, or any JSON value.
+      case "object":
+      case undefined:
+        return { value: { key: "sample" }, written: "sample" };
       default:
         throw new Error(`No value for a field of ${JSON.stringify(form)}`);
     }
@@ -617,18 +634,30 @@ describe("AnalyticsModelSchema", () => {
       }
     });
 
-    test("excludes default-value columns from the create shape", () => {
+    test("lists the default-value columns a create may send, as optional", () => {
       const model: Log = new Log();
       const schema: any = AnalyticsModelSchema.getCreateModelSchema({
         modelType: Log,
       });
       const keys: Array<string> = shapeKeys(schema);
+      let listed: number = 0;
 
       for (const column of model.getTableColumns()) {
-        if (column.isDefaultValueColumn) {
-          expect(keys).not.toContain(column.key);
+        if (
+          column.isDefaultValueColumn &&
+          (column.accessControl?.create || []).length > 0
+        ) {
+          expect(keys).toContain(column.key);
+          expect(schema.shape[column.key].safeParse(undefined).success).toBe(
+            true,
+          );
+          listed++;
         }
       }
+
+      // A log's attributes among them.
+      expect(keys).toContain("attributes");
+      expect(listed).toBeGreaterThan(5);
     });
 
     test("only includes columns that grant create access", () => {
@@ -1466,37 +1495,48 @@ describe("the OpenAPI spec lists a telemetry create's and update's fields", () =
     expect(UPDATABLE_MODELS.length).toBeGreaterThan(5);
   });
 
-  test("lists the fields a create may send: the columns somebody may create, less those with a default", () => {
+  test("lists the fields a create may send: the columns somebody may create, each with its default", () => {
+    let defaults: number = 0;
+
     for (const modelType of CREATABLE_MODELS) {
       const model: AnalyticsBaseModel = new modelType();
       const create: JSONObject = renderedSchemas(modelType).create;
-      const listed: Array<string> = Object.keys(
-        (create["properties"] || {}) as JSONObject,
-      );
+      const fields: JSONObject = (create["properties"] || {}) as JSONObject;
+      const creatable: Array<AnalyticsTableColumn> = model
+        .getTableColumns()
+        .filter((column: AnalyticsTableColumn): boolean => {
+          return (
+            !CREATE_EXCLUDED_FIELDS.includes(column.key) &&
+            (column.accessControl?.create || []).length > 0
+          );
+        });
 
-      expect([model.tableName, listed]).toEqual([
+      expect([model.tableName, Object.keys(fields)]).toEqual([
         model.tableName,
-        model
-          .getTableColumns()
-          .filter((column: AnalyticsTableColumn): boolean => {
-            return (
-              !CREATE_EXCLUDED_FIELDS.includes(column.key) &&
-              !column.isDefaultValueColumn &&
-              (column.accessControl?.create || []).length > 0
-            );
-          })
-          .map((column: AnalyticsTableColumn): string => {
-            return column.key;
-          }),
+        creatable.map((column: AnalyticsTableColumn): string => {
+          return column.key;
+        }),
       ]);
-      expect(listed.length).toBeGreaterThan(0);
       expect(create["additionalProperties"]).toBe(false);
+
+      for (const column of creatable) {
+        if (column.isDefaultValueColumn) {
+          expect([
+            column.key,
+            (fields[column.key] as JSONObject)["default"],
+          ]).toEqual([column.key, column.defaultValue]);
+          defaults++;
+        }
+      }
     }
+
+    expect(defaults).toBeGreaterThan(100);
   });
 
   /*
-   * What AnalyticsDatabaseService.checkRequiredFields asks of a create, but
-   * the project: the API writes the request's (the API key's) there.
+   * What AnalyticsDatabaseService.checkRequiredFields asks of a create: a
+   * required column, unless it has a default, which the API writes. Not the
+   * project, either: the API writes the request's (the API key's) there.
    */
   test("requires the columns a create must send, and not the project", () => {
     for (const modelType of CREATABLE_MODELS) {
@@ -1511,8 +1551,12 @@ describe("the OpenAPI spec lists a telemetry create's and update's fields", () =
       expect([model.tableName, create["required"] || []]).toEqual([
         model.tableName,
         listed.filter((key: string): boolean => {
+          const column: AnalyticsTableColumn = model.getTableColumn(
+            key,
+          ) as AnalyticsTableColumn;
+
           return (
-            key !== project && Boolean(model.getTableColumn(key)?.required)
+            key !== project && column.required && !column.isDefaultValueColumn
           );
         }),
       ]);
@@ -1530,18 +1574,16 @@ describe("the OpenAPI spec lists a telemetry create's and update's fields", () =
       ] || {}) as JSONObject;
 
       for (const [key, field] of Object.entries(fields)) {
-        for (const value of writeValuesFor(field as JSONObject)) {
+        for (const { value, written: expected } of writeValuesFor(
+          field as JSONObject,
+        )) {
           // fromJSON refuses a column the table does not have.
           const item: AnalyticsBaseModel = AnalyticsBaseModel.fromJSON(
             { [key]: value },
             modelType,
           ) as AnalyticsBaseModel;
 
-          // The column check sees the field, and lets a project owner create it.
-          expect([
-            key,
-            (item as unknown as JSONObject)[key] !== undefined,
-          ]).toEqual([key, true]);
+          // The column check lets a project owner create it.
           AnalyticsModelPermission.checkCreatePermissions(
             modelType,
             item,
@@ -1559,9 +1601,7 @@ describe("the OpenAPI spec lists a telemetry create's and update's fields", () =
 
           expect([key, inserted]).toEqual([
             key,
-            expect.stringContaining(
-              value === A_TIME ? "2026-07-01 00:00:00" : String(value),
-            ),
+            expect.stringContaining(expected),
           ]);
 
           written++;
@@ -1625,7 +1665,8 @@ describe("the OpenAPI spec lists a telemetry create's and update's fields", () =
   /*
    * No telemetry column names an update permission, and a column that names
    * none is closed to everyone: checkUpdatePermissions refuses each field a
-   * create may send, so an update lists none.
+   * create may send - a column the model has no property for too, such as a
+   * log's serviceEntityKey - so an update lists none.
    */
   test("the API refuses an update of each field a create may send", () => {
     let refused: number = 0;
@@ -1642,7 +1683,9 @@ describe("the OpenAPI spec lists a telemetry create's and update's fields", () =
         (rendered.create["properties"] || {}) as JSONObject,
       )) {
         const item: AnalyticsBaseModel = AnalyticsBaseModel.fromJSON(
-          { [key]: writeValuesFor(field as JSONObject)[0] as JSONValue },
+          {
+            [key]: (writeValuesFor(field as JSONObject)[0] as WriteValue).value,
+          },
           modelType,
         ) as AnalyticsBaseModel;
 

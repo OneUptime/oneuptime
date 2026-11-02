@@ -18,7 +18,9 @@
  *    The "N total" beside Processes is Host.processCount, which ingest
  *    writes through ResourceHeartbeat at most about once a minute.
  *  - The Filesystem tile, the Disk space chart and the Filesystems table
- *    average the WHOLE range, and count reserved space in the total.
+ *    average the WHOLE range. The tile and the chart read the FULLEST mount,
+ *    and how full a mount is is df's Use%: used over used plus free, space
+ *    reserved for root left out (its Size still counts it).
  *  - process.cpu.utilization arrives as one reading per CPU mode per scrape
  *    (user, system and, on Linux, wait) - twice with the collector's v1
  *    gate on. The process page (per interval) and the Processes list (at
@@ -26,12 +28,15 @@
  *    wait out: Pages/Host/Utils/Processes.ts holds the rule for both.
  *  - Service and unit availability are sample counts over at most the
  *    newest 2,000 samples, not time-weighted.
- *  - The Hosts list's Resources column reads the cached Host columns, not
- *    telemetry: cpuCores is the first system.cpu.logical.count point (so
- *    hyperthreads count), totalMemoryBytes is the SUM of every
- *    system.memory.usage state, and processCount the sum of
- *    system.processes.count over every status - all written through
- *    ResourceHeartbeat at most about once a minute.
+ *  - The Hosts list's Status, CPU, Memory and Disk columns read what the
+ *    host last reported, kept on its record (HostReadingsScan writes it
+ *    through ResourceHeartbeat about once a minute), not telemetry: CPU is
+ *    user plus system time across every core, memory the used share without
+ *    buffers and cache, disk the fullest mount's used over used plus free
+ *    (df's Use%). Status and the bars' colours follow HostHealth's lines
+ *    (Common/Types/Host/HostHealth). cpuCores is the first
+ *    system.cpu.logical.count point (so hyperthreads count), and
+ *    totalMemoryBytes the SUM of every system.memory.usage state.
  *
  * Change the fetch, change the words.
  */
@@ -39,6 +44,9 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export type HostMetric =
+  // Host overview: the hero's health pill and the Details card's Booted
+  | "hostHealth"
+  | "booted"
   // Host overview: tiles
   | "cpu"
   | "memory"
@@ -76,7 +84,10 @@ export type HostMetric =
   | "unitStateChanges"
   | "unitStateTimeline"
   // Hosts list
-  | "hostListResources"
+  | "hostListStatus"
+  | "hostListCpu"
+  | "hostListMemory"
+  | "hostListDisk"
   // Processes, Services and Systemd Units lists
   | "processListCpu"
   | "processListMemory"
@@ -92,8 +103,14 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
   memory: translationKey(
     "Share of the host's physical memory (RAM) in use, not counting file cache the system can free, averaged over the last 5 minutes of the range. On ranges over 12 hours, or with no recent data, it is usually the whole-range average; below is the total RAM.",
   ),
+  hostHealth: translationKey(
+    "Healthy, Degraded or Unhealthy, by the rules the host's Needs attention card and the Hosts list follow, from what it last reported. Health Unknown while it is not reporting: its last readings are no longer the truth.",
+  ),
+  booted: translationKey(
+    "When the host last started, from the uptime its collector reports (system.uptime). A reboot moves it.",
+  ),
   filesystem: translationKey(
-    "Used space on the host's largest filesystem, as a share of its total size with reserved space included. Averaged over the whole selected range, not the last 5 minutes; the Filesystems table lists every mount.",
+    "How full the host's fullest filesystem is, as df's Use% (used space over used plus free, space reserved for root not counted), averaged over the whole selected range, not the last 5 minutes; below, its mount point. The Filesystems table lists every mount.",
   ),
   loadAverage: translationKey(
     "The 1-minute load average from the newest interval: about how many processes were running or waiting for a CPU (Linux also counts ones waiting on disk). The % divides it by the number of cores, and over 100% means work is queuing.",
@@ -111,7 +128,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "Share of the host's physical memory (RAM) in use in each interval of the selected range, not counting file cache the system can free.",
   ),
   diskSpaceChart: translationKey(
-    "Used share of the host's largest filesystem, the same mount as the Filesystem tile, in each interval of the selected range. Reserved space counts toward the total.",
+    "How full the host's fullest filesystem is, the same mount as the Filesystem tile, in each interval of the selected range, as df's Use%: space reserved for root not counted.",
   ),
   networkChart: translationKey(
     "Bytes per second received (In) and sent (Out), added up across every network interface the host reports, including loopback when the collector sends it. Worked out from the change in each interface's byte counters between intervals.",
@@ -120,7 +137,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "Space used on this mount and its total size (used, free and reserved space added up), each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.",
   ),
   filesystemUtilization: translationKey(
-    "Used space as a share of this mount's total size, reserved space included, averaged over the selected range. The bar turns amber at 75% and red at 90%.",
+    "How full this mount is, as df's Use%: used space over used plus free, space reserved for root not counted, averaged over the selected range. The bar turns amber above 85% and red above 95%.",
   ),
   processCountCached: translationKey(
     "How many processes the host had, in any state, as last saved. It refreshes at most about once a minute.",
@@ -176,8 +193,17 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
   unitStateTimeline: translationKey(
     "The unit's state across the selected range. Where one point on the chart covers several samples it shows the worst state among them, so a brief failure stays visible.",
   ),
-  hostListResources: translationKey(
-    "Logical CPU cores (each hyperthread counts as one) and total RAM, the sum of every memory state the collector reports; below, processes in any state. All three are the latest values saved on the host, updated at most about once a minute.",
+  hostListStatus: translationKey(
+    "The host's health by the rules its Needs attention card follows: Unhealthy when something is critical (a filesystem or memory past 95%), Degraded when something needs a look, Not reporting when nothing has arrived for 15 minutes. Below, the reason.",
+  ),
+  hostListCpu: translationKey(
+    "Share of CPU time spent running programs and the operating system (user plus system time) across every core, from the host's last report, updated about once a minute; below, its logical cores. Amber above 90%.",
+  ),
+  hostListMemory: translationKey(
+    "Share of physical memory (RAM) in use, not counting file cache the system can free, from the host's last report, updated about once a minute; below, its total RAM. Amber above 90%, red above 95%.",
+  ),
+  hostListDisk: translationKey(
+    "How full the host's fullest filesystem is, as df's Use% (space reserved for root not counted), from the host's last report, updated about once a minute; below, its mount point. Amber above 85%, red above 95%.",
   ),
   processListCpu: translationKey(
     "CPU this process used at its newest reading in the last 15 minutes (user plus system time), as a share of the host's total capacity (all cores together). Time it spent waiting on disk is left out.",

@@ -4,7 +4,7 @@ Een Host-monitor bewaakt één machine – de CPU, het geheugen, de schijven, de
 
 :::cards
 - [De monitor maken](#een-host-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Zes kant-en-klare waarschuwingen voor een stille host, CPU, geheugen, schijf, belasting en processen.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Tien kant-en-klare waarschuwingen voor een stille of herstarte host, CPU, geheugen, swap, schijf, inodes, belasting, processen en mislukte systemd-units.
 - [Metrieken](#verzamelde-metrieken): De hostmetrieken waarop u kunt waarschuwen, en hun eenheden.
 - [Host of Server / VM?](#host-monitor-of-server-vm-monitor): Welke van de twee machinemonitoren u gebruikt.
 :::
@@ -95,27 +95,35 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-De lijst onder **Waarover te waarschuwen** biedt zes sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt tien sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritiek | `system.memory.usage`, Count, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
+| Host Restarted | Waarschuwing | `system.uptime`, Min, laatste 5 minuten | Een waarde is lager dan 600 (tien minuten) | Elke waarde is 660 of hoger |
 | High CPU Utilization | Waarschuwing | `system.cpu.utilization` voor de toestanden `user` en `system`, opgeteld en als percentage getoond, laatste 5 minuten | Boven 80% | Op of onder 72% |
 | High Memory Utilization | Waarschuwing | `system.memory.utilization` voor de toestand `used`, als percentage, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
+| High Swap Usage | Waarschuwing | `system.paging.usage` voor de toestanden `used` en `free`, gebruikt gedeeld door gebruikt plus vrij, als percentage, laatste 5 minuten | Boven 80% | Op of onder 72% |
 | High Filesystem Usage | Kritiek | `system.filesystem.utilization`, Max per `mountpoint` en `device`, als percentage, laatste 5 minuten | Boven 90% | Op of onder 81% |
+| Running Out of Inodes | Kritiek | `system.filesystem.inodes.usage` voor de toestanden `used` en `free`, gebruikt gedeeld door gebruikt plus vrij, per `mountpoint` en `device`, als percentage, laatste 5 minuten | Boven 90% | Op of onder 81% |
 | High Load Average (1m) | Waarschuwing | `system.cpu.load_average.1m`, Avg, laatste 5 minuten | Boven 4 | Op of onder 3,6 |
 | High Process Count | Waarschuwing | `system.processes.count`, Max, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
+| Systemd Unit Failed | Waarschuwing | `systemd.unit.state` met `systemd.unit.active_state = failed`, Max per `resource.systemd.unit.name`, laatste 5 minuten | Boven 0 | Op of onder 0 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
 - **Host Stopped Reporting** gaat af als er tien minuten lang niets van de host binnenkomt: de machine is uitgevallen of onbereikbaar, of de collector is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
+- **Host Restarted** gaat af bij de eerste melding na een opstart: de host draait korter dan tien minuten. Het leest `system.uptime` uit de scraper `system` van de collector, die de standaardconfiguraties van OneUptime aanzetten, en wordt vanzelf opgelost zo'n kwartier na de opstart, zodra elke waarde in het venster van vijf minuten minstens elf minuten is. Een uitgevallen host laat in plaats daarvan **Host Stopped Reporting** afgaan.
 - **CPU** is bezette tijd (`user` plus `system`), hetzelfde cijfer dat het **Overzicht** van de host in grafieken toont. Iowait en steal tellen niet mee.
 - **Geheugen** sluit buffers en paginacache uit, zodat een host die grotendeels cache bevat het sjabloon niet laat afgaan.
+- **Swap** is de gebruikte swap gedeeld door gebruikt plus vrij, over alle swapapparaten, zoals `free` en `swapon` die tonen. Een host zonder swap meldt er geen en gaat nooit af.
 - **Bestandssysteem** opent één incident per mount. Alleen-lezen pseudobestandssystemen, zoals snap-mounts van het type `squashfs` of `devfs` op macOS, zijn altijd 100% vol: de collectorconfiguraties van OneUptime laten ze met `exclude_fs_types` buiten de scraper `filesystem`, en een eigen configuratie heeft hetzelfde nodig.
+- **Inodes** opent één incident per mount, net als **Bestandssysteem**. Zodra een bestandssysteem geen inodes meer heeft, kan er geen bestand meer worden aangemaakt, hoeveel ruimte er ook vrij is. Een bestandssysteem zonder eigen inodetabel, zoals btrfs, meldt er geen en gaat nooit af.
 - **Belastingsgemiddelde** is een ruwe lengte van de uitvoerwachtrij, niet gedeeld door het aantal kernen: 4 is verzadiging op een host met 2 kernen en routine op een host met 32; verhoog de drempel daarom op grote hosts.
 - **Aantal processen** vergelijkt de grootste afzonderlijke procestoestand (`running`, `sleeping`, …), niet het totaal van de host, en komt dus niet overeen met een proceslijst. De scraper voor processen rapporteert op Linux, macOS en BSD, niet op Windows.
+- **Systemd Unit Failed** opent één waarschuwing per systemd-service in de toestand `failed`, vanuit de receiver `systemd` van de collector, die de standaardconfiguratie van OneUptime leest op Linux-hosts met systemd. Het wordt opgelost wanneer de unit weer draait, of zodra `systemctl reset-failed` hem wist.
 
 ## Verzamelde metrieken
 

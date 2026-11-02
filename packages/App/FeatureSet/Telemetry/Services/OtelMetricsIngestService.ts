@@ -117,6 +117,13 @@ import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/Oneupt
 import { HEARTBEAT_MAX_BACKDATE_MS } from "Common/Utils/Telemetry/HeartbeatAvailability";
 import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
 import {
+  HostReadings,
+  hasHostReadings,
+  mergeHostReadings,
+  scanHostReadings,
+  toHostReadingColumns,
+} from "Common/Server/Utils/Telemetry/HostReadingsScan";
+import {
   PVE_SNAPSHOT_METRIC_NAMES,
   CEPH_SNAPSHOT_METRIC_NAMES,
   ProxmoxResourceBufferEntry,
@@ -616,9 +623,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       agentVersion: string | null;
       hasInfraSignal: boolean;
       labelNames: Set<string>;
+      /*
+       * What the host reported in this batch: CPU, memory, swap, the
+       * fullest disk, inodes, load, when it started and its failed systemd
+       * units (HostReadingsScan), merged across the batch's resources - one
+       * per hostmetrics scraper, one per systemd unit.
+       */
+      readings: HostReadings;
     }
 
     const aggregator: Map<string, HostEnrichmentEntry> = new Map();
+    const receivedAt: Date = OneUptimeDate.getCurrentDate();
 
     for (const resourceMetric of data.resourceMetrics) {
       const rm: JSONObject = resourceMetric as JSONObject;
@@ -684,9 +699,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           agentVersion: null,
           hasInfraSignal: false,
           labelNames: new Set<string>(),
+          readings: {},
         };
         aggregator.set(hostName, entry);
       }
+
+      entry.readings = mergeHostReadings(
+        entry.readings,
+        scanHostReadings({
+          resourceAttributes: ras,
+          scopeMetrics: sms,
+          receivedAt: receivedAt,
+        }),
+      );
 
       const labelNamesForResource: Array<string> =
         extractOneuptimeLabelNames(ras);
@@ -794,6 +819,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           processCount: entry.processCount ?? undefined,
           containerRuntime: entry.containerRuntime ?? undefined,
           agentVersion: entry.agentVersion ?? undefined,
+          readings: hasHostReadings(entry.readings)
+            ? toHostReadingColumns(entry.readings)
+            : undefined,
         };
 
         const heartbeat: ResourceHeartbeatResult =
