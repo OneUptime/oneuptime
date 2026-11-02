@@ -257,10 +257,92 @@ describe("MetricHourBaseline.getSource", () => {
     );
   });
 
-  test("so does one narrowed by an attribute, which no table can do better for", () => {
+  test("so does one narrowed by something that cannot be read back", () => {
     expect(
       MetricHourBaseline.getSource({ ...plain, isNarrowedByAttributes: true }),
     ).toBe(MetricBaselineSource.Samples);
+  });
+
+  describe("a query narrowed by attributes it can name", () => {
+    const narrowed: typeof plain = {
+      ...plain,
+      isNarrowedByAttributes: true,
+      hasScope: true,
+    };
+
+    test.each([
+      ["an average", {}],
+      ["a percentile", { isPercentile: true }],
+      ["a total", { isTotal: true }],
+      ["an average of a histogram", { isDistribution: true }],
+      ["a total of a histogram", { isDistribution: true, isTotal: true }],
+    ])("%s reads its own rows", (_: string, data: Partial<typeof plain>) => {
+      expect(MetricHourBaseline.getSource({ ...narrowed, ...data })).toBe(
+        MetricBaselineSource.Rows,
+      );
+    });
+
+    test.each([
+      ["an average", {}],
+      ["a total", { isTotal: true }],
+    ])(
+      "%s filtered to one entity reads its rollup",
+      (_: string, data: Partial<typeof plain>) => {
+        expect(
+          MetricHourBaseline.getSource({
+            ...narrowed,
+            ...data,
+            hasEntityRollup: true,
+          }),
+        ).toBe(MetricBaselineSource.EntityRollup);
+      },
+    );
+
+    test.each([
+      ["a percentile", { isPercentile: true }],
+      ["anything of a histogram", { isDistribution: true }],
+    ])(
+      "%s is not in that rollup, which holds sums and counts of plain values",
+      (_: string, data: Partial<typeof plain>) => {
+        expect(
+          MetricHourBaseline.getSource({
+            ...narrowed,
+            ...data,
+            hasEntityRollup: true,
+          }),
+        ).toBe(MetricBaselineSource.Rows);
+      },
+    );
+
+    test("a percentile of a histogram still has none: only its buckets say", () => {
+      expect(
+        MetricHourBaseline.getSource({
+          ...narrowed,
+          isDistribution: true,
+          isPercentile: true,
+        }),
+      ).toBeNull();
+    });
+
+    test.each([
+      ["an average keeps the cell", {}, MetricBaselineSource.Samples],
+      ["a total has none", { isTotal: true }, null],
+    ])(
+      "over a data point of more than an hour, %s",
+      (
+        _: string,
+        data: Partial<typeof plain>,
+        source: MetricBaselineSource | null,
+      ) => {
+        expect(
+          MetricHourBaseline.getSource({
+            ...narrowed,
+            ...data,
+            bucketInMinutes: 1440,
+          }),
+        ).toBe(source);
+      },
+    );
   });
 
   test("a total of a plain metric is in the minute rollup", () => {
@@ -783,6 +865,133 @@ describe("MetricHourBaseline.read", () => {
   });
 });
 
+describe("MetricHourBaseline.read of a query's own data points", () => {
+  const readDataPointsOf: (
+    rows: Array<MetricBaselineDayRow>,
+    minSamples?: number,
+  ) => MetricHourReading = (
+    rows: Array<MetricBaselineDayRow>,
+    minSamples: number = 5,
+  ): MetricHourReading => {
+    return MetricHourBaseline.read({
+      rows,
+      hourOfWeek: 9,
+      judgedDay: dayText(21),
+      stddev: 0,
+      windowDays: 14,
+      minSamples,
+      isOfDataPoints: true,
+    });
+  };
+
+  const earlier: (
+    mean: number,
+    sampleCount?: number,
+  ) => Array<MetricBaselineDayRow> = (
+    mean: number,
+    sampleCount: number = 2,
+  ): Array<MetricBaselineDayRow> => {
+    return [7, 14].map((day: number): MetricBaselineDayRow => {
+      return rowOf({
+        day,
+        hourOfWeek: 9,
+        mean,
+        sampleCount,
+        low: mean,
+        high: mean,
+      });
+    });
+  };
+
+  /*
+   * A check asks for an hour it holds a data point of, so a metric reporting
+   * every half hour, with four earlier data points, does not learn for ever.
+   */
+  test("the data point being judged counts towards minSamples", () => {
+    expect(readDataPointsOf(earlier(10)).isReliable).toBe(true);
+    expect(readDataPointsOf(earlier(10), 6).isReliable).toBe(false);
+  });
+
+  test("two earlier weeks are still asked for", () => {
+    expect(readDataPointsOf(earlier(10, 30).slice(1)).isReliable).toBe(false);
+  });
+
+  // Nothing of the hour is read, so nothing can say it has left: any point can.
+  test("a history with no spread is held to its value", () => {
+    expect(readDataPointsOf(earlier(10)).leftFlatHistory).toBe(true);
+  });
+
+  test("a history with a spread is not", () => {
+    expect(
+      readDataPointsOf([
+        rowOf({ day: 7, hourOfWeek: 9, mean: 10, sampleCount: 30 }),
+        rowOf({ day: 14, hourOfWeek: 9, mean: 12, sampleCount: 30 }),
+      ]).leftFlatHistory,
+    ).toBe(false);
+  });
+});
+
+describe("MetricHourBaseline.keepsWeeksNeeded", () => {
+  const rowKept: (day: number, keptDays?: number) => MetricDataPointDayRow = (
+    day: number,
+    keptDays?: number,
+  ): MetricDataPointDayRow => {
+    return {
+      ...rowOf({ day, hourOfWeek: 9, mean: 1, sampleCount: 60 }),
+      variance: 0,
+      median: 1,
+      p95: 1,
+      ...(keptDays !== undefined
+        ? {
+            keptUntil: `${dayText(day + keptDays)} 09:30:00`,
+          }
+        : {}),
+    };
+  };
+
+  test.each([
+    ["the 15 days telemetry is kept by default", 15, true],
+    ["14 days", 14, true],
+    ["a longer retention", 90, true],
+    ["13 days", 13, false],
+    ["7 days", 7, false],
+  ])("%s", (_: string, keptDays: number, keeps: boolean) => {
+    expect(
+      MetricHourBaseline.keepsWeeksNeeded({
+        rows: [rowKept(6, keptDays)],
+        windowDays: 14,
+      }),
+    ).toBe(keeps);
+  });
+
+  test("the newest row says, for a retention that was changed", () => {
+    expect(
+      MetricHourBaseline.keepsWeeksNeeded({
+        rows: [rowKept(0, 7), rowKept(6, 30), rowKept(3, 7)],
+        windowDays: 14,
+      }),
+    ).toBe(true);
+  });
+
+  test("a row that does not say holds nothing back", () => {
+    expect(
+      MetricHourBaseline.keepsWeeksNeeded({
+        rows: [rowKept(6)],
+        windowDays: 14,
+      }),
+    ).toBe(true);
+  });
+
+  test("a window of a week asks for a week", () => {
+    expect(
+      MetricHourBaseline.keepsWeeksNeeded({
+        rows: [rowKept(6, 7)],
+        windowDays: 7,
+      }),
+    ).toBe(true);
+  });
+});
+
 describe("MetricBaselineService.getBand", () => {
   const baselineOf: (data: Partial<BaselineSummary>) => BaselineSummary = (
     data: Partial<BaselineSummary>,
@@ -1233,6 +1442,83 @@ const readNow: Read = (data: {
       p95: earlier.mean,
       minObserved: earlier.mean,
       maxObserved: earlier.mean,
+      isReliable: reading.isReliable,
+      leftFlatHistory: reading.leftFlatHistory,
+      windowDays: data.windowDays,
+      hourOfWeek: data.hourOfWeek,
+    },
+    sigmaCount: data.sigmaCount,
+  });
+};
+
+/*
+ * What getBaseline reads for a query's own data points, through the code that
+ * reads them: the hour on the days before the one judged, and nothing of it.
+ */
+const readDataPoints: Read = (data: {
+  traffic: Traffic;
+  hourOfWeek: number;
+  judgedDay: number;
+  sigmaCount: number;
+  windowDays: number;
+}): BaselineBand | null => {
+  const hourOfDay: number = data.hourOfWeek % 24;
+  const rows: Array<MetricDataPointDayRow> = [];
+
+  for (
+    let day: number = Math.max(0, data.judgedDay - data.windowDays);
+    day < data.judgedDay;
+    day++
+  ) {
+    const start: number = day * MINUTES_PER_DAY + hourOfDay * MINUTES_PER_HOUR;
+    const moments: HourMoments = hourMoments(data.traffic, start);
+
+    if (moments.count > 0) {
+      const mean: number = moments.sum / moments.count;
+
+      rows.push({
+        day: dayText(day),
+        hourOfWeek: hourOfWeekOf(start),
+        sampleCount: moments.count,
+        mean,
+        variance: Math.max(0, moments.square / moments.count - mean * mean),
+        median: mean,
+        p95: mean,
+        minObserved: moments.low,
+        maxObserved: moments.high,
+      });
+    }
+  }
+
+  const judgedDay: string = dayText(data.judgedDay);
+  const cell: MetricDataPointCell | null = MetricHourBaseline.fold({
+    rows,
+    hourOfWeek: data.hourOfWeek,
+    judgedDay,
+  });
+
+  if (!cell) {
+    return null;
+  }
+
+  const reading: MetricHourReading = MetricHourBaseline.read({
+    rows,
+    hourOfWeek: data.hourOfWeek,
+    judgedDay,
+    stddev: cell.stddev,
+    windowDays: data.windowDays,
+    minSamples: MetricBaselineService.DEFAULT_MIN_SAMPLES,
+    isOfDataPoints: true,
+  });
+
+  if (!reading.isReliable) {
+    return null;
+  }
+
+  return MetricBaselineService.getBand({
+    baseline: {
+      ...cell,
+      stddev: reading.stddev,
       isReliable: reading.isReliable,
       leftFlatHistory: reading.leftFlatHistory,
       windowDays: data.windowDays,
@@ -2029,18 +2315,19 @@ describe("a monitor on one service of a project", () => {
 
 /*
  * What the rollup cannot be narrowed to. It knows the service and no attribute,
- * so a filter on a host is still judged against every host's samples. It stays
- * quiet, and sees little: this is what that costs, and why the docs say so.
+ * so a filter on a host used to be judged against every host's samples. Read
+ * from its own data points instead, the same host is judged by what it does.
  */
 describe("a query narrowed by an attribute", () => {
-  const hostsOf: (seed: number) => Array<Traffic> = (
+  const hostsOf: (seed: number, shape?: Shape) => Array<Traffic> = (
     seed: number,
+    shape: Shape = FLAT,
   ): Array<Traffic> => {
     const random: SeededRandom = seededRandom(seed);
 
     return new Array<number>(12).fill(0).map((_: number, index: number) => {
       return gaugeOf({
-        ...FLAT,
+        ...shape,
         base: 100 * Math.exp(0.5 * normal(random)),
         seed: seed + 101 * index,
       });
@@ -2060,49 +2347,205 @@ describe("a query narrowed by an attribute", () => {
     });
   };
 
-  test("is quiet: a fleet's cell is wide enough for any of its hosts", () => {
+  // A host's data points: its samples' average of each minute.
+  const pointsOfHost: (host: Traffic) => Traffic = (host: Traffic): Traffic => {
+    return pointsOf(
+      foldEachMinute(host, (minute: number): number => {
+        return host.sums[minute]! / host.counts[minute]!;
+      }),
+    );
+  };
+
+  const middleOf: (hosts: Array<Traffic>) => number = (
+    hosts: Array<Traffic>,
+  ): number => {
+    const levels: Array<number> = hosts.map((host: Traffic): number => {
+      return host.sums[0]! / host.counts[0]!;
+    });
+
+    return levels.indexOf(
+      [...levels].sort((a: number, b: number): number => {
+        return a - b;
+      })[6]!,
+    );
+  };
+
+  // The same change to the same host, judged by the fleet and then by itself.
+  const caughtBoth: (data: {
+    hosts: Array<Traffic>;
+    host: number;
+    factor: number;
+    direction: Direction;
+  }) => { fleet: number; own: number } = (data: {
+    hosts: Array<Traffic>;
+    host: number;
+    factor: number;
+    direction: Direction;
+  }): { fleet: number; own: number } => {
+    const change: { minutes: number; factor: number; direction: Direction } = {
+      minutes: 30,
+      factor: data.factor,
+      direction: data.direction,
+    };
+
+    return {
+      fleet: caughtOf({
+        traffic: fleetOf(data.hosts),
+        read: readNow,
+        series: [data.host],
+        query: { series: [data.host] },
+        ...change,
+      }),
+      own: caughtOf({
+        traffic: pointsOfHost(data.hosts[data.host]!),
+        read: readDataPoints,
+        ...change,
+      }),
+    };
+  };
+
+  test("is quiet against the fleet: its cell is wide enough for any of its hosts", () => {
     for (const seed of SEEDS) {
       const hosts: Array<Traffic> = hostsOf(seed);
       const read: Read = bandFrom(fleetOf(hosts), readNow);
 
       for (const host of hosts) {
         expect(
-          rateOf({
-            points: pointsOf(
-              foldEachMinute(host, (minute: number): number => {
-                return host.sums[minute]! / host.counts[minute]!;
-              }),
-            ),
-            read,
-          }).firing,
+          rateOf({ points: pointsOfHost(host), read }).firing,
         ).toBeLessThan(0.05);
       }
     }
   });
 
-  test("and sees little: a middling host doubles inside it", () => {
-    const seed: number = 2718;
-    const hosts: Array<Traffic> = hostsOf(seed);
-    const levels: Array<number> = hosts.map((host: Traffic): number => {
-      return host.sums[0]! / host.counts[0]!;
-    });
-    const middle: number = levels.indexOf(
-      [...levels].sort((a: number, b: number): number => {
-        return a - b;
-      })[6]!,
-    );
-
-    expect(
-      caughtOf({
-        traffic: fleetOf(hosts),
-        read: readNow,
-        series: [middle],
-        query: { series: [middle] },
-        minutes: 30,
+  test.each(SHAPES)(
+    "$name: a middling host doubles inside the fleet's band, and outside its own",
+    (scenario: { shape: Shape }) => {
+      const hosts: Array<Traffic> = hostsOf(2718, scenario.shape);
+      const caught: { fleet: number; own: number } = caughtBoth({
+        hosts,
+        host: middleOf(hosts),
         factor: 2,
         direction: "High",
+      });
+
+      expect(caught.fleet).toBeLessThan(0.2);
+      expect(caught.own).toBeGreaterThan(0.95);
+    },
+  );
+
+  test.each(SHAPES)(
+    "$name: no host halves below the fleet's band, and it leaves its own",
+    (scenario: { shape: Shape }) => {
+      const hosts: Array<Traffic> = hostsOf(3141, scenario.shape);
+      const caught: { fleet: number; own: number } = caughtBoth({
+        hosts,
+        host: middleOf(hosts),
+        factor: 0.5,
+        direction: "Low",
+      });
+
+      expect(caught.fleet).toBe(0);
+      expect(caught.own).toBeGreaterThan(0.75);
+    },
+  );
+
+  /*
+   * What it costs. Against the fleet a host hardly alerts, because it hardly
+   * can. Against itself it alerts as a project of one service always has: no
+   * more, and not none. A monitor grouped by host alerts that often for each.
+   */
+  test.each(SHAPES)(
+    "$name alerts as a project of one service does, one host with another",
+    (scenario: { shape: Shape }) => {
+      const hosts: Array<Traffic> = hostsOf(2718, scenario.shape);
+      const read: Read = bandFrom(fleetOf(hosts), readNow);
+      const own: Array<{ perDay: number; firing: number }> = hosts.map(
+        (host: Traffic): { perDay: number; firing: number } => {
+          const points: Traffic = pointsOfHost(host);
+
+          expect(rateOf({ points, read }).perDay).toBeLessThan(1.5);
+
+          return rateOf({ points, read: readDataPoints });
+        },
+      );
+      const meanOf: (values: Array<number>) => number = (
+        values: Array<number>,
+      ): number => {
+        return (
+          values.reduce((sum: number, value: number): number => {
+            return sum + value;
+          }, 0) / values.length
+        );
+      };
+
+      expect(
+        meanOf(
+          own.map((rate: { perDay: number }): number => {
+            return rate.perDay;
+          }),
+        ),
+      ).toBeLessThan(5);
+      expect(
+        meanOf(
+          own.map((rate: { firing: number }): number => {
+            return rate.firing;
+          }),
+        ),
+      ).toBeLessThan(0.05);
+
+      for (const rate of own) {
+        expect(rate.firing).toBeLessThan(0.1);
+      }
+    },
+  );
+
+  test("a disk that climbs does not fire on its own history, and one that jumps does", () => {
+    const points: Traffic = pointsOfHost(hostsOf(2718, DISK)[3]!);
+
+    expect(rateOf({ points, read: readDataPoints }).firing).toBe(0);
+    expect(
+      caughtOf({
+        traffic: points,
+        read: readDataPoints,
+        minutes: 30,
+        factor: 1.3,
+        direction: "High",
       }),
-    ).toBeLessThan(0.2);
+    ).toBeGreaterThan(0.95);
+  });
+
+  describe("a host that held one value", () => {
+    test("is left alone while it stays there", () => {
+      const traffic: Traffic = flatOf(1);
+
+      expect(
+        minutesToCheck({ days: 2, every: 7 }).some((now: number): boolean => {
+          return fires({ traffic, now, read: readDataPoints });
+        }),
+      ).toBe(false);
+    });
+
+    test.each([
+      ["1 falling to 0", 1, { factor: 0 }],
+      ["100 rising 1%", 100, { factor: 1.01 }],
+      ["0 rising to 5", 0, { offset: 5 }],
+    ])(
+      "%s fires, for as long as it lasts",
+      (
+        _: string,
+        value: number,
+        change: { factor?: number; offset?: number },
+      ) => {
+        expect(
+          caughtOf({
+            traffic: flatOf(value),
+            read: readDataPoints,
+            minutes: 30,
+            ...change,
+          }),
+        ).toBeGreaterThan(0.95);
+      },
+    );
   });
 });
 
