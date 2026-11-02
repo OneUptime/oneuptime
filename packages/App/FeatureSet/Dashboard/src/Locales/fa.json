@@ -40347,5 +40347,9 @@
   "SSO Session Length (Minutes)": "مدت نشست SSO (دقیقه)",
   "Separate Session Lengths for SSO": "مدت نشست جداگانه برای SSO",
   "Session Idle Timeout (Minutes)": "مهلت بی‌فعالیتی نشست (دقیقه)",
-  "Session Length (Minutes)": "مدت نشست (دقیقه)"
+  "Session Length (Minutes)": "مدت نشست (دقیقه)",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "ستون‌های این مدل بارگیری نشد ({{error}}). پرس‌وجو به‌صورت JSON نمایش داده می‌شود.",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "ستون‌های این مدل بارگیری نشد ({{error}}). این فیلدها به‌صورت JSON نمایش داده می‌شوند.",
+  "Shown as JSON, because:": "به‌صورت JSON نمایش داده می‌شود، زیرا:",
+  "The raw JSON this step will send.": "این JSON خامی است که این مرحله ارسال می‌کند."
 }

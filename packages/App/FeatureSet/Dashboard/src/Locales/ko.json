@@ -40347,5 +40347,9 @@
   "SSO Session Length (Minutes)": "SSO 세션 길이(분)",
   "Separate Session Lengths for SSO": "SSO 전용 세션 길이",
   "Session Idle Timeout (Minutes)": "세션 유휴 시간 제한(분)",
-  "Session Length (Minutes)": "세션 길이(분)"
+  "Session Length (Minutes)": "세션 길이(분)",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "이 모델의 열을 불러오지 못했습니다({{error}}). 쿼리는 JSON으로 표시됩니다.",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "이 모델의 열을 불러오지 못했습니다({{error}}). 이 필드는 JSON으로 표시됩니다.",
+  "Shown as JSON, because:": "다음 이유로 JSON으로 표시됩니다:",
+  "The raw JSON this step will send.": "이 단계가 보낼 원시 JSON입니다."
 }

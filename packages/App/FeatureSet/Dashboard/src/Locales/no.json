@@ -40347,5 +40347,9 @@
   "SSO Session Length (Minutes)": "SSO-øktvarighet (minutter)",
   "Separate Session Lengths for SSO": "Egne øktvarigheter for SSO",
   "Session Idle Timeout (Minutes)": "Tidsavbrudd ved inaktivitet for økten (minutter)",
-  "Session Length (Minutes)": "Øktvarighet (minutter)"
+  "Session Length (Minutes)": "Øktvarighet (minutter)",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "Kunne ikke laste inn kolonnene for denne modellen ({{error}}). Spørringen vises som JSON.",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "Kunne ikke laste inn kolonnene for denne modellen ({{error}}). Disse feltene vises som JSON.",
+  "Shown as JSON, because:": "Vist som JSON, fordi:",
+  "The raw JSON this step will send.": "Den rå JSON-en dette trinnet sender."
 }

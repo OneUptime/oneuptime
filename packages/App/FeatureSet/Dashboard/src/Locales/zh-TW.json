@@ -40347,5 +40347,9 @@
   "SSO Session Length (Minutes)": "SSO 工作階段時長（分鐘）",
   "Separate Session Lengths for SSO": "為 SSO 單獨設定工作階段時長",
   "Session Idle Timeout (Minutes)": "工作階段閒置逾時（分鐘）",
-  "Session Length (Minutes)": "工作階段時長（分鐘）"
+  "Session Length (Minutes)": "工作階段時長（分鐘）",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "無法載入此模型的欄位（{{error}}）。查詢以 JSON 顯示。",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "無法載入此模型的欄位（{{error}}）。這些欄位以 JSON 顯示。",
+  "Shown as JSON, because:": "以 JSON 顯示，因為：",
+  "The raw JSON this step will send.": "此步驟將傳送的原始 JSON。"
 }

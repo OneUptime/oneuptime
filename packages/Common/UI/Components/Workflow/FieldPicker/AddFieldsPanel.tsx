@@ -44,9 +44,11 @@ import useAfterPress, {
   AfterPressFunction,
 } from "../../../Utils/UseAfterPress";
 import useTranslator from "../../../Utils/UseTranslator";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
   useId,
   useMemo,
@@ -103,6 +105,11 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly) draws no Add field, so this
+   * list is never opened there; were it asked to, it draws nothing.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const idPrefix: string = useId();
   const listboxId: string = `${idPrefix}-fields`;
   const testId: string = props.dataTestId;
@@ -356,6 +363,10 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
         return;
     }
   };
+
+  if (isViewOnly) {
+    return <></>;
+  }
 
   const chosenCount: number = props.chosen.length;
 

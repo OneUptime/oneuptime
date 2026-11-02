@@ -40347,5 +40347,9 @@
   "SSO Session Length (Minutes)": "SSO セッションの長さ（分）",
   "Separate Session Lengths for SSO": "SSO 用の個別のセッションの長さ",
   "Session Idle Timeout (Minutes)": "セッションの無操作タイムアウト（分）",
-  "Session Length (Minutes)": "セッションの長さ（分）"
+  "Session Length (Minutes)": "セッションの長さ（分）",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "このモデルの列を読み込めませんでした（{{error}}）。クエリは JSON で表示しています。",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "このモデルの列を読み込めませんでした（{{error}}）。これらのフィールドは JSON で表示しています。",
+  "Shown as JSON, because:": "次の理由により JSON として表示しています:",
+  "The raw JSON this step will send.": "このステップが送信する生の JSON です。"
 }

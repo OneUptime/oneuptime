@@ -16,6 +16,7 @@ import { getPageStepRunWarning } from "./OnCall/PageStepRunWarning";
 import { OutputConnections } from "./Switch/SwitchModel";
 import { StepValueSources } from "./ValuePicker/StepGraph";
 import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
+import WorkflowViewOnlyFieldset from "./WorkflowViewOnlyFieldset";
 import { WORKFLOW_URL } from "../../Config";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -122,6 +123,13 @@ export interface ComponentProps {
   readOnlyReason?: string | undefined;
 }
 
+/*
+ * A box that is only read, on a view: a value box (aria-readonly) or a code
+ * box (readonly). The keyboard reaches one, to read it, but the dialog does
+ * not start there.
+ */
+const READ_ONLY_BOX_SELECTOR: string = '[aria-readonly="true"], [readonly]';
+
 // The view-only dialog's footer: what it is, before the reason.
 export const WORKFLOW_STEP_VIEW_ONLY_TEXT: string = translationKey(
   "You can look at this step but not change it.",
@@ -158,6 +166,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    * itself. BasicForm still focuses a first text setting when it renders, the
    * Webhook trigger keeps its focus on Copy URL, and Tab starts from the top.
    *
+   * On a view there is nothing to type, so a box that is only read is no
+   * place to start either: If / Else and Switch / Case draw their first box
+   * at once, and the dialog put the focus - and its ring - on it, as if it
+   * could be typed in. The focus goes back to the dialog from there too.
+   *
    * This runs after the Modal's own effect: React runs a child's effects
    * before its parent's.
    */
@@ -166,12 +179,16 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     const firstSection: Element | null = body ? body.firstElementChild : null;
     const focused: Element | null = document.activeElement;
 
+    const isOnABoxOnlyRead: boolean = Boolean(
+      isViewOnly && focused && focused.closest(READ_ONLY_BOX_SELECTOR),
+    );
+
     if (
       !body ||
       !firstSection ||
       !focused ||
       !body.contains(focused) ||
-      firstSection.contains(focused)
+      (firstSection.contains(focused) && !isOnABoxOnlyRead)
     ) {
       return;
     }
@@ -255,17 +272,20 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const isCondition: boolean = component.metadata.id === ComponentID.IfElse;
 
   /*
-   * What a view shows of a form: the fields as they are, every one disabled.
-   * A disabled fieldset disables every control inside it - a screen reader
-   * still reads each one and its value - and the pointer goes through the
-   * rest (the pickers that open on a press), so nothing in it changes.
+   * What a view shows of a form: every field as it is, and nothing in it
+   * changes. WorkflowViewOnlyContext tells every control in it that this is
+   * a view, and each holds itself still, one by one (ArgumentsForm,
+   * WorkflowViewOnlyFieldset): a list to pick from is disabled, a code box
+   * shows its code to be read, a value box shows its value, and the value
+   * picker offers nothing to insert.
    *
-   * A disabled fieldset does not reach a text box that is not a form
-   * control: the value boxes (ValuePicker/TemplateTextEditor) are editable
-   * elements, which took the focus and the keyboard's typing in a view.
-   * WorkflowViewOnlyContext tells them, and the value picker, that this
-   * is a view: they show their value to be read, and offer nothing to
-   * insert.
+   * What only reads a setting stays usable: a code box's own Copy, and the
+   * More fields fold, to read what is folded. Both sat in one disabled
+   * fieldset around the whole form, which disabled every button in it, and
+   * so in a view a step's code could not be copied, nor its folded settings
+   * read at all.
+   *
+   * The identifier is one text box: it is held still whole.
    */
   type ViewOnlyFormFunction = (
     form: ReactElement,
@@ -282,13 +302,9 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
     return (
       <WorkflowViewOnlyContext.Provider value={true}>
-        <fieldset
-          disabled={true}
-          className="pointer-events-none m-0 min-w-0 border-0 p-0"
-          data-testid={testId}
-        >
+        <div className="min-w-0" data-testid={testId}>
           {form}
-        </fieldset>
+        </div>
       </WorkflowViewOnlyContext.Provider>
     );
   };
@@ -343,48 +359,50 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const idSection: ReactElement = (
     <ComponentSettingsSection id="id" icon={IconProp.Label} title="ID">
       {viewOnlyForm(
-        <BasicForm
-          hideSubmitButton={true}
-          /*
-           * Save is off while a field fails, so no press would say what is
-           * wrong: a field says it as soon as it is left, changed or not.
-           */
-          showErrorsWhenLeftUnchanged={true}
-          /*
-           * BasicForm focuses its first field on mount. This form mounts after
-           * the settings, so it took the focus from the first setting, and on
-           * the Webhook trigger from the URL's copy button.
-           */
-          disableAutofocus={true}
-          initialValues={{ id: component?.id }}
-          onChange={(values: FormValues<JSONObject>) => {
-            setComponent({ ...component, ...values });
-          }}
-          onFormValidationErrorChanged={(hasError: boolean) => {
-            setHasFormValidationErrors((current: Dictionary<boolean>) => {
-              return {
-                ...current,
-                id: hasError,
-              };
-            });
-          }}
-          fields={[
-            {
-              title: "Identifier",
-              description: translator.translateTemplate(
-                "How other steps refer to this {{type}}. Renaming it breaks references that use the old name.",
-                {
-                  type: translatableTerm(component.metadata.componentType, {
-                    inSentence: true,
-                  }),
-                },
-              ),
-              field: { id: true },
-              required: true,
-              fieldType: FormFieldSchemaType.Text,
-            },
-          ]}
-        />,
+        <WorkflowViewOnlyFieldset dataTestId="workflow-component-id-fieldset">
+          <BasicForm
+            hideSubmitButton={true}
+            /*
+             * Save is off while a field fails, so no press would say what is
+             * wrong: a field says it as soon as it is left, changed or not.
+             */
+            showErrorsWhenLeftUnchanged={true}
+            /*
+             * BasicForm focuses its first field on mount. This form mounts after
+             * the settings, so it took the focus from the first setting, and on
+             * the Webhook trigger from the URL's copy button.
+             */
+            disableAutofocus={true}
+            initialValues={{ id: component?.id }}
+            onChange={(values: FormValues<JSONObject>) => {
+              setComponent({ ...component, ...values });
+            }}
+            onFormValidationErrorChanged={(hasError: boolean) => {
+              setHasFormValidationErrors((current: Dictionary<boolean>) => {
+                return {
+                  ...current,
+                  id: hasError,
+                };
+              });
+            }}
+            fields={[
+              {
+                title: "Identifier",
+                description: translator.translateTemplate(
+                  "How other steps refer to this {{type}}. Renaming it breaks references that use the old name.",
+                  {
+                    type: translatableTerm(component.metadata.componentType, {
+                      inSentence: true,
+                    }),
+                  },
+                ),
+                field: { id: true },
+                required: true,
+                fieldType: FormFieldSchemaType.Text,
+              },
+            ]}
+          />
+        </WorkflowViewOnlyFieldset>,
         "workflow-component-id-view-only",
       )}
     </ComponentSettingsSection>

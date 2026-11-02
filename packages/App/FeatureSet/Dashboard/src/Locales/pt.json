@@ -40347,5 +40347,9 @@
   "SSO Session Length (Minutes)": "Duração da sessão SSO (minutos)",
   "Separate Session Lengths for SSO": "Durações de sessão separadas para SSO",
   "Session Idle Timeout (Minutes)": "Tempo limite de inatividade da sessão (minutos)",
-  "Session Length (Minutes)": "Duração da sessão (minutos)"
+  "Session Length (Minutes)": "Duração da sessão (minutos)",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "Não foi possível carregar as colunas deste modelo ({{error}}). A consulta é mostrada como JSON.",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "Não foi possível carregar as colunas deste modelo ({{error}}). Estes campos são mostrados como JSON.",
+  "Shown as JSON, because:": "Mostrado como JSON, porque:",
+  "The raw JSON this step will send.": "O JSON bruto que esta etapa enviará."
 }

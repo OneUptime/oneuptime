@@ -40347,5 +40347,9 @@
   "SSO Session Length (Minutes)": "SSO सत्र की अवधि (मिनट)",
   "Separate Session Lengths for SSO": "SSO के लिए अलग सत्र अवधि",
   "Session Idle Timeout (Minutes)": "सत्र निष्क्रियता टाइमआउट (मिनट)",
-  "Session Length (Minutes)": "सत्र की अवधि (मिनट)"
+  "Session Length (Minutes)": "सत्र की अवधि (मिनट)",
+  "Couldn't load this model's columns ({{error}}). The query is shown as JSON.": "इस मॉडल के कॉलम लोड नहीं हो सके ({{error}})। क्वेरी JSON के रूप में दिखाई गई है।",
+  "Couldn't load this model's columns ({{error}}). These fields are shown as JSON.": "इस मॉडल के कॉलम लोड नहीं हो सके ({{error}})। ये फ़ील्ड JSON के रूप में दिखाए गए हैं।",
+  "Shown as JSON, because:": "JSON के रूप में दिखाया गया है, क्योंकि:",
+  "The raw JSON this step will send.": "वह कच्चा JSON जो यह चरण भेजेगा।"
 }
