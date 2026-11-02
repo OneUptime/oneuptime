@@ -20,6 +20,7 @@ import ObjectID from "../../Types/ObjectID";
 import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
 import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
+import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "../../Types/JSON";
 import { ResponseJSON } from "@clickhouse/client";
@@ -42,6 +43,17 @@ const PROJECTION_ELIGIBLE_KEYS: Set<string> = new Set([
 export class SpanService extends AnalyticsDatabaseService<Span> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Span, database: clickhouseDatabase });
+  }
+
+  // Its resource's retention for traces of its status, as on ingest.
+  protected override async getRetentionDateOnCreate(
+    span: Span,
+  ): Promise<Date | null> {
+    return await TelemetryRowRetention.getRetentionDate({
+      row: span,
+      pillar: "traces",
+      bucketKey: span.statusCode,
+    });
   }
 
   /*

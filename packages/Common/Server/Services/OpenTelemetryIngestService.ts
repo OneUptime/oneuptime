@@ -260,7 +260,36 @@ DiscoveredResourceIdCache.registerLocalLayer(
 interface ResourceRetention {
   retainTelemetryDataForDays: number | null;
   telemetryRetentionConfig: TelemetryRetentionConfig | null;
+  /*
+   * The project the resource is in, or null when there is no such resource.
+   * Ingest resolves resources in the batch's own project and does not read
+   * it; a row created through the API names its resource itself, and only
+   * one of its own project gives it a retention (getRetentionForCreatedRow).
+   */
+  projectId: ObjectID | null;
 }
+
+// A resource with no retention of its own: its rows get the project's.
+function noResourceRetention(): ResourceRetention {
+  return {
+    retainTelemetryDataForDays: null,
+    telemetryRetentionConfig: null,
+    projectId: null,
+  };
+}
+
+/*
+ * The retention a row is stamped with, as resolveTelemetryRetentionInDays
+ * reads it: the resource's own overrides, then the project's.
+ */
+export type TelemetryRetention = Pick<
+  TelemetryServiceMetadata,
+  | "dataRententionInDays"
+  | "serviceRetentionConfig"
+  | "serviceRetentionInDays"
+  | "projectRetentionConfig"
+  | "projectRetentionInDays"
+>;
 
 /*
  * Per-process memo for `(entityType, entityId) -> retention override`,
@@ -942,6 +971,93 @@ export default class OTelIngestService {
   }
 
   /*
+   * The retention of a row created through its table's service - the REST
+   * API's create - rather than ingested. The row names the resource it
+   * belongs to and gets that resource's retention, as an ingested row of it
+   * does: a Service's (a row that names no type is a Service's, as the rows
+   * of the name-only ingest paths are), or a Host's, a cluster's, ...
+   * (findResourceRetention). The caller names the resource, so only one of
+   * the row's own project counts: one of another project, or an id that
+   * names nothing, gives the project's retention, as a Monitor's rows get.
+   *
+   * Not memoized: the memo above is ingest's, and an id a request names
+   * should not take one of its entries. A lookup that fails fails the
+   * create, rather than stamping the row with a retention it may not have.
+   */
+  public static async getRetentionForCreatedRow(data: {
+    projectId: ObjectID;
+    primaryEntityId: ObjectID;
+    primaryEntityType?: ServiceType | undefined;
+  }): Promise<TelemetryRetention> {
+    const projectContext: ProjectRetentionContext =
+      await this.getProjectRetentionContext(data.projectId);
+
+    const resourceRetention: ResourceRetention =
+      await this.findResourceRetentionInProject(data);
+
+    return this.applyRetentionOverrideEdition({
+      serviceName: "",
+      primaryEntityId: data.primaryEntityId,
+      primaryEntityType: data.primaryEntityType || ServiceType.OpenTelemetry,
+      dataRententionInDays:
+        resourceRetention.retainTelemetryDataForDays ||
+        projectContext.projectRetentionInDays,
+      serviceRetentionConfig: resourceRetention.telemetryRetentionConfig,
+      serviceRetentionInDays: resourceRetention.retainTelemetryDataForDays,
+      projectRetentionConfig: projectContext.projectRetentionConfig,
+      projectRetentionInDays: projectContext.projectRetentionInDays,
+    });
+  }
+
+  private static async findResourceRetentionInProject(data: {
+    projectId: ObjectID;
+    primaryEntityId: ObjectID;
+    primaryEntityType?: ServiceType | undefined;
+  }): Promise<ResourceRetention> {
+    // Not an id Postgres can look up, so no resource's.
+    if (!ObjectID.isValidUUID(data.primaryEntityId.toString())) {
+      return noResourceRetention();
+    }
+
+    if (
+      !data.primaryEntityType ||
+      data.primaryEntityType === ServiceType.OpenTelemetry
+    ) {
+      const service: Service | null = await ServiceService.findOneBy({
+        query: {
+          _id: data.primaryEntityId.toString(),
+          projectId: data.projectId,
+        },
+        select: {
+          retainTelemetryDataForDays: true,
+          telemetryRetentionConfig: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return {
+        retainTelemetryDataForDays: service?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: service?.telemetryRetentionConfig ?? null,
+        projectId: service ? data.projectId : null,
+      };
+    }
+
+    const resourceRetention: ResourceRetention =
+      await this.findResourceRetention(
+        data.primaryEntityId,
+        data.primaryEntityType,
+      );
+
+    if (resourceRetention.projectId?.toString() !== data.projectId.toString()) {
+      return noResourceRetention();
+    }
+
+    return resourceRetention;
+  }
+
+  /*
    * Look up per-resource retention overrides for non-Service telemetry,
    * memoized per (entityType, entityId) for 60 seconds.
    *
@@ -1002,10 +1118,7 @@ export default class OTelIngestService {
         }`,
       );
     }
-    return {
-      retainTelemetryDataForDays: null,
-      telemetryRetentionConfig: null,
-    };
+    return noResourceRetention();
   }
 
   /*
@@ -1024,12 +1137,14 @@ export default class OTelIngestService {
         select: {
           retainTelemetryDataForDays: true,
           telemetryRetentionConfig: true,
+          projectId: true,
         },
         props: { isRoot: true },
       });
       return {
         retainTelemetryDataForDays: host?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: host?.telemetryRetentionConfig ?? null,
+        projectId: host?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.DockerHost) {
@@ -1039,6 +1154,7 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         },
@@ -1047,6 +1163,7 @@ export default class OTelIngestService {
         retainTelemetryDataForDays:
           dockerHost?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: dockerHost?.telemetryRetentionConfig ?? null,
+        projectId: dockerHost?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.PodmanHost) {
@@ -1056,6 +1173,7 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         },
@@ -1064,6 +1182,7 @@ export default class OTelIngestService {
         retainTelemetryDataForDays:
           podmanHost?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: podmanHost?.telemetryRetentionConfig ?? null,
+        projectId: podmanHost?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.KubernetesCluster) {
@@ -1073,12 +1192,14 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
       return {
         retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        projectId: cluster?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.ProxmoxCluster) {
@@ -1088,12 +1209,14 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
       return {
         retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        projectId: cluster?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.VMwareVCenter) {
@@ -1103,12 +1226,14 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
       return {
         retainTelemetryDataForDays: vcenter?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: vcenter?.telemetryRetentionConfig ?? null,
+        projectId: vcenter?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.IoTDevice) {
@@ -1117,12 +1242,14 @@ export default class OTelIngestService {
         select: {
           retainTelemetryDataForDays: true,
           telemetryRetentionConfig: true,
+          projectId: true,
         },
         props: { isRoot: true },
       });
       return {
         retainTelemetryDataForDays: fleet?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: fleet?.telemetryRetentionConfig ?? null,
+        projectId: fleet?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.CephCluster) {
@@ -1131,12 +1258,14 @@ export default class OTelIngestService {
         select: {
           retainTelemetryDataForDays: true,
           telemetryRetentionConfig: true,
+          projectId: true,
         },
         props: { isRoot: true },
       });
       return {
         retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        projectId: cluster?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.StorageArray) {
@@ -1146,6 +1275,7 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
@@ -1154,6 +1284,7 @@ export default class OTelIngestService {
           storageArray?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig:
           storageArray?.telemetryRetentionConfig ?? null,
+        projectId: storageArray?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.DatabaseServer) {
@@ -1163,6 +1294,7 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
@@ -1171,6 +1303,7 @@ export default class OTelIngestService {
           databaseServer?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig:
           databaseServer?.telemetryRetentionConfig ?? null,
+        projectId: databaseServer?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.DockerSwarmCluster) {
@@ -1180,12 +1313,14 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
       return {
         retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        projectId: cluster?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.ServerlessFunction) {
@@ -1195,6 +1330,7 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
@@ -1203,6 +1339,7 @@ export default class OTelIngestService {
           serverlessFunction?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig:
           serverlessFunction?.telemetryRetentionConfig ?? null,
+        projectId: serverlessFunction?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.CloudResource) {
@@ -1212,6 +1349,7 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
@@ -1220,6 +1358,7 @@ export default class OTelIngestService {
           cloudResource?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig:
           cloudResource?.telemetryRetentionConfig ?? null,
+        projectId: cloudResource?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.RealUserMonitor) {
@@ -1229,6 +1368,7 @@ export default class OTelIngestService {
           select: {
             retainTelemetryDataForDays: true,
             telemetryRetentionConfig: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
@@ -1237,12 +1377,10 @@ export default class OTelIngestService {
           rumApplication?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig:
           rumApplication?.telemetryRetentionConfig ?? null,
+        projectId: rumApplication?.projectId ?? null,
       };
     }
-    return {
-      retainTelemetryDataForDays: null,
-      telemetryRetentionConfig: null,
-    };
+    return noResourceRetention();
   }
 
   @CaptureSpan()

@@ -101,8 +101,8 @@ export default class TelemetryReadScopeUtil {
   /*
    * The resources two scopes both reach: those readable under each (every
    * resource of the project only when both read every one), less every
-   * resource either takes away. An update or a delete keeps to the resources
-   * its own grants and the read's both reach.
+   * resource either takes away. An update, a delete and a create keep to the
+   * resources their own grants and the read's both reach.
    */
   public static getScopeOfBoth(
     first: TelemetryReadScope,
