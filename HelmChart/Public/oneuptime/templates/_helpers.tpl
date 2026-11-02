@@ -445,6 +445,19 @@ button when it is set; the secret is in oneuptime.env.runtime.
   {{- else }}
   value: {{ default "" ($.Values.microsoftSignInApp).clientId | quote }}
   {{- end }}
+{{- /*
+Continue with Google: the public client id. The sign-in and sign-up pages offer
+the button when it is set; the secret is in oneuptime.env.runtime.
+*/}}
+- name: GOOGLE_SIGN_IN_CLIENT_ID
+  {{- if ($.Values.googleSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleSignInApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.googleSignInApp).clientId | quote }}
+  {{- end }}
 - name: GITHUB_APP_ID
   value: {{ $.Values.gitHubApp.id | quote }}
 - name: GITHUB_APP_NAME
@@ -852,6 +865,16 @@ empty and AWS accounts connect with an access key instead.
       key: {{ $.Values.microsoftSignInApp.existingSecret.clientSecretKey | quote }}
   {{- else }}
   value: {{ default "" ($.Values.microsoftSignInApp).clientSecret | quote }}
+  {{- end }}
+
+- name: GOOGLE_SIGN_IN_CLIENT_SECRET
+  {{- if ($.Values.googleSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleSignInApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.googleSignInApp).clientSecret | quote }}
   {{- end }}
 
 {{- /*
