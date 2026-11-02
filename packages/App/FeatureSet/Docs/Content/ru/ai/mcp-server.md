@@ -250,6 +250,7 @@ MCP-сервер работает тремя способами.
 
 - **`oneuptime_help`**: справка и рекомендации по MCP-инструментам OneUptime
 - **`oneuptime_list_resources`**: ресурсы и то, что можно делать с каждым из них
+- **`oneuptime_describe_resource`**: поля ресурса и то, как по ним фильтровать, сортировать и выбирать
 - **`get_public_status_page_overview`**: обзор публичной страницы статуса
 - **`get_public_status_page_incidents`**: инциденты публичной страницы статуса
 - **`get_public_status_page_scheduled_maintenance`**: её события плановых работ
@@ -353,6 +354,8 @@ curl https://oneuptime.com/mcp/tools
 ```
 
 Операторы: `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` и `Includes`. Значения сортировки: `"ASC"` или `"DESC"`.
+
+Инструменты `list_` и `count_` принимают любое поле, поэтому список инструментов остаётся достаточно коротким, чтобы клиент загрузил его целиком. Чтобы увидеть поля ресурса, что означает каждое и какие операторы оно принимает, агент вызывает `oneuptime_describe_resource` с ресурсом или одним из его инструментов, например `Incident` или `list_incidents`.
 
 ## Выбор полей и пагинация
 
