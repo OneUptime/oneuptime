@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 2966
+    "keys": 40228,
+    "untranslated": 2964
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -289,6 +289,7 @@
     "Podman Compose",
     "Pods",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Portugal",
     "Portugal (+351)",
@@ -501,6 +502,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vApp {{name}}",
     "vCenter",
     "vCenters",
     "vSphere Client",

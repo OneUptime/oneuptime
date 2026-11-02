@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 12634
+    "keys": 40228,
+    "untranslated": 12627
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -114,6 +114,7 @@
     "Pod · production",
     "Pods",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Port",
     "Portugal (+351)",
@@ -207,6 +208,7 @@
     "svc-backup",
     "syslog",
     "timeout|connection refused",
+    "vApp {{name}}",
     "vCenter",
     "vSphere Client",
     "z",

@@ -18,12 +18,23 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   text: string;
+  /*
+   * The shortest name that breaks inside (NAME_BREAKS_FROM_LENGTH unless
+   * given). A name alone in a narrow box - a top-5 row beside its value -
+   * passes 0: no space before it can take the line's break, so a short name
+   * too breaks after its dots ("esx02.acme." / "example"), not at the
+   * letter that filled the line ("esx02.acme.exampl" / "e").
+   */
+  breaksFromLength?: number | undefined;
 }
 
 const BreakableName: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const parts: Array<string> = splitAtNameBreaks(props.text);
+  const parts: Array<string> = splitAtNameBreaks(
+    props.text,
+    props.breaksFromLength,
+  );
 
   if (parts.length < 2) {
     return <>{props.text}</>;

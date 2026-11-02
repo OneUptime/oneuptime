@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 12591
+    "keys": 40228,
+    "untranslated": 12584
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -101,6 +101,7 @@
     "svc-backup",
     "syslog",
     "timeout|connection refused",
+    "vApp {{name}}",
     "vCenter",
     "vCenters",
     "vSphere Client",

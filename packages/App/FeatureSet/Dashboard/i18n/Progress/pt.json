@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 12611
+    "keys": 40228,
+    "untranslated": 12604
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -29,6 +29,7 @@
     "Chat",
     "Chats",
     "Cluster",
+    "Cluster {{cluster}}",
     "Clusters",
     "Configs",
     "Console",
@@ -118,6 +119,7 @@
     "Pod · production",
     "Pods",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
@@ -218,6 +220,7 @@
     "syslog",
     "timeout|connection refused",
     "total",
+    "vApp {{name}}",
     "vCenter",
     "vCenters",
     "vSphere Client",

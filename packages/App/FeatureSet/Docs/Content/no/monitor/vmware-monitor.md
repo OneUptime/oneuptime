@@ -4,7 +4,7 @@ En VMware-monitor følger med på ett vCenter - datasentrene, klyngene, ESXi-ver
 
 :::cards
 - [Opprett monitoren](#opprett-en-vmware-monitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Tjuefire ferdige varsler, én hendelse per vert, VM eller datastore.
+- [Maler](#ferdige-varslingsmaler): Tjuefem ferdige varsler, én hendelse per vert, VM eller datastore.
 - [Identitetsattributter](#identitetsattributter): Slik treffer du én vert, VM eller datastore.
 - [Metrikker](#innsamlede-metrikker): Hver `vcenter.*`-serie monitoren kan varsle på.
 :::
@@ -106,14 +106,15 @@ I monitorfiltre og grupperingsnøkler begynner ressursattributter med `resource.
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 24 maler for vanlige VMware-problemer, og listen under **Hva det skal varsles om** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 25 maler for vanlige VMware-problemer, og listen under **Hva det skal varsles om** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, så en verdi som svinger rundt linjen, ikke skifter fram og tilbake.
 
 | Mal | Kategori | Alvorlighetsgrad | Overvåker | Utløser når | Gjenoppretter når |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Tilgjengelighet | Kritisk | `vcenter.datacenter.cpu.limit`, Count over hele vCenteret, **siste 10 minutter** | Ingen data i hele vinduet: agenten eller proben har stoppet, eller vCenteret sluttet å svare den | Data kommer inn igjen |
-| Host CPU Saturation | Vert | Advarsel | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Over 90 %: hver VM på verten konkurrerer om kjerner og viser CPU-ready-tid | Ved 81 % eller mindre |
+| Host Not Responding | Vert | Kritisk | `vcenter.host.memory.usage`, Max per `resource.vcenter.host.name` | Ved 0, ikke noe minne i bruk: vCenter har mistet kontakten med verten (den krasjet, mistet strømmen eller administrasjonsnettverket, eller ble koblet fra), eller den er slått av eller i standby. Der vSphere DPM setter verter i standby, bruker du **Datacenter Hosts Not Responding**, som utelater dem | Over 0 |
+| Host CPU Saturation | Vert | Advarsel | `vcenter.host.cpu.utilization`, Avg per vert | Over 90 %: hver VM på verten konkurrerer om kjerner og viser CPU-ready-tid | Ved 81 % eller mindre |
 | Host Memory Saturation | Vert | Advarsel | `vcenter.host.memory.utilization`, Avg per vert | Over 90 %: verten begynner å ta tilbake minne med ballooning, komprimering og swapping | Ved 81 % eller mindre |
 | Host Disk Latency High | Vert | Advarsel | `vcenter.host.disk.latency.max`, Max per vert | Over 50 ms: hver VM med disker på den stien venter på lagring. Krever ytelsestellernivå 3 | Ved 45 ms eller mindre |
 | Host Network Packet Errors | Vert | Advarsel | `vcenter.host.network.packet.error.rate`, Max per vert | Over 0: nesten alltid en feil i kabel, SFP eller switchport | Ved 0 |
@@ -142,6 +143,7 @@ Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriter
 - **Utnyttelsesmaler bruker Avg:** receiveren rapporterer en ekte prosent fra 0 til 100 for hvert objekt, så gjennomsnittet i et minutt er den vedvarende utnyttelsen.
 - **Latensmaler bruker Max:** metrikken er allerede den verste latensen på tvers av objektets disker, så den høyeste prøven er den ærlige.
 - **Antalls- og tilstandsmaler bruker Max**, så én innsamling som viser tilstanden, utløser dem: pakkefeil, ballooning, swapping, rød og gul status, verter som ikke er effektive, overbelastning.
+- **Host Not Responding bruker Max og utløses ved 0:** en ESXi-vert som kjører, bruker alltid minne, så én innsamling som rapporterer minne i bruk, er en vert som svarer, og bare et vindu der ingen gjorde det, utløser den.
 - **Hver mal grupperer på objektets eget identitetsattributt**, så det utløses én hendelse per berørt objekt, og hendelsen nevner det. Unntaket er **vCenter Stopped Reporting**, som overvåker hele vCenteret: når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Terskler er låst i enheten sin** (`%`, `ms`, `us`), så de beholder betydningen sin uansett hvilken enhet en graf viser.
 

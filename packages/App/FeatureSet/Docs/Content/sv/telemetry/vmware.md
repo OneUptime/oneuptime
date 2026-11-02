@@ -244,22 +244,40 @@ Mottagaren skickar inget mätvärde för en VM:s strömtillstånd. Den skickar `
 
 ![vCenter-översikten med antalet datacenter, kluster, ESXi-värdar, virtuella maskiner och datalager bredvid värdarnas CPU och minne, datalageranvändning och VM:arnas CPU ready](/docs/static/images/VMwareVCenterOverview.png)
 
-Sidan **Översikt** besvarar först "är det här vCenter friskt": de effektiva värdarna, värdarnas CPU och minne viktade efter kapacitet, det fullaste datalagret och den sämsta CPU ready-tiden för en VM. När något är försämrat namnger den det ansvariga objektet, så att du slipper leta.
+Sidan **Översikt** besvarar först "är det här vCenter friskt". Dess sidhuvud visar om data kommer fram och hur det står till med vCenter: **Felfri**, **Försämrad** medan något behöver en titt, **Ej felfri** medan något behöver någon nu, eller **Hälsa okänd** medan vCenter är frånkopplat, eftersom dess senaste rapport då inte längre är sanningen. Dess chips räknar datacentren, klustren, de ESXi-värdar som vCenter når av alla, de påslagna VM:arna av alla, mallarna och datalagren, och alla utom datacentren öppnar sin lista.
+
+Därefter kommer **Kräver uppmärksamhet**: allt som behöver någon, det mest brådskande först, var och en med orsaken och ett steg från sin sida. En ESXi-värd som vCenter inte når, ett datalager som är mer än 90 % fullt och en VM vars minne värden swappar till disk är kritiska. En värd som är mer än 90 % upptagen, ett datalager som är mer än 80 % fullt, en VM som väntar på en ledig CPU eller vars minne värden tar tillbaka, ett kluster med värdar som inte är effektiva eller utan minnet för att förlora en av dem, och de larm som vCenter räknar i varje datacenter behöver en titt. Varje tröskel är den som dess [larmmall](/docs/monitor/vmware-monitor#färdiga-larmmallar) utlöses vid. När inget kräver uppmärksamhet visas inget kort.
+
+Under det finns de effektiva värdarna, värdarnas CPU och minne viktade efter kapacitet, det fullaste datalagret och den sämsta CPU ready-tiden för en VM, med sina diagram; **ESXi-värdar**, varje värds status och belastning ett steg från dess sida; och de största förbrukarna.
+
+### Vad en värds status säger
+
+vCenter rapporterar en värds CPU- och minnesanvändning bara medan värden är ansluten och körs, och en ESXi-värd som körs använder alltid minne. En värd som inte rapporterar någon användning alls är alltså nere, och det dess datacenter räknar (värdar som vCenter har tappat kontakten med, avstängda värdar och värdar i standby) säger på vilket sätt:
+
+| Status | När |
+| --- | --- |
+| **Ansluten** | vCenter når den och den rapporterar vad den använder. Den behöver en titt medan dess CPU eller minne är mer än 90 % upptaget. |
+| **Svarar inte** | vCenter har tappat kontakten med den: den kraschade, förlorade strömmen eller sitt hanteringsnätverk, eller kopplades från. Kritisk: dess VM:ar visar **Frånkopplad** och är nere, om inte vSphere HA har startat om dem någon annanstans. |
+| **Avstängd** | Någon stängde av den via vCenter. Inget problem i sig. |
+| **I standby** | vSphere DPM försatte den i standby för att spara ström, och väcker den när klustret behöver den. Inget problem i sig. |
+| **Avstängd eller i standby** | Den rapporterar ingen användning, och dess datacenter har avstängda värdar och andra i standby. |
+| **Ingen användning rapporterad** | Den rapporterar ingen användning, och det dess datacenter räknar säger inte varför. Den behöver en titt. |
+| **Ingen rapportering** | vCenter har inte rapporterat den på mer än 15 minuter. |
 
 ### ESXi-värdar
 
 ![Sidan med värdar som listar varje ESXi-värd med dess kluster, datacenter samt CPU- och minnesutnyttjande](/docs/static/images/VMwareHosts.png)
 
-Välj en värd för att öppna dess sida. Den svarar på det som sidan för en värd utanför VMware svarar på, med det som vCenter vet om en hypervisor:
+Listan **Värdar** ger varje värds status, med orsaken till att den behöver en titt under, och dess CPU och minne, gula över 90 %. Välj en värd för att öppna dess sida. Den svarar på det som sidan för en värd utanför VMware svarar på, med det som vCenter vet om en hypervisor:
 
-- **Översikt**: CPU, minne, den långsammaste diskens latens och nätverksgenomströmning under det tidsintervall du väljer, som rutor och diagram (dra över ett diagram för att zooma in); de incidenter och larm som är öppna på värden; dess mest belastade virtuella maskiner, där de som väntar på en fysisk CPU är markerade; dess fysiska nätverkskort och lagringsenheter, där paketfel och långsamma diskar är markerade; vilka värdlarm som är påslagna; och värdens detaljer.
+- **Översikt**: **Kräver uppmärksamhet** för värden och de VM:ar den kör; CPU, minne, den långsammaste diskens latens och nätverksgenomströmning under det tidsintervall du väljer, som rutor och diagram (dra över ett diagram för att zooma in); de incidenter och larm som är öppna på värden; dess mest belastade virtuella maskiner, där de som väntar på en fysisk CPU är markerade; dess fysiska nätverkskort och lagringsenheter, där paketfel och långsamma diskar är markerade; vilka värdlarm som är påslagna; och värdens detaljer.
 - **Virtuella maskiner**: värdens VM:ar och mallar, med status, resurspool, CPU ready, CPU och minne.
 - **Mätvärden**: värdens CPU-, minnes-, nätverks- och diskserier som diagram, per nätverkskort och lagringsenhet, där var och en kan öppnas i mätvärdesutforskaren.
 - **Loggar**: värdens egen syslog, så snart den skickar den (se [Skicka ESXi-syslog](#valfritt-skicka-esxi-syslog)). Fram till dess ger fliken de kommandon som pekar den här värden, eller hela dess kluster, mot agenten. En vCenter som en sond samlar in har ingen syslog, eftersom en sond inte tar emot den.
 
 När vCenter slutar rapportera en värd säger sidan det ovanför sina flikar, med när vCenter senast rapporterade den. Efter 15 minuter utan rapport lämnar värden inventariet: dess sida säger det då och visar fortfarande dess tidigare mätvärden.
 
-De fem värdlarmen (CPU- och minnesmättnad, hög disklatens, nätverkspaketfel och kastade paket) bevakar var och en alla värdar i vCenter och utlöses för varje värd som går över dem. Kortet **Värdlarm** på en värds sida visar vilka som är påslagna, och dess knapp öppnar vCenters **Rekommendationer** med de saknade redan valda: Skapa dem där, en gång, för alla värdar.
+De sex värdlarmen (en värd som inte svarar, CPU- och minnesmättnad, hög disklatens, nätverkspaketfel och kastade paket) bevakar var och en alla värdar i vCenter och utlöses för varje värd som går över dem. Kortet **Värdlarm** på en värds sida visar vilka som är påslagna, och dess knapp öppnar vCenters **Rekommendationer** med de saknade redan valda: Skapa dem där, en gång, för alla värdar.
 
 ### Virtuella maskiner
 
@@ -267,9 +285,19 @@ De fem värdlarmen (CPU- och minnesmättnad, hög disklatens, nätverkspaketfel 
 
 Avstängda virtuella maskiner och mallar listas också. vCenter rapporterar CPU-räknare bara för påslagna VM:ar, så deras CPU-kolumner visar N/A i stället för en missvisande nolla.
 
+En VM:s sida säger vad den gör (**Körs**, **Avstängd**, **Mall**, eller **Frånkopplad** medan vCenter inte når dess värd) och var den körs, med dess värd och kluster ett steg bort. Dess **Översikt** har **Kräver uppmärksamhet** för VM:en, dess CPU, CPU ready, minne och disk, de incidenter och larm som är öppna på den, vilka av de sju VM-larmen som är påslagna, och dess detaljer. **Mätvärden** har dess diagram.
+
 ### Datalager
 
 ![Sidan med datalager som listar varje datalager med använd och total kapacitet och en utnyttjandestapel](/docs/static/images/VMwareDatastores.png)
+
+Ett datalagers sida säger hur fullt det är, rött över 90 % och gult över 80 %, hur mycket som är ledigt och, medan det växer, hur många dagar som är kvar tills det är fullt. Den listar de incidenter och larm som är öppna på det, och vilka av dess två kapacitetslarm som är påslagna.
+
+### Kluster
+
+Ett klusters sida säger om det är **Felfri**, **Försämrad** eller **Ej felfri**: hur många av dess värdar som är effektiva, hur mycket av dess effektiva CPU och minne som dess värdar använder, och om dess andra värdar skulle kunna ta över den största värdens VM:ar (**Värdfel**). Dess **Kräver uppmärksamhet** omfattar dess värdar och deras VM:ar, dess flikar **ESXi-värdar** och **Virtuella maskiner** listar dem, och **Klusterlarm** visar vilka av dess tre larm som är påslagna.
+
+En sida vars data inte kan läsas säger det, med **Försök igen**, och en lista säger det i sin tabell, med **Uppdatera**.
 
 ## Valfritt — Skicka ESXi-syslog
 
@@ -459,6 +487,10 @@ Rollen Read-Only tilldelades på vCenter-objektet utan **Propagate to children**
 
 :::details Alla VM:ar visas som avstängda
 En VM:s strömtillstånd härleds ur `vcenter.vm.cpu.*`-datapunkter som kommer in i samma insamling som dess minnes- och diskdatapunkter (se [VM:ars strömtillstånd](#vmars-strömtillstånd)). Om du ändrade processorn `batch` och lade till en `send_batch_max_size` delas ett stort inventarium över flera exporter, och CPU-datapunkterna hamnar i en annan begäran än resten: Återställ de medföljande batch-inställningarna.
+:::
+
+:::details En värd visar Svarar inte eller Ingen användning rapporterad
+vCenter rapporterar ingen CPU- eller minnesanvändning för värden, så den är inte ansluten till vCenter eller körs inte (se [Vad en värds status säger](#vad-en-värds-status-säger)). Vid **Svarar inte**, kontrollera värdens out-of-band-hantering (iDRAC, iLO eller BMC) efter ett ström- eller hårdvarufel och dess hanteringsnätverk, och sedan om vSphere HA har startat om dess VM:ar. **Ingen användning rapporterad** betyder att dess datacenter har tappat kontakten med en värd och har andra avstängda eller i standby, eller att dess räkningar inte har kommit fram än: vyn **Hosts and Clusters** i vCenter säger vilket som gäller för den här värden.
 :::
 
 :::details Stora inventarier: långsamma insamlingar, fel med vpxd.stats.maxQueryMetrics

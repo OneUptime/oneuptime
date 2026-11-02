@@ -343,7 +343,7 @@ describe("VMware virtual machine detail", () => {
     });
   }
 
-  test("a running VM under memory pressure explains every number it shows", async () => {
+  test("a running VM under memory pressure explains every number it shows; identity rows do not", async () => {
     mockRowsByKind["VirtualMachine"] = [
       vm({
         isPoweredOn: true,
@@ -363,34 +363,30 @@ describe("VMware virtual machine detail", () => {
     openAt(detailUrl("virtual-machines", EXTERNAL_ID));
 
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
-    await waitForInfo("Power State");
+    await waitForInfo("Memory Swapped");
 
     expect(await explainedLabels()).toEqual([
-      ["Power State", D.vmPowerState],
       ["CPU", D.vmCpu],
       ["CPU Ready", D.vmCpuReady],
-      ["Memory (Used / Configured)", D.vmMemory],
+      ["Memory", D.vmMemory],
+      ["Disk", D.vmDisk],
       ["Memory Ballooned", D.vmMemoryBallooned],
       ["Memory Swapped", D.vmMemorySwapped],
-      ["Disk (Used / Provisioned)", D.vmDisk],
     ]);
-    // Above 10% CPU Ready the value itself is flagged.
-    expect(screen.getByText("12.5% — CPU contention")).toBeInTheDocument();
+    // Above 10% CPU Ready the tile says what that means.
+    expect(screen.getByText("waits for a free CPU")).toBeInTheDocument();
     expectNoInfoOn([
-      "VM Name",
-      "vCenter",
+      "Name",
       "Instance UUID",
       "Host",
-      "Cluster",
-      "Datacenter",
       "Resource Pool",
-      "External ID",
-      "Metrics Updated",
-      "Last Seen",
+      "Inventory Path",
+      "vCenter ID",
+      "Last report",
     ]);
   });
 
-  test("a powered-off VM with no CPU reading still explains its N/A", async () => {
+  test("a powered-off VM keeps its tiles' (i)s, and has no ballooned or swapped rows", async () => {
     mockRowsByKind["VirtualMachine"] = [
       vm({
         isPoweredOn: false,
@@ -401,21 +397,14 @@ describe("VMware virtual machine detail", () => {
     openAt(detailUrl("virtual-machines", EXTERNAL_ID));
 
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
-    await waitForInfo("CPU");
+    await waitForInfo("Disk");
 
-    expect(
-      screen.getByText("N/A — CPU metrics are only reported while powered on"),
-    ).toBeInTheDocument();
-    expect(await explainedLabels()).toEqual([
-      ["Power State", D.vmPowerState],
-      ["CPU", D.vmCpu],
-      ["Disk (Used / Provisioned)", D.vmDisk],
-    ]);
+    expect(infoLabels()).toEqual(["CPU", "CPU Ready", "Memory", "Disk"]);
     // Ballooned / swapped are only shown above zero.
-    expectNoInfoOn(["Memory Ballooned", "Memory Swapped", "CPU Ready"]);
+    expectNoInfoOn(["Memory Ballooned", "Memory Swapped"]);
   });
 
-  test("a template's Type row reuses the power-state explanation, which names templates", async () => {
+  test("a template has its disk only, and its state says what a template is", async () => {
     mockRowsByKind["VirtualMachine"] = [
       vm({
         isTemplate: true,
@@ -426,12 +415,14 @@ describe("VMware virtual machine detail", () => {
     openAt(detailUrl("virtual-machines", EXTERNAL_ID));
 
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
-    await waitForInfo("Type");
+    await waitForInfo("Disk");
 
-    expect(await explainedLabels()).toEqual([
-      ["Type", D.vmPowerState],
-      ["Disk (Used / Provisioned)", D.vmDisk],
-    ]);
+    expect(await explainedLabels()).toEqual([["Disk", D.vmDisk]]);
+    const status: HTMLElement = await screen.findByTestId(
+      "vmware-vm-hero-status",
+    );
+    expect(status).toHaveTextContent("Template");
+    expect(status).toHaveAttribute("title", D.vmPowerState);
     expect(D.vmPowerState).toContain("Templates never run");
   });
 });
@@ -439,7 +430,7 @@ describe("VMware virtual machine detail", () => {
 describe("VMware datastore detail", () => {
   const EXTERNAL_ID: string = "datastore/dc1/ds1";
 
-  test("capacity fields and the growth forecast are explained", async () => {
+  test("how full it is, how much is free and the growth forecast are explained", async () => {
     mockRowsByKind["Datastore"] = [
       inventoryRow({
         kind: "Datastore",
@@ -468,22 +459,14 @@ describe("VMware datastore detail", () => {
     await waitForInfo("Growth Forecast");
 
     expect(await explainedLabels()).toEqual([
-      ["Used", D.datastoreUsed],
-      ["Capacity", D.datastoreCapacity],
+      ["Used", D.datastoreUsedPercent],
       ["Free", D.datastoreFree],
-      ["Used %", D.datastoreUsedPercent],
       ["Growth Forecast", D.datastoreGrowthForecast],
     ]);
-    expectNoInfoOn([
-      "Datastore Name",
-      "vCenter",
-      "Datacenter",
-      "External ID",
-      "Metrics Updated",
-    ]);
+    expectNoInfoOn(["Name", "Datacenter", "vCenter ID", "Last report"]);
   });
 
-  test("without a forecast the other fields keep their (i)s", async () => {
+  test("without a forecast the other tiles keep their (i)s", async () => {
     mockRowsByKind["Datastore"] = [
       inventoryRow({
         kind: "Datastore",
@@ -496,21 +479,22 @@ describe("VMware datastore detail", () => {
     openAt(detailUrl("datastores", EXTERNAL_ID));
 
     render(<DatastoreDetail {...PAGE_PROPS} />);
-    await waitForInfo("Used %");
+    await waitForInfo("Free");
 
-    expect(infoLabels()).toEqual(["Used", "Capacity", "Free", "Used %"]);
+    expect(infoLabels()).toEqual(["Used", "Free"]);
   });
 });
 
 describe("VMware cluster detail", () => {
   const EXTERNAL_ID: string = "cluster/dc1/cl1";
 
-  test("host, VM and capacity counts are explained", async () => {
+  test("its hosts, their usage, whether it could lose one and its capacity are explained", async () => {
     mockRowsByKind["Cluster"] = [
       inventoryRow({
         kind: "Cluster",
         externalId: EXTERNAL_ID,
         name: "cl1",
+        clusterName: "cl1",
         datacenterName: "dc1",
         hostCount: 4,
         effectiveHostCount: 3,
@@ -527,28 +511,20 @@ describe("VMware cluster detail", () => {
     openAt(detailUrl("clusters", EXTERNAL_ID));
 
     render(<ClusterDetail {...PAGE_PROPS} />);
-    await waitForInfo("Hosts");
+    await waitForInfo("Host failure");
 
     expect(await explainedLabels()).toEqual([
-      ["Hosts", D.clusterHosts],
-      ["Virtual Machines", D.clusterVirtualMachines],
-      ["VM Templates", D.clusterTemplates],
+      ["Effective hosts", D.clusterHosts],
+      ["CPU", D.clusterCpuInUse],
+      ["Memory", D.clusterMemoryInUse],
+      ["Host failure", D.clusterHostFailure],
       ["CPU (Effective / Total)", D.clusterCpu],
       ["Memory (Effective / Total)", D.clusterMemory],
     ]);
-    // The not-effective host is flagged in the value the (i) explains.
-    expect(
-      screen.getByText(
-        "3 of 4 effective — 1 in maintenance mode or unresponsive",
-      ),
-    ).toBeInTheDocument();
-    expectNoInfoOn([
-      "Cluster Name",
-      "vCenter",
-      "Datacenter",
-      "External ID",
-      "Metrics Updated",
-    ]);
+    // The host that is not effective is said under the count the (i) explains.
+    expect(screen.getByText("3/4")).toBeInTheDocument();
+    expect(screen.getByText("1 in maintenance mode")).toBeInTheDocument();
+    expectNoInfoOn(["Name", "Datacenter", "vCenter ID", "Last report"]);
   });
 });
 
@@ -565,7 +541,7 @@ describe("VMware list pages: metric column headers", () => {
     await waitForInfo(waitLabel);
   }
 
-  test("Hosts: CPU Capacity, CPU and Memory", async () => {
+  test("Hosts: Status, CPU Capacity, CPU and Memory", async () => {
     mockRowsByKind["Host"] = [
       inventoryRow({
         kind: "Host",
@@ -574,6 +550,7 @@ describe("VMware list pages: metric column headers", () => {
         datacenterName: "dc1",
         clusterName: "cl1",
         latestCpuPercent: 20,
+        latestCpuMhz: 9600,
         cpuCapacityMhz: 48000,
         latestMemoryBytes: 64 * GIB,
         maxMemoryBytes: 256 * GIB,
@@ -584,6 +561,7 @@ describe("VMware list pages: metric column headers", () => {
     await renderList(HostsPage, "hosts", "CPU Capacity");
 
     expect(await explainedLabels()).toEqual([
+      ["Status", D.hostListStatus],
       ["CPU Capacity", D.hostListCpuCapacity],
       ["CPU", D.hostListCpu],
       ["Memory", D.hostListMemory],
@@ -591,7 +569,7 @@ describe("VMware list pages: metric column headers", () => {
     expectNoInfoOn(["Name", "Datacenter", "Cluster"]);
   });
 
-  test("Virtual Machines: status, power state, CPU Ready, CPU, memory and age", async () => {
+  test("Virtual Machines: Status, CPU Ready, CPU and memory - no Power State or Age to repeat it", async () => {
     mockRowsByKind["VirtualMachine"] = [
       inventoryRow({
         kind: "VirtualMachine",
@@ -608,15 +586,13 @@ describe("VMware list pages: metric column headers", () => {
       }),
     ];
 
-    await renderList(VirtualMachinesPage, "virtual-machines", "Power State");
+    await renderList(VirtualMachinesPage, "virtual-machines", "CPU Ready");
 
     expect(await explainedLabels()).toEqual([
       ["Status", D.vmListStatus],
-      ["Power State", D.vmListPowerState],
       ["CPU Ready", D.vmListCpuReady],
       ["CPU", D.vmListCpu],
       ["Memory", D.vmListMemory],
-      ["Age", D.vmListAge],
     ]);
     expectNoInfoOn(["Name", "Host", "Cluster", "Resource Pool"]);
   });
@@ -640,12 +616,13 @@ describe("VMware list pages: metric column headers", () => {
     ]);
   });
 
-  test("Clusters: every count and capacity column", async () => {
+  test("Clusters: Status, Hosts, VMs, and the CPU and memory its hosts use", async () => {
     mockRowsByKind["Cluster"] = [
       inventoryRow({
         kind: "Cluster",
         externalId: "cluster/dc1/cl1",
         name: "cl1",
+        clusterName: "cl1",
         datacenterName: "dc1",
         hostCount: 4,
         effectiveHostCount: 4,
@@ -656,17 +633,18 @@ describe("VMware list pages: metric column headers", () => {
         cpuCapacityMhz: 120000,
         memoryEffectiveBytes: 768 * GIB,
         maxMemoryBytes: 1024 * GIB,
+        metricsUpdatedAt: now,
       }),
     ];
 
-    await renderList(ClustersPage, "clusters", "Effective CPU");
+    await renderList(ClustersPage, "clusters", "Hosts");
 
     expect(await explainedLabels()).toEqual([
-      ["Hosts (effective / total)", D.clusterListHosts],
-      ["VMs (powered on / total)", D.clusterListVirtualMachines],
-      ["Templates", D.clusterListTemplates],
-      ["Effective CPU", D.clusterListEffectiveCpu],
-      ["Effective Memory", D.clusterListEffectiveMemory],
+      ["Status", D.clusterListStatus],
+      ["Hosts", D.clusterListHosts],
+      ["VMs", D.clusterListVirtualMachines],
+      ["CPU", D.clusterCpuInUse],
+      ["Memory", D.clusterMemoryInUse],
     ]);
   });
 

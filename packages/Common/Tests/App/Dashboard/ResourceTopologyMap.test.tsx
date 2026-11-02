@@ -94,6 +94,8 @@ function vcenterGraph(): ResourceTopologyGraph {
         name: "ssd-full",
         datacenterName: "Amsterdam",
         latestDiskPercent: 95,
+        // A part is judged on a reading vCenter sent in the last 15 minutes.
+        metricsUpdatedAt: FRESH,
       }),
       row({
         kind: VMwareResourceKind.Datastore,
@@ -101,6 +103,7 @@ function vcenterGraph(): ResourceTopologyGraph {
         name: "ssd-fine",
         datacenterName: "Amsterdam",
         latestDiskPercent: 20,
+        metricsUpdatedAt: FRESH,
       }),
     ],
     issues: issues,
@@ -230,7 +233,9 @@ describe("a picked part's panel", () => {
     const panel: HTMLElement = screen.getByTestId("resource-topology-panel");
 
     expect(screen.getByTestId("side-over-title")).toHaveTextContent("ssd-full");
-    expect(panel).toHaveTextContent("95.0% of the datastore is used");
+    // How full it is, and why that is critical, in VMwareHealth's words.
+    expect(panel).toHaveTextContent("95% used");
+    expect(panel).toHaveTextContent("95% full");
     // Its open incident, by number and title, linked to the incident's page.
     expect(
       within(screen.getByTestId("resource-topology-panel-issues")).getByRole(

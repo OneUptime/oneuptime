@@ -4,7 +4,7 @@ En VMware-monitor holder øje med ét vCenter - dets datacentre, klynger, ESXi-v
 
 :::cards
 - [Opret monitoren](#opret-en-vmware-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Fireogtyve færdige advarsler, én hændelse pr. vært, VM eller datastore.
+- [Skabeloner](#færdige-advarselsskabeloner): Femogtyve færdige advarsler, én hændelse pr. vært, VM eller datastore.
 - [Identitetsattributter](#identitetsattributter): Sådan rammer du én vært, VM eller datastore.
 - [Metrikker](#indsamlede-metrikker): Hver `vcenter.*`-serie, monitoren kan advare på.
 :::
@@ -106,14 +106,15 @@ I monitorfiltre og grupperingsnøgler begynder ressourceattributter med `resourc
 
 ## Færdige advarselsskabeloner
 
-OneUptime leverer 24 skabeloner til almindelige VMware-problemer, og listen under **Hvad der skal advares om** tilbyder dem alle. Hver bygger en komplet monitor: metrikforespørgslen, dens attributfiltre, en gruppering på objektets egen identitetsattribut, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+OneUptime leverer 25 skabeloner til almindelige VMware-problemer, og listen under **Hvad der skal advares om** tilbyder dem alle. Hver bygger en komplet monitor: metrikforespørgslen, dens attributfiltre, en gruppering på objektets egen identitetsattribut, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindue, og et tærskelkriterium genopretter 10 % forbi sin tærskel, så en værdi, der svinger omkring linjen, ikke skifter frem og tilbage.
 
 | Skabelon | Kategori | Alvorlighed | Overvåger | Udløser når | Genopretter når |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Tilgængelighed | Kritisk | `vcenter.datacenter.cpu.limit`, Count over hele vCenteret, **seneste 10 minutter** | Ingen data i hele vinduet: agenten eller proben er stoppet, eller vCenteret er holdt op med at svare den | Data kommer igen |
-| Host CPU Saturation | Vært | Advarsel | `vcenter.host.cpu.utilization`, Avg pr. `resource.vcenter.host.name` | Over 90 %: hver VM på værten konkurrerer om kerner og viser CPU-ready-tid | Ved 81 % eller derunder |
+| Host Not Responding | Vært | Kritisk | `vcenter.host.memory.usage`, Max pr. `resource.vcenter.host.name` | Ved 0, ingen hukommelse i brug: vCenter har mistet forbindelsen til værten (den gik ned, mistede strømmen eller sit administrationsnetværk, eller blev afbrudt), eller den er slukket eller i standby. Hvor vSphere DPM sætter værter på standby, så brug **Datacenter Hosts Not Responding**, som udelader dem | Over 0 |
+| Host CPU Saturation | Vært | Advarsel | `vcenter.host.cpu.utilization`, Avg pr. vært | Over 90 %: hver VM på værten konkurrerer om kerner og viser CPU-ready-tid | Ved 81 % eller derunder |
 | Host Memory Saturation | Vært | Advarsel | `vcenter.host.memory.utilization`, Avg pr. vært | Over 90 %: værten begynder at tage hukommelse tilbage med ballooning, komprimering og swapping | Ved 81 % eller derunder |
 | Host Disk Latency High | Vært | Advarsel | `vcenter.host.disk.latency.max`, Max pr. vært | Over 50 ms: hver VM, hvis diske ligger på den sti, venter på lager. Kræver ydeevnetællerniveau 3 | Ved 45 ms eller derunder |
 | Host Network Packet Errors | Vært | Advarsel | `vcenter.host.network.packet.error.rate`, Max pr. vært | Over 0: næsten altid en fejl i kabel, SFP eller switchport | Ved 0 |
@@ -142,6 +143,7 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 - **Udnyttelsesskabeloner bruger Avg:** receiveren rapporterer en rigtig procent fra 0 til 100 for hvert objekt, så gennemsnittet i et minut er den vedvarende udnyttelse.
 - **Latensskabeloner bruger Max:** metrikken er allerede den værste latens på tværs af objektets diske, så dens højeste prøve er den ærlige.
 - **Antals- og tilstandsskabeloner bruger Max**, så én indsamling, der viser tilstanden, udløser dem: pakkefejl, ballooning, swapping, rød og gul status, værter, der ikke er effektive, overbelastning.
+- **Host Not Responding bruger Max og udløses ved 0:** en ESXi-vært, der kører, bruger altid hukommelse, så én indsamling, der rapporterer hukommelse i brug, er en vært, der svarer, og kun et vindue, hvor ingen gjorde det, udløser den.
 - **Hver skabelon grupperer på objektets egen identitetsattribut**, så der udløses én hændelse pr. berørt objekt, og hændelsen nævner det. Undtagelsen er **vCenter Stopped Reporting**, som overvåger hele vCenteret: når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 - **Tærskler er fastlåst i deres enhed** (`%`, `ms`, `us`), så de beholder deres betydning, uanset hvilken enhed en graf viser.
 

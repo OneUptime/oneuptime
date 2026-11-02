@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 3793
+    "keys": 40228,
+    "untranslated": 3791
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -129,6 +129,7 @@
     "Clients",
     "Cloud",
     "Cluster",
+    "Cluster {{cluster}}",
     "Code",
     "Code Challenge",
     "Collector",
@@ -396,6 +397,7 @@
     "Podman Compose",
     "Pods",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Port",
     "Ports",
@@ -677,6 +679,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vApp {{name}}",
     "vCenter",
     "vSphere Client",
     "var(--ou-danger-text, #b91c1c)",

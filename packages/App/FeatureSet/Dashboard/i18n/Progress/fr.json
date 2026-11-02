@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40050,
-    "untranslated": 7242
+    "keys": 40228,
+    "untranslated": 7238
   },
   "sameAsEnglish": [
     " incidents",
@@ -118,6 +118,7 @@
     "Clients",
     "Cloud",
     "Cluster",
+    "Cluster {{cluster}}",
     "Clusters",
     "Code",
     "Code Challenge",
@@ -367,6 +368,7 @@
     "Pods",
     "Points",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Port",
     "Ports",
@@ -494,6 +496,7 @@
     "trace",
     "trace {{traceId}}",
     "traces",
+    "vApp {{name}}",
     "vCenter",
     "vCenters",
     "vSphere Client",
