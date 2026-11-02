@@ -842,9 +842,9 @@ describe("VMware part pages: tiles and details", () => {
   });
 
   test("the shared tile and details card turn a text into an (i)", () => {
-    expect(readCode("Components/Infrastructure/GoldenMetricTile.tsx")).toContain(
-      "<InfoTooltip label={props.title} text={props.description} />",
-    );
+    expect(
+      readCode("Components/Infrastructure/GoldenMetricTile.tsx"),
+    ).toContain("<InfoTooltip label={props.title} text={props.description} />");
     expect(
       readCode("Components/ResourcePart/ResourcePartDetailsCard.tsx"),
     ).toContain(

@@ -178,13 +178,11 @@ function assessDatacenter(
   if (!row) {
     return { health: "unknown", reasons: [], facts: [] };
   }
-  const findings: Array<VMwareDatacenterFinding> = getVMwareDatacenterFindings(
-    {
-      datacenter: row,
-      hosts: context.hosts,
-      now: context.now,
-    },
-  );
+  const findings: Array<VMwareDatacenterFinding> = getVMwareDatacenterFindings({
+    datacenter: row,
+    hosts: context.hosts,
+    now: context.now,
+  });
   const reasons: Array<ResourceTopologyText> = [];
   for (const finding of findings) {
     for (const reason of finding.reasons) {
@@ -281,7 +279,11 @@ function assessHost(
     now: context.now,
   });
   const status: ResourceTopologyText = toTopologyStatus(
-    getVMwareHostStatus({ host: row, datacenter: datacenter, now: context.now }),
+    getVMwareHostStatus({
+      host: row,
+      datacenter: datacenter,
+      now: context.now,
+    }),
   );
   const assessment: VMwareAssessment = assessVMwareHost({
     host: row,

@@ -938,9 +938,7 @@ export function getVMwareDatacenterFindings(data: {
   const hostReasons: Array<ResourceAttentionText> = [];
   const hostSeverities: Array<ResourceAttentionSeverity> = [];
   if (unnamedNotResponding > 0) {
-    hostReasons.push(
-      plural(REASON_HOSTS_NOT_RESPONDING, unnamedNotResponding),
-    );
+    hostReasons.push(plural(REASON_HOSTS_NOT_RESPONDING, unnamedNotResponding));
     hostSeverities.push(ResourceAttentionSeverity.Critical);
   }
   if (otherCriticalHosts > 0) {

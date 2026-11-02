@@ -96,13 +96,11 @@ export function toVMwareListResource(
         context.datacenters,
         row.datacenterName,
       );
-      const state: ReturnType<typeof getVMwareHostState> = getVMwareHostState(
-        {
-          host: row,
-          datacenter: datacenter,
-          now: context.now,
-        },
-      );
+      const state: ReturnType<typeof getVMwareHostState> = getVMwareHostState({
+        host: row,
+        datacenter: datacenter,
+        now: context.now,
+      });
       /*
        * A host that is not running reports 0% CPU and no memory: drawn as
        * no reading, never as an idle host. Its status says what it is ("Not

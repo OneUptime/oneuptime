@@ -850,8 +850,7 @@ function largeEstate(loadedAt) {
             latestMemoryBytes: (4 + (vmNumber % 12)) * GIB,
             maxMemoryBytes: 16 * GIB,
             latestMemoryPercent: ((4 + (vmNumber % 12)) / 16) * 100,
-            cpuReadinessPercent:
-              vmNumber % 97 === 0 ? 15 : (vmNumber * 13) % 9,
+            cpuReadinessPercent: vmNumber % 97 === 0 ? 15 : (vmNumber * 13) % 9,
             memorySwappedBytes: vmNumber % 151 === 0 ? 2 * GIB : 0,
           },
           loadedAt,

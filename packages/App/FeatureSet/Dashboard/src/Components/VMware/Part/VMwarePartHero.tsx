@@ -155,7 +155,8 @@ export function getVMwarePartHeroStatus(data: {
       return {
         ...status,
         // What a VM's state is read from: which VMs send CPU data.
-        description: status.description || VMWARE_METRIC_DESCRIPTIONS.vmPowerState,
+        description:
+          status.description || VMWARE_METRIC_DESCRIPTIONS.vmPowerState,
       };
     }
     case VMwareResourceKind.Datastore:

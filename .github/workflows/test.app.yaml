@@ -1190,6 +1190,13 @@ jobs:
           # group 8 27.5: about 23. It moved on to group 3 when the second run's
           # runner, 1.45 times slower here suite for suite, took this group's
           # step past its 28 minutes: about 19.
+          # VMware Pages (33 tests, 3.6 minutes locally with its bundle,
+          # Chromium only: a vCenter's Overview - what needs attention first,
+          # each host's state - its lists, and the pages of an ESXi host, a
+          # VM, a datastore and a cluster, Turn on N alerts into
+          # Recommendations, the side menu, at 1280 and 390 pixels, dark,
+          # German and Persian) joined them on 2026-11-02, the lightest group:
+          # about 22.5.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -1202,6 +1209,7 @@ jobs:
               test-network-traffic-names-ui
               test-custom-field-files-ui
               test-proxmox-pages-ui
+              test-vmware-pages-ui
           # A group of its own since 2026-11-01, as no group had the room: the
           # second half of Model Tables (88 tests, 6.9 minutes locally) and
           # Metrics AI (3.0 on 14.0.100's first gate run) from group 4, whose
@@ -1478,6 +1486,8 @@ jobs:
             output/playwright/resource-onboarding-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
             output/playwright/vmware-host-page-ui/test-results
+            output/playwright/vmware-pages-ui/*.png
+            output/playwright/vmware-pages-ui/test-results
             output/playwright/acknowledgement-timeout-ui/*.png
             output/playwright/acknowledgement-timeout-ui/test-results
             output/playwright/owner-filters-ui/*.png

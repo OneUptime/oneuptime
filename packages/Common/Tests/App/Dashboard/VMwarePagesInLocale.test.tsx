@@ -733,9 +733,9 @@ describe("a time inside a sentence", () => {
      * Its own sentence, "Last reported", not the heroes' shared "Last seen
      * {{time}}": vCenter reports a host, it is not seen.
      */
-    expect(screen.getByTestId("vmware-host-hero-last-report")).toHaveTextContent(
-      /^Zuletzt gemeldet vor 2 Stunden$/,
-    );
+    expect(
+      screen.getByTestId("vmware-host-hero-last-report"),
+    ).toHaveTextContent(/^Zuletzt gemeldet vor 2 Stunden$/);
     expect(readLocale("de")["Last seen {{time}}"]).not.toBe(
       readLocale("de")["Last reported {{time}}"],
     );
@@ -758,9 +758,9 @@ describe("a time inside a sentence", () => {
 
     renderInRouter(heroOfAHost());
 
-    expect(screen.getByTestId("vmware-host-hero-last-report")).toHaveTextContent(
-      /^Last reported 2 hours ago$/,
-    );
+    expect(
+      screen.getByTestId("vmware-host-hero-last-report"),
+    ).toHaveTextContent(/^Last reported 2 hours ago$/);
     // The rest of the hero is German.
     expect(
       screen.getByText("ESXi-Host im Cluster", { exact: false }),

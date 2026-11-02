@@ -418,7 +418,9 @@ describe("VMware virtual machine detail", () => {
     await waitForInfo("Disk");
 
     expect(await explainedLabels()).toEqual([["Disk", D.vmDisk]]);
-    const status: HTMLElement = await screen.findByTestId("vmware-vm-hero-status");
+    const status: HTMLElement = await screen.findByTestId(
+      "vmware-vm-hero-status",
+    );
     expect(status).toHaveTextContent("Template");
     expect(status).toHaveAttribute("title", D.vmPowerState);
     expect(D.vmPowerState).toContain("Templates never run");

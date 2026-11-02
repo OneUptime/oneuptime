@@ -85,14 +85,12 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems(
-    {
-      rows: [row],
-      now: props.now,
-      routeFor: props.routes.getPartRoute,
-      listRouteFor: props.routes.getListRoute,
-    },
-  );
+  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems({
+    rows: [row],
+    now: props.now,
+    routeFor: props.routes.getPartRoute,
+    listRouteFor: props.routes.getListRoute,
+  });
 
   const used: number | null = toVMwareNumber(row.latestDiskBytes);
   const total: number | null = toVMwareNumber(row.maxDiskBytes);

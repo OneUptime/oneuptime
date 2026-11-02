@@ -91,9 +91,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
    * cluster can run thousands, and the Overview needs only the ones that
    * may need attention.
    */
-  const [vmRows, setVmRows] = useState<Array<VMwareResourceModel> | null>(
-    null,
-  );
+  const [vmRows, setVmRows] = useState<Array<VMwareResourceModel> | null>(null);
   // Why the VMs could not be read: the tab says so, with Refresh.
   const [vmError, setVmError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -187,28 +185,27 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     await fetchRow();
   };
 
-  const fetchVirtualMachines: () => Promise<void> =
-    async (): Promise<void> => {
-      if (!row) {
-        setVmRows([]);
-        return;
-      }
-      try {
-        setVmRows(
-          await fetchVMwareInventoryRows({
-            vmwareVCenterId: modelId,
-            kind: VMwareResourceKind.VirtualMachine,
-            clusterName: row.clusterName || displayNameForResource(row),
-            datacenterName: row.datacenterName || undefined,
-          }),
-        );
-        setVmError("");
-      } catch (err) {
-        // Said in the tab, never as a cluster that runs no VMs.
-        setVmRows([]);
-        setVmError(API.getFriendlyMessage(err));
-      }
-    };
+  const fetchVirtualMachines: () => Promise<void> = async (): Promise<void> => {
+    if (!row) {
+      setVmRows([]);
+      return;
+    }
+    try {
+      setVmRows(
+        await fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.VirtualMachine,
+          clusterName: row.clusterName || displayNameForResource(row),
+          datacenterName: row.datacenterName || undefined,
+        }),
+      );
+      setVmError("");
+    } catch (err) {
+      // Said in the tab, never as a cluster that runs no VMs.
+      setVmRows([]);
+      setVmError(API.getFriendlyMessage(err));
+    }
+  };
 
   useEffect(() => {
     fetchData().catch((err: Error) => {

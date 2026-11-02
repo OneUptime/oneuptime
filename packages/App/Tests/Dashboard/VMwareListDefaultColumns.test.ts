@@ -351,14 +351,17 @@ describe("VMware's other lists show neither column", () => {
   test.each([
     ["VMware/View/Hosts.tsx", "VMwareHostsTable"],
     ["VMware/View/VirtualMachines.tsx", "VMwareVirtualMachinesTable"],
-  ])("%s draws the shared table, whose columns are checked", (file: string, table: string) => {
-    const source: string = readPage(file);
+  ])(
+    "%s draws the shared table, whose columns are checked",
+    (file: string, table: string) => {
+      const source: string = readPage(file);
 
-    expect(source).toContain(
-      `import { ${table} } from "../../../Components/VMware/VMwareResourceTables";`,
-    );
-    expect(source).toContain(`<${table}`);
-  });
+      expect(source).toContain(
+        `import { ${table} } from "../../../Components/VMware/VMwareResourceTables";`,
+      );
+      expect(source).toContain(`<${table}`);
+    },
+  );
 
   test.each(OTHER_VMWARE_LISTS)("%s", (file: string) => {
     expect(

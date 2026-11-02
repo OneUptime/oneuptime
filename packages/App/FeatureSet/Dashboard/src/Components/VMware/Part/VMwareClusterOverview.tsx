@@ -101,15 +101,13 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems(
-    {
-      rows: [row, ...props.hosts, ...props.attentionVirtualMachines],
-      contextRows: props.datacenters,
-      now: props.now,
-      routeFor: props.routes.getPartRoute,
-      listRouteFor: props.routes.getListRoute,
-    },
-  );
+  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems({
+    rows: [row, ...props.hosts, ...props.attentionVirtualMachines],
+    contextRows: props.datacenters,
+    now: props.now,
+    routeFor: props.routes.getPartRoute,
+    listRouteFor: props.routes.getListRoute,
+  });
 
   const fresh: boolean = hasFreshVMwareReadings(row, props.now);
   const total: number | null = fresh ? toVMwareNumber(row.hostCount) : null;

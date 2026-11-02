@@ -339,12 +339,13 @@ const VMwareVCenterOverview: FunctionComponent<
         }),
       ]);
 
-      const ofKind: (kind: VMwareResourceKind) => Array<VMwareResourceModel> =
-        (kind: VMwareResourceKind): Array<VMwareResourceModel> => {
-          return partRows.filter((row: VMwareResourceModel): boolean => {
-            return row.kind === kind;
-          });
-        };
+      const ofKind: (kind: VMwareResourceKind) => Array<VMwareResourceModel> = (
+        kind: VMwareResourceKind,
+      ): Array<VMwareResourceModel> => {
+        return partRows.filter((row: VMwareResourceModel): boolean => {
+          return row.kind === kind;
+        });
+      };
 
       const datacenters: Array<VMwareResourceModel> = ofKind(
         VMwareResourceKind.Datacenter,
@@ -395,7 +396,11 @@ const VMwareVCenterOverview: FunctionComponent<
         );
         if (
           isVMwareHostRunning(
-            getVMwareHostState({ host: host, datacenter: datacenter, now: now }),
+            getVMwareHostState({
+              host: host,
+              datacenter: datacenter,
+              now: now,
+            }),
           )
         ) {
           connectedHostCount++;
@@ -404,8 +409,10 @@ const VMwareVCenterOverview: FunctionComponent<
          * Top-N source: a stale reading, or one of a host that is not
          * running, renders as no data rather than an idle 0%.
          */
-        const load: { cpuPercent: number | null; memoryPercent: number | null } =
-          getVMwareHostLoad({ host: host, datacenter: datacenter, now: now });
+        const load: {
+          cpuPercent: number | null;
+          memoryPercent: number | null;
+        } = getVMwareHostLoad({ host: host, datacenter: datacenter, now: now });
         hostRows.push({
           externalId: host.externalId || "",
           name: displayNameForResource(host),
@@ -1207,8 +1214,7 @@ const VMwareVCenterOverview: FunctionComponent<
    * carried VMs: before that, power state is not known yet.
    */
   const vmPowerStateKnown: boolean =
-    vcenter.poweredOnVmCount !== null &&
-    vcenter.poweredOnVmCount !== undefined;
+    vcenter.poweredOnVmCount !== null && vcenter.poweredOnVmCount !== undefined;
   const datastoreCount: number =
     inventory?.datastoreCount || vcenter.datastoreCount || 0;
 
@@ -1524,7 +1530,9 @@ const VMwareVCenterOverview: FunctionComponent<
                           </span>
                           <InfoTooltip
                             label="vCenter Health"
-                            text={VMWARE_METRIC_DESCRIPTIONS.overviewVCenterHealth}
+                            text={
+                              VMWARE_METRIC_DESCRIPTIONS.overviewVCenterHealth
+                            }
                           />
                         </span>
                       )}
@@ -1965,40 +1973,40 @@ const VMwareVCenterOverview: FunctionComponent<
                 to={partRoutes.getPartRoute(params.kind, row.externalId)}
                 className="block"
               >
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
-                    {index + 1}.
-                  </span>
-                  <span className="text-sm font-medium text-gray-900 truncate">
-                    <bdi>{row.name}</bdi>
-                  </span>
-                  {row.context && (
-                    <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600 truncate max-w-[10rem]">
-                      {row.context}
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                      {index + 1}.
                     </span>
-                  )}
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      <bdi>{row.name}</bdi>
+                    </span>
+                    {row.context && (
+                      <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600 truncate max-w-[10rem]">
+                        {row.context}
+                      </span>
+                    )}
+                  </div>
+                  <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
+                    {params.valueOf(row)}
+                  </span>
                 </div>
-                <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
-                  {params.valueOf(row)}
-                </span>
-              </div>
-              <div className="pl-6">
-                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                  <div
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      pct > 80
-                        ? "bg-red-500"
-                        : pct > 60
-                          ? "bg-amber-500"
-                          : params.barColorClass
-                    }`}
-                    style={{
-                      width: `${Math.max(pct, 2)}%`,
-                    }}
-                  />
+                <div className="pl-6">
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        pct > 80
+                          ? "bg-red-500"
+                          : pct > 60
+                            ? "bg-amber-500"
+                            : params.barColorClass
+                      }`}
+                      style={{
+                        width: `${Math.max(pct, 2)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
               </ResourcePartRow>
             </li>
           );

@@ -443,14 +443,15 @@ export async function fetchVMwareInventorySummary(
     .addRoute("/vmware-resource/inventory-summary/")
     .addRoute(vmwareVCenterId.toString());
 
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await API.post({
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
       url: summaryUrl,
       data: {},
       headers: {
         ...ModelAPI.getCommonHeaders(),
       },
-    });
+    },
+  );
 
   if (response instanceof HTTPErrorResponse) {
     return null;

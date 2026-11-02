@@ -391,9 +391,9 @@ describe("health, for the reasons the vCenter's pages give", () => {
       text: "Disconnected",
     });
     // The datacenter's count is the host's own: said once, on the host.
-    expect(
-      node(lost, "vmware.datacenter:datacenter/Amsterdam").health,
-    ).toBe("healthy");
+    expect(node(lost, "vmware.datacenter:datacenter/Amsterdam").health).toBe(
+      "healthy",
+    );
   });
 
   test("a host vSphere DPM put in standby is off, and its 0% is no reading", () => {

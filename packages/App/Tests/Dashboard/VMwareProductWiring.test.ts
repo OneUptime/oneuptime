@@ -417,7 +417,9 @@ describe("the side menus reach the whole product", () => {
       readSource("Pages", "VMware", "View", "Index.tsx"),
     );
 
-    expect(reader).toContain('.addRoute("/vmware-resource/inventory-summary/")');
+    expect(reader).toContain(
+      '.addRoute("/vmware-resource/inventory-summary/")',
+    );
     expect(layout).toContain("await fetchVMwareInventorySummary(modelId);");
     expect(overview).toContain("fetchVMwareInventorySummary(");
     for (const [summaryKey, countKey] of [

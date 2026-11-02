@@ -216,9 +216,7 @@ async function openDatastore(
   query: string = "",
 ): Promise<void> {
   await openPage(page, datastorePath(datacenter, name), query);
-  await expect(page.getByTestId("vmware-datastore-hero-name")).toHaveText(
-    name,
-  );
+  await expect(page.getByTestId("vmware-datastore-hero-name")).toHaveText(name);
 }
 
 async function openCluster(
@@ -250,7 +248,9 @@ async function attentionRows(
   card: Locator,
 ): Promise<Array<{ key: string; severity: string }>> {
   return await card
-    .locator('[data-testid$="-attention-item"], [data-testid$="-needs-attention-item"]')
+    .locator(
+      '[data-testid$="-attention-item"], [data-testid$="-needs-attention-item"]',
+    )
     .evaluateAll(
       (elements: Array<Element>): Array<{ key: string; severity: string }> => {
         return elements.map((element: Element) => {
@@ -390,27 +390,25 @@ test.describe("the vCenter's Overview", () => {
         .locator(`[data-key="${key}"]`)
         .getByTestId("vmware-needs-attention-reason");
     };
-    await expect(
-      reasonsOf("Datacenter:datacenter/dc-east:hosts"),
-    ).toHaveText([
+    await expect(reasonsOf("Datacenter:datacenter/dc-east:hosts")).toHaveText([
       "1 host with a critical alarm",
       "1 host with a warning alarm",
     ]);
-    await expect(
-      reasonsOf("Host:host/dc-east/esx03.acme.example"),
-    ).toHaveText("Not responding");
+    await expect(reasonsOf("Host:host/dc-east/esx03.acme.example")).toHaveText(
+      "Not responding",
+    );
     await expect(
       reasonsOf("Datastore:datastore/dc-east/ds-prod-01"),
     ).toHaveText("93% full");
     await expect(reasonsOf(`VirtualMachine:${vmId(1)}`)).toHaveText(
       "1.5 GiB of memory swapped by the host",
     );
-    await expect(
-      reasonsOf("Cluster:cluster/dc-west/west-cluster"),
-    ).toHaveText("Not enough memory to lose a host");
-    await expect(
-      reasonsOf("Cluster:cluster/dc-east/dev-cluster"),
-    ).toHaveText("1 host not effective");
+    await expect(reasonsOf("Cluster:cluster/dc-west/west-cluster")).toHaveText(
+      "Not enough memory to lose a host",
+    );
+    await expect(reasonsOf("Cluster:cluster/dc-east/dev-cluster")).toHaveText(
+      "1 host not effective",
+    );
     await expect(reasonsOf(`VirtualMachine:${vmId(2)}`)).toHaveText(
       "CPU ready 14%",
     );
@@ -426,9 +424,9 @@ test.describe("the vCenter's Overview", () => {
     await expect(page).toHaveURL((url: URL): boolean => {
       return url.pathname === hostPath("dc-east", "esx03.acme.example");
     });
-    expect(
-      await statusLabel(page.getByTestId("vmware-host-hero-status")),
-    ).toBe("Not responding");
+    expect(await statusLabel(page.getByTestId("vmware-host-hero-status"))).toBe(
+      "Not responding",
+    );
   });
 
   test("a datacenter's own counts lead to the list where the parts they count are", async ({
@@ -519,15 +517,17 @@ test.describe("the vCenter's Overview", () => {
 
     const tile: Locator = goldenTile(page, "Effective hosts");
     await expect(tile).toContainText("6/8");
-    await expect(
-      tile.getByTestId("golden-metric-tile-sublabel"),
-    ).toHaveText("1 not responding · 1 in maintenance mode");
+    await expect(tile.getByTestId("golden-metric-tile-sublabel")).toHaveText(
+      "1 not responding · 1 in maintenance mode",
+    );
     expect(await backgroundOf(tileBar(tile))).toBe(RED_500);
 
     // Five tiles, none with a title broken inside a word at a laptop's width.
     await expect(goldenTile(page, "Host CPU")).toBeVisible();
     await expect(goldenTile(page, "VM CPU Ready")).toBeVisible();
-    await expect(page.locator("span.uppercase", { hasText: "Virtual Machines" })).toHaveCount(0);
+    await expect(
+      page.locator("span.uppercase", { hasText: "Virtual Machines" }),
+    ).toHaveCount(0);
   });
 
   test("each ESXi host's state and load, the one vCenter lost first, with no 0% for it", async ({
@@ -551,15 +551,15 @@ test.describe("the vCenter's Overview", () => {
     ]);
     await expect(hosts.first()).toContainText("esx03.acme.example");
     // vCenter reports no use for a host it lost: no reading, never idle.
-    await expect(hosts.first().getByTestId("vmware-hosts-card-cpu")).toContainText(
-      "—",
-    );
+    await expect(
+      hosts.first().getByTestId("vmware-hosts-card-cpu"),
+    ).toContainText("—");
     await expect(hosts.first()).not.toContainText("0%");
     // The busy one next, amber.
     await expect(hosts.nth(1)).toContainText("esx02.acme.example");
-    await expect(hosts.nth(1).getByTestId("vmware-hosts-card-cpu")).toContainText(
-      "94%",
-    );
+    await expect(
+      hosts.nth(1).getByTestId("vmware-hosts-card-cpu"),
+    ).toContainText("94%");
 
     // A host's whole row is the step to its page.
     await hosts.nth(1).getByTestId("vmware-hosts-card-cpu").click();
@@ -602,9 +602,9 @@ test.describe("the vCenter's Overview", () => {
     ]);
     const tile: Locator = goldenTile(page, "Effective hosts");
     await expect(tile).toContainText("1/3");
-    await expect(
-      tile.getByTestId("golden-metric-tile-sublabel"),
-    ).toHaveText("2 off or in standby");
+    await expect(tile.getByTestId("golden-metric-tile-sublabel")).toHaveText(
+      "2 off or in standby",
+    );
     expect(await backgroundOf(tileBar(tile))).toBe(EMERALD_500);
   });
 
@@ -789,16 +789,22 @@ test.describe("the lists", () => {
   }) => {
     await openPage(page, `${VCENTER_PATH}/datastores`);
     expect(
-      await colourOf(listRow(page, "ds-prod-01").getByText("93.0%", { exact: false })),
+      await colourOf(
+        listRow(page, "ds-prod-01").getByText("93.0%", { exact: false }),
+      ),
     ).toBe(RED_700);
     expect(
-      await colourOf(listRow(page, "ds-prod-02").getByText("84.0%", { exact: false })),
+      await colourOf(
+        listRow(page, "ds-prod-02").getByText("84.0%", { exact: false }),
+      ),
     ).toBe(AMBER_700);
     await expectTablesFitTheirCards(page);
 
     await openPage(page, `${VCENTER_PATH}/resource-pools`);
     expect(
-      await colourOf(listRow(page, "batch").getByText("3.0 GiB", { exact: false })),
+      await colourOf(
+        listRow(page, "batch").getByText("3.0 GiB", { exact: false }),
+      ),
     ).toBe(AMBER_700);
     await expectTablesFitTheirCards(page);
   });
@@ -812,9 +818,9 @@ test.describe("an ESXi host's page", () => {
   }) => {
     await openHost(page, "dc-east", "esx03.acme.example");
 
-    expect(
-      await statusLabel(page.getByTestId("vmware-host-hero-status")),
-    ).toBe("Not responding");
+    expect(await statusLabel(page.getByTestId("vmware-host-hero-status"))).toBe(
+      "Not responding",
+    );
     await expect(page.getByTestId("vmware-host-hero-location")).toHaveText(
       "ESXi host in cluster prod-cluster, datacenter dc-east",
     );
@@ -852,9 +858,9 @@ test.describe("an ESXi host's page", () => {
   }) => {
     await openHost(page, "dc-east", "esx02.acme.example", "open=many");
 
-    expect(
-      await statusLabel(page.getByTestId("vmware-host-hero-status")),
-    ).toBe("Connected");
+    expect(await statusLabel(page.getByTestId("vmware-host-hero-status"))).toBe(
+      "Connected",
+    );
     expect(
       await attentionRows(page.getByTestId("vmware-host-attention")),
     ).toEqual([
@@ -890,9 +896,9 @@ test.describe("an ESXi host's page", () => {
     await openHost(page, "dc-east", "esx01.acme.example");
 
     await expect(page.getByTestId("vmware-host-alerts-item")).toHaveCount(6);
-    await expect(page.getByTestId("vmware-host-alerts-item").first()).toContainText(
-      "Host Not Responding",
-    );
+    await expect(
+      page.getByTestId("vmware-host-alerts-item").first(),
+    ).toContainText("Host Not Responding");
     await expect(page.getByTestId("vmware-host-alerts-turn-on")).toHaveText(
       "Turn on 6 alerts",
     );
@@ -962,9 +968,9 @@ test.describe("a virtual machine's page", () => {
       "Pool",
     );
 
-    expect(await attentionRows(page.getByTestId("vmware-vm-attention"))).toEqual(
-      [{ key: `VirtualMachine:${vmId(1)}`, severity: "critical" }],
-    );
+    expect(
+      await attentionRows(page.getByTestId("vmware-vm-attention")),
+    ).toEqual([{ key: `VirtualMachine:${vmId(1)}`, severity: "critical" }]);
     await expect(page.getByTestId("vmware-vm-attention-name")).toHaveText(
       "This VM",
     );
@@ -1002,9 +1008,9 @@ test.describe("a virtual machine's page", () => {
     expect(await statusLabel(page.getByTestId("vmware-vm-hero-status"))).toBe(
       "Disconnected",
     );
-    await expect(goldenTile(page.getByTestId("vmware-vm-tiles"), "CPU")).toContainText(
-      "—",
-    );
+    await expect(
+      goldenTile(page.getByTestId("vmware-vm-tiles"), "CPU"),
+    ).toContainText("—");
     const card: Locator = page.getByTestId("vmware-vm-attention");
     expect(await attentionRows(card)).toEqual([
       { key: "Host:host/dc-east/esx03.acme.example", severity: "critical" },
@@ -1055,12 +1061,15 @@ test.describe("a datastore's page", () => {
     await expect(page.getByTestId("vmware-datastore-open-item")).toContainText(
       "[VMware] Datastore Capacity Critical (>90%) - vcenter-prod",
     );
-    await expect(page.getByTestId("vmware-datastore-alerts-item")).toContainText(
-      ["Datastore Capacity Critical", "Datastore Capacity Warning"],
-    );
-    await expect(page.getByTestId("vmware-datastore-alerts-turn-on")).toHaveText(
-      "Turn on 2 alerts",
-    );
+    await expect(
+      page.getByTestId("vmware-datastore-alerts-item"),
+    ).toContainText([
+      "Datastore Capacity Critical",
+      "Datastore Capacity Warning",
+    ]);
+    await expect(
+      page.getByTestId("vmware-datastore-alerts-turn-on"),
+    ).toHaveText("Turn on 2 alerts");
     await screenshot(page, "datastore-ds-prod-01");
   });
 });
@@ -1099,9 +1108,9 @@ test.describe("a cluster's page", () => {
       "[VMware] Host Not Responding - vcenter-prod",
       "[VMware] VM Memory Swapping - vcenter-prod",
     ]);
-    await expect(page.getByTestId("vmware-cluster-hosts-card-item")).toHaveCount(
-      4,
-    );
+    await expect(
+      page.getByTestId("vmware-cluster-hosts-card-item"),
+    ).toHaveCount(4);
     await expect(page.getByTestId("vmware-cluster-alerts-turn-on")).toHaveText(
       "Turn on 3 alerts",
     );
@@ -1223,9 +1232,9 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
     await screenshot(page, "german-overview");
 
     await openHost(page, "dc-east", "esx03.acme.example", "lang=de");
-    expect(
-      await statusLabel(page.getByTestId("vmware-host-hero-status")),
-    ).toBe(GERMAN["Not responding"]);
+    expect(await statusLabel(page.getByTestId("vmware-host-hero-status"))).toBe(
+      GERMAN["Not responding"],
+    );
     await expectNoSidewaysScroll(page);
     await screenshot(page, "german-host");
   });

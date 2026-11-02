@@ -121,18 +121,16 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
    * A disconnected VM's trouble is its host's: Needs attention lists the
    * host vCenter cannot reach, one step from its page.
    */
-  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems(
-    {
-      rows: isDisconnected ? [row, ...hosts] : [row],
-      contextRows: [
-        ...(isDisconnected ? [] : hosts),
-        ...(props.datacenters || []),
-      ],
-      now: props.now,
-      routeFor: props.routes.getPartRoute,
-      listRouteFor: props.routes.getListRoute,
-    },
-  );
+  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems({
+    rows: isDisconnected ? [row, ...hosts] : [row],
+    contextRows: [
+      ...(isDisconnected ? [] : hosts),
+      ...(props.datacenters || []),
+    ],
+    now: props.now,
+    routeFor: props.routes.getPartRoute,
+    listRouteFor: props.routes.getListRoute,
+  });
 
   const cpuPercent: number | null = isRunning
     ? toVMwareNumber(row.latestCpuPercent)

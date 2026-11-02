@@ -799,9 +799,7 @@ describe("VMware snapshot ingest — full vcenter receiver collection", () => {
 
     await OtelMetricsIngestService.processMetricsFromQueue(request([troubled]));
 
-    expect(
-      metricRow(mirroredMetrics(spies), "datacenter/DC1"),
-    ).toMatchObject({
+    expect(metricRow(mirroredMetrics(spies), "datacenter/DC1")).toMatchObject({
       hostCount: 8,
       poweredOnHostCount: 6,
       notRespondingHostCount: 1,

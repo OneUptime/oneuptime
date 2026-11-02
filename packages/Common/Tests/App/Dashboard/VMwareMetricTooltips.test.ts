@@ -594,7 +594,10 @@ describe("VMware metric descriptions: thresholds match the code", () => {
     );
   });
 
-  test.each(["overviewDatastores", "datastoreUsedPercent"] as Array<VMwareMetric>)(
+  test.each([
+    "overviewDatastores",
+    "datastoreUsedPercent",
+  ] as Array<VMwareMetric>)(
     "%s names the datastore warning and critical levels",
     (key: VMwareMetric) => {
       expect(D[key]).toContain(`${warn}%`);

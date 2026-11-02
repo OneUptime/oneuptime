@@ -205,7 +205,9 @@ function partUrl(segment: string, externalId: string): string {
   return `${BASE}/${segment}/${encodeURIComponent(externalId)}`;
 }
 
-function datacenter(fields: Record<string, unknown> = {}): Record<string, unknown> {
+function datacenter(
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     _id: "43000000-0000-4000-8000-000000000001",
     kind: "Datacenter",
@@ -232,7 +234,10 @@ function lostDatacenter(): Record<string, unknown> {
 
 let hostNumber: number = 0;
 
-function host(name: string, fields: Record<string, unknown> = {}): Record<string, unknown> {
+function host(
+  name: string,
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
   hostNumber++;
   return {
     _id: `44000000-0000-4000-8000-${String(hostNumber).padStart(12, "0")}`,
@@ -265,7 +270,10 @@ function silentHost(name: string): Record<string, unknown> {
 
 let vmNumber: number = 0;
 
-function vm(name: string, fields: Record<string, unknown> = {}): Record<string, unknown> {
+function vm(
+  name: string,
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
   vmNumber++;
   return {
     _id: `45000000-0000-4000-8000-${String(vmNumber).padStart(12, "0")}`,
@@ -295,7 +303,9 @@ function vm(name: string, fields: Record<string, unknown> = {}): Record<string, 
   };
 }
 
-function cluster(fields: Record<string, unknown> = {}): Record<string, unknown> {
+function cluster(
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     _id: "46000000-0000-4000-8000-000000000001",
     kind: "Cluster",
@@ -317,7 +327,9 @@ function cluster(fields: Record<string, unknown> = {}): Record<string, unknown> 
   };
 }
 
-function datastore(fields: Record<string, unknown> = {}): Record<string, unknown> {
+function datastore(
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     _id: "47000000-0000-4000-8000-000000000001",
     kind: "Datastore",
@@ -388,7 +400,11 @@ afterEach(() => {
 
 describe("a virtual machine's page", () => {
   async function openVm(name: string): Promise<void> {
-    window.history.pushState({}, "", partUrl("virtual-machines", `vm/${name}-uuid`));
+    window.history.pushState(
+      {},
+      "",
+      partUrl("virtual-machines", `vm/${name}-uuid`),
+    );
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
     await screen.findByTestId("vmware-vm-overview");
     await settle();
@@ -596,7 +612,11 @@ describe("a virtual machine's page", () => {
 
   test("a VM whose row cannot be read says so, with Try again; its hero says no state", async () => {
     mockFailingKinds = ["VirtualMachine"];
-    window.history.pushState({}, "", partUrl("virtual-machines", "vm/web-01-uuid"));
+    window.history.pushState(
+      {},
+      "",
+      partUrl("virtual-machines", "vm/web-01-uuid"),
+    );
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
 
     const error: HTMLElement = await screen.findByTestId(
@@ -619,7 +639,11 @@ describe("a virtual machine's page", () => {
 
   test("a VM gone from the inventory says so; a read that worked is never a read error", async () => {
     mockRowsByKind["VirtualMachine"] = [];
-    window.history.pushState({}, "", partUrl("virtual-machines", "vm/gone-uuid"));
+    window.history.pushState(
+      {},
+      "",
+      partUrl("virtual-machines", "vm/gone-uuid"),
+    );
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
 
     expect(
@@ -736,7 +760,9 @@ describe("a cluster's page", () => {
 
   test("a host its vCenter lost: Unhealthy, what in it needs attention, its hosts the lost one first", async () => {
     mockRowsByKind["Datacenter"] = [lostDatacenter()];
-    mockRowsByKind["Cluster"] = [cluster({ hostCount: 3, effectiveHostCount: 2 })];
+    mockRowsByKind["Cluster"] = [
+      cluster({ hostCount: 3, effectiveHostCount: 2 }),
+    ];
     mockRowsByKind["Host"] = [
       host("esx01"),
       host("esx02", { latestCpuPercent: 94, latestCpuMhz: 72000 }),
@@ -748,7 +774,9 @@ describe("a cluster's page", () => {
     ];
     await openCluster();
 
-    const status: HTMLElement = screen.getByTestId("vmware-cluster-hero-status");
+    const status: HTMLElement = screen.getByTestId(
+      "vmware-cluster-hero-status",
+    );
     expect(status).toHaveTextContent("Unhealthy");
     expect(status).toHaveAttribute("data-tone", "danger");
     expect(screen.getByTestId("vmware-cluster-hero-chips")).toHaveTextContent(
@@ -785,8 +813,14 @@ describe("a cluster's page", () => {
   test("one that could not take its largest host's VMs: Degraded, and how much memory it would be short", async () => {
     mockRowsByKind["Cluster"] = [cluster()];
     mockRowsByKind["Host"] = [
-      host("esx-w1", { latestMemoryBytes: 200 * GIB, maxMemoryBytes: 256 * GIB }),
-      host("esx-w2", { latestMemoryBytes: 200 * GIB, maxMemoryBytes: 256 * GIB }),
+      host("esx-w1", {
+        latestMemoryBytes: 200 * GIB,
+        maxMemoryBytes: 256 * GIB,
+      }),
+      host("esx-w2", {
+        latestMemoryBytes: 200 * GIB,
+        maxMemoryBytes: 256 * GIB,
+      }),
     ];
     await openCluster();
 

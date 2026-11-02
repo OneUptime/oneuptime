@@ -1560,12 +1560,7 @@ describe("VMwareSnapshotScan - a datacenter's host states and alarm roll-up", ()
       "vcenter.datacenter.vm.count",
       datapoint({ value: 7, labels: { status: "red", power_state: "on" } }),
     );
-    feed(
-      b,
-      HOST,
-      "vcenter.host.memory.usage",
-      datapoint({ value: 2048 }),
-    );
+    feed(b, HOST, "vcenter.host.memory.usage", datapoint({ value: 2048 }));
 
     const dc: VMwareResourceLatestMetricSnapshot =
       deriveVMwareResourceLatestMetric(

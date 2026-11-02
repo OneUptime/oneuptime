@@ -296,9 +296,10 @@ describe("the levels are the alert templates' levels", () => {
   });
 
   test("a host reporting no memory in use is what Host Not Responding fires on", () => {
-    expect(fireFilters(VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID)).toContainEqual(
-      { filterType: FilterType.LessThanOrEqualTo, value: 0 },
-    );
+    expect(fireFilters(VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID)).toContainEqual({
+      filterType: FilterType.LessThanOrEqualTo,
+      value: 0,
+    });
   });
 
   test("a part is judged on readings no older than the lists' 15 minutes", () => {
@@ -330,7 +331,10 @@ describe("reading a row", () => {
   test("a reading is judged while it is at most 15 minutes old", () => {
     expect(hasFreshVMwareReadings(host("a", {}), NOW)).toBe(true);
     expect(
-      hasFreshVMwareReadings(host("a", { metricsUpdatedAt: minutesAgo(15) }), NOW),
+      hasFreshVMwareReadings(
+        host("a", { metricsUpdatedAt: minutesAgo(15) }),
+        NOW,
+      ),
     ).toBe(true);
     expect(
       hasFreshVMwareReadings(
@@ -344,9 +348,9 @@ describe("reading a row", () => {
   });
 
   test("a part is named as vCenter names it, else by its id's last part", () => {
-    expect(getVMwareDisplayName(row({ name: "db-primary", externalId: "vm/1" }))).toBe(
-      "db-primary",
-    );
+    expect(
+      getVMwareDisplayName(row({ name: "db-primary", externalId: "vm/1" })),
+    ).toBe("db-primary");
     expect(
       getVMwareDisplayName(row({ externalId: "datastore/dc-east/ds-prod-01" })),
     ).toBe("ds-prod-01");
@@ -362,9 +366,9 @@ describe("reading a row", () => {
   });
 
   test("a datastore's share is what vCenter reported, else used over capacity", () => {
-    expect(getVMwareDatastorePercent(datastore("a", { latestDiskPercent: 93 }))).toBe(
-      93,
-    );
+    expect(
+      getVMwareDatastorePercent(datastore("a", { latestDiskPercent: 93 })),
+    ).toBe(93);
     expect(
       getVMwareDatastorePercent(
         datastore("a", {
@@ -384,7 +388,9 @@ describe("reading a row", () => {
       ),
     ).toBeNull();
     expect(
-      getVMwareDatastorePercent(datastore("a", { latestDiskPercent: undefined })),
+      getVMwareDatastorePercent(
+        datastore("a", { latestDiskPercent: undefined }),
+      ),
     ).toBeNull();
   });
 
@@ -506,17 +512,23 @@ describe("an ESXi host's state", () => {
 
   test("a host whose readings are older than 15 minutes is Not reporting; one never read, No data yet", () => {
     expect(
-      stateOf(host("esx01", { metricsUpdatedAt: STALE }), datacenter("dc-east")),
+      stateOf(
+        host("esx01", { metricsUpdatedAt: STALE }),
+        datacenter("dc-east"),
+      ),
     ).toBe(VMwareHostState.NotReporting);
     expect(
       stateOf(
         silentHost("esx01", { metricsUpdatedAt: STALE }),
-        datacenter("dc-east", { notRespondingHostCount: 1, poweredOnHostCount: 3 }),
+        datacenter("dc-east", {
+          notRespondingHostCount: 1,
+          poweredOnHostCount: 3,
+        }),
       ),
     ).toBe(VMwareHostState.NotReporting);
-    expect(
-      stateOf(host("esx01", { metricsUpdatedAt: undefined }), null),
-    ).toBe(VMwareHostState.NoDataYet);
+    expect(stateOf(host("esx01", { metricsUpdatedAt: undefined }), null)).toBe(
+      VMwareHostState.NoDataYet,
+    );
   });
 
   test("only a connected host runs workloads; the others' zero is no reading", () => {
@@ -643,7 +655,10 @@ describe("a virtual machine", () => {
       findVMwareHostOfVirtualMachine([esx01], vm("web", { hostName: "esx09" })),
     ).toBeNull();
     expect(
-      findVMwareHostOfVirtualMachine([esx01], vm("web", { hostName: undefined })),
+      findVMwareHostOfVirtualMachine(
+        [esx01],
+        vm("web", { hostName: undefined }),
+      ),
     ).toBeNull();
   });
 
@@ -923,9 +938,18 @@ describe("a cluster", () => {
     const headroom: VMwareClusterHeadroom | null = getVMwareClusterHeadroom({
       cluster: cluster("prod-cluster", { hostCount: 3, effectiveHostCount: 3 }),
       hosts: [
-        host("esx01", { latestMemoryBytes: 100 * GIB, maxMemoryBytes: 512 * GIB }),
-        host("esx02", { latestMemoryBytes: 100 * GIB, maxMemoryBytes: 512 * GIB }),
-        host("esx03", { latestMemoryBytes: 100 * GIB, maxMemoryBytes: 256 * GIB }),
+        host("esx01", {
+          latestMemoryBytes: 100 * GIB,
+          maxMemoryBytes: 512 * GIB,
+        }),
+        host("esx02", {
+          latestMemoryBytes: 100 * GIB,
+          maxMemoryBytes: 512 * GIB,
+        }),
+        host("esx03", {
+          latestMemoryBytes: 100 * GIB,
+          maxMemoryBytes: 256 * GIB,
+        }),
       ],
       datacenters: [dc],
       now: NOW,
@@ -942,8 +966,14 @@ describe("a cluster", () => {
 
   test("could not, once its hosts use more than the others would have", () => {
     const hosts: Array<VMwareResource> = [
-      host("esx-w1", { latestMemoryBytes: 200 * GIB, maxMemoryBytes: 256 * GIB }),
-      host("esx-w2", { latestMemoryBytes: 200 * GIB, maxMemoryBytes: 256 * GIB }),
+      host("esx-w1", {
+        latestMemoryBytes: 200 * GIB,
+        maxMemoryBytes: 256 * GIB,
+      }),
+      host("esx-w2", {
+        latestMemoryBytes: 200 * GIB,
+        maxMemoryBytes: 256 * GIB,
+      }),
     ];
     const westCluster: VMwareResource = cluster("prod-cluster");
     const headroom: VMwareClusterHeadroom | null = getVMwareClusterHeadroom({
@@ -1004,7 +1034,10 @@ describe("a cluster", () => {
     // Two not effective: the lost esx03 (its own row says it), and one more.
     expect(
       getVMwareClusterUnexplainedNotEffective({
-        cluster: cluster("prod-cluster", { hostCount: 4, effectiveHostCount: 2 }),
+        cluster: cluster("prod-cluster", {
+          hostCount: 4,
+          effectiveHostCount: 2,
+        }),
         hosts: hosts,
         datacenters: [lostDc],
         now: NOW,
@@ -1012,7 +1045,10 @@ describe("a cluster", () => {
     ).toBe(1);
     expect(
       getVMwareClusterUnexplainedNotEffective({
-        cluster: cluster("prod-cluster", { hostCount: 4, effectiveHostCount: 3 }),
+        cluster: cluster("prod-cluster", {
+          hostCount: 4,
+          effectiveHostCount: 3,
+        }),
         hosts: hosts,
         datacenters: [lostDc],
         now: NOW,
@@ -1181,9 +1217,11 @@ describe("what a datacenter's own counts say", () => {
     const result: Array<VMwareDatacenterFinding> = findings(
       datacenter("dc-east", { warningHostCount: 2 }),
     );
-    expect(result.map((finding: VMwareDatacenterFinding) => {
-      return [finding.group, finding.severity];
-    })).toEqual([["hosts", ResourceAttentionSeverity.Warning]]);
+    expect(
+      result.map((finding: VMwareDatacenterFinding) => {
+        return [finding.group, finding.severity];
+      }),
+    ).toEqual([["hosts", ResourceAttentionSeverity.Warning]]);
   });
 
   test("red VMs need a look; red clusters are critical, each a row of its own", () => {
@@ -1543,7 +1581,10 @@ describe("which part an open incident or alert is about", () => {
   test("a VM is matched by its instance UUID, else its name; a template by its own keys", () => {
     const web: VMwareResource = vm("web-01");
     expect(
-      isVMwareIssueAbout(record({ "resource.vcenter.vm.id": "web-01-uuid" }), web),
+      isVMwareIssueAbout(
+        record({ "resource.vcenter.vm.id": "web-01-uuid" }),
+        web,
+      ),
     ).toBe(true);
     // A renamed VM keeps its UUID: the id wins over a stale name.
     expect(
@@ -1592,7 +1633,9 @@ describe("which part an open incident or alert is about", () => {
   });
 
   test("a record about a part inside this one counts: a host's VMs, a cluster's hosts and VMs", () => {
-    const cacheVm: VMwareResource = vm("cache-01", { hostName: "esx01.acme.example" });
+    const cacheVm: VMwareResource = vm("cache-01", {
+      hostName: "esx01.acme.example",
+    });
     const about: { seriesLabels: OpenIssueRecord["seriesLabels"] } = record({
       "resource.vcenter.vm.id": "cache-01-uuid",
     });

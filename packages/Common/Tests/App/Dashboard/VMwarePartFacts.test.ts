@@ -209,7 +209,11 @@ describe("the alerts that watch each kind of part", () => {
       VMWARE_VIRTUAL_MACHINE_ALERT_TEMPLATE_IDS,
       VMwareGroupByKey.VirtualMachine,
     ],
-    ["datastore", VMWARE_DATASTORE_ALERT_TEMPLATE_IDS, VMwareGroupByKey.Datastore],
+    [
+      "datastore",
+      VMWARE_DATASTORE_ALERT_TEMPLATE_IDS,
+      VMwareGroupByKey.Datastore,
+    ],
     ["cluster", VMWARE_CLUSTER_ALERT_TEMPLATE_IDS, VMwareGroupByKey.Cluster],
   ] as Array<[string, Array<string>, string]>)(
     "each %s alert is one vCenter-wide monitor that opens one record per %s",
@@ -369,7 +373,10 @@ describe("why clustered hosts are not effective", () => {
         silentHost("esx03"),
         host("esx06"),
         host("esx07"),
-        host("esx-w1", { clusterName: "west-cluster", datacenterName: "dc-west" }),
+        host("esx-w1", {
+          clusterName: "west-cluster",
+          datacenterName: "dc-west",
+        }),
         // dc-west has a lost host and one off: which is esx-w2?
         silentHost("esx-w2", {
           clusterName: "west-cluster",
@@ -490,7 +497,11 @@ describe("ESXi hosts at a glance", () => {
     });
     expect(busy).toEqual({ cpuPercent: 94, memoryPercent: 67 });
     expect(
-      getVMwareHostLoad({ host: silentHost("esx03"), datacenter: dc, now: NOW }),
+      getVMwareHostLoad({
+        host: silentHost("esx03"),
+        datacenter: dc,
+        now: NOW,
+      }),
     ).toEqual({ cpuPercent: null, memoryPercent: null });
     expect(
       getVMwareHostLoad({

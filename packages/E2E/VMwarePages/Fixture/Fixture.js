@@ -81,7 +81,13 @@ import UserUtil from "Common/UI/Utils/User";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
-import { PROJECT_ID, VCENTER_ID, VCENTER_NAME, buildEstate, uuid } from "./Data";
+import {
+  PROJECT_ID,
+  VCENTER_ID,
+  VCENTER_NAME,
+  buildEstate,
+  uuid,
+} from "./Data";
 
 /*
  * ---------------------------------------------------------------------------
@@ -823,7 +829,10 @@ const METRICS = {
           (swing) => {
             return record.latestMemoryBytes === undefined
               ? null
-              : Math.max(0, (record.latestMemoryBytes / MIB) * (1 + swing * 0.01));
+              : Math.max(
+                  0,
+                  (record.latestMemoryBytes / MIB) * (1 + swing * 0.01),
+                );
           },
         ],
       ];
@@ -996,9 +1005,7 @@ const METRICS = {
         return [
           { direction },
           (swing) => {
-            return record.isPoweredOn
-              ? 1800 / (index + 1) + swing * 400
-              : null;
+            return record.isPoweredOn ? 1800 / (index + 1) + swing * 400 : null;
           },
         ];
       });
@@ -1014,9 +1021,7 @@ const METRICS = {
         return [
           { direction },
           (swing) => {
-            return record.isPoweredOn
-              ? 2400 / (index + 1) + swing * 600
-              : null;
+            return record.isPoweredOn ? 2400 / (index + 1) + swing * 600 : null;
           },
         ];
       });
@@ -1635,7 +1640,10 @@ const PAGES = [
   };
 });
 
-const FixtureLayout = withNavigation(VCenterLayout, PageMap.VMWARE_VCENTER_VIEW);
+const FixtureLayout = withNavigation(
+  VCenterLayout,
+  PageMap.VMWARE_VCENTER_VIEW,
+);
 
 // A page the views link to that is not modelled: says where it is.
 function StubPage() {

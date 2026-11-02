@@ -566,7 +566,9 @@ describe("the hero says which host this is and whether vCenter still reports it"
     expect(status).toHaveAttribute("data-tone", "positive");
     expect(
       within(hero).getByTestId("vmware-host-hero-location"),
-    ).toHaveTextContent("ESXi host in cluster prod-cluster, datacenter dc-east");
+    ).toHaveTextContent(
+      "ESXi host in cluster prod-cluster, datacenter dc-east",
+    );
     // When vCenter last reported it; the exact time is the line's title.
     const lastReported: HTMLElement = within(hero).getByTestId(
       "vmware-host-hero-last-report",
