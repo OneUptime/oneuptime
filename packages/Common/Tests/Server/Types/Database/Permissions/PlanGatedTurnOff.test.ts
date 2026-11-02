@@ -757,14 +757,18 @@ describe("analytics models", () => {
         AnalyticsModelPermission as unknown as {
           checkDataColumnPermissions: (
             modelType: { new (): AnalyticsBaseModel },
-            data: unknown,
+            data: AnalyticsBaseModel,
             props: DatabaseCommonInteractionProps,
             requestType: DatabaseRequestType,
           ) => void;
         }
       ).checkDataColumnPermissions(
         GatedAnalyticsRow,
-        input.data,
+        // The record, as the API reads it from a request.
+        AnalyticsBaseModel.fromJSON(
+          input.data as JSONObject,
+          GatedAnalyticsRow,
+        ) as AnalyticsBaseModel,
         ownerOn(input.plan),
         input.requestType,
       );
@@ -792,6 +796,11 @@ describe("analytics models", () => {
         { note: null },
         { note: "" },
         { keepDays: 15 },
+        /*
+         * A number sent as a string is read as the number
+         * (CommonModel.setColumnValue), so the record holds the default.
+         */
+        { keepDays: "15" },
         { isPinned: false, note: "", keepDays: 15 },
       ]) {
         expect([
@@ -811,7 +820,6 @@ describe("analytics models", () => {
         { keepDays: 30 },
         // Another type, or a blank where nothing is expected, is no default.
         { isPinned: "false" },
-        { keepDays: "15" },
         { note: " " },
         // One switched on among defaults: the write needs the plan.
         { isPinned: false, keepDays: 30 },
