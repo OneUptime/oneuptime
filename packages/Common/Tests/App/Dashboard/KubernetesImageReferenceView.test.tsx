@@ -25,6 +25,24 @@ describe("KubernetesImageReferenceView", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("a long name breaks after its own slashes and dots, never mid-word", () => {
+    render(
+      <KubernetesImageReferenceView reference="registry.acme-retail.example/checkout:4.12.0" />,
+    );
+
+    const name: HTMLElement = screen.getByTestId(
+      "kubernetes-image-reference-name",
+    );
+    // Read as written: a <wbr> adds no character.
+    expect(name).toHaveTextContent("registry.acme-retail.example/checkout");
+    // A break after "registry.acme-retail.example/", none inside "checkout".
+    expect(name.querySelectorAll("wbr").length).toBeGreaterThan(0);
+    expect(name.innerHTML).toContain("example/<wbr>checkout");
+    // Never break-all, which split it as "...example/c" / "heckout".
+    expect(name).not.toHaveClass("break-all");
+    expect(name).toHaveClass("[overflow-wrap:anywhere]");
+  });
+
   test("renders a normal tag as a separate badge", () => {
     render(
       <KubernetesImageReferenceView reference="registry.example/team/api:v2" />,

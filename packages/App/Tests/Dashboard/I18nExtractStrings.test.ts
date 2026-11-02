@@ -813,6 +813,106 @@ describe("a root that marks its keys", () => {
     ).toEqual(["Entry spans", "Where a trace starts."]);
   });
 
+  test("a count's two sentences, both marked, are one plural", () => {
+    const result: SourceScanResult = scan(
+      `
+      const translationKey = (text: string): string => text;
+      export const MISSCHEDULED = {
+        one: translationKey("Runs on {{count}} node it should not"),
+        other: translationKey("Runs on {{count}} nodes it should not"),
+      };
+      // Half marked: the marked sentence is a key of its own, no plural.
+      export const HALF = { one: "{{count}} pod", other: translationKey("{{count}} pods") };
+      // Three properties: not a count's sentences.
+      export const THREE = {
+        one: translationKey("One way"),
+        other: translationKey("Other way"),
+        hint: translationKey("A hint"),
+      };
+    `,
+      KEYS_FILE,
+      "keys",
+    );
+
+    expect(
+      result.strings.map(
+        (entry: ExtractedString): [string, string, string | undefined] => {
+          return [entry.text, entry.kind, entry.pluralOne];
+        },
+      ),
+    ).toEqual([
+      [
+        "Runs on {{count}} nodes it should not",
+        "plural",
+        "Runs on {{count}} node it should not",
+      ],
+      // Each marked sentence is a key of its own too, as in every keys root.
+      ["Runs on {{count}} node it should not", "call", undefined],
+      ["Runs on {{count}} nodes it should not", "call", undefined],
+      ["{{count}} pods", "call", undefined],
+      ["One way", "call", undefined],
+      ["Other way", "call", undefined],
+      ["A hint", "call", undefined],
+    ]);
+    // en.json carries the plural as every other plural: the key, and its _one.
+    expect(getEnglishEntries(result.strings)).toEqual(
+      expect.objectContaining({
+        "Runs on {{count}} nodes it should not":
+          "Runs on {{count}} nodes it should not",
+        "Runs on {{count}} nodes it should not_one":
+          "Runs on {{count}} node it should not",
+      }),
+    );
+    // HALF is no plural: no _one for its marked sentence.
+    expect(Object.keys(getEnglishEntries(result.strings))).not.toContain(
+      "{{count}} pods_one",
+    );
+  });
+
+  test("KubernetesHealth gives the locales its words, each count as a plural, and none of Kubernetes' reasons", () => {
+    const file: string = "packages/Common/Types/Kubernetes/KubernetesHealth.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+    const plurals: Record<string, string | undefined> = {};
+
+    for (const entry of result.strings) {
+      if (entry.kind === "plural") {
+        plurals[entry.text] = entry.pluralOne;
+      }
+    }
+
+    expect(plurals).toEqual({
+      "Runs on {{count}} nodes it should not":
+        "Runs on {{count}} node it should not",
+      "At its maximum of {{count}} replicas":
+        "At its maximum of {{count}} replica",
+    });
+    expect(textsOf(result)).toEqual(
+      expect.arrayContaining([
+        "{{available}} of {{desired}} available",
+        "Ready on {{ready}} of {{desired}} nodes",
+        "Last restart: {{reason}}, exit code {{code}}",
+        "Memory pressure",
+      ]),
+    );
+    // Kubernetes' own words are drawn as written, never looked up.
+    for (const reason of [
+      "CrashLoopBackOff",
+      "OOMKilled",
+      "ImagePullBackOff",
+    ]) {
+      expect(textsOf(result)).not.toContain(reason);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("TraceSpanType gives the locales its sentences and none of its names", () => {
     const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1086,7 +1186,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, what each of the traces explorer's span types is, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, and a cloud change in plain words", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, what each of the traces explorer's span types is, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, and a Kubernetes object's status by the cluster's rules", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1129,6 +1229,8 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/AutoRemediation/RemediationTrackRecordWords.ts",
       // A cloud change in plain words, read from its command.
       "ui packages/Common/Utils/AiRemediation/CloudChangeWords.ts",
+      // A Kubernetes object's status and reasons - not Kubernetes' own words.
+      "keys packages/Common/Types/Kubernetes/KubernetesHealth.ts",
     ]);
   });
 

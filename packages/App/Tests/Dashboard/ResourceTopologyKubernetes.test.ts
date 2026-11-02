@@ -23,7 +23,9 @@ import {
  * A Kubernetes cluster's topology, read two ways from the same rows: by
  * workload (namespace > workload > pod) and by node (node > pod), with the
  * lines across the tree (a pod runs on a node, mounts a claim, the claim is
- * bound to a volume) and the health the cluster's own pages give.
+ * bound to a volume) and the health the cluster's own pages give - the same
+ * rules (Common/Types/Kubernetes/KubernetesHealth) on rows shaped as ingest
+ * stores them.
  */
 
 const NOW: Date = new Date("2026-10-21T12:00:00Z");
@@ -62,14 +64,14 @@ function rows(): Array<KubernetesResource> {
       name: "api",
       namespaceKey: "shop",
       spec: { replicas: 3 },
-      status: { readyReplicas: 2 },
+      status: { readyReplicas: 2, availableReplicas: 2 },
     }),
     resource({
       kind: "Deployment",
       name: "worker",
       namespaceKey: "shop",
       spec: { replicas: 2 },
-      status: { readyReplicas: 0 },
+      status: { readyReplicas: 0, availableReplicas: 0 },
     }),
     resource({
       kind: "StatefulSet",
@@ -88,8 +90,34 @@ function rows(): Array<KubernetesResource> {
       kind: "Job",
       name: "nightly-2900",
       namespaceKey: "shop",
-      status: { failed: 2 },
+      status: {
+        failed: 2,
+        conditions: [
+          {
+            type: "Failed",
+            status: "True",
+            reason: "BackoffLimitExceeded",
+            message: "Job has reached the specified backoff limit",
+          },
+        ],
+      },
       ownerReferences: { items: [{ kind: "CronJob", name: "nightly" }] },
+    }),
+    resource({
+      kind: "CronJob",
+      name: "hourly",
+      namespaceKey: "shop",
+      spec: { schedule: "0 * * * *" },
+    }),
+    resource({
+      kind: "Job",
+      name: "hourly-2950",
+      namespaceKey: "shop",
+      status: {
+        succeeded: 1,
+        conditions: [{ type: "Complete", status: "True" }],
+      },
+      ownerReferences: { items: [{ kind: "CronJob", name: "hourly" }] },
     }),
     resource({
       _id: POD_ROW_ID,
@@ -112,6 +140,21 @@ function rows(): Array<KubernetesResource> {
       phase: "Running",
       controllerDeploymentName: "worker",
       spec: { nodeName: "node-b" },
+      status: {
+        phase: "Running",
+        conditions: [],
+        containerStatuses: [
+          {
+            name: "worker",
+            ready: false,
+            restartCount: 14,
+            state: "waiting",
+            reason: "CrashLoopBackOff",
+            image: "worker:1",
+          },
+        ],
+        initContainerStatuses: [],
+      },
     }),
     resource({
       kind: "Pod",
@@ -248,11 +291,27 @@ describe("by workload: namespace > workload > pod", () => {
     );
   });
 
-  test("every part links to its page in the cluster", () => {
+  test("every part links to its page in the cluster, a namespaced one in its namespace", () => {
     expect(node(graph, API_POD).link).toEqual({
       page: PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL,
       modelId: "cluster-row",
       subModelId: "api-7d9f8c6b5-x1",
+      queryParams: { namespace: "shop" },
+    });
+    // A node and a namespace have no namespace of their own.
+    expect(
+      node(graph, kubernetesNodeId("k8s.node", "", "node-a")).link,
+    ).toEqual({
+      page: PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
+      modelId: "cluster-row",
+      subModelId: "node-a",
+    });
+    expect(
+      node(graph, kubernetesNodeId("k8s.namespace", "", "shop")).link,
+    ).toEqual({
+      page: PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL,
+      modelId: "cluster-row",
+      subModelId: "shop",
     });
   });
 });
@@ -334,8 +393,10 @@ describe("health, as the cluster's pages give it", () => {
 
   test("a pod crash-looping is critical, a pending one needs attention, a finished one is off", () => {
     expect(node(workloads, WORKER_POD).health).toBe("critical");
+    // Kubernetes' own word, drawn as written in every language.
     expect(node(workloads, WORKER_POD).status).toEqual({
-      text: "CrashLoopBackOff",
+      text: "{{reason}}",
+      values: { reason: "CrashLoopBackOff" },
     });
     expect(node(workloads, WORKER_POD).facts).toEqual(
       expect.arrayContaining([{ label: "Restarts", value: "14" }]),
@@ -344,15 +405,55 @@ describe("health, as the cluster's pages give it", () => {
     expect(node(workloads, ORPHAN_POD).health).toBe("off");
   });
 
-  test("a failed job is critical; a scheduled CronJob shows its schedule", () => {
+  test("a failed job needs a look, and its CronJob says its last run failed", () => {
+    const job: ResourceTopologyNode = node(
+      workloads,
+      kubernetesNodeId("k8s.job", "shop", "nightly-2900"),
+    );
+    expect(job.health).toBe("warning");
+    expect(job.status).toEqual({ text: "Failed" });
+    expect(job.reasons).toEqual([
+      { text: "Failed" },
+      { text: "{{reason}}", values: { reason: "BackoffLimitExceeded" } },
+    ]);
+
+    const cronJob: ResourceTopologyNode = node(
+      workloads,
+      kubernetesNodeId("k8s.cronjob", "shop", "nightly"),
+    );
+    expect(cronJob.health).toBe("warning");
+    expect(cronJob.status).toEqual({ text: "Last run failed" });
+  });
+
+  test("a CronJob whose newest run went well shows its schedule", () => {
+    const cronJob: ResourceTopologyNode = node(
+      workloads,
+      kubernetesNodeId("k8s.cronjob", "shop", "hourly"),
+    );
+    expect(cronJob.health).toBe("healthy");
+    expect(cronJob.status).toEqual({ text: "0 * * * *" });
     expect(
-      node(workloads, kubernetesNodeId("k8s.job", "shop", "nightly-2900"))
+      node(workloads, kubernetesNodeId("k8s.job", "shop", "hourly-2950"))
         .health,
-    ).toBe("critical");
+    ).toBe("off");
+  });
+
+  test("the reasons are the cluster's: what the Overview's Needs attention says", () => {
+    expect(node(workloads, WORKER_POD).reasons).toEqual([
+      { text: "{{reason}}", values: { reason: "CrashLoopBackOff" } },
+    ]);
     expect(
-      node(workloads, kubernetesNodeId("k8s.cronjob", "shop", "nightly"))
-        .status,
-    ).toEqual({ text: "0 2 * * *" });
+      node(workloads, kubernetesNodeId("k8s.deployment", "shop", "api"))
+        .reasons,
+    ).toEqual([
+      {
+        text: "{{available}} of {{desired}} available",
+        values: { available: "2", desired: "3" },
+      },
+    ]);
+    expect(
+      node(nodes, kubernetesNodeId("k8s.node", "", "node-c")).reasons,
+    ).toEqual([{ text: "Disk pressure" }]);
   });
 
   test("a cluster that has sent nothing for a while is not reporting", () => {

@@ -187,6 +187,44 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Node,
     unit: "count",
   },
+  /*
+   * The pressure conditions the chart's node_conditions_to_report lists,
+   * read by Node Under Pressure. True is the bad state here, so they
+   * default to Max: any sample under pressure.
+   */
+  {
+    id: "node-condition-memory-pressure",
+    friendlyName: "Node Memory Pressure Condition",
+    description:
+      "The node's MemoryPressure condition: 1 = True (the kubelet is short of memory and evicts pods), 0 = False, -1 = Unknown (the kubelet stopped reporting).",
+    metricName: "k8s.node.condition_memory_pressure",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "count",
+  },
+  {
+    id: "node-condition-disk-pressure",
+    friendlyName: "Node Disk Pressure Condition",
+    description:
+      "The node's DiskPressure condition: 1 = True (the kubelet is short of disk space and evicts pods), 0 = False, -1 = Unknown (the kubelet stopped reporting).",
+    metricName: "k8s.node.condition_disk_pressure",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "count",
+  },
+  {
+    id: "node-condition-pid-pressure",
+    friendlyName: "Node PID Pressure Condition",
+    description:
+      "The node's PIDPressure condition: 1 = True (the kubelet is short of process IDs and evicts pods), 0 = False, -1 = Unknown (the kubelet stopped reporting).",
+    metricName: "k8s.node.condition_pid_pressure",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "count",
+  },
   {
     id: "node-filesystem-available",
     friendlyName: "Node Filesystem Available",
@@ -320,6 +358,18 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     unit: "count",
   },
   {
+    id: "daemonset-desired-nodes",
+    friendlyName: "DaemonSet Desired Nodes",
+    description:
+      "Number of nodes that should be running the daemon pod (status.desiredNumberScheduled)",
+    metricName: "k8s.daemonset.desired_scheduled_nodes",
+    category: "Workload",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "daemonset",
+    unit: "count",
+  },
+  {
     id: "daemonset-misscheduled-nodes",
     friendlyName: "DaemonSet Misscheduled Nodes",
     description:
@@ -340,6 +390,17 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Workload,
     workloadKind: "daemonset",
+    unit: "count",
+  },
+  {
+    id: "statefulset-desired-replicas",
+    friendlyName: "StatefulSet Desired Replicas",
+    description: "Number of desired pods (spec.replicas) in a StatefulSet",
+    metricName: "k8s.statefulset.desired_pods",
+    category: "Workload",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Workload,
+    workloadKind: "statefulset",
     unit: "count",
   },
   {

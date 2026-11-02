@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -14,6 +15,7 @@ import {
   countResourceAttention,
 } from "./ResourceAttention";
 import ResourcePartRow from "./ResourcePartRow";
+import { withSentenceDigits } from "./SentenceDigits";
 
 /*
  * "What needs me?" first on a resource's Overview, and on a part's own
@@ -29,6 +31,11 @@ import ResourcePartRow from "./ResourcePartRow";
  * attention card (ResourcePartRow). The part whose page this is says so -
  * "This node" - rather than repeating the name, kind and identifier its
  * hero shows just above, and is not a link to the page the reader is on.
+ *
+ * When what needs attention cannot be read, the card says so in its own
+ * frame, with a way to read it again (error, onRetry): a bare sentence
+ * under the hero did not say what had failed, and an empty card would be
+ * an all-clear nobody gave.
  */
 
 // How many items the card shows before "Show all".
@@ -53,6 +60,13 @@ export interface ComponentProps {
   // How many rows show before "Show all" (NEEDS_ATTENTION_SHOWN).
   shown?: number | undefined;
   current?: ResourceAttentionCurrent | undefined;
+  /*
+   * Why what needs attention could not be read: drawn in the card's frame,
+   * in place of its rows, as `${testId}-error`.
+   */
+  error?: string | undefined;
+  // Reads it again; the error offers it as Refresh.
+  onRetry?: (() => void) | undefined;
 }
 
 const SEVERITY_CLASS_NAMES: Record<
@@ -79,6 +93,22 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
   const testId: string = props.testId || "needs-attention";
   const limit: number = props.shown ?? NEEDS_ATTENTION_SHOWN;
 
+  if (props.error) {
+    return (
+      <div className="mb-6" data-testid={`${testId}-error`}>
+        <Card
+          title={props.title || "Needs attention"}
+          description={
+            props.description ||
+            "What is broken or needs a look, the most urgent first."
+          }
+        >
+          <ErrorMessage message={props.error} onRefreshClick={props.onRetry} />
+        </Card>
+      </div>
+    );
+  }
+
   if (props.items.length === 0) {
     return <></>;
   }
@@ -90,15 +120,19 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
   const reasonText: (reason: ResourceAttentionText) => string = (
     reason: ResourceAttentionText,
   ): string => {
+    // Its numbers in the sentence's digits ("۲ از ۳ در دسترس").
     if (reason.plural) {
       return translator.translatePlural(
         { one: reason.plural.one, other: reason.text },
         reason.plural.count,
-        reason.values,
+        withSentenceDigits(reason.values),
       );
     }
     return reason.values
-      ? translator.translateTemplate(reason.text, reason.values)
+      ? translator.translateTemplate(
+          reason.text,
+          withSentenceDigits(reason.values),
+        )
       : tx(reason.text);
   };
 
@@ -203,8 +237,15 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                       {isCurrent ? (
                         <></>
                       ) : (
-                        <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                          {tx(item.kind)}
+                        <span
+                          data-testid={`${testId}-kind`}
+                          className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
+                        >
+                          {item.kindAsWritten ? (
+                            <bdi>{item.kind}</bdi>
+                          ) : (
+                            tx(item.kind)
+                          )}
                         </span>
                       )}
                       {item.reasons.map(
@@ -223,10 +264,28 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                     {item.detail && !isCurrent ? (
-                      <p className="mt-0.5 font-mono text-xs text-gray-500 [overflow-wrap:anywhere]">
+                      <p
+                        data-testid={`${testId}-detail`}
+                        className="mt-0.5 font-mono text-xs text-gray-500 [overflow-wrap:anywhere]"
+                      >
                         <bdi>
                           <BreakableName text={item.detail} />
                         </bdi>
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+                    {/*
+                     * The resource's own words, as it wrote them: two lines
+                     * at most, the whole of it on hover.
+                     */}
+                    {item.message ? (
+                      <p
+                        data-testid={`${testId}-message`}
+                        title={item.message}
+                        className="mt-1 line-clamp-2 text-xs text-gray-600 [overflow-wrap:anywhere]"
+                      >
+                        <bdi>{item.message}</bdi>
                       </p>
                     ) : (
                       <></>

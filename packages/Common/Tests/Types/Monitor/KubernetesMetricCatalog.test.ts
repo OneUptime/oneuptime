@@ -331,9 +331,13 @@ describe("KubernetesMetricCatalog", () => {
    * that renders as a percentage. The dot-spelled `*.cpu.utilization`
    * gauges are NOT ratios — they are misnamed cores gauges — and are held
    * to the cores rule like any other CPU metric.
+   *
+   * A node condition (`k8s.node.condition_memory_pressure`) is no quantity
+   * either: it is a state, 1, 0 or -1, whatever resource it names.
    */
   describe("physical quantities carry their unit", () => {
     const utilizationRatioName: RegExp = /_utilization$/;
+    const conditionName: RegExp = /\.condition_/;
     const byteQuantityName: RegExp = /memory|filesystem|_bytes$/;
     const cpuQuantityName: RegExp = /cpu/;
 
@@ -346,7 +350,9 @@ describe("KubernetesMetricCatalog", () => {
     const isByteQuantity: (metricName: string) => boolean = (
       metricName: string,
     ): boolean => {
-      return byteQuantityName.test(metricName);
+      return (
+        byteQuantityName.test(metricName) && !conditionName.test(metricName)
+      );
     };
 
     const isCpuQuantity: (metricName: string) => boolean = (

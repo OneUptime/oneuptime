@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39898,
-    "untranslated": 12392
+    "keys": 40026,
+    "untranslated": 12376
   },
   "sameAsEnglish": [
     "2xx",
@@ -45,6 +45,7 @@
     "PVC",
     "Passthrough",
     "Pod",
+    "Pod IP",
     "Pod · data",
     "Pod · production",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",

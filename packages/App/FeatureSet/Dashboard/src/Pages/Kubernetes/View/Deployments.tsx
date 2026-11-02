@@ -20,6 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterDeployments: FunctionComponent<
@@ -55,21 +56,7 @@ const KubernetesClusterDeployments: FunctionComponent<
               (status["readyReplicas"] as number) || 0;
             const replicas: number = (spec["replicas"] as number) || 0;
 
-            if (readyReplicas === replicas && replicas > 0) {
-              resource.status = "Ready";
-            } else if (readyReplicas < replicas) {
-              const conditions: Array<Record<string, unknown>> =
-                (status["conditions"] as Array<Record<string, unknown>>) || [];
-              const failed: boolean = conditions.some(
-                (c: Record<string, unknown>) => {
-                  return c["type"] === "Available" && c["status"] === "False";
-                },
-              );
-              resource.status = failed ? "Failed" : "Progressing";
-            } else {
-              resource.status = "Progressing";
-            }
-
+            // The status is the cluster's rules' (fetchInventoryResources).
             resource.additionalAttributes["ready"] =
               `${readyReplicas}/${replicas}`;
           },
@@ -122,13 +109,23 @@ const KubernetesClusterDeployments: FunctionComponent<
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReady,
         },
       ]}
-      getViewRoute={(resource: KubernetesResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: new ObjectID(resource.name),
-          },
+      getViewRoute={(resource: KubernetesResource): Route => {
+        // In its namespace: names repeat across namespaces.
+        return (
+          getKubernetesPartRoute(modelId, {
+            kind: "Deployment",
+            name: resource.name,
+            namespace: resource.namespace,
+          }) ||
+          RouteUtil.populateRouteParams(
+            RouteMap[
+              PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL
+            ] as Route,
+            {
+              modelId: modelId,
+              subModelId: new ObjectID(resource.name),
+            },
+          )
         );
       }}
     />

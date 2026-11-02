@@ -13,9 +13,10 @@
  *   whose points are 15 minutes or wider. The charts plot the whole range.
  * - The filesystem numbers are per NODE: kubeletstats reports one root
  *   filesystem per node, with no mount or device attribute.
- * - Health, counts, pod phases and node pressure come from the latest
- *   inventory snapshot and ignore the time range picker. So do the top
- *   consumers, which read each pod's latest minute from the past hour.
+ * - Health, counts and pod phases come from the latest inventory snapshot
+ *   and ignore the time range picker; health is what Needs attention lists
+ *   (Common/Types/Kubernetes/KubernetesHealth). So do the top consumers,
+ *   which read each pod's latest minute from the past hour.
  * - The cluster Costs page folds "unallocated" cost into idle spend; the
  *   project Costs page counts only idle capacity as idle.
  *
@@ -47,9 +48,6 @@ export type KubernetesClusterMetric =
   | "namespaces"
   | "agentStatus"
   | "aiAgent"
-  | "memoryPressure"
-  | "diskPressure"
-  | "pidPressure"
   | "podHealth"
   | "topCpuPods"
   | "topMemoryPods"
@@ -101,10 +99,10 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "Pods placed on a node with at least one container running, starting or restarting. Running does not mean healthy - a container can still be failing its readiness check.",
   ),
   podsPending: translationKey(
-    "Pods the cluster has accepted but not started yet - usually waiting for a node with enough free CPU or memory, for an image to download, or for a volume. Any pending pod marks the cluster Degraded.",
+    "Pods the cluster has accepted but not started yet - usually waiting for a node with enough free CPU or memory, for an image to download, or for a volume. A pod pending for more than five minutes marks the cluster Degraded.",
   ),
   podsFailed: translationKey(
-    "Pods whose containers have all stopped, with at least one ending in an error; they will not be restarted. Any failed pod, even one left behind by a finished job, marks the cluster Unhealthy.",
+    "Pods whose containers have all stopped, with at least one ending in an error; they will not be restarted. One that failed in the last hour marks the cluster Degraded; older ones, and a finished job's, are history.",
   ),
   nodesNotReady: translationKey(
     "Nodes whose Ready check is not passing - the node agent (kubelet) is unhealthy, cannot run pods or has stopped reporting - so no new pods are placed on them. Any such node marks the cluster Unhealthy.",
@@ -112,10 +110,10 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
 
   // Summary cards - the latest inventory snapshot.
   clusterHealth: translationKey(
-    "Worked out from the latest inventory, not the selected range: Unhealthy if any pod has failed or any node is not ready, Degraded if any pod is pending or a node reports memory, disk or process pressure, otherwise Healthy.",
+    "What Needs attention lists, from the latest inventory, not the selected range: Unhealthy if something is broken, such as a node not ready or a container that cannot run; Degraded if something needs a look; otherwise Healthy.",
   ),
   clusterHealthOpenShift: translationKey(
-    "Worked out from the latest inventory, not the selected range: Unhealthy if a pod failed, a node is not ready or an operator is unavailable; Degraded if a pod is pending, a node is under pressure, an operator is degraded or an update fails; otherwise Healthy.",
+    "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.",
   ),
   nodes: translationKey(
     "Nodes (the machines that run your pods) in the latest inventory, not the selected range. Nodes whose Ready check is failing are called out as not ready - new pods are not placed on them.",
@@ -131,17 +129,6 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   ),
   aiAgent: translationKey(
     "Whether OneUptime AI can reach this cluster: Connected, Offline (signed off or not checked in for over 5 minutes) or Not installed. This is the Kubernetes AI agent that runs kubectl for OneUptime AI, not the telemetry agent in Agent Status. Opens AI → Agent.",
-  ),
-
-  // Node pressure banner - nodes reporting each condition right now.
-  memoryPressure: translationKey(
-    "The node is running low on memory. Kubernetes stops placing new pods on it and may evict running pods to free memory.",
-  ),
-  diskPressure: translationKey(
-    "The node is running low on disk space for images and container data. Kubernetes may evict pods and delete unused images to free space.",
-  ),
-  pidPressure: translationKey(
-    "The node is close to its limit on running processes (PIDs). New containers may fail to start and Kubernetes may evict pods.",
   ),
 
   podHealth: translationKey(

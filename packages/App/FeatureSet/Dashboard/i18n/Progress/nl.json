@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39898,
-    "untranslated": 12805
+    "keys": 40026,
+    "untranslated": 12793
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -58,6 +58,7 @@
     "Console",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container: {{name}}",
     "Containers",
     "Content Security Policy",
     "Context",
@@ -130,6 +131,7 @@
     "Interfaces",
     "IoT",
     "Japan (+81)",
+    "Kernel",
     "LXC 201 · pve3",
     "Label",
     "Label: {{name}}",
@@ -173,6 +175,8 @@
     "Passthrough",
     "Path traversal",
     "Peer",
+    "Persistent volume claims",
+    "Persistent volumes",
     "Pipelines",
     "Platform",
     "Platforms",
@@ -349,6 +353,8 @@
     "{{count}} appliances",
     "{{count}} cluster",
     "{{count}} clusters",
+    "{{count}} container",
+    "{{count}} containers",
     "{{count}} dashboard",
     "{{count}} dashboards",
     "{{count}} datacenter",
@@ -362,8 +368,12 @@
     "{{count}} host",
     "{{count}} hosts",
     "{{count}} incident",
+    "{{count}} node",
+    "{{count}} nodes",
     "{{count}} open incident",
     "{{count}} open pull requests",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} product",
     "{{count}} repository",
     "{{count}} sample",

@@ -19,7 +19,12 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import {
+  KubernetesPodFacts,
+  getKubernetesPodFacts,
+} from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterPods: FunctionComponent<
   PageComponentProps
@@ -58,22 +63,23 @@ const KubernetesClusterPods: FunctionComponent<
           ) => {
             const spec: Record<string, unknown> =
               (row.spec as unknown as Record<string, unknown>) || {};
-            const status: Record<string, unknown> =
-              (row.status as unknown as Record<string, unknown>) || {};
 
             /*
-             * A waiting container with a reason (ImagePullBackOff, CrashLoopBackOff)
-             * is more useful to surface than the pod's broad phase.
+             * The status is the cluster's rules' (fetchInventoryResources):
+             * CrashLoopBackOff, ImagePullBackOff, Evicted or OOMKilled before
+             * the pod's broad phase, coloured where it needs a look. How many
+             * of its containers are ready, and how often they restarted, is
+             * what kubectl get pods shows beside it.
              */
-            const containerStatuses: Array<Record<string, unknown>> =
-              (status["containerStatuses"] as Array<Record<string, unknown>>) ||
-              [];
-            for (const cs of containerStatuses) {
-              if (cs["state"] === "waiting" && cs["reason"]) {
-                resource.status = cs["reason"] as string;
-                break;
-              }
-            }
+            const facts: KubernetesPodFacts = getKubernetesPodFacts({
+              kind: "Pod",
+              namespaceKey: row.namespaceKey,
+              name: row.name,
+              status: row.status,
+              spec: row.spec,
+            });
+            resource.additionalAttributes["ready"] = facts.ready || "-";
+            resource.additionalAttributes["restarts"] = String(facts.restarts);
 
             const containers: Array<Record<string, unknown>> =
               (spec["containers"] as Array<Record<string, unknown>>) || [];
@@ -160,6 +166,16 @@ const KubernetesClusterPods: FunctionComponent<
       }}
       columns={[
         {
+          title: "Ready",
+          key: "ready",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podReady,
+        },
+        {
+          title: "Restarts",
+          key: "restarts",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podRestarts,
+        },
+        {
           title: "Node",
           key: "resource.k8s.node.name",
         },
@@ -169,13 +185,21 @@ const KubernetesClusterPods: FunctionComponent<
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podContainers,
         },
       ]}
-      getViewRoute={(resource: KubernetesResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: new ObjectID(resource.name),
-          },
+      getViewRoute={(resource: KubernetesResource): Route => {
+        // In its namespace: names repeat across namespaces.
+        return (
+          getKubernetesPartRoute(modelId, {
+            kind: "Pod",
+            name: resource.name,
+            namespace: resource.namespace,
+          }) ||
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route,
+            {
+              modelId: modelId,
+              subModelId: new ObjectID(resource.name),
+            },
+          )
         );
       }}
     />

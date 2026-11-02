@@ -27,6 +27,7 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 
 const KubernetesClusterPVDetail: FunctionComponent<
   PageComponentProps
@@ -175,7 +176,9 @@ const KubernetesClusterPVDetail: FunctionComponent<
       },
       {
         title: "Created",
-        value: pvObject.metadata.creationTimestamp || "N/A",
+        value: KubernetesResourceUtils.formatAge(
+          pvObject.metadata.creationTimestamp,
+        ),
       },
     );
   }

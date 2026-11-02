@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39898,
-    "untranslated": 12732
+    "keys": 40026,
+    "untranslated": 12713
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -74,6 +74,7 @@
     "IoT",
     "Israel (+972)",
     "Job",
+    "Kernel",
     "LXC 201 · pve3",
     "Link",
     "Links",
@@ -230,6 +231,10 @@
     "{{count}} datastores",
     "{{count}} host",
     "{{count}} hosts",
+    "{{count}} namespace",
+    "{{count}} namespaces",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} span",
     "{{count}} spans",
     "{{minutes}} min",

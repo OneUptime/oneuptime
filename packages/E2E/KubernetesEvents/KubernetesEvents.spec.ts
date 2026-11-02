@@ -388,9 +388,13 @@ test.describe("the cluster's Events page", () => {
         await expect(row.getByTestId("kubernetes-event-object")).toContainText(
           "HorizontalPodAutoscaler",
         );
+        // Its page in its namespace: the same name in another is another HPA.
         await expect(
           row.getByTestId("kubernetes-event-object").getByRole("link"),
-        ).toHaveAttribute("href", `${CLUSTER_PATH}/hpas/${hpa}`);
+        ).toHaveAttribute(
+          "href",
+          `${CLUSTER_PATH}/hpas/${hpa}?namespace=${namespace}`,
+        );
         await expect(row.getByTestId("kubernetes-event-namespace")).toHaveText(
           namespace,
         );
@@ -680,7 +684,9 @@ test.describe("the cluster's Events page", () => {
       .getByRole("link", { name: "nginx" })
       .click();
 
-    await expect(page).toHaveURL(`${CLUSTER_PATH}/hpas/nginx`);
+    await expect(page).toHaveURL(
+      `${CLUSTER_PATH}/hpas/nginx?namespace=app-routing-system`,
+    );
     const tab: Locator = page.getByTestId("tab-Events");
     await expect(tab.locator("span")).toHaveText("2");
   });
@@ -1492,7 +1498,10 @@ test.describe("the Events table at every width", () => {
       backOff.getByTestId("kubernetes-event-object").getByRole("link", {
         name: CHECKOUT_POD,
       }),
-    ).toHaveAttribute("href", `${CLUSTER_PATH}/pods/${CHECKOUT_POD}`);
+    ).toHaveAttribute(
+      "href",
+      `${CLUSTER_PATH}/pods/${CHECKOUT_POD}?namespace=shop`,
+    );
     await expect(backOff.getByTestId("kubernetes-event-namespace")).toHaveText(
       "shop",
     );
@@ -1697,10 +1706,10 @@ test.describe("being told when Kubernetes warns", () => {
       line.getByTestId("kubernetes-warning-alerts-turn-on"),
     ).toHaveCount(0);
 
-    // The Recommendations count it as created: 1 of 19, under Already created.
+    // The Recommendations count it as created: 1 of 22, under Already created.
     await page.goto(`${RECOMMENDATIONS_PAGE}?alerting=on`);
     await expect(
-      page.getByText("1 of 19 recommended monitors created"),
+      page.getByText("1 of 22 recommended monitors created"),
     ).toBeVisible();
     await page
       .getByRole("button", {

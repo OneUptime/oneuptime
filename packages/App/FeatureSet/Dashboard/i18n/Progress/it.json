@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39898,
-    "untranslated": 12760
+    "keys": 40026,
+    "untranslated": 12739
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -80,6 +80,7 @@
     "Insight",
     "IoT",
     "Job",
+    "Kernel",
     "LXC 201 · pve3",
     "Log4Shell",
     "MCP",
@@ -94,6 +95,7 @@
     "Min",
     "Mobile",
     "Monitor",
+    "Mount",
     "Namespace",
     "Nav",
     "No",
@@ -237,6 +239,7 @@
     "{{count}} datastore",
     "{{count}} guest",
     "{{count}} host",
+    "{{count}} pod",
     "{{count}} repository",
     "{{count}} span",
     "{{count}} team",

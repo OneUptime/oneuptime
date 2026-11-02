@@ -7,6 +7,7 @@ import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -42,6 +43,20 @@ import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/Met
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import {
+  getKubernetesPodsTab,
+  getKubernetesWorkloadLogsTab,
+} from "../../../Components/Kubernetes/Part/KubernetesPartTabs";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -66,6 +81,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          // The hero's link back to the cluster, and the Logs tab's chip.
+          name: true,
         },
       });
       setCluster(item);
@@ -118,6 +135,18 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     description: "Kubernetes events for this node in the last 24 hours.",
     resourceKind: "Node",
   });
+
+  /*
+   * The node as the cluster's rules read it, with the pods scheduled on it:
+   * its hero, what needs attention on it and its Pods tab
+   * (KubernetesPartFacts).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: "Node",
+    name: nodeName,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -228,33 +257,15 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Determine node status from conditions
-  const getNodeStatus: () => { label: string; isReady: boolean } = (): {
-    label: string;
-    isReady: boolean;
-  } => {
-    if (!nodeObject) {
-      return { label: "Unknown", isReady: false };
-    }
-    const readyCondition: KubernetesCondition | undefined =
-      nodeObject.status.conditions.find((c: KubernetesCondition) => {
-        return c.type === "Ready";
-      });
-    if (readyCondition && readyCondition.status === "True") {
-      return { label: "Ready", isReady: true };
-    }
-    return { label: "NotReady", isReady: false };
-  };
-
-  // Build overview summary fields from node object
+  /*
+   * What Kubernetes reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Node Name", value: nodeName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Node Name", value: nodeName, copyText: nodeName },
   ];
 
   if (nodeObject) {
-    const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
-
     // Extract node roles from labels
     const roles: Array<string> = Object.keys(nodeObject.metadata.labels)
       .filter((key: string) => {
@@ -286,20 +297,12 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         return c.type;
       });
 
-    summaryFields.push({
-      title: "Status",
-      value: (
-        <StatusBadge
-          text={nodeStatus.label}
-          type={
-            nodeStatus.isReady
-              ? StatusBadgeType.Success
-              : StatusBadgeType.Danger
-          }
-        />
-      ),
-    });
-
+    /*
+     * No Status field: the hero says it by the cluster's rules ("Ready",
+     * "Unreachable", "Disk pressure", "Scheduling disabled"), and a red
+     * NotReady here beside its Unreachable read as a second answer. The
+     * Conditions below hold Kubernetes' own Ready condition.
+     */
     if (roles.length > 0) {
       summaryFields.push({
         title: "Roles",
@@ -326,9 +329,13 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         title: "Pressure",
         value: (
           <div className="flex gap-1 flex-wrap">
+            {/*
+             * Amber, as the hero and Needs attention colour a node under
+             * pressure: it needs a look, it is not down.
+             */}
             {pressureConditions.map((p: string) => {
               return (
-                <StatusBadge key={p} text={p} type={StatusBadgeType.Danger} />
+                <StatusBadge key={p} text={p} type={StatusBadgeType.Warning} />
               );
             })}
           </div>
@@ -387,16 +394,35 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={nodeObject?.metadata.labels || {}}
-          annotations={nodeObject?.metadata.annotations || {}}
-          conditions={nodeObject?.status.conditions}
-          isLoading={isLoadingObject}
-        />
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind="Node"
+            read={partState.read}
+            error={partState.error}
+            onRetry={partState.refresh}
+            routes={routes}
+          />
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={nodeObject?.metadata.labels || {}}
+            annotations={nodeObject?.metadata.annotations || {}}
+            conditions={nodeObject?.status.conditions}
+            isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("Node")}
+          />
+        </>
       ),
     },
+    getKubernetesPodsTab({ kind: "Node", part: partState, routes: routes }),
     eventsTab,
+    getKubernetesWorkloadLogsTab({
+      kind: "Node",
+      name: nodeName,
+      clusterIdentifier: clusterIdentifier,
+      clusterName: cluster.name,
+    }),
     {
       name: "Metrics",
       children: (
@@ -456,7 +482,22 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * What the node is and how it is doing, in Kubernetes' own words,
+       * above its tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind="Node"
+        name={nodeName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        routes={routes}
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterNodeDetail;

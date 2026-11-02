@@ -1058,6 +1058,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProxmoxResourcePostgres.test.ts --forceExit
 
+      # Clones the migrated KubernetesResource table (with its unique identity
+      # index and the partial index of what needs attention) into an isolated
+      # schema and runs KubernetesResourceService's hand-written SQL against
+      # it: the upsert that stores each object's verdict (healthSeverity) and
+      # never lets an older snapshot overwrite it, the Overview's read of what
+      # needs attention (through the partial index, namespaces and kinds bound
+      # as arrays), and a part's page read of what it runs - a Deployment's
+      # pods by its ReplicaSets' names, a node's by the name in their spec, a
+      # CronJob's Jobs and their pods.
+      - name: Test the Kubernetes inventory's health SQL on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_KUBERNETES_HEALTH_TESTS: "true"
+          KUBERNETES_HEALTH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          KUBERNETES_HEALTH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          KUBERNETES_HEALTH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/KubernetesResourceHealthPostgres.test.ts --forceExit
+
       # Enable AI became the project's only AI switch. Clones the migrated
       # Project, AutoRemediationRule, Runner and Fixes-mode tables into an
       # isolated schema, puts the two dropped switches back with the

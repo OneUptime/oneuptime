@@ -239,6 +239,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Utils/AiRemediation/CloudChangeWords.ts",
     kind: "ui",
   },
+  /*
+   * A Kubernetes object's status and what needs attention about it, by the
+   * cluster's own rules: the Overview's Needs attention, every part's page,
+   * the lists and the Topology say them in the reader's language. Only the
+   * words the file marks are read: Kubernetes' own reasons
+   * (CrashLoopBackOff, OOMKilled) are drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Kubernetes/KubernetesHealth.ts",
+    kind: "keys",
+  },
 ];
 
 /*
