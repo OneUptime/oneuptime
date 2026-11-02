@@ -238,7 +238,9 @@ describe("OneUptime AI's table columns", () => {
 
     for (const code of TRANSLATED_LOCALES) {
       const locale: LocaleTree = readLocale(code);
-      const same: Set<string> = new Set(readLocaleProgress(code).sameAsEnglish);
+      const same: Set<string> = new Set(
+        readLocaleProgress(code)?.sameAsEnglish || [],
+      );
 
       for (const name of marked) {
         const value: unknown = locale[name];

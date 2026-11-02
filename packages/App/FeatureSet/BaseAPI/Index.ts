@@ -4512,10 +4512,10 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<SecurityCaseNoteTemplate, SecurityCaseNoteTemplateServiceType>(
+      new BaseAPI<
         SecurityCaseNoteTemplate,
-        SecurityCaseNoteTemplateService,
-      ).getRouter(),
+        SecurityCaseNoteTemplateServiceType
+      >(SecurityCaseNoteTemplate, SecurityCaseNoteTemplateService).getRouter(),
     );
 
     // A definition table: it answers the option editor's option-usage too.

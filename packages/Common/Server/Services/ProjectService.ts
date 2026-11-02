@@ -5742,7 +5742,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
   public async incrementAndGetSecurityCaseCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    return await this.takeNextNumber(projectId, NumberedRecordKind.SecurityCase);
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.SecurityCase,
+    );
   }
 
   /*

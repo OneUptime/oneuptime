@@ -1285,6 +1285,12 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Kubernetes/KubernetesHealth.ts",
       // A host's status and reasons - not its mount points or unit names.
       "keys packages/Common/Types/Host/HostHealth.ts",
+      // Where a database or a queue was found, and a cloud resource's kind.
+      "keys packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
+      "keys packages/Common/Models/DatabaseModels/MessageQueue.ts",
+      "keys packages/Common/Types/Cloud/CloudResourceCatalog.ts",
+      // The column titles of OneUptime AI's tables - not its prompts.
+      "keys packages/Common/Server/Utils/AI/Toolbox",
     ]);
   });
 

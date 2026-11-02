@@ -148,8 +148,7 @@ export default class SecurityCaseNoteTemplate extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description:
-      "What people pick the template by in a case's note composer.",
+    description: "What people pick the template by in a case's note composer.",
     example: "Containment checklist",
   })
   @Column({

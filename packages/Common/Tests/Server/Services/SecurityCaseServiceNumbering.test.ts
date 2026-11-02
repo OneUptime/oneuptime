@@ -110,9 +110,9 @@ describe("a new case's number", () => {
 
     const created: SecurityCase = await open();
 
-    expect(ProjectService.incrementAndGetSecurityCaseCounter).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      ProjectService.incrementAndGetSecurityCaseCounter,
+    ).toHaveBeenCalledTimes(1);
     expect(
       ProjectService.incrementAndGetSecurityCaseCounter,
     ).toHaveBeenCalledWith(PROJECT_ID);

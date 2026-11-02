@@ -173,7 +173,8 @@ export default class SecurityCaseCustomField extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Description",
-    description: "What the field is for, shown under it when a case's fields are edited.",
+    description:
+      "What the field is for, shown under it when a case's fields are edited.",
     example: "The business unit whose systems the case is about.",
   })
   @Column({
