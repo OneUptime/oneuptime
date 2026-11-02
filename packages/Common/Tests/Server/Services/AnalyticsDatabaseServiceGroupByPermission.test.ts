@@ -1,5 +1,8 @@
 import "../TestingUtils/Init";
 import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { getJestSpyOn } from "../../Spy";
 import ColumnRefusalMessage from "../../../Server/Types/Database/Permissions/ColumnRefusalMessage";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import AnalyticsBaseModel, {
@@ -26,6 +29,22 @@ import {
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
+
+/*
+ * CI runs these with billing on (packages/Common/test-setup.sh), and a read
+ * then first asks the project's plan (CallerPlan, through
+ * ProjectService.getCurrentPlan) from Postgres, which these suites never
+ * start: every read failed "Database not connected" before it reached a
+ * column check. The project is on the plan that gates nothing, so only the
+ * permissions these suites are about decide, with billing on or off.
+ */
+beforeEach(() => {
+  getJestSpyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+  getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
+});
 
 /*
  * A telemetry read's group by is what the read returns: a list grouped by a
