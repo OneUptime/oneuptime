@@ -3,7 +3,8 @@
  *
  * A metric's anomaly condition compares a data point with its hour of the week
  * on earlier days, folded from MetricBaselineHourly: every raw sample of that
- * metric name, across all its series unless the monitor names its services.
+ * metric name, across all its series unless the monitor names its services, or
+ * from the data points of the query's own series when no rollup can say.
  * These are the things that read has to get right. Each came from a test that
  * failed without it, on simulated traffic, except where it says otherwise: no
  * real traffic has been measured.
@@ -19,7 +20,13 @@
  *     neither is anything of a histogram, whose cell holds each datapoint's
  *     sum: those fired on every check, or never. They are read from their own
  *     data points on the same earlier days, and judged by all that follows.
- *     What no table can scope to the query is not judged at all.
+ *   - The query's own series. A rollup holds no attribute, so a filter on a host
+ *     was judged against every host's samples: a fleet's cell is wide enough for
+ *     any of its hosts, so it stayed quiet, and most of what happened to one of
+ *     them stayed inside it. A query narrowed by an attribute reads its own
+ *     data points, a series at a time. That is as far back as telemetry is
+ *     kept, so a series that cannot hold two earlier weeks stays on the cell
+ *     (keepsWeeksNeeded).
  *   - Earlier days only. The hour being judged used to be part of its own
  *     baseline. Once a change is a share p of a cell's samples it can reach at
  *     most sqrt((1 - p) / p) standard deviations, whatever its size and however
@@ -76,6 +83,13 @@ export const METRIC_ROUNDING_SHARE: number = 1e-9;
 // How many earlier weeks of an hour a baseline asks for.
 export const METRIC_BASELINE_MINIMUM_WEEKS: number = 2;
 
+/*
+ * How many series a query reads a baseline of its own for. A read grows with
+ * them: 2,000 pods took over a second and half a gigabyte, in 28,000 rows that
+ * are then kept for the hour. A query split into more stays on the cell.
+ */
+export const METRIC_BASELINE_MAX_SERIES: number = 5000;
+
 // One hour of one day of a metric, as MetricBaselineHourly folds it.
 export interface MetricBaselineDayRow {
   // Its day as ClickHouse writes one: 2026-11-02.
@@ -92,6 +106,8 @@ export interface MetricDataPointDayRow extends MetricBaselineDayRow {
   variance: number;
   median: number;
   p95: number;
+  // How long the data points of that day are kept, as ClickHouse writes a time.
+  keptUntil?: string | undefined;
 }
 
 // What an hour's earlier data points hold together, as a cell of samples does.
@@ -119,7 +135,9 @@ export enum MetricBaselineSource {
   Samples = "Samples",
   // The minute rollup, which holds a plain metric's data points.
   MinuteRollup = "MinuteRollup",
-  // The metric's own rows, which alone hold a histogram's observations.
+  // The minute rollup of the one host, cluster, container or service filtered to.
+  EntityRollup = "EntityRollup",
+  // The metric's own rows, which alone hold attributes and observations.
   Rows = "Rows",
 }
 
@@ -169,9 +187,14 @@ export default class MetricHourBaseline {
    * of a minute is not: it grows with how many samples a minute holds. Neither
    * is anything of a histogram, whose samples are each datapoint's sum. Their
    * data points are in the minute rollup, or for a histogram in its rows, since
-   * only those hold how many observations each sum was of. Both are kept as
-   * long as the metric's telemetry retention, and neither knows any attribute
-   * but the service, so a query that filters or groups by one is not judged:
+   * only those hold how many observations each sum was of.
+   *
+   * Neither rollup knows any attribute but the service. A query narrowed by an
+   * attribute reads its own rows instead, or the rollup of the one entity it is
+   * filtered to, and is judged by its own history whatever it measures. A query
+   * narrowed by something that cannot be read back (isNarrowedByAttributes with
+   * no scope, such as a group by the whole attribute map) is left on the
+   * samples' cell when it is on their scale, and is not judged when it is not:
    * against a neighbour's scale it could only fire on every check. Nor is a
    * percentile of a histogram, which only its buckets can say, or a data point
    * longer than the hour it would be compared with.
@@ -182,22 +205,34 @@ export default class MetricHourBaseline {
     isDistribution: boolean;
     isNarrowedByAttributes: boolean;
     bucketInMinutes: number;
+    // What narrows the query can be read back: the attributes it filters by.
+    hasScope?: boolean | undefined;
+    // It is filtered to one entity, whose rollup holds its data points.
+    hasEntityRollup?: boolean | undefined;
   }): MetricBaselineSource | null {
-    if (!data.isTotal && !data.isDistribution) {
+    const isOnSamplesScale: boolean = !data.isTotal && !data.isDistribution;
+
+    if (isOnSamplesScale && !data.isNarrowedByAttributes) {
       return MetricBaselineSource.Samples;
     }
 
     if (
-      data.isNarrowedByAttributes ||
-      data.isPercentile ||
-      data.bucketInMinutes > MINUTES_IN_AN_HOUR
+      (data.isDistribution && data.isPercentile) ||
+      data.bucketInMinutes > MINUTES_IN_AN_HOUR ||
+      (data.isNarrowedByAttributes && !data.hasScope)
     ) {
-      return null;
+      return isOnSamplesScale ? MetricBaselineSource.Samples : null;
     }
 
-    return data.isDistribution
-      ? MetricBaselineSource.Rows
-      : MetricBaselineSource.MinuteRollup;
+    if (!data.isNarrowedByAttributes) {
+      return data.isDistribution
+        ? MetricBaselineSource.Rows
+        : MetricBaselineSource.MinuteRollup;
+    }
+
+    return data.hasEntityRollup && !data.isDistribution && !data.isPercentile
+      ? MetricBaselineSource.EntityRollup
+      : MetricBaselineSource.Rows;
   }
 
   /*
@@ -266,6 +301,37 @@ export default class MetricHourBaseline {
     };
   }
 
+  /*
+   * Whether a series' rows can hold the weeks a baseline asks for. A row says
+   * how long it is kept, which is its service's telemetry retention, so a read
+   * can tell a series that is only young from one whose history leaves before
+   * it can be learned from. One with no such row says nothing and is not held
+   * back.
+   */
+  public static keepsWeeksNeeded(data: {
+    rows: Array<MetricDataPointDayRow>;
+    windowDays: number;
+  }): boolean {
+    let keptFor: number = Infinity;
+    let newest: string = "";
+
+    for (const row of data.rows) {
+      if (row.keptUntil && row.day > newest) {
+        newest = row.day;
+        keptFor =
+          Date.parse(`${row.keptUntil.replace(" ", "T")}Z`) -
+          MetricHourBaseline.toDayNumber(row.day) * DAY_IN_MS;
+      }
+    }
+
+    return (
+      keptFor >=
+      MetricHourBaseline.getWeeksNeeded(data.windowDays) *
+        DAYS_IN_A_WEEK *
+        DAY_IN_MS
+    );
+  }
+
   // The same hour of each day of the week: what a level's move is read from.
   public static getHoursOfDay(hourOfWeek: number): Array<number> {
     const hourOfDay: number = hourOfWeek % 24;
@@ -307,6 +373,12 @@ export default class MetricHourBaseline {
    * What an hour's rows say about it. `rows` are the same hour on every day
    * from the start of the baseline window on (getHoursOfDay), the day judged
    * included, and `stddev` the spread of the earlier days' samples as measured.
+   *
+   * With `isOfDataPoints` the rows are a query's own data points on the earlier
+   * days alone, and what the day judged would add is in the check's hands: it
+   * asks for an hour it holds a data point of, so that is one more towards
+   * minSamples, and that data point is on the scale of a flat history's value,
+   * so any that is off it has left it, with nothing more to read.
    */
   public static read(data: {
     rows: Array<MetricBaselineDayRow>;
@@ -315,6 +387,7 @@ export default class MetricHourBaseline {
     stddev: number;
     windowDays: number;
     minSamples: number;
+    isOfDataPoints?: boolean | undefined;
   }): MetricHourReading {
     const earlier: Array<MetricBaselineDayRow> = data.rows.filter(
       (row: MetricBaselineDayRow): boolean => {
@@ -348,26 +421,21 @@ export default class MetricHourBaseline {
     const measured: number = isFlat ? 0 : data.stddev;
     const stddev: number = Math.sqrt(measured * measured + levelVariance);
 
-    const weeksNeeded: number = Math.max(
-      1,
-      Math.min(
-        METRIC_BASELINE_MINIMUM_WEEKS,
-        Math.floor(data.windowDays / DAYS_IN_A_WEEK),
-      ),
-    );
-
     return {
       stddev,
       isReliable:
-        earlierHours.length >= weeksNeeded &&
-        MetricHourBaseline.countSamples([...earlierHours, ...ownHours]) >=
+        earlierHours.length >=
+          MetricHourBaseline.getWeeksNeeded(data.windowDays) &&
+        MetricHourBaseline.countSamples([...earlierHours, ...ownHours]) +
+          (data.isOfDataPoints ? 1 : 0) >=
           data.minSamples,
       leftFlatHistory:
         isFlat &&
         stddev === 0 &&
-        ownHours.some((row: MetricBaselineDayRow): boolean => {
-          return row.minObserved !== value || row.maxObserved !== value;
-        }),
+        (Boolean(data.isOfDataPoints) ||
+          ownHours.some((row: MetricBaselineDayRow): boolean => {
+            return row.minObserved !== value || row.maxObserved !== value;
+          })),
     };
   }
 
@@ -459,6 +527,16 @@ export default class MetricHourBaseline {
     }
 
     return (MetricHourBaseline.median(differences) * MEDIAN_TO_SIGMA) / 2;
+  }
+
+  private static getWeeksNeeded(windowDays: number): number {
+    return Math.max(
+      1,
+      Math.min(
+        METRIC_BASELINE_MINIMUM_WEEKS,
+        Math.floor(windowDays / DAYS_IN_A_WEEK),
+      ),
+    );
   }
 
   private static countSamples(rows: Array<MetricBaselineDayRow>): number {

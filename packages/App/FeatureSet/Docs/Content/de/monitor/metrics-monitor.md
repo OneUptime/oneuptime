@@ -138,7 +138,7 @@ Womit ein Datenpunkt verglichen wird, hängt von der Abfrage ab:
 - **Ihre Services.** Ein Monitor, der Services nennt, wird nur mit diesen Services verglichen. Einer, der keine nennt, wird mit jedem Service verglichen, der die Metrik meldet.
 - **Ein Durchschnitt, Minimum, Maximum oder Perzentil einer einfachen Metrik** wird mit den Messwerten der Metrik verglichen, so weit das **Baseline-Fenster** zurückreicht.
 - **Eine Summe oder eine Anzahl und jede Abfrage auf einem Histogramm** wird mit den eigenen Datenpunkten der Abfrage verglichen. Diese werden so lange aufbewahrt wie Ihre Metriken, der Vergleich reicht also nicht weiter zurück: 15 Tage, sofern Sie das nicht geändert haben.
-- **Eine nach einem Attribut gefilterte oder gruppierte Abfrage** wird mit allen Reihen ihrer Services verglichen, weil eine Baseline keine Attribute enthält. Sie bemerkt also nur eine Änderung, die groß genug ist, um den Bereich aller Reihen zu verlassen. Ist es eine Summe, eine Anzahl oder eine Abfrage auf einem Histogramm, gibt es nichts zum Vergleichen, und sie lernt weiter. Das gilt auch für ein Perzentil eines Histogramms.
+- **Eine nach einem Attribut gefilterte oder gruppierte Abfrage** wird mit ihren eigenen Datenpunkten verglichen, jede Reihe mit ihren eigenen, sodass ein Host danach beurteilt wird, was dieser Host tut. Sie reichen so weit zurück, wie Ihre Metriken aufbewahrt werden. Sind das weniger als zwei Wochen, wird ein Durchschnitt, Minimum, Maximum oder Perzentil stattdessen mit allen Reihen ihrer Services verglichen, was nur eine Änderung bemerkt, die groß genug ist, um den Bereich aller Reihen zu verlassen, und eine Summe, eine Anzahl oder eine Abfrage auf einem Histogramm lernt weiter. Ein Perzentil eines Histogramms lernt immer weiter. Ein Monitor, der in mehr als 5.000 Reihen aufgeteilt ist, wird behandelt, als würden Ihre Metriken weniger als zwei Wochen aufbewahrt.
 
 Eine Summe oder eine Anzahl gilt nur bei einem vollständigen Datenpunkt als niedrig, auf den ein weiterer vollständiger folgt, weil die neuesten noch gefüllt werden. Ein Fenster von einer Minute kann daher nur einen hohen Wert finden.
 
@@ -223,7 +223,7 @@ Die Abfrage hat kein **Gruppieren nach**, also werden alle Hosts zu einer Zahl z
 :::
 
 :::details Ein Anomaliekriterium löst nie aus
-Es lernt noch: Die Stunde der Woche, mit der es vergleicht, hat noch keine zwei Wochen Verlauf. Eine nach einem Attribut gefilterte oder gruppierte Summe, Anzahl oder Abfrage auf einem Histogramm lernt dauerhaft weiter, ebenso ein Perzentil eines Histogramms: Es gibt keinen Verlauf, mit dem sie verglichen werden könnten.
+Es lernt noch: Die Stunde der Woche, mit der es vergleicht, hat noch keine zwei Wochen Verlauf. Eine nach einem Attribut gefilterte oder gruppierte Abfrage lernt aus ihrer eigenen Reihe, daher muss ein neuer Host oder Pod erst lernen, egal wie lange die Metrik schon berichtet. Ein Perzentil eines Histogramms lernt dauerhaft weiter, ebenso eine nach einem Attribut gefilterte oder gruppierte Summe, Anzahl oder Abfrage auf einem Histogramm, wenn Ihre Metriken weniger als zwei Wochen aufbewahrt werden: Es gibt keinen Verlauf, mit dem sie verglichen werden könnten.
 :::
 
 ## Nächste Schritte

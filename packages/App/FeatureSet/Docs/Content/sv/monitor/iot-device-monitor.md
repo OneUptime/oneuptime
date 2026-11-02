@@ -152,7 +152,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när en serie inte har några stickprov i fönstret: **Ignore** (standard) hoppar över den, **Treat As Zero** läser den som `0`, och **Utlösare** får kriteriet att matcha. |
 
-Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i tillståndet "Learning", och skickar inte ut något, tills baslinjefönstret innehåller tillräckligt med historik. En summa, ett antal eller en fråga på ett histogram stannar i det tillståndet för alltid: den här monitorn filtrerar sina frågor på attribut, och baslinjen innehåller inga.
+Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i tillståndet "Learning", och skickar inte ut något, tills baslinjefönstret innehåller tillräckligt med historik. Den här monitorn filtrerar sina frågor på attribut, så varje fråga, och varje serie i en grupperad fråga, jämförs med sin egen historik, så långt tillbaka som dina metriker sparas. Är det under två veckor stannar en summa, ett antal eller en fråga på ett histogram i det tillståndet för alltid, och allt annat jämförs med alla serier i metriken. En percentil av ett histogram stannar alltid i det tillståndet.
 
 ### Standardkriterier
 

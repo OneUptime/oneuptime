@@ -243,7 +243,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 **你在 OneUptime 中看到的内容。** 代理还会以只读方式读取 OpenShift 自身的对象，并显示在集群的页面中：
 
 - 集群的 **概览** 以 **OpenShift** 卡片开头：它运行的版本、更新正在进行还是失败，以及有多少集群 Operator 健康，并附上其余每个 Operator 报告的内容。不可用的 Operator 会让集群变为 **不健康**，性能下降的 Operator 或失败的更新会让集群变为 **性能下降**。
-- **网络** 下的 **Routes** 和 **服务**：每个 Route 在哪里响应、如何终止 TLS、把流量发送到哪些服务以及各占多少比例，以及路由器拒绝它的原因。Route 的 TLS 密钥绝不会离开集群：代理在发送 Route 之前会替换它。
+- **网络** 下的 **路由** 和 **服务**：每个 Route 在哪里响应、如何终止 TLS、把流量发送到哪些服务以及各占多少比例，以及路由器拒绝它的原因。Route 的 TLS 密钥绝不会离开集群：代理在发送 Route 之前会替换它。
 - **工作负载** 下的 **DeploymentConfigs** 的显示方式与 Deployment 相同：它们的发布、Pod 的 CPU 和内存，以及它们运行的 ReplicationController 和 Pod 的事件。
 
 **关于 Operator 和更新的警报。** OpenShift 集群的 **建议** 页面提供 **Cluster Operator Unavailable**、**Cluster Operator Degraded** 和 **Cluster Update Failing**。每一项都是一个日志监视器，监视代理每隔 `resourceSpecs.interval` 发送的快照。一旦两个快照都报告问题就会发出警报，因此 Operator 在更新期间短暂切换状态不会触发任何警报；当快照表明问题已结束时，警报才会解决，绝不会因为代理停止发送而解决。

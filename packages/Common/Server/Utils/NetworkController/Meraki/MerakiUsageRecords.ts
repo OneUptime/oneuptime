@@ -17,7 +17,10 @@ import {
  *     bytes;
  *   - traffic analytics (networks/{id}/traffic) and client usage
  *     (networks/{id}/clients): "kb" - kibibytes, 1,024 bytes each, which is
- *     what the dashboard's own totals are summed from.
+ *     what the dashboard's own totals are summed from;
+ *   - uplink loss and latency (organizations/{id}/devices/
+ *     uplinksLossAndLatency): a percentage and milliseconds, one sample a
+ *     minute, either of which may be missing.
  *
  * A busy window is held to the rows a page needs: the busiest
  * MAX_APPLICATION_ROWS application rows and MAX_CLIENT_ROWS client rows,
@@ -29,6 +32,9 @@ import {
 export const KIBIBYTE: number = 1024;
 export const MAX_APPLICATION_ROWS: number = 500;
 export const MAX_CLIENT_ROWS: number = 200;
+// What a measurement is kept to: all of it lost, and ten minutes' round trip.
+export const MAX_LOSS_PERCENT: number = 100;
+export const MAX_LATENCY_MS: number = 600000;
 
 // Lengths each text is kept to.
 export const TEXT_LIMITS: {
@@ -122,6 +128,26 @@ export function readOctets(value: unknown, multiplier: number = 1): number {
   return Math.min(Number.MAX_SAFE_INTEGER, Math.round(parsed * multiplier));
 }
 
+/*
+ * A measurement: finite and non-negative, at most `max` - or null, which is
+ * what Meraki sends for a minute it has no sample of. Null is never 0: a
+ * missing sample is unknown, and 0 would read as a perfect line.
+ */
+export function readMeasurement(value: unknown, max: number): number | null {
+  const parsed: number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : NaN;
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return Math.min(max, parsed);
+}
+
 // A whole count (flows, clients, a port): finite and non-negative.
 export function readCount(value: unknown, max: number): number {
   const parsed: number =
@@ -181,6 +207,8 @@ function emptyRecord(data: {
     receivedOctets: 0,
     flows: 0,
     clients: 0,
+    lossPercent: null,
+    latencyMs: null,
     windowStartAt: data.windowStartAt,
     windowEndAt: data.windowEndAt,
   };
@@ -300,6 +328,125 @@ export function buildUplinkRecords(data: {
         receivedOctets: received,
       });
     }
+  }
+
+  return records;
+}
+
+// The samples of one uplink over a window, and what they add up to.
+interface UplinkHealthSamples {
+  networkId: string;
+  serial: string;
+  interfaceName: string;
+  lossTotal: number;
+  lossSamples: number;
+  latencyTotal: number;
+  latencySamples: number;
+}
+
+/*
+ * One window of the whole organization's uplink loss and latency: a record
+ * per appliance and uplink that was measured, holding the average of its
+ * samples. An uplink measured towards several addresses is one line, so its
+ * samples are averaged together. Loss and latency are averaged apart, since
+ * a line that is down loses every packet and has no latency to report; an
+ * uplink with no sample of either in the window has no record.
+ */
+export function buildUplinkHealthRecords(data: {
+  answer: Array<unknown>;
+  appliances: Map<string, NetworkControllerAppliance>;
+  networkNames: Map<string, string>;
+  windowStartAt: Date;
+  windowEndAt: Date;
+}): Array<NetworkTrafficUsageRecord> {
+  const byUplink: Map<string, UplinkHealthSamples> = new Map();
+
+  for (const value of data.answer) {
+    const row: JSONObject | null = asObject(value);
+
+    if (!row) {
+      continue;
+    }
+
+    const networkId: string = cleanText(
+      row["networkId"],
+      TEXT_LIMITS.networkId,
+    );
+    const serial: string = cleanSerial(row["serial"]);
+    const samples: unknown = row["timeSeries"];
+
+    if (!networkId || !serial || !Array.isArray(samples)) {
+      continue;
+    }
+
+    const interfaceName: string =
+      cleanText(row["uplink"], TEXT_LIMITS.interfaceName) || "uplink";
+    const key: string = `${networkId}/${serial}/${interfaceName}`;
+    const uplink: UplinkHealthSamples = byUplink.get(key) || {
+      networkId,
+      serial,
+      interfaceName,
+      lossTotal: 0,
+      lossSamples: 0,
+      latencyTotal: 0,
+      latencySamples: 0,
+    };
+
+    for (const sampleValue of samples) {
+      const sample: JSONObject | null = asObject(sampleValue);
+
+      if (!sample) {
+        continue;
+      }
+
+      const loss: number | null = readMeasurement(
+        sample["lossPercent"],
+        MAX_LOSS_PERCENT,
+      );
+      const latency: number | null = readMeasurement(
+        sample["latencyMs"],
+        MAX_LATENCY_MS,
+      );
+
+      if (loss !== null) {
+        uplink.lossTotal += loss;
+        uplink.lossSamples++;
+      }
+
+      if (latency !== null) {
+        uplink.latencyTotal += latency;
+        uplink.latencySamples++;
+      }
+    }
+
+    byUplink.set(key, uplink);
+  }
+
+  const records: Array<NetworkTrafficUsageRecord> = [];
+
+  for (const uplink of byUplink.values()) {
+    if (uplink.lossSamples === 0 && uplink.latencySamples === 0) {
+      continue;
+    }
+
+    records.push({
+      ...emptyRecord({
+        kind: NetworkTrafficUsageKind.UplinkHealth,
+        controllerNetworkId: uplink.networkId,
+        controllerNetworkName: data.networkNames.get(uplink.networkId) || "",
+        windowStartAt: data.windowStartAt,
+        windowEndAt: data.windowEndAt,
+      }),
+      deviceSerial: uplink.serial,
+      deviceName: data.appliances.get(uplink.serial)?.name || "",
+      interfaceName: uplink.interfaceName,
+      lossPercent:
+        uplink.lossSamples > 0 ? uplink.lossTotal / uplink.lossSamples : null,
+      latencyMs:
+        uplink.latencySamples > 0
+          ? uplink.latencyTotal / uplink.latencySamples
+          : null,
+    });
   }
 
   return records;
