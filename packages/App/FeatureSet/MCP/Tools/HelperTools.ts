@@ -8,6 +8,10 @@ import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { sanitizeToolName } from "./SchemaConverter";
 import { readOnlyToolAnnotations } from "./ToolAnnotations";
+import { describeResource } from "./DescribeResource";
+
+export const DESCRIBE_RESOURCE_TOOL_NAME: string =
+  "oneuptime_describe_resource";
 
 export interface ResourceInfo {
   name: string;
@@ -15,15 +19,11 @@ export interface ResourceInfo {
   pluralName: string;
   description: string;
   operations: string[];
+  modelType: ModelType;
 }
 
-/**
- * Generate helper tools for MCP
- */
-export function generateHelperTools(
-  resourceTools: McpToolInfo[],
-): McpToolInfo[] {
-  // Extract unique resources from tools
+// The resources behind the tools generated for models.
+function getResources(resourceTools: McpToolInfo[]): ResourceInfo[] {
   const resources: Map<string, ResourceInfo> = new Map();
 
   for (const tool of resourceTools) {
@@ -34,6 +34,7 @@ export function generateHelperTools(
         pluralName: tool.pluralName,
         description: getResourceDescription(tool.singularName),
         operations: [],
+        modelType: tool.modelType,
       });
     }
     const resource: ResourceInfo | undefined = resources.get(tool.tableName);
@@ -42,9 +43,18 @@ export function generateHelperTools(
     }
   }
 
-  const resourceList: ResourceInfo[] = Array.from(resources.values());
+  return Array.from(resources.values());
+}
 
-  return [createHelpTool(resourceList), createResourceInfoTool(resourceList)];
+/**
+ * Generate helper tools for MCP
+ */
+export function generateHelperTools(): McpToolInfo[] {
+  return [
+    createHelpTool(),
+    createResourceInfoTool(),
+    createDescribeResourceTool(),
+  ];
 }
 
 function getResourceDescription(singularName: string): string {
@@ -102,26 +112,18 @@ function getResourceDescription(singularName: string): string {
   );
 }
 
-function createHelpTool(resources: ResourceInfo[]): McpToolInfo {
-  const resourceSummary: string = resources
-    .map((r: ResourceInfo) => {
-      return `- ${r.pluralName}: ${r.description}`;
-    })
-    .join("\n");
-
+function createHelpTool(): McpToolInfo {
   return {
     name: "oneuptime_help",
     description: `Get help and guidance for using the OneUptime MCP server. Returns information about available resources and common operations. Use this tool first to understand what you can do with OneUptime.
 
-AVAILABLE RESOURCES:
-${resourceSummary}
-
 COMMON WORKFLOWS:
-1. Orient yourself: Use oneuptime_whoami to see your project
+1. Orient yourself: Use oneuptime_whoami to see your project, oneuptime_list_resources to see what you can work with
 2. List incidents: Use list_incidents to see current incidents
 3. Respond: Use acknowledge_incident / resolve_incident / add_incident_note
 4. Investigate: Use list_logs, list_metrics, list_spans, list_monitor_logs (always with a time-range filter)
-5. Create incident: Use list_incident_severities to get a severity ID, then create_incident`,
+5. Create incident: Use list_incident_severities to get a severity ID, then create_incident
+6. Filter or sort on a field: Use ${DESCRIBE_RESOURCE_TOOL_NAME} to see a resource's fields`,
     inputSchema: {
       type: "object",
       properties: {
@@ -153,7 +155,7 @@ COMMON WORKFLOWS:
   };
 }
 
-function createResourceInfoTool(_resources: ResourceInfo[]): McpToolInfo {
+function createResourceInfoTool(): McpToolInfo {
   return {
     name: "oneuptime_list_resources",
     description:
@@ -175,6 +177,35 @@ function createResourceInfoTool(_resources: ResourceInfo[]): McpToolInfo {
   };
 }
 
+function createDescribeResourceTool(): McpToolInfo {
+  return {
+    name: "oneuptime_describe_resource",
+    description:
+      "Get the fields of one OneUptime resource: what each means, and how to filter, sort and select on it. Use it before filtering or sorting a list_ or count_ tool, or to understand a field of a create_ or update_ tool.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        resource: {
+          type: "string",
+          description:
+            'The resource, or any of its tools. Examples: "Incident", "list_incidents".',
+        },
+      },
+      required: ["resource"],
+      additionalProperties: false,
+    },
+    title: "Describe OneUptime Resource",
+    annotations: readOnlyToolAnnotations(),
+    modelName: "ResourceDescription",
+    operation: OneUptimeOperation.Read,
+    modelType: ModelType.Database,
+    singularName: "Resource Description",
+    pluralName: "Resource Descriptions",
+    tableName: "ResourceDescription",
+    apiPath: "",
+  };
+}
+
 /**
  * Handle helper tool execution
  */
@@ -183,31 +214,14 @@ export function handleHelperTool(
   args: Record<string, unknown>,
   resourceTools: McpToolInfo[],
 ): string {
-  // Extract unique resources from tools
-  const resources: Map<string, ResourceInfo> = new Map();
-
-  for (const tool of resourceTools) {
-    if (!resources.has(tool.tableName)) {
-      resources.set(tool.tableName, {
-        name: tool.tableName,
-        singularName: tool.singularName,
-        pluralName: tool.pluralName,
-        description: getResourceDescription(tool.singularName),
-        operations: [],
-      });
-    }
-    const resource: ResourceInfo | undefined = resources.get(tool.tableName);
-    if (resource) {
-      resource.operations.push(tool.operation);
-    }
-  }
-
-  const resourceList: ResourceInfo[] = Array.from(resources.values());
+  const resourceList: ResourceInfo[] = getResources(resourceTools);
 
   if (toolName === "oneuptime_help") {
     return handleHelpTool(args, resourceList);
   } else if (toolName === "oneuptime_list_resources") {
     return handleListResourcesTool(resourceList);
+  } else if (toolName === DESCRIBE_RESOURCE_TOOL_NAME) {
+    return handleDescribeResourceTool(args, resourceList);
   }
 
   return JSON.stringify({ error: "Unknown helper tool" });
@@ -409,8 +423,9 @@ function handleHelpTool(
         "1. Use 'oneuptime_whoami' to see which project your API key belongs to",
         "2. Use 'oneuptime_list_resources' to see all available resources",
         "3. Use 'list_*' tools to browse existing data",
-        "4. Use 'acknowledge_incident', 'resolve_incident', 'add_incident_note' for incident response",
-        "5. Use 'list_logs', 'list_metrics', 'list_spans' to investigate telemetry (always filter by time range)",
+        `4. Use '${DESCRIBE_RESOURCE_TOOL_NAME}' to see a resource's fields before filtering or sorting`,
+        "5. Use 'acknowledge_incident', 'resolve_incident', 'add_incident_note' for incident response",
+        "6. Use 'list_logs', 'list_metrics', 'list_spans' to investigate telemetry (always filter by time range)",
       ];
       (response["data"] as Record<string, unknown>)["resourceCount"] =
         resourceList.length;
@@ -420,43 +435,48 @@ function handleHelpTool(
   return JSON.stringify(response, null, 2);
 }
 
+// A resource's tools by operation.
+function getResourceTools(resource: ResourceInfo): Record<string, string> {
+  // Tool names must match ToolGenerator exactly — always sanitize
+  const singular: string = sanitizeToolName(resource.singularName);
+  const plural: string = sanitizeToolName(resource.pluralName);
+  const operations: string[] = resource.operations;
+
+  const tools: Record<string, string> = {};
+  if (operations.includes(OneUptimeOperation.Create)) {
+    tools["create"] = `create_${singular}`;
+  }
+  if (operations.includes(OneUptimeOperation.Read)) {
+    tools["get"] = `get_${singular}`;
+  }
+  if (operations.includes(OneUptimeOperation.List)) {
+    tools["list"] = `list_${plural}`;
+  }
+  if (operations.includes(OneUptimeOperation.Update)) {
+    tools["update"] = `update_${singular}`;
+  }
+  if (operations.includes(OneUptimeOperation.Delete)) {
+    tools["delete"] = `delete_${singular}`;
+  }
+  if (operations.includes(OneUptimeOperation.Count)) {
+    tools["count"] = `count_${plural}`;
+  }
+
+  return tools;
+}
+
 function handleListResourcesTool(resources: ResourceInfo[]): string {
   const response: Record<string, unknown> = {
     success: true,
     totalResources: resources.length,
     resources: resources.map((r: ResourceInfo) => {
-      // Tool names must match ToolGenerator exactly — always sanitize
-      const singular: string = sanitizeToolName(r.singularName);
-      const plural: string = sanitizeToolName(r.pluralName);
-      const operations: string[] = r.operations;
-
-      const tools: Record<string, string> = {};
-      if (operations.includes(OneUptimeOperation.Create)) {
-        tools["create"] = `create_${singular}`;
-      }
-      if (operations.includes(OneUptimeOperation.Read)) {
-        tools["get"] = `get_${singular}`;
-      }
-      if (operations.includes(OneUptimeOperation.List)) {
-        tools["list"] = `list_${plural}`;
-      }
-      if (operations.includes(OneUptimeOperation.Update)) {
-        tools["update"] = `update_${singular}`;
-      }
-      if (operations.includes(OneUptimeOperation.Delete)) {
-        tools["delete"] = `delete_${singular}`;
-      }
-      if (operations.includes(OneUptimeOperation.Count)) {
-        tools["count"] = `count_${plural}`;
-      }
-
       return {
         name: r.name,
         singularName: r.singularName,
         pluralName: r.pluralName,
         description: r.description,
-        operations,
-        tools,
+        operations: r.operations,
+        tools: getResourceTools(r),
       };
     }),
   };
@@ -464,12 +484,54 @@ function handleListResourcesTool(resources: ResourceInfo[]): string {
   return JSON.stringify(response, null, 2);
 }
 
+// A resource by its name, in any form, or by the name of one of its tools.
+function findResource(
+  name: string,
+  resources: ResourceInfo[],
+): ResourceInfo | undefined {
+  const wanted: string = sanitizeToolName(name);
+
+  return resources.find((resource: ResourceInfo): boolean => {
+    return (
+      [resource.name, resource.singularName, resource.pluralName]
+        .map(sanitizeToolName)
+        .includes(wanted) ||
+      Object.values(getResourceTools(resource)).includes(wanted)
+    );
+  });
+}
+
+function handleDescribeResourceTool(
+  args: Record<string, unknown>,
+  resources: ResourceInfo[],
+): string {
+  const name: unknown = args["resource"];
+  const resource: ResourceInfo | undefined =
+    typeof name === "string" ? findResource(name, resources) : undefined;
+
+  if (!resource) {
+    // Thrown, so the agent reads it as a failed call: see handleCallTool.
+    throw new Error(
+      `Unknown resource ${JSON.stringify(name)}. Use oneuptime_list_resources to see the resources.`,
+    );
+  }
+
+  return describeResource({
+    name: resource.name,
+    singularName: resource.singularName,
+    modelType: resource.modelType,
+    tools: getResourceTools(resource),
+  });
+}
+
 /**
  * Check if a tool is a helper tool (doesn't require API key)
  */
 export function isHelperTool(toolName: string): boolean {
   return (
-    toolName === "oneuptime_help" || toolName === "oneuptime_list_resources"
+    toolName === "oneuptime_help" ||
+    toolName === "oneuptime_list_resources" ||
+    toolName === DESCRIBE_RESOURCE_TOOL_NAME
   );
 }
 

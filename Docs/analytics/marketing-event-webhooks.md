@@ -158,7 +158,9 @@ A user account was created.
 
 `hasPassword` separates a direct signup (`true`) from a user created by a team
 invite (`false`). Both are real users; only one is an acquisition. This is
-reported rather than filtered so you decide which you care about.
+reported rather than filtered so you decide which you care about. A signup with
+Microsoft is a direct signup: it is `true`, and it carries the attribution the
+visitor arrived with.
 
 ### `subscription_started`
 
@@ -175,11 +177,21 @@ A project was created directly on a paid plan.
   "seats": 1,
   "is_paid_conversion": true,
   "has_custom_pricing": false,
+  "is_trial": true,
+  "trial_ends_at": "2026-09-07T09:14:22.187Z",
   "new_monthly_amount_in_usd": 49,
   "value": 49,
   "currency": "USD"
 }
 ```
+
+**`is_trial` says whether any money is behind `value`.** A plan with a free
+trial starts it here, with no card, so on OneUptime Cloud, where every paid plan
+has one, this event is a plan chosen rather than a payment: `value` is what the
+plan will cost, and a trial that ends unpaid sends nothing to take it back.
+`trial_ends_at` is present only on a trial. Treat `is_trial: true` as a lead,
+not as revenue. No event reports the trial becoming a payment yet
+(Docs/analytics/enterprise-conversion-tracking.md).
 
 This is **new business, not expansion**. It is deliberately a separate event
 rather than a `subscription_upgraded` with an empty `old_plan`: an upgrade is a

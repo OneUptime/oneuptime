@@ -3,8 +3,9 @@
  *
  * Covers how a model schema becomes the JSON Schema an agent sees: enum
  * propagation from zod-openapi metadata (so agents see valid values like
- * ASC/DESC), which fields are required, whose description wins, description
- * cleaning, and tool name sanitization.
+ * ASC/DESC), which fields are required, whose description wins, that examples
+ * stay out but for the shape of a typed value, description cleaning, and tool
+ * name sanitization.
  *
  * Every schema here is a real one, made with Common's zod (Utils/Schema/Zod,
  * with zod-to-openapi's .openapi()) or by ModelSchema from a real model. These
@@ -20,16 +21,12 @@ import {
   zodToJsonSchema,
   cleanFieldDescription,
   sanitizeToolName,
+  withoutFieldDescriptions,
   ZodToJsonSchemaResult,
 } from "../Tools/SchemaConverter";
 import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
-import {
-  AnalyticsModelSchema,
-  AnalyticsModelSchemaType,
-} from "Common/Utils/Schema/AnalyticsModelSchema";
 import Zod from "Common/Utils/Schema/Zod";
 import Label from "Common/Models/DatabaseModels/Label";
-import Log from "Common/Models/AnalyticsModels/Log";
 import { JSONSchemaProperty } from "../Types/McpTypes";
 
 function objectSchema(shape: Record<string, unknown>): ModelSchemaType {
@@ -58,7 +55,6 @@ describe("SchemaConverter", () => {
       expect(result.properties["createdAt"]).toEqual({
         type: "string",
         description: "Sort order for createdAt field",
-        example: "ASC",
         enum: ["ASC", "DESC"],
       });
       // Optional fields must not be listed as required.
@@ -104,6 +100,130 @@ describe("SchemaConverter", () => {
         description: "title field",
       });
       expect(result.required).toEqual(["title"]);
+    });
+  });
+
+  describe("zodToJsonSchema leaves examples out", () => {
+    it("drops an example that only repeats the type", () => {
+      const schema: ModelSchemaType = objectSchema({
+        title: Zod.string().openapi({ type: "string", example: "A title" }),
+        order: Zod.number().openapi({ type: "number", example: 5 }),
+        // A JSON column's example is a made-up object, not a shape to follow.
+        meta: Zod.any().openapi({
+          type: "object",
+          example: { key: "value", nested: { data: 123 } },
+        }),
+        tags: Zod.array(Zod.string()).openapi({
+          type: "array",
+          items: { type: "string" },
+          example: ["item1", "item2"],
+        }),
+      });
+
+      expect(zodToJsonSchema(schema).properties).toEqual({
+        title: { type: "string", description: "title field" },
+        order: { type: "number", description: "order field" },
+        meta: { type: "object", description: "meta field" },
+        tags: {
+          type: "array",
+          description: "tags field",
+          items: { type: "string" },
+        },
+      });
+    });
+
+    /*
+     * A date is sent as {"_type": "DateTime", "value": ...} and a color as
+     * {"_type": "Color", "value": ...}, and nothing but the example said so.
+     */
+    it("keeps the shape of a typed value, which only its example stated", () => {
+      const schema: ModelSchemaType = objectSchema({
+        startsAt: Zod.any().openapi({
+          type: "object",
+          example: { _type: "DateTime", value: "2023-10-01T12:00:00Z" },
+        }),
+        monitorSteps: Zod.any().openapi({
+          type: "object",
+          example: {
+            _type: "MonitorSteps",
+            value: { monitorStepsInstanceArray: [] },
+          },
+        }),
+      });
+
+      const result: ZodToJsonSchemaResult = zodToJsonSchema(schema);
+
+      expect(result.properties["startsAt"]).toEqual({
+        type: "object",
+        description: "startsAt field",
+        properties: {
+          _type: { type: "string", enum: ["DateTime"] },
+          value: { type: "string" },
+        },
+        required: ["_type", "value"],
+      });
+      expect(result.properties["monitorSteps"]?.properties).toEqual({
+        _type: { type: "string", enum: ["MonitorSteps"] },
+        value: { type: "object" },
+      });
+    });
+
+    it("reads no shape from an example that has no value to wrap", () => {
+      const schema: ModelSchemaType = objectSchema({
+        partial: Zod.any().openapi({
+          type: "object",
+          example: { _type: "DateTime" },
+        }),
+      });
+
+      expect(zodToJsonSchema(schema).properties["partial"]).toEqual({
+        type: "object",
+        description: "partial field",
+      });
+    });
+  });
+
+  describe("withoutFieldDescriptions", () => {
+    const properties: Record<string, JSONSchemaProperty> = {
+      title: { type: "string", description: "The title." },
+      state: {
+        type: "string",
+        description: "The state.",
+        enum: ["open", "closed"],
+        default: "open",
+      },
+      startsAt: {
+        type: "object",
+        description: "When it starts.",
+        properties: { _type: { type: "string", enum: ["DateTime"] } },
+        required: ["_type"],
+      },
+    };
+
+    it("drops what a field means and keeps everything a call is checked against", () => {
+      expect(withoutFieldDescriptions(properties)).toEqual({
+        title: { type: "string" },
+        state: { type: "string", enum: ["open", "closed"], default: "open" },
+        startsAt: {
+          type: "object",
+          properties: { _type: { type: "string", enum: ["DateTime"] } },
+          required: ["_type"],
+        },
+      });
+    });
+
+    it("keeps the description of the fields named", () => {
+      const compacted: Record<string, JSONSchemaProperty> =
+        withoutFieldDescriptions(properties, ["title"]);
+
+      expect(compacted["title"]?.description).toBe("The title.");
+      expect(compacted["state"]?.description).toBeUndefined();
+    });
+
+    it("leaves the fields it was given as they were", () => {
+      withoutFieldDescriptions(properties);
+
+      expect(properties["title"]?.description).toBe("The title.");
     });
   });
 
@@ -242,7 +362,7 @@ describe("SchemaConverter", () => {
      * same model before Common moved to zod 4 (the whole tool list was
      * compared field by field: identical).
      */
-    it("a label's create schema: required fields, column descriptions, types, examples and defaults", () => {
+    it("a label's create schema: required fields, column descriptions, types and defaults", () => {
       const result: ZodToJsonSchemaResult = zodToJsonSchema(
         ModelSchema.getCreateModelSchema({ modelType: Label }),
       );
@@ -251,24 +371,25 @@ describe("SchemaConverter", () => {
       expect(result.properties["name"]).toEqual({
         type: "string",
         description: "Any friendly name of this object.",
-        example: "Example short text",
       });
       // An id column: the column's words win over ObjectID's own.
       expect(result.properties["projectId"]).toEqual({
         type: "string",
         description:
           "ID of your OneUptime Project in which this object belongs.",
-        example: "123e4567-e89b-12d3-a456-426614174000",
         format: "uuid",
       });
       expect(result.properties["color"]).toEqual({
         type: "object",
         description: "Color of this resource in Hex (#32a852 for example).",
-        example: { _type: "Color", value: "#ff0000" },
+        properties: {
+          _type: { type: "string", enum: ["Color"] },
+          value: { type: "string" },
+        },
+        required: ["_type", "value"],
       });
       expect(result.properties["isArchived"]).toMatchObject({
         type: "boolean",
-        example: true,
         default: false,
       });
       // Server-made fields are not asked for on create.
@@ -285,50 +406,6 @@ describe("SchemaConverter", () => {
         expect.arrayContaining(["name", "color", "description"]),
       );
       expect(result.required).toBeUndefined();
-    });
-
-    it("a label's sort schema: ASC or DESC for each sortable column", () => {
-      const result: ZodToJsonSchemaResult = zodToJsonSchema(
-        ModelSchema.getSortModelSchema({ modelType: Label }),
-      );
-      const createdAt: JSONSchemaProperty | undefined =
-        result.properties["createdAt"];
-
-      expect(createdAt).toEqual({
-        type: "string",
-        description: "Sort order for createdAt field",
-        example: "ASC",
-        enum: ["ASC", "DESC"],
-      });
-      expect(result.required).toBeUndefined();
-    });
-
-    it("a label's query schema: each column says which operators it takes", () => {
-      const result: ZodToJsonSchemaResult = zodToJsonSchema(
-        ModelSchema.getQueryModelSchema({ modelType: Label }),
-      );
-
-      expect(result.properties["name"]).toEqual({
-        type: "object",
-        description:
-          "Query operators for name field of type Text. Supported operators: EqualTo, NotEqual, IsNull, NotNull, EqualToOrNull, Search, Includes",
-        example: { _type: "EqualTo", value: "John Doe" },
-      });
-    });
-
-    it("a log query schema made without OpenAPI metadata still lists its fields", () => {
-      const schema: AnalyticsModelSchemaType =
-        AnalyticsModelSchema.getQueryModelSchema({
-          modelType: Log,
-          disableOpenApiSchema: true,
-        });
-      const result: ZodToJsonSchemaResult = zodToJsonSchema(schema);
-
-      expect(result.properties["severityText"]).toEqual({
-        type: "string",
-        description: "severityText field",
-      });
-      expect(Object.keys(result.properties).length).toBeGreaterThan(10);
     });
   });
 

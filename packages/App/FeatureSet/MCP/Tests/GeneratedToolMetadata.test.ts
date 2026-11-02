@@ -6,8 +6,9 @@
  *   (readOnlyHint / destructiveHint / openWorldHint / idempotentHint): every
  *   write is destructive, and no tool reaches past the caller's project
  * - database list/get tools expose a `select` array parameter
- * - the list tool's sort schema carries the ASC/DESC enum
- * - analytics (telemetry) models generate ONLY list and count tools
+ * - the list tool's sort schema takes any field, ASC or DESC
+ * - analytics (telemetry) models generate ONLY list and count tools, and they
+ *   take `select` as the database tools do
  */
 
 import { describe, it, expect, jest } from "@jest/globals";
@@ -20,6 +21,7 @@ import {
 } from "../Tools/ToolGenerator";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Log from "Common/Models/AnalyticsModels/Log";
+import Span from "Common/Models/AnalyticsModels/Span";
 import {
   McpToolInfo,
   ModelToolsResult,
@@ -131,16 +133,32 @@ describe("Generated tool metadata", () => {
       expect(select?.type).toBe("array");
     });
 
-    it("carries the ASC/DESC enum on sortable fields like createdAt", () => {
+    it("takes any field in sort, and only ASC or DESC for it", () => {
       const sort: JSONSchemaProperty | undefined = findTool(
         tools,
         "list_incidents",
       ).inputSchema.properties?.["sort"];
-      const createdAt: JSONSchemaProperty | undefined =
-        sort?.properties?.["createdAt"];
 
-      expect(createdAt).toBeDefined();
-      expect(createdAt?.enum).toEqual(["ASC", "DESC"]);
+      expect(sort?.type).toBe("object");
+      expect(sort?.properties).toBeUndefined();
+      expect(sort?.additionalProperties).toEqual({
+        type: "string",
+        enum: ["ASC", "DESC"],
+      });
+    });
+
+    it("names the helper on the tools that leave a resource's fields to it", () => {
+      for (const name of ["create_incident", "update_incident"]) {
+        expect(findTool(tools, name).description).toContain(
+          "oneuptime_describe_resource",
+        );
+      }
+
+      for (const name of ["list_incidents", "count_incidents"]) {
+        expect(
+          findTool(tools, name).inputSchema.properties?.["query"]?.description,
+        ).toContain("oneuptime_describe_resource");
+      }
     });
   });
 
@@ -170,6 +188,35 @@ describe("Generated tool metadata", () => {
         });
         expect(typeof tool.title).toBe("string");
       });
+    });
+
+    it("takes select as an array of field names, as the database tools do", () => {
+      const select: JSONSchemaProperty | undefined = findTool(
+        tools,
+        "list_logs",
+      ).inputSchema.properties?.["select"];
+
+      expect(select?.type).toBe("array");
+      expect(select?.items?.type).toBe("string");
+    });
+
+    it("names the time column to filter and sort on, and the column is the table's own", () => {
+      const list: McpToolInfo = findTool(tools, "list_logs");
+
+      expect(list.description).toContain("always filter on time");
+      expect(list.inputSchema.properties?.["sort"]?.description).toContain(
+        '{"time":"DESC"}',
+      );
+
+      const spanList: McpToolInfo = findTool(
+        generateToolsForAnalyticsModel(new Span(), Span).tools,
+        "list_spans",
+      );
+
+      expect(spanList.description).toContain("always filter on startTime");
+      expect(spanList.inputSchema.properties?.["sort"]?.description).toContain(
+        '{"startTime":"DESC"}',
+      );
     });
   });
 });

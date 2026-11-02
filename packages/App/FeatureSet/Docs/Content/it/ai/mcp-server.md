@@ -250,6 +250,7 @@ Senza una chiave API né un accesso, un client può usare gli strumenti pubblici
 
 - **`oneuptime_help`**: aiuto e indicazioni sugli strumenti MCP di OneUptime
 - **`oneuptime_list_resources`**: le risorse e cosa puoi fare con ciascuna
+- **`oneuptime_describe_resource`**: i campi di una risorsa e come filtrare, ordinare e selezionare in base a essi
 - **`get_public_status_page_overview`**: la panoramica di una pagina di stato pubblica
 - **`get_public_status_page_incidents`**: gli incidenti di una pagina di stato pubblica
 - **`get_public_status_page_scheduled_maintenance`**: i suoi eventi di manutenzione programmata
@@ -353,6 +354,8 @@ Interroga sempre la telemetria con un intervallo di tempo. Un campo di query acc
 ```
 
 Gli operatori sono `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` e `Includes`. I valori di ordinamento sono `"ASC"` o `"DESC"`.
+
+Gli strumenti `list_` e `count_` accettano qualsiasi campo, così l'elenco degli strumenti resta abbastanza piccolo perché un client lo carichi tutto in una volta. Per vedere i campi di una risorsa, cosa significa ciascuno e quali operatori accetta, un agente chiama `oneuptime_describe_resource` con la risorsa o uno dei suoi strumenti, come `Incident` o `list_incidents`.
 
 ## Selezione dei campi e paginazione
 

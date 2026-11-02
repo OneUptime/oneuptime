@@ -45,6 +45,7 @@ Puoi usarlo su [OneUptime Cloud](https://oneuptime.com) oppure eseguirlo sui tuo
 - **[Workflow e runbook](https://oneuptime.com/docs/it/workflows/index)**: Automatizzare il lavoro di routine e collegare Jira, ServiceNow e gli altri strumenti che il tuo team usa già.
 - **[OneUptime AI](https://oneuptime.com/docs/it/ai/ai-sre)**: Indaga sui nuovi incidenti e avvisi e pubblica un'analisi della causa principale con fonti. Quando attivi la correzione, può aprire una pull request con una correzione che il tuo team esaminerà.
 - **[API, CLI e Terraform](https://oneuptime.com/docs/it/api-reference/api-reference)**: Automatizzare OneUptime dai tuoi script e dalla tua CI, e gestire monitor, pagine di stato e reperibilità come codice.
+- **[Server MCP](https://oneuptime.com/docs/it/ai/mcp-server)** (`https://oneuptime.com/mcp`): Collega Claude, Cursor, VS Code con GitHub Copilot o qualsiasi altro client del Model Context Protocol (MCP), e chiedigli di esaminare un incidente, interrogare log e tracce, confermare un avviso o configurare un monitor.
 
 Tutto il resto è nella [documentazione](https://oneuptime.com/docs/it/introduction/getting-started).
 

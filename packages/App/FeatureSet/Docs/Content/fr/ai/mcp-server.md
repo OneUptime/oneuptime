@@ -250,6 +250,7 @@ Sans clé API ni connexion, un client peut utiliser les outils publics :
 
 - **`oneuptime_help`** : aide et conseils sur les outils MCP de OneUptime
 - **`oneuptime_list_resources`** : les ressources et ce que vous pouvez faire avec chacune
+- **`oneuptime_describe_resource`** : les champs d'une ressource, et comment filtrer, trier et sélectionner sur ces champs
 - **`get_public_status_page_overview`** : la vue d'ensemble d'une page de statut publique
 - **`get_public_status_page_incidents`** : les incidents d'une page de statut publique
 - **`get_public_status_page_scheduled_maintenance`** : ses événements de maintenance planifiée
@@ -353,6 +354,8 @@ Interrogez toujours la télémétrie avec une plage de temps. Un champ de requê
 ```
 
 Les opérateurs sont `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` et `Includes`. Les valeurs de tri sont `"ASC"` ou `"DESC"`.
+
+Les outils `list_` et `count_` acceptent n'importe quel champ, ce qui garde la liste des outils assez petite pour qu'un client la charge d'un seul coup. Pour voir les champs d'une ressource, ce que chacun signifie et quels opérateurs il accepte, un agent appelle `oneuptime_describe_resource` avec la ressource ou l'un de ses outils, comme `Incident` ou `list_incidents`.
 
 ## Sélection des champs et pagination
 

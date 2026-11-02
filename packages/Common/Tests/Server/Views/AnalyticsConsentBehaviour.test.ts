@@ -878,6 +878,23 @@ describe("attribution", () => {
     page.window.close();
   });
 
+  test("stores a landing address no wider than the column it ends up in", () => {
+    /*
+     * The signup is refused outright by a value wider than its column, and
+     * this address stays in the browser, so every attempt would be refused.
+     */
+    const longUrl: string = `${AD_URL}&utm_content=${"x".repeat(600)}`;
+    const page: OpenedPage = open({ timeZone: NEW_YORK, url: longUrl });
+
+    expect(page.window.localStorage.getItem("utmUrl")).toBe(
+      longUrl.slice(0, 500),
+    );
+    expect(JSON.parse(page.window.localStorage.getItem("clickIds"))).toEqual({
+      gclid: "abc123",
+    });
+    page.window.close();
+  });
+
   test("is neither stored nor read back before consent where it is asked first", () => {
     const page: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
 
