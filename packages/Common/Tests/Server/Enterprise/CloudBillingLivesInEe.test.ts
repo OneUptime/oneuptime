@@ -83,8 +83,8 @@ const MOVED_MODULES: ReadonlyArray<string> = [
 
 /*
  * What stays in core because every edition uses it: Sign in with Microsoft
- * (MicrosoftSignInClient) is built on the first two, the Vercel log drain on
- * the third.
+ * (MicrosoftSignInClient) and Continue with Google (GoogleSignInClient) are
+ * built on the first two, the Vercel log drain on the third.
  */
 const KEPT_IN_CORE: ReadonlyArray<string> = [
   `${MARKETPLACE_DIR}/MarketplaceHttp.ts`,
@@ -595,7 +595,7 @@ describe("core keeps what every edition uses", () => {
     );
   });
 
-  test("Sign in with Microsoft and the Vercel log drain still load them from core", () => {
+  test("Sign in with Microsoft, Continue with Google and the Vercel log drain still load them from core", () => {
     const microsoftSignIn: string = fs.readFileSync(
       path.join(
         COMMON_DIR,
@@ -603,6 +603,16 @@ describe("core keeps what every edition uses", () => {
         "Utils",
         "MicrosoftSignIn",
         "MicrosoftSignInClient.ts",
+      ),
+      "utf8",
+    );
+    const googleSignIn: string = fs.readFileSync(
+      path.join(
+        COMMON_DIR,
+        "Server",
+        "Utils",
+        "GoogleSignIn",
+        "GoogleSignInClient.ts",
       ),
       "utf8",
     );
@@ -617,10 +627,10 @@ describe("core keeps what every edition uses", () => {
       "utf8",
     );
 
-    expect(microsoftSignIn).toContain('from "../Marketplace/MarketplaceHttp"');
-    expect(microsoftSignIn).toContain(
-      'from "../Marketplace/RemoteJwtVerifier"',
-    );
+    for (const signIn of [microsoftSignIn, googleSignIn]) {
+      expect(signIn).toContain('from "../Marketplace/MarketplaceHttp"');
+      expect(signIn).toContain('from "../Marketplace/RemoteJwtVerifier"');
+    }
     expect(logDrain).toContain(
       '"Common/Server/Utils/Marketplace/Vercel/VercelSignature"',
     );

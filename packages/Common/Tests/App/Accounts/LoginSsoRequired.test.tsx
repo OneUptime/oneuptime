@@ -91,6 +91,13 @@ jest.mock("../../../UI/Config", () => {
     },
   });
 
+  // So is Continue with Google.
+  Object.defineProperty(mocked, "GoogleSignInClientId", {
+    get: (): string => {
+      return "google-client";
+    },
+  });
+
   return mocked;
 });
 
@@ -222,6 +229,7 @@ const expectNothingButSso: () => void = (): void => {
   expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
   expect(screen.queryByTestId("sso-login")).not.toBeInTheDocument();
   expect(screen.queryByTestId("microsoft-sign-in")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("google-sign-in")).not.toBeInTheDocument();
   expect(screen.queryByTestId("password-login")).not.toBeInTheDocument();
   expect(
     screen.queryByText(english.login.forgotPassword),
@@ -481,6 +489,7 @@ describe("the sign-in page while the server does not require SSO", () => {
     expect(screen.getByTestId("sso-login")).toBeInTheDocument();
     expect(screen.getByTestId("passkey-login")).toBeInTheDocument();
     expect(screen.getByTestId("microsoft-sign-in")).toBeInTheDocument();
+    expect(screen.getByTestId("google-sign-in")).toBeInTheDocument();
     expect(providerButtons()).toHaveLength(0);
   });
 
@@ -583,6 +592,7 @@ describe("the master admins' sign-in (/accounts/admin-login)", () => {
     );
     expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
     expect(screen.queryByTestId("microsoft-sign-in")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("google-sign-in")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: english.login.registerLink }),
     ).not.toBeInTheDocument();
@@ -624,6 +634,7 @@ describe("the master admins' sign-in (/accounts/admin-login)", () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId("passkey-login")).toBeInTheDocument();
     expect(screen.getByTestId("microsoft-sign-in")).toBeInTheDocument();
+    expect(screen.getByTestId("google-sign-in")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: english.login.registerLink }),
     ).toBeInTheDocument();

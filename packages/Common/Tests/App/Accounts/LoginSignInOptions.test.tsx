@@ -52,21 +52,22 @@ import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register
  *
  * Under the password form's Login - the page's one filled button - an "or"
  * divider, then the other ways in as normal buttons: full width, outlined,
- * as tall as Login, an icon before the words. "Sign in with SSO", "Sign in
- * with Microsoft" where the server offers it, and "Sign in with a passkey",
- * last. They used to be centred text links (with a bordered Microsoft button
+ * as tall as Login, an icon before the words. "Sign in with SSO", "Continue
+ * with Google" and "Sign in with Microsoft" where the server offers them, and
+ * "Sign in with a passkey", last. They used to be centred text links (with a bordered Microsoft button
  * between them), which read as small print rather than as choices.
  *
  * The single sign-on page offers the way back the same way ("Sign in with
- * password" under "or"), and the sign-up page puts "Sign up with Microsoft"
- * under "or".
+ * password" under "or"), and the sign-up page puts "Continue with Google"
+ * and "Sign up with Microsoft" under "or".
  *
  * Billing and the edition are pinned (CI's config.env sets
- * BILLING_ENABLED=true); whether the server offers Sign in with Microsoft is
- * set per test.
+ * BILLING_ENABLED=true); whether the server offers Sign in with Microsoft
+ * and Continue with Google is set per test.
  */
 
 let microsoftClientIdForTest: string | null = null;
+let googleClientIdForTest: string | null = null;
 
 jest.mock("../../../UI/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -82,6 +83,12 @@ jest.mock("../../../UI/Config", () => {
   Object.defineProperty(mocked, "MicrosoftSignInClientId", {
     get: (): string | null => {
       return microsoftClientIdForTest;
+    },
+  });
+
+  Object.defineProperty(mocked, "GoogleSignInClientId", {
+    get: (): string | null => {
+      return googleClientIdForTest;
     },
   });
 
@@ -104,6 +111,15 @@ const USER_JSON: JSONObject = {
 };
 
 const MICROSOFT_ROUTE: string = "/identity/microsoft/sign-in";
+const GOOGLE_ROUTE: string = "/identity/google/sign-in";
+
+// The "G" Google's sign-in branding asks for: its four colours, unchanged.
+const GOOGLE_G_COLOURS: Array<string> = [
+  "#EA4335",
+  "#4285F4",
+  "#FBBC05",
+  "#34A853",
+];
 
 // A filled button - what a primary button looks like, whatever its colour.
 const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
@@ -177,12 +193,25 @@ const microsoftOption: () => HTMLElement = (): HTMLElement => {
   return screen.getByTestId("microsoft-sign-in");
 };
 
+const googleOption: () => HTMLElement = (): HTMLElement => {
+  return screen.getByTestId("google-sign-in");
+};
+
 const otherWaysIn: () => Array<HTMLElement> = (): Array<HTMLElement> => {
   return [
     ssoOption(),
+    ...screen.queryAllByTestId("google-sign-in"),
     ...screen.queryAllByTestId("microsoft-sign-in"),
     passkeyOption(),
   ];
+};
+
+// A link pressed in jsdom, which has no navigation to do.
+const pressLink: (link: HTMLElement) => void = (link: HTMLElement): void => {
+  link.addEventListener("click", (event: Event) => {
+    event.preventDefault();
+  });
+  fireEvent.click(link);
 };
 
 const clickPasskey: () => Promise<void> = async (): Promise<void> => {
@@ -215,6 +244,7 @@ describe("The other ways to sign in", () => {
   beforeEach(() => {
     posted = [];
     microsoftClientIdForTest = null;
+    googleClientIdForTest = null;
     WebAuthnTestUtil.install();
     jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
     jest.spyOn(Navigation, "navigate").mockImplementation(() => {});
@@ -257,6 +287,7 @@ describe("The other ways to sign in", () => {
     cleanup();
     jest.restoreAllMocks();
     microsoftClientIdForTest = null;
+    googleClientIdForTest = null;
     await i18n.changeLanguage("en");
   });
 
@@ -479,14 +510,164 @@ describe("The other ways to sign in", () => {
       });
     });
 
+    test("without Continue with Google, nothing of Google's is drawn", async () => {
+      microsoftClientIdForTest = "microsoft-client-id";
+      await renderLogin();
+
+      expect(screen.queryByTestId("google-sign-in")).not.toBeInTheDocument();
+      expect(screen.queryByText(english.common.continueWithGoogle)).toBeNull();
+      expect(otherWaysIn()).toHaveLength(3);
+    });
+
+    describe("where the server offers Continue with Google", () => {
+      beforeEach(() => {
+        googleClientIdForTest = "google-client-id";
+        microsoftClientIdForTest = "microsoft-client-id";
+      });
+
+      test("it sits after single sign-on and before Microsoft and the passkey, as large as they are", async () => {
+        await renderLogin();
+
+        expect(comesAfter(googleOption(), ssoOption())).toBe(true);
+        expect(comesAfter(microsoftOption(), googleOption())).toBe(true);
+        expect(comesAfter(passkeyOption(), microsoftOption())).toBe(true);
+        expect(otherWaysIn()).toHaveLength(4);
+
+        // The same box, type and focus ring as every other way in...
+        const box: Array<string> = [
+          "flex",
+          "w-full",
+          "rounded-md",
+          "border",
+          "px-3",
+          "py-2",
+          "text-base",
+          "md:text-sm",
+          "font-medium",
+          "focus-visible:ring-2",
+        ];
+        expect(googleOption()).toHaveClass(...box);
+        expect(microsoftOption()).toHaveClass(...box);
+        // ...in Google's colours rather than theirs (Theme.css).
+        expect(googleOption()).toHaveClass("ou-google-sign-in");
+        expect(googleOption()).not.toHaveClass(
+          "bg-white",
+          "border-gray-300",
+          "text-gray-700",
+        );
+        // No margin of its own: the list spaces its buttons.
+        expect(googleOption()).not.toHaveClass("mt-4");
+      });
+
+      test("it is a link to the server's Google sign-in, with Google's G before its words", async () => {
+        await renderLogin();
+
+        expect(googleOption().tagName).toBe("A");
+        expect(googleOption()).toHaveAttribute("href", GOOGLE_ROUTE);
+        expect(googleOption()).toHaveAccessibleName("Continue with Google");
+        expect(english.common.continueWithGoogle).toBe("Continue with Google");
+
+        const logo: SVGElement = googleOption().querySelector(
+          "svg",
+        ) as SVGElement;
+        expect(logo).toHaveAttribute("aria-hidden", "true");
+        expect(
+          Array.from(logo.querySelectorAll("path")).map(
+            (path: SVGPathElement): string | null => {
+              return path.getAttribute("fill");
+            },
+          ),
+        ).toEqual(GOOGLE_G_COLOURS);
+      });
+
+      test("its G has the box every option's icon has, 10px before its words where the others leave 8px", async () => {
+        await renderLogin();
+
+        const logo: SVGElement = googleOption().querySelector(
+          "svg",
+        ) as SVGElement;
+        const shield: SVGElement = ssoOption().querySelector(
+          "svg",
+        ) as SVGElement;
+        const words: Element = googleOption().firstElementChild as Element;
+
+        expect(logo).toHaveAttribute("width", "20");
+        expect(logo).toHaveAttribute("height", "20");
+        expect(classSet(logo)).toEqual(classSet(shield));
+        expect(googleOption().children).toHaveLength(1);
+        expect(words).toHaveAttribute("dir", "auto");
+        expect(words.firstElementChild).toContainElement(logo);
+        expect(classSet(words)).toEqual(
+          classSet(ssoOption().firstElementChild as Element),
+        );
+
+        const slot: Element = words.firstElementChild as Element;
+        const shieldSlot: Element = (ssoOption().firstElementChild as Element)
+          .firstElementChild as Element;
+
+        expect(slot).toHaveClass("me-2.5");
+        expect(slot).not.toHaveClass("me-2");
+        expect(shieldSlot).toHaveClass("me-2");
+        expect(
+          [...classSet(slot)].filter((name: string) => {
+            return name !== "me-2.5";
+          }),
+        ).toEqual(
+          [...classSet(shieldSlot)].filter((name: string) => {
+            return name !== "me-2";
+          }),
+        );
+      });
+
+      test("the keyboard reaches it after single sign-on, then Microsoft", async () => {
+        await renderLogin();
+        const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+          delay: null,
+        });
+
+        ssoOption().focus();
+        await user.tab();
+        expect(googleOption()).toHaveFocus();
+        await user.tab();
+        expect(microsoftOption()).toHaveFocus();
+        await user.tab();
+        expect(passkeyOption()).toHaveFocus();
+      });
+
+      test("pressing it on the sign-in page is a sign-in, not the start of a sign-up", async () => {
+        const captureRevenueEvent: SpyInstance<
+          typeof UiAnalytics.captureRevenueEvent
+        > = jest
+          .spyOn(UiAnalytics, "captureRevenueEvent")
+          .mockImplementation(() => {});
+        await renderLogin();
+
+        pressLink(googleOption());
+
+        expect(captureRevenueEvent).not.toHaveBeenCalled();
+        expect(posted).toEqual([]);
+      });
+
+      test("without Microsoft, it is the one provider between single sign-on and the passkey", async () => {
+        microsoftClientIdForTest = null;
+        await renderLogin();
+
+        expect(screen.queryByTestId("microsoft-sign-in")).toBeNull();
+        expect(comesAfter(googleOption(), ssoOption())).toBe(true);
+        expect(comesAfter(passkeyOption(), googleOption())).toBe(true);
+        expect(otherWaysIn()).toHaveLength(3);
+      });
+    });
+
     /*
      * While a passkey attempt runs, the form is paused, and with it the "or"
      * divider and the ways in that leave the page: leaving while the server
      * finishes the sign-in would throw that sign-in away. The passkey option
      * is outside the paused fieldset, at full strength, with its Cancel.
      */
-    test("a passkey attempt pauses the divider, single sign-on and Microsoft with the form, not the passkey option", async () => {
+    test("a passkey attempt pauses the divider, single sign-on, Google and Microsoft with the form, not the passkey option", async () => {
       microsoftClientIdForTest = "microsoft-client-id";
+      googleClientIdForTest = "google-client-id";
       const prompt: ReturnType<typeof pendingPrompt> = pendingPrompt();
       await renderLogin();
 
@@ -498,6 +679,7 @@ describe("The other ways to sign in", () => {
         screen.getByTestId("sign-in-options-divider"),
       );
       expect(form).toContainElement(ssoOption());
+      expect(form).toContainElement(googleOption());
       expect(form).toContainElement(microsoftOption());
       expect(form).not.toContainElement(passkeyOption());
 
@@ -610,8 +792,9 @@ describe("The other ways to sign in", () => {
       expect(posted).toEqual([]);
     });
 
-    test("German: 'oder', 'Mit SSO anmelden' and 'Mit einem Passkey anmelden'", async () => {
+    test("German: 'oder', 'Mit SSO anmelden', 'Weiter mit Google' and 'Mit einem Passkey anmelden'", async () => {
       microsoftClientIdForTest = "microsoft-client-id";
+      googleClientIdForTest = "google-client-id";
       await i18n.changeLanguage("de");
       await renderLogin();
 
@@ -619,6 +802,7 @@ describe("The other ways to sign in", () => {
         /^oder$/,
       );
       expect(ssoOption()).toHaveAccessibleName("Mit SSO anmelden");
+      expect(googleOption()).toHaveAccessibleName("Weiter mit Google");
       expect(microsoftOption()).toHaveAccessibleName("Mit Microsoft anmelden");
       expect(passkeyOption()).toHaveAccessibleName(
         "Mit einem Passkey anmelden",
@@ -648,8 +832,13 @@ describe("The other ways to sign in", () => {
      */
     test("every option's words, and the divider's, are laid out by their own direction", async () => {
       microsoftClientIdForTest = "microsoft-client-id";
+      googleClientIdForTest = "google-client-id";
       await i18n.changeLanguage("fa");
       await renderLogin();
+
+      expect(
+        screen.getByText(persian.common.continueWithGoogle),
+      ).toHaveAttribute("dir", "auto");
 
       expect(screen.getByText(persian.login.signInWithSso)).toHaveAttribute(
         "dir",
@@ -812,14 +1001,79 @@ describe("The other ways to sign in", () => {
   });
 
   describe("on the sign-up page", () => {
-    test("without Sign in with Microsoft: no divider and no other way to sign up", async () => {
+    test("without Google or Microsoft: no divider and no other way to sign up", async () => {
       await renderRegister();
 
       expect(
         screen.queryByTestId("sign-up-options-divider"),
       ).not.toBeInTheDocument();
       expect(screen.queryByTestId("microsoft-sign-in")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("google-sign-in")).not.toBeInTheDocument();
       expect(screen.queryByText("or")).not.toBeInTheDocument();
+    });
+
+    test("with Google: under Sign Up, 'or', then Continue with Google, then Sign up with Microsoft", async () => {
+      googleClientIdForTest = "google-client-id";
+      microsoftClientIdForTest = "microsoft-client-id";
+      await renderRegister();
+
+      const submit: HTMLElement = screen.getByTestId("Sign Up");
+      const divider: HTMLElement = screen.getByTestId(
+        "sign-up-options-divider",
+      );
+
+      expect(screen.getAllByTestId("sign-up-options-divider")).toHaveLength(1);
+      expect(divider).toHaveTextContent(/^or$/);
+      expect(comesAfter(divider, submit)).toBe(true);
+      expect(comesAfter(googleOption(), divider)).toBe(true);
+      expect(comesAfter(microsoftOption(), googleOption())).toBe(true);
+      expect(googleOption()).toHaveAccessibleName("Continue with Google");
+      expect(googleOption()).toHaveAttribute("href", GOOGLE_ROUTE);
+      expect(googleOption()).toHaveClass("ou-google-sign-in");
+      // One list, which spaces its buttons, as the sign-in page's does.
+      expect(googleOption().parentElement).toBe(
+        microsoftOption().parentElement,
+      );
+      expect(googleOption().parentElement).toHaveClass("space-y-3");
+      expect(
+        comesAfter(
+          screen.getByTestId("register-have-account"),
+          microsoftOption(),
+        ),
+      ).toBe(true);
+    });
+
+    test("with Google alone: 'or', then Continue with Google", async () => {
+      googleClientIdForTest = "google-client-id";
+      await renderRegister();
+
+      expect(
+        comesAfter(
+          googleOption(),
+          screen.getByTestId("sign-up-options-divider"),
+        ),
+      ).toBe(true);
+      expect(screen.queryByTestId("microsoft-sign-in")).not.toBeInTheDocument();
+    });
+
+    test("pressing Google or Microsoft starts a sign-up, once", async () => {
+      googleClientIdForTest = "google-client-id";
+      microsoftClientIdForTest = "microsoft-client-id";
+      const captureRevenueEvent: SpyInstance<
+        typeof UiAnalytics.captureRevenueEvent
+      > = jest
+        .spyOn(UiAnalytics, "captureRevenueEvent")
+        .mockImplementation(() => {});
+      await renderRegister();
+
+      pressLink(googleOption());
+      pressLink(googleOption());
+      pressLink(microsoftOption());
+
+      expect(captureRevenueEvent).toHaveBeenCalledTimes(1);
+      expect(captureRevenueEvent).toHaveBeenCalledWith("signup_started", {
+        funnel_stage: "signup",
+      });
     });
 
     test("with it: under Sign Up, 'or', then Sign up with Microsoft, drawn like the sign-in page's options", async () => {

@@ -96,7 +96,8 @@ jest.mock("../../../UI/Config", () => {
     __esModule: true,
     BILLING_ENABLED: false,
     CAPTCHA_ENABLED: false,
-    // Sign in with Microsoft, where the server offers it, is drawn too.
+    // Continue with Google and Sign in with Microsoft, where the server offers them, are drawn too.
+    GoogleSignInClientId: "accounts-dark-theme",
     MicrosoftSignInClientId: "accounts-dark-theme",
   };
 });
@@ -315,10 +316,11 @@ describe("the page these suites draw", () => {
 });
 
 describe("signing in", () => {
-  test("the sign-in page: its form, the other ways in (single sign-on, Microsoft, a passkey) and the footer", async () => {
+  test("the sign-in page: its form, the other ways in (single sign-on, Google, Microsoft, a passkey) and the footer", async () => {
     draw(<LoginPage />, "/accounts/login");
 
     expect(await screen.findByTestId("email")).toBeInTheDocument();
+    expect(screen.getByTestId("google-sign-in")).toBeInTheDocument();
     expect(screen.getByTestId("microsoft-sign-in")).toBeInTheDocument();
     expect(screen.getByTestId("passkey-login")).toBeInTheDocument();
     expect(lightOnlyColours()).toEqual([]);
@@ -492,10 +494,12 @@ describe("single sign-on", () => {
 });
 
 describe("signing up", () => {
-  test("the sign-up form, with the password guidance", async () => {
+  test("the sign-up form, with the password guidance and the other ways to sign up", async () => {
     draw(<RegisterPage />, "/accounts/register");
 
     expect(await screen.findByTestId("email")).toBeInTheDocument();
+    expect(screen.getByTestId("google-sign-in")).toBeInTheDocument();
+    expect(screen.getByTestId("microsoft-sign-in")).toBeInTheDocument();
     expect(lightOnlyColours()).toEqual([]);
   });
 
