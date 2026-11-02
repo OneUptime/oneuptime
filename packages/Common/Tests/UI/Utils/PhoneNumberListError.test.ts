@@ -52,8 +52,8 @@ describe("getPhoneNumberListError", () => {
   });
 
   test("names the first entry that is not a phone number, in English before any language is set up", () => {
-    expect(getPhoneNumberListError("+447700900123, +65 8123 4567, x")).toBe(
-      '"+65 8123 4567" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
+    expect(getPhoneNumberListError("+447700900123, +65 8123, x")).toBe(
+      '"+65 8123" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
     );
   });
 
