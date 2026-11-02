@@ -432,6 +432,36 @@ export const getIdleTimeoutInMinutes: (rule: SessionLengthRule) => number = (
     : rule.idleTimeoutInMinutes;
 };
 
+/*
+ * Whether moving from `before` to `after` shortens how long any kind of
+ * sign-in may last - a shorter session length (no limit is the longest) or
+ * a shorter idle timeout (the default, 30 days, is the longest) - so that it
+ * may end sessions there are now. A change that only lengthens, or keeps,
+ * every rule signs nobody out.
+ */
+export const doesShortenAnySession: (
+  before: SessionLengths,
+  after: SessionLengths,
+) => boolean = (before: SessionLengths, after: SessionLengths): boolean => {
+  const lengthOf: (rule: SessionLengthRule) => number = (
+    rule: SessionLengthRule,
+  ): number => {
+    return rule.lengthInMinutes === null
+      ? Number.POSITIVE_INFINITY
+      : rule.lengthInMinutes;
+  };
+
+  return (["standard", "sso"] as const).some(
+    (kind: "standard" | "sso"): boolean => {
+      return (
+        lengthOf(after[kind]) < lengthOf(before[kind]) ||
+        getIdleTimeoutInMinutes(after[kind]) <
+          getIdleTimeoutInMinutes(before[kind])
+      );
+    },
+  );
+};
+
 // Why a session ended, as the server says it: to the browser, which tells its person.
 export enum SessionEndReason {
   // As long has passed since its sign-in as the server lets a sign-in last.
