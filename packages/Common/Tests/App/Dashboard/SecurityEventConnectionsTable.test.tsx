@@ -27,7 +27,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorProviderHelp";
 import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
 import SecurityEventConnectionsTable, {
-  PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME,
+  CONNECTION_ROW_MARK_SIZE,
   getConnectionProviderDetailParts,
   securityEventConnectionsHelpMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
@@ -69,6 +69,11 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  PROVIDER_LOGO_COLOR_CLASS_NAME,
+  PROVIDER_LOGO_TILE_CLASS_NAME,
+  getProviderLogoTileSizeClassName,
+} from "../../../UI/Components/ProviderLogo/ProviderLogoImage";
 import {
   getDrawnMark,
   preloadProviderLogoMarks,
@@ -397,6 +402,10 @@ function tableProps(): ModelTableProps<BaseModel> {
 
 function row(name: string = "Acme Okta"): HTMLElement {
   return screen.getByTestId(name);
+}
+
+function classesOf(element: Element): Array<string> {
+  return (element.getAttribute("class") || "").split(" ").filter(Boolean);
 }
 
 /*
@@ -1216,10 +1225,12 @@ describe("SecurityEventConnectionsTable", () => {
 
   /*
    * Official logos audit: each row's product reads beside that product's
-   * official logo, the mark alone at an icon's size, decorative since the
-   * product's name is written beside it.
+   * official mark, decorative since the product's name is written beside
+   * it. UI review of the one-colour marks: on its tile, as each SIEM's
+   * mark is in Send to your SIEM right under this table - the two tables
+   * drew their marks two ways on one page, bare here and on tiles there.
    */
-  test("each row's product shows its official logo beside its name", (): void => {
+  test("each row's product shows its official mark on its tile beside its name", (): void => {
     renderTable([
       connection(),
       connection({
@@ -1244,18 +1255,29 @@ describe("SecurityEventConnectionsTable", () => {
         logo,
       });
       expect(mark).toHaveAttribute("aria-hidden", "true");
-      // The mark alone, beside the words: no tile.
-      expect(mark).not.toHaveClass("bg-white");
+      // On the tile every connection list draws a product's mark on.
+      expect(classesOf(mark!)).toEqual(
+        expect.arrayContaining([
+          ...PROVIDER_LOGO_TILE_CLASS_NAME.split(" "),
+          ...getProviderLogoTileSizeClassName(CONNECTION_ROW_MARK_SIZE).split(
+            " ",
+          ),
+          PROVIDER_LOGO_COLOR_CLASS_NAME,
+        ]),
+      );
     }
   });
 
   /*
-   * UI review: Splunk's logo is its wordmark, half as wide again as the
-   * square marks, so "Splunk Enterprise Security" started 8px right of the
-   * other products' names. Every mark now sits in one slot as wide as a
-   * wordmark, centred, so the names line up down the column.
+   * Splunk's logo is its wordmark, half as wide again as the square marks:
+   * drawn bare, "Splunk Enterprise Security" started further from the
+   * column's edge than the other products' names. On tiles of one size,
+   * every name starts at one place, whatever the mark's shape - and as far
+   * from its tile as a SIEM's name in Send to your SIEM.
    */
-  test("every product's mark sits in a slot as wide as a wordmark, so the names line up", (): void => {
+  test("every product's mark takes one tile, the same size as a SIEM's, so the names line up", (): void => {
+    expect(CONNECTION_ROW_MARK_SIZE).toBe(32);
+
     renderTable([
       connection(),
       connection({
@@ -1265,35 +1287,30 @@ describe("SecurityEventConnectionsTable", () => {
       }),
     ]);
 
-    for (const name of ["Acme Okta", "Acme Splunk"]) {
-      const slot: HTMLElement = within(row(name)).getByTestId(
-        "security-event-connection-provider-logo-slot",
-      );
+    const tiles: Array<Element> = ["Acme Okta", "Acme Splunk"].map(
+      (name: string): Element => {
+        const tile: Element = row(name).querySelector("[data-provider-logo]")!;
 
-      expect(slot.className).toBe(PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME);
-      expect(slot).toHaveClass("w-6", "flex-shrink-0", "justify-center");
-      expect(slot.querySelector("[data-provider-logo]")).not.toBeNull();
-      // The name comes right after the slot, so it starts where the others do.
-      expect(slot.nextElementSibling).toHaveTextContent(
-        name === "Acme Splunk" ? "Splunk Enterprise Security" : "Okta",
-      );
-    }
+        // The name comes right after the tile, so it starts where the others do.
+        expect(tile.nextElementSibling).toHaveTextContent(
+          name === "Acme Splunk" ? "Splunk Enterprise Security" : "Okta",
+        );
+        // Level with the name's first line, as a SIEM's tile is.
+        expect(tile).toHaveClass("mt-0.5", "h-8", "w-8");
+        expect(tile.parentElement).toHaveClass("flex", "items-start", "gap-3");
+        return tile;
+      },
+    );
 
-    // The wordmark is exactly as wide as the slot (24px); the square marks are narrower.
+    // One footprint for a square mark and a wordmark alike.
+    expect(classesOf(tiles[0]!).sort()).toEqual(classesOf(tiles[1]!).sort());
+    // The wordmark still reads as wide as its shape needs inside the tile.
     expect(
-      getDrawnMark(
-        within(row("Acme Splunk")).getByTestId(
-          "security-event-connection-provider-logo-slot",
-        ),
-      ),
-    ).toHaveAttribute("width", "24");
+      Number(getDrawnMark(tiles[1]!)!.getAttribute("width")),
+    ).toBeGreaterThan(Number(getDrawnMark(tiles[0]!)!.getAttribute("width")));
     expect(
-      getDrawnMark(
-        within(row("Acme Okta")).getByTestId(
-          "security-event-connection-provider-logo-slot",
-        ),
-      ),
-    ).toHaveAttribute("width", "16");
+      Number(getDrawnMark(tiles[1]!)!.getAttribute("width")),
+    ).toBeLessThanOrEqual(24);
   });
 
   /*

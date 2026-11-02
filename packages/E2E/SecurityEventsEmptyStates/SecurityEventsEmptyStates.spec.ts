@@ -2016,6 +2016,96 @@ test.describe("connections: your logs and your SIEM", () => {
     });
   });
 
+  /*
+   * The two tables of products on this page draw a product the same way: its
+   * one-colour mark on a tile of one size, the name as far from the tile,
+   * the tile level with the name's first line. Your security tools drew its
+   * marks bare and small, Send to your SIEM on tiles, one under the other.
+   */
+  for (const width of [1280, 390]) {
+    test(`${width}: Your security tools and Send to your SIEM draw a product's mark the same way`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, CONNECTIONS_PATH, {
+        tools: "rows",
+        siem: "rows",
+        width,
+      });
+
+      interface MarkLayout {
+        width: number;
+        height: number;
+        gap: number;
+        topToName: number;
+        drawings: number;
+        images: number;
+      }
+
+      const layoutsIn: (card: Locator) => Promise<Array<MarkLayout>> = async (
+        card: Locator,
+      ): Promise<Array<MarkLayout>> => {
+        await expect(card.locator("[data-provider-logo]")).toHaveCount(3, {
+          timeout: 30000,
+        });
+        return card
+          .locator("[data-provider-logo]")
+          .evaluateAll((tiles: Array<Element>): Array<MarkLayout> => {
+            return tiles.map((tile: Element): MarkLayout => {
+              const box: DOMRect = tile.getBoundingClientRect();
+              const words: Element = tile.nextElementSibling as Element;
+              /*
+               * The name's first line as its glyphs sit, from a range over
+               * its first words: the same measure whether the name is a
+               * block (Your security tools) or a line of text (a SIEM's).
+               */
+              const walker: TreeWalker = document.createTreeWalker(
+                words,
+                NodeFilter.SHOW_TEXT,
+              );
+              let text: Node | null = walker.nextNode();
+              while (text && !(text.textContent || "").trim()) {
+                text = walker.nextNode();
+              }
+              const range: Range = document.createRange();
+              range.selectNodeContents(text as Node);
+              const nameBox: DOMRect = range.getClientRects()[0] as DOMRect;
+
+              return {
+                width: Math.round(box.width),
+                height: Math.round(box.height),
+                gap: Math.round(words.getBoundingClientRect().left - box.right),
+                topToName: Math.round(nameBox.top - box.top),
+                drawings: tile.querySelectorAll("svg").length,
+                images: tile.querySelectorAll("img").length,
+              };
+            });
+          });
+      };
+
+      const tools: Array<MarkLayout> = await layoutsIn(toolsCard(page));
+      const siems: Array<MarkLayout> = await layoutsIn(siemCard(page));
+      const first: MarkLayout = siems[0] as MarkLayout;
+
+      expect(first.width).toBe(32);
+      expect(first.height).toBe(32);
+      for (const layout of [...tools, ...siems]) {
+        expect(layout.width).toBe(first.width);
+        expect(layout.height).toBe(first.height);
+        expect(Math.abs(layout.gap - first.gap)).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(layout.topToName - first.topToName),
+        ).toBeLessThanOrEqual(2);
+        // One inline drawing, never a picture.
+        expect(layout.drawings).toBe(1);
+        expect(layout.images).toBe(0);
+      }
+
+      await expectNoHorizontalOverflow(page);
+    });
+  }
+
   test("a phone reads each tool as a card: its name over what it is, then its health and times", async ({
     page,
   }: {
