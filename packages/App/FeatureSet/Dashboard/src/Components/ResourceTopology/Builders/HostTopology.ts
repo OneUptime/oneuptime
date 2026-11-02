@@ -35,6 +35,14 @@ import {
   sameName,
 } from "../ResourceTopologyIssues";
 import { isRecent } from "../ResourceTopologyFormat";
+import {
+  HostHealthAssessment,
+  HostHealthRow,
+  HostHealthSeverity,
+  HostHealthText,
+  assessHost,
+  toHostNumber,
+} from "Common/Types/Host/HostHealth";
 
 /*
  * A host's topology: what runs on it, and what that talks to.
@@ -68,6 +76,11 @@ export interface HostTopologyHost {
   id: string;
   name: string;
   lastSeenAt?: Date | null | undefined;
+  /*
+   * What the host last reported, as its record keeps it: with it the
+   * host's card says what its page and the Hosts list say (HostHealth).
+   */
+  health?: HostHealthRow | undefined;
 }
 
 export interface HostTopologyInput {
@@ -147,6 +160,82 @@ function trafficFacts(
   ];
 }
 
+// A rule's words as the map draws them: a count's form picked by its count.
+function toTopologyText(value: HostHealthText): ResourceTopologyText {
+  if (value.plural) {
+    return {
+      text: value.plural.count === 1 ? value.plural.one : value.text,
+      values: { ...(value.values || {}), count: String(value.plural.count) },
+    };
+  }
+  return value.values ? text(value.text, value.values) : text(value.text);
+}
+
+/*
+ * The host's own card, by the rules its page and the Hosts list follow:
+ * critical while it is not reporting or something on it is critical, a
+ * warning while something needs a look, its reasons the list's; CPU and
+ * memory as its two numbers while its readings are fresh.
+ */
+export function getHostTopologyRootState(data: {
+  health: HostHealthRow;
+  now: Date;
+}): {
+  health: ResourceTopologyHealth;
+  status: ResourceTopologyText;
+  reasons: Array<ResourceTopologyText>;
+  facts: Array<ResourceTopologyFact>;
+} {
+  const assessment: HostHealthAssessment = assessHost(data.health, {
+    now: data.now,
+  });
+
+  const health: ResourceTopologyHealth =
+    assessment.severity === HostHealthSeverity.Critical
+      ? "critical"
+      : assessment.severity === HostHealthSeverity.Warning
+        ? "warning"
+        : assessment.state === "starting"
+          ? "unknown"
+          : "healthy";
+
+  const reasons: Array<ResourceTopologyText> =
+    assessment.state === "not-reporting"
+      ? [
+          text(
+            translationKey(
+              "Nothing has arrived from this host's agent for more than 15 minutes.",
+            ),
+          ),
+        ]
+      : assessment.fleetReasons.map(toTopologyText);
+
+  const facts: Array<ResourceTopologyFact> = [];
+  if (assessment.isReporting && assessment.hasFreshReadings) {
+    const cpu: number | null = toHostNumber(data.health.latestCpuPercent);
+    const memory: number | null = toHostNumber(data.health.latestMemoryPercent);
+    if (cpu !== null) {
+      facts.push({
+        label: translationKey("CPU"),
+        value: `${Math.round(cpu)}%`,
+      });
+    }
+    if (memory !== null) {
+      facts.push({
+        label: translationKey("Memory"),
+        value: `${Math.round(memory)}%`,
+      });
+    }
+  }
+
+  return {
+    health: health,
+    status: toTopologyText(assessment.status),
+    reasons: reasons,
+    facts: facts,
+  };
+}
+
 export function buildHostTopology(
   input: HostTopologyInput,
 ): ResourceTopologyGraph {
@@ -157,33 +246,57 @@ export function buildHostTopology(
     HOST_STALE_MS,
   );
 
-  nodes.push({
-    id: HOST_ROOT_ID,
-    parentId: null,
-    kind: entityKind(EntityType.Host),
-    name: input.host.name || "Host",
-    health: reporting
-      ? "healthy"
-      : input.host.lastSeenAt
-        ? "warning"
-        : "unknown",
-    status: reporting
-      ? text(translationKey("Reporting"))
-      : input.host.lastSeenAt
-        ? text(translationKey("Not reporting"))
-        : text(translationKey("No data yet")),
-    reasons:
-      !reporting && input.host.lastSeenAt
-        ? [
-            text(
-              translationKey(
-                "Nothing has arrived from this host's agent for more than 15 minutes.",
+  if (input.host.health) {
+    const state: {
+      health: ResourceTopologyHealth;
+      status: ResourceTopologyText;
+      reasons: Array<ResourceTopologyText>;
+      facts: Array<ResourceTopologyFact>;
+    } = getHostTopologyRootState({
+      health: input.host.health,
+      now: input.now,
+    });
+
+    nodes.push({
+      id: HOST_ROOT_ID,
+      parentId: null,
+      kind: entityKind(EntityType.Host),
+      name: input.host.name || "Host",
+      health: state.health,
+      status: state.status,
+      reasons: state.reasons,
+      facts: state.facts,
+      link: { page: PageMap.HOST_VIEW, modelId: input.host.id },
+    });
+  } else {
+    nodes.push({
+      id: HOST_ROOT_ID,
+      parentId: null,
+      kind: entityKind(EntityType.Host),
+      name: input.host.name || "Host",
+      health: reporting
+        ? "healthy"
+        : input.host.lastSeenAt
+          ? "warning"
+          : "unknown",
+      status: reporting
+        ? text(translationKey("Reporting"))
+        : input.host.lastSeenAt
+          ? text(translationKey("Not reporting"))
+          : text(translationKey("No data yet")),
+      reasons:
+        !reporting && input.host.lastSeenAt
+          ? [
+              text(
+                translationKey(
+                  "Nothing has arrived from this host's agent for more than 15 minutes.",
+                ),
               ),
-            ),
-          ]
-        : [],
-    link: { page: PageMap.HOST_VIEW, modelId: input.host.id },
-  });
+            ]
+          : [],
+      link: { page: PageMap.HOST_VIEW, modelId: input.host.id },
+    });
+  }
 
   const infrastructure: InfrastructureData | null = input.infrastructure;
   const entityByKey: Map<string, TopologyEntity> = new Map<

@@ -143,7 +143,7 @@ describe("a host's Filesystems, on a wide screen", () => {
     ).toBeInTheDocument();
   });
 
-  test("the bar is as long as the mount is full, in green, amber from 75% and red from 90%", () => {
+  test("the bar is as long as the mount is full, in green, amber above 85% and red above 95%, as Needs attention lists it", () => {
     draw(1280);
 
     const bars: Array<HTMLElement> = screen
@@ -158,9 +158,10 @@ describe("a host's Filesystems, on a wide screen", () => {
     expect(bars[1]!.style.width).toBe("1.2%");
     expect(bars[1]).toHaveClass("bg-emerald-500");
 
-    expect(getMountBarClassName(74.99)).toBe("bg-emerald-500");
-    expect(getMountBarClassName(75)).toBe("bg-amber-500");
-    expect(getMountBarClassName(90)).toBe("bg-red-500");
+    expect(getMountBarClassName(85)).toBe("bg-emerald-500");
+    expect(getMountBarClassName(85.01)).toBe("bg-amber-500");
+    expect(getMountBarClassName(95)).toBe("bg-amber-500");
+    expect(getMountBarClassName(95.01)).toBe("bg-red-500");
   });
 
   test("a bar never runs past its track, nor below its start", () => {

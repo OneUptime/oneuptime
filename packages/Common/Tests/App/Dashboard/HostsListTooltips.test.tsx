@@ -31,11 +31,12 @@ import {
  * then drawn by the shared Table, the way BaseModelTable spreads them, to
  * check the (i) a customer actually hovers.
  *
- * The one metric column is Resources: CPU cores and RAM on one line, the
- * process count below, all three read from the host record (Host.cpuCores,
- * Host.totalMemoryBytes, Host.processCount), which ingest refreshes at most
- * about once a minute. The accuracy of those words against the ingest code
- * is pinned in HostMetricTooltips.test.ts.
+ * Its metric columns are Status, CPU, Memory and Disk: the host's health
+ * by HostHealth's rules with the reason under it, and what the host last
+ * reported (kept on its record about once a minute) as bars, with its
+ * cores, RAM and fullest mount under them. The accuracy of those words
+ * against the ingest code is pinned in HostMetricTooltips.test.ts; the
+ * fleet's Needs attention card above the list has a suite of its own.
  */
 
 const GIB: number = 1024 * 1024 * 1024;
@@ -114,6 +115,19 @@ jest.mock(
           facetSaveState: undefined,
           restoreFacetState: () => {},
         };
+      },
+    };
+  },
+);
+
+// The fleet's Needs attention card reads a route of its own (its own suite).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostFleetAttentionCard",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return <div data-testid="host-fleet-attention" />;
       },
     };
   },
@@ -259,8 +273,26 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+// A host that reported a minute ago: busy, short of memory, its /var full.
+function reportingHost(): GenericObject {
+  const now: Date = new Date();
+  return {
+    _id: "h1",
+    name: "db-01",
+    cpuCores: 4,
+    totalMemoryBytes: 8 * GIB,
+    otelCollectorStatus: "connected",
+    lastSeenAt: new Date(now.getTime() - 60_000),
+    readingsUpdatedAt: new Date(now.getTime() - 60_000),
+    latestCpuPercent: 42.4,
+    latestMemoryPercent: 93,
+    latestDiskPercent: 97.2,
+    latestDiskMountpoint: "/var",
+  };
+}
+
 describe("Hosts list columns", () => {
-  test("Resources carries its header tooltip; names, network, status and ownership carry none", async () => {
+  test("Status, CPU, Memory and Disk carry their header tooltips; names, network, collector and ownership carry none", async () => {
     const columns: Array<CapturedColumn> = await capturedColumns();
     const tooltips: Record<string, string | undefined> = {};
 
@@ -270,49 +302,118 @@ describe("Hosts list columns", () => {
 
     expect(tooltips).toEqual({
       Name: undefined,
-      OS: undefined,
+      Status: HOST_METRIC_DESCRIPTIONS.hostListStatus,
+      CPU: HOST_METRIC_DESCRIPTIONS.hostListCpu,
+      Memory: HOST_METRIC_DESCRIPTIONS.hostListMemory,
+      Disk: HOST_METRIC_DESCRIPTIONS.hostListDisk,
       "IP Address": undefined,
-      Resources: HOST_METRIC_DESCRIPTIONS.hostListResources,
-      Status: undefined,
+      Collector: undefined,
       "Last Seen": undefined,
       Labels: undefined,
       Owners: undefined,
     });
   });
 
-  test("Resources shows cores and RAM on one line and the process count below, as the text says", async () => {
-    const resources: CapturedColumn = column(
-      await capturedColumns(),
-      "Resources",
-    );
+  test("Status says the host's health in one word, and why under it", async () => {
+    const status: CapturedColumn = column(await capturedColumns(), "Status");
 
-    const full: ReturnType<typeof render> = render(
-      resources.getElement!({
-        cpuCores: 8,
-        totalMemoryBytes: 16 * GIB,
-        processCount: 312,
+    const unhealthy: ReturnType<typeof render> = render(
+      status.getElement!(reportingHost()),
+    );
+    expect(unhealthy.getByTestId("host-status")).toHaveTextContent("Unhealthy");
+    expect(unhealthy.getByTestId("host-status")).toHaveAttribute(
+      "data-tone",
+      "danger",
+    );
+    // The most urgent reason first, and how many more there are.
+    expect(unhealthy.getByTestId("host-status-reason")).toHaveTextContent(
+      "/var 97% full +1 more",
+    );
+    unhealthy.unmount();
+
+    // Stopped reporting: no stale reason, but when it last reported.
+    const silent: ReturnType<typeof render> = render(
+      status.getElement!({
+        ...reportingHost(),
+        otelCollectorStatus: "disconnected",
+        lastSeenAt: new Date(Date.now() - 3 * 3600_000),
       }),
     );
-    expect(full.getByText("8 cores · 16 GiB")).toBeInTheDocument();
-    expect(full.getByText("312 processes")).toBeInTheDocument();
-    full.unmount();
-
-    // Without a process count (no processes scraper) the line is absent.
-    const noProcesses: ReturnType<typeof render> = render(
-      resources.getElement!({ cpuCores: 1, totalMemoryBytes: 2 * GIB }),
+    expect(silent.getByTestId("host-status")).toHaveTextContent(
+      "Not reporting",
     );
-    expect(noProcesses.getByText("1 core · 2.0 GiB")).toBeInTheDocument();
-    expect(noProcesses.queryByText(/processes/)).not.toBeInTheDocument();
-    noProcesses.unmount();
-
-    const nothing: ReturnType<typeof render> = render(
-      resources.getElement!({}),
+    expect(silent.queryByTestId("host-status-reason")).toBeNull();
+    expect(silent.getByTestId("host-status-last-report")).toHaveTextContent(
+      "Last reported 3 hours ago",
     );
-    expect(nothing.getByText("—")).toBeInTheDocument();
-    nothing.unmount();
+    silent.unmount();
   });
 
-  test("the column is only the host record's cached fields, which the page asks for", async () => {
+  test("CPU, Memory and Disk show what the host last reported, coloured where Needs attention draws its lines", async () => {
+    const columns: Array<CapturedColumn> = await capturedColumns();
+    const host: GenericObject = reportingHost();
+
+    const cpu: ReturnType<typeof render> = render(
+      column(columns, "CPU").getElement!(host),
+    );
+    expect(cpu.getByTestId("host-usage-cpu")).toHaveTextContent("42%4 cores");
+    expect(cpu.getByTestId("host-usage-cpu")).toHaveAttribute(
+      "data-tone",
+      "positive",
+    );
+    cpu.unmount();
+
+    const memory: ReturnType<typeof render> = render(
+      column(columns, "Memory").getElement!(host),
+    );
+    expect(memory.getByTestId("host-usage-memory")).toHaveTextContent(
+      "93%of 8.0 GiB",
+    );
+    expect(memory.getByTestId("host-usage-memory")).toHaveAttribute(
+      "data-tone",
+      "warning",
+    );
+    memory.unmount();
+
+    const disk: ReturnType<typeof render> = render(
+      column(columns, "Disk").getElement!(host),
+    );
+    expect(disk.getByTestId("host-usage-disk")).toHaveAttribute(
+      "data-tone",
+      "danger",
+    );
+    expect(disk.getByTestId("host-usage-mount")).toHaveTextContent("/var");
+    expect(disk.getByTestId("host-usage-mount")).toHaveAttribute(
+      "title",
+      "/var",
+    );
+    disk.unmount();
+  });
+
+  test("a host whose readings are old, or that stopped reporting, shows no numbers", async () => {
+    const cpu: CapturedColumn = column(await capturedColumns(), "CPU");
+
+    const stale: ReturnType<typeof render> = render(
+      cpu.getElement!({
+        ...reportingHost(),
+        readingsUpdatedAt: new Date(Date.now() - 60 * 60_000),
+      }),
+    );
+    expect(stale.queryByTestId("host-usage-cpu")).toBeNull();
+    expect(stale.getByText("—")).toBeInTheDocument();
+    stale.unmount();
+
+    const silent: ReturnType<typeof render> = render(
+      cpu.getElement!({
+        ...reportingHost(),
+        otelCollectorStatus: "disconnected",
+      }),
+    );
+    expect(silent.queryByTestId("host-usage-cpu")).toBeNull();
+    silent.unmount();
+  });
+
+  test("the page asks for the readings the columns show", async () => {
     await capturedColumns();
 
     const props: { selectMoreFields: Record<string, boolean> } = modelTableMock
@@ -324,76 +425,75 @@ describe("Hosts list columns", () => {
       expect.objectContaining({
         cpuCores: true,
         totalMemoryBytes: true,
-        processCount: true,
+        latestCpuPercent: true,
+        latestMemoryPercent: true,
+        latestDiskPercent: true,
+        latestDiskMountpoint: true,
+        readingsUpdatedAt: true,
+        lastSeenAt: true,
       }),
     );
   });
 });
 
-describe("the Resources (i) as a customer meets it", () => {
+describe("the list's (i)s as a customer meets them", () => {
+  const METRIC_COLUMNS: Array<string> = ["Status", "CPU", "Memory", "Disk"];
+
   async function renderList(
     onSortChanged: () => void = () => {},
   ): Promise<void> {
     const columns: Array<CapturedColumn> = (await capturedColumns()).filter(
       (c: CapturedColumn): boolean => {
         // Name and Owners need the router and the owners API; not metrics.
-        return c.title === "Resources" || c.title === "Status";
+        return METRIC_COLUMNS.includes(c.title);
       },
     );
 
-    renderAsTable(
-      columns,
-      [
-        {
-          _id: "h1",
-          cpuCores: 4,
-          totalMemoryBytes: 8 * GIB,
-          processCount: 140,
-          otelCollectorStatus: "connected",
-        },
-      ],
-      onSortChanged,
-    );
+    renderAsTable(columns, [reportingHost()], onSortChanged);
   }
 
-  test("the header has exactly one (i), named after the column", async () => {
+  test("the header has one (i) for each metric column, named after it", async () => {
     await renderList();
 
-    expect(infoLabels()).toEqual(["Resources"]);
+    expect(infoLabels()).toEqual(METRIC_COLUMNS);
 
-    const info: HTMLElement = infoButtonsFor("Resources")[0]!;
-
-    expect(info.closest("thead")).not.toBeNull();
-    expectNotNestedInControl(info);
+    for (const title of METRIC_COLUMNS) {
+      const info: HTMLElement = infoButtonsFor(title)[0]!;
+      expect(info.closest("thead")).not.toBeNull();
+      expectNotNestedInControl(info);
+    }
   });
 
-  test("hovering or focusing the (i) explains the three numbers", async () => {
-    await renderList();
+  test.each([
+    ["Status", HOST_METRIC_DESCRIPTIONS.hostListStatus],
+    ["CPU", HOST_METRIC_DESCRIPTIONS.hostListCpu],
+    ["Memory", HOST_METRIC_DESCRIPTIONS.hostListMemory],
+    ["Disk", HOST_METRIC_DESCRIPTIONS.hostListDisk],
+  ])(
+    "hovering or focusing %s's (i) explains it",
+    async (title: string, text: string) => {
+      await renderList();
 
-    const info: HTMLElement = infoButtonsFor("Resources")[0]!;
+      const info: HTMLElement = infoButtonsFor(title)[0]!;
 
-    expect(await explanationOnHover(info)).toBe(
-      HOST_METRIC_DESCRIPTIONS.hostListResources,
-    );
-    expect(await explanationOnFocus(info)).toBe(
-      HOST_METRIC_DESCRIPTIONS.hostListResources,
-    );
-  });
+      expect(await explanationOnHover(info)).toBe(text);
+      expect(await explanationOnFocus(info)).toBe(text);
+    },
+  );
 
-  test("asking what the column means does not sort the table", async () => {
+  test("asking what a column means does not sort the table", async () => {
     const onSortChanged: MockFunction = getJestMockFunction();
 
     await renderList(() => {
       onSortChanged();
     });
 
-    const info: HTMLElement = infoButtonsFor("Resources")[0]!;
+    const info: HTMLElement = infoButtonsFor("Disk")[0]!;
 
     fireEvent.click(info);
     fireEvent.keyDown(info, { key: "Enter" });
 
     expect(onSortChanged).not.toHaveBeenCalled();
-    expect(screen.getByText("4 cores · 8.0 GiB")).toBeInTheDocument();
-    expect(screen.getByText("140 processes")).toBeInTheDocument();
+    expect(screen.getByTestId("host-usage-disk")).toBeInTheDocument();
   });
 });

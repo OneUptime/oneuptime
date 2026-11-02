@@ -5,6 +5,10 @@ import Column from "Common/UI/Components/Table/Types/Column";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  HOST_DISK_FULL_PERCENT,
+  HOST_DISK_NEAR_FULL_PERCENT,
+} from "Common/Types/Host/HostHealth";
 import React, { FunctionComponent, ReactElement } from "react";
 
 // One mount point a host reports, with its capacity and how full it is.
@@ -27,15 +31,18 @@ export const HOST_FILESYSTEMS_TABLE_KEY: string = "host-filesystems-table";
 
 export const HOST_FILESYSTEMS_TABLE_ID: string = "host-filesystems";
 
-// How full a mount is, by colour: green, amber from 75%, red from 90%.
+/*
+ * How full a mount is, by colour: green, amber above 85% and red above 95% -
+ * where the host's Needs attention starts to list it (HostHealth).
+ */
 export const getMountBarClassName: (percent: number) => string = (
   percent: number,
 ): string => {
-  if (percent >= 90) {
+  if (percent > HOST_DISK_FULL_PERCENT) {
     return "bg-red-500";
   }
 
-  if (percent >= 75) {
+  if (percent > HOST_DISK_NEAR_FULL_PERCENT) {
     return "bg-amber-500";
   }
 
