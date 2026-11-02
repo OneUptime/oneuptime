@@ -74,7 +74,7 @@ import SubscriberMessageText, {
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/Types/Translator";
 
 /*
  * The postmortem's own words in its messages, in each subscriber's

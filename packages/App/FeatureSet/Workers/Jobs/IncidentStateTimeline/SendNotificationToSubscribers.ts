@@ -76,7 +76,7 @@ import SubscriberMessageText from "Common/Server/Utils/StatusPage/SubscriberMess
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/Types/Translator";
 
 RunCron(
   "IncidentStateTimeline:SendNotificationToSubscribers",

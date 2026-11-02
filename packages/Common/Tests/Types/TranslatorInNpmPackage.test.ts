@@ -187,6 +187,61 @@ describe("what the server words a status page's messages with is in the npm pack
   });
 });
 
+/*
+ * The monitor overview's and the cron schedule's wording imported their
+ * translator from UI/ too, and the API reference's schemas logged through the
+ * server's logger: npm left all ten out (PINNED_LEFT_OUT) until
+ * fu-platform-next pointed them at Types/Translator and dropped the log line.
+ */
+describe("the monitor and schedule wording, and the schemas, are in the npm package", () => {
+  const PUBLISHED_SINCE: Array<string> = [
+    "Utils/CronScheduleText",
+    "Utils/Monitor/MonitorCheckScheduleUtil",
+    "Utils/Monitor/MonitorOverviewFamily",
+    "Utils/Monitor/MonitorOverviewPresentationUtil",
+    "Utils/Monitor/MonitorOverviewProbeUtil",
+    "Utils/Monitor/MonitorStatusHistoryUtil",
+    "Utils/Monitor/MonitorUptimeSummaryUtil",
+    "Utils/Schema/AnalyticsModelSchema",
+    "Utils/Schema/BaseSchema",
+    "Utils/Schema/ModelSchema",
+  ];
+
+  test.each(PUBLISHED_SINCE)(
+    "%s loads nothing from UI/ or Server/ when it runs, no i18next, and only packages Common depends on",
+    (id: string) => {
+      const loaded: Loaded = loadedBy(id);
+
+      expect(loaded.modules).toContain(id);
+      expect({
+        id,
+        outsideTypesUtilsAndModels: loaded.modules.filter(
+          (module: string): boolean => {
+            return !isCandidateModule(module);
+          },
+        ),
+        elsewhere: loaded.elsewhere,
+      }).toEqual({ id, outsideTypesUtilsAndModels: [], elsewhere: [] });
+      expect({ id, i18next: loaded.packages.includes("i18next") }).toEqual({
+        id,
+        i18next: false,
+      });
+      expect({
+        id,
+        notCommonsDependencies: loaded.packages.filter(
+          (name: string): boolean => {
+            return !Object.prototype.hasOwnProperty.call(
+              COMMON_DEPENDENCIES,
+              name,
+            );
+          },
+        ),
+      }).toEqual({ id, notCommonsDependencies: [] });
+    },
+    60000,
+  );
+});
+
 describe("UI/Utils/TranslateTemplate", () => {
   test("hands out every one of Types/Translator's functions, the very same ones", () => {
     const names: Array<string> = Object.keys(Translator);
