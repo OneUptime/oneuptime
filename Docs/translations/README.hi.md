@@ -45,6 +45,7 @@ OneUptime एक ओपन-सोर्स ऑब्ज़र्वेबिल�
 - **[वर्कफ़्लो और रनबुक](https://oneuptime.com/docs/hi/workflows/index)**: रोज़ के काम स्वचालित करें, और Jira, ServiceNow और वे दूसरे टूल जोड़ें जिन्हें आपकी टीम पहले से इस्तेमाल करती है।
 - **[OneUptime AI](https://oneuptime.com/docs/hi/ai/ai-sre)**: नई घटनाओं और अलर्ट की जाँच करता है और स्रोतों सहित मूल कारण विश्लेषण पोस्ट करता है। सुधार चालू करने पर यह सुधार के साथ एक पुल रिक्वेस्ट खोल सकता है, जिसे आपकी टीम जाँचती है।
 - **[API, CLI और Terraform](https://oneuptime.com/docs/hi/api-reference/api-reference)**: अपनी स्क्रिप्ट और CI से OneUptime को स्वचालित करें, और मॉनिटर, स्थिति पृष्ठ और ऑन-कॉल को कोड के रूप में प्रबंधित करें।
+- **[MCP सर्वर](https://oneuptime.com/docs/hi/ai/mcp-server)** (`https://oneuptime.com/mcp`): Claude, Cursor, GitHub Copilot वाला VS Code या Model Context Protocol (MCP) का कोई भी दूसरा क्लाइंट कनेक्ट करें, और उससे किसी घटना की पड़ताल करने, लॉग और ट्रेस क्वेरी करने, किसी अलर्ट को स्वीकार करने या कोई मॉनिटर सेट करने को कहें।
 
 बाक़ी सब कुछ [दस्तावेज़](https://oneuptime.com/docs/hi/introduction/getting-started) में है।
 
