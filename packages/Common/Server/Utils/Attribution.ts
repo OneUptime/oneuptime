@@ -53,6 +53,13 @@ export interface UtmAttribution {
   utmUrl?: string | undefined;
 }
 
+// Everything a signup that posts no form carries about where it came from.
+export interface SignUpAttribution {
+  utm: UtmAttribution;
+  clickIds?: JSONObject | undefined;
+  firstTouch?: JSONObject | undefined;
+}
+
 export default class Attribution {
   // Whitelist known ad-platform click id keys; bound each value.
   public static sanitizeClickIds(value: JSONValue): JSONObject | undefined {
@@ -167,6 +174,51 @@ export default class Attribution {
         row[key] = value.slice(0, MaxAttributionValueLength);
       }
     }
+  }
+
+  /*
+   * What the sign-in attribution cookie holds (SignInAttributionCookieName).
+   *
+   * A browser writes it, so it is whatever a caller likes: read as the form
+   * body is, through the same whitelists, and undefined for anything that is
+   * not what the sign-in button writes. Never throws: this runs on the way to
+   * signing somebody in, and a bad cookie must only cost the attribution.
+   */
+  public static fromSignInCookie(
+    value: string | undefined,
+  ): SignUpAttribution | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    let parsed: JSONValue;
+
+    try {
+      parsed = JSON.parse(value) as JSONValue;
+    } catch {
+      return undefined;
+    }
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+
+    const input: JSONObject = parsed as JSONObject;
+
+    const attribution: SignUpAttribution = {
+      utm: this.sanitizeUtm(input["utm"] as JSONValue),
+      clickIds: this.sanitizeClickIds(input["clickIds"] as JSONValue),
+      firstTouch: this.sanitizeFirstTouchAttribution(
+        input["firstTouch"] as JSONValue,
+      ),
+    };
+
+    const hasAttribution: boolean =
+      this.hasAnyAttribution(attribution) ||
+      Boolean(attribution.utm.utmUrl) ||
+      Boolean(attribution.firstTouch);
+
+    return hasAttribution ? attribution : undefined;
   }
 
   // True when anything at all identifies where this visitor came from.

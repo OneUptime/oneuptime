@@ -10,7 +10,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
-import Attribution from "../Utils/Attribution";
+import Attribution, { SignUpAttribution } from "../Utils/Attribution";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -1156,6 +1156,7 @@ export class Service extends DatabaseService<Model> {
     isEmailVerified?: boolean;
     generateRandomPassword?: boolean;
     createdByUserId?: ObjectID | undefined;
+    attribution?: SignUpAttribution | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const { email, props } = data;
@@ -1178,6 +1179,16 @@ export class Service extends DatabaseService<Model> {
 
     if (data.generateRandomPassword) {
       user.password = new HashedString(Text.generateRandomText(20));
+    }
+
+    /*
+     * Where a signup that posted no form came from. Copied on to the project
+     * and the conversions it makes, as the sign-up form's is.
+     */
+    if (data.attribution) {
+      Object.assign(user, data.attribution.utm);
+      user.clickIds = data.attribution.clickIds;
+      user.firstTouchAttribution = data.attribution.firstTouch;
     }
 
     if (!IsBillingEnabled) {

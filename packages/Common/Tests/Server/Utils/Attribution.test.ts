@@ -1,4 +1,7 @@
-import Attribution, { UtmAttribution } from "../../../Server/Utils/Attribution";
+import Attribution, {
+  SignUpAttribution,
+  UtmAttribution,
+} from "../../../Server/Utils/Attribution";
 import { JSONObject } from "../../../Types/JSON";
 import { MaxAttributionValueLength } from "../../../Types/Marketing/Attribution";
 import crypto from "crypto";
@@ -358,6 +361,78 @@ describe("Attribution", () => {
       Attribution.boundUtmColumns(row);
 
       expect(row["companyName"]).toBe(companyName);
+    });
+  });
+
+  describe("fromSignInCookie", () => {
+    test("reads what the sign-in button writes", () => {
+      expect(
+        Attribution.fromSignInCookie(
+          JSON.stringify({
+            utm: {
+              utmSource: "google",
+              utmCampaign: "brand",
+              utmUrl: "https://oneuptime.com/?gclid=abc",
+            },
+            clickIds: { gclid: "abc" },
+            firstTouch: { utmSource: "linkedin" },
+          }),
+        ),
+      ).toEqual({
+        utm: {
+          utmSource: "google",
+          utmCampaign: "brand",
+          utmUrl: "https://oneuptime.com/?gclid=abc",
+        },
+        clickIds: { gclid: "abc" },
+        firstTouch: { utmSource: "linkedin" },
+      });
+    });
+
+    test("keeps a click with nothing else: Google Ads auto-tagging sends no UTMs", () => {
+      expect(
+        Attribution.fromSignInCookie(
+          JSON.stringify({ clickIds: { gclid: "abc" } }),
+        ),
+      ).toMatchObject({ clickIds: { gclid: "abc" } });
+    });
+
+    test("whitelists and bounds like the form body: a browser wrote this", () => {
+      const attribution: SignUpAttribution | undefined =
+        Attribution.fromSignInCookie(
+          JSON.stringify({
+            utm: {
+              utmSource: "s".repeat(MaxAttributionValueLength + 10),
+              isMasterAdmin: true,
+              password: "must-not-persist",
+            },
+            clickIds: { gclid: "abc", attacker: "must-not-persist" },
+            isMasterAdmin: true,
+          }),
+        );
+
+      expect(attribution?.utm.utmSource).toHaveLength(
+        MaxAttributionValueLength,
+      );
+      expect(Object.keys(attribution!.utm)).toEqual(["utmSource"]);
+      expect(attribution?.clickIds).toEqual({ gclid: "abc" });
+      expect(Object.keys(attribution!)).not.toContain("isMasterAdmin");
+    });
+
+    test.each([
+      undefined,
+      "",
+      "not json",
+      "{",
+      "null",
+      "42",
+      '"gclid"',
+      "[1,2]",
+      "{}",
+      '{"utm":"x","clickIds":[],"firstTouch":1}',
+      '{"clickIds":null}',
+    ])("reads %p as no attribution, and never throws", (value: unknown) => {
+      expect(Attribution.fromSignInCookie(value as never)).toBeUndefined();
     });
   });
 

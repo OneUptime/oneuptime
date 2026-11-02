@@ -106,3 +106,54 @@ describe("a signup from a long ad address", () => {
     );
   });
 });
+
+describe("createByEmail, for a signup that posts no form", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("writes the attribution it is given onto the new user", async () => {
+    const create: jest.SpiedFunction<typeof UserService.create> = jest
+      .spyOn(UserService, "create")
+      .mockImplementation(async (createBy: CreateBy<User>): Promise<User> => {
+        return createBy.data;
+      });
+
+    await UserService.createByEmail({
+      email: new Email("buyer@acme.example"),
+      name: undefined,
+      attribution: {
+        utm: { utmSource: "google", utmUrl: "https://oneuptime.com/?gclid=a" },
+        clickIds: { gclid: "a" },
+        firstTouch: { utmSource: "linkedin" },
+      },
+      props: { isRoot: true },
+    });
+
+    const user: User = create.mock.calls[0]![0].data;
+
+    expect(user.utmSource).toBe("google");
+    expect(user.utmUrl).toBe("https://oneuptime.com/?gclid=a");
+    expect(user.clickIds).toEqual({ gclid: "a" });
+    expect(user.firstTouchAttribution).toEqual({ utmSource: "linkedin" });
+  });
+
+  test("writes none where it is given none: an invitation is not an acquisition", async () => {
+    const create: jest.SpiedFunction<typeof UserService.create> = jest
+      .spyOn(UserService, "create")
+      .mockImplementation(async (createBy: CreateBy<User>): Promise<User> => {
+        return createBy.data;
+      });
+
+    await UserService.createByEmail({
+      email: new Email("teammate@acme.example"),
+      name: undefined,
+      props: { isRoot: true },
+    });
+
+    const user: User = create.mock.calls[0]![0].data;
+
+    expect(user.utmSource).toBeUndefined();
+    expect(user.clickIds).toBeUndefined();
+  });
+});
