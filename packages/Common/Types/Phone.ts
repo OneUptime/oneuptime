@@ -1,3 +1,4 @@
+import ColumnLength from "./Database/ColumnLength";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
@@ -77,13 +78,32 @@ export default class Phone extends DatabaseProperty {
     v = v.trim();
 
     const re: RegExp = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,7}$/; // regex for international phone numbers format based on (ITU-T E.123)
-    const isValid: boolean = re.test(v);
-    if (!isValid) {
-      throw new BadDataException(
-        `Phone is not in valid format: ${refusedValue(v)}`,
-      );
+
+    if (re.test(v)) {
+      this._phone = v;
+      return;
     }
-    this._phone = v;
+
+    /*
+     * People group a number the way it is said: "+1 415 555 1234",
+     * "+44 20 7946 0958", "07911 123456". The check above only takes
+     * three-three-four, so a number like these is taken as its digits, which
+     * is also the form SMS and call providers want. Everything the check above
+     * takes stays exactly as typed: a stored number comes through here again
+     * each time it is read (fromDatabase).
+     */
+    const digits: string =
+      v.length <= ColumnLength.Phone ? v.replace(/[\s().-]/g, "") : "";
+    const digitsRe: RegExp = /^[+]?[0-9]{8,15}$/;
+
+    if (digitsRe.test(digits)) {
+      this._phone = digits;
+      return;
+    }
+
+    throw new BadDataException(
+      `Phone is not in valid format: ${refusedValue(v)}`,
+    );
   }
 
   public constructor(phone: string | Phone) {

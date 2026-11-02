@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40026,
-    "untranslated": 12747
+    "keys": 40054,
+    "untranslated": 12746
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -201,6 +201,8 @@
     "Tunnel",
     "Type",
     "UTC",
+    "Uplink",
+    "Uplink {{uplink}}",
     "Uplinks",
     "Uploads",
     "VLAN",
@@ -278,6 +280,8 @@
     "{{count}} datastores",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
+    "{{count}} flow",
+    "{{count}} flows",
     "{{count}} match",
     "{{count}} node",
     "{{count}} person",

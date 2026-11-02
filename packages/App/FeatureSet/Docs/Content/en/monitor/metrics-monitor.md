@@ -138,7 +138,7 @@ What a data point is compared with depends on the query:
 - **Its services.** A monitor that names services is compared with those services alone. One that names none is compared with every service that reports the metric.
 - **An average, minimum, maximum or percentile of a plain metric** is compared with the metric's samples, as far back as the **Baseline Window** goes.
 - **A Sum or a Count, and any query on a histogram,** is compared with the query's own data points. Those are kept as long as your metrics are, so the comparison reaches back no further than that: 15 days unless you changed it.
-- **A query filtered or grouped by an attribute** is compared with every series of its services, because a baseline holds no attributes, so it only notices a change large enough to leave the range of them all. If it is a Sum, a Count or a query on a histogram, there is nothing to compare it with and it stays learning. So does a percentile of a histogram.
+- **A query filtered or grouped by an attribute** is compared with its own data points, each series with its own, so a host is judged by what that host does. Those reach back as far as your metrics are kept. If that is under two weeks, an average, minimum, maximum or percentile is compared with every series of its services instead, which only notices a change large enough to leave the range of them all, and a Sum, a Count or a query on a histogram stays learning. A percentile of a histogram always stays learning. A monitor split into more than 5,000 series is treated as if your metrics were kept for under two weeks.
 
 A Sum or a Count only counts as low on a complete data point with another complete one after it, because the newest are still filling. So a one-minute window can only find one that is high.
 
@@ -223,7 +223,7 @@ The query has no **Group by**, so every host is collapsed into one number. Group
 :::
 
 :::details An anomaly criteria never fires
-It is still learning: the hour of the week it compares against does not have two weeks of history yet. A Sum, a Count or a query on a histogram that is filtered or grouped by an attribute stays learning for good, and so does a percentile of a histogram: there is no history to compare them with.
+It is still learning: the hour of the week it compares against does not have two weeks of history yet. A query filtered or grouped by an attribute learns from its own series, so a new host or pod has to learn, however long the metric has been reporting. A percentile of a histogram stays learning for good, and so does a Sum, a Count or a query on a histogram filtered or grouped by an attribute if your metrics are kept for under two weeks: there is no history to compare them with.
 :::
 
 ## Next steps

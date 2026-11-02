@@ -195,18 +195,21 @@ Den første lesingen starter innen ett minutt og henter det siste døgnet. Etter
 | De fire tallene, diagrammet, **Toppnettverk** og **Uplinker** | Uplinkbruken til hver MX- og Z-appliance (wan1, wan2, cellular), for hele organisasjonen i ett kall | Hvert 5. minutt som standard, opptil hver time, i femminuttersvinduer |
 | **Toppapplikasjoner** og **Toppmål** | Trafikkanalysene til hvert nettverk | Annenhver time: Meraki summerer dem over to timer eller mer |
 | **Toppklienter** | Klientene i hvert nettverk og hva de brukte | Annenhver time, sammen med applikasjonene |
+| **WAN-uplinker** | Tapet og latensen på uplinkene til hver MX-appliance, for hele organisasjonen med ett kall | Sammen med uplink-bruken, i vinduer på fem minutter |
 
 Et klikk på et nettverk begrenser siden til det og viser uplinkene. Trafikken til en appliance hører til enheten dens i OneUptime når en enhet har serienummeret eller MAC-adressen til appliancen: den vises da også på Trafikk-sidene til den enheten og lokasjonen dens. Trafikken til en appliance som ikke er en enhet i OneUptime, vises på nettverkets side.
+
+**WAN-uplinker** stiller uplinkene på siden side om side over tidsrommet: hva hver bar, andelen, gjennomsnittlig hastighet og topp, latensen og pakketapet, med en graf. Meraki måler tap og latens mot en adresse på internett, så en reservelinje som ikke bærer noe, viser likevel hvordan det står til. Et klikk på en uplink der, eller på en rad i **Uplinker**, begrenser hele siden til den: tallene, grafen og nettverkene som bruker den, slik at `wan2` på nettverkets side viser lokasjonene som kjører på den. Applikasjoner, mål, klienter og flows forblir hele nettverkets, fordi Meraki teller dem per nettverk.
 
 Hver lesing viser også organisasjonens enheter. En Meraki-enhet som er en nettverksenhet i OneUptime, henter det dens egen polling lar stå tomt, fra dashbordet: serienummer, modell, fastvare, MAC-adresse og resten ([Eiendelsattributter for nettverksenheter](/docs/inventory/cmdb-sync#eiendelsattributter-for-nettverksenheter)). Tilkoblingens rad teller dem, og enhetens kort **Inventar** sier i en egen rad når Meraki ble lest.
 
 De samme lesingene fyller ut nettverkskartet, uten at noe må slås på. En klient på en Meraki-svitsj tegnes på porten Meraki sist så den på, og en enhet her som bare svarer på ping, tegnes på samme port: se [Enheter med bare ping og svitsjporten deres](/docs/monitor/network-device-monitor#enheter-med-bare-ping-og-svitsjporten-deres). Hver sjette time blir også hvert nettverk med en MX eller en MS spurt om koblingene sine, med én forespørsel per nettverk, slik at kabelen fra en svitsj til MX-en dukker opp uten at noen tegner den. Raden til tilkoblingen viser hvor mange klienter og enheter som ble plassert slik, og hvor mange Meraki-enheter med kablede klienter som ikke er nettverksenheter her: Klientene deres har ingenting å henge på før du legger til enhetene.
 
-Meraki gir hver organisasjon 10 API-forespørsler i sekundet, delt av alle applikasjonene som leser den. OneUptime bruker høyst 3 av dem, senker farten når Meraki ber om det, og stopper en lesing etter 900 forespørsler eller 6 minutter; den neste fortsetter ett minutt senere. En organisasjon med 1 200 nettverk får uplinkene lest med ett kall per vindu, og nettverkenes applikasjoner og klienter over noen få lesinger.
+Meraki gir hver organisasjon 10 API-forespørsler i sekundet, delt av alle applikasjonene som leser den. OneUptime bruker høyst 3 av dem, senker farten når Meraki ber om det, og stopper en lesing etter 900 forespørsler eller 6 minutter; den neste fortsetter ett minutt senere. En organisasjon med 1 200 nettverk får uplinkene, og tapet og latensen deres, lest med ett kall per vindu hver, og nettverkenes applikasjoner og klienter over noen få lesinger.
 
 Tilkoblingene står nederst på nettverkets Trafikk-side under **Meraki**, hver med hvordan det går og hva den siste lesingen dekket. Hver har én knapp for neste steg: **Les nå** leser den med en gang, **Slå på** slår den på igjen når den er slått av, og **Oppdater API-nøkkel** erstatter en nøkkel Meraki avviste, og tester den nye nøkkelen før den lagres. Menyen har **Rediger** (navnet, hvor ofte uplinkene leses, en ny nøkkel), **Slå av** og **Slett**. En lesing som feiler, sier hvorfor, der og over trafikken: en avvist nøkkel, en nøkkel som ikke kan lese organisasjonen, Meraki som ber OneUptime senke farten, eller nettverk med trafikkanalyse slått av. Over trafikken fører **Gå gjennom** til tilkoblingen. Bare prosjekteiere og prosjektadministratorer kan koble til Meraki og endre eller lese en tilkobling.
 
-Meraki-dashbordets API rapporterer totaler, aldri hvem som snakket med hvem, så Meraki-siden har ingen samtaler. For å se dem sender du også NetFlow fra MX-appliancene ([Cisco Meraki MX og Z](#cisco-meraki-mx-og-z)): siden har da begge, én bryter unna.
+**Hvem snakker med hvem** viser hva hvert nettverk nådde: verten eller adressen, med protokollen, porten og applikasjonen Meraki så, trafikken hver vei, flows og det høyeste antallet klienter i ett vindu. Nærmere en samtale kommer ikke Meraki-dashbordets API: det sier aldri hvilken klient som snakket med hva, og det teller verken pakker eller feil på en uplink. For å se hver samtale, fra adresse til adresse, med pakkene, sender du også NetFlow fra MX-appliancene ([Cisco Meraki MX og Z](#cisco-meraki-mx-og-z)): siden har da begge, én bryter unna.
 
 ## Adresser som ennå ikke er enheter
 
@@ -267,12 +270,13 @@ Oppslagene holder aldri flytene tilbake. De travleste adressene slås opp først
 - **Applikasjoner.** En applikasjon er protokollen og tjenesteporten, oppkalt etter tjenesten som vanligvis kjører på porten. Det er ikke dyp pakkeinspeksjon: HTTPS på port 9443 vises som TCP-port 9443. Klientens kortlivede port utelates, så tusen nettleserforbindelser til én server er én applikasjon.
 - **Topp** er raten for den travleste delen av grafen, så et kortere tidsrom med kortere deler viser en skarpere topp. **Gjennomsnitt** er bytene over hele tidsrommet.
 - **Tid.** En flyt teller i delen den startet i. En lang nedlasting rapporteres som flere flyter, én for hvert minutt den varer, og derfor bør enhetenes aktive tidsavbrudd være 60 sekunder.
+- **Merakis nyeste minutter.** Meraki rapporterer uplink-bruk noen minutter etter at den skjer, og applikasjoner, mål og klienter annenhver time. En graf slutter ved det nyeste leste vinduet, siden sier hvor langt det er, og **Gjennomsnitt** gjelder den strekningen: minutter som ikke er rapportert ennå, teller ikke som stillhet. Et kort tidsrom kan falle mellom to lesinger av applikasjonene: listene sier da når de nyeste er fra.
 
 ## Hva som ikke er med
 
 - **Varsler på flyter.** Det finnes ennå ingen flytbasert monitor. For å få varsel om en travel lenke bruker du varslene for grensesnittutnyttelse i [nettverksenhetsmonitoren](/docs/monitor/network-device-monitor), som leser SNMP.
 - **Applikasjonsnavn utover porten.** Det finnes ingen dyp pakkeinspeksjon, og Cisco NBAR-applikasjonsnavn leses ikke.
-- **Samtaler fra Meraki-dashbordets API.** Det rapporterer totaler, ikke hvem som snakket med hvem: send også NetFlow fra MX-appliancene for å se samtaler.
+- **Samtaler og pakker fra Meraki-dashbordets API.** Det sier hva hvert nettverk nådde, ikke hvilken klient som snakket med det, og det teller verken pakker eller feil på en uplink: send også NetFlow fra MX-appliancene for å se dem.
 - **Avviksdeteksjon** i trafikken.
 - **Grensesnittnavn fra flytposter.** Navn og hastigheter for grensesnitt kommer fra enhetens SNMP-walk; en enhet uten walk viser grensesnittnumre.
 

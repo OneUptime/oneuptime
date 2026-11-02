@@ -198,7 +198,7 @@ export function getSelectableFieldsForModel(
 /**
  * Find the model class by table name
  */
-function findModelClass(
+export function findModelClass(
   tableName: string,
   modelType: ModelType,
 ): ModelConstructor<BaseModel> | ModelConstructor<AnalyticsBaseModel> | null {

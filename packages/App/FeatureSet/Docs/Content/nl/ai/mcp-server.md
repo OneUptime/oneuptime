@@ -250,6 +250,7 @@ Zonder API-sleutel of aanmelding kan een client de openbare tools gebruiken:
 
 - **`oneuptime_help`**: hulp en uitleg over de MCP-tools van OneUptime
 - **`oneuptime_list_resources`**: de resources en wat je met elk kunt doen
+- **`oneuptime_describe_resource`**: de velden van een resource en hoe je erop filtert, sorteert en selecteert
 - **`get_public_status_page_overview`**: het overzicht van een openbare statuspagina
 - **`get_public_status_page_incidents`**: de incidenten van een openbare statuspagina
 - **`get_public_status_page_scheduled_maintenance`**: de geplande onderhoudsgebeurtenissen ervan
@@ -353,6 +354,8 @@ Vraag telemetrie altijd op met een tijdsbereik. Een queryveld neemt een waarde o
 ```
 
 De operatoren zijn `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` en `Includes`. Sorteerwaarden zijn `"ASC"` of `"DESC"`.
+
+De tools `list_` en `count_` nemen elk veld, waardoor de lijst met tools klein genoeg blijft om in één keer door een client te worden geladen. Om de velden van een resource te zien, wat elk veld betekent en welke operatoren het neemt, roept een agent `oneuptime_describe_resource` aan met de resource of een van de tools ervan, zoals `Incident` of `list_incidents`.
 
 ## Veldselectie en paginering
 

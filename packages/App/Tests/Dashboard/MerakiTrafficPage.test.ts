@@ -52,24 +52,48 @@ import {
 import {
   FILTER_APPLIANCE_LABEL,
   FILTER_NETWORK_LABEL,
+  FILTER_UPLINK_LABEL,
   MERAKI_CONNECTIONS_ANCHOR,
   MERAKI_URL_PARAMS,
   TrafficSide,
   getMerakiFilterChips,
+  isMerakiApplianceUplinkActive,
   pickTrafficSide,
   readNetworkTrafficUsageFilters,
   readTrafficSide,
   toMerakiUrlParams,
+  withMerakiApplianceUplinkToggled,
+  withMerakiNetwork,
+  withMerakiUplinkToggled,
   withoutMerakiFilter,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiUrlState";
 import {
+  MerakiUplinkComparisonRow,
+  UNKNOWN_VALUE,
+  compareUplinkNames,
+  countListedNetworks,
+  formatLatency,
+  formatLoss,
   getClientDetails,
   getClientLabel,
+  getConversationDetails,
+  getConversationTarget,
+  getNewestAnalyticsBeforeRange,
   getNewestBeforeRange,
+  getReadEndMs,
+  getReadSeconds,
+  getReadSeries,
+  getReadUpTo,
+  getUplinkChartLines,
+  getUplinkComparison,
   getUplinkDetails,
   hasMerakiTraffic,
+  hasUplinkHealth,
+  isEveryChartSlotABucket,
+  isNarrowerThanANetwork,
   isNetworkAddressText,
   isOfOneNetwork,
+  shouldCompareUplinks,
   shouldListNetworks,
   toFlowSeries,
   toFlowSummary,
@@ -79,6 +103,9 @@ import {
   ANALYTICS_WAITING_NOTE,
   API_CALL_COUNT,
   APPLIANCE_COUNT,
+  CONVERSATIONS_NEED_ANALYSIS,
+  CONVERSATION_CLIENT_COUNT,
+  FLOW_COUNT,
   KEY_REFUSED_BY_DASHBOARD,
   MERAKI_CONNECTION_NAME,
   MERAKI_REGION_NAMES,
@@ -89,9 +116,12 @@ import {
   MerakiConnectionAction,
   MerakiTestWords,
   NETWORK_COUNT,
+  NEWEST_ANALYTICS_BEFORE_RANGE,
   NEWEST_TRAFFIC_BEFORE_RANGE,
   RATE_LIMITED_NOTE,
   TEST_COULD_NOT_RUN,
+  TRAFFIC_READ_UP_TO,
+  UPLINK_APPLIANCE_COUNT,
   getMerakiConnectionAction,
   getMerakiConnectionRowFacts,
   getMerakiConnectionSentence,
@@ -101,6 +131,7 @@ import {
   getMerakiTestActions,
   getMerakiTestWords,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiWords";
+import { formatTrafficProtocolPort } from "../../FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficFormat";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -110,12 +141,18 @@ import {
   NetworkTrafficUsageConnection,
   NetworkTrafficUsageKind,
   NetworkTrafficUsageSummary,
+  NetworkTrafficUsageUplinkInterfaceRow,
+  NetworkTrafficUsageUplinkSeriesPoint,
   getUnavailableNetworkTrafficUsageSummary,
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import { NetworkControllerConnectionStatus } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
 import { NetworkControllerTestResult } from "Common/Types/NetworkController/NetworkControllerConnectionTest";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
+import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
@@ -220,13 +257,14 @@ describe("what the URL keeps", () => {
         source: TrafficSide.Meraki,
         filters: { controllerNetworkId: "L_1000" },
       }),
-    ).toEqual({ source: "meraki", mnet: "L_1000", mdev: null });
+    ).toEqual({ source: "meraki", mnet: "L_1000", mdev: null, mup: null });
     expect(toMerakiUrlParams({ source: null, filters: {} })).toEqual({
       source: null,
       mnet: null,
       mdev: null,
+      mup: null,
     });
-    expect(MERAKI_URL_PARAMS).toEqual(["source", "mnet", "mdev"]);
+    expect(MERAKI_URL_PARAMS).toEqual(["source", "mnet", "mdev", "mup"]);
   });
 
   test("a chip a filter, named; an appliance's x keeps its network, a network's takes both", () => {
@@ -506,7 +544,945 @@ describe("the Meraki numbers through the flow side's tiles and chart", () => {
   });
 });
 
+describe("narrowing to an uplink", () => {
+  const WAN2_OF_MX: {
+    deviceSerial: string;
+    interfaceName: string;
+    controllerNetworkId: string;
+  } = {
+    deviceSerial: "Q2XX-AAAA-0001",
+    interfaceName: "wan2",
+    controllerNetworkId: "L_1",
+  };
+  const ON_A_NETWORK_PAGE: { isPageOfOneAppliance: boolean } = {
+    isPageOfOneAppliance: false,
+  };
+  const ON_A_DEVICE_PAGE: { isPageOfOneAppliance: boolean } = {
+    isPageOfOneAppliance: true,
+  };
+
+  test("the URL keeps it, so a link opens on the same uplink", () => {
+    expect(readNetworkTrafficUsageFilters(reader("mup=wan2&mnet=L_1"))).toEqual(
+      { controllerNetworkId: "L_1", interfaceName: "wan2" },
+    );
+    expect(
+      toMerakiUrlParams({ source: null, filters: { interfaceName: "wan2" } }),
+    ).toMatchObject({ mup: "wan2" });
+    expect(MERAKI_URL_PARAMS).toContain("mup");
+  });
+
+  test("no uplink leaves the URL clean", () => {
+    expect(toMerakiUrlParams({ source: null, filters: {} })["mup"]).toBeNull();
+  });
+
+  test("an address a person typed by hand fails safe: what the server would refuse is left out", () => {
+    expect(
+      readNetworkTrafficUsageFilters(reader("mup=wan1%00&mnet=L_1")),
+    ).toEqual({ controllerNetworkId: "L_1" });
+    expect(
+      readNetworkTrafficUsageFilters(reader(`mup=${"w".repeat(65)}`)),
+    ).toEqual({});
+  });
+
+  test("a chip says which uplink, after the network and the appliance", () => {
+    expect(
+      getMerakiFilterChips(
+        {
+          controllerNetworkId: "L_1",
+          deviceSerial: "Q2XX-AAAA-0001",
+          interfaceName: "wan2",
+        },
+        { networkName: "Branch 1", applianceName: "MX 1" },
+      ).map((chip: { kind: string }): string => {
+        return chip.kind;
+      }),
+    ).toEqual(["network", "appliance", "uplink"]);
+    expect(getMerakiFilterChips({ interfaceName: "wan2" }, {})[0]).toEqual({
+      kind: "uplink",
+      template: FILTER_UPLINK_LABEL,
+      values: { uplink: "wan2" },
+    });
+  });
+
+  test("its chip takes only the uplink away", () => {
+    expect(
+      withoutMerakiFilter(
+        {
+          controllerNetworkId: "L_1",
+          deviceSerial: "Q2XX-AAAA-0001",
+          interfaceName: "wan2",
+        },
+        "uplink",
+      ),
+    ).toEqual({
+      controllerNetworkId: "L_1",
+      deviceSerial: "Q2XX-AAAA-0001",
+    });
+  });
+
+  test("taking a network or an appliance away leaves the uplink: wan2 is no one network's", () => {
+    const filters: { controllerNetworkId: string; interfaceName: string } = {
+      controllerNetworkId: "L_1",
+      interfaceName: "wan2",
+    };
+
+    expect(withoutMerakiFilter(filters, "network")).toEqual({
+      interfaceName: "wan2",
+    });
+    expect(
+      withoutMerakiFilter(
+        { ...filters, deviceSerial: "Q2XX-AAAA-0001" },
+        "appliance",
+      ),
+    ).toEqual(filters);
+  });
+
+  test("a click on a network keeps the uplink, so a list of wan2's networks leads to one of them", () => {
+    expect(withMerakiNetwork({ interfaceName: "wan2" }, "L_7")).toEqual({
+      controllerNetworkId: "L_7",
+      interfaceName: "wan2",
+    });
+    expect(withMerakiNetwork({}, "L_7")).toEqual({
+      controllerNetworkId: "L_7",
+    });
+    // An appliance is of the network it replaces.
+    expect(
+      withMerakiNetwork(
+        { controllerNetworkId: "L_1", deviceSerial: "Q2XX-AAAA-0001" },
+        "L_7",
+      ),
+    ).toEqual({ controllerNetworkId: "L_7" });
+  });
+
+  test("the comparison narrows by name across whatever else the page is narrowed to, and a second click widens it", () => {
+    const narrowed: ReturnType<typeof withMerakiUplinkToggled> =
+      withMerakiUplinkToggled({ controllerNetworkId: "L_1" }, "wan2");
+
+    expect(narrowed).toEqual({
+      controllerNetworkId: "L_1",
+      interfaceName: "wan2",
+    });
+    expect(withMerakiUplinkToggled(narrowed, "wan2")).toEqual({
+      controllerNetworkId: "L_1",
+    });
+    // Another uplink swaps it, rather than widening first.
+    expect(withMerakiUplinkToggled(narrowed, "wan1")).toEqual({
+      controllerNetworkId: "L_1",
+      interfaceName: "wan1",
+    });
+  });
+
+  test("a row of the Uplinks list narrows to that one uplink of that one appliance", () => {
+    expect(
+      withMerakiApplianceUplinkToggled({}, WAN2_OF_MX, ON_A_NETWORK_PAGE),
+    ).toEqual({
+      controllerNetworkId: "L_1",
+      deviceSerial: "Q2XX-AAAA-0001",
+      interfaceName: "wan2",
+    });
+  });
+
+  test("the bug this fixes: after a click on wan1, wan2 of the same appliance is not the active row", () => {
+    const filters: ReturnType<typeof withMerakiApplianceUplinkToggled> =
+      withMerakiApplianceUplinkToggled(
+        {},
+        { ...WAN2_OF_MX, interfaceName: "wan1" },
+        ON_A_NETWORK_PAGE,
+      );
+
+    expect(
+      isMerakiApplianceUplinkActive(
+        filters,
+        { ...WAN2_OF_MX, interfaceName: "wan1" },
+        ON_A_NETWORK_PAGE,
+      ),
+    ).toBe(true);
+    expect(
+      isMerakiApplianceUplinkActive(filters, WAN2_OF_MX, ON_A_NETWORK_PAGE),
+    ).toBe(false);
+  });
+
+  test("the same uplink name on another appliance is another row", () => {
+    expect(
+      isMerakiApplianceUplinkActive(
+        { deviceSerial: "Q2XX-AAAA-0002", interfaceName: "wan2" },
+        WAN2_OF_MX,
+        ON_A_NETWORK_PAGE,
+      ),
+    ).toBe(false);
+  });
+
+  test("a click on the row the page is narrowed to widens it again, the network staying", () => {
+    expect(
+      withMerakiApplianceUplinkToggled(
+        {
+          controllerNetworkId: "L_1",
+          deviceSerial: "Q2XX-AAAA-0001",
+          interfaceName: "wan2",
+        },
+        WAN2_OF_MX,
+        ON_A_NETWORK_PAGE,
+      ),
+    ).toEqual({ controllerNetworkId: "L_1" });
+  });
+
+  test("a device's page is of one appliance: the name alone narrows it, and says which row", () => {
+    const filters: ReturnType<typeof withMerakiApplianceUplinkToggled> =
+      withMerakiApplianceUplinkToggled({}, WAN2_OF_MX, ON_A_DEVICE_PAGE);
+
+    expect(filters).toEqual({ interfaceName: "wan2" });
+    expect(
+      isMerakiApplianceUplinkActive(filters, WAN2_OF_MX, ON_A_DEVICE_PAGE),
+    ).toBe(true);
+    expect(
+      withMerakiApplianceUplinkToggled(filters, WAN2_OF_MX, ON_A_DEVICE_PAGE),
+    ).toEqual({});
+  });
+
+  test("a page narrowed to an appliance or an uplink says its lists stay the network's", () => {
+    expect(isNarrowerThanANetwork({})).toBe(false);
+    expect(isNarrowerThanANetwork({ controllerNetworkId: "L_1" })).toBe(false);
+    expect(isNarrowerThanANetwork({ deviceSerial: "Q2XX" })).toBe(true);
+    expect(isNarrowerThanANetwork({ interfaceName: "wan2" })).toBe(true);
+  });
+});
+
+describe("how far a page has been read", () => {
+  // The past hour, read up to 45 minutes in: as on a page that ends now.
+  function readTo(
+    overrides: Partial<NetworkTrafficUsageSummary> = {},
+  ): NetworkTrafficUsageSummary {
+    return usage({
+      primaryKind: NetworkTrafficUsageKind.Uplink,
+      lastUplinkAt: "2026-10-24T11:45:00.000Z",
+      bucketSeconds: 300,
+      ...overrides,
+    });
+  }
+
+  function point(
+    minute: number,
+    octets: number,
+  ): {
+    time: string;
+    sentOctets: number;
+    receivedOctets: number;
+  } {
+    return {
+      time: `2026-10-24T11:${String(minute).padStart(2, "0")}:00.000Z`,
+      sentOctets: 0,
+      receivedOctets: octets,
+    };
+  }
+
+  test("the newest window read is where the range stops", () => {
+    expect(new Date(getReadEndMs(readTo())!).toISOString()).toBe(
+      "2026-10-24T11:45:00.000Z",
+    );
+  });
+
+  test("the bug this guards: how far the reads got, never the page's newest row", () => {
+    expect(
+      new Date(
+        getReadEndMs(
+          readTo({
+            lastUplinkAt: "2026-10-24T11:10:00.000Z",
+            uplinksReadTo: "2026-10-24T11:55:00.000Z",
+          }),
+        )!,
+      ).toISOString(),
+    ).toBe("2026-10-24T11:55:00.000Z");
+  });
+
+  test("the bug this guards: a link that goes down draws its drop to zero, and is averaged over it", () => {
+    // Traffic to 11:10, then nothing, and the reads went on to 11:55.
+    const summary: NetworkTrafficUsageSummary = readTo({
+      lastUplinkAt: "2026-10-24T11:10:00.000Z",
+      uplinksReadTo: "2026-10-24T11:55:00.000Z",
+      totals: { sentOctets: 0, receivedOctets: 600_000_000, flows: 0 },
+      series: [point(0, 300_000_000), point(5, 300_000_000)],
+    });
+    const points: ReturnType<typeof getReadSeries> = getReadSeries(summary);
+
+    expect(points).toHaveLength(11);
+    expect(points[1]!.octets).toBe(300_000_000);
+    expect(points[2]).toMatchObject({ octets: 0, inOctets: 0, outOctets: 0 });
+    expect(points[points.length - 1]!.octets).toBe(0);
+    expect(points[points.length - 1]!.time).toBe("2026-10-24T11:50:00.000Z");
+    // Over the 55 minutes read: the silence counts. Not the 10 it carried.
+    expect(getReadSeconds(summary)).toBe(55 * 60);
+    expect(getReadUpTo(summary)).toBe("2026-10-24T11:55:00.000Z");
+  });
+
+  test("an uplink nothing crossed since it failed over reads the same in the comparison", () => {
+    const [wan1]: Array<MerakiUplinkComparisonRow> = getUplinkComparison(
+      readTo({
+        lastUplinkAt: "2026-10-24T11:50:00.000Z",
+        uplinksReadTo: "2026-10-24T11:55:00.000Z",
+        uplinkInterfaces: [
+          {
+            interfaceName: "wan1",
+            applianceCount: 1,
+            sentOctets: 0,
+            receivedOctets: 900,
+            lossPercent: null,
+            latencyMs: null,
+          },
+        ],
+        uplinkSeries: [
+          {
+            time: "2026-10-24T11:00:00.000Z",
+            interfaceName: "wan1",
+            sentOctets: 0,
+            receivedOctets: 900,
+            lossPercent: null,
+            latencyMs: null,
+          },
+        ],
+      }),
+    );
+
+    expect(wan1!.series).toHaveLength(11);
+    expect(wan1!.series[10]!.octets).toBe(0);
+  });
+
+  test("an answer from before uplinksReadTo goes by the newest row, as far as it can", () => {
+    expect(
+      new Date(getReadEndMs(readTo({ uplinksReadTo: null }))!).toISOString(),
+    ).toBe("2026-10-24T11:45:00.000Z");
+  });
+
+  test("an organization without uplinks has no read of them to go by", () => {
+    expect(
+      new Date(
+        getReadEndMs(
+          readTo({
+            primaryKind: NetworkTrafficUsageKind.Application,
+            lastAnalyticsAt: "2026-10-24T11:20:00.000Z",
+            uplinksReadTo: "2026-10-24T11:55:00.000Z",
+          }),
+        )!,
+      ).toISOString(),
+    ).toBe("2026-10-24T11:20:00.000Z");
+  });
+
+  test("a range older than the newest window is read whole", () => {
+    expect(
+      new Date(
+        getReadEndMs(readTo({ lastUplinkAt: "2026-10-24T13:00:00.000Z" }))!,
+      ).toISOString(),
+    ).toBe("2026-10-24T12:00:00.000Z");
+  });
+
+  test("an organization without uplinks is read as far as its applications", () => {
+    expect(
+      new Date(
+        getReadEndMs(
+          readTo({
+            primaryKind: NetworkTrafficUsageKind.Application,
+            lastUplinkAt: null,
+            lastAnalyticsAt: "2026-10-24T11:30:00.000Z",
+          }),
+        )!,
+      ).toISOString(),
+    ).toBe("2026-10-24T11:30:00.000Z");
+  });
+
+  test.each([
+    ["nothing read at all", null],
+    ["reads that ended before the range began", "2026-10-24T10:30:00.000Z"],
+    ["reads that ended as it began", "2026-10-24T11:00:00.000Z"],
+    ["a time that is no time", "soon"],
+  ])(
+    "%s: no part of the range was read",
+    (_name: string, last: string | null) => {
+      expect(getReadEndMs(readTo({ lastUplinkAt: last }))).toBeNull();
+    },
+  );
+
+  test("the bug this fixes: an average is taken over what was read, so it agrees with the chart", () => {
+    const summary: NetworkTrafficUsageSummary = readTo({
+      totals: { sentOctets: 0, receivedOctets: 415_000_000_000, flows: 0 },
+    });
+    const seconds: number = getReadSeconds(summary);
+
+    // 415 GB over the 45 minutes read, not the 60 of the range: not 922 Mbps.
+    expect(seconds).toBe(45 * 60);
+    expect(Math.round((415_000_000_000 * 8) / seconds / 1_000_000)).toBe(1230);
+  });
+
+  test("a range read whole is averaged over all of it", () => {
+    expect(
+      getReadSeconds(readTo({ lastUplinkAt: "2026-10-24T12:00:00.000Z" })),
+    ).toBe(3600);
+  });
+
+  test("a page nothing was read of keeps its whole range, and never divides by nothing", () => {
+    expect(getReadSeconds(readTo({ lastUplinkAt: null }))).toBe(3600);
+    expect(
+      getReadSeconds(
+        readTo({ windowStartAt: "not a date", windowEndAt: "nor this" }),
+      ),
+    ).toBe(3600);
+  });
+
+  test("the caption says how far, only when that is short of the range's end", () => {
+    expect(getReadUpTo(readTo())).toBe("2026-10-24T11:45:00.000Z");
+    expect(
+      getReadUpTo(readTo({ lastUplinkAt: "2026-10-24T12:00:00.000Z" })),
+    ).toBeNull();
+    // Under a minute short is no news.
+    expect(
+      getReadUpTo(readTo({ lastUplinkAt: "2026-10-24T11:59:30.000Z" })),
+    ).toBeNull();
+    expect(getReadUpTo(readTo({ lastUplinkAt: null }))).toBeNull();
+  });
+
+  test("the bug this fixes: the line stops where the reads did, instead of falling to zero", () => {
+    const points: ReturnType<typeof getReadSeries> = getReadSeries(
+      readTo({ series: [point(0, 100), point(40, 100)] }),
+    );
+
+    expect(points).toHaveLength(9);
+    expect(points[points.length - 1]!.time).toBe("2026-10-24T11:40:00.000Z");
+    expect(points[points.length - 1]!.octets).toBe(100);
+  });
+
+  test("a silent bucket the reads did reach stays a zero: that silence is a fact", () => {
+    const points: ReturnType<typeof getReadSeries> = getReadSeries(
+      readTo({ series: [point(0, 100), point(30, 100)] }),
+    );
+
+    expect(points[1]).toMatchObject({ octets: 0, inOctets: 0, outOctets: 0 });
+    expect(points).toHaveLength(9);
+  });
+
+  test("a bucket the reads stopped part way through is left out: it would draw a dip that never was", () => {
+    const summary: NetworkTrafficUsageSummary = usage({
+      windowStartAt: "2026-10-24T00:00:00.000Z",
+      windowEndAt: "2026-10-25T00:00:00.000Z",
+      lastUplinkAt: "2026-10-24T23:50:00.000Z",
+      primaryKind: NetworkTrafficUsageKind.Uplink,
+      bucketSeconds: 720,
+      series: [
+        {
+          time: "2026-10-24T23:36:00.000Z",
+          sentOctets: 0,
+          receivedOctets: 7200,
+        },
+        // Ten of its twelve minutes read.
+        {
+          time: "2026-10-24T23:48:00.000Z",
+          sentOctets: 0,
+          receivedOctets: 1200,
+        },
+      ],
+    });
+
+    const points: ReturnType<typeof getReadSeries> = getReadSeries(summary);
+
+    expect(points[points.length - 1]!.time).toBe("2026-10-24T23:36:00.000Z");
+  });
+
+  test("a range older than the reads draws all of its buckets, a part bucket at its end included", () => {
+    const points: ReturnType<typeof getReadSeries> = getReadSeries(
+      usage({
+        windowStartAt: "2026-10-24T11:00:00.000Z",
+        windowEndAt: "2026-10-24T11:17:00.000Z",
+        lastUplinkAt: "2026-10-24T13:00:00.000Z",
+        primaryKind: NetworkTrafficUsageKind.Uplink,
+        bucketSeconds: 300,
+      }),
+    );
+
+    expect(points).toHaveLength(4);
+  });
+
+  test("the applications' newest window, when the range starts after it: why the lists are empty", () => {
+    expect(
+      getNewestAnalyticsBeforeRange(
+        usage({ lastAnalyticsAt: "2026-10-24T10:40:00.000Z" }),
+      ),
+    ).toBe("2026-10-24T10:40:00.000Z");
+    // Ending as the range starts: not a moment of it inside.
+    expect(
+      getNewestAnalyticsBeforeRange(
+        usage({ lastAnalyticsAt: "2026-10-24T11:00:00.000Z" }),
+      ),
+    ).toBe("2026-10-24T11:00:00.000Z");
+  });
+
+  test("a range that holds a window, or nothing ever read, is not that case", () => {
+    expect(
+      getNewestAnalyticsBeforeRange(
+        usage({ lastAnalyticsAt: "2026-10-24T11:30:00.000Z" }),
+      ),
+    ).toBeNull();
+    expect(
+      getNewestAnalyticsBeforeRange(usage({ lastAnalyticsAt: null })),
+    ).toBeNull();
+    expect(
+      getNewestAnalyticsBeforeRange(usage({ lastAnalyticsAt: "not a date" })),
+    ).toBeNull();
+  });
+});
+
+describe("the page's uplinks, side by side", () => {
+  function row(
+    interfaceName: string,
+    overrides: Partial<NetworkTrafficUsageUplinkInterfaceRow> = {},
+  ): NetworkTrafficUsageUplinkInterfaceRow {
+    return {
+      interfaceName,
+      applianceCount: 2,
+      sentOctets: 0,
+      receivedOctets: 0,
+      lossPercent: null,
+      latencyMs: null,
+      ...overrides,
+    };
+  }
+
+  function bucket(
+    minute: number,
+    interfaceName: string,
+    overrides: Partial<NetworkTrafficUsageUplinkSeriesPoint> = {},
+  ): NetworkTrafficUsageUplinkSeriesPoint {
+    return {
+      time: `2026-10-24T11:${String(minute).padStart(2, "0")}:00.000Z`,
+      interfaceName,
+      sentOctets: 0,
+      receivedOctets: 0,
+      lossPercent: null,
+      latencyMs: null,
+      ...overrides,
+    };
+  }
+
+  function compared(
+    overrides: Partial<NetworkTrafficUsageSummary>,
+  ): Array<MerakiUplinkComparisonRow> {
+    return getUplinkComparison(
+      usage({
+        primaryKind: NetworkTrafficUsageKind.Uplink,
+        lastUplinkAt: "2026-10-24T11:30:00.000Z",
+        bucketSeconds: 300,
+        ...overrides,
+      }),
+    );
+  }
+
+  test("the WAN links by number, then the rest: a page's order and colours never move with its traffic", () => {
+    expect(
+      ["cellular", "wan10", "wan2", "wan1", "Wan3", "uplink"].sort(
+        compareUplinkNames,
+      ),
+    ).toEqual(["wan1", "wan2", "Wan3", "wan10", "cellular", "uplink"]);
+  });
+
+  test("however much each carried", () => {
+    expect(
+      compared({
+        uplinkInterfaces: [
+          row("wan2", { receivedOctets: 900 }),
+          row("wan1", { receivedOctets: 1 }),
+        ],
+      }).map((entry: MerakiUplinkComparisonRow): string => {
+        return entry.interfaceName;
+      }),
+    ).toEqual(["wan1", "wan2"]);
+  });
+
+  test("an uplink's average is over what was read, as the page's is", () => {
+    const [wan1]: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1", { receivedOctets: 1800 })],
+    });
+
+    // 1,800 bytes over the half hour read: 8 bits a second, not 4.
+    expect(wan1!.averageBitsPerSecond).toBe(8);
+    expect(wan1!.octets).toBe(1800);
+  });
+
+  test("an uplink's peak is its own busiest bucket", () => {
+    const [wan1, wan2]: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1"), row("wan2")],
+      uplinkSeries: [
+        bucket(0, "wan1", { receivedOctets: 300 }),
+        bucket(5, "wan1", { receivedOctets: 3000, sentOctets: 750 }),
+        bucket(0, "wan2", { receivedOctets: 7500 }),
+      ],
+    });
+
+    // Its busiest bucket's bytes in bits, over the bucket's five minutes.
+    expect(wan1!.peakBitsPerSecond).toBe(100);
+    expect(wan2!.peakBitsPerSecond).toBe(200);
+  });
+
+  test("its series is its own, gap-filled up to where the range was read", () => {
+    const [wan1]: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1")],
+      uplinkSeries: [
+        bucket(0, "wan1", { receivedOctets: 300 }),
+        bucket(0, "wan2", { receivedOctets: 999 }),
+      ],
+    });
+
+    expect(wan1!.series).toHaveLength(6);
+    expect(wan1!.series[0]!.octets).toBe(300);
+    expect(wan1!.series[1]!.octets).toBe(0);
+  });
+
+  test("what Meraki measured passes through, and null stays null", () => {
+    const [wan1, wan2]: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [
+        row("wan1", { lossPercent: 0, latencyMs: 22 }),
+        row("wan2"),
+      ],
+    });
+
+    expect(wan1).toMatchObject({ lossPercent: 0, latencyMs: 22 });
+    expect(wan2).toMatchObject({ lossPercent: null, latencyMs: null });
+  });
+
+  test("a row with no name is left out", () => {
+    expect(compared({ uplinkInterfaces: [row(""), row("wan1")] })).toHaveLength(
+      1,
+    );
+  });
+
+  test("whether anything was measured: a 0 counts, a null does not", () => {
+    expect(hasUplinkHealth(compared({ uplinkInterfaces: [row("wan1")] }))).toBe(
+      false,
+    );
+    expect(
+      hasUplinkHealth(
+        compared({ uplinkInterfaces: [row("wan1", { lossPercent: 0 })] }),
+      ),
+    ).toBe(true);
+  });
+
+  test("two uplinks are compared; a measurement of one is worth showing; one bare uplink is not", () => {
+    const one: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1", { receivedOctets: 5 })],
+    });
+    const two: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1"), row("wan2")],
+    });
+    const measured: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1", { latencyMs: 20 })],
+    });
+
+    expect(shouldCompareUplinks([], {})).toBe(false);
+    expect(shouldCompareUplinks(one, {})).toBe(false);
+    expect(shouldCompareUplinks(two, {})).toBe(true);
+    expect(shouldCompareUplinks(measured, {})).toBe(true);
+  });
+
+  test("narrowed to an uplink it stays, so the way back is on the page", () => {
+    const one: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1", { receivedOctets: 5 })],
+    });
+
+    expect(shouldCompareUplinks(one, { interfaceName: "wan1" })).toBe(true);
+    expect(shouldCompareUplinks([], { interfaceName: "wan1" })).toBe(false);
+  });
+
+  test("the chart's traffic is each bucket's rate in Mbps, an uplink a line", () => {
+    const rows: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1")],
+      uplinkSeries: [bucket(0, "wan1", { receivedOctets: 375_000_000 })],
+    });
+
+    const [line] = getUplinkChartLines({
+      rows,
+      uplinkSeries: [],
+      bucketSeconds: 300,
+      mode: "traffic",
+    });
+
+    expect(line!.seriesName).toBe("wan1");
+    expect(line!.data[0]!.y).toBe(10);
+    expect((line!.data[0]!.x as Date).toISOString()).toBe(
+      "2026-10-24T11:00:00.000Z",
+    );
+  });
+
+  test("a measurement's line has a point where one was made, and a gap where none was - never a 0", () => {
+    const uplinkSeries: Array<NetworkTrafficUsageUplinkSeriesPoint> = [
+      bucket(0, "wan1", { latencyMs: 20, lossPercent: 0 }),
+      bucket(5, "wan1"),
+      bucket(10, "wan1", { latencyMs: 40, lossPercent: 5 }),
+      bucket(0, "wan2", { latencyMs: 99 }),
+    ];
+    const rows: Array<MerakiUplinkComparisonRow> = compared({
+      uplinkInterfaces: [row("wan1")],
+      uplinkSeries,
+    });
+
+    const latency: ReturnType<typeof getUplinkChartLines> = getUplinkChartLines(
+      { rows, uplinkSeries, bucketSeconds: 300, mode: "latency" },
+    );
+    const loss: ReturnType<typeof getUplinkChartLines> = getUplinkChartLines({
+      rows,
+      uplinkSeries,
+      bucketSeconds: 300,
+      mode: "loss",
+    });
+
+    expect(
+      latency[0]!.data.map((entry: { y: number }): number => {
+        return entry.y;
+      }),
+    ).toEqual([20, 40]);
+    // A loss of 0 was measured: it is a point.
+    expect(
+      loss[0]!.data.map((entry: { y: number }): number => {
+        return entry.y;
+      }),
+    ).toEqual([0, 5]);
+  });
+
+  test.each([
+    // A slot for every bucket: an empty one is a stretch nobody measured.
+    [300, true],
+    [600, true],
+    [900, true],
+    [1800, true],
+    [3600, true],
+    // The grid is finer than the buckets: empty slots between them are normal.
+    [720, false],
+    [1440, false],
+    [5040, false],
+    [22320, false],
+    // No grid step fits at all.
+    [0, false],
+    [Number.NaN, false],
+  ])(
+    "a chart of %s-second buckets can tell a gap from a slot between buckets: %s",
+    (bucketSeconds: number, expected: boolean) => {
+      expect(isEveryChartSlotABucket(bucketSeconds)).toBe(expected);
+    },
+  );
+
+  test("a list's networks are counted from its own rows, an unnamed one counting for none", () => {
+    expect(countListedNetworks([])).toBe(0);
+    expect(
+      countListedNetworks([
+        { controllerNetworkName: "Branch 1" },
+        { controllerNetworkName: "Branch 1" },
+        { controllerNetworkName: "Branch 2" },
+        { controllerNetworkName: "" },
+      ]),
+    ).toBe(2);
+  });
+
+  test("a chart with no point at all, however it is asked, draws nothing", () => {
+    expect(
+      getUplinkChartLines({
+        rows: [],
+        uplinkSeries: [],
+        bucketSeconds: 300,
+        mode: "loss",
+      }),
+    ).toEqual([]);
+  });
+
+  test("latency and loss read as people read them", () => {
+    expect(formatLatency(21.6)).toBe("22\u00a0ms");
+    expect(formatLatency(1.24)).toBe("1.2\u00a0ms");
+    expect(formatLatency(0)).toBe("0.0\u00a0ms");
+    expect(formatLoss(0)).toBe("0%");
+    expect(formatLoss(0.04)).toBe("<0.1%");
+    expect(formatLoss(0.25)).toBe("0.3%");
+    expect(formatLoss(12.4)).toBe("12%");
+    expect(formatLoss(100)).toBe("100%");
+    expect(UNKNOWN_VALUE).toBe("\u2014");
+  });
+});
+
+describe("who talks to whom", () => {
+  const ENGLISH: Translator = createTranslator(undefined, "en");
+
+  test("the far end is the host or address Meraki named, else the application", () => {
+    expect(
+      getConversationTarget({
+        destination: "teams.microsoft.com",
+        application: "Microsoft Teams",
+      }),
+    ).toBe("teams.microsoft.com");
+    expect(
+      getConversationTarget({ destination: "", application: "Encrypted TCP" }),
+    ).toBe("Encrypted TCP");
+  });
+
+  test("beside it, the protocol and port, and the application when the row is not named after it", () => {
+    expect(
+      getConversationDetails(
+        {
+          destination: "teams.microsoft.com",
+          application: "Microsoft Teams",
+          protocol: "UDP",
+          port: 3478,
+        },
+        ENGLISH,
+      ),
+    ).toEqual(["UDP port 3478", "Microsoft Teams"]);
+    expect(
+      getConversationDetails(
+        {
+          destination: "",
+          application: "Encrypted TCP",
+          protocol: "TCP",
+          port: 443,
+        },
+        ENGLISH,
+      ),
+    ).toEqual(["TCP port 443"]);
+  });
+
+  test("a protocol with no port is only the protocol, and neither is nothing", () => {
+    expect(
+      formatTrafficProtocolPort({ protocol: "ICMP", port: 0 }, ENGLISH),
+    ).toBe("ICMP");
+    expect(formatTrafficProtocolPort({ protocol: "", port: 0 }, ENGLISH)).toBe(
+      "",
+    );
+    expect(formatTrafficProtocolPort({ protocol: "", port: 80 }, ENGLISH)).toBe(
+      "",
+    );
+  });
+});
+
 describe("reading the answers", () => {
+  test("the page's uplinks and conversations, read without trusting their shape", () => {
+    const summary: NetworkTrafficUsageSummary = parseNetworkTrafficUsageSummary(
+      {
+        uplinkInterfaces: [
+          {
+            interfaceName: "wan1",
+            applianceCount: "4",
+            sentOctets: 10,
+            receivedOctets: 20,
+            lossPercent: 0,
+            latencyMs: 21.5,
+          },
+          {
+            interfaceName: "wan2",
+            applianceCount: "x",
+            sentOctets: -1,
+            lossPercent: "0.5",
+            latencyMs: -3,
+          },
+          null,
+        ],
+        uplinkSeries: [
+          {
+            time: "2026-10-24T11:00:00.000Z",
+            interfaceName: "wan1",
+            sentOctets: 1,
+            receivedOctets: 2,
+            lossPercent: null,
+            latencyMs: 20,
+          },
+          7,
+        ],
+        topApplications: [{ application: "Zoom", protocol: 7, port: "8801" }],
+        topDestinations: [
+          { destination: "zoom.us", protocol: "UDP", port: "x" },
+        ],
+        topConversations: [
+          {
+            controllerNetworkId: "L_1",
+            controllerNetworkName: "Branch 1",
+            destination: "zoom.us",
+            application: "Zoom",
+            protocol: "UDP",
+            port: 8801,
+            sentOctets: 1,
+            receivedOctets: 2,
+            flows: 3,
+            clients: "12",
+          },
+          "no",
+        ],
+      } as unknown as JSONObject,
+    );
+
+    expect(summary.uplinkInterfaces).toEqual([
+      {
+        interfaceName: "wan1",
+        applianceCount: 4,
+        sentOctets: 10,
+        receivedOctets: 20,
+        lossPercent: 0,
+        latencyMs: 21.5,
+      },
+      // A measurement that is no number is unknown: never a perfect 0.
+      {
+        interfaceName: "wan2",
+        applianceCount: 0,
+        sentOctets: 0,
+        receivedOctets: 0,
+        lossPercent: null,
+        latencyMs: null,
+      },
+    ]);
+    expect(summary.uplinkSeries).toEqual([
+      {
+        time: "2026-10-24T11:00:00.000Z",
+        interfaceName: "wan1",
+        sentOctets: 1,
+        receivedOctets: 2,
+        lossPercent: null,
+        latencyMs: 20,
+      },
+    ]);
+    expect(summary.topApplications[0]).toMatchObject({
+      protocol: "",
+      port: 8801,
+    });
+    expect(summary.topDestinations[0]).toMatchObject({
+      protocol: "UDP",
+      port: 0,
+    });
+    expect(summary.topConversations).toEqual([
+      {
+        controllerNetworkId: "L_1",
+        controllerNetworkName: "Branch 1",
+        destination: "zoom.us",
+        application: "Zoom",
+        protocol: "UDP",
+        port: 8801,
+        sentOctets: 1,
+        receivedOctets: 2,
+        flows: 3,
+        clients: 12,
+      },
+    ]);
+  });
+
+  test("an answer from before these fields is read as having none", () => {
+    const summary: NetworkTrafficUsageSummary = parseNetworkTrafficUsageSummary(
+      { isAvailable: true },
+    );
+
+    expect(summary.uplinkInterfaces).toEqual([]);
+    expect(summary.uplinkSeries).toEqual([]);
+    expect(summary.topConversations).toEqual([]);
+    expect(summary.uplinksReadTo).toBeNull();
+  });
+
+  test("how far the uplinks were read is read as text or not at all", () => {
+    expect(
+      parseNetworkTrafficUsageSummary({
+        uplinksReadTo: "2026-10-24T11:55:00.000Z",
+      }).uplinksReadTo,
+    ).toBe("2026-10-24T11:55:00.000Z");
+    expect(
+      parseNetworkTrafficUsageSummary({ uplinksReadTo: 5 }).uplinksReadTo,
+    ).toBeNull();
+  });
+
   test("a page's summary, read without trusting its shape", () => {
     const summary: NetworkTrafficUsageSummary = parseNetworkTrafficUsageSummary(
       {
@@ -1112,6 +2088,10 @@ describe("every word is a key of the English locale", () => {
     expectKey(RATE_LIMITED_NOTE);
     expectKey(FILTER_NETWORK_LABEL);
     expectKey(FILTER_APPLIANCE_LABEL);
+    expectKey(FILTER_UPLINK_LABEL);
+    expectKey(NEWEST_ANALYTICS_BEFORE_RANGE);
+    expectKey(TRAFFIC_READ_UP_TO);
+    expectKey(CONVERSATIONS_NEED_ANALYSIS);
     /*
      * The UI review's words: a refused key, a test that could not run, an
      * empty range after the reads stopped, and the connection's own name.
@@ -1131,6 +2111,9 @@ describe("every word is a key of the English locale", () => {
       API_CALL_COUNT,
       ANALYSIS_OFF_NOTE,
       ANALYTICS_WAITING_NOTE,
+      CONVERSATION_CLIENT_COUNT,
+      FLOW_COUNT,
+      UPLINK_APPLIANCE_COUNT,
     ]) {
       expectKey(plural.other);
       expectKey(`${plural.other}_one`);

@@ -250,6 +250,7 @@ Ohne API-Schlüssel und ohne Anmeldung kann ein Client die öffentlichen Tools v
 
 - **`oneuptime_help`**: Hilfe und Anleitung zu den MCP-Tools von OneUptime
 - **`oneuptime_list_resources`**: die Ressourcen und was Sie mit jeder tun können
+- **`oneuptime_describe_resource`**: die Felder einer Ressource und wie Sie nach ihnen filtern, sortieren und auswählen
 - **`get_public_status_page_overview`**: die Übersicht einer öffentlichen Statusseite
 - **`get_public_status_page_incidents`**: die Vorfälle einer öffentlichen Statusseite
 - **`get_public_status_page_scheduled_maintenance`**: ihre geplanten Wartungsereignisse
@@ -353,6 +354,8 @@ Fragen Sie Telemetrie immer mit einem Zeitraum ab. Ein Abfragefeld nimmt einen W
 ```
 
 Die Operatoren sind `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` und `Includes`. Sortierwerte sind `"ASC"` oder `"DESC"`.
+
+Die Tools `list_` und `count_` nehmen jedes Feld entgegen. So bleibt die Liste der Tools klein genug, dass ein Client sie auf einmal laden kann. Um die Felder einer Ressource zu sehen, was jedes bedeutet und welche Operatoren es nimmt, ruft ein Agent `oneuptime_describe_resource` mit der Ressource oder einem ihrer Tools auf, etwa `Incident` oder `list_incidents`.
 
 ## Feldauswahl und Paginierung
 

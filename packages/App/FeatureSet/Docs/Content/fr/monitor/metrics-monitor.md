@@ -138,7 +138,7 @@ Ce à quoi un point de données est comparé dépend de la requête :
 - **Ses services.** Un moniteur qui nomme des services est comparé à ces seuls services. Un moniteur qui n'en nomme aucun est comparé à tous les services qui remontent la métrique.
 - **Une moyenne, un minimum, un maximum ou un centile d'une métrique simple** est comparé aux échantillons de la métrique, aussi loin que remonte la **Fenêtre de référence**.
 - **Une somme ou un décompte, et toute requête sur un histogramme,** est comparé aux propres points de données de la requête. Ils sont conservés aussi longtemps que vos métriques, la comparaison ne remonte donc pas plus loin : 15 jours, sauf si vous l'avez modifié.
-- **Une requête filtrée ou regroupée par un attribut** est comparée à toutes les séries de ses services, car une référence ne contient aucun attribut. Elle ne remarque donc qu'un changement assez grand pour sortir de la plage de toutes ces séries. S'il s'agit d'une somme, d'un décompte ou d'une requête sur un histogramme, il n'y a rien à quoi la comparer et elle reste en apprentissage. Il en va de même pour un centile d'un histogramme.
+- **Une requête filtrée ou regroupée par un attribut** est comparée à ses propres points de données, chaque série aux siens, si bien qu'un hôte est jugé sur ce que fait cet hôte. Ils remontent aussi loin que vos métriques sont conservées. Si c'est moins de deux semaines, une moyenne, un minimum, un maximum ou un centile est plutôt comparé à toutes les séries de ses services, ce qui ne remarque qu'un changement assez grand pour sortir de la plage de toutes ces séries, et une somme, un décompte ou une requête sur un histogramme reste en apprentissage. Un centile d'un histogramme reste toujours en apprentissage. Un moniteur divisé en plus de 5 000 séries est traité comme si vos métriques étaient conservées moins de deux semaines.
 
 Une somme ou un décompte n'est considéré comme bas que sur un point de données complet suivi d'un autre point complet, car les plus récents sont encore en train de se remplir. Une fenêtre d'une minute ne peut donc trouver qu'une valeur haute.
 
@@ -223,7 +223,7 @@ La requête n'a pas de **Regrouper par** : tous les hôtes sont réduits à un s
 :::
 
 :::details Un critère d'anomalie ne se déclenche jamais
-Il est encore en apprentissage : l'heure de la semaine à laquelle il se compare n'a pas encore deux semaines d'historique. Une somme, un décompte ou une requête sur un histogramme filtrés ou regroupés par un attribut restent en apprentissage pour de bon, tout comme un centile d'un histogramme : il n'existe aucun historique auquel les comparer.
+Il est encore en apprentissage : l'heure de la semaine à laquelle il se compare n'a pas encore deux semaines d'historique. Une requête filtrée ou regroupée par un attribut apprend de sa propre série, donc un nouvel hôte ou pod doit apprendre, quelle que soit la durée depuis laquelle la métrique est envoyée. Un centile d'un histogramme reste en apprentissage pour de bon, tout comme une somme, un décompte ou une requête sur un histogramme filtrés ou regroupés par un attribut si vos métriques sont conservées moins de deux semaines : il n'existe aucun historique auquel les comparer.
 :::
 
 ## Étapes suivantes

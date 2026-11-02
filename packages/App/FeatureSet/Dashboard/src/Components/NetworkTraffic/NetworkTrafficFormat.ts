@@ -160,6 +160,22 @@ export function getApplicationLabel(
   return { name: protocolAndPort || protocol, detail: null };
 }
 
+/*
+ * A protocol and port as Meraki names them ("UDP port 3478"): the protocol
+ * alone when it has no port, nothing when Meraki gave neither.
+ */
+export function formatTrafficProtocolPort(
+  row: { protocol: string; port: number },
+  translator: Translator,
+): string {
+  return row.protocol && row.port > 0
+    ? translator.translateTemplate(PROTOCOL_PORT_LABEL, {
+        protocol: row.protocol,
+        port: row.port,
+      })
+    : row.protocol;
+}
+
 // An interface's name from the device's walk, else its index.
 export function getInterfaceLabel(
   row: NetworkTrafficInterfaceRow,

@@ -95,6 +95,11 @@ export interface ComponentProps {
    * Meraki side of a page, whose traffic is its appliances' uplinks.
    */
   help?: Partial<typeof TILE_HELP> | undefined;
+  /*
+   * What the Flows tile says in place of a count, when the page has none to
+   * give: a dash says it is not known, where a 0 would say there were none.
+   */
+  flowsValue?: string | undefined;
 }
 
 const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
@@ -140,7 +145,9 @@ const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
         />
         <TrafficTile
           label="Flows"
-          value={translator.formatNumber(summary.totals.flows)}
+          value={
+            props.flowsValue ?? translator.formatNumber(summary.totals.flows)
+          }
           help={help.flows}
           icon={IconProp.FlowDiagram}
           tone="bg-emerald-50 text-emerald-600"

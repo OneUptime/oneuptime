@@ -250,6 +250,7 @@ API 키나 로그인 없이도 클라이언트는 공개 도구를 사용할 수
 
 - **`oneuptime_help`**: OneUptime MCP 도구에 대한 도움말과 안내
 - **`oneuptime_list_resources`**: 리소스와 각 리소스로 할 수 있는 일
+- **`oneuptime_describe_resource`**: 리소스의 필드와 필드로 필터링, 정렬, 선택하는 방법
 - **`get_public_status_page_overview`**: 공개 상태 페이지의 개요
 - **`get_public_status_page_incidents`**: 공개 상태 페이지의 인시던트
 - **`get_public_status_page_scheduled_maintenance`**: 그 페이지의 예정된 유지 관리 이벤트
@@ -353,6 +354,8 @@ curl https://oneuptime.com/mcp/tools
 ```
 
 연산자는 `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search`, `Includes` 입니다. 정렬 값은 `"ASC"` 또는 `"DESC"` 입니다.
+
+`list_` 및 `count_` 도구는 어떤 필드든 받으므로, 도구 목록이 클라이언트가 한 번에 불러올 수 있을 만큼 작게 유지됩니다. 리소스의 필드와 각 필드의 의미, 받는 연산자를 보려면 에이전트가 리소스나 그 도구 중 하나(`Incident` 또는 `list_incidents` 등)를 지정해 `oneuptime_describe_resource` 를 호출합니다.
 
 ## 필드 선택과 페이지 나누기
 

@@ -13,6 +13,7 @@ jest.mock("../../../../../Server/Services/MetricBaselineService", () => {
     __esModule: true,
     default: {
       getBaseline: jest.fn(),
+      getSeriesBaselines: jest.fn(),
     },
   };
 });
@@ -23,6 +24,7 @@ import MetricMonitorCriteria, {
 import MetricBaselineService, {
   BaselineSummary,
   MetricBaselineService as MetricBaselineServiceClass,
+  MetricSeriesBaselines,
 } from "../../../../../Server/Services/MetricBaselineService";
 import AggregateModel from "../../../../../Types/BaseDatabase/AggregatedModel";
 import {
@@ -30,6 +32,7 @@ import {
   CriteriaFilter,
   FilterType,
 } from "../../../../../Types/Monitor/CriteriaFilter";
+import { METRIC_BASELINE_MAX_SERIES } from "../../../../../Server/Utils/Monitor/MetricHourBaseline";
 import { MetricAnomalyBaseline } from "../../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MetricMonitorResponse from "../../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "../../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
@@ -39,6 +42,7 @@ import MetricsAggregationType from "../../../../../Types/Metrics/MetricsAggregat
 import MetricsViewConfig from "../../../../../Types/Metrics/MetricsViewConfig";
 import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
 import AggregationInterval from "../../../../../Types/BaseDatabase/AggregationInterval";
+import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import RollingTime from "../../../../../Types/RollingTime/RollingTime";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -91,6 +95,10 @@ function buildInputs(input: {
   telemetryServiceIds?: Array<ObjectID>;
   window?: { start: string; end: string };
   isInfrastructure?: boolean;
+  // What the worker says it read each query with.
+  queryAttributes?: Array<JSONObject | undefined>;
+  // Group by whole columns, which the worker passes to the read as they are.
+  groupBy?: Record<string, boolean>;
 }): {
   criteriaFilter: CriteriaFilter;
   monitorStep: MonitorStep;
@@ -115,6 +123,7 @@ function buildInputs(input: {
       ...(input.groupByAttributeKeys
         ? { groupByAttributeKeys: input.groupByAttributeKeys }
         : {}),
+      ...(input.groupBy ? { groupBy: input.groupBy } : {}),
     } as unknown as MetricQueryData,
   };
 
@@ -153,6 +162,9 @@ function buildInputs(input: {
       projectId: ObjectID.generate(),
       metricResult: [{ data: input.points || [] }],
       ...(input.series ? { seriesBreakdown: input.series } : {}),
+      ...(input.queryAttributes
+        ? { queryAttributes: input.queryAttributes }
+        : {}),
       ...(input.window
         ? {
             startAndEndDate: {
@@ -183,6 +195,18 @@ async function evaluate(input: Parameters<typeof buildInputs>[0]): Promise<{
 }
 
 const getBaseline: jest.Mock = MetricBaselineService.getBaseline as never;
+const getSeriesBaselines: jest.Mock =
+  MetricBaselineService.getSeriesBaselines as never;
+
+const baselinesOf: (
+  series: Array<[string, BaselineSummary]>,
+  fallback?: BaselineSummary | null,
+) => MetricSeriesBaselines = (
+  series: Array<[string, BaselineSummary]>,
+  fallback: BaselineSummary | null = null,
+): MetricSeriesBaselines => {
+  return { series: new Map<string, BaselineSummary>(series), fallback };
+};
 
 const askedFor: () => Array<{
   hourOfWeek: number;
@@ -203,6 +227,8 @@ describe("MetricMonitorCriteria - what an anomaly condition asks the baseline fo
   beforeEach(() => {
     getBaseline.mockReset();
     getBaseline.mockResolvedValue(baseline() as never);
+    getSeriesBaselines.mockReset();
+    getSeriesBaselines.mockResolvedValue(baselinesOf([]) as never);
   });
 
   describe("what the query reads", () => {
@@ -603,6 +629,238 @@ describe("MetricMonitorCriteria - what an anomaly condition asks the baseline fo
       await expect(
         evaluate({ series: [seriesOf("a", 100), seriesOf("b", 100)] }),
       ).rejects.toThrow("ClickHouse went away");
+    });
+  });
+
+  /*
+   * The worker says what it read each query with, the filters an infrastructure
+   * monitor adds among them, so the history can be read the same way.
+   */
+  describe("a query the worker says it narrowed", () => {
+    const AT: string = "2026-11-30T09:40:00.000Z";
+    const onePoint: Array<AggregateModel> = pointsOf([
+      { time: AT, value: 100 },
+    ]);
+    const WHOLE: string = "__all__";
+
+    const asked: () => Record<string, unknown> = (): Record<
+      string,
+      unknown
+    > => {
+      return (getSeriesBaselines.mock.calls[0]![0] as Record<string, unknown>)[
+        "query"
+      ] as Record<string, unknown>;
+    };
+
+    const seriesOf: (name: string, value: number) => MetricSeriesResult = (
+      name: string,
+      value: number,
+    ): MetricSeriesResult => {
+      return {
+        fingerprint: name,
+        labels: { "host.name": name },
+        aggregatedResults: [{ data: pointsOf([{ time: AT, value }]) }],
+      } as unknown as MetricSeriesResult;
+    };
+
+    test("an infrastructure monitor's history is read with what the worker added", async () => {
+      await evaluate({
+        points: onePoint,
+        isInfrastructure: true,
+        queryAttributes: [{ "resource.host.name": "web-1" }],
+      });
+
+      expect(getBaseline).not.toHaveBeenCalled();
+      expect(asked()).toMatchObject({
+        isNarrowedByAttributes: true,
+        scope: {
+          attributes: { "resource.host.name": "web-1" },
+          groupByAttributeKeys: [],
+        },
+      });
+    });
+
+    test("so is a Metrics monitor's, with its own filter", async () => {
+      await evaluate({
+        points: onePoint,
+        attributes: { state: "idle" },
+        queryAttributes: [{ state: "idle" }],
+      });
+
+      expect(asked()).toMatchObject({
+        scope: { attributes: { state: "idle" } },
+      });
+    });
+
+    test("the attributes a monitor is split by are the step's", async () => {
+      await evaluate({
+        series: [seriesOf("a", 100)],
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(asked()).toMatchObject({
+        isNarrowedByAttributes: true,
+        scope: { attributes: {}, groupByAttributeKeys: ["host.name"] },
+      });
+    });
+
+    test("an infrastructure monitor the worker added nothing to is not narrowed", async () => {
+      await evaluate({
+        points: onePoint,
+        isInfrastructure: true,
+        queryAttributes: [undefined],
+      });
+
+      expect(getSeriesBaselines).not.toHaveBeenCalled();
+      expect(
+        (getBaseline.mock.calls[0]![0] as Record<string, unknown>)["query"],
+      ).toMatchObject({ isNarrowedByAttributes: false });
+    });
+
+    test("a response that does not say keeps what is known of it", async () => {
+      await evaluate({ points: onePoint, isInfrastructure: true });
+
+      expect(getSeriesBaselines).not.toHaveBeenCalled();
+      expect(
+        (getBaseline.mock.calls[0]![0] as Record<string, unknown>)["query"],
+      ).toMatchObject({ isNarrowedByAttributes: true });
+    });
+
+    test("a group by whole columns has no series a read could hand back", async () => {
+      await evaluate({
+        points: onePoint,
+        groupBy: { attributes: true },
+        queryAttributes: [undefined],
+      });
+
+      const query: Record<string, unknown> = (
+        getBaseline.mock.calls[0]![0] as Record<string, unknown>
+      )["query"] as Record<string, unknown>;
+
+      expect(getSeriesBaselines).not.toHaveBeenCalled();
+      expect(query["isNarrowedByAttributes"]).toBe(true);
+      expect(query["scope"]).toBeUndefined();
+    });
+
+    test("the read is told how long a window holds its hours", async () => {
+      await evaluate({
+        points: onePoint,
+        queryAttributes: [{ state: "idle" }],
+        window: {
+          start: "2026-11-30T09:35:00.000Z",
+          end: "2026-11-30T09:40:00.000Z",
+        },
+      });
+
+      expect(asked()).toMatchObject({ windowInMs: 5 * 60 * 1000 });
+    });
+
+    test("a data point is judged by the query's own baseline", async () => {
+      getSeriesBaselines.mockResolvedValue(
+        baselinesOf([[WHOLE, baseline({ mean: 100, stddev: 10 })]]) as never,
+      );
+
+      const { rootCause } = await evaluate({
+        points: pointsOf([{ time: AT, value: 200 }]),
+        queryAttributes: [{ "resource.host.name": "web-1" }],
+      });
+
+      expect(rootCause).toContain("10.00σ above the same-hour baseline");
+    });
+
+    test("a series is judged by its own, and what is normal for one fires on another", async () => {
+      getSeriesBaselines.mockResolvedValue(
+        baselinesOf([
+          ["small", baseline({ mean: 10, stddev: 1 })],
+          ["big", baseline({ mean: 500, stddev: 50 })],
+        ]) as never,
+      );
+
+      const { evaluations } = await evaluate({
+        series: [seriesOf("small", 500), seriesOf("big", 500)],
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(
+        evaluations.map((evaluation: MetricSeriesEvaluationResult): boolean => {
+          return evaluation.rootCause !== null;
+        }),
+      ).toEqual([true, false]);
+    });
+
+    test("a monitor split into more series than a read can hold stays on the cell", async () => {
+      await evaluate({
+        series: new Array<number>(METRIC_BASELINE_MAX_SERIES + 1)
+          .fill(0)
+          .map((_: number, index: number): MetricSeriesResult => {
+            return seriesOf(`host-${index}`, 100);
+          }),
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(getSeriesBaselines).not.toHaveBeenCalled();
+      expect(
+        (getBaseline.mock.calls[0]![0] as Record<string, unknown>)["query"],
+      ).toMatchObject({ isNarrowedByAttributes: true });
+    });
+
+    test("and exactly as many as it can does not", async () => {
+      await evaluate({
+        series: new Array<number>(METRIC_BASELINE_MAX_SERIES)
+          .fill(0)
+          .map((_: number, index: number): MetricSeriesResult => {
+            return seriesOf(`host-${index}`, 100);
+          }),
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(getSeriesBaselines).toHaveBeenCalledTimes(1);
+    });
+
+    test("an hour is read once, however many series it holds", async () => {
+      await evaluate({
+        series: [seriesOf("a", 100), seriesOf("b", 100), seriesOf("c", 100)],
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(getSeriesBaselines).toHaveBeenCalledTimes(1);
+    });
+
+    test("a series with none of its own learns, and fires on nothing", async () => {
+      getSeriesBaselines.mockResolvedValue(
+        baselinesOf([["known", baseline()]]) as never,
+      );
+
+      const { evaluations } = await evaluate({
+        series: [seriesOf("new", 900000)],
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(evaluations[0]?.rootCause).toBeNull();
+      expect(evaluations[0]?.context.anomalyBaseline?.state).toBe("Learning");
+    });
+
+    test("one whose history is kept too briefly is judged by what falls back", async () => {
+      getSeriesBaselines.mockResolvedValue(
+        baselinesOf(
+          [["short", baseline({ isReliable: false })]],
+          baseline({ mean: 100, stddev: 10 }),
+        ) as never,
+      );
+
+      const { evaluations } = await evaluate({
+        series: [seriesOf("short", 200)],
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(evaluations[0]?.rootCause).toContain("10.00σ above");
     });
   });
 

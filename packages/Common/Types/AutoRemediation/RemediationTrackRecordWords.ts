@@ -4,7 +4,7 @@ import {
   PluralTemplate,
   translationKey,
   Translator,
-} from "../../UI/Utils/TranslateTemplate";
+} from "../Translator";
 import {
   getRemediationTrackRecordTone,
   RemediationTrackRecord,

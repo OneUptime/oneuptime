@@ -6,6 +6,7 @@ import {
   NetworkTrafficUsageApplicationRow,
   NetworkTrafficUsageClientRow,
   NetworkTrafficUsageConnection,
+  NetworkTrafficUsageConversationRow,
   NetworkTrafficUsageDestinationRow,
   NetworkTrafficUsageKind,
   NetworkTrafficUsageKindTotals,
@@ -13,7 +14,9 @@ import {
   NetworkTrafficUsageRequest,
   NetworkTrafficUsageSeriesPoint,
   NetworkTrafficUsageSummary,
+  NetworkTrafficUsageUplinkInterfaceRow,
   NetworkTrafficUsageUplinkRow,
+  NetworkTrafficUsageUplinkSeriesPoint,
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import { NetworkControllerConnectionStatus } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
 import {
@@ -31,7 +34,8 @@ import { APP_API_URL } from "Common/UI/Config";
  * connection read it (POST /network-traffic/usage-summary), the connect
  * dialog's test (POST /network-controller-connection/test) and Read now -
  * with readers for their answers that never trust a shape: a missing list
- * is empty, a number that is not one is 0.
+ * is empty, a number that is not one is 0, and a measurement that is not one
+ * is null - unknown, never a perfect 0.
  *
  * Plain logic, free of React, so App/Tests can read it.
  */
@@ -44,6 +48,12 @@ export const NETWORK_CONTROLLER_CONNECTION_PATH: string =
 function toNumber(value: unknown): number {
   const parsed: number = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function toMeasurement(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
 }
 
 function toText(value: unknown): string {
@@ -165,11 +175,39 @@ export function parseNetworkTrafficUsageSummary(
         };
       },
     ),
+    uplinkInterfaces: listOf(
+      value["uplinkInterfaces"],
+      (row: JSONObject): NetworkTrafficUsageUplinkInterfaceRow => {
+        return {
+          interfaceName: toText(row["interfaceName"]),
+          applianceCount: toNumber(row["applianceCount"]),
+          sentOctets: toNumber(row["sentOctets"]),
+          receivedOctets: toNumber(row["receivedOctets"]),
+          lossPercent: toMeasurement(row["lossPercent"]),
+          latencyMs: toMeasurement(row["latencyMs"]),
+        };
+      },
+    ),
+    uplinkSeries: listOf(
+      value["uplinkSeries"],
+      (row: JSONObject): NetworkTrafficUsageUplinkSeriesPoint => {
+        return {
+          time: toText(row["time"]),
+          interfaceName: toText(row["interfaceName"]),
+          sentOctets: toNumber(row["sentOctets"]),
+          receivedOctets: toNumber(row["receivedOctets"]),
+          lossPercent: toMeasurement(row["lossPercent"]),
+          latencyMs: toMeasurement(row["latencyMs"]),
+        };
+      },
+    ),
     topApplications: listOf(
       value["topApplications"],
       (row: JSONObject): NetworkTrafficUsageApplicationRow => {
         return {
           application: toText(row["application"]),
+          protocol: toText(row["protocol"]),
+          port: toNumber(row["port"]),
           sentOctets: toNumber(row["sentOctets"]),
           receivedOctets: toNumber(row["receivedOctets"]),
           flows: toNumber(row["flows"]),
@@ -182,6 +220,8 @@ export function parseNetworkTrafficUsageSummary(
         return {
           destination: toText(row["destination"]),
           application: toText(row["application"]),
+          protocol: toText(row["protocol"]),
+          port: toNumber(row["port"]),
           sentOctets: toNumber(row["sentOctets"]),
           receivedOctets: toNumber(row["receivedOctets"]),
         };
@@ -202,8 +242,26 @@ export function parseNetworkTrafficUsageSummary(
         };
       },
     ),
+    topConversations: listOf(
+      value["topConversations"],
+      (row: JSONObject): NetworkTrafficUsageConversationRow => {
+        return {
+          controllerNetworkId: toText(row["controllerNetworkId"]),
+          controllerNetworkName: toText(row["controllerNetworkName"]),
+          destination: toText(row["destination"]),
+          application: toText(row["application"]),
+          protocol: toText(row["protocol"]),
+          port: toNumber(row["port"]),
+          sentOctets: toNumber(row["sentOctets"]),
+          receivedOctets: toNumber(row["receivedOctets"]),
+          flows: toNumber(row["flows"]),
+          clients: toNumber(row["clients"]),
+        };
+      },
+    ),
     lastUplinkAt: optionalText(value["lastUplinkAt"]) || null,
     lastAnalyticsAt: optionalText(value["lastAnalyticsAt"]) || null,
+    uplinksReadTo: optionalText(value["uplinksReadTo"]) || null,
     connections: listOf(
       value["connections"],
       parseNetworkTrafficUsageConnection,

@@ -39,6 +39,19 @@
     token through Common/UI/Utils/SensitiveUrlToken, which prefers the
     stash and falls back to the path when the bootstrap could not clean it.
 
+    A credential or an email address in the *query string* is not moved: the
+    pages that take one read it from the address bar. An invitation's sign-up
+    link is /accounts/register?email=<address>&token=<claim token>
+    (Common/Server/Utils/UserRegistrationToken), an invitee who has already
+    registered gets ?email= alone (Common/Server/Services/TeamMemberService),
+    and sign-in reads ?email= too. The token claims the invited account, and
+    the address is personal data, which Google Analytics' terms forbid
+    sending to it. So the partial sets the flag from step 2 for these as
+    well, and the Google tag does not load on that page. An invited teammate
+    is not an acquisition, so this also keeps invitations out of the sign_up
+    conversion. SENSITIVE_QUERY_PARAMETERS below names the parameters; an "@"
+    anywhere else in the query is taken for an email address too.
+
     MUST be included as the first thing in <head>, ahead of the Google tag
     and ahead of every external <script>. A tag that loads before this runs is
     a tag that sees the token. Common/Tests/App/SensitiveUrlTokenBootstrap.test.ts
@@ -68,6 +81,13 @@
             "unsubscribe",
             "update-subscription"
         ];
+
+        /*
+         * Query parameters that hold a credential or an email address,
+         * matched in any case: ?email=<address>&token=<claim token> on an
+         * invitation's sign-up link, ?email= on sign-in.
+         */
+        var SENSITIVE_QUERY_PARAMETERS = ["email", "token"];
 
         function segmentsOf(pathname) {
             var parts = String(pathname || "").split("/");
@@ -99,6 +119,27 @@
             }
 
             return false;
+        }
+
+        /*
+         * True when this query string holds a credential or an email address:
+         * one of SENSITIVE_QUERY_PARAMETERS, or an "@" in any parameter's
+         * name or value (the values arrive decoded, so %40 counts).
+         */
+        function carriesSensitiveQuery(search) {
+            var found = false;
+
+            new URLSearchParams(search).forEach(function (value, name) {
+                if (
+                    SENSITIVE_QUERY_PARAMETERS.indexOf(name.toLowerCase()) !== -1 ||
+                    name.indexOf("@") !== -1 ||
+                    value.indexOf("@") !== -1
+                ) {
+                    found = true;
+                }
+            });
+
+            return found;
         }
 
         var pending = true;
@@ -138,9 +179,11 @@
              * Read the address bar back rather than trusting the rewrite. This
              * is the whole safety condition: analytics runs only if the token
              * is demonstrably no longer in the URL those tags are about to
-             * report.
+             * report - and no credential or address is left in its query.
              */
-            pending = carriesToken(win.location.pathname);
+            pending =
+                carriesToken(win.location.pathname) ||
+                carriesSensitiveQuery(win.location.search);
         } catch (_bootstrapError) {
             /* Fail closed: something went wrong, so assume the token is exposed. */
             pending = true;

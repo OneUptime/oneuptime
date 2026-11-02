@@ -36,18 +36,220 @@ import ProductCompare, {
   UseCaseComparison,
   getProductCompareSlugs,
 } from "./ProductCompare";
+import BlogTag from "./BlogTag";
+import {
+  McpServerClientSetup,
+  McpServerDocsMarkdownPath,
+  McpServerPageContent,
+  McpServerPagePath,
+  McpServerPlanNote,
+  McpServerTool,
+} from "./McpServerPage";
 import { JSONObject } from "Common/Types/JSON";
 import { markdownTableCell } from "Common/Utils/Markdown/MarkdownTableCell";
 import { McpOAuthScopeUtil } from "Common/Types/Mcp/McpOAuthScope";
 
 /*
  * Minimal blog post shape so this module does not depend on the blog utils
- * (which pull in server-only modules and the blog filesystem).
+ * (which pull in server-only modules and the blog filesystem). The blog's
+ * post list (BlogPostHeader) is one.
  */
 export interface RecentBlogPostLink {
   title: string;
   description: string;
   fileName: string;
+  tags: Array<string>;
+}
+
+// A topic llms.txt lists blog posts under, and the tags its posts carry.
+export interface BlogTopic {
+  name: string;
+  tags: Array<string>;
+}
+
+export interface BlogTopicPosts {
+  name: string;
+  posts: Array<RecentBlogPostLink>;
+}
+
+/*
+ * What OneUptime does, as the blog tags it. Most of the blog's posts are on
+ * other subjects - Kubernetes storage, Terraform, databases - so the newest
+ * posts are often on none of these; llms.txt lists the newest on each one
+ * instead. "Using OneUptime" comes first: its posts are about the product.
+ */
+export const BLOG_TOPICS: ReadonlyArray<BlogTopic> = [
+  { name: "Using OneUptime", tags: ["OneUptime"] },
+  {
+    name: "Monitoring",
+    tags: [
+      "Monitoring",
+      "Uptime Monitoring",
+      "Synthetic Monitoring",
+      "Website Monitoring",
+      "API Monitoring",
+      "Cloud Monitoring",
+      "Network Monitoring",
+      "Performance Monitoring",
+    ],
+  },
+  {
+    name: "Incident management and on-call",
+    tags: [
+      "Incident Management",
+      "Incident Response",
+      "On-Call",
+      "Alerting",
+      "Runbook",
+      "Postmortem",
+    ],
+  },
+  { name: "Status pages", tags: ["Status Page"] },
+  { name: "OpenTelemetry", tags: ["OpenTelemetry", "OpenTelemetry Collector"] },
+  {
+    name: "Logs, metrics and traces",
+    tags: [
+      "Observability",
+      "Logging",
+      "Log Management",
+      "Metric",
+      "Metrics",
+      "Tracing",
+      "Distributed Tracing",
+      "APM",
+    ],
+  },
+  {
+    name: "SRE and reliability",
+    tags: [
+      "SRE",
+      "Site Reliability Engineering",
+      "Reliability",
+      "SLO",
+      "Error Budget",
+      "Chaos Engineering",
+    ],
+  },
+];
+
+export const BLOG_POSTS_PER_TOPIC: number = 5;
+
+// A topic, where it comes in BLOG_TOPICS, and the posts it lists so far.
+interface BlogTopicSlot {
+  order: number;
+  topic: BlogTopicPosts;
+}
+
+/*
+ * The newest posts on each of BLOG_TOPICS, from posts listed newest first
+ * (BlogPostUtil.getBlogPostList): each topic gets its newest posts that an
+ * earlier topic does not list, so a post on several topics is listed once.
+ * A topic with no posts is left out. Tags match as tag pages do, by slug
+ * (BlogTag.getSlug), so "On-Call" and "on call" are one tag. One pass over
+ * the posts, which stops once every topic is full.
+ */
+export function getBlogPostsByTopic(
+  posts: ReadonlyArray<RecentBlogPostLink>,
+): Array<BlogTopicPosts> {
+  const topics: Array<BlogTopicPosts> = [];
+  const slotOfSlug: Map<string, BlogTopicSlot> = new Map();
+
+  for (const topic of BLOG_TOPICS) {
+    const slot: BlogTopicSlot = {
+      order: topics.length,
+      topic: { name: topic.name, posts: [] },
+    };
+
+    topics.push(slot.topic);
+
+    for (const tag of topic.tags) {
+      const slug: string = BlogTag.getSlug(tag);
+
+      if (!slotOfSlug.has(slug)) {
+        slotOfSlug.set(slug, slot);
+      }
+    }
+  }
+
+  // Each tag as written, slugged once: the posts carry about 21,000.
+  const slugOfTag: Map<string, string> = new Map();
+  let openTopics: number = topics.length;
+
+  for (const post of posts) {
+    if (openTopics === 0) {
+      break;
+    }
+
+    // The first of the post's topics that still has room.
+    let first: BlogTopicSlot | undefined = undefined;
+
+    for (const tag of post.tags) {
+      let slug: string | undefined = slugOfTag.get(tag);
+
+      if (slug === undefined) {
+        slug = BlogTag.getSlug(tag);
+        slugOfTag.set(tag, slug);
+      }
+
+      const slot: BlogTopicSlot | undefined = slotOfSlug.get(slug);
+
+      if (
+        slot &&
+        slot.topic.posts.length < BLOG_POSTS_PER_TOPIC &&
+        (!first || slot.order < first.order)
+      ) {
+        first = slot;
+      }
+    }
+
+    if (first) {
+      first.topic.posts.push(post);
+
+      if (first.topic.posts.length === BLOG_POSTS_PER_TOPIC) {
+        openTopics--;
+      }
+    }
+  }
+
+  return topics.filter((topic: BlogTopicPosts): boolean => {
+    return topic.posts.length > 0;
+  });
+}
+
+/*
+ * The blog, a section per topic: each post's page, the address to cite, and
+ * its Markdown copy beside it. Nothing while no post is on any topic, as when
+ * the blog's checkout is missing.
+ */
+function blogSections(
+  baseUrl: string,
+  posts: ReadonlyArray<RecentBlogPostLink>,
+): Array<string> {
+  const topics: Array<BlogTopicPosts> = getBlogPostsByTopic(posts);
+
+  if (topics.length === 0) {
+    return [];
+  }
+
+  const lines: Array<string> = [
+    "## Blog",
+    "",
+    `- [All posts](${baseUrl}/blog): every post, newest first`,
+  ];
+
+  for (const topic of topics) {
+    lines.push("", `## Blog: ${topic.name}`, "");
+
+    for (const post of topic.posts) {
+      const postUrl: string = `${baseUrl}/blog/post/${post.fileName}`;
+
+      lines.push(
+        `- [${post.title}](${postUrl}/view): ${post.description} ([Markdown](${postUrl}/markdown))`,
+      );
+    }
+  }
+
+  return lines;
 }
 
 function normalizeBaseUrl(homeUrl: string): string {
@@ -108,6 +310,7 @@ const machineReadableSection: (baseUrl: string) => Array<string> = (
     "",
     `- [OpenAPI specification](${baseUrl}/api/openapi/spec): full REST API schema for the OneUptime platform`,
     `- [MCP server manifest](${baseUrl}/.well-known/mcp.json): connect AI agents to OneUptime via Model Context Protocol (endpoint: ${baseUrl}/mcp)`,
+    `- [Connect an AI agent](${baseUrl}${McpServerPagePath}.md): the address, how to sign in, each client's setup and the plan it needs`,
     `- [Documentation index for LLMs](${baseUrl}/docs/llms.txt): all docs pages with raw markdown variants`,
     `- [API reference](${baseUrl}/reference): human-friendly API documentation`,
     `- [Pricing (JSON)](${baseUrl}/data/pricing.json): plans and feature matrix as JSON`,
@@ -116,7 +319,7 @@ const machineReadableSection: (baseUrl: string) => Array<string> = (
     `- [Comparisons (JSON)](${baseUrl}/data/compare.json): OneUptime vs other tools`,
     `- [Customer reviews (JSON)](${baseUrl}/data/reviews.json)`,
     `- [Governed claims matrix (JSON)](${baseUrl}/data/claims.json): every published claim about service levels, support, compliance, encryption, deployment, migration, scale, discounts, and contract terms, with its status, qualifier, evidence, and source document`,
-    `- [Blog RSS feed](${baseUrl}/blog/rss.xml): every post also has a raw markdown variant at /blog/post/<post>/markdown`,
+    `- [Blog RSS feed](${baseUrl}/blog/rss.xml): every post's page answers \`Accept: text/markdown\` with the post as Markdown, which is also at /blog/post/<post>/markdown`,
   ];
 };
 
@@ -137,7 +340,7 @@ function integrationsSection(baseUrl: string): Array<string> {
 
 export function generateLlmsTxt(
   homeUrl: string,
-  recentPosts: Array<RecentBlogPostLink>,
+  blogPosts: ReadonlyArray<RecentBlogPostLink>,
 ): string {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const lines: Array<string> = [];
@@ -235,16 +438,11 @@ export function generateLlmsTxt(
     "- [Source code on GitHub](https://github.com/OneUptime/oneuptime)",
   );
 
-  if (recentPosts.length > 0) {
+  const blog: Array<string> = blogSections(baseUrl, blogPosts);
+
+  if (blog.length > 0) {
     lines.push("");
-    lines.push("## Recent Blog Posts");
-    lines.push("");
-    for (const post of recentPosts) {
-      lines.push(
-        `- [${post.title}](${baseUrl}/blog/post/${post.fileName}/markdown): ${post.description}`,
-      );
-    }
-    lines.push(`- [All posts](${baseUrl}/blog)`);
+    lines.push(...blog);
   }
 
   lines.push("");
@@ -260,7 +458,7 @@ export function generateLlmsTxt(
 
 export function generateLlmsFullTxt(
   homeUrl: string,
-  recentPosts: Array<RecentBlogPostLink>,
+  blogPosts: ReadonlyArray<RecentBlogPostLink>,
 ): string {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const lines: Array<string> = [];
@@ -315,15 +513,11 @@ export function generateLlmsFullTxt(
   lines.push("");
   lines.push(...integrationsSection(baseUrl));
 
-  if (recentPosts.length > 0) {
+  const blog: Array<string> = blogSections(baseUrl, blogPosts);
+
+  if (blog.length > 0) {
     lines.push("");
-    lines.push("## Recent Blog Posts");
-    lines.push("");
-    for (const post of recentPosts) {
-      lines.push(
-        `- [${post.title}](${baseUrl}/blog/post/${post.fileName}/markdown): ${post.description}`,
-      );
-    }
+    lines.push(...blog);
   }
 
   lines.push("");
@@ -484,6 +678,101 @@ function cloudMarketplacesMarkdown(
   );
 
   return lines;
+}
+
+/*
+ * /tool/mcp-server.md: how to connect an agent to OneUptime, from the same
+ * content the page renders (Utils/McpServerPage.ts) - the address, each
+ * client's setup, an API key for an agent nobody is there to sign in for, what
+ * it needs from a plan, and the tools to expect. llms.txt sends agents here,
+ * so this is all one needs to connect, not a summary of the page.
+ */
+export function generateMcpServerMarkdown(
+  homeUrl: string,
+  content: McpServerPageContent,
+): string {
+  const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const seo: PageSEOData | undefined = PageSEOConfig[McpServerPagePath];
+  const lines: Array<string> = [];
+
+  lines.push("# OneUptime MCP Server");
+  lines.push("");
+  if (seo) {
+    lines.push(`> ${seo.description}`);
+    lines.push("");
+  }
+  lines.push(`Canonical page: ${baseUrl}${McpServerPagePath}`);
+
+  lines.push("");
+  lines.push("## Connect");
+  lines.push("");
+  lines.push(
+    `Address: \`${content.endpoint}\` (streamable HTTP). There is nothing to install.`,
+  );
+  lines.push("");
+  lines.push(
+    `${content.signIn} Any other client that supports MCP authorization works the same way.`,
+  );
+
+  content.clientSetups.forEach((setup: McpServerClientSetup) => {
+    lines.push("");
+    lines.push(`### ${setup.client}`);
+    lines.push("");
+    lines.push(setup.instruction);
+    if (setup.code) {
+      lines.push("");
+      lines.push(`\`\`\`${setup.code.language}`);
+      lines.push(...setup.code.lines);
+      lines.push("```");
+    }
+  });
+
+  lines.push("");
+  lines.push("## Agents that run unattended");
+  lines.push("");
+  lines.push(content.apiKey);
+  lines.push("");
+  lines.push("```bash");
+  lines.push(content.apiKeyCommand);
+  lines.push("```");
+
+  lines.push("");
+  lines.push("## Plans");
+  lines.push("");
+  lines.push(`- ${content.plan}`);
+  lines.push(`- ${content.selfHosted}`);
+  lines.push(`- ${content.publicTools}`);
+
+  lines.push("");
+  lines.push("## What it can do");
+  lines.push("");
+  for (const feature of seo?.softwareApplication?.features || []) {
+    lines.push(`- ${feature}`);
+  }
+  lines.push("");
+  lines.push("Tools for reading what a person asks about:");
+  lines.push("");
+  content.tools.forEach((tool: McpServerTool) => {
+    lines.push(`- \`${tool.name}\`: ${tool.description}`);
+  });
+  lines.push("");
+  lines.push(`Every tool, by name: ${content.endpoint}/tools`);
+
+  lines.push("");
+  lines.push("## Learn More");
+  lines.push("");
+  lines.push(
+    `- [The full guide](${baseUrl}${McpServerDocsMarkdownPath}): every client, API keys, permissions and troubleshooting`,
+  );
+  lines.push(`- [MCP server manifest](${baseUrl}/.well-known/mcp.json)`);
+  lines.push(`- [Pricing](${baseUrl}/pricing.md)`);
+  lines.push(
+    `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
+  );
+  lines.push(`- [Sign up](${baseUrl}/accounts/register)`);
+  lines.push("");
+
+  return lines.join("\n");
 }
 
 /*
@@ -1000,7 +1289,7 @@ export function generateMcpManifest(
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const isOAuthEnabled: boolean = options?.isOAuthEnabled !== false;
 
-  const apiKeyInstructions: string = `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. See ${baseUrl}/docs/ai/mcp-server`;
+  const apiKeyInstructions: string = `Create an API key in your OneUptime project settings. Public status page tools and help tools work without authentication. ${McpServerPlanNote} See ${baseUrl}/docs/ai/mcp-server`;
 
   return {
     name: "OneUptime MCP Server",
@@ -1008,6 +1297,8 @@ export function generateMcpManifest(
       "Model Context Protocol server for OneUptime. Lets AI agents query and manage incidents, monitors, alerts, on-call schedules, status pages, logs, metrics and traces.",
     endpoint: `${baseUrl}/mcp`,
     transport: ["streamable-http"],
+    // As the MCP Registry's server.json writes it, which readers look for.
+    remotes: [{ type: "streamable-http", url: `${baseUrl}/mcp` }],
     authentication: isOAuthEnabled
       ? {
           type: "oauth2",
@@ -1034,12 +1325,6 @@ export function generateMcpManifest(
     documentation: `${baseUrl}/docs/ai/mcp-server`,
     website: `${baseUrl}/tool/mcp-server`,
     openapi: `${baseUrl}/api/openapi/spec`,
-    packages: [
-      {
-        registry: "npm",
-        name: "@oneuptime/mcp-server",
-      },
-    ],
   };
 }
 

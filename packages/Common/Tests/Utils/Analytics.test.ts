@@ -787,8 +787,20 @@ describe("Analytics' user_id and purchase for Google Analytics", () => {
           projectId: "project-1",
           planName: "Growth",
           monthlyAmountInUSD: 49,
+          isOnFreeTrial: false,
         }),
       ).toEqual(PURCHASE);
+    });
+
+    it("is none on a free trial: no card was asked for, and nothing was bought", () => {
+      expect(
+        Analytics.purchaseForNewProject({
+          projectId: "project-1",
+          planName: "Growth",
+          monthlyAmountInUSD: 49,
+          isOnFreeTrial: true,
+        }),
+      ).toBeNull();
     });
 
     it("is none for custom pricing, which has no amount", () => {
@@ -797,6 +809,7 @@ describe("Analytics' user_id and purchase for Google Analytics", () => {
           projectId: "project-1",
           planName: "Enterprise",
           monthlyAmountInUSD: null,
+          isOnFreeTrial: false,
         }),
       ).toBeNull();
     });
@@ -807,6 +820,7 @@ describe("Analytics' user_id and purchase for Google Analytics", () => {
           projectId: "",
           planName: "Growth",
           monthlyAmountInUSD: 49,
+          isOnFreeTrial: false,
         }),
       ).toBeNull();
     });

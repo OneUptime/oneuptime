@@ -62,6 +62,8 @@ function record(
     receivedOctets: 4096,
     flows: 12,
     clients: 3,
+    lossPercent: null,
+    latencyMs: null,
     windowStartAt: START,
     windowEndAt: END,
     ...overrides,
@@ -107,6 +109,129 @@ describe("a window's key", () => {
         record({ windowStartAt: new Date(START.getTime() + 1) }),
       ),
     );
+  });
+});
+
+describe("a window of uplink health", () => {
+  test("is the organization's, as an uplink window is: one call covers every network", () => {
+    const of: (networkId: string) => string = (networkId: string): string => {
+      return getWindowKey({
+        kind: NetworkTrafficUsageKind.UplinkHealth,
+        controllerNetworkId: networkId,
+        windowStartAt: START,
+      });
+    };
+
+    expect(of("L_1")).toBe(of("L_2"));
+    expect(of("L_1")).toBe(`uplinkHealth||${START.getTime()}`);
+  });
+
+  test("is never taken for the uplink window of the same start", () => {
+    expect(
+      getWindowKey({
+        kind: NetworkTrafficUsageKind.UplinkHealth,
+        controllerNetworkId: "",
+        windowStartAt: START,
+      }),
+    ).not.toBe(
+      getWindowKey({
+        kind: NetworkTrafficUsageKind.Uplink,
+        controllerNetworkId: "",
+        windowStartAt: START,
+      }),
+    );
+  });
+
+  test("belongs to its appliance's device, as the uplink it measures does", () => {
+    const stored: JSONObject = row({
+      kind: NetworkTrafficUsageKind.UplinkHealth,
+      deviceSerial: "Q2XX-AAAA-0001",
+      interfaceName: "wan1",
+      controllerNetworkId: "L_NOT_MATCHED",
+      lossPercent: 0.5,
+      latencyMs: 21.25,
+    });
+
+    expect(stored["networkDeviceId"]).toBe(MX_DEVICE.toString());
+    expect(stored["lossPercent"]).toBe(0.5);
+    expect(stored["latencyMs"]).toBe(21.25);
+  });
+
+  test("of an appliance that is no device, is the project's own bucket", () => {
+    expect(
+      row({
+        kind: NetworkTrafficUsageKind.UplinkHealth,
+        deviceSerial: "Q2XX-AAAA-9999",
+      })["networkDeviceId"],
+    ).toBe(PROJECT.toString());
+  });
+
+  test("holds null where nothing was measured, never 0", () => {
+    const stored: JSONObject = row({
+      kind: NetworkTrafficUsageKind.UplinkHealth,
+      lossPercent: 100,
+      latencyMs: null,
+    });
+
+    expect(stored["lossPercent"]).toBe(100);
+    expect(stored["latencyMs"]).toBeNull();
+  });
+
+  test("stored already, is not written again", () => {
+    const health: NetworkTrafficUsageRecord = record({
+      kind: NetworkTrafficUsageKind.UplinkHealth,
+      deviceSerial: "Q2XX-AAAA-0001",
+      interfaceName: "wan1",
+    });
+
+    const { batches, skippedRecords } = toUsageRowBatches({
+      records: [health],
+      storedWindowKeys: new Set([getRecordWindowKey(health)]),
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      matches: MATCHES,
+      ingestedAt: INGESTED,
+    });
+
+    expect(batches).toEqual([]);
+    expect(skippedRecords).toBe(1);
+  });
+
+  test("is a group of its own: a batch never splits it, and it never rides with the applications", () => {
+    const records: Array<NetworkTrafficUsageRecord> = [];
+
+    for (let index: number = 0; index < MAX_ROWS_PER_INSERT - 1; index++) {
+      records.push(record({ port: index }));
+    }
+
+    records.push(
+      record({
+        kind: NetworkTrafficUsageKind.UplinkHealth,
+        deviceSerial: "A",
+        interfaceName: "wan1",
+      }),
+      record({
+        kind: NetworkTrafficUsageKind.UplinkHealth,
+        deviceSerial: "A",
+        interfaceName: "wan2",
+      }),
+    );
+
+    const { batches } = toUsageRowBatches({
+      records,
+      storedWindowKeys: new Set(),
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      matches: MATCHES,
+      ingestedAt: INGESTED,
+    });
+
+    expect(batches).toHaveLength(2);
+    expect(
+      batches[1]!.map((stored: JSONObject): unknown => {
+        return stored["kind"];
+      }),
+    ).toEqual(["uplinkHealth", "uplinkHealth"]);
   });
 });
 
@@ -181,6 +306,8 @@ describe("a row", () => {
         "receivedOctets",
         "flows",
         "clients",
+        "lossPercent",
+        "latencyMs",
         "windowStartAt",
         "windowEndAt",
         "ingestedAt",

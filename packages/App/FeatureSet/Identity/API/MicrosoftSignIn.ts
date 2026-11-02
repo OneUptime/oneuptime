@@ -2,6 +2,12 @@ import { DashboardRoute } from "Common/ServiceRoute";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  SignedUpWithMicrosoft,
+  SignedUpWithQueryParam,
+  SignInAttributionCookieName,
+  SignInAttributionCookiePath,
+} from "Common/Types/Marketing/Attribution";
 import Name from "Common/Types/Name";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
@@ -14,6 +20,7 @@ import UserService from "Common/Server/Services/UserService";
 import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
+import Attribution from "Common/Server/Utils/Attribution";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
@@ -60,6 +67,11 @@ import AuthenticationEmail from "../Utils/AuthenticationEmail";
  *
  * Like every sign-in, it ends on the dashboard, which sends a buyer with a
  * marketplace purchase waiting back to the purchase page.
+ *
+ * Making an account here is a sign-up like any other, from an ad as often as
+ * not, so it keeps the attribution the visitor arrived with: the button leaves
+ * it in a cookie (SignInAttributionCookieName), the callback puts it on the
+ * new user, and the Dashboard reports the sign-up (SignedUpWithQueryParam).
  */
 
 const router: ExpressRouter = Express.getRouter();
@@ -70,6 +82,15 @@ const STATE_COOKIE_NAME: string = "oneuptime-microsoft-sign-in";
 const STATE_COOKIE_PATH: string = "/identity/microsoft";
 const STATE_TTL_IN_SECONDS: number = 10 * 60;
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
+
+/*
+ * Who a sign-in is for, and whether it just made their account: that is a
+ * sign-up, which the Dashboard reports (SignedUpWithQueryParam).
+ */
+interface MicrosoftSignInUser {
+  user: User;
+  isNewAccount: boolean;
+}
 
 const getClient: () => MicrosoftSignInClient | null =
   (): MicrosoftSignInClient | null => {
@@ -210,6 +231,13 @@ router.get(
       path: STATE_COOKIE_PATH,
     });
 
+    const attributionCookie: string | undefined =
+      CookieUtil.getCookieFromExpressRequest(req, SignInAttributionCookieName);
+
+    CookieUtil.removeCookie(res, SignInAttributionCookieName, {
+      path: SignInAttributionCookiePath,
+    });
+
     // Turned on while this sign-in was at Microsoft: it finishes nowhere.
     if (await refuseWhileSsoIsRequired(req, res)) {
       return;
@@ -258,12 +286,19 @@ router.get(
         nonce: stored["nonce"],
       });
 
-      const user: User | null = await findOrCreateUser(req, res, identity);
+      const signIn: MicrosoftSignInUser | null = await findOrCreateUser(
+        req,
+        res,
+        identity,
+        attributionCookie,
+      );
 
-      if (!user) {
+      if (!signIn) {
         // findOrCreateUser has said why.
         return;
       }
+
+      const user: User = signIn.user;
 
       const sessionMetadata: SessionMetadata =
         await UserSessionService.createSession({
@@ -290,7 +325,11 @@ router.get(
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return res.redirect(DashboardRoute.toString());
+      return res.redirect(
+        signIn.isNewAccount
+          ? `${DashboardRoute.toString()}?${SignedUpWithQueryParam}=${SignedUpWithMicrosoft}`
+          : DashboardRoute.toString(),
+      );
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
 
@@ -315,11 +354,13 @@ const findOrCreateUser: (
   req: ExpressRequest,
   res: ExpressResponse,
   identity: MicrosoftIdentity,
-) => Promise<User | null> = async (
+  attributionCookie: string | undefined,
+) => Promise<MicrosoftSignInUser | null> = async (
   req: ExpressRequest,
   res: ExpressResponse,
   identity: MicrosoftIdentity,
-): Promise<User | null> => {
+  attributionCookie: string | undefined,
+): Promise<MicrosoftSignInUser | null> => {
   const existing: User | null = await UserService.findOneBy({
     query: { email: identity.email },
     select: {
@@ -375,7 +416,7 @@ const findOrCreateUser: (
       return null;
     }
 
-    return existing;
+    return { user: existing, isNewAccount: false };
   }
 
   if (await DatabaseConfig.shouldDisableSignup()) {
@@ -393,10 +434,11 @@ const findOrCreateUser: (
     name: identity.name ? new Name(identity.name) : undefined,
     isEmailVerified: true,
     generateRandomPassword: true,
+    attribution: Attribution.fromSignInCookie(attributionCookie),
     props: { isRoot: true },
   });
 
-  return await UserService.findOneById({
+  const user: User | null = await UserService.findOneById({
     id: created.id!,
     select: {
       _id: true,
@@ -407,6 +449,8 @@ const findOrCreateUser: (
     },
     props: { isRoot: true },
   });
+
+  return user ? { user: user, isNewAccount: true } : null;
 };
 
 export default router;
