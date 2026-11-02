@@ -100,8 +100,12 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     // The section headings' lines, English in most languages until its review.
     "Aggregated over the selected time range",
     "Booted",
-    "Details",
     "Filesystem",
+    /*
+     * The one card of what the host reported (ResourceRecordDetailsCard,
+     * #5307's follow-up): its Settings card's title, and no line under it.
+     */
+    "Host Details",
     "Host Health",
     "Host alerts",
     "Load avg (1m)",
@@ -109,7 +113,6 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "Processes",
     "The alerts OneUptime recommends for a host: which watch this one, and one step to turn on the rest.",
     "Up {{duration}}",
-    "What this host is and runs, as its collector reports it.",
     "Whether metrics arrived from this host, over the selected time range",
     "across {{count}} cores",
     "of {{total}}",

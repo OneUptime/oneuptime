@@ -2,16 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
-import Detail from "Common/UI/Components/Detail/Detail";
-import DetailField from "Common/UI/Components/Detail/Field";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
 import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Card from "Common/UI/Components/Card/Card";
-import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -236,7 +234,6 @@ const HostOverview: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
   };
@@ -271,6 +268,11 @@ const HostOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string>("");
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  /*
+   * Toggled on every auto and manual refresh, so Host Details re-reads the
+   * agent's version and what it reports along with the rest of the page.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
   const [autoRefreshInterval, setAutoRefreshInterval] =
     useState<AutoRefreshInterval>(() => {
       if (typeof window === "undefined") {
@@ -1199,6 +1201,14 @@ const HostOverview: FunctionComponent<
       fetchStatsRef.current().catch((err: Error) => {
         setStatsError(API.getFriendlyMessage(err));
       });
+      /*
+       * Host Details reads the host again with every load the tick starts,
+       * so its agent version and what it reports keep up with the page; a
+       * tick that waits for a load still running asks for nothing.
+       */
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
+      });
     }, ms);
     return () => {
       clearInterval(timer);
@@ -1217,6 +1227,9 @@ const HostOverview: FunctionComponent<
   const onManualRefresh: () => void = (): void => {
     fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
+    });
+    setDetailsRefresher((prev: boolean) => {
+      return !prev;
     });
   };
 
@@ -1474,6 +1487,15 @@ const HostOverview: FunctionComponent<
                       <></>
                     )}
                   </div>
+                  {/*
+                   * What the host is, in its owner's words: under its
+                   * name, as every resource hero says it. It used to be a
+                   * Description row of the Identification card at the
+                   * page's foot.
+                   */}
+                  <ResourceHeroDescription
+                    text={host.description as string | undefined}
+                  />
                   {hostIdentifier && (
                     <div className="mt-1 truncate font-mono text-sm text-gray-500">
                       {hostIdentifier}
@@ -2095,14 +2117,9 @@ const HostOverview: FunctionComponent<
   const renderOsTypeChip: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
-    const osType: string | undefined =
-      (item.osType as string | undefined) ?? undefined;
-    if (!osType) {
-      return <span className="text-sm text-gray-400">—</span>;
-    }
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200 capitalize">
-        {osType}
+        {String(item.osType)}
       </span>
     );
   };
@@ -2110,14 +2127,9 @@ const HostOverview: FunctionComponent<
   const renderArchChip: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
-    const arch: string | undefined =
-      (item.hostArch as string | undefined) ?? undefined;
-    if (!arch) {
-      return <span className="text-sm text-gray-400">—</span>;
-    }
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 text-xs font-mono ring-1 ring-inset ring-gray-200">
-        {arch}
+        {String(item.hostArch)}
       </span>
     );
   };
@@ -2273,223 +2285,183 @@ const HostOverview: FunctionComponent<
       )}
 
       {/*
-       * What the host is and runs, as its collector reports it: one Details
-       * card, each name over its value, as every part's page draws it - not
-       * four cards in two columns, a box of boxes on a phone. Edited in one
-       * place: its Settings page.
+       * One Host Details card, as every resource Overview ends with: what
+       * the host reported about itself, and only that
+       * (ResourceRecordDetailsCard), in two columns. Its name, description
+       * and when it was last seen are the hero's, its labels the header's
+       * (a phone's own card under this one).
+       *
+       * It was four cards - Identification, Hardware & Runtime, Operating
+       * System and Network - in one column or two, the first repeating the
+       * hero's name and description. Edited on the host's Settings page, in
+       * the card of the same title. Drawn once the host is read, as those
+       * were: a host that is not found has nothing to detail.
        */}
-      {host && (
-        <Card
-          title="Details"
-          description="What this host is and runs, as its collector reports it."
-          buttons={[
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
-                { modelId: modelId },
-              )}
-            />,
+      {host ? (
+        <ResourceRecordDetailsCard<Host>
+          modelType={Host}
+          modelId={modelId}
+          id="host-details"
+          title="Host Details"
+          refresher={detailsRefresher}
+          settingsRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
+            { modelId: modelId },
+          )}
+          facts={[
+            {
+              field: {
+                hostIdentifier: true,
+              },
+              title: "Host Name (host.name)",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                hostType: true,
+              },
+              title: "Host Type",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                osType: true,
+              },
+              title: "OS Type",
+              fieldType: FieldType.Element,
+              getElement: renderOsTypeChip,
+            },
+            {
+              field: {
+                osVersion: true,
+              },
+              title: "OS Version",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return <OsVersionDisplay text={String(item.osVersion)} />;
+              },
+            },
+            {
+              field: {
+                hostArch: true,
+              },
+              title: "Architecture",
+              fieldType: FieldType.Element,
+              getElement: renderArchChip,
+            },
+            {
+              field: {
+                cpuCores: true,
+              },
+              title: "CPU Cores",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return (
+                  <span>
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} core",
+                        other: "{{count}} cores",
+                      },
+                      Number(item.cpuCores),
+                    )}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                totalMemoryBytes: true,
+              },
+              title: "Total Memory",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                return (
+                  <span>
+                    {formatMemoryBytes(Number(item.totalMemoryBytes))}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                containerRuntime: true,
+              },
+              title: "Container Runtime",
+              fieldType: FieldType.Text,
+            },
+            /*
+             * When it last started, from the uptime its collector reports:
+             * the hero's "Up 12d 4h" chip, as a date to look up.
+             */
+            {
+              field: {
+                bootedAt: true,
+              },
+              title: "Booted",
+              description: HOST_METRIC_DESCRIPTIONS.booted,
+              fieldType: FieldType.DateTime,
+            },
+            {
+              field: {
+                processCount: true,
+              },
+              title: "Process Count (cached)",
+              description: HOST_METRIC_DESCRIPTIONS.processCountCached,
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                agentVersion: true,
+              },
+              title: "Agent Version",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                /*
+                 * A sign beside a collector older than the release the host
+                 * guide pins opens how to upgrade it: the config saved again
+                 * from the setup guide (it holds the ingestion key), then the
+                 * new release, for the install methods this host's OS can
+                 * have.
+                 */
+                return (
+                  <AgentVersion
+                    kind={AgentKind.HostCollector}
+                    version={item.agentVersion}
+                    setupGuideRoute={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+                      { modelId: modelId },
+                    )}
+                    upgradeGuideContext={{
+                      hostOsType: item.osType,
+                      isHostCollectorManaged: Boolean(
+                        item.collectorInstanceUid,
+                      ),
+                    }}
+                  />
+                );
+              },
+            },
+            /*
+             * A row of its own: a host can report a dozen addresses, IPv6
+             * among them.
+             */
+            {
+              field: {
+                hostIpAddresses: true,
+              },
+              title: "IP Addresses",
+              fieldType: FieldType.Element,
+              colSpan: 2,
+              getElement: renderIpAddresses,
+            },
           ]}
-        >
-          <div className={`${ruledBodyClassName} px-5 py-5 md:px-6`}>
-            <Detail<Host>
-              id="host-details"
-              item={host}
-              showDetailsInNumberOfColumns={3}
-              fields={
-                [
-                  {
-                    key: "name",
-                    title: "Display Name",
-                    fieldType: FieldType.Text,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.name);
-                    },
-                  },
-                  {
-                    key: "hostIdentifier",
-                    title: "Host Name (host.name)",
-                    fieldType: FieldType.Text,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.hostIdentifier);
-                    },
-                  },
-                  {
-                    key: "description",
-                    title: "Description",
-                    fieldType: FieldType.Text,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.description);
-                    },
-                  },
-                  {
-                    key: "osType",
-                    title: "OS Type",
-                    fieldType: FieldType.Element,
-                    getElement: renderOsTypeChip,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.osType);
-                    },
-                  },
-                  {
-                    key: "osVersion",
-                    title: "OS Version",
-                    fieldType: FieldType.Element,
-                    getElement: (item: Host): ReactElement => {
-                      const osVersion: string | undefined =
-                        (item.osVersion as string | undefined) ?? undefined;
-                      if (!osVersion) {
-                        return <span className="text-sm text-gray-400">—</span>;
-                      }
-                      return <OsVersionDisplay text={osVersion} />;
-                    },
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.osVersion);
-                    },
-                  },
-                  {
-                    key: "hostArch",
-                    title: "Architecture",
-                    fieldType: FieldType.Element,
-                    getElement: renderArchChip,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.hostArch);
-                    },
-                  },
-                  {
-                    key: "hostType",
-                    title: "Host Type",
-                    fieldType: FieldType.Text,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.hostType);
-                    },
-                  },
-                  {
-                    key: "cpuCores",
-                    title: "CPU Cores",
-                    fieldType: FieldType.Element,
-                    getElement: (item: Host): ReactElement => {
-                      const cores: number | undefined =
-                        (item.cpuCores as number | undefined) ?? undefined;
-                      if (cores === undefined || cores === null) {
-                        return <span className="text-sm text-gray-400">—</span>;
-                      }
-                      return (
-                        <span className="text-sm text-gray-900">
-                          {translator.translatePlural(
-                            {
-                              one: "{{count}} core",
-                              other: "{{count}} cores",
-                            },
-                            cores,
-                          )}
-                        </span>
-                      );
-                    },
-                    showIf: (item: Host): boolean => {
-                      return (
-                        item.cpuCores !== undefined && item.cpuCores !== null
-                      );
-                    },
-                  },
-                  {
-                    key: "totalMemoryBytes",
-                    title: "Total Memory",
-                    fieldType: FieldType.Element,
-                    getElement: (item: Host): ReactElement => {
-                      const bytes: number | undefined =
-                        (item.totalMemoryBytes as number | undefined) ??
-                        undefined;
-                      return (
-                        <span className="text-sm text-gray-900">
-                          {formatMemoryBytes(bytes)}
-                        </span>
-                      );
-                    },
-                    showIf: (item: Host): boolean => {
-                      return (
-                        item.totalMemoryBytes !== undefined &&
-                        item.totalMemoryBytes !== null
-                      );
-                    },
-                  },
-                  {
-                    key: "processCount",
-                    title: "Process Count (cached)",
-                    description: HOST_METRIC_DESCRIPTIONS.processCountCached,
-                    fieldType: FieldType.Number,
-                    showIf: (item: Host): boolean => {
-                      return (
-                        item.processCount !== undefined &&
-                        item.processCount !== null
-                      );
-                    },
-                  },
-                  {
-                    key: "containerRuntime",
-                    title: "Container Runtime",
-                    fieldType: FieldType.Text,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.containerRuntime);
-                    },
-                  },
-                  {
-                    key: "bootedAt",
-                    title: "Booted",
-                    description: HOST_METRIC_DESCRIPTIONS.booted,
-                    fieldType: FieldType.DateTime,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.bootedAt);
-                    },
-                  },
-                  {
-                    key: "hostIpAddresses",
-                    title: "IP Addresses",
-                    fieldType: FieldType.Element,
-                    getElement: renderIpAddresses,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.hostIpAddresses);
-                    },
-                  },
-                  {
-                    key: "agentVersion",
-                    title: "Agent Version",
-                    fieldType: FieldType.Element,
-                    showIf: (item: Host): boolean => {
-                      return Boolean(item.agentVersion);
-                    },
-                    getElement: (item: Host): ReactElement => {
-                      /*
-                       * A sign beside a collector older than the release the
-                       * host guide pins opens how to upgrade it: the config
-                       * saved again from the setup guide (it holds the
-                       * ingestion key), then the new release, for the
-                       * install methods this host's OS can have.
-                       */
-                      return (
-                        <AgentVersion
-                          kind={AgentKind.HostCollector}
-                          version={item.agentVersion}
-                          setupGuideRoute={RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
-                            { modelId: modelId },
-                          )}
-                          upgradeGuideContext={{
-                            hostOsType: item.osType,
-                            isHostCollectorManaged: Boolean(
-                              item.collectorInstanceUid,
-                            ),
-                          }}
-                        />
-                      );
-                    },
-                  },
-                ] as Array<DetailField<Host>>
-              }
-            />
-          </div>
-        </Card>
+          selectMoreFields={{
+            collectorInstanceUid: true,
+          }}
+        />
+      ) : (
+        <></>
       )}
 
       {/*

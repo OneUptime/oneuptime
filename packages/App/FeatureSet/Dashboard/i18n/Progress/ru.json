@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12641
+    "keys": 40050,
+    "untranslated": 12586
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -31,11 +31,14 @@
     "IoT",
     "JavaScript API",
     "LXC 201 · pve3",
+    "Link-local",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Markdown",
+    "Mesh / VPN",
     "Null",
     "OK",
     "OSD",
@@ -51,6 +54,7 @@
     "Runner",
     "SLI %",
     "SLOs",
+    "Serverless",
     "Slug",
     "TLS",
     "Top P",

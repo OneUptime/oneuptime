@@ -418,7 +418,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 `install.sh` を再実行します。既存の `.env` のすべての値を再利用し、`docker-compose.yml`、`otel-collector-config.yaml`、systemd ユニットを最新のものに置き換え、新しい設定が反映されるようにエージェントのコンテナーを作り直します。編集していたファイル (`network_mode: host`、`filelog` レシーバーとそのマウント、追加のメトリクス) は新しいファイルの横に `<file>.bak.<timestamp>` として残され、スクリプトは最後にそれを一覧表示するので、編集を適用し直せます。`.env` や `otel-collector-config.yaml` の編集は `docker compose up -d --force-recreate` で適用してください。Collector は起動時にしか設定を読み取らず、設定ファイルだけが変わった場合、通常の `docker compose up -d` は実行中のコンテナーをそのままにします。スクリプトはインストールしたものを `.agent-files.sha256` に記録するため、誰も編集していないファイルは、新しいバージョンがどれだけ変わっていてもコピーを残さずに置き換えられます。その記録がないディレクトリ (手動で用意したもの) では、編集が含まれている可能性があるため、新しいバージョンと異なるファイルはすべて残されます。エージェントを削除するには、`cd /opt/oneuptime-database-agent && docker compose down` を実行し、監視用ユーザー (作成した場合は AI エージェント専用のログインも) を削除します。
 
-エージェントは、ファイルで固定された Collector のバージョンを **エージェントのバージョン** として報告します。それがこの OneUptime リリースで固定されたバージョンより古い場合、データベースの **概要** でその横に警告マークが表示されます。選択すると、アップグレード方法が表示されます。インストールスクリプト、Docker Compose、または Kubernetes 上のデータベースではセットアップガイドの Deployment を使います。
+エージェントは、ファイルで固定された Collector のバージョンを **エージェントバージョン** として報告します。それがこの OneUptime リリースで固定されたバージョンより古い場合、データベースの **概要** でその横に警告マークが表示されます。選択すると、アップグレード方法が表示されます。インストールスクリプト、Docker Compose、または Kubernetes 上のデータベースではセットアップガイドの Deployment を使います。
 
 ## AI エージェント
 

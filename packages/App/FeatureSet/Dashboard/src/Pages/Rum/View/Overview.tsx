@@ -79,7 +79,7 @@ import {
   TileText,
 } from "./OverviewHelpers";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
@@ -770,8 +770,12 @@ const RumApplicationOverview: FunctionComponent<
     </div>
   );
 
-  const recordingHealthValue: string | undefined =
+  // In the reader's language: a few words of the product's own.
+  const recordingHealthWords: string | undefined =
     describeRecordingHealthRow(health);
+  const recordingHealthValue: string | undefined = recordingHealthWords
+    ? translator.translateText(recordingHealthWords) || recordingHealthWords
+    : undefined;
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "App Name (service.name)", value: a.appIdentifier },
@@ -784,11 +788,11 @@ const RumApplicationOverview: FunctionComponent<
         <AgentVersion kind={AgentKind.RumSdk} version={a.agentVersion} />
       ),
     },
-    // A sentence: in the page's own type, not a monospaced value.
+    // Words: in the page's own type, not a monospaced value.
     ...(recordingHealthValue
       ? [
           {
-            label: "Recording health",
+            label: "Recording Health",
             value: recordingHealthValue,
             mono: false,
           },
@@ -885,6 +889,9 @@ const RumApplicationOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        detailsDescription={translationKey(
+          "What its SDK reports, and the health of its session recordings.",
+        )}
         recordId={modelId.toString()}
         settingsRoute={populate(PageMap.RUM_APPLICATION_VIEW_SETTINGS)}
         labels={a.labels}

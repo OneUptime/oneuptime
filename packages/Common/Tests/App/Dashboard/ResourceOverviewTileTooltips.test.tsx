@@ -66,6 +66,7 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
 });
 
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewTile,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ChartCard";
@@ -152,6 +153,7 @@ function renderOverview(
         tiles={tiles}
         tilesLoading={options.tilesLoading}
         detailRows={[]}
+        detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
       />
       <LocationProbe />
     </MemoryRouter>,

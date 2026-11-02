@@ -208,6 +208,7 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 
 import ResourceOverview, {
   RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME,
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewDetailRow,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import {
@@ -246,6 +247,7 @@ function renderOverview(
     labels?: Array<Label>;
     settingsRoute?: Route;
     description?: string;
+    detailsDescription?: string;
     recordId?: string;
     controls?: React.ReactElement;
   } = {},
@@ -262,6 +264,9 @@ function renderOverview(
         chips={[]}
         tiles={[]}
         detailRows={rows}
+        detailsDescription={
+          extra.detailsDescription || RESOURCE_OVERVIEW_DETAILS_DESCRIPTION
+        }
         labels={extra.labels}
         settingsRoute={extra.settingsRoute}
         description={extra.description}
@@ -403,12 +408,56 @@ describe("the Details card says only what the resource reported", () => {
     renderOverview([{ label: "Engine", value: "postgresql" }], {
       settingsRoute: new Route("/dashboard/p/databases/1/settings"),
       description: "The orders database.",
+      detailsDescription:
+        "Its engine and endpoints, where OneUptime found it, and its engine metrics.",
     });
 
     expect(screen.getByTestId(EDIT_IN_SETTINGS_TEST_ID)).toBeInTheDocument();
     expect(
       screen.getByText(
+        "Its engine and endpoints, where OneUptime found it, and its engine metrics.",
+      ),
+    ).toBeInTheDocument();
+    /*
+     * A database's rows are not the resource attributes its telemetry
+     * reported: the card no longer falls back to saying so (#5307).
+     */
+    expect(
+      screen.queryByText(
         "Metadata captured from OpenTelemetry resource attributes.",
+      ),
+    ).not.toBeInTheDocument();
+    // Nor is it the hero's description.
+    expect(screen.getAllByText("The orders database.")).toHaveLength(1);
+  });
+
+  test("a service's card says its rows are the resource attributes its telemetry reported", () => {
+    renderOverview([{ label: "Runtime", value: "nodejs 20.11.1" }], {
+      detailsDescription: RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
+    });
+
+    expect(RESOURCE_OVERVIEW_DETAILS_DESCRIPTION).toBe(
+      "Metadata captured from OpenTelemetry resource attributes.",
+    );
+    expect(
+      screen.getByText(RESOURCE_OVERVIEW_DETAILS_DESCRIPTION),
+    ).toBeInTheDocument();
+  });
+
+  test("the card's line is read in the reader's language", () => {
+    TRANSLATIONS[
+      "Its broker and destination, where OneUptime found it, and its broker metrics."
+    ] =
+      "Sein Broker und Ziel, wo OneUptime ihn fand, und seine Broker-Metriken.";
+
+    renderOverview([{ label: "Destination", value: "orders" }], {
+      detailsDescription:
+        "Its broker and destination, where OneUptime found it, and its broker metrics.",
+    });
+
+    expect(
+      screen.getByText(
+        "Sein Broker und Ziel, wo OneUptime ihn fand, und seine Broker-Metriken.",
       ),
     ).toBeInTheDocument();
   });
@@ -524,11 +573,11 @@ describe("the record's own ID is the card's ID line", () => {
 describe("the rows are read in the reader's language", () => {
   test("a row's label is looked up; a value is drawn as reported", () => {
     TRANSLATIONS["Cloud Account ID"] = "Cloud-Konto-ID";
-    TRANSLATIONS["Discovered from"] = "Erkannt aus";
+    TRANSLATIONS["Discovered From"] = "Erkannt aus";
 
     renderOverview([
       { label: "Cloud Account ID", value: "123456789012" },
-      { label: "Discovered from", value: "Traces", mono: false },
+      { label: "Discovered From", value: "Traces", mono: false },
       { label: "Engine (db.system.name)", value: "postgresql" },
     ]);
 

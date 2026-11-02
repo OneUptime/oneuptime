@@ -3,13 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Label from "Common/Models/DatabaseModels/Label";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
@@ -915,6 +913,14 @@ const StorageArrayOverview: FunctionComponent<
                       />
                     </span>
                   </div>
+                  {/*
+                   * What the array is, in its owner's words: under its
+                   * name, as every resource hero says it. It used to be a
+                   * Description row of the Details card at the page's foot.
+                   */}
+                  <ResourceHeroDescription
+                    text={storageArray.description as string | undefined}
+                  />
                   {storageArray.storageSystem && (
                     <div className="mt-1 text-sm text-gray-600">
                       {StorageSystemUtil.getDisplayName(
@@ -1408,94 +1414,6 @@ const StorageArrayOverview: FunctionComponent<
     );
   };
 
-  const renderQuickLink: (data: {
-    pageKey: PageMap;
-    title: string;
-    description: string;
-  }) => ReactElement = (data: {
-    pageKey: PageMap;
-    title: string;
-    description: string;
-  }): ReactElement => {
-    return (
-      <Link
-        key={data.pageKey}
-        to={getViewRoute(data.pageKey)}
-        className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-      >
-        <div className="text-sm font-semibold text-gray-900">
-          {translator.translateText(data.title)}
-        </div>
-        <div className="text-xs text-gray-500">
-          {translator.translateText(data.description)}
-        </div>
-      </Link>
-    );
-  };
-
-  const renderQuickLinks: () => ReactElement = (): ReactElement => {
-    const links: Array<ReactElement> = [];
-
-    if (isFlashArray) {
-      links.push(
-        renderQuickLink({
-          pageKey: PageMap.STORAGE_ARRAY_VIEW_VOLUMES,
-          title: "Volumes",
-          description: "Block volumes with their size, latency and IOPS.",
-        }),
-        renderQuickLink({
-          pageKey: PageMap.STORAGE_ARRAY_VIEW_HOSTS,
-          title: "Hosts",
-          description: "Hosts with their path redundancy and volumes.",
-        }),
-      );
-    }
-
-    if (isFlashBlade) {
-      links.push(
-        renderQuickLink({
-          pageKey: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS,
-          title: "File Systems",
-          description: "NFS and SMB file systems with their space and latency.",
-        }),
-        renderQuickLink({
-          pageKey: PageMap.STORAGE_ARRAY_VIEW_BUCKETS,
-          title: "Buckets",
-          description: "S3 buckets with their quota, space and objects.",
-        }),
-      );
-    }
-
-    if (isFlashArray || isFlashBlade) {
-      links.push(
-        renderQuickLink({
-          pageKey: PageMap.STORAGE_ARRAY_VIEW_HARDWARE,
-          title: "Hardware",
-          description: "Components, drives and controllers with their status.",
-        }),
-      );
-    }
-
-    links.push(
-      renderQuickLink({
-        pageKey: PageMap.STORAGE_ARRAY_VIEW_METRICS,
-        title: "Metrics",
-        description: "Explore every metric this array reports.",
-      }),
-    );
-
-    return (
-      <Card
-        title="Quick Links"
-        description="Jump to key views for this storage array."
-      >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {links}
-        </div>
-      </Card>
-    );
-  };
-
   if (isInitialLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -1544,157 +1462,79 @@ const StorageArrayOverview: FunctionComponent<
       {renderUnhealthyHardware()}
       {renderGoldenCharts()}
       {renderTopObjects()}
-      <div className="mb-6">{renderQuickLinks()}</div>
-      <CardModelDetail<StorageArray>
-        name="Storage Array Details"
+      {/*
+       * What the array reported about itself, and only that
+       * (ResourceRecordDetailsCard): its name, description and when it was
+       * last seen are the hero's, its labels the header's (a phone's own
+       * card under this one). Edited on its Settings page, in the card of
+       * the same title.
+       */}
+      <ResourceRecordDetailsCard<StorageArray>
+        modelType={StorageArray}
+        modelId={modelId}
+        id="storage-array-details"
+        title="Storage Array Details"
         refresher={detailsRefresher}
-        cardProps={{
-          title: "Storage Array Details",
-          // Edited in one place: the same card on the array's Settings page.
-          buttons: [
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={getViewRoute(PageMap.STORAGE_ARRAY_VIEW_SETTINGS)}
-            />,
-          ],
-        }}
-        modelDetailProps={{
-          modelType: StorageArray,
-          id: "storage-array-details",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.name);
-              },
+        settingsRoute={getViewRoute(PageMap.STORAGE_ARRAY_VIEW_SETTINGS)}
+        facts={[
+          {
+            field: {
+              storageSystem: true,
             },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.description);
-              },
+            title: "Platform",
+            fieldType: FieldType.Element,
+            getElement: (item: StorageArray): ReactElement => {
+              return (
+                <span>
+                  {StorageSystemUtil.getDisplayName(item.storageSystem)}
+                </span>
+              );
             },
-            {
-              field: {
-                storageSystem: true,
-              },
-              title: "Platform",
-              fieldType: FieldType.Element,
-              getElement: (item: StorageArray): ReactElement => {
-                return (
-                  <span>
-                    {StorageSystemUtil.getDisplayName(item.storageSystem)}
-                  </span>
-                );
-              },
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.storageSystem);
-              },
+          },
+          {
+            field: {
+              reportedName: true,
             },
-            {
-              field: {
-                reportedName: true,
-              },
-              title: "Name on the Array",
-              fieldType: FieldType.Text,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.reportedName);
-              },
+            title: "Name on the Array",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              systemId: true,
             },
-            {
-              field: {
-                systemId: true,
-              },
-              title: "System ID",
-              fieldType: FieldType.Text,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.systemId);
-              },
+            title: "System ID",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              osName: true,
             },
-            {
-              field: {
-                osName: true,
-              },
-              title: "Operating System",
-              fieldType: FieldType.Text,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.osName);
-              },
+            title: "Operating System",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              osVersion: true,
             },
-            {
-              field: {
-                osVersion: true,
-              },
-              title: "Operating System Version",
-              fieldType: FieldType.Text,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.osVersion);
-              },
+            title: "Operating System Version",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              agentVersion: true,
             },
-            /*
-             * No "Collector Status" row: the hero's pill says whether the
-             * collector is connected, in words; the row repeated it as the
-             * stored lowercase value ("connected").
-             */
-            {
-              field: {
-                lastSeenAt: true,
-              },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.lastSeenAt);
-              },
+            title: "Agent Version",
+            fieldType: FieldType.Element,
+            getElement: (item: StorageArray): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.StorageArrayAgent}
+                  version={item.agentVersion}
+                />
+              );
             },
-            {
-              field: {
-                agentVersion: true,
-              },
-              title: "Agent Version",
-              fieldType: FieldType.Element,
-              showIf: (item: StorageArray): boolean => {
-                return Boolean(item.agentVersion);
-              },
-              getElement: (item: StorageArray): ReactElement => {
-                return (
-                  <AgentVersion
-                    kind={AgentKind.StorageArrayAgent}
-                    version={item.agentVersion}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: StorageArray): ReactElement => {
-                return (
-                  <LabelsElement labels={item["labels"] as Array<Label>} />
-                );
-              },
-              showIf: (item: StorageArray): boolean => {
-                const labels: Array<Label> | undefined =
-                  (item.labels as Array<Label> | undefined) ?? undefined;
-                return Array.isArray(labels) && labels.length > 0;
-              },
-            },
-          ],
-        }}
+          },
+        ]}
       />
     </TimeRangeZoomScope>
   );
