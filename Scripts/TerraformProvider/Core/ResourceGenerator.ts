@@ -1738,9 +1738,9 @@ ${this.generateResponseMapping(resource, "readResponse", true)}
      * A membership that exists already says how to import it instead
      * (people.go alreadyInvitedHint).
      */
-    const createErrorArguments: string = resource.membershipImport
-      ? `"Unable to create ${resource.name}: %s%s", err, alreadyInvitedHint(err, "${this.providerName}_${resource.name}", "${resource.membershipImport.parentAttribute}")`
-      : `"Unable to create ${resource.name}: %s", err`;
+    const createError: string = resource.membershipImport
+      ? `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s%s", err, alreadyInvitedHint(err, "${this.providerName}_${resource.name}", "${resource.membershipImport.parentAttribute}")))`
+      : `resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s", err))`;
 
     return `
 func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -1773,7 +1773,7 @@ ${this.generateGuardedCreateRequestBody(resource, resourceVarName)}${this.genera
     var ${resourceVarName}Response map[string]interface{}
     err = r.client.ParseResponse(httpResp, &${resourceVarName}Response)
     if err != nil {
-        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf(${createErrorArguments}))
+        ${createError}
         return
     }
 ${readBackCode}
