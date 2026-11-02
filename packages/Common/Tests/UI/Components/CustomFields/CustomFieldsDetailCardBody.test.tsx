@@ -182,6 +182,29 @@ describe("the fields' box", () => {
   });
 });
 
+describe("what someone wrote", () => {
+  /*
+   * A field's description is what someone wrote, read the way it is
+   * written (IsolatedText): an English one on a Persian page put its full
+   * stop at its start (".The part of the company the case is about").
+   */
+  test("a field's description reads the way it is written", async () => {
+    const field: SecurityCaseCustomField = businessUnitField();
+    field.description = "The part of the company the case is about.";
+    listOf([field]);
+    getItemMock.mockResolvedValue(caseWith({ "Business Unit": "IT" }) as never);
+
+    render(card());
+
+    const description: HTMLElement = await screen.findByText(
+      "The part of the company the case is about.",
+    );
+
+    expect(description.tagName).toBe("BDI");
+    expect(description).toHaveAttribute("dir", "ltr");
+  });
+});
+
 describe("a read that fails", () => {
   test("says why, and Try again reads the fields and the record again", async () => {
     getListMock

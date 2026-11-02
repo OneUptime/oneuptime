@@ -13,6 +13,7 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicFormModal from "../FormModal/BasicFormModal";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import {
   CARD_MODEL_DETAIL_BODY_CLASS_NAME,
   CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME,
@@ -253,6 +254,26 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     }".`;
 
     return description ? `${description} ${note}` : note;
+  };
+
+  /*
+   * What a field's row says under its name. A description someone wrote is
+   * read the way it is written (IsolatedText): an English one on a Persian
+   * page put its full stop at its start. A copied field's line is the
+   * card's own sentence around their words, and stays as it is.
+   */
+  const getFieldDescription: (
+    schemaItem: BaseModel,
+  ) => string | ReactElement | undefined = (
+    schemaItem: BaseModel,
+  ): string | ReactElement | undefined => {
+    const description: string | undefined = getMappedDescription(schemaItem);
+
+    if (!description || isMappedAndInherited(schemaItem)) {
+      return description;
+    }
+
+    return <IsolatedText text={description} />;
   };
 
   const onLoad: PromiseVoidFunction = async (): Promise<void> => {
@@ -608,7 +629,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
               return {
                 key: (schemaItem as any).name,
                 title: (schemaItem as any).name,
-                description: getMappedDescription(schemaItem) as string,
+                description: getFieldDescription(schemaItem),
                 fieldType: (schemaItem as any).customFieldType,
                 /*
                  * A file field shows its files, each a download for whoever

@@ -1012,6 +1012,16 @@ test.describe("in the reader's language", () => {
     const menu: Locator = page.getByTestId("note-template-menu");
     await expect(menu).toContainText("درج قالب");
     await expect(menu).not.toContainText("Insert a template");
+    /*
+     * A template's English name and first line read the way they are
+     * written, each in an isolate of its own: "Contained:", never
+     * ":Contained", in the Persian menu.
+     */
+    for (const written of ["Containment checklist", "Contained:"]) {
+      await expect(
+        menu.locator("bdi[dir='ltr']").filter({ hasText: written }),
+      ).toHaveCount(1);
+    }
     await screenshot(page, "case-note-templates-menu-fa-1280", {
       fullPage: false,
     });
@@ -1020,6 +1030,17 @@ test.describe("in the reader's language", () => {
     await expect(
       page.getByRole("button", { name: "ویرایش قالب یادداشت" }),
     ).toBeVisible({ timeout: 30000 });
+
+    // A case field's English description keeps its full stop at its end.
+    await open(page, CASE_FIELDS_PATH, { lang: "fa" });
+    await expect(
+      page
+        .locator("bdi[dir='ltr']")
+        .filter({ hasText: "The part of the company the case is about." }),
+    ).toHaveCount(1, { timeout: 30000 });
+    await screenshot(page, "case-custom-fields-fa-1280-isolated", {
+      fullPage: false,
+    });
   });
 });
 
