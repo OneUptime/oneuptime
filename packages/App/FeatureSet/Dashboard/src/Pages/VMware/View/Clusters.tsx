@@ -4,13 +4,19 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ResourceTable, {
   InfrastructureResource,
 } from "../../../Components/Infrastructure/ResourceTable";
+import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
+import OneUptimeDate from "Common/Types/Date";
 import {
   VMwareResourceKind,
-  fetchVMwareInventoryResources,
+  fetchVMwareInventoryRows,
   formatBytes,
   formatMhz,
   routeParamFromExternalId,
 } from "../Utils/VMwareResourceUtils";
+import {
+  getVMwareClusterHostsTone,
+  toVMwareListResources,
+} from "../../../Components/VMware/VMwareResourceColumns";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -44,13 +50,36 @@ const VMwareVCenterClusters: FunctionComponent<
        * compute cluster has no CPU % or memory usage of its own (those
        * live on its hosts), so the resource-metric columns are hidden.
        */
-      const clusterList: Array<InfrastructureResource> =
-        await fetchVMwareInventoryResources({
+      /*
+       * A cluster's status reads its hosts (one vCenter cannot reach makes
+       * it Unhealthy) and their datacenters' counts (VMwareHealth).
+       */
+      const [clusterRows, hostRows, datacenterRows]: [
+        Array<VMwareResourceModel>,
+        Array<VMwareResourceModel>,
+        Array<VMwareResourceModel>,
+      ] = await Promise.all([
+        fetchVMwareInventoryRows({
           vmwareVCenterId: modelId,
           kind: VMwareResourceKind.Cluster,
-        });
+        }),
+        fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.Host,
+        }),
+        fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.Datacenter,
+        }),
+      ]);
 
-      setResources(clusterList);
+      setResources(
+        toVMwareListResources(clusterRows, {
+          datacenters: datacenterRows,
+          hosts: hostRows,
+          now: OneUptimeDate.getCurrentDate(),
+        }),
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -92,12 +121,15 @@ const VMwareVCenterClusters: FunctionComponent<
         fetchData().catch(() => {});
       }}
       title="Clusters"
-      description="vSphere compute clusters in this vCenter with their host and VM counts and effective capacity. A standalone ESXi host has no cluster."
+      description="vSphere compute clusters in this vCenter, whether each one needs attention, its host and VM counts and its effective capacity. A standalone ESXi host has no cluster."
       resources={resources}
       showGroupColumn={true}
       groupColumnTitle="Datacenter"
-      showStatus={false}
+      showAge={false}
       showResourceMetrics={false}
+      builtInColumnDescriptions={{
+        status: VMWARE_METRIC_DESCRIPTIONS.clusterListStatus,
+      }}
       tableIdPrefix="vmware"
       emptyMessage="No clusters reported yet. Standalone ESXi hosts have no cluster object; otherwise make sure the VMware agent is sending metrics."
       columns={[
@@ -110,6 +142,7 @@ const VMwareVCenterClusters: FunctionComponent<
           title: "Hosts (effective / total)",
           key: "hostCount",
           description: VMWARE_METRIC_DESCRIPTIONS.clusterListHosts,
+          getTone: getVMwareClusterHostsTone,
           getValue: (resource: InfrastructureResource): string => {
             const total: number | null = readCount(resource, "hostCount");
             const effective: number | null = readCount(

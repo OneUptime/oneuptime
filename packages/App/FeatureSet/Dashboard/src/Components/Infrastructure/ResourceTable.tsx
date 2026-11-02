@@ -68,9 +68,35 @@ export interface InfrastructureResource {
    * wording, which the filter and the sort read.
    */
   statusText?: ResourceStatusText | undefined;
+  /*
+   * Why the status reads as it does, most urgent first, as English templates
+   * looked up in the reader's language ("CPU at 94%"): the first is drawn
+   * under the status, the rest counted ("+1 more"), so a row says what is
+   * wrong without opening the part.
+   */
+  statusReasons?: Array<ResourceStatusReason> | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
 }
+
+export interface ResourceStatusReason {
+  text: string;
+  values?: Record<string, string> | undefined;
+  // A count-dependent reason: its "one" form and the count.
+  plural?: { one: string; count: number } | undefined;
+}
+
+/*
+ * Where a usage bar turns amber, and red: a product whose rules call a busy
+ * CPU something to look at, never broken, leaves `danger` out.
+ */
+export interface ResourceMetricThresholds {
+  warning: number;
+  danger?: number | undefined;
+}
+
+export const RESOURCE_STATUS_REASON_CLASS_NAME: string =
+  "whitespace-normal text-xs text-gray-600 [overflow-wrap:anywhere]";
 
 export interface ResourceStatusText {
   text: string;
@@ -154,9 +180,57 @@ export interface ComponentProps {
   /* Prefix for the DOM table id. Defaults to "infrastructure". */
   tableIdPrefix?: string | undefined;
   builtInColumnDescriptions?: BuiltInColumnDescriptions | undefined;
+  /*
+   * The lines the CPU and Memory bars change colour at, when the product's
+   * own rules draw them elsewhere than the table's defaults (amber past 60%
+   * and red past 80% for CPU; 70% and 85% for memory).
+   */
+  metricThresholds?:
+    | {
+        cpu?: ResourceMetricThresholds | undefined;
+        memory?: ResourceMetricThresholds | undefined;
+      }
+    | undefined;
 }
 
 const PAGE_SIZE: number = 25;
+
+// A row's reason in the reader's language, its numbers in the sentence's digits.
+export function getResourceStatusReasonText(
+  reason: ResourceStatusReason,
+  translator: Translator,
+): string {
+  if (reason.plural) {
+    return translator.translatePlural(
+      { one: reason.plural.one, other: reason.text },
+      reason.plural.count,
+      withSentenceDigits(reason.values),
+      { setsValuesApart: true },
+    );
+  }
+  return reason.values
+    ? translator.translateTemplate(
+        reason.text,
+        withSentenceDigits(reason.values),
+        { setsValuesApart: true },
+      )
+    : translator.translateText(reason.text) || reason.text;
+}
+
+// A bar's colour against the product's own lines (see metricThresholds).
+export function getThresholdBarColor(
+  pct: number,
+  thresholds: ResourceMetricThresholds,
+  calmClassName: string,
+): string {
+  if (thresholds.danger !== undefined && pct > thresholds.danger) {
+    return "bg-red-500";
+  }
+  if (pct > thresholds.warning) {
+    return "bg-amber-500";
+  }
+  return calmClassName;
+}
 
 export function formatCpuValue(value: number | null): string {
   if (value === null || value === undefined) {
@@ -481,17 +555,31 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * A status with its reason under it wraps inside its column (a table's
+   * cells keep their values on one line otherwise), so a long reason never
+   * widens the column or runs over the next one.
+   */
+  const hasStatusReasons: boolean = props.resources.some(
+    (resource: InfrastructureResource): boolean => {
+      return (resource.statusReasons || []).length > 0;
+    },
+  );
+
   if (showStatus) {
     tableColumns.push({
       title: "Status",
       type: FieldType.Element,
       key: "status",
       headerTooltip: props.builtInColumnDescriptions?.status,
+      ...(hasStatusReasons
+        ? { wrapContent: true, wrapMaxWidthClassName: "max-w-[12rem]" }
+        : {}),
       getElement: (resource: InfrastructureResource): ReactElement => {
         if (!resource.status) {
           return <span className="text-gray-400">-</span>;
         }
-        return (
+        const pill: ReactElement = (
           <span
             data-tone={resource.statusTone}
             className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
@@ -502,6 +590,35 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           >
             {getResourceStatusLabel(resource, translator)}
           </span>
+        );
+        const reasons: Array<ResourceStatusReason> =
+          resource.statusReasons || [];
+        if (reasons.length === 0) {
+          return pill;
+        }
+        return (
+          <div className="flex min-w-0 flex-col items-start gap-1">
+            {pill}
+            <div
+              data-testid="resource-status-reason"
+              className={RESOURCE_STATUS_REASON_CLASS_NAME}
+            >
+              {getResourceStatusReasonText(reasons[0]!, translator)}
+              {reasons.length > 1 ? (
+                <>
+                  {/* A space, so "+1 more" may move to a line of its own. */}{" "}
+                  <span className="whitespace-nowrap text-gray-500">
+                    {translator.translatePlural(
+                      { one: "+{{count}} more", other: "+{{count}} more" },
+                      reasons.length - 1,
+                    )}
+                  </span>
+                </>
+              ) : (
+                <></>
+              )}
+            </div>
+          </div>
         );
       },
     });
@@ -556,11 +673,18 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             );
           }
           const pct: number = Math.min(resource.cpuUtilization, 100);
+          const cpuThresholds: ResourceMetricThresholds | undefined =
+            props.metricThresholds?.cpu;
           return (
             <div className="flex items-center gap-2 min-w-[120px]">
               <div className="flex-1 bg-gray-200 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full ${getCpuBarColor(pct)}`}
+                  data-testid="resource-cpu-bar"
+                  className={`h-2 rounded-full ${
+                    cpuThresholds
+                      ? getThresholdBarColor(pct, cpuThresholds, "bg-green-500")
+                      : getCpuBarColor(pct)
+                  }`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -629,12 +753,23 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
               (resource.memoryUsageBytes / resource.memoryLimitBytes) * 100,
               100,
             );
+            const memoryThresholds: ResourceMetricThresholds | undefined =
+              props.metricThresholds?.memory;
             return (
               <div className="min-w-[140px]">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
-                      className={`h-2 rounded-full ${getMemoryBarColor(pct)}`}
+                      data-testid="resource-memory-bar"
+                      className={`h-2 rounded-full ${
+                        memoryThresholds
+                          ? getThresholdBarColor(
+                              pct,
+                              memoryThresholds,
+                              "bg-blue-500",
+                            )
+                          : getMemoryBarColor(pct)
+                      }`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>

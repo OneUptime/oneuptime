@@ -28,8 +28,24 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
+import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
+import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
+import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
+import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
+import {
+  VMWARE_HOST_SATURATION_PERCENT,
+  getVMwareAttentionItems,
+  getVMwareAttentionKey,
+  isVMwareIssueAbout,
+} from "../../../Pages/VMware/Utils/VMwareHealth";
+import { VMWARE_HOST_ALERT_TEMPLATE_IDS } from "../../../Pages/VMware/Utils/VMwarePartFacts";
+import { getVMwarePartRoutes } from "../Part/VMwarePartRoutes";
 import ResourceAiAgentStatusSummaryCard from "../../ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../ResourceAiAgent/ResourceAiAgentDescriptors";
 import AutoRefreshControl from "../../TelemetryResource/AutoRefreshControl";
@@ -58,14 +74,24 @@ import {
   formatMhz,
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
-import VMwareHostAlertsCard from "./VMwareHostAlertsCard";
 import VMwareHostBusiestVirtualMachines from "./VMwareHostBusiestVirtualMachines";
 import VMwareHostDetailsCard from "./VMwareHostDetailsCard";
 import {
   VMwareHostNetworkAdaptersCard,
   VMwareHostStorageDevicesCard,
 } from "./VMwareHostDeviceTables";
-import VMwareHostOpenEventsCard from "./VMwareHostOpenEventsCard";
+
+// How the host's own row reads in its Needs attention card.
+const THIS_HOST: string = translationKey("This host");
+
+/*
+ * A tile's bar turns amber where the host's alerts and Needs attention do,
+ * past 90%, and never red: a busy host is one to look at.
+ */
+const SATURATION_THRESHOLDS: { warn: number; danger: number } = {
+  warn: VMWARE_HOST_SATURATION_PERCENT,
+  danger: Number.POSITIVE_INFINITY,
+};
 
 /*
  * An ESXi host's Overview: the same story the host page outside VMware
@@ -93,6 +119,8 @@ export interface ComponentProps {
   identity: VMwareHostIdentity;
   externalId: string;
   row: VMwareResourceModel | null;
+  // The host's datacenter: what tells a host that reports no usage apart.
+  datacenterRow: VMwareResourceModel | null;
   virtualMachineRows: Array<VMwareResourceModel>;
   virtualMachineSummary: VMwareHostVirtualMachineSummary;
   clusterRoute?: Route | undefined;
@@ -253,6 +281,22 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
     ? lastRefreshedAt.getTime()
     : undefined;
 
+  const row: VMwareResourceModel | null = props.row;
+
+  /*
+   * What on this host and the VMs it runs needs attention, by the
+   * vCenter's one set of rules: its own row reads "This host".
+   */
+  const attentionItems: Array<ResourceAttentionItem> = row
+    ? getVMwareAttentionItems({
+        rows: [row, ...props.virtualMachineRows],
+        contextRows: props.datacenterRow ? [props.datacenterRow] : [],
+        now: OneUptimeDate.getCurrentDate(),
+        routeFor: getVMwarePartRoutes(props.vcenterId).getPartRoute,
+        listRouteFor: getVMwarePartRoutes(props.vcenterId).getListRoute,
+      })
+    : [];
+
   const busiest: Array<VMwareBusyVirtualMachine> =
     getBusiestVMwareVirtualMachines({
       rows: props.virtualMachineRows,
@@ -320,6 +364,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
               : undefined
           }
           percent={tiles.cpuPercent}
+          thresholds={SATURATION_THRESHOLDS}
           description={VMWARE_METRIC_DESCRIPTIONS.hostCpu}
         />
         <GoldenMetricTile
@@ -335,6 +380,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
               : undefined
           }
           percent={tiles.memoryPercent}
+          thresholds={SATURATION_THRESHOLDS}
           description={VMWARE_METRIC_DESCRIPTIONS.hostMemory}
         />
         <GoldenMetricTile
@@ -498,6 +544,16 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
    */
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
+      <NeedsAttentionCard
+        testId="vmware-host-attention"
+        items={attentionItems}
+        current={{
+          key: getVMwareAttentionKey(VMwareResourceKind.Host, props.externalId),
+          label: THIS_HOST,
+        }}
+        description="What about this host and the VMs it runs is broken or needs a look."
+      />
+
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-gray-900">
@@ -536,15 +592,25 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
 
       {renderTiles()}
 
-      <VMwareHostOpenEventsCard
-        vcenterId={props.vcenterId}
-        hostName={props.identity.hostName}
-        getIncidentRoute={props.getIncidentRoute}
-        getAlertRoute={props.getAlertRoute}
-        incidentsRoute={props.incidentsRoute}
-        alertsRoute={props.alertsRoute}
-        refreshToken={refreshToken}
-      />
+      {row ? (
+        <ResourcePartOpenEventsCard
+          testId="vmware-host-open"
+          title="Open on this host"
+          description="Unresolved incidents and alerts about this host and the VMs on it, incidents first."
+          resourceRelation="vmwareVCenters"
+          resourceId={props.vcenterId}
+          isAbout={(record: OpenIssueRecord): boolean => {
+            return isVMwareIssueAbout(record, row);
+          }}
+          getIncidentRoute={props.getIncidentRoute}
+          getAlertRoute={props.getAlertRoute}
+          incidentsRoute={props.incidentsRoute}
+          alertsRoute={props.alertsRoute}
+          refreshToken={refreshToken}
+        />
+      ) : (
+        <></>
+      )}
 
       {renderCharts()}
 
@@ -560,9 +626,14 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
        * hardware tables: the page's one step to observing the host, and
        * its "Turn on N alerts" no longer three cards down.
        */}
-      <VMwareHostAlertsCard
-        vcenterId={props.vcenterId}
-        vcenterName={props.identity.vcenterName}
+      <ResourcePartAlertsCard
+        testId="vmware-host-alerts"
+        title="Host alerts"
+        description="The vCenter's alerts that watch every ESXi host, this one included: each is one monitor that fires for any host that crosses it."
+        resourceType={MonitorRecommendationResourceType.VMware}
+        templateIds={VMWARE_HOST_ALERT_TEMPLATE_IDS}
+        resourceId={props.vcenterId}
+        resourceIdentifier={props.identity.vcenterName}
         getRecommendationsRoute={props.getRecommendationsRoute}
         getMonitorRoute={props.getMonitorRoute}
         refreshToken={refreshToken}

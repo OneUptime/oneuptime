@@ -190,6 +190,18 @@ export interface VMwareResourceBufferEntry extends VMwareResourceIdentity {
   vmTemplateCount: VMwareSummedCount | null;
   datastoreCount: VMwareSummedCount | null;
   clusterCount: VMwareSummedCount | null;
+  /*
+   * vCenter's own roll-up, per datacenter (Datacenter rows only): hosts by
+   * power state (vCenter lost contact - "unknown" -, standby) and by
+   * overall status (red, yellow), and the red VMs and clusters. The
+   * receiver reports these per datacenter, never per object.
+   */
+  notRespondingHostCount: VMwareSummedCount | null;
+  standbyHostCount: VMwareSummedCount | null;
+  criticalHostCount: VMwareSummedCount | null;
+  warningHostCount: VMwareSummedCount | null;
+  criticalVmCount: VMwareSummedCount | null;
+  criticalClusterCount: VMwareSummedCount | null;
   observedAt: Date;
 }
 
@@ -251,6 +263,12 @@ export interface VMwareResourceLatestMetricSnapshot {
   vmTemplateCount: number | null;
   datastoreCount: number | null;
   clusterCount: number | null;
+  notRespondingHostCount: number | null;
+  standbyHostCount: number | null;
+  criticalHostCount: number | null;
+  warningHostCount: number | null;
+  criticalVmCount: number | null;
+  criticalClusterCount: number | null;
   observedAt: Date;
 }
 
@@ -668,6 +686,12 @@ function emptyPatch(
     vmTemplateCount: null,
     datastoreCount: null,
     clusterCount: null,
+    notRespondingHostCount: null,
+    standbyHostCount: null,
+    criticalHostCount: null,
+    warningHostCount: null,
+    criticalVmCount: null,
+    criticalClusterCount: null,
     observedAt,
   };
 }
@@ -932,12 +956,25 @@ export function bufferVMwareSnapshotMetric(data: {
 
     // ---- Datacenter ------------------------------------------------
     case "vcenter.datacenter.host.count": {
+      /*
+       * One datapoint per (status, power_state) pair that exists. A host
+       * vCenter has lost contact with reports power_state "unknown"; one
+       * vSphere DPM sleeps reports "standby".
+       */
       const powerState: string | null = getDatapointAttribute(
         dpAttributes,
         "power_state",
       );
+      const status: string | null = getDatapointAttribute(
+        dpAttributes,
+        "status",
+      );
       patch.hostCount = summed(true);
       patch.poweredOnHostCount = summed(powerState === "on");
+      patch.notRespondingHostCount = summed(powerState === "unknown");
+      patch.standbyHostCount = summed(powerState === "standby");
+      patch.criticalHostCount = summed(status === "red");
+      patch.warningHostCount = summed(status === "yellow");
       break;
     }
     case "vcenter.datacenter.vm.count": {
@@ -945,12 +982,22 @@ export function bufferVMwareSnapshotMetric(data: {
         dpAttributes,
         "power_state",
       );
+      const status: string | null = getDatapointAttribute(
+        dpAttributes,
+        "status",
+      );
       patch.vmCount = summed(true);
       patch.poweredOnVmCount = summed(powerState === "on");
+      patch.criticalVmCount = summed(status === "red");
       break;
     }
     case "vcenter.datacenter.cluster.count": {
+      const status: string | null = getDatapointAttribute(
+        dpAttributes,
+        "status",
+      );
       patch.clusterCount = summed(true);
+      patch.criticalClusterCount = summed(status === "red");
       break;
     }
     case "vcenter.datacenter.datastore.count": {
@@ -1149,6 +1196,30 @@ export function foldVMwareResourceSnapshot(data: {
     existing.clusterCount,
     patch.clusterCount,
   );
+  existing.notRespondingHostCount = foldSummedCount(
+    existing.notRespondingHostCount,
+    patch.notRespondingHostCount,
+  );
+  existing.standbyHostCount = foldSummedCount(
+    existing.standbyHostCount,
+    patch.standbyHostCount,
+  );
+  existing.criticalHostCount = foldSummedCount(
+    existing.criticalHostCount,
+    patch.criticalHostCount,
+  );
+  existing.warningHostCount = foldSummedCount(
+    existing.warningHostCount,
+    patch.warningHostCount,
+  );
+  existing.criticalVmCount = foldSummedCount(
+    existing.criticalVmCount,
+    patch.criticalVmCount,
+  );
+  existing.criticalClusterCount = foldSummedCount(
+    existing.criticalClusterCount,
+    patch.criticalClusterCount,
+  );
 
   if (patch.observedAt > existing.observedAt) {
     existing.observedAt = patch.observedAt;
@@ -1259,6 +1330,12 @@ export function deriveVMwareResourceLatestMetric(
     vmTemplateCount: countValue(entry.vmTemplateCount),
     datastoreCount: countValue(entry.datastoreCount),
     clusterCount: countValue(entry.clusterCount),
+    notRespondingHostCount: countValue(entry.notRespondingHostCount),
+    standbyHostCount: countValue(entry.standbyHostCount),
+    criticalHostCount: countValue(entry.criticalHostCount),
+    warningHostCount: countValue(entry.warningHostCount),
+    criticalVmCount: countValue(entry.criticalVmCount),
+    criticalClusterCount: countValue(entry.criticalClusterCount),
     observedAt: entry.observedAt,
   };
 }

@@ -92,10 +92,16 @@ export type VMwareMetric =
   | "clusterTemplates"
   | "clusterCpu"
   | "clusterMemory"
+  | "clusterCpuInUse"
+  | "clusterMemoryInUse"
+  | "clusterHostFailure"
   // Hosts list.
+  | "hostListStatus"
   | "hostListCpu"
   | "hostListMemory"
   | "hostListCpuCapacity"
+  // Clusters list.
+  | "clusterListStatus"
   // Virtual machines list.
   | "vmListStatus"
   | "vmListPowerState"
@@ -292,7 +298,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Cluster detail ---------------------------------------------------
   clusterHosts: translationKey(
-    "Hosts in this cluster that can run VMs (effective), out of all its hosts, from the latest report. A host in maintenance mode or not responding is not effective and is flagged in red.",
+    "Hosts in this cluster that DRS and HA can place VMs on (effective), out of all its hosts, from the latest report. A host in maintenance mode, not responding, powered off or in standby is not effective.",
   ),
   clusterVirtualMachines: translationKey(
     "Powered-on VMs out of all VMs in this cluster, as counted by vCenter itself at the latest report.",
@@ -306,8 +312,20 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   clusterMemory: translationKey(
     "Memory available to run VMs (effective) against the cluster's total memory, from the latest report. Hosts in maintenance mode or not responding are left out of effective.",
   ),
+  clusterCpuInUse: translationKey(
+    "CPU the cluster's running hosts use, against the CPU the cluster can give its VMs (effective), from their latest reports. Amber past 90%.",
+  ),
+  clusterMemoryInUse: translationKey(
+    "Memory the cluster's running hosts use, against the memory the cluster can give its VMs (effective), from their latest reports. Amber past 90%.",
+  ),
+  clusterHostFailure: translationKey(
+    "Whether the cluster's other hosts could take the VMs of its largest host if it failed: the memory its running hosts use, against what the others have. vSphere HA restarts a failed host's VMs on the hosts left, and some may not fit.",
+  ),
 
   // ---- Hosts list -------------------------------------------------------
+  hostListStatus: translationKey(
+    "Connected while vCenter reports the host's CPU and memory use, amber when something on it needs a look. Not responding when vCenter has lost contact with it; Powered off and In standby when someone or vSphere DPM turned it off.",
+  ),
   hostListCpu: translationKey(
     "Share of each host's CPU capacity in use, from its latest report. N/A when the host has sent no data in the last 15 minutes.",
   ),
@@ -320,7 +338,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Virtual machines list --------------------------------------------
   vmListStatus: translationKey(
-    "Running, Powered off or Template: the same inferred power state as the Power State column, shown as a colored label you can filter on.",
+    "Running, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection. Running turns amber or red, with why under it, while the host swaps, balloons or makes the VM wait for a CPU.",
   ),
   vmListPowerState: translationKey(
     "Powered on, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection, so a suspended VM shows as Powered off. A dash means the VM has not been collected yet.",
@@ -344,6 +362,9 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
 
   // ---- Clusters list ----------------------------------------------------
+  clusterListStatus: translationKey(
+    "Unhealthy when a host of the cluster is not responding; Degraded when hosts are not effective (often maintenance mode) or the cluster could not take the VMs of its largest host; Healthy otherwise.",
+  ),
   clusterListHosts: translationKey(
     "Hosts in the cluster that can run VMs, out of all its hosts, from its latest report. A host in maintenance mode or not responding counts toward the total but is not effective.",
   ),

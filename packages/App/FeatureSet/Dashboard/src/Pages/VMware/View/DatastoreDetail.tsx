@@ -27,36 +27,34 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
   VMwareResourceKind,
   externalIdFromRouteParam,
   fetchVMwareInventoryRow,
   formatBytes,
-  formatPercent,
   displayNameForResource,
   identityAttributesForResource,
 } from "../Utils/VMwareResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
-import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  VMWARE_DATASTORE_CRITICAL_PERCENT,
+  VMWARE_DATASTORE_WARNING_PERCENT,
+} from "../Utils/VMwareHealth";
+import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
+import VMwareDatastoreOverview from "../../../Components/VMware/Part/VMwareDatastoreOverview";
+import {
+  VMwarePartRoutes,
+  getVMwarePartRoutes,
+} from "../../../Components/VMware/Part/VMwarePartRoutes";
 
 /*
  * Window for the client-side linear growth fit — same 24 h window as
  * the Ceph and Proxmox capacity forecasts.
  */
 const PROJECTION_WINDOW_HOURS: number = 24;
-
-/* Matches the vmware-datastore-capacity-* alert template thresholds. */
-const DATASTORE_WARN_PERCENT: number = 80;
-const DATASTORE_CRITICAL_PERCENT: number = 90;
 
 const VMwareVCenterDatastoreDetail: FunctionComponent<
   PageComponentProps
@@ -317,8 +315,8 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
       description: translator.translateTemplate(
         "How full this datastore is, as a percentage. The built-in alert templates warn at {{warnPercent}}% and go critical at {{criticalPercent}}%.",
         {
-          warnPercent: DATASTORE_WARN_PERCENT,
-          criticalPercent: DATASTORE_CRITICAL_PERCENT,
+          warnPercent: VMWARE_DATASTORE_WARNING_PERCENT,
+          criticalPercent: VMWARE_DATASTORE_CRITICAL_PERCENT,
         },
       ),
       legend: tx("Used"),
@@ -337,125 +335,30 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     },
   };
 
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "Datastore Name", value: datastoreName },
-    { title: "vCenter", value: vcenterName },
-  ];
-
-  if (row) {
-    if (row.datacenterName) {
-      summaryFields.push({ title: "Datacenter", value: row.datacenterName });
-    }
-
-    const used: number | null =
-      row.latestDiskBytes !== null && row.latestDiskBytes !== undefined
-        ? Number(row.latestDiskBytes)
-        : null;
-    const total: number | null =
-      row.maxDiskBytes !== null && row.maxDiskBytes !== undefined
-        ? Number(row.maxDiskBytes)
-        : null;
-    const usedPercent: number | null =
-      row.latestDiskPercent !== null && row.latestDiskPercent !== undefined
-        ? Number(row.latestDiskPercent)
-        : used !== null && total !== null && total > 0
-          ? (used / total) * 100
-          : null;
-
-    if (used !== null) {
-      summaryFields.push({
-        title: "Used",
-        value: formatBytes(used),
-        description: VMWARE_METRIC_DESCRIPTIONS.datastoreUsed,
-      });
-    }
-    if (total !== null) {
-      summaryFields.push({
-        title: "Capacity",
-        value: formatBytes(total),
-        description: VMWARE_METRIC_DESCRIPTIONS.datastoreCapacity,
-      });
-      if (used !== null) {
-        summaryFields.push({
-          title: "Free",
-          value: formatBytes(Math.max(total - used, 0)),
-          description: VMWARE_METRIC_DESCRIPTIONS.datastoreFree,
-        });
-      }
-    }
-    if (usedPercent !== null) {
-      summaryFields.push({
-        title: "Used %",
-        description: VMWARE_METRIC_DESCRIPTIONS.datastoreUsedPercent,
-        value:
-          usedPercent >= DATASTORE_WARN_PERCENT ? (
-            <StatusBadge
-              text={formatPercent(usedPercent)}
-              type={
-                usedPercent >= DATASTORE_CRITICAL_PERCENT
-                  ? StatusBadgeType.Danger
-                  : StatusBadgeType.Warning
-              }
-            />
-          ) : (
-            formatPercent(usedPercent)
-          ),
-      });
-    }
-
-    /*
-     * Growth forecast — only rendered when the datastore is verifiably
-     * growing and the projection lands within a year (anything beyond
-     * is noise, mirroring the Ceph / Proxmox forecast cutoff).
-     */
-    if (
-      daysToFull !== null &&
-      Number.isFinite(daysToFull) &&
-      daysToFull <= 365
-    ) {
-      const usedPctText: string =
-        usedPercent !== null ? formatPercent(usedPercent) : "—";
-      summaryFields.push({
-        title: "Growth Forecast",
-        description: VMWARE_METRIC_DESCRIPTIONS.datastoreGrowthForecast,
-        value:
-          daysToFull === 0
-            ? "Full now"
-            : `${usedPctText} full — at the current growth rate this datastore will be full in ~${Math.max(
-                1,
-                Math.round(daysToFull),
-              )} day${Math.max(1, Math.round(daysToFull)) === 1 ? "" : "s"} (linear fit over the last ${PROJECTION_WINDOW_HOURS} h)`,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.metricsUpdatedAt) {
-      summaryFields.push({
-        title: "Metrics Updated",
-        value: OneUptimeDate.fromNow(new Date(row.metricsUpdatedAt as Date)),
-      });
-    }
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const routes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
 
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={row ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingRow}
-          emptyMessage="Datastore details not reported yet. Make sure the VMware agent is sending metrics."
+      children: isLoadingRow ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <VMwareDatastoreOverview
+          vcenterId={modelId}
+          vcenterName={vcenterName}
+          externalId={externalId}
+          row={row}
+          routes={routes}
+          daysToFull={
+            daysToFull !== null &&
+            Number.isFinite(daysToFull) &&
+            daysToFull <= 365
+              ? daysToFull
+              : null
+          }
+          forecastWindowHours={PROJECTION_WINDOW_HOURS}
+          now={now}
         />
       ),
     },
@@ -477,7 +380,19 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="vmware-datastore-page">
+      <VMwarePartHero
+        kind={VMwareResourceKind.Datastore}
+        row={isLoadingRow ? null : row}
+        externalId={externalId}
+        datacenters={[]}
+        hosts={[]}
+        now={now}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default VMwareVCenterDatastoreDetail;

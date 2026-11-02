@@ -37,12 +37,13 @@ import {
   getVMwareHostMetricAttributes,
   getVMwareHostReportState,
   summarizeVMwareHostVirtualMachines,
-  toFiniteNumber,
 } from "../Utils/VMwareHostData";
+import { findVMwareDatacenter } from "../Utils/VMwareHealth";
 import RecommendationFilterUtil, {
   RECOMMENDATION_SELECTION_QUERY_PARAM,
 } from "../../../Components/Recommendations/RecommendationFilterUtil";
-import VMwareHostHero from "../../../Components/VMware/Host/VMwareHostHero";
+import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
+import { getVMwareClusterExternalId } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import VMwareHostReportNotice from "../../../Components/VMware/Host/VMwareHostReportNotice";
 import VMwareHostOverviewTab from "../../../Components/VMware/Host/VMwareHostOverviewTab";
 import VMwareHostVirtualMachinesTab from "../../../Components/VMware/Host/VMwareHostVirtualMachinesTab";
@@ -52,10 +53,12 @@ import VMwareHostLogsTab from "../../../Components/VMware/Host/VMwareHostLogsTab
 /*
  * An ESXi host inside its vCenter: as deep as a host's page outside VMware,
  * from what vCenter reports about the host. The hero says which host it is,
- * where it sits and whether vCenter still reports it; the tabs hold its
- * Overview (tiles, charts, what is open on it, its busiest VMs, network
- * adapters, storage devices, host alerts, details and the AI agent), the
- * virtual machines it runs, every metric chart, and its logs.
+ * where it sits and whether vCenter can reach it (Connected, Not responding,
+ * Powered off, In standby - VMwareHealth, from its usage and its
+ * datacenter's counts); the tabs hold its Overview (what on it and its VMs
+ * needs attention, tiles, charts, what is open on it, its busiest VMs,
+ * network adapters, storage devices, host alerts, details and the AI
+ * agent), the virtual machines it runs, every metric chart, and its logs.
  *
  * ESXi runs no agent, so there is no operating system to read - processes,
  * filesystems and load average have no ESXi equivalent vCenter reports.
@@ -83,6 +86,16 @@ const VMwareVCenterHostDetail: FunctionComponent<
 
   const [vcenter, setVCenter] = useState<VMwareVCenter | null>(null);
   const [row, setRow] = useState<VMwareResourceModel | null>(null);
+  /*
+   * The host's datacenter: a host that reports no usage is told apart -
+   * not responding, powered off, in standby - by its datacenter's counts.
+   */
+  const [datacenterRow, setDatacenterRow] =
+    useState<VMwareResourceModel | null>(null);
+  // Its cluster's row: the hero's and the details' link to its page.
+  const [clusterRow, setClusterRow] = useState<VMwareResourceModel | null>(
+    null,
+  );
   const [virtualMachineRows, setVirtualMachineRows] = useState<
     Array<VMwareResourceModel>
   >([]);
@@ -120,14 +133,32 @@ const VMwareVCenterHostDetail: FunctionComponent<
       row: hostRow,
     });
 
-    const vmRows: Array<VMwareResourceModel> = identity.hostName
-      ? await fetchVMwareInventoryRows({
-          vmwareVCenterId: modelId,
-          kind: VMwareResourceKind.VirtualMachine,
-          hostName: identity.hostName,
-          datacenterName: identity.datacenterName,
-        })
-      : [];
+    const [vmRows, datacenterRows, clusterRows]: [
+      Array<VMwareResourceModel>,
+      Array<VMwareResourceModel>,
+      Array<VMwareResourceModel>,
+    ] = await Promise.all([
+      identity.hostName
+        ? fetchVMwareInventoryRows({
+            vmwareVCenterId: modelId,
+            kind: VMwareResourceKind.VirtualMachine,
+            hostName: identity.hostName,
+            datacenterName: identity.datacenterName,
+          })
+        : Promise.resolve([]),
+      fetchVMwareInventoryRows({
+        vmwareVCenterId: modelId,
+        kind: VMwareResourceKind.Datacenter,
+      }),
+      hostRow?.clusterName
+        ? fetchVMwareInventoryRows({
+            vmwareVCenterId: modelId,
+            kind: VMwareResourceKind.Cluster,
+            clusterName: hostRow.clusterName,
+            datacenterName: identity.datacenterName || undefined,
+          })
+        : Promise.resolve([]),
+    ]);
 
     if (sequence !== inventorySequence.current) {
       return;
@@ -135,6 +166,10 @@ const VMwareVCenterHostDetail: FunctionComponent<
 
     setRow(hostRow);
     setVirtualMachineRows(vmRows);
+    setDatacenterRow(
+      findVMwareDatacenter(datacenterRows, identity.datacenterName),
+    );
+    setClusterRow(clusterRows[0] || null);
     setIsLoadingVirtualMachines(false);
   };
 
@@ -222,18 +257,20 @@ const VMwareVCenterHostDetail: FunctionComponent<
   };
 
   /*
-   * The cluster's own page: a cluster's inventory id is
-   * "cluster/<datacenter>/<cluster>".
+   * The cluster's own page, by its row's inventory id - or, before that
+   * row loads, by the id a cluster's is built as.
    */
-  const clusterRoute: Route | undefined =
-    row?.clusterName && identity.datacenterName
-      ? populate(
-          PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL,
-          routeParamFromExternalId(
-            `cluster/${identity.datacenterName}/${row.clusterName}`,
-          ),
-        )
-      : undefined;
+  const clusterExternalId: string | null = clusterRow?.externalId
+    ? clusterRow.externalId
+    : row?.clusterName
+      ? getVMwareClusterExternalId(identity.datacenterName, row.clusterName)
+      : null;
+  const clusterRoute: Route | undefined = clusterExternalId
+    ? populate(
+        PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL,
+        routeParamFromExternalId(clusterExternalId),
+      )
+    : undefined;
 
   const getVirtualMachineRoute: (vmExternalId: string) => Route = (
     vmExternalId: string,
@@ -269,6 +306,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
           identity={identity}
           externalId={externalId}
           row={row}
+          datacenterRow={datacenterRow}
           virtualMachineRows={virtualMachineRows}
           virtualMachineSummary={virtualMachineSummary}
           clusterRoute={clusterRoute}
@@ -343,17 +381,15 @@ const VMwareVCenterHostDetail: FunctionComponent<
 
   return (
     <div data-testid="vmware-host-page">
-      <VMwareHostHero
-        hostName={identity.hostName}
-        reportState={reportState}
-        lastReportAt={lastReportAt}
-        datacenterName={identity.datacenterName}
-        clusterName={row?.clusterName || undefined}
+      <VMwarePartHero
+        kind={VMwareResourceKind.Host}
+        row={row}
+        externalId={externalId}
+        datacenters={datacenterRow ? [datacenterRow] : []}
+        hosts={row ? [row] : []}
         clusterRoute={clusterRoute}
-        isStandalone={row ? !row.clusterName : undefined}
-        cpuCapacityMhz={toFiniteNumber(row?.cpuCapacityMhz)}
-        memoryCapacityBytes={toFiniteNumber(row?.maxMemoryBytes)}
         virtualMachines={virtualMachineSummary}
+        now={OneUptimeDate.getCurrentDate()}
       />
 
       <VMwareHostReportNotice

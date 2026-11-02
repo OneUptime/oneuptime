@@ -21,6 +21,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import { getVMwareResourcePoolMemoryTone } from "../../../Components/VMware/VMwareResourceColumns";
 
 /*
  * Resource pools are list-only (no detail page): the receiver reports a
@@ -136,6 +137,8 @@ const VMwareVCenterResourcePools: FunctionComponent<
           key: "memoryBalloonedBytes",
           description:
             VMWARE_METRIC_DESCRIPTIONS.resourcePoolListBalloonedSwapped,
+          // Amber once the host swaps the pool's memory, as Needs attention.
+          getTone: getVMwareResourcePoolMemoryTone,
           getValue: (resource: InfrastructureResource): string => {
             const ballooned: number | null = readNumber(
               resource,

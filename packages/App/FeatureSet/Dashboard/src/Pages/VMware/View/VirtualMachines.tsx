@@ -1,14 +1,11 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import ResourceTable, {
-  InfrastructureResource,
-} from "../../../Components/Infrastructure/ResourceTable";
+import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
+import OneUptimeDate from "Common/Types/Date";
 import {
   VMwareResourceKind,
-  fetchVMwareInventoryResources,
-  formatPercent,
-  routeParamFromExternalId,
+  fetchVMwareInventoryRows,
 } from "../Utils/VMwareResourceUtils";
 import React, {
   FunctionComponent,
@@ -20,36 +17,36 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
-import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import { VMwareVirtualMachinesTable } from "../../../Components/VMware/VMwareResourceTables";
+import { getVMwarePartRoutes } from "../../../Components/VMware/Part/VMwarePartRoutes";
+
+/*
+ * Every virtual machine and VM template of the vCenter: Running, Powered off
+ * or Template, coloured by what needs attention on it (the host swaps it,
+ * balloons it or makes it wait for a CPU) with why under it, and its
+ * current usage. The Postgres inventory (VMwareResource, kind
+ * VirtualMachine): power state is inferred per collection, since the
+ * receiver sends CPU only for powered-on VMs.
+ */
 
 const VMwareVCenterVirtualMachines: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
+  const [rows, setRows] = useState<Array<VMwareResourceModel>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      /*
-       * Postgres inventory read (VMwareResource, kind=VirtualMachine —
-       * templates included, flagged by the Power State column). Power
-       * state, resource pool and CPU readiness ride additionalAttributes
-       * for the custom columns below.
-       */
-      const vmList: Array<InfrastructureResource> =
-        await fetchVMwareInventoryResources({
+      setRows(
+        await fetchVMwareInventoryRows({
           vmwareVCenterId: modelId,
           kind: VMwareResourceKind.VirtualMachine,
-        });
-
-      setResources(vmList);
+        }),
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -71,80 +68,21 @@ const VMwareVCenterVirtualMachines: FunctionComponent<
   }
 
   return (
-    <ResourceTable
+    <VMwareVirtualMachinesTable
+      rows={rows}
+      context={{
+        datacenters: [],
+        hosts: [],
+        now: OneUptimeDate.getCurrentDate(),
+      }}
+      scope="vcenter"
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}
-      title="Virtual Machines"
-      description="Virtual machines (and VM templates) in this vCenter with their current resource usage. CPU metrics are only reported for powered-on VMs."
-      resources={resources}
-      showGroupColumn={true}
-      groupColumnTitle="Host"
-      tableIdPrefix="vmware"
-      emptyMessage="No virtual machines reported yet. Make sure the VMware agent is sending metrics and that its read-only role is propagated to child objects."
-      builtInColumnDescriptions={{
-        status: VMWARE_METRIC_DESCRIPTIONS.vmListStatus,
-        cpu: VMWARE_METRIC_DESCRIPTIONS.vmListCpu,
-        memory: VMWARE_METRIC_DESCRIPTIONS.vmListMemory,
-        age: VMWARE_METRIC_DESCRIPTIONS.vmListAge,
-      }}
-      columns={[
-        {
-          /*
-           * Inferred per collection: the receiver emits vcenter.vm.cpu.*
-           * only for powered-on VMs. Unset means the VM has not been
-           * seen in a scrape yet — render "-" rather than guessing.
-           */
-          title: "Power State",
-          key: "powerState",
-          description: VMWARE_METRIC_DESCRIPTIONS.vmListPowerState,
-          getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["powerState"] || "-";
-          },
-        },
-        {
-          title: "Cluster",
-          key: "clusterName",
-          getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["clusterName"] || "-";
-          },
-        },
-        {
-          title: "Resource Pool",
-          key: "resourcePoolName",
-          getValue: (resource: InfrastructureResource): string => {
-            return (
-              resource.additionalAttributes["resourcePoolName"] ||
-              resource.additionalAttributes["virtualAppName"] ||
-              "-"
-            );
-          },
-        },
-        {
-          /*
-           * vcenter.vm.cpu.readiness — % of time the VM was ready to run
-           * but waited for a physical CPU. The single best signal for
-           * CPU contention on the host; anything past ~10% hurts.
-           */
-          title: "CPU Ready",
-          key: "cpuReadinessPercent",
-          description: VMWARE_METRIC_DESCRIPTIONS.vmListCpuReady,
-          getValue: (resource: InfrastructureResource): string => {
-            const raw: string =
-              resource.additionalAttributes["cpuReadinessPercent"] || "";
-            return raw ? formatPercent(Number(raw)) : "-";
-          },
-        },
-      ]}
-      getViewRoute={(resource: InfrastructureResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINE_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: routeParamFromExternalId(
-              resource.additionalAttributes["externalId"] || "",
-            ),
-          },
+      getViewRoute={(externalId: string) => {
+        return getVMwarePartRoutes(modelId).getPartRoute(
+          VMwareResourceKind.VirtualMachine,
+          externalId,
         );
       }}
     />
