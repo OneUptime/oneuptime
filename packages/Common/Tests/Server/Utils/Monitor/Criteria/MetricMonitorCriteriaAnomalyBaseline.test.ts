@@ -32,6 +32,7 @@ import {
   CriteriaFilter,
   FilterType,
 } from "../../../../../Types/Monitor/CriteriaFilter";
+import { METRIC_BASELINE_MAX_SERIES } from "../../../../../Server/Utils/Monitor/MetricHourBaseline";
 import { MetricAnomalyBaseline } from "../../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MetricMonitorResponse from "../../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "../../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
@@ -787,6 +788,37 @@ describe("MetricMonitorCriteria - what an anomaly condition asks the baseline fo
           return evaluation.rootCause !== null;
         }),
       ).toEqual([true, false]);
+    });
+
+    test("a monitor split into more series than a read can hold stays on the cell", async () => {
+      await evaluate({
+        series: new Array<number>(METRIC_BASELINE_MAX_SERIES + 1)
+          .fill(0)
+          .map((_: number, index: number): MetricSeriesResult => {
+            return seriesOf(`host-${index}`, 100);
+          }),
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(getSeriesBaselines).not.toHaveBeenCalled();
+      expect(
+        (getBaseline.mock.calls[0]![0] as Record<string, unknown>)["query"],
+      ).toMatchObject({ isNarrowedByAttributes: true });
+    });
+
+    test("and exactly as many as it can does not", async () => {
+      await evaluate({
+        series: new Array<number>(METRIC_BASELINE_MAX_SERIES)
+          .fill(0)
+          .map((_: number, index: number): MetricSeriesResult => {
+            return seriesOf(`host-${index}`, 100);
+          }),
+        groupByAttributeKeys: ["host.name"],
+        queryAttributes: [undefined],
+      });
+
+      expect(getSeriesBaselines).toHaveBeenCalledTimes(1);
     });
 
     test("an hour is read once, however many series it holds", async () => {

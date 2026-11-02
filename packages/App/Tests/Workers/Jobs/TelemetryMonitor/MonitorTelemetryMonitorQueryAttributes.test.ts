@@ -1,3 +1,4 @@
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import Dictionary from "Common/Types/Dictionary";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -45,6 +46,7 @@ jest.mock("Common/Server/Services/MetricTypeService", () => {
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
+import { POD_UID_ATTRIBUTE as FINISHED_POD_UID_ATTRIBUTE } from "Common/Server/Utils/Monitor/KubernetesFinishedPods";
 import {
   monitorCeph,
   monitorDocker,
@@ -64,6 +66,10 @@ type MonitorFunction = (data: {
   monitorId: ObjectID;
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
+
+interface ReadArgs {
+  query: { name: string; attributes?: Dictionary<unknown> };
+}
 
 interface MonitorCase {
   name: string;
@@ -223,15 +229,15 @@ const read: (data: {
 
 describe("what a monitor says it read each query with", () => {
   beforeEach(() => {
-    (MetricService.aggregateBy as unknown as jest.Mock<() => unknown>)
+    (MetricService.aggregateBy as unknown as jest.Mock)
       .mockReset()
-      .mockResolvedValue({ data: [] });
-    (MetricService.findBy as unknown as jest.Mock<() => unknown>)
+      .mockResolvedValue({ data: [] } as never);
+    (MetricService.findBy as unknown as jest.Mock)
       .mockReset()
-      .mockResolvedValue([]);
-    (MetricTypeService.findBy as unknown as jest.Mock<() => unknown>)
+      .mockResolvedValue([] as never);
+    (MetricTypeService.findBy as unknown as jest.Mock)
       .mockReset()
-      .mockResolvedValue([]);
+      .mockResolvedValue([] as never);
   });
 
   test.each(CASES)(
@@ -328,6 +334,47 @@ describe("what a monitor says it read each query with", () => {
         }
       ).query.attributes,
     );
+  });
+
+  /*
+   * The pods that finished in a window move with it, so a baseline read by them
+   * would change on every check, and could not be kept for the hour.
+   */
+  test("a Kubernetes monitor leaves out the pods that have finished", async () => {
+    const aggregateBy: jest.Mock = MetricService.aggregateBy as never;
+
+    aggregateBy.mockImplementation(((args: ReadArgs) => {
+      return {
+        data:
+          args.query.name === "k8s.pod.phase"
+            ? [{ attributes: { [FINISHED_POD_UID_ATTRIBUTE]: "finished-1" } }]
+            : [],
+      };
+    }) as never);
+
+    const response: MetricMonitorResponse = await read({
+      run: monitorKubernetes,
+      monitorStep: stepOf({
+        stepKey: "kubernetesMonitor",
+        settings: { clusterIdentifier: "prod" },
+        queryConfigs: [queryOf({ metricName: "k8s.container.cpu_request" })],
+      }),
+    });
+
+    const requestRead: ReadArgs = aggregateBy.mock.calls
+      .map((call: Array<unknown>): ReadArgs => {
+        return call[0] as ReadArgs;
+      })
+      .find((args: ReadArgs): boolean => {
+        return args.query.name === "k8s.container.cpu_request";
+      })!;
+
+    expect(
+      requestRead.query.attributes?.[FINISHED_POD_UID_ATTRIBUTE],
+    ).toBeInstanceOf(IncludesNone);
+    expect(response.queryAttributes).toEqual([
+      { "resource.k8s.cluster.name": "prod" },
+    ]);
   });
 
   // It is written to the monitor's log with the rest of the response.

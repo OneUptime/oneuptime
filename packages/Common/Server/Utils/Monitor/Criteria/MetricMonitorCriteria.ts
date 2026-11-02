@@ -51,7 +51,9 @@ import MetricBaselineService, {
   MetricBaselineService as MetricBaselineServiceClass,
   MetricSeriesBaselines,
 } from "../../../Services/MetricBaselineService";
-import MetricHourBaseline from "../MetricHourBaseline";
+import MetricHourBaseline, {
+  METRIC_BASELINE_MAX_SERIES,
+} from "../MetricHourBaseline";
 
 /**
  * Result of evaluating a single criteria filter against a single metric
@@ -346,6 +348,7 @@ export default class MetricMonitorCriteria {
           isNarrowedByMonitor,
           queryAttributes: metricResponse.queryAttributes,
           groupByAttributeKeys,
+          seriesCount: seriesBreakdown!.length,
         });
       }),
     );
@@ -549,6 +552,8 @@ export default class MetricMonitorCriteria {
     // What the worker read each query with, in query order.
     queryAttributes?: Array<Dictionary<unknown> | undefined> | undefined;
     groupByAttributeKeys?: Array<string> | undefined;
+    // How many series the monitor is split into, when it is.
+    seriesCount?: number | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
       CompareCriteria.convertMetricThresholdToNumber(
@@ -636,6 +641,7 @@ export default class MetricMonitorCriteria {
           queryIndex: Math.max(0, aliasIndex),
           queryAttributes: input.queryAttributes,
           groupByAttributeKeys: input.groupByAttributeKeys,
+          seriesCount: input.seriesCount,
         }),
       });
     }
@@ -1801,18 +1807,21 @@ export default class MetricMonitorCriteria {
 
   /*
    * What narrows a query, as far as it can be read back. The worker says what
-   * it read each query with, and a group by whole columns has no series a read
-   * could hand back. Undefined when either is so: such a query keeps the
-   * baseline that says nothing of them.
+   * it read each query with, a group by whole columns has no series a read
+   * could hand back, and past a number of series a read costs too much.
+   * Undefined when it cannot be: such a query keeps the baseline that says
+   * nothing of them.
    */
   private static getBaselineScope(data: {
     matchedQuery: MetricQueryConfigData | null;
     queryIndex: number;
     queryAttributes: Array<Dictionary<unknown> | undefined> | undefined;
     groupByAttributeKeys: Array<string> | undefined;
+    seriesCount: number | undefined;
   }): MetricBaselineScope | undefined {
     if (
       !data.queryAttributes ||
+      (data.seriesCount || 0) > METRIC_BASELINE_MAX_SERIES ||
       Object.keys(data.matchedQuery?.metricQueryData?.groupBy || {}).length > 0
     ) {
       return undefined;

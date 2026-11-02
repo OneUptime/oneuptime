@@ -83,6 +83,13 @@ export const METRIC_ROUNDING_SHARE: number = 1e-9;
 // How many earlier weeks of an hour a baseline asks for.
 export const METRIC_BASELINE_MINIMUM_WEEKS: number = 2;
 
+/*
+ * How many series a query reads a baseline of its own for. A read grows with
+ * them: 2,000 pods took over a second and half a gigabyte, in 28,000 rows that
+ * are then kept for the hour. A query split into more stays on the cell.
+ */
+export const METRIC_BASELINE_MAX_SERIES: number = 5000;
+
 // One hour of one day of a metric, as MetricBaselineHourly folds it.
 export interface MetricBaselineDayRow {
   // Its day as ClickHouse writes one: 2026-11-02.

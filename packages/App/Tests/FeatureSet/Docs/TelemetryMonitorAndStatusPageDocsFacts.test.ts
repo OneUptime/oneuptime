@@ -46,6 +46,7 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import LogMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria";
 import MetricHourBaseline, {
+  METRIC_BASELINE_MAX_SERIES,
   METRIC_BASELINE_MINIMUM_WEEKS,
 } from "Common/Server/Utils/Monitor/MetricHourBaseline";
 import { HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -1486,6 +1487,9 @@ describe("criteria", () => {
       }),
     ).toBeNull();
     expect(METRIC_BASELINE_MINIMUM_WEEKS * 7).toBe(14);
+    expect(METRICS).toContain(
+      `A monitor split into more than ${METRIC_BASELINE_MAX_SERIES.toLocaleString("en-US")} series is treated as if your metrics were kept for under two weeks.`,
+    );
     expect(METRICS).toContain(
       "A Sum or a Count only counts as low on a complete data point with another complete one after it",
     );

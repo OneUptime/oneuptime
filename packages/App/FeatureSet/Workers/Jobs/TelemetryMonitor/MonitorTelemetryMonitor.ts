@@ -586,6 +586,15 @@ const getQueryAttributesByMetricName: (
   return attributesByMetricName;
 };
 
+// What a query was read with, as the response says it.
+const getReadAttributes: (
+  query: Query<Metric>,
+) => Dictionary<unknown> | undefined = (
+  query: Query<Metric>,
+): Dictionary<unknown> | undefined => {
+  return query.attributes as unknown as Dictionary<unknown> | undefined;
+};
+
 /*
  * A platform resource as the raw scan saw it: its identity plus the
  * highest and lowest sample it reported in the window.
@@ -1711,7 +1720,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
   }
 
   /*
@@ -2138,7 +2147,12 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    /*
+     * Without the pods that have finished, which only say what this window
+     * reads: their earlier days are not what they hold now, and a baseline
+     * read by a list that moves could not be kept for the hour.
+     */
+    readAttributes.push(attributes);
 
     // Fetch raw metrics to extract per-resource Kubernetes context
     const affectedResources: Array<KubernetesAffectedResource> | undefined =
@@ -2337,7 +2351,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -2488,7 +2502,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -2672,7 +2686,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -2859,7 +2873,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
 
     // Fetch raw metrics to extract per-resource Proxmox context
     const affectedResources: Array<ProxmoxAffectedResource> | undefined =
@@ -3118,7 +3132,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
 
     /*
      * Fetch raw metrics to extract per-object vSphere context. Best
@@ -3351,7 +3365,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
   }
 
   const nativeUnitsByMetricName: Map<string, string> =
@@ -3637,7 +3651,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
 
     /*
      * Fetch raw metrics to extract per-resource Docker Swarm context.
@@ -3856,7 +3870,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
 
     // Fetch raw metrics to extract per-resource Ceph context
     const affectedResources: Array<CephAffectedResource> | undefined =
@@ -4127,7 +4141,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
-    readAttributes.push(query.attributes);
+    readAttributes.push(getReadAttributes(query));
 
     // Fetch raw metrics to extract per-object storage array context
     const affectedResources: Array<StorageArrayAffectedResource> | undefined =
