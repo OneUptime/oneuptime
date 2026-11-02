@@ -1784,6 +1784,110 @@ test.describe("a cloud resource's pages", () => {
     await shoot(page, "resource-overview");
   });
 
+  /*
+   * The way back from Security Events: a cloud resource is named by its own
+   * ID and by the names it answers on, and its card opens Security Events
+   * on the first of those names (?security=).
+   */
+  test("its Security card: the case naming the name it answers on, its week of events and findings, each opening Security Events on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${RESOURCE_PATH}/${WEB_ALB}?state=connected&security=news`,
+    );
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "news");
+    await expect(card).toContainText(
+      "What Security Events found about it in the last 7 days.",
+    );
+
+    // Asked as a cloud resource, by its own id.
+    const reads: Array<{ kind: string; id: string }> = await page.evaluate(
+      () => {
+        return JSON.parse(
+          JSON.stringify(
+            (
+              window as unknown as {
+                __cloudConnectFixture: {
+                  state: { securityReads: unknown };
+                };
+              }
+            ).__cloudConnectFixture.state.securityReads,
+          ),
+        );
+      },
+    );
+    expect(reads).toContainEqual({ kind: "CloudResource", id: WEB_ALB });
+
+    // Its week, opening the explorer on its ID and the name it answers on.
+    const events: Locator = card.getByTestId("resource-security-open");
+    await expect(events).toHaveText("212");
+    const search: string = decodeURIComponent(
+      new URL(
+        (await events.getAttribute("href"))!,
+        "http://127.0.0.1",
+      ).searchParams.get("search") || "",
+    );
+    expect(search.startsWith("observable:(")).toBe(true);
+    expect(search).toContain("web-alb-1234567890.us-east-1.elb.amazonaws.com");
+    expect(search).toContain("loadbalancer/app/web-alb/50dc6c495c0c9188");
+
+    const cases: Locator = card.getByTestId("resource-security-cases");
+    await expect(cases.getByTestId("resource-security-case")).toHaveCount(1);
+    await expect(cases).toContainText(
+      "Credential stuffing through web-alb-1234567890.us-east-1.elb.amazonaws.com",
+    );
+
+    // Its page in Security Events: the name it answers on, as a host.
+    const entity: URL = new URL(
+      (await card
+        .getByRole("link", { name: "Open in Security Events" })
+        .getAttribute("href"))!,
+      "http://127.0.0.1",
+    );
+    expect(entity.pathname).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/entity-risk/entity`,
+    );
+    expect(entity.searchParams.get("value")).toBe(
+      "web-alb-1234567890.us-east-1.elb.amazonaws.com",
+    );
+    expect(entity.searchParams.get("type")).toBe("Host");
+
+    await expectNoSidewaysScroll(page);
+    await card.scrollIntoViewIfNeeded();
+    await card.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        `resource-security-card-${test.info().project.name}.png`,
+      ),
+    });
+  });
+
+  test("a quiet week says so in one line, and a project that uses no Security Events is told nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${RESOURCE_PATH}/${WEB_ALB}?state=connected&security=quiet`,
+    );
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "quiet");
+    await expect(card).toContainText(
+      "No security event named it in the last 7 days.",
+    );
+
+    await openAccounts(page, `${RESOURCE_PATH}/${WEB_ALB}?state=connected`);
+    await expect(cardTitled(page, "Details")).toBeVisible();
+    await expect(card).toHaveCount(0);
+  });
+
   test("a network's Overview lists what runs in it, and no Metrics card", async ({
     page,
   }: {

@@ -1,11 +1,12 @@
 /*
  * Offline fixture for the resource Overviews drawn with ResourceOverview,
  * where #5298's UI review finished their hero and their Details card: a
- * service's, a database's and a queue's Overview, each inside its
- * production layout (ModelPage, its labels in the page's header, the side
- * menu) under its real RouteMap pattern. Only the data boundary (ModelAPI,
- * AnalyticsModelAPI, API, Realtime) and the signed-in user are replaced.
- * Every record is fabricated for an "Acme Commerce" workspace.
+ * service's, a database's, a queue's and a serverless function's Overview,
+ * each inside its production layout (ModelPage, its labels in the page's
+ * header, the side menu) under its real RouteMap pattern. Only the data
+ * boundary (ModelAPI, AnalyticsModelAPI, API, Realtime) and the signed-in
+ * user are replaced. Every record is fabricated for an "Acme Commerce"
+ * workspace.
  *
  * Scenarios are picked with query parameters, parsed once at load:
  *
@@ -22,6 +23,12 @@
  *               more consumers than the table holds, so its footer counts
  *               them) | long (long names and big figures, to measure the
  *               table's columns with)
+ *   ?security=  what Security Events read from the service's and the
+ *               serverless function's own logs this week, on their Security
+ *               cards (POST /security-case/resource-security): news (events
+ *               and findings, the worst of them critical) | quiet (none).
+ *               Left out, the project uses no Security Events and the cards
+ *               draw nothing.
  *
  * Every read is recorded on window.__resourceOverviewsFixture: listRequests,
  * itemRequests, countRequests, aggregateRequests, apiRequests and unhandled
@@ -49,6 +56,8 @@ import DatabaseLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Database
 import DatabaseOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Overview";
 import QueueLayout from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Layout";
 import QueueOverview from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Overview";
+import ServerlessLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Layout";
+import ServerlessOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -88,6 +97,9 @@ const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
 const CALLERS = ["busy", "long"].includes(params.get("callers"))
   ? params.get("callers")
   : "none";
+const SECURITY = ["news", "quiet"].includes(params.get("security"))
+  ? params.get("security")
+  : "none";
 
 if (params.get("dir") === "rtl") {
   document.documentElement.dir = "rtl";
@@ -118,6 +130,7 @@ const LOADED_AT = Date.now();
 const SERVICE_ID = uuid("71000000", 1);
 const DATABASE_ID = uuid("73000000", 1);
 const QUEUE_ID = uuid("74000000", 1);
+const FUNCTION_ID = uuid("77000000", 1);
 
 const project = Object.assign(new Project(), {
   _id: PROJECT_ID,
@@ -266,6 +279,78 @@ const queue = {
   lastSeenAt: new Date(LOADED_AT - MINUTE),
   brokerMetricsLastSeenAt: undefined,
   isArchived: false,
+};
+
+/*
+ * A serverless function as the OpenTelemetry Lambda layer reports one: its
+ * faas.name, its cloud and its runtime, and the instances it ran on. Like a
+ * service, it has no name or address an event would name it by: Security
+ * Events tells about it by the events read from its own logs (?security=).
+ */
+const FUNCTIONS = {
+  busy: {
+    name: "checkout-webhook",
+    functionIdentifier: "checkout-webhook",
+    cloudPlatform: "aws_lambda",
+    cloudProvider: "aws",
+    cloudRegion: "eu-west-1",
+    cloudAccountId: "123456789012",
+    functionVersion: "$LATEST",
+    runtimeName: "nodejs",
+    runtimeVersion: "20.x",
+    agentVersion: "0.12.0",
+    otelCollectorStatus: "connected",
+  },
+  new: {
+    name: "checkout-webhook",
+    functionIdentifier: "checkout-webhook",
+  },
+  long: {
+    name: "inventory-reservation-expiry-sweeper-eu-west-2-canary",
+    functionIdentifier:
+      "projects/acme-commerce-inventory-prod-4821/locations/europe-west2/functions/inventory-reservation-expiry-sweeper-eu-west-2-canary",
+    cloudPlatform: "gcp_cloud_functions",
+    cloudProvider: "gcp",
+    cloudRegion: "europe-west2",
+    cloudAccountId: "acme-commerce-inventory-prod-4821",
+    functionVersion: "2026.10.25-build.4821",
+    runtimeName: "python",
+    runtimeVersion: "3.12.4",
+    agentVersion: "0.12.0",
+    otelCollectorStatus: "connected",
+  },
+};
+
+const serverlessFunction = {
+  _id: FUNCTION_ID,
+  projectId: PROJECT_ID,
+  description: DESCRIPTIONS[RESOURCE],
+  labels: LABELS[RESOURCE],
+  lastSeenAt: new Date(LOADED_AT - MINUTE),
+  isArchived: false,
+  ...FUNCTIONS[RESOURCE],
+};
+
+// The instances it ran on: none yet for a new function.
+const INSTANCE_COUNTS = { busy: 3, new: 0, long: 12 };
+const serverlessInstances = [];
+for (let index = 1; index <= INSTANCE_COUNTS[RESOURCE]; index++) {
+  serverlessInstances.push({
+    _id: uuid("78000000", index),
+    projectId: PROJECT_ID,
+    serverlessFunctionId: FUNCTION_ID,
+    instanceName: `2026/11/02/[$LATEST]${String(index).padStart(32, "0")}`,
+    lastSeenAt: new Date(LOADED_AT - MINUTE),
+  });
+}
+
+/*
+ * The records Security Events tells about by the events read from their own
+ * logs, by kind and id, and the name the server answers with.
+ */
+const LOG_SOURCE_NAMES = {
+  [`Service:${SERVICE_ID}`]: SERVICES[RESOURCE].name,
+  [`ServerlessFunction:${FUNCTION_ID}`]: FUNCTIONS[RESOURCE].name,
 };
 
 /*
@@ -430,6 +515,7 @@ const fixture = {
     serviceId: SERVICE_ID,
     databaseId: DATABASE_ID,
     queueId: QUEUE_ID,
+    serverlessFunctionId: FUNCTION_ID,
     resource: RESOURCE,
   },
 };
@@ -487,6 +573,8 @@ const store = {
   DatabaseServer: [database],
   DatabaseServerEndpoint: databaseEndpoints,
   MessageQueue: [queue],
+  ServerlessFunction: [serverlessFunction],
+  ServerlessFunctionInstance: serverlessInstances,
   // The activity cards' states and counts: nothing open here.
   IncidentState: [
     { _id: uuid("50000000", 1), name: "Identified", order: 1 },
@@ -718,25 +806,34 @@ async function handleApi(method, options) {
   }
 
   /*
-   * The Security card: this project uses no Security Events, as the server
-   * says when no event arrived this week, so the card draws nothing.
+   * The Security card. Without ?security= this project uses no Security
+   * Events, as the server says when no event arrived this week, so the card
+   * draws nothing. With it, the service and the serverless function are
+   * told about by the events read from their own logs, as the server tells
+   * them: no values of their own to name them by, so no open cases and no
+   * risk (ResourceSecurity).
    */
   if (
     method === "POST" &&
     parsed.pathname.endsWith("/security-case/resource-security")
   ) {
+    const name = LOG_SOURCE_NAMES[`${body.kind}:${body.id}`];
+    const isLogSource = name !== undefined;
+    const news = SECURITY === "news" && isLogSource;
+
     return ok({
       kind: body.kind,
       id: body.id,
-      name: "",
-      isInUse: false,
+      name: isLogSource ? name : "",
+      isInUse: SECURITY !== "none",
       windowDays: 7,
       values: [],
+      isSearchedByLogs: isLogSource,
       entity: null,
-      eventCount: 0,
-      findingCount: 0,
-      maxSeverityId: 0,
-      lastSeen: null,
+      eventCount: news ? 312 : 0,
+      findingCount: news ? 3 : 0,
+      maxSeverityId: news ? 5 : 0,
+      lastSeen: news ? new Date(LOADED_AT - 40 * MINUTE).toISOString() : null,
       openCases: null,
       risk: null,
     });
@@ -840,6 +937,7 @@ const VIEWS = [
   [ServiceLayout, ServiceOverview, PageMap.SERVICE_VIEW],
   [DatabaseLayout, DatabaseOverview, PageMap.DATABASE_SERVER_VIEW],
   [QueueLayout, QueueOverview, PageMap.MESSAGE_QUEUE_VIEW],
+  [ServerlessLayout, ServerlessOverview, PageMap.SERVERLESS_FUNCTION_VIEW],
 ].map(([Layout, Overview, pageKey]) => {
   return {
     key: String(pageKey),

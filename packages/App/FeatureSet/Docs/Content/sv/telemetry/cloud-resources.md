@@ -1,6 +1,6 @@
 # Molnresurser (IaaS och PaaS)
 
-**Cloud Resources** listar IaaS- och PaaS-resurserna i dina AWS-, Azure- och Google Cloud-konton: virtuella maskiner, diskar, lastbalanserare, bucketar, hanterade databaser, cachar, köer, API-gatewayer och resten. Varje resurs får en egen sida, med typ, region och konto, leverantörens eget ID för den, varje mätvärde som leverantören publicerar om den, och ägare och etiketter som alla andra resurser i OneUptime. Du hittar dem under **Moln → Alla resurser**.
+**Molnresurser** listar IaaS- och PaaS-resurserna i dina AWS-, Azure- och Google Cloud-konton: virtuella maskiner, diskar, lastbalanserare, bucketar, hanterade databaser, cachar, köer, API-gatewayer och resten. Varje resurs får en egen sida, med typ, region och konto, leverantörens eget ID för den, varje mätvärde som leverantören publicerar om den, och ägare och etiketter som alla andra resurser i OneUptime. Du hittar dem under **Moln → Alla resurser**.
 
 > [!TIP]
 > Vill du hellre slippa köra en collector? [Anslut ett molnkonto](/docs/telemetry/cloud-accounts) under **Moln → Anslut**, så läser OneUptime de här mätvärdena själv.

@@ -1,6 +1,6 @@
 # Recursos de nuvem (IaaS e PaaS)
 
-**Cloud Resources** lista os recursos IaaS e PaaS das suas contas AWS, Azure e Google Cloud: máquinas virtuais, discos, balanceadores de carga, buckets, bancos de dados gerenciados, caches, filas, gateways de API e o resto. Cada um ganha uma página própria, com o tipo, a região e a conta, o ID que o provedor dá a ele, todas as métricas que o provedor publica sobre ele, e proprietários e rótulos como qualquer outro recurso no OneUptime. Encontre-os em **Nuvem → Todos os recursos**.
+**Recursos de nuvem** lista os recursos IaaS e PaaS das suas contas AWS, Azure e Google Cloud: máquinas virtuais, discos, balanceadores de carga, buckets, bancos de dados gerenciados, caches, filas, gateways de API e o resto. Cada um ganha uma página própria, com o tipo, a região e a conta, o ID que o provedor dá a ele, todas as métricas que o provedor publica sobre ele, e proprietários e rótulos como qualquer outro recurso no OneUptime. Encontre-os em **Nuvem → Todos os recursos**.
 
 > [!TIP]
 > Prefere não rodar um coletor? [Conecte uma conta de nuvem](/docs/telemetry/cloud-accounts) em **Nuvem → Conectar**, e o OneUptime lê essas métricas por conta própria.

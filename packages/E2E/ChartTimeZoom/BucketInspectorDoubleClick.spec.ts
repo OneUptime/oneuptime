@@ -158,9 +158,22 @@ async function aimAt(
   await expect(inspector(page)).toHaveCount(0);
 
   await scrollChartTo(page, spot.y);
-  const scrolledPlot: Box = await boxOf(chart(page));
-  expect(spot.x, "the chart is under the spot").toBeGreaterThan(scrolledPlot.x);
-  expect(spot.x).toBeLessThan(scrolledPlot.x + scrolledPlot.width);
+  /*
+   * The chart's own plotting area must be under the spot, not just its
+   * box: a click in the margin around the plot (its axes' room) opens no
+   * inspector, and the second click lands on the page instead. Where a
+   * part falls depends on the font's widths, so this says which way the
+   * aim is off.
+   */
+  const scrolledPlot: Box = await boxOf(
+    chart(page).locator(".recharts-cartesian-grid").first(),
+  );
+  expect(spot.x, "the chart's plot is under the spot").toBeGreaterThan(
+    scrolledPlot.x,
+  );
+  expect(spot.x, "the chart's plot is under the spot").toBeLessThan(
+    scrolledPlot.x + scrolledPlot.width,
+  );
   expect(spot.y).toBeGreaterThan(scrolledPlot.y);
   expect(spot.y).toBeLessThan(scrolledPlot.y + scrolledPlot.height);
   return spot;
@@ -188,12 +201,17 @@ test.describe("Kubernetes cluster insights: a double-click on an unzoomed chart"
     page: Page;
   }) => {
     await openInsights(page);
+    /*
+     * On the button's words, a third of the way in: the button reaches
+     * the inspector's right edge, past the chart's plot, so its middle is
+     * over the plot's margin in the product's font.
+     */
     const spot: Point = await aimAt(
       page,
       (card: Locator): Locator => {
         return card.getByRole("button", { name: "Investigate this moment" });
       },
-      0.5,
+      0.3,
     );
 
     await doubleClickAt(page, spot);

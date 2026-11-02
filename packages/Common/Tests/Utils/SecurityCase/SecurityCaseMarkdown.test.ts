@@ -9,6 +9,7 @@ import {
   detectionAddedMarkdown,
   detectionOverflowMarkdown,
   detectionRuleMatchMarkdown,
+  SECURITY_CONNECTION_KIND_NOUNS,
   incidentDeclaredFromCaseMarkdown,
   playbookFinishedMarkdown,
   playbookStartedMarkdown,
@@ -234,6 +235,33 @@ describe("feed sentences", () => {
         .toString()
         .replace("[SEC-12](https://oneuptime.example/c)", "SEC-12"),
     );
+  });
+
+  test("a cloud resource it was linked to is named as the feed names one", () => {
+    expect(
+      incidentDeclaredFromCaseMarkdown({
+        caseNumber: "SEC-12",
+        caseUrl: "https://oneuptime.example/c",
+        linked: [
+          { kind: SecurityConnectionKind.CloudResource, name: "checkout-alb" },
+        ],
+      }).toString(),
+    ).toBe(
+      "🛡️ Declared from security case [SEC-12](https://oneuptime.example/c). Resources affected, as the case names them: Cloud resource **checkout-alb**.",
+    );
+  });
+
+  test("every kind of record has a noun of its own", () => {
+    for (const kind of Object.values(SecurityConnectionKind)) {
+      expect(SECURITY_CONNECTION_KIND_NOUNS[kind]).toBeTruthy();
+    }
+
+    expect(SECURITY_CONNECTION_KIND_NOUNS[SecurityConnectionKind.Monitor]).toBe(
+      "Monitor",
+    );
+    expect(
+      SECURITY_CONNECTION_KIND_NOUNS[SecurityConnectionKind.ServerlessFunction],
+    ).toBe("Serverless function");
   });
 });
 

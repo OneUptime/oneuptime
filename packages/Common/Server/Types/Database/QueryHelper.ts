@@ -218,6 +218,49 @@ export default class QueryHelper {
   }
 
   /*
+   * A column whose text holds any of these texts anywhere, compared without
+   * case: the monitors whose steps mention "web-1" or "203.0.113.7", read
+   * before each is held to the hosts it really checks (a substring is a
+   * candidate, never a match). The texts are one bound parameter, folded,
+   * trimmed and deduplicated, with LIKE's own characters escaped so "%" or
+   * "_" in a text matches only itself. An empty list matches nothing.
+   */
+  public static textContainsAnyOf(
+    texts: Array<string>,
+  ): FindWhereProperty<any> {
+    const patterns: Array<string> = Array.from(
+      new Set(
+        texts
+          .map((text: string): string => {
+            return (text || "").toLowerCase().trim();
+          })
+          .filter((text: string): boolean => {
+            return text.length > 0;
+          }),
+      ),
+    ).map((text: string): string => {
+      return `%${escapeLikePattern(text)}%`;
+    });
+
+    if (patterns.length === 0) {
+      return Raw(() => {
+        return "TRUE = FALSE";
+      }, {});
+    }
+
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(CAST(${alias} AS TEXT) ILIKE ANY (CAST(:${rid} AS text[])))`;
+      },
+      {
+        [rid]: patterns,
+      },
+    );
+  }
+
+  /*
    * A text column holding a list of values separated by commas - a host's
    * addresses ("10.0.0.5, 10.0.0.6"), a device's Other Addresses - that
    * lists any of these texts WHOLE, compared without case: "10.0.0.1" is in
