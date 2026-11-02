@@ -2686,30 +2686,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }
         return;
       }
-        /*
-         * Attribute-backed facets (Service Instance / Host Name) filter via
-         * the attributes map — store their chips under the same
-         * `attributes.<key>` scheme as typed `@key:value` filters so query
-         * building has one path.
-         */
-        const config: FacetConfig | undefined = facetConfigs.find(
-          (c: FacetConfig): boolean => {
-            return c.key === facetKey;
-          },
-        );
-        const isAttributeFacet: boolean = ATTRIBUTE_FACET_KEYS.has(facetKey);
-        const chipKey: string = isAttributeFacet
-          ? `${ATTRIBUTE_CHIP_PREFIX}${facetKey}`
-          : facetKey;
-        /*
-         * A sidebar value comes from the DATA and may legitimately contain
-         * `*`, `?` or a space — a URL route like `/api/*`, a container arg.
-         * An attribute chip is re-parsed by the search grammar when the query
-         * is built, so it has to be written back as a token that means exactly
-         * this value; unescaped, clicking `/api/*` filtered for far more than
-         * the row it came from. Callers that already hold a grammar token
-         * (the span panel, the search bar) escape at their own call site.
-         */
+      /*
+       * Attribute-backed facets (Service Instance / Host Name) filter via
+       * the attributes map — store their chips under the same
+       * `attributes.<key>` scheme as typed `@key:value` filters so query
+       * building has one path.
+       */
+      const config: FacetConfig | undefined = facetConfigs.find(
+        (c: FacetConfig): boolean => {
+          return c.key === facetKey;
+        },
+      );
+      const isAttributeFacet: boolean = ATTRIBUTE_FACET_KEYS.has(facetKey);
+      const chipKey: string = isAttributeFacet
+        ? `${ATTRIBUTE_CHIP_PREFIX}${facetKey}`
+        : facetKey;
+      /*
+       * A sidebar value comes from the DATA and may legitimately contain
+       * `*`, `?` or a space — a URL route like `/api/*`, a container arg.
+       * An attribute chip is re-parsed by the search grammar when the query
+       * is built, so it has to be written back as a token that means exactly
+       * this value; unescaped, clicking `/api/*` filtered for far more than
+       * the row it came from. Callers that already hold a grammar token
+       * (the span panel, the search bar) escape at their own call site.
+       */
       const chipValue: string = isAttributeFacet
         ? buildSearchTokenValue(value)
         : value;
@@ -2738,7 +2738,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           chipValue,
           state,
           (key: string): ActiveFilter => {
-            return { facetKey: key, value: chipValue, displayKey, displayValue };
+            return {
+              facetKey: key,
+              value: chipValue,
+              displayKey,
+              displayValue,
+            };
           },
         );
       });

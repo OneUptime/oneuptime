@@ -811,8 +811,7 @@ export const applyTraceExclusionsToQuery: (
     query["kind"] = toExcludedValue(spanKinds);
   }
 
-  const hasException: boolean | undefined =
-    getHasExceptionLeftOver(exclusions);
+  const hasException: boolean | undefined = getHasExceptionLeftOver(exclusions);
 
   if (hasException !== undefined && query["hasException"] === undefined) {
     query["hasException"] = hasException;
@@ -887,8 +886,7 @@ export const applyTraceExclusionsToPayload: (
     payload["excludedSpanKinds"] = spanKinds;
   }
 
-  const hasException: boolean | undefined =
-    getHasExceptionLeftOver(exclusions);
+  const hasException: boolean | undefined = getHasExceptionLeftOver(exclusions);
 
   if (hasException !== undefined && payload["hasException"] === undefined) {
     payload["hasException"] = hasException;
@@ -909,18 +907,17 @@ const hasListValue: (value: unknown) => boolean = (value: unknown): boolean => {
 };
 
 // The statuses left out, as the column stores them.
-const getExcludedStatusCodes: (exclusions: TraceExclusions) => Array<number> =
-  (exclusions: TraceExclusions): Array<number> => {
-    return Array.from(
-      new Set<number>(
-        (exclusions.columns["statusCode"] || []).map(
-          (value: string): number => {
-            return toSpanStatusCode(value);
-          },
-        ),
-      ),
-    );
-  };
+const getExcludedStatusCodes: (exclusions: TraceExclusions) => Array<number> = (
+  exclusions: TraceExclusions,
+): Array<number> => {
+  return Array.from(
+    new Set<number>(
+      (exclusions.columns["statusCode"] || []).map((value: string): number => {
+        return toSpanStatusCode(value);
+      }),
+    ),
+  );
+};
 
 // The kinds left out, as the column stores them.
 const getExcludedSpanKinds: (exclusions: TraceExclusions) => Array<string> = (
@@ -946,11 +943,9 @@ const getHasExceptionLeftOver: (
   exclusions: TraceExclusions,
 ): boolean | undefined => {
   const leftOut: Set<boolean> = new Set<boolean>(
-    (exclusions.columns["hasException"] || []).map(
-      (value: string): boolean => {
-        return value.trim().toLowerCase() === "true" || value.trim() === "1";
-      },
-    ),
+    (exclusions.columns["hasException"] || []).map((value: string): boolean => {
+      return value.trim().toLowerCase() === "true" || value.trim() === "1";
+    }),
   );
 
   if (leftOut.size !== 1) {

@@ -21,8 +21,10 @@ import Search from "Common/Types/BaseDatabase/Search";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
-import { FacetConfig } from "Common/UI/Components/TelemetryViewer/types";
-import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
+import {
+  ActiveFilter,
+  FacetConfig,
+} from "Common/UI/Components/TelemetryViewer/types";
 import {
   TraceAttributeFilters,
   TraceExclusions,
@@ -253,10 +255,9 @@ describe("the span list leaves the values out", () => {
 
   test("a name searched as a substring holds both: GET, but not GET /health", () => {
     const search: Search<string> = new Search("GET");
-    const query: Record<string, unknown> = onQuery(
-      [["!name", "GET /health"]],
-      { name: search },
-    );
+    const query: Record<string, unknown> = onQuery([["!name", "GET /health"]], {
+      name: search,
+    });
 
     expect(Array.isArray(query["name"])).toBe(true);
     const [kept, leftOut]: Array<unknown> = query["name"] as Array<unknown>;
@@ -330,9 +331,7 @@ describe("the chart and the facet counts leave the same values out", () => {
 
   test("a column the endpoints have no field for stays with the list", () => {
     expect(onPayload([["!traceId", "abc"]])).toEqual({});
-    expect(onQuery([["!traceId", "abc"]])["traceId"]).toBeInstanceOf(
-      NotEqual,
-    );
+    expect(onQuery([["!traceId", "abc"]])["traceId"]).toBeInstanceOf(NotEqual);
   });
 });
 

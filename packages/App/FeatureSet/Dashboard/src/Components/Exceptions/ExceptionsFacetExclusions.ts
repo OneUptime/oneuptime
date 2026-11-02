@@ -98,8 +98,7 @@ export const readExceptionExclusions: (data: {
       );
 
       if (attributeKey.length > 0) {
-        const values: Array<string> =
-          exclusions.attributes[attributeKey] || [];
+        const values: Array<string> = exclusions.attributes[attributeKey] || [];
         addValue(values, chip.value);
         exclusions.attributes[attributeKey] = values;
       }
@@ -188,10 +187,7 @@ export const applyExceptionExclusionsToPayload: (
   const exceptionTypes: Array<string> =
     exclusions.columns["exceptionType"] || [];
 
-  if (
-    exceptionTypes.length > 0 &&
-    !hasListValue(payload["exceptionTypes"])
-  ) {
+  if (exceptionTypes.length > 0 && !hasListValue(payload["exceptionTypes"])) {
     payload["excludedExceptionTypes"] = [...exceptionTypes];
   }
 

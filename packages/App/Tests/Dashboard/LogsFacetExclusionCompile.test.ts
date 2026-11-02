@@ -135,7 +135,9 @@ function values(value: unknown): Array<string> {
 
 describe("the list query leaves the values out", () => {
   test("one severity is a plain !=, several one NOT IN", () => {
-    const one: Record<string, unknown> = compile({ "!severityText": ["Debug"] });
+    const one: Record<string, unknown> = compile({
+      "!severityText": ["Debug"],
+    });
 
     expect(one["severityText"]).toBeInstanceOf(NotEqual);
     expect(values(one["severityText"])).toEqual(["Debug"]);
@@ -396,10 +398,10 @@ describe("a saved view and the address keep what is left out", () => {
       {} as Query<Log>,
       chips,
     );
-    const readBack: Map<string, Set<string>> = FacetFilters.buildLogsFacetFiltersFromQuery(
-      query,
-      {} as Query<Log>,
-    );
+    const readBack: Map<
+      string,
+      Set<string>
+    > = FacetFilters.buildLogsFacetFiltersFromQuery(query, {} as Query<Log>);
 
     expect(
       Object.fromEntries(
@@ -418,18 +420,25 @@ describe("a saved view and the address keep what is left out", () => {
   });
 
   test("a stored NotEqual or IncludesNone reads back as the values left out", () => {
-    expect(FacetFilters.getLogsQueryExcludedValues(new NotEqual("Debug"))).toEqual([
-      "Debug",
-    ]);
     expect(
-      FacetFilters.getLogsQueryExcludedValues(new IncludesNone(["Debug", "Trace"])),
+      FacetFilters.getLogsQueryExcludedValues(new NotEqual("Debug")),
+    ).toEqual(["Debug"]);
+    expect(
+      FacetFilters.getLogsQueryExcludedValues(
+        new IncludesNone(["Debug", "Trace"]),
+      ),
     ).toEqual(["Debug", "Trace"]);
-    expect(FacetFilters.getLogsQueryExcludedValues(new Includes(["Error"]))).toEqual([]);
+    expect(
+      FacetFilters.getLogsQueryExcludedValues(new Includes(["Error"])),
+    ).toEqual([]);
     expect(FacetFilters.getLogsQueryExcludedValues("Error")).toEqual([]);
   });
 
   test("the page's own pins never come back as removable chips", () => {
-    const readBack: Map<string, Set<string>> = FacetFilters.buildLogsFacetFiltersFromQuery(
+    const readBack: Map<
+      string,
+      Set<string>
+    > = FacetFilters.buildLogsFacetFiltersFromQuery(
       {
         primaryEntityId: new NotEqual(CHECKOUT_ID),
         excludedResourceFilters: { hostId: [HOST_ID] },
@@ -469,12 +478,18 @@ describe("a saved view and the address keep what is left out", () => {
 
 describe("a chip that leaves its value out is named like the one that keeps it", () => {
   test("its key reads as its facet's label", () => {
-    expect(FacetFilters.getLogsFacetChipDisplayKey("!severityText")).toBe("Severity");
-    expect(FacetFilters.getLogsFacetChipDisplayKey("!primaryEntityId")).toBe("Service");
-    expect(FacetFilters.getLogsFacetChipDisplayKey("!attributes.http.method")).toBe(
-      "http.method",
+    expect(FacetFilters.getLogsFacetChipDisplayKey("!severityText")).toBe(
+      "Severity",
     );
-    expect(FacetFilters.getLogsFacetChipDisplayKey("!body")).toBe("Message contains");
+    expect(FacetFilters.getLogsFacetChipDisplayKey("!primaryEntityId")).toBe(
+      "Service",
+    );
+    expect(
+      FacetFilters.getLogsFacetChipDisplayKey("!attributes.http.method"),
+    ).toBe("http.method");
+    expect(FacetFilters.getLogsFacetChipDisplayKey("!body")).toBe(
+      "Message contains",
+    );
   });
 
   test("a service left out is looked up and named, its key kept", () => {

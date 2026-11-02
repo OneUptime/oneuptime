@@ -32,7 +32,9 @@ import {
  * Kept free of React so the rules are unit-testable on their own.
  */
 
-export type FacetChoiceState = FacetValueState.Included | FacetValueState.Excluded;
+export type FacetChoiceState =
+  | FacetValueState.Included
+  | FacetValueState.Excluded;
 
 /*
  * The chip key a value in this state is stored under: the facet's own key

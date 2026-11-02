@@ -341,7 +341,10 @@ export class ExceptionAggregationService {
       );
     }
 
-    if (request.excludedEnvironments && request.excludedEnvironments.length > 0) {
+    if (
+      request.excludedEnvironments &&
+      request.excludedEnvironments.length > 0
+    ) {
       statement.append(
         SQL` AND environment NOT IN (${{
           type: TableColumnType.Text,

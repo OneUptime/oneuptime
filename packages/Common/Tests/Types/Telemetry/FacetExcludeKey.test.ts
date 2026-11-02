@@ -127,7 +127,9 @@ describe("the resources a reader left out", () => {
       collectExcludedResourceEntityFacetSelections([["hostId", [HOST_ID]]]),
     ).toEqual({});
     expect(
-      collectExcludedServiceFacetSelections([["primaryEntityId", [SERVICE_ID]]]),
+      collectExcludedServiceFacetSelections([
+        ["primaryEntityId", [SERVICE_ID]],
+      ]),
     ).toEqual([]);
   });
 });

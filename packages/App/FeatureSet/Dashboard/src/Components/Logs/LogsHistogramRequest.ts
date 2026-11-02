@@ -462,8 +462,7 @@ export const applyTypedLogFilterToRequest: ApplyTypedLogFilterToRequestFunction 
       excludedResourceFilters &&
       typeof excludedResourceFilters === "object" &&
       !Array.isArray(excludedResourceFilters) &&
-      Object.keys(excludedResourceFilters as Record<string, unknown>).length >
-        0
+      Object.keys(excludedResourceFilters as Record<string, unknown>).length > 0
     ) {
       requestData[EXCLUDED_RESOURCE_FILTERS_FIELD] =
         excludedResourceFilters as JSONObject;

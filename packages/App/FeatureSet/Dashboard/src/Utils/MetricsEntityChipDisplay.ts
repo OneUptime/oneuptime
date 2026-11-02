@@ -215,7 +215,9 @@ export const getMetricsAppliedEntityFilterIds: (
  */
 export const getMetricsExcludedEntityFilterIds: (
   filters: Array<ActiveFilter> | undefined,
-) => Array<string> = (filters: Array<ActiveFilter> | undefined): Array<string> => {
+) => Array<string> = (
+  filters: Array<ActiveFilter> | undefined,
+): Array<string> => {
   return getMetricsAppliedEntityFilterIds(
     (filters || [])
       .filter((filter: ActiveFilter): boolean => {

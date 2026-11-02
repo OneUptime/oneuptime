@@ -153,7 +153,8 @@ async function callRoute(data: {
     json: jest.fn(),
   } as unknown as ExpressResponse;
 
-  let thrownToNext: unknown = undefined;
+  // What a handler passed to next(), if anything.
+  const outcome: { thrownToNext: unknown } = { thrownToNext: undefined };
 
   for (let index: number = 1; index < route.handlers.length; index++) {
     const handler: RouterFunction | undefined = route.handlers[index];
@@ -168,7 +169,7 @@ async function callRoute(data: {
       step.calledNext = true;
 
       if (error) {
-        thrownToNext = error;
+        outcome.thrownToNext = error;
       }
     }) as unknown as NextFunction;
 
@@ -179,7 +180,7 @@ async function callRoute(data: {
     }
   }
 
-  return thrownToNext;
+  return outcome.thrownToNext;
 }
 
 interface Spy {

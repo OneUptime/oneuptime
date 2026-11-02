@@ -590,8 +590,7 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
       collectExcludedResourceEntityFacetSelections(facetFilters.entries());
 
     if (Object.keys(excludedResourceFilters).length > 0) {
-      (query as any)[EXCLUDED_RESOURCE_FILTERS_FIELD] =
-        excludedResourceFilters;
+      (query as any)[EXCLUDED_RESOURCE_FILTERS_FIELD] = excludedResourceFilters;
     } else {
       delete (query as any)[EXCLUDED_RESOURCE_FILTERS_FIELD];
     }
@@ -713,7 +712,10 @@ export const applyLogsFacetExclusionsToQuery: ApplyLogsFacetExclusionsToQueryFun
     const excludedServiceIds: Array<string> =
       collectExcludedServiceFacetSelections(facetFilters.entries());
 
-    if (excludedServiceIds.length > 0 && record["primaryEntityId"] === undefined) {
+    if (
+      excludedServiceIds.length > 0 &&
+      record["primaryEntityId"] === undefined
+    ) {
       record["primaryEntityId"] = toExcludedQueryValue(excludedServiceIds);
     }
 
