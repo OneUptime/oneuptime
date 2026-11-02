@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12697
+    "keys": 40047,
+    "untranslated": 12653
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -53,6 +53,7 @@
     "Datastores",
     "DeploymentConfigs",
     "Desktop",
+    "Destination",
     "Diagram",
     "Disk",
     "Disk %",
@@ -86,6 +87,7 @@
     "INP 540 ms",
     "Info",
     "Information",
+    "Integration",
     "Interface",
     "Interfaces",
     "IoT",
@@ -220,6 +222,7 @@
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
     "VMID {{vmid}}",
+    "Version",
     "Version {{number}}",
     "Web",
     "Web, iOS, Android, React Native",

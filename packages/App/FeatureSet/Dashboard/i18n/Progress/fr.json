@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 7268
+    "keys": 40047,
+    "untranslated": 7249
   },
   "sameAsEnglish": [
     " incidents",
@@ -228,7 +228,6 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
-    "Identification",
     "Image",
     "Images",
     "Important",

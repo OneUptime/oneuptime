@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12694
+    "keys": 40047,
+    "untranslated": 12652
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -148,6 +148,7 @@
     "SQL injection",
     "Script",
     "Server",
+    "Serverless",
     "Service Mesh",
     "Singapore (+65)",
     "Slug",

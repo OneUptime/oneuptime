@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12684
+    "keys": 40047,
+    "untranslated": 12641
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -74,6 +74,7 @@
     "Index",
     "Info",
     "Information",
+    "Integration",
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
@@ -174,6 +175,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Version",
     "Version {{number}}",
     "Webhook",
     "[\".customer-name\", \"#invoice-total\"]",

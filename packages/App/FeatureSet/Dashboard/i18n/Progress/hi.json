@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12646
+    "keys": 40047,
+    "untranslated": 12604
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -54,6 +54,7 @@
     "Runner",
     "SLI %",
     "SLOs",
+    "Serverless",
     "Slug",
     "TLS",
     "Top P",

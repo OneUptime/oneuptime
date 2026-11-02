@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 3807
+    "keys": 40047,
+    "untranslated": 3795
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -253,6 +253,7 @@
     "Index",
     "Info",
     "Initiator",
+    "Integration",
     "Interaction to Next Paint",
     "IoT",
     "Isle of Man",

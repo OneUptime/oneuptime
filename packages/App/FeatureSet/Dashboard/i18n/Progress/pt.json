@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12666
+    "keys": 40047,
+    "untranslated": 12624
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -136,6 +136,7 @@
     "SLI %",
     "SLOs",
     "Script",
+    "Serverless",
     "Service Mesh",
     "Site",
     "Sites",
