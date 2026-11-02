@@ -269,6 +269,15 @@
  *            change is being checked at once and would run a second later,
  *            which the card reads on its next poll. ?fail=dry-run refuses
  *            the click.
+ *   ?trackrecord= worked | mixed | failed: with ?cloudfix=, the change
+ *            says how the same change went the last times OneUptime AI made
+ *            it on the account (RemediationTrackRecordReader): it worked all
+ *            3 times, for prior incidents #1017, #1029 and #1036; it worked
+ *            2 of the 3 times; or it did not work the 2 times it ran.
+ *   ?ruledout= on: Incident #1042's report has a Ruled out section between
+ *            its evidence and its next steps - the database, a traffic spike
+ *            and the cloud underneath, each with why, cited - as the
+ *            investigation persona asks for one.
  *   ?codefix= act | no-repository | writing | opened: what came of the fix
  *            in the code the completed investigations of #1042 and #311
  *            recommend, as FixFromIncidentTaskTrigger.getSuggestionForSubject
@@ -648,6 +657,13 @@ const CLOUD_FIX_MODES = ["would-run", "refused", "failed", "running", "none"];
 const cloudFixMode = CLOUD_FIX_MODES.includes(params.get("cloudfix"))
   ? params.get("cloudfix")
   : "";
+// ?trackrecord=: how the cloud fix's change went before.
+const TRACK_RECORD_MODES = ["worked", "mixed", "failed"];
+const trackRecordMode = TRACK_RECORD_MODES.includes(params.get("trackrecord"))
+  ? params.get("trackrecord")
+  : "";
+// ?ruledout=on: Incident #1042's report says what it ruled out.
+const ruledOutMode = params.get("ruledout") === "on";
 // ?codefix=: what came of the fix in the code the investigations recommend.
 const CODE_FIX_MODES = ["act", "no-repository", "writing", "opened"];
 const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
@@ -3825,6 +3841,17 @@ const INCIDENT_ANALYSIS = [
     "- Trace 5c1e0b7a… spent 1.94 s waiting in `pg.pool.connect` [C7]",
     "- Two monitors were degraded at investigation time: Checkout API p95 latency and Orders DB connection pool [C9]",
   ].join("\n"),
+  // ?ruledout=on: the other causes it checked, as the persona asks.
+  ...(ruledOutMode
+    ? [
+        [
+          "**Ruled out**",
+          "- **The orders database itself:** its CPU stayed under 30% and no query slowed while the pool was full [C6].",
+          "- **A traffic spike:** checkout requests per minute were flat against the same hour last week [C2].",
+          "- **The cloud underneath:** AWS Health lists no event for us-east-1 in the hour [C5].",
+        ].join("\n"),
+      ]
+    : []),
   [
     "**Suggested next steps**",
     "1. Roll checkout-api back to 2026.09.14-1, or redeploy with `DB_POOL_MAX=40`, and confirm p95 returns below 500 ms.",
@@ -4460,7 +4487,59 @@ function cloudFixDryRun(mode, checkedAt) {
   return undefined;
 }
 
+/*
+ * ?trackrecord=: how the same change went the last times OneUptime AI made
+ * it on the account, as RemediationTrackRecordReader writes it on the
+ * proposed change - the newest runs first, for the prior incidents.
+ */
+function cloudFixTrackRecord(mode) {
+  const run = (number, daysAgo, outcome) => {
+    return {
+      subjectKind: "incident",
+      subjectId: ID.incident(number),
+      subjectNumber: `#${number}`,
+      ranAt: new Date(
+        NOW.getTime() - daysAgo * 24 * 60 * 60 * 1000,
+      ).toISOString(),
+      outcome,
+    };
+  };
+
+  if (mode === "worked") {
+    return {
+      workedCount: 3,
+      didNotWorkCount: 0,
+      runs: [
+        run(1036, 6, "Worked"),
+        run(1029, 19, "Worked"),
+        run(1017, 41, "Worked"),
+      ],
+    };
+  }
+  if (mode === "mixed") {
+    return {
+      workedCount: 2,
+      didNotWorkCount: 1,
+      runs: [
+        run(1036, 6, "Worked"),
+        run(1029, 19, "DidNotWork"),
+        run(1017, 41, "Worked"),
+      ],
+    };
+  }
+  if (mode === "failed") {
+    return {
+      workedCount: 0,
+      didNotWorkCount: 2,
+      runs: [run(1036, 6, "DidNotWork"), run(1029, 19, "DidNotWork")],
+    };
+  }
+  return undefined;
+}
+
 function cloudFixCommandPlan(dryRun) {
+  const trackRecord = cloudFixTrackRecord(trackRecordMode);
+
   return {
     commands: [
       {
@@ -4480,6 +4559,7 @@ function cloudFixCommandPlan(dryRun) {
           "Twice the tasks take the queue: p95 latency falls back under 500 ms within 5 minutes.",
         policyVerdict: "RequiresApproval",
         ...(dryRun ? { dryRun } : {}),
+        ...(trackRecord ? { trackRecord } : {}),
       },
     ],
   };

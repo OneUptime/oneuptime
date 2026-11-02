@@ -284,14 +284,19 @@ describe("Kubernetes pod and container Logs tabs", () => {
   );
 
   test("PodDetail keeps scoping the tab by pod and namespace", () => {
-    const props: string = elementProps(
-      readCode("Pages/Kubernetes/View/PodDetail.tsx"),
-      "KubernetesLogsTab",
-    );
+    const code: string = readCode("Pages/Kubernetes/View/PodDetail.tsx");
+    const props: string = elementProps(code, "KubernetesLogsTab");
 
     expect(props).toContain(compact("podName={podName}"));
-    expect(props).toContain(
-      compact("namespace={podObject?.metadata.namespace}"),
+    expect(props).toContain(compact("namespace={podNamespace}"));
+    /*
+     * The pod's own namespace once read, the page's ?namespace= before: a
+     * same-named pod in another namespace is another pod.
+     */
+    expect(code).toContain(
+      compact(
+        "const podNamespace: string | undefined = podObject?.metadata.namespace || namespaceParam;",
+      ),
     );
   });
 
@@ -312,7 +317,7 @@ describe("Kubernetes pod and container Logs tabs", () => {
     expect(code).toContain(compact('from "./KubernetesLogsScope"'));
     expect(code).toContain(
       compact(
-        "attributes: buildKubernetesLogsAttributeFilters({ clusterIdentifier: props.clusterIdentifier, podName: props.podName, containerName: props.containerName, namespace: props.namespace })",
+        "attributes: buildKubernetesLogsAttributeFilters({ clusterIdentifier: props.clusterIdentifier, podName: props.podName, containerName: props.containerName, namespace: props.namespace, workloadKind: props.workloadKind, workloadName: props.workloadName })",
       ),
     );
 

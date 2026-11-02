@@ -56,6 +56,8 @@ export interface NetworkControllerCallOptions {
 export interface NetworkControllerPullState {
   // The end of the last uplink window stored (ISO, exclusive).
   uplinkCursor?: string | undefined;
+  // The end of the last window of uplink loss and latency stored (ISO, exclusive).
+  uplinkHealthCursor?: string | undefined;
   /*
    * Per network (by its controller ID): the end of the last application and
    * client window stored (ISO, exclusive).
@@ -92,6 +94,8 @@ export interface NetworkTrafficUsageWindowKey {
 export interface NetworkTrafficUsageStoredEnds {
   // The end of the newest stored uplink window.
   uplinkEnd: Date | null;
+  // The end of the newest stored window of uplink loss and latency.
+  uplinkHealthEnd: Date | null;
   // Per network: the end of its newest stored application or client window.
   analyticsEnds: Map<string, Date>;
 }
@@ -204,6 +208,9 @@ export interface NetworkTrafficUsageRecord {
   receivedOctets: number;
   flows: number;
   clients: number;
+  // What an uplink health row measured; null on every other kind.
+  lossPercent: number | null;
+  latencyMs: number | null;
   windowStartAt: Date;
   windowEndAt: Date;
 }
@@ -286,6 +293,10 @@ export function readPullState(value: unknown): NetworkControllerPullState {
 
   if (typeof state["uplinkCursor"] === "string") {
     result.uplinkCursor = state["uplinkCursor"];
+  }
+
+  if (typeof state["uplinkHealthCursor"] === "string") {
+    result.uplinkHealthCursor = state["uplinkHealthCursor"];
   }
 
   for (const key of [

@@ -74,12 +74,6 @@ const KubernetesClusterPVs: FunctionComponent<
           },
         });
 
-      for (const r of pvResources) {
-        if (!r.status) {
-          r.status = "Unknown";
-        }
-      }
-
       setResources(pvResources);
     } catch (err) {
       setError(API.getFriendlyMessage(err));

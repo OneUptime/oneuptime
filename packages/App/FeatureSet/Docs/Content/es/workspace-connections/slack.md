@@ -278,6 +278,10 @@ Los botones de los mensajes de OneUptime en Slack también actúan como tú: com
 - **Dónde recibes la respuesta.** Debajo del mensaje que tiene el botón, en un mensaje que solo tú ves; por mensaje directo solo si Slack lo rechaza. Un botón pulsado demasiado tarde dice quién llegó primero, y cuándo, por ejemplo "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Si tu cuenta de Slack no está conectada.** La respuesta te pide conectarla, con un botón **Connect Slack account**. El botón abre tus propios ajustes de Slack en OneUptime y conecta tu cuenta en un solo paso, después de que inicies sesión en OneUptime si hace falta. Después, OneUptime termina lo que pulsaste, como tú, y responde debajo del mismo mensaje; para un botón que abre un formulario, o un comando, te pide que lo pulses o lo ejecutes de nuevo. El botón funciona una vez, durante 30 minutos, y solo para la cuenta de Slack que lo pulsó: con la sesión de Slack de otra persona, no conecta nada.
 
+## Aprobar una corrección que propone OneUptime AI
+
+Una corrección que OneUptime AI propone para su aprobación se publica en los canales del incidente o la alerta con sus cambios y tres botones. **Review and approve** abre todo lo que ejecuta la corrección, con **Approve and run**, que ejecuta exactamente eso, como tú. **Dismiss** descarta la corrección, y **View in OneUptime** abre el incidente o la alerta. Actúan como tú, como cada botón de los mensajes de Slack de OneUptime: aprobar requiere permiso para aprobar correcciones en el proyecto y, para una corrección en un clúster o recurso, para editarlo. Una corrección que cambió después de publicarse su mensaje se rechaza, y no se ejecuta nada. Consulta [Aprobar o descartar una corrección desde Slack o Microsoft Teams](/docs/ai/ai-sre#aprobar-o-descartar-una-corrección-desde-slack-o-microsoft-teams).
+
 ## Desconectar
 
 - **Desconectar** desvincula solo tu propia cuenta de Slack, y elimina con ella tu método de notificación de Slack.

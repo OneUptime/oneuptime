@@ -45,8 +45,9 @@ import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
  * Every form submit that removes its form is driven here through its real
  * handler - the 14 "Hide the form card" sites, the 4 cards of the incident
  * card's menu (Change Severity, Assign Role, Page Someone, Edit Custom
- * Fields), and the two create forms (whose create flow
- * MicrosoftTeamsCreateSubmit.test.ts covers in depth) - with
+ * Fields), the two create forms (whose create flow
+ * MicrosoftTeamsCreateSubmit.test.ts covers in depth) and the approval card
+ * of a fix OneUptime AI proposes (Approve and run) - with
  * Teams refusing the removal, removing it, answering it only later, and with
  * no form to remove; then once more through handleBotInvokeActivity, where
  * "Sorry, that action failed" would come from. The rest of the contract
@@ -140,8 +141,16 @@ import {
   MicrosoftTeamsAlertEpisodeActionType,
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsIncidentEpisodeActionType,
+  MicrosoftTeamsRemediationActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
+import MicrosoftTeamsRemediationActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Remediation";
+import AutoRemediationSuggestion from "../../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import RemediationApproval from "../../../../../Server/Utils/AutoRemediation/RemediationApproval";
+import RemediationChatMessage from "../../../../../Server/Utils/AutoRemediation/RemediationChatMessage";
+import WorkspaceRemediationActions from "../../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
+import AutoRemediationSuggestionStatus from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import MicrosoftTeamsAlertActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Alert";
 import MicrosoftTeamsAlertEpisodeActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode";
 import MicrosoftTeamsAuthAction, {
@@ -207,6 +216,10 @@ const SEVERITY_ID: string = "9d0e1f2a-3b4c-4d5e-9f6a-7b8c9d0e1f2a";
 const CREATED_ID: ObjectID = new ObjectID(
   "ae1f2a3b-4c5d-4e6f-8a7b-8c9d0e1f2a3b",
 );
+
+// A fix OneUptime AI proposes for an incident, and its plan's fingerprint.
+const SUGGESTION_ID: string = "bf2a3b4c-5d6e-4f7a-8b8c-9d0e1f2a3b4c";
+const PLAN_FINGERPRINT: string = "0123456789abcdef";
 
 const NOTE: string = "Rolled back the 14:02 deploy; the error rate is normal.";
 
@@ -430,7 +443,8 @@ type HandlerFamily =
   | "alert"
   | "alert episode"
   | "incident episode"
-  | "scheduled maintenance";
+  | "scheduled maintenance"
+  | "remediation";
 
 /*
  * THE INCIDENT CARD'S MENU (…). Each of its cards, submitted, acts on the
@@ -1286,6 +1300,54 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
       };
     },
   },
+  {
+    name: "remediation: Approve and run",
+    family: "remediation",
+    actionType: MicrosoftTeamsRemediationActionType.SubmitApproveRemediation,
+    actionValue: RemediationChatMessage.encodeActionValue({
+      suggestionId: new ObjectID(SUGGESTION_ID),
+      fingerprint: PLAN_FINGERPRINT,
+    }),
+    fields: {},
+    confirmation: menuConfirmation(
+      "✅ You approved this fix. OneUptime AI is making it now, and the incident in OneUptime shows how it goes.",
+      "You approved this fix",
+    ),
+    failureReply: ACTION_FAILED,
+    stubWrite: (failure?: Error): WriteCheck => {
+      const suggestion: AutoRemediationSuggestion =
+        new AutoRemediationSuggestion();
+      suggestion.id = new ObjectID(SUGGESTION_ID);
+      suggestion.projectId = PROJECT_ID;
+      suggestion.incidentId = new ObjectID(INCIDENT_ID);
+      suggestion.status = AutoRemediationSuggestionStatus.Suggested;
+
+      jest
+        .spyOn(WorkspaceRemediationActions, "readFix")
+        .mockResolvedValue(suggestion);
+      // Who may press is pinned in WorkspaceRemediationActions.test.ts.
+      jest
+        .spyOn(WorkspaceActionAuthorization, "authorize")
+        .mockResolvedValue(MEMBER_PROPS);
+      const approve: SpyInstance<typeof RemediationApproval.approve> = jest
+        .spyOn(RemediationApproval, "approve")
+        .mockImplementation((): Promise<JSONObject> => {
+          return writeOutcome({}, failure);
+        });
+
+      return (): void => {
+        expect(approve).toHaveBeenCalledTimes(1);
+        expect(approve).toHaveBeenCalledWith({
+          // Approved by the member, with their own props.
+          props: MEMBER_PROPS,
+          suggestionId: SUGGESTION_ID,
+          // Exactly the plan the message showed, or nothing is done.
+          expectedPlanFingerprint: PLAN_FINGERPRINT,
+          from: WorkspaceType.MicrosoftTeams,
+        });
+      };
+    },
+  },
 ];
 
 const CREATE_FORMS: ReadonlyArray<SubmittedForm> = SUBMITTED_FORMS.filter(
@@ -1391,6 +1453,7 @@ const FAMILY_SOURCE_FILES: Record<HandlerFamily, string> = {
   "alert episode": "Actions/AlertEpisode.ts",
   "incident episode": "Actions/IncidentEpisode.ts",
   "scheduled maintenance": "Actions/ScheduledMaintenance.ts",
+  remediation: "Actions/Remediation.ts",
 };
 
 // The submit's value: the card's action data plus what the user filled in.
@@ -1501,6 +1564,18 @@ const HANDLERS: Record<HandlerFamily, SubmitHandler> = {
       MAINTENANCE_REQUEST,
       MEMBER_PROPS,
     );
+  },
+  remediation: (
+    form: SubmittedForm,
+    turnContext: TurnContext,
+  ): Promise<void> => {
+    return MicrosoftTeamsRemediationActions.handle({
+      actionType: form.actionType,
+      actionValue: form.actionValue,
+      projectId: PROJECT_ID,
+      oneUptimeUserId: USER_ID,
+      turnContext: turnContext,
+    });
   },
 };
 

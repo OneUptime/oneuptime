@@ -5,7 +5,7 @@ Um monitor de Kubernetes alerta com base nas métricas que o agente de Kubernete
 :::cards
 - [Instalar o agente](/docs/monitor/kubernetes-agent): Um único comando do Helm coloca o cluster no OneUptime.
 - [Criar o monitor](#criar-um-monitor-de-kubernetes): Escolher o cluster e depois um modelo, uma métrica ou uma consulta.
-- [Modelos de alerta](#modelos-de-alerta-prontos): Dezoito alertas prontos, de um cluster silencioso a etcd.
+- [Modelos de alerta](#modelos-de-alerta-prontos): Vinte e um alertas prontos, de um cluster silencioso a etcd.
 - [Critérios](#critérios-de-monitoramento): Limites estáticos e detecção de anomalias.
 :::
 
@@ -86,9 +86,9 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 | Categoria | Métricas |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nó | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Nó | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Contêiner | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Carga de trabalho | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Carga de trabalho | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Plano de controle | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ A lista de **Sobre o que alertar** traz estes modelos, agrupados por categoria. 
 | CrashLoopBackOff Detection | Carga de trabalho | Um contêiner reiniciou em 15 minutos e ficou pronto menos da metade desse tempo | Crítico |
 | Pod Stuck in Pending | Agendamento | Algum pod está na fase Pending em todas as amostras de uma janela de 15 minutos | Aviso |
 | Node Not Ready | Nó | Um nó informa NotReady ou para de informar seu status (Unknown) | Crítico |
+| Node Under Pressure | Nó | Um nó informa MemoryPressure, DiskPressure ou PIDPressure por 10 minutos | Aviso |
 | High Node CPU Utilization | Nó | O uso médio de CPU de um nó passa de 90% da CPU alocável | Aviso |
 | High Node Memory Utilization | Nó | O working set médio de memória de um nó passa de 85% da memória alocável | Aviso |
 | Deployment Replica Mismatch | Carga de trabalho | Um deployment tem menos réplicas disponíveis do que o desejado por 15 minutos | Aviso |
+| StatefulSet Replica Mismatch | Carga de trabalho | Um StatefulSet tem menos réplicas prontas do que o desejado por 15 minutos | Aviso |
 | Job Failures | Carga de trabalho | Um pod de um job falhou em 15 minutos | Aviso |
 | etcd No Leader | Plano de controle | O etcd não tem líder eleito | Crítico |
 | API Server Request Saturation | Plano de controle | O servidor de API mantém 200 ou mais requisições em andamento durante toda a janela | Crítico |
 | Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Aviso |
 | High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 90% cheio | Aviso |
+| DaemonSet Pods Not Ready | Carga de trabalho | Um DaemonSet tem nós sem um pod seu pronto por 15 minutos | Aviso |
 | DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Aviso |
 | High Node CPU Request Commitment | Nó | A soma das requisições de CPU dos contêineres de um nó passa de 90% da CPU alocável | Aviso |
 | High Node Memory Request Commitment | Nó | A soma das requisições de memória dos contêineres de um nó passa de 90% da memória alocável | Aviso |

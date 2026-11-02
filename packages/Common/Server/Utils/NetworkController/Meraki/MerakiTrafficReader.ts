@@ -32,6 +32,7 @@ import {
   TEXT_LIMITS,
   buildApplicationRecords,
   buildClientRecords,
+  buildUplinkHealthRecords,
   buildUplinkRecords,
   cleanText,
   readAppliances,
@@ -54,7 +55,13 @@ import {
  *      ending five minutes ago - long enough for Meraki to have counted it -
  *      so the chart is five minutes fine and a read costs one call per
  *      window however many sites there are;
- *   3. per network, every two hours: traffic analytics (networks/{id}/
+ *   3. uplink loss and latency, for EVERY MX of the organization in one call
+ *      (organizations/{id}/devices/uplinksLossAndLatency, five minutes at
+ *      most, ending two minutes ago at the latest, OneUptime issue #5377):
+ *      asked for the same five-minute windows as the usage, so the two line
+ *      up on a chart. What it adds never costs the traffic: a call that
+ *      fails is a warning, and the next read carries on where it stopped;
+ *   4. per network, every two hours: traffic analytics (networks/{id}/
  *      traffic - application, destination, protocol, port, bytes, flows,
  *      clients - Meraki's own aggregates, two hours at least, only where
  *      traffic analysis is turned on) and client usage (networks/{id}/
@@ -62,7 +69,7 @@ import {
  *      ended and ends when it is asked for. The same client listing says
  *      which device and port each client is on (MerakiClientList), so the
  *      map's use of it costs no call;
- *   4. per network with an MX or an MS, every six hours: its link layer
+ *   5. per network with an MX or an MS, every six hours: its link layer
  *      topology (networks/{id}/topology/linkLayer, MerakiLinkLayer), the
  *      cables the dashboard draws. Cables move rarely and each network costs
  *      a call, so a read asks at most MAX_TOPOLOGY_NETWORKS_PER_READ networks,
@@ -70,7 +77,8 @@ import {
  *      read can starve the other. The rest wait for the connection's next
  *      read: that is no partial read, and hurries nothing.
  *
- * None of it is flow records: the API never says who talked to whom.
+ * None of it is flow records: the API says what each network reached, never
+ * which client talked to it, and no call counts an uplink's packets or errors.
  *
  * Incremental: the state says where the last uplink window and each
  * network's last analytics window ended. After a long pause at most a day
@@ -92,6 +100,12 @@ const HOUR_MS: number = 60 * 60 * 1000;
 export const BACKFILL_MS: number = 24 * HOUR_MS;
 // Uplink windows one read stores at most.
 export const MAX_UPLINK_WINDOWS_PER_READ: number = 60;
+/*
+ * Windows of loss and latency one read asks for at most, a call each: two
+ * hours, so a connection read hourly leaves no gap, and a first read or one
+ * after a pause never spends more than that on the past.
+ */
+export const MAX_UPLINK_HEALTH_WINDOWS_PER_READ: number = 24;
 // Meraki's traffic analytics cover at least this long.
 export const ANALYTICS_WINDOW_MS: number = 2 * HOUR_MS;
 // A network's links are read again after this.
@@ -254,6 +268,46 @@ export function planUplinkWindows(data: {
   }
 
   return { windows, gapFrom };
+}
+
+/*
+ * The windows of loss and latency a read asks for: the uplink usage's own
+ * five-minute windows, from where the last one ended to five minutes ago, at
+ * most MAX_UPLINK_HEALTH_WINDOWS_PER_READ of the newest. Meraki answers a
+ * window of five minutes at most, so a read after a pause reads back this
+ * far and no further: what it leaves out is a gap on a chart, never a guess.
+ */
+export function planUplinkHealthWindows(data: {
+  cursor: string | undefined;
+  now: Date;
+}): Array<{ start: Date; end: Date }> {
+  const latestEnd: number =
+    Math.floor((data.now.getTime() - UPLINK_LAG_MS) / UPLINK_WINDOW_MS) *
+    UPLINK_WINDOW_MS;
+  const earliestStart: number =
+    latestEnd - MAX_UPLINK_HEALTH_WINDOWS_PER_READ * UPLINK_WINDOW_MS;
+
+  const cursorTime: number | null = toTime(data.cursor);
+  const windows: Array<{ start: Date; end: Date }> = [];
+
+  for (
+    let start: number =
+      cursorTime === null
+        ? earliestStart
+        : Math.max(
+            earliestStart,
+            Math.floor(cursorTime / UPLINK_WINDOW_MS) * UPLINK_WINDOW_MS,
+          );
+    start < latestEnd;
+    start += UPLINK_WINDOW_MS
+  ) {
+    windows.push({
+      start: new Date(start),
+      end: new Date(start + UPLINK_WINDOW_MS),
+    });
+  }
+
+  return windows;
 }
 
 /*
@@ -450,6 +504,9 @@ export default class MerakiTrafficReader {
         ...(options.state.uplinkCursor
           ? { uplinkCursor: options.state.uplinkCursor }
           : {}),
+        ...(options.state.uplinkHealthCursor
+          ? { uplinkHealthCursor: options.state.uplinkHealthCursor }
+          : {}),
         analyticsCursors: { ...(options.state.analyticsCursors || {}) },
         trafficAnalysisOff: { ...(options.state.trafficAnalysisOff || {}) },
         topologyCursors: { ...(options.state.topologyCursors || {}) },
@@ -547,10 +604,16 @@ export default class MerakiTrafficReader {
         networkNames,
       });
 
-      // 3. The links of the networks whose turn it is.
+      // 3. Uplink loss and latency, the same way.
+      await MerakiTrafficReader.readUplinkHealth(progress, {
+        appliances,
+        networkNames,
+      });
+
+      // 4. The links of the networks whose turn it is.
       await MerakiTrafficReader.readTopology(progress, networks);
 
-      // 4. Applications, destinations and clients, network by network.
+      // 5. Applications, destinations and clients, network by network.
       await MerakiTrafficReader.readAnalytics(progress, networks);
     } catch (error) {
       if (!(error instanceof MerakiBudgetSpent)) {
@@ -722,6 +785,97 @@ export default class MerakiTrafficReader {
       }).windows.length > 0
     ) {
       progress.complete = false;
+    }
+  }
+
+  /*
+   * The organization's windows of loss and latency, oldest first. A read is
+   * no less complete without them: a window that cannot be read stops them
+   * for this read with a warning - the cursor stays before it, so the next
+   * read asks for it again - and the rest of the read goes on. A refused key
+   * still fails the read, as every other call's does.
+   */
+  private static async readUplinkHealth(
+    progress: ReadProgress,
+    data: {
+      appliances: Array<NetworkControllerAppliance>;
+      networkNames: Map<string, string>;
+    },
+  ): Promise<void> {
+    const windows: Array<{ start: Date; end: Date }> = planUplinkHealthWindows({
+      cursor: progress.state.uplinkHealthCursor,
+      now: progress.now,
+    });
+
+    if (windows.length === 0) {
+      return;
+    }
+
+    if (data.appliances.length === 0) {
+      // No appliance, no uplink: nothing to read now, nor to read again.
+      progress.state.uplinkHealthCursor = iso(windows[windows.length - 1]!.end);
+      return;
+    }
+
+    const appliancesBySerial: Map<string, NetworkControllerAppliance> = new Map(
+      data.appliances.map(
+        (
+          appliance: NetworkControllerAppliance,
+        ): [string, NetworkControllerAppliance] => {
+          return [appliance.serial, appliance];
+        },
+      ),
+    );
+
+    for (const window of windows) {
+      let page: MerakiPage;
+
+      try {
+        page = await progress.client.get(
+          `${progress.orgPath}/devices/uplinksLossAndLatency`,
+          buildMerakiQuery([
+            ["t0", iso(window.start)],
+            ["t1", iso(window.end)],
+          ]),
+          "uplink loss and latency",
+        );
+      } catch (error) {
+        if (error instanceof MerakiBudgetSpent) {
+          throw error;
+        }
+
+        const failure: LlmProviderError = asProviderError(
+          error,
+          "uplink loss and latency",
+        );
+
+        if (failure.kind === LlmConnectionFailureKind.Authentication) {
+          throw failure;
+        }
+
+        progress.warnings.add(
+          failure.kind === LlmConnectionFailureKind.RateLimited
+            ? RATE_LIMITED_WARNING
+            : `Couldn't read the uplinks' loss and latency: ${failure.message}`,
+        );
+        return;
+      }
+
+      progress.records.push(
+        ...buildUplinkHealthRecords({
+          answer: Array.isArray(page.body) ? page.body : [],
+          appliances: appliancesBySerial,
+          networkNames: data.networkNames,
+          windowStartAt: window.start,
+          windowEndAt: window.end,
+        }),
+      );
+      progress.windows.push({
+        kind: NetworkTrafficUsageKind.UplinkHealth,
+        controllerNetworkId: "",
+        windowStartAt: window.start,
+      });
+      progress.state.uplinkHealthCursor = iso(window.end);
     }
   }
 

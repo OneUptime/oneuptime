@@ -195,18 +195,21 @@ The first read starts within a minute and brings in the last day. From then on t
 | The four numbers, the chart, **Top networks** and **Uplinks** | The uplink usage of every MX and Z appliance (wan1, wan2, cellular), for the whole organization in one call | Every 5 minutes by default, up to every hour, in five-minute windows |
 | **Top applications** and **Top destinations** | Each network's traffic analytics | Every two hours: Meraki sums them over two hours or more |
 | **Top clients** | Each network's clients and what they used | Every two hours, with the applications |
+| **WAN uplinks** | The loss and latency of every MX appliance's uplinks, for the whole organization in one call | With the uplink usage, in five-minute windows |
 
 A click on a network narrows the page to it, and lists its uplinks. An appliance's traffic belongs to its device in OneUptime when a device has the appliance's serial number or MAC address: it then shows on that device's and its site's Traffic pages too. The traffic of an appliance that is no device in OneUptime shows on the network's page.
+
+**WAN uplinks** puts the page's uplinks side by side over its time range: what each carried, its share, its average and peak rate, its latency and its packet loss, with a chart of them. Meraki measures loss and latency towards an address on the internet, so a standby line that carries nothing still shows how it is doing. A click on an uplink there, or on a row of **Uplinks**, narrows the whole page to it: its numbers, its chart and the networks that use it, so `wan2` on the network's page shows the sites running on it. Applications, destinations, clients and flows stay the whole network's, because Meraki counts them per network.
 
 Each read also lists the organization's devices. A Meraki device that is a network device in OneUptime takes what its own poll leaves empty from the dashboard: its serial number, model, firmware, MAC address and the rest ([Network Device Asset Attributes](/docs/inventory/cmdb-sync#network-device-asset-attributes)). The connection's row counts them, and the device's **Inventory** card says when Meraki was read, in a row of its own.
 
 The same reads fill in the network map, with nothing to turn on. A client of a Meraki switch is drawn on the port Meraki last saw it on, and a device here that only answers ping is drawn on that port too: see [Ping-only devices and their switch port](/docs/monitor/network-device-monitor#ping-only-devices-and-their-switch-port). Every six hours, each network with an MX or an MS is also asked for its links, at one request a network, so the cable from a switch to its MX appears without anyone drawing it. The connection's row says how many clients and devices that placed, and how many Meraki devices with wired clients are not network devices here: their clients have nothing to hang from until you add them.
 
-Meraki gives each organization 10 API requests a second, shared by every application that reads it. OneUptime uses at most 3 of them, slows down when Meraki asks it to, and stops a read after 900 requests or 6 minutes; the next read carries on a minute later. An organization of 1,200 networks has its uplinks read in one call a window, and its networks' applications and clients over a few reads.
+Meraki gives each organization 10 API requests a second, shared by every application that reads it. OneUptime uses at most 3 of them, slows down when Meraki asks it to, and stops a read after 900 requests or 6 minutes; the next read carries on a minute later. An organization of 1,200 networks has its uplinks, and their loss and latency, read in one call a window each, and its networks' applications and clients over a few reads.
 
 The connections are listed at the foot of the network's Traffic page, under **Meraki**, each with how it is doing and what its last read covered. Each has one button for the next thing to do: **Read now** reads it at once, **Turn on** turns it back on when it is off, and **Update API key** replaces a key Meraki refused, testing the new key before it is saved. Its menu has **Edit** (its name, how often to read the uplinks, a new key), **Turn off** and **Delete**. A read that fails says why, there and over the traffic: a refused key, a key that cannot read the organization, Meraki asking OneUptime to slow down, or networks whose traffic analysis is off. Over the traffic, **Review** leads to the connection. Only project owners and admins can connect Meraki and change or read a connection.
 
-The Meraki dashboard API reports totals, never who talked to whom, so the Meraki side has no conversations. To see them, send NetFlow from the MX appliances as well ([Cisco Meraki MX and Z](#cisco-meraki-mx-and-z)): the page then has both, one switch apart.
+**Who talks to whom** lists what each network reached: the host or address, with the protocol, port and application Meraki saw, the traffic each way, the flows and the most clients in one window. That is as close to a conversation as the Meraki dashboard API comes: it never says which client talked to what, and it counts no packets or errors on an uplink. To see every conversation, address to address, with its packets, send NetFlow from the MX appliances as well ([Cisco Meraki MX and Z](#cisco-meraki-mx-and-z)): the page then has both, one switch apart.
 
 ## Addresses that are not devices yet
 
@@ -267,12 +270,13 @@ The lookups never hold the flows up. The busiest addresses are looked up first, 
 - **Applications.** An application is the protocol and the service port, named after the service usually on that port. It is not deep packet inspection: HTTPS on port 9443 is shown as TCP port 9443. The client's short-lived port is left out, so a thousand browser connections to one server are one application.
 - **Peak** is the rate of the busiest slice of the chart, so a shorter time range, with shorter slices, shows a sharper peak. **Average** is the bytes over the whole time range.
 - **Time.** A flow counts in the slice it started in. A long download is reported as several flows, one for every minute it runs, which is why the devices' active timeout should be 60 seconds.
+- **Meraki's newest minutes.** Meraki reports uplink usage a few minutes after it happens, and applications, destinations and clients every two hours. A chart ends at the newest window read, the page says how far that is, and **Average** is of that stretch: minutes not reported yet do not count as silence. A short time range can fall between two reads of the applications: the lists then say when the newest is from.
 
 ## What is not included
 
 - **Alerts on flows.** There is no flow-based monitor yet. To alert on a busy link, use the interface utilization alerts of the [Network Device monitor](/docs/monitor/network-device-monitor), which read SNMP.
 - **Application names beyond the port.** There is no deep packet inspection, and Cisco NBAR application names are not read.
-- **Conversations from the Meraki dashboard API.** It reports totals, not who talked to whom: send NetFlow from the MX appliances as well to see conversations.
+- **Conversations and packets from the Meraki dashboard API.** It says what each network reached, not which client talked to it, and it counts no packets or errors on an uplink: send NetFlow from the MX appliances as well to see them.
 - **Anomaly detection** on traffic.
 - **Interface names from flow records.** Interface names and speeds come from the device's SNMP walk; a device that is not walked shows interface numbers.
 

@@ -70,6 +70,13 @@ export interface ComponentProps {
   totalOctets: number;
   emptyMessage: string;
   dataTestId: string;
+  // Under the rows, when the list has more to say than its rows do.
+  footer?: ReactNode | undefined;
+  /*
+   * Off for a list that is not in a grid: as tall as its row is what a list
+   * beside another wants, and outside a row it would be as tall as the page.
+   */
+  fillHeight?: boolean | undefined;
 }
 
 // The card's room under its header, which the list or its empty sentence fills.
@@ -98,7 +105,7 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
         </span>
       }
       description={props.description}
-      fillHeight={true}
+      fillHeight={props.fillHeight !== false}
     >
       {/*
        * The room the card has under its header: a list keeps its rows at
@@ -225,6 +232,13 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
               );
             })}
           </ol>
+        )}
+        {props.footer ? (
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            {props.footer}
+          </div>
+        ) : (
+          <></>
         )}
       </div>
     </Card>

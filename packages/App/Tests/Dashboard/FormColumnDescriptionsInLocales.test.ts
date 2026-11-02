@@ -52,6 +52,13 @@ const FEATURE_SET: string = path.join(
   "FeatureSet",
 );
 
+/*
+ * The Admin Dashboard's forms that draw a column's help (the license forms)
+ * are the Enterprise Edition's, under ee/AdminDashboard. App Test removes
+ * ee/ before it runs, so they are found only where ee/ is there.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(path.join(REPO_ROOT, "ee"));
+
 const TRANSLATED_LANGUAGES: ReadonlyArray<string> = [
   "de",
   "fr",
@@ -210,7 +217,9 @@ describe("the column descriptions forms draw are in every frontend's locales", (
      * number of subscriber") is the API's (hideColumnDescription).
      */
     expect(Array.from(frontends).sort()).toEqual(
-      expect.arrayContaining(["AdminDashboard", "Dashboard"]),
+      expect.arrayContaining(
+        ENTERPRISE_PRESENT ? ["AdminDashboard", "Dashboard"] : ["Dashboard"],
+      ),
     );
   });
 

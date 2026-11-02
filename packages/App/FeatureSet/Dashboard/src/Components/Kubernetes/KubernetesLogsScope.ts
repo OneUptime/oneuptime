@@ -14,12 +14,32 @@ export const KUBERNETES_CONTAINER_NAME_ATTRIBUTE: string =
 export const KUBERNETES_NAMESPACE_NAME_ATTRIBUTE: string =
   "resource.k8s.namespace.name";
 
+/*
+ * The attribute that names a pod's workload on its logs: the agent's
+ * k8sattributes stamps every log line with the workload its pod belongs to
+ * (and a node's name), so a workload's Logs tab reads its pods' lines
+ * without naming each pod. A DeploymentConfig's pods carry the label the
+ * chart extracts instead.
+ */
+export const KUBERNETES_WORKLOAD_LOG_ATTRIBUTES: Record<string, string> = {
+  Deployment: "resource.k8s.deployment.name",
+  StatefulSet: "resource.k8s.statefulset.name",
+  DaemonSet: "resource.k8s.daemonset.name",
+  Job: "resource.k8s.job.name",
+  CronJob: "resource.k8s.cronjob.name",
+  DeploymentConfig: "resource.k8s.pod.label.deploymentconfig",
+  Node: "resource.k8s.node.name",
+};
+
 export interface KubernetesLogsScopeInput {
   clusterIdentifier: string;
   clusterName?: string | undefined;
   podName?: string | undefined;
   containerName?: string | undefined;
   namespace?: string | undefined;
+  // A workload's or a node's lines: its kind and name.
+  workloadKind?: string | undefined;
+  workloadName?: string | undefined;
 }
 
 type HasValueFunction = (value: string | undefined) => boolean;
@@ -66,6 +86,14 @@ export const buildKubernetesLogsAttributeFilters: BuildKubernetesLogsAttributeFi
       attributeFilters[KUBERNETES_NAMESPACE_NAME_ATTRIBUTE] = input.namespace!;
     }
 
+    const workloadAttribute: string | undefined = input.workloadKind
+      ? KUBERNETES_WORKLOAD_LOG_ATTRIBUTES[input.workloadKind]
+      : undefined;
+
+    if (workloadAttribute && hasValue(input.workloadName)) {
+      attributeFilters[workloadAttribute] = input.workloadName!;
+    }
+
     return attributeFilters;
   };
 
@@ -79,6 +107,14 @@ export const KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS: Record<string, string> = {
   [KUBERNETES_POD_NAME_ATTRIBUTE]: "Pod",
   [KUBERNETES_CONTAINER_NAME_ATTRIBUTE]: "Container",
   [KUBERNETES_NAMESPACE_NAME_ATTRIBUTE]: "Namespace",
+  // A workload's chip reads its kind, as kubectl writes it.
+  "resource.k8s.deployment.name": "Deployment",
+  "resource.k8s.statefulset.name": "StatefulSet",
+  "resource.k8s.daemonset.name": "DaemonSet",
+  "resource.k8s.job.name": "Job",
+  "resource.k8s.cronjob.name": "CronJob",
+  "resource.k8s.pod.label.deploymentconfig": "DeploymentConfig",
+  "resource.k8s.node.name": "Node",
 };
 
 type GetKubernetesClusterDisplayNameFunction = (input: {

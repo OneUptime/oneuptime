@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39842,
-    "untranslated": 12812
+    "keys": 40054,
+    "untranslated": 12746
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -40,6 +40,7 @@
     "Collector",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container: {{name}}",
     "Content Security Policy",
     "Controller",
     "CrowdStrike",
@@ -129,6 +130,7 @@
     "Path traversal",
     "Pause",
     "Peer",
+    "Persistent volume claims",
     "Person",
     "Plan",
     "Platform",
@@ -199,6 +201,8 @@
     "Tunnel",
     "Type",
     "UTC",
+    "Uplink",
+    "Uplink {{uplink}}",
     "Uplinks",
     "Uploads",
     "VLAN",
@@ -268,6 +272,7 @@
     "{{count}} alarm",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} container",
     "{{count}} dashboard",
     "{{count}} dashboards",
     "{{count}} datacenter",
@@ -275,8 +280,13 @@
     "{{count}} datastores",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
+    "{{count}} flow",
+    "{{count}} flows",
     "{{count}} match",
+    "{{count}} node",
     "{{count}} person",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} rotation",
     "{{count}} sample",
     "{{count}} samples",

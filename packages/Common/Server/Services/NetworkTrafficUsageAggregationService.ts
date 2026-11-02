@@ -23,6 +23,7 @@ import {
   NETWORK_TRAFFIC_USAGE_TOP_LIMIT,
   NetworkTrafficUsageApplicationRow,
   NetworkTrafficUsageClientRow,
+  NetworkTrafficUsageConversationRow,
   NetworkTrafficUsageDestinationRow,
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageKind,
@@ -30,7 +31,10 @@ import {
   NetworkTrafficUsageNetworkRow,
   NetworkTrafficUsageSeriesPoint,
   NetworkTrafficUsageTotals,
+  NetworkTrafficUsageUplinkInterfaceRow,
   NetworkTrafficUsageUplinkRow,
+  NetworkTrafficUsageUplinkSeriesPoint,
+  isUplinkUsageKind,
 } from "../../Types/NetFlow/NetworkTrafficUsage";
 import { MAX_NETWORK_TRAFFIC_RANGE_DAYS } from "../../Types/NetFlow/NetworkTraffic";
 import ObjectID from "../../Types/ObjectID";
@@ -44,7 +48,9 @@ import ObjectID from "../../Types/ObjectID";
  * page's range: a window wholly inside counts whole, one that runs past an
  * edge counts for the part inside (WEIGHT). The chart splits each window
  * over the buckets it spans the same way, so an hour-long backfill window
- * draws as twelve five-minute buckets of a twelfth each, not one spike.
+ * draws as twelve five-minute buckets of a twelfth each, not one spike. An
+ * uplink's loss and latency are measurements, not totals: they are averaged,
+ * never shared out.
  *
  * Every read is bounded as the flow reads are:
  *
@@ -93,14 +99,19 @@ export interface NetworkTrafficUsageAggregates {
   series: Array<NetworkTrafficUsageSeriesPoint>;
   topNetworks: Array<NetworkTrafficUsageNetworkRow>;
   topUplinks: Array<NetworkTrafficUsageUplinkRow>;
+  uplinkInterfaces: Array<NetworkTrafficUsageUplinkInterfaceRow>;
+  uplinkSeries: Array<NetworkTrafficUsageUplinkSeriesPoint>;
   topApplications: Array<NetworkTrafficUsageApplicationRow>;
   topDestinations: Array<NetworkTrafficUsageDestinationRow>;
   topClients: Array<NetworkTrafficUsageClientRow>;
+  topConversations: Array<NetworkTrafficUsageConversationRow>;
 }
 
 export interface NetworkTrafficUsageFreshness {
   lastUplinkAt: string | null;
   lastAnalyticsAt: string | null;
+  // The connections whose uplinks are on the page, and their newest row's end.
+  uplinkEnds: Map<string, Date>;
 }
 
 function toNumber(value: unknown): number {
@@ -114,6 +125,31 @@ function toBytes(value: unknown): number {
 
 function toText(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+/*
+ * A measurement as ClickHouse answers it: null when nothing was measured.
+ * Never 0, which would read as a perfect line.
+ */
+function toMeasurement(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed: number = Number(value);
+
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+// A query with every filter it has, but for an uplink's.
+function withoutUplinkFilter(
+  query: NetworkTrafficUsageQuery,
+): NetworkTrafficUsageQuery {
+  const filters: NetworkTrafficUsageFilters = { ...query.filters };
+
+  delete filters.interfaceName;
+
+  return { ...query, filters };
 }
 
 export default class NetworkTrafficUsageAggregationService {
@@ -137,6 +173,7 @@ export default class NetworkTrafficUsageAggregationService {
     const freshness: NetworkTrafficUsageFreshness = {
       lastUplinkAt: null,
       lastAnalyticsAt: null,
+      uplinkEnds: new Map(),
     };
 
     for (const row of rows) {
@@ -151,7 +188,15 @@ export default class NetworkTrafficUsageAggregationService {
       const last: string = new Date(lastMs).toISOString();
 
       if (kind === NetworkTrafficUsageKind.Uplink) {
-        freshness.lastUplinkAt = last;
+        if (!freshness.lastUplinkAt || last > freshness.lastUplinkAt) {
+          freshness.lastUplinkAt = last;
+        }
+
+        const connectionId: string = toText(row["connectionKey"]);
+
+        if (connectionId) {
+          freshness.uplinkEnds.set(connectionId, new Date(lastMs));
+        }
       } else if (
         kind === NetworkTrafficUsageKind.Application &&
         (!freshness.lastAnalyticsAt || last > freshness.lastAnalyticsAt)
@@ -182,6 +227,11 @@ export default class NetworkTrafficUsageAggregationService {
       applicationRows,
       destinationRows,
       clientRows,
+      uplinkInterfaceRows,
+      uplinkHealthRows,
+      uplinkSeriesRows,
+      uplinkHealthSeriesRows,
+      conversationRows,
     ]: Array<Array<JSONObject>> = await Promise.all([
       NetworkTrafficUsageAggregationService.run(
         NetworkTrafficUsageAggregationService.buildTotalsStatement(
@@ -229,6 +279,31 @@ export default class NetworkTrafficUsageAggregationService {
       ),
       NetworkTrafficUsageAggregationService.run(
         NetworkTrafficUsageAggregationService.buildTopClientsStatement(query),
+      ),
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildUplinkInterfacesStatement(
+          query,
+        ),
+      ),
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildUplinkHealthStatement(query),
+      ),
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildUplinkSeriesStatement(
+          query,
+          data.bucketSeconds,
+        ),
+      ),
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildUplinkHealthSeriesStatement(
+          query,
+          data.bucketSeconds,
+        ),
+      ),
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildTopConversationsStatement(
+          query,
+        ),
       ),
     ]);
 
@@ -297,10 +372,21 @@ export default class NetworkTrafficUsageAggregationService {
           };
         },
       ),
+      uplinkInterfaces:
+        NetworkTrafficUsageAggregationService.readUplinkInterfaces(
+          uplinkInterfaceRows || [],
+          uplinkHealthRows || [],
+        ),
+      uplinkSeries: NetworkTrafficUsageAggregationService.readUplinkSeries(
+        uplinkSeriesRows || [],
+        uplinkHealthSeriesRows || [],
+      ),
       topApplications: (applicationRows || []).map(
         (row: JSONObject): NetworkTrafficUsageApplicationRow => {
           return {
             application: toText(row["applicationKey"]),
+            protocol: toText(row["topProtocol"]),
+            port: toBytes(row["topPort"]),
             sentOctets: toBytes(row["totalSent"]),
             receivedOctets: toBytes(row["totalReceived"]),
             flows: toBytes(row["totalFlows"]),
@@ -312,6 +398,8 @@ export default class NetworkTrafficUsageAggregationService {
           return {
             destination: toText(row["destinationKey"]),
             application: toText(row["topApplication"]),
+            protocol: toText(row["topProtocol"]),
+            port: toBytes(row["topPort"]),
             sentOctets: toBytes(row["totalSent"]),
             receivedOctets: toBytes(row["totalReceived"]),
           };
@@ -331,7 +419,132 @@ export default class NetworkTrafficUsageAggregationService {
           };
         },
       ),
+      topConversations: (conversationRows || []).map(
+        (row: JSONObject): NetworkTrafficUsageConversationRow => {
+          return {
+            controllerNetworkId: toText(row["networkKey"]),
+            controllerNetworkName: toText(row["networkName"]),
+            destination: toText(row["destinationKey"]),
+            application: toText(row["topApplication"]),
+            protocol: toText(row["protocolKey"]),
+            port: toBytes(row["portKey"]),
+            sentOctets: toBytes(row["totalSent"]),
+            receivedOctets: toBytes(row["totalReceived"]),
+            flows: toBytes(row["totalFlows"]),
+            clients: toBytes(row["mostClients"]),
+          };
+        },
+      ),
     };
+  }
+
+  /*
+   * The page's uplinks: what each carried, with what was measured on it.
+   * An uplink that carried nothing has no traffic row and is listed all the
+   * same when it was measured - a standby line that is up and healthy.
+   */
+  public static readUplinkInterfaces(
+    trafficRows: Array<JSONObject>,
+    healthRows: Array<JSONObject>,
+  ): Array<NetworkTrafficUsageUplinkInterfaceRow> {
+    const health: Map<string, JSONObject> = new Map(
+      healthRows.map((row: JSONObject): [string, JSONObject] => {
+        return [toText(row["uplinkKey"]), row];
+      }),
+    );
+    const rows: Array<NetworkTrafficUsageUplinkInterfaceRow> = trafficRows.map(
+      (row: JSONObject): NetworkTrafficUsageUplinkInterfaceRow => {
+        const interfaceName: string = toText(row["uplinkKey"]);
+        const measured: JSONObject | undefined = health.get(interfaceName);
+
+        return {
+          interfaceName,
+          applianceCount: toBytes(row["applianceTotal"]),
+          sentOctets: toBytes(row["totalSent"]),
+          receivedOctets: toBytes(row["totalReceived"]),
+          lossPercent: toMeasurement(measured?.["averageLoss"]),
+          latencyMs: toMeasurement(measured?.["averageLatency"]),
+        };
+      },
+    );
+
+    for (const [interfaceName, measured] of health) {
+      const isListed: boolean = rows.some(
+        (row: NetworkTrafficUsageUplinkInterfaceRow): boolean => {
+          return row.interfaceName === interfaceName;
+        },
+      );
+
+      if (interfaceName && !isListed) {
+        rows.push({
+          interfaceName,
+          applianceCount: 0,
+          sentOctets: 0,
+          receivedOctets: 0,
+          lossPercent: toMeasurement(measured["averageLoss"]),
+          latencyMs: toMeasurement(measured["averageLatency"]),
+        });
+      }
+    }
+
+    return rows.slice(0, NETWORK_TRAFFIC_USAGE_TOP_LIMIT);
+  }
+
+  /*
+   * Each uplink's buckets, with what was measured on it in them: a bucket
+   * of an uplink that carried nothing but was measured holds no bytes.
+   */
+  public static readUplinkSeries(
+    trafficRows: Array<JSONObject>,
+    healthRows: Array<JSONObject>,
+  ): Array<NetworkTrafficUsageUplinkSeriesPoint> {
+    const points: Map<string, NetworkTrafficUsageUplinkSeriesPoint> = new Map();
+
+    const pointOf: (row: JSONObject) => NetworkTrafficUsageUplinkSeriesPoint = (
+      row: JSONObject,
+    ): NetworkTrafficUsageUplinkSeriesPoint => {
+      const bucketMs: number = toNumber(row["bucketStartMs"]);
+      const interfaceName: string = toText(row["uplinkKey"]);
+      const key: string = `${bucketMs}/${interfaceName}`;
+      const point: NetworkTrafficUsageUplinkSeriesPoint = points.get(key) || {
+        time: new Date(bucketMs).toISOString(),
+        interfaceName,
+        sentOctets: 0,
+        receivedOctets: 0,
+        lossPercent: null,
+        latencyMs: null,
+      };
+
+      points.set(key, point);
+
+      return point;
+    };
+
+    for (const row of trafficRows) {
+      const point: NetworkTrafficUsageUplinkSeriesPoint = pointOf(row);
+
+      point.sentOctets = toBytes(row["bucketSent"]);
+      point.receivedOctets = toBytes(row["bucketReceived"]);
+    }
+
+    for (const row of healthRows) {
+      const point: NetworkTrafficUsageUplinkSeriesPoint = pointOf(row);
+
+      point.lossPercent = toMeasurement(row["averageLoss"]);
+      point.latencyMs = toMeasurement(row["averageLatency"]);
+    }
+
+    return Array.from(points.values()).sort(
+      (
+        a: NetworkTrafficUsageUplinkSeriesPoint,
+        b: NetworkTrafficUsageUplinkSeriesPoint,
+      ): number => {
+        return (
+          a.time.localeCompare(b.time) ||
+          a.interfaceName.localeCompare(b.interfaceName)
+        );
+      },
+    );
   }
 
   /*
@@ -378,8 +591,8 @@ export default class NetworkTrafficUsageAggregationService {
 
   /*
    * Where a connection's stored windows that end after `since` end: the
-   * newest uplink window's end, and each network's newest application or
-   * client window's. The read runner moves the cursors up to these before
+   * newest uplink window's end, the newest window of the uplinks' health,
+   * and each network's newest application or client window's. The read runner moves the cursors up to these before
    * it reads, so traffic a read stored without its cursor being recorded
    * (the bookkeeping write failed, or the insert's answer was lost) is
    * never read - and counted - again.
@@ -405,6 +618,7 @@ export default class NetworkTrafficUsageAggregationService {
   ): NetworkTrafficUsageStoredEnds {
     const ends: NetworkTrafficUsageStoredEnds = {
       uplinkEnd: null,
+      uplinkHealthEnd: null,
       analyticsEnds: new Map(),
     };
 
@@ -415,9 +629,20 @@ export default class NetworkTrafficUsageAggregationService {
         continue;
       }
 
-      if (toText(row["usageKind"]) === NetworkTrafficUsageKind.Uplink) {
+      const kind: string = toText(row["usageKind"]);
+
+      if (kind === NetworkTrafficUsageKind.Uplink) {
         if (!ends.uplinkEnd || endMs > ends.uplinkEnd.getTime()) {
           ends.uplinkEnd = new Date(endMs);
+        }
+
+        continue;
+      }
+
+      // An organization's measurements: no network's analytics have ended.
+      if (kind === NetworkTrafficUsageKind.UplinkHealth) {
+        if (!ends.uplinkHealthEnd || endMs > ends.uplinkHealthEnd.getTime()) {
+          ends.uplinkHealthEnd = new Date(endMs);
         }
 
         continue;
@@ -458,8 +683,8 @@ export default class NetworkTrafficUsageAggregationService {
   /*
    * ` WHERE projectId = .. AND kind = .. AND <windows that reach into
    * [start, end)> AND <devices> AND <filters>` - what every page read
-   * shares. A deviceSerial filter holds the uplinks to that appliance; the
-   * network filter holds every kind to the network.
+   * shares. An appliance's and an uplink's filter hold the uplinks and their
+   * health to it; the network filter holds every kind to the network.
    */
   public static buildWhere(
     query: NetworkTrafficUsageQuery,
@@ -499,11 +724,20 @@ export default class NetworkTrafficUsageAggregationService {
       );
     }
 
-    if (query.filters.deviceSerial && kind === NetworkTrafficUsageKind.Uplink) {
+    if (query.filters.deviceSerial && isUplinkUsageKind(kind)) {
       statement.append(
         SQL` AND deviceSerial = ${{
           type: TableColumnType.Text,
           value: query.filters.deviceSerial,
+        }}`,
+      );
+    }
+
+    if (query.filters.interfaceName && isUplinkUsageKind(kind)) {
+      statement.append(
+        SQL` AND interfaceName = ${{
+          type: TableColumnType.Text,
+          value: query.filters.interfaceName,
         }}`,
       );
     }
@@ -540,6 +774,36 @@ export default class NetworkTrafficUsageAggregationService {
     kind: NetworkTrafficUsageKind,
     bucketSeconds: number,
   ): Statement {
+    return NetworkTrafficUsageAggregationService.buildBucketsStatement(
+      query,
+      kind,
+      bucketSeconds,
+      { byUplink: false },
+    );
+  }
+
+  /*
+   * The same split, uplink by uplink, of every uplink a page narrowed to
+   * one still compares it with.
+   */
+  public static buildUplinkSeriesStatement(
+    query: NetworkTrafficUsageQuery,
+    bucketSeconds: number,
+  ): Statement {
+    return NetworkTrafficUsageAggregationService.buildBucketsStatement(
+      withoutUplinkFilter(query),
+      NetworkTrafficUsageKind.Uplink,
+      bucketSeconds,
+      { byUplink: true },
+    );
+  }
+
+  private static buildBucketsStatement(
+    query: NetworkTrafficUsageQuery,
+    kind: NetworkTrafficUsageKind,
+    bucketSeconds: number,
+    options: { byUplink: boolean },
+  ): Statement {
     if (!Number.isInteger(bucketSeconds) || bucketSeconds < 60) {
       throw new BadDataException("bucketSeconds must be at least 60");
     }
@@ -547,7 +811,10 @@ export default class NetworkTrafficUsageAggregationService {
     const bucketMs: number = bucketSeconds * 1000;
 
     return SQL`
-      SELECT
+      SELECT`
+      .append(options.byUplink ? " uplinkKey," : "")
+      .append(
+        SQL`
         bucketIndex * ${{ type: TableColumnType.BigNumber, value: bucketMs }} AS bucketStartMs,
         sum(sent * (least(clippedEnd, (bucketIndex + 1) * ${{
           type: TableColumnType.BigNumber,
@@ -564,7 +831,11 @@ export default class NetworkTrafficUsageAggregationService {
           value: bucketMs,
         }})) / windowLength) AS bucketReceived
       FROM (
-        SELECT
+        SELECT`,
+      )
+      .append(options.byUplink ? " interfaceName AS uplinkKey," : "")
+      .append(
+        SQL`
           toFloat64(sentOctets) AS sent,
           toFloat64(receivedOctets) AS received,
           greatest(toUnixTimestamp64Milli(windowStartAt), ${{
@@ -576,7 +847,8 @@ export default class NetworkTrafficUsageAggregationService {
             value: query.endTime.getTime(),
           }}) AS clippedEnd,
           greatest(1, toUnixTimestamp64Milli(windowEndAt) - toUnixTimestamp64Milli(windowStartAt)) AS windowLength
-        FROM ${TABLE_NAME}`
+        FROM ${TABLE_NAME}`,
+      )
       .append(NetworkTrafficUsageAggregationService.buildWhere(query, kind))
       .append(
         SQL`
@@ -588,9 +860,96 @@ export default class NetworkTrafficUsageAggregationService {
         type: TableColumnType.BigNumber,
         value: bucketMs,
       }}) + 1) AS bucketIndex
-      WHERE clippedEnd > clippedStart
+      WHERE clippedEnd > clippedStart`,
+      )
+      .append(
+        options.byUplink
+          ? `
+      GROUP BY bucketIndex, uplinkKey
+      ORDER BY bucketIndex ASC, uplinkKey ASC`
+          : `
       GROUP BY bucketIndex
       ORDER BY bucketIndex ASC`,
+      )
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * What each uplink carried in the range, across the appliances the page is
+   * of. Never held to an uplink's filter: narrowing to one still lists the
+   * others beside it.
+   */
+  public static buildUplinkInterfacesStatement(
+    query: NetworkTrafficUsageQuery,
+  ): Statement {
+    return SQL`SELECT interfaceName AS uplinkKey, uniqExact(deviceSerial) AS applianceTotal, sum(toFloat64(sentOctets) * `
+      .append(NetworkTrafficUsageAggregationService.buildWeight(query))
+      .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
+      .append(NetworkTrafficUsageAggregationService.buildWeight(query))
+      .append(SQL`) AS totalReceived FROM ${TABLE_NAME}`)
+      .append(
+        NetworkTrafficUsageAggregationService.buildWhere(
+          withoutUplinkFilter(query),
+          NetworkTrafficUsageKind.Uplink,
+        ),
+      )
+      .append(
+        ` GROUP BY uplinkKey ORDER BY (totalSent + totalReceived) DESC LIMIT ${NETWORK_TRAFFIC_USAGE_TOP_LIMIT}`,
+      )
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * What Meraki measured on each uplink in the range, on average: over every
+   * window and every appliance alike, so an outage shows in proportion to
+   * how much of the range it took. NULLs are left out by avg(): a measurement
+   * Meraki did not make counts for nothing, not for 0.
+   */
+  public static buildUplinkHealthStatement(
+    query: NetworkTrafficUsageQuery,
+  ): Statement {
+    return SQL`SELECT interfaceName AS uplinkKey, avg(lossPercent) AS averageLoss, avg(latencyMs) AS averageLatency FROM ${TABLE_NAME}`
+      .append(
+        NetworkTrafficUsageAggregationService.buildWhere(
+          withoutUplinkFilter(query),
+          NetworkTrafficUsageKind.UplinkHealth,
+        ),
+      )
+      .append(
+        ` GROUP BY uplinkKey ORDER BY uplinkKey ASC LIMIT ${NETWORK_TRAFFIC_USAGE_TOP_LIMIT}`,
+      )
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * The same bucket by bucket. Windows are never split here, as bytes are:
+   * they are measurements, and no bucket is narrower than a window.
+   */
+  public static buildUplinkHealthSeriesStatement(
+    query: NetworkTrafficUsageQuery,
+    bucketSeconds: number,
+  ): Statement {
+    if (!Number.isInteger(bucketSeconds) || bucketSeconds < 60) {
+      throw new BadDataException("bucketSeconds must be at least 60");
+    }
+
+    const bucketMs: number = bucketSeconds * 1000;
+
+    return SQL`SELECT intDiv(toUnixTimestamp64Milli(windowStartAt), ${{
+      type: TableColumnType.BigNumber,
+      value: bucketMs,
+    }}) * ${{
+      type: TableColumnType.BigNumber,
+      value: bucketMs,
+    }} AS bucketStartMs, interfaceName AS uplinkKey, avg(lossPercent) AS averageLoss, avg(latencyMs) AS averageLatency FROM ${TABLE_NAME}`
+      .append(
+        NetworkTrafficUsageAggregationService.buildWhere(
+          withoutUplinkFilter(query),
+          NetworkTrafficUsageKind.UplinkHealth,
+        ),
+      )
+      .append(
+        " GROUP BY bucketStartMs, uplinkKey ORDER BY bucketStartMs ASC, uplinkKey ASC",
       )
       .append(QUERY_SETTINGS);
   }
@@ -635,7 +994,7 @@ export default class NetworkTrafficUsageAggregationService {
   public static buildTopApplicationsStatement(
     query: NetworkTrafficUsageQuery,
   ): Statement {
-    return SQL`SELECT application AS applicationKey, sum(toFloat64(sentOctets) * `
+    return SQL`SELECT application AS applicationKey, argMax(protocol, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topProtocol, argMax(port, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topPort, sum(toFloat64(sentOctets) * `
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
       .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
@@ -657,7 +1016,7 @@ export default class NetworkTrafficUsageAggregationService {
   public static buildTopDestinationsStatement(
     query: NetworkTrafficUsageQuery,
   ): Statement {
-    return SQL`SELECT destination AS destinationKey, argMax(application, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topApplication, sum(toFloat64(sentOctets) * `
+    return SQL`SELECT destination AS destinationKey, argMax(application, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topApplication, argMax(protocol, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topProtocol, argMax(port, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topPort, sum(toFloat64(sentOctets) * `
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
       .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
@@ -695,6 +1054,36 @@ export default class NetworkTrafficUsageAggregationService {
       .append(QUERY_SETTINGS);
   }
 
+  /*
+   * What each network reached, by destination, protocol and port: the
+   * nearest thing to a conversation the dashboard API reports. Meraki names
+   * only the application for some traffic, so a row with no destination
+   * stays, kept apart by its application: Teams and Dropbox on TCP 443 are
+   * not one conversation. It is left out only when it is the row that sums a
+   * busy window's rest, which names neither.
+   */
+  public static buildTopConversationsStatement(
+    query: NetworkTrafficUsageQuery,
+  ): Statement {
+    return SQL`SELECT controllerNetworkId AS networkKey, any(controllerNetworkName) AS networkName, destination AS destinationKey, protocol AS protocolKey, port AS portKey, if(destination = '', application, '') AS applicationWithoutDestination, argMax(application, toFloat64(sentOctets) + toFloat64(receivedOctets)) AS topApplication, max(clients) AS mostClients, sum(toFloat64(sentOctets) * `
+      .append(NetworkTrafficUsageAggregationService.buildWeight(query))
+      .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
+      .append(NetworkTrafficUsageAggregationService.buildWeight(query))
+      .append(`) AS totalReceived, sum(toFloat64(flows) * `)
+      .append(NetworkTrafficUsageAggregationService.buildWeight(query))
+      .append(SQL`) AS totalFlows FROM ${TABLE_NAME}`)
+      .append(
+        NetworkTrafficUsageAggregationService.buildWhere(
+          query,
+          NetworkTrafficUsageKind.Application,
+        ),
+      )
+      .append(
+        ` AND (destination != '' OR application != '') GROUP BY networkKey, destinationKey, protocolKey, portKey, applicationWithoutDestination ORDER BY (totalSent + totalReceived) DESC LIMIT ${NETWORK_TRAFFIC_USAGE_TOP_LIMIT}`,
+      )
+      .append(QUERY_SETTINGS);
+  }
+
   // The newest window of each kind the page's devices have, within retention.
   public static buildFreshnessStatement(data: {
     projectId: ObjectID;
@@ -702,7 +1091,7 @@ export default class NetworkTrafficUsageAggregationService {
     now: Date;
   }): Statement {
     const statement: Statement = SQL`
-      SELECT kind AS usageKind, toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs
+      SELECT kind AS usageKind, connectionId AS connectionKey, toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs
       FROM ${TABLE_NAME}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -722,13 +1111,15 @@ export default class NetworkTrafficUsageAggregationService {
       "networkDeviceId",
     );
 
-    return statement.append(" GROUP BY usageKind").append(QUERY_SETTINGS);
+    return statement
+      .append(" GROUP BY usageKind, connectionKey")
+      .append(QUERY_SETTINGS);
   }
 
   /*
    * The windows of a connection, from the earliest to the latest a read is
-   * about to write, that hold at least one row: uplinks by start alone
-   * (one call covers every network), the rest by network and start.
+   * about to write, that hold at least one row: an uplink kind by start
+   * alone (one call covers every network), the rest by network and start.
    */
   public static buildStoredWindowsStatement(data: {
     projectId: ObjectID;
@@ -746,10 +1137,13 @@ export default class NetworkTrafficUsageAggregationService {
     return SQL`
       SELECT
         kind AS usageKind,
-        if(kind = ${{
+        if(kind IN (${{
           type: TableColumnType.Text,
           value: NetworkTrafficUsageKind.Uplink,
-        }}, '', controllerNetworkId) AS networkKey,
+        }}, ${{
+          type: TableColumnType.Text,
+          value: NetworkTrafficUsageKind.UplinkHealth,
+        }}), '', controllerNetworkId) AS networkKey,
         toUnixTimestamp64Milli(windowStartAt) AS windowStartMs
       FROM ${TABLE_NAME}
       WHERE projectId = ${{
@@ -772,8 +1166,8 @@ export default class NetworkTrafficUsageAggregationService {
   }
 
   /*
-   * The newest end of a connection's windows per kind and network (uplinks
-   * as one), of the windows that end after `since` - found by their start,
+   * The newest end of a connection's windows per kind and network (an
+   * uplink kind as one), of the windows that end after `since` - found by their start,
    * the table's sort key: no window is longer than MAX_WINDOW_MS.
    */
   public static buildStoredWindowEndsStatement(data: {
@@ -784,10 +1178,13 @@ export default class NetworkTrafficUsageAggregationService {
     return SQL`
       SELECT
         kind AS usageKind,
-        if(kind = ${{
+        if(kind IN (${{
           type: TableColumnType.Text,
           value: NetworkTrafficUsageKind.Uplink,
-        }}, '', controllerNetworkId) AS networkKey,
+        }}, ${{
+          type: TableColumnType.Text,
+          value: NetworkTrafficUsageKind.UplinkHealth,
+        }}), '', controllerNetworkId) AS networkKey,
         toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs
       FROM ${TABLE_NAME}
       WHERE projectId = ${{

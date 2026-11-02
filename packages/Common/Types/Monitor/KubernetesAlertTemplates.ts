@@ -912,6 +912,107 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * A node the kubelet says is short of memory, disk or process IDs: what a
+ * node's own page and the Overview's Needs attention flag
+ * (KubernetesHealth), and what Node Not Ready cannot see - the node is
+ * Ready, and evicting pods to stay that way. The kubelet sets the
+ * condition when an eviction threshold is crossed, taints the node so the
+ * scheduler places nothing new there, and holds the condition for its
+ * evictionPressureTransitionPeriod (five minutes by default) after the
+ * signal clears, so a passing spike already lasts five minutes.
+ */
+const nodePressureTemplate: KubernetesAlertTemplate = {
+  id: "k8s-node-pressure",
+  name: "Node Under Pressure",
+  summary: "A node reports memory, disk or PID pressure for 10 minutes.",
+  description:
+    "Alert when a node reports MemoryPressure, DiskPressure or PIDPressure for ten minutes: the kubelet is short of memory, disk space or process IDs, evicts pods to get them back, and taints the node so nothing new is scheduled on it. Reads k8s.node.condition_memory_pressure, k8s.node.condition_disk_pressure and k8s.node.condition_pid_pressure, which the agent's cluster receiver reports for every node: 1 when the condition is True, 0 when False, -1 when Unknown. Computed per node as their sum, so any one of them fires it. A node that stopped reporting reads Unknown on all three and is left to Node Not Ready.",
+  category: "Node",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "node_pressure_conditions";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: "memory_pressure",
+            title: "Memory Pressure",
+            metricName: "k8s.node.condition_memory_pressure",
+            /*
+             * Max within the minute: a sample under pressure makes the
+             * minute one. ONE series per node on all three, from the same
+             * k8s_cluster scrape.
+             */
+            aggregationType: MetricsAggregationType.Max,
+          },
+          {
+            alias: "disk_pressure",
+            title: "Disk Pressure",
+            metricName: "k8s.node.condition_disk_pressure",
+            aggregationType: MetricsAggregationType.Max,
+          },
+          {
+            alias: "pid_pressure",
+            title: "PID Pressure",
+            metricName: "k8s.node.condition_pid_pressure",
+            aggregationType: MetricsAggregationType.Max,
+          },
+        ],
+        formulas: [
+          {
+            alias: metricAlias,
+            legend: "Node Pressure Conditions",
+            /*
+             * How many of the three are True. Unknown is -1, which is what
+             * the node controller sets on EVERY condition of a node whose
+             * kubelet stopped posting status, so such a node sums to -3 and
+             * stays quiet here: Node Not Ready is the alert for it.
+             */
+            formula: "memory_pressure + disk_pressure + pid_pressure",
+            legendUnit: "",
+          },
+        ],
+        /*
+         * Per node, as Node Not Ready: one incident per node under pressure.
+         * The k8s_cluster receiver stamps the node's name on its node
+         * metrics itself, so the three queries line up.
+         */
+        groupByAttributeKeys: ["resource.k8s.node.name"],
+        resourceScope: KubernetesResourceScope.Node,
+        /*
+         * Ten minutes, the window kube-prometheus' KubeNodePressure waits
+         * too: past the kubelet's own five-minute hold, so it is pressure
+         * that keeps coming back, not one spike.
+         */
+        rollingTime: RollingTime.Past10Minutes,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[K8s] Node Under Pressure - ${args.monitorName}`,
+        incidentDescription: `A Kubernetes node has reported memory, disk or PID pressure for ten minutes. The kubelet is short of memory, disk space or process IDs on the node: it evicts pods to get them back, and the node is tainted so that no new pod is scheduled on it. Look for what is using it - a pod with no memory limit, logs or images filling the disk, a process that keeps forking - and free it or move it. The affected node is named under "Affected resource" below; use the kubectl commands under "Start here" to read its conditions and list the pods it is hosting.`,
+        criteriaName: "Node Under Pressure - Pressure Conditions > 0",
+        criteriaDescription:
+          "Triggers when a node reports MemoryPressure, DiskPressure or PIDPressure as True in every sample of a ten-minute window.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
 const highCpuTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-cpu",
   name: "High Node CPU Utilization",
@@ -1122,6 +1223,83 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
          * `<= 0`, not `= 0`: a surge rollout makes available exceed
          * desired, and a negative shortfall is healthy too.
          */
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
+/*
+ * The StatefulSet's counterpart of the deployment's shortfall, read the way
+ * its own page reads it (KubernetesHealth): ready pods against
+ * spec.replicas. The k8s_cluster receiver reports a StatefulSet as
+ * k8s.statefulset.desired_pods (spec.replicas), .ready_pods
+ * (status.readyReplicas), .current_pods and .updated_pods - no available
+ * count - and readiness is what a StatefulSet waits on: with the default
+ * OrderedReady policy pod N+1 is not created until pod N is ready, so one
+ * pod that cannot start holds back every pod after it.
+ */
+const statefulSetReplicaMismatchTemplate: KubernetesAlertTemplate = {
+  id: "k8s-statefulset-replica-mismatch",
+  name: "StatefulSet Replica Mismatch",
+  summary:
+    "A StatefulSet has fewer ready replicas than desired for 15 minutes.",
+  description:
+    "Alert when a StatefulSet has fewer ready pods than desired for fifteen minutes. Computed per StatefulSet as k8s.statefulset.desired_pods - k8s.statefulset.ready_pods, the two pod counts the agent's k8s_cluster receiver reports. A StatefulSet starts and replaces its pods one at a time, each after the one before it is ready, so a single pod that cannot start - a volume claim that cannot bind, an image that cannot be pulled, a crash on startup - holds back every pod after it.",
+  category: "Workload",
+  severity: "Warning",
+  workloadKind: "statefulset",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "statefulset_replica_shortfall";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.statefulset.desired_pods",
+        denominatorMetricName: "k8s.statefulset.ready_pods",
+        /*
+         * Per StatefulSet, as the deployment's: the receiver stamps both
+         * keys on both metrics itself, which the formula's join needs.
+         */
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.statefulset.name",
+        ],
+        numeratorAlias: "desired_pods",
+        denominatorAlias: "ready_pods",
+        resultAlias: metricAlias,
+        resultLegend: "StatefulSet Replica Shortfall",
+        formula: "desired_pods - ready_pods",
+        // A pod count, not a percentage.
+        resultLegendUnit: "",
+        resourceScope: KubernetesResourceScope.Workload,
+        /*
+         * 15 minutes, as the deployment's: an update replaces the pods one
+         * at a time, each not ready until its probes pass, and that is the
+         * update working.
+         */
+        rollingTime: RollingTime.Past15Minutes,
+        // ONE series per StatefulSet on both sides: the per-minute count.
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[K8s] StatefulSet Replica Mismatch - ${args.monitorName}`,
+        incidentDescription: `A Kubernetes StatefulSet has had fewer ready pods than it desires for fifteen minutes. A StatefulSet starts its pods one at a time, each after the one before it is ready, so one pod that cannot start holds back the rest: look for a persistent volume claim that cannot bind, an image that cannot be pulled, or a pod that crashes on startup. The affected namespace and StatefulSet are named under "Affected resource" below, with the rollout-status command under "Start here".`,
+        criteriaName: "Replica Mismatch - Desired > Ready for 15 minutes",
+        criteriaDescription:
+          "Triggers when a StatefulSet's desired pod count exceeds its ready pod count in every sample of a fifteen-minute window.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
         value: 0,
       }),
@@ -1536,6 +1714,77 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
         value: 90,
+      }),
+    });
+  },
+};
+
+/*
+ * The nodes a DaemonSet should run on that have no ready pod of it: what
+ * the DaemonSet's own page says ("Ready on 4 of 5 nodes", KubernetesHealth),
+ * and what DaemonSet Misscheduled Nodes - pods on nodes they should NOT be
+ * on - never measured. A log shipper, a CNI or CSI plugin missing from a
+ * node fails silently: nothing on the node errors, it just stops shipping,
+ * networking or mounting.
+ */
+const daemonSetPodsNotReadyTemplate: KubernetesAlertTemplate = {
+  id: "k8s-daemonset-pods-not-ready",
+  name: "DaemonSet Pods Not Ready",
+  summary: "A DaemonSet has nodes without a ready pod of it for 15 minutes.",
+  description:
+    "Alert when a DaemonSet has fewer ready pods than nodes it should run on, for fifteen minutes: on some node its pod is missing, cannot start, or is not ready. Computed per DaemonSet as k8s.daemonset.desired_scheduled_nodes - k8s.daemonset.ready_nodes, which the agent's k8s_cluster receiver reports. A node that is down leaves its daemon pods not ready too, so this fires next to Node Not Ready for each DaemonSet on it. A rolling update across many nodes that takes longer than fifteen minutes reads as a shortfall the whole time: lengthen the Time Range on a large cluster.",
+  category: "Workload",
+  severity: "Warning",
+  workloadKind: "daemonset",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "daemonset_ready_shortfall";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.daemonset.desired_scheduled_nodes",
+        denominatorMetricName: "k8s.daemonset.ready_nodes",
+        // Per DaemonSet object, as DaemonSet Misscheduled Nodes.
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.daemonset.name",
+        ],
+        numeratorAlias: "desired_nodes",
+        denominatorAlias: "ready_nodes",
+        resultAlias: metricAlias,
+        resultLegend: "DaemonSet Nodes Without a Ready Pod",
+        formula: "desired_nodes - ready_nodes",
+        // A node count, not a percentage.
+        resultLegendUnit: "",
+        resourceScope: KubernetesResourceScope.Workload,
+        /*
+         * 15 minutes, as the replica mismatches: a rolling update replaces
+         * one node's pod at a time (maxUnavailable 1 by default).
+         */
+        rollingTime: RollingTime.Past15Minutes,
+        // ONE series per DaemonSet on both sides: the per-minute count.
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[K8s] DaemonSet Pods Not Ready - ${args.monitorName}`,
+        incidentDescription: `A Kubernetes DaemonSet has had nodes without a ready pod of it for fifteen minutes: on those nodes its pod is missing, cannot start, or is not ready, so whatever it runs there - a log shipper, a network or storage plugin, a node agent - is not running. Common causes: the pod cannot be pulled or keeps crashing, it does not tolerate a taint on a new node, the node has no room for its requests, or the node itself is down. The affected namespace and DaemonSet are named under "Affected resource" below, with the describe command under "Start here".`,
+        criteriaName:
+          "DaemonSet Pods Not Ready - Desired > Ready for 15 minutes",
+        criteriaDescription:
+          "Triggers when a DaemonSet's count of nodes that should run its pod exceeds its count of nodes with a ready pod in every sample of a fifteen-minute window.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 0,
       }),
     });
   },
@@ -1977,14 +2226,17 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     crashLoopBackOffTemplate,
     podPendingTemplate,
     nodeNotReadyTemplate,
+    nodePressureTemplate,
     highCpuTemplate,
     highMemoryTemplate,
     deploymentReplicaMismatchTemplate,
+    statefulSetReplicaMismatchTemplate,
     jobFailuresTemplate,
     etcdNoLeaderTemplate,
     apiServerThrottlingTemplate,
     schedulerBacklogTemplate,
     highDiskUsageTemplate,
+    daemonSetPodsNotReadyTemplate,
     daemonSetUnavailableTemplate,
     nodeCpuRequestUtilizationTemplate,
     nodeMemoryRequestUtilizationTemplate,

@@ -20,7 +20,10 @@ import { getNetworkTrafficBucketSeconds } from "./NetworkTraffic";
  *     the flows and clients it counted; aggregated by Meraki over two hours
  *     at least, so read every two hours;
  *   - client usage: per network, the bytes each client sent and received;
- *     read with the applications.
+ *     read with the applications;
+ *   - uplink health: the packet loss and latency Meraki measures on each
+ *     appliance's uplinks, for the whole organization in one call; read
+ *     with the uplink usage, in five-minute windows.
  *
  * Each read is stored as rows covering the window it read
  * (NetworkTrafficUsage). A page's numbers are those windows' share of the
@@ -28,14 +31,17 @@ import { getNetworkTrafficBucketSeconds } from "./NetworkTraffic";
  * past an edge counts for the part inside - so a range shorter than a
  * two-hour application window shows an estimate, and the page says so.
  *
- * There are no conversations: the API never says who talked to whom. That
- * stays NetFlow's (NetworkTraffic).
+ * There are no conversations between addresses: the API says what each
+ * network reached, never which client talked to it. Those stay NetFlow's
+ * (NetworkTraffic), and so do packet counts: no call counts an uplink's
+ * packets or errors.
  */
 
 export enum NetworkTrafficUsageKind {
   Uplink = "uplink",
   Application = "application",
   Client = "client",
+  UplinkHealth = "uplinkHealth",
 }
 
 export const NETWORK_TRAFFIC_USAGE_KINDS: ReadonlyArray<NetworkTrafficUsageKind> =
@@ -43,7 +49,20 @@ export const NETWORK_TRAFFIC_USAGE_KINDS: ReadonlyArray<NetworkTrafficUsageKind>
     NetworkTrafficUsageKind.Uplink,
     NetworkTrafficUsageKind.Application,
     NetworkTrafficUsageKind.Client,
+    NetworkTrafficUsageKind.UplinkHealth,
   ];
+
+/*
+ * The kinds of an appliance's uplinks. One call reads them for the whole
+ * organization, so a window of them is the organization's rather than a
+ * network's, and a row of them belongs to its appliance's device.
+ */
+export function isUplinkUsageKind(kind: NetworkTrafficUsageKind): boolean {
+  return (
+    kind === NetworkTrafficUsageKind.Uplink ||
+    kind === NetworkTrafficUsageKind.UplinkHealth
+  );
+}
 
 // Rows in each top table.
 export const NETWORK_TRAFFIC_USAGE_TOP_LIMIT: number = 10;
@@ -78,6 +97,11 @@ export interface NetworkTrafficUsageFilters {
   controllerNetworkId?: string | undefined;
   // One appliance, by its serial ("Q2XX-XXXX-XXXX").
   deviceSerial?: string | undefined;
+  /*
+   * One uplink, by its name ("wan1"): the appliance's when one is picked,
+   * every appliance's on the page otherwise.
+   */
+  interfaceName?: string | undefined;
 }
 
 export interface NetworkTrafficUsageRequest {
@@ -134,8 +158,40 @@ export interface NetworkTrafficUsageUplinkRow {
   networkDeviceId?: string | undefined;
 }
 
+/*
+ * One uplink across the page, by its name: wan1 of every appliance the page
+ * is of, beside wan2 and cellular. What the page compares its uplinks by. An
+ * uplink that carried nothing and was still measured is listed too: the
+ * standby line of a pair, ready and healthy.
+ */
+export interface NetworkTrafficUsageUplinkInterfaceRow {
+  interfaceName: string;
+  // How many appliances carried traffic on it in the range.
+  applianceCount: number;
+  sentOctets: number;
+  receivedOctets: number;
+  // The averages of what Meraki measured on it; null when it measured nothing.
+  lossPercent: number | null;
+  latencyMs: number | null;
+}
+
+// One bucket of one uplink, for the chart that compares them.
+export interface NetworkTrafficUsageUplinkSeriesPoint {
+  // Bucket start, as the database returns it (UTC).
+  time: string;
+  interfaceName: string;
+  sentOctets: number;
+  receivedOctets: number;
+  // Null when Meraki measured nothing in the bucket: unknown, never zero.
+  lossPercent: number | null;
+  latencyMs: number | null;
+}
+
 export interface NetworkTrafficUsageApplicationRow {
   application: string;
+  // The protocol and port most of its bytes were ("" and 0 when Meraki gave none).
+  protocol: string;
+  port: number;
   sentOctets: number;
   receivedOctets: number;
   flows: number;
@@ -143,10 +199,32 @@ export interface NetworkTrafficUsageApplicationRow {
 
 export interface NetworkTrafficUsageDestinationRow {
   destination: string;
-  // The application most of its bytes were.
+  // The application, protocol and port most of its bytes were.
   application: string;
+  protocol: string;
+  port: number;
   sentOctets: number;
   receivedOctets: number;
+}
+
+/*
+ * What Meraki says of who talks to whom: one network's traffic with one
+ * destination over one protocol and port. The closest the dashboard API
+ * comes to a conversation, since it never names the client behind it.
+ */
+export interface NetworkTrafficUsageConversationRow {
+  controllerNetworkId: string;
+  controllerNetworkName: string;
+  // The host or address, or "" when Meraki names only the application.
+  destination: string;
+  application: string;
+  protocol: string;
+  port: number;
+  sentOctets: number;
+  receivedOctets: number;
+  flows: number;
+  // The most clients Meraki counted for it over one window.
+  clients: number;
 }
 
 export interface NetworkTrafficUsageClientRow {
@@ -194,9 +272,17 @@ export interface NetworkTrafficUsageSummary {
   series: Array<NetworkTrafficUsageSeriesPoint>;
   topNetworks: Array<NetworkTrafficUsageNetworkRow>;
   topUplinks: Array<NetworkTrafficUsageUplinkRow>;
+  /*
+   * The page's uplinks side by side: held to the network and the appliance
+   * but not to an uplink filter, so narrowing to wan2 still shows wan1 to
+   * compare it with and to switch to.
+   */
+  uplinkInterfaces: Array<NetworkTrafficUsageUplinkInterfaceRow>;
+  uplinkSeries: Array<NetworkTrafficUsageUplinkSeriesPoint>;
   topApplications: Array<NetworkTrafficUsageApplicationRow>;
   topDestinations: Array<NetworkTrafficUsageDestinationRow>;
   topClients: Array<NetworkTrafficUsageClientRow>;
+  topConversations: Array<NetworkTrafficUsageConversationRow>;
   /*
    * The end of the newest uplink window and of the newest application
    * window this page has (within retention, whatever the range): how fresh
@@ -204,6 +290,14 @@ export interface NetworkTrafficUsageSummary {
    */
   lastUplinkAt: string | null;
   lastAnalyticsAt: string | null;
+  /*
+   * How far the page's uplinks have been read: the end of the newest window
+   * its connections read, traffic or none. A window nothing crossed stores no
+   * row, so lastUplinkAt says when the page's traffic stopped, which is not
+   * how far it was read: an uplink that went down would read as a page not
+   * read yet, with no drop to show for it. Null when no uplink is on the page.
+   */
+  uplinksReadTo: string | null;
   connections: Array<NetworkTrafficUsageConnection>;
 }
 
@@ -233,11 +327,34 @@ function isIdentifierText(text: string): boolean {
   return true;
 }
 
+/*
+ * An uplink's name is whatever the controller calls it, kept as it came
+ * (wan1, cellular) with its control characters cleaned away, so a filter
+ * takes any such text: a row it lists can always be narrowed to. A loop: the
+ * value is untrusted text.
+ */
+function isUplinkNameText(text: string): boolean {
+  if (!text || text.length > MAX_FILTER_VALUE_LENGTH) {
+    return false;
+  }
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export class NetworkTrafficUsageFiltersUtil {
   /*
    * The filters a request carries, checked: a network ID and a serial are
-   * letters, digits, "_" and "-". Anything else is refused - never ignored,
-   * which would widen what the page shows without saying so.
+   * letters, digits, "_" and "-", an uplink's name is one line of text.
+   * Anything else is refused - never ignored, which would widen what the
+   * page shows without saying so.
    */
   public static sanitize(value: unknown): NetworkTrafficUsageFilters {
     if (value === undefined || value === null) {
@@ -271,11 +388,32 @@ export class NetworkTrafficUsageFiltersUtil {
       filters.deviceSerial = serial.toUpperCase();
     }
 
+    const interfaceName: unknown = raw["interfaceName"];
+
+    if (
+      interfaceName !== undefined &&
+      interfaceName !== null &&
+      interfaceName !== ""
+    ) {
+      if (
+        typeof interfaceName !== "string" ||
+        !isUplinkNameText(interfaceName)
+      ) {
+        throw new BadDataException("interfaceName is not an uplink's name");
+      }
+
+      filters.interfaceName = interfaceName;
+    }
+
     return filters;
   }
 
   public static isFiltered(filters: NetworkTrafficUsageFilters): boolean {
-    return Boolean(filters.controllerNetworkId || filters.deviceSerial);
+    return Boolean(
+      filters.controllerNetworkId ||
+        filters.deviceSerial ||
+        filters.interfaceName,
+    );
   }
 }
 
@@ -309,11 +447,15 @@ export function getUnavailableNetworkTrafficUsageSummary(data: {
     series: [],
     topNetworks: [],
     topUplinks: [],
+    uplinkInterfaces: [],
+    uplinkSeries: [],
     topApplications: [],
     topDestinations: [],
     topClients: [],
+    topConversations: [],
     lastUplinkAt: null,
     lastAnalyticsAt: null,
+    uplinksReadTo: null,
     connections: [],
   };
 }

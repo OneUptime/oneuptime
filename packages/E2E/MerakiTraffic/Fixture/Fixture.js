@@ -186,12 +186,23 @@ const NETWORKS = [
 ];
 
 const APPLICATIONS = [
-  ["Microsoft 365", "outlook.office365.com", 0.31],
-  ["Microsoft Teams", "teams.microsoft.com", 0.22],
-  ["YouTube", "www.youtube.com", 0.12],
-  ["Zoom", "zoom.us", 0.08],
-  ["Windows Update", "update.microsoft.com", 0.06],
-  ["Dropbox", "dropbox.com", 0.04],
+  ["Microsoft 365", "outlook.office365.com", 0.31, "TCP", 443, 180],
+  ["Microsoft Teams", "teams.microsoft.com", 0.22, "UDP", 3478, 96],
+  ["YouTube", "www.youtube.com", 0.12, "UDP", 443, 41],
+  ["Zoom", "zoom.us", 0.08, "UDP", 8801, 18],
+  ["Windows Update", "update.microsoft.com", 0.06, "TCP", 443, 64],
+  ["Dropbox", "dropbox.com", 0.04, "TCP", 443, 9],
+];
+
+/*
+ * A pair of WANs and a standby cellular line that carries nothing but is
+ * measured all the same: [name, its share of the traffic, its latency in
+ * milliseconds, its packet loss].
+ */
+const UPLINKS = [
+  ["wan1", 0.91, 22, 0.1],
+  ["wan2", 0.09, 34, 0.6],
+  ["cellular", 0, 71, 0],
 ];
 
 const CLIENTS = [
@@ -471,11 +482,15 @@ function emptyUsage(body) {
     series: [],
     topNetworks: [],
     topUplinks: [],
+    uplinkInterfaces: [],
+    uplinkSeries: [],
     topApplications: [],
     topDestinations: [],
     topClients: [],
+    topConversations: [],
     lastUplinkAt: null,
     lastAnalyticsAt: null,
+    uplinksReadTo: null,
     connections: connections.map(pageConnection),
   };
 }
@@ -541,13 +556,22 @@ function usageFor(body) {
       ? 0
       : 1;
   };
+  // An uplink's filter holds the traffic to its share of it.
+  const uplinkShare = filters.interfaceName
+    ? (UPLINKS.find(([name]) => {
+        return name === filters.interfaceName;
+      }) || [])[1] || 0
+    : 1;
 
-  let down = 0;
-  let up = 0;
+  // All of the page's traffic, whichever uplink it is narrowed to.
+  let allDown = 0;
+  let allUp = 0;
   for (const network of networks) {
-    down += network.down * seconds * share(network);
-    up += network.up * seconds * share(network);
+    allDown += network.down * seconds * share(network);
+    allUp += network.up * seconds * share(network);
   }
+  const down = allDown * uplinkShare;
+  const up = allUp * uplinkShare;
 
   /*
    * Buckets as the server makes them: whole multiples of the bucket from
@@ -560,7 +584,10 @@ function usageFor(body) {
   const bucketMs = bucketSeconds * 1000;
   const firstBucket = Math.floor(start / bucketMs) * bucketMs;
   const buckets = Math.max(1, Math.ceil((end - firstBucket) / bucketMs));
+  // As the reads do, Meraki's numbers stop a few minutes short of now.
+  const lastUplinkAt = Math.min(Date.now() - 5 * 60 * 1000, end);
   const series = [];
+  const uplinkSeries = [];
   let weights = 0;
   for (let index = 0; index < buckets; index++) {
     weights += 0.8 + 0.35 * Math.sin(index / 2.2) + 0.1 * Math.cos(index);
@@ -568,32 +595,55 @@ function usageFor(body) {
   for (let index = 0; index < buckets; index++) {
     const weight =
       (0.8 + 0.35 * Math.sin(index / 2.2) + 0.1 * Math.cos(index)) / weights;
+    const bucketStart = firstBucket + index * bucketMs;
+    if (bucketStart >= lastUplinkAt) {
+      break;
+    }
+    const time = new Date(bucketStart).toISOString();
     series.push({
-      time: new Date(firstBucket + index * bucketMs).toISOString(),
+      time,
       sentOctets: Math.round(up * weight),
       receivedOctets: Math.round(down * weight),
     });
+    for (const [interfaceName, part, latency, loss] of UPLINKS) {
+      uplinkSeries.push({
+        time,
+        interfaceName,
+        sentOctets: Math.round(allUp * part * weight),
+        receivedOctets: Math.round(allDown * part * weight),
+        latencyMs: latency + 6 * Math.sin(index / 2 + latency),
+        // One bad stretch on the second line, as a real one has.
+        lossPercent: interfaceName === "wan2" && index % 9 === 4 ? 4.2 : loss,
+      });
+    }
   }
 
-  const applicationBytes = (down + up) * 0.82;
+  // Meraki counts these per network: an uplink's filter leaves them as they are.
+  const applicationBytes = (allDown + allUp) * 0.82;
   // The part of the organization's traffic the filters keep: its flows too.
   const everything = NETWORKS.filter(inScope).reduce((total, network) => {
     return total + (network.down + network.up) * seconds;
   }, 0);
-  const kept = everything > 0 ? (down + up) / everything : 0;
-  const topApplications = APPLICATIONS.map(([application, , weight]) => {
-    return {
-      application,
-      sentOctets: Math.round(applicationBytes * weight * 0.18),
-      receivedOctets: Math.round(applicationBytes * weight * 0.82),
-      flows: Math.round(seconds * weight * 0.9 * kept),
-    };
-  });
+  const kept = everything > 0 ? (allDown + allUp) / everything : 0;
+  const topApplications = APPLICATIONS.map(
+    ([application, , weight, protocol, port]) => {
+      return {
+        application,
+        protocol,
+        port,
+        sentOctets: Math.round(applicationBytes * weight * 0.18),
+        receivedOctets: Math.round(applicationBytes * weight * 0.82),
+        flows: Math.round(seconds * weight * 0.9 * kept),
+      };
+    },
+  );
   const topDestinations = APPLICATIONS.map(
-    ([application, destination, weight]) => {
+    ([application, destination, weight, protocol, port]) => {
       return {
         destination,
         application,
+        protocol,
+        port,
         sentOctets: Math.round(applicationBytes * weight * 0.16),
         receivedOctets: Math.round(applicationBytes * weight * 0.74),
       };
@@ -617,6 +667,38 @@ function usageFor(body) {
       receivedOctets: Math.round(bytes * 0.8),
     };
   });
+  // What each network reached, the busiest first.
+  const topConversations = networks
+    .flatMap((network) => {
+      const bytes = (network.down + network.up) * seconds * 0.82;
+      return APPLICATIONS.map(
+        ([application, destination, weight, protocol, port, clients]) => {
+          return {
+            controllerNetworkId: network.id,
+            controllerNetworkName: network.name,
+            destination,
+            application,
+            protocol,
+            port,
+            sentOctets: Math.round(bytes * weight * 0.18),
+            receivedOctets: Math.round(bytes * weight * 0.82),
+            flows: Math.round(seconds * weight * 0.9),
+            clients,
+          };
+        },
+      );
+    })
+    .sort((first, second) => {
+      return (
+        second.sentOctets +
+        second.receivedOctets -
+        (first.sentOctets + first.receivedOctets)
+      );
+    })
+    .slice(0, 10);
+  const applianceCount = networks.filter((network) => {
+    return share(network) > 0;
+  }).length;
 
   return {
     ...answer,
@@ -634,24 +716,29 @@ function usageFor(body) {
       receivedOctets: Math.round(applicationBytes * 0.82),
     },
     clientTotals: {
-      sentOctets: Math.round((down + up) * 0.12),
-      receivedOctets: Math.round((down + up) * 0.48),
+      sentOctets: Math.round((allDown + allUp) * 0.12),
+      receivedOctets: Math.round((allDown + allUp) * 0.48),
     },
     series,
     topNetworks: networks.map((network) => {
       return {
         controllerNetworkId: network.id,
         name: network.name,
-        sentOctets: Math.round(network.up * seconds * share(network)),
-        receivedOctets: Math.round(network.down * seconds * share(network)),
+        sentOctets: Math.round(
+          network.up * seconds * share(network) * uplinkShare,
+        ),
+        receivedOctets: Math.round(
+          network.down * seconds * share(network) * uplinkShare,
+        ),
       };
     }),
     topUplinks: networks
       .flatMap((network) => {
-        return [
-          ["wan1", 0.91],
-          ["wan2", 0.09],
-        ].map(([interfaceName, part]) => {
+        return UPLINKS.filter(([interfaceName]) => {
+          return (
+            !filters.interfaceName || filters.interfaceName === interfaceName
+          );
+        }).map(([interfaceName, part]) => {
           return {
             deviceSerial: network.serial,
             deviceName: network.appliance,
@@ -675,10 +762,24 @@ function usageFor(body) {
         return row.sentOctets + row.receivedOctets > 0;
       })
       .slice(0, 10),
+    // Beside the filter, not under it: wan1 stays listed when narrowed to wan2.
+    uplinkInterfaces: UPLINKS.map(([interfaceName, part, latency, loss]) => {
+      return {
+        interfaceName,
+        applianceCount: part > 0 ? applianceCount : 0,
+        sentOctets: Math.round(allUp * part),
+        receivedOctets: Math.round(allDown * part),
+        latencyMs: latency,
+        lossPercent: loss,
+      };
+    }),
+    uplinkSeries,
     topApplications,
     topDestinations,
     topClients,
-    lastUplinkAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    topConversations,
+    lastUplinkAt: new Date(lastUplinkAt).toISOString(),
+    uplinksReadTo: new Date(lastUplinkAt).toISOString(),
     lastAnalyticsAt: new Date(Date.now() - 70 * 60 * 1000).toISOString(),
   };
 }

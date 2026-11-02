@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39842,
-    "untranslated": 12804
+    "keys": 40054,
+    "untranslated": 12738
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -79,6 +79,7 @@
     "Info",
     "Insight",
     "Job",
+    "Kernel",
     "LXC 201 · pve3",
     "Log4Shell",
     "MCP",
@@ -93,6 +94,7 @@
     "Min",
     "Mobile",
     "Monitor",
+    "Mount",
     "Namespace",
     "Nav",
     "No",
@@ -101,6 +103,7 @@
     "Object Gateway",
     "Offline",
     "Ok",
+    "On {{count}} appliance",
     "Online",
     "OpenShift",
     "PR #{{number}}",
@@ -168,6 +171,8 @@
     "Tunnel",
     "UTC",
     "Up · In",
+    "Uplink",
+    "Uplink {{uplink}}",
     "VLAN",
     "VM",
     "VM 101 · pve1",
@@ -228,6 +233,7 @@
     "{{count}} MB",
     "{{count}} VM",
     "{{count}} appliance",
+    "{{count}} client",
     "{{count}} cluster",
     "{{count}} core",
     "{{count}} dashboard",
@@ -235,6 +241,7 @@
     "{{count}} datastore",
     "{{count}} guest",
     "{{count}} host",
+    "{{count}} pod",
     "{{count}} repository",
     "{{count}} span",
     "{{count}} team",

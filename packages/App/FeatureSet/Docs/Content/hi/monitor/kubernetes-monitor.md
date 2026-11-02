@@ -5,7 +5,7 @@ Kubernetes मॉनिटर उन मेट्रिक्स पर अल�
 :::cards
 - [एजेंट इंस्टॉल करें](/docs/monitor/kubernetes-agent): एक Helm कमांड क्लस्टर को OneUptime में ले आता है।
 - [मॉनिटर बनाएं](#kubernetes-मॉनिटर-बनाएं): क्लस्टर चुनें, फिर कोई टेम्पलेट, मेट्रिक या क्वेरी।
-- [अलर्ट टेम्पलेट](#तैयार-अलर्ट-टेम्पलेट): अठारह तैयार अलर्ट, खामोश क्लस्टर से लेकर etcd तक।
+- [अलर्ट टेम्पलेट](#तैयार-अलर्ट-टेम्पलेट): इक्कीस तैयार अलर्ट, खामोश क्लस्टर से लेकर etcd तक।
 - [मानदंड](#मॉनिटरिंग-मानदंड): स्थिर थ्रेशोल्ड और विसंगति पहचान।
 :::
 
@@ -86,9 +86,9 @@ flowchart TB
 | श्रेणी | मेट्रिक्स |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| नोड | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| नोड | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | कंटेनर | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| वर्कलोड | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| वर्कलोड | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | कंट्रोल प्लेन | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ flowchart TB
 | CrashLoopBackOff Detection | वर्कलोड | कोई कंटेनर 15 मिनट के भीतर रीस्टार्ट हुआ और उसमें से आधे से कम समय तैयार रहा | गंभीर |
 | Pod Stuck in Pending | अनुसूचन | 15 मिनट की विंडो के हर नमूने में कोई पॉड Pending चरण में है | चेतावनी |
 | Node Not Ready | नोड | कोई नोड NotReady रिपोर्ट करता है या अपनी स्थिति बताना बंद कर देता है (Unknown) | गंभीर |
+| Node Under Pressure | नोड | कोई नोड 10 मिनट तक MemoryPressure, DiskPressure या PIDPressure रिपोर्ट करता है | चेतावनी |
 | High Node CPU Utilization | नोड | किसी नोड का औसत CPU उपयोग उसके आवंटन-योग्य CPU के 90% से ऊपर है | चेतावनी |
 | High Node Memory Utilization | नोड | किसी नोड का औसत मेमोरी वर्किंग सेट उसकी आवंटन-योग्य मेमोरी के 85% से ऊपर है | चेतावनी |
 | Deployment Replica Mismatch | वर्कलोड | किसी deployment में 15 मिनट तक वांछित से कम उपलब्ध रेप्लिका हैं | चेतावनी |
+| StatefulSet Replica Mismatch | वर्कलोड | किसी StatefulSet में 15 मिनट तक वांछित से कम तैयार रेप्लिका हैं | चेतावनी |
 | Job Failures | वर्कलोड | किसी job का कोई पॉड 15 मिनट के भीतर विफल हुआ | चेतावनी |
 | etcd No Leader | कंट्रोल प्लेन | etcd का कोई चुना हुआ लीडर नहीं है | गंभीर |
 | API Server Request Saturation | कंट्रोल प्लेन | API सर्वर पूरी विंडो के दौरान 200 या अधिक चल रहे अनुरोध रखता है | गंभीर |
 | Scheduler Backlog | अनुसूचन | शेड्यूलर की लंबित पॉड कतार 5 मिनट तक खाली नहीं होती | चेतावनी |
 | High Node Disk Usage | स्टोरेज | किसी नोड का फ़ाइल सिस्टम 90% से अधिक भरा है | चेतावनी |
+| DaemonSet Pods Not Ready | वर्कलोड | किसी DaemonSet के 15 मिनट तक ऐसे नोड हैं जिन पर उसका कोई तैयार पॉड नहीं है | चेतावनी |
 | DaemonSet Misscheduled Nodes | वर्कलोड | कोई DaemonSet ऐसे नोड पर पॉड चलाता है जो अब उसके नोड सेलेक्टर, एफ़िनिटी या टॉलरेशन से मेल नहीं खाते | चेतावनी |
 | High Node CPU Request Commitment | नोड | किसी नोड के कंटेनरों के CPU अनुरोधों का योग उसके आवंटन-योग्य CPU के 90% से अधिक है | चेतावनी |
 | High Node Memory Request Commitment | नोड | किसी नोड के कंटेनरों के मेमोरी अनुरोधों का योग उसकी आवंटन-योग्य मेमोरी के 90% से अधिक है | चेतावनी |

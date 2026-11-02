@@ -6,6 +6,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
+import { withSentenceDigits } from "./SentenceDigits";
 import {
   ResourcePartAccent,
   ResourcePartBadge,
@@ -84,6 +85,11 @@ const ACCENT_CLASS_NAMES: Record<
     ring: "ring-emerald-200",
     icon: "text-emerald-600",
   },
+  violet: {
+    gradient: "from-violet-50",
+    ring: "ring-violet-200",
+    icon: "text-violet-600",
+  },
 };
 
 const ResourcePartHero: FunctionComponent<ComponentProps> = (
@@ -147,7 +153,12 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
                     className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].dot}`}
                     aria-hidden="true"
                   />
-                  {tx(status.label)}
+                  {status.values
+                    ? translator.translateTemplate(
+                        status.label,
+                        withSentenceDigits(status.values),
+                      )
+                    : tx(status.label)}
                   {status.description ? (
                     <span className="sr-only">{` ${tx(status.description)}`}</span>
                   ) : (
@@ -169,7 +180,7 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
                       {badge.values
                         ? translator.translateTemplate(
                             badge.label,
-                            badge.values,
+                            withSentenceDigits(badge.values),
                           )
                         : tx(badge.label)}
                     </span>

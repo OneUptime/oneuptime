@@ -402,6 +402,8 @@ A change names one resource by its id, as a read does, and runs only on a resour
 
 Before a person approves a fix that changes a cloud account, OneUptime dry-runs each change it proposes, and the fix's card on the incident or alert shows the answer under the change: it would run, with the call it would make and its undo; it would be refused, and why; or the dry run could not finish. **Dry run again** checks once more. A dry run changes nothing: the agent stops before the call that would make the change, and on AWS the session of the write role it uses may only read.
 
+On the fix's card and in its Slack and Microsoft Teams message, a cloud change also says what it does in plain words, above its exact command: "Scale the ECS service web out to 4 tasks". The words are read from the command by the catalog's grammar, never from what OneUptime AI wrote. When OneUptime AI plans a fix for an account, it is told what the incident or alert is linked to there: its Cloud resources, by the ids a change names them by, and its App Platforms environments, where a fix changes the services that run in them.
+
 ### The command allowlist
 
 In **Automatic** mode, the resource's **Command allowlist** on the AI agent page lets riskier commands you name run without approval. It is matched word by word against the command, not as text:

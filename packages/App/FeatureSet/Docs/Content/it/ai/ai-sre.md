@@ -38,6 +38,7 @@ Quando un'indagine termina, OneUptime AI pubblica un'analisi della causa princip
 - **Summary**: una o due frasi che una persona avvisata può leggere in cinque secondi.
 - **Most likely root cause**: l'ipotesi, con la sola sicurezza che le prove consentono, e ogni affermazione fattuale citata. Se la telemetria non basta, l'IA lo dice chiaramente ed elenca che cosa ha verificato invece di tirare a indovinare.
 - **Evidence**: i risultati principali che supportano o escludono l'ipotesi, ciascuno citato.
+- **Ruled out**: le altre cause probabili che ha verificato, come una modifica recente, un limite di capacità, una dipendenza o il cloud sottostante, ciascuna con la prova citata che la esclude. La scheda le elenca una per riga. Un'analisi che non ha verificato nessun'altra causa omette la sezione.
 - **Suggested next steps**: azioni concrete per la persona reperibile.
 
 Per gli incidenti, l'analisi viene pubblicata nel feed dell'incidente **e** come nota interna dell'incidente (dove collaborano i soccorritori). Per gli avvisi, viene pubblicata nel feed dell'avviso.
@@ -65,6 +66,7 @@ Un'indagine parte dall'incidente o dall'avviso e dall'infrastruttura a cui è co
 - Le metriche proprie dell'infrastruttura, lette come le leggono le persone. Le metriche di host come `system.cpu.utilization` e `system.memory.utilization` sono riportate una volta per stato, e gli stati sommano al 100%, quindi una media su tutti non dice nulla. OneUptime AI le legge uno stato alla volta (la CPU occupata è user più system), e qualsiasi metrica per container, per punto di montaggio o per qualsiasi altro attributo.
 - I container di un host Docker o Podman: i più carichi per CPU, memoria o riavvii, e quelli che hanno smesso di inviare dati. Un container fermo non invia nulla invece di zero, quindi i numeri dell'intero host lo nascondono.
 - Le modifiche registrate nelle 2 ore prima dell'incidente o dell'avviso (deploy, rollout di Kubernetes, modifiche di configurazione e le correzioni eseguite da OneUptime) e quali di esse la telemetria dei suoi servizi rende sospette: un servizio peggiorato in modo misurabile subito dopo una modifica. Vedi [Deploy e modifiche](/docs/telemetry/change-events).
+- Gli incidenti risolti del progetto che condividono i monitor o le etichette dell'incidente: come è stato risolto ciascuno e, quando la correzione di OneUptime AI per uno di essi è stata verificata, che cosa ha eseguito quella correzione, così che una ricorrenza nomini la correzione che ha funzionato l'ultima volta. Gli incidenti privati sono esclusi.
 
 L'attività dell'indagine nella scheda **OneUptime AI** dice quanti avvisi aperti o recenti ha letto e su quali risorse.
 
@@ -412,6 +414,25 @@ Quando l'incidente non è collegato ad alcun cluster né ad alcuna risorsa di in
 Una decisione viene presa una volta, con le impostazioni del progetto in quel momento: un interruttore attivato più tardi non torna sugli incidenti già aperti. Una volta attivato un interruttore del genere, la riga dice che era disattivato quando OneUptime AI ha controllato e che ora è attivo, e su un incidente aperto per cui non è stato corretto nulla, **Riprova** decide di nuovo con le impostazioni di adesso, come per un nuovo incidente. Chiunque possa modificare l'incidente può premerlo. Non viene offerto mentre una correzione è in preparazione o attende l'approvazione, né mentre la correzione attende l'indagine, e subito dopo un controllo di OneUptime AI ti chiede di riprovare tra un momento.
 
 Quando l'indagine trova la causa nel codice, il passaggio dice che cosa ne è venuto fuori: la pull request di correzione che OneUptime AI sta scrivendo o ha aperto, con un link a essa in Code; l'unico passaggio di configurazione che manca, come **Collega un repository**; oppure **Apri la pull request di correzione**, con il motivo per cui OneUptime AI non l'ha aperta da sola (vedi [Correzioni automatiche del codice](#correzioni-automatiche-del-codice)).
+
+### Prima di approvare una correzione
+
+Una correzione in attesa di approvazione mostra, sotto ogni modifica, ciò che ti serve per decidere:
+
+- **Che cosa fa, in parole semplici.** Una modifica cloud lo dice sopra il suo comando esatto, per esempio «Servizio ECS checkout-api: aumentare a 8 task». Le parole sono lette dal comando stesso, mai da ciò che ha scritto il modello, e ciò che viene eseguito è il comando.
+- **Com'è andata prima la stessa modifica.** Quando OneUptime AI ha fatto la stessa modifica sullo stesso cluster o sulla stessa risorsa per altri incidenti e avvisi negli ultimi 90 giorni, la modifica dice quante volte ha funzionato, per esempio «Ha funzionato tutte le 3 volte in cui è stato eseguito qui», con un link a ogni incidente e avviso per cui è stata eseguita, e in rosso quando non ha mai funzionato. Una modifica ha funzionato quando la verifica ha rilevato che la sua correzione ha funzionato; una modifica mai eseguita non viene contata. La stessa modifica è la stessa azione sullo stesso oggetto, qualunque siano i suoi numeri: un ridimensionamento a 6 e uno a 8 sono una sola modifica. Gli incidenti e gli avvisi privati non vengono né nominati né contati.
+
+OneUptime AI legge questo stesso storico prima di pianificare: quando le prove corrispondono a una correzione che qui ha già funzionato, prova prima quella, e non propone di nuovo una modifica che non ha funzionato senza dire perché ora funzionerebbe.
+
+### Approvare o rifiutare una correzione da Slack o Microsoft Teams
+
+Quando una correzione attende l'approvazione, il suo messaggio nei canali Slack e Microsoft Teams dell'incidente o dell'avviso elenca le sue modifiche, ciascuna con com'è andata prima, e tre pulsanti:
+
+- **Review and approve** mostra tutto ciò che la correzione esegue, con **Approve and run**. L'approvazione esegue esattamente ciò che è stato mostrato, con il tuo account OneUptime, e la correzione viene verificata e annullata come una approvata sulla scheda.
+- **Dismiss** rifiuta la correzione: OneUptime AI non la eseguirà, e l'incidente o l'avviso conserva ciò che ha proposto.
+- **View in OneUptime** apre l'incidente o l'avviso.
+
+Un clic viene verificato come i pulsanti della scheda: il tuo account di chat deve essere collegato a OneUptime, devi poter approvare correzioni nel progetto e vedere l'incidente o l'avviso, e una correzione su un cluster o una risorsa richiede il permesso di modificarli. Una correzione che è cambiata dopo la pubblicazione del suo messaggio viene rifiutata, e non viene eseguito nulla. Un clic dopo che qualcun altro ha approvato o rifiutato la correzione dice chi l'ha fatto, e quando. Il feed dell'incidente o dell'avviso dice chi l'ha approvata o rifiutata, e da quale chat.
 
 ## OneUptime AI risponde per primo
 

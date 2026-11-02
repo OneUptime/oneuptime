@@ -16,9 +16,12 @@ export interface ComponentProps {
    * k8s.cluster.name.
    */
   clusterName?: string | undefined;
-  podName: string;
+  // A pod's lines; or a workload's or node's, with workloadKind and Name.
+  podName?: string | undefined;
   containerName?: string | undefined;
   namespace?: string | undefined;
+  workloadKind?: string | undefined;
+  workloadName?: string | undefined;
 }
 
 const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
@@ -31,6 +34,8 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
         podName: props.podName,
         containerName: props.containerName,
         namespace: props.namespace,
+        workloadKind: props.workloadKind,
+        workloadName: props.workloadName,
       }),
     } as Query<Log>;
   }, [
@@ -38,6 +43,8 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
     props.podName,
     props.containerName,
     props.namespace,
+    props.workloadKind,
+    props.workloadName,
   ]);
 
   /*
@@ -53,7 +60,11 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
 
   return (
     <DashboardLogsViewer
-      id={`k8s-logs-${props.podName}`}
+      id={
+        props.podName
+          ? `k8s-logs-${props.podName}`
+          : `k8s-logs-${(props.workloadKind || "").toLowerCase()}-${props.workloadName || ""}`
+      }
       logQuery={logQuery}
       attributeFilterDisplayKeys={KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS}
       attributeFilterDisplayValues={attributeFilterDisplayValues}

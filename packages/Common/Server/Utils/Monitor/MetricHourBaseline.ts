@@ -152,6 +152,16 @@ export default class MetricHourBaseline {
   }
 
   /*
+   * fromStoredHour in ClickHouse, of a column or expression holding a stored
+   * number: for a read that works a row's hour out in SQL. LogCountBaseline
+   * and SpanCountBaseline store their hours with the same expression, and
+   * CountWindowBaseline reads them through both of these.
+   */
+  public static fromStoredHourSql(storedHour: string): string {
+    return `((${storedHour} + ${HOURS_IN_A_DAY}) % ${STORED_HOUR_VALUES})`;
+  }
+
+  /*
    * Where a query's baseline comes from, or null when nothing can say.
    *
    * An average, a minimum, a maximum or a percentile of a plain metric is on

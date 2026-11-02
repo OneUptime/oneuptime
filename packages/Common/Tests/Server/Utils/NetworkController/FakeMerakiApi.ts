@@ -18,8 +18,11 @@ import { NetworkControllerTransport } from "../../../../Server/Utils/NetworkCont
  *     the host that answered;
  *   - GET /organizations, /organizations/{id}, its /networks and its
  *     /devices (productTypes[] filters), the organization-wide uplink usage
- *     (/appliance/uplinks/usage/byNetwork, t0 and t1, in bytes), each
- *     network's traffic analytics (/networks/{id}/traffic, t0, "kb" - in
+ *     (/appliance/uplinks/usage/byNetwork, t0 and t1, in bytes), its uplink
+ *     loss and latency (/devices/uplinksLossAndLatency: five minutes at most,
+ *     ending two minutes ago at the latest, within the last 60 days - any
+ *     other window answers 400 - one sample a minute, a sample of a minute
+ *     with no measurement null), each network's traffic analytics (/networks/{id}/traffic, t0, "kb" - in
  *     kibibytes), clients (/networks/{id}/clients, t0, perPage, usage in
  *     kibibytes) and link layer topology (/networks/{id}/topology/linkLayer,
  *     nodes and links, empty for a network nothing has been cabled in);
@@ -42,6 +45,11 @@ import { NetworkControllerTransport } from "../../../../Server/Utils/NetworkCont
  */
 
 export const FAKE_API_KEY: string = "0123456789abcdef0123456789abcdef01234567";
+
+// What Meraki allows a window of uplink loss and latency.
+const UPLINK_HEALTH_MAX_WINDOW_MS: number = 5 * 60 * 1000;
+const UPLINK_HEALTH_MIN_AGE_MS: number = 2 * 60 * 1000;
+const UPLINK_HEALTH_LOOKBACK_MS: number = 60 * 24 * 60 * 60 * 1000;
 
 export interface FakeMerakiNetwork {
   id: string;
@@ -96,6 +104,16 @@ export interface FakeMerakiAppliance {
     interface: string;
     sentPerSecond: number;
     receivedPerSecond: number;
+    /*
+     * What Meraki measures on it, towards `monitoredIps` when it is measured
+     * towards more than one. An uplink with neither is not in the answer.
+     */
+    lossPercent?: number | undefined;
+    // Null: it has no latency to report, as a line that is down has none.
+    latencyMs?: number | null | undefined;
+    monitoredIps?: Array<string> | undefined;
+    // The samples of each window with no measurement at all, from its start.
+    missingSamples?: number | undefined;
   }>;
 }
 
@@ -420,6 +438,66 @@ export function createFakeMerakiApi(options: FakeMerakiOptions): FakeMerakiApi {
         );
       }
 
+      if (rest.slice(2).join("/") === "devices/uplinksLossAndLatency") {
+        const t0: number = Date.parse(url.searchParams.get("t0") || "");
+        const t1: number = Date.parse(url.searchParams.get("t1") || "");
+
+        if (
+          !Number.isFinite(t0) ||
+          !Number.isFinite(t1) ||
+          t1 <= t0 ||
+          t1 - t0 > UPLINK_HEALTH_MAX_WINDOW_MS ||
+          t1 > now.getTime() - UPLINK_HEALTH_MIN_AGE_MS ||
+          t0 < now.getTime() - UPLINK_HEALTH_LOOKBACK_MS
+        ) {
+          return errors(
+            400,
+            "t1 can be a maximum of 5 minutes after t0, and at the latest 2 minutes ago",
+          );
+        }
+
+        const rows: Array<JSONObject> = [];
+
+        for (const appliance of organization.appliances) {
+          for (const uplink of appliance.uplinks) {
+            if (
+              uplink.lossPercent === undefined &&
+              uplink.latencyMs === undefined
+            ) {
+              continue;
+            }
+
+            const timeSeries: Array<JSONObject> = [];
+
+            for (
+              let time: number = t0, index: number = 0;
+              time < t1;
+              time += 60 * 1000, index++
+            ) {
+              const isMissing: boolean = index < (uplink.missingSamples || 0);
+
+              timeSeries.push({
+                ts: new Date(time).toISOString(),
+                lossPercent: isMissing ? null : uplink.lossPercent ?? null,
+                latencyMs: isMissing ? null : uplink.latencyMs ?? null,
+              });
+            }
+
+            for (const ip of uplink.monitoredIps || ["8.8.8.8"]) {
+              rows.push({
+                networkId: appliance.networkId,
+                serial: appliance.serial,
+                uplink: uplink.interface,
+                ip,
+                timeSeries,
+              });
+            }
+          }
+        }
+
+        return json(200, rows);
+      }
+
       return errors(404, "Not found");
     }
 
@@ -645,8 +723,20 @@ export function buildBranchOrganization(data: {
       mac: `00:18:0a:00:${(index % 256).toString(16).padStart(2, "0")}:01`,
       networkId: id,
       uplinks: [
-        { interface: "wan1", sentPerSecond: 10000, receivedPerSecond: 50000 },
-        { interface: "wan2", sentPerSecond: 100, receivedPerSecond: 200 },
+        {
+          interface: "wan1",
+          sentPerSecond: 10000,
+          receivedPerSecond: 50000,
+          lossPercent: 0.5,
+          latencyMs: 20,
+        },
+        {
+          interface: "wan2",
+          sentPerSecond: 100,
+          receivedPerSecond: 200,
+          lossPercent: 1.5,
+          latencyMs: 40,
+        },
       ],
     });
   }

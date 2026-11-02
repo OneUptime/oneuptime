@@ -8,6 +8,7 @@ import {
   getNetworkTrafficUsageBucketSeconds,
   getUnavailableNetworkTrafficUsageSummary,
   getUsageOctets,
+  isUplinkUsageKind,
   isUsageObjectId,
 } from "../../Types/NetFlow/NetworkTrafficUsage";
 import ObjectID from "../../Types/ObjectID";
@@ -68,6 +69,72 @@ describe("the filters a request narrows to", () => {
   });
 });
 
+describe("an uplink's filter", () => {
+  test.each([["wan1"], ["wan2"], ["wan3"], ["cellular"], ["uplink"]])(
+    "%s is kept as it is, and is a filter",
+    (name: string) => {
+      const filters: ReturnType<
+        typeof NetworkTrafficUsageFiltersUtil.sanitize
+      > = NetworkTrafficUsageFiltersUtil.sanitize({ interfaceName: name });
+
+      expect(filters).toEqual({ interfaceName: name });
+      expect(NetworkTrafficUsageFiltersUtil.isFiltered(filters)).toBe(true);
+    },
+  );
+
+  test("any name a row can list can be narrowed to, its case kept and spaces too", () => {
+    for (const name of ["WAN 1", "Port 3", "wan-1_b", "GigabitEthernet0/0/1"]) {
+      expect(
+        NetworkTrafficUsageFiltersUtil.sanitize({ interfaceName: name }),
+      ).toEqual({ interfaceName: name });
+    }
+  });
+
+  test.each([
+    ["a number", 7],
+    ["an object", {}],
+    ["an array", ["wan1"]],
+    ["control characters", "wan1\u0000"],
+    ["a line break", "wan1\nwan2"],
+    ["a C1 control character", "wan\u00851"],
+    ["a name past the limit", "w".repeat(65)],
+  ])("%s is refused, never ignored", (_name: string, value: unknown) => {
+    expect(() => {
+      return NetworkTrafficUsageFiltersUtil.sanitize({ interfaceName: value });
+    }).toThrow(BadDataException);
+  });
+
+  test("an empty value is no filter", () => {
+    for (const value of [undefined, null, ""]) {
+      expect(
+        NetworkTrafficUsageFiltersUtil.sanitize({ interfaceName: value }),
+      ).toEqual({});
+    }
+  });
+
+  test("it sits beside the other two", () => {
+    expect(
+      NetworkTrafficUsageFiltersUtil.sanitize({
+        controllerNetworkId: "L_1",
+        deviceSerial: "q2xx-aaaa-0001",
+        interfaceName: "wan2",
+      }),
+    ).toEqual({
+      controllerNetworkId: "L_1",
+      deviceSerial: "Q2XX-AAAA-0001",
+      interfaceName: "wan2",
+    });
+  });
+
+  test("text that is SQL is only text here: the query binds it", () => {
+    expect(
+      NetworkTrafficUsageFiltersUtil.sanitize({
+        interfaceName: "wan1' OR '1'='1",
+      }),
+    ).toEqual({ interfaceName: "wan1' OR '1'='1" });
+  });
+});
+
 describe("the chart's buckets", () => {
   test("never narrower than one uplink window", () => {
     expect(NETWORK_TRAFFIC_USAGE_UPLINK_WINDOW_SECONDS).toBe(300);
@@ -95,6 +162,9 @@ describe("a page without the source", () => {
     expect(getUsageOctets(summary.totals)).toBe(0);
     expect(summary.primaryKind).toBe(NetworkTrafficUsageKind.Uplink);
     expect(summary.connections).toEqual([]);
+    expect(summary.uplinkInterfaces).toEqual([]);
+    expect(summary.uplinkSeries).toEqual([]);
+    expect(summary.topConversations).toEqual([]);
   });
 });
 
@@ -103,12 +173,23 @@ describe("helpers", () => {
     expect(getUsageOctets({ sentOctets: 3, receivedOctets: 39 })).toBe(42);
   });
 
-  test("the three kinds, in the order the page reads them", () => {
+  test("the four kinds, in the order the page reads them", () => {
     expect(NETWORK_TRAFFIC_USAGE_KINDS).toEqual([
       "uplink",
       "application",
       "client",
+      "uplinkHealth",
     ]);
+  });
+
+  test("an uplink and its health are read for the whole organization at once; the rest network by network", () => {
+    expect(
+      NETWORK_TRAFFIC_USAGE_KINDS.filter(
+        (kind: NetworkTrafficUsageKind): boolean => {
+          return isUplinkUsageKind(kind);
+        },
+      ),
+    ).toEqual(["uplink", "uplinkHealth"]);
   });
 
   test("an ID OneUptime made is a UUID", () => {

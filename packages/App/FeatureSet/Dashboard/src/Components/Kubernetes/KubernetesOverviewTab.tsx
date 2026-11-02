@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ResourceOverviewTab, {
   OwnerReference,
+  ResourceOverviewDetailsCard,
   SummaryField,
 } from "../Infrastructure/ResourceOverviewTab";
 import { KubernetesCondition } from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
@@ -29,6 +30,11 @@ export interface ComponentProps {
   modelId?: ObjectID | undefined;
   isLoading: boolean;
   emptyMessage?: string | undefined;
+  /*
+   * The summary fields as one Details card, on a page whose hero already
+   * says what the object is and how it is doing (KubernetesPartHero).
+   */
+  detailsCard?: ResourceOverviewDetailsCard | undefined;
 }
 
 const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
@@ -60,21 +66,22 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
         modelId
           ? (ref: OwnerReference): ReactElement => {
               return (
+                /*
+                 * An owner lives in its object's namespace; the link keeps it
+                 * for every namespaced kind (KubernetesResourceLink).
+                 */
                 <KubernetesResourceLink
                   modelId={modelId}
                   resourceKind={ref.kind}
                   resourceName={ref.name}
-                  namespace={
-                    ref.kind === "DeploymentConfig"
-                      ? props.namespace
-                      : undefined
-                  }
+                  namespace={props.namespace}
                 />
               );
             }
           : undefined
       }
       isLoading={props.isLoading}
+      detailsCard={props.detailsCard}
       emptyMessage={
         props.emptyMessage ||
         "No resource details yet. Set resourceSpecs.enabled to true in the kubernetes-agent Helm chart and wait up to 5 minutes."

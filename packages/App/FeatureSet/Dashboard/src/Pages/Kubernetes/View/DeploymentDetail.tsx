@@ -46,6 +46,21 @@ import StatusBadge, {
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import {
+  getKubernetesPodsTab,
+  getKubernetesWorkloadLogsTab,
+} from "../../../Components/Kubernetes/Part/KubernetesPartTabs";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesNamespaceParam,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
@@ -53,6 +68,8 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const deploymentName: string = Navigation.getLastParamAsString();
+  // Which one: names repeat across namespaces.
+  const namespaceParam: string | undefined = getKubernetesNamespaceParam();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -69,6 +86,8 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          // The hero's link back to the cluster, and the Logs tab's chip.
+          name: true,
         },
       });
       setCluster(item);
@@ -98,6 +117,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
             clusterIdentifier: cluster.clusterIdentifier || "",
             resourceType: "deployments",
             resourceName: deploymentName,
+            namespace: namespaceParam,
           });
         setObjectData(obj);
       } catch {
@@ -107,7 +127,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     };
 
     fetchObject().catch(() => {});
-  }, [cluster?.clusterIdentifier, deploymentName]);
+  }, [cluster?.clusterIdentifier, deploymentName, namespaceParam]);
 
   // Per-node allocatable CPU — denominator for the true CPU% transform.
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
@@ -136,6 +156,18 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     resourceKind: "Deployment",
   });
 
+  /*
+   * The Deployment as the cluster's rules read it, with what it runs: its
+   * hero, what needs attention on it and its Pods tab (KubernetesPartFacts).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: "Deployment",
+    name: deploymentName,
+    namespace: namespaceParam,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -149,6 +181,8 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
   }
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
+  const resourceNamespace: string | undefined =
+    objectData?.metadata.namespace || namespaceParam || undefined;
 
   const getSeries: (data: AggregateModel) => ChartSeries = (
     data: AggregateModel,
@@ -177,6 +211,9 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.deployment.name": deploymentName,
+          ...(resourceNamespace
+            ? { "resource.k8s.namespace.name": resourceNamespace }
+            : {}),
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -206,6 +243,9 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.deployment.name": deploymentName,
+          ...(resourceNamespace
+            ? { "resource.k8s.namespace.name": resourceNamespace }
+            : {}),
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -218,10 +258,14 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from deployment object
+  /*
+   * What Kubernetes reports about the Deployment, in one Details card under
+   * the hero. Its rollout reads in the hero, by the cluster's rules
+   * ("Rolling out", "2 of 3 available"): a Rollout Status here said "In
+   * Progress" for a finished rollout one crash-looping replica short.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Name", value: deploymentName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Name", value: deploymentName, copyText: deploymentName },
   ];
 
   if (objectData) {
@@ -229,7 +273,6 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     const ready: number = objectData.status.readyReplicas ?? 0;
     const available: number = objectData.status.availableReplicas ?? 0;
     const unavailable: number = objectData.status.unavailableReplicas ?? 0;
-    const isFullyRolledOut: boolean = ready === desired && unavailable === 0;
 
     summaryFields.push(
       {
@@ -242,39 +285,6 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
           />
         ) : (
           "default"
-        ),
-      },
-      {
-        title: "Rollout Status",
-        description:
-          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentRolloutStatus,
-        value: (
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <StatusBadge
-                text={isFullyRolledOut ? "Complete" : "In Progress"}
-                type={
-                  isFullyRolledOut
-                    ? StatusBadgeType.Success
-                    : StatusBadgeType.Warning
-                }
-              />
-              <span className="text-sm text-gray-600">
-                {translator.translateTemplate("{{ready}}/{{total}} ready", {
-                  ready: ready,
-                  total: desired,
-                })}
-              </span>
-            </div>
-            <div className="w-32 bg-gray-100 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${isFullyRolledOut ? "bg-emerald-500" : "bg-amber-500"}`}
-                style={{
-                  width: `${desired > 0 ? (ready / desired) * 100 : 0}%`,
-                }}
-              />
-            </div>
-          </div>
         ),
       },
       {
@@ -331,16 +341,40 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={objectData?.metadata.labels || {}}
-          annotations={objectData?.metadata.annotations || {}}
-          conditions={objectData?.status.conditions}
-          isLoading={isLoadingObject}
-        />
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind="Deployment"
+            read={partState.read}
+            error={partState.error}
+            onRetry={partState.refresh}
+            routes={routes}
+          />
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={objectData?.metadata.labels || {}}
+            annotations={objectData?.metadata.annotations || {}}
+            conditions={objectData?.status.conditions}
+            isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("Deployment")}
+          />
+        </>
       ),
     },
+    getKubernetesPodsTab({
+      kind: "Deployment",
+      part: partState,
+      routes: routes,
+    }),
     eventsTab,
+    getKubernetesWorkloadLogsTab({
+      kind: "Deployment",
+      name: deploymentName,
+      namespace: resourceNamespace,
+      clusterIdentifier: clusterIdentifier,
+      clusterName: cluster.name,
+    }),
     {
       name: "Metrics",
       children: (
@@ -362,7 +396,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
           clusterIdentifier={clusterIdentifier}
           resourceType="deployments"
           resourceName={deploymentName}
-          namespace={objectData?.metadata.namespace}
+          namespace={resourceNamespace}
         />
       ),
     },
@@ -370,6 +404,18 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * What it is and how it is doing, in Kubernetes' own words, above its
+       * tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind="Deployment"
+        name={deploymentName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        routes={routes}
+        namespace={namespaceParam}
+      />
       {/*
        * The Database discovered on this Deployment, if any — by its name, or
        * the cluster its labels place it in (a pooler an operator labels as
