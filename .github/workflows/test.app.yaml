@@ -573,7 +573,12 @@ jobs:
           # seconds locally: a monitor, a cloud resource and a serverless
           # function among a case's records, a member's on-call schedules
           # and teams, and a member's own page with its Security card, at
-          # 1280 and 390 pixels, dark): still about 21.5.
+          # 1280 and 390 pixels, dark): still about 21.5. It gained 14 more
+          # on 2026-11-02 (about 31 seconds locally: In your logs and traces
+          # under a case's records - the values found, with their log lines,
+          # spans, places and senders, a failed and a limited search, at 390
+          # to 1280 pixels, dark, in German and Persian, and on an entity's
+          # page): about 22.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
