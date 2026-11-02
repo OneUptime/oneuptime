@@ -109,6 +109,12 @@ export interface ResourceEntityScopeQueryValue {
   entityKeys?: Array<string> | undefined;
   attributeKey?: string | undefined;
   attributeValues?: Array<string> | undefined;
+  /*
+   * The resource is left out rather than kept: the group compiles to
+   * `AND NOT (... OR ...)`. Only `true` negates - any other value keeps the
+   * group positive.
+   */
+  isExcluded?: boolean | undefined;
 }
 
 const SIMPLE_AGGREGATE_FUNCTION_NAME_REGEX: RegExp = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -1073,7 +1079,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             whereStatement.append(SQL` `);
           }
 
-          whereStatement.append(SQL`AND (`);
+          /*
+           * A resource the reader left out ("Host is not web-01") negates
+           * the whole group, so a row that belongs to it in any of the ways
+           * above is left out. A row without the resource attribute reads
+           * it as '' - in no IN list - and is kept.
+           */
+          whereStatement.append(
+            scope.isExcluded === true ? SQL`AND NOT (` : SQL`AND (`,
+          );
 
           for (const [branchIndex, branch] of branches.entries()) {
             if (branchIndex > 0) {

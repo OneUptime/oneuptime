@@ -5,6 +5,24 @@ import {
   SearchValuePredicate,
 } from "../../../Types/Telemetry/TelemetrySearchQuery";
 import { isServiceFacetKey } from "../../../Types/Telemetry/ResourceEntityFacet";
+import {
+  FACET_EXCLUDE_KEY_PREFIX,
+  getBaseFacetKey,
+  isExcludeFacetKey,
+  toExcludeFacetKey,
+} from "../../../Types/Telemetry/FacetExcludeKey";
+
+/*
+ * The exclusion marker lives in Types (FacetExcludeKey) so every explorer's
+ * request builders read it too; re-exported here, where the sidebar and the
+ * chip row have always imported it from.
+ */
+export {
+  FACET_EXCLUDE_KEY_PREFIX,
+  getBaseFacetKey,
+  isExcludeFacetKey,
+  toExcludeFacetKey,
+};
 
 /*
  * What a value in a telemetry facet sidebar is doing to the list, and which
@@ -42,38 +60,11 @@ import { isServiceFacetKey } from "../../../Types/Telemetry/ResourceEntityFacet"
  * Kept free of React so the rules are unit-testable on their own.
  */
 
-// A chip that leaves its value out says so on its key: `!severityName`.
-export const FACET_EXCLUDE_KEY_PREFIX: string = "!";
-
 // Attribute chips: `attributes.<key>`, their values written in the search grammar.
 export const ATTRIBUTE_FACET_KEY_PREFIX: string = "attributes.";
 
 // The Service facet; `serviceId` is the same facet under its old name.
 export const SERVICE_FACET_KEY: string = "primaryEntityId";
-
-export const isExcludeFacetKey: (facetKey: string) => boolean = (
-  facetKey: string,
-): boolean => {
-  return facetKey.startsWith(FACET_EXCLUDE_KEY_PREFIX);
-};
-
-// The key of the chip that excludes a value of this facet.
-export const toExcludeFacetKey: (facetKey: string) => string = (
-  facetKey: string,
-): string => {
-  return isExcludeFacetKey(facetKey)
-    ? facetKey
-    : `${FACET_EXCLUDE_KEY_PREFIX}${facetKey}`;
-};
-
-// The facet an include-or-exclude key stands for.
-export const getBaseFacetKey: (facetKey: string) => string = (
-  facetKey: string,
-): string => {
-  return isExcludeFacetKey(facetKey)
-    ? facetKey.substring(FACET_EXCLUDE_KEY_PREFIX.length)
-    : facetKey;
-};
 
 export enum FacetValueState {
   // The value is not part of the filter.

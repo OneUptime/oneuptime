@@ -72,6 +72,8 @@ export interface HistogramRequest {
    */
   resourceScopes?: Array<ResourceEntityScope> | undefined;
   severityTexts?: Array<string> | undefined;
+  // Severities whose rows are left out (an explorer's "Severity is not").
+  excludedSeverityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -106,6 +108,8 @@ export interface FacetRequest {
    */
   resourceScopes?: Array<ResourceEntityScope> | undefined;
   severityTexts?: Array<string> | undefined;
+  // Severities whose rows are left out (an explorer's "Severity is not").
+  excludedSeverityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -139,6 +143,8 @@ export interface AnalyticsRequest {
    */
   resourceScopes?: Array<ResourceEntityScope> | undefined;
   severityTexts?: Array<string> | undefined;
+  // Severities whose rows are left out (an explorer's "Severity is not").
+  excludedSeverityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -548,7 +554,8 @@ export class LogAggregationService {
   /*
    * Whether a histogram request filters on anything proj_severity_histogram
    * does not store (it keeps projectId, severityText and the minute) - that
-   * is, whether its query reads the base table anyway. Decided by what the
+   * is, whether its query reads the base table anyway. A severity left out
+   * is a severity filter too: the projection answers it. Decided by what the
    * filters render, not by which fields are set: an empty attribute list or
    * resource scope renders nothing and leaves the projection in use.
    */
@@ -558,6 +565,7 @@ export class LogAggregationService {
     LogAggregationService.appendCommonFilters(filtersBeyondSeverity, {
       ...request,
       severityTexts: undefined,
+      excludedSeverityTexts: undefined,
     });
 
     return filtersBeyondSeverity.query.trim().length > 0;
@@ -1086,6 +1094,7 @@ export class LogAggregationService {
       | "entityKeys"
       | "resourceScopes"
       | "severityTexts"
+      | "excludedSeverityTexts"
       | "bodySearchText"
       | "traceIds"
       | "spanIds"
@@ -1111,6 +1120,23 @@ export class LogAggregationService {
         SQL` AND severityText IN (${{
           type: TableColumnType.Text,
           value: new Includes(request.severityTexts),
+        }})`,
+      );
+    }
+
+    /*
+     * A severity the reader left out. Beside the kept ones it changes
+     * nothing (a row has one severity), so it is applied on its own terms:
+     * the list compiles the very same `NOT IN`.
+     */
+    if (
+      request.excludedSeverityTexts &&
+      request.excludedSeverityTexts.length > 0
+    ) {
+      statement.append(
+        SQL` AND severityText NOT IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.excludedSeverityTexts),
         }})`,
       );
     }
@@ -1196,6 +1222,8 @@ export class LogAggregationService {
     entityKeys?: Array<string> | undefined;
     resourceScopes?: Array<ResourceEntityScope> | undefined;
     severityTexts?: Array<string> | undefined;
+    // Severities whose rows are left out (an explorer's "Severity is not").
+    excludedSeverityTexts?: Array<string> | undefined;
     bodySearchText?: string | undefined;
     traceIds?: Array<string> | undefined;
     spanIds?: Array<string> | undefined;

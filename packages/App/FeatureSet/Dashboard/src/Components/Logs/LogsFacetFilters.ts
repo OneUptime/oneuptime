@@ -1,5 +1,7 @@
 import Log from "Common/Models/AnalyticsModels/Log";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import ObjectID from "Common/Types/ObjectID";
@@ -8,10 +10,15 @@ import {
   getResourceFacetLabelMap,
 } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
+  EXCLUDED_RESOURCE_FILTERS_FIELD,
   ResourceEntityFacetSelections,
   parseResourceEntityFacetSelections,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { queryValueToChipValues } from "Common/Types/Telemetry/TelemetrySearchQuery";
+import {
+  getBaseFacetKey,
+  toExcludeFacetKey,
+} from "Common/Types/Telemetry/FacetExcludeKey";
 import { ATTRIBUTE_FACET_PREFIX } from "./LogsHistogramRequest";
 import { LOGS_CHIP_FACET_KEYS } from "../../Utils/SavedViewQueryMerge";
 
@@ -62,9 +69,13 @@ export const LOGS_FACET_CHIP_KEY_LABELS: Readonly<Record<string, string>> = {
 /*
  * What a chip's key reads. An `attributes.<key>` chip drops the prefix so it
  * reads as `<key>: <value>`; a known facet gets its label; anything else
- * keeps its raw key rather than guessing.
+ * keeps its raw key rather than guessing. A chip that leaves its value out
+ * (`!severityText`) is named as its facet is: the chip row says it excludes
+ * ("Severity is not"), as it does in every explorer.
  */
-export function getLogsFacetChipDisplayKey(facetKey: string): string {
+export function getLogsFacetChipDisplayKey(chipKey: string): string {
+  const facetKey: string = getBaseFacetKey(chipKey);
+
   if (facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
     return facetKey.substring(ATTRIBUTE_FACET_PREFIX.length);
   }
@@ -112,6 +123,32 @@ export function getLogsQueryValues(value: unknown): Array<string> {
 }
 
 /*
+ * The chip values a stored predicate LEAVES OUT: a NotEqual or an
+ * IncludesNone, what applyLogsFacetFiltersToQuery compiles a `!severityText`
+ * or `!primaryEntityId` chip to. Read back under the `!` key, so a saved
+ * view or a link keeps its "Severity is not debug" as that chip.
+ */
+export function getLogsQueryExcludedValues(value: unknown): Array<string> {
+  if (value instanceof IncludesNone) {
+    return value.values
+      .map((item: string | number | ObjectID): string => {
+        return item.toString();
+      })
+      .filter((item: string): boolean => {
+        return item.length > 0;
+      });
+  }
+
+  if (value instanceof NotEqual) {
+    const text: string = String(value.value ?? "");
+
+    return text.length > 0 ? [text] : [];
+  }
+
+  return [];
+}
+
+/*
  * Read the chips a saved view's (or deep link's) query carries. A predicate
  * the host page pins in `baseQuery` is the page's, not the user's, so it
  * never becomes a removable chip.
@@ -131,6 +168,15 @@ export function buildLogsFacetFiltersFromQuery(
 
     if (values.length > 0) {
       nextFilters.set(facetKey, new Set(values));
+    }
+
+    // A value the view leaves out comes back as the chip that leaves it out.
+    const excludedValues: Array<string> = getLogsQueryExcludedValues(
+      (query as any)[facetKey],
+    );
+
+    if (excludedValues.length > 0) {
+      nextFilters.set(toExcludeFacetKey(facetKey), new Set(excludedValues));
     }
   }
 
@@ -188,5 +234,24 @@ export function buildLogsFacetFiltersFromQuery(
     }
   }
 
+  // And the resources the view leaves out, as `!<facet>` chips.
+  const savedExcludedResourceFilters: ResourceEntityFacetSelections =
+    parseResourceEntityFacetSelections(
+      (query as any)[EXCLUDED_RESOURCE_FILTERS_FIELD],
+    );
+
+  for (const facetKey of Object.keys(savedExcludedResourceFilters)) {
+    if ((baseQuery as any)[facetKey] !== undefined) {
+      continue;
+    }
+
+    const values: Array<string> = savedExcludedResourceFilters[facetKey] || [];
+
+    if (values.length > 0) {
+      nextFilters.set(toExcludeFacetKey(facetKey), new Set(values));
+    }
+  }
+
   return nextFilters;
 }
+

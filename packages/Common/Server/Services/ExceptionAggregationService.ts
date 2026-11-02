@@ -32,6 +32,13 @@ export interface ExceptionFilters {
   excludedServiceIds?: Array<ObjectID> | undefined;
   exceptionTypes?: Array<string> | undefined;
   environments?: Array<string> | undefined;
+  /*
+   * What the reader left out (an explorer's "Exception Type is not
+   * TypeError"): rows holding one of these are dropped, whatever else
+   * matches.
+   */
+  excludedExceptionTypes?: Array<string> | undefined;
+  excludedEnvironments?: Array<string> | undefined;
   fingerprints?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   escaped?: boolean | undefined;
@@ -318,6 +325,27 @@ export class ExceptionAggregationService {
         SQL` AND environment IN (${{
           type: TableColumnType.Text,
           value: new Includes(request.environments),
+        }})`,
+      );
+    }
+
+    if (
+      request.excludedExceptionTypes &&
+      request.excludedExceptionTypes.length > 0
+    ) {
+      statement.append(
+        SQL` AND exceptionType NOT IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.excludedExceptionTypes),
+        }})`,
+      );
+    }
+
+    if (request.excludedEnvironments && request.excludedEnvironments.length > 0) {
+      statement.append(
+        SQL` AND environment NOT IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.excludedEnvironments),
         }})`,
       );
     }

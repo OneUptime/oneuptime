@@ -11,8 +11,13 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import { compileAttributeChipValues } from "Common/Types/Telemetry/TelemetrySearchQuery";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import { getBaseFacetKey } from "Common/Types/Telemetry/FacetExcludeKey";
+import { applyLogsFacetExclusionsToRequest } from "Common/UI/Components/LogsViewer/LogsFacetExclusions";
 import {
   ALL_RESOURCE_FACET_KEYS,
+  EXCLUDED_RESOURCE_FILTERS_FIELD,
   ResourceEntityFacetSelections,
   collectResourceEntityFacetSelections,
   collectServiceFacetSelections,
@@ -205,6 +210,13 @@ export function buildLogsHistogramRequest(
     requestData["entityKeys"] = params.entityKeys;
   }
 
+  /*
+   * What the chips leave out ("Severity is not debug", "Host is not
+   * web-01"), after what they keep: a severity or service kept wins over
+   * one left out, as in the list query (applyLogsFacetExclusionsToRequest).
+   */
+  applyLogsFacetExclusionsToRequest(requestData, params.appliedFacetFilters);
+
   // Last, so what the user typed wins exactly as it does in the list query.
   applyTypedLogFilterToRequest(requestData, params.typedFilter);
 
@@ -240,6 +252,37 @@ export function parseLogsHistogramResponse(
 }
 
 type ListQueryValuesFunction = (value: unknown) => Array<string>;
+
+/*
+ * The values a column filter in the list query LEAVES OUT - a NotEqual, or
+ * an IncludesNone for several - which a facet chip like `!severityText`
+ * compiles to (applyLogsFacetFiltersToQuery), as does a typed
+ * `-severity:debug`. Empty for every other form.
+ */
+const listQueryExcludedValues: ListQueryValuesFunction = (
+  value: unknown,
+): Array<string> => {
+  if (value instanceof IncludesNone) {
+    return value.values
+      .map((item: string | number | ObjectID): string => {
+        return item.toString();
+      })
+      .filter((item: string): boolean => {
+        return item.length > 0;
+      });
+  }
+
+  if (value instanceof NotEqual) {
+    const text: string =
+      value.value instanceof ObjectID
+        ? value.value.toString()
+        : String(value.value ?? "");
+
+    return text.length > 0 ? [text] : [];
+  }
+
+  return [];
+};
 
 /*
  * The forms a typed column filter takes in the list query: one value, or
@@ -350,19 +393,46 @@ export const applyTypedLogFilterToRequest: ApplyTypedLogFilterToRequestFunction 
       }
     }
 
-    const columnFields: Array<[string, string]> = [
-      ["severityText", "severityTexts"],
-      ["primaryEntityId", "serviceIds"],
-      ["traceId", "traceIds"],
-      ["spanId", "spanIds"],
-      ["sessionId", "sessionIds"],
+    /*
+     * Each column's list predicate, kept or left out. A column holds one
+     * predicate in the list query, so whichever form it has is the one the
+     * request carries: a severity left out replaces the severities a chip
+     * kept, as it did in the list, and the other way round. The endpoints
+     * have a left-out field for severities and services; a trace, span or
+     * session left out stays with the list alone.
+     */
+    const columnFields: Array<[string, string, string | null]> = [
+      ["severityText", "severityTexts", "excludedSeverityTexts"],
+      ["primaryEntityId", "serviceIds", "excludedServiceIds"],
+      ["traceId", "traceIds", null],
+      ["spanId", "spanIds", null],
+      ["sessionId", "sessionIds", null],
     ];
 
-    for (const [queryKey, requestKey] of columnFields) {
+    for (const [queryKey, requestKey, excludedRequestKey] of columnFields) {
       const values: Array<string> = listQueryValues(typedFilter[queryKey]);
 
       if (values.length > 0) {
         requestData[requestKey] = values;
+
+        if (excludedRequestKey) {
+          delete requestData[excludedRequestKey];
+        }
+
+        continue;
+      }
+
+      if (!excludedRequestKey) {
+        continue;
+      }
+
+      const excludedValues: Array<string> = listQueryExcludedValues(
+        typedFilter[queryKey],
+      );
+
+      if (excludedValues.length > 0) {
+        requestData[excludedRequestKey] = excludedValues;
+        delete requestData[requestKey];
       }
     }
 
@@ -382,6 +452,21 @@ export const applyTypedLogFilterToRequest: ApplyTypedLogFilterToRequestFunction 
       Object.keys(resourceFilters as Record<string, unknown>).length > 0
     ) {
       requestData["resourceFilters"] = resourceFilters as JSONObject;
+    }
+
+    // And the resources the list leaves out ("Host is not web-01").
+    const excludedResourceFilters: unknown =
+      typedFilter[EXCLUDED_RESOURCE_FILTERS_FIELD];
+
+    if (
+      excludedResourceFilters &&
+      typeof excludedResourceFilters === "object" &&
+      !Array.isArray(excludedResourceFilters) &&
+      Object.keys(excludedResourceFilters as Record<string, unknown>).length >
+        0
+    ) {
+      requestData[EXCLUDED_RESOURCE_FILTERS_FIELD] =
+        excludedResourceFilters as JSONObject;
     }
 
     /*
@@ -452,6 +537,7 @@ export const TYPED_LOG_FILTER_KEYS: ReadonlyArray<string> = [
   "sessionId",
   "body",
   "resourceFilters",
+  EXCLUDED_RESOURCE_FILTERS_FIELD,
 ];
 
 type PickTypedLogFilterFunction = (
@@ -532,10 +618,17 @@ export const getLogsChosenFacetKeys: (
 ): Array<string> => {
   const keys: Set<string> = new Set<string>();
 
-  for (const [facetKey, values] of facetFilters.entries()) {
+  for (const [chipKey, values] of facetFilters.entries()) {
     if (values.size === 0) {
       continue;
     }
+
+    /*
+     * A value left out is a choice in its facet too: the facet is counted
+     * without it, so the values beside it keep their counts, and the one
+     * left out its own.
+     */
+    const facetKey: string = getBaseFacetKey(chipKey);
 
     keys.add(isServiceFacetKey(facetKey) ? SERVICE_FACET_COUNT_KEY : facetKey);
   }
@@ -569,22 +662,25 @@ export const withoutLogsFacetSelection: (
   }
 
   if (isResourceEntityFacetKey(facetKey)) {
-    const resourceFilters: unknown = rest["resourceFilters"];
+    // The facet's kept and left-out resources alike.
+    for (const field of ["resourceFilters", EXCLUDED_RESOURCE_FILTERS_FIELD]) {
+      const resourceFilters: unknown = rest[field];
 
-    if (
-      resourceFilters &&
-      typeof resourceFilters === "object" &&
-      !Array.isArray(resourceFilters)
-    ) {
-      const others: Record<string, unknown> = {
-        ...(resourceFilters as Record<string, unknown>),
-      };
-      delete others[facetKey];
+      if (
+        resourceFilters &&
+        typeof resourceFilters === "object" &&
+        !Array.isArray(resourceFilters)
+      ) {
+        const others: Record<string, unknown> = {
+          ...(resourceFilters as Record<string, unknown>),
+        };
+        delete others[facetKey];
 
-      if (Object.keys(others).length > 0) {
-        rest["resourceFilters"] = others;
-      } else {
-        delete rest["resourceFilters"];
+        if (Object.keys(others).length > 0) {
+          rest[field] = others;
+        } else {
+          delete rest[field];
+        }
       }
     }
 
