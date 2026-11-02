@@ -47,7 +47,7 @@ Hver gang der ankommer telemetri, rykker tjenestens **Sidst set** frem, og dens 
 
 ## Find en tjeneste
 
-Gå til **Produkter → Ressourcer → Tjenester**. **Alle tjenester** viser hver tjeneste med **Navn**, **Beskrivelse**, **Technology**, **Sidst set**, **Etiketter** og **Ejere**.
+Gå til **Produkter → Ressourcer → Tjenester**. **Alle tjenester** viser hver tjeneste med **Navn**, **Beskrivelse**, **Teknologi**, **Sidst set**, **Etiketter** og **Ejere**.
 
 - Søg på navn eller beskrivelse, og filtrér på ejer eller etiket med bjælken over listen.
 - Markér flere tjenester for at give dem alle etiketter eller ejere på én gang, eller for at arkivere dem.
