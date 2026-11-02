@@ -33,6 +33,7 @@ const CLUSTER_ID: string = "71000000-0000-4000-8000-000000000001";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const CLUSTER_PATH: string = `/dashboard/${PROJECT_ID}/proxmox/${CLUSTER_ID}`;
 const NOW: Date = new Date("2026-11-01T12:00:00.000Z");
+const INVENTORY_DOWN: string = "Server is not available. Please try again.";
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
 const GIB: number = 1024 * 1024 * 1024;
@@ -41,6 +42,9 @@ type Row = Record<string, unknown>;
 
 let mockLastParam: string = "node%2Fpve1";
 let mockInventory: Array<Row> = [];
+// While true, every read of the inventory fails, as a server that is down.
+let mockInventoryDown: boolean = false;
+let mockInventoryReads: number = 0;
 let mockIncidents: Array<Row> = [];
 let mockMonitors: Array<Row> = [];
 
@@ -71,6 +75,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         const modelName: string = new Model().tableName || "";
         let records: Array<Row> = [];
         if (modelName === "ProxmoxResource") {
+          mockInventoryReads++;
+          if (mockInventoryDown) {
+            return Promise.reject(new Error(INVENTORY_DOWN));
+          }
           records = mockInventory.filter((row: Row): boolean => {
             for (const field of ["kind", "externalId", "parentNodeName"]) {
               const wanted: unknown = request.query[field];
@@ -335,6 +343,8 @@ function tile(tilesTestId: string, title: string): HTMLElement {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
+  mockInventoryDown = false;
+  mockInventoryReads = 0;
   mockInventory = inventory();
   mockIncidents = [];
   mockMonitors = [];
@@ -773,6 +783,138 @@ describe("a storage's page", () => {
     expect(
       screen.getByTestId("proxmox-storage-details-content"),
     ).toHaveTextContent("Disk images, Container disks");
+  });
+});
+
+/*
+ * #5524's follow-up: a node's, a guest's and a storage's page swallowed a
+ * failed read of the inventory and drew their empty state - "Node details
+ * not reported yet. Make sure the Proxmox agent is sending metrics." and
+ * "No guests on this node." - which sent an administrator to an agent that
+ * was working while OneUptime could not answer. They say the read failed,
+ * with Refresh, until a read succeeds.
+ */
+describe("a part whose inventory cannot be read says so", () => {
+  function readError(): HTMLElement {
+    return screen.getByTestId("proxmox-part-read-error");
+  }
+
+  async function refreshFromTheError(): Promise<void> {
+    fireEvent.click(within(readError()).getByTestId("refresh-button"));
+    await flush();
+  }
+
+  test("a node's Overview says the read failed, not that the node has not reported", async () => {
+    mockInventoryDown = true;
+    await renderPage(
+      ProxmoxClusterNodeDetail,
+      "node%2Fpve1",
+      "proxmox-node-hero",
+    );
+
+    expect(readError()).toHaveTextContent(INVENTORY_DOWN);
+    expect(screen.queryByTestId("proxmox-node-not-reported")).toBeNull();
+    expect(screen.queryByText(/not reported yet/)).toBeNull();
+    expect(screen.queryByTestId("proxmox-node-overview")).toBeNull();
+    // The hero still names the node from its page's address.
+    expect(screen.getByTestId("proxmox-node-hero-name")).toHaveTextContent(
+      "pve1",
+    );
+  });
+
+  test("its Guests and Storage tabs say so too, not that the node has none", async () => {
+    mockInventoryDown = true;
+    await renderPage(
+      ProxmoxClusterNodeDetail,
+      "node%2Fpve1",
+      "proxmox-node-hero",
+    );
+
+    for (const [tab, table] of [
+      [/Guests/, "proxmox-node-guests-guests-table"],
+      [/Storage/, "proxmox-node-storage-storage-table"],
+    ] as Array<[RegExp, string]>) {
+      fireEvent.click(screen.getByRole("tab", { name: tab }));
+      await flush();
+
+      // The list's own failure, with its Try again: not an empty list.
+      expect(screen.getByTestId(`${table}-load-error`)).toHaveTextContent(
+        INVENTORY_DOWN,
+      );
+      expect(screen.queryByText("No guests on this node.")).toBeNull();
+      expect(
+        screen.queryByText("No storage reported for this node."),
+      ).toBeNull();
+    }
+  });
+
+  test("Refresh reads the node again, and a read that succeeds draws its Overview", async () => {
+    mockInventoryDown = true;
+    await renderPage(
+      ProxmoxClusterNodeDetail,
+      "node%2Fpve1",
+      "proxmox-node-hero",
+    );
+    const readsBefore: number = mockInventoryReads;
+
+    mockInventoryDown = false;
+    await refreshFromTheError();
+
+    expect(mockInventoryReads).toBeGreaterThan(readsBefore);
+    expect(screen.queryByTestId("proxmox-part-read-error")).toBeNull();
+    expect(screen.getByTestId("proxmox-node-overview")).toBeInTheDocument();
+    expect(attentionRows("proxmox-node-attention")[0]).toBe("pbs: Unavailable");
+  });
+
+  test("a node that has not reported still says so, when the read succeeds", async () => {
+    await renderPage(
+      ProxmoxClusterNodeDetail,
+      "node%2Fpve9",
+      "proxmox-node-hero",
+    );
+
+    expect(screen.getByTestId("proxmox-node-not-reported")).toHaveTextContent(
+      "Node details not reported yet.",
+    );
+    expect(screen.queryByTestId("proxmox-part-read-error")).toBeNull();
+  });
+
+  test("a guest's Overview says the read failed, and Refresh reads it again", async () => {
+    mockInventoryDown = true;
+    await renderPage(
+      ProxmoxClusterGuestDetail,
+      "qemu%2F100",
+      "proxmox-guest-hero",
+    );
+
+    expect(readError()).toHaveTextContent(INVENTORY_DOWN);
+    expect(screen.queryByTestId("proxmox-guest-not-reported")).toBeNull();
+
+    mockInventoryDown = false;
+    await refreshFromTheError();
+
+    expect(screen.queryByTestId("proxmox-part-read-error")).toBeNull();
+    expect(screen.getByTestId("proxmox-guest-hero-name")).toHaveTextContent(
+      "web-01",
+    );
+  });
+
+  test("a storage's Overview says the read failed, and Refresh reads it again", async () => {
+    mockInventoryDown = true;
+    await renderPage(
+      ProxmoxClusterStorageDetail,
+      "storage%2Fpve1%2Flocal-zfs",
+      "proxmox-storage-hero",
+    );
+
+    expect(readError()).toHaveTextContent(INVENTORY_DOWN);
+    expect(screen.queryByText(/Storage details not reported yet/)).toBeNull();
+
+    mockInventoryDown = false;
+    await refreshFromTheError();
+
+    expect(screen.queryByTestId("proxmox-part-read-error")).toBeNull();
+    expect(tile("proxmox-storage-tiles", "Used")).toHaveTextContent("91.0%");
   });
 });
 

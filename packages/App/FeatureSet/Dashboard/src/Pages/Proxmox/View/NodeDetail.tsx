@@ -27,6 +27,7 @@ import ResourceTable, {
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
 import ProxmoxPartHero from "../../../Components/Proxmox/Part/ProxmoxPartHero";
 import ProxmoxNodeOverview from "../../../Components/Proxmox/Part/ProxmoxNodeOverview";
+import ProxmoxPartReadError from "../../../Components/Proxmox/Part/ProxmoxPartReadError";
 import {
   ProxmoxPartRoutes,
   getProxmoxPartRoutes,
@@ -97,6 +98,16 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   const [nodeRows, setNodeRows] = useState<Array<ProxmoxResourceModel>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
+  /*
+   * Why the node's inventory could not be read, until a read succeeds: the
+   * Overview and both lists say so, with a way to read again, instead of
+   * "Node details not reported yet" and "No guests on this node." about an
+   * agent that may be reporting fine. Once a read has succeeded, a later
+   * one that fails leaves what it showed on screen.
+   */
+  const [inventoryError, setInventoryError] = useState<string>("");
+  const hasReadInventory: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
   const [error, setError] = useState<string>("");
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
@@ -138,10 +149,17 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
       if (sequence !== inventorySequence.current) {
         return;
       }
+      hasReadInventory.current = true;
       setRow(inventoryRow);
       setNodeRows(rowsOnNode);
-    } catch {
-      // Graceful degradation — the Overview shows its empty state.
+      setInventoryError("");
+    } catch (err) {
+      if (sequence !== inventorySequence.current) {
+        return;
+      }
+      if (!hasReadInventory.current) {
+        setInventoryError(API.getFriendlyMessage(err));
+      }
     }
     setIsLoadingRow(false);
   };
@@ -176,6 +194,12 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
     fetchInventory().catch(() => {
       // The page keeps what it showed; the next refresh tries again.
     });
+  };
+
+  // Refresh after a failed read: the loader while it reads again.
+  const retryInventory: () => void = (): void => {
+    setIsLoadingRow(true);
+    refresh();
   };
 
   /*
@@ -386,6 +410,11 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
       name: PROXMOX_NODE_TAB_OVERVIEW,
       children: isLoadingRow ? (
         <PageLoader isVisible={true} />
+      ) : inventoryError ? (
+        <ProxmoxPartReadError
+          message={inventoryError}
+          onRetry={retryInventory}
+        />
       ) : (
         <ProxmoxNodeOverview
           clusterId={modelId}
@@ -410,6 +439,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
           description="The VMs, containers and templates on this node, with their current resource usage."
           resources={guestResources}
           isLoading={isLoadingRow}
+          error={inventoryError}
           showGroupColumn={false}
           builtInColumnDescriptions={{
             status: PROXMOX_METRIC_DESCRIPTIONS.guestsTableStatus,
@@ -444,6 +474,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
           description="The storage this node reports, with its current usage. Shared storage is listed on every node that uses it."
           resources={storageResources}
           isLoading={isLoadingRow}
+          error={inventoryError}
           showGroupColumn={false}
           showResourceMetrics={false}
           // Proxmox reports no uptime for a storage: no column of dashes.

@@ -30,6 +30,7 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
 import ProxmoxPartHero from "../../../Components/Proxmox/Part/ProxmoxPartHero";
 import ProxmoxStorageOverview from "../../../Components/Proxmox/Part/ProxmoxStorageOverview";
+import ProxmoxPartReadError from "../../../Components/Proxmox/Part/ProxmoxPartReadError";
 import {
   ProxmoxPartRoutes,
   getProxmoxPartRoutes,
@@ -68,6 +69,12 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
   const [row, setRow] = useState<ProxmoxResourceModel | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
+  /*
+   * Why the storage's inventory could not be read: its Overview says so,
+   * with Refresh, instead of "Storage details not reported yet" about an
+   * agent that may be reporting fine.
+   */
+  const [rowError, setRowError] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   /*
@@ -187,6 +194,37 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
     }
   };
 
+  // The storage's own inventory row: its size, its use and its sharing.
+  const fetchRow: (clusterName: string) => Promise<void> = async (
+    clusterName: string,
+  ): Promise<void> => {
+    try {
+      const inventoryRow: ProxmoxResourceModel | null =
+        await fetchProxmoxInventoryRow({
+          proxmoxClusterId: modelId,
+          kind: "Storage",
+          externalId: externalId,
+        });
+      setRow(inventoryRow);
+      setRowError("");
+      if (clusterName && inventoryRow) {
+        void loadGrowthProjection(clusterName, inventoryRow);
+      }
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
+    }
+    setIsLoadingRow(false);
+  };
+
+  // Refresh after a failed read: the loader while it reads again.
+  const retryRow: () => void = (): void => {
+    setIsLoadingRow(true);
+    fetchRow(cluster?.name || "").catch((err: Error) => {
+      setRowError(API.getFriendlyMessage(err));
+      setIsLoadingRow(false);
+    });
+  };
+
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     let clusterName: string = "";
@@ -205,21 +243,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
     }
     setIsLoading(false);
 
-    try {
-      const inventoryRow: ProxmoxResourceModel | null =
-        await fetchProxmoxInventoryRow({
-          proxmoxClusterId: modelId,
-          kind: "Storage",
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-      if (clusterName && inventoryRow) {
-        void loadGrowthProjection(clusterName, inventoryRow);
-      }
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
-    }
-    setIsLoadingRow(false);
+    await fetchRow(clusterName);
   };
 
   useEffect(() => {
@@ -317,6 +341,8 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
       name: "Overview",
       children: isLoadingRow ? (
         <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <ProxmoxPartReadError message={rowError} onRetry={retryRow} />
       ) : (
         <ProxmoxStorageOverview
           clusterId={modelId}

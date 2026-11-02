@@ -520,6 +520,230 @@ test.describe("the cluster's Overview", () => {
   });
 });
 
+/*
+ * #5307's follow-up: the cluster's Details card said its name, its
+ * description, when it was last seen and its labels - all of which the
+ * hero and the header say - and "Not reported" for every fact a new
+ * cluster had not sent. It says what the cluster reported, in two columns,
+ * and the hero says the description, under the name.
+ */
+interface DetailCell {
+  label: string;
+  value: string;
+  x: number;
+  y: number;
+}
+
+// The cells of a details card, by its detail's id, read in one frame.
+async function detailCells(page: Page, id: string): Promise<Array<DetailCell>> {
+  return await page
+    .locator(`[id="${id}"]`)
+    .evaluate((detail: Element): Array<DetailCell> => {
+      return Array.from(
+        detail.querySelectorAll('[data-testid="detail-field"]'),
+      ).map((cell: Element): DetailCell => {
+        const box: DOMRect = cell.getBoundingClientRect();
+        return {
+          label: (
+            cell.querySelector('[data-testid="detail-label"]')?.textContent ||
+            ""
+          ).trim(),
+          value: (
+            cell.querySelector('[data-testid="detail-value"]')?.textContent ||
+            ""
+          ).trim(),
+          x: Math.round(box.x),
+          y: Math.round(box.y),
+        };
+      });
+    });
+}
+
+const CLUSTER_DETAILS: string = "proxmox-cluster-overview";
+
+test.describe("the cluster's Details card says what the hero does not", () => {
+  test("what the cluster reported, two columns at a laptop's width, its ID line and Edit in Settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+    const detail: Locator = page.locator(`[id="${CLUSTER_DETAILS}"]`);
+    await detail.scrollIntoViewIfNeeded();
+    await expect(detail).toBeVisible();
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(
+      cells.map((cell: DetailCell): string => {
+        return `${cell.label}: ${cell.value}`;
+      }),
+    ).toEqual(["PVE Version: 9.0.10", "Agent Version: 0.161.1"]);
+    // Side by side: one row, two columns.
+    expect(cells[0]!.y).toBe(cells[1]!.y);
+    expect(cells[1]!.x).toBeGreaterThan(cells[0]!.x);
+
+    // Never what the hero and the header say.
+    for (const repeated of [
+      "Cluster Name",
+      "Description",
+      "Last Seen",
+      "Labels",
+      "Not reported",
+    ]) {
+      await expect(detail.getByText(repeated, { exact: true })).toHaveCount(0);
+    }
+
+    // The record's ID line, at its foot.
+    await expect(detail.getByTestId("detail-id-value")).toHaveText(CLUSTER_ID);
+    // Its name, description and labels are edited on Settings.
+    await expect(page.getByTestId("edit-in-settings")).toHaveCount(1);
+    await expect(
+      page.getByTestId("edit-in-settings").getByRole("link"),
+    ).toHaveAttribute("href", `${CLUSTER_PATH}/settings`);
+    await screenshot(page, "cluster-details-laptop");
+  });
+
+  test("the description is the hero's line, under the cluster's name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+
+    await expect(page.getByTestId("resource-hero-description")).toHaveText(
+      "Production cluster in the Amsterdam data centre: web, database and mail.",
+    );
+    await expect(
+      page
+        .locator(`[id="${CLUSTER_DETAILS}"]`)
+        .getByText(
+          "Production cluster in the Amsterdam data centre: web, database and mail.",
+        ),
+    ).toHaveCount(0);
+  });
+
+  test("on a phone, one column, inside the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openOverview(page);
+    await page.locator(`[id="${CLUSTER_DETAILS}"]`).scrollIntoViewIfNeeded();
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(cells).toHaveLength(2);
+    expect(cells[1]!.y).toBeGreaterThan(cells[0]!.y);
+    expect(cells[1]!.x).toBe(cells[0]!.x);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cluster-details-phone");
+  });
+
+  test("a cluster on Proxmox VE's own push, which has no agent: its PVE Version alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "estate=native");
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(
+      cells.map((cell: DetailCell): string => {
+        return cell.label;
+      }),
+    ).toEqual(["PVE Version"]);
+  });
+
+  test("a cluster that has reported nothing yet says so in one line, over its ID line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, CLUSTER_PATH, "estate=new");
+    const detail: Locator = page.locator(`[id="${CLUSTER_DETAILS}"]`);
+    await expect(detail.getByTestId("detail-empty-message")).toHaveText(
+      "No details reported yet.",
+    );
+    await expect(detail.getByTestId("detail-field")).toHaveCount(0);
+    await expect(detail.getByTestId("detail-id-value")).toHaveText(CLUSTER_ID);
+  });
+
+  test("in German, its title and its labels read in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "lang=de");
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(
+      cells.map((cell: DetailCell): string => {
+        return cell.label;
+      }),
+    ).toEqual([GERMAN["PVE Version"], GERMAN["Agent Version"]]);
+    expect(GERMAN["Agent Version"]).not.toBe("Agent Version");
+    expect(GERMAN["Cluster Details"]).not.toBe("Cluster Details");
+    await expect(
+      page
+        .getByText(GERMAN["Cluster Details"] as string, { exact: true })
+        .first(),
+    ).toBeVisible();
+  });
+});
+
+/*
+ * #5524's follow-up: a node's, a guest's and a storage's page swallowed a
+ * failed read of the inventory and said the part had "not reported yet",
+ * which sent an administrator to an agent that was working.
+ */
+test.describe("a part whose inventory cannot be read says so", () => {
+  const SERVER_ERROR: string =
+    "Something went wrong on the server. Please try again.";
+
+  test("a node's page: the Overview and its lists say the read failed, with a way to read again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, nodePath("pve2"), "fail=inventory");
+
+    const error: Locator = page.getByTestId("proxmox-part-read-error");
+    await expect(error).toContainText(SERVER_ERROR);
+    await expect(error.getByTestId("refresh-button")).toBeVisible();
+    await expect(page.getByTestId("proxmox-node-not-reported")).toHaveCount(0);
+    await expect(
+      page.getByText("not reported yet", { exact: false }),
+    ).toHaveCount(0);
+
+    await openTab(page, "Guests");
+    await expect(
+      page.getByTestId("proxmox-node-guests-guests-table-load-error"),
+    ).toContainText(SERVER_ERROR);
+    await expect(page.getByText("No guests on this node.")).toHaveCount(0);
+    await screenshot(page, "node-inventory-failed");
+  });
+
+  test("a guest's and a storage's page say so too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const pathname of [
+      guestPath("qemu/102"),
+      storagePath("pve2", "local-zfs"),
+    ]) {
+      await openPage(page, pathname, "fail=inventory");
+
+      await expect(page.getByTestId("proxmox-part-read-error")).toContainText(
+        SERVER_ERROR,
+      );
+      await expect(
+        page.getByText("not reported yet", { exact: false }),
+      ).toHaveCount(0);
+    }
+  });
+});
+
 test.describe("a node's page", () => {
   test("pve2: who it is, what on it needs a look, how busy it is, the guests keeping it busy, and its details", async ({
     page,

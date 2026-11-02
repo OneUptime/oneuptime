@@ -150,6 +150,12 @@ export interface ComponentProps {
   getViewRoute?: ((resource: InfrastructureResource) => Route) | undefined;
   emptyMessage?: string | undefined;
   isLoading?: boolean | undefined;
+  /*
+   * Why its rows could not be read: the table says so in place of its
+   * empty line ("No guests on this node."), with Refresh when the page
+   * hands it onRefreshClick.
+   */
+  error?: string | undefined;
   onRefreshClick?: (() => void) | undefined;
   /* Prefix for the DOM table id. Defaults to "infrastructure". */
   tableIdPrefix?: string | undefined;
@@ -744,7 +750,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         singularLabel={props.title}
         pluralLabel={props.title}
         isLoading={props.isLoading || false}
-        error=""
+        error={props.error || ""}
+        onRefreshClick={props.onRefreshClick}
         currentPageNumber={effectivePage}
         totalItemsCount={processedData.length}
         itemsOnPage={pageSize}
