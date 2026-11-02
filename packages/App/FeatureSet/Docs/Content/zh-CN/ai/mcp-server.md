@@ -250,6 +250,7 @@ MCP 服务器有三种工作方式。
 
 - **`oneuptime_help`**：关于 OneUptime MCP 工具的帮助和指导
 - **`oneuptime_list_resources`**：资源以及每种资源可以做什么
+- **`oneuptime_describe_resource`**：资源的字段，以及如何按字段筛选、排序和选择
 - **`get_public_status_page_overview`**：公共状态页的概览
 - **`get_public_status_page_incidents`**：公共状态页的事件
 - **`get_public_status_page_scheduled_maintenance`**：它的计划维护事件
@@ -353,6 +354,8 @@ curl https://oneuptime.com/mcp/tools
 ```
 
 运算符有 `EqualTo`、`NotEqual`、`IsNull`、`NotNull`、`EqualToOrNull`、`GreaterThan`、`LessThan`、`GreaterThanOrEqual`、`LessThanOrEqual`、`InBetween`、`Search` 和 `Includes`。排序值为 `"ASC"` 或 `"DESC"`。
+
+`list_` 和 `count_` 工具接受任意字段，这样工具列表就小到客户端可以一次加载。要查看资源的字段、每个字段的含义以及它接受的运算符，代理会用资源或它的某个工具（例如 `Incident` 或 `list_incidents`）调用 `oneuptime_describe_resource`。
 
 ## 字段选择和分页
 

@@ -681,7 +681,7 @@ describe("RequestGate", () => {
         expect(letThrough).toEqual([]);
       });
 
-      it("requires an identity for everything except the six public tools", () => {
+      it("requires an identity for everything except the seven public tools", () => {
         const publicTools: Array<string> = registry
           .filter((registered: McpToolInfo): boolean => {
             return (
@@ -699,6 +699,8 @@ describe("RequestGate", () => {
           "get_public_status_page_incidents",
           "get_public_status_page_overview",
           "get_public_status_page_scheduled_maintenance",
+          // What tools/list said about a resource's fields, before anyone signs in.
+          "oneuptime_describe_resource",
           "oneuptime_help",
           "oneuptime_list_resources",
         ]);

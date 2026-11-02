@@ -250,6 +250,7 @@ Without an API key or a sign-in, a client can use the public tools:
 
 - **`oneuptime_help`**: help and guidance about OneUptime's MCP tools
 - **`oneuptime_list_resources`**: the resources and what you can do with each
+- **`oneuptime_describe_resource`**: a resource's fields, and how to filter, sort and select on them
 - **`get_public_status_page_overview`**: the overview of a public status page
 - **`get_public_status_page_incidents`**: the incidents of a public status page
 - **`get_public_status_page_scheduled_maintenance`**: its scheduled maintenance events
@@ -353,6 +354,8 @@ Always query telemetry with a time range. A query field takes a value, or an ope
 ```
 
 The operators are `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` and `Includes`. Sort values are `"ASC"` or `"DESC"`.
+
+The `list_` and `count_` tools take any field, which keeps the list of tools small enough for a client to load at once. To see a resource's fields, what each one means and which operators it takes, an agent calls `oneuptime_describe_resource` with the resource or one of its tools, such as `Incident` or `list_incidents`.
 
 ## Field Selection and Pagination
 

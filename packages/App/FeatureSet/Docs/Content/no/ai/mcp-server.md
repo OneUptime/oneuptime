@@ -250,6 +250,7 @@ Uten en API-nøkkel eller en innlogging kan en klient bruke de offentlige verkt�
 
 - **`oneuptime_help`**: hjelp og veiledning om OneUptimes MCP-verktøy
 - **`oneuptime_list_resources`**: ressursene og hva du kan gjøre med hver av dem
+- **`oneuptime_describe_resource`**: feltene til en ressurs og hvordan du filtrerer, sorterer og velger på dem
 - **`get_public_status_page_overview`**: oversikten over en offentlig statusside
 - **`get_public_status_page_incidents`**: hendelsene på en offentlig statusside
 - **`get_public_status_page_scheduled_maintenance`**: de planlagte vedlikeholdshendelsene dens
@@ -353,6 +354,8 @@ Spør alltid etter telemetri med et tidsrom. Et spørrefelt tar en verdi, eller 
 ```
 
 Operatorene er `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` og `Includes`. Sorteringsverdier er `"ASC"` eller `"DESC"`.
+
+Verktøyene `list_` og `count_` tar et hvilket som helst felt, slik at listen over verktøy er liten nok til at en klient kan laste den inn på én gang. For å se feltene til en ressurs, hva hvert felt betyr og hvilke operatorer det tar, kaller en agent `oneuptime_describe_resource` med ressursen eller ett av verktøyene dens, for eksempel `Incident` eller `list_incidents`.
 
 ## Feltvalg og paginering
 

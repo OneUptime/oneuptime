@@ -2042,7 +2042,14 @@ describe("MCP Server", () => {
     const page: string = englishPage(MCP_SERVER);
 
     for (const [source, names] of [
-      [helper, ["oneuptime_help", "oneuptime_list_resources"]],
+      [
+        helper,
+        [
+          "oneuptime_help",
+          "oneuptime_list_resources",
+          "oneuptime_describe_resource",
+        ],
+      ],
       [
         status,
         [

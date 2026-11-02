@@ -616,7 +616,7 @@ export class ModelSchema extends BaseSchema {
     });
   }
 
-  private static getValidOperatorsForColumnType(
+  public static getValidOperatorsForColumnType(
     columnType: TableColumnType,
   ): Array<string> {
     const commonOperators: Array<string> = [
