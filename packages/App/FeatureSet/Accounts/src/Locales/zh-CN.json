@@ -58,6 +58,10 @@
     },
     "title": "登录您的账户",
     "subtitle": "使用密码、组织的单点登录（SSO）或通行密钥。",
+    "sessionEnded": {
+      "lengthReached": "出于安全考虑，此服务器会在设定的时间后让所有人退出登录。请重新登录，从上次离开的地方继续。",
+      "inactive": "由于一段时间没有活动，您已退出登录。请重新登录，从上次离开的地方继续。"
+    },
     "submitButton": "登录",
     "forgotPassword": "忘记密码？",
     "signInWithSso": "使用 SSO 登录",

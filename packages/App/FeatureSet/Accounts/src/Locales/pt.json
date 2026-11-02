@@ -58,6 +58,10 @@
     },
     "title": "Faça login na sua conta",
     "subtitle": "Use sua senha, o SSO da sua organização ou uma chave de acesso.",
+    "sessionEnded": {
+      "lengthReached": "Por segurança, este servidor desconecta todos depois de um tempo definido. Entre novamente para continuar de onde parou.",
+      "inactive": "Você foi desconectado depois de um período de inatividade. Entre novamente para continuar de onde parou."
+    },
     "submitButton": "Entrar",
     "forgotPassword": "Esqueceu a senha?",
     "signInWithSso": "Entrar com SSO",

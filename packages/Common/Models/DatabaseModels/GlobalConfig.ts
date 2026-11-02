@@ -130,15 +130,17 @@ export default class GlobalConfig extends GlobalConfigModel {
   public disableUserProjectCreation?: boolean = undefined;
 
   /*
-   * How long a sign-in lasts (Types/UserSession/SessionLength.ts), in whole
-   * minutes, for SSO sign-ins and for every other sign-in each: the session
-   * length ("Sign people out after", counted from the sign-in, however
-   * active the person is; empty for no limit) and the idle timeout ("Sign
-   * people out after inactivity"; empty for 30 days, the longest a session
-   * lasts without use anyway). Set on Admin Dashboard > Settings > Session
-   * Length. An Enterprise Edition setting (EnterpriseFeature.SessionLength):
-   * only the Enterprise module hands them to the server's session checks, so
-   * the Community Edition keeps every sign-in as it always was.
+   * How long a sign-in lasts (Types/UserSession/SessionLength.ts): the
+   * session length ("Sign people out after", in whole minutes from the
+   * sign-in, however active the person is; empty for no limit) and the idle
+   * timeout ("Sign people out after inactivity", in whole minutes without
+   * use; empty for 30 days, the longest a session lasts without use anyway).
+   * They apply to every sign-in, unless useSeparateSsoSessionLengths gives
+   * SSO sign-ins the two SSO columns instead. Set on Admin Dashboard >
+   * Settings > Session Length. An Enterprise Edition setting
+   * (EnterpriseFeature.SessionLength): only the Enterprise module hands them
+   * to the server's session checks, so the Community Edition keeps every
+   * sign-in as it always was.
    */
   @ColumnAccessControl({
     create: [],
@@ -149,7 +151,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Number,
     title: "Session Length (Minutes)",
     description:
-      "Sign people out this many minutes after a sign-in that is not SSO, however active they are. Empty for no limit.",
+      "Sign people out this many minutes after they sign in, however active they are. Empty for no limit.",
   })
   @Column({
     type: ColumnType.Number,
@@ -166,7 +168,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Number,
     title: "Session Idle Timeout (Minutes)",
     description:
-      "Sign people out after this many minutes without using OneUptime, for sign-ins that are not SSO. Empty for 30 days.",
+      "Sign people out after this many minutes without using OneUptime. Empty for 30 days.",
   })
   @Column({
     type: ColumnType.Number,
@@ -180,10 +182,29 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Separate Session Lengths for SSO",
+    description:
+      "Give SSO sign-ins their own session length and idle timeout. Off: they follow the same ones as every other sign-in.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public useSeparateSsoSessionLengths?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.Number,
     title: "SSO Session Length (Minutes)",
     description:
-      "Sign people out this many minutes after an SSO sign-in, however active they are. Empty for no limit.",
+      "With separate SSO lengths: sign people out this many minutes after an SSO sign-in, however active they are. Empty for no limit.",
   })
   @Column({
     type: ColumnType.Number,
@@ -200,7 +221,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Number,
     title: "SSO Session Idle Timeout (Minutes)",
     description:
-      "Sign people out after this many minutes without using OneUptime, for SSO sign-ins. Empty for 30 days.",
+      "With separate SSO lengths: sign SSO sign-ins out after this many minutes without using OneUptime. Empty for 30 days.",
   })
   @Column({
     type: ColumnType.Number,

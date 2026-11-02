@@ -58,6 +58,10 @@
     },
     "title": "Log ind på din konto",
     "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
+    "sessionEnded": {
+      "lengthReached": "Af sikkerhedshensyn logger denne server alle ud efter et fastsat tidsrum. Log ind igen for at fortsætte, hvor du slap.",
+      "inactive": "Du blev logget ud efter en periode uden aktivitet. Log ind igen for at fortsætte, hvor du slap."
+    },
     "submitButton": "Log ind",
     "forgotPassword": "Glemt adgangskode?",
     "signInWithSso": "Log ind med SSO",

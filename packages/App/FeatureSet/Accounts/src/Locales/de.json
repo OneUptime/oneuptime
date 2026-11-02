@@ -58,6 +58,10 @@
     },
     "title": "Melden Sie sich bei Ihrem Konto an",
     "subtitle": "Verwenden Sie Ihr Passwort, das SSO Ihrer Organisation oder einen Passkey.",
+    "sessionEnded": {
+      "lengthReached": "Aus Sicherheitsgründen meldet dieser Server alle nach einer festgelegten Zeit ab. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben.",
+      "inactive": "Sie wurden nach einer Zeit ohne Aktivität abgemeldet. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben."
+    },
     "submitButton": "Anmelden",
     "forgotPassword": "Passwort vergessen?",
     "signInWithSso": "Mit SSO anmelden",

@@ -16,10 +16,10 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
-  getSessionLengthProblem,
+  getSessionLengthSettingProblem,
   readSessionLengths,
-  SESSION_LENGTH_COLUMNS,
-  SessionLengthColumn,
+  SESSION_LENGTH_SETTING_COLUMNS,
+  SessionLengthSettingColumn,
   SessionLengths,
 } from "Common/Types/UserSession/SessionLength";
 
@@ -28,8 +28,8 @@ import {
  * now, asked before it is saved (Admin Dashboard > Settings > Session
  * Length). Mounted under "/api":
  *
- *   POST /session-length/preview    master admins: the lengths the change
- *                                   would leave, as GlobalConfig's four
+ *   POST /session-length/preview    master admins: the setting the change
+ *                                   would leave, as GlobalConfig's five
  *                                   columns (null or left out for the
  *                                   default) -> how many people it signs
  *                                   out at once, and whether the asker is
@@ -87,11 +87,14 @@ export const parseSessionLengthPreview: (body: unknown) => SessionLengths = (
       ? (body as JSONObject)
       : {};
 
-  const row: Partial<Record<SessionLengthColumn, unknown>> = {};
+  const row: Partial<Record<SessionLengthSettingColumn, unknown>> = {};
 
-  for (const column of SESSION_LENGTH_COLUMNS) {
+  for (const column of SESSION_LENGTH_SETTING_COLUMNS) {
     const value: unknown = values[column];
-    const problem: string | null = getSessionLengthProblem(column, value);
+    const problem: string | null = getSessionLengthSettingProblem(
+      column,
+      value,
+    );
 
     if (problem) {
       throw new BadDataException(problem);

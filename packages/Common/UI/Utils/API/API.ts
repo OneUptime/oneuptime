@@ -2,7 +2,9 @@ import GlobalEvents from "../GlobalEvents";
 import LocalStorage from "../LocalStorage";
 import Navigation from "../Navigation";
 import PermissionUtil from "../Permission";
+import SessionEndReturn from "../SessionEndReturn";
 import User from "../User";
+import UserActivity from "../UserActivity";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -15,12 +17,17 @@ import Dictionary from "../../../Types/Dictionary";
 import APIException from "../../../Types/Exception/ApiException";
 import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
+import SessionEndedException from "../../../Types/Exception/SessionEndedException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import {
+  INACTIVE_FOR_IN_SECONDS_FIELD,
+  SessionEndReason,
+} from "../../../Types/UserSession/SessionLength";
 import API, { AuthRetryContext } from "../../../Utils/API";
 import { IDENTITY_URL } from "../../Config";
 import BlockedProject from "../BlockedProject";
@@ -35,6 +42,17 @@ import BlockedProject from "../BlockedProject";
  * same rotating refresh token.
  */
 const inFlightSessionRefreshes: Map<string, Promise<boolean>> = new Map();
+
+/*
+ * Why the server ended this tab's session, once it has said so (a renewal
+ * answered with SessionEndedException): every request that fails after it
+ * sends the browser to the same sign-in page, which says why. Kept here, not
+ * on the class, for the reason above.
+ */
+const sessionEnd: { reason: SessionEndReason | null } = { reason: null };
+
+// The session name of the Dashboard's and the Admin Dashboard's sign-in.
+const DASHBOARD_SESSION_NAME: string = "dashboard";
 
 class BaseAPI extends API {
   /*
@@ -135,6 +153,31 @@ class BaseAPI extends API {
     ) {
       const loginRoute: Route = this.getLoginRoute();
 
+      /*
+       * A person's session ended (401): the sign-in page says why when the
+       * server said why - its length or its idle timeout - and the page
+       * they were on waits for them to sign in again (SessionEndReturn).
+       * Remembered before logoutUser forgets who they were.
+       */
+      const isUserSessionEnd: boolean =
+        error.statusCode === 401 && this.isUserSession();
+
+      if (isUserSessionEnd) {
+        const reason: SessionEndReason | null = SessionEndedException.getReason(
+          error.message,
+        );
+
+        if (reason) {
+          sessionEnd.reason = reason;
+        }
+
+        const userId: string = User.getUserId().toString();
+
+        if (userId) {
+          SessionEndReturn.rememberCurrentPage(userId);
+        }
+      }
+
       this.logoutUser();
 
       /*
@@ -150,9 +193,14 @@ class BaseAPI extends API {
           forceNavigate: true,
         });
       } else {
-        Navigation.navigate(loginRoute, {
-          forceNavigate: true,
-        });
+        Navigation.navigate(
+          isUserSessionEnd
+            ? SessionEndReturn.getSignInRoute(loginRoute, sessionEnd.reason)
+            : loginRoute,
+          {
+            forceNavigate: true,
+          },
+        );
       }
     }
 
@@ -207,7 +255,45 @@ class BaseAPI extends API {
 
   // Names the session for the in-tab single flight, the cross-tab lock and the "recently refreshed" marker.
   protected static getSessionName(): string {
-    return "dashboard";
+    return DASHBOARD_SESSION_NAME;
+  }
+
+  /*
+   * Whether this client's session is a person's sign-in to OneUptime - the
+   * Dashboard's and the Admin Dashboard's - rather than a status page's or
+   * a public dashboard's, which have sessions of their own or none.
+   */
+  protected static isUserSession(): boolean {
+    return (
+      this.getSessionName() === DASHBOARD_SESSION_NAME &&
+      this.getRefreshSessionUrl() !== null
+    );
+  }
+
+  /*
+   * What a renewal of this client's session tells the server: on the
+   * Dashboard and the Admin Dashboard, how long their person has not used
+   * OneUptime (UserActivity), which the server's idle timeout is counted
+   * from. Nothing on a page that does not notice activity.
+   */
+  protected static getRefreshSessionData(): JSONObject | undefined {
+    if (!this.isUserSession()) {
+      return undefined;
+    }
+
+    const inactiveForInSeconds: number | null =
+      UserActivity.getInactiveForInSeconds();
+
+    if (inactiveForInSeconds === null) {
+      return undefined;
+    }
+
+    return { [INACTIVE_FOR_IN_SECONDS_FIELD]: inactiveForInSeconds };
+  }
+
+  // Forgets why a session ended. For tests.
+  public static resetSessionEndForTests(): void {
+    sessionEnd.reason = null;
   }
 
   /*
@@ -259,10 +345,14 @@ class BaseAPI extends API {
           return true;
         }
 
+        const refreshData: JSONObject | undefined =
+          this.getRefreshSessionData();
+
         const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await super.fetch<JSONObject>({
             method: HTTPMethod.POST,
             url: refreshUrl,
+            ...(refreshData ? { data: refreshData } : {}),
             options: {
               skipAuthRefresh: true,
               hasAttemptedAuthRefresh: true,

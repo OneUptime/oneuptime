@@ -126,8 +126,9 @@ export const IP_ALLOWLIST_TABLE_NAMES: ReadonlyArray<string> = [
  *     .alertByCustomChannel                the custom channels.
  *   GlobalConfig                           how long sign-ins last: the
  *     .sessionLengthInMinutes              session length and the idle
- *     .sessionIdleTimeoutInMinutes         timeout, for sign-ins that are
- *     .ssoSessionLengthInMinutes           not SSO and for SSO sign-ins.
+ *     .sessionIdleTimeoutInMinutes         timeout of every sign-in, and
+ *     .useSeparateSsoSessionLengths        SSO sign-ins' own when they have
+ *     .ssoSessionLengthInMinutes           them.
  *     .ssoSessionIdleTimeoutInMinutes
  */
 const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
@@ -180,6 +181,7 @@ const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
     {
       sessionLengthInMinutes: EnterpriseFeature.SessionLength,
       sessionIdleTimeoutInMinutes: EnterpriseFeature.SessionLength,
+      useSeparateSsoSessionLengths: EnterpriseFeature.SessionLength,
       ssoSessionLengthInMinutes: EnterpriseFeature.SessionLength,
       ssoSessionIdleTimeoutInMinutes: EnterpriseFeature.SessionLength,
     },

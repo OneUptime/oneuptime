@@ -15,6 +15,7 @@ import EnterpriseServerModule, {
 import type BillingProvider from "../../../Server/Types/Billing/BillingProvider";
 import type { ExpressRouter } from "../../../Server/Utils/Express";
 import type { ProductBranding } from "../../../Types/Branding/ProductBranding";
+import type { SessionLengths } from "../../../Types/UserSession/SessionLength";
 import { setTestBillingEnabled } from "./TestBillingFlag";
 
 /*
@@ -193,6 +194,11 @@ export interface FakeEnterpriseModuleOptions {
    * with billing off).
    */
   projectBillingHooks?: ProjectBillingHooks | null | undefined;
+  /*
+   * What getUserSessionLengths() answers: how long sign-ins last. Defaults
+   * to null (none set, every sign-in as on the Community Edition).
+   */
+  userSessionLengths?: SessionLengths | null | undefined;
 }
 
 class FakeLicensingProvider implements EnterpriseLicensingProvider {
@@ -281,6 +287,11 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
   public projectBillingHooks: ProjectBillingHooks | null;
   // When set, getProjectBillingHooks throws it.
   public projectBillingHooksError: Error | undefined = undefined;
+  public userSessionLengths: SessionLengths | null;
+  // When set, getUserSessionLengths rejects with it.
+  public userSessionLengthsError: Error | undefined = undefined;
+  public userSessionLengthsReads: number = 0;
+  public forgetUserSessionLengthsCount: number = 0;
   public initCount: number = 0;
   public registerWorkerJobsCount: number = 0;
 
@@ -298,6 +309,21 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
     this.productBrandingLogo = options.productBrandingLogo || null;
     this.billingProvider = options.billingProvider || null;
     this.projectBillingHooks = options.projectBillingHooks || null;
+    this.userSessionLengths = options.userSessionLengths || null;
+  }
+
+  public async getUserSessionLengths(): Promise<SessionLengths | null> {
+    this.userSessionLengthsReads++;
+
+    if (this.userSessionLengthsError) {
+      throw this.userSessionLengthsError;
+    }
+
+    return this.userSessionLengths;
+  }
+
+  public forgetUserSessionLengths(): void {
+    this.forgetUserSessionLengthsCount++;
   }
 
   public getProductBranding(): ProductBranding | null {

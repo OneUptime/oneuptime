@@ -58,6 +58,10 @@
     },
     "title": "계정에 로그인",
     "subtitle": "비밀번호, 조직의 SSO 또는 패스키로 로그인하세요.",
+    "sessionEnded": {
+      "lengthReached": "보안을 위해 이 서버는 정해진 시간이 지나면 모든 사용자를 로그아웃합니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다.",
+      "inactive": "한동안 활동이 없어 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다."
+    },
     "submitButton": "로그인",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "signInWithSso": "SSO로 로그인",

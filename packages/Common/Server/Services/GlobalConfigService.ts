@@ -6,9 +6,9 @@ import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import UserSessionService from "./UserSessionService";
 import logger from "../Utils/Logger";
 import {
-  getSessionLengthProblem,
-  SESSION_LENGTH_COLUMNS,
-  SessionLengthColumn,
+  getSessionLengthSettingProblem,
+  SESSION_LENGTH_SETTING_COLUMNS,
+  SessionLengthSettingColumn,
   SessionLengths,
 } from "../../Types/UserSession/SessionLength";
 import ObjectID from "../../Types/ObjectID";
@@ -265,20 +265,21 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * How long sign-ins last (Types/UserSession/SessionLength.ts): each of
-   * its columns a write sets is a whole number of minutes in its range, or
-   * empty for the default. Anything else is refused with what it may be -
-   * an unclear value never shortens or lengthens anyone's sign-in. Whether
-   * the write may set them at all (the Enterprise license) is
-   * EditionPermissions' to decide, before this.
+   * How long sign-ins last (Types/UserSession/SessionLength.ts): each length
+   * a write sets is a whole number of minutes in its range, or empty for
+   * the default, and the switch that gives SSO sign-ins their own is true or
+   * false. Anything else is refused with what it may be - an unclear value
+   * never shortens or lengthens anyone's sign-in. Whether the write may set
+   * them at all (the Enterprise license) is EditionPermissions' to decide,
+   * before this.
    */
   public static assertSessionLengthsAreValid(data: unknown): void {
     if (!data || typeof data !== "object") {
       return;
     }
 
-    for (const column of SESSION_LENGTH_COLUMNS) {
-      const problem: string | null = getSessionLengthProblem(
+    for (const column of SESSION_LENGTH_SETTING_COLUMNS) {
+      const problem: string | null = getSessionLengthSettingProblem(
         column,
         (data as Record<string, unknown>)[column],
       );
@@ -289,14 +290,14 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // Whether a write sets any of the session length columns.
+  // Whether a write sets any of the session length setting's columns.
   public static writesSessionLengths(data: unknown): boolean {
     if (!data || typeof data !== "object") {
       return false;
     }
 
-    return SESSION_LENGTH_COLUMNS.some(
-      (column: SessionLengthColumn): boolean => {
+    return SESSION_LENGTH_SETTING_COLUMNS.some(
+      (column: SessionLengthSettingColumn): boolean => {
         return (data as Record<string, unknown>)[column] !== undefined;
       },
     );

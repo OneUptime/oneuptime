@@ -112,6 +112,12 @@ export type SignInRulesChangedListener = (projectId?: string) => void;
  */
 export type ProjectBlockChangedListener = (projectId: string) => void;
 
+/*
+ * What a server does with the sockets it holds when the session lengths
+ * change. Realtime registers it (onSessionLengthsChanged).
+ */
+export type SessionLengthsChangedListener = () => void;
+
 interface RealtimeAccessChangeMessage {
   // The server that announced it, which has applied it already.
   origin: string;
@@ -155,6 +161,9 @@ export default class RealtimeAccessChanges {
   private static projectBlockChangedListener: ProjectBlockChangedListener | null =
     null;
 
+  private static sessionLengthsChangedListener: SessionLengthsChangedListener | null =
+    null;
+
   /*
    * Who asks this server's sockets again when sign-in rules change. One
    * listener: Realtime, which holds the sockets.
@@ -173,6 +182,16 @@ export default class RealtimeAccessChanges {
     listener: ProjectBlockChangedListener | null,
   ): void {
     RealtimeAccessChanges.projectBlockChangedListener = listener;
+  }
+
+  /*
+   * Who holds this server's sockets to the session lengths when they
+   * change. One listener: Realtime, which holds the sockets.
+   */
+  public static onSessionLengthsChanged(
+    listener: SessionLengthsChangedListener | null,
+  ): void {
+    RealtimeAccessChanges.sessionLengthsChangedListener = listener;
   }
 
   /*
@@ -481,10 +500,14 @@ export default class RealtimeAccessChanges {
           /*
            * The sessions they end were ended where the change was made
            * (UserSessionService.endSessionsPastLengths), each one told
-           * here as SessionsEnded; this server only reads them again, so
-           * its next request is checked against them.
+           * here as SessionsEnded. This server reads them again, so its
+           * next request is checked against them, and then holds the
+           * sockets it has to them: one whose session they end sooner than
+           * its access token ends then.
            */
           EnterpriseEdition.forgetUserSessionLengths();
+
+          RealtimeAccessChanges.sessionLengthsChangedListener?.();
 
           return;
         }
