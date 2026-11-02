@@ -1885,19 +1885,23 @@ describe("a record's Security card", () => {
     expect(cases).toHaveTextContent("Brute force against web-1");
     expect(cases).toHaveTextContent("3 more open cases");
     /*
-     * The number and the title each read in their own direction (<bdi>),
-     * and the number's gap is on the element around its isolate, which
-     * reads in the page's: a right-to-left page keeps the number first and
-     * the gap between the two (AssetDetails.spec.ts measures it in Persian).
+     * The number and the title each read in their own direction (an
+     * isolate, IsolatedText), and the number's gap is on the element around
+     * its isolate, which reads in the page's: a right-to-left page keeps the
+     * number first and the gap between the two (AssetDetails.spec.ts
+     * measures it in Persian).
      */
     const caseNumber: HTMLElement = within(cases).getByText("SEC-12");
     expect(caseNumber.tagName).toBe("BDI");
+    expect(caseNumber).toHaveAttribute("dir", "ltr");
     expect(caseNumber.parentElement?.tagName).toBe("SPAN");
     expect(caseNumber.parentElement).toHaveClass("mr-1.5");
     expect(caseNumber).not.toHaveClass("mr-1.5");
-    expect(within(cases).getByText("Brute force against web-1").tagName).toBe(
-      "BDI",
+    const caseTitle: HTMLElement = within(cases).getByText(
+      "Brute force against web-1",
     );
+    expect(caseTitle.tagName).toBe("BDI");
+    expect(caseTitle).toHaveAttribute("dir", "ltr");
     expect(href(within(cases).getByText("Brute force against web-1"))).toBe(
       `${BASE}/security-events/cases/${CASE_ID}`,
     );
