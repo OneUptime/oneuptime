@@ -578,7 +578,10 @@ jobs:
           # under a case's records - the values found, with their log lines,
           # spans, places and senders, a failed and a limited search, at 390
           # to 1280 pixels, dark, in German and Persian, and on an entity's
-          # page): about 22.
+          # page): about 22. Its UI review added 3 more the same day (about 8
+          # seconds locally: the line that says the search is running, and an
+          # entity no record matches at 1280 and 390 pixels, dark): still
+          # about 22.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
