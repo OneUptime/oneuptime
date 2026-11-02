@@ -551,10 +551,13 @@ describe("VMware overview (Index.tsx)", () => {
       "const renderGoldenMetrics:",
     );
 
-    expect(hero).toContain(
+    // Prettier may break a long attribute's braces over lines: read it tight.
+    const tight: string = hero.replace(/\{ /g, "{").replace(/ \}/g, "}");
+
+    expect(tight).toContain(
       '<InfoTooltip label="Data Status" text={VMWARE_METRIC_DESCRIPTIONS.overviewAgentStatus} />',
     );
-    expect(hero).toContain(
+    expect(tight).toContain(
       '<InfoTooltip label="vCenter Health" text={VMWARE_METRIC_DESCRIPTIONS.overviewVCenterHealth} />',
     );
     // Each (i) right after its pill, outside it.

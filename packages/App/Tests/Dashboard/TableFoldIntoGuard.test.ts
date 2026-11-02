@@ -17,6 +17,12 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
  * its key or its field; and only a column the table may fold says where it
  * folds to.
  *
+ * An infrastructure list (ResourceTable) folds the same way: a
+ * ResourceColumn that names where it folds to is folded by the table itself
+ * (ResourceTable marks it hideBelowLargeScreen), and may name one of the
+ * table's own columns - the resource's name, its status, its CPU - by its
+ * key, as well as another column of its list.
+ *
  * The App suite runs in plain Node with no renderer, so this reads the
  * sources, comments stripped.
  */
@@ -52,6 +58,34 @@ function sourceFiles(directory: string): Array<string> {
   }
 
   return found;
+}
+
+const RESOURCE_TABLE: string = path.join(
+  FEATURE_SETS,
+  "Dashboard",
+  "src",
+  "Components",
+  "Infrastructure",
+  "ResourceTable.tsx",
+);
+const KEY: RegExp = /\bkey:\s*"([^"]+)"/g;
+const RESOURCE_TABLE_IMPORT: RegExp =
+  /\bResourceColumn\b[\s\S]*?from "[^"]*Infrastructure\/ResourceTable";/;
+
+// ResourceTable's own columns, by key: what a ResourceColumn may fold into.
+function resourceTableKeys(): Array<string> {
+  const code: string = stripComments(fs.readFileSync(RESOURCE_TABLE, "utf8"));
+
+  return Array.from(code.matchAll(KEY)).map(
+    (match: RegExpMatchArray): string => {
+      return match[1]!;
+    },
+  );
+}
+
+// Whether a source builds the ResourceColumns of a ResourceTable list.
+function isResourceTableList(code: string): boolean {
+  return RESOURCE_TABLE_IMPORT.test(code);
 }
 
 interface FoldUse {
@@ -122,6 +156,7 @@ describe("every folded column says where its value goes, and it is a column of i
           "Dashboard/src/Components/Host/HostFilesystemsTable.tsx",
           "Dashboard/src/Components/Incident/IncidentsTable.tsx",
           "Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable.tsx",
+          "Dashboard/src/Components/VMware/VMwareResourceTables.tsx",
           "Dashboard/src/Pages/Runbook/Runners/Runners.tsx",
           "Dashboard/src/Pages/SecurityEvents/ThreatIntel.tsx",
         ].map((file: string): string => {
@@ -132,8 +167,12 @@ describe("every folded column says where its value goes, and it is a column of i
   });
 
   test("each foldInto names a column of the same list: by its id, its key or its field", () => {
+    const tableKeys: Array<string> = resourceTableKeys();
     const unnamed: Array<string> = uses
       .filter((use: FoldUse): boolean => {
+        if (isResourceTableList(use.code) && tableKeys.includes(use.target)) {
+          return false;
+        }
         return !namesAColumn(use.code, use.target);
       })
       .map((use: FoldUse): string => {
@@ -146,6 +185,10 @@ describe("every folded column says where its value goes, and it is a column of i
   test("only a column the table may fold says where it folds to", () => {
     const notFoldable: Array<string> = uses
       .filter((use: FoldUse): boolean => {
+        // A ResourceColumn is folded by its table (checked below).
+        if (isResourceTableList(use.code)) {
+          return false;
+        }
         return !FOLDABLE_JUST_BEFORE.test(use.before);
       })
       .map((use: FoldUse): string => {
@@ -153,6 +196,36 @@ describe("every folded column says where its value goes, and it is a column of i
       });
 
     expect(notFoldable).toEqual([]);
+  });
+
+  test("ResourceTable folds a ResourceColumn that says where it goes, and has the columns one may name", () => {
+    const table: string = stripComments(
+      fs.readFileSync(RESOURCE_TABLE, "utf8"),
+    ).replace(/\s+/g, " ");
+
+    expect(table).toContain(
+      "...(col.foldInto ? { hideBelowLargeScreen: true, foldInto: col.foldInto,",
+    );
+    expect(resourceTableKeys()).toEqual(
+      expect.arrayContaining(["name", "status", "cpuUtilization"]),
+    );
+    // The infrastructure lists that fold are found as lists of ResourceColumns.
+    const resourceLists: Array<string> = uses
+      .filter((use: FoldUse): boolean => {
+        return isResourceTableList(use.code);
+      })
+      .map((use: FoldUse): string => {
+        return use.file;
+      });
+    expect(resourceLists).toContain(
+      [
+        "Dashboard",
+        "src",
+        "Components",
+        "VMware",
+        "VMwareResourceTables.tsx",
+      ].join(path.sep),
+    );
   });
 
   test("the check itself: a name that names no column is caught, one that does is not", () => {
