@@ -3,15 +3,15 @@
 OneUptime 的 CLI，即 `oneuptime`，讓你在終端機或指令碼中管理 OneUptime 專案。它使用專案的 API 金鑰，列出、讀取、建立、更改、刪除和統計監測器、事件、警示、狀態頁面以及 OneUptime API 提供的其他記錄。
 
 :::cards
-- [CLI 的運作方式](#cli-的運作方式): 一個命令，一次 API 請求，一個回應。
-- [安裝 CLI](#安裝-cli): 一個 npm 命令，以及該選的版本。
-- [執行你的第一批命令](#執行你的第一批命令): 儲存 API 金鑰，然後列出你的事件。
+- [CLI 的運作方式](#cli-的運作方式): 一個命令、它傳送的 API 請求以及它的回應。
+- [安裝 CLI](#安裝-cli): 你的 OneUptime 提供的安裝指令碼，或 npm。
+- [執行你的第一批命令](#執行你的第一批命令): 儲存 API 金鑰並檢查它，然後列出你的事件。
 - [命令一覽](#命令一覽): 每個命令，以及講解它的頁面。
 :::
 
 ## CLI 的運作方式
 
-每個命令向 OneUptime 的 REST API 傳送一次請求，並印出回應。CLI 從旗標、環境變數或 `oneuptime login` 儲存的情境中取得 API 金鑰和你的 OneUptime 位址。命令能讀取和更改什麼由金鑰決定，和 API 完全一樣。
+大多數命令向 OneUptime 的 REST API 傳送一次請求，並印出回應；像 `acknowledge` 這樣的動作會傳送儀表板按鈕所傳送的那幾次請求。CLI 從旗標、環境變數或 `oneuptime login` 儲存的情境中取得 API 金鑰和你的 OneUptime 位址。命令能讀取和更改什麼由金鑰決定，和 API 完全一樣。
 
 ```mermaid title="一個命令，一次請求"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
     C -->|"終端機裡是表格，<br/>管道裡是 JSON"| T
 ```
 
-記錄的命令隨 CLI 一起提供：OneUptime API 向工具開放的每種記錄都有一個，與 [MCP 伺服器](/docs/ai/mcp-server) 提供工具的記錄相同。執行 `oneuptime resources` 即可列出它們。
+OneUptime API 的每個資源都是一個命令，共 450 多個，從 `incident` 和 `monitor` 到 `status-page-subscriber` 和 `telemetry-ingestion-key`，每個命令都帶有 API 為它接受的操作。CLI 與 OneUptime 一同發布，所以與你的 OneUptime 版本相同的 CLI 對你伺服器上的每個資源都有一個命令。執行 `oneuptime resources` 即可列出它們。
 
 ## 開始之前
 
@@ -32,7 +32,14 @@ flowchart TB
 
 ## 安裝 CLI
 
-從 npm 安裝 `@oneuptime/cli` 套件。它會新增 `oneuptime` 命令，`--version` 會印出你安裝的版本：
+每個 OneUptime 都提供與自身版本對應的 CLI 安裝指令碼：下面的命令從 `https://oneuptime.com` 下載它，所以在自行託管的 OneUptime 上請把它換成你的 URL。指令碼會先儲存為 `install.sh`，方便你在執行前閱讀它。它會向你的 OneUptime 詢問版本，並用 npm 安裝相同版本的 CLI：
+
+```bash
+curl -fsSL https://oneuptime.com/install/cli -o install.sh
+ONEUPTIME_URL=https://oneuptime.com bash install.sh
+```
+
+也可以自己從 npm 安裝 `@oneuptime/cli` 套件。它會新增 `oneuptime` 命令，`--version` 會印出你安裝的版本：
 
 ```bash
 npm install -g @oneuptime/cli
@@ -61,13 +68,21 @@ oneuptime login <your-api-key> https://oneuptime.com
 
 它回應 `Logged in successfully. Context "default" is now active.`。在自行託管的 OneUptime 上，請用它的位址代替 `https://oneuptime.com`。
 
+### 檢查金鑰
+
+```bash
+oneuptime whoami --check
+```
+
+`login` 儲存金鑰時不會向 OneUptime 詢問它。`--check` 會詢問：它顯示金鑰所屬的專案、你的 OneUptime 的版本和 CLI 的版本，以及兩者不同時應安裝什麼。如果 OneUptime 拒絕該金鑰，請參閱 [疑難排解](/docs/cli/authentication#疑難排解)。
+
 ### 列出你的事件
 
 ```bash
 oneuptime incident list
 ```
 
-最新的十個事件以表格顯示。`login` 儲存金鑰時不會檢查它，所以這個命令是第一個能證明金鑰可用的命令：如果被拒絕，請參閱 [疑難排解](/docs/cli/authentication#疑難排解)。
+最新的十個事件以表格顯示。
 
 ### 看看還能管理什麼
 
@@ -75,7 +90,7 @@ oneuptime incident list
 oneuptime resources
 ```
 
-清單顯示你可以處理的每種記錄及其命令，例如 `monitor`、`status-page` 或 `on-call-policy`。
+清單顯示你可以處理的每種記錄及其命令，例如 `monitor`、`status-page` 或 `on-call-policy`。`oneuptime monitor fields` 列出監測器的欄位以及設定它們的旗標。
 :::
 
 ## 命令一覽
@@ -84,9 +99,11 @@ oneuptime resources
 | --- | --- | --- |
 | `oneuptime login <api-key> <instance-url>` | 將 API 金鑰和位址儲存為情境 | [驗證](/docs/cli/authentication#登入) |
 | `oneuptime context list`, `use`, `current`, `delete` | 列出、切換、顯示和刪除已儲存的情境 | [驗證](/docs/cli/authentication#情境) |
-| `oneuptime whoami` | 顯示下一個命令將使用的 URL 和 API 金鑰 | [驗證](/docs/cli/authentication#檢查-cli-將使用什麼) |
+| `oneuptime whoami` | 顯示下一個命令將使用的 URL 和 API 金鑰，加上 `--check` 時還會顯示 OneUptime 是否接受該金鑰 | [驗證](/docs/cli/authentication#檢查-cli-將使用什麼) |
 | `oneuptime deploy` | 為圖表和 OneUptime AI 記錄一次部署或其他變更 | [部署與變更](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 處理一種記錄 | [資源操作](/docs/cli/resource-operations) |
+| `oneuptime <resource> fields` | 列出資源的欄位以及設定它們的旗標 | [資源操作](/docs/cli/resource-operations#檢視資源的欄位) |
+| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 對事件、警示和排定維護執行儀表板按鈕所做的動作 | [資源操作](/docs/cli/resource-operations#確認解決和新增備註) |
 | `oneuptime resources` | 列出各種記錄及其命令 | [命令參考](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | 印出 CLI 的版本 | [命令參考](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | 顯示命令的說明 | [取得說明](#取得說明) |
@@ -101,6 +118,7 @@ oneuptime resources
 | `--url <url>` | 此命令使用的 OneUptime 位址 |
 | `--context <name>` | 此命令使用的已儲存情境，代替目前情境 |
 | `-o, --output <format>` | `table`、`json` 或 `wide`：請參閱 [輸出格式](/docs/cli/output-formats) |
+| `--json` | 等同於 `-o json` |
 | `--no-color` | 不帶顏色地印出 |
 | `-V, --version` | 印出 CLI 的版本 |
 | `-h, --help` | 顯示命令的說明 |
@@ -122,5 +140,6 @@ oneuptime incident list --help
 - [資源操作](/docs/cli/resource-operations): 列出、讀取、建立、更改、刪除和統計記錄。
 - [輸出格式](/docs/cli/output-formats): 表格給人看，JSON 給指令碼用。
 - [指令碼與 CI/CD](/docs/cli/scripting): 結束代碼、jq 和管線。
+- [供 AI 代理程式使用的 CLI](/docs/cli/ai-agents): 代理程式何時執行 CLI，何時使用 MCP 伺服器。
 - [命令參考](/docs/cli/command-reference): 每個命令、選項和預設值。
 :::

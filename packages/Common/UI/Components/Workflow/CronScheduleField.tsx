@@ -11,6 +11,7 @@ import {
   ValueSuggestionGroup,
   ValueSuggestionGroupKind,
 } from "./ValuePicker/ValueSuggestion";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import IconProp from "../../../Types/Icon/IconProp";
 import CronTab from "../../../Utils/CronTab";
 import { describeCronSchedule } from "../../../Utils/CronScheduleText";
@@ -22,6 +23,7 @@ import {
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useMemo,
   useState,
 } from "react";
@@ -164,6 +166,13 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
     inferInitialMode(initialValue),
   );
   const picker: ValuePickerContextValue = useValuePicker();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the schedule as it is - the
+   * kind of schedule picked, then the schedule and its next runs - with
+   * nothing to clear or change it by. ArgumentsForm holds the controls
+   * still in WorkflowViewOnlyFieldset.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
 
   const emit: (next: string) => void = (next: string): void => {
     setValue(next);
@@ -217,6 +226,8 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
     return (
       <button
         type="button"
+        // Which kind of schedule is picked, said as well as shown.
+        aria-pressed={isActive}
         onClick={() => {
           setMode(args.tabMode);
         }}
@@ -329,6 +340,8 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             options={PRESET_OPTIONS}
             value={selectedPresetOption}
             placeholder="Select a schedule"
+            // Nothing to clear on a view.
+            disabled={isViewOnly}
             tabIndex={props.tabIndex}
             onChange={(
               newValue: DropdownValue | Array<DropdownValue> | null,
@@ -409,33 +422,36 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
                   description={picker.describeReference(trimmedValue)}
                 />
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <InsertValueButton
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                  ariaLabel="Change the variable"
-                  groupFilter={isVariableGroup}
-                  searchPlaceholder="Search variables"
-                  emptyMessage={NO_VARIABLES_MESSAGE}
-                  dataTestId="cron-schedule-change-variable"
-                  onPick={(reference: string) => {
-                    setMode("variable");
-                    emit(reference);
-                  }}
-                >
-                  {translator.translateText("Change")}
-                </InsertValueButton>
-                <span className="text-gray-300">·</span>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-gray-500 hover:text-gray-700"
-                  onClick={() => {
-                    emit("");
-                    setMode("preset");
-                  }}
-                >
-                  {translator.translateText("Clear")}
-                </button>
-              </div>
+              {/* Not on a view, where the variable is only read. */}
+              {isViewOnly ? null : (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <InsertValueButton
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                    ariaLabel="Change the variable"
+                    groupFilter={isVariableGroup}
+                    searchPlaceholder="Search variables"
+                    emptyMessage={NO_VARIABLES_MESSAGE}
+                    dataTestId="cron-schedule-change-variable"
+                    onPick={(reference: string) => {
+                      setMode("variable");
+                      emit(reference);
+                    }}
+                  >
+                    {translator.translateText("Change")}
+                  </InsertValueButton>
+                  <span className="text-gray-300">·</span>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                    onClick={() => {
+                      emit("");
+                      setMode("preset");
+                    }}
+                  >
+                    {translator.translateText("Clear")}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <InsertValueButton

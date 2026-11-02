@@ -11,6 +11,12 @@ import {
   getPermissionGroupCount,
   getRolePermissionCount,
 } from "../../../FeatureSet/Docs/Utils/PermissionsTable";
+import {
+  CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+  getCliResourceSubcommands,
+  getCliResourcesByCommand,
+} from "../../../FeatureSet/Docs/Utils/CliCommandsTable";
+import { CliResource } from "Common/Utils/DeveloperDocs/CliResources";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -103,6 +109,99 @@ describe("DocsPlaceholders", () => {
       expect(DocsPlaceholders.render(PermissionPlaceholder.RoleTables)).toBe(
         DocsPlaceholders.render(PermissionPlaceholder.RoleTables, "en"),
       );
+    });
+  });
+
+  describe("the CLI's resource commands", () => {
+    // | `incident` | Incidents | `list`, `get`, ... |
+    const ROW: RegExp = /^\| `([a-z0-9-]+)` \| ([^|]+) \| ([^|]+) \|$/;
+
+    it("replaces the token with a table of every resource command the CLI has", () => {
+      const rendered: string = DocsPlaceholders.render(
+        `before\n\n${CLI_RESOURCE_COMMANDS_PLACEHOLDER}\n\nafter`,
+        "en",
+      );
+      const lines: Array<string> = rendered.split("\n");
+      const header: number = lines.indexOf(
+        "| Command | Resource | Subcommands |",
+      );
+      const rows: Array<string> = lines.slice(header + 2, -2);
+
+      expect(rendered).not.toContain(CLI_RESOURCE_COMMANDS_PLACEHOLDER);
+      expect(lines[header + 1]).toBe("| --- | --- | --- |");
+      expect(rows).toHaveLength(getCliResourcesByCommand().length);
+      expect(rows.length).toBeGreaterThan(450);
+      expect(rendered).toContain("before");
+      expect(rendered).toContain("after");
+    });
+
+    it("lists each resource by its command, with its plural name and its subcommands in the CLI's order", () => {
+      const rows: Array<string> = DocsPlaceholders.render(
+        CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+        "en",
+      )
+        .split("\n")
+        .slice(2);
+      const incident: CliResource = getCliResourcesByCommand().find(
+        (resource: CliResource): boolean => {
+          return resource.name === "incident";
+        },
+      ) as CliResource;
+
+      expect(rows).toContain(
+        "| `incident` | Incidents | `list`, `get`, `create`, `update`, `delete`, `count`, `fields`, `acknowledge`, `resolve`, `add-note` |",
+      );
+      expect(getCliResourceSubcommands(incident)).toEqual([
+        "list",
+        "get",
+        "create",
+        "update",
+        "delete",
+        "count",
+        "fields",
+        "acknowledge",
+        "resolve",
+        "add-note",
+      ]);
+
+      // In the order `oneuptime resources` lists them: by command.
+      const commands: Array<string> = rows.map((row: string): string => {
+        return (row.match(ROW) as RegExpMatchArray)[1] as string;
+      });
+
+      expect(commands).toEqual(
+        [...commands].sort((a: string, b: string): number => {
+          return a.localeCompare(b);
+        }),
+      );
+      expect(new Set(commands).size).toBe(commands.length);
+    });
+
+    it("translates the headers, and keeps the commands as a reader types them", () => {
+      const german: string = DocsPlaceholders.render(
+        CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+        "de",
+      );
+      const english: string = DocsPlaceholders.render(
+        CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+        "en",
+      );
+
+      expect(german.split("\n")[0]).toBe(
+        "| Befehl | Ressource | Unterbefehle |",
+      );
+      expect(german.split("\n").slice(1)).toEqual(english.split("\n").slice(1));
+    });
+
+    it("keeps a cell's pipe inside the cell", () => {
+      for (const row of DocsPlaceholders.render(
+        CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+        "en",
+      )
+        .split("\n")
+        .slice(2)) {
+        expect({ row, matches: ROW.test(row) }).toEqual({ row, matches: true });
+      }
     });
   });
 
@@ -209,6 +308,7 @@ describe("DocsPlaceholders", () => {
       TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
       TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
       TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
+      CLI_RESOURCE_COMMANDS_PLACEHOLDER,
       ...Object.values(PermissionPlaceholder),
     ]);
 

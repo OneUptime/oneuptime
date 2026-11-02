@@ -63,7 +63,7 @@ case $? in
 esac
 ```
 
-Los mensajes de error van a la salida de error estándar, así que `incident.json` contiene solo la respuesta.
+Los mensajes de error van a la salida de error estándar, así que `incident.json` contiene solo la respuesta. Con `-o json`, un error también es JSON, con el código de salida dentro: consulte [JSON](/docs/cli/output-formats#json).
 
 ## Leer respuestas con jq
 
@@ -74,13 +74,16 @@ Escriba `-o json` en los scripts. En una tubería la CLI imprime JSON de todos m
 oneuptime incident list -o json | jq -r '.[].title'
 
 # The ID of a new monitor
-MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
+MONITOR_ID=$(oneuptime monitor create --name "Checkout API" --monitor-type Manual -o json | jq -r '._id')
 
 # When each incident was created: dates come as objects
 oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 # The newest 100 incidents as CSV
 oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
+
+# Every incident, page after page, with only the two fields the script reads
+oneuptime incident list --all --fields title,createdAt -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 ```
 
 Un recuento imprime un solo número, listo para comparar:

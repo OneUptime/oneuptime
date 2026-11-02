@@ -41,7 +41,7 @@ import {
  *   Logs        Executions                         folded
  *   Owners      Owners                             folded
  *   Settings    Triggers, Settings                 folded
- *   Developer   Terraform, API, AI Assistants      folded
+ *   Developer   Terraform, API, CLI, AI Assistants folded
  *   Advanced    Audit Logs, Delete Runbook         folded
  *
  * Executions and Triggers used to sit in Basic, open on every visit, and the
@@ -320,6 +320,7 @@ const RUNBOOK_MENU: ReadonlyArray<MenuPage> = [
     path: `${RUNBOOK_PATH}/developer/terraform`,
   },
   { title: "API", section: "Developer", path: `${RUNBOOK_PATH}/developer/api` },
+  { title: "CLI", section: "Developer", path: `${RUNBOOK_PATH}/developer/cli` },
   {
     title: "AI Assistants",
     section: "Developer",
@@ -486,13 +487,13 @@ describe("a runbook's side menu", () => {
     expect(linksIn("Developer")).toEqual(linksOf("Developer"));
   });
 
-  test("lists all twelve pages once, in order", async () => {
+  test("lists all thirteen pages once, in order", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    expect(hrefs).toHaveLength(12);
-    expect(new Set(hrefs).size).toBe(12);
+    expect(hrefs).toHaveLength(13);
+    expect(new Set(hrefs).size).toBe(13);
     expect(hrefs).toEqual(
       RUNBOOK_MENU.map((page: MenuPage): string => {
         return page.path;

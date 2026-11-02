@@ -3,15 +3,15 @@
 De OneUptime-CLI, `oneuptime`, beheert je OneUptime-project vanuit een terminal of een script. Hij toont, leest, maakt, wijzigt, verwijdert en telt monitoren, incidenten, waarschuwingen, statuspagina's en de andere records die de OneUptime-API aanbiedt, met een API-sleutel van je project.
 
 :::cards
-- [Hoe de CLI werkt](#hoe-de-cli-werkt): Eén opdracht, één API-verzoek, één antwoord.
-- [De CLI installeren](#de-cli-installeren): Eén npm-opdracht, en welke versie je kiest.
-- [Je eerste opdrachten uitvoeren](#je-eerste-opdrachten-uitvoeren): Sla je API-sleutel op en toon dan je incidenten.
+- [Hoe de CLI werkt](#hoe-de-cli-werkt): Een opdracht, de API-verzoeken die hij stuurt, en zijn antwoord.
+- [De CLI installeren](#de-cli-installeren): Het installatiescript dat je OneUptime aanbiedt, of npm.
+- [Je eerste opdrachten uitvoeren](#je-eerste-opdrachten-uitvoeren): Sla je API-sleutel op, controleer hem en toon dan je incidenten.
 - [De opdrachten in één oogopslag](#de-opdrachten-in-één-oogopslag): Elke opdracht, en de pagina die hem uitlegt.
 :::
 
 ## Hoe de CLI werkt
 
-Elke opdracht stuurt één verzoek naar de REST API van OneUptime en drukt het antwoord af. De CLI haalt de API-sleutel en het adres van je OneUptime uit vlaggen, omgevingsvariabelen of een context die `oneuptime login` heeft opgeslagen. De sleutel bepaalt wat een opdracht mag lezen en wijzigen, precies zoals bij de API.
+De meeste opdrachten sturen één verzoek naar de REST API van OneUptime en drukken het antwoord af; een actie, zoals `acknowledge`, stuurt de paar verzoeken die de knop in het dashboard ook stuurt. De CLI haalt de API-sleutel en het adres van je OneUptime uit vlaggen, omgevingsvariabelen of een context die `oneuptime login` heeft opgeslagen. De sleutel bepaalt wat een opdracht mag lezen en wijzigen, precies zoals bij de API.
 
 ```mermaid title="Eén opdracht, één verzoek"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
     C -->|"een tabel in een terminal,<br/>JSON in een pipe"| T
 ```
 
-De opdrachten voor records komen met de CLI mee: elk soort record dat de OneUptime-API voor tools openstelt, heeft er een, dezelfde records waarvoor de [MCP-server](/docs/ai/mcp-server) tools heeft. Voer `oneuptime resources` uit om ze te tonen.
+Elke bron van de OneUptime-API is een opdracht, 450 en meer, van `incident` en `monitor` tot `status-page-subscriber` en `telemetry-ingestion-key`, elk met de bewerkingen die de API ervoor aanneemt. De CLI verschijnt samen met OneUptime, dus de CLI van de versie van je OneUptime heeft een opdracht voor elke bron die je server heeft. Voer `oneuptime resources` uit om ze te tonen.
 
 ## Voordat je begint
 
@@ -32,7 +32,14 @@ De opdrachten voor records komen met de CLI mee: elk soort record dat de OneUpti
 
 ## De CLI installeren
 
-Installeer het pakket `@oneuptime/cli` vanuit npm. Het voegt de opdracht `oneuptime` toe, en `--version` drukt de geïnstalleerde versie af:
+Elke OneUptime biedt het installatiescript van de CLI voor zijn eigen release aan: de opdrachten hieronder downloaden het van `https://oneuptime.com`, dus vervang dat op een zelf gehoste OneUptime door je eigen URL. Het script wordt eerst opgeslagen als `install.sh`, zodat je het kunt lezen voordat je het uitvoert. Het vraagt je OneUptime naar zijn versie en installeert de CLI van dezelfde versie met npm:
+
+```bash
+curl -fsSL https://oneuptime.com/install/cli -o install.sh
+ONEUPTIME_URL=https://oneuptime.com bash install.sh
+```
+
+Of installeer het pakket `@oneuptime/cli` zelf vanuit npm. Het voegt de opdracht `oneuptime` toe, en `--version` drukt de geïnstalleerde versie af:
 
 ```bash
 npm install -g @oneuptime/cli
@@ -61,13 +68,21 @@ oneuptime login <your-api-key> https://oneuptime.com
 
 Hij antwoordt `Logged in successfully. Context "default" is now active.` Gebruik op een zelf gehoste OneUptime het adres daarvan in plaats van `https://oneuptime.com`.
 
+### De sleutel controleren
+
+```bash
+oneuptime whoami --check
+```
+
+`login` slaat de sleutel op zonder OneUptime ernaar te vragen. `--check` vraagt het wel: hij toont het project van de sleutel, de versie van je OneUptime en die van de CLI, en wat je moet installeren als die twee verschillen. Weigert OneUptime de sleutel, zie dan [Problemen oplossen](/docs/cli/authentication#problemen-oplossen).
+
 ### Je incidenten tonen
 
 ```bash
 oneuptime incident list
 ```
 
-De tien nieuwste incidenten verschijnen als tabel. `login` slaat de sleutel op zonder hem te controleren, dus dit is de eerste opdracht die laat zien dat de sleutel werkt: wordt hij geweigerd, zie dan [Problemen oplossen](/docs/cli/authentication#problemen-oplossen).
+De tien nieuwste incidenten verschijnen als tabel.
 
 ### Zien wat je nog meer kunt beheren
 
@@ -75,7 +90,7 @@ De tien nieuwste incidenten verschijnen als tabel. `login` slaat de sleutel op z
 oneuptime resources
 ```
 
-De lijst toont elk soort record waarmee je kunt werken, en de opdracht ervan, zoals `monitor`, `status-page` of `on-call-policy`.
+De lijst toont elk soort record waarmee je kunt werken, en de opdracht ervan, zoals `monitor`, `status-page` of `on-call-policy`. `oneuptime monitor fields` toont de velden van een monitor en de vlaggen die ze instellen.
 :::
 
 ## De opdrachten in één oogopslag
@@ -84,9 +99,11 @@ De lijst toont elk soort record waarmee je kunt werken, en de opdracht ervan, zo
 | --- | --- | --- |
 | `oneuptime login <api-key> <instance-url>` | Slaat een API-sleutel en een adres op als context | [Authenticatie](/docs/cli/authentication#inloggen) |
 | `oneuptime context list`, `use`, `current`, `delete` | Toont, wisselt, laat zien en verwijdert opgeslagen contexten | [Authenticatie](/docs/cli/authentication#contexten) |
-| `oneuptime whoami` | Toont de URL en API-sleutel die de volgende opdracht gebruikt | [Authenticatie](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken) |
+| `oneuptime whoami` | Toont de URL en API-sleutel die de volgende opdracht gebruikt, en met `--check` of OneUptime de sleutel aanneemt | [Authenticatie](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken) |
 | `oneuptime deploy` | Legt een deploy, of een andere wijziging, vast voor grafieken en OneUptime AI | [Deploys en wijzigingen](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Werkt met één soort record | [Bewerkingen op bronnen](/docs/cli/resource-operations) |
+| `oneuptime <resource> fields` | Toont de velden van een bron en de vlaggen die ze instellen | [Bewerkingen op bronnen](/docs/cli/resource-operations#de-velden-van-een-bron-bekijken) |
+| `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Doet wat de knoppen van het dashboard doen bij incidenten, waarschuwingen en gepland onderhoud | [Bewerkingen op bronnen](/docs/cli/resource-operations#bevestigen-oplossen-en-notities-toevoegen) |
 | `oneuptime resources` | Toont de soorten records, met hun opdrachten | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Drukt de versie van de CLI af | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Toont de hulp van een opdracht | [Hulp krijgen](#hulp-krijgen) |
@@ -101,6 +118,7 @@ Deze opties werken met elke opdracht, ervoor of erna:
 | `--url <url>` | Het adres van je OneUptime voor deze opdracht |
 | `--context <name>` | Een opgeslagen context voor deze opdracht, in plaats van de huidige |
 | `-o, --output <format>` | `table`, `json` of `wide`: zie [Uitvoerformaten](/docs/cli/output-formats) |
+| `--json` | Hetzelfde als `-o json` |
 | `--no-color` | Drukt af zonder kleuren |
 | `-V, --version` | Drukt de versie van de CLI af |
 | `-h, --help` | Toont de hulp van de opdracht |
@@ -122,5 +140,6 @@ oneuptime incident list --help
 - [Bewerkingen op bronnen](/docs/cli/resource-operations): Records tonen, lezen, maken, wijzigen, verwijderen en tellen.
 - [Uitvoerformaten](/docs/cli/output-formats): Tabellen voor mensen, JSON voor scripts.
 - [Scripting en CI/CD](/docs/cli/scripting): Exitcodes, jq en pipelines.
+- [CLI voor AI-agents](/docs/cli/ai-agents): Wanneer een agent de CLI uitvoert, en wanneer hij de MCP-server gebruikt.
 - [Opdrachtreferentie](/docs/cli/command-reference): Elke opdracht, optie en standaardwaarde.
 :::

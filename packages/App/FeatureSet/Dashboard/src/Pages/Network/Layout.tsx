@@ -39,7 +39,7 @@ const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
   PageMap.NETWORK_SITE_VIEW_SETTINGS,
   PageMap.NETWORK_SITE_VIEW_DELETE,
-  // A device's and a site's Developer pages (Terraform, API, AI Assistants).
+  // A device's and a site's Developer pages (Terraform, API, CLI, AI Assistants).
   ...[PageMap.NETWORK_DEVICE_VIEW, PageMap.NETWORK_SITE_VIEW].flatMap(
     (viewPage: PageMap): Array<string> => {
       return getDeveloperDocsChildPages(viewPage).map(

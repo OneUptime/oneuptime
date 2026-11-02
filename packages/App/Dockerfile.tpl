@@ -239,6 +239,9 @@ COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent
 COPY ./agents/VMwareAgent /usr/src/agents/VMwareAgent
 # .dockerignore leaves HelmChart/ out of the context except this one file.
 COPY ./HelmChart/Public/kubernetes-agent/troubleshoot.sh /usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh
+# The CLI's installer, served at /install/cli: it installs the npm package of
+# this release's version.
+COPY ./packages/CLI/Install /usr/src/packages/CLI/Install
 
 # ---------------------------------------------------------------------------
 # enterprise-build: community-build plus ee/.

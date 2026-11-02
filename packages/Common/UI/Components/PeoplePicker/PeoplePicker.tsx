@@ -78,6 +78,14 @@ export interface ComponentProps {
   // What the search list says when there is nothing to pick at all.
   emptyText?: string | undefined;
   disabled?: boolean | undefined;
+  /*
+   * The picks shown to be read, not changed - a workflow step opened by
+   * someone who may not change it: the chips alone, as a read-only list of
+   * people is drawn (PeopleList), with no Add button and no remove on a
+   * chip. With nothing picked, "None" stands where the chips would be.
+   * Disabled, by contrast, keeps the Add button, locked.
+   */
+  readOnly?: boolean | undefined;
   error?: string | undefined;
   // The id of the label that names the field.
   ariaLabelledby?: string | undefined;
@@ -121,6 +129,9 @@ export interface ComponentProps {
 // The button of a single-pick picker once something is picked.
 export const PEOPLE_PICKER_CHANGE_BUTTON_TEXT: string =
   translationKey("Change");
+
+// A read-only picker with nothing picked (readOnly), as PeopleList says it.
+export const PEOPLE_PICKER_NONE_TEXT: string = translationKey("None");
 
 const PeoplePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -264,7 +275,8 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
   };
 
   const addButtonText: string = props.addButtonText || "Add";
-  const isInteractive: boolean = !props.disabled;
+  const isReadOnly: boolean = Boolean(props.readOnly);
+  const isInteractive: boolean = !props.disabled && !isReadOnly;
 
   // A single pick is changed, not added to.
   const isChangingSinglePick: boolean = Boolean(
@@ -345,6 +357,22 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
 
   chips.push(...extraChips);
 
+  // Read only, with nothing picked: said as a read-only list says it.
+  const isReadOnlyAndEmpty: boolean =
+    isReadOnly && !nobodyPicked && chips.length === 0;
+
+  if (isReadOnlyAndEmpty) {
+    chips.push(
+      <span
+        key="people-picker-none"
+        data-testid="people-picker-none"
+        className="text-sm text-gray-500"
+      >
+        {translateString(PEOPLE_PICKER_NONE_TEXT) || PEOPLE_PICKER_NONE_TEXT}
+      </span>,
+    );
+  }
+
   if (nobodyPicked && picks.length === 0 && extraChips.length === 0) {
     const nobodyPickedText: string =
       translateString(nobodyPicked.text) || nobodyPicked.text;
@@ -381,7 +409,11 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
          * Several picks: the button first, so it stays put while picks are
          * added after it. One pick: what is picked first, then "Change".
          */}
-        {props.isSinglePick ? [...chips, button] : [button, ...chips]}
+        {isReadOnly
+          ? chips
+          : props.isSinglePick
+            ? [...chips, button]
+            : [button, ...chips]}
         {props.trailing}
       </div>
 

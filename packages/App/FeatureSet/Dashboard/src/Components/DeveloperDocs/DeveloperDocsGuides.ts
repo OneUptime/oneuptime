@@ -36,6 +36,7 @@ import {
   DeveloperDocsApiBody,
   DeveloperDocsApiFilter,
   DeveloperDocsApiTask,
+  DeveloperDocsClient,
   DeveloperDocsExampleContext,
   DeveloperDocsFieldRow,
   DeveloperDocsTerraformExample,
@@ -46,6 +47,7 @@ import {
   getApiTasks,
   getApiUpdateExample,
   getCreateTitle,
+  getTableName,
   getTerraformCreateExample,
   getTerraformRecipes,
 } from "Common/Utils/DeveloperDocs/ExampleBuilder";
@@ -84,7 +86,38 @@ import {
   translatableTerm,
   TranslatableTerm,
   translateTemplate,
+  translateText,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  CLI_NOTE_COLUMN,
+  CliAction,
+  CliFieldFlag,
+  CliNoteTarget,
+  CliOperation,
+  CliStateChange,
+  CliStateMachine,
+  getCliActions,
+  getCliDatabaseOperations,
+  getCliFieldFlags,
+  getCliNoteTarget,
+  getCliStateMachine,
+} from "Common/Utils/DeveloperDocs/CliCommands";
+import {
+  CliExample,
+  getCliActionExample,
+  getCliCommandOf,
+  getCliConnectCommands,
+  getCliCountExample,
+  getCliCreateExample,
+  getCliDeleteExample,
+  getCliGetExample,
+  getCliInstallScriptCommands,
+  getCliListExample,
+  getCliLoginCommand,
+  getCliNpmInstallCommand,
+  getCliUpdateExample,
+} from "Common/Utils/DeveloperDocs/CliExamples";
+import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../SetupGuide/AgentInstallCommands";
 
 /*
  * What each Developer page says, as data: numbered steps (in the same layout
@@ -229,6 +262,18 @@ export const DEVELOPER_DOCS_GUIDE_COPY: Readonly<
       title: "API",
       description:
         "List, filter and create these resources with the OneUptime REST API. Every command below runs against this OneUptime and is filled in from this project.",
+    },
+  },
+  [DeveloperDocsPageType.Cli]: {
+    [DeveloperDocsScope.View]: {
+      title: "CLI",
+      description:
+        "Read, change and delete this resource from a terminal, a script or an AI agent with the OneUptime CLI. Every command below runs against this OneUptime.",
+    },
+    [DeveloperDocsScope.List]: {
+      title: "CLI",
+      description:
+        "List, filter and create these resources from a terminal, a script or an AI agent with the OneUptime CLI. Every command below runs against this OneUptime and is filled in from this project.",
     },
   },
   [DeveloperDocsPageType.AiAssistants]: {
@@ -1433,6 +1478,646 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
   };
 }
 
+/*
+ * CLI.
+ *
+ * The API page's requests as commands of the OneUptime CLI: the same
+ * create, filters, change and tasks, from the same example data, so each
+ * command is filled in from the project and sends what the API page's curl
+ * sends (packages/CLI/Tests/DeveloperDocsCommands runs them through the
+ * CLI). A dashboard button the CLI has a command for - acknowledge,
+ * resolve, a note - is written as that command.
+ */
+
+const CLI_DOCS_PATH: string = "cli/index";
+const CLI_AGENTS_DOCS_PATH: string = "cli/ai-agents";
+const CLI_REFERENCE_DOCS_PATH: string = "cli/command-reference";
+
+function cliLinks(context: DeveloperDocsGuideContext): Array<SetupGuideLink> {
+  return [
+    // As the API page's "API documentation".
+    { title: "CLI documentation", url: docsUrl(context, CLI_DOCS_PATH) },
+    {
+      title: "Command reference",
+      url: docsUrl(context, CLI_REFERENCE_DOCS_PATH),
+    },
+    {
+      title: "The CLI for AI agents",
+      url: docsUrl(context, CLI_AGENTS_DOCS_PATH),
+    },
+  ];
+}
+
+function installCliStep(context: DeveloperDocsGuideContext): DeveloperDocsStep {
+  return {
+    title: "Install the CLI",
+    description:
+      "It runs on Node.js 22 or later. The script installs the CLI of this OneUptime's version, so its commands match the resources this OneUptime has.",
+    variants: [
+      {
+        label: "Install script",
+        markdown: joinParts([
+          codeBlock("bash", getCliInstallScriptCommands(context.oneuptimeUrl)),
+          translateText(INSTALL_SCRIPT_READ_FIRST_NOTE) ||
+            INSTALL_SCRIPT_READ_FIRST_NOTE,
+        ]),
+      },
+      {
+        label: "npm",
+        markdown: codeBlock(
+          "bash",
+          `${getCliNpmInstallCommand(context.platformVersion)}\noneuptime --version`,
+        ),
+      },
+    ],
+  };
+}
+
+function connectCliStep(context: DeveloperDocsGuideContext): DeveloperDocsStep {
+  const { plural } = nouns(context);
+
+  return {
+    title: "Connect it to OneUptime",
+    description:
+      "The CLI signs in with a project API key. The project comes from the key.",
+    markdown: joinParts([
+      `Create a key in [Project Settings → Advanced → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}. Then set it and this OneUptime's address in your shell, and check that OneUptime takes the key:`,
+      codeBlock("bash", getCliConnectCommands(context.oneuptimeUrl)),
+      `To save them on this machine instead, run \`${getCliLoginCommand(context.oneuptimeUrl)}\`.`,
+    ]),
+  };
+}
+
+// "- `--title` (required): Title of this incident."
+function cliFieldsList(
+  modelType: DatabaseBaseModelType,
+  rows: Array<DeveloperDocsFieldRow>,
+): string {
+  if (rows.length === 0) {
+    return "";
+  }
+
+  const flags: Map<string, CliFieldFlag> = new Map(
+    getCliFieldFlags(modelType).map(
+      (flag: CliFieldFlag): [string, CliFieldFlag] => {
+        return [flag.columnName, flag];
+      },
+    ),
+  );
+
+  return joinParts([
+    "What each flag is for:",
+    rows
+      .map((row: DeveloperDocsFieldRow): string => {
+        const flag: CliFieldFlag | undefined = flags.get(row.name);
+        const name: string = flag
+          ? flag.person
+            ? `\`${flag.flag}\` or \`${flag.person.flag}\``
+            : `\`${flag.flag}\``
+          : `\`${row.name}\` in \`--data\``;
+
+        return `- ${name}${row.required ? " (required)" : ""}: ${oneLine(row.about)}`;
+      })
+      .join("\n"),
+  ]);
+}
+
+/*
+ * The viewer's own address by their ID, so a person the examples name is
+ * named by it (--user-email), as the Terraform pages name them.
+ */
+function emailsByIdOf(
+  context: DeveloperDocsGuideContext,
+): Record<string, string> {
+  const live: DeveloperDocsLiveData = getLive(context);
+
+  return live.currentUserId && live.currentUserEmail
+    ? { [live.currentUserId]: live.currentUserEmail }
+    : {};
+}
+
+// What the CLI prints for a list: the records, without the API's envelope.
+function cliListResponse(
+  records: Array<JSONObject>,
+  select: JSONObject,
+): string {
+  return responseBlock(
+    records.map((record: JSONObject): JSONObject => {
+      return pickFields(record, select);
+    }),
+  );
+}
+
+/*
+ * Every command the CLI has for the resource, one a line: the quickest
+ * answer to "what can I do with these from a terminal?".
+ */
+function cliCommandsSection(
+  context: DeveloperDocsGuideContext,
+): Array<DeveloperDocsSection> {
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const operations: Array<CliOperation> = getCliDatabaseOperations(modelType);
+
+  if (operations.length === 0) {
+    return [];
+  }
+
+  const command: string = getCliCommandOf(modelType);
+  const id: string = context.record?.id || "<id>";
+  const { singular, plural } = nouns(context);
+  const lines: Array<string> = [];
+
+  for (const operation of operations) {
+    switch (operation) {
+      case CliOperation.List:
+        lines.push(`- List ${plural}: \`oneuptime ${command} list\``);
+        break;
+      case CliOperation.Get:
+        lines.push(`- Read one: \`oneuptime ${command} get ${id}\``);
+        break;
+      case CliOperation.Create:
+        lines.push(
+          `- Create ${withIndefiniteArticle(singular)}: \`oneuptime ${command} create\``,
+        );
+        break;
+      case CliOperation.Update:
+        lines.push(`- Change one: \`oneuptime ${command} update ${id}\``);
+        break;
+      case CliOperation.Delete:
+        lines.push(`- Delete one: \`oneuptime ${command} delete ${id}\``);
+        break;
+      case CliOperation.Count:
+        lines.push(`- Count ${plural}: \`oneuptime ${command} count\``);
+        break;
+    }
+  }
+
+  lines.push(`- Its fields and flags: \`oneuptime ${command} fields\``);
+
+  const actionLabels: Readonly<Record<CliAction, string>> = {
+    [CliAction.Acknowledge]: "Acknowledge one",
+    [CliAction.Resolve]: "Resolve one",
+    [CliAction.Start]: "Start one",
+    [CliAction.End]: "End one",
+    [CliAction.AddNote]: "Add a note",
+  };
+
+  for (const action of getCliActions(getTableName(modelType))) {
+    // A note is a command only with its text.
+    const note: string =
+      action === CliAction.AddNote ? " --note <markdown>" : "";
+
+    lines.push(
+      `- ${actionLabels[action]}: \`oneuptime ${command} ${action} ${id}${note}\``,
+    );
+  }
+
+  return [
+    {
+      title: "Commands",
+      description:
+        "Every command the CLI has for these. Add --help to any of them for its flags.",
+      markdown: lines.join("\n"),
+    },
+  ];
+}
+
+/*
+ * A task as the CLI writes it: the dashboard button's own command where
+ * the CLI has one (acknowledge, resolve, a note), else the create or list
+ * the API page sends.
+ */
+function cliTaskExample(
+  context: DeveloperDocsGuideContext,
+  task: DeveloperDocsApiTask,
+): CliExample | null {
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const tableName: string = getTableName(modelType);
+  const record: DeveloperDocsRecord | undefined = context.record;
+  const data: JSONObject = (task.body["data"] as JSONObject) || {};
+
+  if (record && task.operation === "create") {
+    const machine: CliStateMachine | undefined = getCliStateMachine(tableName);
+    const change: CliStateChange | undefined =
+      machine && task.modelType === machine.timelineModelType
+        ? machine.changes.find((candidate: CliStateChange): boolean => {
+            return task.liveFlags[machine.stateColumn] === candidate.stateFlag;
+          })
+        : undefined;
+
+    if (change && getCliActions(tableName).includes(change.action)) {
+      return getCliActionExample({
+        modelType,
+        action: change.action,
+        id: record.id,
+      });
+    }
+
+    const notes: CliNoteTarget | undefined = getCliNoteTarget(tableName);
+    const isInternal: boolean =
+      Boolean(notes) && task.modelType === notes?.internalNoteModelType;
+    const isPublic: boolean =
+      Boolean(notes?.publicNoteModelType) &&
+      task.modelType === notes?.publicNoteModelType;
+
+    if (
+      (isInternal || isPublic) &&
+      getCliActions(tableName).includes(CliAction.AddNote)
+    ) {
+      return getCliActionExample({
+        modelType,
+        action: CliAction.AddNote,
+        id: record.id,
+        note: String(data[CLI_NOTE_COLUMN] || ""),
+        isPublic,
+      });
+    }
+  }
+
+  if (getCliDatabaseOperations(task.modelType).length === 0) {
+    return null;
+  }
+
+  if (task.operation === "create") {
+    return getCliCreateExample({
+      modelType: task.modelType,
+      values: data,
+      emailsById: emailsByIdOf(context),
+    });
+  }
+
+  return getCliListExample({
+    modelType: task.modelType,
+    query: task.body["query"] as JSONObject | undefined,
+    select: task.body["select"] as JSONObject | undefined,
+    sort: task.body["sort"] as JSONObject | undefined,
+    limit: DEVELOPER_DOCS_LIST_LIMIT,
+  });
+}
+
+function cliTasksSection(
+  context: DeveloperDocsGuideContext,
+  tasks: Array<DeveloperDocsApiTask>,
+): Array<DeveloperDocsSection> {
+  const variants: Array<SetupGuideStepVariant> = tasks
+    .map((task: DeveloperDocsApiTask): SetupGuideStepVariant | null => {
+      const command: CliExample | null = cliTaskExample(context, task);
+
+      if (!command) {
+        return null;
+      }
+
+      return {
+        label: task.title,
+        markdown: joinParts([
+          withPlaceholderNote(task.description, task.isPlaceholder),
+          codeBlock("bash", command.command),
+        ]),
+      };
+    })
+    .filter(
+      (
+        variant: SetupGuideStepVariant | null,
+      ): variant is SetupGuideStepVariant => {
+        return variant !== null;
+      },
+    );
+
+  if (variants.length === 0) {
+    return [];
+  }
+
+  const terms: ReturnType<typeof sentenceTerms> = sentenceTerms(context);
+
+  return [
+    {
+      title: "Common tasks",
+      description: terms.recordName
+        ? translateTemplate(
+            'What people do most with the {{singular}} "{{name}}" from the command line, filled in with this project\'s own records.',
+            { singular: terms.singular, name: terms.recordName },
+          )
+        : translateTemplate(
+            "What people do most with this {{singular}} from the command line, filled in with this project's own records.",
+            { singular: terms.singular },
+          ),
+      variants,
+    },
+  ];
+}
+
+/*
+ * When an agent should use the CLI, and when the MCP server: the page the
+ * docs have on it, in short (cli/ai-agents).
+ */
+function cliAgentsTopic(context: DeveloperDocsGuideContext): SetupGuideTopic {
+  const command: string = getCliCommandOf(getModelType(context));
+
+  return {
+    title: "Use it from an AI agent",
+    summary: "The CLI or the MCP server",
+    markdown: joinParts([
+      "An agent that runs commands - Claude Code, Cursor, GitHub Copilot in agent mode, a CI job - can work with OneUptime through the CLI instead of the MCP server. It installs with the steps above and reads the key from `ONEUPTIME_API_KEY`, so the key never appears in a chat.",
+      "Use the MCP server for an assistant you chat with, signed in as you. Use the CLI for an agent that runs commands in a terminal, a script or a pipeline, or where no MCP client is.",
+      "Tell it to add `--json` to every command: it prints JSON, and errors come as one JSON object on standard error. These show it what it can do:",
+      codeBlock(
+        "bash",
+        [
+          "oneuptime resources --json",
+          `oneuptime ${command} fields --json`,
+          `oneuptime ${command} --help`,
+        ].join("\n"),
+      ),
+    ]),
+  };
+}
+
+const CLI_SCRIPTS_TOPIC: SetupGuideTopic = {
+  title: "Use it in a script",
+  summary: "Exit codes and JSON",
+  markdown: [
+    "Every command exits with `0` when it worked, `1` when OneUptime refused it, `2` when the API key is missing or refused, and `3` when the record is not there. Answers go to standard output and errors to standard error, so a script reads one and logs the other:",
+    "",
+    codeBlock(
+      "bash",
+      [
+        'if ! oneuptime incident get "$INCIDENT_ID" --json > incident.json; then',
+        '  echo "Could not read the incident" >&2',
+        "  exit 1",
+        "fi",
+        "jq -r '.title' incident.json",
+      ].join("\n"),
+    ),
+  ].join("\n"),
+};
+
+function cliPagingTopic(context: DeveloperDocsGuideContext): SetupGuideTopic {
+  const command: string = getCliCommandOf(getModelType(context));
+  const { plural } = nouns(context);
+
+  return {
+    title: "Page through all of them",
+    summary: "--all, or --skip and --limit",
+    markdown: joinParts([
+      `\`--all\` reads every page and prints all your ${plural} at once. Or ask for a page at a time: \`--limit\` (up to ${LIMIT_PER_PROJECT}) says how many come back, and \`--skip\` how many to pass over first.`,
+      codeBlock(
+        "bash",
+        [
+          `oneuptime ${command} list --all --json`,
+          `oneuptime ${command} list --limit ${DEVELOPER_DOCS_LIST_LIMIT} --skip ${DEVELOPER_DOCS_LIST_LIMIT} --json`,
+        ].join("\n"),
+      ),
+    ]),
+  };
+}
+
+function getCliUnsupportedGuide(
+  context: DeveloperDocsGuideContext,
+): DeveloperDocsGuide {
+  return {
+    ...guideCopy(DeveloperDocsPageType.Cli, context),
+    notice: translateTemplate("The CLI does not cover {{plural}}.", {
+      plural: sentenceTerms(context).plural,
+    }),
+    steps: [],
+    sections: [],
+    topics: [],
+    links: cliLinks(context),
+  };
+}
+
+function getCliResourceGuide(
+  context: DeveloperDocsGuideContext,
+  record: DeveloperDocsRecord,
+): DeveloperDocsGuide {
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const operations: Array<CliOperation> = getCliDatabaseOperations(modelType);
+  const examples: DeveloperDocsExampleContext = exampleContext(context);
+
+  if (operations.length === 0) {
+    return getCliUnsupportedGuide(context);
+  }
+
+  const select: JSONObject = getApiReadSelect(modelType);
+  const readJson: JSONObject = pickFields(record.json, select);
+  const update: { data: JSONObject; description: string } | null =
+    operations.includes(CliOperation.Update)
+      ? getApiUpdateExample({
+          modelType,
+          context: examples,
+          client: DeveloperDocsClient.Cli,
+        })
+      : null;
+  const steps: Array<DeveloperDocsStep> = [
+    installCliStep(context),
+    connectCliStep(context),
+  ];
+
+  if (operations.includes(CliOperation.Get)) {
+    steps.push({
+      title: "Read it",
+      description: translateTemplate(
+        "Ask for the fields you need with --fields. This {{singular}}'s ID is {{id}}.",
+        { singular: sentenceTerms(context).singular, id: record.id },
+      ),
+      markdown: joinParts([
+        codeBlock(
+          "bash",
+          getCliGetExample({ modelType, id: record.id, select }).command,
+        ),
+        Object.keys(readJson).length > 1 ? responseBlock(readJson) : "",
+      ]),
+    });
+  }
+
+  if (update) {
+    steps.push({
+      title: "Change it",
+      description: update.description,
+      markdown: codeBlock(
+        "bash",
+        getCliUpdateExample({
+          modelType,
+          id: record.id,
+          values: update.data,
+          emailsById: emailsByIdOf(context),
+        }).command,
+      ),
+    });
+  }
+
+  if (operations.includes(CliOperation.Delete)) {
+    steps.push({
+      title: "Delete it",
+      description: translateTemplate(
+        "This deletes the {{singular}} for good.",
+        { singular: sentenceTerms(context).singular },
+      ),
+      markdown: codeBlock(
+        "bash",
+        getCliDeleteExample({ modelType, id: record.id }).command,
+      ),
+    });
+  }
+
+  return {
+    ...guideCopy(DeveloperDocsPageType.Cli, context),
+    steps,
+    sections: [
+      ...cliTasksSection(
+        context,
+        getApiTasks({ modelType, scope: "view", context: examples }),
+      ),
+      ...cliCommandsSection(context),
+    ],
+    topics: [cliAgentsTopic(context), CLI_SCRIPTS_TOPIC],
+    links: cliLinks(context),
+  };
+}
+
+function getCliCollectionGuide(
+  context: DeveloperDocsGuideContext,
+): DeveloperDocsGuide {
+  const { plural } = nouns(context);
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const operations: Array<CliOperation> = getCliDatabaseOperations(modelType);
+  const examples: DeveloperDocsExampleContext = exampleContext(context);
+
+  if (operations.length === 0) {
+    return getCliUnsupportedGuide(context);
+  }
+
+  const select: JSONObject = getApiReadSelect(modelType);
+  const steps: Array<DeveloperDocsStep> = [
+    installCliStep(context),
+    connectCliStep(context),
+  ];
+  const topics: Array<SetupGuideTopic> = [];
+
+  if (operations.includes(CliOperation.List)) {
+    const sample: DeveloperDocsSample | undefined = context.sample;
+
+    steps.push({
+      title: translateTemplate("List your {{plural}}", {
+        plural: sentenceTerms(context).plural,
+      }),
+      description: translateTemplate("Newest first, {{limit}} at a time.", {
+        limit: DEVELOPER_DOCS_LIST_LIMIT,
+      }),
+      markdown: joinParts([
+        codeBlock(
+          "bash",
+          getCliListExample({
+            modelType,
+            query: context.listQuery,
+            select,
+            limit: DEVELOPER_DOCS_LIST_LIMIT,
+          }).command,
+        ),
+        sample ? cliListResponse(sample.records.slice(0, 1), select) : "",
+        sample && sample.count > 1
+          ? `Shown with the first of your ${sample.count} ${plural}.`
+          : "",
+      ]),
+    });
+
+    const filters: Array<DeveloperDocsApiFilter> = getApiFilters({
+      modelType,
+      context: examples,
+    });
+
+    if (filters.length > 0) {
+      steps.push({
+        title: "Find the ones you need",
+        description:
+          "Add a query to the same command. Each of these is filled in from this project.",
+        variants: filters.map(
+          (filter: DeveloperDocsApiFilter): SetupGuideStepVariant => {
+            return {
+              label: filter.title,
+              markdown: joinParts([
+                filter.description,
+                codeBlock(
+                  "bash",
+                  getCliListExample({
+                    modelType,
+                    query: filter.body["query"] as JSONObject | undefined,
+                    select: filter.body["select"] as JSONObject | undefined,
+                    sort: filter.body["sort"] as JSONObject | undefined,
+                    limit: DEVELOPER_DOCS_LIST_LIMIT,
+                  }).command,
+                ),
+              ]),
+            };
+          },
+        ),
+      });
+    }
+
+    topics.push(cliPagingTopic(context));
+    topics.push({
+      title: translateTemplate("Count your {{plural}}", {
+        plural: sentenceTerms(context).plural,
+      }),
+      summary: "count",
+      markdown: joinParts([
+        "Takes the same query as a list, and prints how many match: one number, ready for a script to compare.",
+        codeBlock(
+          "bash",
+          getCliCountExample({ modelType, query: context.listQuery }).command,
+        ),
+      ]),
+    });
+  }
+
+  if (operations.includes(CliOperation.Create)) {
+    const create: DeveloperDocsApiBody = getApiCreateExample({
+      modelType,
+      context: examples,
+    });
+    const profile: DeveloperDocsProfile = getDeveloperDocsProfile(modelType);
+
+    if (Object.keys(create.body).length > 0) {
+      steps.push({
+        title: getCreateTitle({
+          modelType,
+          singularName: getDeveloperDocsSingularName(context.resource),
+        }),
+        description: withPlaceholderNote(
+          `${
+            create.usesProjectData
+              ? `The fields most ${plural} set, filled in from this project.`
+              : `The fields most ${plural} set.`
+          } It prints the new one, with its _id.`,
+          create.isPlaceholder,
+        ),
+        markdown: joinParts([
+          profile.createNote,
+          codeBlock(
+            "bash",
+            getCliCreateExample({
+              modelType,
+              values: create.body,
+              emailsById: emailsByIdOf(context),
+            }).command,
+          ),
+          cliFieldsList(modelType, create.rows),
+        ]),
+      });
+    }
+  }
+
+  topics.push(cliAgentsTopic(context), CLI_SCRIPTS_TOPIC);
+
+  return {
+    ...guideCopy(DeveloperDocsPageType.Cli, context),
+    steps,
+    sections: cliCommandsSection(context),
+    topics,
+    links: cliLinks(context),
+  };
+}
+
 export function getDeveloperDocsGuide(
   page: DeveloperDocsPageType,
   context: DeveloperDocsGuideContext,
@@ -1449,6 +2134,10 @@ export function getDeveloperDocsGuide(
       return isRecord
         ? getApiResourceGuide(context, context.record!)
         : getApiCollectionGuide(context);
+    case DeveloperDocsPageType.Cli:
+      return isRecord
+        ? getCliResourceGuide(context, context.record!)
+        : getCliCollectionGuide(context);
     case DeveloperDocsPageType.AiAssistants:
       return getAiGuide(context);
   }

@@ -35,9 +35,24 @@ import {
 } from "./ColumnRow";
 import { rowIssue } from "./ColumnRowSerialization";
 import ColumnValueInput from "./ColumnValueInput";
-import React, { FunctionComponent, ReactElement } from "react";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+
+/*
+ * Proportional column widths rather than fixed ones. A picker showing
+ * "Created At · createdAt" and a comparison reading "is on or before" both
+ * outgrow any rem figure that also leaves room for the value, and the
+ * settings panel is a different width on every screen. ModelQueryBuilder's
+ * header row takes the same columns, so the two stay in step.
+ */
+export const CONDITION_ROW_GRID_CLASS: string =
+  "group grid grid-cols-1 items-start gap-2 px-3 py-2.5 transition-colors hover:bg-gray-50/60 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto]";
+
+// On a view there is no Remove at the end of a row, nor a place kept for one.
+export const CONDITION_ROW_VIEW_GRID_CLASS: string =
+  "group grid grid-cols-1 items-start gap-2 px-3 py-2.5 transition-colors hover:bg-gray-50/60 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)]";
 
 export interface ComponentProps {
   row: ModelColumnRow;
@@ -54,6 +69,11 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the condition as it is,
+   * with nothing to clear in its pickers and no Remove beside it.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const control: ModelColumnControl = controlForColumn(props.column);
   const operatorOption: DictionaryFilterOperatorOption = getOperatorOption(
     props.row.operator,
@@ -130,15 +150,9 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
     };
   });
 
-  /*
-   * Proportional column widths rather than fixed ones. A picker showing
-   * "Created At · createdAt" and a comparison reading "is on or before" both
-   * outgrow any rem figure that also leaves room for the value, and the settings
-   * panel is a different width on every screen. ModelQueryBuilder's header row
-   * repeats this template and has to stay in step with it.
-   */
-  const rowGridClass: string =
-    "group grid grid-cols-1 items-start gap-2 px-3 py-2.5 transition-colors hover:bg-gray-50/60 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1.3fr)_auto]";
+  const rowGridClass: string = isViewOnly
+    ? CONDITION_ROW_VIEW_GRID_CLASS
+    : CONDITION_ROW_GRID_CLASS;
 
   return (
     <div className={rowGridClass} data-testid="model-column-row">
@@ -159,6 +173,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
             placeholder="Column"
             className="relative w-full overflow-visible rounded-md"
             isMultiSelect={false}
+            disabled={isViewOnly}
             ariaLabel="Column"
             dataTestId={`model-column-picker-${props.row.columnId}`}
             value={columnOptions.find((option: DropdownOption) => {
@@ -196,6 +211,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
         options={operatorOptions}
         className="relative w-full overflow-visible rounded-md"
         isMultiSelect={false}
+        disabled={isViewOnly}
         ariaLabel="Comparison"
         dataTestId={`model-column-operator-${props.row.columnId}`}
         value={operatorOptions.find((option: DropdownOption) => {
@@ -254,16 +270,20 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <div className="flex items-center pt-1">
-        <Button
-          buttonStyle={ButtonStyleType.ICON}
-          icon={IconProp.Trash}
-          title="Remove"
-          dataTestId={`model-column-remove-${props.row.columnId}`}
-          className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
-          onClick={props.onRemove}
-        />
-      </div>
+      {isViewOnly ? (
+        <></>
+      ) : (
+        <div className="flex items-center pt-1">
+          <Button
+            buttonStyle={ButtonStyleType.ICON}
+            icon={IconProp.Trash}
+            title="Remove"
+            dataTestId={`model-column-remove-${props.row.columnId}`}
+            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+            onClick={props.onRemove}
+          />
+        </div>
+      )}
     </div>
   );
 };

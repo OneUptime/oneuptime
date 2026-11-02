@@ -5,7 +5,7 @@ Elke opdracht van de CLI `oneuptime`, met zijn argumenten, opties en standaardwa
 :::cards
 - [Globale opties](#globale-opties): De opties die elke opdracht neemt.
 - [Inloggen en contexten](#inloggen-en-contexten): login en de context-opdrachten.
-- [Opdrachten voor bronnen](#opdrachten-voor-bronnen): list, get, create, update, delete en count.
+- [Bronopdrachten](#opdrachten-voor-bronnen): De bewerkingen, velden en acties van elke bron.
 - [Andere opdrachten](#andere-opdrachten): deploy, whoami, resources, version en help.
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>en elke bron"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | Het adres van je OneUptime voor deze opdracht | `ONEUPTIME_URL`, dan de URL van de context |
 | `--context <name>` | De opgeslagen context voor deze opdracht | De huidige context |
 | `-o, --output <format>` | `json`, `table` of `wide` | `table` in een terminal, `json` in een pipe |
+| `--json` | Hetzelfde als `-o json` | |
 | `--no-color` | Drukt af zonder kleuren | Kleuren, tenzij `NO_COLOR` is ingesteld |
 | `-V, --version` | Drukt de versie van de CLI af | |
 | `-h, --help` | Toont de hulp van een opdracht | |
 
 De opties staan voor of na de opdracht: `oneuptime --context staging incident list` en `oneuptime incident list --context staging` doen hetzelfde.
+
+Elke opdracht neemt `-o` en `--json` aan, dus de tabellen hieronder laten ze weg. Een opdracht waarvan het antwoord een zin is, zoals `delete`, drukt de zin af, tenzij `-o json` of `--json` om JSON vraagt: zie [Uitvoerformaten](/docs/cli/output-formats#json).
 
 ## Inloggen en contexten
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-Toont de opgeslagen contexten; `*` markeert de huidige. API-sleutels worden nooit getoond.
+Toont de opgeslagen contexten; `*` markeert de huidige. API-sleutels worden nooit getoond: JSON geeft van elke context `name`, `apiUrl` en `isCurrent`.
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| Optie | Verplicht | Wat het is |
-| --- | --- | --- |
-| `-o, --output <format>` | Nee | `json`, `table` of `wide`. JSON geeft van elke context de `name`, `apiUrl` en `isCurrent` |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## Opdrachten voor bronnen
 
-`<resource>` is de opdracht van een soort record, uit de tabellen bij [Bronnen](#bronnen), zoals `incident` of `monitor`. Zie [Bewerkingen op bronnen](/docs/cli/resource-operations) voor voorbeelden.
+`<resource>` is de opdracht van een soort record uit de tabel [Bronnen](#bronnen), zoals `incident` of `monitor`. Een bron heeft de bewerkingen die de API ervoor aanneemt, de meeste alle zes, en `oneuptime <resource> --help` toont die van de bron zelf. Zie [Bewerkingen op bronnen](/docs/cli/resource-operations) voor voorbeelden.
 
 ### `oneuptime <resource> list`
 
 Toont records, de nieuwste eerst. Labels worden in plaats daarvan op naam getoond, genummerde labels eerst (`2. Team` vóór `10. Owner`).
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | Optie | Wat hij doet | Standaard |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | Het grootste aantal records om terug te geven, tot 10.000 | `10` |
 | `--skip <n>` | Hoeveel records eerst worden overgeslagen | `0` |
 | `--sort <json>` | De volgorde, als JSON: `{"<field>":"ASC"}` of `{"<field>":"DESC"}` | De nieuwste eerst |
-| `-o, --output <format>` | `json`, `table` of `wide` | `table` in een terminal, `json` in een pipe |
+| `--fields <names>` | De terug te geven velden, gescheiden door komma's; een veld van een gekoppeld record na een punt, zoals in `currentIncidentState.name` | Elk veld dat de sleutel mag lezen |
+| `--all` | Elk passend record, 100 tegelijk, tot 100.000, in plaats van `--limit` en `--skip`. Alleen records: telemetrie heeft geen `--all` | |
 
 ### `oneuptime <resource> get`
 
-Leest één record. Alleen records: telemetrie heeft geen `get`.
+Leest één record.
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | Argument of optie | Verplicht | Wat het is |
 | --- | --- | --- |
 | `<id>` | Ja | De ID van het record, een UUID |
-| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
+| `--fields <names>` | Nee | De terug te geven velden, gescheiden door komma's. Standaard: elk veld dat de sleutel mag lezen |
 
 ### `oneuptime <resource> create`
 
 Maakt een record en drukt het af.
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Optie | Verplicht | Wat het is |
 | --- | --- | --- |
-| `--data <json>` | Een van de twee | Het record, als JSON |
-| `--file <path>` | Een van de twee | Een JSON-bestand met het record. Samen met `--data` opgegeven, wordt het bestand gebruikt |
-| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
+| `--<field> <value>` | De velden die een aanmaak moet opgeven | De waarde van een veld: `--title <text>`, `--incident-severity-id <id>`, `--labels <ids>`. `oneuptime <resource> create --help` toont ze. Alleen records |
+| `--data <json>` | Nee | Het record, als JSON |
+| `--file <path>` | Nee | Een JSON-bestand met het record. Samen met `--data` opgegeven, wordt het bestand gebruikt |
+
+De vlaggen komen bovenop `--data` of `--file`. Een veld dat iemand noemt met een gebruikers-ID heeft ook een vlag die die persoon noemt met een e-mailadres: `--user-email` naast `--user-id`.
 
 ### `oneuptime <resource> update`
 
-Wijzigt de velden die je opgeeft. Alleen records: telemetrie heeft geen `update`.
+Wijzigt de velden die je opgeeft.
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | Argument of optie | Verplicht | Wat het is |
 | --- | --- | --- |
 | `<id>` | Ja | De ID van het record |
-| `--data <json>` | Ja | De velden die moeten veranderen, als JSON |
-| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
+| `--<field> <value>` | Nee | Een veld dat moet veranderen: `oneuptime <resource> update --help` toont ze. Alleen records |
+| `--data <json>` | Nee | De velden die moeten veranderen, als JSON |
+| `--file <path>` | Nee | Een JSON-bestand met de velden die moeten veranderen. Samen met `--data` opgegeven, wordt het bestand gebruikt |
 
 ### `oneuptime <resource> delete`
 
-Verwijdert een record meteen, zonder te vragen. Alleen records: telemetrie heeft geen `delete`.
+Verwijdert een record meteen, zonder te vragen.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 Telt records en drukt het getal af.
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | Optie | Verplicht | Wat het is |
 | --- | --- | --- |
 | `--query <json>` | Nee | Een filter, als JSON. Zonder filter elk record dat de sleutel mag lezen |
-| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
+
+### `oneuptime <resource> fields`
+
+Toont de velden van de bron: waarvoor elk dient, het type, of een aanmaak het moet opgeven, en de vlag die het instelt. Hij leest ze uit de CLI zelf, zonder API-sleutel en zonder verzoek.
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+Verplaatst een incident, een waarschuwing of een episode van een van beide naar de bevestigd-status van je project, net als de knop in het dashboard. Een record dat al bevestigd is, of verder, blijft zoals het is.
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| Argument | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van het record |
+
+### `oneuptime <resource> resolve`
+
+Verplaatst een incident, een waarschuwing of een episode van een van beide naar de opgelost-status van je project.
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| Argument | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van het record |
+
+### `oneuptime <resource> start`
+
+Verplaatst een geplande onderhoudsgebeurtenis naar de lopend-status van je project.
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| Argument | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van de gebeurtenis |
+
+### `oneuptime <resource> end`
+
+Verplaatst een geplande onderhoudsgebeurtenis naar de beëindigd-status van je project.
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| Argument | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van de gebeurtenis |
+
+### `oneuptime <resource> add-note`
+
+Voegt een notitie toe aan een incident, een waarschuwing, een episode van een van beide of een geplande onderhoudsgebeurtenis.
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| Argument of optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van het record |
+| `--note <markdown>` | Ja | De notitie, in Markdown |
+| `--public` | Nee | Plaatst haar op de statuspagina's van het record, waar de abonnees ervan een bericht krijgen. Alleen incidenten, hun episoden en gepland onderhoud |
 
 ### Bronnen
 
-Records nemen `list`, `get`, `create`, `update`, `delete` en `count`:
+Elke bron van de OneUptime-API is een opdracht, met de bewerkingen die de API ervoor aanneemt, `fields`, en de acties van de records die ze hebben:
 
-| Gebied | Opdrachten |
-| --- | --- |
-| Monitoring | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidenten | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| Waarschuwingen | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| Statuspagina's | `status-page`, `status-page-announcement` |
-| Gepland onderhoud | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| Teams en dienst | `team`, `on-call-policy` |
-| Beveiliging | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| Gegevensbeveiliging | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| Labels | `label` |
-
-Telemetrie neemt `list`, `create` en `count`:
-
-| Gebied | Opdrachten |
-| --- | --- |
-| Observeerbaarheid | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| Beveiliging | `security-event`, `threat-intel-indicator` |
-| Wijzigingen en kosten | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 De CLI verschijnt samen met OneUptime, dus `oneuptime resources` toont de opdrachten van de versie die je hebt geïnstalleerd.
 
@@ -220,6 +275,8 @@ Elke bewerking is één verzoek aan de API, met de sleutel in de header `APIKey`
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | Geen |
 | `count` | `POST /api/<path>/count` | `query` |
+
+Een actie leest de statussen van je project en het record, en maakt dan een rij in de statustijdlijn van het record, net als de knop in het dashboard: `acknowledge` op een incident maakt een `incident-state-timeline`. `add-note` maakt een `incident-internal-note`, of met `--public` een `incident-public-note`. Een e-mailvlag toont eerst de teamleden van het project met dat adres. Als OneUptime een veld weigert dat de sleutel niet mag lezen, vraagt een lijst of een leesbewerking opnieuw zonder dat veld.
 
 ## Andere opdrachten
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-Toont de URL en de API-sleutel die de volgende opdracht gebruikt, met gemaskeerde sleutel, en de context waar ze vandaan komen. Hij roept OneUptime niet aan. Zie [Controleren wat de CLI gaat gebruiken](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken).
+Toont de URL en de API-sleutel die de volgende opdracht gebruikt, met de sleutel gemaskeerd, en de context waar ze vandaan komen. Zonder `--check` roept hij OneUptime niet aan. Zie [Controleren wat de CLI gaat gebruiken](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken).
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| Optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `--check` | Nee | Vraagt OneUptime of het de sleutel aanneemt, en toont het project van de sleutel, de versie van je OneUptime en die van de CLI |
 
 ### `oneuptime resources`
 
-Toont elk soort record waarvoor de CLI een opdracht heeft: de opdracht, de namen in enkelvoud en meervoud, het type en het API-pad, en het totaal.
+Toont elk soort record waarvoor de CLI een opdracht heeft: de opdracht, enkelvoudige en meervoudige namen, het type en het API-pad, en het totaal. JSON geeft van elk `name`, `singularName`, `pluralName`, `modelType`, `apiPath`, `operations` en `actions`.
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | Optie | Verplicht | Wat het is | Standaard |
 | --- | --- | --- | --- |
 | `--type <type>` | Nee | `database` voor records, `analytics` voor telemetrie | Beide |
-| `-o, --output <format>` | Nee | `json`, `table` of `wide`. JSON geeft van elk de `name`, `singularName`, `pluralName`, `modelType` en `apiPath` | `table` in een terminal, `json` in een pipe |
 
 ### `oneuptime version`
 

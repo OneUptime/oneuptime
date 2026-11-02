@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 `Logged in successfully. Context "production" is now active.` と応答します。アドレス末尾のスラッシュは取り除かれ、同じ名前でもう一度ログインするとそのコンテキストが置き換わります。
 
 > [!NOTE]
-> `login` はキーについて OneUptime に問い合わせずに保存します。キーが動作することを確かめるには、`oneuptime incident count` などのコマンドを実行してください。
+> `login` はキーについて OneUptime に問い合わせずに保存します。OneUptime がキーを受け付けることを確かめるには `oneuptime whoami --check` を実行してください。
 
 ## コンテキスト
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-キーは先頭の 4 文字と末尾の 4 文字だけが表示されます。`Context` の行は、URL とキーがそのコンテキスト自身の値であり、フラグや環境変数で置き換えられていない場合にだけ表示されます。`whoami` は OneUptime を呼び出さずに設定を読み取ります。表示するのはコマンドが送る内容であり、OneUptime がそれを受け入れるかどうかではありません。何も保存も設定もされていない場合は、次のように応答します。
+キーは先頭の 4 文字と末尾の 4 文字だけが表示されます。`Context` の行は、URL とキーがそのコンテキスト自身の値であり、フラグや環境変数で置き換えられていない場合にだけ表示されます。`whoami` 単独では OneUptime を呼び出さずに設定を読み取ります。表示するのはコマンドが送る内容であり、OneUptime がそれを受け付けるかどうかではありません。何も保存も設定もされていない場合は、次のように応答します。
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check` は OneUptime にも問い合わせます。キーのプロジェクト、お使いの OneUptime のバージョンと CLI のバージョンを追加で表示し、2 つのバージョンが異なる場合は、お使いの OneUptime と同じバージョンの CLI をインストールするコマンドも表示します。OneUptime がキーを拒否すると、終了コード `2` で停止します。
+
+```bash
+oneuptime whoami --check
 ```
 
 ## 設定ファイル

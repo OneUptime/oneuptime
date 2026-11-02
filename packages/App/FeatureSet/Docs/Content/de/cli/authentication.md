@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 Sie antwortet `Logged in successfully. Context "production" is now active.` Ein Schrägstrich am Ende der Adresse wird entfernt, und eine erneute Anmeldung unter demselben Namen ersetzt diesen Kontext.
 
 > [!NOTE]
-> `login` speichert den Schlüssel, ohne OneUptime danach zu fragen. Führen Sie einen Befehl aus, etwa `oneuptime incident count`, um zu sehen, dass der Schlüssel funktioniert.
+> `login` speichert den Schlüssel, ohne OneUptime danach zu fragen. Führen Sie `oneuptime whoami --check` aus, um zu sehen, dass OneUptime ihn annimmt.
 
 ## Kontexte
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-Vom Schlüssel werden nur die ersten vier und die letzten vier Zeichen gezeigt. Die Zeile `Context` erscheint nur, wenn URL und Schlüssel die eigenen Werte dieses Kontexts sind, keine, die ein Flag oder eine Umgebungsvariable ersetzt hat. `whoami` liest Ihre Einstellungen, ohne OneUptime aufzurufen: Es zeigt, was ein Befehl senden wird, nicht ob OneUptime es annimmt. Ist nichts gespeichert oder gesetzt, antwortet es:
+Vom Schlüssel werden nur die ersten vier und die letzten vier Zeichen gezeigt. Die Zeile `Context` erscheint nur, wenn URL und Schlüssel die eigenen Werte dieses Kontexts sind, keine, die ein Flag oder eine Umgebungsvariable ersetzt hat. Für sich allein liest `whoami` Ihre Einstellungen, ohne OneUptime aufzurufen: Es zeigt, was ein Befehl senden wird, nicht ob OneUptime es annimmt. Ist nichts gespeichert oder gesetzt, antwortet es:
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check` fragt zusätzlich OneUptime. Es ergänzt das Projekt des Schlüssels, die Version Ihrer OneUptime-Instanz und die der CLI, und wenn sich die beiden Versionen unterscheiden, den Befehl, der die CLI in der Version Ihrer Instanz installiert. Ein Schlüssel, den OneUptime ablehnt, beendet es mit dem Exit-Code `2`:
+
+```bash
+oneuptime whoami --check
 ```
 
 ## Die Konfigurationsdatei

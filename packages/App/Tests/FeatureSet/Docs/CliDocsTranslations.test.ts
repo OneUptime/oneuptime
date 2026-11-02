@@ -4,6 +4,7 @@ import {
 } from "../../../FeatureSet/Docs/Utils/I18n";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
+  AI_AGENTS,
   AUTHENTICATION,
   CLI_OVERVIEW,
   CLI_PAGES,
@@ -120,6 +121,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [RESOURCE_OPERATIONS]: 26,
   [OUTPUT_FORMATS]: 22,
   [SCRIPTING]: 29,
+  [AI_AGENTS]: 19,
   [COMMAND_REFERENCE]: 19,
 };
 

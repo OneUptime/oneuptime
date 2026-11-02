@@ -19,6 +19,7 @@ import {
   DeveloperDocsApiBody,
   DeveloperDocsApiFilter,
   DeveloperDocsApiTask,
+  DeveloperDocsClient,
   DeveloperDocsExampleContext,
   DeveloperDocsExampleError,
   DeveloperDocsFieldRow,
@@ -744,6 +745,38 @@ describe("the API", () => {
       description:
         "Send only the fields you want to change. Everything else stays as it is.",
     });
+  });
+
+  test("a new description names the CLI on the CLI page, and the API on the API page", () => {
+    const context: DeveloperDocsExampleContext = {
+      ...project(),
+      record: { id: "t", displayName: "Platform" },
+    };
+
+    expect(
+      getApiUpdateExample({
+        modelType: Team,
+        context,
+        client: DeveloperDocsClient.Cli,
+      })?.data,
+    ).toEqual({ description: "Updated with the OneUptime CLI." });
+    expect(
+      getApiUpdateExample({
+        modelType: Team,
+        context,
+        client: DeveloperDocsClient.Api,
+      })?.data,
+    ).toEqual({ description: "Updated with the OneUptime API." });
+    // A resource's own change is the same on both pages.
+    expect(
+      getApiUpdateExample({
+        modelType: Incident,
+        context: incidentPage(),
+        client: DeveloperDocsClient.Cli,
+      }),
+    ).toEqual(
+      getApiUpdateExample({ modelType: Incident, context: incidentPage() }),
+    );
   });
 
   test("filters name the record they use, and use the API's own operators", () => {

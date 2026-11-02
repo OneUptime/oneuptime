@@ -85,7 +85,7 @@ Terraform で管理したいモニター、ステータスページ、その他�
 
 これらのページにシークレットが表示されることはありません。構成にシークレットが必要な場合 (たとえばモニターの `Authorization` ヘッダー)、`sensitive` を付けた Terraform 変数から読み取ります。不要なシークレットは省かれ、Terraform は OneUptime にある値をそのまま残します。
 
-同じセクションには、リソース用の `curl` コマンドが載った **API** ページと、Claude、GitHub Copilot、Cursor を [MCP サーバー](/docs/ai/mcp-server) につなぐ **AI アシスタント** ページもあります。
+同じセクションには、リソース用の `curl` コマンドが載った **API** ページ、同じリクエストを `oneuptime` コマンドで示す **CLI** ページ、そして Claude、GitHub Copilot、Cursor を [MCP サーバー](/docs/ai/mcp-server) につなぐ **AI アシスタント** ページもあります。
 
 ## 管理できるもの
 
