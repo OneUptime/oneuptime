@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A runbook's Triggers page in a browser, against the offline fixture
@@ -499,10 +500,7 @@ test.describe("on every screen", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openTriggers(page, "webhook=on&schedule=weekdays");
 
-    const overflow: number = await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone");
 
     await page.getByRole("button", { name: "Edit Schedule" }).click();

@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Adding a resource the way a host is added, in a real browser: the real
@@ -260,16 +261,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
-// Whether the page scrolls sideways: it must not, at any width.
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
-}
-
 /*
  * ---------------------------------------------------------------------------
  * Kubernetes
@@ -448,7 +439,7 @@ test("the Add dialog on a phone, in the dark theme: one column, nothing to scrol
     input.scrollIntoView({ block: "center" });
   });
 
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "kubernetes-add-dialog-phone-dark");
 });
 

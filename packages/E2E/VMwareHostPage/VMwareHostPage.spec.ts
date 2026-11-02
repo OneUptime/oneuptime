@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * An ESXi host's page inside its vCenter, in a browser, against the offline
@@ -182,20 +183,6 @@ async function openTab(page: Page, name: string): Promise<Locator> {
   await tab.click();
   await expect(tab).toHaveAttribute("aria-selected", "true");
   return page.getByRole("tabpanel");
-}
-
-// No part of the page is wider than the window.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
 function tile(page: Page, title: string): Locator {

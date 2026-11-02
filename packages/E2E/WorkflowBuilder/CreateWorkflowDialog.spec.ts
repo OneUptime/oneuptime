@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The "Create a workflow" dialog, in a real browser, with the real template
@@ -654,14 +655,7 @@ test.describe("Create a workflow", () => {
     expect(await createdRecords(page)).toEqual([]);
 
     // The Configure step fits a phone's width as well as a laptop's.
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await site.fill("https://acme.atlassian.net/");
     await expect(dialog).not.toContainText(message);
@@ -1059,14 +1053,7 @@ test.describe("Create a workflow", () => {
     const viewport: { width: number; height: number } = page.viewportSize()!;
     const dialogBox: Box = await boxOf(dialog);
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     expect(dialogBox.x).toBeGreaterThanOrEqual(0);
     expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(
       viewport.width + 1,

@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A runbook's side menu in a browser, around the real pages, against the
@@ -681,11 +682,7 @@ test.describe("the Overview says what starts the runbook", () => {
 
     await expect(summary(page)).toBeVisible();
 
-    const pastTheEdge: number = await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-
-    expect(pastTheEdge).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "overview-triggers-phone");
   });
 });

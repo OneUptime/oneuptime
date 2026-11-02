@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * THE WAY BACK FROM SECURITY EVENTS, ON A MONITOR'S PAGE.
@@ -193,15 +194,6 @@ async function settled(page: Page): Promise<void> {
   await expect(
     page.locator("[role='status'][aria-label^='Loading']"),
   ).toHaveCount(0, { timeout: 30000 });
-}
-
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 // The parts of the card that run past its edges: none may.
@@ -439,7 +431,7 @@ test.describe("a monitor's Security card", () => {
       ).toBeVisible({ timeout: 30000 });
       await settled(page);
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
 
       /*

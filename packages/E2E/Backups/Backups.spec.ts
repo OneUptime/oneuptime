@@ -9,6 +9,7 @@ import {
   readFixtureEdition,
   skipUnlessEnterprise,
 } from "../SuiteHelpers/Edition";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import fs from "fs";
 import path from "path";
 
@@ -128,21 +129,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
     fullPage: (await page.getByTestId("modal").count()) === 0,
     animations: "disabled",
   });
-}
-
-/*
- * Nothing runs past the right edge. Read again until the page is at rest: a
- * table drawn for a laptop turns into cards a moment after the window
- * narrows.
- */
-async function expectNoHorizontalScroll(page: Page): Promise<void> {
-  await expect
-    .poll(async (): Promise<number> => {
-      return await page.evaluate((): number => {
-        return document.documentElement.scrollWidth - window.innerWidth;
-      });
-    })
-    .toBeLessThanOrEqual(0);
 }
 
 /*
@@ -280,7 +266,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
           0,
         );
 
-        await expectNoHorizontalScroll(page);
+        await expectNoSidewaysScroll(page);
         expect(await isDark(page)).toBe(theme === "dark");
         // On a phone the folded side menu names this page, not "Navigation".
         if (viewport.name === "phone") {
@@ -506,7 +492,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
 
       await page.setViewportSize(PHONE);
       await expect(page.getByTestId("backups-status-title")).toBeVisible();
-      await expectNoHorizontalScroll(page);
+      await expectNoSidewaysScroll(page);
       await screenshot(page, `on-phone-${theme}`);
     });
   }
@@ -546,7 +532,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
           exact: true,
         }),
       ).toHaveCount(0);
-      await expectNoHorizontalScroll(page);
+      await expectNoSidewaysScroll(page);
       await screenshot(page, `running-${viewport.name}-light`);
 
       await page.getByTestId("backups-active-view-steps").click();
@@ -572,7 +558,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
       // A column of steps, never wider than 768 pixels.
       const box: { width: number } | null = await dialog(page).boundingBox();
       expect(box!.width).toBeLessThanOrEqual(768);
-      await expectNoHorizontalScroll(page);
+      await expectNoSidewaysScroll(page);
       await screenshot(page, `running-steps-${viewport.name}-light`);
     });
   }
@@ -614,7 +600,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
 
       await page.keyboard.press("Escape");
       await page.setViewportSize(PHONE);
-      await expectNoHorizontalScroll(page);
+      await expectNoSidewaysScroll(page);
       await screenshot(page, `failed-phone-${theme}`);
     });
   }
@@ -640,7 +626,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
     await screenshot(page, "restoring-laptop-light");
 
     await page.setViewportSize(PHONE);
-    await expectNoHorizontalScroll(page);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "restoring-phone-light");
   });
 
@@ -706,7 +692,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
         await confirmation.fill("restore");
         await expect(restore).toBeEnabled();
 
-        await expectNoHorizontalScroll(page);
+        await expectNoSidewaysScroll(page);
         await screenshot(page, `restore-confirm-${viewport.name}-${theme}`);
 
         // Without a backup first, the dialog says the restore cannot be undone.
@@ -942,7 +928,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
     await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
       german["Backups"] as string,
     );
-    await expectNoHorizontalScroll(page);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "on-phone-german");
 
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -975,7 +961,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
           return getComputedStyle(element).direction;
         }),
     ).toBe("ltr");
-    await expectNoHorizontalScroll(page);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "failed-laptop-persian");
 
     // Its steps read right to left too, each line under its mark.

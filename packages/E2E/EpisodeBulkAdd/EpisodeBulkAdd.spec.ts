@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Adding several alerts or incidents to an episode at once, in a browser,
@@ -973,11 +974,7 @@ test.describe("on a phone", () => {
     expect(box!.x + box!.width).toBeLessThanOrEqual(390);
 
     // No sideways scroll.
-    expect(
-      await page.evaluate((): number => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
 
     await pickerOption(page, LIST, "Checkout API is offline").click();
     await expect(
@@ -1011,11 +1008,7 @@ test.describe("on a phone", () => {
     expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(
       dialogBox.x + dialogBox.width,
     );
-    expect(
-      await page.evaluate((): number => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
 
     const privateOne: Locator = pickerOption(
       page,
@@ -1397,11 +1390,7 @@ test.describe("a project that allows an alert in only one episode", () => {
       expect(box).not.toBeNull();
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-      expect(
-        await page.evaluate((): number => {
-          return document.documentElement.scrollWidth;
-        }),
-      ).toBeLessThanOrEqual(390);
+      await expectNoSidewaysScroll(page);
 
       await screenshot(page, "one-episode-new-nothing-phone");
     });
@@ -1574,11 +1563,7 @@ test.describe("the Episode Membership settings page", () => {
       );
 
       // No sideways scroll.
-      expect(
-        await page.evaluate((): number => {
-          return document.documentElement.scrollWidth;
-        }),
-      ).toBeLessThanOrEqual(390);
+      await expectNoSidewaysScroll(page);
 
       const background: string = await page
         .getByTestId("card")

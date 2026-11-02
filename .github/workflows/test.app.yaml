@@ -1244,6 +1244,10 @@ jobs:
           # MonitorSecurityCard.spec.ts joined Monitor Overview the same day
           # (11 tests, 52 seconds locally, about half of them in this half; see
           # group 3): about 20.
+          # Suite Helpers (16 tests on pages the spec writes, no fixture server,
+          # about 20 seconds locally in Chromium and Firefox: the shared page
+          # fit and box helpers held to their jobs) joined it on 2026-11-02,
+          # the lightest group: still about 20.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1251,6 +1255,7 @@ jobs:
               test-navigation-search-ui
               test-discovery-ui
               test-ask-ai-ui
+              test-suite-helpers-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1361,6 +1366,7 @@ jobs:
             output/playwright/security-cases-detections-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/navigation-search/test-results
+            output/playwright/suite-helpers-ui/test-results
             output/playwright/pencil-button/test-results
             output/playwright/code-editor-ui/*.png
             output/playwright/code-editor-ui/test-results

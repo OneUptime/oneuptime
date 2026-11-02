@@ -10,6 +10,7 @@ import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -231,17 +232,6 @@ async function openAskDialog(page: Page): Promise<Locator> {
     dialog.getByTestId("code-production-review-ask-dialog"),
   ).toBeVisible();
   return dialog;
-}
-
-// The page is never wider than the screen: nothing scrolls sideways.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(0);
 }
 
 async function addContext(page: Page, kind: string): Promise<Locator> {

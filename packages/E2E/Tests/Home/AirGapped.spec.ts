@@ -9,6 +9,7 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
 
 /*
  * The air-gapped page (Home/Views/air-gapped.ejs, Home/Utils/AirGapped.ts)
@@ -44,15 +45,6 @@ const SECTION_HEADINGS: Array<string> = [
 
 function addressOn(path: string): string {
   return URL.fromString(BASE_URL.toString()).addRoute(path).toString();
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 test.describe("Home: Air-gapped installs", () => {
@@ -164,7 +156,7 @@ test.describe("Home: Air-gapped installs", () => {
       await question.locator("summary").click();
       await expect(question.locator("p")).toBeVisible();
 
-      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
     }
 
     // The page asked for other hosts (the booking calendar at least), and rendered without them.

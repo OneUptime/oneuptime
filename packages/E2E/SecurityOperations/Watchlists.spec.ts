@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Watchlists on the Security Operations fixture's synthetic month
@@ -189,16 +190,6 @@ async function screenshot(
     path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
     fullPage: options.fullPage !== false,
     animations: "disabled",
-  });
-}
-
-// How far the page scrolls sideways.
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -395,7 +386,7 @@ test.describe("Watchlists", () => {
       rowWith(page, "lab_hosts").getByTestId("watchlist-values-cell"),
     ).toHaveText("No values yet");
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "watchlists-desktop", { fullPage: false });
   });
@@ -447,7 +438,10 @@ test.describe("Watchlists", () => {
         rowWith(page, "c2_addresses").getByTestId("watchlist-name-facts"),
       ).toHaveText(`IP addresses · Follows ${FEODO_LIST}`);
       expect(await tableOverflow(page), `at ${width}`).toBeLessThanOrEqual(1);
-      expect(await pageOverflow(page), `at ${width}`).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `at ${width}`,
+      });
     }
 
     await screenshot(page, "watchlists-tablet", { fullPage: false });
@@ -606,7 +600,7 @@ test.describe("a watchlist's page", () => {
       rowWith(page, "finance-admin-*@acme-commerce.example"),
     ).toContainText("The finance team's admin accounts.");
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "watchlist-desktop", { fullPage: true });
 
     // Open Detection Rules goes to the rules.
@@ -635,7 +629,7 @@ test.describe("a watchlist's page", () => {
       ),
     ).toContainText("CEO");
     expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("an empty list offers both ways to fill it, Import Values among them", async ({
@@ -917,7 +911,7 @@ test.describe("the line under a rule's YAML", () => {
       line.getByTestId("detection-rule-watchlist").last(),
     ).toHaveAttribute("data-missing", "true");
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "watchlist-rule-line-desktop", { fullPage: false });
 
     // The link's page opens Create Watchlist with the name, and forgets it.
@@ -949,14 +943,14 @@ test.describe("Watchlists on every screen", () => {
     await expect(page.getByText("vip_users").first()).toBeVisible({
       timeout: 30000,
     });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "watchlists-phone", { fullPage: false });
 
     await open(page, VIP_USERS_PATH, { width: 390, height: 844 });
     await expect(
       page.getByText("alice.wong@acme-commerce.example").first(),
     ).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "watchlist-phone", { fullPage: false });
   });
 
@@ -1023,7 +1017,7 @@ test.describe("Watchlists on every screen", () => {
     await expect(
       rowWith(page, "vip_users").getByTestId("watchlist-values-cell"),
     ).toHaveText("3 Werte");
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "watchlists-de", { fullPage: false });
 
     await open(page, VIP_USERS_PATH, { lang: "fa" });
@@ -1072,7 +1066,7 @@ test.describe("Watchlists on every screen", () => {
       });
     expect(isInOrder).toBe(true);
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "watchlist-fa", { fullPage: false });
   });
 });

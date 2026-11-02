@@ -14,6 +14,7 @@ import {
 } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Renders the real Security Events and Security Events > Connections pages
@@ -636,13 +637,6 @@ async function expectInside(
     innerBox.x + innerBox.width,
     `${message}: right edge`,
   ).toBeLessThanOrEqual(outerBox.x + outerBox.width + 1);
-}
-
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
 }
 
 async function backgroundColor(locator: Locator): Promise<string> {
@@ -1658,7 +1652,7 @@ test.describe("connections: your logs and your SIEM", () => {
     await expect(
       page.getByTestId("security-event-destinations-empty"),
     ).toContainText("Nothing is sent to a SIEM yet");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "connections-cards-desktop");
   });
 
@@ -1911,7 +1905,7 @@ test.describe("connections: your logs and your SIEM", () => {
           `${width}: row ${index + 1}'s status runs under its actions`,
         ).toBeLessThanOrEqual(actions.x + 1);
       }
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
 
     await siemCard(page).scrollIntoViewIfNeeded();
@@ -2007,7 +2001,7 @@ test.describe("connections: your logs and your SIEM", () => {
         "data-overflowing",
         "false",
       );
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
 
     await toolsCard(page).scrollIntoViewIfNeeded();
@@ -2102,7 +2096,7 @@ test.describe("connections: your logs and your SIEM", () => {
         expect(layout.images).toBe(0);
       }
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -2119,7 +2113,7 @@ test.describe("connections: your logs and your SIEM", () => {
     await expect(
       card.getByTestId("security-event-connection-provider").nth(2),
     ).toHaveText("Google SecOps · Alerts only");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await toolsCard(page).scrollIntoViewIfNeeded();
     await screenshot(page, "connections-tools-rows-phone", {
       clip: toolsCard(page),
@@ -2133,7 +2127,7 @@ test.describe("connections: your logs and your SIEM", () => {
 
     await openConnections(page, { width: 390 });
     await expect(logsSwitch(page)).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "connections-cards-phone");
   });
 
@@ -2218,7 +2212,7 @@ test.describe("connections: your logs and your SIEM", () => {
       page: Page;
     }) => {
       await openConnections(page, { width: layout.width, height: 1000 });
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const groups: Array<LogKindGroupLayout> = await logKindGroupLayouts(page);
 
@@ -2588,7 +2582,7 @@ test.describe("connections: your logs and your SIEM", () => {
     expect(after.listRequests).toEqual(before.listRequests);
     expect(after.creates).toEqual([]);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("Check a log line: an everyday line stays a log", async ({
@@ -2671,7 +2665,7 @@ test.describe("connections: your logs and your SIEM", () => {
       expect(Math.abs(row.value.y - row.label.y)).toBeLessThanOrEqual(4);
     }
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "connections-check-a-log-line-phone", {
       clip: lineCheck(page),
     });
@@ -3133,7 +3127,7 @@ test.describe("connections empty state layout", () => {
     page: Page;
   }) => {
     await openConnections(page, { width: 1440, height: 1000 });
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const layouts: Array<TileLayout> = await tileLayouts(page);
     const rows: Array<Array<TileLayout>> = rowsOf(layouts);
@@ -3221,7 +3215,7 @@ test.describe("connections empty state layout", () => {
         width: layout.width,
         height: layout.height,
       });
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const layouts: Array<TileLayout> = await tileLayouts(page);
       const rows: Array<Array<TileLayout>> = rowsOf(layouts);
@@ -3947,7 +3941,7 @@ test.describe("security events empty state", () => {
       "ends with them",
     ).toBeLessThanOrEqual(1);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await lowContrastText(root, MIN_CONTRAST)).toEqual([]);
     await screenshot(page, "events-desktop");
   });
@@ -4330,7 +4324,7 @@ test.describe("security events empty state", () => {
     expect(luminance(await backgroundColor(ingestEndpoint(page)))).toBeLessThan(
       0.1,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "events-dark");
   });
 
@@ -4340,7 +4334,7 @@ test.describe("security events empty state", () => {
     page: Page;
   }) => {
     await openEvents(page, { width: 768, height: 1024 });
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     const listCard: Locator = eventsListCard(page);
 
     // 768 is md: the sidebar is back beside the list and the toggle is gone.
@@ -4401,7 +4395,7 @@ test.describe("security events empty state", () => {
   }) => {
     const width: number = 390;
     await openEvents(page, { width, height: 844 });
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     const root: Locator = eventsEmptyState(page);
     const listCard: Locator = eventsListCard(page);
 
@@ -4505,7 +4499,7 @@ test.describe("security events empty state", () => {
       "list keeps its width",
     ).toBeLessThanOrEqual(1);
     await expect(root).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -4833,7 +4827,7 @@ test.describe("an event's Connected tab", () => {
       await openConnectedTab(page);
       await expect(connectedRecords(page)).toHaveCount(3);
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       const panel: Box = await viewportBox(
         page.getByTestId("telemetry-detail-panel"),
       );

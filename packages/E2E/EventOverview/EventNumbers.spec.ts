@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The number before the title on every page of an incident, an alert, a
@@ -394,15 +395,6 @@ async function headingLines(page: Page): Promise<number> {
   return Math.round(box.height / HEADING_LINE_HEIGHT);
 }
 
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 async function screenshotHeader(page: Page, name: string): Promise<void> {
   await fs.mkdir(SCREENSHOTS, { recursive: true });
   const top: Box = await boxOf(trail(page));
@@ -682,7 +674,9 @@ test.describe("a long title gives way; the number never does", () => {
         ),
         `${at}: the crumb's number whole`,
       ).toBe(true);
-      expect(await pageOverflow(page), `${at}: no sideways scroll`).toBe(0);
+      await expectNoSidewaysScroll(page, {
+        message: `${at}: no sideways scroll`,
+      });
     }
 
     await screenshotHeader(page, "sentence-title-1280");
@@ -703,7 +697,7 @@ test.describe("a long title gives way; the number never does", () => {
       expect(await headingLines(page)).toBe(1);
       expect(await isDrawnWhole(headingNumber(page), heading(page))).toBe(true);
       expect(await cutsItself(headingName(page))).toBe(true);
-      expect(await pageOverflow(page)).toBe(0);
+      await expectNoSidewaysScroll(page);
 
       await screenshotHeader(page, `sentence-title-${width}`);
     });
@@ -754,7 +748,9 @@ test.describe("a long title gives way; the number never does", () => {
         `${at}: the title starts beside the number`,
       ).toBeLessThan(HEADING_LINE_HEIGHT / 2);
 
-      expect(await pageOverflow(page), `${at}: no sideways scroll`).toBe(0);
+      await expectNoSidewaysScroll(page, {
+        message: `${at}: no sideways scroll`,
+      });
     }
 
     await screenshotHeader(page, "sentence-title-390");
@@ -832,7 +828,9 @@ test.describe("a long title gives way; the number never does", () => {
           expect(await trailLines(page), `${at}: one line of trail`).toBe(1);
         }
 
-        expect(await pageOverflow(page), `${at}: no sideways scroll`).toBe(0);
+        await expectNoSidewaysScroll(page, {
+          message: `${at}: no sideways scroll`,
+        });
       }
 
       await screenshotHeader(page, `crumb-${width}`);
@@ -892,7 +890,7 @@ test.describe("a long title gives way; the number never does", () => {
       Math.abs(firstWord.left - box.x),
       "at the line's start",
     ).toBeLessThanOrEqual(1);
-    expect(await pageOverflow(page), "no sideways scroll").toBe(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshotHeader(page, "long-prefix-320");
   });
@@ -1054,7 +1052,7 @@ test.describe("in the dark theme and in other languages", () => {
       await expect(page).toHaveTitle(
         `OneUptime | پروژه - حوادث - INC-1042 ${INCIDENT.sentenceTitle}`,
       );
-      expect(await pageOverflow(page)).toBe(0);
+      await expectNoSidewaysScroll(page);
 
       await screenshotHeader(page, `fa-rtl-${width}`);
     });

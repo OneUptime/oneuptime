@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * "On Alert/Incident creation - I don't see a way to add the team of the
@@ -346,14 +347,6 @@ async function ruleRows(
   }
 
   return result;
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  expect(
-    await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    }),
-  ).toBeLessThanOrEqual(0);
 }
 
 // ---- Settings > Owner Rules -------------------------------------------------

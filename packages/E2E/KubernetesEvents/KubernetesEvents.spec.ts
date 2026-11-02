@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Where a Kubernetes cluster's warning events show, in a browser, against
@@ -231,20 +232,6 @@ async function pick(page: Page, label: string, value: string): Promise<void> {
     .locator(".ou-select__menu")
     .getByText(value, { exact: true })
     .click();
-}
-
-// No part of the page is wider than the window.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
 /*

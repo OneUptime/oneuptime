@@ -6,6 +6,7 @@ import {
   test,
 } from "@playwright/test";
 import path from "path";
+import { sidewaysScrollOf } from "../SuiteHelpers/PageFit";
 
 /*
  * Issue #4708 in a real browser: what the Logs and Traces explorers ask the
@@ -634,15 +635,11 @@ test.describe("Logs explorer: the @key: value picker", () => {
     const box: Locator = await searchBox(page, SEARCH_LOGS, LOG_KEYS);
 
     /*
-     * How wide the page is before the dropdown opens: the log table's own
-     * columns are wider than a phone, which is not this dropdown's doing.
+     * How far the page scrolls sideways before the dropdown opens: the log
+     * table's own columns are wider than a phone, which is not this
+     * dropdown's doing.
      */
-    const pageWidth: () => Promise<number> = (): Promise<number> => {
-      return page.evaluate((): number => {
-        return document.documentElement.scrollWidth;
-      });
-    };
-    const widthBefore: number = await pageWidth();
+    const sidewaysBefore: number = await sidewaysScrollOf(page);
 
     await setValuesStopped(page, true);
     await box.pressSequentially("@resource.service.name:", {
@@ -663,8 +660,15 @@ test.describe("Logs explorer: the @key: value picker", () => {
     expect(errorBox!.x + errorBox!.width).toBeLessThanOrEqual(390);
     expect(retryBox!.x + retryBox!.width).toBeLessThanOrEqual(390);
 
-    // The message wraps inside the dropdown: the page grows no wider.
-    expect(await pageWidth()).toBeLessThanOrEqual(widthBefore);
+    // The message wraps inside the dropdown: the page grows no wider, once settled.
+    await expect
+      .poll(
+        (): Promise<number> => {
+          return sidewaysScrollOf(page);
+        },
+        { message: "how far the page scrolls sideways with the message open" },
+      )
+      .toBeLessThanOrEqual(sidewaysBefore);
 
     await page.screenshot({
       path: path.join(

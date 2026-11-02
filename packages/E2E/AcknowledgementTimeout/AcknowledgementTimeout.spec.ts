@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * An on-call policy's acknowledgement timeout (issue #5123): page again
@@ -186,19 +187,6 @@ async function saves(page: Page): Promise<Array<RecordedSave>> {
     return (window as unknown as { __fixture: { saves: Array<RecordedSave> } })
       .__fixture.saves;
   });
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { scroll: number; view: number } = await page.evaluate(
-    (): { scroll: number; view: number } => {
-      return {
-        scroll: document.documentElement.scrollWidth,
-        view: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.scroll).toBeLessThanOrEqual(widths.view);
 }
 
 test("keeps the setting folded under More settings, below the cards everyone uses, naming it", async ({

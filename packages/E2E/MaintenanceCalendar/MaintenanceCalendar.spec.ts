@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Scheduled Maintenance > Calendar > Maintenance Calendar, end to end in a
@@ -262,12 +263,6 @@ async function rowAction(
 ): Promise<void> {
   await rowMenuButton(page, name).click();
   await page.getByRole("menuitem", { name: action }).click();
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
 }
 
 async function shot(page: Page, name: string, target?: Locator): Promise<void> {
@@ -1757,7 +1752,7 @@ test.describe("on a phone", () => {
     await open(page, "", 390);
     await expect(eventLink(page, "Database upgrade")).toBeAttached();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const grid: Locator = calendar(page).locator(".rbc-month-view");
     const gridBox: { x: number; width: number } | null =
@@ -1802,14 +1797,14 @@ test.describe("on a phone", () => {
       }).toEqual({ query, beside: true });
     }
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("the Subscribe dialog fits too", async ({ page }: { page: Page }) => {
     await open(page, "", 390);
     await openSubscribe(page);
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shot(page, "phone-subscribe", page.getByTestId("modal"));
   });
 
@@ -1822,7 +1817,7 @@ test.describe("on a phone", () => {
     await calendarSettled(page);
     await expect(toggles(page)).toBeVisible();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const box: { x: number; width: number } | null =
       await toggles(page).boundingBox();
@@ -1840,7 +1835,7 @@ test.describe("on a phone", () => {
       page.getByText("Change freezes", { exact: true }).first(),
     ).toBeVisible();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shot(page, "phone-settings");
   });
 });

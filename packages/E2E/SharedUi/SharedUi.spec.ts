@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The shared buttons, dialogs and cards, drawn by the production components
@@ -150,15 +151,6 @@ async function styleOf(locator: Locator, property: string): Promise<string> {
   return await locator.evaluate((element: Element, name: string): string => {
     return window.getComputedStyle(element).getPropertyValue(name);
   }, property);
-}
-
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 /*
@@ -1244,7 +1236,7 @@ test.describe("a card with nothing under its title keeps its description on a ph
     await expect(
       card(page, "Probes").getByTestId("card-description"),
     ).toBeHidden();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "cards-390");
   });
 
@@ -1269,7 +1261,7 @@ test.describe("a card with nothing under its title keeps its description on a ph
         ).toBeVisible();
       }
 
-      expect(await horizontalOverflow(page)).toBe(0);
+      await expectNoSidewaysScroll(page);
       await screenshot(page, `cards-side-menu-${width}`);
     }
   });
@@ -1290,7 +1282,7 @@ test.describe("a card with nothing under its title keeps its description on a ph
     await open(page, "section=dialogs&lang=fa");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByTestId("card-description").last()).toBeVisible();
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "cards-fa-390");
   });
 });
@@ -1481,7 +1473,7 @@ test.describe("one pill, plain stat tiles and whole chips", () => {
       }
     }
 
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "pills-390");
   });
 
@@ -1809,7 +1801,7 @@ test.describe("radios and checkboxes in the dark theme are the theme's own", () 
       .boundingBox();
 
     expect([box?.width, box?.height]).toEqual([16, 16]);
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "choices-dark-390");
   });
 });
@@ -2026,7 +2018,7 @@ test.describe("a rule's conditions at every width", () => {
       }
     }
 
-    expect(await horizontalOverflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "rule-conditions-390");
   });
 

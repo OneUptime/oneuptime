@@ -1,4 +1,5 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Dashboard playlists (issue #5235) in a real browser: Dashboards ->
@@ -1470,11 +1471,7 @@ test.describe("at a phone's width", () => {
     await expectOnScreen(page, OVERVIEW);
 
     // Nothing wider than the screen.
-    expect(
-      await page.evaluate((): number => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
 
     await page.getByRole("button", { name: "Next dashboard" }).tap();
     await expectOnScreen(page, CLUSTERS);

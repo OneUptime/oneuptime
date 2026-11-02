@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Runbooks side menu, after AI Access went.
@@ -212,13 +213,6 @@ async function expectPath(page: Page, pathname: string): Promise<void> {
       return new URL(page.url()).pathname;
     })
     .toBe(pathname);
-}
-
-// How far the page runs past the screen's right edge, in pixels.
-async function overflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
 }
 
 // What the menu says nowhere: the page that is gone, by name and by address.
@@ -431,7 +425,7 @@ test.describe("at a phone's 390 pixels", () => {
   }) => {
     await open(page, RUNBOOKS, PHONE);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
 
@@ -460,7 +454,7 @@ test.describe("at a phone's 390 pixels", () => {
 
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(PHONE.width);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "phone-menu-open");
   });
@@ -479,7 +473,7 @@ test.describe("at a phone's 390 pixels", () => {
     await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
       "Runners",
     );
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "phone-runners");
   });
@@ -497,6 +491,6 @@ test.describe("at a phone's 390 pixels", () => {
       "Runners",
       { timeout: 60000 },
     );
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 });

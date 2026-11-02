@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Detection rule exceptions and Run on Past Events on the Security
@@ -191,16 +192,6 @@ async function screenshot(
     path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
     fullPage: options.fullPage !== false,
     animations: "disabled",
-  });
-}
-
-// How far the page scrolls sideways.
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -458,7 +449,7 @@ test.describe("Rule Exceptions", () => {
       "data-overflowing",
       "false",
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "rule-exceptions-desktop");
   });
 
@@ -475,7 +466,7 @@ test.describe("Rule Exceptions", () => {
       await expect(card).toContainText(part);
     }
     await expect(card).toContainText("Added by Diego Alvarez 6 days ago");
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "rule-exceptions-mobile");
   });
 
@@ -508,7 +499,7 @@ test.describe("Rule Exceptions", () => {
       "data-overflowing",
       "false",
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "rule-exceptions-persian", { fullPage: false });
   });
 
@@ -525,7 +516,7 @@ test.describe("Rule Exceptions", () => {
         "data-overflowing",
         "false",
       );
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   });
 
@@ -908,7 +899,7 @@ test.describe("Run on Past Events", () => {
       await dialog(page).boundingBox();
     expect(dialogBox?.width || 0).toBeLessThanOrEqual(768 + 1);
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "rule-retrohunt-desktop", { fullPage: false });
 
     // Another period runs again over it.
@@ -1055,7 +1046,7 @@ test.describe("Run on Past Events", () => {
       dialog(page).getByTestId("detection-rule-retrohunt-changed"),
     ).toHaveText("The rule changed after this run.");
 
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("a new rule's empty form has nothing to run: only Draft with AI", async ({

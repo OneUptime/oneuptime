@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Global Runners - the Runners OneUptime runs for every project - on the
@@ -245,12 +246,6 @@ async function saveSteps(page: Page): Promise<Array<SavedStep>> {
     id: RUNBOOK_ID,
   });
   return last.data["steps"] as Array<SavedStep>;
-}
-
-function noHorizontalScroll(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
 }
 
 test.describe("Runbooks → Runners on a server that runs global Runners", () => {
@@ -773,7 +768,7 @@ test.describe("each step's Runner, under its More fields", () => {
           picker(page, 1).getByTestId("runbook-step-1-runner-help"),
         ).toContainText("the Global Runner runs JavaScript steps only");
 
-        expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+        await expectNoSidewaysScroll(page);
         await screenshot(page, `steps-runner-in-more-fields-${width}-${theme}`);
 
         // The open menu fits the screen, the Global Runner last and not open.
@@ -1153,7 +1148,7 @@ test.describe("a project with a default Runner", () => {
         return (await name.locator("xpath=../..").getAttribute("title")) || "";
       })
       .toContain(longName);
-    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "runners-default-long-name");
   });
 
@@ -1168,7 +1163,7 @@ test.describe("a project with a default Runner", () => {
     await expect(
       page.getByTestId("runner-project-default-pill").first(),
     ).toBeVisible();
-    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-dark-runners-default");
   });
 });
@@ -1607,11 +1602,7 @@ test.describe("a Runner and AI code fixes", () => {
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-    expect(
-      await page.evaluate((): number => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "runner-ai-rules-phone");
   });
@@ -1647,12 +1638,12 @@ test.describe("on every screen", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openRunners(page);
 
-    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await expect(useGlobalRunnersSwitch(page)).toBeVisible();
     await screenshot(page, "phone-runners");
 
     await openSteps(page, "custom=2");
-    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     const options: Locator = await openPicker(page, 0);
     const box: { x: number; width: number } | null = await options
       .first()
@@ -1744,7 +1735,7 @@ test.describe("each step's Runner field in a project with no Runner of its own, 
           needsOwn.getByRole("link", { name: "Runbooks › Runners" }),
         ).toHaveAttribute("target", "_blank");
 
-        expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+        await expectNoSidewaysScroll(page);
         for (const field of [picker(page, 0), needsOwn]) {
           const box: { x: number; width: number } | null =
             await field.boundingBox();

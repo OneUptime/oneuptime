@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Hosts product's pages, in a browser, against the offline fixture
@@ -230,20 +231,6 @@ function tableRow(page: Page, name: string): Locator {
   return page
     .locator("tbody tr")
     .filter({ has: page.getByRole("link", { name: name, exact: true }) });
-}
-
-// No part of the page is wider than the window.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
 // The Hosts table is no wider than the card it is drawn in.

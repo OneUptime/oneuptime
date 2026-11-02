@@ -1,6 +1,7 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * OpenShift in the Kubernetes product (issue #5477), in a browser, against
@@ -105,17 +106,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
     fullPage: true,
     animations: "disabled",
   });
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-
-  expect(overflow).toBeLessThanOrEqual(0);
 }
 
 async function openPage(page: Page, relative: string): Promise<void> {

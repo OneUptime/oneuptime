@@ -8,6 +8,7 @@ import {
   test,
   TestInfo,
 } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A status page's theme, in a real browser, on the real status page: its own
@@ -1324,14 +1325,7 @@ test("nothing scrolls sideways on a phone in the dark theme", async ({
   await page.emulateMedia({ colorScheme: "dark" });
   await openPage(page, PAGE, "theme=System");
 
-  expect(
-    await page.evaluate((): boolean => {
-      return (
-        document.documentElement.scrollWidth <=
-        document.documentElement.clientWidth
-      );
-    }),
-  ).toBe(true);
+  await expectNoSidewaysScroll(page);
 });
 
 /*
@@ -1435,14 +1429,7 @@ test.describe("the browser going offline under the page", () => {
         }
       }
 
-      expect(
-        await page.evaluate((): boolean => {
-          return (
-            document.documentElement.scrollWidth <=
-            document.documentElement.clientWidth
-          );
-        }),
-      ).toBe(true);
+      await expectNoSidewaysScroll(page);
 
       await shoot(page, testInfo, `offline-${theme.toLowerCase()}`);
 

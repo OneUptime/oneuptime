@@ -8,6 +8,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Renders the real Incident, Alert, Scheduled Maintenance, Incident Episode
@@ -1286,13 +1287,6 @@ async function expectRenderedText(
   await expect(locator).toContainText(text, { useInnerText: true });
 }
 
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
-}
-
 // Whether an element cuts its own content off (a clamp or a truncation).
 async function isOverflowing(locator: Locator): Promise<boolean> {
   return locator.evaluate((element: Element): boolean => {
@@ -1888,7 +1882,7 @@ test.describe("AI investigation report", () => {
     expect(await isOverflowing(tldr), "expanded summary is clipped").toBe(
       false,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await showLess.click();
     await expect(showMore).toHaveAttribute("aria-expanded", "false");
@@ -2113,7 +2107,7 @@ test.describe("AI investigation report", () => {
     expect(badgeBox.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height);
     await expectAbove(badge, tldr, "the badge is above the summary");
     await expect(tldr).toHaveCSS("color", REJECTED_SUMMARY_COLOR);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("beside a tablet's side menu the heading keeps its row whole", async ({
@@ -2147,7 +2141,7 @@ test.describe("AI investigation report", () => {
       "View full report is under the summary",
     );
     await expectAbove(badge, tldr, "the badge is above the summary");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await viewReport.click();
     await expect(page.locator("#ai-investigation")).toBeFocused();
@@ -3685,14 +3679,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
       body.x + body.width + 0.5,
     );
     // The page never scrolls sideways.
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 });
 
@@ -3985,7 +3972,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
     expect(await isOverflowing(notice.getByText(INCIDENT_HOLD.sentence))).toBe(
       false,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await screenshotElement(notice, "ai-card-hold-mobile");
   });
@@ -6089,7 +6076,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         await page.keyboard.press("Escape");
         await expect(menu).toHaveCount(0);
         await expect(modePicker(page)).toBeFocused();
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       });
     }
 
@@ -6273,7 +6260,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       page: Page;
     }) => {
       const section: Locator = await openConversation(page, "thread=answered");
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const answer: Locator = answers(page).first();
       const mark: Box = await documentBox(
@@ -6318,7 +6305,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
       // A keyboard hint is no use on a phone.
       await expect(conversation(page).getByText("to send")).toBeHidden();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
 
     test("the status pill sits beside the title when it fits and under it, at the right edge, when it does not", async ({
@@ -6363,7 +6350,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       } else {
         expect(pill.x).toBeGreaterThan(title.x + title.width);
       }
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   });
 
@@ -7008,7 +6995,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       expect(
         investigate.y - (aiFeatures.y + aiFeatures.height),
       ).toBeGreaterThan(fix.y - (investigate.y + investigate.height));
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -7436,7 +7423,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
         cardBox.x + cardBox.width,
       );
     }
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   /*
@@ -7525,7 +7512,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
         }
 
         expect(await panelsInsideTheCard(page)).toEqual([]);
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
         await screenshotElement(
           aiOffCard(page),
           `incident-ai-off-line-${width}-${theme}-open`,
@@ -7574,7 +7561,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     // The chevron and the mark start where the title does.
     expect(Math.abs(chevron.y - title.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(mark.y - title.y)).toBeLessThanOrEqual(1);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   for (const width of [1280, 390]) {
@@ -7623,7 +7610,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
         "Das gilt nur für neue Vorfälle, nicht für diesen. Sie können OneUptime AI trotzdem dazu befragen.",
       );
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshotElement(
         aiOffCard(page),
         `incident-ai-off-line-${width}-de-open`,
@@ -9173,7 +9160,7 @@ async function expectHeaderAtItsWidth(page: Page, at: string): Promise<void> {
   await expectCurrentStateWhole(page, at);
   await expectFactsOnTheirGrid(page, at);
   await expectNoticeTidy(page, at);
-  await expectNoHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 }
 
 interface HeroLayoutCase {
@@ -11154,10 +11141,10 @@ test.describe("affected resources card", () => {
 
     const resources: Locator = resourcesCard(page);
     await resources.scrollIntoViewIfNeeded();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await resources.getByRole("button", { name: "Show 2 more" }).click();
     await expect(resourceRows(page)).toHaveCount(13);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const cardBox: Box = await documentBox(resources);
     for (const row of await resourceRows(page).all()) {
@@ -12243,7 +12230,7 @@ test.describe("notes from the feed", () => {
       const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
 
       await expect(dialog.getByTestId("note-composer")).toBeVisible();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       const box: Box = await documentBox(dialog);
       expect(box.width).toBeLessThanOrEqual(390);
     });
@@ -12306,7 +12293,7 @@ test.describe("responsive", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await openReady(page, eventPage);
       await expect(card(page, eventPage.feed)).toBeVisible();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       // The stat bar stacks into one column.
       const cells: Locator = page
         .getByRole("group", { name: eventPage.statBar })
@@ -12325,11 +12312,11 @@ test.describe("responsive", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openReady(page, INCIDENT_PAGE);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     for (const citationId of ["C1", "C3", "C7"]) {
       await expectRowsLoaded(await expandEvidence(page, citationId));
     }
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     /*
      * Phones draw the short "Evidence" so both tabs share one row. Both
@@ -12407,7 +12394,7 @@ test.describe("responsive", () => {
             width === 1440 ? { onTitleLine: true } : undefined,
           );
         }
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       });
     }
   }
@@ -12494,7 +12481,7 @@ test.describe("responsive", () => {
         );
         expect(title.width, `${heading} title width`).toBeGreaterThan(120);
       }
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });
@@ -12964,7 +12951,7 @@ test.describe("measurements", () => {
     await openReady(page, INCIDENT_PAGE);
 
     expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       measurementsCard(page),
       "incident-measurements-mobile",
@@ -13123,7 +13110,7 @@ test.describe("the feed, as a timeline", () => {
     const body: Box = await documentBox(note.getByTestId("feed-entry-author"));
 
     expect(time.y + time.height).toBeLessThanOrEqual(body.y + 1);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(feed, "incident-feed-mobile");
   });
@@ -13282,7 +13269,7 @@ test.describe("the feed, as a timeline", () => {
     await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
     await expect(showMore).toBeFocused();
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 });
 
@@ -13504,7 +13491,7 @@ test.describe("links and quotes in a note", () => {
     });
 
     await screenshotElement(savedNote(page), "feed-note-links-and-quotes");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     // In text read right to left, the bar is on the side it starts from.
     await quote.evaluate((element: Element): void => {
@@ -13792,7 +13779,7 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expect(
       heroActions(page).getByRole("button", { name: "Open channel" }),
     ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
   });
@@ -14316,7 +14303,7 @@ test.describe("Escalate", () => {
             },
           );
           expect(fits).toBe(true);
-          await expectNoHorizontalOverflow(page);
+          await expectNoSidewaysScroll(page, { tolerance: 1 });
           await page.mouse.move(0, 0);
           await screenshotElement(
             hero(page),
@@ -14330,7 +14317,7 @@ test.describe("Escalate", () => {
           await expect(
             escalateDialog(page).getByTestId("modal-footer-submit-button"),
           ).toBeVisible();
-          await expectNoHorizontalOverflow(page);
+          await expectNoSidewaysScroll(page, { tolerance: 1 });
 
           // The dialog sits inside the screen, its buttons in reach.
           const box: { x: number; width: number } | null = await escalateDialog(
@@ -14366,7 +14353,7 @@ test.describe("Escalate", () => {
     await expect(
       escalateDialog(page).getByTestId("pass-on-warning"),
     ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       escalateDialog(page),
       "escalate-dialog-stopped-ask-dark-mobile",
@@ -14417,7 +14404,7 @@ test.describe("Escalate", () => {
         "Bob Smith is still being paged. If nobody acknowledges by 6:40 PM GMT, the policy pages Platform leads (Level 2 of 3) next.",
         NOT_PAGED_AGAIN,
       ]);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       // After escalating, the answer keeps them together too.
       await escalateDialog(page)
@@ -14694,7 +14681,7 @@ test.describe("the record's channel card", () => {
     await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(
       3,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(channelCard(page), "incident-channel-card-mobile");
   });
 
@@ -14742,7 +14729,7 @@ test.describe("the record's channel card", () => {
 
       expect(Math.abs(phoneJoin!.y - phoneAdd!.y)).toBeLessThanOrEqual(1);
     }).toPass();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("the video call card above it reads in lines in that column, its button under the words", async ({
@@ -15284,7 +15271,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     expect(await stepTexts(page)).toContain(
       "Searching past incidents · 3 rows · 0.4s",
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("the steps' detail follows their words", async ({
@@ -15513,7 +15500,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
         ignoreCase: true,
         timeout: 30000,
       });
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   });
 
@@ -16024,7 +16011,7 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expect(
       callsCard(page).getByTestId("call-transcript-outcome-details"),
     ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("a Microsoft Teams meeting's transcript is added by hand, and read", async ({
@@ -16648,7 +16635,7 @@ test.describe("an incident call's transcript (?calls=)", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await openReady(page, INCIDENT_PAGE, "calls=transcript");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     /*
      * The heading shares its line with the menu's mark alone, and View
@@ -16902,7 +16889,7 @@ test.describe("time to acknowledge after paging", () => {
          * bar (640px) two even lines, never a word left on its own.
          */
         expect(note!.lines).toBe(width === 640 ? 2 : 1);
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       });
     }
   }
@@ -18293,7 +18280,7 @@ test.describe("at a glance: what happened", () => {
         .getByTestId("what-happened-root-cause-value")
         .getByRole("button", { name: "Show more" }),
     ).toHaveAttribute("aria-expanded", "false");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("Edit writes the description and the root cause in one dialog, and the card shows what was saved", async ({
@@ -18499,7 +18486,7 @@ test.describe("at a glance: when, and what it touched", () => {
       if (width === 390) {
         expect(lines).toEqual(["Sep 14, 06:01 PM GMT"]);
       }
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -18519,7 +18506,7 @@ test.describe("at a glance: when, and what it touched", () => {
     expect(lines.join(" ")).toBe("Sep 14, 05:56 PM GMT");
     // Balanced lines: the date over the time and its zone, never a lone zone.
     expect(lines).not.toContain("GMT");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("Affected Resources leads the right column, with the monitor status the incident sets", async ({
@@ -18602,7 +18589,7 @@ test.describe("at a glance: layout", () => {
         expect(background).not.toContain("rgb(100, 116, 139)");
       }
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshotBetween(
         page,
         hero(page),
@@ -18653,7 +18640,7 @@ test.describe("at a glance: layout", () => {
           .getByRole("button", { name: "Bearbeiten" }),
       ).toBeVisible();
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshotBetween(
         page,
         germanHero,
@@ -18800,7 +18787,7 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
         affectedResources.getByRole("button", { name: "Edit" }),
       ).toBeInViewport();
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `remediation-linked-to-nothing-landed-${width}`, {
         fullPage: false,
       });
@@ -18843,7 +18830,7 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
 
     const line: Locator = decisionLine(page);
     await expect(line).toHaveCount(1, { timeout: 30000 });
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       remediationCard(page),
       "remediation-linked-to-nothing-390-dark",
@@ -18944,7 +18931,7 @@ test.describe("an action linking what a record is about waits for approval (issu
       );
 
       await expect(description).toBeVisible();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       // The line wraps inside the card rather than running past it.
       const promptBox: { x: number; width: number } | null =
@@ -19209,29 +19196,25 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
     );
     await notice.scrollIntoViewIfNeeded();
 
-    const fit: { pageScrolls: boolean; cardBox: number; links: Array<number> } =
-      await page.evaluate(
-        (): { pageScrolls: boolean; cardBox: number; links: Array<number> } => {
-          const card: Element | null =
-            document.querySelector("#ai-investigation");
-          const right: number = card ? card.getBoundingClientRect().right : 0;
-          return {
-            pageScrolls:
-              document.documentElement.scrollWidth >
-              document.documentElement.clientWidth,
-            cardBox: right,
-            links: Array.from(
-              document.querySelectorAll(
-                "[data-testid='investigation-log-stall-actions'] a",
-              ),
-            ).map((link: Element): number => {
-              return link.getBoundingClientRect().right;
-            }),
-          };
-        },
-      );
+    const fit: { cardBox: number; links: Array<number> } = await page.evaluate(
+      (): { cardBox: number; links: Array<number> } => {
+        const card: Element | null =
+          document.querySelector("#ai-investigation");
+        const right: number = card ? card.getBoundingClientRect().right : 0;
+        return {
+          cardBox: right,
+          links: Array.from(
+            document.querySelectorAll(
+              "[data-testid='investigation-log-stall-actions'] a",
+            ),
+          ).map((link: Element): number => {
+            return link.getBoundingClientRect().right;
+          }),
+        };
+      },
+    );
 
-    expect(fit.pageScrolls).toBe(false);
+    await expectNoSidewaysScroll(page);
     expect(fit.links).toHaveLength(2);
     for (const linkRight of fit.links) {
       expect(linkRight).toBeLessThanOrEqual(fit.cardBox + 1);
@@ -19345,7 +19328,7 @@ test.describe("a cloud fix's dry run on the Remediation step", () => {
     await expect(dryRunButton(page)).toHaveText("Dry run again");
     await expect(dryRunButton(page)).toBeEnabled();
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       remediationCard(page),
       "remediation-cloud-dry-run-would-run",
@@ -19497,7 +19480,7 @@ test.describe("a cloud fix's dry run on the Remediation step", () => {
 
     const note: Locator = dryRunNote(page);
     await expect(note).toHaveAttribute("data-status", "WouldBeRefused");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const cardBox: Box = await documentBox(remediationCard(page));
     const noteBox: Box = await documentBox(note);
@@ -19594,7 +19577,7 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
     expect(runBoxes[1]!.y).toBe(runBoxes[0]!.y);
     expect(runBoxes[2]!.y).toBe(runBoxes[0]!.y);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await isOverflowing(words)).toBe(false);
   }
 
@@ -19720,7 +19703,7 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
     await expect(trackRecordText(page)).toHaveText(
       "در همهٔ ۳ باری که پیش‌تر اینجا اجرا شد مؤثر بود",
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       remediationCard(page),
       "remediation-track-record-worked-390-fa",
@@ -19783,7 +19766,7 @@ test.describe("what the investigation ruled out", () => {
       headings.indexOf("Ruled out"),
     );
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(list, "investigation-ruled-out-1280");
   });
 
@@ -19798,7 +19781,7 @@ test.describe("what the investigation ruled out", () => {
     await expect(list.getByTestId("investigation-ruled-out-cause")).toHaveCount(
       3,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(list, "investigation-ruled-out-390-dark");
   });
 
@@ -19824,7 +19807,7 @@ test.describe("what the investigation ruled out", () => {
     ]);
     expect(crossBox!.x).toBeLessThan(nameBox!.x);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(list, "investigation-ruled-out-390-fa");
   });
 });
@@ -20309,7 +20292,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         ).toBeVisible();
         await expect(investigation).toBeVisible();
         expect(await panelsInsideTheCard(page)).toEqual([]);
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
         await page.mouse.move(0, 0);
         await screenshotElement(
           investigationCard(page),
@@ -20339,7 +20322,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       remediation.getByRole("link", { name: "Für Vorfälle einschalten" }),
     ).toHaveAttribute("href", INCIDENT_AI_SETTINGS_HREF);
     await expectWhatHappenedSettled(page);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(investigationCard(page), "ai-card-two-steps-de");
   });
@@ -20397,7 +20380,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         ).toBeGreaterThan(title.x + title.width);
       }
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await page.mouse.move(0, 0);
       await screenshotElement(
         investigationCard(page),
@@ -20592,7 +20575,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
 
       expect(await pillsIn(body)).toEqual([]);
       expect(await panelsInsideTheCard(page)).toEqual([]);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await page.mouse.move(0, 0);
       await screenshotElement(
         remediationStep(page),
@@ -20640,7 +20623,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     expect(
       await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
     ).toEqual([]);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(remediationStep(page), "ai-card-fixes-many-fa-390");
   });
@@ -20712,7 +20695,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
       "Waiting for approval",
     );
     expect(await frameLook(refusal)).toEqual(NO_FRAME);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 });
 
@@ -20760,5 +20743,5 @@ test("the report's verdict fits a 320px phone: its two answers share the row, in
       false,
     );
   }
-  await expectNoHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });

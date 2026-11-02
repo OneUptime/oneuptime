@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 interface FixtureControl {
   fail: boolean;
@@ -1097,10 +1098,7 @@ test("Start New Scan fits a narrow screen", async ({
     modal.getByText("Start New Scan", { exact: true }),
   ).toBeVisible();
 
-  const scrollWidth: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth;
-  });
-  expect(scrollWidth).toBeLessThanOrEqual(390);
+  await expectNoSidewaysScroll(page);
 
   await page.screenshot({
     path: path.join(screenshots, "discovery-start-scan-mobile.png"),

@@ -1,6 +1,7 @@
 import { Locator, Page, expect, test } from "@playwright/test";
 import { mkdir } from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * User Flows in a real browser: the production page, flow-map engine,
@@ -512,14 +513,7 @@ test.describe("User Flows", () => {
     await openFlows(page);
     await waitForMap(page);
 
-    const pageOverflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-
-    expect(pageOverflow).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.screenshot({
       path: path.join(artifacts, "user-flows-mobile.png"),
       fullPage: true,
@@ -1166,14 +1160,7 @@ test.describe("One person or one session", () => {
     await openFlows(page, `?userKey=${janeKey}`);
     await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
 
-    const pageOverflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-
-    expect(pageOverflow).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.screenshot({
       path: path.join(artifacts, "user-flows-one-person-mobile.png"),
       fullPage: true,

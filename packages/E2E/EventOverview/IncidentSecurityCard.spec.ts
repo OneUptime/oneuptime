@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Security on an incident's page: the security case that declared the
@@ -122,15 +123,6 @@ async function securityReads(page: Page): Promise<number> {
     return (state.apiRequests || []).filter((request: { url: string }) => {
       return request.url.endsWith("/security-case/incident-security");
     }).length;
-  });
-}
-
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -260,7 +252,7 @@ test.describe("an incident's Security card", () => {
         ...(theme ? { theme } : {}),
       });
       await expect(card(page)).toBeVisible({ timeout: 30000 });
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
 
       await fs.mkdir(SCREENSHOTS, { recursive: true });

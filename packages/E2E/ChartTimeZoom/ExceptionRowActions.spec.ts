@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Each exception's ⋯ menu on the exceptions list: Resolve or Reopen,
@@ -137,15 +138,6 @@ async function topOf(locator: Locator): Promise<number> {
   const box: { y: number } | null = await locator.boundingBox();
 
   return Math.round(box!.y);
-}
-
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return await page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
 }
 
 test.describe("an exception's ⋯ menu on the exceptions list", () => {
@@ -289,7 +281,7 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
       const row: { width: number } | null = await deadline.boundingBox();
 
       expect(button!.width).toBeGreaterThan(row!.width * 0.8);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await fs.mkdir(SCREENSHOTS, { recursive: true });
       await deadline.screenshot({
@@ -456,7 +448,7 @@ test.describe("Bulk Actions on the exceptions list", () => {
       expect(headerBox!.x + headerBox!.width).toBeGreaterThan(
         actions!.x + actions!.width,
       );
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -540,7 +532,7 @@ test.describe("Bulk Actions on the exceptions list", () => {
 
       await box.check();
       await expect(selectedCount(page)).toHaveText("1 selected");
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await deadline.scrollIntoViewIfNeeded();
       await page.screenshot({

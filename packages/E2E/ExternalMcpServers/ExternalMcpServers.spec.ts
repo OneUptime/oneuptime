@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Project Settings -> AI -> External MCP Servers, end to end in a browser,
@@ -964,11 +965,7 @@ test.describe("At phone width, in the dark theme and in German", () => {
     await open(page);
 
     await expect(page.getByText("mcp.aws.example.com").first()).toBeVisible();
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
-      }),
-    ).toBe(true);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "list-phone");
 
     await page

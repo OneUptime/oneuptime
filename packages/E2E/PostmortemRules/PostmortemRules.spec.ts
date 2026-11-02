@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Postmortem rules - which resolved incidents OneUptime AI drafts a
@@ -855,13 +856,7 @@ test.describe("everywhere", () => {
       "Draft with Customer-facing outage, Security incident",
     );
 
-    const sideways: number = await page.evaluate(() => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(sideways).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "phone");
   });
@@ -1201,11 +1196,7 @@ test.describe("the LLM provider a rule drafts with", () => {
         await providerBox(dialog).click();
         await expect(page.getByRole("option")).toHaveCount(3);
 
-        expect(
-          await page.evaluate(() => {
-            return document.documentElement.scrollWidth;
-          }),
-        ).toBeLessThanOrEqual(width);
+        await expectNoSidewaysScroll(page);
         const [dialogBox, pickerBox] = (await boxesInOneFrame([
           dialog,
           providerPicker(dialog),

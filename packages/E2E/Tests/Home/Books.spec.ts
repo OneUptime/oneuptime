@@ -9,6 +9,7 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { expectNoSidewaysScroll } from "../../SuiteHelpers/PageFit";
 
 const bookUrl: string = "https://backtometal.oneuptime.com/";
 const booksUrl: string = URL.fromString(BASE_URL.toString())
@@ -278,18 +279,6 @@ function structuredDataNodes(value: unknown): Record<string, unknown>[] {
 
   const node: Record<string, unknown> = value as Record<string, unknown>;
   return [node, ...Object.values(node).flatMap(structuredDataNodes)];
-}
-
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const dimensions: { content: number; viewport: number } = await page.evaluate(
-    () => {
-      return {
-        content: document.documentElement.scrollWidth,
-        viewport: document.documentElement.clientWidth,
-      };
-    },
-  );
-  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
 async function primaryActionStyle(
@@ -817,7 +806,7 @@ test.describe("Home: Books", () => {
       await page.mouse.move(4, 4);
       await expect(menu).toHaveJSProperty("hidden", true);
       await expect(menu).toBeHidden();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   });
 
@@ -845,7 +834,7 @@ test.describe("Home: Books", () => {
 
       await expect(menu).toHaveJSProperty("hidden", true);
       await expect(menu).toBeHidden();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -910,7 +899,7 @@ test.describe("Home: Books", () => {
         await document.fonts.ready;
       });
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const viewportWidth: number = await page.evaluate((): number => {
         return document.documentElement.clientWidth;
@@ -1312,7 +1301,7 @@ test.describe("Home: Books", () => {
       await waitForReaderAt(page, (state: ReaderState): boolean => {
         return state.view === 1;
       });
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
 
     test("turns pages without animation for readers who prefer reduced motion", async ({

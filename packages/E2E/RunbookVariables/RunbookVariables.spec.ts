@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Runbook variables, and SSH and kubectl steps that take a script, in a
@@ -188,12 +189,6 @@ async function saveSteps(page: Page): Promise<Array<SavedStep>> {
     id: RUNBOOK_ID,
   });
   return last.data["steps"] as Array<SavedStep>;
-}
-
-function noHorizontalScroll(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
 }
 
 // How far the table's rows run past its card (0 when every column fits).
@@ -906,7 +901,7 @@ test.describe("steps written with a credential, on every screen", () => {
       (await sign.getByText("No longer runs").boundingBox())!.width,
     ).toBeLessThanOrEqual(1);
     await expect(sign).toHaveAttribute("title", "No longer runs");
-    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-legacy-steps");
 
     // Dark mode, at a laptop's width: the sign and the notice read on dark.
@@ -955,11 +950,11 @@ test.describe("on every screen", () => {
     await page.setViewportSize({ width: 390, height: 844 });
 
     await openVariables(page);
-    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-global-variables");
 
     await openSteps(page, [SSH_STEP]);
-    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "phone-ssh-step");
   });
 

@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -902,16 +903,10 @@ test("all views fit a phone and topology tabs support keyboard navigation", asyn
         true,
       );
     }
-    await expect
-      .poll(
-        async (): Promise<number> => {
-          return page.evaluate((): number => {
-            return document.documentElement.scrollWidth - window.innerWidth;
-          });
-        },
-        { message: `${name} must fit the viewport` },
-      )
-      .toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, {
+      tolerance: 1,
+      message: `${name} must fit the viewport`,
+    });
   }
   await page.getByRole("tab", { name: "Network", exact: true }).focus();
   await page.keyboard.press("Home");

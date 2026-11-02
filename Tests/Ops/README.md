@@ -1353,6 +1353,34 @@ naming the config's own variable, empty where a group sets none (the whole
 suite, as before); and each config to sharding by that variable with
 Playwright's own shard, never lists of its own.
 
+### `E2EFixtureRouters.test.js`
+
+React Router 7 runs every navigation of a bare `<BrowserRouter>` as a React
+transition, which other updates may interrupt. The Dashboard mounts
+`<BrowserRouter useTransitions={false}>` (its `src/Index.tsx`), and the offline
+fixtures that drew Dashboard pages with a bare one navigated differently from
+it: Security Operations' case side menu lit the page being left beside the page
+arrived at (14.0.95's gate). The suite reads each frontend's `src/Index.tsx`
+and every file under packages/E2E that mounts a router, with TypeScript's
+parser (`Utils/JsxRouters.js`): a fixture mounts a `BrowserRouter`, as a JSX
+element whose props can be read (another router, a data router or
+`React.createElement` needs a rule here first), and turns transitions off
+exactly when the frontend it draws does - the Dashboard's when it draws a
+Dashboard page or only Common's shells, otherwise the one frontend (Status
+Page, Accounts, Admin Dashboard, Public Dashboard) whose pages it draws.
+
+### `E2EPageFitReads.test.js`
+
+A page that fits its window can draw a frame that does not (a table fits its
+columns to its card a frame after it paints, a chart keeps its old width until
+its ResizeObserver runs), so a check that read the page's width once could fail
+a page that fits on a slow runner. Every browser suite reads whether a page
+scrolls sideways through `packages/E2E/SuiteHelpers/PageFit.ts`, which reads it
+until it fits; the suite fails any other TypeScript file under packages/E2E
+that reads `document.documentElement.scrollWidth` or `document.body.scrollWidth`
+(an element's own `scrollWidth` is left alone), and checks that the helper
+still polls.
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather

@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Each row's ⋯ menu on the lists the row actions audit gave their everyday
@@ -166,16 +167,6 @@ async function submit(dialog: Locator): Promise<void> {
   await expect(dialog).toBeHidden();
 }
 
-// Whether the page is wider than its viewport anywhere (a sideways scroll).
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return await page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
-}
-
 test.describe("an incident's row", () => {
   for (const [width, theme] of [
     [1280, "light"],
@@ -204,7 +195,7 @@ test.describe("an incident's row", () => {
       // The menu opens inside the screen, on a phone too.
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(width);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await page.keyboard.press("Escape");
 
@@ -495,7 +486,7 @@ test.describe("an incident's row", () => {
       expect(box).not.toBeNull();
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(dialog, `acknowledge-390-${theme}`);
 
       await dialog.getByTestId("modal-footer-close-button").click();
@@ -514,7 +505,7 @@ test.describe("an incident's row", () => {
         await severity.boundingBox();
 
       expect(severityBox!.x + severityBox!.width).toBeLessThanOrEqual(390);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(severity, `change-severity-390-${theme}`);
 
       // Open, its list fits the screen: the row's own severity, Current.
