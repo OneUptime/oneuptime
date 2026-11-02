@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Other data sources find a record by the address of the person it names, beside their ID. This one reads Alice's membership of the SRE team:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Offboarding
 
 Remove the person's memberships from your configuration and apply. Out of their last team of the project, they are out of the project, and OneUptime takes them off every on-call schedule, escalation rule and override, and off what they own: everything, except the incidents, alerts and maintenance events that are over. Remove the blocks that name them in the same change, or the next plan creates them again for someone who is no longer in the project.

@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+D'autres sources de données trouvent un enregistrement par l'adresse de la personne qu'il désigne, à côté de son ID. Celle-ci lit l'adhésion d'Alice à l'équipe SRE :
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Faire partir quelqu'un
 
 Retirez les adhésions de la personne de votre configuration et appliquez-la. Sortie de sa dernière équipe du projet, elle est sortie du projet, et OneUptime la retire de chaque planning d'astreinte, règle d'escalade et remplacement, et de ce dont elle est propriétaire : de tout, sauf des incidents, alertes et événements de maintenance terminés. Retirez dans le même changement les blocs qui la désignent, sinon le plan suivant les recrée pour quelqu'un qui n'est plus dans le projet.

@@ -1451,16 +1451,70 @@ resource "${provider}_monitor" "example" {
             return dataSource.schema[name]?.type === "string";
           }) || filters[0];
 
-    const lookupExample: string = byArgument
-      ? `data "${provider}_${dataSource.name}" "example" {
-  ${StringUtils.toTerraformAttributeName(byArgument)} = ${this.getLookupExampleValue(byArgument, dataSource)}
+    /*
+     * A record that names a person is found by their address, beside what
+     * it belongs to: a team's member by its team and the person's address.
+     */
+    const personEmail: [string, TerraformAttribute] | undefined =
+      Object.entries(dataSource.schema).find(
+        ([, attr]: [string, TerraformAttribute]) => {
+          return Boolean(attr.personEmailOf);
+        },
+      );
+    const exampleArguments: Array<[string, string]> = [];
+
+    if (personEmail) {
+      const parent: string | undefined = filters.find((name: string) => {
+        const attr: TerraformAttribute | undefined = dataSource.schema[name];
+        return (
+          name !== personEmail[0] &&
+          name !== personEmail[1].personEmailOf &&
+          attr?.type === "string" &&
+          Boolean(attr.relation)
+        );
+      });
+
+      if (parent) {
+        exampleArguments.push([
+          parent,
+          this.getLookupExampleValue(parent, dataSource),
+        ]);
+      }
+      exampleArguments.push([
+        personEmail[0],
+        DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL),
+      ]);
+    } else if (byArgument) {
+      exampleArguments.push([
+        byArgument,
+        this.getLookupExampleValue(byArgument, dataSource),
+      ]);
+    }
+
+    // Aligned as terraform fmt aligns them.
+    const width: number = Math.max(
+      0,
+      ...exampleArguments.map(([name]: [string, string]) => {
+        return StringUtils.toTerraformAttributeName(name).length;
+      }),
+    );
+    const exampleBody: string = exampleArguments
+      .map(([name, value]: [string, string]) => {
+        return `  ${StringUtils.toTerraformAttributeName(name).padEnd(width)} = ${value}`;
+      })
+      .join("\n");
+
+    const lookupExample: string =
+      exampleArguments.length > 0
+        ? `data "${provider}_${dataSource.name}" "example" {
+${exampleBody}
 }
 
 # Or by id:
 data "${provider}_${dataSource.name}" "by_id" {
   id = "<id>"
 }`
-      : `data "${provider}_${dataSource.name}" "example" {
+        : `data "${provider}_${dataSource.name}" "example" {
   id = "<id>"
 }`;
 

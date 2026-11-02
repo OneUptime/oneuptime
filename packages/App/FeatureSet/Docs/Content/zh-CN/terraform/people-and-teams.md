@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+其他数据源也可以按记录所指人员的地址查找记录，与其 ID 并列。下面这个读取 Alice 在 SRE 团队中的成员资格：
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## 让人离开
 
 从配置中删除此人的成员资格并应用。离开项目中的最后一个团队后，此人就离开了项目，OneUptime 会把此人从每个值班排班、升级规则和替班中移除，也从此人拥有的东西中移除：除已结束的事件、告警和维护事件之外的一切。请在同一次变更中删除指定此人的块，否则下一次计划会为一个已不在项目中的人重新创建它们。

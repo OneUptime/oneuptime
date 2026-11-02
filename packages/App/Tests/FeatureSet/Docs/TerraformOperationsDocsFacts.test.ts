@@ -501,9 +501,7 @@ describe("the importing page", () => {
     expect(readRepoFile(MONITOR_STEPS_GO)).toContain(
       "func MonitorStepsKeepImported() planmodifier.List {",
     );
-    expect(settle).toContain(
-      "a timestamp comes back in UTC with milliseconds",
-    );
+    expect(settle).toContain("a timestamp comes back in UTC with milliseconds");
     expect(settle).toContain(
       "a number comes back as the 64-bit float OneUptime keeps it as",
     );
@@ -586,6 +584,51 @@ describe("the troubleshooting page", () => {
     // A renamed type's deprecation.
     expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
       "has been renamed to ${this.providerName}_${resource.name}",
+    );
+  });
+
+  it("quotes the provider's refusal of a name where an ID goes, word for word", () => {
+    const ids: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/ids.go",
+    );
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### A name where an ID goes",
+    );
+    // What the validator writes for team_id = "sre" (recordIDValidator.detail).
+    const looksLike: string = (
+      /const looksLike = "([^"]+)"/.exec(ids) as RegExpExecArray
+    )[1] as string;
+    const format: string = (
+      /"(%q is not the ID of a %s: %s Refer[^"]+)"/.exec(ids) as RegExpExecArray
+    )[1] as string;
+    const values: Array<string> = [
+      '"sre"',
+      "oneuptime_team",
+      looksLike,
+      "oneuptime_team",
+      "oneuptime_team",
+    ];
+    const message: string = format.replace(/%[qs]/g, (): string => {
+      return values.shift() as string;
+    });
+
+    expect(ids).toContain(
+      'resp.Diagnostics.AddAttributeError(req.Path, "Not an ID", v.detail(value))',
+    );
+    expect(
+      (
+        codeBlocks(section).find((block: CodeBlock): boolean => {
+          return block.lang === "text";
+        }) as CodeBlock
+      ).code.trim(),
+    ).toBe(message);
+    expect(englishPage(TROUBLESHOOTING)).toContain(
+      "| `Not an ID` | Refer to the record instead of naming it: see [A name where an ID goes](#a-name-where-an-id-goes) |",
+    );
+    // Every attribute that holds the ID of another record has the validator.
+    expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
+      'string: "recordIDValidators",',
     );
   });
 

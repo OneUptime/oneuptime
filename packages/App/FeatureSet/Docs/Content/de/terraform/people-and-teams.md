@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Andere Datenquellen finden einen Datensatz über die Adresse der Person, die er nennt, neben ihrer ID. Diese hier liest die Mitgliedschaft von Alice im SRE-Team:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Personen entfernen
 
 Entfernen Sie die Mitgliedschaften der Person aus Ihrer Konfiguration und wenden Sie sie an. Ist sie aus ihrem letzten Team des Projekts heraus, ist sie aus dem Projekt heraus, und OneUptime nimmt sie aus jedem Bereitschaftsplan, jeder Eskalationsregel und jeder Vertretung heraus und von dem, was ihr gehört: von allem, außer den Vorfällen, Alerts und Wartungsereignissen, die vorbei sind. Entfernen Sie in derselben Änderung die Blöcke, die sie nennen, sonst legt der nächste Plan sie wieder an, für jemanden, der nicht mehr im Projekt ist.

@@ -4,8 +4,10 @@
 # Each row joins what the configuration says, as the API has it: the
 # monitor's owners are the test account and the team, the layer and the
 # escalation rule page the test account, and the rule pages the team and
-# the schedule too. The runner's import round trip then imports each of them
-# by what it joins (import-ids.txt) and requires a clean plan.
+# the schedule too, and two data sources find the membership and the
+# monitor's owner by the person's address. The runner's import round trip
+# then imports each row by what it joins (import-ids.txt) and requires a
+# clean plan.
 
 set -e
 
@@ -52,6 +54,14 @@ check "/api/on-call-duty-schedule-layer-user" on_call_duty_schedule_layer_user_i
 check "/api/on-call-duty-policy-escalation-rule-user" on_call_duty_policy_escalation_rule_user_id onCallDutyPolicyEscalationRuleId "$RULE" userId "$ME"
 check "/api/on-call-duty-policy-escalation-rule-team" on_call_duty_policy_escalation_rule_team_id onCallDutyPolicyEscalationRuleId "$RULE" teamId "$TEAM"
 check "/api/on-call-duty-policy-escalation-rule-schedule" on_call_duty_policy_escalation_rule_schedule_id onCallDutyPolicyEscalationRuleId "$RULE" onCallDutyPolicyScheduleId "$SCHEDULE"
+
+# The data sources found the same rows by the person's address.
+assert_equals "$(get_output team_member_id)" "$(get_output looked_up_team_member)" \
+    "the team member a data source found by team and address" || validation_failed=1
+assert_equals "$ME" "$(get_output looked_up_team_member_user)" \
+    "the person that team member names" || validation_failed=1
+assert_equals "$(get_output monitor_owner_user_id)" "$(get_output looked_up_monitor_owner)" \
+    "the monitor owner a data source found by monitor and address" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then
     print_failed "Import By Parent Verification"

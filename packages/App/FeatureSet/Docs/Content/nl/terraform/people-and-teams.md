@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Andere data sources vinden een record via het adres van de persoon die het noemt, naast diens ID. Deze leest het lidmaatschap van Alice van het SRE-team:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Iemand laten vertrekken
 
 Verwijder de lidmaatschappen van de persoon uit je configuratie en pas die toe. Uit het laatste team van het project is hij uit het project, en OneUptime haalt hem uit elk bereikbaarheidsrooster, elke escalatieregel en elke vervanging, en van wat hij in eigendom heeft: alles, behalve de incidenten, meldingen en onderhoudsgebeurtenissen die voorbij zijn. Verwijder in dezelfde wijziging de blokken die hem noemen, anders maakt het volgende plan ze opnieuw aan voor iemand die niet meer in het project zit.

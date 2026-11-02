@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Altre sorgenti dati trovano un record tramite l'indirizzo della persona che indica, accanto al suo ID. Questa legge l'appartenenza di Alice al team SRE:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Far uscire qualcuno
 
 Rimuovi le appartenenze della persona dalla tua configurazione e applicala. Uscita dal suo ultimo team del progetto, è uscita dal progetto, e OneUptime la toglie da ogni calendario di reperibilità, regola di escalation e sostituzione, e da ciò di cui è proprietaria: da tutto, tranne gli incidenti, gli avvisi e gli eventi di manutenzione conclusi. Rimuovi nella stessa modifica i blocchi che la indicano, o il plan successivo li ricrea per qualcuno che non è più nel progetto.

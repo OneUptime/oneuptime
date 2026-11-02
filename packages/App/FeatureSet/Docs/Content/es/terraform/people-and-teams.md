@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Otras fuentes de datos encuentran un registro por la dirección de la persona que nombra, junto a su ID. Esta lee la membresía de Alice en el equipo SRE:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Dar de baja a alguien
 
 Quita las membresías de la persona de tu configuración y aplícala. Fuera de su último equipo del proyecto, queda fuera del proyecto, y OneUptime la quita de todos los calendarios de guardia, reglas de escalado y sustituciones, y de lo que tiene a su cargo: de todo, salvo los incidentes, alertas y eventos de mantenimiento que ya terminaron. Quita en el mismo cambio los bloques que la nombran, o el siguiente plan los vuelve a crear para alguien que ya no está en el proyecto.

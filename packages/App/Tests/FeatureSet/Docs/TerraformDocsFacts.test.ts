@@ -3442,6 +3442,42 @@ describe("the people and teams page", () => {
     ).toEqual(["oneuptime_user", "email", "name", "id"]);
   });
 
+  it("finds a record by the person's address with another data source, as the generator writes them", () => {
+    const section: string = englishSection(PEOPLE_AND_TEAMS, "## Find someone");
+    const lookup: HclBlock = parseHcl(
+      (
+        codeBlocks(section).filter((block: CodeBlock): boolean => {
+          return block.lang === "hcl";
+        })[1] as CodeBlock
+      ).code,
+    ).blocks[0] as HclBlock;
+    const source: ProviderType = dataSourceType(
+      shortName(lookup.labels[0] as string),
+    );
+
+    expect([lookup.type, lookup.labels[0]]).toEqual([
+      "data",
+      "oneuptime_team_member",
+    ]);
+    // Each argument is one the data source looks up by.
+    expect(
+      lookup.body.attributes.map((argument: HclAttribute): string => {
+        const attribute: ProviderAttribute | undefined = source.attributes.get(
+          argument.name,
+        );
+        return `${argument.name}: ${attribute?.isLookupFilter ? "lookup" : "not a lookup argument"}`;
+      }),
+    ).toEqual(["team_id: lookup", "user_email: lookup"]);
+    expect(source.attributes.get("user_email")?.personEmailOf).toBe("user_id");
+    expect(source.attributes.get("user_id")?.personEmail).toBe("user_email");
+    expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
+      "personIDForLookup(ctx, d.client",
+    );
+    expect(section).toContain(
+      "Other data sources find a record by the address of the person it names, beside their ID.",
+    );
+  });
+
   it("says what people.go does with an address nobody in the project has: a warning in the plan, an error in the apply", () => {
     const people: string = readRepoFile(
       "Scripts/TerraformProvider/StaticFiles/people.go",

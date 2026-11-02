@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Outras fontes de dados encontram um registro pelo endereço da pessoa que ele indica, ao lado do ID dela. Esta lê a associação de Alice à equipe SRE:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Desligar alguém
 
 Remova as associações da pessoa da sua configuração e aplique. Fora da sua última equipe do projeto, ela está fora do projeto, e o OneUptime a retira de toda escala de plantão, regra de escalonamento e substituição, e do que ela tem: de tudo, exceto os incidentes, alertas e eventos de manutenção que já terminaram. Remova no mesmo change os blocos que a indicam, ou o próximo plano os cria de novo para alguém que não está mais no projeto.

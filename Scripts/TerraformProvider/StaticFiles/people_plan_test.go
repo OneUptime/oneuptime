@@ -1337,6 +1337,118 @@ func TestPeopleUserDataSource(t *testing.T) {
 	requireDiagnostic(t, diagnostics, tfprotov6.DiagnosticSeverityError, "set exactly one of them")
 }
 
+// lookUp reads a data source, as terraform plan does.
+func (tf *peopleTerraform) lookUp(typeName string, arguments map[string]tftypes.Value) (tftypes.Value, []*tfprotov6.Diagnostic) {
+	tf.t.Helper()
+	source := tf.sources[typeName]
+	if source == nil {
+		tf.t.Fatalf("the provider has no data source %s", typeName)
+	}
+	objectType := source.ValueType().(tftypes.Object)
+	config := tf.encode(objectType, objectWith(objectType, arguments))
+
+	validated, err := tf.server.ValidateDataResourceConfig(tf.ctx, &tfprotov6.ValidateDataResourceConfigRequest{
+		TypeName: typeName,
+		Config:   config,
+	})
+	if err != nil {
+		tf.t.Fatalf("ValidateDataResourceConfig: %s", err)
+	}
+	for _, diagnostic := range validated.Diagnostics {
+		if diagnostic.Severity == tfprotov6.DiagnosticSeverityError {
+			return tftypes.Value{}, validated.Diagnostics
+		}
+	}
+
+	read, err := tf.server.ReadDataSource(tf.ctx, &tfprotov6.ReadDataSourceRequest{
+		TypeName: typeName,
+		Config:   config,
+	})
+	if err != nil {
+		tf.t.Fatalf("ReadDataSource: %s", err)
+	}
+	if read.State == nil {
+		return tftypes.Value{}, read.Diagnostics
+	}
+	return tf.decode(objectType, read.State), read.Diagnostics
+}
+
+// A data source finds a record by the address of the person it names, as
+// the resource names them: user_email beside user_id.
+func TestPeopleDataSourceFindsARecordByThePersonsAddress(t *testing.T) {
+	tf := newPeopleTerraform(t)
+	const memberSource = "oneuptime_team_member"
+
+	alice, diagnostics := tf.lookUp(memberSource, map[string]tftypes.Value{
+		"team_id":    str(peopleOtherTeam),
+		"user_email": str("Alice@Example.com"),
+	})
+	failOnErrors(t, "looking Alice's membership up by her address", diagnostics)
+	if got := stringOf(t, alice, "user_id"); got != aliceID {
+		t.Fatalf("user_id = %q, want Alice's", got)
+	}
+	if got := stringOf(t, alice, "user_email"); got != "Alice@Example.com" {
+		t.Fatalf("user_email = %q, want it as configured", got)
+	}
+
+	// Found by ID, the address is the person's own.
+	bob, diagnostics := tf.lookUp(memberSource, map[string]tftypes.Value{
+		"team_id": str(peopleOtherTeam),
+		"user_id": str(bobID),
+	})
+	failOnErrors(t, "looking Bob's membership up by his ID", diagnostics)
+	if got := stringOf(t, bob, "user_email"); got != "bob@example.com" {
+		t.Fatalf("user_email = %q, want Bob's address", got)
+	}
+
+	// Nobody in the project has the address: an error that says so, and no
+	// list of memberships asked for.
+	tf.api.mu.Lock()
+	before := len(tf.api.requests)
+	tf.api.mu.Unlock()
+	_, diagnostics = tf.lookUp(memberSource, map[string]tftypes.Value{
+		"team_id":    str(peopleOtherTeam),
+		"user_email": str("stranger@example.com"),
+	})
+	requireDiagnostic(t, diagnostics, tfprotov6.DiagnosticSeverityError, "stranger@example.com is not in this project")
+	tf.api.mu.Lock()
+	lists := 0
+	for _, request := range tf.api.requests[before:] {
+		if request == "POST /team-member/get-list" {
+			lists++
+		}
+	}
+	tf.api.mu.Unlock()
+	if lists != 1 {
+		t.Fatalf("looking a stranger up listed team members %d times, want once: the person lookup only", lists)
+	}
+
+	// One of the two: an ID and an address at once is refused before any
+	// request, and so is something that is no address.
+	_, diagnostics = tf.lookUp(memberSource, map[string]tftypes.Value{
+		"user_id":    str(aliceID),
+		"user_email": str("alice@example.com"),
+	})
+	requireDiagnostic(t, diagnostics, tfprotov6.DiagnosticSeverityError, "user_email")
+	_, diagnostics = tf.lookUp(memberSource, map[string]tftypes.Value{
+		"user_email": str("alice at example.com"),
+	})
+	requireDiagnostic(t, diagnostics, tfprotov6.DiagnosticSeverityError, "not an email address")
+
+	// An owner row finds its owner the same way.
+	tf.api.mu.Lock()
+	tf.api.insert("/monitor-owner-user", map[string]interface{}{"monitorId": peopleMonitorID, "userId": aliceID})
+	tf.api.mu.Unlock()
+	owner, diagnostics := tf.lookUp("oneuptime_monitor_user_owner", map[string]tftypes.Value{
+		"monitor_id": str(peopleMonitorID),
+		"user_email": str("alice@example.com"),
+	})
+	failOnErrors(t, "looking a monitor's owner up by address", diagnostics)
+	if got := stringOf(t, owner, "user_id"); got != aliceID {
+		t.Fatalf("owner user_id = %q, want Alice's", got)
+	}
+}
+
 // withoutServerTimes: a change leaves when the server last wrote the row
 // unknown until the apply, which is no change anybody made.
 func withoutServerTimes(changed []string) []string {

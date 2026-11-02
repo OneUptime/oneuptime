@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Andra datakällor hittar en post via adressen till personen den anger, bredvid personens ID. Den här läser Alices medlemskap i SRE-teamet:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Ta bort personer
 
 Ta bort personens medlemskap från din konfiguration och tillämpa den. Ute ur sitt sista team i projektet är de ute ur projektet, och OneUptime tar bort dem från varje jourschema, varje eskaleringsregel och varje ersättare, och från det de äger: allt, utom de incidenter, larm och underhållshändelser som är över. Ta bort blocken som anger dem i samma ändring, annars skapar nästa plan dem igen för någon som inte längre finns i projektet.

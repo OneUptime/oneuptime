@@ -9,6 +9,7 @@ import {
 import { StringUtils } from "./StringUtils";
 import {
   describePersonEmail,
+  describePersonEmailLookup,
   getPersonEmailColumnName,
   isDecidedBySomeoneElse,
   isInvitedByEmail,
@@ -255,6 +256,7 @@ export class OpenAPIParser {
 
       dataSource.schema = this.generateDataSourceSchema(dataSource.operations);
       this.resolveRelations(dataSource.schema);
+      this.addPersonEmailFilters(dataSource, operations);
       dataSources.push(dataSource);
     }
 
@@ -697,6 +699,79 @@ export class OpenAPIParser {
         required: false,
         optional: true,
         computed: true,
+        personEmailOf: name,
+      };
+    }
+  }
+
+  /*
+   * A data source looks a record up by the person it names the way the
+   * resource names them: by email address, beside the user ID
+   * (`user_email` beside `user_id`). The provider finds the person by the
+   * address and matches their ID. Only the people a configuration writes -
+   * the columns the resource takes an address for, never who created a
+   * record - and one person each: a set of people is no lookup argument.
+   */
+  private addPersonEmailFilters(
+    dataSource: TerraformDataSource,
+    operations: TerraformResource["operations"],
+  ): void {
+    const written: Set<string> = new Set<string>();
+
+    for (const operation of [operations.create, operations.update]) {
+      if (operation) {
+        for (const name of Object.keys(
+          this.extractRequestSchema(operation, `${dataSource.name}-lookup`),
+        )) {
+          written.add(name);
+        }
+      }
+    }
+
+    for (const [name, attr] of Object.entries(dataSource.schema)) {
+      if (
+        !attr.isLookupFilter ||
+        attr.type !== "string" ||
+        !isPersonRelation(attr.relationTableName) ||
+        !written.has(name)
+      ) {
+        continue;
+      }
+
+      const emailAttribute: string = StringUtils.toLegacySnakeCase(
+        getPersonEmailColumnName(
+          attr.apiFieldName || name,
+          PersonColumnKind.One,
+        ),
+      );
+
+      if (dataSource.schema[emailAttribute]) {
+        this.warnings.push(
+          `Data source "${dataSource.name}": ${name} names a person, but ${emailAttribute} is already an attribute, so it has no email lookup.`,
+        );
+        continue;
+      }
+
+      attr.person = {
+        emailAttribute: emailAttribute,
+        isList: false,
+        isRequired: false,
+        invitesByEmail: false,
+      };
+      attr.description = [
+        attr.description,
+        `Or look them up by email address, in \`${emailAttribute}\`.`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      dataSource.schema[emailAttribute] = {
+        type: "string",
+        description: describePersonEmailLookup({ idName: name }),
+        required: false,
+        optional: true,
+        computed: true,
+        isLookupFilter: true,
         personEmailOf: name,
       };
     }

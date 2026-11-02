@@ -100,6 +100,15 @@ export function describePersonEmail(data: {
   return `The email address of the person in \`${data.idName}\`, instead of their ID: someone in this project, or invited to it. Give one of the two.`;
 }
 
+/*
+ * The same companion on a lookup - the provider's data sources, a CLI's
+ * list filter - where it finds the record by the person it names: the
+ * address is resolved to the person's ID, which the lookup then matches.
+ */
+export function describePersonEmailLookup(data: { idName: string }): string {
+  return `Look it up by the email address of the person in \`${data.idName}\`, instead of their ID: someone in this project, or invited to it. Give one of the two.`;
+}
+
 // Whether a column that refers to `relatedTableName` names a person.
 export function isPersonRelation(
   relatedTableName: string | null | undefined,

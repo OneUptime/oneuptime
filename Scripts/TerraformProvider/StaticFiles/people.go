@@ -632,18 +632,22 @@ func personEmailsPlanModifiers(idsAttribute string) []planmodifier.Set {
 
 // personIDValidators: a configuration names the person by ID or by address,
 // not both - and exactly one of the two when the resource needs a person.
+// An ID is a user ID (ids.go): an address or a name there is refused at
+// plan time, pointing at the address attribute.
 func personIDValidators(emailAttribute string, required bool) []validator.String {
+	userID := recordIDValidator{resourceType: personResourceType, emailAttribute: emailAttribute}
 	if required {
-		return []validator.String{stringvalidator.ExactlyOneOf(path.MatchRoot(emailAttribute))}
+		return []validator.String{userID, stringvalidator.ExactlyOneOf(path.MatchRoot(emailAttribute))}
 	}
-	return []validator.String{stringvalidator.ConflictsWith(path.MatchRoot(emailAttribute))}
+	return []validator.String{userID, stringvalidator.ConflictsWith(path.MatchRoot(emailAttribute))}
 }
 
 func personIDsValidators(emailsAttribute string, required bool) []validator.Set {
+	userIDs := setvalidator.ValueStringsAre(recordIDValidator{resourceType: personResourceType, emailAttribute: emailsAttribute})
 	if required {
-		return []validator.Set{setvalidator.ExactlyOneOf(path.MatchRoot(emailsAttribute))}
+		return []validator.Set{userIDs, setvalidator.ExactlyOneOf(path.MatchRoot(emailsAttribute))}
 	}
-	return []validator.Set{setvalidator.ConflictsWith(path.MatchRoot(emailsAttribute))}
+	return []validator.Set{userIDs, setvalidator.ConflictsWith(path.MatchRoot(emailsAttribute))}
 }
 
 func personEmailValidators() []validator.String {
@@ -756,6 +760,47 @@ func personIDsForWrite(ctx context.Context, client *Client, ids *types.Set, emai
 
 	*ids = planned
 	return true
+}
+
+// ---------------------------------------------------------------------------
+// Lookup: what the generated data sources do with an address.
+
+// personIDForLookup is the ID of the person a data source is asked to find
+// a record by (user_email), which the list endpoint then matches. False:
+// nobody in the project has the address, or the project's people cannot be
+// read, and the lookup stops with an error that says which.
+func personIDForLookup(ctx context.Context, client *Client, email string, emailAttribute string, diags *diag.Diagnostics) (string, bool) {
+	person, err := client.findPersonByEmail(ctx, email)
+	if err != nil {
+		diags.AddAttributeError(path.Root(emailAttribute), "Could not look up "+email, personLookupFailedDetail(email, err))
+		return "", false
+	}
+	if person == nil {
+		diags.AddAttributeError(
+			path.Root(emailAttribute),
+			email+" is not in this project",
+			fmt.Sprintf("No one in this project, or invited to it, has the email address %q, so nothing names them. Check the address: if they changed it in OneUptime, use the new one.", email),
+		)
+		return "", false
+	}
+
+	return person.ID, true
+}
+
+// personEmailAfterLookup is the address a data source's read leaves: the
+// one it was looked up by, or - found another way - the person's own, as far
+// as the project can say.
+func personEmailAfterLookup(ctx context.Context, client *Client, id types.String, email types.String) types.String {
+	if !email.IsNull() && !email.IsUnknown() {
+		return email
+	}
+	if id.IsNull() || id.IsUnknown() || id.ValueString() == "" {
+		return types.StringNull()
+	}
+	if address := client.emailOfPerson(ctx, id.ValueString()); address != "" {
+		return types.StringValue(address)
+	}
+	return types.StringNull()
 }
 
 // personEmailAfterWrite is the address a create or update leaves in state:

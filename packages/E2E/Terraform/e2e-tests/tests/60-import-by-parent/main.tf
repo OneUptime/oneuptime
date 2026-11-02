@@ -109,8 +109,37 @@ resource "oneuptime_escalation_rule_schedule" "weekly" {
   on_call_duty_policy_schedule_id        = oneuptime_on_call_policy_schedule.weekly.id
 }
 
+# --- Lookups --------------------------------------------------------------
+# Data sources find the same rows by the person's address, beside their ID.
+
+data "oneuptime_team_member" "me" {
+  team_id    = oneuptime_team.sre.id
+  user_email = var.test_user_email
+
+  depends_on = [oneuptime_team_member.me]
+}
+
+data "oneuptime_monitor_user_owner" "me" {
+  monitor_id = oneuptime_monitor.api.id
+  user_email = var.test_user_email
+
+  depends_on = [oneuptime_monitor_user_owner.me]
+}
+
 # --- Outputs --------------------------------------------------------------
 # Outputs named <api path>_id are checked deleted after destroy.
+
+output "looked_up_team_member" {
+  value = data.oneuptime_team_member.me.id
+}
+
+output "looked_up_team_member_user" {
+  value = data.oneuptime_team_member.me.user_id
+}
+
+output "looked_up_monitor_owner" {
+  value = data.oneuptime_monitor_user_owner.me.id
+}
 
 output "team_member_id" {
   value = oneuptime_team_member.me.id

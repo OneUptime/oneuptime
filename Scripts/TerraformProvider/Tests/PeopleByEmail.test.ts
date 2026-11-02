@@ -153,6 +153,41 @@ describe("the parser: a person, and the address beside them", () => {
   });
 });
 
+describe("the parser: a data source finds a record by the person's address", () => {
+  test("beside the person's ID, as the resource names them", () => {
+    for (const name of ["team_member", "monitor_owner_user"]) {
+      const schema: Record<string, TerraformAttribute> =
+        dataSources.get(name)!.schema;
+
+      expect([name, schema["user_email"]]).toEqual([
+        name,
+        expect.objectContaining({
+          type: "string",
+          optional: true,
+          computed: true,
+          isLookupFilter: true,
+          personEmailOf: "user_id",
+        }),
+      ]);
+      expect(schema["user_id"]?.person?.emailAttribute).toBe("user_email");
+      expect(schema["user_email"]?.description).toBe(
+        "Look it up by the email address of the person in `user_id`, instead of their ID: someone in this project, or invited to it. Give one of the two.",
+      );
+    }
+  });
+
+  test("never by who created a record, nor by a name that is taken", () => {
+    const note: TerraformDataSource = dataSources.get("incident_note")!;
+
+    expect(note.schema["created_by_user_id"]?.person).toBeUndefined();
+    expect(note.schema["created_by_user_email"]).toBeUndefined();
+    expect(note.schema["approver_user_id"]?.person).toBeUndefined();
+    expect(warnings).toContain(
+      'Data source "incident_note": approver_user_id names a person, but approver_user_email is already an attribute, so it has no email lookup.',
+    );
+  });
+});
+
 describe("the parser: what someone else decides is read-only", () => {
   test("whether a member accepted, and when, are the invitee's", () => {
     const resource: TerraformResource = resources.get("team_member")!;
@@ -310,6 +345,7 @@ describe("the Go the generator writes", () => {
   let ruleGo: string;
   let teamGo: string;
   let dataSourcesGo: string;
+  let memberSourceGo: string;
 
   beforeAll(async () => {
     outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "tfgen-people-"));
@@ -345,6 +381,7 @@ describe("the Go the generator writes", () => {
     ruleGo = read("resource_monitor_owner_rule.go");
     teamGo = read("resource_team.go");
     dataSourcesGo = read("data_sources.go");
+    memberSourceGo = read("data_source_team_member.go");
   });
 
   afterAll(() => {
@@ -576,14 +613,45 @@ describe("the Go the generator writes", () => {
     expect(teamMemberGo).not.toContain("booldefault");
   });
 
+  test("a data source finds the person by address, then matches their ID", () => {
+    const filter: string = between(
+      memberSourceGo,
+      "if !data.UserEmail.IsNull() && !data.UserEmail.IsUnknown() {",
+      "\n    }\n",
+    );
+
+    expect(filter).toContain(
+      'personID, ok := personIDForLookup(ctx, d.client, data.UserEmail.ValueString(), "user_email", &resp.Diagnostics)',
+    );
+    expect(filter).toContain('filters["userId"] = personID');
+    // Not a column of the API: never filtered, selected or read as one.
+    expect(memberSourceGo).not.toContain('filters["userEmail"]');
+    expect(memberSourceGo).not.toContain('"userEmail": true');
+    expect(memberSourceGo).not.toContain('item["userEmail"]');
+    // Kept as written, or the person's own when found another way.
+    expect(memberSourceGo).toContain(
+      "data.UserEmail = personEmailAfterLookup(ctx, d.client, data.UserId, data.UserEmail)",
+    );
+    expect(between(memberSourceGo, '"user_id": schema', "},\n")).toContain(
+      'Validators: personIDValidators("user_email", false)',
+    );
+    expect(between(memberSourceGo, '"user_email": schema', "},\n")).toContain(
+      "Validators: personEmailValidators()",
+    );
+  });
+
   test("every helper the generated Go calls is one people.go defines", () => {
     const peopleGo: string = fs.readFileSync(
       path.join(STATIC_FILES, "people.go"),
       "utf-8",
     );
-    const generated: string = [teamMemberGo, ownerGo, layerUserGo, ruleGo].join(
-      "\n",
-    );
+    const generated: string = [
+      teamMemberGo,
+      ownerGo,
+      layerUserGo,
+      ruleGo,
+      memberSourceGo,
+    ].join("\n");
     const called: Set<string> = new Set<string>();
     const helperCall: RegExp = new RegExp(
       "\\b(person[A-Za-z]+|planPersonID|planPeopleIDs|importIDOfMembership|alreadyInvitedHint|apiStringValue)\\(",
@@ -776,6 +844,22 @@ describe("the reference pages", () => {
     expect(index).toContain("(./guides/people)");
     expect(index.indexOf("## People by email address")).toBeLessThan(
       index.indexOf("## OpenTofu"),
+    );
+  });
+
+  test("a membership's data source is looked up by its team and the person's address", () => {
+    const member: string = page("data-sources/team_member");
+
+    expect(member).toContain(
+      [
+        'data "oneuptime_team_member" "example" {',
+        "  team_id    = oneuptime_team.example.id",
+        '  user_email = "alice@example.com"',
+        "}",
+      ].join("\n"),
+    );
+    expect(member).toContain(
+      "- `user_email` (String) Look it up by the email address of the person in `user_id`",
     );
   });
 

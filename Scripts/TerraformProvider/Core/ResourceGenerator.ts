@@ -52,6 +52,19 @@ export class ResourceGenerator {
    * their state value rather than "(known after apply)", so an update's plan
    * lists only what actually changes.
    */
+  /*
+   * The validators of an attribute that holds the ID of another record, or
+   * the IDs of several, by the attribute's type (StaticFiles/ids.go): a
+   * name or a slug where an ID goes is refused at plan time.
+   */
+  public static readonly RECORD_ID_VALIDATORS: Readonly<
+    Record<string, string>
+  > = {
+    string: "recordIDValidators",
+    set: "recordIDSetValidators",
+    list: "recordIDListValidators",
+  };
+
   public static isSetAtCreateAttribute(
     name: string,
     attr: TerraformAttribute,
@@ -291,6 +304,10 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("people.go", "internal/provider");
     await this.copyStaticFile("people_test.go", "internal/provider");
     await this.copyStaticFile("people_plan_test.go", "internal/provider");
+
+    // The ID of another record is a UUID, refused otherwise at plan time.
+    await this.copyStaticFile("ids.go", "internal/provider");
+    await this.copyStaticFile("ids_test.go", "internal/provider");
 
     // Writes the built provider's schema for the docs generator.
     await this.copyStaticFile(
@@ -1291,6 +1308,14 @@ ${this.generateValidObjectTypesMap()}
                 Validators: []validator.String{
                     JSONEnvelopeValidator(),
                 }`;
+    } else if (attr.relation && !isComputedOnly && !isProjectIdField) {
+      // The ID of another record, a UUID (StaticFiles/ids.go).
+      const helper: string | undefined =
+        ResourceGenerator.RECORD_ID_VALIDATORS[attr.type];
+      if (helper) {
+        validators = `,
+                Validators: ${helper}("${this.providerName}_${attr.relation.name}")`;
+      }
     }
 
     return `schema.${attrType}Attribute{

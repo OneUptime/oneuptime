@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+Andre datakilder finder en post via adressen på den person, den nævner, ved siden af personens ID. Denne læser Alices medlemskab af SRE-teamet:
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## Fjern personer
 
 Fjern personens medlemskaber fra din konfiguration, og anvend den. Ude af deres sidste team i projektet er de ude af projektet, og OneUptime fjerner dem fra hver vagtplan, hver eskaleringsregel og hver stedfortræder og fra det, de ejer: alt, undtagen de hændelser, alarmer og vedligeholdelsesbegivenheder, der er overstået. Fjern de blokke, der navngiver dem, i samme ændring, ellers opretter den næste plan dem igen for en, der ikke længere er i projektet.
