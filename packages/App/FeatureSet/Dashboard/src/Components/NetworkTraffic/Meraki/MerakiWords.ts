@@ -563,6 +563,19 @@ export const NEWEST_TRAFFIC_BEFORE_RANGE: string = translationKey(
   "The newest traffic is from {{time}}. Pick a longer time range to see it.",
 );
 
+/*
+ * A range after the newest window of applications: why the lists are empty,
+ * and the way to them - never "traffic analysis is off", which is not why.
+ */
+export const NEWEST_ANALYTICS_BEFORE_RANGE: string = translationKey(
+  "Meraki's applications, destinations and clients are read every two hours. The newest are from {{time}}: pick a longer time range to see them.",
+);
+
+// Under a chart that ends before its range does.
+export const TRAFFIC_READ_UP_TO: string = translationKey(
+  "Read up to {{time}}.",
+);
+
 export const RATE_LIMITED_NOTE: string = translationKey(
   "Meraki asked OneUptime to slow down during the last read: other applications share the organization's API budget, and OneUptime reads more slowly until it is free.",
 );
@@ -664,9 +677,27 @@ export function getMerakiConnectionRowFacts(
   };
 }
 
+// What Meraki counted, beside an uplink or a conversation.
+export const CONVERSATION_CLIENT_COUNT: PluralTemplate = {
+  one: "{{count}} client",
+  other: "Up to {{count}} clients",
+};
+
+export const FLOW_COUNT: PluralTemplate = {
+  one: "{{count}} flow",
+  other: "{{count}} flows",
+};
+
+export const UPLINK_APPLIANCE_COUNT: PluralTemplate = {
+  one: "On {{count}} appliance",
+  other: "On {{count}} appliances",
+};
+
 // What the Meraki side of a page says once, about what its numbers are.
 export const MERAKI_VIEW_HELP: {
   traffic: string;
+  average: string;
+  uplinkComparison: string;
   applications: string;
   destinations: string;
   clients: string;
@@ -678,6 +709,12 @@ export const MERAKI_VIEW_HELP: {
 } = {
   traffic: translationKey(
     "Bytes through the appliances' uplinks in this time range, as Meraki counts them: what they received (download) and sent (upload). Meraki reports them in five-minute windows; a window at the edge of the range counts for the part inside it.",
+  ),
+  average: translationKey(
+    "The traffic's average rate over the part of this time range Meraki has reported, in bits per second. Uplink usage arrives a few minutes late, so the newest minutes are not counted as silence.",
+  ),
+  uplinkComparison: translationKey(
+    "Each uplink's traffic in this time range, across the appliances this page is of, and the loss and latency Meraki measured on it. Meraki measures them towards an address on the internet, so they show the line even when it carries no traffic. Click an uplink to see only its traffic.",
   ),
   applications: translationKey(
     "Traffic by application, as Meraki's traffic analytics name them. Meraki sums them over two hours or more, so a shorter time range shows its share of those windows - an estimate.",
@@ -692,16 +729,21 @@ export const MERAKI_VIEW_HELP: {
     "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.",
   ),
   uplinks: translationKey(
-    "Each appliance's uplinks - wan1, wan2, cellular - with what came in (download) and went out (upload).",
+    "Each appliance's uplinks - wan1, wan2, cellular - with what came in (download) and went out (upload). Click one to see only its traffic.",
   ),
   conversations: translationKey(
-    "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.",
+    "Meraki reports what each network reached, never which client talked to it. Turn on NetFlow on the MX appliances to see every conversation, address to address, with its packets.",
   ),
   // The page has flow records as well: its conversations are a switch away.
   conversationsOnFlowsSide: translationKey(
-    "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.",
+    "Meraki reports what each network reached, never which client talked to it. This page's flow records have every conversation, address to address, with its packets.",
   ),
   flows: translationKey(
-    "How many flows Meraki's traffic analytics counted in this time range.",
+    "How many flows Meraki's traffic analytics counted in this time range. Meraki counts them per network, so a page narrowed to an appliance or an uplink has none to show.",
   ),
 };
+
+// Why Who talks to whom has no rows when no read explains it.
+export const CONVERSATIONS_NEED_ANALYSIS: string = translationKey(
+  "No destinations in this time range. Meraki keeps them where traffic analysis with hostname visibility is turned on, under Network-wide > General.",
+);

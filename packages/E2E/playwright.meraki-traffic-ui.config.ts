@@ -7,9 +7,10 @@ import path from "path";
  * Network layout and Traffic page with the app's esbuild config, Tailwind,
  * theme and font. What only a browser can show is checked here: Connect
  * Meraki from the page with no traffic, the first read filling it in by
- * itself, the organization's traffic, narrowing to a network, the Flows |
- * Meraki switch, a refused or revoked key and a large organization read in
- * part - at a laptop's and a phone's width, in the dark theme and in German.
+ * itself, the organization's traffic, narrowing to a network, an appliance
+ * and an uplink, the uplinks side by side, the Flows | Meraki switch, a
+ * refused or revoked key and a large organization read in part - at a
+ * laptop's and a phone's width, in the dark theme and in German.
  *
  * The fixture server's port. Another checkout's run on the default port is
  * reused outside CI, so a second run picks a port of its own:

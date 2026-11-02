@@ -33,8 +33,14 @@ import { getJestSpyOn } from "../../Spy";
  *     header between the two, kept in the address bar;
  *   - what the Meraki side shows: the same four numbers and chart, the
  *     busiest networks or uplinks, applications, clients and destinations,
- *     how the connection is doing, and why there are no conversations;
+ *     how the connection is doing, and who talks to whom as far as Meraki
+ *     says;
  *   - a click on a network narrows the page, a chip says so;
+ *   - the page's uplinks side by side (issue #5377): what each carried, its
+ *     average and peak, its loss and latency, and a click that narrows the
+ *     whole page to that one uplink - never to the appliance with both;
+ *   - the numbers stop where the reads did: no line falling to zero at the
+ *     right edge, no average of a stretch nobody has reported yet;
  *   - a line over the traffic that needs acting on says Review;
  *   - rows never repeat the one network (or the one appliance) the page is
  *     of, and host names are drawn as text, addresses in the monospace;
@@ -57,6 +63,17 @@ jest.mock("../../../UI/Components/Charts/Area/AreaChart", () => {
   return {
     ...(jest.requireActual(
       "../../../UI/Components/Charts/Area/AreaChart",
+    ) as Record<string, unknown>),
+    __esModule: true,
+    default: (jest.requireActual("./ChartZoomStandIn") as { default: unknown })
+      .default,
+  };
+});
+
+jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
+  return {
+    ...(jest.requireActual(
+      "../../../UI/Components/Charts/Line/LineChart",
     ) as Record<string, unknown>),
     __esModule: true,
     default: (jest.requireActual("./ChartZoomStandIn") as { default: unknown })
@@ -133,7 +150,7 @@ import NetworkTrafficView, {
   FLOW_DESCRIPTIONS,
   NetworkTrafficScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView";
-import { resetStandInCharts } from "./ChartZoomStandIn";
+import { getStandInChart, resetStandInCharts } from "./ChartZoomStandIn";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PermissionGate, {
@@ -471,7 +488,7 @@ describe("the Meraki side", () => {
     });
   });
 
-  test("the numbers, the chart, the lists - and why there are no conversations", async () => {
+  test("the numbers, the chart, the lists - and what Meraki cannot say of who talks to whom", async () => {
     await renderView(NETWORK);
 
     expect(screen.getByTestId("traffic-tile-total-value")).toHaveTextContent(
@@ -503,7 +520,7 @@ describe("the Meraki side", () => {
       ),
     ).not.toHaveClass("font-mono");
     expect(screen.getByTestId("meraki-conversations-note")).toHaveTextContent(
-      "The Meraki dashboard API reports totals, not conversations",
+      "Meraki reports what each network reached, never which client talked to it.",
     );
   });
 
@@ -601,7 +618,7 @@ describe("the Meraki side", () => {
     ).toBeInTheDocument();
   });
 
-  test("a device's page reads that device, and its rows are not filters", async () => {
+  test("a device's page reads that device, and lists its uplinks", async () => {
     answerUsage(() => {
       return usage();
     });
@@ -612,9 +629,6 @@ describe("the Meraki side", () => {
     expect(screen.getByTestId("meraki-traffic-body")).toBeInTheDocument();
     // A device's page lists its uplinks, never a network to narrow to.
     expect(screen.queryByTestId("meraki-top-networks")).toBeNull();
-    expect(
-      within(rowsOf("meraki-top-uplinks")[0]!).queryByRole("button"),
-    ).toBeNull();
     // Its own uplinks: the appliance is the page's, and is not named again.
     expect(rowsOf("meraki-top-uplinks")[0]).not.toHaveTextContent("MX 1");
   });
@@ -659,7 +673,7 @@ describe("the Meraki side", () => {
     await renderView(NETWORK);
 
     expect(screen.getByTestId("meraki-conversations-note")).toHaveTextContent(
-      "Turn on NetFlow on the MX appliances to see conversations as well.",
+      "Turn on NetFlow on the MX appliances to see every conversation, address to address, with its packets.",
     );
     expect(screen.queryByTestId("meraki-show-conversations")).toBeNull();
 
@@ -677,7 +691,7 @@ describe("the Meraki side", () => {
     await renderView(NETWORK);
 
     expect(screen.getByTestId("meraki-conversations-note")).toHaveTextContent(
-      "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.",
+      "Meraki reports what each network reached, never which client talked to it. This page's flow records have every conversation, address to address, with its packets.",
     );
     expect(screen.queryByTestId("meraki-set-up-netflow")).toBeNull();
 
@@ -791,6 +805,883 @@ describe("the Meraki side", () => {
 
     expect(screen.getByTestId("meraki-no-data")).toHaveTextContent(
       "Meraki keeps traffic for 30 days: pick a longer time range to see older traffic.",
+    );
+  });
+});
+
+describe("the page's uplinks, side by side (issue #5377)", () => {
+  const TWO_UPLINKS: JSONObject = {
+    uplinkInterfaces: [
+      {
+        interfaceName: "wan2",
+        applianceCount: 3,
+        sentOctets: 1_000_000,
+        receivedOctets: 9_000_000,
+        lossPercent: 1.5,
+        latencyMs: 41.6,
+      },
+      {
+        interfaceName: "wan1",
+        applianceCount: 12,
+        sentOctets: 20_000_000,
+        receivedOctets: 150_000_000,
+        lossPercent: 0,
+        latencyMs: 21.4,
+      },
+    ],
+    uplinkSeries: [
+      {
+        time: "2026-10-01T11:00:00.000Z",
+        interfaceName: "wan1",
+        sentOctets: 10_000_000,
+        receivedOctets: 75_000_000,
+        lossPercent: 0,
+        latencyMs: 20,
+      },
+      {
+        time: "2026-10-01T11:00:00.000Z",
+        interfaceName: "wan2",
+        sentOctets: 500_000,
+        receivedOctets: 4_500_000,
+        lossPercent: 1.5,
+        latencyMs: 40,
+      },
+      {
+        time: "2026-10-01T11:05:00.000Z",
+        interfaceName: "wan1",
+        sentOctets: 10_000_000,
+        receivedOctets: 75_000_000,
+        lossPercent: null,
+        latencyMs: null,
+      },
+    ],
+  };
+
+  function cell(row: HTMLElement, name: string): HTMLElement {
+    return within(row).getByTestId(`meraki-uplink-row-${name}`);
+  }
+
+  function uplinkRows(): Array<HTMLElement> {
+    return screen.getAllByTestId("meraki-uplink-row");
+  }
+
+  beforeEach(() => {
+    answerFlows(noFlows());
+    answerUsage(() => {
+      return usage(TWO_UPLINKS);
+    });
+  });
+
+  test("each uplink's traffic, share, average, peak, latency and loss, wan1 first however much it carried", async () => {
+    await renderView(NETWORK);
+
+    const [wan1, wan2]: Array<HTMLElement> = uplinkRows() as [
+      HTMLElement,
+      HTMLElement,
+    ];
+
+    expect(cell(wan1, "name")).toHaveTextContent("wan1");
+    expect(cell(wan1, "share")).toHaveTextContent("94%");
+    expect(cell(wan1, "traffic")).toHaveTextContent("170 MB");
+    expect(wan1).toHaveTextContent("In 150 MB · out 20.0 MB");
+    expect(cell(wan1, "appliances")).toHaveTextContent("On 12 appliances");
+    expect(cell(wan1, "latency")).toHaveTextContent("21");
+    expect(cell(wan1, "loss")).toHaveTextContent("0%");
+    // The busiest bucket: 85 MB in five minutes.
+    expect(cell(wan1, "peak")).toHaveTextContent("2.27 Mbps");
+
+    expect(cell(wan2, "name")).toHaveTextContent("wan2");
+    expect(cell(wan2, "share")).toHaveTextContent("6%");
+    expect(cell(wan2, "latency")).toHaveTextContent("42");
+    expect(cell(wan2, "loss")).toHaveTextContent("1.5%");
+  });
+
+  test("the bug this fixes: a click on wan1 in the Uplinks list narrows to wan1, and wan2 stays out of it", async () => {
+    answerUsage(() => {
+      return usage({
+        ...TWO_UPLINKS,
+        topNetworks: [
+          {
+            controllerNetworkId: "L_1000",
+            name: "Branch 1",
+            sentOctets: 1,
+            receivedOctets: 1,
+          },
+        ],
+        topUplinks: [
+          {
+            deviceSerial: "Q2XX-AAAA-0000",
+            deviceName: "MX 1",
+            controllerNetworkId: "L_1000",
+            controllerNetworkName: "Branch 1",
+            interfaceName: "wan1",
+            sentOctets: 20_000_000,
+            receivedOctets: 100_000_000,
+          },
+          {
+            deviceSerial: "Q2XX-AAAA-0000",
+            deviceName: "MX 1",
+            controllerNetworkId: "L_1000",
+            controllerNetworkName: "Branch 1",
+            interfaceName: "wan2",
+            sentOctets: 1,
+            receivedOctets: 1,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    fireEvent.click(rowsOf("meraki-top-uplinks")[0]!);
+    await flush();
+
+    expect(lastUsageRequest().filters).toEqual({
+      controllerNetworkId: "L_1000",
+      deviceSerial: "Q2XX-AAAA-0000",
+      interfaceName: "wan1",
+    });
+    expect(query().get("mup")).toBe("wan1");
+
+    const [wan1, wan2]: Array<HTMLElement> = rowsOf("meraki-top-uplinks") as [
+      HTMLElement,
+      HTMLElement,
+    ];
+
+    expect(wan1).toHaveAttribute("aria-pressed", "true");
+    expect(wan2).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("meraki-filter-uplink")).toHaveTextContent(
+      "Uplink wan1",
+    );
+    expect(screen.getByTestId("meraki-filter-appliance")).toHaveTextContent(
+      "Appliance MX 1",
+    );
+  });
+
+  test("a click on an uplink narrows the page to it by name; the others stay listed, and it widens again", async () => {
+    await renderView(NETWORK);
+
+    fireEvent.click(uplinkRows()[1]!);
+    await flush();
+
+    expect(lastUsageRequest().filters).toEqual({ interfaceName: "wan2" });
+    expect(query().get("mup")).toBe("wan2");
+    expect(uplinkRows()).toHaveLength(2);
+    expect(uplinkRows()[1]).toHaveAttribute("aria-pressed", "true");
+    expect(uplinkRows()[0]).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(uplinkRows()[1]!);
+    await flush();
+
+    expect(lastUsageRequest().filters).toEqual({});
+    expect(query().get("mup")).toBeNull();
+  });
+
+  test("a link to an uplink opens on it", async () => {
+    window.history.replaceState(null, "", "/?mup=wan2");
+
+    await renderView(NETWORK);
+
+    expect(lastUsageRequest().filters).toEqual({ interfaceName: "wan2" });
+    expect(screen.getByTestId("meraki-filter-uplink")).toHaveTextContent(
+      "Uplink wan2",
+    );
+  });
+
+  test("the chip's x widens the page, and keeps the network", async () => {
+    window.history.replaceState(null, "", "/?mnet=L_1000&mup=wan2");
+
+    await renderView(NETWORK);
+
+    fireEvent.click(
+      within(screen.getByTestId("meraki-filter-uplink")).getByRole("button"),
+    );
+    await flush();
+
+    expect(lastUsageRequest().filters).toEqual({
+      controllerNetworkId: "L_1000",
+    });
+  });
+
+  test("narrowed to an uplink, a click on a network keeps it: wan2's busiest sites, then one of them", async () => {
+    window.history.replaceState(null, "", "/?mup=wan2");
+
+    await renderView(NETWORK);
+
+    fireEvent.click(rowsOf("meraki-top-networks")[1]!);
+    await flush();
+
+    expect(lastUsageRequest().filters).toEqual({
+      controllerNetworkId: "L_1001",
+      interfaceName: "wan2",
+    });
+  });
+
+  test("narrowed to an uplink, the page says its lists stay the network's, and the flows are not a false 0", async () => {
+    window.history.replaceState(null, "", "/?mup=wan2");
+
+    await renderView(NETWORK);
+
+    expect(screen.getByTestId("meraki-narrowed-note")).toHaveTextContent(
+      "Meraki counts applications, destinations, clients and flows per network, so those stay the whole network's.",
+    );
+    expect(screen.getByTestId("traffic-tile-flows-value")).toHaveTextContent(
+      "\u2014",
+    );
+  });
+
+  test("not narrowed, there is no such note, and the flows are counted", async () => {
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("meraki-narrowed-note")).toBeNull();
+    expect(screen.getByTestId("traffic-tile-flows-value")).toHaveTextContent(
+      "180",
+    );
+  });
+
+  test("a device's page narrows by the uplink's name alone: the page is the appliance", async () => {
+    answerUsage(() => {
+      return usage(TWO_UPLINKS);
+    });
+
+    await renderView(DEVICE);
+
+    expect(cellCount("appliances")).toBe(0);
+
+    fireEvent.click(rowsOf("meraki-top-uplinks")[0]!);
+    await flush();
+
+    expect(lastUsageRequest().filters).toEqual({ interfaceName: "wan1" });
+    expect(rowsOf("meraki-top-uplinks")[0]).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  function cellCount(name: string): number {
+    return screen.queryAllByTestId(`meraki-uplink-row-${name}`).length;
+  }
+
+  test("the chart draws a line an uplink, and switches to latency and to loss", async () => {
+    await renderView(NETWORK);
+
+    expect(
+      getStandInChart("wan1 + wan2 [Mbps]").props.data[0]!.data,
+    ).toHaveLength(12 - 1);
+
+    fireEvent.click(screen.getByTestId("meraki-uplink-chart-latency"));
+    await flush();
+
+    expect(screen.getByTestId("meraki-uplink-chart-latency")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    const latency: ReturnType<typeof getStandInChart> =
+      getStandInChart("wan1 + wan2 [ms]");
+
+    // Only the bucket measured: the next one is a gap, not a zero.
+    expect(latency.props.data[0]!.data).toHaveLength(1);
+    expect(latency.props.data[0]!.data[0]!.y).toBe(20);
+
+    fireEvent.click(screen.getByTestId("meraki-uplink-chart-loss"));
+    await flush();
+
+    expect(getStandInChart("wan1 + wan2 [%]").props.data[1]!.data[0]!.y).toBe(
+      1.5,
+    );
+  });
+
+  test("a stretch nobody measured breaks the line; a stretch of no traffic does not", async () => {
+    await renderView(NETWORK);
+
+    expect(
+      (
+        getStandInChart("wan1 + wan2 [Mbps]").props as unknown as {
+          connectNulls: boolean;
+        }
+      ).connectNulls,
+    ).toBe(true);
+
+    fireEvent.click(screen.getByTestId("meraki-uplink-chart-latency"));
+    await flush();
+
+    expect(
+      (
+        getStandInChart("wan1 + wan2 [ms]").props as unknown as {
+          connectNulls: boolean;
+        }
+      ).connectNulls,
+    ).toBe(false);
+  });
+
+  test("the bug this guards: on a range whose grid is finer than its buckets the line stays whole", async () => {
+    answerUsage(() => {
+      return usage({ ...TWO_UPLINKS, bucketSeconds: 720 });
+    });
+
+    await renderView(NETWORK);
+
+    fireEvent.click(screen.getByTestId("meraki-uplink-chart-latency"));
+    await flush();
+
+    expect(
+      (
+        getStandInChart("wan1 + wan2 [ms]").props as unknown as {
+          connectNulls: boolean;
+        }
+      ).connectNulls,
+    ).toBe(true);
+  });
+
+  test("the chart joins the page's zoom", async () => {
+    await renderView(NETWORK);
+
+    expect(
+      getStandInChart("wan1 + wan2 [Mbps]").zoom.onTimeRangeSelect,
+    ).toBeDefined();
+  });
+
+  test("nothing measured: no latency or loss to switch to, no empty columns, the bytes still compare", async () => {
+    answerUsage(() => {
+      return usage({
+        uplinkInterfaces: [
+          {
+            interfaceName: "wan1",
+            applianceCount: 1,
+            sentOctets: 5,
+            receivedOctets: 5,
+            lossPercent: null,
+            latencyMs: null,
+          },
+          {
+            interfaceName: "wan2",
+            applianceCount: 1,
+            sentOctets: 1,
+            receivedOctets: 1,
+            lossPercent: null,
+            latencyMs: null,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("meraki-uplink-chart-modes")).toBeNull();
+    expect(cellCount("latency")).toBe(0);
+    expect(cellCount("loss")).toBe(0);
+    expect(uplinkRows()).toHaveLength(2);
+  });
+
+  test("one uplink measured and one not: the other says it is unknown, not perfect", async () => {
+    answerUsage(() => {
+      return usage({
+        uplinkInterfaces: [
+          {
+            interfaceName: "wan1",
+            applianceCount: 1,
+            sentOctets: 5,
+            receivedOctets: 5,
+            lossPercent: 0.2,
+            latencyMs: 20,
+          },
+          {
+            interfaceName: "wan2",
+            applianceCount: 1,
+            sentOctets: 1,
+            receivedOctets: 1,
+            lossPercent: null,
+            latencyMs: null,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(cell(uplinkRows()[1]!, "latency")).toHaveTextContent("\u2014");
+    expect(cell(uplinkRows()[1]!, "loss")).toHaveTextContent("\u2014");
+  });
+
+  test("a standby line that carried nothing is listed with its health, and no noise about its bytes", async () => {
+    answerUsage(() => {
+      return usage({
+        uplinkInterfaces: [
+          {
+            interfaceName: "wan1",
+            applianceCount: 1,
+            sentOctets: 5,
+            receivedOctets: 5,
+            lossPercent: 0,
+            latencyMs: 20,
+          },
+          {
+            interfaceName: "cellular",
+            applianceCount: 0,
+            sentOctets: 0,
+            receivedOctets: 0,
+            lossPercent: 0,
+            latencyMs: 71,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    const standby: HTMLElement = uplinkRows()[1]!;
+
+    expect(cell(standby, "name")).toHaveTextContent("cellular");
+    expect(cell(standby, "latency")).toHaveTextContent("71");
+    expect(standby).not.toHaveTextContent("In 0 B");
+    expect(within(standby).queryByTestId("meraki-uplink-row-appliances")).toBe(
+      null,
+    );
+  });
+
+  test("one uplink with nothing measured has nothing to compare: no card", async () => {
+    answerUsage(() => {
+      return usage({
+        uplinkInterfaces: [
+          {
+            interfaceName: "wan1",
+            applianceCount: 1,
+            sentOctets: 5,
+            receivedOctets: 5,
+            lossPercent: null,
+            latencyMs: null,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("meraki-uplink-comparison")).toBeNull();
+  });
+
+  test("an organization with no uplinks has no card", async () => {
+    answerUsage(() => {
+      return usage({
+        primaryKind: "application",
+        lastUplinkAt: null,
+        uplinkInterfaces: [],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("meraki-uplink-comparison")).toBeNull();
+  });
+
+  test("before any traffic there is no card", async () => {
+    answerUsage(() => {
+      return usage({
+        ...TWO_UPLINKS,
+        totals: { sentOctets: 0, receivedOctets: 0, flows: 0 },
+        applicationTotals: { sentOctets: 0, receivedOctets: 0 },
+        clientTotals: { sentOctets: 0, receivedOctets: 0 },
+        lastUplinkAt: null,
+        lastAnalyticsAt: null,
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("meraki-uplink-comparison")).toBeNull();
+  });
+});
+
+describe("the numbers stop where the reads did (issue #5377)", () => {
+  // The past hour, the newest uplink window ending 15 minutes before its end.
+  const READ_TO_11_45: JSONObject = {
+    totals: { sentOctets: 0, receivedOctets: 36_000_000, flows: 180 },
+    lastUplinkAt: "2026-10-01T11:45:00.000Z",
+    series: [
+      {
+        time: "2026-10-01T11:40:00.000Z",
+        sentOctets: 0,
+        receivedOctets: 3_000_000,
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    answerFlows(noFlows());
+  });
+
+  test("the bug this fixes: the chart ends at the last read, and never falls to zero after it", async () => {
+    answerUsage(() => {
+      return usage(READ_TO_11_45);
+    });
+
+    await renderView(NETWORK);
+
+    const chart: ReturnType<typeof getStandInChart> =
+      getStandInChart("In + Out [Mbps]");
+    const points: Array<{ x: Date; y: number }> = chart.props.data[0]!
+      .data as Array<{ x: Date; y: number }>;
+
+    expect(points[points.length - 1]!.x.toISOString()).toBe(
+      "2026-10-01T11:40:00.000Z",
+    );
+    expect(points[points.length - 1]!.y).toBeGreaterThan(0);
+    // The axis still runs to the range's end: time passing, with no line.
+    expect((chart.props.xAxis.options.max as Date).toISOString()).toBe(
+      "2026-10-01T12:00:00.000Z",
+    );
+  });
+
+  test("the bug this fixes: the average is of what was read, and the page says how far that is", async () => {
+    answerUsage(() => {
+      return usage(READ_TO_11_45);
+    });
+
+    await renderView(NETWORK);
+
+    // 36 MB over the 45 minutes read: 107 kbps. Over the hour it would be 80.
+    expect(screen.getByTestId("traffic-tile-average-value")).toHaveTextContent(
+      "107 kbps",
+    );
+    expect(screen.getByTestId("meraki-read-up-to")).toHaveTextContent(
+      "Read up to 15 minutes ago.",
+    );
+  });
+
+  test("the bug this guards: a link that went down draws its drop, and its average counts the silence", async () => {
+    // Traffic to 11:10, then nothing, and the reads went on to 11:55.
+    answerUsage(() => {
+      return usage({
+        totals: { sentOctets: 0, receivedOctets: 36_000_000, flows: 180 },
+        lastUplinkAt: "2026-10-01T11:10:00.000Z",
+        uplinksReadTo: "2026-10-01T11:55:00.000Z",
+        series: [
+          {
+            time: "2026-10-01T11:05:00.000Z",
+            sentOctets: 0,
+            receivedOctets: 3_000_000,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    const points: Array<{ x: Date; y: number }> = getStandInChart(
+      "In + Out [Mbps]",
+    ).props.data[0]!.data as Array<{ x: Date; y: number }>;
+    const last: { x: Date; y: number } = points[points.length - 1]!;
+
+    // The line reaches the last read, flat at zero: the outage, drawn.
+    expect(last.x.toISOString()).toBe("2026-10-01T11:50:00.000Z");
+    expect(last.y).toBe(0);
+    // 36 MB over the 55 minutes read, not the 10 it carried.
+    expect(screen.getByTestId("traffic-tile-average-value")).toHaveTextContent(
+      "87.3 kbps",
+    );
+    expect(screen.getByTestId("meraki-read-up-to")).toHaveTextContent(
+      "Read up to 5 minutes ago.",
+    );
+  });
+
+  test("a range read to its end says nothing about it", async () => {
+    answerUsage(() => {
+      return usage({
+        lastUplinkAt: "2026-10-01T12:00:00.000Z",
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("meraki-read-up-to")).toBeNull();
+  });
+});
+
+describe("who talks to whom", () => {
+  const CONVERSATIONS: Array<JSONObject> = [
+    {
+      controllerNetworkId: "L_1000",
+      controllerNetworkName: "Branch 1",
+      destination: "teams.microsoft.com",
+      application: "Microsoft Teams",
+      protocol: "UDP",
+      port: 3478,
+      sentOctets: 1_000_000,
+      receivedOctets: 9_000_000,
+      flows: 1204,
+      clients: 34,
+    },
+    {
+      controllerNetworkId: "L_1001",
+      controllerNetworkName: "Branch 2",
+      destination: "52.112.0.10",
+      application: "Microsoft Teams",
+      protocol: "TCP",
+      port: 443,
+      sentOctets: 500_000,
+      receivedOctets: 500_000,
+      flows: 1,
+      clients: 1,
+    },
+    {
+      controllerNetworkId: "L_1001",
+      controllerNetworkName: "Branch 2",
+      destination: "",
+      application: "Encrypted TCP (SSL)",
+      protocol: "",
+      port: 0,
+      sentOctets: 100_000,
+      receivedOctets: 100_000,
+      flows: 0,
+      clients: 0,
+    },
+  ];
+
+  beforeEach(() => {
+    answerFlows(noFlows());
+    answerUsage(() => {
+      return usage({ topConversations: CONVERSATIONS });
+    });
+  });
+
+  test("what each network reached: over which protocol and port, for how many clients, which way and how much", async () => {
+    await renderView(NETWORK);
+
+    const row: HTMLElement = rowsOf("meraki-conversations")[0]!;
+
+    expect(
+      within(row).getByTestId("meraki-conversation-from"),
+    ).toHaveTextContent("Branch 1");
+    expect(within(row).getByTestId("meraki-conversation-to")).toHaveTextContent(
+      "teams.microsoft.com",
+    );
+    expect(row).toHaveTextContent(
+      "UDP port 3478 · Microsoft Teams · Up to 34 clients",
+    );
+    expect(row).toHaveTextContent("In 9.00 MB · out 1.00 MB · 1,204 flows");
+    expect(row).toHaveTextContent("10.0 MB");
+  });
+
+  test("one client is one client, and one flow one flow", async () => {
+    await renderView(NETWORK);
+
+    const row: HTMLElement = rowsOf("meraki-conversations")[1]!;
+
+    expect(row).toHaveTextContent("· 1 client");
+    expect(row).toHaveTextContent("· 1 flow");
+  });
+
+  test("an address is in the addresses' font; a host name is text", async () => {
+    await renderView(NETWORK);
+
+    const [host, address]: Array<HTMLElement> = rowsOf(
+      "meraki-conversations",
+    ) as [HTMLElement, HTMLElement];
+
+    expect(within(host).getByTestId("meraki-conversation-to")).not.toHaveClass(
+      "font-mono",
+    );
+    expect(within(address).getByTestId("meraki-conversation-to")).toHaveClass(
+      "font-mono",
+    );
+  });
+
+  test("traffic Meraki names only by its application is listed by it, saying nothing it does not know", async () => {
+    await renderView(NETWORK);
+
+    const row: HTMLElement = rowsOf("meraki-conversations")[2]!;
+
+    expect(within(row).getByTestId("meraki-conversation-to")).toHaveTextContent(
+      "Encrypted TCP (SSL)",
+    );
+    expect(row).not.toHaveTextContent("clients");
+    expect(row).not.toHaveTextContent("flows");
+  });
+
+  test("a page of one network does not name it on every row", async () => {
+    answerUsage(() => {
+      return usage({
+        topNetworks: [
+          {
+            controllerNetworkId: "L_1000",
+            name: "Branch 1",
+            sentOctets: 20_000_000,
+            receivedOctets: 100_000_000,
+          },
+        ],
+        topConversations: [CONVERSATIONS[0]!],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    const row: HTMLElement = rowsOf("meraki-conversations")[0]!;
+
+    expect(row).not.toHaveTextContent("Branch 1");
+    expect(row).toHaveTextContent("teams.microsoft.com");
+  });
+
+  test("the bug this guards: narrowed to an uplink one network uses, rows of several still say which", async () => {
+    window.history.replaceState(null, "", "/?mup=cellular");
+    answerUsage(() => {
+      return usage({
+        topNetworks: [
+          {
+            controllerNetworkId: "L_1000",
+            name: "Branch 1",
+            sentOctets: 1,
+            receivedOctets: 1,
+          },
+        ],
+        topConversations: CONVERSATIONS,
+        topClients: [
+          {
+            clientKey: "k1",
+            name: "Kiosk 3",
+            ip: "10.0.0.25",
+            mac: "",
+            manufacturer: "",
+            controllerNetworkName: "Branch 1",
+            sentOctets: 2,
+            receivedOctets: 2,
+          },
+          {
+            clientKey: "k2",
+            name: "Kiosk 4",
+            ip: "10.0.0.26",
+            mac: "",
+            manufacturer: "",
+            controllerNetworkName: "Branch 2",
+            sentOctets: 1,
+            receivedOctets: 1,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(
+      within(rowsOf("meraki-conversations")[0]!).getByTestId(
+        "meraki-conversation-from",
+      ),
+    ).toHaveTextContent("Branch 1");
+    expect(rowsOf("meraki-top-clients")[0]).toHaveTextContent("Branch 1");
+    expect(rowsOf("meraki-top-clients")[1]).toHaveTextContent("Branch 2");
+  });
+
+  test("the rows' shares are of what Meraki's analytics counted, and they stay beside the way to the rest", async () => {
+    await renderView(NETWORK);
+
+    expect(screen.getByTestId("meraki-set-up-netflow")).toBeInTheDocument();
+    expect(screen.getByTestId("meraki-conversations-note")).toHaveTextContent(
+      "Turn on NetFlow on the MX appliances to see every conversation, address to address, with its packets.",
+    );
+  });
+
+  test("the card is as tall as its rows, not as tall as the page", async () => {
+    await renderView(NETWORK);
+
+    const card: HTMLElement = screen
+      .getByTestId("meraki-conversations")
+      .closest("[data-testid='card']") as HTMLElement;
+
+    expect(card.className).not.toContain("h-full");
+    // The lists beside each other still are, so a short one leaves no hole.
+    expect(
+      (
+        screen
+          .getByTestId("meraki-top-applications")
+          .closest("[data-testid='card']") as HTMLElement
+      ).className,
+    ).toContain("h-full");
+  });
+
+  test("no rows, and no window of them ever read: where Meraki keeps them", async () => {
+    answerUsage(() => {
+      return usage({ topConversations: [], lastAnalyticsAt: null });
+    });
+
+    await renderView(NETWORK);
+
+    expect(screen.getByTestId("meraki-conversations-empty")).toHaveTextContent(
+      "Meraki keeps them where traffic analysis with hostname visibility is turned on, under Network-wide > General.",
+    );
+    // The way to the rest stays.
+    expect(screen.getByTestId("meraki-set-up-netflow")).toBeInTheDocument();
+  });
+
+  test("the bug this fixes: a range between two reads says when the newest is, never that traffic analysis is off", async () => {
+    answerUsage(() => {
+      return usage({
+        topApplications: [],
+        topDestinations: [],
+        topClients: [],
+        topConversations: [],
+        applicationTotals: { sentOctets: 0, receivedOctets: 0 },
+        clientTotals: { sentOctets: 0, receivedOctets: 0 },
+        totals: { sentOctets: 30_000_000, receivedOctets: 0, flows: 0 },
+        // Read an hour and a half ago: before this past hour began.
+        lastAnalyticsAt: "2026-10-01T10:30:00.000Z",
+      });
+    });
+
+    await renderView(NETWORK);
+
+    for (const list of [
+      "meraki-top-applications-empty",
+      "meraki-top-destinations-empty",
+      "meraki-top-clients-empty",
+      "meraki-conversations-empty",
+    ]) {
+      expect(screen.getByTestId(list)).toHaveTextContent(
+        "Meraki's applications, destinations and clients are read every two hours. The newest are from 1 hour ago: pick a longer time range to see them.",
+      );
+      expect(screen.getByTestId(list)).not.toHaveTextContent(
+        "traffic analysis",
+      );
+    }
+
+    // Nor a count of flows that would say there were none.
+    expect(screen.getByTestId("traffic-tile-flows-value")).toHaveTextContent(
+      "\u2014",
+    );
+  });
+
+  test("the applications and destinations say their protocol and port", async () => {
+    answerUsage(() => {
+      return usage({
+        topApplications: [
+          {
+            application: "Microsoft Teams",
+            protocol: "UDP",
+            port: 3478,
+            sentOctets: 1,
+            receivedOctets: 1,
+            flows: 1,
+          },
+        ],
+        topDestinations: [
+          {
+            destination: "teams.microsoft.com",
+            application: "Microsoft Teams",
+            protocol: "UDP",
+            port: 3478,
+            sentOctets: 1,
+            receivedOctets: 1,
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(rowsOf("meraki-top-applications")[0]).toHaveTextContent(
+      "UDP port 3478",
+    );
+    expect(rowsOf("meraki-top-destinations")[0]).toHaveTextContent(
+      "Microsoft Teams · UDP port 3478",
     );
   });
 });
