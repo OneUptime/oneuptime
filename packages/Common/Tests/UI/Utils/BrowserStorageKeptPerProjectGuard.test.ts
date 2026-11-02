@@ -164,7 +164,8 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "the Search commands the person ran: the commands are the same in every project, and each opens in the tab's own",
   "oneuptime.status-timeline-view":
     "whether the person reads state timelines as a timeline or a table",
-  "metric-explorer-show-events": "whether the person shows events on metric charts",
+  "metric-explorer-show-events":
+    "whether the person shows events on metric charts",
   "metric-explorer-compare-previous":
     "whether the person compares metric charts with the period before",
   "oneuptime-network-map-layers": "which layers the person shows on site maps",
@@ -176,7 +177,8 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "how the person plays session replays: speed, skipping idle time",
   "oneuptime.investigationConversation.permissionMode":
     "how the person last asked OneUptime AI to act in a conversation - a starting pick for the next one; each request still says it",
-  "oneuptime.llm-connect-way": "the way the person last picked on Connect an AI tool",
+  "oneuptime.llm-connect-way":
+    "the way the person last picked on Connect an AI tool",
   "oneuptime.scheduled-maintenance-view":
     "only read once and removed: where the old List | Calendar switch kept the person's pick",
   // The instance's own, on the Admin Dashboard.
@@ -698,9 +700,13 @@ function helperNameExpression(
   return undefined;
 }
 
+// A module that may keep something in storage: no other needs a parse.
+const MAY_KEEP_IN_STORAGE: RegExp =
+  /getItem|setItem|removeItem|Remembered|RecentCommand|AutoRefresh|recentStorageKey/;
+
 // Every name a module keeps in the browser's storage, and how.
 function findStorageUses(file: string, text: string): Array<StorageUse> {
-  if (!/getItem|setItem|removeItem|Remembered|RecentCommand|AutoRefresh|recentStorageKey/.test(text)) {
+  if (!MAY_KEEP_IN_STORAGE.test(text)) {
     return [];
   }
 
@@ -1022,11 +1028,7 @@ describe("BrowserStorageKeptPerProjectGuard: the detector", () => {
       ["RememberedChoice.remember", "selected_filter", false],
       ["RememberedChoice.read", undefined, true],
       ["new RememberedView", "selected_view", false],
-      [
-        "useAutoRefresh",
-        "monitors-overview-auto-refresh-interval",
-        true,
-      ],
+      ["useAutoRefresh", "monitors-overview-auto-refresh-interval", true],
       ["writeRecentCommandId", "palette-recents", false],
       ["recentStorageKey=", "palette-recents", false],
     ]);
@@ -1053,11 +1055,15 @@ describe("BrowserStorageKeptPerProjectGuard: the Dashboard, the Admin Dashboard 
 
     expect(files).toContain("packages/Common/UI/Utils/Permission.ts");
     expect(files).toContain("packages/Common/UI/Utils/Project.ts");
-    expect(files).toContain("packages/App/FeatureSet/Dashboard/src/Utils/i18n.ts");
+    expect(files).toContain(
+      "packages/App/FeatureSet/Dashboard/src/Utils/i18n.ts",
+    );
     expect(files).toContain(
       "packages/App/FeatureSet/AdminDashboard/src/Utils/i18n.ts",
     );
-    expect(files).toContain("packages/App/FeatureSet/Accounts/src/Utils/i18n.ts");
+    expect(files).toContain(
+      "packages/App/FeatureSet/Accounts/src/Utils/i18n.ts",
+    );
     expect(files.length).toBeGreaterThan(1000);
 
     // A guard that found nothing would pass on anything.
@@ -1127,9 +1133,10 @@ describe("BrowserStorageKeptPerProjectGuard: the Dashboard, the Admin Dashboard 
     ]) {
       const body: string = builders.get(name) || "";
 
-      expect([name, body.includes("toPermissionsProjectId(projectId)")]).toEqual(
-        [name, true],
-      );
+      expect([
+        name,
+        body.includes("toPermissionsProjectId(projectId)"),
+      ]).toEqual([name, true]);
       expect([name, body.includes("${id}")]).toEqual([name, true]);
     }
 

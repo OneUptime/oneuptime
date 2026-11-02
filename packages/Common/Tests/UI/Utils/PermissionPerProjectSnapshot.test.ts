@@ -21,7 +21,8 @@ import {
  *
  * Each project's snapshot is now kept under names that end in its id, and a
  * tab reads the snapshot of the project it shows - the one its address
- * names, else the one it was showing (ProjectUtil.getCurrentProjectId). A
+ * names, else the one it was showing (TabProject, which
+ * ProjectUtil.getCurrentProjectId reads for every request's tenantid). A
  * tab here is the address and the session storage jsdom gives the page:
  * the tests move the address from one project to the other as the person
  * moves from one tab to the other, while localStorage - shared, as in a
@@ -57,11 +58,14 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
-import ProjectUtil, {
+import ProjectUtil from "../../../UI/Utils/Project";
+import TabProject, {
   CURRENT_PROJECT_ID_STORAGE_KEY,
   LAST_ACCESSED_PROJECT_ID_STORAGE_KEY,
-} from "../../../UI/Utils/Project";
+} from "../../../UI/Utils/TabProject";
 import LocalStorage from "../../../UI/Utils/LocalStorage";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import SessionStorage from "../../../UI/Utils/SessionStorage";
 import Label from "../../../Models/DatabaseModels/Label";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
@@ -70,7 +74,6 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import {
-  TAB_PROJECT_STORAGE_KEY,
   keepProjectPermissionsInTab,
   showProjectInTab,
 } from "../../Helpers/TabProjectPermissions";
@@ -237,11 +240,10 @@ describe("the names a project's snapshot is kept under", () => {
     }
   });
 
-  test("the test helper names a tab's project as ProjectUtil does", () => {
-    expect(TAB_PROJECT_STORAGE_KEY).toBe(CURRENT_PROJECT_ID_STORAGE_KEY);
-
+  test("the test helper shows a project in the tab as the Dashboard does", () => {
     showProjectInTab(THIRD_PROJECT_ID);
 
+    expect(TabProject.getProjectId()?.toString()).toBe(THIRD_PROJECT_ID);
     expect(ProjectUtil.getCurrentProjectId()?.toString()).toBe(
       THIRD_PROJECT_ID,
     );
@@ -394,7 +396,10 @@ describe("the project a tab shows", () => {
 
     window.history.replaceState(null, "", "/dashboard/user-settings/profile");
     showProjectInTab(VIEWED_PROJECT_ID);
-    localStorage.setItem(LAST_ACCESSED_PROJECT_ID_STORAGE_KEY, OWNED_PROJECT_ID);
+    localStorage.setItem(
+      LAST_ACCESSED_PROJECT_ID_STORAGE_KEY,
+      OWNED_PROJECT_ID,
+    );
 
     expect(heldInTab()).toEqual([Permission.Viewer, Permission.ProjectUser]);
   });
@@ -403,7 +408,10 @@ describe("the project a tab shows", () => {
     PermissionUtil.setProjectPermissions(OWNER_SNAPSHOT());
 
     window.history.replaceState(null, "", "/dashboard");
-    localStorage.setItem(LAST_ACCESSED_PROJECT_ID_STORAGE_KEY, OWNED_PROJECT_ID);
+    localStorage.setItem(
+      LAST_ACCESSED_PROJECT_ID_STORAGE_KEY,
+      OWNED_PROJECT_ID,
+    );
 
     expect(PermissionUtil.getTabProjectId()).toBe(OWNED_PROJECT_ID);
     expect(heldInTab()).toEqual([
@@ -428,22 +436,66 @@ describe("the project a tab shows", () => {
     expect(PermissionUtil.getProjectPermissions()).toBeNull();
   });
 
-  test("is read through ProjectUtil, the same answer every request's tenantid header gives", () => {
-    PermissionUtil.setProjectPermissions(VIEWER_SNAPSHOT());
-    window.history.replaceState(null, "", "/dashboard/welcome");
+  test("is the project every request of the tab names in its tenantid header, wherever the tab is", () => {
+    type TabFunction = () => void;
 
-    jest
-      .spyOn(ProjectUtil, "getCurrentProjectId")
-      .mockReturnValue(new ObjectID(VIEWED_PROJECT_ID));
+    const tabs: Array<[string, TabFunction]> = [
+      [
+        "a project's page",
+        (): void => {
+          window.history.replaceState(
+            null,
+            "",
+            `/dashboard/${VIEWED_PROJECT_ID}/home`,
+          );
+        },
+      ],
+      [
+        "a page of no project, after the tab showed one",
+        (): void => {
+          window.history.replaceState(null, "", "/dashboard/user-settings");
+          showProjectInTab(OWNED_PROJECT_ID);
+        },
+      ],
+      [
+        "a new tab that has picked no project yet",
+        (): void => {
+          window.history.replaceState(null, "", "/dashboard");
+          localStorage.setItem(
+            LAST_ACCESSED_PROJECT_ID_STORAGE_KEY,
+            THIRD_PROJECT_ID,
+          );
+        },
+      ],
+      [
+        "a tab with no project at all",
+        (): void => {
+          window.history.replaceState(null, "", "/dashboard/welcome");
+        },
+      ],
+    ];
 
-    expect(heldInTab()).toEqual([Permission.Viewer, Permission.ProjectUser]);
+    for (const [where, open] of tabs) {
+      localStorage.clear();
+      sessionStorage.clear();
+      open();
+
+      expect([where, PermissionUtil.getTabProjectId()]).toEqual([
+        where,
+        ModelAPI.getCommonHeaders()["tenantid"] || null,
+      ]);
+      expect([where, PermissionUtil.getTabProjectId()]).toEqual([
+        where,
+        ProjectUtil.getCurrentProjectId()?.toString() || null,
+      ]);
+    }
   });
 
-  test("a project read off a mock as text is read the same", () => {
+  test("a project read as text is read the same", () => {
     PermissionUtil.setProjectPermissions(VIEWER_SNAPSHOT());
 
     jest
-      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .spyOn(TabProject, "getProjectId")
       .mockReturnValue(VIEWED_PROJECT_ID as unknown as ObjectID);
 
     expect(PermissionUtil.getTabProjectId()).toBe(VIEWED_PROJECT_ID);
@@ -451,8 +503,9 @@ describe("the project a tab shows", () => {
 
   test("a tab whose project cannot be read (blocked session storage) reads no snapshot, and does not throw", () => {
     PermissionUtil.setProjectPermissions(VIEWER_SNAPSHOT());
+    window.history.replaceState(null, "", "/dashboard/user-settings");
 
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockImplementation(() => {
+    jest.spyOn(SessionStorage, "getItem").mockImplementation(() => {
       throw new Error("SecurityError: The operation is insecure.");
     });
 
@@ -471,7 +524,11 @@ describe("switching projects in one tab", () => {
     expect(createLabel().isAllowed).toBe(true);
 
     // The project picker sends the tab to the other project's address.
-    window.history.replaceState(null, "", `/dashboard/${VIEWED_PROJECT_ID}/home`);
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${VIEWED_PROJECT_ID}/home`,
+    );
     showProjectInTab(VIEWED_PROJECT_ID);
 
     expect(createLabel().isAllowed).toBe(false);
@@ -482,7 +539,11 @@ describe("switching projects in one tab", () => {
     openTab(OWNED_PROJECT_ID);
     PermissionUtil.setProjectPermissions(OWNER_SNAPSHOT());
 
-    window.history.replaceState(null, "", `/dashboard/${VIEWED_PROJECT_ID}/home`);
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${VIEWED_PROJECT_ID}/home`,
+    );
 
     expect(PermissionUtil.getProjectPermissions()).toBeNull();
     expect(PermissionGate.hasPermissionSnapshot()).toBe(false);

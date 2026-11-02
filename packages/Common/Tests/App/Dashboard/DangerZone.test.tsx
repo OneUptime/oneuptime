@@ -348,7 +348,9 @@ describe("Settings > Danger Zone", () => {
     expect(PermissionUtil.getProjectPermissions(PROJECT_ID)).toBeNull();
     expect(PermissionUtil.getProjectPermissionsHash(PROJECT_ID)).toBeNull();
     expect(
-      PermissionUtil.getProjectPermissions(otherProjectId)?.projectId?.toString(),
+      PermissionUtil.getProjectPermissions(
+        otherProjectId,
+      )?.projectId?.toString(),
     ).toBe(otherProjectId);
     expect(PermissionUtil.getProjectPermissionsHash(otherProjectId)).toBe(
       "other-project-hash",

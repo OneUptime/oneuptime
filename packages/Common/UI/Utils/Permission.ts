@@ -3,7 +3,7 @@ import {
   DropdownOptionGroup,
 } from "../Components/Dropdown/Dropdown";
 import LocalStorage from "./LocalStorage";
-import ProjectUtil from "./Project";
+import TabProject from "./TabProject";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import HeldPermissionsUtil, {
   HeldPermissions,
@@ -34,8 +34,8 @@ import Permission, {
  *
  * Each project's snapshot, and its hash, are now kept under names that end
  * in the project's id: a tab reads the snapshot of the project it shows
- * (ProjectUtil.getCurrentProjectId, the project its requests name), and a
- * request sends the hash of the project its tenantid header names
+ * (TabProject, the project its requests name), and a request sends the
+ * hash of the project its tenantid header names
  * (Utils/API/API.ts). The two old names are left where they are and never
  * read or written: a tab still running the version before keeps using them
  * until it reloads, and signing out clears them with everything else
@@ -214,13 +214,13 @@ export default class PermissionUtil {
 
   /*
    * The project this tab shows: the one its address names, else the one it
-   * was showing (ProjectUtil.getCurrentProjectId) - the project every
-   * request of the tab names in its tenantid header. Null when the tab
-   * shows none, or its storage cannot be read.
+   * was showing (TabProject) - the project every request of the tab names
+   * in its tenantid header (ProjectUtil.getCurrentProjectId reads the
+   * same). Null when the tab shows none, or its storage cannot be read.
    */
   public static getTabProjectId(): string | null {
     try {
-      return toPermissionsProjectId(ProjectUtil.getCurrentProjectId());
+      return toPermissionsProjectId(TabProject.getProjectId());
     } catch {
       return null;
     }
@@ -246,9 +246,7 @@ export default class PermissionUtil {
       return null;
     }
 
-    const permissions: JSONObject | null = readStored(
-      key,
-    ) as JSONObject | null;
+    const permissions: JSONObject | null = readStored(key) as JSONObject | null;
 
     if (
       !permissions ||

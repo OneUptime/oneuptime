@@ -175,8 +175,7 @@ class BaseAPI extends API {
         headers["global-permissions-hash"] = globalPermissionsHash;
       }
 
-      const tenantId: string | null =
-        BaseAPI.getTenantIdHeader(requestHeaders);
+      const tenantId: string | null = BaseAPI.getTenantIdHeader(requestHeaders);
 
       const projectPermissionsHash: string | null = tenantId
         ? PermissionUtil.getProjectPermissionsHash(tenantId)

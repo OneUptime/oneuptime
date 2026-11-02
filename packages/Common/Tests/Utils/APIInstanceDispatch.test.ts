@@ -200,7 +200,10 @@ describe("A BaseAPI instance refreshes a lapsed session like BaseAPI does", () =
     await new BaseAPI(
       Protocol.HTTPS,
       new Hostname("oneuptime.example.com"),
-    ).get({ url: URL.fromString(RESOURCE_URL), headers: { tenantid: projectId } });
+    ).get({
+      url: URL.fromString(RESOURCE_URL),
+      headers: { tenantid: projectId },
+    });
 
     expect(server.sent[0]!.headers["global-permissions-hash"]).toBe(
       "global-hash-123",
