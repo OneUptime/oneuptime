@@ -11,6 +11,12 @@ export interface ComponentProps {
    */
   icon: ReactNode;
   title: string;
+  /*
+   * The icon's place, where a brand sets its own gap before the words
+   * (SIGN_IN_OPTION_GOOGLE_ICON_SLOT_CLASS); SIGN_IN_OPTION_ICON_SLOT_CLASS
+   * otherwise.
+   */
+  iconSlotClassName?: string | undefined;
 }
 
 /*
@@ -31,7 +37,10 @@ const SignInOptionLabel: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div dir="auto" className={SIGN_IN_OPTION_LABEL_CLASS}>
-      <div className={SIGN_IN_OPTION_ICON_SLOT_CLASS} aria-hidden="true">
+      <div
+        className={props.iconSlotClassName || SIGN_IN_OPTION_ICON_SLOT_CLASS}
+        aria-hidden="true"
+      >
         {props.icon}
       </div>
       {props.title}

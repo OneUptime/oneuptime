@@ -23,7 +23,8 @@
     "newPassword": "Новый пароль",
     "code": "Код",
     "yourCompany": "Ваша компания",
-    "or": "или"
+    "or": "или",
+    "continueWithGoogle": "Продолжить с Google"
   },
   "language": {
     "label": "Язык",
