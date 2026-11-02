@@ -159,6 +159,9 @@ describe("a chip's value is read the way it is written", () => {
       for (const element of shown) {
         expect(element.tagName).toBe("BDI");
         expect(element).toHaveAttribute("dir", direction);
+        // Inside a span of the page's direction, which is the chip's flex item.
+        expect(element.parentElement!.tagName).toBe("SPAN");
+        expect(element.parentElement).not.toHaveAttribute("dir");
       }
 
       expect(
@@ -202,6 +205,9 @@ describe("a chip's value is read the way it is written", () => {
         const element: HTMLElement = screen.getByText(text);
         expect(element.tagName).toBe("BDI");
         expect(element).toHaveAttribute("dir", direction);
+        // Inside a span of the page's direction, which is the chip's flex item.
+        expect(element.parentElement!.tagName).toBe("SPAN");
+        expect(element.parentElement).not.toHaveAttribute("dir");
       }
     },
   );

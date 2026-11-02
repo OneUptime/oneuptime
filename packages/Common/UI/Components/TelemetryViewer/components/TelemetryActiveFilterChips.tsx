@@ -130,9 +130,12 @@ const TelemetryActiveFilterChips: FunctionComponent<
             {/*
              * The value as its telemetry wrote it - a service, a span name,
              * an exception type - read its own way on a page read the other
-             * way.
+             * way. In a span of the page's direction, so a value long enough
+             * to wrap still wraps from the chip's side.
              */}
-            <IsolatedText text={filter.displayValue} />
+            <span>
+              <IsolatedText text={filter.displayValue} />
+            </span>
             <button
               type="button"
               className={

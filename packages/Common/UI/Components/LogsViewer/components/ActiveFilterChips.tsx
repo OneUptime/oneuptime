@@ -160,9 +160,13 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
             </span>
             {/*
              * The value as its telemetry wrote it - a service, a host, a
-             * message - read its own way on a page read the other way.
+             * message - read its own way on a page read the other way. In a
+             * span of the page's direction, so a value long enough to wrap
+             * still wraps from the chip's side.
              */}
-            <IsolatedText text={chipText(filter.displayValue)} />
+            <span>
+              <IsolatedText text={chipText(filter.displayValue)} />
+            </span>
             {renderOpenAffordance(
               filter,
               isExcluded
