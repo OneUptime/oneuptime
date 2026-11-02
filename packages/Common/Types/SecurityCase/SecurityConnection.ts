@@ -304,6 +304,100 @@ export interface SecurityConnectionsJson {
   failedKinds: Array<SecurityConnectionKind>;
 }
 
+// ---------- In your logs and traces ----------
+
+/*
+ * Where the values a case, an event or an entity names appear in the logs
+ * and traces themselves - an attacker's address in a web server's access
+ * log, a leaked email in an application's error, a domain in a span's
+ * server.address - rather than which record each value is (above). Read
+ * over the same window, with the reader's own role:
+ *
+ *   a log line   names a value when its message names it whole (10.0.0.1 in
+ *                "from 10.0.0.1:52144", never in "10.0.0.12"), or when one
+ *                of its attributes is exactly the value;
+ *   a span       when one of its attributes is exactly the value.
+ *
+ * Common/Utils/SecurityCase/SecurityTelemetrySearch says which values are
+ * searched, and how.
+ */
+export enum SecurityTelemetrySignal {
+  Logs = "Logs",
+  Traces = "Traces",
+}
+
+export const SECURITY_TELEMETRY_SIGNALS: ReadonlyArray<SecurityTelemetrySignal> =
+  [SecurityTelemetrySignal.Logs, SecurityTelemetrySignal.Traces];
+
+// The most values one search looks for, in the order they are named.
+export const SECURITY_TELEMETRY_MAX_VALUES: number = 10;
+
+// The most records and places listed for one value in one signal.
+export const SECURITY_TELEMETRY_MAX_LISTED: number = 3;
+
+/*
+ * The place a log line names a value in when it is its message (the log's
+ * body); any other place is the key of the attribute holding it.
+ */
+export const SECURITY_TELEMETRY_MESSAGE_PLACE: string = "";
+
+// A record whose log lines or spans named a value, and how many.
+export interface SecurityTelemetrySourceJson {
+  kind: SecurityConnectionKind;
+  id: string;
+  name: string;
+  count: number;
+}
+
+// Where in them the value was: the message, or an attribute's key.
+export interface SecurityTelemetryPlaceJson {
+  key: string;
+  count: number;
+  /*
+   * An attribute's: the value as the attribute holds it (the spelling most
+   * of them hold), which its explorer is opened on - an attribute is
+   * matched exactly there.
+   */
+  value?: string | undefined;
+}
+
+// The log lines, or the spans, naming one value in the window.
+export interface SecurityTelemetryHitsJson {
+  count: number;
+  // The records they were sent under, the most first, the reader's own.
+  sources: Array<SecurityTelemetrySourceJson>;
+  // How many records sent them in all: more than are listed, at times.
+  sourceCount: number;
+  // Where in them it was found, the most first.
+  places: Array<SecurityTelemetryPlaceJson>;
+  lastSeen: string | null;
+}
+
+export interface SecurityTelemetryValueJson {
+  entityType: string;
+  entityValue: string;
+  /*
+   * Each null when that signal was not searched: the reader's role cannot
+   * read it, or the read failed. Never a zero for "unknown".
+   */
+  logs: SecurityTelemetryHitsJson | null;
+  traces: SecurityTelemetryHitsJson | null;
+}
+
+// Where what a case, an event or an entity names appears in the logs and traces.
+export interface SecurityTelemetryMentionsJson {
+  windowStart: string;
+  windowEnd: string;
+  // Every value searched, in the order named, found or not.
+  values: Array<SecurityTelemetryValueJson>;
+  // It names more values to search for than were searched.
+  hasMoreValues: boolean;
+  // Signals the reader's role cannot read, so none was searched.
+  unreadableSignals: Array<SecurityTelemetrySignal>;
+  // Signals that could not be searched this time.
+  failedSignals: Array<SecurityTelemetrySignal>;
+}
+
 // One open case naming a resource, as the resource's page lists it.
 export interface ResourceSecurityCaseJson {
   id: string;

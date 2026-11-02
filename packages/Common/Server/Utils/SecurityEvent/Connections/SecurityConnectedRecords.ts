@@ -1483,6 +1483,82 @@ export default class SecurityConnectedRecords {
     );
   }
 
+  /*
+   * The names of the records log lines and spans were sent under, by
+   * "kind:id" - the records whose logs and traces named a value a case
+   * names (SecurityTelemetryMentions) - read with the caller's own
+   * permissions, at most MAX_ROWS_PER_READ of each kind. A record of a
+   * kind the caller's role cannot read, or whose read failed, is not named:
+   * it is left out of what is listed, never shown by its id alone.
+   */
+  @CaptureSpan()
+  public static async readNamesOfLogResources(data: {
+    projectId: ObjectID;
+    resources: ReadonlyArray<SecurityLogResource>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, { kind: SecurityConnectionKind; name: string }>> {
+    const idsByKind: Map<SecurityConnectionKind, Set<string>> = new Map();
+
+    for (const resource of data.resources) {
+      const kind: SecurityConnectionKind | null = getLogResourceKind(
+        resource.type,
+      );
+
+      if (!kind || !ObjectID.isValidUUID(resource.id)) {
+        continue;
+      }
+
+      const ids: Set<string> = idsByKind.get(kind) || new Set();
+
+      if (ids.size < MAX_ROWS_PER_READ) {
+        ids.add(resource.id.toLowerCase());
+      }
+
+      idsByKind.set(kind, ids);
+    }
+
+    const names: Map<string, { kind: SecurityConnectionKind; name: string }> =
+      new Map();
+
+    await Promise.all(
+      Array.from(idsByKind.entries()).map(
+        async ([kind, ids]: [
+          SecurityConnectionKind,
+          Set<string>,
+        ]): Promise<void> => {
+          try {
+            const rows: Array<{ id: string; name: string }> =
+              await this.readNamesById({
+                kind,
+                ids: Array.from(ids).map((id: string): ObjectID => {
+                  return new ObjectID(id);
+                }),
+                projectId: data.projectId,
+                props: data.props,
+              });
+
+            for (const row of rows) {
+              if (row.name) {
+                names.set(`${kind}:${row.id.toLowerCase()}`, {
+                  kind,
+                  name: row.name,
+                });
+              }
+            }
+          } catch (error) {
+            if (!isRefusedRead(error)) {
+              logger.error(
+                `Security connections: the names of the ${kind} records could not be read: ${error}`,
+              );
+            }
+          }
+        },
+      ),
+    );
+
+    return names;
+  }
+
   private static async readNamesById(data: {
     kind: SecurityConnectionKind;
     ids: Array<ObjectID>;

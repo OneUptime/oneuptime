@@ -52,6 +52,7 @@ import logger from "../../Logger";
 import {
   loadSecurityConnectedRecords,
   loadSecurityConnections,
+  loadSecurityTelemetryMentions,
 } from "../../SecurityEvent/Connections/ConnectionsLoader";
 import type { SecurityConnectedRecord } from "../../SecurityEvent/Connections/SecurityConnectedRecords";
 import {
@@ -64,6 +65,11 @@ import {
   SecurityConnectionRecordListJson,
   SecurityConnectionScheduleJson,
   SecurityConnectionsJson,
+  SECURITY_TELEMETRY_MESSAGE_PLACE,
+  SecurityTelemetryHitsJson,
+  SecurityTelemetryMentionsJson,
+  SecurityTelemetryPlaceJson,
+  SecurityTelemetrySourceJson,
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import { describePlaybookSteps } from "../Toolbox/SecurityCaseTools";
@@ -83,6 +89,10 @@ import { describePlaybookSteps } from "../Toolbox/SecurityCaseTools";
  *     why, with the IDs the tools take, the incidents and alerts open on
  *     them and what changed on them around the case: how a security case
  *     connects to the rest of OneUptime;
+ *   - where its values appear in the project's logs and traces in the
+ *     case's window (the same search its Connected Signals page shows):
+ *     how many log lines and spans name each, the records that sent them
+ *     and where in them it was;
  *   - the incident it declared, if it did;
  *   - which of its entities are protected (no playbook may contain them);
  *   - the project's playbooks that are on, each with its ID, which the
@@ -170,6 +180,11 @@ export interface SecurityCaseTriageData {
    * record, hosts included. Null or undefined when it could not be read.
    */
   connections?: SecurityConnectionsJson | null | undefined;
+  /*
+   * Where its values appear in the logs and traces of its window. Null or
+   * undefined when they could not be searched.
+   */
+  telemetryMentions?: SecurityTelemetryMentionsJson | null | undefined;
   incident?: Incident | null | undefined;
   protectedEntities: Array<ProtectedEntityRule>;
   playbooks: Array<TriagePlaybook>;
@@ -362,6 +377,18 @@ export default class SecurityCaseAIContextBuilder {
         },
       ),
       connections,
+      telemetryMentions: await this.readEnrichment(
+        "where its values appear in the logs and traces",
+        data.securityCaseId,
+        null,
+        (): Promise<SecurityTelemetryMentionsJson | null> => {
+          return loadSecurityTelemetryMentions().forCase({
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+            props: { isRoot: true },
+          });
+        },
+      ),
       incident: securityCase.incidentId
         ? await this.readEnrichment(
             "the declared incident",
@@ -982,6 +1009,8 @@ export default class SecurityCaseAIContextBuilder {
       );
     }
 
+    lines.push(...describeTelemetryMentions(triage.telemetryMentions, value));
+
     if (triage.incident) {
       lines.push("");
       lines.push("## The incident this case declared");
@@ -1117,7 +1146,9 @@ export function describeConnectionReason(
 }
 
 // The IDs the tools take for a record.
-function describeConnectionId(record: SecurityConnectedResourceJson): string {
+function describeConnectionId(
+  record: Pick<SecurityConnectedResourceJson, "kind" | "id">,
+): string {
   switch (record.kind) {
     case SecurityConnectionKind.Service:
       return `serviceId "${record.id}"`;
@@ -1240,4 +1271,97 @@ export function hostReportsAddress(
       return part.trim().toLowerCase();
     })
     .includes(wanted);
+}
+
+/*
+ * Where the case's values appear in the logs and traces of its window, as
+ * its Connected Signals page shows it: one line a value - how many log
+ * lines and spans name it, the records that sent them (with the IDs the
+ * tools take), where in them it was (the message, or an attribute's key,
+ * which the telemetry wrote and is quoted like any outside value) - and one
+ * line for the values found in neither. Nothing when nothing was searched.
+ */
+export function describeTelemetryMentions(
+  mentions: SecurityTelemetryMentionsJson | null | undefined,
+  value: (
+    text: string | undefined | null,
+    maxLength: number,
+    scanned?: boolean,
+  ) => string,
+): Array<string> {
+  if (!mentions || mentions.values.length === 0) {
+    return [];
+  }
+
+  const lines: Array<string> = [
+    "",
+    `## Where its values appear in the logs and traces (${mentions.windowStart} to ${mentions.windowEnd})`,
+  ];
+  const notFound: Array<string> = [];
+
+  const describeHits: (
+    hits: SecurityTelemetryHitsJson,
+    what: string,
+  ) => string = (hits: SecurityTelemetryHitsJson, what: string): string => {
+    const sources: Array<string> = hits.sources.map(
+      (source: SecurityTelemetrySourceJson): string => {
+        return `${CONNECTION_KIND_NOUNS[source.kind]} ${value(source.name, TITLE_LENGTH, false)} (${describeConnectionId(source)}, ${source.count})`;
+      },
+    );
+    const more: number = hits.sourceCount - hits.sources.length;
+    const places: Array<string> = hits.places.map(
+      (place: SecurityTelemetryPlaceJson): string => {
+        return `${
+          place.key === SECURITY_TELEMETRY_MESSAGE_PLACE
+            ? "in the message"
+            : `attribute ${value(place.key, TITLE_LENGTH)}`
+        } ${place.count}`;
+      },
+    );
+
+    return `${hits.count} ${what}${
+      sources.length > 0
+        ? ` from ${sources.join(", ")}${more > 0 ? ` and ${more} more` : ""}`
+        : ""
+    }${places.length > 0 ? ` (${places.join("; ")})` : ""}${
+      hits.lastSeen ? `, last ${hits.lastSeen}` : ""
+    }`;
+  };
+
+  for (const mention of mentions.values) {
+    const name: string = `${mention.entityType} ${value(mention.entityValue, TITLE_LENGTH)}`;
+    const parts: Array<string> = [];
+
+    if (mention.logs && mention.logs.count > 0) {
+      parts.push(describeHits(mention.logs, "log line(s)"));
+    }
+
+    if (mention.traces && mention.traces.count > 0) {
+      parts.push(describeHits(mention.traces, "span(s)"));
+    }
+
+    if (parts.length > 0) {
+      lines.push(`- ${name}: ${parts.join("; ")}.`);
+    } else if (mention.logs && mention.traces) {
+      notFound.push(name);
+    }
+  }
+
+  if (notFound.length > 0) {
+    lines.push(
+      `- Named by no log line or span of the window: ${notFound.join(", ")}.`,
+    );
+  }
+
+  for (const signal of mentions.failedSignals) {
+    lines.push(
+      `- The ${signal.toLowerCase()} could not be searched; read them with the tools.`,
+    );
+  }
+
+  if (mentions.hasMoreValues) {
+    lines.push("- It names more values than were searched for.");
+  }
+
+  return lines;
 }

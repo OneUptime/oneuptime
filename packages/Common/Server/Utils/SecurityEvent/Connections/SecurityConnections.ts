@@ -443,13 +443,21 @@ export default class SecurityConnections {
       .slice(0, SECURITY_CONNECTION_MAX_RESOURCES);
   }
 
-  // A case's entities, the logs behind its events and its window, as the caller may read them.
-  private static async readCaseScope(data: {
+  /*
+   * A case's entities and its window, as the caller may read the case: what
+   * its Connected Signals, and its logs and traces (SecurityTelemetryMentions),
+   * are read over. Null when the case is not the caller's to read.
+   */
+  @CaptureSpan()
+  public static async readCaseWindow(data: {
     projectId: ObjectID;
     securityCaseId: ObjectID;
     props: DatabaseCommonInteractionProps;
     now?: Date | undefined;
-  }): Promise<CaseConnectionScope | null> {
+  }): Promise<{
+    entities: Array<SecurityEntity>;
+    window: SecurityConnectionWindow;
+  } | null> {
     const securityCase: SecurityCase | null =
       await SecurityCaseService.findOneBy({
         query: { _id: data.securityCaseId, projectId: data.projectId },
@@ -468,23 +476,40 @@ export default class SecurityConnections {
       return null;
     }
 
-    const window: SecurityConnectionWindow = getCaseConnectionWindow({
-      firstDetectedAt: securityCase.firstDetectedAt,
-      lastDetectedAt: securityCase.lastDetectedAt,
-      createdAt: securityCase.createdAt,
-      now: data.now || OneUptimeDate.getCurrentDate(),
-    });
-    const entities: Array<SecurityEntity> = readSecurityEntities(
-      securityCase.entities,
-    );
+    return {
+      entities: readSecurityEntities(securityCase.entities),
+      window: getCaseConnectionWindow({
+        firstDetectedAt: securityCase.firstDetectedAt,
+        lastDetectedAt: securityCase.lastDetectedAt,
+        createdAt: securityCase.createdAt,
+        now: data.now || OneUptimeDate.getCurrentDate(),
+      }),
+    };
+  }
+
+  // A case's entities, the logs behind its events and its window, as the caller may read them.
+  private static async readCaseScope(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    now?: Date | undefined;
+  }): Promise<CaseConnectionScope | null> {
+    const caseWindow: {
+      entities: Array<SecurityEntity>;
+      window: SecurityConnectionWindow;
+    } | null = await this.readCaseWindow(data);
+
+    if (!caseWindow) {
+      return null;
+    }
 
     return {
-      entities,
-      window,
+      entities: caseWindow.entities,
+      window: caseWindow.window,
       logResources: await this.readLogResources({
         projectId: data.projectId,
-        entities,
-        window,
+        entities: caseWindow.entities,
+        window: caseWindow.window,
         props: data.props,
       }),
     };
