@@ -74,7 +74,7 @@ class JSONWebToken {
     /*
      * The session's own access token lifetime (SessionMetadata.
      * accessTokenExpiresInSeconds): fifteen minutes, or less when the
-     * session ends sooner. A lifetime that is not a positive number is
+     * session ends sooner. A lifetime that is not a number at all is
      * fifteen minutes: a session's token never goes without an expiry.
      */
     expiresInSeconds: number;
@@ -97,8 +97,7 @@ class JSONWebToken {
       data: claims,
       expiresInSeconds:
         typeof data.expiresInSeconds === "number" &&
-        Number.isFinite(data.expiresInSeconds) &&
-        data.expiresInSeconds > 0
+        Number.isFinite(data.expiresInSeconds)
           ? Math.floor(data.expiresInSeconds)
           : DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
       purpose: JsonWebTokenPurpose.UserSession,
