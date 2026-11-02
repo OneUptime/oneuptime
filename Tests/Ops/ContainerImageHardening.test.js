@@ -1067,6 +1067,159 @@ describe("App", () => {
       readJson("packages/App/package-lock.json").packages["node_modules/aedes"],
     ).toBeDefined();
   });
+
+  /*
+   * Each edition's image used to be its build stage: the six frontends' own
+   * installs (500 MB, there only to bundle them), every package Common lists
+   * (810 MB, of which the App reaches a part), Common's and the App's tests,
+   * the type-check's output and the build toolchain's layers. Now both
+   * start from a runtime stage that installs nothing and copy /usr/src out of
+   * a pruned build (PruneUnreachablePackages.test.js covers the prune and the
+   * App's walk; EnterpriseEditionBuild.test.js the stage graph).
+   */
+  describe("ships only what the App runs", () => {
+    const stages = stagesOf("packages/App/Dockerfile.tpl", "production");
+    const byName = (name) => {
+      return stages.find((stage) => {
+        return stage.name === name;
+      });
+    };
+    const runtime = byName("runtime");
+    const PRUNE_COPY =
+      "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
+    const CALENDAR =
+      "/usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar";
+    const pruneLine = (extraEntries) => {
+      return [
+        "RUN node /tmp/PruneUnreachablePackages.js",
+        "--entry /usr/src/app/Index.ts",
+        "--entry /usr/src/app/Migrate.ts",
+        `--entry ${CALENDAR}/ExternalCalendarExpansionWorker.cjs`,
+        ...extraEntries.map((entry) => {
+          return `--entry ${entry}`;
+        }),
+        "--entry-loader /usr/src/app/Utils/EnterpriseLoader.ts",
+        `--entry-loader ${CALENDAR}/ExternalCalendarExpansion.ts`,
+        "--package /usr/src/Common",
+        "&& npm prune --omit=dev --offline --no-audit --no-fund",
+        "&& node -e \"require('ts-node'); require('typescript')\"",
+        "&& rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules",
+      ].join(" ");
+    };
+
+    test("the runtime stage starts from the same Node.js image as the build, updates npm, and installs neither a package nor a compiler", () => {
+      expect(runtime).toBeDefined();
+      expect(runtime.from).toBe(byName("base").from);
+      expect(runtime.instructions).toContain(UPDATE_RUN);
+      expect(
+        runtime.instructions.filter((line) => {
+          return NPM_INSTALLS.test(line);
+        }),
+      ).toEqual([]);
+      expect(
+        runtime.instructions.flatMap(installedPackagesIn).filter((name) => {
+          return COMPILERS.includes(name) || name === "python3";
+        }),
+      ).toEqual([]);
+      // The tools the build stage's image had, for what runs in the container.
+      expect(runtime.instructions.flatMap(installedPackagesIn)).toEqual(
+        expect.arrayContaining(["bash", "curl"]),
+      );
+      expect(runtime.instructions).toContain("ENV PRODUCTION=true");
+      expect(runtime.instructions).toContain("WORKDIR /usr/src/app");
+    });
+
+    test.each([
+      ["community", "community-build", []],
+      ["enterprise", "enterprise-build", ["/usr/src/ee/Server/Index.ts"]],
+    ])(
+      "the %s image copies only /usr/src out of a build pruned from %s",
+      (edition, build, extraEntries) => {
+        const image = byName(edition);
+        const pruned = byName(`${edition}-pruned`);
+
+        expect(image.from).toBe("runtime");
+        expect(pruned.from).toBe(build);
+        expect(
+          image.instructions.filter((line) => {
+            return /^COPY\b/.test(line) || NPM_INSTALLS.test(line);
+          }),
+        ).toEqual([`COPY --from=${edition}-pruned /usr/src /usr/src`]);
+        expect(pruned.instructions).toEqual([
+          PRUNE_COPY,
+          pruneLine(extraEntries),
+        ]);
+      },
+    );
+
+    test("every file the prune walks or lets load is where the build stage copies it", () => {
+      const inImage = [
+        ["/usr/src/app/", "packages/App/"],
+        ["/usr/src/Common/", "packages/Common/"],
+        ["/usr/src/ee/", "ee/"],
+      ];
+      const files = [
+        ...byName("enterprise-pruned").instructions[1].matchAll(
+          /--(?:entry|entry-loader) (\S+)/g,
+        ),
+      ].map((match) => {
+        return match[1];
+      });
+
+      expect(files).toHaveLength(6);
+      for (const file of files) {
+        const [prefix, repository] = inImage.find(([candidate]) => {
+          return file.startsWith(candidate);
+        });
+        expect({
+          file,
+          exists: fs.existsSync(
+            path.join(REPO_ROOT, repository, file.slice(prefix.length)),
+          ),
+        }).toEqual({ file, exists: true });
+      }
+    });
+
+    test("the App's start command and its migrate command run the two entries the prune starts from", () => {
+      const appPackage = readJson("packages/App/package.json");
+      expect(appPackage.scripts.start).toMatch(
+        /exec node --no-node-snapshot --require ts-node\/register Index\.ts$/,
+      );
+      // The Helm chart's migrate job runs `npm run migrate` in this image.
+      expect(appPackage.scripts.migrate).toMatch(
+        /exec node --no-node-snapshot --require ts-node\/register Migrate\.ts$/,
+      );
+      expect(
+        read("HelmChart/Public/oneuptime/templates/migrate-job.yaml"),
+      ).toContain('command: ["npm", "run", "migrate"]');
+      expect(appPackage.dependencies["ts-node"]).toBeDefined();
+    });
+
+    test("the build's other files under /usr/src stay: the licence files, the agents and the mermaid build", () => {
+      const removed = byName("community-pruned")
+        .instructions[1].split("rm -rf ")[1]
+        .split(" ");
+      expect(removed).toEqual([
+        "/tmp/PruneUnreachablePackages.js",
+        "/usr/src/Common/Tests",
+        "/usr/src/app/build",
+        "/usr/src/app/Tests",
+        "/usr/src/app/FeatureSet/*/node_modules",
+      ]);
+      for (const kept of [
+        "/usr/src/LICENSE",
+        "/usr/src/agents",
+        "/usr/src/Common/build",
+        "/usr/src/app/FeatureSet/Dashboard/public",
+      ]) {
+        expect(
+          removed.some((removedPath) => {
+            return kept === removedPath || kept.startsWith(`${removedPath}/`);
+          }),
+        ).toBe(false);
+      }
+    });
+  });
 });
 
 describe("Nginx", () => {

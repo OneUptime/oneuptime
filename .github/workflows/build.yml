@@ -68,6 +68,13 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v4
 
+      # The runtime check at the end starts the App with the PostgreSQL,
+      # ClickHouse and Valkey docker-compose.yml runs: pull those through
+      # mirror.gcr.io, not anonymously from Docker Hub
+      # (.github/actions/docker-hub-mirror). The App image itself is built
+      # here, never pulled.
+      - uses: ./.github/actions/docker-hub-mirror
+
       # The pinned, cached gomplate, so prerun's configure.sh does not download
       # it from GitHub's release CDN (see .github/actions/setup-gomplate).
       - name: Set up gomplate
@@ -117,6 +124,29 @@ jobs:
 
       - name: check the Enterprise Edition image
         run: sudo bash ./Scripts/GHA/check_app_image_edition.sh --image oneuptime-app:enterprise --edition enterprise
+
+      # Each edition's image copies /usr/src out of a pruned build
+      # (Scripts/Docker/PruneUnreachablePackages.js), so a package or a file
+      # the App needs and the prune took would fail only when something reads
+      # it. Start the Community image as Docker Compose starts it, with its
+      # datastores, and have it serve every frontend, the docs, the API
+      # reference, an install script and a sign-up
+      # (Tests/Ops/AppImageRuntime.test.js).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: 'Tests/Ops/package-lock.json'
+
+      - name: Install Ops test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
+
+      - name: start the Community Edition image and have it serve
+        run: |
+          docker tag oneuptime-app:community oneuptime/app:ci-runtime
+          cd Tests/Ops && RUN_APP_IMAGE_RUNTIME_TESTS=1 APP_IMAGE_TAG=ci-runtime npx jest --config ./jest.config.json AppImageRuntime
 
 
   docker-build-e2e:

@@ -36,7 +36,7 @@ const path = require("path");
 const {
   render,
   parseStages,
-  ancestry,
+  buildOrder,
   instructions,
 } = require("./Utils/DockerfileTemplate");
 
@@ -676,8 +676,13 @@ describe("the App images ship the license files", () => {
     return instructions(stage.body);
   }
 
+  /*
+   * The stages a target is made of: what it is built FROM, and the build
+   * stages it copies /usr/src out of (each image starts from the runtime
+   * stage and copies /usr/src out of its edition's pruned build).
+   */
   function builtFrom(name) {
-    return ancestry(stages, name).map((stage) => {
+    return buildOrder(stages, name).map((stage) => {
       return stage.name;
     });
   }
@@ -688,6 +693,13 @@ describe("the App images ship the license files", () => {
     );
     expect(builtFrom("community")).toContain("community-build");
     expect(builtFrom("enterprise")).toContain("community-build");
+    // ...and each image takes the whole of /usr/src out of its build.
+    expect(stageInstructions("community")).toContain(
+      "COPY --from=community-pruned /usr/src /usr/src",
+    );
+    expect(stageInstructions("enterprise")).toContain(
+      "COPY --from=enterprise-pruned /usr/src /usr/src",
+    );
   });
 
   test("the Enterprise build copies ee/, and ee/LICENSE with it", () => {
