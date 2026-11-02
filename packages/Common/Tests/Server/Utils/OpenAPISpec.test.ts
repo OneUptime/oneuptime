@@ -1,8 +1,16 @@
 import { beforeAll, describe, expect, it } from "@jest/globals";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Models from "../../../Models/DatabaseModels/Index";
 import OpenAPIUtil from "../../../Server/Utils/OpenAPI";
 import { JSONObject } from "../../../Types/JSON";
+import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
+import { StringUtils } from "../../../../../Scripts/TerraformProvider/Core/StringUtils";
+import {
+  TerraformDataSource,
+  TerraformResource,
+} from "../../../../../Scripts/TerraformProvider/Core/Types";
 
 /*
  * The published OpenAPI specification, as a contract.
@@ -597,6 +605,220 @@ describe("OpenAPI specification", () => {
       }
 
       expect(problems).toEqual([]);
+    });
+
+    it("lists the fields of every telemetry table's select and group by", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        for (const kind of ["SelectSchema", "GroupBySchema"]) {
+          const properties: JSONObject = ((
+            schemas[`${model.tableName}${kind}`] as JSONObject | undefined
+          )?.["properties"] || {}) as JSONObject;
+
+          if (Object.keys(properties).length === 0) {
+            problems.push(`${model.tableName}${kind}: no fields`);
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+  });
+
+  describe("telemetry creates and updates", () => {
+    /*
+     * The same `type` in AnalyticsModelSchema.getCreateModelSchema left every
+     * telemetry create with no field, and every update with it: an update
+     * was a copy of the create. A create lists its fields now, and an update
+     * those somebody may update - on a telemetry table, none
+     * (Tests/Utils/Schema/AnalyticsModelSchema holds both to what the API
+     * takes).
+     */
+    it("lists the fields of every telemetry table's create, and none of its update", () => {
+      const problems: Array<string> = [];
+      let creates: number = 0;
+      let updates: number = 0;
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        const create: JSONObject | undefined = schemas[
+          `${model.tableName}CreateSchema`
+        ] as JSONObject | undefined;
+        const update: JSONObject | undefined = schemas[
+          `${model.tableName}UpdateSchema`
+        ] as JSONObject | undefined;
+
+        if (create) {
+          creates++;
+
+          if (!Object.keys((create["properties"] || {}) as JSONObject).length) {
+            problems.push(`${model.tableName}CreateSchema: no fields`);
+          }
+        }
+
+        if (update) {
+          updates++;
+
+          if (Object.keys((update["properties"] || {}) as JSONObject).length) {
+            problems.push(`${model.tableName}UpdateSchema: has fields`);
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+      expect(creates).toBeGreaterThan(5);
+      expect(updates).toBeGreaterThan(5);
+    });
+
+    /*
+     * A log line or a span is a record the product keeps for a while, not
+     * something to manage. Its table's tag says so, and the Terraform
+     * provider reads the table and makes no resource of it - which, with a
+     * create that lists its fields, it otherwise would.
+     */
+    it("marks every telemetry table's tag, so the Terraform provider reads the table and manages none of it", () => {
+      const telemetryTags: Array<string> = AnalyticsModels.map(
+        (modelType: { new (): AnalyticsBaseModel }): AnalyticsBaseModel => {
+          return new modelType();
+        },
+      )
+        .filter((model: AnalyticsBaseModel): boolean => {
+          return Boolean(model.crudApiPath);
+        })
+        .map((model: AnalyticsBaseModel): string => {
+          return model.singularName || (model.tableName as string);
+        });
+
+      expect(
+        (spec["tags"] as Array<JSONObject>)
+          .filter((tag: JSONObject): boolean => {
+            return tag["x-oneuptime-telemetry"] === true;
+          })
+          .map((tag: JSONObject): string => {
+            return tag["name"] as string;
+          })
+          .sort(),
+      ).toEqual([...telemetryTags].sort());
+
+      const parser: OpenAPIParser = new OpenAPIParser();
+      parser.setSpec(spec as never);
+
+      const resources: Array<string> = parser
+        .getResources()
+        .map((resource: TerraformResource): string => {
+          return resource.name;
+        });
+      const dataSources: Array<string> = parser
+        .getDataSources()
+        .map((dataSource: TerraformDataSource): string => {
+          return dataSource.name;
+        });
+
+      for (const tag of telemetryTags) {
+        const name: string = StringUtils.toSnakeCase(tag);
+
+        expect([
+          name,
+          resources.includes(name),
+          dataSources.includes(name),
+          parser.warnings.filter((warning: string): boolean => {
+            return warning.includes(`"${name}"`);
+          }),
+        ]).toEqual([name, false, true, []]);
+      }
+    });
+  });
+
+  describe("database queries", () => {
+    /*
+     * The same `type` in BaseSchema left every database model's query, sort
+     * and select with no field. Each lists its fields now, a query field
+     * referring to its type's filter (Tests/Utils/Schema/ModelSchemaQuery
+     * holds them to what the API takes). Records of a database table are not
+     * grouped - findBy refuses a groupBy - so their group by lists none, and
+     * no path refers to it.
+     */
+    it("lists the fields of every model's query, sort and select, its creation time among them", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of Models) {
+        const model: DatabaseBaseModel = new modelType();
+
+        if (
+          !model.tableName ||
+          !model.enableDocumentation ||
+          !model.crudApiPath
+        ) {
+          continue;
+        }
+
+        for (const kind of ["QuerySchema", "SortSchema", "SelectSchema"]) {
+          const properties: JSONObject = ((
+            schemas[`${model.tableName}${kind}`] as JSONObject | undefined
+          )?.["properties"] || {}) as JSONObject;
+
+          if (!("createdAt" in properties)) {
+            problems.push(
+              `${model.tableName}${kind}: ${Object.keys(properties).length} fields, none of them createdAt`,
+            );
+          }
+        }
+
+        const groupBy: JSONObject = schemas[
+          `${model.tableName}GroupBySchema`
+        ] as JSONObject;
+
+        if (Object.keys((groupBy["properties"] || {}) as JSONObject).length) {
+          problems.push(`${model.tableName}GroupBySchema: has fields`);
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+
+    it("writes each operator once, in a filter every query field of its type refers to", () => {
+      const queries: Array<JSONObject> = Object.keys(schemas)
+        .filter((name: string): boolean => {
+          return name.endsWith("QuerySchema");
+        })
+        .map((name: string): JSONObject => {
+          return schemas[name] as JSONObject;
+        });
+
+      const refs: Set<string> = new Set();
+
+      for (const query of queries) {
+        for (const property of Object.values(
+          (query["properties"] || {}) as JSONObject,
+        )) {
+          const ref: unknown = (property as JSONObject)["$ref"];
+
+          if (typeof ref === "string") {
+            refs.add(ref.replace("#/components/schemas/", ""));
+          }
+        }
+      }
+
+      expect(refs.size).toBeGreaterThan(25);
+
+      for (const name of refs) {
+        expect([name, (schemas[name] as JSONObject)["anyOf"]]).toEqual([
+          name,
+          expect.any(Array),
+        ]);
+      }
     });
   });
 

@@ -1394,6 +1394,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/terraform/monitor-steps",
       },
       {
+        title: "People and Teams",
+        url: "/docs/terraform/people-and-teams",
+      },
+      {
         title: "Examples",
         url: "/docs/terraform/examples",
       },

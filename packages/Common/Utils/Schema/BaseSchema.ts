@@ -25,9 +25,40 @@ export type OperatorExample = {
   example: Record<string, unknown>;
 };
 
+/*
+ * Columns a query, sort or select may name though no permission reads them:
+ * the API lets these through before it looks at a column's readers
+ * (ColumnPermission.getExcludedColumnNames, and ModelPermission's for
+ * telemetry). It refuses any other column nobody may read.
+ */
+export const ALWAYS_READABLE_COLUMNS: Array<string> = [
+  "_id",
+  "createdAt",
+  "deletedAt",
+  "updatedAt",
+  "version",
+];
+
+/*
+ * ASC or DESC, as a sort field takes it. Published once, as SortOrder, which
+ * every sort field refers to: spelled out on each of the 6,700 sort fields it
+ * was 0.5 MB of the spec, and a client generated from it had a type for each.
+ */
+const SORT_ORDER_SCHEMA: ZodTypes.ZodTypeAny = z
+  .enum([SortOrder.Ascending, SortOrder.Descending])
+  .openapi("SortOrder", {
+    description: "The order of a sort: ASC (ascending) or DESC (descending).",
+    example: SortOrder.Descending,
+  });
+
 /**
  * Base class for schema generation with common functionality
  * Both ModelSchema and AnalyticsModelSchema extend this class
+ *
+ * No object schema here names a `type` in .openapi(): zod-to-openapi takes a
+ * `type` there for the whole schema and leaves out the properties it would
+ * have generated, so the spec listed no field of any sort, select or group
+ * by. A field's own `type` is kept, where it is a plain value's.
  */
 export abstract class BaseSchema {
   /**
@@ -52,24 +83,14 @@ export abstract class BaseSchema {
         continue;
       }
 
-      shape[key] = this.applyOpenApi(
-        z.enum([SortOrder.Ascending, SortOrder.Descending]).optional(),
-        {
-          type: "string",
-          enum: [SortOrder.Ascending, SortOrder.Descending],
-          description: `Sort order for ${key} field`,
-          example: SortOrder.Ascending,
-        },
-        data.disableOpenApiSchema || false,
-      );
+      shape[key] = SORT_ORDER_SCHEMA.optional();
     }
 
     return this.applyOpenApi(
       z.object(shape),
       {
-        type: "object",
         description: `Sort schema for ${data.tableName || "model"}. Only sortable fields are included.`,
-        example: { createdAt: SortOrder.Descending },
+        example: shape["createdAt"] ? { createdAt: SortOrder.Descending } : {},
         additionalProperties: false,
       },
       data.disableOpenApiSchema || false,
@@ -101,28 +122,21 @@ export abstract class BaseSchema {
           key,
           data.model,
         );
+        /*
+         * The nested schema says what it selects. Metadata given here would
+         * wrap a schema the spec publishes on its own (a $ref) in an allOf.
+         */
         if (nestedSchema) {
-          shape[key] = nestedSchema.openapi({
-            type: "object",
-            description: `Select fields for nested ${key} entity`,
-            example: { id: true, name: true },
-          });
+          shape[key] = nestedSchema.optional();
           continue;
         }
       }
 
-      shape[key] = z
-        .boolean()
-        .optional()
-        .openapi({
-          type: "boolean",
-          description: `Select ${key} field in the response`,
-          example: true,
-        });
+      // What it selects, the select schema's own description says.
+      shape[key] = z.boolean().optional();
     }
 
     return z.object(shape).openapi({
-      type: "object",
       description: `Select schema for ${data.tableName || "model"}. Set fields to true to include them in the response.`,
       example: data.getSelectSchemaExample(data.model),
       additionalProperties: false,
@@ -165,107 +179,10 @@ export abstract class BaseSchema {
     }
 
     return z.object(shape).openapi({
-      type: "object",
       description: `Group by schema for ${data.tableName || "model"}. Only one field can be set to true for grouping.`,
       example: data.getGroupBySchemaExample(data.model),
       additionalProperties: false,
     });
-  }
-
-  /**
-   * Generate a query schema for a model
-   */
-  protected static generateQuerySchema<T>(data: {
-    model: T;
-    tableName?: string;
-    getColumns: (model: T) => Array<{ key: string; type: any }>;
-    getValidOperatorsForColumnType: (columnType: any) => Array<string>;
-    getOperatorSchema?: (
-      operatorType: string,
-      columnType: any,
-    ) => ZodTypes.ZodTypeAny;
-    getQuerySchemaExample: (model: T) => SchemaExample;
-    getExampleValueForColumn: (columnType: any) => unknown;
-    disableOpenApiSchema?: boolean;
-  }): BaseSchemaType {
-    const shape: ShapeRecord = {};
-    const columns: Array<{ key: string; type: any }> = data.getColumns(
-      data.model,
-    );
-
-    for (const column of columns) {
-      const key: string = column.key;
-
-      // Get valid operators for this column type
-      const validOperators: Array<string> = data.getValidOperatorsForColumnType(
-        column.type,
-      );
-
-      if (validOperators.length === 0) {
-        continue;
-      }
-
-      let columnSchema: ZodTypes.ZodTypeAny;
-
-      if (data.getOperatorSchema) {
-        // Use advanced operator schemas (for regular ModelSchema)
-        const operatorSchemas: Array<ZodTypes.ZodTypeAny> = validOperators.map(
-          (operatorType: string) => {
-            return data.getOperatorSchema!(operatorType, column.type);
-          },
-        );
-
-        if (operatorSchemas.length === 1 && operatorSchemas[0]) {
-          columnSchema = operatorSchemas[0].optional();
-        } else if (operatorSchemas.length > 1) {
-          columnSchema = z
-            .union(
-              operatorSchemas as [
-                ZodTypes.ZodTypeAny,
-                ZodTypes.ZodTypeAny,
-                ...ZodTypes.ZodTypeAny[],
-              ],
-            )
-            .optional();
-        } else {
-          columnSchema = z.any().optional();
-        }
-      } else {
-        // Use simple operator schema (for AnalyticsModelSchema)
-        columnSchema = z
-          .object({
-            _type: z.enum(validOperators as [string, ...string[]]),
-            value: z.any().optional(),
-          })
-          .optional();
-      }
-
-      columnSchema = this.applyOpenApi(
-        columnSchema,
-        {
-          type: "object",
-          description: `Query operators for ${key} field of type ${column.type}. Supported operators: ${validOperators.join(", ")}`,
-          example: {
-            _type: "EqualTo",
-            value: data.getExampleValueForColumn(column.type),
-          },
-        },
-        data.disableOpenApiSchema || false,
-      );
-
-      shape[key] = columnSchema;
-    }
-
-    return this.applyOpenApi(
-      z.object(shape),
-      {
-        type: "object",
-        description: `Query schema for ${data.tableName || "model"}. Each field can use various operators based on its data type.`,
-        example: data.getQuerySchemaExample(data.model),
-        additionalProperties: false,
-      },
-      data.disableOpenApiSchema || false,
-    );
   }
 
   /**
@@ -319,7 +236,6 @@ export abstract class BaseSchema {
     }
 
     return z.object(shape).openapi({
-      type: "object",
       description: `Create schema for ${data.tableName || "model"}`,
       example: data.getCreateSchemaExample(data.model),
       additionalProperties: false,

@@ -84,6 +84,9 @@ const A_TIME: string = "2026-07-01T00:00:00.000Z";
 
 const MAP_TYPE: string = "Map(String, String)";
 
+// A database column filtered by its keys, as a telemetry map is.
+const JSON_TYPE: string = TableColumnType.JSON;
+
 // The column types, database and telemetry, that hold a number.
 const NUMERIC_TYPE: RegExp = /Number|UInt|Decimal|Port/;
 
@@ -495,6 +498,35 @@ describe("what it says of a database resource is what the API does", () => {
     }
   });
 
+  test("a JSON field is filtered by its keys, as the answer says", () => {
+    const { usage, operatorsByType }: Description =
+      describeResource("Incident");
+
+    expect(usage["json"]).toBe(
+      'A JSON field is filtered by its keys: {"customFields": {"<key>": <value or operator>}}. IsNull and NotNull on the field itself ask whether it holds anything.',
+    );
+    expect(operatorsByType[JSON_TYPE]).toEqual(
+      expect.arrayContaining(["Search", "GreaterThan", "InBetween"]),
+    );
+  });
+
+  test("offers no NotEqual on a relation list, which the API refuses", () => {
+    const modelType: DatabaseBaseModelType = databaseModel(
+      listTools.find((tool: McpToolInfo): boolean => {
+        return tool.name === "list_incidents";
+      }) as McpToolInfo,
+    );
+
+    expect(
+      describeResource("Incident").operatorsByType["Entity Array"],
+    ).toEqual(["EqualTo", "IsNull", "NotNull", "Includes"]);
+    expect(() => {
+      runDatabaseQuery(modelType, {
+        labels: { _type: "NotEqual", value: [A_UUID] },
+      });
+    }).toThrow('Invalid ID for "labels"');
+  });
+
   test("sorts on a number the sort schema leaves out, as the API does: a severity's order", () => {
     expect(describeResource("Incident Severity").fields["order"]).toMatchObject(
       { type: "Small Number", filter: true, sort: true },
@@ -514,14 +546,28 @@ describe("what it says of a database resource is what the API does", () => {
           continue;
         }
 
+        // A JSON field is filtered by its keys, each key with a text value.
+        const isJson: boolean = field.type === JSON_TYPE;
+        const filterOn: (filter: JSONValue) => JSONObject = (
+          filter: JSONValue,
+        ): JSONObject => {
+          return { [name]: isJson ? { aKey: filter } : filter };
+        };
+
         // A plain value matches exactly.
-        runDatabaseQuery(modelType, { [name]: valueFor(field.type) });
+        runDatabaseQuery(
+          modelType,
+          filterOn(valueFor(isJson ? "Text" : field.type)),
+        );
         checked++;
 
         for (const operator of operatorsByType[field.type] || []) {
-          const query: JSONObject = {
-            [name]: fillIn(operators[operator] as JSONObject, field.type),
-          };
+          const query: JSONObject = filterOn(
+            fillIn(
+              operators[operator] as JSONObject,
+              isJson ? "Text" : field.type,
+            ),
+          );
 
           expectNoFilterProblem(tool, query);
           runDatabaseQuery(modelType, query);

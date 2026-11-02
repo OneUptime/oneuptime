@@ -130,6 +130,37 @@ describe("a host's Filesystems, on a wide screen", () => {
     expect(cells[4]).toHaveTextContent("95.3%");
   });
 
+  /*
+   * The host's UI review: on a Persian page /var/lib/postgresql read
+   * "var/lib/postgresql/", /dev/nvme0n1p2 "dev/nvme0n1p2/", and "472 GiB /
+   * 500 GiB" put 472 after the total. Each is isolated (bdi), so it reads
+   * the way the host wrote it whatever the page's direction.
+   */
+  test("the mount, its device and its sizes each read the way the host wrote them", () => {
+    draw(1280);
+
+    const cells: Array<HTMLTableCellElement> = Array.from(rows()[0]!.cells);
+
+    const mount: HTMLElement = within(cells[0]!).getByTestId(
+      "host-filesystem-mount",
+    );
+    expect(mount.tagName).toBe("BDI");
+    expect(mount).toHaveTextContent("/");
+
+    const device: HTMLElement = within(cells[2]!).getByTestId(
+      "host-filesystem-device",
+    );
+    expect(device.tagName).toBe("BDI");
+    expect(device).toHaveTextContent("/dev/nvme0n1p2");
+
+    const used: HTMLElement = within(cells[3]!).getByTestId(
+      "host-filesystem-used",
+    );
+    expect(used.tagName).toBe("BDI");
+    // The used size first, then the total, in one isolated run.
+    expect(used).toHaveTextContent("488 GiB/512 GiB");
+  });
+
   test("a mount that names no type or device shows the quiet dash", () => {
     draw(1280);
 
@@ -143,7 +174,7 @@ describe("a host's Filesystems, on a wide screen", () => {
     ).toBeInTheDocument();
   });
 
-  test("the bar is as long as the mount is full, in green, amber from 75% and red from 90%", () => {
+  test("the bar is as long as the mount is full, in green, amber above 85% and red above 95%, as Needs attention lists it", () => {
     draw(1280);
 
     const bars: Array<HTMLElement> = screen
@@ -158,9 +189,10 @@ describe("a host's Filesystems, on a wide screen", () => {
     expect(bars[1]!.style.width).toBe("1.2%");
     expect(bars[1]).toHaveClass("bg-emerald-500");
 
-    expect(getMountBarClassName(74.99)).toBe("bg-emerald-500");
-    expect(getMountBarClassName(75)).toBe("bg-amber-500");
-    expect(getMountBarClassName(90)).toBe("bg-red-500");
+    expect(getMountBarClassName(85)).toBe("bg-emerald-500");
+    expect(getMountBarClassName(85.01)).toBe("bg-amber-500");
+    expect(getMountBarClassName(95)).toBe("bg-amber-500");
+    expect(getMountBarClassName(95.01)).toBe("bg-red-500");
   });
 
   test("a bar never runs past its track, nor below its start", () => {

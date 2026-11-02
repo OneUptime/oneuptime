@@ -153,6 +153,7 @@ moved {
 | 텍스트, 숫자, 참 또는 거짓 | 그대로 | `is_public_status_page = false` |
 | 다른 레코드에 대한 참조 | 그 레코드의 ID, 보통 다른 리소스의 `id` | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | 참조 목록 | 순서가 상관없는 ID 집합 | `labels = [oneuptime_label.critical.id]` |
+| 사람 | 사용자 ID 옆에 쓰는 그 사람의 이메일 주소: [사용자와 팀](/docs/terraform/people-and-teams) 참고 | `user_email = "alice@example.com"` |
 | 색상, 도메인 및 다른 래핑된 값 | 단순한 값 | `color = "#FF5733"` |
 | 날짜와 시간 | RFC 3339 형식의 텍스트 | `starts_at = "2030-06-01T02:00:00Z"` |
 | 모니터의 확인 | 타입이 있는 중첩 속성: [모니터 단계](/docs/terraform/monitor-steps) 참조 | `monitor_steps = [{ ... }]` |

@@ -303,6 +303,22 @@ function buildUsage(
       `A ${AnalyticsColumnType.MapStringString} field is filtered by its keys: {"${mapField}": {"<key>": <value or operator>}}.`;
   }
 
+  // A record's JSON, such as its custom fields, is filtered the same way.
+  const jsonField: string | undefined =
+    resource.modelType === ModelType.Database
+      ? Object.keys(described.fields).find((name: string): boolean => {
+          return (
+            described.fields[name]?.type === TableColumnType.JSON &&
+            described.fields[name]?.filter === true
+          );
+        })
+      : undefined;
+
+  if (jsonField) {
+    usage["json"] =
+      `A ${TableColumnType.JSON} field is filtered by its keys: {"${jsonField}": {"<key>": <value or operator>}}. IsNull and NotNull on the field itself ask whether it holds anything.`;
+  }
+
   return usage;
 }
 

@@ -23,7 +23,8 @@
     "newPassword": "Nuova password",
     "code": "Codice",
     "yourCompany": "La tua azienda",
-    "or": "oppure"
+    "or": "oppure",
+    "continueWithGoogle": "Continua con Google"
   },
   "language": {
     "label": "Lingua",

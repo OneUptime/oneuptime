@@ -117,6 +117,7 @@ type CallResult = {
 function buildAggregateBody(data: {
   aggregateColumnName: string;
   query?: JSONObject | undefined;
+  groupBy?: JSONObject | undefined;
 }): JSONObject {
   return {
     aggregateBy: JSONFunctions.serialize({
@@ -126,6 +127,7 @@ function buildAggregateBody(data: {
       startTimestamp: new Date("2026-09-17T00:00:00.000Z"),
       endTimestamp: new Date("2026-09-18T00:00:00.000Z"),
       query: data.query || {},
+      ...(data.groupBy ? { groupBy: data.groupBy } : {}),
       limit: 10,
       skip: 0,
     } as JSONObject),
@@ -566,6 +568,59 @@ describe("BaseAnalyticsAPI aggregate cache authorization", () => {
     expect(result.sentBody).toBeUndefined();
     expect(cacheRead).not.toHaveBeenCalled();
     expect(monitorLogService.aggregateBy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Every row of a grouped aggregate carries the columns it groups by, so the
+   * live path checks them as it checks the aggregated column - and a cached
+   * result someone allowed to read them left must not reach anyone else.
+   */
+  test("a member who can read the model but not a grouped column gets 422 and the cache is never read", async () => {
+    const result: CallResult = await callAggregateRoute({
+      uri: "/logs/aggregate",
+      req: buildMemberRequest({
+        body: buildAggregateBody({
+          aggregateColumnName: "severityNumber",
+          groupBy: { retentionDate: true },
+        }),
+        tenantPermissions: {
+          [PROJECT_ID.toString()]: buildTenantPermissions(PROJECT_ID, [
+            grant(Permission.ProjectMember),
+          ]),
+        },
+      }),
+    });
+
+    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrownToNext as NotAuthorizedException).code).toBe(422);
+    expect((result.thrownToNext as NotAuthorizedException).message).toContain(
+      "You do not have permissions to select on - retentionDate.",
+    );
+    expect(result.sentBody).toBeUndefined();
+    expect(cacheRead).not.toHaveBeenCalled();
+    expect(logService.aggregateBy).not.toHaveBeenCalled();
+  });
+
+  test("a member grouping by a column they can read is still served from the cache", async () => {
+    const result: CallResult = await callAggregateRoute({
+      uri: "/logs/aggregate",
+      req: buildMemberRequest({
+        body: buildAggregateBody({
+          aggregateColumnName: "severityNumber",
+          groupBy: { severityText: true },
+        }),
+        tenantPermissions: {
+          [PROJECT_ID.toString()]: buildTenantPermissions(PROJECT_ID, [
+            grant(Permission.ProjectMember),
+          ]),
+        },
+      }),
+    });
+
+    expect(result.thrownToNext).toBeUndefined();
+    expect(result.sentBody).toEqual(CACHED_BODY);
+    expect(cacheRead).toHaveBeenCalledTimes(1);
+    expect(logService.aggregateBy).not.toHaveBeenCalled();
   });
 
   test("a member filtering on a column they cannot read gets 422 and the cache is never read", async () => {

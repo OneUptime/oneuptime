@@ -250,7 +250,8 @@ import { AddCloudApps1808795310000 } from "./1808795310000-AddCloudApps";
 import { AddCloudResourceInstanceAppIndexAndKey1808795320000 } from "./1808795320000-AddCloudResourceInstanceAppIndexAndKey";
 import { AddKubernetesResourceHealthSeverity1808800000000 } from "./1808800000000-AddKubernetesResourceHealthSeverity";
 import { AddKubernetesResourceHealthSeverityIndex1808810000000 } from "./1808810000000-AddKubernetesResourceHealthSeverityIndex";
-import { AddUserSessionLengths1808826400000 } from "./1808826400000-AddUserSessionLengths";
+import { AddHostReadings1808830000000 } from "./1808830000000-AddHostReadings";
+import { AddUserSessionLengths1808840000000 } from "./1808840000000-AddUserSessionLengths";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1703,5 +1704,6 @@ export default [
   AddCloudResourceInstanceAppIndexAndKey1808795320000,
   AddKubernetesResourceHealthSeverity1808800000000,
   AddKubernetesResourceHealthSeverityIndex1808810000000,
-  AddUserSessionLengths1808826400000,
+  AddHostReadings1808830000000,
+  AddUserSessionLengths1808840000000,
 ];

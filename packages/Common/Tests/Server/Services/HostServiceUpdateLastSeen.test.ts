@@ -493,6 +493,169 @@ describe("HostService.updateLastSeen", () => {
     });
   });
 
+  /*
+   * What the host reported (HostReadingsScan) rides along with its other
+   * metadata: the Hosts list, its Needs attention card and the host's page
+   * read it from these columns. The readings are gauges that move on every
+   * scrape, so - like the process count - they must never defeat the
+   * throttle, and a batch that did not carry a reading must leave its column
+   * as it was.
+   */
+  describe("the host's readings", () => {
+    const BOOTED_AT: Date = new Date("2026-10-30T08:00:00.000Z");
+
+    beforeEach(() => {
+      mockWritesSucceeding();
+    });
+
+    test("are written with the metadata, with when they were taken", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        readings: {
+          latestCpuPercent: 42.5,
+          latestMemoryPercent: 81.2,
+          latestSwapPercent: 12,
+          latestDiskPercent: 96.4,
+          latestDiskMountpoint: "/var",
+          latestInodesPercent: 33,
+          latestInodesMountpoint: "/",
+          latestLoadAverage15m: 3.2,
+          bootedAt: BOOTED_AT,
+          failedSystemdUnitCount: 1,
+          failedSystemdUnits: ["nginx.service"],
+        },
+      });
+
+      expect(writes).toHaveLength(1);
+      expect(lastWrite()).toEqual(
+        expect.objectContaining({
+          latestCpuPercent: 42.5,
+          latestMemoryPercent: 81.2,
+          latestSwapPercent: 12,
+          latestDiskPercent: 96.4,
+          latestDiskMountpoint: "/var",
+          latestInodesPercent: 33,
+          latestInodesMountpoint: "/",
+          latestLoadAverage15m: 3.2,
+          bootedAt: BOOTED_AT,
+          failedSystemdUnitCount: 1,
+          failedSystemdUnits: ["nginx.service"],
+        }),
+      );
+      expect(lastWrite()["readingsUpdatedAt"]).toBeInstanceOf(Date);
+    });
+
+    test("a batch without readings leaves every reading column as it was", async () => {
+      await HostService.updateLastSeen(HOST_ID, { osType: "linux" });
+
+      expect(Object.keys(lastWrite())).not.toContain("readingsUpdatedAt");
+      for (const column of [
+        "latestCpuPercent",
+        "latestMemoryPercent",
+        "latestDiskPercent",
+        "failedSystemdUnitCount",
+        "bootedAt",
+      ]) {
+        expect(Object.keys(lastWrite())).not.toContain(column);
+      }
+    });
+
+    test("writes only the readings the batch carried", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        readings: { failedSystemdUnitCount: 0, failedSystemdUnits: [] },
+      });
+
+      expect(lastWrite()["failedSystemdUnitCount"]).toBe(0);
+      expect(lastWrite()["failedSystemdUnits"]).toEqual([]);
+      expect(Object.keys(lastWrite())).not.toContain("latestCpuPercent");
+      expect(lastWrite()["readingsUpdatedAt"]).toBeInstanceOf(Date);
+    });
+
+    test("an empty set of readings writes no reading time", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        readings: {},
+      });
+
+      expect(Object.keys(lastWrite())).not.toContain("readingsUpdatedAt");
+    });
+
+    test("readings that change on every scrape do not defeat the throttle", async () => {
+      for (let scrape: number = 0; scrape < 20; scrape++) {
+        expireEnrichmentWindow();
+        await HostService.updateLastSeen(HOST_ID, {
+          osType: "linux",
+          readings: {
+            latestCpuPercent: 10 + scrape,
+            latestMemoryPercent: 50 + scrape / 10,
+            latestDiskPercent: 70,
+            latestDiskMountpoint: "/",
+          },
+        });
+      }
+
+      expect(writes).toHaveLength(1);
+    });
+
+    test("they land with the next write the throttle admits", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        readings: { latestCpuPercent: 10 },
+      });
+      expireLivenessWindow();
+      expireEnrichmentWindow();
+      // The fingerprint's own key expires with its window, as its TTL would.
+      cache.delete(`host-last-seen-fingerprint:${HOST_ID.toString()}`);
+
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        readings: { latestCpuPercent: 77 },
+      });
+
+      expect(writes).toHaveLength(2);
+      expect(lastWrite()["latestCpuPercent"]).toBe(77);
+    });
+  });
+
+  describe("the host's readings on the real write path", () => {
+    beforeEach(() => {
+      mockRealWritePath();
+    });
+
+    test("a mount point longer than its column is clamped, not refused", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        readings: {
+          latestDiskPercent: 99,
+          latestDiskMountpoint: `/${"m".repeat(800)}`,
+        },
+      });
+
+      expect(lastWrite()["latestDiskMountpoint"]).toHaveLength(500);
+      expect(lastWrite()["latestDiskPercent"]).toBe(99);
+    });
+
+    test("every reading names a real Host column", async () => {
+      const host: Host = new Host();
+      for (const column of [
+        "latestCpuPercent",
+        "latestMemoryPercent",
+        "latestSwapPercent",
+        "latestDiskPercent",
+        "latestDiskMountpoint",
+        "latestInodesPercent",
+        "latestInodesMountpoint",
+        "latestLoadAverage15m",
+        "bootedAt",
+        "failedSystemdUnitCount",
+        "failedSystemdUnits",
+        "readingsUpdatedAt",
+      ]) {
+        expect(host.hasColumn(column)).toBe(true);
+      }
+    });
+  });
+
   describe("fallback when the enriched write fails anyway", () => {
     beforeEach(() => {
       mockEnrichedWriteFailing();

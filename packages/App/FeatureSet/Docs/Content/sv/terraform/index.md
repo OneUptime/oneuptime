@@ -153,6 +153,7 @@ Attributen följer OneUptimes API, i snake_case:
 | Text, tal, sant eller falskt | Som de är | `is_public_status_page = false` |
 | En hänvisning till en annan post | Dess ID, oftast `id` för en annan resurs | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | En lista med hänvisningar | En mängd ID:n, vars ordning inte spelar någon roll | `labels = [oneuptime_label.critical.id]` |
+| En person | E-postadressen, bredvid användar-ID:t: se [Personer och team](/docs/terraform/people-and-teams) | `user_email = "alice@example.com"` |
 | En färg, en domän och andra inslagna värden | Deras enkla värde | `color = "#FF5733"` |
 | Ett datum och en tid | Text i RFC 3339 | `starts_at = "2030-06-01T02:00:00Z"` |
 | En monitors kontroller | Typade nästlade attribut: se [Monitorsteg](/docs/terraform/monitor-steps) | `monitor_steps = [{ ... }]` |

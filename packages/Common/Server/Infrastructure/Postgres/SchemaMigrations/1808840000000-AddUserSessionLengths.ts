@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * today's sign-ins - no limit, and 30 days without use - until a master
  * admin sets one, so nobody is signed out by the upgrade.
  */
-export class AddUserSessionLengths1808826400000 implements MigrationInterface {
-  public name: string = "AddUserSessionLengths1808826400000";
+export class AddUserSessionLengths1808840000000 implements MigrationInterface {
+  public name: string = "AddUserSessionLengths1808840000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

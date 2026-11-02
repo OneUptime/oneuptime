@@ -100,8 +100,8 @@ Configurar um provedor global não obriga ninguém a usá-lo; o login com senha 
 
 Enquanto a instância inteira exige SSO:
 
-- A página de login oferece só SSO: um botão para cada provedor global ligado, e nada de senha, chave de acesso, login com a Microsoft ou cadastro. Ela mantém a busca por e-mail, que encontra o provedor próprio de um projeto, só enquanto algum projeto tiver um.
-- O OneUptime recusa uma senha, uma chave de acesso, um login com a Microsoft e um cadastro com "This server requires single sign-on (SSO). Sign in with SSO instead." Só a senha ou a chave de acesso de um administrador mestre ainda fazem o login dele. As pessoas recebem a conta fazendo login com SSO ou por convite.
+- A página de login oferece só SSO: um botão para cada provedor global ligado, e nada de senha, chave de acesso, login com o Google ou a Microsoft, ou cadastro. Ela mantém a busca por e-mail, que encontra o provedor próprio de um projeto, só enquanto algum projeto tiver um.
+- O OneUptime recusa uma senha, uma chave de acesso, um login com o Google ou a Microsoft e um cadastro com "This server requires single sign-on (SSO). Sign in with SSO instead." Só a senha ou a chave de acesso de um administrador mestre ainda fazem o login dele. As pessoas recebem a conta fazendo login com SSO ou por convite.
 - Quem já fez login com uma senha faz login com SSO para abrir um projeto. Essa pessoa chega à página de login único do projeto, que oferece os provedores próprios do projeto e os provedores globais que fazem login nele.
 - Os administradores mestres fazem login com a senha em `/accounts/admin-login`, um endereço para o qual a página de login não aponta. O cartão **Exigir SSO** mostra o endereço completo abaixo do interruptor, como **Login de administrador principal**: guarde-o, para desligar a exigência se o seu provedor de identidade parar de funcionar.
 
@@ -162,7 +162,7 @@ Cada resposta do seu provedor de identidade faz o login uma única vez, e só no
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-A instância inteira exige SSO, e este foi um login com senha, chave de acesso ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para login** em **Login único**.
+A instância inteira exige SSO, e este foi um login com senha, chave de acesso, Google ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para login** em **Login único**.
 :::
 
 ## Próximos passos

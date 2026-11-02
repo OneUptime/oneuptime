@@ -3130,6 +3130,55 @@ jobs:
           MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
         run: bash ./Scripts/MCP/PublishToMcpRegistry.sh
 
+  # The coding agent plugin (packages/App/FeatureSet/MCP/CodingAgentPlugin),
+  # in its own repository, the one the package's plugin.json names, where
+  # Cursor's Marketplace and the Claude directory read it. It needs
+  # finalize-github-release, so the plugin is published with the release it
+  # describes, and only for `release`. Scripts/MCP/PublishCodingAgentPlugin.sh
+  # pushes a commit only when the plugin changed, at this release's version:
+  # both directories review every commit. It reads its deploy key from the
+  # coding-agent-plugin-publish environment, and while the key is not set it
+  # is skipped with a notice: the repository and the key are one-time setup
+  # (the package's README), and a release must not fail without them.
+  # Tests/Ops/CodingAgentPluginRelease.test.js holds all of this.
+  publish-coding-agent-plugin:
+    name: Publish the coding agent plugin
+    needs: [read-version, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: coding-agent-plugin-publish
+    # Two runs at once would each push the repository as they cloned it, and
+    # the later push would be refused. One at a time; none cancelled.
+    concurrency:
+      group: coding-agent-plugin-repository
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secret
+        id: secrets
+        env:
+          CODING_AGENT_PLUGIN_DEPLOY_KEY: ${{ secrets.CODING_AGENT_PLUGIN_DEPLOY_KEY }}
+        run: |
+          if [ -n "$CODING_AGENT_PLUGIN_DEPLOY_KEY" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Coding agent plugin skipped::CODING_AGENT_PLUGIN_DEPLOY_KEY is not set, so the coding agent plugin was not published to its repository. See packages/App/FeatureSet/MCP/CodingAgentPlugin/README.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      # The build is plain Node.js, which the runner has, with no packages.
+      - name: Publish the plugin to its repository
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          CODING_AGENT_PLUGIN_DEPLOY_KEY: ${{ secrets.CODING_AGENT_PLUGIN_DEPLOY_KEY }}
+        run: bash ./Scripts/MCP/PublishCodingAgentPlugin.sh
+
   # ─── The infrastructure agent in package managers ─────────────────────
   #
   # This release's agent, in the package managers fleet tools install from

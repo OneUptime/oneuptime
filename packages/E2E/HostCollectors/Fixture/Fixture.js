@@ -938,6 +938,17 @@ ModelAPI.deleteItem = async (options) => {
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url });
+
+  /*
+   * The Hosts list's Needs attention card reads the hosts past one of
+   * HostHealth's lines (POST /host/needs-attention). The card is the Host
+   * pages suite's subject (HostPages); here it answers a calm fleet, and
+   * the list below it is what this suite reads.
+   */
+  if (method === "POST" && url.endsWith("/host/needs-attention")) {
+    return new HTTPResponse(200, { hosts: [], isTruncated: false }, {});
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return new HTTPErrorResponse(404, { message: "Not modelled." }, {});
 }

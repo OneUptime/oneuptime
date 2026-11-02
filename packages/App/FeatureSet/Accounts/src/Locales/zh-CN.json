@@ -23,7 +23,8 @@
     "newPassword": "新密码",
     "code": "代码",
     "yourCompany": "您的公司",
-    "or": "或"
+    "or": "或",
+    "continueWithGoogle": "使用 Google 继续"
   },
   "language": {
     "label": "语言",

@@ -31,7 +31,7 @@ flowchart TB
 
 | होस्ट पर आप क्या देखते हैं | यह कहाँ से आता है |
 | --- | --- |
-| **अवलोकन** और **मेट्रिक्स** | `hostmetrics` रिसीवर: CPU, मेमोरी, डिस्क, फ़ाइल सिस्टम, नेटवर्क, लोड, पेजिंग। |
+| **अवलोकन** और **मेट्रिक्स** | `hostmetrics` रिसीवर: CPU, मेमोरी, डिस्क, फ़ाइल सिस्टम, नेटवर्क, लोड, पेजिंग, अपटाइम। |
 | **प्रक्रियाएँ** | `hostmetrics` का `process` स्क्रैपर: हर प्रक्रिया के लिए सीरीज़ का एक सेट। |
 | **लॉग** | `filelog`, `journald` और `windowseventlog` रिसीवर। |
 | **Systemd यूनिट** (Linux) | `systemd` रिसीवर। |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

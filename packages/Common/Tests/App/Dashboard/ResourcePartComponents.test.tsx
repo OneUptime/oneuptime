@@ -473,6 +473,54 @@ describe("the Needs attention card", () => {
     expect(name.querySelectorAll("wbr").length).toBeGreaterThan(0);
     // The text itself is unchanged: a copy or a search reads it as written.
     expect(name.textContent).toBe("backup-store.example.internal");
+    // Isolated, so a mount's leading slash stays at its start on a Persian page.
+    expect(name.querySelector("bdi")).not.toBeNull();
+    expect(name.querySelector("bdi")!.textContent).toBe(
+      "backup-store.example.internal",
+    );
+  });
+
+  test("a list of one kind of part leaves out the kind's chip", () => {
+    render(
+      <NeedsAttentionCard
+        testId="attention"
+        showKind={false}
+        items={[
+          item("db-01", ResourceAttentionSeverity.Critical, { kind: "Host" }),
+          item("web-03", ResourceAttentionSeverity.Warning, { kind: "Host" }),
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByTestId("attention-item")).toHaveLength(2);
+    expect(screen.queryAllByTestId("attention-kind")).toEqual([]);
+    expect(screen.queryByText("Host")).toBeNull();
+  });
+
+  test("a part that stopped reporting says when it last did; the others do not", () => {
+    render(
+      <NeedsAttentionCard
+        testId="attention"
+        items={[
+          item("web-03", ResourceAttentionSeverity.Critical, {
+            reasons: [{ text: "Not reporting" }],
+            lastReportAt: new Date(NOW.getTime() - 3 * 60 * 60 * 1000),
+          }),
+          item("db-01", ResourceAttentionSeverity.Warning),
+        ]}
+      />,
+    );
+
+    const lines: Array<HTMLElement> = screen.getAllByTestId(
+      "attention-last-report",
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toHaveTextContent("Last reported 3 hours ago");
+    expect(
+      within(screen.getAllByTestId("attention-item")[0]!).getByTestId(
+        "attention-last-report",
+      ),
+    ).toBe(lines[0]);
   });
 });
 

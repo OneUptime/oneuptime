@@ -38,6 +38,22 @@ export enum MarketingEventType {
   SubscriptionUpgraded = "subscription_upgraded",
   SubscriptionDowngraded = "subscription_downgraded",
   /*
+   * The first money a project paid, read off the Stripe invoice that took it.
+   *
+   * On OneUptime Cloud every paid plan starts on a free trial that asks for
+   * no card, so subscription_started is a plan chosen, not a payment. This is
+   * the payment: most often the invoice Stripe raises when that trial ends,
+   * which no browser is present to report.
+   */
+  FirstPayment = "first_payment",
+  /*
+   * A paid subscription stopped: cancelled, its project deleted, Stripe
+   * giving up on a card that kept failing, or a free trial that ended
+   * without ever being paid for. The counterpart a receiver needs to stop
+   * counting subscription_started's value as revenue still to come.
+   */
+  SubscriptionEnded = "subscription_ended",
+  /*
    * A sales-led licence was issued, carrying its annual contract value.
    *
    * This is the only event that reports enterprise revenue, and the only one
@@ -83,12 +99,15 @@ export interface MarketingEvent extends JSONObject {
    *   subscription_upgraded:{projectId}:{occurredAt}
    *   subscription_downgraded:{projectId}:{occurredAt}
    *   enterprise_license_issued:{enterpriseLicenseId}
+   *   first_payment:{projectId}
+   *   subscription_ended:{stripeSubscriptionId}
    *
-   * Three of these are naturally unique — a user signs up once, a project has
-   * one first subscription, a licence row is issued once — so the queue
-   * retrying a job cannot produce a second conversion. A plan change can
-   * legitimately recur for one project, so its id carries the instant it
-   * happened.
+   * Five of these are naturally unique — a user signs up once, a project has
+   * one first subscription and one first payment, a licence row is issued
+   * once, a Stripe subscription ends once — so the queue retrying a job, or
+   * Stripe sending a webhook again, cannot produce a second conversion. A
+   * plan change can legitimately recur for one project, so its id carries
+   * the instant it happened.
    */
   eventId: string;
   eventType: MarketingEventType;
