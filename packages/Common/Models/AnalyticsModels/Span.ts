@@ -1355,7 +1355,7 @@ export default class Span extends AnalyticsBaseModel {
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
       title: "Retention Date",
       description:
-        "Date after which this row is eligible for TTL deletion, computed at ingest time as startTime + service.retainTelemetryDataForDays",
+        "Date after which this row is eligible for TTL deletion: when the row was written (createdAt) plus the retention its resource keeps traces of its status for. Set by the server, on ingest and on create.",
       required: true,
       type: TableColumnType.Date,
       defaultValue: undefined,

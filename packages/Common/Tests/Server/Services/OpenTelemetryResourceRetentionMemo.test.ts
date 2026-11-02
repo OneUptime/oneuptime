@@ -250,6 +250,10 @@ describe.each(RETENTION_CASES)(
       expect(findOneById).toHaveBeenCalledTimes(1);
     });
 
+    /*
+     * And the project the resource is in, which a row created through the
+     * API is held to (getRetentionForCreatedRow).
+     */
     test("requests both the default and per-pillar retention fields", async () => {
       const projectId: ObjectID = ObjectID.generate();
       const resourceId: ObjectID = ObjectID.generate();
@@ -261,6 +265,7 @@ describe.each(RETENTION_CASES)(
         select: {
           retainTelemetryDataForDays: true,
           telemetryRetentionConfig: true,
+          projectId: true,
         },
         props: { isRoot: true },
       });

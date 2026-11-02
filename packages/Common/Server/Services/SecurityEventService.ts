@@ -4,6 +4,7 @@ import AnalyticsDatabaseService, {
   Results,
 } from "./AnalyticsDatabaseService";
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
+import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -187,6 +188,16 @@ export interface FindArrivedEventsData {
 export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: SecurityEvent, database: clickhouseDatabase });
+  }
+
+  // Its resource's retention for security events, as on ingest.
+  protected override async getRetentionDateOnCreate(
+    securityEvent: SecurityEvent,
+  ): Promise<Date | null> {
+    return await TelemetryRowRetention.getRetentionDate({
+      row: securityEvent,
+      pillar: "securityEvents",
+    });
   }
 
   /*

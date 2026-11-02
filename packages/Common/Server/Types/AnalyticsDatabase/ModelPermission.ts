@@ -39,6 +39,7 @@ import CallerPlan from "../../Utils/Billing/CallerPlan";
 import PlanGates from "../Database/Permissions/PlanGates";
 import ColumnRefusalMessage from "../Database/Permissions/ColumnRefusalMessage";
 import ColumnWriteRefusedException from "../Database/Permissions/ColumnWriteRefusedException";
+import CreateScopeException from "../Database/Permissions/CreateScopeException";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../Types/HeldPermissions";
@@ -259,12 +260,17 @@ export default class ModelPermission {
    * TablePermission.checkTableLevelReadForWrite holds the database models to
    * (HeldPermissionsUtil.getReadForWriteRefusal). An update runs the read's
    * table check as well (checkReadPermission); this one comes first, so an
-   * update and a delete are refused alike.
+   * update and a delete are refused alike. A create of telemetry, which
+   * writes rows only for the resources its caller may read
+   * (checkCreateScope), is held to it too.
    */
   private static checkModelLevelReadForWrite(
     modelType: AnalyticsBaseModelType,
     props: DatabaseCommonInteractionProps,
-    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    type:
+      | DatabaseRequestType.Create
+      | DatabaseRequestType.Update
+      | DatabaseRequestType.Delete,
   ): void {
     const model: BaseModel = new modelType();
 
@@ -358,11 +364,21 @@ export default class ModelPermission {
     return query;
   }
 
+  /*
+   * `columnsSetByServer` are the columns the create's own service wrote
+   * into the row (AnalyticsDatabaseService.getRetentionDateOnCreate), which
+   * no caller may write: the check lets those values through, and refuses
+   * the same column when it is the caller who sent it.
+   *
+   * The resource each row belongs to is checked once the rows are ready,
+   * for all of them at once (checkCreateScope).
+   */
   @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
+    columnsSetByServer: Array<string> = [],
   ): void {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
@@ -377,12 +393,143 @@ export default class ModelPermission {
       DatabaseRequestType.Create,
     );
 
+    // Rows that belong to a resource are created only for one the caller may read.
+    if (ModelPermission.getOwnedThrough(new modelType())) {
+      this.checkModelLevelReadForWrite(
+        modelType,
+        props,
+        DatabaseRequestType.Create,
+      );
+    }
+
     this.checkDataColumnPermissions(
       modelType,
       data,
       props,
       DatabaseRequestType.Create,
+      columnsSetByServer,
     );
+  }
+
+  /*
+   * A CREATE WRITES TELEMETRY ONLY FOR WHAT ITS CALLER MAY READ, as an
+   * update and a delete change and remove only that (addWriteScopeToQuery)
+   * and a database model's record is created only under a parent its
+   * creator may read (Database/Permissions/CreatePermission
+   * .checkParentPermission): the resource each row names in its
+   * @OwnedThrough column is one both the create's own grants and the
+   * read's reach - their labels and owners, less what a block with labels
+   * on either takes away (getReadScope for each). So:
+   *
+   *   - a row of the project's unattributed bucket (the project id in place
+   *     of a resource, includeProjectScope) is reached by Owned grants and
+   *     by grants over the whole project, as it is read;
+   *   - a row that names no resource belongs to the whole project: grants
+   *     over the whole project reach it, and - where the model's rows of no
+   *     resource belong to the project (includeUnattributed) - Owned grants
+   *     too (reachesRowsOfNoResource); grants limited to labels never do;
+   *   - a model whose rows name records of its parents alone
+   *     (onlyParentModels: a monitor log's monitor) is reached through
+   *     those parents only.
+   *
+   * A row outside is refused (CreateScopeException), naming what it named.
+   * Asked by AnalyticsDatabaseService.createMany once every row has passed
+   * checkCreatePermissions - which refused a caller who may read none of
+   * the table's rows - on the rows as they will be written; the scope is
+   * worked out once for all of them. Root and master admins, and models
+   * whose rows name no owning resource, are left alone.
+   */
+  @CaptureSpan()
+  public static async checkCreateScope<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    rows: ReadonlyArray<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    if (props.isRoot || props.isMasterAdmin || rows.length === 0) {
+      return;
+    }
+
+    const model: TBaseModel = new modelType();
+    const ownedThrough: OwnedThroughMetadata | undefined =
+      ModelPermission.getOwnedThrough(model);
+
+    if (!ownedThrough) {
+      return;
+    }
+
+    /*
+     * The two scopes do not depend on each other: they are worked out
+     * together, sharing the per-request lookups (scopeResolveCache).
+     */
+    const [readScope, createScope]: [TelemetryReadScope, TelemetryReadScope] =
+      await Promise.all([
+        this.getReadScope(modelType, props, DatabaseRequestType.Read),
+        this.getReadScope(modelType, props, DatabaseRequestType.Create),
+      ]);
+
+    const scope: TelemetryReadScope = TelemetryReadScopeUtil.getScopeOfBoth(
+      readScope,
+      createScope,
+    );
+
+    if (TelemetryReadScopeUtil.isProjectWide(scope)) {
+      return;
+    }
+
+    // The resources refused, as the rows name them.
+    const refusedIds: Set<string> = new Set<string>();
+    let namesNoResource: boolean = false;
+
+    for (const row of rows) {
+      const value: unknown = row.getColumnValue(ownedThrough.fkColumn);
+      const ownerId: string =
+        value === undefined || value === null ? "" : String(value).trim();
+
+      if (!ownerId) {
+        namesNoResource = true;
+      } else if (!TelemetryReadScopeUtil.isReadable(scope, ownerId)) {
+        refusedIds.add(ownerId);
+      }
+    }
+
+    const ownerTitle: string =
+      model.getTableColumn(ownedThrough.fkColumn)?.title ||
+      ownedThrough.fkColumn;
+    const reach: string = `Your access lets you create ${model.pluralName} only for the resources whose ${model.pluralName} you may both create and read`;
+
+    if (refusedIds.size > 0) {
+      throw new CreateScopeException(
+        `${reach}, and not for ${Array.from(refusedIds)
+          .map((id: string): string => {
+            return `${ownerTitle} "${id}"`;
+          })
+          .join(", ")}.`,
+      );
+    }
+
+    if (
+      namesNoResource &&
+      scope.readableIds !== null &&
+      !(
+        ownedThrough.includeUnattributed &&
+        [DatabaseRequestType.Read, DatabaseRequestType.Create].every(
+          (type: DatabaseRequestType): boolean => {
+            return this.reachesRowsOfNoResource(
+              modelType as unknown as AnalyticsBaseModelType,
+              ownedThrough,
+              props,
+              type,
+            );
+          },
+        )
+      )
+    ) {
+      throw new CreateScopeException(
+        `${reach}, and not for one that names no ${ownerTitle}: that belongs to the whole project.`,
+      );
+    }
   }
 
   private static checkDataColumnPermissions<TBaseModel extends BaseModel>(
@@ -390,6 +537,7 @@ export default class ModelPermission {
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
     requestType: DatabaseRequestType,
+    columnsSetByServer: Array<string> = [],
   ): void {
     const model: BaseModel = new modelType();
     const permissionColumns: Columns = this.getModelColumnsByPermissions(
@@ -417,6 +565,10 @@ export default class ModelPermission {
       }
 
       if (excludedColumnNames.includes(key)) {
+        continue;
+      }
+
+      if (columnsSetByServer.includes(key)) {
         continue;
       }
 
@@ -1041,12 +1193,47 @@ export default class ModelPermission {
       return TelemetryReadScopeUtil.getUnrestrictedScope();
     }
 
-    const scope: TelemetryReadScope = await this.getReadScopeForPermissions({
-      props: props,
-      permissions: this.getModelPermissions(
+    const scope: TelemetryReadScope = await this.getReadScopeForPermissions(
+      this.getModelGrantRequest(
         modelType as unknown as AnalyticsBaseModelType,
+        ownedThrough,
+        props,
         type,
       ),
+    );
+
+    /*
+     * What a company's people wrote to its AI tools (Claude Enterprise,
+     * Microsoft 365 Copilot) is read by project owners and admins only,
+     * unless the connection says otherwise: their services are blocked for
+     * everyone else on every read of the spans those chats are kept as
+     * (LlmConversationPrivacy). The tools write spans and nothing else.
+     */
+    if (LlmConversationPrivacy.appliesToTable(model.tableName)) {
+      return await LlmConversationPrivacy.restrictScope({
+        scope: scope,
+        props: props,
+      });
+    }
+
+    return scope;
+  }
+
+  /*
+   * An operation on a model's rows under the model's own permissions, as
+   * getReadScopeForPermissions and getReadGrants take it.
+   */
+  private static getModelGrantRequest(
+    modelType: AnalyticsBaseModelType,
+    ownedThrough: OwnedThroughMetadata,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): ReadGrantRequest {
+    const model: BaseModel = new modelType();
+
+    return {
+      props: props,
+      permissions: this.getModelPermissions(modelType, type),
       wildcard: HeldPermissionsUtil.getModelWildcard({
         isOperationalResource: model.isOperationalResource,
         operation: type,
@@ -1066,23 +1253,28 @@ export default class ModelPermission {
         : undefined,
       recordName: model.singularName,
       operation: type,
-    });
+    };
+  }
 
-    /*
-     * What a company's people wrote to its AI tools (Claude Enterprise,
-     * Microsoft 365 Copilot) is read by project owners and admins only,
-     * unless the connection says otherwise: their services are blocked for
-     * everyone else on every read of the spans those chats are kept as
-     * (LlmConversationPrivacy). The tools write spans and nothing else.
-     */
-    if (LlmConversationPrivacy.appliesToTable(model.tableName)) {
-      return await LlmConversationPrivacy.restrictScope({
-        scope: scope,
-        props: props,
-      });
-    }
+  /*
+   * Whether the caller's grants for an operation reach the rows that belong
+   * to the project rather than to one of its resources, as they reach the
+   * project's unattributed bucket (getReadScopeForPermissions): a grant over
+   * the whole project does, and so does an Owned one; a grant limited to
+   * labels does not, as such rows carry none. Decided without looking
+   * anything up.
+   */
+  private static reachesRowsOfNoResource(
+    modelType: AnalyticsBaseModelType,
+    ownedThrough: OwnedThroughMetadata,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): boolean {
+    const grants: ReadGrants = ModelPermission.getReadGrants(
+      this.getModelGrantRequest(modelType, ownedThrough, props, type),
+    );
 
-    return scope;
+    return grants.isProjectWide || grants.hasOwnedGrant;
   }
 
   /*
@@ -1461,7 +1653,8 @@ export default class ModelPermission {
   /*
    * Narrows a model read (or delete) to the caller's scope on the column
    * that names the row's resource (@OwnedThrough). Root, master admins,
-   * creates and models without @OwnedThrough are left alone.
+   * creates (checkCreateScope) and models without @OwnedThrough are left
+   * alone.
    */
   private static async addReadScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },

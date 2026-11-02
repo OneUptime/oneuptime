@@ -530,7 +530,9 @@ export default class HeldPermissionsUtil {
    * them (nor the read wildcard) held - or null when they may read it. The
    * one rule, and the one wording, the database models
    * (TablePermission.checkTableLevelReadForWrite) and the analytics models
-   * (AnalyticsDatabase/ModelPermission) refuse a write with.
+   * (AnalyticsDatabase/ModelPermission) refuse a write with - for the
+   * analytics models a create of telemetry too, which writes rows only for
+   * the resources its caller may read.
    */
   public static getReadForWriteRefusal(
     held: HeldPermissions,
@@ -539,7 +541,7 @@ export default class HeldPermissionsUtil {
       wildcard: Permission | null | undefined;
       // The record's name, as the refusal names it (the model's singularName).
       recordName: string | null | undefined;
-      // The write: "update", "delete".
+      // The write: "create", "update", "delete".
       operation: string;
     },
   ): string | null {
@@ -570,7 +572,9 @@ export default class HeldPermissionsUtil {
 
     return `You do not have permissions to ${data.operation} ${
       data.recordName
-    }: changing or deleting a record needs permission to read it too. You need one of these permissions: ${titles.join(
+    }: ${
+      data.operation === "create" ? "creating" : "changing or deleting"
+    } a record needs permission to read it too. You need one of these permissions: ${titles.join(
       ", ",
     )}`;
   }
