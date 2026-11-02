@@ -79,6 +79,7 @@ export default class EnterpriseLicense extends BaseModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     required: true,
     type: TableColumnType.ShortText,
     title: "License Key",
@@ -239,6 +240,7 @@ export default class EnterpriseLicense extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(EnterpriseLicenseUserCountSource),
     title: "User Count Source",
     description:
       "Whether the current user count came from per-instance usage or a legacy license-wide report.",

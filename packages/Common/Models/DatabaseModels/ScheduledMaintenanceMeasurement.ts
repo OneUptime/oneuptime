@@ -316,6 +316,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ScheduledMaintenanceMeasurementAnchorType),
     title: "Start Anchor Type",
     description:
       "Where the measurement starts - the moment the event was created, either end of the planned window, the start of its timeline, a specific state, or a state role.",
@@ -354,6 +355,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ScheduledMaintenanceMeasurementAnchorType),
     title: "End Anchor Type",
     description:
       "Where the measurement ends - the moment the event was created, either end of the planned window, the start of its timeline, a specific state, or a state role.",
@@ -553,6 +555,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ScheduledMaintenanceStateRole),
     title: "Start Scheduled Maintenance State Role",
     description:
       "The role of the state that starts this measurement (Scheduled, Ongoing, Ended or Resolved), when the start anchor is a state role. Resolving by role keeps working when a project renames or replaces the state.",
@@ -591,6 +594,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ScheduledMaintenanceStateRole),
     title: "End Scheduled Maintenance State Role",
     description:
       "The role of the state that ends this measurement (Scheduled, Ongoing, Ended or Resolved), when the end anchor is a state role. Resolving by role keeps working when a project renames or replaces the state.",
@@ -629,6 +633,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementOccurrence),
     title: "Start State Occurrence",
     description:
       "Which entry to use when the start state is entered more than once - the first time it was entered, or the last.",
@@ -668,6 +673,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementOccurrence),
     title: "End State Occurrence",
     description:
       "Which entry to use when the end state is entered more than once - the first time it was entered, or the last.",
@@ -746,6 +752,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MeasurementAggregationType),
     title: "Aggregation Type",
     description:
       "How this measurement's chart sums up many scheduled maintenance events by default - Avg (the default), P50, P90, P95, P99, Max or Min. View Chart in the dashboard opens the chart this way. Sum is deliberately absent: adding durations up across scheduled maintenance events produces a number with no meaning.",

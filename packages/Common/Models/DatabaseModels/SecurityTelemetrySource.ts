@@ -135,6 +135,7 @@ export default class SecurityTelemetrySource extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityTelemetrySourceKind),
     canReadOnRelationQuery: true,
     title: "Kind",
     description:

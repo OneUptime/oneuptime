@@ -60,4 +60,10 @@ if [ "$API_VERSION" != "$EXPECTED_VERSION" ]; then
 fi
 echo "    ✓ Probe version matches: $API_VERSION (Issue #2228 validated)"
 
+# A probe's key lets whoever has it report as the probe: the provider keeps it
+# out of plans, logs and outputs.
+if ! assert_sensitive "oneuptime_probe.test" "key"; then
+    exit 1
+fi
+
 echo "    ✓ All probe validations passed"

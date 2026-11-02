@@ -30,6 +30,7 @@
 | `has been renamed to` | 用 `moved` 块重命名资源类型：参阅[已重命名的资源类型](#已重命名的资源类型) |
 | 用 Terraform 创建的监视器始终不显示它的检查 | 升级 OneUptime：参阅[步骤 ID 出现之前创建的监视器](#步骤-id-出现之前创建的监视器) |
 | `must contain at least 1 elements` | 省略该属性，而不是留空：参阅[空值](#空值) |
+| `Not an ID` | 引用记录，而不是写它的名称：参阅[该写 ID 的地方写了名称](#该写-id-的地方写了名称) |
 | `.tf` 文件中有来自仪表板的 JSON | 把它写成 HCL：参阅[来自仪表板的 JSON](#来自仪表板的-json) |
 | `no available releases match the given constraints` | 使用版本范围，而不是单个确切版本：参阅[从未发布过的版本](#从未发布过的版本) |
 | `x509: certificate signed by unknown authority` | 信任你的证书颁发机构：参阅[证书](#证书) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 请改为省略该属性：不存在的属性就是未设置。[监控步骤](/docs/terraform/monitor-steps)列出了每个部分接受的内容。
+
+### 该写 ID 的地方写了名称
+
+保存另一条记录 ID 的属性，例如 `team_id` 或监视器的 `labels`，接受该记录的 ID，即一个 UUID。在这里写名称或 slug 会让计划停止：
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+引用该记录的资源，例如 `team_id = oneuptime_team.sre.id`，或用[数据源](/docs/terraform/complete-guide#读取已有的内容)读取该记录。如果属性指的是某个人，请在旁边的属性（例如 `user_email`）中填写其电子邮件地址。
 
 ### 来自仪表板的 JSON
 

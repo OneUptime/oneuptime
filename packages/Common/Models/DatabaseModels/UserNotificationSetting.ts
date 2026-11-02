@@ -98,8 +98,10 @@ class UserNotificationSetting extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(NotificationSettingEventType),
     canReadOnRelationQuery: true,
-    example: "Incident Created",
+    example:
+      "Send incident created notification when I am the owner of the incident",
   })
   @Column({
     type: ColumnType.ShortText,

@@ -375,6 +375,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseVerdict),
     canReadOnRelationQuery: true,
     title: "Verdict",
     description:
@@ -500,6 +501,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityDetectionSource),
     computed: true,
     canReadOnRelationQuery: true,
     title: "Source",
@@ -951,6 +953,7 @@ export default class SecurityCase extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseAiVerdict),
     computed: true,
     title: "AI Verdict",
     description:

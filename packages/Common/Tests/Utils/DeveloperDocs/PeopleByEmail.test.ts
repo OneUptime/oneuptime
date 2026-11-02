@@ -22,9 +22,13 @@ import {
   isDecidedBySomeoneElse,
   isDecidedByThePersonInvited,
   isInvitedByEmail,
+  getMembershipImport,
   isPersonRelation,
   MEMBERSHIP_IMPORTS,
+  MembershipImport,
+  MembershipKind,
   normalizePersonEmail,
+  OWNER_ROW_SUFFIXES,
   PERSON_TABLE_NAME,
   PersonColumnKind,
 } from "../../../Utils/DeveloperDocs/PeopleByEmail";
@@ -57,6 +61,12 @@ function attributes(
     ),
   );
 }
+
+// "owns" or "own" as a word, in an owner row's column descriptions.
+const OWNS: RegExp = /\bowns?\b/;
+// The words of a table description, and one with a capital inside it.
+const LETTER_RUNS: RegExp = /[A-Za-z]+/g;
+const CAPITAL_INSIDE_A_WORD: RegExp = /[a-z][A-Z]/;
 
 describe("the address beside a person column", () => {
   test.each([
@@ -322,5 +332,224 @@ describe("the dashboard's view of the provider", () => {
     }
     // Team members, on-call, owners and owner rules of every product, feeds...
     expect(count).toBeGreaterThan(100);
+  });
+});
+
+describe("rows imported by what they join", () => {
+  /*
+   * The relation columns a create of a model's row names, as the API's
+   * create schema has them: the ID columns of its relations a caller may
+   * write (monitorId, userId) - not who made it (createdByUserId).
+   */
+  function relationColumns(modelType: DatabaseBaseModelType): Array<string> {
+    const model: InstanceType<DatabaseBaseModelType> = new modelType();
+    const columns: ReturnType<typeof getTableColumns> = getTableColumns(model);
+    const accessControl: ReturnType<
+      typeof model.getColumnAccessControlForAllColumns
+    > = model.getColumnAccessControlForAllColumns();
+    return Object.values(columns)
+      .map((column: (typeof columns)[string] | undefined) => {
+        return column?.manyToOneRelationColumn || "";
+      })
+      .filter((name: string) => {
+        return (
+          Boolean(name) &&
+          !columns[name]?.computed &&
+          (accessControl[name]?.create || []).length > 0
+        );
+      });
+  }
+
+  test("a membership, the on-call rows and every owner row import by what they join", () => {
+    const imported: Array<string> = [];
+    const owners: Array<string> = [];
+
+    for (const modelType of Models) {
+      const table: string = new modelType().tableName || "";
+      if (!table) {
+        continue;
+      }
+      const rule: MembershipImport | undefined = getMembershipImport(
+        table,
+        relationColumns(modelType),
+      );
+      if (!rule) {
+        continue;
+      }
+      imported.push(table);
+      if (rule.kind === MembershipKind.Owner) {
+        owners.push(table);
+      }
+
+      // Both columns are the model's, and relations.
+      const columns: ReturnType<typeof getTableColumns> = getTableColumns(
+        new modelType(),
+      );
+      expect({ table, parent: Boolean(columns[rule.parentColumn]) }).toEqual({
+        table,
+        parent: true,
+      });
+      expect({ table, member: Boolean(columns[rule.personColumn]) }).toEqual({
+        table,
+        member: true,
+      });
+      expect(rule.parentColumn).not.toBe(rule.personColumn);
+      expect(rule.parentColumn).not.toBe("projectId");
+    }
+
+    /*
+     * Every <Thing>OwnerUser and <Thing>OwnerTeam, and nothing else, is an
+     * owner row - none left out for want of a parent.
+     */
+    const ownerTables: Array<string> = Models.map(
+      (modelType: DatabaseBaseModelType): string => {
+        return new modelType().tableName || "";
+      },
+    ).filter((table: string) => {
+      return Object.keys(OWNER_ROW_SUFFIXES).some((suffix: string) => {
+        return table.endsWith(suffix);
+      });
+    });
+    expect([...owners].sort()).toEqual([...ownerTables].sort());
+    expect(owners.length).toBeGreaterThanOrEqual(76);
+
+    for (const table of Object.keys(MEMBERSHIP_IMPORTS)) {
+      expect(imported).toContain(table);
+    }
+  });
+
+  /*
+   * The two IDs of such a row are what a client asks for (user_id and
+   * monitor_id beside each other on oneuptime_monitor_user_owner), so each
+   * says what it is: the owner and what they own, the person and the layer
+   * they take turns in - never the boilerplate every column was given ("ID
+   * of your OneUptime User in which this object belongs"), nor another
+   * row's words ("where this escalation rule belongs" on a layer).
+   */
+  test("the two IDs of a row that joins two records say what each is", () => {
+    const BOILERPLATE: RegExp =
+      /in which this object belongs|where this (?:escalation rule|user) belongs/;
+    const wrong: Array<string> = [];
+    let rows: number = 0;
+
+    for (const modelType of Models) {
+      const table: string = new modelType().tableName || "";
+      const rule: MembershipImport | undefined = table
+        ? getMembershipImport(table, relationColumns(modelType))
+        : undefined;
+      if (!rule) {
+        continue;
+      }
+      rows++;
+      const columns: ReturnType<typeof getTableColumns> = getTableColumns(
+        new modelType(),
+      );
+
+      for (const column of [rule.parentColumn, rule.personColumn]) {
+        const description: string = columns[column]?.description || "";
+        if (!description || BOILERPLATE.test(description)) {
+          wrong.push(`${table}.${column}: ${description}`);
+        }
+      }
+
+      // An owner row names its owner and what they own.
+      if (rule.kind === MembershipKind.Owner) {
+        for (const column of [rule.parentColumn, rule.personColumn]) {
+          if (!OWNS.test(columns[column]?.description || "")) {
+            wrong.push(`${table}.${column} does not say who owns what`);
+          }
+        }
+      }
+
+      /*
+       * The table says what the row adds, in words: "Add teams as owners to
+       * your on-call policies.", never a code name ("onCallDutyPolicys",
+       * "DockerSwarm") - brand names that are written so excepted.
+       */
+      const tableDescription: string = new modelType().tableDescription || "";
+      const codeNames: Array<string> = (
+        tableDescription.match(LETTER_RUNS) || []
+      ).filter((word: string) => {
+        return (
+          CAPITAL_INSIDE_A_WORD.test(word) &&
+          !["IoT", "vCenters"].includes(word)
+        );
+      });
+      if (!tableDescription.endsWith(".") || codeNames.length > 0) {
+        wrong.push(`${table}: ${tableDescription}`);
+      }
+      if (rule.kind === MembershipKind.Owner) {
+        const owners: string = table.endsWith("OwnerTeam") ? "teams" : "users";
+        if (!tableDescription.startsWith(`Add ${owners} as owners to your `)) {
+          wrong.push(`${table}: ${tableDescription}`);
+        }
+      }
+    }
+
+    expect(wrong).toEqual([]);
+    expect(rows).toBeGreaterThanOrEqual(80);
+  });
+
+  test("an owner row's parent is what it owns, and its member the person or the team", () => {
+    expect(
+      getMembershipImport("MonitorOwnerUser", [
+        "monitorId",
+        "userId",
+        "projectId",
+      ]),
+    ).toEqual({
+      parentColumn: "monitorId",
+      personColumn: "userId",
+      kind: MembershipKind.Owner,
+    });
+    expect(
+      getMembershipImport("StatusPageOwnerTeam", [
+        "projectId",
+        "teamId",
+        "statusPageId",
+      ]),
+    ).toEqual({
+      parentColumn: "statusPageId",
+      personColumn: "teamId",
+      kind: MembershipKind.Owner,
+    });
+
+    // A row of two parents is no owner row to guess at.
+    expect(
+      getMembershipImport("MonitorOwnerUser", [
+        "monitorId",
+        "monitorGroupId",
+        "userId",
+      ]),
+    ).toBeUndefined();
+    // Nor is a table that is only called so.
+    expect(getMembershipImport("OwnerUser", ["userId", "teamId"])).toBe(
+      undefined,
+    );
+    expect(getMembershipImport("Monitor", ["monitorGroupId"])).toBe(undefined);
+  });
+
+  test("the on-call rows: a layer's people, and an escalation rule's people, teams and schedules", () => {
+    expect(
+      getMembershipImport("OnCallDutyPolicyScheduleLayerUser", []),
+    ).toEqual({
+      parentColumn: "onCallDutyPolicyScheduleLayerId",
+      personColumn: "userId",
+      kind: MembershipKind.OnCall,
+    });
+    for (const [table, member] of [
+      ["OnCallDutyPolicyEscalationRuleUser", "userId"],
+      ["OnCallDutyPolicyEscalationRuleTeam", "teamId"],
+      ["OnCallDutyPolicyEscalationRuleSchedule", "onCallDutyPolicyScheduleId"],
+    ] as Array<[string, string]>) {
+      expect(getMembershipImport(table, [])).toEqual({
+        parentColumn: "onCallDutyPolicyEscalationRuleId",
+        personColumn: member,
+        kind: MembershipKind.OnCall,
+      });
+    }
+    expect(getMembershipImport("TeamMember", [])?.kind).toBe(
+      MembershipKind.Member,
+    );
   });
 });

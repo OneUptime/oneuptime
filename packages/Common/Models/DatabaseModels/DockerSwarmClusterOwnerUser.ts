@@ -71,7 +71,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "DockerSwarm Cluster User Owner",
   pluralName: "DockerSwarm Cluster User Owners",
   icon: IconProp.Cube,
-  tableDescription: "Add users as owners to your DockerSwarm clusters.",
+  tableDescription: "Add users as owners to your Docker Swarm clusters.",
 })
 @Entity({
   name: "DockerSwarmClusterOwnerUser",
@@ -230,7 +230,7 @@ export default class DockerSwarmClusterOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the Docker Swarm cluster",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,8 +309,7 @@ export default class DockerSwarmClusterOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "DockerSwarm Cluster ID",
-    description:
-      "ID of your OneUptime DockerSwarm Cluster in which this object belongs",
+    description: "ID of the Docker Swarm cluster the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

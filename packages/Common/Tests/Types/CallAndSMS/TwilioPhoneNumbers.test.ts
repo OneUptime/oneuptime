@@ -417,10 +417,13 @@ describe("a list of numbers, as a config keeps it", () => {
     expect(TwilioPhoneNumbers.getListError("abc, def")).toContain('"abc"');
   });
 
-  test("a list typed with spaces inside a number is refused, as one number with spaces always was", () => {
-    expect(TwilioPhoneNumbers.getListError("+65 8123 4567")).toContain(
-      '"+65 8123 4567"',
-    );
+  test("a number in a list may be grouped with spaces, as the phone field takes it, and one cut short is refused", () => {
+    // Since 9f3019bf4b a phone number is read as its digits however it is grouped.
+    expect(TwilioPhoneNumbers.getListError("+65 8123 4567")).toBeNull();
+    expect(
+      TwilioPhoneNumbers.getListError("+65 8123 4567, +44 7911 123456"),
+    ).toBeNull();
+    expect(TwilioPhoneNumbers.getListError("+65 8123")).toContain('"+65 8123"');
   });
 
   test("repeats no more of a long entry than any refused value", () => {

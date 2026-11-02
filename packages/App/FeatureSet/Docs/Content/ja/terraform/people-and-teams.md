@@ -107,6 +107,15 @@ output "alice_teams" {
 }
 ```
 
+ほかのデータソースも、レコードが指す人のアドレスで、その ID と並んでレコードを見つけます。次の例は、SRE チームでの Alice のメンバーシップを読み取ります。
+
+```hcl
+data "oneuptime_team_member" "alice" {
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
+}
+```
+
 ## 人を送り出す
 
 その人のメンバーシップを構成から削除して適用します。プロジェクトの最後のチームから外れるとプロジェクトからも外れ、OneUptime はその人をすべてのオンコールスケジュール、エスカレーションルール、代理から外し、所有しているものからも外します。終わったインシデント、アラート、メンテナンスイベントを除くすべてです。その人を指定するブロックも同じ変更で削除してください。削除しないと、次のプランがもうプロジェクトにいない人のためにそれらを作り直します。
@@ -122,6 +131,13 @@ terraform import oneuptime_team_member.alice 6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c
 ```
 
 アドレスは書いたとおりに残るので、構成と同じように書いてください。メンバーシップ自身の ID でもインポートでき、その場合アドレスは OneUptime から小文字で読み取られます。
+
+オーナーやオンコールの行も同じように、属しているものでインポートします。モニターのオーナーは、モニターの ID とその人のアドレスでインポートします。オーナーチームや、エスカレーションルールが呼び出すチームのように、チームやスケジュールを指す行は、両方の ID でインポートします。
+
+```bash
+terraform import oneuptime_monitor_user_owner.api 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com
+terraform import oneuptime_escalation_rule_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b06/6b1d1c2e-4f3a-4b5c-8d6e-7f8091a2b3c4
+```
 
 ## アドレスが変わったとき
 

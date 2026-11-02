@@ -202,6 +202,7 @@ export default class ThreatIntelFeed extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ThreatIntelFeedType),
     canReadOnRelationQuery: true,
     title: "Source",
     description:

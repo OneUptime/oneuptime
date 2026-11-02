@@ -549,6 +549,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.JSON,
     title: "SNMP Configs",
@@ -768,6 +769,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP Community String",
@@ -1000,6 +1002,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.LongText,
     title: "SNMP v3 Authentication Key",
@@ -1082,6 +1085,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.LongText,
     title: "SNMP v3 Privacy Key",

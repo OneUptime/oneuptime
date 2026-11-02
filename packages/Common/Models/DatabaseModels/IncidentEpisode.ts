@@ -1131,8 +1131,7 @@ export default class IncidentEpisode extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -1686,6 +1685,7 @@ export default class IncidentEpisode extends BaseModel {
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StatusPageSubscriberNotificationStatus),
     title: "Subscriber Notification Status on Episode Created",
     description:
       "Status of notification sent to subscribers when this episode was created",

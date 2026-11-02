@@ -253,6 +253,7 @@ import { AddKubernetesResourceHealthSeverityIndex1808810000000 } from "./1808810
 import { AddHostReadings1808830000000 } from "./1808830000000-AddHostReadings";
 import { AddUserSessionLengths1808840000000 } from "./1808840000000-AddUserSessionLengths";
 import { AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering1808871270000 } from "./1808871270000-AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering";
+import { AddGoogleAdsCampaignFields1808850000000 } from "./1808850000000-AddGoogleAdsCampaignFields";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1707,5 +1708,6 @@ export default [
   AddKubernetesResourceHealthSeverityIndex1808810000000,
   AddHostReadings1808830000000,
   AddUserSessionLengths1808840000000,
+  AddGoogleAdsCampaignFields1808850000000,
   AddSecurityCaseCustomFieldsNoteTemplatesAndNumbering1808871270000,
 ];

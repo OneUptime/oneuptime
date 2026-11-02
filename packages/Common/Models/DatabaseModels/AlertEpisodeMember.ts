@@ -426,6 +426,7 @@ export default class AlertEpisodeMember extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AlertEpisodeMemberAddedBy),
     required: true,
     isDefaultValueColumn: true,
     title: "Added By",

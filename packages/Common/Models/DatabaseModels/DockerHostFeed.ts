@@ -461,6 +461,7 @@ export default class DockerHostFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DockerHostFeedEventType),
     required: true,
     title: "Docker Host Feed Event",
     description: "Docker Host Feed Event",

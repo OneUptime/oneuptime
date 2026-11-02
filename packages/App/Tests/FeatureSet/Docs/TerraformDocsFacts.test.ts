@@ -3356,8 +3356,69 @@ describe("the people and teams page", () => {
     );
     expect(UUID.test(teamId)).toBe(true);
     expect(address).toBe("alice@example.com");
-    // Any other resource is imported by its own ID only.
-    expect(resourceType("monitor_user_owner").importsByParent).toBeNull();
+    // A record that joins nothing is imported by its own ID only.
+    expect(resourceType("monitor").importsByParent).toBeNull();
+  });
+
+  it("imports owners and on-call rows by what they belong to, an address or an ID after the slash, as the provider does", () => {
+    const section: string = englishSection(
+      PEOPLE_AND_TEAMS,
+      "## Import members you already have",
+    );
+    const commands: Array<string> = (
+      codeBlocks(section).filter((block: CodeBlock): boolean => {
+        return block.lang === "bash";
+      })[1] as CodeBlock
+    ).code
+      .trim()
+      .split("\n");
+
+    // Each command as the provider reads its import ID (people.go).
+    const imports: Array<string> = commands.map((command: string): string => {
+      const [terraform, verb, typeAddress, importId] = command.split(" ") as [
+        string,
+        string,
+        string,
+        string,
+      ];
+      const type: ProviderType = resourceType(
+        shortName(typeAddress.split(".")[0] as string),
+      );
+      const [parentId, member] = importId.split("/") as [string, string];
+      // An address only where the row names a person; else an ID.
+      const takes: string =
+        member.includes("@") && type.importsByEmail
+          ? "<email>"
+          : UUID.test(member)
+            ? `<${type.importsByMember}>`
+            : `not ${member}`;
+      const parent: string =
+        type.canBeImported && type.importsByParent && UUID.test(parentId)
+          ? `<${type.importsByParent}>`
+          : `not ${parentId}`;
+
+      return `${terraform} ${verb} ${type.name} ${parent}/${takes}`;
+    });
+
+    expect(imports).toEqual([
+      "terraform import monitor_user_owner <monitor_id>/<email>",
+      "terraform import escalation_rule_team <on_call_duty_policy_escalation_rule_id>/<team_id>",
+    ]);
+    // Owners, layer users and escalation rule rows are all imported so.
+    for (const name of [
+      "monitor_team_owner",
+      "on_call_schedule_layer_user",
+      "escalation_rule_user",
+      "escalation_rule_schedule",
+    ]) {
+      expect([name, resourceType(name).importsByParent]).not.toEqual([
+        name,
+        null,
+      ]);
+    }
+    expect(section).toContain(
+      "Owners and on-call rows import the same way, by what they belong to.",
+    );
   });
 
   it("looks someone up by email, name or id, and reads their teams and whether they joined", () => {
@@ -3379,6 +3440,42 @@ describe("the people and teams page", () => {
     expect(
       codeIn(lineStartingWith(section, "The `oneuptime_user` data source")),
     ).toEqual(["oneuptime_user", "email", "name", "id"]);
+  });
+
+  it("finds a record by the person's address with another data source, as the generator writes them", () => {
+    const section: string = englishSection(PEOPLE_AND_TEAMS, "## Find someone");
+    const lookup: HclBlock = parseHcl(
+      (
+        codeBlocks(section).filter((block: CodeBlock): boolean => {
+          return block.lang === "hcl";
+        })[1] as CodeBlock
+      ).code,
+    ).blocks[0] as HclBlock;
+    const source: ProviderType = dataSourceType(
+      shortName(lookup.labels[0] as string),
+    );
+
+    expect([lookup.type, lookup.labels[0]]).toEqual([
+      "data",
+      "oneuptime_team_member",
+    ]);
+    // Each argument is one the data source looks up by.
+    expect(
+      lookup.body.attributes.map((argument: HclAttribute): string => {
+        const attribute: ProviderAttribute | undefined = source.attributes.get(
+          argument.name,
+        );
+        return `${argument.name}: ${attribute?.isLookupFilter ? "lookup" : "not a lookup argument"}`;
+      }),
+    ).toEqual(["team_id: lookup", "user_email: lookup"]);
+    expect(source.attributes.get("user_email")?.personEmailOf).toBe("user_id");
+    expect(source.attributes.get("user_id")?.personEmail).toBe("user_email");
+    expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
+      "personIDForLookup(ctx, d.client",
+    );
+    expect(section).toContain(
+      "Other data sources find a record by the address of the person it names, beside their ID.",
+    );
   });
 
   it("says what people.go does with an address nobody in the project has: a warning in the plan, an error in the apply", () => {

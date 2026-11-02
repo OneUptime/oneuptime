@@ -231,7 +231,7 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the serverless function",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -310,8 +310,7 @@ export default class ServerlessFunctionOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Serverless Function ID",
-    description:
-      "ID of your OneUptime Serverless Function in which this object belongs",
+    description: "ID of the serverless function the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

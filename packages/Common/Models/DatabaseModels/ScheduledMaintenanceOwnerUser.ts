@@ -233,7 +233,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the scheduled maintenance event",
     example: "8c1d3e5f-a7b9-4c2e-9d6f-1a2b3c4d5e6f",
   })
   @Column({
@@ -314,8 +314,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "ScheduledMaintenance ID",
-    description:
-      "ID of your OneUptime ScheduledMaintenance in which this object belongs",
+    description: "ID of the scheduled maintenance event the user owns",
     example: "4b6d8f0a-c2e4-6f8a-9c0d-1e2f3a4b5c6d",
   })
   @Column({

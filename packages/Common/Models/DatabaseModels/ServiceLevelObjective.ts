@@ -346,8 +346,7 @@ export default class ServiceLevelObjective extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {
@@ -556,6 +555,7 @@ export default class ServiceLevelObjective extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SliType),
     title: "SLI Type",
     description:
       "Type of Service Level Indicator this objective measures (Monitor Uptime or Metric)",
@@ -592,6 +592,7 @@ export default class ServiceLevelObjective extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SloMultiMonitorMode),
     title: "Multi Monitor Mode",
     description:
       "How downtime is counted when multiple monitors are attached. 'Any Monitor Down' counts time when any monitor is down. 'Monitor Seconds Average' averages downtime across monitors.",
@@ -899,6 +900,7 @@ export default class ServiceLevelObjective extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SloWindowType),
     title: "Window Type",
     description:
       "Type of compliance window for this objective (Rolling or Calendar Month)",
@@ -1157,6 +1159,7 @@ export default class ServiceLevelObjective extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SloStatus),
     required: true,
     title: "SLO Status",
     description:

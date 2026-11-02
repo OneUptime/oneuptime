@@ -359,13 +359,14 @@ describe("a list of SMS numbers that holds something that is not a phone number"
         }
       ).onBeforeUpdate({
         query: { _id: CONFIG_ID.toString() },
-        data: { twilioSmsPhoneNumbers: "+65 8123 4567" },
+        // A number cut short: one grouped with spaces is a phone number.
+        data: { twilioSmsPhoneNumbers: "+65 8123" },
         limit: 1,
         skip: 0,
         props: { isRoot: true },
       }),
     ).rejects.toThrow(
-      `${SMS_NUMBERS_TITLE}: "+65 8123 4567" is not a phone number.`,
+      `${SMS_NUMBERS_TITLE}: "+65 8123" is not a phone number.`,
     );
   });
 

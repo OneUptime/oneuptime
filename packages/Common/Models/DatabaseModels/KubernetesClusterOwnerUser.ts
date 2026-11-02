@@ -230,7 +230,7 @@ export default class KubernetesClusterOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the Kubernetes cluster",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,8 +309,7 @@ export default class KubernetesClusterOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Kubernetes Cluster ID",
-    description:
-      "ID of your OneUptime Kubernetes Cluster in which this object belongs",
+    description: "ID of the Kubernetes cluster the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

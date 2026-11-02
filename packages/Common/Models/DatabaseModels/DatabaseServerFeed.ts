@@ -461,6 +461,7 @@ export default class DatabaseServerFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DatabaseServerFeedEventType),
     required: true,
     title: "Database Feed Event",
     description: "Database Feed Event",

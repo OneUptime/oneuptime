@@ -279,6 +279,8 @@ export default class StatusPageSSO extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     example: "SSO configuration for status page authentication using SAML 2.0",
+    description:
+      "What this sign-in is for, such as which identity provider it uses.",
   })
   @Column({
     nullable: false,
@@ -307,8 +309,11 @@ export default class StatusPageSSO extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SignatureMethod),
     canReadOnRelationQuery: true,
     example: "RSA-SHA256",
+    description:
+      "The algorithm your identity provider signs SAML responses with.",
   })
   @Column({
     nullable: false,
@@ -338,8 +343,11 @@ export default class StatusPageSSO extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DigestMethod),
     canReadOnRelationQuery: true,
     example: "SHA256",
+    description:
+      "The digest algorithm your identity provider's SAML signatures use.",
   })
   @Column({
     nullable: false,
@@ -372,6 +380,8 @@ export default class StatusPageSSO extends BaseModel {
     type: TableColumnType.LongURL,
     canReadOnRelationQuery: true,
     example: "https://idp.example.com/saml/sso",
+    description:
+      "Your identity provider's single sign-on URL, where visitors are sent to sign in.",
   })
   @Column({
     nullable: false,
@@ -404,6 +414,8 @@ export default class StatusPageSSO extends BaseModel {
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     example: "https://idp.example.com/saml/metadata",
+    description:
+      "Your identity provider's issuer (entity ID), as its SAML responses name it.",
   })
   @Column({
     nullable: false,
@@ -435,6 +447,8 @@ export default class StatusPageSSO extends BaseModel {
     canReadOnRelationQuery: true,
     example:
       "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJAKL0UG+mRKU...\n-----END CERTIFICATE-----",
+    description:
+      "Your identity provider's signing certificate, in PEM, to check its SAML responses with.",
   })
   @Column({
     nullable: false,
@@ -587,6 +601,8 @@ export default class StatusPageSSO extends BaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: true,
+    description:
+      "When on, visitors of a private status page can sign in with this provider.",
   })
   @Column({
     type: ColumnType.Boolean,
@@ -614,6 +630,8 @@ export default class StatusPageSSO extends BaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    description:
+      "Whether a sign-in with this provider has been tested. It does not turn the provider on.",
   })
   @Column({
     type: ColumnType.Boolean,

@@ -28,6 +28,8 @@ Skriv `resource`-blokken, så den siger, hvad posten allerede er. Hvor de er for
 
 Alle providerens ressourcer kan importeres via deres ID, undtagen `oneuptime_file`: OneUptimes API kan ikke læse en fil tilbage, så provideren svarer `Import Not Supported`. Datakilder importeres aldrig. For at bruge en post i din konfiguration uden at styre den skal du i stedet læse den med en [datakilde](/docs/terraform/complete-guide#læs-det-der-allerede-findes).
 
+Rækker, der forbinder to poster, såsom et teams medlemmer, en monitors ejere og personerne i et lag i en vagtplan, har ID'er, som ingen skærm viser. De importeres også via det, de forbinder: ID'et på den post, de hører til, en skråstreg og personens e-mailadresse eller den anden posts ID, som i `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com`. Se [Importér medlemmer, du allerede har](/docs/terraform/people-and-teams#importér-medlemmer-du-allerede-har).
+
 ## Før du begynder
 
 - **Terraform 1.5 eller nyere, eller OpenTofu 1.6 eller nyere.** `import`-blokkene på denne side kræver disse versioner. En ældre Terraform importerer fra [kommandolinjen](#importér-fra-kommandolinjen).
@@ -181,6 +183,7 @@ Planen siger, at teamet ikke længere styres af Terraform, og ødelægger intet.
 ## Godt at vide
 
 - **En import ændrer intet, men det gør næste apply.** Når du anvender en plan, der viser en ændring ved siden af en import, ændres posten i OneUptime. Få først planen til kun at vise importen.
+- **Den samme værdi skrevet på en anden måde er ingen ændring.** OneUptime gemmer et tidsstempel i UTC med millisekunder, et tal som en 64-bit float, og JSON og en monitors trin med de nøgler, den selv udfylder. Lige efter en import viser planen for en konfiguration, der siger det samme på sin egen måde, ingen ændring.
 - **Hemmeligheder læses ikke tilbage.** En hemmelighed, som OneUptime aldrig sender tilbage, som en overvågningshemmeligheds `secret_value`, er ikke i state efter en import. Hvis din konfiguration angiver den, viser den første plan den som en ændring, og når du anvender den, skrives hemmeligheden igen.
 - **Én konfiguration for hver post.** En post, der er importeret i to konfigurationer, ændres ved hver apply tilbage til det, hver af dem siger.
 - **Importerede poster er styrede poster.** `terraform destroy` sletter dem fra OneUptime, ligesom de poster, Terraform har oprettet.

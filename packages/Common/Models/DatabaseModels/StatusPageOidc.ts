@@ -279,6 +279,8 @@ export default class StatusPageOIDC extends BaseModel {
     canReadOnRelationQuery: true,
     example:
       "Sign in to the status page using your corporate OpenID Connect provider.",
+    description:
+      "What this sign-in is for, such as which identity provider it uses.",
   })
   @Column({
     nullable: false,
@@ -648,6 +650,8 @@ export default class StatusPageOIDC extends BaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: true,
+    description:
+      "When on, visitors of a private status page can sign in with this provider.",
   })
   @Column({
     type: ColumnType.Boolean,
@@ -673,6 +677,8 @@ export default class StatusPageOIDC extends BaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    description:
+      "Whether a sign-in with this provider has been tested. It does not turn the provider on.",
   })
   @Column({
     type: ColumnType.Boolean,

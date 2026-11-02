@@ -231,7 +231,7 @@ export default class VMwareVCenterOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the vCenter",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,7 +309,7 @@ export default class VMwareVCenterOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "vCenter ID",
-    description: "ID of your OneUptime vCenter in which this object belongs",
+    description: "ID of the vCenter the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

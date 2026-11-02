@@ -259,6 +259,7 @@ export default class TelegramLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TelegramStatus),
     title: "Status of the Telegram Message",
     description: "Status of the Telegram message sent",
     canReadOnRelationQuery: false,

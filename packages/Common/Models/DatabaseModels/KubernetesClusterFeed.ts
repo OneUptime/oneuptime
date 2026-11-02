@@ -463,6 +463,7 @@ export default class KubernetesClusterFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(KubernetesClusterFeedEventType),
     required: true,
     title: "Kubernetes Cluster Feed Event",
     description: "Kubernetes Cluster Feed Event",

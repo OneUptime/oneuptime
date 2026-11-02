@@ -151,6 +151,7 @@ export default class SecurityProtectedEntity extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEntityType),
     canReadOnRelationQuery: true,
     title: "Type",
     description: "User or Host: what the value names.",

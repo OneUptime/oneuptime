@@ -302,6 +302,7 @@ export default class DataSecurityIssue extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecuritySeverity),
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
@@ -353,6 +354,7 @@ export default class DataSecurityIssue extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSecurityIssueStatus),
     required: true,
     canReadOnRelationQuery: true,
     title: "Status",

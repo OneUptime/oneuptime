@@ -74,6 +74,8 @@ resource "oneuptime_escalation_rule" "first" {
   escalate_after_in_minutes = 10
 }
 
+# The name oneuptime_escalation_rule_user had before: it keeps working, as a
+# deprecated alias (60-import-by-parent uses the new name).
 resource "oneuptime_users_on_call_duty_escalation_rule" "me" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first.id

@@ -252,7 +252,7 @@ export default class DataStoreOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of your OneUptime User in which this object belongs",
+    description: "ID of the user who owns the data store",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -285,7 +285,7 @@ export default class DataStoreOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Data Store ID",
-    description: "ID of your OneUptime Data Store in which this object belongs",
+    description: "ID of the data store the user owns",
   })
   @Column({
     type: ColumnType.ObjectID,

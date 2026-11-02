@@ -461,6 +461,7 @@ export default class StorageArrayFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(StorageArrayFeedEventType),
     required: true,
     title: "Storage Array Feed Event",
     description: "Storage Array Feed Event",

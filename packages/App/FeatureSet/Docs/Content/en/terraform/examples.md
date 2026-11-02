@@ -534,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -606,26 +606,23 @@ To put the event's monitors in a status while it runs, attach them with `monitor
 
 ## Probes
 
-A probe of your own runs checks from your network. Its key is the secret the probe signs in with, so pass it in a variable:
+A probe of your own runs checks from your network. Give it a name, and OneUptime generates its `key`, the secret the probe signs in with. Terraform keeps the key out of plans and logs, and an output of it must be marked sensitive:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Run the probe with `PROBE_ID` set to the probe's `id` and `PROBE_KEY` to the key: see [Custom Probes](/docs/probe/custom-probe). The end-to-end test `23-probe-crud` applies probes.
+Run the probe with `PROBE_ID` set to the probe's `id` and `PROBE_KEY` to the key, which `terraform output -raw eu_west_probe_key` prints: see [Custom Probes](/docs/probe/custom-probe). To choose the key yourself, set `key` from a sensitive variable. The end-to-end tests `23-probe-crud` and `61-name-only-and-choices` apply probes.
 
 ## Next steps
 

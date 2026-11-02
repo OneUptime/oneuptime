@@ -33,6 +33,10 @@ validate_field "$RESPONSE" "description" "Telemetry ingestion key created by Ter
 SECRET_KEY=$(echo "$RESPONSE" | jq -r '.secretKey // empty' | head -c 8)
 assert_not_empty "$SECRET_KEY" "Server-generated secret key" || validation_failed=1
 
+# The value lets whoever has it in: the provider keeps it out of plans, logs
+# and outputs.
+assert_sensitive "oneuptime_telemetry_ingestion_key.key" "secret_key" || validation_failed=1
+
 if [ $validation_failed -eq 1 ]; then
     print_failed "Telemetry Ingestion Key Verification"
 fi

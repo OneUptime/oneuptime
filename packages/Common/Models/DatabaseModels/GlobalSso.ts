@@ -87,6 +87,7 @@ export default class GlobalSSO extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SignatureMethod),
     title: "Signature Method",
     description: "Signature Method used by this SSO provider",
     example: "RSA-SHA256",
@@ -106,6 +107,7 @@ export default class GlobalSSO extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(DigestMethod),
     title: "Digest Method",
     description: "Digest Method used by this SSO provider",
     example: "SHA256",

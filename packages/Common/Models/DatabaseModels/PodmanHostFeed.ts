@@ -461,6 +461,7 @@ export default class PodmanHostFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PodmanHostFeedEventType),
     required: true,
     title: "Podman Host Feed Event",
     description: "Podman Host Feed Event",

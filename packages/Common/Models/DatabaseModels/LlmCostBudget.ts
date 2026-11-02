@@ -508,6 +508,7 @@ export default class LlmCostBudget extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmBudgetSpendSource),
     canReadOnRelationQuery: true,
     title: "Count Spend From",
     description:
