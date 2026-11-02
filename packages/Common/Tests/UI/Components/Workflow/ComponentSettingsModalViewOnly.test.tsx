@@ -6,15 +6,20 @@
  * viewer - opens a step to read what it does. The dialog used to let them
  * change it all and press Save, and every save then failed. Now:
  *
- *   - the settings and the identifier are shown as they are, inside a
- *     disabled fieldset: every control is disabled (a screen reader still
- *     reads each one and its value) and the pointer goes through the pickers;
+ *   - every setting is shown as it is and cannot be changed, held still one
+ *     by one: a list to pick from or a text box is disabled, a code box shows
+ *     its code to be read, a value box shows its value, and the identifier
+ *     sits in a disabled fieldset the pointer goes through;
+ *   - what only reads a setting stays usable: a code box's own Copy copies
+ *     its code, and More fields opens to show the settings folded there.
+ *     Both sat in one disabled fieldset around the whole form, which
+ *     disabled them with everything else (#5320's follow-up);
  *   - Close in place of Save and Cancel, and neither Delete nor Run just
  *     this step, which takes the same permission;
  *   - the footer says what the dialog is, with why under the pointer and
  *     read out;
- *   - what is only read stays usable: a trigger's URL is still copied, a
- *     step's references and its help are still there.
+ *   - a trigger's URL is still copied, a step's references and its help are
+ *     still there.
  */
 
 import React from "react";
@@ -96,8 +101,10 @@ import ComponentSettingsModal, {
   ComponentProps,
   WORKFLOW_STEP_VIEW_ONLY_TEXT,
 } from "../../../../UI/Components/Workflow/ComponentSettingsModal";
+import { WORKFLOW_VIEW_ONLY_FIELDSET_SELECTOR } from "../../../../UI/Components/Workflow/WorkflowViewOnlyFieldset";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
+import { JSONObject } from "../../../../Types/JSON";
 import ComponentMetadata, {
   NodeDataProp,
   NodeType,
@@ -105,13 +112,21 @@ import ComponentMetadata, {
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import Components from "../../../../Types/Workflow/Components";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  CODE_COPY_SELECTOR,
+  LiveControl,
+  findLiveControls,
+  isHeldStill,
+} from "./ViewOnlyControls";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
   RenderResult,
+  act,
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 
@@ -122,6 +137,12 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 
 const VIEW_ONLY_REASON: string =
   "Changing this workflow takes permission to edit it. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.";
+
+// What the steps below hold: code, a body and a header worth copying.
+const REQUEST_BODY: string = '{"service": "checkout", "status": "deployed"}';
+const SCRIPT: string = "return { ok: args.status === 'deployed' };";
+const EMAIL_BODY: string = "<p>Checkout was deployed.</p>";
+const AUTHORIZATION: string = "Bearer deploy-token";
 
 const getMetadata: (id: string) => ComponentMetadata = (
   id: string,
@@ -139,9 +160,14 @@ const getMetadata: (id: string) => ComponentMetadata = (
   return metadata;
 };
 
-const makeNode: (metadataId: string, id: string) => NodeDataProp = (
+const makeNode: (
   metadataId: string,
   id: string,
+  args?: JSONObject,
+) => NodeDataProp = (
+  metadataId: string,
+  id: string,
+  args?: JSONObject,
 ): NodeDataProp => {
   const metadata: ComponentMetadata = getMetadata(metadataId);
 
@@ -152,7 +178,7 @@ const makeNode: (metadataId: string, id: string) => NodeDataProp = (
     metadata: metadata,
     metadataId: metadata.id,
     internalId: `internal-${id}`,
-    arguments: {},
+    arguments: args || {},
     returnValues: {},
     componentType: metadata.componentType,
   };
@@ -160,9 +186,16 @@ const makeNode: (metadataId: string, id: string) => NodeDataProp = (
 
 // A Log step that writes "Deployment finished".
 const logStep: () => NodeDataProp = (): NodeDataProp => {
-  const log: NodeDataProp = makeNode(ComponentID.Log, "log-1");
-  log.arguments = { value: "Deployment finished" };
-  return log;
+  return makeNode(ComponentID.Log, "log-1", { value: "Deployment finished" });
+};
+
+// An API Post with a JSON body, and an Authorization header under More fields.
+const apiPostStep: () => NodeDataProp = (): NodeDataProp => {
+  return makeNode(ComponentID.ApiPost, "api-post-1", {
+    url: "https://deploys.example.com/hooks/checkout",
+    "request-body": REQUEST_BODY,
+    "request-headers": { Authorization: AUTHORIZATION },
+  });
 };
 
 const renderModal: (
@@ -188,79 +221,122 @@ const renderModal: (
   return render(<ComponentSettingsModal {...props} />);
 };
 
+const renderView: (node: NodeDataProp) => RenderResult = (
+  node: NodeDataProp,
+): RenderResult => {
+  return renderModal(node, { readOnlyReason: VIEW_ONLY_REASON });
+};
+
 const footer: () => HTMLElement = (): HTMLElement => {
   return screen.getByTestId("modal-footer");
 };
 
+const settingsView: () => HTMLElement = (): HTMLElement => {
+  return screen.getByTestId("workflow-component-settings-view-only");
+};
+
+// The code box of the settings that holds this code.
+const codeBox: (code: string) => HTMLElement = (code: string): HTMLElement => {
+  const box: HTMLElement | undefined = Array.from(
+    settingsView().querySelectorAll<HTMLElement>("[data-code-type]"),
+  ).find((candidate: HTMLElement): boolean => {
+    return (
+      candidate.querySelector<HTMLTextAreaElement>(
+        '[data-testid="code-editor-input"]',
+      )?.value === code
+    );
+  });
+
+  if (!box) {
+    throw new Error(`No code box holding ${code}`);
+  }
+
+  return box;
+};
+
+let writeText: MockFunction;
+
 beforeEach(() => {
   mockPermissions = [];
+  writeText = getJestMockFunction();
+  writeText.mockImplementation(() => {
+    return Promise.resolve();
+  });
+
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+  });
+});
+
+afterEach(() => {
+  Object.defineProperty(navigator, "clipboard", {
+    value: undefined,
+    configurable: true,
+  });
 });
 
 describe("a step opened on a view", () => {
-  test("shows its settings and identifier as they are, inside disabled fieldsets the pointer goes through", () => {
-    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
+  test("holds each setting still on its own - no fieldset around the whole form - and the identifier whole", () => {
+    renderView(logStep());
 
-    const settings: HTMLElement = screen.getByTestId(
-      "workflow-component-settings-view-only",
-    );
+    const settings: HTMLElement = settingsView();
     const identifier: HTMLElement = screen.getByTestId(
       "workflow-component-id-view-only",
     );
 
-    for (const fieldset of [settings, identifier]) {
-      expect(fieldset.tagName).toBe("FIELDSET");
-      expect(fieldset).toBeDisabled();
-      expect(fieldset).toHaveClass("pointer-events-none");
-      // No frame or indent of its own: the form reads as it does for an editor.
-      expect(fieldset).toHaveClass("m-0", "min-w-0", "border-0", "p-0");
-    }
-
+    // Nothing around the whole form disables what only reads a setting.
+    expect(settings.tagName).toBe("DIV");
+    expect(settings.closest("fieldset")).toBeNull();
+    expect(settings.closest(".pointer-events-none")).toBeNull();
     expect(settings).toHaveTextContent("Value");
+
+    // The identifier is one text box: held still whole, as before.
+    const idFieldset: HTMLElement = within(identifier).getByTestId(
+      "workflow-component-id-fieldset",
+    );
+
+    expect(idFieldset.tagName).toBe("FIELDSET");
+    expect(idFieldset).toBeDisabled();
+    expect(idFieldset).toHaveClass("pointer-events-none");
+    // No frame or indent of its own: the form reads as it does for an editor.
+    expect(idFieldset).toHaveClass("m-0", "min-w-0", "border-0", "p-0");
     expect(
       within(identifier).getByRole("textbox", { name: /^Identifier/ }),
     ).toHaveValue("log-1");
+    expect(
+      within(identifier).getByRole("textbox", { name: /^Identifier/ }),
+    ).toBeDisabled();
   });
 
   /*
-   * Steps whose settings are form controls - the schedule's pickers, an
-   * email's and a request's fields: every one of them disabled by the
-   * fieldset, whatever the step. (A value box is not a form control; the
-   * tests below hold it to being read only.)
+   * Steps whose settings are lists, switches, boxes and code: nothing in
+   * them can be changed, whatever the step. What is left is what only reads
+   * a setting - a code box's Copy, the More fields fold.
    */
-  test.each([ComponentID.Schedule, ComponentID.SendEmail, ComponentID.ApiPost])(
-    "every control in a %s step's settings is disabled",
-    (componentId: string) => {
-      renderModal(makeNode(componentId, `${componentId}-1`), {
-        readOnlyReason: VIEW_ONLY_REASON,
+  test.each([
+    ComponentID.Schedule,
+    ComponentID.SendEmail,
+    ComponentID.ApiPost,
+    ComponentID.JavaScriptCode,
+    ComponentID.Log,
+  ])(
+    "nothing in a %s step's settings can be changed - it is only read",
+    async (componentId: string) => {
+      renderView(makeNode(componentId, `${componentId}-1`));
+
+      // Drawn once every setting's label is: the form renders a beat late.
+      await waitFor(() => {
+        for (const arg of getMetadata(componentId).arguments) {
+          expect(settingsView()).toHaveTextContent(arg.name);
+        }
       });
 
-      const settings: HTMLElement = screen.getByTestId(
-        "workflow-component-settings-view-only",
-      );
+      const live: Array<LiveControl> = findLiveControls(settingsView());
 
-      const controls: Array<HTMLElement> = Array.from(
-        settings.querySelectorAll<HTMLElement>(
-          "input, textarea, select, button",
-        ),
-      );
+      expect([componentId, live]).toEqual([componentId, []]);
 
-      expect([componentId, controls.length > 0]).toEqual([componentId, true]);
-
-      for (const control of controls) {
-        // Disabled by the fieldset: what :disabled matches.
-        expect([
-          control.outerHTML.slice(0, 80),
-          control.matches(":disabled"),
-        ]).toEqual([control.outerHTML.slice(0, 80), true]);
-      }
-
-      // Nor is any value box left to type in.
-      for (const box of Array.from(
-        settings.querySelectorAll<HTMLElement>("[data-template-editor]"),
-      )) {
-        expect(box).toHaveAttribute("contenteditable", "false");
-      }
-
+      // Nor is the identifier.
       expect(
         within(screen.getByTestId("workflow-component-id-view-only")).getByRole(
           "textbox",
@@ -270,16 +346,168 @@ describe("a step opened on a view", () => {
     },
   );
 
+  test("a list to pick from is disabled, as a locked field is anywhere", async () => {
+    renderView(
+      makeNode(ComponentID.Schedule, "schedule-1", {
+        schedule: "0 * * * *",
+      }),
+    );
+
+    const inputs: Array<HTMLInputElement> = await waitFor(() => {
+      const found: Array<HTMLInputElement> = Array.from(
+        settingsView().querySelectorAll<HTMLInputElement>("input"),
+      );
+
+      expect(found.length).toBeGreaterThan(0);
+      return found;
+    });
+
+    for (const input of inputs) {
+      expect(input.matches(":disabled")).toBe(true);
+    }
+  });
+
+  test("a code box shows its code to be read: read only, said so, with no Format and no Insert value", () => {
+    renderView(apiPostStep());
+
+    const box: HTMLElement = codeBox(REQUEST_BODY);
+    const input: HTMLTextAreaElement = within(box).getByTestId(
+      "code-editor-input",
+    ) as HTMLTextAreaElement;
+
+    expect(input).toHaveAttribute("readonly");
+    // Read, not disabled: it is still focused, selected and scrolled.
+    expect(input).toBeEnabled();
+    expect(isHeldStill(input)).toBe(false);
+    expect(within(box).getByTestId("code-editor-read-only")).toHaveTextContent(
+      "Read-only",
+    );
+    expect(
+      within(box).queryByTestId("code-editor-format-button"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("workflow-argument-request-body-insert-value"),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ["an API Post's JSON body", apiPostStep, REQUEST_BODY],
+    [
+      "a script's JavaScript",
+      (): NodeDataProp => {
+        return makeNode(ComponentID.JavaScriptCode, "javascript-1", {
+          code: SCRIPT,
+        });
+      },
+      SCRIPT,
+    ],
+    [
+      "an email's HTML body",
+      (): NodeDataProp => {
+        return makeNode(ComponentID.SendEmail, "send-email-1", {
+          "email-body": EMAIL_BODY,
+        });
+      },
+      EMAIL_BODY,
+    ],
+  ])(
+    "copying changes nothing, so a code box's own Copy works: %s",
+    async (_name: string, node: () => NodeDataProp, code: string) => {
+      renderView(node());
+
+      const copy: HTMLElement = within(codeBox(code)).getByTestId(
+        "code-editor-copy-button",
+      );
+
+      expect(copy).toBeEnabled();
+      // Neither disabled nor under something the pointer goes through.
+      expect(isHeldStill(copy)).toBe(false);
+
+      await act(async () => {
+        fireEvent.click(copy);
+      });
+
+      expect(writeText).toHaveBeenCalledWith(code);
+      expect(copy).toHaveTextContent("Copied");
+    },
+  );
+
+  test("More fields still opens, to read the settings folded there", async () => {
+    renderView(apiPostStep());
+
+    const moreFields: HTMLElement = await screen.findByRole("button", {
+      name: "More fields",
+    });
+
+    expect(moreFields).toBeEnabled();
+    expect(isHeldStill(moreFields)).toBe(false);
+    expect(moreFields).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(moreFields);
+
+    expect(moreFields).toHaveAttribute("aria-expanded", "true");
+
+    // The header it folded: its name is read in a disabled box, its value as it is.
+    const key: HTMLElement = await screen.findByDisplayValue("Authorization");
+
+    expect(key.matches(":disabled")).toBe(true);
+    expect(
+      screen.getByTestId("workflow-argument-request-headers-value-0"),
+    ).toHaveTextContent(AUTHORIZATION);
+    expect(
+      screen.getByTestId("workflow-argument-request-headers-value-0"),
+    ).toHaveAttribute("contenteditable", "false");
+
+    // And it folds away again.
+    fireEvent.click(moreFields);
+    expect(moreFields).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("every code box of a step with two is read only, each with its own Copy", () => {
+    renderView(
+      makeNode(ComponentID.JavaScriptCode, "javascript-1", {
+        code: SCRIPT,
+        arguments: REQUEST_BODY,
+      }),
+    );
+
+    const boxes: Array<HTMLElement> = Array.from(
+      settingsView().querySelectorAll<HTMLElement>("[data-code-type]"),
+    );
+
+    expect(boxes).toHaveLength(2);
+
+    for (const box of boxes) {
+      expect(box).toHaveClass("ou-code-editor--readonly");
+      expect(box.querySelector(CODE_COPY_SELECTOR)).toBeEnabled();
+    }
+  });
+
+  test("nothing in the settings is held in a fieldset but what changes a setting", () => {
+    renderView(apiPostStep());
+
+    for (const fieldset of Array.from(
+      settingsView().querySelectorAll<HTMLElement>(
+        WORKFLOW_VIEW_ONLY_FIELDSET_SELECTOR,
+      ),
+    )) {
+      expect(fieldset.querySelector(CODE_COPY_SELECTOR)).toBeNull();
+      expect(
+        fieldset.querySelector('[data-testid="folded-section-header"]'),
+      ).toBeNull();
+    }
+  });
+
   /*
    * A value box is an editable element, not a form control (ValuePicker/
-   * TemplateTextEditor), so the disabled fieldset never reached it: on a
+   * TemplateTextEditor), so a disabled fieldset never reached it: on a
    * view it took the focus as the dialog opened, and the keyboard's typing
    * went into it. It now shows its value to be read: not editable, never
    * focused on its own, read out as read-only - and in the same ink as
    * any other value, not greyed out as a disabled box is.
    */
   test("a value box shows its value to be read: not editable, not focused on its own, read only", () => {
-    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
+    renderView(logStep());
 
     const box: HTMLElement = screen.getByTestId("workflow-argument-value");
 
@@ -292,10 +520,12 @@ describe("a step opened on a view", () => {
   });
 
   test("nothing typed, pasted, cut or dropped into a value box changes it", () => {
-    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
+    renderView(logStep());
 
     const box: HTMLElement = screen.getByTestId("workflow-argument-value");
-    box.focus();
+    act(() => {
+      box.focus();
+    });
 
     const typing: Event = new Event("beforeinput", {
       bubbles: true,
@@ -319,7 +549,7 @@ describe("a step opened on a view", () => {
   });
 
   test("offers no value to insert: no { } beside a value box", () => {
-    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
+    renderView(logStep());
 
     expect(
       screen.queryByTestId("workflow-argument-value-insert-value"),
@@ -329,6 +559,20 @@ describe("a step opened on a view", () => {
         name: "Insert a value from an earlier step or a variable",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  test("nothing in the settings takes the focus as the dialog opens: there is nothing to type", async () => {
+    renderView(
+      makeNode(ComponentID.JavaScriptCode, "javascript-1", { code: SCRIPT }),
+    );
+
+    await waitFor(() => {
+      expect(
+        settingsView().querySelector('[data-testid="code-editor-input"]'),
+      ).not.toBeNull();
+    });
+
+    expect(settingsView().contains(document.activeElement)).toBe(false);
   });
 
   test("has Close, and no Save, no Delete and no Run just this step", () => {
@@ -371,8 +615,30 @@ describe("a step opened on a view", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  test("a copy or an opened fold saves nothing either", async () => {
+    const onSave: MockFunction = getJestMockFunction();
+    const onClose: MockFunction = getJestMockFunction();
+
+    renderModal(apiPostStep(), {
+      readOnlyReason: VIEW_ONLY_REASON,
+      onSave: onSave,
+      onClose: onClose,
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(codeBox(REQUEST_BODY)).getByTestId("code-editor-copy-button"),
+      );
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "More fields" }));
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   test("its footer says what the dialog is, with why under the pointer and read out", () => {
-    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
+    renderView(logStep());
 
     const note: HTMLElement = screen.getByTestId(
       "workflow-component-view-only-note",
@@ -401,9 +667,7 @@ describe("a step opened on a view", () => {
   });
 
   test("a step whose settings are empty says nothing needs fixing: there is nothing to save", () => {
-    renderModal(makeNode(ComponentID.Log, "log-1"), {
-      readOnlyReason: VIEW_ONLY_REASON,
-    });
+    renderView(makeNode(ComponentID.Log, "log-1"));
 
     expect(
       screen.queryByText("Some settings need fixing before this can be saved."),
@@ -430,7 +694,7 @@ describe("a step opened on a view", () => {
   });
 
   test("its help and its references are still there", () => {
-    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
+    renderView(logStep());
 
     expect(
       screen.getByTestId("workflow-component-section-documentation"),
@@ -440,7 +704,7 @@ describe("a step opened on a view", () => {
 });
 
 describe("a step opened by an editor", () => {
-  test("is a form as it always was: no fieldset, Save, Delete and no note", () => {
+  test("is a form as it always was: no view wrapper or fieldset, Save, Delete and no note", () => {
     renderModal(logStep());
 
     expect(
@@ -449,6 +713,7 @@ describe("a step opened by an editor", () => {
     expect(
       screen.queryByTestId("workflow-component-id-view-only"),
     ).not.toBeInTheDocument();
+    expect(document.querySelector("fieldset[disabled]")).toBeNull();
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
       "Save",
     );
@@ -471,5 +736,52 @@ describe("a step opened by an editor", () => {
     expect(
       screen.getByTestId("workflow-argument-value-insert-value"),
     ).toBeEnabled();
+  });
+
+  test("its code boxes are typed in, with Format and Insert value, as they always were", () => {
+    renderModal(apiPostStep());
+
+    const box: HTMLElement | undefined = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-code-type]"),
+    ).find((candidate: HTMLElement): boolean => {
+      return Boolean(
+        candidate.querySelector<HTMLTextAreaElement>(
+          '[data-testid="code-editor-input"]',
+        )?.value === REQUEST_BODY,
+      );
+    });
+
+    expect(box).toBeDefined();
+    expect(within(box!).getByTestId("code-editor-input")).not.toHaveAttribute(
+      "readonly",
+    );
+    expect(box!).not.toHaveClass("ou-code-editor--readonly");
+    expect(
+      within(box!).getByTestId("code-editor-format-button"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("workflow-argument-request-body-insert-value"),
+    ).toBeEnabled();
+  });
+
+  test("its other settings are held by nothing: no list or box is disabled", async () => {
+    renderModal(
+      makeNode(ComponentID.Schedule, "schedule-1", {
+        schedule: "0 * * * *",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(document.querySelectorAll("input").length).toBeGreaterThan(0);
+    });
+
+    expect(document.querySelector("fieldset[disabled]")).toBeNull();
+    expect(
+      Array.from(document.querySelectorAll<HTMLInputElement>("input")).some(
+        (input: HTMLInputElement): boolean => {
+          return !input.matches(":disabled");
+        },
+      ),
+    ).toBe(true);
   });
 });

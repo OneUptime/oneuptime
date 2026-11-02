@@ -43,6 +43,8 @@ import {
 import ModelQueryBuilder from "./ColumnEditor/ModelQueryBuilder";
 import ModelRecordForm from "./ColumnEditor/ModelRecordForm";
 import { ColumnUse } from "./ColumnEditor/ColumnUse";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
+import WorkflowViewOnlyFieldset from "./WorkflowViewOnlyFieldset";
 import CodeType from "../../../Types/Code/CodeType";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -51,6 +53,7 @@ import { maskTemplateExpressions } from "../../../Types/Workflow/TemplateSyntax"
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -388,6 +391,12 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the rows and the switch to
+   * JSON are held still (WorkflowViewOnlyFieldset), and a value kept as JSON
+   * is a code box to read and copy.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const isQuery: boolean = props.mode === ModelColumnEditorMode.Query;
 
   /*
@@ -698,65 +707,74 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
         </p>
 
         {!isLockedToJson && (
-          <button
-            type="button"
-            data-testid="model-column-json-toggle"
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            onClick={() => {
-              if (effectiveMode === "builder") {
-                showJson();
-                return;
-              }
+          <WorkflowViewOnlyFieldset>
+            <button
+              type="button"
+              data-testid="model-column-json-toggle"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              onClick={() => {
+                if (effectiveMode === "builder") {
+                  showJson();
+                  return;
+                }
 
-              showRows();
-            }}
-          >
-            <Icon
-              icon={
+                showRows();
+              }}
+            >
+              <Icon
+                icon={
+                  effectiveMode === "builder"
+                    ? IconProp.Code
+                    : IconProp.ListBullet
+                }
+                className="h-3.5 w-3.5 text-gray-500"
+              />
+              {translator.translateText(
                 effectiveMode === "builder"
-                  ? IconProp.Code
-                  : IconProp.ListBullet
-              }
-              className="h-3.5 w-3.5 text-gray-500"
-            />
-            {translator.translateText(
-              effectiveMode === "builder"
-                ? "Edit as JSON"
-                : isQuery
-                  ? "Back to conditions"
-                  : "Back to fields",
-            )}
-          </button>
+                  ? "Edit as JSON"
+                  : isQuery
+                    ? "Back to conditions"
+                    : "Back to fields",
+              )}
+            </button>
+          </WorkflowViewOnlyFieldset>
         )}
       </div>
 
       {effectiveMode === "builder" ? (
-        isQuery ? (
-          <ModelQueryBuilder
-            rows={rows}
-            columns={columns}
-            onChange={onRowsChange}
-          />
-        ) : (
-          <ModelRecordForm
-            rows={rows}
-            columns={columns}
-            use={
-              (props.recordIntent || RecordIntent.Create) ===
-              RecordIntent.Create
-                ? ColumnUse.Create
-                : ColumnUse.Update
-            }
-            onChange={onRowsChange}
-          />
-        )
+        <WorkflowViewOnlyFieldset>
+          {isQuery ? (
+            <ModelQueryBuilder
+              rows={rows}
+              columns={columns}
+              onChange={onRowsChange}
+            />
+          ) : (
+            <ModelRecordForm
+              rows={rows}
+              columns={columns}
+              use={
+                (props.recordIntent || RecordIntent.Create) ===
+                RecordIntent.Create
+                  ? ColumnUse.Create
+                  : ColumnUse.Update
+              }
+              onChange={onRowsChange}
+            />
+          )}
+        </WorkflowViewOnlyFieldset>
       ) : (
+        /*
+         * In a view, the code to read and copy: nothing in it changes, and
+         * its own Copy works.
+         */
         <CodeEditor
           type={CodeType.JSON}
           tabIndex={props.tabIndex}
           error={props.error}
           initialValue={initial.text}
           value={jsonText}
+          readOnly={isViewOnly}
           placeholder={props.placeholder}
           onChange={onJsonChange}
         />

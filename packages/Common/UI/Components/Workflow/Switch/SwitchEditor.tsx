@@ -35,6 +35,8 @@ import Dropdown, {
 } from "../../Dropdown/Dropdown";
 import Icon from "../../Icon/Icon";
 import DragHandle from "../../Table/DragHandle";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
+import WorkflowViewOnlyFieldset from "../WorkflowViewOnlyFieldset";
 import {
   CONDITION_COMPARISON_OPTIONS,
   getCompareWithPlaceholder,
@@ -95,6 +97,7 @@ import {
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -234,6 +237,14 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
   props: SwitchEditorProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the cases are held still
+   * (WorkflowViewOnlyFieldset), Compare as still opens to be read, and no
+   * case is picked up by its grip. A disabled fieldset cannot stop that on
+   * its own: the grip is no form control, and from the keyboard Space
+   * picked a case up and the arrow keys moved it, in a view.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const droppableId: string = `switch-cases-${useId()}`;
   const valueLabelId: string = `switch-value-label-${useId()}`;
   const casesLabelId: string = `switch-cases-label-${useId()}`;
@@ -596,6 +607,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
           >
             <DragHandle
               dragHandleProps={provided.dragHandleProps}
+              isDisabled={isViewOnly}
               itemLabel={translator.translateTemplate("Case {{number}}", {
                 number: number,
               })}
@@ -753,166 +765,169 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
         </p>
       </div>
 
-      <div className="space-y-2" data-testid={SWITCH_TEST_IDS.cases}>
-        <div>
-          <p id={casesLabelId} className="text-sm font-medium text-gray-700">
-            {translator.translateText(CASES_LABEL)}
-          </p>
-          <p className="text-xs text-gray-500">
-            {translator.translateText(
-              "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.",
-            )}
-          </p>
-        </div>
-
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId={droppableId}>
-            {(droppableProvided: DroppableProvided) => {
-              return (
-                <ol
-                  ref={droppableProvided.innerRef}
-                  {...droppableProvided.droppableProps}
-                  aria-labelledby={casesLabelId}
-                  className="space-y-2"
-                >
-                  {cases.map((switchCase: SwitchCase, index: number) => {
-                    return (
-                      <Draggable
-                        key={switchCase.id}
-                        draggableId={`${droppableId}-${switchCase.id}`}
-                        index={index}
-                      >
-                        {(
-                          provided: DraggableProvided,
-                          snapshot: DraggableStateSnapshot,
-                        ) => {
-                          return renderCase(
-                            switchCase,
-                            index,
-                            provided,
-                            snapshot,
-                          );
-                        }}
-                      </Draggable>
-                    );
-                  })}
-                  {droppableProvided.placeholder}
-                </ol>
-              );
-            }}
-          </Droppable>
-        </DragDropContext>
-
-        {cases.length === 0 ? (
-          <p
-            className="rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600"
-            data-testid={SWITCH_TEST_IDS.noCases}
-          >
-            {translator.translateText(
-              "Add a case for each way the workflow can go.",
-            )}
-          </p>
-        ) : (
-          <></>
-        )}
-
-        {errors.unreadableCases ? (
-          <p className="text-sm text-red-600">
-            {translator.translateText(errors.unreadableCases)}
-          </p>
-        ) : (
-          <></>
-        )}
-
-        {/*
-          Right under the list, where the case was taken out: what saving
-          disconnects, case by case, and a way to put each case back.
-        */}
-        {removedCases.length > 0 ? (
-          <div
-            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"
-            data-testid={SWITCH_TEST_IDS.removedCases}
-            role="status"
-          >
-            <p className="text-sm font-medium text-amber-900">
+      <WorkflowViewOnlyFieldset>
+        <div className="space-y-2" data-testid={SWITCH_TEST_IDS.cases}>
+          <div>
+            <p id={casesLabelId} className="text-sm font-medium text-gray-700">
+              {translator.translateText(CASES_LABEL)}
+            </p>
+            <p className="text-xs text-gray-500">
               {translator.translateText(
-                "Saving removes the connections of the cases you took out",
+                "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.",
               )}
             </p>
-            <ul className="mt-1.5 space-y-1.5">
-              {removedCases.map(
-                (removed: RemovedConnectedCase, index: number) => {
-                  return (
-                    <li
-                      key={removed.switchCase.id}
-                      className="flex flex-wrap items-center justify-between gap-2"
-                      data-testid={`switch-removed-case-${index}`}
-                    >
-                      <p className="min-w-0 break-words text-xs text-amber-800">
-                        {translator.translateTemplate(
-                          "Case “{{case}}” led to {{steps}}.",
-                          {
-                            case: removed.label,
-                            steps: removed.steps
-                              .map((step: ConnectedStep): string => {
-                                return `${step.title} (${step.componentId})`;
-                              })
-                              .join(", "),
-                          },
-                        )}
-                      </p>
-                      <Button
-                        title="Put back"
-                        buttonSize={ButtonSize.Small}
-                        buttonStyle={ButtonStyleType.OUTLINE}
-                        icon={IconProp.ArrowUturnLeft}
-                        dataTestId={`switch-removed-case-undo-${index}`}
-                        ariaLabel={translator.translateTemplate(
-                          "Put case “{{case}}” back",
-                          { case: removed.label },
-                        )}
-                        onClick={() => {
-                          putBack(removed);
-                        }}
-                      />
-                    </li>
-                  );
-                },
-              )}
-            </ul>
           </div>
-        ) : (
-          <></>
-        )}
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Button
-            title={ADD_CASE_LABEL}
-            icon={IconProp.Add}
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.NORMAL}
-            /*
-             * Flush with the cases above, not a modal footer's gap in from
-             * them. Once the step holds all it can it is plainly off, with
-             * Button's disabled look.
-             */
-            className="md:!ml-0"
-            dataTestId={SWITCH_TEST_IDS.addCase}
-            disabled={isFull}
-            onClick={add}
-          />
-          {isFull ? (
-            <span className="text-xs text-gray-500">
-              {translator.translateTemplate(
-                "A step holds at most {{count}} cases.",
-                { count: MAX_SWITCH_CASES },
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId={droppableId}>
+              {(droppableProvided: DroppableProvided) => {
+                return (
+                  <ol
+                    ref={droppableProvided.innerRef}
+                    {...droppableProvided.droppableProps}
+                    aria-labelledby={casesLabelId}
+                    className="space-y-2"
+                  >
+                    {cases.map((switchCase: SwitchCase, index: number) => {
+                      return (
+                        <Draggable
+                          key={switchCase.id}
+                          draggableId={`${droppableId}-${switchCase.id}`}
+                          index={index}
+                          isDragDisabled={isViewOnly}
+                        >
+                          {(
+                            provided: DraggableProvided,
+                            snapshot: DraggableStateSnapshot,
+                          ) => {
+                            return renderCase(
+                              switchCase,
+                              index,
+                              provided,
+                              snapshot,
+                            );
+                          }}
+                        </Draggable>
+                      );
+                    })}
+                    {droppableProvided.placeholder}
+                  </ol>
+                );
+              }}
+            </Droppable>
+          </DragDropContext>
+
+          {cases.length === 0 ? (
+            <p
+              className="rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600"
+              data-testid={SWITCH_TEST_IDS.noCases}
+            >
+              {translator.translateText(
+                "Add a case for each way the workflow can go.",
               )}
-            </span>
+            </p>
           ) : (
             <></>
           )}
+
+          {errors.unreadableCases ? (
+            <p className="text-sm text-red-600">
+              {translator.translateText(errors.unreadableCases)}
+            </p>
+          ) : (
+            <></>
+          )}
+
+          {/*
+          Right under the list, where the case was taken out: what saving
+          disconnects, case by case, and a way to put each case back.
+        */}
+          {removedCases.length > 0 ? (
+            <div
+              className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"
+              data-testid={SWITCH_TEST_IDS.removedCases}
+              role="status"
+            >
+              <p className="text-sm font-medium text-amber-900">
+                {translator.translateText(
+                  "Saving removes the connections of the cases you took out",
+                )}
+              </p>
+              <ul className="mt-1.5 space-y-1.5">
+                {removedCases.map(
+                  (removed: RemovedConnectedCase, index: number) => {
+                    return (
+                      <li
+                        key={removed.switchCase.id}
+                        className="flex flex-wrap items-center justify-between gap-2"
+                        data-testid={`switch-removed-case-${index}`}
+                      >
+                        <p className="min-w-0 break-words text-xs text-amber-800">
+                          {translator.translateTemplate(
+                            "Case “{{case}}” led to {{steps}}.",
+                            {
+                              case: removed.label,
+                              steps: removed.steps
+                                .map((step: ConnectedStep): string => {
+                                  return `${step.title} (${step.componentId})`;
+                                })
+                                .join(", "),
+                            },
+                          )}
+                        </p>
+                        <Button
+                          title="Put back"
+                          buttonSize={ButtonSize.Small}
+                          buttonStyle={ButtonStyleType.OUTLINE}
+                          icon={IconProp.ArrowUturnLeft}
+                          dataTestId={`switch-removed-case-undo-${index}`}
+                          ariaLabel={translator.translateTemplate(
+                            "Put case “{{case}}” back",
+                            { case: removed.label },
+                          )}
+                          onClick={() => {
+                            putBack(removed);
+                          }}
+                        />
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Button
+              title={ADD_CASE_LABEL}
+              icon={IconProp.Add}
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.NORMAL}
+              /*
+               * Flush with the cases above, not a modal footer's gap in from
+               * them. Once the step holds all it can it is plainly off, with
+               * Button's disabled look.
+               */
+              className="md:!ml-0"
+              dataTestId={SWITCH_TEST_IDS.addCase}
+              disabled={isFull}
+              onClick={add}
+            />
+            {isFull ? (
+              <span className="text-xs text-gray-500">
+                {translator.translateTemplate(
+                  "A step holds at most {{count}} cases.",
+                  { count: MAX_SWITCH_CASES },
+                )}
+              </span>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
-      </div>
+      </WorkflowViewOnlyFieldset>
 
       {casesWithCompareAs.length > 0 ? (
         <div data-testid={SWITCH_TEST_IDS.compareAs}>
@@ -926,80 +941,82 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
             defaultCollapsed={!isCompareAsOpenOnLoad}
             headerClassName="!py-1"
           >
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500">
-                {translator.translateText(
-                  "Each case compares as its comparison suggests: numbers for is greater than, text for the rest. Change it here when a case should compare another way.",
-                )}
-              </p>
-              {casesWithCompareAs.map(
-                (entry: { switchCase: SwitchCase; index: number }) => {
-                  const type: ConditionValueType | null = getCaseCompareAs(
-                    state.valueToCheck,
-                    entry.switchCase,
-                  );
-                  const number: number = entry.index + 1;
+            <WorkflowViewOnlyFieldset>
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">
+                  {translator.translateText(
+                    "Each case compares as its comparison suggests: numbers for is greater than, text for the rest. Change it here when a case should compare another way.",
+                  )}
+                </p>
+                {casesWithCompareAs.map(
+                  (entry: { switchCase: SwitchCase; index: number }) => {
+                    const type: ConditionValueType | null = getCaseCompareAs(
+                      state.valueToCheck,
+                      entry.switchCase,
+                    );
+                    const number: number = entry.index + 1;
 
-                  return (
-                    <div
-                      key={entry.switchCase.id}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1"
-                      data-testid={`switch-compare-as-${entry.index}`}
-                    >
-                      <span className="min-w-[4.5rem] text-xs font-medium text-gray-600">
-                        {translator.translateTemplate("Case {{number}}", {
-                          number: number,
-                        })}
-                      </span>
+                    return (
                       <div
-                        role="radiogroup"
-                        aria-label={translator.translateTemplate(
-                          "Compare case {{number}} as",
-                          { number: number },
-                        )}
-                        className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
+                        key={entry.switchCase.id}
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                        data-testid={`switch-compare-as-${entry.index}`}
                       >
-                        {CONDITION_COMPARE_AS_OPTIONS.map(
-                          (option: ConditionCompareAsOption) => {
-                            const isChecked: boolean = option.type === type;
+                        <span className="min-w-[4.5rem] text-xs font-medium text-gray-600">
+                          {translator.translateTemplate("Case {{number}}", {
+                            number: number,
+                          })}
+                        </span>
+                        <div
+                          role="radiogroup"
+                          aria-label={translator.translateTemplate(
+                            "Compare case {{number}} as",
+                            { number: number },
+                          )}
+                          className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
+                        >
+                          {CONDITION_COMPARE_AS_OPTIONS.map(
+                            (option: ConditionCompareAsOption) => {
+                              const isChecked: boolean = option.type === type;
 
-                            return (
-                              <label
-                                key={option.type}
-                                className={`cursor-pointer rounded-md px-2.5 py-0.5 text-xs font-medium transition-colors focus-within:ring-2 focus-within:ring-indigo-500 ${
-                                  isChecked
-                                    ? "bg-white text-gray-900 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                }`}
-                                data-testid={`switch-compare-as-${entry.index}-${option.type}`}
-                              >
-                                <input
-                                  type="radio"
-                                  className="sr-only"
-                                  name={`${droppableId}-compare-as-${entry.switchCase.id}`}
-                                  value={option.type}
-                                  checked={isChecked}
-                                  onChange={() => {
-                                    setCases(
-                                      changeCaseCompareAs(
-                                        cases,
-                                        entry.switchCase.id,
-                                        option.type,
-                                      ),
-                                    );
-                                  }}
-                                />
-                                {translator.translateText(option.label)}
-                              </label>
-                            );
-                          },
-                        )}
+                              return (
+                                <label
+                                  key={option.type}
+                                  className={`cursor-pointer rounded-md px-2.5 py-0.5 text-xs font-medium transition-colors focus-within:ring-2 focus-within:ring-indigo-500 ${
+                                    isChecked
+                                      ? "bg-white text-gray-900 shadow-sm"
+                                      : "text-gray-600 hover:text-gray-900"
+                                  }`}
+                                  data-testid={`switch-compare-as-${entry.index}-${option.type}`}
+                                >
+                                  <input
+                                    type="radio"
+                                    className="sr-only"
+                                    name={`${droppableId}-compare-as-${entry.switchCase.id}`}
+                                    value={option.type}
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      setCases(
+                                        changeCaseCompareAs(
+                                          cases,
+                                          entry.switchCase.id,
+                                          option.type,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                  {translator.translateText(option.label)}
+                                </label>
+                              );
+                            },
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                },
-              )}
-            </div>
+                    );
+                  },
+                )}
+              </div>
+            </WorkflowViewOnlyFieldset>
           </CollapsibleSection>
         </div>
       ) : (

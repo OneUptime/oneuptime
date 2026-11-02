@@ -43,6 +43,8 @@ import ValueSingleField, {
 } from "./ValuePicker/ValueSingleField";
 import { ValueSuggestionSource } from "./ValuePicker/ValueSuggestion";
 import ValueTextField from "./ValuePicker/ValueTextField";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
+import WorkflowViewOnlyFieldset from "./WorkflowViewOnlyFieldset";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import Exception from "../../../Types/Exception/Exception";
@@ -70,6 +72,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -215,6 +218,30 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
     Dictionary<boolean>
   >({});
+
+  /*
+   * A step opened to be read, by someone who may not change the workflow
+   * (WorkflowViewOnly): every setting is shown as it is and cannot be
+   * changed, one by one, so that what only reads a setting stays usable.
+   *
+   *   - A setting the form draws itself is locked (Field.disabled): a list
+   *     to pick from or a text box is disabled, and a code box shows its
+   *     code to be read - selected, scrolled and copied with its own Copy.
+   *   - A setting drawn here is drawn inside WorkflowViewOnlyFieldset, which
+   *     disables every control in it - unless it shows itself read only: a
+   *     value box (ValueTextField) is read and selected as it is, and the
+   *     field list and the record editor show their JSON in a code box to
+   *     read and copy (ModelFieldPicker, ModelColumnEditor). If / Else and
+   *     Switch / Case hold their own controls still, and their Compare as
+   *     still opens (Condition/ConditionEditor, Switch/SwitchEditor).
+   *   - The More fields fold still opens: it only shows what is folded.
+   *   - Nothing takes the focus on its own: there is nothing to type.
+   *
+   * The whole form used to sit in one disabled fieldset, which disabled a
+   * code box's Copy and the More fields fold with everything else, so the
+   * settings folded there could not be read at all.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
 
   /*
    * Arguments flagged isAdvanced are folded under More fields, as every
@@ -406,6 +433,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           _values: FormValues<JSONObject>,
           customProps: CustomElementProps,
         ): ReactElement => {
+          // Honours a view itself: its chips held still, its JSON to read.
           return (
             <ModelFieldPicker
               tableName={component.metadata.tableName as string}
@@ -476,6 +504,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           _values: FormValues<JSONObject>,
           customProps: CustomElementProps,
         ): ReactElement => {
+          // Honours a view itself: its rows held still, its JSON to read.
           return (
             <ModelColumnEditor
               tableName={component.metadata.tableName as string}
@@ -515,15 +544,17 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           customProps: CustomElementProps,
         ): ReactElement => {
           return (
-            <CronScheduleField
-              initialValue={customProps.initialValue as string | null}
-              onChange={(value: string) => {
-                void customProps.onChange?.(value);
-              }}
-              placeholder={customProps.placeholder}
-              error={customProps.error}
-              tabIndex={customProps.tabIndex}
-            />
+            <WorkflowViewOnlyFieldset>
+              <CronScheduleField
+                initialValue={customProps.initialValue as string | null}
+                onChange={(value: string) => {
+                  void customProps.onChange?.(value);
+                }}
+                placeholder={customProps.placeholder}
+                error={customProps.error}
+                tabIndex={customProps.tabIndex}
+              />
+            </WorkflowViewOnlyFieldset>
           );
         },
       };
@@ -540,9 +571,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     /*
      * The first setting takes the focus as the dialog opens, as BasicForm
      * gives it to a first text box: the keyboard starts where the step is set
-     * up.
+     * up. Not in a view, where there is nothing to type.
      */
-    const autoFocus: boolean = argIndex === 0;
+    const autoFocus: boolean = argIndex === 0 && !isViewOnly;
 
     if (
       control === ArgumentControl.Text ||
@@ -554,6 +585,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           _values: FormValues<JSONObject>,
           customProps: CustomElementProps,
         ): ReactElement => {
+          // Shows itself read only in a view (TemplateTextEditor).
           return (
             <ValueTextField
               value={customProps.initialValue}
@@ -589,17 +621,19 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           customProps: CustomElementProps,
         ): ReactElement => {
           return (
-            <RecordListField
-              kind={recordListKind}
-              value={(values as JSONObject)[arg.id]}
-              onChange={(value: Array<string>) => {
-                void customProps.onChange?.(value);
-              }}
-              ariaLabelledby={customProps.ariaLabelledby}
-              error={customProps.error}
-              dataTestId={`workflow-argument-${arg.id}`}
-              onBlur={customProps.onBlur}
-            />
+            <WorkflowViewOnlyFieldset>
+              <RecordListField
+                kind={recordListKind}
+                value={(values as JSONObject)[arg.id]}
+                onChange={(value: Array<string>) => {
+                  void customProps.onChange?.(value);
+                }}
+                ariaLabelledby={customProps.ariaLabelledby}
+                error={customProps.error}
+                dataTestId={`workflow-argument-${arg.id}`}
+                onBlur={customProps.onBlur}
+              />
+            </WorkflowViewOnlyFieldset>
           );
         },
       };
@@ -617,14 +651,16 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           customProps: CustomElementProps,
         ): ReactElement => {
           return (
-            <ChoiceSettingField
-              argument={arg}
-              value={(values as JSONObject)[arg.id]}
-              onChange={(value: string) => {
-                void customProps.onChange?.(value);
-              }}
-              dataTestId={`workflow-argument-${arg.id}`}
-            />
+            <WorkflowViewOnlyFieldset>
+              <ChoiceSettingField
+                argument={arg}
+                value={(values as JSONObject)[arg.id]}
+                onChange={(value: string) => {
+                  void customProps.onChange?.(value);
+                }}
+                dataTestId={`workflow-argument-${arg.id}`}
+              />
+            </WorkflowViewOnlyFieldset>
           );
         },
       };
@@ -649,28 +685,30 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           customProps: CustomElementProps,
         ): ReactElement => {
           return (
-            <ValueSingleField
-              kind={singleKind}
-              title={isSwitch ? arg.name : undefined}
-              description={
-                isSwitch ? describeArgument(translator, arg) : undefined
-              }
-              value={
-                singleKind === ValueSingleFieldKind.Boolean
-                  ? component.arguments?.[arg.id]
-                  : customProps.initialValue
-              }
-              onChange={(value: string | boolean) => {
-                void customProps.onChange?.(value);
-              }}
-              placeholder={customProps.placeholder}
-              ariaLabelledby={customProps.ariaLabelledby}
-              error={customProps.error}
-              autoFocus={autoFocus}
-              tabIndex={customProps.tabIndex}
-              dataTestId={`workflow-argument-${arg.id}`}
-              onBlur={customProps.onBlur}
-            />
+            <WorkflowViewOnlyFieldset>
+              <ValueSingleField
+                kind={singleKind}
+                title={isSwitch ? arg.name : undefined}
+                description={
+                  isSwitch ? describeArgument(translator, arg) : undefined
+                }
+                value={
+                  singleKind === ValueSingleFieldKind.Boolean
+                    ? component.arguments?.[arg.id]
+                    : customProps.initialValue
+                }
+                onChange={(value: string | boolean) => {
+                  void customProps.onChange?.(value);
+                }}
+                placeholder={customProps.placeholder}
+                ariaLabelledby={customProps.ariaLabelledby}
+                error={customProps.error}
+                autoFocus={autoFocus}
+                tabIndex={customProps.tabIndex}
+                dataTestId={`workflow-argument-${arg.id}`}
+                onBlur={customProps.onBlur}
+              />
+            </WorkflowViewOnlyFieldset>
           );
         },
       };
@@ -689,44 +727,50 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           customProps: CustomElementProps,
         ): ReactElement => {
           return (
-            <DictionaryForm
-              keyPlaceholder="Key"
-              valuePlaceholder="Value"
-              addButtonSuffix={arg.name}
-              valueTypes={[ValueType.Text, ValueType.Number, ValueType.Boolean]}
-              initialValue={
-                customProps.initialValue &&
-                typeof customProps.initialValue === "object"
-                  ? customProps.initialValue
-                  : {}
-              }
-              onChange={(value: Dictionary<unknown>) => {
-                void customProps.onChange?.(value);
-              }}
-              renderTextValueInput={(row: {
-                value: string;
-                onChange: (value: string) => void;
-                placeholder?: string | undefined;
-                rowIndex: number;
-              }): ReactElement => {
-                return (
-                  <ValueTextField
-                    value={row.value}
-                    onChange={row.onChange}
-                    multiline={false}
-                    placeholder={row.placeholder}
-                    ariaLabel={translator.translateTemplate(
-                      "{{name}} value {{number}}",
-                      {
-                        name: translatableTerm(arg.name),
-                        number: row.rowIndex + 1,
-                      },
-                    )}
-                    dataTestId={`workflow-argument-${arg.id}-value-${row.rowIndex}`}
-                  />
-                );
-              }}
-            />
+            <WorkflowViewOnlyFieldset>
+              <DictionaryForm
+                keyPlaceholder="Key"
+                valuePlaceholder="Value"
+                addButtonSuffix={arg.name}
+                valueTypes={[
+                  ValueType.Text,
+                  ValueType.Number,
+                  ValueType.Boolean,
+                ]}
+                initialValue={
+                  customProps.initialValue &&
+                  typeof customProps.initialValue === "object"
+                    ? customProps.initialValue
+                    : {}
+                }
+                onChange={(value: Dictionary<unknown>) => {
+                  void customProps.onChange?.(value);
+                }}
+                renderTextValueInput={(row: {
+                  value: string;
+                  onChange: (value: string) => void;
+                  placeholder?: string | undefined;
+                  rowIndex: number;
+                }): ReactElement => {
+                  return (
+                    <ValueTextField
+                      value={row.value}
+                      onChange={row.onChange}
+                      multiline={false}
+                      placeholder={row.placeholder}
+                      ariaLabel={translator.translateTemplate(
+                        "{{name}} value {{number}}",
+                        {
+                          name: translatableTerm(arg.name),
+                          number: row.rowIndex + 1,
+                        },
+                      )}
+                      dataTestId={`workflow-argument-${arg.id}-value-${row.rowIndex}`}
+                    />
+                  );
+                }}
+              />
+            </WorkflowViewOnlyFieldset>
           );
         },
       };
@@ -898,6 +942,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                * wrong: a field says it as soon as it is left, changed or not.
                */
               showErrorsWhenLeftUnchanged={true}
+              // A view's settings are read, not typed in.
+              disableAutofocus={isViewOnly}
               ref={formRef}
               initialValues={{
                 ...formInitialValues,
@@ -996,6 +1042,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           }
                         : arg.required,
                     placeholder: arg.placeholder,
+                    // A view: shown as it is, and cannot be changed.
+                    disabled: isViewOnly,
                     /*
                      * Some argument types are read back with JSON5 rather than
                      * JSON, so the check has to be no stricter than the parser

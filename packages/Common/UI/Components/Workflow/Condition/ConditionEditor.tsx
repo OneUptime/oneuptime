@@ -33,6 +33,7 @@ import {
   useValuePicker,
 } from "../ValuePicker/ValuePickerContext";
 import ValueTextField from "../ValuePicker/ValueTextField";
+import WorkflowViewOnlyFieldset from "../WorkflowViewOnlyFieldset";
 import {
   COMPARE_AS_LABEL,
   COMPARE_WITH_LABEL,
@@ -371,63 +372,69 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
       {/*
         The sentence. "If" starts it, then the value to check; the comparison
         and what it is compared with share the next line where they fit.
+        Held still on a view (WorkflowViewOnly), with Compare as's choices
+        below; Compare as itself still opens, to read how it compares.
       */}
-      <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-[2.25rem_minmax(0,1fr)]">
-        <div
-          className="pt-0 text-sm font-semibold text-gray-700 sm:pt-2"
-          aria-hidden="true"
-        >
-          {translator.translateText("If")}
-        </div>
-        <div className="min-w-0">
-          <ValueTextField
-            value={state.valueToCheck}
-            onChange={(value: string) => {
-              props.onChange({
-                [CONDITION_ARGUMENT_IDS.valueToCheck]: value,
-              });
-            }}
-            multiline={false}
-            placeholder="Pick a value with { } or type one"
-            ariaLabel={VALUE_TO_CHECK_LABEL}
-            autoFocus={true}
-            dataTestId={CONDITION_TEST_IDS.valueToCheck}
-            error={touched.valueToCheck ? errors.valueToCheck : undefined}
-            onBlur={() => {
-              markTouched("valueToCheck");
-            }}
-          />
-        </div>
+      <WorkflowViewOnlyFieldset>
+        <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-[2.25rem_minmax(0,1fr)]">
+          <div
+            className="pt-0 text-sm font-semibold text-gray-700 sm:pt-2"
+            aria-hidden="true"
+          >
+            {translator.translateText("If")}
+          </div>
+          <div className="min-w-0">
+            <ValueTextField
+              value={state.valueToCheck}
+              onChange={(value: string) => {
+                props.onChange({
+                  [CONDITION_ARGUMENT_IDS.valueToCheck]: value,
+                });
+              }}
+              multiline={false}
+              placeholder="Pick a value with { } or type one"
+              ariaLabel={VALUE_TO_CHECK_LABEL}
+              autoFocus={true}
+              dataTestId={CONDITION_TEST_IDS.valueToCheck}
+              error={touched.valueToCheck ? errors.valueToCheck : undefined}
+              onBlur={() => {
+                markTouched("valueToCheck");
+              }}
+            />
+          </div>
 
-        <div className="max-sm:hidden sm:block" aria-hidden="true" />
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start">
-          <div className="w-full sm:w-64 sm:shrink-0">{comparisonControl}</div>
-          {showsCompareWith && (
-            <div className="min-w-0 flex-1">
-              <ValueTextField
-                value={state.compareWith}
-                onChange={(value: string) => {
-                  props.onChange({
-                    [CONDITION_ARGUMENT_IDS.compareWith]: value,
-                  });
-                }}
-                multiline={false}
-                placeholder={getCompareWithPlaceholder(
-                  translator,
-                  compareAsType || ConditionValueType.Text,
-                  state.valueToCheck,
-                )}
-                ariaLabel={COMPARE_WITH_LABEL}
-                dataTestId={CONDITION_TEST_IDS.compareWith}
-                error={touched.compareWith ? errors.compareWith : undefined}
-                onBlur={() => {
-                  markTouched("compareWith");
-                }}
-              />
+          <div className="max-sm:hidden sm:block" aria-hidden="true" />
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start">
+            <div className="w-full sm:w-64 sm:shrink-0">
+              {comparisonControl}
             </div>
-          )}
+            {showsCompareWith && (
+              <div className="min-w-0 flex-1">
+                <ValueTextField
+                  value={state.compareWith}
+                  onChange={(value: string) => {
+                    props.onChange({
+                      [CONDITION_ARGUMENT_IDS.compareWith]: value,
+                    });
+                  }}
+                  multiline={false}
+                  placeholder={getCompareWithPlaceholder(
+                    translator,
+                    compareAsType || ConditionValueType.Text,
+                    state.valueToCheck,
+                  )}
+                  ariaLabel={COMPARE_WITH_LABEL}
+                  dataTestId={CONDITION_TEST_IDS.compareWith}
+                  error={touched.compareWith ? errors.compareWith : undefined}
+                  onBlur={() => {
+                    markTouched("compareWith");
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </WorkflowViewOnlyFieldset>
 
       {showsCompareAs(state) && (
         <div data-testid={CONDITION_TEST_IDS.compareAs}>
@@ -441,48 +448,50 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
             defaultCollapsed={!isCompareAsOpenOnLoad}
             headerClassName="!py-1"
           >
-            <div className="space-y-2">
-              <div
-                role="radiogroup"
-                aria-label={translator.translateText(COMPARE_AS_LABEL)}
-                className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
-              >
-                {CONDITION_COMPARE_AS_OPTIONS.map(
-                  (option: ConditionCompareAsOption) => {
-                    const isChecked: boolean = option.type === compareAsType;
+            <WorkflowViewOnlyFieldset>
+              <div className="space-y-2">
+                <div
+                  role="radiogroup"
+                  aria-label={translator.translateText(COMPARE_AS_LABEL)}
+                  className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
+                >
+                  {CONDITION_COMPARE_AS_OPTIONS.map(
+                    (option: ConditionCompareAsOption) => {
+                      const isChecked: boolean = option.type === compareAsType;
 
-                    return (
-                      <label
-                        key={option.type}
-                        className={`cursor-pointer rounded-md px-3 py-1 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-indigo-500 ${
-                          isChecked
-                            ? "bg-white text-gray-900 shadow-sm"
-                            : "text-gray-600 hover:text-gray-900"
-                        }`}
-                        data-testid={`if-else-compare-as-${option.type}`}
-                      >
-                        <input
-                          type="radio"
-                          className="sr-only"
-                          name={compareAsName}
-                          value={option.type}
-                          checked={isChecked}
-                          onChange={() => {
-                            props.onChange(patchForCompareAs(option.type));
-                          }}
-                        />
-                        {translator.translateText(option.label)}
-                      </label>
-                    );
-                  },
+                      return (
+                        <label
+                          key={option.type}
+                          className={`cursor-pointer rounded-md px-3 py-1 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-indigo-500 ${
+                            isChecked
+                              ? "bg-white text-gray-900 shadow-sm"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                          data-testid={`if-else-compare-as-${option.type}`}
+                        >
+                          <input
+                            type="radio"
+                            className="sr-only"
+                            name={compareAsName}
+                            value={option.type}
+                            checked={isChecked}
+                            onChange={() => {
+                              props.onChange(patchForCompareAs(option.type));
+                            }}
+                          />
+                          {translator.translateText(option.label)}
+                        </label>
+                      );
+                    },
+                  )}
+                </div>
+                {selectedCompareAs && (
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText(selectedCompareAs.description)}
+                  </p>
                 )}
               </div>
-              {selectedCompareAs && (
-                <p className="text-xs text-gray-500">
-                  {translator.translateText(selectedCompareAs.description)}
-                </p>
-              )}
-            </div>
+            </WorkflowViewOnlyFieldset>
           </CollapsibleSection>
         </div>
       )}
