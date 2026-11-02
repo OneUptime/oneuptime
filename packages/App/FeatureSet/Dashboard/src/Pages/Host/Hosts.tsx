@@ -619,7 +619,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "IP Address",
             type: FieldType.Element,
             hideOnMobile: true,
-            // Given way first where the row has no room: Status says why.
+            /*
+             * Gives way where the row has no room for every column: the
+             * host's health and its numbers come first.
+             */
             hideBelowLargeScreen: true,
             getElement: (item: Host): ReactElement => {
               return (
