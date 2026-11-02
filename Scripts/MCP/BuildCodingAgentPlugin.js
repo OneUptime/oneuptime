@@ -8,9 +8,11 @@
  * be the root of one. The package's README says what else a listing needs.
  *
  * The listing is the ChatGPT plugin's. Its words, links and icon are read from
- * ChatGPTPlugin/ here, so the two listings cannot drift apart, and the only
- * thing that stands apart is plugin.json in the package: the version, and
- * anything else this plugin says differently.
+ * ChatGPTPlugin/ here, so the two listings cannot drift apart. plugin.json in
+ * the package holds what this plugin says differently: the repository it is
+ * published to. Its version is the release's: the repository's VERSION file,
+ * or the one --version names. Scripts/MCP/PublishCodingAgentPlugin.sh builds
+ * it into that repository at each release that changes it.
  *
  * One folder serves every client, each reading its own files:
  *
@@ -24,7 +26,8 @@
  * format reads as an invalid server. These entries are a plain address, and
  * each client finds the sign-in itself, from the server's OAuth metadata.
  *
- * Usage: npm run build-coding-agent-plugin [-- <output-directory>]
+ * Usage: npm run build-coding-agent-plugin [-- [--version <version>] [<output-directory>]]
+ *   default version: the repository's VERSION file
  *   default output: build/coding-agent-plugin/oneuptime
  */
 
@@ -69,13 +72,13 @@ function sectionOf(longDescription, from, to) {
  * The manifest fields every client's manifest shares. plugin.json in the
  * package comes last, so it can replace any of them.
  */
-function readSharedFields() {
+function readSharedFields(version) {
   const chatGptManifest = readJson(path.join(CHATGPT_DIRECTORY, "plugin.json"));
   const ownFields = readJson(path.join(PACKAGE_DIRECTORY, "plugin.json"));
 
   return {
     name: chatGptManifest.name,
-    version: ownFields.version,
+    version,
     description: replaceOrFail(
       chatGptManifest.description,
       "from ChatGPT",
@@ -196,7 +199,7 @@ function isEarlierBuild(directory) {
   try {
     return (
       readJson(path.join(directory, ".claude-plugin/plugin.json")).name ===
-      readSharedFields().name
+      readJson(path.join(CHATGPT_DIRECTORY, "plugin.json")).name
     );
   } catch {
     return false;
@@ -227,6 +230,51 @@ function prepareOutput(output) {
   }
 }
 
+/*
+ * The version every manifest carries: the one --version names, or the
+ * release this repository is at. Clients and the Claude directory read it to
+ * tell one release of the plugin from the next.
+ */
+function resolveVersion(requested) {
+  const version =
+    requested ||
+    fs.readFileSync(path.join(REPO_ROOT, "VERSION"), "utf8").trim();
+
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(
+      `The plugin's version must be major.minor.patch, such as 14.0.100, not "${version}".`,
+    );
+  }
+
+  return version;
+}
+
+// [--version <version>] [<output-directory>], in either order.
+function parseArguments(argv) {
+  const options = { version: undefined, output: undefined };
+
+  for (let index = 0; index < argv.length; index++) {
+    const argument = argv[index];
+
+    if (argument === "--version") {
+      options.version = argv[index + 1];
+      index++;
+
+      if (!options.version) {
+        throw new Error("--version needs a version, such as 14.0.100.");
+      }
+    } else if (argument.startsWith("-")) {
+      throw new Error(`Unknown option ${argument}.`);
+    } else if (options.output === undefined) {
+      options.output = argument;
+    } else {
+      throw new Error(`Give one output directory, not also ${argument}.`);
+    }
+  }
+
+  return options;
+}
+
 function resolveOutput(argument) {
   if (!argument) {
     return path.join(REPO_ROOT, "build/coding-agent-plugin/oneuptime");
@@ -239,8 +287,8 @@ function resolveOutput(argument) {
   return path.resolve(process.env.INIT_CWD || process.cwd(), argument);
 }
 
-function build(output) {
-  const shared = readSharedFields();
+function build(output, version) {
+  const shared = readSharedFields(version);
   const listing = readListing();
   const server = readServer();
 
@@ -280,12 +328,14 @@ function build(output) {
 }
 
 function main() {
-  const output = resolveOutput(process.argv[2]);
+  const options = parseArguments(process.argv.slice(2));
+  const version = resolveVersion(options.version);
+  const output = resolveOutput(options.output);
 
-  build(output);
+  build(output, version);
 
   // eslint-disable-next-line no-console
-  console.log(`Built ${output}`);
+  console.log(`Built ${output} at version ${version}`);
 }
 
 try {
