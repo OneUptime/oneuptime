@@ -12,9 +12,9 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import { getTableColumns } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Permission from "../../../Types/Permission";
+import { CLIENT_RESOURCE_NAMES } from "../../../Utils/DeveloperDocs/ClientResourceNames";
 import {
   CLI_ACTIONS,
-  CLI_COMMAND_NAME_OVERRIDES,
   CLI_NOTE_COLUMN,
   CLI_NOTE_TARGETS,
   CLI_OPERATIONS,
@@ -162,11 +162,6 @@ describe("names", () => {
       }
 
       const model: DatabaseBaseModel = new modelType();
-
-      if (CLI_COMMAND_NAME_OVERRIDES[model.tableName || ""]) {
-        continue;
-      }
-
       const typeName: string = getTerraformTypeName(modelType) as string;
 
       expect({
@@ -194,19 +189,41 @@ describe("names", () => {
     }
   });
 
-  test("names a model by an override only where its singular name is another's too", () => {
+  /*
+   * The few models whose singular name is worded for a screen are named as
+   * every client names them (ClientResourceNames): the template keeps
+   * "Subscriber Notification Template", the row that puts one on a status
+   * page is a status page's, and an escalation rule's team is
+   * escalation-rule-team, as the Terraform provider's
+   * oneuptime_escalation_rule_team.
+   */
+  test("names a model whose own name reads poorly as one as the clients do", () => {
     expect(
       getCliResourceName({
         tableName: "StatusPageSubscriberNotificationTemplateStatusPage",
         singularName: "Subscriber Notification Template",
       }),
-    ).toBe("subscriber-notification-template-status-page");
+    ).toBe("status-page-subscriber-notification-template");
     expect(
       getCliResourceName({
         tableName: "StatusPageSubscriberNotificationTemplate",
         singularName: "Subscriber Notification Template",
       }),
     ).toBe("subscriber-notification-template");
+    expect(
+      getCliResourceName({
+        tableName: "OnCallDutyPolicyEscalationRuleTeam",
+        singularName: "Team On-Call Duty Escalation Rule",
+      }),
+    ).toBe("escalation-rule-team");
+
+    for (const [tableName, clientName] of Object.entries(
+      CLIENT_RESOURCE_NAMES,
+    )) {
+      expect(
+        getCliResourceName({ tableName, singularName: "Anything else" }),
+      ).toBe(toCliCommandName(clientName));
+    }
   });
 
   test.each([

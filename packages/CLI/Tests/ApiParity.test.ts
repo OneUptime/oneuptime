@@ -13,10 +13,11 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
 import {
-  CLI_COMMAND_NAME_OVERRIDES,
   CliOperation,
   getCliResourceName,
+  toCliCommandName,
 } from "Common/Utils/DeveloperDocs/CliCommands";
+import { CLIENT_RESOURCE_NAMES } from "Common/Utils/DeveloperDocs/ClientResourceNames";
 import {
   CliResource,
   getCliResources,
@@ -251,8 +252,8 @@ describe("the CLI and the API", () => {
 
     /*
      * No resource fell back to its table's name (CliResources' uniqueName):
-     * a new model sharing another's singular name needs an override in
-     * CLI_COMMAND_NAME_OVERRIDES, or a name of its own.
+     * a new model sharing another's singular name needs a name of its own
+     * in Common's ClientResourceNames, which every client reads.
      */
     const modelsByTable: Map<
       string,
@@ -291,23 +292,20 @@ describe("the CLI and the API", () => {
     }
   });
 
-  it("names a resource only where two models share a singular name", () => {
-    for (const tableName of Object.keys(CLI_COMMAND_NAME_OVERRIDES)) {
+  it("names the resources whose own names read poorly as ones as every client does", () => {
+    for (const [tableName, clientName] of Object.entries(
+      CLIENT_RESOURCE_NAMES,
+    )) {
       const resource: CliResource | undefined = getCliResources().find(
         (candidate: CliResource): boolean => {
           return candidate.tableName === tableName;
         },
       );
 
-      expect(resource).toBeDefined();
-
-      const sharing: Array<CliResource> = getCliResources().filter(
-        (candidate: CliResource): boolean => {
-          return candidate.singularName === resource?.singularName;
-        },
-      );
-
-      expect(sharing.length).toBeGreaterThan(1);
+      expect({ tableName, name: resource?.name }).toEqual({
+        tableName,
+        name: toCliCommandName(clientName),
+      });
     }
   });
 

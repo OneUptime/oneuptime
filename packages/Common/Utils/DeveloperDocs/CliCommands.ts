@@ -26,6 +26,7 @@ import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { StateListType } from "../StateOrder";
+import { getClientResourceName } from "./ClientResourceNames";
 import {
   describePersonEmail,
   getPersonEmailColumnName,
@@ -153,30 +154,22 @@ export function toCliCommandName(singularName: string): string {
 }
 
 /*
- * Commands named otherwise than by their singular name, by table: two
- * models share the singular name "Subscriber Notification Template" - the
- * template, and the row that puts it on a status page - and a command
- * names one resource. packages/CLI/Tests/ApiParity fails on any other
- * pair of resources that would share a command, until it is named here.
+ * A model's command: `incident`, `on-call-policy`. It is the name every
+ * client OneUptime publishes gives the model (ClientResourceNames): its
+ * singular name, or for the few worded for a screen rather than a
+ * resource, a name of their own - `escalation-rule-team`, as the Terraform
+ * provider's oneuptime_escalation_rule_team. No two models share one, so
+ * no two resources share a command (packages/CLI/Tests/ApiParity).
  */
-export const CLI_COMMAND_NAME_OVERRIDES: Readonly<Record<string, string>> = {
-  StatusPageSubscriberNotificationTemplateStatusPage:
-    "subscriber-notification-template-status-page",
-};
-
-// A model's command: `incident`, `on-call-policy`.
 export function getCliResourceName(model: {
   tableName: string | null | undefined;
   singularName: string | null | undefined;
 }): string {
-  const override: string | undefined =
-    CLI_COMMAND_NAME_OVERRIDES[model.tableName || ""];
+  const tableName: string = model.tableName || "";
 
-  if (override) {
-    return override;
-  }
-
-  return toCliCommandName(model.singularName || model.tableName || "");
+  return toCliCommandName(
+    getClientResourceName(tableName, model.singularName || tableName),
+  );
 }
 
 // A field's flag: incidentSeverityId -> --incident-severity-id.

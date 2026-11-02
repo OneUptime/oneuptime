@@ -52,9 +52,9 @@ function toApiPath(path: string): string {
 
 /*
  * The model's command (getCliResourceName), or - should a new model share
- * a singular name with another and no override name it yet - the table's
- * name, so the CLI still starts with a command for each. Tests/ApiParity in
- * packages/CLI fails on that second case, asking for an override.
+ * a name with another before ClientResourceNames tells them apart - the
+ * table's name, so the CLI still starts with a command for each.
+ * Tests/ApiParity in packages/CLI fails on that second case.
  */
 function uniqueName(
   model: { tableName: string; singularName: string },
