@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import { getKubernetesNamespaceParam } from "../Utils/KubernetesPartRoutes";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import React, {
   FunctionComponent,
@@ -37,6 +38,8 @@ const KubernetesClusterVPADetail: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const vpaName: string = Navigation.getLastParamAsString();
+  // Which one: names repeat across namespaces.
+  const namespaceParam: string | undefined = getKubernetesNamespaceParam();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -82,6 +85,7 @@ const KubernetesClusterVPADetail: FunctionComponent<
             clusterIdentifier: cluster.clusterIdentifier || "",
             resourceType: "verticalpodautoscalers",
             resourceName: vpaName,
+            namespace: namespaceParam,
           });
         setObjectData(obj);
       } catch {
@@ -91,7 +95,7 @@ const KubernetesClusterVPADetail: FunctionComponent<
     };
 
     fetchObject().catch(() => {});
-  }, [cluster?.clusterIdentifier, vpaName]);
+  }, [cluster?.clusterIdentifier, vpaName, namespaceParam]);
 
   /*
    * The VPA's Events, read as the page opens: the Events tab says how

@@ -264,6 +264,10 @@ Knapparna på OneUptimes kort agerar som den person som trycker på dem, i en pe
 - **Var personen får svar.** I ett svar i samma konversation, kortets tråd i en kanal, som nämner personen, så att Microsoft Teams aviserar dem. En knapp som trycks för sent säger vem som hann först, och när, till exempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Om personens konto inte är anslutet.** Svaret ber personen ansluta det, med knappen **Connect Microsoft Teams account**. Knappen öppnar personens egna Microsoft Teams-inställningar i OneUptime och ansluter kontot i ett steg, efter inloggning i OneUptime om det behövs. Sedan slutför OneUptime det personen tryckte på, som personen, och svarar i samma konversation; för en knapp som öppnar ett formulär, eller ett kommando, ber det personen trycka på den eller skriva det igen. Knappen fungerar en gång, i 30 minuter, och bara för det Microsoft-konto som tryckte på den.
 
+## Godkänn en åtgärd som OneUptime AI föreslår
+
+En åtgärd som OneUptime AI föreslår för godkännande skickas till incidentens eller larmets kanaler som ett kort med dess ändringar och tre knappar. **Review and approve** svarar med ett kort med allt som åtgärden kör och **Approve and run**, som kör exakt det, som den person som trycker; när åtgärden är godkänd tas det kortet bort, och personen får veta att åtgärden görs. **Dismiss** avvisar åtgärden, och **View in OneUptime** öppnar incidenten eller larmet. De agerar som den person som trycker på dem, liksom varje knapp på OneUptimes kort: ett godkännande kräver behörighet att godkänna åtgärder i projektet och, för en åtgärd på ett kluster eller en resurs, att redigera den. En åtgärd som ändrades efter att dess kort skickades avvisas, och inget körs. Se [Godkänn eller avvisa en åtgärd från Slack eller Microsoft Teams](/docs/ai/ai-sre#godkänn-eller-avvisa-en-åtgärd-från-slack-eller-microsoft-teams).
+
 ## Koppla från
 
 - **Koppla från** kopplar bara från ditt eget Microsoft Teams-konto och tar samtidigt bort din aviseringsmetod för Microsoft Teams.

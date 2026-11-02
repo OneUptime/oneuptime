@@ -32,7 +32,7 @@ flowchart TB
 ## Før du begynder
 
 - **Installér Storage Array Agent** et sted, hvor den kan nå arrayet over HTTPS, med API-tokenet for en bruger, der har arrayets rolle **readonly**. [Vejledningen til Storage Array Agent](/docs/telemetry/storage-arrays) dækker brugeren, tokenet og installationen, gennem `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME` samt arrayets adresse og token (`PURE_FA_ENDPOINT` og `PURE_FA_API_TOKEN`, eller `PURE_FB_ENDPOINT` og `PURE_FB_API_TOKEN`).
-- **Tjek, at arrayet er registreret.** Det vises under **Produkter → Infrastruktur → Storage Arrays → All Storage Arrays**, opkaldt efter agentens `STORAGE_ARRAY_NAME`, cirka et minut efter den første aflæsning.
+- **Tjek, at arrayet er registreret.** Det vises under **Produkter → Infrastruktur → Lagerarrays → All Storage Arrays**, opkaldt efter agentens `STORAGE_ARRAY_NAME`, cirka et minut efter den første aflæsning.
 
 ## Opret en lagerarray-monitor
 
@@ -67,7 +67,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 :::
 
 > [!TIP]
-> For at sætte flere skabeloner op på én gang åbner du arrayet fra **Produkter → Infrastruktur → Storage Arrays** og går til **Anbefalinger**. Vælg de skabeloner, du vil have, vælg, hvem der tilkaldes, og OneUptime opretter én monitor pr. skabelon.
+> For at sætte flere skabeloner op på én gang åbner du arrayet fra **Produkter → Infrastruktur → Lagerarrays** og går til **Anbefalinger**. Vælg de skabeloner, du vil have, vælg, hvem der tilkaldes, og OneUptime opretter én monitor pr. skabelon.
 
 ## Monitorindstillinger
 
@@ -272,7 +272,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ingen prøver har: **Ignore** (standarden), **Treat As Zero** eller **Trigger**. |
 
-Anomalibetingelser sammenligner hver værdi med den samme time på ugen i baselinen. De forbliver i tilstanden "Learning", og udsender intet, indtil baseline-vinduet indeholder nok historik.
+Anomalibetingelser sammenligner hver værdi med den samme time på ugen i baselinen. De forbliver i tilstanden "Learning", og udsender intet, indtil baseline-vinduet indeholder nok historik. En sum, en optælling eller en forespørgsel på et histogram forbliver i den tilstand for altid: denne monitor filtrerer sine forespørgsler efter attributter, og baselinen indeholder ingen.
 
 Nogle kriterier at starte med:
 

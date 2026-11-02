@@ -65,7 +65,7 @@ Cursor parla OTLP su HTTP solo con protobuf binario (niente gRPC, niente JSON), 
 | Tracce | No |
 | Qualsiasi cosa precedente all'attivazione della destinazione | No |
 
-Quindi in OneUptime Cursor compare nella scheda **Utilizzo** di **Prodotti → AI / LLM**, da `cursor.token.usage` e `cursor.cost.usage`, ma mai in **Chiamate** o **Conversazioni**, che sono costruite dalle tracce. Il dettaglio per richiesta è l'evento `cursor.api.request` nell'esploratore dei **Log**.
+Quindi in OneUptime Cursor compare nella scheda **Utilizzo** di **Prodotti → IA / LLM**, da `cursor.token.usage` e `cursor.cost.usage`, ma mai in **Chiamate** o **Conversazioni**, che sono costruite dalle tracce. Il dettaglio per richiesta è l'evento `cursor.api.request` nell'esploratore dei **Log**.
 
 ### Famiglie
 

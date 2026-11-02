@@ -26,7 +26,9 @@ import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetri
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import CephResourceUtils from "../Utils/CephResourceUtils";
+import CephResourceUtils, {
+  getOsdPlacementText,
+} from "../Utils/CephResourceUtils";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -244,7 +246,7 @@ const CephClusterOsdDetail: FunctionComponent<
         description: CEPH_METRIC_DESCRIPTIONS.osdPlacement,
         value: (
           <StatusBadge
-            text={resource.isIn ? "In" : "Out"}
+            text={getOsdPlacementText(resource.isIn)}
             type={
               resource.isIn ? StatusBadgeType.Success : StatusBadgeType.Warning
             }

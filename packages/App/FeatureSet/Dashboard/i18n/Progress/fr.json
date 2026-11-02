@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39750,
-    "untranslated": 7504
+    "keys": 40054,
+    "untranslated": 7278
   },
   "sameAsEnglish": [
     " incidents",
@@ -184,6 +184,7 @@
     "Exceptions",
     "Exceptions ({{count}})",
     "Exclusion",
+    "Export",
     "Expression",
     "Fatal",
     "Favicon",
@@ -270,6 +271,7 @@
     "Liberia",
     "Liechtenstein",
     "Local",
+    "Log4Shell",
     "Logo",
     "Longitude",
     "Loopback",
@@ -349,6 +351,7 @@
     "PV",
     "PVC",
     "Page",
+    "Page {{current}}",
     "Page {{page}}",
     "Parent",
     "Passthrough",
@@ -380,6 +383,7 @@
     "Red Hat OpenShift",
     "Restrictions",
     "Rotations",
+    "Routes",
     "Runbook",
     "Runbooks",
     "SCIM (System for Cross-domain Identity Management)",
@@ -471,6 +475,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "p95 {{latency}}",
     "port {{port}}",
     "prod, staging",
@@ -516,6 +521,8 @@
     "{{count}} minutes",
     "{{count}} option",
     "{{count}} options",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} rotation",
     "{{count}} rotations",
     "{{count}} source",

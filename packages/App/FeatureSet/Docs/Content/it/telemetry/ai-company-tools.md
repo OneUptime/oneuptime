@@ -38,7 +38,7 @@ Le chat arrivano come le chiamate di IA delle tue app, quindi regole di scrub, f
 :::steps
 ### Apri Collega
 
-Apri **Prodotti → AI / LLM → Collega**. In **Gli strumenti di IA della tua azienda**, fai clic sul riquadro dello strumento.
+Apri **Prodotti → IA / LLM → Collega**. In **Gli strumenti di IA della tua azienda**, fai clic sul riquadro dello strumento.
 
 ### Incolla la credenziale
 

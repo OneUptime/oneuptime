@@ -1,4 +1,13 @@
 {
+  "Something went wrong": "مشکلی پیش آمد",
+  "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
+  "Error details": "جزئیات خطا",
+  "Still stuck?": "هنوز مشکل دارید؟",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "یک فایل عیب‌یابی محلی با پشته خطا، پشته اجزا، نشانی پاک‌سازی‌شده صفحه، جزئیات مرورگر و نسخه ساخت OneUptime دانلود کنید. این فایل هرگز کوکی‌ها، داده‌های ذخیره‌شده مرورگر یا محتوای فرم‌ها را نمی‌خواند. پیش از اشتراک با پشتیبانی OneUptime آن را بررسی کنید.",
+  "Download support bundle": "دانلود بسته پشتیبانی",
+  "Send it to {{email}}": "آن را به {{email}} بفرستید",
+  "Support bundle downloaded. Review it, then attach it to your email.": "بسته پشتیبانی دانلود شد. آن را بررسی کنید و سپس به ایمیل خود پیوست کنید.",
+  "The support bundle could not be downloaded. Please try again.": "بسته پشتیبانی دانلود نشد. لطفاً دوباره تلاش کنید.",
   "common": {
     "save": "ذخیره",
     "cancel": "انصراف",

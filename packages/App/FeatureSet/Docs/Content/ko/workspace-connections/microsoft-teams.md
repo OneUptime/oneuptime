@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### 관리자 동의 부여하기
 
-**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 로 이동해 **관리자 동의 부여** 를 클릭합니다. Microsoft 365 관리자가 로그인해 조직에 대해 OneUptime 앱을 허용합니다. 그러면 카드에 **Admin Consent Completed** 가 표시됩니다. 워크스페이스가 연결되기 전까지는 인시던트, 경고, 예정된 유지 관리, 모니터, 온콜 메뉴의 **워크스페이스** 섹션에 **Slack 또는 Teams 연결** 가 있으며, 이것도 여기로 연결됩니다.
+**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 로 이동해 **관리자 동의 부여** 를 클릭합니다. Microsoft 365 관리자가 로그인해 조직에 대해 OneUptime 앱을 허용합니다. 그러면 카드에 **Admin Consent Completed** 가 표시됩니다. 워크스페이스가 연결되기 전까지는 인시던트, 경고, 예정된 유지 관리, 모니터, 온콜 메뉴의 **워크스페이스** 섹션에 **Slack 또는 Teams 연결** 이 있으며, 이것도 여기로 연결됩니다.
 
 ### 본인의 계정 연결하기
 
@@ -141,7 +141,7 @@ OneUptime Cloud 에서 알림 규칙과 요약은 **Growth** 플랜 이상에서
 
 :::steps
 1. 자신의 Microsoft Teams 계정을 연결합니다 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조).
-2. **사용자 설정** > **알림 방법** 로 이동해 **Workspace Apps** 탭을 열고 **Add Microsoft Teams Account** 를 클릭합니다.
+2. **사용자 설정** > **알림 방법** 으로 이동해 **Workspace Apps** 탭을 열고 **Add Microsoft Teams Account** 를 클릭합니다.
 3. 해당 행에서 **Send Test Message** 를 클릭합니다. Microsoft Teams 채팅으로 메시지가 도착합니다.
 :::
 
@@ -263,6 +263,10 @@ OneUptime 카드의 버튼은 개인 채팅, 채널, 그룹 채팅 어디서든 
 - **Escalate.** 카드의 **Escalate** 는 카드가 다루는 인시던트, 경고, 에피소드에 대해 그 온콜 정책을, 누른 사람으로서 **Execute On-Call Policy** 와 같은 권한으로 실행합니다. 그중 어느 것도 다루지 않는 카드에는 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 라는 응답이 오며, 아무도 호출되지 않습니다.
 - **답변을 받는 곳.** 같은 대화 (채널에서는 카드의 스레드) 에서 그 사람을 멘션하는 답글로 받으므로 Microsoft Teams 가 그 사람에게 알립니다. 너무 늦게 누른 버튼은 누가 언제 먼저 했는지 알려 줍니다. 예: "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **계정이 연결되어 있지 않은 경우.** 답글은 **Connect Microsoft Teams account** 버튼으로 연결을 요청합니다. 이 버튼은 OneUptime 에서 그 사람의 Microsoft Teams 설정을 열고, 필요하면 OneUptime 에 로그인한 뒤 한 단계로 계정을 연결합니다. 그런 다음 OneUptime 은 그 사람이 누른 작업을 그 사람으로서 마무리하고 같은 대화에서 답합니다. 양식을 여는 버튼이나 명령이라면 다시 누르거나 입력하라고 안내합니다. 버튼은 30 분 동안 한 번, 누른 Microsoft 계정에 대해서만 작동합니다.
+
+## OneUptime AI가 제안한 수정 승인
+
+OneUptime AI가 승인을 위해 제안한 수정은 그 변경과 세 개의 버튼이 있는 카드로 인시던트나 경고의 채널에 올라옵니다. **Review and approve** 는 수정이 실행하는 모든 것과 **Approve and run** 이 있는 카드로 답하며, 이것은 그대로를 누른 사람으로서 실행합니다. 승인되면 그 카드는 제거되고, 누른 사람에게 수정이 진행 중이라고 알려 줍니다. **Dismiss** 는 수정을 거부하고, **View in OneUptime** 은 인시던트나 경고를 엽니다. 이 버튼들은 OneUptime 카드의 모든 버튼처럼 누른 사람으로서 작동합니다. 승인하려면 프로젝트에서 수정을 승인할 권한이 필요하고, 클러스터나 리소스의 수정이라면 그것을 편집할 권한도 필요합니다. 카드가 올라온 뒤에 바뀐 수정은 거부되며 아무것도 실행되지 않습니다. [Slack 또는 Microsoft Teams에서 수정 승인 또는 거부](/docs/ai/ai-sre#slack-또는-microsoft-teams에서-수정-승인-또는-거부)를 참고하세요.
 
 ## 연결 해제
 

@@ -1,27 +1,24 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Navigation from "Common/UI/Utils/Navigation";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
+import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  getDeploymentConfigNameFromReplicationController,
+  getDeploymentNameFromReplicaSet,
+} from "Common/Types/Kubernetes/KubernetesHealth";
+import { getKubernetesPartRoute } from "../../Pages/Kubernetes/Utils/KubernetesPartRoutes";
 
-// Maps Kubernetes resource kinds to their detail page PageMap entries
-const kindToPageMap: Record<string, PageMap> = {
-  Pod: PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL,
-  Node: PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
-  Namespace: PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL,
-  Deployment: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL,
-  StatefulSet: PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL,
-  DaemonSet: PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL,
-  Job: PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL,
-  CronJob: PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL,
-  PersistentVolumeClaim: PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL,
-  PersistentVolume: PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL,
-  ReplicaSet: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL, // ReplicaSets are managed by Deployments
-  DeploymentConfig: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
-  Route: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
-  Service: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
-};
+/*
+ * A link to a Kubernetes object's page, by its kind and name - an owner
+ * reference, a pod's node, a workload's namespace. A ReplicaSet opens the
+ * Deployment that made it (`<deployment>-<hash>`), a ReplicationController
+ * its DeploymentConfig (`<deploymentconfig>-<version>`): OneUptime has no
+ * page of their own. A namespaced object opens in its namespace
+ * (KubernetesPartRoutes), so a same-named one elsewhere never opens instead.
+ *
+ * A real link (Link): reached with Tab, announced as a link, opened in a
+ * new tab with a middle click - a clickable <span> was none of those.
+ */
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -32,37 +29,51 @@ export interface ComponentProps {
   className?: string | undefined;
 }
 
+export function getKubernetesResourceLinkTarget(data: {
+  kind: string;
+  name: string;
+}): { kind: string; name: string } {
+  if (data.kind === "ReplicaSet") {
+    return {
+      kind: "Deployment",
+      name: getDeploymentNameFromReplicaSet(data.name),
+    };
+  }
+  if (data.kind === "ReplicationController") {
+    return {
+      kind: "DeploymentConfig",
+      name: getDeploymentConfigNameFromReplicationController(data.name),
+    };
+  }
+  return data;
+}
+
 const KubernetesResourceLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const pageMap: PageMap | undefined = kindToPageMap[props.resourceKind];
+  const target: { kind: string; name: string } =
+    getKubernetesResourceLinkTarget({
+      kind: props.resourceKind,
+      name: props.resourceName,
+    });
+  const route: Route | undefined = getKubernetesPartRoute(props.modelId, {
+    kind: target.kind,
+    name: target.name,
+    namespace: props.namespace,
+  });
 
-  if (!pageMap) {
+  if (!route) {
     // No detail page for this kind — render as plain text
     return <span className={props.className}>{props.resourceName}</span>;
   }
 
   return (
-    <span
-      onClick={() => {
-        const route: Route = RouteUtil.populateRouteParams(
-          RouteMap[pageMap] as Route,
-          {
-            modelId: props.modelId,
-            subModelId: new ObjectID(props.resourceName),
-          },
-        );
-
-        Navigation.navigate(
-          props.namespace
-            ? route.addQueryParams({ namespace: props.namespace })
-            : route,
-        );
-      }}
-      className={`text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium ${props.className || ""}`}
+    <Link
+      to={route}
+      className={`rounded-sm text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${props.className || ""}`}
     >
       {props.resourceName}
-    </span>
+    </Link>
   );
 };
 

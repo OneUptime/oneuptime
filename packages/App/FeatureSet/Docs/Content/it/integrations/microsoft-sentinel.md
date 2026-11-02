@@ -60,7 +60,7 @@ Apri l'area di lavoro Log Analytics nel portale di Azure. La sua pagina **Overvi
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Sentinel** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Sentinel** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**.
 
 ### Provarla prima di salvare
 
@@ -174,7 +174,7 @@ Registra un'applicazione e dalle un client secret, come in [Registrare un'applic
 
 ### Aggiungere la destinazione
 
-Apri **Prodotti → Security Events → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Microsoft Sentinel in **SIEM** e fai clic su **Avanti**. Inserisci l'**ID directory (tenant)**, l'**ID applicazione (client)** e il **Segreto client**, l'**Endpoint di inserimento dei log** dalla pagina **Overview** dell'endpoint di raccolta dati (o della regola), e l'**ID non modificabile della regola di raccolta dati** dalla **JSON View** della regola. **Flusso** è facoltativo: se resta vuoto, è `Custom-OneUptimeSecurityEvents_CL`.
+Apri **Prodotti → Eventi di sicurezza → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Microsoft Sentinel in **SIEM** e fai clic su **Avanti**. Inserisci l'**ID directory (tenant)**, l'**ID applicazione (client)** e il **Segreto client**, l'**Endpoint di inserimento dei log** dalla pagina **Overview** dell'endpoint di raccolta dati (o della regola), e l'**ID non modificabile della regola di raccolta dati** dalla **JSON View** della regola. **Flusso** è facoltativo: se resta vuoto, è `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Inviare un evento di prova e iniziare a inviare
 

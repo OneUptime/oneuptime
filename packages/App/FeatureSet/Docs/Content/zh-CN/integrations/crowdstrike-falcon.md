@@ -49,7 +49,7 @@ Falcon 显示的基础 URL 会告诉你 CID 所在的云。**API clients and key
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **CrowdStrike Falcon**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密钥粘贴到 **客户端密钥** 中。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **CrowdStrike Falcon**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密钥粘贴到 **客户端密钥** 中。
 
 ### 保存之前先测试
 

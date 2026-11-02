@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39750,
-    "untranslated": 3058
+    "keys": 40054,
+    "untranslated": 2978
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -220,6 +220,7 @@
     "Liberia",
     "Liechtenstein",
     "Local",
+    "Log4Shell",
     "Loopback",
     "MCP",
     "MD5",
@@ -276,6 +277,7 @@
     "PVE {{version}}",
     "Paraguay",
     "Passthrough",
+    "Path traversal",
     "Ping",
     "Plan",
     "Playbook",
@@ -549,7 +551,6 @@
     "{{count}} tokens",
     "{{in}} in",
     "{{minutes}} min",
-    "{{time}} (UTC)",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "μs",

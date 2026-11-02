@@ -44,7 +44,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → Security Events → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Elastic Security**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把金鑰貼上到 **API 金鑰** 中。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Elastic Security**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把金鑰貼上到 **API 金鑰** 中。
 
 ### 儲存之前先測試
 
@@ -154,7 +154,7 @@ OneUptime 也可以把它發現的內容當作資料串流中的 Elastic Common 
 
 ### 新增目的地
 
-開啟 **產品 → Security Events → 連線**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Elastic Security，然後按一下 **下一步**。在 **Elasticsearch URL** 中填寫部署的 Elasticsearch 端點，而不是 Kibana 的端點，並把金鑰貼到 **API 金鑰** 中。**資料串流** 是選用的：留空時，文件會進入 `logs-oneuptime.security-default`，Elasticsearch 會在第一次寫入時建立它。
+開啟 **產品 → 安全事件 → 連線**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Elastic Security，然後按一下 **下一步**。在 **Elasticsearch URL** 中填寫部署的 Elasticsearch 端點，而不是 Kibana 的端點，並把金鑰貼到 **API 金鑰** 中。**資料串流** 是選用的：留空時，文件會進入 `logs-oneuptime.security-default`，Elasticsearch 會在第一次寫入時建立它。
 
 ### 傳送測試事件並開始傳送
 

@@ -3781,8 +3781,8 @@ async function evaluate(
 
 /*
  * Rows are folded by engineFold (MetricEngineFold.ts), a port of
- * MetricService.getDistributionAwareAggregationExpression, which every
- * template query compiles to (its attribute filter keeps it off the
+ * getDistributionAwareAggregationExpression, which every template query
+ * compiles to (its attribute filter keeps it off the
  * rollups). "the metric engine's folds" below pins the SQL it ports; App's
  * Tests/Workers/Jobs/TelemetryMonitor/MetricEngineFoldClickhouse suite runs
  * that SQL on a real ClickHouse, because the App Test workflow is the one

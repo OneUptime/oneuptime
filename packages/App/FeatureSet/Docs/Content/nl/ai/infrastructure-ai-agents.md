@@ -402,6 +402,8 @@ Een wijziging noemt één resource bij zijn id, zoals een leesbewerking dat doet
 
 Voordat iemand een fix goedkeurt die een cloudaccount wijzigt, doet OneUptime een proefrun van elke voorgestelde wijziging, en de kaart van de fix bij het incident of de waarschuwing toont het antwoord onder de wijziging: ze zou draaien, met de aanroep die ze zou doen en hoe ze ongedaan wordt gemaakt; ze zou worden geweigerd, en waarom; of de proefrun kon niet worden voltooid. **Proefrun herhalen** controleert nog eens. Een proefrun wijzigt niets: de agent stopt vóór de aanroep die de wijziging zou uitvoeren, en op AWS mag de sessie van de schrijfrol die hij gebruikt alleen lezen.
 
+Op de kaart van de fix en in zijn Slack- en Microsoft Teams-bericht zegt een cloudwijziging ook in gewone woorden wat ze doet, boven haar exacte opdracht: "ECS-service web: opschalen naar 4 taken". De woorden worden met de grammatica van de catalogus uit de opdracht gelezen, nooit uit wat OneUptime AI schreef. Wanneer OneUptime AI een fix voor een account plant, hoort het waaraan het incident of de waarschuwing daar gekoppeld is: zijn Cloud-resources, via de id's waarmee een wijziging ze noemt, en zijn App Platforms-omgevingen, waar een fix de services wijzigt die erin draaien.
+
 ### De lijst met toegestane opdrachten
 
 In de modus **Automatisch** laat de **Lijst met toegestane opdrachten** van de resource, op de pagina van de AI-agent, riskantere opdrachten die jij noemt zonder goedkeuring draaien. Hij wordt woord voor woord met de opdracht vergeleken, niet als tekst:

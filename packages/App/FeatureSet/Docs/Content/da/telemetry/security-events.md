@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Åbn **Produkter → Security Events** under **Observabilitet**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
+Åbn **Produkter → Sikkerhedshændelser** under **Observabilitet**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
 
 | Side | Sektion | Hvad den bruges til |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ flowchart TB
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
 | **Hunts** | Begivenheder | Søgninger gemt fra Begivenheder, åbnet igen med ét klik eller kørt efter en tidsplan, der giver personer besked, når de finder noget |
-| **Campaigns** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
+| **Kampagner** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detektionsregler** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
@@ -111,7 +111,7 @@ Endpointet svarer `200`, når begivenhederne står i kø. En begivenhed uden tid
 
 ### Find dem under Begivenheder
 
-Åbn **Produkter → Security Events → Begivenheder**. Begivenhederne vises inden for få sekunder med deres alvorlighed, klasse, bruger, vært og IP-adresser udfyldt.
+Åbn **Produkter → Sikkerhedshændelser → Begivenheder**. Begivenhederne vises inden for få sekunder med deres alvorlighed, klasse, bruger, vært og IP-adresser udfyldt.
 :::
 
 ### Formater
@@ -262,11 +262,11 @@ Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **R
 
 ### Hvad der skete bagefter
 
-En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Reached App**, **Errored** eller **Reached Database**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
+En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Nåede appen**, **Fejlede** eller **Nåede databasen**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
 
 ### Campaigns
 
-**Campaigns** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
+**Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
 
 ### Korrelér
 
@@ -327,7 +327,7 @@ flowchart TB
 ### Opret en regel
 
 :::steps
-1. Åbn **Produkter → Security Events → Detektioner → Detektionsregler**, og klik på **Opret Detektionsregel**.
+1. Åbn **Produkter → Sikkerhedshændelser → Detektioner → Detektionsregler**, og klik på **Opret Detektionsregel**.
 2. Indsæt regelens YAML i **Sigma-regel (YAML)** under **Sigma-regel**. Den fortolkes, når du gemmer, så en fejl vises i formularen.
 3. **Navn** udfyldes med regelens `title`: skriv ovenpå for at kalde reglen noget andet. En ny regel kører; **Aktiveret** står i dens redigeringsformular.
 4. Lad **Åbn en sag ved match** være slået til under **Ved match** for at samle regelens match i sager efter den værdi, reglen grupperer efter.
@@ -492,7 +492,7 @@ Fund er almindelige begivenheder: søg efter dem under **Begivenheder**, og pivo
 
 ### Undtagelser
 
-En undtagelse er noget, en regel springer over, fordi du forventer det, som en sårbarhedsscanner, et natligt backupjob eller en planlagt penetrationstest. Den gør reglen stille for netop den ene ting uden at slå den fra, og reglens andre match udløser stadig. Alle undtagelser står under **Produkter → Security Events → Detektioner → Regelundtagelser**: tilføj en der med **Tilføj Regelundtagelse**, med **Tilføj undtagelse** i en regels række, eller med **Tilføj undtagelse** i en detektions række på en sag, som starter med detektionens regel og det, den udløste for.
+En undtagelse er noget, en regel springer over, fordi du forventer det, som en sårbarhedsscanner, et natligt backupjob eller en planlagt penetrationstest. Den gør reglen stille for netop den ene ting uden at slå den fra, og reglens andre match udløser stadig. Alle undtagelser står under **Produkter → Sikkerhedshændelser → Detektioner → Regelundtagelser**: tilføj en der med **Tilføj Regelundtagelse**, med **Tilføj undtagelse** i en regels række, eller med **Tilføj undtagelse** i en detektions række på en sag, som starter med detektionens regel og det, den udløste for.
 
 | Det, reglen springer over | Hvad den matcher |
 | --- | --- |
@@ -508,7 +508,7 @@ En undtagelse er noget, en regel springer over, fordi du forventer det, som en s
 
 ### Overvågningslister
 
-En overvågningsliste er en liste, dit team vedligeholder én gang, og som enhver regel kan læse, som VIP-brugere, kritiske værter, kendte ondsindede filhashes eller de adresser, administratorer må logge ind fra. Alle lister ligger under **Produkter → Security Events → Detektioner → Overvågningslister**: Opret en der med **Opret Overvågningsliste**, som spørger om dens navn og hvad den indeholder, eller tilføj en almindelig fra **Start med en almindelig liste**. En listes side viser dens værdier, og **Brug den i en regel** giver en selektion, der læser listen, til at kopiere ind i en regel.
+En overvågningsliste er en liste, dit team vedligeholder én gang, og som enhver regel kan læse, som VIP-brugere, kritiske værter, kendte ondsindede filhashes eller de adresser, administratorer må logge ind fra. Alle lister ligger under **Produkter → Sikkerhedshændelser → Detektioner → Overvågningslister**: Opret en der med **Opret Overvågningsliste**, som spørger om dens navn og hvad den indeholder, eller tilføj en almindelig fra **Start med en almindelig liste**. En listes side viser dens værdier, og **Brug den i en regel** giver en selektion, der læser listen, til at kopiere ind i en regel.
 
 En regel læser en liste med `expand` og listens navn mellem to `%`-tegn. Denne regel udløser, når en administrator logger ind fra en adresse, der ikke er på den tilladte liste:
 

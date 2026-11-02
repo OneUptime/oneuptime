@@ -42,7 +42,7 @@ Cada token pode usar uma parte do limite de taxa da API da organização, que a 
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Okta System Log** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o token em **API token**.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Okta System Log** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o token em **API token**.
 
 ### Testar antes de salvar
 

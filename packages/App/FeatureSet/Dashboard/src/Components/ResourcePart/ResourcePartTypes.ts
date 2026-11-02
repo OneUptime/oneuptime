@@ -12,6 +12,13 @@ export type ResourcePartTone = "positive" | "warning" | "danger" | "neutral";
 export interface ResourcePartStatus {
   // "Online", "Running", "Stopped", "Unavailable" - English.
   label: string;
+  /*
+   * The label's values when it is a template ("{{ready}} of {{desired}}
+   * ready"). A template with no words of its own ("{{reason}}") reads as
+   * its values in every language: a Kubernetes reason as Kubernetes writes
+   * it.
+   */
+  values?: Record<string, string> | undefined;
   tone: ResourcePartTone;
   /*
    * What the status means, in a sentence a screen reader hears after the
@@ -35,4 +42,10 @@ export interface ResourcePartChip {
   label: string;
 }
 
-export type ResourcePartAccent = "orange" | "indigo" | "sky" | "emerald";
+// A Kubernetes part takes violet, as its cluster's own hero does.
+export type ResourcePartAccent =
+  | "orange"
+  | "indigo"
+  | "sky"
+  | "emerald"
+  | "violet";

@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "../../Types/Dashboard/DashboardLanguage";
 import { SUPPORTED_STATUS_PAGE_LANGUAGE_CODES } from "../../Types/StatusPage/StatusPageLanguage";
 import {
@@ -10,6 +12,7 @@ import {
   MAX_ACCEPT_LANGUAGE_LENGTH,
   MAX_ACCEPT_LANGUAGE_TAGS,
   READER_LANGUAGE_CODES,
+  toDetectedLanguage,
   toReaderLanguage,
   toSupportedLanguage,
 } from "../../Types/ReaderLanguage";
@@ -173,5 +176,102 @@ describe("getReaderLanguageFromAcceptLanguage", () => {
 
   test("no header names no language", () => {
     expect(getReaderLanguageFromAcceptLanguage(undefined)).toBeNull();
+  });
+});
+
+/*
+ * NORWEGIAN, HOWEVER A BROWSER NAMES IT.
+ *
+ * Norwegian is written two ways, Bokmål and Nynorsk, and a browser names a
+ * Norwegian reader's language "nb-NO" (or "nn-NO") far more often than
+ * "no". Every frontend, the public dashboards and the server read all of
+ * them as OneUptime's Norwegian, "no": before, "nb-NO" fell back to English
+ * everywhere.
+ */
+describe("Norwegian Bokmål and Nynorsk read Norwegian", () => {
+  test.each<[string, string]>([
+    ["no", "no"],
+    ["nb", "no"],
+    ["nn", "no"],
+    ["nb-NO", "no"],
+    ["nn-NO", "no"],
+    ["nb_NO", "no"],
+    ["NB-no", "no"],
+    ["no-NO", "no"],
+  ])("%p reads as %p", (tag: string, language: string) => {
+    expect(toReaderLanguage(tag)).toBe(language);
+    expect(toSupportedLanguage(tag, READER_LANGUAGE_CODES)).toBe(language);
+  });
+
+  test("a list without Norwegian maps none of them", () => {
+    expect(toSupportedLanguage("nb-NO", ["en", "de"])).toBe("");
+  });
+
+  test("a Norwegian browser's Accept-Language header names Norwegian", () => {
+    expect(
+      getReaderLanguageFromAcceptLanguage("nb-NO,nb;q=0.9,no;q=0.8,en;q=0.5"),
+    ).toBe("no");
+    expect(getReaderLanguageFromAcceptLanguage("nn")).toBe("no");
+  });
+
+  test("a public dashboard's visitor with a Bokmål browser reads Norwegian", () => {
+    expect(getVisitorLanguage(["nb-NO", "en-US"], READER_LANGUAGE_CODES)).toBe(
+      "no",
+    );
+  });
+});
+
+describe("toDetectedLanguage (each frontend's language detector)", () => {
+  test.each<[string, string]>([
+    ["nb-NO", "no"],
+    ["nn", "no"],
+    ["de-AT", "de"],
+    ["es-ES", "es"],
+    ["zh-HK", "zh-TW"],
+    ["zh-Hans-CN", "zh-CN"],
+    ["ja", "ja"],
+    ["FA", "fa"],
+  ])("%p is shown as %p", (tag: string, language: string) => {
+    expect(toDetectedLanguage(tag, READER_LANGUAGE_CODES)).toBe(language);
+  });
+
+  test("a tag no supported language stands for is handed on as it came, so i18next falls back to English", () => {
+    expect(toDetectedLanguage("xx-YY", READER_LANGUAGE_CODES)).toBe("xx-YY");
+    expect(toDetectedLanguage("tlh", READER_LANGUAGE_CODES)).toBe("tlh");
+  });
+
+  test("every frontend's detector is the shared one, with no copy of its own", () => {
+    const packages: string = path.resolve(__dirname, "../../..");
+    const frontends: Array<[string, string]> = [
+      [
+        "App/FeatureSet/Dashboard/src/Utils/i18n.ts",
+        "SUPPORTED_DASHBOARD_LANGUAGE_CODES",
+      ],
+      [
+        "App/FeatureSet/AdminDashboard/src/Utils/i18n.ts",
+        "SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES",
+      ],
+      [
+        "App/FeatureSet/Accounts/src/Utils/i18n.ts",
+        "SUPPORTED_ACCOUNTS_LANGUAGE_CODES",
+      ],
+      [
+        "App/FeatureSet/StatusPage/src/Utils/i18n.ts",
+        "SUPPORTED_STATUS_PAGE_LANGUAGE_CODES",
+      ],
+    ];
+
+    for (const [file, codes] of frontends) {
+      const source: string = fs.readFileSync(path.join(packages, file), "utf8");
+
+      expect(source).toContain(
+        'import { toDetectedLanguage } from "Common/Types/ReaderLanguage";',
+      );
+      expect(source).toContain(`return toDetectedLanguage(lng, ${codes});`);
+      expect(source).toContain("convertDetectedLanguage,");
+      // The Chinese and regional mapping lives in ReaderLanguage alone.
+      expect(source).not.toContain('"zh-hant"');
+      expect(source).not.toContain("langPart");
+    }
   });
 });

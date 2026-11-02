@@ -71,13 +71,30 @@ jest.mock("../../../UI/Utils/Project", () => {
  * hoisted and may only close over mock-prefixed names.
  */
 let mockSummary: Record<string, unknown> = {};
+// What needs attention, which the page reads over API.post too.
+let mockAttention: Record<string, unknown> = {};
+// Set, what needs attention cannot be read, with this reason.
+let mockAttentionError: string = "";
+// Each time the page asked what needs attention.
+const mockAttentionReads: Array<number> = [];
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
-      post: () => {
-        return Promise.resolve({ data: mockSummary });
+      post: (request: { url?: unknown }) => {
+        const isAttention: boolean = String(request?.url || "").includes(
+          "needs-attention",
+        );
+        if (isAttention) {
+          mockAttentionReads.push(1);
+          if (mockAttentionError) {
+            return Promise.reject(new Error(mockAttentionError));
+          }
+        }
+        return Promise.resolve({
+          data: isAttention ? mockAttention : mockSummary,
+        });
       },
       getFriendlyMessage: (error: unknown) => {
         return (
@@ -269,6 +286,33 @@ const BUSY_SUMMARY: Record<string, unknown> = {
   degradedNodes: [],
 };
 
+/*
+ * What the busy cluster's ingest flagged (KubernetesHealth): a node under
+ * disk pressure, a Deployment whose pods crash-loop.
+ */
+const BUSY_ATTENTION: Record<string, unknown> = {
+  findings: [
+    {
+      key: "Deployment/shop/checkout",
+      kind: "Deployment",
+      namespace: "shop",
+      name: "checkout",
+      severity: "critical",
+      reasons: [{ text: "{{reason}}", values: { reason: "CrashLoopBackOff" } }],
+      podCount: 2,
+    },
+    {
+      key: "Node//node-c",
+      kind: "Node",
+      namespace: "",
+      name: "node-c",
+      severity: "warning",
+      reasons: [{ text: "Disk pressure" }],
+    },
+  ],
+  isTruncated: false,
+};
+
 const QUIET_SUMMARY: Record<string, unknown> = {
   nodeCount: 3,
   podCount: 12,
@@ -284,7 +328,9 @@ const QUIET_SUMMARY: Record<string, unknown> = {
 
 /*
  * Every (i) the busy overview draws, in page order, with the text it must
- * show. Twenty-seven - every overview description in the record.
+ * show. Twenty-four - every overview description in the record. Node
+ * pressure has none of its own: a node under it is a row of Needs
+ * attention, with why.
  */
 const EXPECTED: Array<[string, string]> = [
   ["Cluster inventory counts", TEXT.inventoryCounts],
@@ -308,9 +354,6 @@ const EXPECTED: Array<[string, string]> = [
   ["Namespaces", TEXT.namespaces],
   ["Agent Status", TEXT.agentStatus],
   ["AI agent", TEXT.aiAgent],
-  ["Memory Pressure", TEXT.memoryPressure],
-  ["Disk Pressure", TEXT.diskPressure],
-  ["PID Pressure", TEXT.pidPressure],
   ["Pod Health", TEXT.podHealth],
   ["CPU Usage", TEXT.topCpuPods],
   ["Memory Usage", TEXT.topMemoryPods],
@@ -382,6 +425,9 @@ beforeEach(() => {
   mockLineChartProps.length = 0;
   mockNavigations.length = 0;
   mockSummary = BUSY_SUMMARY;
+  mockAttention = BUSY_ATTENTION;
+  mockAttentionError = "";
+  mockAttentionReads.length = 0;
 });
 
 afterEach(() => {
@@ -524,7 +570,7 @@ describe("titleWithTooltip", () => {
 });
 
 describe("the cluster overview page", () => {
-  test("every metric on a busy cluster carries an (i) - all twenty-six of them", async () => {
+  test("every metric on a busy cluster carries an (i) - all twenty-four of them", async () => {
     await renderOverview();
 
     const names: Array<string> = infoButtons().map(
@@ -608,15 +654,7 @@ describe("the cluster overview page", () => {
 
     await screen.findByRole("button", { name: "About Memory Usage" });
 
-    for (const title of [
-      "Running",
-      "Pending",
-      "Failed",
-      "Nodes Not Ready",
-      "Memory Pressure",
-      "Disk Pressure",
-      "PID Pressure",
-    ]) {
+    for (const title of ["Running", "Pending", "Failed", "Nodes Not Ready"]) {
       expect(
         screen.queryByRole("button", { name: `About ${title}` }),
       ).not.toBeInTheDocument();
@@ -649,16 +687,93 @@ describe("the cluster overview page", () => {
     expect(chip).toHaveTextContent("2Pending");
   });
 
-  test("a pressure badge's (i) sits right beside the badge it explains", async () => {
+  test("a node under pressure is a row of Needs attention, named, with why - not a count in a banner", async () => {
     await renderOverview();
 
-    const info: HTMLElement = screen.getByRole("button", {
-      name: "About Disk Pressure",
+    const card: HTMLElement = await screen.findByTestId(
+      "kubernetes-needs-attention",
+    );
+
+    // The most urgent first: the crash loop, then the node.
+    expect(card).toHaveTextContent("checkout");
+    expect(card).toHaveTextContent("CrashLoopBackOff");
+    expect(card).toHaveTextContent("node-c");
+    expect(card).toHaveTextContent("Disk pressure");
+    expect(card.textContent!.indexOf("checkout")).toBeLessThan(
+      card.textContent!.indexOf("node-c"),
+    );
+    expect(screen.queryByText("1 node: Disk Pressure")).not.toBeInTheDocument();
+  });
+
+  test("one node not ready reads as one, many as many: never '1 Nodes Not Ready'", async () => {
+    await renderOverview();
+
+    const one: HTMLElement | null = screen
+      .getByRole("button", { name: "About Nodes Not Ready" })
+      .closest("span.rounded-full");
+    expect(one).toHaveTextContent("1 Node Not Ready");
+    // The count stands out as the other chips' counts do.
+    expect(one!.querySelector(".font-semibold")).toHaveTextContent(/^1$/);
+
+    cleanup();
+    mockSummary = {
+      ...BUSY_SUMMARY,
+      nodeReadyCounts: { ready: 1, notReady: 2 },
+    };
+    await renderOverview();
+
+    expect(
+      screen
+        .getByRole("button", { name: "About Nodes Not Ready" })
+        .closest("span.rounded-full"),
+    ).toHaveTextContent("2 Nodes Not Ready");
+  });
+
+  test("when what needs attention cannot be read, its card says so with Refresh, which asks again", async () => {
+    mockAttentionError = "The cluster could not be read.";
+
+    await renderOverview();
+
+    const frame: HTMLElement = await screen.findByTestId(
+      "kubernetes-needs-attention-error",
+    );
+    // Named by its card's title, so the reader knows what failed.
+    expect(frame).toHaveTextContent("Needs attention");
+    expect(frame).toHaveTextContent("The cluster could not be read.");
+    // No list, and no health pill it could not work out.
+    expect(
+      screen.queryByTestId("kubernetes-needs-attention"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("kubernetes-cluster-health"),
+    ).not.toBeInTheDocument();
+
+    const reads: number = mockAttentionReads.length;
+    mockAttentionError = "";
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Refresh?" }));
     });
 
-    expect(info.parentElement?.parentElement).toHaveTextContent(
-      "1 node: Disk Pressure",
-    );
+    expect(mockAttentionReads.length).toBe(reads + 1);
+    expect(
+      await screen.findByTestId("kubernetes-needs-attention"),
+    ).toHaveTextContent("CrashLoopBackOff");
+    expect(
+      screen.queryByTestId("kubernetes-needs-attention-error"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a cluster with nothing to look at draws no Needs attention card", async () => {
+    mockSummary = QUIET_SUMMARY;
+    mockAttention = { findings: [], isTruncated: false };
+
+    render(<KubernetesClusterOverview {...PAGE_PROPS} />);
+
+    await screen.findByRole("button", { name: "About Memory Usage" });
+
+    expect(
+      screen.queryByTestId("kubernetes-needs-attention"),
+    ).not.toBeInTheDocument();
   });
 
   test("a cluster with no pods has no Pod Health card, and no (i) for it", async () => {

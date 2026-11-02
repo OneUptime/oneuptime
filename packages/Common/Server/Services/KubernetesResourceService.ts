@@ -6,6 +6,13 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { ParsedKubernetesResource } from "../../Types/Kubernetes/KubernetesInventoryExtractor";
 import {
+  KubernetesAttentionFinding,
+  KubernetesHealthRow,
+  KubernetesObjectRef,
+  getKubernetesAttentionFindings,
+  getKubernetesPodWorkload,
+} from "../../Types/Kubernetes/KubernetesHealth";
+import {
   truncateLongText,
   truncateShortText,
 } from "../Utils/Database/TruncateColumnValue";
@@ -26,24 +33,6 @@ import logger from "../Utils/Logger";
  */
 
 export type { ParsedKubernetesResource };
-
-export interface DegradedPod {
-  name: string;
-  namespace: string;
-  phase: string;
-  reason: string;
-  message: string;
-}
-
-export interface DegradedNode {
-  name: string;
-  isReady: boolean;
-  hasMemoryPressure: boolean;
-  hasDiskPressure: boolean;
-  hasPidPressure: boolean;
-  reason: string;
-  message: string;
-}
 
 export interface ResourceLatestMetric {
   kind: string;
@@ -88,209 +77,73 @@ export interface InventorySummary {
     diskPressure: number;
     pidPressure: number;
   };
-  /*
-   * Top offenders that explain a Degraded/Unhealthy cluster state. Capped
-   * so a pathological cluster can't blow up the overview payload; the
-   * dedicated Pods/Nodes pages are the source of truth for the full list.
-   */
-  degradedPods: Array<DegradedPod>;
-  degradedNodes: Array<DegradedNode>;
-}
-
-const DEGRADED_SAMPLE_LIMIT: number = 20;
-
-/*
- * Pull the first meaningful reason/message off a pod's status block.
- * KubernetesInventoryExtractor stores containerStatuses as an array of
- * { name, ready, state: "running"|"waiting"|"terminated", reason, message, ... }.
- * A waiting container with a reason (ImagePullBackOff, CrashLoopBackOff,
- * CreateContainerConfigError, ...) is exactly what the user needs to see,
- * so we surface that first. We fall back to terminated reasons (OOMKilled,
- * Error, ContainerCannotRun) and then to status-level conditions.
- */
-function buildDegradedPod(row: {
-  name: string;
-  namespaceKey: string;
-  phase: string | null;
-  status: unknown;
-}): DegradedPod {
-  const status: Record<string, unknown> =
-    row.status && typeof row.status === "object"
-      ? (row.status as Record<string, unknown>)
-      : {};
-
-  let reason: string = "";
-  let message: string = "";
-
-  const containerStatuses: Array<Record<string, unknown>> = Array.isArray(
-    status["containerStatuses"],
-  )
-    ? (status["containerStatuses"] as Array<Record<string, unknown>>)
-    : [];
-  const initContainerStatuses: Array<Record<string, unknown>> = Array.isArray(
-    status["initContainerStatuses"],
-  )
-    ? (status["initContainerStatuses"] as Array<Record<string, unknown>>)
-    : [];
-
-  const scanForReason: (
-    list: Array<Record<string, unknown>>,
-    targetState: string,
-  ) => { reason: string; message: string } | null = (
-    list: Array<Record<string, unknown>>,
-    targetState: string,
-  ) => {
-    for (const cs of list) {
-      if (cs["state"] !== targetState) {
-        continue;
-      }
-      const r: unknown = cs["reason"];
-      if (typeof r === "string" && r) {
-        const m: unknown = cs["message"];
-        return {
-          reason: r,
-          message: typeof m === "string" ? m : "",
-        };
-      }
-    }
-    return null;
-  };
-
-  const waitingHit: { reason: string; message: string } | null =
-    scanForReason(containerStatuses, "waiting") ||
-    scanForReason(initContainerStatuses, "waiting");
-  const terminatedHit: { reason: string; message: string } | null = waitingHit
-    ? null
-    : scanForReason(containerStatuses, "terminated") ||
-      scanForReason(initContainerStatuses, "terminated");
-  const hit: { reason: string; message: string } | null =
-    waitingHit || terminatedHit;
-
-  if (hit) {
-    reason = hit.reason;
-    message = hit.message;
-  } else {
-    /*
-     * Fall back to the pod-level reason/message fields set by the scheduler
-     * (e.g. "Unschedulable" with "0/3 nodes are available: ...").
-     */
-    const topReason: unknown = status["reason"];
-    const topMessage: unknown = status["message"];
-    if (typeof topReason === "string") {
-      reason = topReason;
-    }
-    if (typeof topMessage === "string") {
-      message = topMessage;
-    }
-
-    // If still nothing, pull from the first non-True condition.
-    if (!reason) {
-      const conditions: Array<Record<string, unknown>> = Array.isArray(
-        status["conditions"],
-      )
-        ? (status["conditions"] as Array<Record<string, unknown>>)
-        : [];
-      for (const cond of conditions) {
-        if (cond["status"] !== "True") {
-          const r: unknown = cond["reason"];
-          const m: unknown = cond["message"];
-          if (typeof r === "string" && r) {
-            reason = r;
-            message = typeof m === "string" ? m : "";
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  return {
-    name: row.name,
-    namespace: row.namespaceKey || "",
-    phase: row.phase || "Unknown",
-    reason,
-    message,
-  };
 }
 
 /*
- * For a Node: if isReady is false, the "Ready" condition carries the real
- * story (e.g. "KubeletNotReady: PLEG is not healthy"). If only pressure
- * flags are tripped, pick the tripped condition's reason/message.
+ * What a cluster's Needs attention reads (getNeedsAttention). The objects
+ * that need attention are few in a working cluster; these bound what one
+ * read can cost in a broken one. The worst come first, so a cluster with
+ * more than the limit still shows its critical findings.
  */
-function buildDegradedNode(row: {
-  name: string;
-  isReady: boolean | null;
-  hasMemoryPressure: boolean | null;
-  hasDiskPressure: boolean | null;
-  hasPidPressure: boolean | null;
-  status: unknown;
-}): DegradedNode {
-  const status: Record<string, unknown> =
-    row.status && typeof row.status === "object"
-      ? (row.status as Record<string, unknown>)
-      : {};
+export const NEEDS_ATTENTION_ROW_LIMIT: number = 2000;
+export const NEEDS_ATTENTION_WORKLOAD_LIMIT: number = 5000;
+export const NEEDS_ATTENTION_FINDING_LIMIT: number = 500;
 
-  const conditions: Array<Record<string, unknown>> = Array.isArray(
-    status["conditions"],
-  )
-    ? (status["conditions"] as Array<Record<string, unknown>>)
-    : [];
+// The workloads a pod's or a Job's finding folds into.
+const NEEDS_ATTENTION_WORKLOAD_KINDS: Array<string> = [
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "Job",
+  "CronJob",
+  "DeploymentConfig",
+];
 
-  const findCondition: (
-    predicate: (c: Record<string, unknown>) => boolean,
-  ) => Record<string, unknown> | null = (
-    predicate: (c: Record<string, unknown>) => boolean,
-  ) => {
-    for (const c of conditions) {
-      if (predicate(c)) {
-        return c;
-      }
-    }
-    return null;
-  };
-
-  let picked: Record<string, unknown> | null = null;
-  if (row.isReady === false) {
-    picked = findCondition((c: Record<string, unknown>) => {
-      return c["type"] === "Ready" && c["status"] !== "True";
-    });
-  }
-  if (!picked && row.hasMemoryPressure === true) {
-    picked = findCondition((c: Record<string, unknown>) => {
-      return c["type"] === "MemoryPressure" && c["status"] === "True";
-    });
-  }
-  if (!picked && row.hasDiskPressure === true) {
-    picked = findCondition((c: Record<string, unknown>) => {
-      return c["type"] === "DiskPressure" && c["status"] === "True";
-    });
-  }
-  if (!picked && row.hasPidPressure === true) {
-    picked = findCondition((c: Record<string, unknown>) => {
-      return c["type"] === "PIDPressure" && c["status"] === "True";
-    });
-  }
-
-  const reason: string =
-    picked && typeof picked["reason"] === "string"
-      ? (picked["reason"] as string)
-      : "";
-  const message: string =
-    picked && typeof picked["message"] === "string"
-      ? (picked["message"] as string)
-      : "";
-
-  return {
-    name: row.name,
-    isReady: row.isReady === true,
-    hasMemoryPressure: row.hasMemoryPressure === true,
-    hasDiskPressure: row.hasDiskPressure === true,
-    hasPidPressure: row.hasPidPressure === true,
-    reason,
-    message,
-  };
+export interface KubernetesNeedsAttention {
+  findings: Array<KubernetesAttentionFinding>;
+  // More needed attention than one read takes: the worst are listed.
+  isTruncated: boolean;
 }
+
+/*
+ * An object's own page reads it with what it runs (getPart): a workload's
+ * pods, a node's pods, a CronJob's Jobs and their pods. A node runs at most
+ * a few hundred pods and a namespace's workloads a few thousand; these
+ * bound one read.
+ */
+export const PART_POD_LIMIT: number = 1000;
+export const PART_CANDIDATE_LIMIT: number = 5000;
+
+// A row as getPart and the pages read it: what the rules and the lists use.
+export interface KubernetesPartRow extends KubernetesHealthRow {
+  _id: string;
+  latestCpuPercent: number | string | null;
+  latestMemoryBytes: number | string | null;
+  latestMemoryPercent: number | string | null;
+  metricsUpdatedAt: Date | null;
+}
+
+export interface KubernetesPart {
+  // Null when the cluster's inventory holds no such object.
+  part: KubernetesPartRow | null;
+  // Its pods, the most recently seen first.
+  pods: Array<KubernetesPartRow>;
+  // A CronJob's Jobs; empty for any other kind.
+  jobs: Array<KubernetesPartRow>;
+  // It runs more pods than one read takes.
+  isPodsTruncated: boolean;
+}
+
+// The kinds whose page lists the pods they run.
+export const KINDS_WITH_PODS: ReadonlySet<string> = new Set<string>([
+  "Node",
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "Job",
+  "CronJob",
+  "DeploymentConfig",
+]);
 
 const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
@@ -319,6 +172,7 @@ const UPSERT_COLUMNS: Array<keyof ParsedKubernetesResource | string> = [
   "status",
   "lastSeenAt",
   "resourceCreationTimestamp",
+  "healthSeverity",
   "version",
 ];
 
@@ -341,6 +195,9 @@ function sanitizeResource(
     name: truncateLongText(r.name),
     uid: truncateShortText(r.uid),
     phase: truncateShortText(r.phase),
+    healthSeverity: truncateShortText(r.healthSeverity ?? null) as
+      | ParsedKubernetesResource["healthSeverity"]
+      | null,
   };
 }
 
@@ -415,6 +272,7 @@ export class Service extends DatabaseService<Model> {
           r.status ? JSON.stringify(r.status) : null,
           r.lastSeenAt,
           r.resourceCreationTimestamp,
+          r.healthSeverity ?? null,
           0, // version (BaseModel @VersionColumn)
         );
       }
@@ -425,7 +283,7 @@ export class Service extends DatabaseService<Model> {
           "uid", "phase", "isReady",
           "hasMemoryPressure", "hasDiskPressure", "hasPidPressure",
           "labels", "annotations", "ownerReferences", "spec", "containerCount", "status",
-          "lastSeenAt", "resourceCreationTimestamp", "version"
+          "lastSeenAt", "resourceCreationTimestamp", "healthSeverity", "version"
         )
         VALUES ${valueFragments.join(", ")}
         ON CONFLICT ("projectId", "kubernetesClusterId", "kind", "namespaceKey", "name")
@@ -444,6 +302,7 @@ export class Service extends DatabaseService<Model> {
           "status" = EXCLUDED."status",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "resourceCreationTimestamp" = EXCLUDED."resourceCreationTimestamp",
+          "healthSeverity" = EXCLUDED."healthSeverity",
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "KubernetesResource"."lastSeenAt"
       `;
@@ -665,14 +524,7 @@ export class Service extends DatabaseService<Model> {
     const manager: ReturnType<Service["getRepository"]>["manager"] =
       this.getRepository().manager;
 
-    const [
-      kindRows,
-      podRows,
-      nodeRows,
-      containerRows,
-      degradedPodRows,
-      degradedNodeRows,
-    ]: [
+    const [kindRows, podRows, nodeRows, containerRows]: [
       Array<{ kind: string; count: string }>,
       Array<{ phase: string | null; count: string }>,
       Array<{
@@ -683,20 +535,6 @@ export class Service extends DatabaseService<Model> {
         pidPressure: string;
       }>,
       Array<{ total: string }>,
-      Array<{
-        name: string;
-        namespaceKey: string;
-        phase: string | null;
-        status: unknown;
-      }>,
-      Array<{
-        name: string;
-        isReady: boolean | null;
-        hasMemoryPressure: boolean | null;
-        hasDiskPressure: boolean | null;
-        hasPidPressure: boolean | null;
-        status: unknown;
-      }>,
     ] = await Promise.all([
       manager.query(
         `SELECT "kind", COUNT(*)::text AS count
@@ -735,48 +573,6 @@ export class Service extends DatabaseService<Model> {
         `SELECT COALESCE(SUM("containerCount"), 0)::text AS total
          FROM "KubernetesResource"
          WHERE "projectId" = $1 AND "kubernetesClusterId" = $2 AND "kind" = 'Pod' AND "deletedAt" IS NULL`,
-        [data.projectId.toString(), data.kubernetesClusterId.toString()],
-      ),
-      /*
-       * Top-N offenders powering the "Why is this cluster degraded?" card.
-       * Failed first (hardest outage), then Pending, then Unknown, so the
-       * user sees the worst stuff first without having to sort client-side.
-       */
-      manager.query(
-        `SELECT "name", "namespaceKey", "phase", "status"
-         FROM "KubernetesResource"
-         WHERE "projectId" = $1
-           AND "kubernetesClusterId" = $2
-           AND "kind" = 'Pod'
-           AND "deletedAt" IS NULL
-           AND ("phase" IS NULL OR "phase" NOT IN ('Running', 'Succeeded'))
-         ORDER BY
-           CASE "phase"
-             WHEN 'Failed' THEN 0
-             WHEN 'Pending' THEN 1
-             ELSE 2
-           END,
-           "lastSeenAt" DESC
-         LIMIT ${DEGRADED_SAMPLE_LIMIT}`,
-        [data.projectId.toString(), data.kubernetesClusterId.toString()],
-      ),
-      manager.query(
-        `SELECT "name", "isReady", "hasMemoryPressure", "hasDiskPressure", "hasPidPressure", "status"
-         FROM "KubernetesResource"
-         WHERE "projectId" = $1
-           AND "kubernetesClusterId" = $2
-           AND "kind" = 'Node'
-           AND "deletedAt" IS NULL
-           AND (
-             "isReady" IS FALSE
-             OR "hasMemoryPressure" IS TRUE
-             OR "hasDiskPressure" IS TRUE
-             OR "hasPidPressure" IS TRUE
-           )
-         ORDER BY
-           CASE WHEN "isReady" IS FALSE THEN 0 ELSE 1 END,
-           "lastSeenAt" DESC
-         LIMIT ${DEGRADED_SAMPLE_LIMIT}`,
         [data.projectId.toString(), data.kubernetesClusterId.toString()],
       ),
     ]);
@@ -822,29 +618,6 @@ export class Service extends DatabaseService<Model> {
     const containerCount: number =
       parseInt(containerRows[0]?.total || "0", 10) || 0;
 
-    const degradedPods: Array<DegradedPod> = degradedPodRows.map(
-      (row: {
-        name: string;
-        namespaceKey: string;
-        phase: string | null;
-        status: unknown;
-      }) => {
-        return buildDegradedPod(row);
-      },
-    );
-    const degradedNodes: Array<DegradedNode> = degradedNodeRows.map(
-      (row: {
-        name: string;
-        isReady: boolean | null;
-        hasMemoryPressure: boolean | null;
-        hasDiskPressure: boolean | null;
-        hasPidPressure: boolean | null;
-        status: unknown;
-      }) => {
-        return buildDegradedNode(row);
-      },
-    );
-
     return {
       countsByKind,
       containerCount,
@@ -858,8 +631,269 @@ export class Service extends DatabaseService<Model> {
         diskPressure: parseInt(nodeRow?.diskPressure || "0", 10) || 0,
         pidPressure: parseInt(nodeRow?.pidPressure || "0", 10) || 0,
       },
-      degradedPods,
-      degradedNodes,
+    };
+  }
+
+  /**
+   * What needs attention in a cluster, the most urgent first: every
+   * object ingest flagged (healthSeverity, read through its partial
+   * index), with the workloads of the namespaces they are in, so a pod's
+   * finding folds into its Deployment and a Job into its CronJob
+   * (KubernetesHealth.getKubernetesAttentionFindings). The rules run again
+   * on the rows read, at the time each was seen, so the findings say why
+   * in today's words even for a row flagged before an upgrade.
+   */
+  @CaptureSpan()
+  public async getNeedsAttention(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+  }): Promise<KubernetesNeedsAttention> {
+    const manager: ReturnType<Service["getRepository"]>["manager"] =
+      this.getRepository().manager;
+
+    const columns: string = `"kind", "namespaceKey", "name", "phase", "isReady",
+      "hasMemoryPressure", "hasDiskPressure", "hasPidPressure", "labels",
+      "ownerReferences", "spec", "status", "lastSeenAt", "resourceCreationTimestamp"`;
+
+    const flagged: Array<KubernetesHealthRow> = await manager.query(
+      `SELECT ${columns}
+       FROM "KubernetesResource"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND "deletedAt" IS NULL
+         AND "healthSeverity" IS NOT NULL
+       ORDER BY
+         CASE "healthSeverity" WHEN 'critical' THEN 0 ELSE 1 END,
+         "lastSeenAt" DESC
+       LIMIT ${NEEDS_ATTENTION_ROW_LIMIT + 1}`,
+      [data.projectId.toString(), data.kubernetesClusterId.toString()],
+    );
+
+    const isRowLimitHit: boolean = flagged.length > NEEDS_ATTENTION_ROW_LIMIT;
+    const rows: Array<KubernetesHealthRow> = flagged.slice(
+      0,
+      NEEDS_ATTENTION_ROW_LIMIT,
+    );
+
+    // The namespaces whose workloads a flagged pod or Job may fold into.
+    const namespaces: Array<string> = Array.from(
+      new Set(
+        rows
+          .filter((row: KubernetesHealthRow): boolean => {
+            return Boolean(row.namespaceKey);
+          })
+          .map((row: KubernetesHealthRow): string => {
+            return row.namespaceKey as string;
+          }),
+      ),
+    );
+
+    const workloads: Array<KubernetesHealthRow> =
+      namespaces.length > 0
+        ? await manager.query(
+            `SELECT ${columns}
+             FROM "KubernetesResource"
+             WHERE "projectId" = $1
+               AND "kubernetesClusterId" = $2
+               AND "deletedAt" IS NULL
+               AND "kind" = ANY($3)
+               AND "namespaceKey" = ANY($4)
+             LIMIT ${NEEDS_ATTENTION_WORKLOAD_LIMIT}`,
+            [
+              data.projectId.toString(),
+              data.kubernetesClusterId.toString(),
+              NEEDS_ATTENTION_WORKLOAD_KINDS,
+              namespaces,
+            ],
+          )
+        : [];
+
+    const findings: Array<KubernetesAttentionFinding> =
+      getKubernetesAttentionFindings([...workloads, ...rows]);
+
+    return {
+      findings: findings.slice(0, NEEDS_ATTENTION_FINDING_LIMIT),
+      isTruncated:
+        isRowLimitHit || findings.length > NEEDS_ATTENTION_FINDING_LIMIT,
+    };
+  }
+
+  /**
+   * An object with what it runs, for its own page: a Deployment,
+   * StatefulSet, DaemonSet, Job or DeploymentConfig with its pods, a
+   * CronJob with its Jobs and their pods, a node with the pods scheduled
+   * on it. The pods are found in SQL on what names them - their owner
+   * references, a node's name in their spec - and then held to the same
+   * owner rule the findings use (getKubernetesPodWorkload), so `checkout`
+   * never collects `checkout-v2`'s pods.
+   *
+   * Without a namespace the object is the first of that name by namespace,
+   * so an address without one always opens the same object.
+   */
+  @CaptureSpan()
+  public async getPart(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    kind: string;
+    name: string;
+    namespace?: string | undefined;
+  }): Promise<KubernetesPart> {
+    const manager: ReturnType<Service["getRepository"]>["manager"] =
+      this.getRepository().manager;
+
+    const columns: string = `"_id", "kind", "namespaceKey", "name", "phase", "isReady",
+      "hasMemoryPressure", "hasDiskPressure", "hasPidPressure", "labels",
+      "ownerReferences", "spec", "status", "lastSeenAt", "resourceCreationTimestamp",
+      "latestCpuPercent", "latestMemoryBytes", "latestMemoryPercent", "metricsUpdatedAt"`;
+
+    const scope: Array<unknown> = [
+      data.projectId.toString(),
+      data.kubernetesClusterId.toString(),
+    ];
+    const live: string = `"projectId" = $1 AND "kubernetesClusterId" = $2 AND "deletedAt" IS NULL`;
+
+    const parts: Array<KubernetesPartRow> = await manager.query(
+      `SELECT ${columns}
+       FROM "KubernetesResource"
+       WHERE ${live}
+         AND "kind" = $3
+         AND "name" = $4
+         ${data.namespace !== undefined ? `AND "namespaceKey" = $5` : ""}
+       ORDER BY "namespaceKey" ASC
+       LIMIT 1`,
+      data.namespace !== undefined
+        ? [...scope, data.kind, data.name, data.namespace]
+        : [...scope, data.kind, data.name],
+    );
+
+    const part: KubernetesPartRow | null = parts[0] || null;
+
+    if (!part || !KINDS_WITH_PODS.has(data.kind)) {
+      return { part: part, pods: [], jobs: [], isPodsTruncated: false };
+    }
+
+    const namespace: string = part.namespaceKey || "";
+    let jobs: Array<KubernetesPartRow> = [];
+    let candidates: Array<KubernetesPartRow> = [];
+
+    if (data.kind === "Node") {
+      candidates = await manager.query(
+        `SELECT ${columns}
+         FROM "KubernetesResource"
+         WHERE ${live}
+           AND "kind" = 'Pod'
+           AND "spec"->>'nodeName' = $3
+         ORDER BY "lastSeenAt" DESC
+         LIMIT ${PART_POD_LIMIT + 1}`,
+        [...scope, data.name],
+      );
+    } else if (data.kind === "Deployment" || data.kind === "DeploymentConfig") {
+      /*
+       * A Deployment's pods belong to its ReplicaSets, `<name>-<hash>`; a
+       * DeploymentConfig's to its ReplicationControllers, `<name>-<n>`,
+       * and OpenShift labels them with its name. A name prefix finds them,
+       * and a longer-named neighbour's too: the owner rule below drops
+       * those.
+       */
+      const ownerKind: string =
+        data.kind === "Deployment" ? "ReplicaSet" : "ReplicationController";
+      candidates = await manager.query(
+        `SELECT ${columns}
+         FROM "KubernetesResource"
+         WHERE ${live}
+           AND "kind" = 'Pod'
+           AND "namespaceKey" = $3
+           AND (
+             jsonb_path_exists(
+               "ownerReferences",
+               '$.items[*] ? (@.kind == $kind && @.name starts with $prefix)',
+               jsonb_build_object('kind', $4::text, 'prefix', $5::text)
+             )
+             OR "labels"->>'deploymentconfig' = $6
+             OR "labels"->>'openshift.io/deployment-config.name' = $6
+           )
+         ORDER BY "lastSeenAt" DESC
+         LIMIT ${PART_CANDIDATE_LIMIT}`,
+        [...scope, namespace, ownerKind, `${data.name}-`, data.name],
+      );
+    } else if (data.kind === "CronJob") {
+      jobs = await manager.query(
+        `SELECT ${columns}
+         FROM "KubernetesResource"
+         WHERE ${live}
+           AND "kind" = 'Job'
+           AND "namespaceKey" = $3
+           AND "ownerReferences"->'items' @> jsonb_build_array(
+             jsonb_build_object('kind', 'CronJob', 'name', $4::text)
+           )
+         ORDER BY "resourceCreationTimestamp" DESC NULLS LAST
+         LIMIT ${PART_CANDIDATE_LIMIT}`,
+        [...scope, namespace, data.name],
+      );
+      // A CronJob's Jobs are `<cronjob>-<scheduled minute>`.
+      candidates =
+        jobs.length > 0
+          ? await manager.query(
+              `SELECT ${columns}
+               FROM "KubernetesResource"
+               WHERE ${live}
+                 AND "kind" = 'Pod'
+                 AND "namespaceKey" = $3
+                 AND jsonb_path_exists(
+                   "ownerReferences",
+                   '$.items[*] ? (@.kind == "Job" && @.name starts with $prefix)',
+                   jsonb_build_object('prefix', $4::text)
+                 )
+               ORDER BY "lastSeenAt" DESC
+               LIMIT ${PART_CANDIDATE_LIMIT}`,
+              [...scope, namespace, `${data.name}-`],
+            )
+          : [];
+    } else {
+      // A StatefulSet, DaemonSet or Job owns its pods by name.
+      candidates = await manager.query(
+        `SELECT ${columns}
+         FROM "KubernetesResource"
+         WHERE ${live}
+           AND "kind" = 'Pod'
+           AND "namespaceKey" = $3
+           AND "ownerReferences"->'items' @> jsonb_build_array(
+             jsonb_build_object('kind', $4::text, 'name', $5::text)
+           )
+         ORDER BY "lastSeenAt" DESC
+         LIMIT ${PART_POD_LIMIT + 1}`,
+        [...scope, namespace, data.kind, data.name],
+      );
+    }
+
+    const jobNames: Set<string> = new Set<string>(
+      jobs.map((job: KubernetesPartRow): string => {
+        return job.name || "";
+      }),
+    );
+
+    const pods: Array<KubernetesPartRow> = candidates.filter(
+      (pod: KubernetesPartRow): boolean => {
+        if (data.kind === "Node") {
+          return true;
+        }
+        const workload: KubernetesObjectRef | null =
+          getKubernetesPodWorkload(pod);
+        if (!workload) {
+          return false;
+        }
+        if (data.kind === "CronJob") {
+          return workload.kind === "Job" && jobNames.has(workload.name);
+        }
+        return workload.kind === data.kind && workload.name === data.name;
+      },
+    );
+
+    return {
+      part: part,
+      pods: pods.slice(0, PART_POD_LIMIT),
+      jobs: jobs,
+      isPodsTruncated: pods.length > PART_POD_LIMIT,
     };
   }
 
@@ -930,9 +964,13 @@ export class Service extends DatabaseService<Model> {
    * path — Pods don't directly own to those kinds, so we can't walk
    * ownerReferences for them.
    *
-   * Returns a Map keyed by owner name. Pods without recent metrics
-   * (metricsUpdatedAt past the staleness cutoff) are excluded so the
-   * sum reflects "right now," not "ever observed."
+   * Returns a Map keyed by namespace and owner name,
+   * `<namespace>/<name>`: a `checkout` Deployment in `shop` and one in
+   * `payments` are two workloads, and each list row reads its own pods
+   * (keyed by name alone, both rows read the two namespaces' pods added
+   * up). Pods without recent metrics (metricsUpdatedAt past the
+   * staleness cutoff) are excluded so the sum reflects "right now," not
+   * "ever observed."
    */
   @CaptureSpan()
   public async getLatestMetricsByOwner(data: {
@@ -947,6 +985,7 @@ export class Service extends DatabaseService<Model> {
     >
   > {
     let rows: Array<{
+      namespaceKey: string | null;
       ownerName: string;
       cpu: string | null;
       mem: string | null;
@@ -960,6 +999,7 @@ export class Service extends DatabaseService<Model> {
           : "controllerCronJobName";
       rows = await this.getRepository().manager.query(
         `SELECT
+           "namespaceKey",
            "${column}" AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
            SUM("latestMemoryBytes")::text AS mem,
@@ -972,7 +1012,7 @@ export class Service extends DatabaseService<Model> {
            AND "metricsUpdatedAt" IS NOT NULL
            AND "metricsUpdatedAt" >= $3
            AND "${column}" IS NOT NULL
-         GROUP BY "${column}"`,
+         GROUP BY "namespaceKey", "${column}"`,
         [
           data.projectId.toString(),
           data.kubernetesClusterId.toString(),
@@ -988,6 +1028,7 @@ export class Service extends DatabaseService<Model> {
        */
       rows = await this.getRepository().manager.query(
         `SELECT
+           "namespaceKey",
            "labels"->>'deploymentconfig' AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
            SUM("latestMemoryBytes")::text AS mem,
@@ -1000,7 +1041,7 @@ export class Service extends DatabaseService<Model> {
            AND "metricsUpdatedAt" IS NOT NULL
            AND "metricsUpdatedAt" >= $3
            AND "labels"->>'deploymentconfig' IS NOT NULL
-         GROUP BY "labels"->>'deploymentconfig'`,
+         GROUP BY "namespaceKey", "labels"->>'deploymentconfig'`,
         [
           data.projectId.toString(),
           data.kubernetesClusterId.toString(),
@@ -1010,6 +1051,7 @@ export class Service extends DatabaseService<Model> {
     } else {
       rows = await this.getRepository().manager.query(
         `SELECT
+           "namespaceKey",
            (owner->>'name') AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
            SUM("latestMemoryBytes")::text AS mem,
@@ -1024,7 +1066,7 @@ export class Service extends DatabaseService<Model> {
            AND "metricsUpdatedAt" >= $3
            AND "ownerReferences" IS NOT NULL
            AND owner->>'kind' = $4
-         GROUP BY (owner->>'name')`,
+         GROUP BY "namespaceKey", (owner->>'name')`,
         [
           data.projectId.toString(),
           data.kubernetesClusterId.toString(),
@@ -1042,7 +1084,7 @@ export class Service extends DatabaseService<Model> {
       if (!row.ownerName) {
         continue;
       }
-      out.set(row.ownerName, {
+      out.set(`${row.namespaceKey || ""}/${row.ownerName}`, {
         cpuPercent: row.cpu ? parseFloat(row.cpu) || 0 : 0,
         memoryBytes: row.mem ? parseInt(row.mem, 10) || 0 : 0,
         memoryPercent: row.memPct ? parseFloat(row.memPct) || 0 : 0,

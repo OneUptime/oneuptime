@@ -5,7 +5,7 @@ Kubernetes モニターは、OneUptime の Kubernetes エージェントがク�
 :::cards
 - [エージェントをインストールする](/docs/monitor/kubernetes-agent): Helm コマンド 1 つでクラスターを OneUptime に取り込みます。
 - [モニターを作成する](#kubernetes-モニターを作成する): クラスターを選び、テンプレート、メトリクス、クエリのいずれかを選びます。
-- [アラートテンプレート](#既製のアラートテンプレート): 報告が止まったクラスターから etcd まで、18 個の既製アラート。
+- [アラートテンプレート](#既製のアラートテンプレート): 報告が止まったクラスターから etcd まで、21 個の既製アラート。
 - [条件](#監視条件): 静的なしきい値と異常検知。
 :::
 
@@ -86,9 +86,9 @@ flowchart TB
 | カテゴリ | メトリクス |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| ノード | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| ノード | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | コンテナ | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | コントロールプレーン | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -124,7 +124,7 @@ flowchart TB
 | **Anomalously Low** | 想定範囲を下回る |
 | **Anomalous** | どちらかの方向に想定範囲を外れる |
 
-各サンプルは、**ベースラインウィンドウ**（既定は 14 日、ほかに 28、60、90 日）から作られる、週の同じ時間帯のベースラインと比較されます。**感度** は想定範囲の幅を決めます。**低 (4σ — 著しい偏差のみ)**、既定の **中 (3σ — 推奨)**、**高 (2σ — ノイズが多い、非常に安定したサービス)** から選びます。異常条件は、週のその時間帯に 2 週間分の履歴がたまるまで「Learning」状態のままで、アラートを出しません。
+各サンプルは、**ベースラインウィンドウ**（既定は 14 日、ほかに 28、60、90 日）から作られる、週の同じ時間帯のベースラインと比較されます。**感度** は想定範囲の幅を決めます。**低 (4σ — 著しい偏差のみ)**、既定の **中 (3σ — 推奨)**、**高 (2σ — ノイズが多い、非常に安定したサービス)** から選びます。異常条件は、週のその時間帯に 2 週間分の履歴がたまるまで「Learning」状態のままで、アラートを出しません。 合計、カウント、ヒストグラムに対するクエリは、ずっとこの状態のままです。このモニターはクエリを属性でフィルターしますが、ベースラインは属性を持たないためです。
 
 **その他の項目** にある **データがない場合** は、期間内にクエリが何も返さないときの動作を決めます。**Ignore**（既定）は一致せず、**トリガー** は無応答を問題として扱い、**Treat As Zero** はゼロとして比較します。OneUptime 自身がデータを受信していなかった時間は、決してデータなしとは扱われません。そのような時間を含む期間のチェックは代わりに待機します。詳しくは [OneUptime がデータを受信していないとき](/docs/monitor/when-oneuptime-is-not-receiving) を参照してください。
 
@@ -138,14 +138,17 @@ flowchart TB
 | CrashLoopBackOff Detection | ワークロード | コンテナが 15 分以内に再起動し、その半分未満しか準備完了でなかった | 重大 |
 | Pod Stuck in Pending | スケジューリング | 15 分間のすべてのサンプルで、いずれかの Pod が Pending フェーズにある | 警告 |
 | Node Not Ready | ノード | ノードが NotReady を報告した、またはステータスの報告が止まった (Unknown) | 重大 |
+| Node Under Pressure | ノード | ノードが MemoryPressure、DiskPressure、PIDPressure のいずれかを 10 分間報告している | 警告 |
 | High Node CPU Utilization | ノード | ノードの平均 CPU 使用量が割り当て可能な CPU の 90% を超えた | 警告 |
 | High Node Memory Utilization | ノード | ノードの平均メモリワーキングセットが割り当て可能なメモリの 85% を超えた | 警告 |
 | Deployment Replica Mismatch | ワークロード | Deployment の利用可能なレプリカが 15 分間、希望数を下回っている | 警告 |
+| StatefulSet Replica Mismatch | ワークロード | StatefulSet の準備完了レプリカが 15 分間、希望数を下回っている | 警告 |
 | Job Failures | ワークロード | Job の Pod が 15 分以内に失敗した | 警告 |
 | etcd No Leader | コントロールプレーン | etcd に選出されたリーダーがいない | 重大 |
 | API Server Request Saturation | コントロールプレーン | API サーバーが期間全体にわたって 200 件以上の処理中リクエストを抱えている | 重大 |
 | Scheduler Backlog | スケジューリング | スケジューラーの保留中 Pod のキューが 5 分間空にならない | 警告 |
 | High Node Disk Usage | ストレージ | ノードのファイルシステムの使用率が 90% を超えた | 警告 |
+| DaemonSet Pods Not Ready | ワークロード | DaemonSet の準備完了 Pod がないノードが 15 分間ある | 警告 |
 | DaemonSet Misscheduled Nodes | ワークロード | DaemonSet が、ノードセレクター、アフィニティ、トレレーションに合わなくなったノードで Pod を実行している | 警告 |
 | High Node CPU Request Commitment | ノード | ノード上のコンテナの CPU リクエストの合計が割り当て可能な CPU の 90% を超えた | 警告 |
 | High Node Memory Request Commitment | ノード | ノード上のコンテナのメモリリクエストの合計が割り当て可能なメモリの 90% を超えた | 警告 |

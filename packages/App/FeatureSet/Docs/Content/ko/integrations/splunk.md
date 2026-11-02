@@ -44,7 +44,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Splunk Enterprise Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 토큰을 **Authentication token**에, 또는 비밀번호를 **비밀번호**에 붙여 넣습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Splunk Enterprise Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 토큰을 **Authentication token**에, 또는 비밀번호를 **비밀번호**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
@@ -159,7 +159,7 @@ Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열�
 
 ### 대상 추가하기
 
-**제품 → Security Events → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Splunk를 고른 뒤 **다음** 을 클릭합니다. **HEC URL** 을 입력하고 토큰을 **HEC 토큰** 에 붙여 넣습니다. **인덱스** 와 **소스 유형** 은 선택 사항입니다. 비워 두면 이벤트는 토큰의 기본 인덱스로 sourcetype `oneuptime:security` 와 함께 갑니다.
+**제품 → 보안 이벤트 → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Splunk를 고른 뒤 **다음** 을 클릭합니다. **HEC URL** 을 입력하고 토큰을 **HEC 토큰** 에 붙여 넣습니다. **인덱스** 와 **소스 유형** 은 선택 사항입니다. 비워 두면 이벤트는 토큰의 기본 인덱스로 sourcetype `oneuptime:security` 와 함께 갑니다.
 
 ### 테스트 이벤트를 보내고 전송 시작하기
 

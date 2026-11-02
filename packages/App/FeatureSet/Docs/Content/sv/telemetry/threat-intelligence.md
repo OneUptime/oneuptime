@@ -46,7 +46,7 @@ En listas ruta länkar till dess villkor: Feodo Tracker är fri för all använd
 :::steps
 ### Gå till Threat Intel
 
-Öppna **Produkter → Security Events → Detektioner → Hotinformation**.
+Öppna **Produkter → Säkerhetshändelser → Detektioner → Hotinformation**.
 
 ### Skapa flödet
 

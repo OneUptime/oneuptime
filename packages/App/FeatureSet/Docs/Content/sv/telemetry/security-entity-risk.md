@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Vid<br/>tröskeln"| case["Ett ärende öppnas,<br/>eller så tar det öppna<br/>ärendet in risken"]
 ```
 
-Öppna **Produkter → Security Events → Entitetsrisk**: varje användare, värd, IP-adress och datalager med risk just nu, de mest riskfyllda först, med nivå, hur mycket den betyder, vad som hittade den och när. Var och en öppnas på en egen sida. **Mest riskfyllda entiteter** på översikten visar toppen av den här listan, och **Slå upp en entitet** under den slår upp vilket värde som helst i 30 dagars händelser, även en domän eller en filhash.
+Öppna **Produkter → Säkerhetshändelser → Entitetsrisk**: varje användare, värd, IP-adress och datalager med risk just nu, de mest riskfyllda först, med nivå, hur mycket den betyder, vad som hittade den och när. Var och en öppnas på en egen sida. **Mest riskfyllda entiteter** på översikten visar toppen av den här listan, och **Slå upp en entitet** under den slår upp vilket värde som helst i 30 dagars händelser, även en domän eller en filhash.
 
 ## Innan du börjar
 
@@ -65,7 +65,7 @@ När en entitets risk når tröskeln skapas en detektering från källan Entitet
 
 När ett ärende har öppnats om en entitets risk räknas inte det som låg bakom igen: ett nytt ärende öppnas bara när källor som är nya sedan dess når tröskeln igen. Ett ärende som stängts som hanterat öppnas inte igen av samma fynd.
 
-Ändra tröskeln under **Produkter → Security Events → Inställningar → Riskbedömning → Risktröskel**: ett heltal från 10 till 10000. Medel börjar vid hälften och Kritisk vid det dubbla, på alla sidor.
+Ändra tröskeln under **Produkter → Säkerhetshändelser → Inställningar → Riskbedömning → Risktröskel**: ett heltal från 10 till 10000. Medel börjar vid hälften och Kritisk vid det dubbla, på alla sidor.
 
 ### Slå på eller av riskärenden
 

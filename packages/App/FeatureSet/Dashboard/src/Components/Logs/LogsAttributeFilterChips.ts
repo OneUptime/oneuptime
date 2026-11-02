@@ -29,6 +29,8 @@ export const ATTRIBUTE_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   "resource.k8s.daemonset.name": "DaemonSet",
   "resource.k8s.job.name": "Job",
   "resource.k8s.cronjob.name": "CronJob",
+  // OpenShift stamps a DeploymentConfig's pods with its name as a label.
+  "resource.k8s.pod.label.deploymentconfig": "DeploymentConfig",
   // Hosts, Docker / Podman hosts and their containers.
   "resource.host.name": "Host",
   "resource.container.id": "Container",

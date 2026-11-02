@@ -49,7 +49,7 @@ Den bas-URL som Falcon visade talar om vilket moln ditt CID finns i. Sidan **API
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **CrowdStrike Falcon** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemligheten i **Klienthemlighet**.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **CrowdStrike Falcon** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemligheten i **Klienthemlighet**.
 
 ### Testa den innan du sparar
 

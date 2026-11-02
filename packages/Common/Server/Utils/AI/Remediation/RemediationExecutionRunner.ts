@@ -56,6 +56,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -125,6 +126,14 @@ import RecentChangesContext, {
 import { ChangeImpactVerdict } from "../SRE/ChangeImpact";
 import { quotedUntrustedLine } from "../SRE/UntrustedText";
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
+import RemediationChatMessage from "../../AutoRemediation/RemediationChatMessage";
+import { MessageBlocksByWorkspaceType } from "../../../Services/WorkspaceNotificationRuleService";
+import CloudRoundContext from "./CloudRoundContext";
+import RemediationTrackRecordReader, {
+  describeEarlierFixesForPlanner,
+  EarlierFix,
+  RemediationTarget,
+} from "./RemediationTrackRecordReader";
 import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwnership";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
@@ -1684,6 +1693,12 @@ export default class RemediationExecutionRunner {
 
     proposedPlan.executionStatus = AiRemediationPlanExecutionStatus.NotStarted;
 
+    // Each change says how the same change went there before.
+    const recordedPlan: AiRemediationCommandPlan = await this.withTrackRecords({
+      suggestion,
+      plan: proposedPlan,
+    });
+
     const transitioned: number =
       await AutoRemediationSuggestionService.attemptStatusTransition({
         suggestionId: suggestion.id!,
@@ -1691,7 +1706,7 @@ export default class RemediationExecutionRunner {
         set: {
           status: AutoRemediationSuggestionStatus.Suggested,
           rationaleMarkdown,
-          commandPlan: AiRemediationCommandPlanUtil.toJSON(proposedPlan),
+          commandPlan: AiRemediationCommandPlanUtil.toJSON(recordedPlan),
         },
       });
 
@@ -1705,16 +1720,118 @@ export default class RemediationExecutionRunner {
     // A cloud change is dry-run for the person who approves it.
     CloudChangeDryRun.startForProposedPlan({
       suggestionId: suggestion.id!,
-      plan: proposedPlan,
+      plan: recordedPlan,
     });
 
     await this.postFeedItem({
       suggestion,
       markdown: describeProposedPlanForFeed({
         sourceLabel,
-        plan: proposedPlan,
+        plan: recordedPlan,
       }),
       pingWorkspace: true,
+      // Approve it, or dismiss it, from the channel.
+      appendMessageBlocks: await RemediationChatMessage.getProposalBlocks({
+        suggestion,
+        commandPlan: recordedPlan,
+      }),
+    });
+  }
+
+  /*
+   * A proposed plan with each change's track record: how the same change
+   * went the last times OneUptime AI made it on the same cluster or
+   * resource, for other incidents and alerts (RemediationTrackRecordReader).
+   * The plan as it was when there is nothing to add or it cannot be read.
+   */
+  private static async withTrackRecords(data: {
+    suggestion: AutoRemediationSuggestion;
+    plan: AiRemediationCommandPlan;
+  }): Promise<AiRemediationCommandPlan> {
+    if (!data.suggestion.projectId) {
+      return data.plan;
+    }
+
+    return await RemediationTrackRecordReader.withTrackRecords({
+      projectId: data.suggestion.projectId,
+      plan: data.plan,
+      excludeSuggestionId: data.suggestion.id,
+      excludeSubject: {
+        incidentId: data.suggestion.incidentId,
+        alertId: data.suggestion.alertId,
+      },
+    });
+  }
+
+  /*
+   * A cloud round's context about what its signal is linked to in the
+   * account: the Cloud resources with the ids a change names them by, and
+   * the App Platforms environments, with how to find the service to change
+   * there (CloudRoundContext). None for any other resource.
+   */
+  private static async describeLinkedCloudResources(data: {
+    suggestion: AutoRemediationSuggestion;
+    resourceTarget: ResourceAiAccessStatus;
+  }): Promise<Array<string>> {
+    if (
+      !isCloudAiResourceType(data.resourceTarget.resourceType) ||
+      !data.suggestion.projectId ||
+      !ObjectID.isValidUUID(data.resourceTarget.resourceId)
+    ) {
+      return [];
+    }
+
+    return await CloudRoundContext.describeLinkedCloudResources({
+      projectId: data.suggestion.projectId,
+      cloudAccountId: new ObjectID(data.resourceTarget.resourceId),
+      incidentId: data.suggestion.incidentId,
+      alertId: data.suggestion.alertId,
+    });
+  }
+
+  /*
+   * The round's context about the fixes OneUptime AI made before on its
+   * cluster or resource, for other incidents and alerts, and how
+   * verification judged them (RemediationTrackRecordReader). None for a
+   * rule's round, which names no one target.
+   */
+  private static async describeEarlierFixes(
+    suggestion: AutoRemediationSuggestion,
+  ): Promise<Array<string>> {
+    const isResourceRound: boolean =
+      !suggestion.kubernetesClusterId && isResourceRemediationRound(suggestion);
+
+    if (
+      !suggestion.projectId ||
+      (!suggestion.kubernetesClusterId && !isResourceRound)
+    ) {
+      return [];
+    }
+
+    const target: RemediationTarget = suggestion.kubernetesClusterId
+      ? { kubernetesClusterId: suggestion.kubernetesClusterId.toString() }
+      : {
+          resourceType: suggestion.resourceType,
+          resourceId: suggestion.resourceId?.toString(),
+        };
+
+    const earlierFixes: Array<EarlierFix> =
+      await RemediationTrackRecordReader.readEarlierFixes({
+        projectId: suggestion.projectId,
+        target,
+        excludeSuggestionId: suggestion.id,
+        excludeSubject: {
+          incidentId: suggestion.incidentId,
+          alertId: suggestion.alertId,
+        },
+      });
+
+    return describeEarlierFixesForPlanner({
+      earlierFixes,
+      targetWord: isResourceRound
+        ? this.describeSuggestionResourceNoun(suggestion)
+        : "cluster",
+      now: OneUptimeDate.getCurrentDate(),
     });
   }
 
@@ -1791,10 +1908,14 @@ export default class RemediationExecutionRunner {
       },
     );
 
-    const plan: AiRemediationCommandPlan = {
-      commands,
-      executionStatus: AiRemediationPlanExecutionStatus.NotStarted,
-    };
+    // Each change says how the same change went there before.
+    const plan: AiRemediationCommandPlan = await this.withTrackRecords({
+      suggestion,
+      plan: {
+        commands,
+        executionStatus: AiRemediationPlanExecutionStatus.NotStarted,
+      },
+    });
 
     const reasons: Array<MarkdownText> = kept.map(
       (entry: RemediationCommandNeedingApproval): MarkdownText => {
@@ -1857,6 +1978,11 @@ export default class RemediationExecutionRunner {
         commands,
       )} Review the exact command(s) and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
+      // Approve it, or dismiss it, from the channel.
+      appendMessageBlocks: await RemediationChatMessage.getProposalBlocks({
+        suggestion,
+        commandPlan: plan,
+      }),
     });
   }
 
@@ -3047,9 +3173,17 @@ export default class RemediationExecutionRunner {
       }
 
       lines.push(...(await this.describePreviousRounds(data.suggestion)));
+      lines.push(...(await this.describeEarlierFixes(data.suggestion)));
     } else if (data.resourceTarget) {
       lines.push(...this.describeResourceTarget(data));
+      lines.push(
+        ...(await this.describeLinkedCloudResources({
+          suggestion: data.suggestion,
+          resourceTarget: data.resourceTarget,
+        })),
+      );
       lines.push(...(await this.describePreviousRounds(data.suggestion)));
+      lines.push(...(await this.describeEarlierFixes(data.suggestion)));
     } else {
       lines.push("");
       lines.push(
@@ -3571,6 +3705,8 @@ export default class RemediationExecutionRunner {
     suggestion: AutoRemediationSuggestion;
     markdown: MarkdownText;
     pingWorkspace: boolean;
+    // A fix that waits for approval: its changes and buttons, in the chats.
+    appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
   }): Promise<void> {
     try {
       if (data.suggestion.incidentId && data.suggestion.projectId) {
@@ -3582,6 +3718,9 @@ export default class RemediationExecutionRunner {
           feedInfoInMarkdown: data.markdown.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
+            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
+              ? { appendMessageBlocks: data.appendMessageBlocks }
+              : {}),
           },
         });
       } else if (data.suggestion.alertId && data.suggestion.projectId) {
@@ -3593,6 +3732,9 @@ export default class RemediationExecutionRunner {
           feedInfoInMarkdown: data.markdown.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
+            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
+              ? { appendMessageBlocks: data.appendMessageBlocks }
+              : {}),
           },
         });
       }

@@ -53,7 +53,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **身份** 下选择 **Microsoft Entra ID**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **客户端密钥** 中。在 **轮询** 步骤中开启 **Microsoft 365 审计日志**，即可同时读取它。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **身份** 下选择 **Microsoft Entra ID**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **客户端密钥** 中。在 **轮询** 步骤中开启 **Microsoft 365 审计日志**，即可同时读取它。
 
 ### 保存之前先测试
 

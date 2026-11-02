@@ -82,7 +82,7 @@ Eventos, alertas e valores de entidades vêm de fora do projeto, e um atacante p
 
 ## Classificar os casos novos automaticamente
 
-Abra **Produtos → Security Events → IA → Configurações** e ligue **Classificar novos casos**: a partir daí, cada caso que uma detecção abre é classificado assim que abre. A chave salva assim que você a muda. Project Owner e Project Admin podem alterá-la.
+Abra **Produtos → Eventos de segurança → IA → Configurações** e ligue **Classificar novos casos**: a partir daí, cada caso que uma detecção abre é classificado assim que abre. A chave salva assim que você a muda. Project Owner e Project Admin podem alterá-la.
 
 Os projetos novos começam com a opção ligada; um projeto criado antes a mantém desligada até que alguém a ligue. Um caso aberto à mão, e o caso do ataque de teste de **Enviar um ataque de teste**, são classificados quando alguém clica em **Classificar com IA**.
 
@@ -119,7 +119,7 @@ Quando o projeto fica sem créditos de IA ou atinge um limite diário de IA, os 
 ## Solução de problemas
 
 :::details Um caso novo não foi classificado
-Verifique se **Habilitar IA** está ligado, e também **Classificar novos casos** em **Produtos → Security Events → IA → Configurações**. Um caso aberto à mão e o caso do ataque de teste só são classificados quando alguém pede. Abra o caso: quando algo impede uma classificação, o cartão diz o quê, e onde corrigir.
+Verifique se **Habilitar IA** está ligado, e também **Classificar novos casos** em **Produtos → Eventos de segurança → IA → Configurações**. Um caso aberto à mão e o caso do ataque de teste só são classificados quando alguém pede. Abra o caso: quando algo impede uma classificação, o cartão diz o quê, e onde corrigir.
 :::
 
 :::details O cartão diz que o projeto ficou sem créditos de IA, ou que atingiu o limite diário de IA

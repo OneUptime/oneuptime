@@ -264,6 +264,10 @@ Knapperne på OneUptimes kort handler som den person, der trykker på dem, i en 
 - **Hvor personen får svar.** I et svar i den samme samtale, kortets tråd i en kanal, der nævner personen, så Microsoft Teams giver besked. En knap, der trykkes for sent, fortæller, hvem der kom først, og hvornår, for eksempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Hvis personens konto ikke er forbundet.** Svaret beder personen forbinde den, med en knap **Connect Microsoft Teams account**. Knappen åbner personens egne Microsoft Teams-indstillinger i OneUptime og forbinder kontoen i ét trin, efter login i OneUptime, hvis det er nødvendigt. Derefter gør OneUptime færdigt, hvad personen trykkede på, som personen, og svarer i den samme samtale; for en knap, der åbner en formular, eller en kommando beder det personen trykke på den eller skrive den igen. Knappen virker én gang, i 30 minutter, og kun for den Microsoft-konto, der trykkede på den.
 
+## Godkend en rettelse, som OneUptime AI foreslår
+
+En rettelse, som OneUptime AI foreslår til godkendelse, sendes til hændelsens eller advarslens kanaler som et kort med dens ændringer og tre knapper. **Review and approve** svarer med et kort med alt, hvad rettelsen kører, og **Approve and run**, som kører præcis det, som den person, der trykker; når rettelsen er godkendt, fjernes det kort, og personen får at vide, at rettelsen bliver foretaget. **Dismiss** afviser rettelsen, og **View in OneUptime** åbner hændelsen eller advarslen. De handler som den person, der trykker på dem, ligesom hver knap på OneUptimes kort: en godkendelse kræver tilladelse til at godkende rettelser i projektet og, for en rettelse på en klynge eller ressource, til at redigere den. En rettelse, der ændrede sig, efter dens kort blev sendt, afvises, og intet køres. Se [Godkend eller afvis en rettelse fra Slack eller Microsoft Teams](/docs/ai/ai-sre#godkend-eller-afvis-en-rettelse-fra-slack-eller-microsoft-teams).
+
 ## Afbryd forbindelsen
 
 - **Afbryd forbindelse** fjerner kun tilknytningen af din egen Microsoft Teams-konto og fjerner samtidig din Microsoft Teams-notifikationsmetode.

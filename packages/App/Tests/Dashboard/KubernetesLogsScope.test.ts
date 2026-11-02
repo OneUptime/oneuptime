@@ -4,6 +4,7 @@ import {
   KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS,
   KUBERNETES_NAMESPACE_NAME_ATTRIBUTE,
   KUBERNETES_POD_NAME_ATTRIBUTE,
+  KUBERNETES_WORKLOAD_LOG_ATTRIBUTES,
   buildKubernetesLogsAttributeDisplayValues,
   buildKubernetesLogsAttributeFilters,
   getKubernetesClusterDisplayName,
@@ -192,6 +193,69 @@ describe("buildKubernetesLogsAttributeFilters", () => {
   });
 });
 
+describe("a workload's or a node's Logs tab", () => {
+  test("reads its pods' lines by the name the agent stamps on them, in its namespace", () => {
+    expect(
+      buildKubernetesLogsAttributeFilters({
+        clusterIdentifier: "c1",
+        namespace: "shop",
+        workloadKind: "Deployment",
+        workloadName: "checkout",
+      }),
+    ).toEqual({
+      "resource.k8s.cluster.name": "c1",
+      "resource.k8s.namespace.name": "shop",
+      "resource.k8s.deployment.name": "checkout",
+    });
+  });
+
+  test.each([
+    ["StatefulSet", "resource.k8s.statefulset.name"],
+    ["DaemonSet", "resource.k8s.daemonset.name"],
+    ["Job", "resource.k8s.job.name"],
+    ["CronJob", "resource.k8s.cronjob.name"],
+    ["DeploymentConfig", "resource.k8s.pod.label.deploymentconfig"],
+  ])("a %s filters on %s", (kind: string, attribute: string) => {
+    expect(
+      buildKubernetesLogsAttributeFilters({
+        clusterIdentifier: "c1",
+        namespace: "shop",
+        workloadKind: kind,
+        workloadName: "web",
+      })[attribute],
+    ).toBe("web");
+  });
+
+  test("a node's tab reads every line from it, with no namespace", () => {
+    expect(
+      buildKubernetesLogsAttributeFilters({
+        clusterIdentifier: "c1",
+        workloadKind: "Node",
+        workloadName: "node-a",
+      }),
+    ).toEqual({
+      "resource.k8s.cluster.name": "c1",
+      "resource.k8s.node.name": "node-a",
+    });
+  });
+
+  test("a kind with no attribute, or no name, adds no filter", () => {
+    for (const input of [
+      { workloadKind: "ReplicaSet", workloadName: "web-7d9f" },
+      { workloadKind: "Deployment", workloadName: "" },
+      { workloadKind: "Deployment", workloadName: "   " },
+      { workloadKind: undefined, workloadName: "web" },
+    ]) {
+      expect(
+        buildKubernetesLogsAttributeFilters({
+          clusterIdentifier: "c1",
+          ...input,
+        }),
+      ).toEqual({ "resource.k8s.cluster.name": "c1" });
+    }
+  });
+});
+
 describe("KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS", () => {
   test("labels every key the filter can send", () => {
     expect(KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS).toEqual({
@@ -199,16 +263,27 @@ describe("KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS", () => {
       "resource.k8s.pod.name": "Pod",
       "resource.k8s.container.name": "Container",
       "resource.k8s.namespace.name": "Namespace",
+      // A workload's chip reads its kind, as kubectl writes it.
+      "resource.k8s.deployment.name": "Deployment",
+      "resource.k8s.statefulset.name": "StatefulSet",
+      "resource.k8s.daemonset.name": "DaemonSet",
+      "resource.k8s.job.name": "Job",
+      "resource.k8s.cronjob.name": "CronJob",
+      "resource.k8s.pod.label.deploymentconfig": "DeploymentConfig",
+      "resource.k8s.node.name": "Node",
     });
 
-    const allKeys: Array<string> = Object.keys(
-      buildKubernetesLogsAttributeFilters({
-        clusterIdentifier: "c",
-        podName: "p",
-        containerName: "ctr",
-        namespace: "ns",
-      }),
-    );
+    const allKeys: Array<string> = [
+      ...Object.keys(
+        buildKubernetesLogsAttributeFilters({
+          clusterIdentifier: "c",
+          podName: "p",
+          containerName: "ctr",
+          namespace: "ns",
+        }),
+      ),
+      ...Object.values(KUBERNETES_WORKLOAD_LOG_ATTRIBUTES),
+    ];
 
     for (const key of allKeys) {
       expect(KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS[key]).toBeTruthy();

@@ -84,7 +84,7 @@ Under **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur of
 
 API:et och Terraform avvisar en regel som skulle vänta tills händelsen börjar och sluta när den börjar: den skulle aldrig skicka någon påminnelse. En äldre regel som sparats så markeras i listan med **Påminner aldrig**, och dess formulär ber dig välja när påminnelser ska skickas.
 
-Ägarna får varje påminnelse som **Maintenance reminder**, som är påslagen via e-post för varje ny medlem. Att spara, ändra eller ta bort en påminnelseregel matchar varje händelse som inte är slutförd på nytt. För att stoppa påminnelserna för en händelse stänger du av **Skicka påminnelser** på dess sida **Inställningar**; reglaget sparas i samma stund som du slår om det.
+Ägarna får varje påminnelse som **Påminnelse om underhåll**, som är påslagen via e-post för varje ny medlem. Att spara, ändra eller ta bort en påminnelseregel matchar varje händelse som inte är slutförd på nytt. För att stoppa påminnelserna för en händelse stänger du av **Skicka påminnelser** på dess sida **Inställningar**; reglaget sparas i samma stund som du slår om det.
 
 De här påminnelserna är för ditt team. De påminnelser som dina statussideprenumeranter får innan en händelse börjar ställs in på själva händelsen, under **Påminnelser före händelsen**.
 
@@ -132,7 +132,7 @@ Regler, anpassade fält och mätningar kräver **Projektägare** eller **Projekt
 :::
 
 :::details Ägarna fick ingen påminnelse
-Kontrollera att en påminnelseregel matchar händelsens etiketter, att händelsens **Skicka påminnelser** är påslagen och att **Maintenance reminder** är påslagen i ägarnas aviseringsinställningar. En regel med **Medan den pågår** skickar ingenting innan händelsen börjar.
+Kontrollera att en påminnelseregel matchar händelsens etiketter, att händelsens **Skicka påminnelser** är påslagen och att **Påminnelse om underhåll** är påslagen i ägarnas aviseringsinställningar. En regel med **Medan den pågår** skickar ingenting innan händelsen börjar.
 :::
 
 ## Nästa steg

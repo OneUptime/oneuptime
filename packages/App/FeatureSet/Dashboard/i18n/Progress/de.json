@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39750,
-    "untranslated": 3976
+    "keys": 40054,
+    "untranslated": 3808
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -139,6 +139,7 @@
     "Compliance",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container: {{name}}",
     "Content Security Policy",
     "Controller",
     "Controller Manager",
@@ -187,6 +188,7 @@
     "Enterprise Edition",
     "Episode",
     "Eritrea",
+    "Export",
     "Failover",
     "Fatal",
     "Favicon",
@@ -247,6 +249,7 @@
     "INP 540 ms",
     "Image",
     "Images",
+    "In / Out",
     "Index",
     "Info",
     "Initiator",
@@ -278,6 +281,7 @@
     "Links",
     "Live",
     "Load Balancer",
+    "Log4Shell",
     "Logo",
     "Loopback",
     "MCP",
@@ -301,6 +305,7 @@
     "Median (P50)",
     "Merge Requests",
     "Mesh / VPN",
+    "Messaging",
     "Microsoft Entra ID",
     "Min",
     "Minimum",
@@ -464,6 +469,7 @@
     "Source Map",
     "Source Maps",
     "Span",
+    "Span: {{id}}",
     "Spans",
     "Spec",
     "Sri Lanka",
@@ -512,6 +518,7 @@
     "Trace",
     "Trace Explorer",
     "Trace {{traceId}}",
+    "Trace: {{id}}",
     "Traceroute",
     "Traces",
     "Transport",

@@ -84,9 +84,18 @@ describe("names repeat across namespaces", () => {
     expect(source("Pages/Kubernetes/View/ServiceDetail.tsx")).toContain(
       "namespace={route.metadata.namespace}",
     );
-    expect(
-      source("Components/Kubernetes/KubernetesResourceLink.tsx"),
-    ).toContain("route.addQueryParams({ namespace: props.namespace })");
+    /*
+     * Every namespaced kind's link carries its namespace now, through the
+     * one helper the part pages share (KubernetesPartRoutes).
+     */
+    const link: string = source(
+      "Components/Kubernetes/KubernetesResourceLink.tsx",
+    );
+    expect(link).toContain("getKubernetesPartRoute(props.modelId, {");
+    expect(link).toContain("namespace: props.namespace,");
+    expect(source("Pages/Kubernetes/Utils/KubernetesPartRoutes.ts")).toContain(
+      "return part.namespace && NAMESPACED_KUBERNETES_KINDS.has(part.kind)",
+    );
   });
 });
 
@@ -236,8 +245,12 @@ describe("an Event's object leads to its page", () => {
   });
 
   test("names repeat, so the kinds that do ask for the namespace", () => {
+    // Every namespaced kind's page reads it (KubernetesPartRoutes).
     expect(table).toContain(
-      "data.namespace && PAGES_THAT_READ_THE_NAMESPACE.includes(kind)",
+      "const PAGES_THAT_READ_THE_NAMESPACE: ReadonlySet<string> = NAMESPACED_KUBERNETES_KINDS;",
+    );
+    expect(table).toContain(
+      "data.namespace && PAGES_THAT_READ_THE_NAMESPACE.has(kind)",
     );
     expect(table).toContain("namespace={row.namespace}");
     expect(table).toContain("namespace: row.namespace");

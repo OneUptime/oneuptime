@@ -39,6 +39,10 @@ import {
   getOpenShiftInventoryState,
   parseOpenShiftObject,
 } from "./OpenShiftObjectParser";
+import {
+  KubernetesHealthSeverity,
+  getKubernetesHealthSeverity,
+} from "./KubernetesHealth";
 
 /*
  * ------------------------------------------------------------------
@@ -118,6 +122,14 @@ export interface ParsedKubernetesResource {
   status: JSONObject | null;
   lastSeenAt: Date;
   resourceCreationTimestamp: Date | null;
+  /*
+   * Whether the object needs attention, and how badly, when it was seen:
+   * "critical", "warning" or null (KubernetesHealth's rules). Stored so the
+   * cluster's Overview reads what needs attention, not the whole inventory.
+   * extractInventoryResource always sets it; a row built elsewhere without
+   * it is stored as needing none.
+   */
+  healthSeverity?: KubernetesHealthSeverity | null | undefined;
 }
 
 /**
@@ -533,7 +545,14 @@ export function extractInventoryResource(data: {
     resourceCreationTimestamp: parseCreationTimestamp(
       metadata.creationTimestamp,
     ),
+    healthSeverity: null,
   };
+
+  /*
+   * The verdict at the time the agent saw it - the same rules, and the
+   * same time, a page reading this row uses.
+   */
+  resource.healthSeverity = getKubernetesHealthSeverity(resource);
 
   let containers: Array<ParsedKubernetesContainerRow> = [];
   if (kind === "Pod") {

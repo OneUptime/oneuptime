@@ -60,7 +60,7 @@ Open in de [IAM-console](https://console.aws.amazon.com/iam/) **Policies → Cre
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **AWS Security Hub** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het geheim in **Geheime toegangssleutel**.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **AWS Security Hub** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het geheim in **Geheime toegangssleutel**.
 
 ### Testen voordat je opslaat
 

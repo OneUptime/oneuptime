@@ -44,7 +44,7 @@ Wil je in plaats daarvan met een wachtwoord authenticeren, sla deze stap dan ove
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Splunk Enterprise Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **Authentication token**, of het wachtwoord in **Wachtwoord**.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Splunk Enterprise Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **Authentication token**, of het wachtwoord in **Wachtwoord**.
 
 ### Testen voordat je opslaat
 
@@ -159,7 +159,7 @@ Open in Splunk Web **Settings → Data inputs → HTTP Event Collector** en klik
 
 ### De bestemming toevoegen
 
-Open **Producten → Security Events → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Splunk onder **SIEM** en klik op **Volgende**. Vul de **HEC-URL** in en plak het token in **HEC-token**. **Index** en **Brontype** zijn optioneel: leeg gelaten gaan gebeurtenissen naar de standaardindex van het token met de sourcetype `oneuptime:security`.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Splunk onder **SIEM** en klik op **Volgende**. Vul de **HEC-URL** in en plak het token in **HEC-token**. **Index** en **Brontype** zijn optioneel: leeg gelaten gaan gebeurtenissen naar de standaardindex van het token met de sourcetype `oneuptime:security`.
 
 ### Een testgebeurtenis verzenden en beginnen met verzenden
 

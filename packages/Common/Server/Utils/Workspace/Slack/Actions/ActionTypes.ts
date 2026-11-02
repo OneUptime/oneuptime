@@ -153,6 +153,19 @@ enum SlackActionType {
    * see that project is read again when they choose it.
    */
   SwitchHomeProject = "SwitchHomeProject",
+
+  /*
+   * A fix OneUptime AI proposes for approval, on its message in the
+   * record's channels (Server/Utils/AutoRemediation/RemediationChatMessage):
+   * Review and approve opens what the fix runs, with Approve and run (the
+   * dialog's submission); Dismiss dismisses it. Each carries the fix and its
+   * plan fingerprint, so a fix that changed since the message is never acted
+   * on from it. Microsoft Teams' card of the same message presses them by
+   * the same ids.
+   */
+  ViewApproveRemediation = "ViewApproveRemediation",
+  SubmitApproveRemediation = "SubmitApproveRemediation",
+  DismissRemediation = "DismissRemediation",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

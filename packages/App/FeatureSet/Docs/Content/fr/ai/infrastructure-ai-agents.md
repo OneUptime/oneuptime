@@ -402,6 +402,8 @@ Une modification nomme une ressource par son ID, comme une lecture, et ne s'exé
 
 Avant qu'une personne approuve un correctif qui modifie un compte cloud, OneUptime simule chaque modification proposée, et la carte du correctif sur l'incident ou l'alerte affiche la réponse sous la modification : elle s'exécuterait, avec l'appel qu'elle ferait et son annulation ; elle serait refusée, et pourquoi ; ou la simulation n'a pas pu aboutir. **Relancer la simulation** vérifie à nouveau. Une simulation ne modifie rien : l'agent s'arrête avant l'appel qui ferait la modification, et sur AWS la session du rôle d'écriture qu'il utilise ne peut que lire.
 
+Sur la carte du correctif et dans son message Slack et Microsoft Teams, un changement cloud dit aussi en clair ce qu'il fait, au-dessus de sa commande exacte : « Service ECS web : augmenter à 4 tâches ». Les mots sont lus dans la commande selon la grammaire du catalogue, jamais dans ce que OneUptime AI a écrit. Quand OneUptime AI planifie un correctif pour un compte, il apprend à quoi l'incident ou l'alerte y est lié : ses ressources Cloud, par les identifiants qui les désignent dans un changement, et ses environnements App Platforms, où un correctif modifie les services qui y tournent.
+
 ### La liste d'autorisation des commandes
 
 En mode **Automatique**, la **Liste d'autorisation des commandes** de la ressource, sur la page de l'agent IA, permet aux commandes plus risquées que vous nommez de s'exécuter sans approbation. Elle est comparée mot à mot à la commande, et non comme du texte :

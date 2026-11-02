@@ -440,8 +440,12 @@ describe("the composed strings", () => {
    * ("Create Form"), so the phrases the Forms locales word themselves win.
    */
   test("are what the shared components build from the model's name", () => {
-    // The whole phrase first, then the template with the name translated.
-    expect(readCommon("..", "Utils", "TranslateTemplate.ts")).toContain(
+    /*
+     * The whole phrase first, then the template with the name translated
+     * (translateNamedAction, in the translator Common/UI/Utils/TranslateTemplate
+     * re-exports).
+     */
+    expect(readCommon("..", "..", "Types", "Translator.ts")).toContain(
       "if (translator.hasTranslation(phrase)) { return translator.translateText(phrase) || phrase; }",
     );
 

@@ -264,6 +264,10 @@ OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊�
 - **在哪里收到回复。** 在同一个对话中（在频道中即卡片的话题中）以提及此人的回复答复，因此 Microsoft Teams 会通知此人。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果此人的账户未连接。** 回复会请此人连接，并附带一个 **Connect Microsoft Teams account** 按钮。该按钮会打开此人在 OneUptime 中自己的 Microsoft Teams 设置，并在按需登录 OneUptime 后一步连接账户。随后 OneUptime 会以此人的身份完成其按下的操作，并在同一个对话中回复；对于打开表单的按钮或命令，它会请此人再按一次或再输入一次。该按钮只能使用一次，有效 30 分钟，并且只对按下它的 Microsoft 账户有效。
 
+## 批准 OneUptime AI 提出的修复
+
+OneUptime AI 提出待批准的修复时，会以一张包含其变更和三个按钮的卡片发布到事件或警报的频道中。 **Review and approve** 会回复一张卡片，其中包含修复要执行的全部内容和 **Approve and run**，后者会以按下它的人的身份准确执行这些内容；批准后，这张卡片会被移除，并告知此人修复正在进行。 **Dismiss** 会驳回修复， **View in OneUptime** 会打开事件或警报。与 OneUptime 卡片上的每个按钮一样，它们以按下它们的人的身份执行：批准需要在项目中批准修复的权限，对于集群或资源的修复，还需要编辑它的权限。在卡片发布后发生了变化的修复会被拒绝，什么都不会执行。参见 [从 Slack 或 Microsoft Teams 批准或驳回修复](/docs/ai/ai-sre#从-slack-或-microsoft-teams-批准或驳回修复)。
+
 ## 断开连接
 
 - **断开连接** 只解除您自己的 Microsoft Teams 账户的关联，并同时删除您的 Microsoft Teams 通知方式。

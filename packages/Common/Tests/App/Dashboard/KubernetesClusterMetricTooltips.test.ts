@@ -120,20 +120,17 @@ describe("the Kubernetes cluster description records read well", () => {
         "clusterHealthOpenShift",
         "cpu",
         "cpuChart",
-        "diskPressure",
         "filesystem",
         "filesystemChart",
         "inventoryCounts",
         "memory",
         "memoryChart",
-        "memoryPressure",
         "namespaces",
         "network",
         "networkChart",
         "networkThroughput",
         "nodes",
         "nodesNotReady",
-        "pidPressure",
         "podHealth",
         "pods",
         "podsFailed",
@@ -234,9 +231,6 @@ const TITLED: Array<[string, string]> = [
   ["Namespaces", CLUSTER.namespaces],
   ["Agent Status", CLUSTER.agentStatus],
   ["AI agent", CLUSTER.aiAgent],
-  ["Memory Pressure", CLUSTER.memoryPressure],
-  ["Disk Pressure", CLUSTER.diskPressure],
-  ["PID Pressure", CLUSTER.pidPressure],
   ["Pod Health", CLUSTER.podHealth],
   ["CPU Usage", CLUSTER.topCpuPods],
   ["Memory Usage", CLUSTER.topMemoryPods],
@@ -469,13 +463,17 @@ describe("accuracy: inventory-snapshot numbers ignore the time range", () => {
   );
 
   test("cluster health spells out the page's exact rule", () => {
-    // Unhealthy: failed pods or not-ready nodes.
+    /*
+     * The health is what Needs attention lists (KubernetesHealth): anything
+     * critical - a node not ready, a container that cannot run - makes it
+     * Unhealthy, anything else it lists Degraded.
+     */
+    expect(CLUSTER.clusterHealth).toContain("What Needs attention lists");
     expect(CLUSTER.clusterHealth).toContain(
-      "Unhealthy if any pod has failed or any node is not ready",
+      "Unhealthy if something is broken, such as a node not ready or a container that cannot run",
     );
-    // Degraded: pending pods or any node pressure.
     expect(CLUSTER.clusterHealth).toContain(
-      "Degraded if any pod is pending or a node reports memory, disk or process pressure",
+      "Degraded if something needs a look",
     );
     expect(CLUSTER.clusterHealth).toContain("otherwise Healthy");
   });
@@ -483,20 +481,27 @@ describe("accuracy: inventory-snapshot numbers ignore the time range", () => {
   test("on OpenShift, the rule says what the operators and the update add", () => {
     const rule: string = CLUSTER.clusterHealthOpenShift;
 
+    expect(rule).toContain("From Needs attention and OpenShift's operators");
     expect(rule).toContain("latest inventory");
     expect(rule).toContain("not the selected range");
     expect(rule).toContain(
-      "Unhealthy if a pod failed, a node is not ready or an operator is unavailable",
+      "Unhealthy if something is broken or an operator is unavailable",
     );
     expect(rule).toContain(
-      "Degraded if a pod is pending, a node is under pressure, an operator is degraded or an update fails",
+      "Degraded if something needs a look, an operator is degraded or an update fails",
     );
     expect(rule).toContain("otherwise Healthy");
   });
 
   test("the chips that feed the health rule say which state they cause", () => {
-    expect(CLUSTER.podsPending).toContain("marks the cluster Degraded");
-    expect(CLUSTER.podsFailed).toContain("marks the cluster Unhealthy");
+    // Pending for five minutes, as the rules wait before calling it stuck.
+    expect(CLUSTER.podsPending).toContain(
+      "pending for more than five minutes marks the cluster Degraded",
+    );
+    // A failed pod is history after an hour, and a finished job's always.
+    expect(CLUSTER.podsFailed).toContain(
+      "failed in the last hour marks the cluster Degraded",
+    );
     expect(CLUSTER.nodesNotReady).toContain("marks the cluster Unhealthy");
   });
 
@@ -565,17 +570,9 @@ describe("accuracy: inventory-snapshot numbers ignore the time range", () => {
     expect(CLUSTER.agentStatus).toContain("keep their last reported values");
   });
 
-  test("each node pressure condition is explained on its own", () => {
-    expect(CLUSTER.memoryPressure).toContain("low on memory");
-    expect(CLUSTER.diskPressure).toContain("low on disk space");
-    expect(CLUSTER.pidPressure).toContain("processes (PIDs)");
-
-    for (const text of [
-      CLUSTER.memoryPressure,
-      CLUSTER.diskPressure,
-      CLUSTER.pidPressure,
-    ]) {
-      expect(text).toContain("evict");
+  test("node pressure has no texts of its own: it is a node's row of Needs attention", () => {
+    for (const key of ["memoryPressure", "diskPressure", "pidPressure"]) {
+      expect(Object.keys(CLUSTER)).not.toContain(key);
     }
   });
 

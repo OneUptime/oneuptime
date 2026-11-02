@@ -1,5 +1,7 @@
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
+import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "../../../../Types/BaseDatabase/AggregationIntervalUtil";
 import MetricAliasData from "../../../../Types/Metrics/MetricAliasData";
 import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
@@ -16,6 +18,7 @@ import MetricCriteriaContext, {
 } from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import ObjectID from "../../../../Types/ObjectID";
 import SeriesLabelDisplay from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
@@ -277,6 +280,15 @@ export default class MetricMonitorCriteria {
 
     const baselineReads: BaselineReads = new Map();
 
+    const telemetryServiceIds: Array<ObjectID> | undefined =
+      input.monitorStep.data?.metricMonitor?.telemetryServiceIds;
+
+    /*
+     * Only a Metrics monitor's query says all it reads. An infrastructure
+     * monitor's is narrowed to its cluster, host or container by the worker.
+     */
+    const isNarrowedByMonitor: boolean = !input.monitorStep.data?.metricMonitor;
+
     /*
      * Series-less path: one synthetic "all-series" evaluation over the
      * flat metricResult. Preserves the pre-group-by behavior exactly.
@@ -297,6 +309,8 @@ export default class MetricMonitorCriteria {
           monitorNewestDataPointMs,
           isInEffect: input.isInEffect,
           baselineReads,
+          telemetryServiceIds,
+          isNarrowedByMonitor,
         });
       return [result];
     }
@@ -317,6 +331,8 @@ export default class MetricMonitorCriteria {
           monitorNewestDataPointMs,
           isInEffect: input.isInEffect,
           baselineReads,
+          telemetryServiceIds,
+          isNarrowedByMonitor,
         });
       }),
     );
@@ -513,6 +529,10 @@ export default class MetricMonitorCriteria {
     monitorNewestDataPointMs?: number | null | undefined;
     isInEffect?: IsCriteriaInEffect | undefined;
     baselineReads: BaselineReads;
+    // The services a Metrics monitor reads, when it names any.
+    telemetryServiceIds?: Array<ObjectID> | undefined;
+    // The monitor narrows the query by attributes the query does not show.
+    isNarrowedByMonitor?: boolean | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
       CompareCriteria.convertMetricThresholdToNumber(
@@ -592,6 +612,9 @@ export default class MetricMonitorCriteria {
         projectId: input.projectId,
         nativeUnitsByMetricName: input.nativeUnitsByMetricName,
         baselineReads: input.baselineReads,
+        window: input.window,
+        telemetryServiceIds: input.telemetryServiceIds,
+        isNarrowedByMonitor: input.isNarrowedByMonitor,
       });
     }
 
@@ -1384,7 +1407,8 @@ export default class MetricMonitorCriteria {
    *     metric monitors).
    *   - The baseline is missing or unreliable (cold-start). The
    *     metricContext.anomalyBaseline.state surfaces "Learning" so the
-   *     UI can explain why nothing fired.
+   *     UI can explain why nothing fired. That includes a query no table
+   *     holds the data points of (MetricHourBaseline.getSource).
    */
   private static async evaluateAnomaly(input: {
     criteriaFilter: CriteriaFilter;
@@ -1395,6 +1419,9 @@ export default class MetricMonitorCriteria {
     projectId: { toString(): string } | undefined;
     nativeUnitsByMetricName?: { [key: string]: string } | undefined;
     baselineReads: BaselineReads;
+    window?: MetricEvaluationWindow | null | undefined;
+    telemetryServiceIds?: Array<ObjectID> | undefined;
+    isNarrowedByMonitor?: boolean | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const { criteriaFilter, metricContext } = input;
 
@@ -1504,6 +1531,17 @@ export default class MetricMonitorCriteria {
     const baselineUnit: string | undefined =
       input.nativeUnitsByMetricName?.[metricContext.metricName.toLowerCase()];
 
+    const aggregationType: MetricsAggregationType =
+      metricContext.aggregationType || MetricsAggregationType.Avg;
+
+    // The window sets how long the query's data points are.
+    const interval: AggregationInterval = input.window
+      ? AggregationIntervalUtil.getAggregationIntervalForWindow({
+          startDate: new Date(input.window.startMs),
+          endDate: new Date(input.window.endMs),
+        })
+      : AggregationInterval.Minute;
+
     const baselineByHour: Map<string, BaselineSummary> = new Map();
     for (const [key, hour] of hoursInWindow) {
       const reading: Promise<BaselineSummary | null> =
@@ -1515,6 +1553,16 @@ export default class MetricMonitorCriteria {
           judgedAt: hour.judgedAt,
           windowDays,
           minSamples,
+          // Empty is what a monitor that reads every service holds.
+          primaryEntityId: input.telemetryServiceIds,
+          query: {
+            aggregationType,
+            isNarrowedByAttributes:
+              Boolean(input.isNarrowedByMonitor) ||
+              Object.keys(metricContext.filterAttributes).length > 0 ||
+              metricContext.groupBy.length > 0,
+            interval,
+          },
         });
 
       input.baselineReads.set(key, reading);
@@ -1602,7 +1650,14 @@ export default class MetricMonitorCriteria {
       const breaches: boolean = MetricMonitorCriteria.anomalyBreaches(
         sample.value,
         band.expectedHigh,
-        band.expectedLow,
+        MetricMonitorCriteria.canReadLow({
+          aggregationType,
+          time: ts,
+          window: input.window,
+          interval,
+        })
+          ? band.expectedLow
+          : -Infinity,
         criteriaFilter.filterType,
       );
 
@@ -1707,6 +1762,38 @@ export default class MetricMonitorCriteria {
       rootCause,
       context: metricContext,
     };
+  }
+
+  /*
+   * Whether a data point can be judged too low. A Sum or a Count is what has
+   * arrived so far, so one that is not all there reads low whatever the metric
+   * does: the first of a window starts before it, the newest is still filling,
+   * and the one before that may still have data on the way. So only a bucket
+   * inside the window with a whole bucket after it is judged low. It can be
+   * judged high at any time: all it can do is grow.
+   */
+  private static canReadLow(data: {
+    aggregationType: MetricsAggregationType;
+    time: Date;
+    window: MetricEvaluationWindow | null | undefined;
+    interval: AggregationInterval;
+  }): boolean {
+    if (
+      !data.window ||
+      (data.aggregationType !== MetricsAggregationType.Sum &&
+        data.aggregationType !== MetricsAggregationType.Count)
+    ) {
+      return true;
+    }
+
+    const bucketMs: number = AggregationIntervalUtil.getAggregationIntervalMs(
+      data.interval,
+    );
+
+    return (
+      data.time.getTime() >= data.window.startMs &&
+      data.time.getTime() + 2 * bucketMs <= data.window.endMs
+    );
   }
 
   // Which baseline judges a data point: that of its hour on its own day.

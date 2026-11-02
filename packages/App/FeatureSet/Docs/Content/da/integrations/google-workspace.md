@@ -48,7 +48,7 @@ Forbindelsen logger på med en tjenestekontos nøgle og [domænedækkende delege
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Google Workspace** under **Identitet**, og klik på **Næste**. Angiv **Administrator email**, klik på **Næste**, og indsæt nøglefilens indhold i **Tjenestekontoens JSON**. Slå **Drev-aktivitet** til i trinnet **Hentning** for også at læse Drev.
+Åbn **Produkter → Sikkerhedshændelser → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Google Workspace** under **Identitet**, og klik på **Næste**. Angiv **Administrator email**, klik på **Næste**, og indsæt nøglefilens indhold i **Tjenestekontoens JSON**. Slå **Drev-aktivitet** til i trinnet **Hentning** for også at læse Drev.
 
 ### Test den, før du gemmer
 

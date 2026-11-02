@@ -82,7 +82,7 @@ Hendelser, varsler og verdier for entiteter kommer utenfra prosjektet, og en ang
 
 ## Vurder nye saker automatisk
 
-Åpne **Produkter → Security Events → KI → Innstillinger** og slå på **Vurder nye saker**: da blir hver sak en deteksjon åpner, vurdert så snart den åpnes. Bryteren lagrer så snart du slår den om. Project Owner og Project Admin kan endre den.
+Åpne **Produkter → Sikkerhetshendelser → KI → Innstillinger** og slå på **Vurder nye saker**: da blir hver sak en deteksjon åpner, vurdert så snart den åpnes. Bryteren lagrer så snart du slår den om. Project Owner og Project Admin kan endre den.
 
 Nye prosjekter starter med den slått på; et prosjekt som ble opprettet før, har den slått av til noen slår den på. En sak som er åpnet for hånd, og saken fra testangrepet i **Send et testangrep**, blir vurdert når noen klikker på **Vurder med KI**.
 
@@ -119,7 +119,7 @@ Når prosjektet er tomt for AI-kreditter eller har nådd en daglig KI-grense, bl
 ## Feilsøking
 
 :::details En ny sak ble ikke vurdert
-Sjekk at **Aktiver AI** er slått på, og **Vurder nye saker** under **Produkter → Security Events → KI → Innstillinger**. En sak som er åpnet for hånd, og testangrepets sak blir bare vurdert når noen ber om det. Åpne saken: når noe hindrer en vurdering, sier kortet hva, og hvor det kan rettes.
+Sjekk at **Aktiver AI** er slått på, og **Vurder nye saker** under **Produkter → Sikkerhetshendelser → KI → Innstillinger**. En sak som er åpnet for hånd, og testangrepets sak blir bare vurdert når noen ber om det. Åpne saken: når noe hindrer en vurdering, sier kortet hva, og hvor det kan rettes.
 :::
 
 :::details Kortet sier at prosjektet er tomt for AI-kreditter, eller har nådd sin daglige KI-grense

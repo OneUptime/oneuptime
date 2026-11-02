@@ -2296,8 +2296,9 @@ describe("AI SRE and the infrastructure AI agents", () => {
     const resourceRoutes: string = readRepoFile(
       "Common/Server/API/ResourceAiAccessAPI.ts",
     );
+    // Approve on the card, and in Slack and Microsoft Teams, decide it here.
     const approval: string = readRepoFile(
-      "Common/Server/API/AutoRemediationAPI.ts",
+      "Common/Server/Utils/AutoRemediation/RemediationApproval.ts",
     );
     const clusterCheck: string = readRepoFile(
       "Common/Server/Services/KubernetesClusterAiAccessService.ts",

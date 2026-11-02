@@ -189,6 +189,27 @@ describe("what a campaign row says", () => {
     ).toBe("1 request got through");
   });
 
+  /*
+   * Every count's "one" form takes the count as {{count}}: a language
+   * whose "one" covers more than 1 (Russian's 21, French's 0) words that
+   * count with it, never a written 1.
+   */
+  test("each count's one form carries the count", () => {
+    for (const template of [
+      Model.REQUESTS_COUNT,
+      Model.DIFFERENT_REQUESTS,
+      Model.GOT_THROUGH_COUNT,
+    ]) {
+      expect(template.one).toContain("{{count}}");
+      expect(template.other).toContain("{{count}}");
+    }
+
+    expect(ENGLISH.translatePlural(Model.REQUESTS_COUNT, 1)).toBe("1 request");
+    expect(ENGLISH.translatePlural(Model.DIFFERENT_REQUESTS, 14)).toBe(
+      "14 different requests",
+    );
+  });
+
   test("none of the followed ones got through, when some were not followed", () => {
     expect(
       Model.describeCampaignResult(campaign({ rejectedCount: 40 }), ENGLISH),

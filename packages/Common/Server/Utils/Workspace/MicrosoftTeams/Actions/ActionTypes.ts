@@ -131,6 +131,17 @@ export enum MicrosoftTeamsProjectChoiceActionType {
   ChooseProject = "choose-project",
 }
 
+/*
+ * A fix OneUptime AI proposes for approval: the card's Review and approve,
+ * the approval card's Approve and run, and Dismiss - Slack's ids, which the
+ * card's buttons carry (MicrosoftTeamsRemediationActions).
+ */
+export enum MicrosoftTeamsRemediationActionType {
+  ViewApproveRemediation = "ViewApproveRemediation",
+  SubmitApproveRemediation = "SubmitApproveRemediation",
+  DismissRemediation = "DismissRemediation",
+}
+
 // General Actions
 export enum MicrosoftTeamsGeneralActionType {
   Help = "Help",
@@ -165,6 +176,7 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsOnCallDutyActionType
   | MicrosoftTeamsPageActionType
   | MicrosoftTeamsProjectChoiceActionType
+  | MicrosoftTeamsRemediationActionType
   | MicrosoftTeamsGeneralActionType;
 
 /*

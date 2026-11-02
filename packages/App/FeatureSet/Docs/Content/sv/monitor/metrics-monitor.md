@@ -133,6 +133,15 @@ Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av 
 
 Avvikelsevillkoren har inget tröskelvärde. **När det ska larmas** visar i stället **Känslighet** (Låg, Medel, som är standard, eller Hög), och de egna kriterierna även ett **Baslinjefönster** (14 dagar, som är standard, 28, 60 eller 90), och varje datapunkt jämförs med samma timme i veckan på tidigare dagar, så långt tillbaka som det fönstret räcker. Det som händer nu ingår aldrig i jämförelsen, så en förändring som består fortsätter att larma tills den en vecka senare har kommit in i de tidigare dagarna. Tills den timmen i veckan har två veckors historik lär sig kriteriet fortfarande och ger inga larm.
 
+Vad en datapunkt jämförs med beror på frågan:
+
+- **Dess tjänster.** En monitor som namnger tjänster jämförs bara med de tjänsterna. En som inte namnger någon jämförs med alla tjänster som rapporterar metriken.
+- **Ett medelvärde, minimum, maximum eller percentil av en vanlig metrik** jämförs med metrikens mätvärden, så långt tillbaka som **Baslinjefönster** räcker.
+- **En summa eller ett antal, och varje fråga på ett histogram,** jämförs med frågans egna datapunkter. De sparas lika länge som dina metriker, så jämförelsen räcker inte längre tillbaka än så: 15 dagar, om du inte har ändrat det.
+- **En fråga som är filtrerad eller grupperad på ett attribut** jämförs med alla serier i dess tjänster, eftersom en baslinje inte innehåller några attribut. Den märker därför bara en förändring som är tillräckligt stor för att lämna allas intervall. Är det en summa, ett antal eller en fråga på ett histogram finns inget att jämföra med, och den fortsätter att lära sig. Detsamma gäller en percentil av ett histogram.
+
+En summa eller ett antal räknas bara som lågt på en fullständig datapunkt med ytterligare en fullständig efter sig, eftersom de nyaste fortfarande fylls på. Ett fönster på en minut kan därför bara hitta ett som är högt.
+
 En metrikmonitor som skapats i Skapa monitor börjar med en regel på sin första fråga: **Genomsnittet** över **Senaste 5 minuterna**, **Över** det **Värde** du anger, och **Skapa ett larm**.
 
 En ny metrikmonitor som skapats via API:et eller Terraform utan kriterier börjar med två kriterier på sin första fråga, båda med aggregeringen **Any Value**:
@@ -214,7 +223,7 @@ Frågan har ingen **Gruppera efter**, så alla värdar slås ihop till ett tal. 
 :::
 
 :::details Ett avvikelsekriterium utlöses aldrig
-Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte två veckors historik.
+Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte två veckors historik. En summa, ett antal eller en fråga på ett histogram som är filtrerade eller grupperade på ett attribut fortsätter att lära sig för alltid, och det gör även en percentil av ett histogram: det finns ingen historik att jämföra dem med.
 :::
 
 ## Nästa steg

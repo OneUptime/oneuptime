@@ -6,7 +6,7 @@ import {
   createTranslator,
   translationKey,
   Translator,
-} from "../../UI/Utils/TranslateTemplate";
+} from "../Translator";
 import { translateStateName } from "./DefaultStatusNames";
 
 /*

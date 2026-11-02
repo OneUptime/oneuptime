@@ -153,6 +153,15 @@ const STORAGE_ARRAY: string = "monitor/storage-array-monitor";
 const IOT_DEVICE: string = "monitor/iot-device-monitor";
 const VMWARE: string = "monitor/vmware-monitor";
 
+/*
+ * How the Kubernetes agent's chart names its cumulative-to-delta processor:
+ * as the agent's collector knows it, cumulative_to_delta from collector
+ * 0.157.0 and cumulativetodelta before (_helpers.tpl). The chart's own
+ * tests pin both names.
+ */
+const CUMULATIVE_TO_DELTA: string =
+  '{{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}';
+
 const TELEMETRY_PAGES: Array<string> = [
   KUBERNETES,
   DOCKER,
@@ -1445,9 +1454,9 @@ describe(`${KUBERNETES}: the template table`, () => {
 
   it("counts the templates in the card", () => {
     expect(englishPage(KUBERNETES)).toContain(
-      `(#pre-built-alert-templates): Eighteen ready-made alerts`,
+      `(#pre-built-alert-templates): Twenty-one ready-made alerts`,
     );
-    expect(templates).toHaveLength(18);
+    expect(templates).toHaveLength(21);
   });
 
   it("Cluster Stopped Reporting comes first and fires only when the agent sends nothing", () => {
@@ -1563,7 +1572,7 @@ describe(`${KUBERNETES}: the template table`, () => {
       'copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
     );
     expect(chart).toContain(
-      "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n",
+      `            - transform/job-failures-increase\n            - ${CUMULATIVE_TO_DELTA}/job-failures-increase\n`,
     );
 
     expect(englishPage(KUBERNETES)).toContain(
@@ -1628,7 +1637,7 @@ describe(`${KUBERNETES}: the template table`, () => {
     );
     // The restarts pipeline hands its increases to the metrics pipeline...
     expect(chart).toContain(
-      "            - cumulative_to_delta/restarts-increase\n          exporters:\n            - forward/restarts-increase\n",
+      `            - ${CUMULATIVE_TO_DELTA}/restarts-increase\n          exporters:\n            - forward/restarts-increase\n`,
     );
     expect(chart).toContain(
       "          receivers:\n            - k8s_cluster\n            # The restarts since each container's previous sample, made in\n",
@@ -1654,7 +1663,7 @@ describe(`${KUBERNETES}: the template table`, () => {
       "            - memory_limiter\n            # The failures since each Job's previous sample, for Job Failures\n",
     );
     expect(chart).toContain(
-      "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n            - transform/pod-level-mark\n            - k8sattributes\n",
+      `            - transform/job-failures-increase\n            - ${CUMULATIVE_TO_DELTA}/job-failures-increase\n            - transform/pod-level-mark\n            - k8sattributes\n`,
     );
     // A Job scope filters on the Job's own name.
     expect(

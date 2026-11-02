@@ -5,7 +5,7 @@ Een Kubernetes-monitor waarschuwt op de metrieken die de OneUptime-Kubernetes-ag
 :::cards
 - [De agent installeren](/docs/monitor/kubernetes-agent): Eén Helm-opdracht brengt het cluster in OneUptime.
 - [De monitor maken](#een-kubernetes-monitor-maken): Het cluster kiezen, dan een sjabloon, een metriek of een query.
-- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Achttien kant-en-klare waarschuwingen, van een stil cluster tot etcd.
+- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Eenentwintig kant-en-klare waarschuwingen, van een stil cluster tot etcd.
 - [Criteria](#bewakingscriteria): Statische drempels en anomaliedetectie.
 :::
 
@@ -86,9 +86,9 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 | Categorie | Metrieken |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Werklast | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Werklast | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Controlevlak | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -124,7 +124,7 @@ Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies ee
 | **Anomalously Low** | Onder het verwachte bereik zakt |
 | **Anomalous** | Het verwachte bereik in een van beide richtingen verlaat |
 
-Elke meting wordt vergeleken met een baseline voor hetzelfde uur van de week, opgebouwd uit het **Baseline-venster** (standaard 14 dagen; 28, 60 of 90 dagen). **Gevoeligheid** bepaalt hoe breed het verwachte bereik is: **Laag (4σ — alleen flagrante afwijkingen)**, **Gemiddeld (3σ — aanbevolen)**, de standaard, of **Hoog (2σ — luidruchtiger, zeer stabiele services)**. Anomalievoorwaarden blijven in een "Learning"-status en geven geen waarschuwingen tot dat uur van de week twee weken geschiedenis heeft.
+Elke meting wordt vergeleken met een baseline voor hetzelfde uur van de week, opgebouwd uit het **Baseline-venster** (standaard 14 dagen; 28, 60 of 90 dagen). **Gevoeligheid** bepaalt hoe breed het verwachte bereik is: **Laag (4σ — alleen flagrante afwijkingen)**, **Gemiddeld (3σ — aanbevolen)**, de standaard, of **Hoog (2σ — luidruchtiger, zeer stabiele services)**. Anomalievoorwaarden blijven in een "Learning"-status en geven geen waarschuwingen tot dat uur van de week twee weken geschiedenis heeft. Een som, een telling of een query op een histogram blijft voorgoed in die toestand: deze monitor filtert zijn query's op attributen, en de baseline bevat er geen.
 
 **Als geen gegevens**, onder **Meer velden**, bepaalt wat er gebeurt als de query niets teruggeeft in het venster: **Ignore** (de standaard) komt niet overeen, **Trigger** behandelt de stilte als het probleem, en **Treat As Zero** vergelijkt een nul. Tijd waarin OneUptime zelf niet ontving, geldt nooit als ontbrekende gegevens: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
@@ -138,14 +138,17 @@ De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per
 | CrashLoopBackOff Detection | Werklast | Een container binnen 15 minuten is herstart en minder dan de helft daarvan gereed was | Kritiek |
 | Pod Stuck in Pending | Plannen | Een pod in elke meting van een venster van 15 minuten in de fase Pending staat | Waarschuwing |
 | Node Not Ready | Node | Een node NotReady meldt of zijn status niet meer meldt (Unknown) | Kritiek |
+| Node Under Pressure | Node | Een node 10 minuten lang MemoryPressure, DiskPressure of PIDPressure meldt | Waarschuwing |
 | High Node CPU Utilization | Node | Het gemiddelde CPU-gebruik van een node boven 90% van zijn toewijsbare CPU ligt | Waarschuwing |
 | High Node Memory Utilization | Node | De gemiddelde geheugen-working-set van een node boven 85% van zijn toewijsbare geheugen ligt | Waarschuwing |
 | Deployment Replica Mismatch | Werklast | Een deployment 15 minuten lang minder beschikbare replica's heeft dan gewenst | Waarschuwing |
+| StatefulSet Replica Mismatch | Werklast | Een StatefulSet 15 minuten lang minder gereedstaande replica's heeft dan gewenst | Waarschuwing |
 | Job Failures | Werklast | Een pod van een job binnen 15 minuten is mislukt | Waarschuwing |
 | etcd No Leader | Controlevlak | etcd geen gekozen leider heeft | Kritiek |
 | API Server Request Saturation | Controlevlak | De API-server het hele venster 200 of meer lopende verzoeken vasthoudt | Kritiek |
 | Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Waarschuwing |
 | High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 90% vol is | Waarschuwing |
+| DaemonSet Pods Not Ready | Werklast | Een DaemonSet 15 minuten lang nodes zonder een gereedstaande pod ervan heeft | Waarschuwing |
 | DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Waarschuwing |
 | High Node CPU Request Commitment | Node | De opgetelde CPU-requests van de containers van een node meer dan 90% van zijn toewijsbare CPU bedragen | Waarschuwing |
 | High Node Memory Request Commitment | Node | De opgetelde geheugen-requests van de containers van een node meer dan 90% van zijn toewijsbare geheugen bedragen | Waarschuwing |

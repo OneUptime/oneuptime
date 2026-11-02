@@ -53,7 +53,7 @@ Ga naar **Certificates & secrets → Client secrets → New client secret**, kie
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Entra ID** onder **Identiteit** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**. Zet in de stap **Opvragen** **Microsoft 365-auditlogboek** aan om dat ook te lezen.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Entra ID** onder **Identiteit** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**. Zet in de stap **Opvragen** **Microsoft 365-auditlogboek** aan om dat ook te lezen.
 
 ### Testen voordat je opslaat
 

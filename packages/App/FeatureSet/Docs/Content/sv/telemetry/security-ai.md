@@ -82,7 +82,7 @@ Händelser, larm och värden för entiteter kommer utifrån projektet, och en an
 
 ## Bedöm nya ärenden automatiskt
 
-Öppna **Produkter → Security Events → AI → Inställningar** och slå på **Bedöm nya ärenden**: då bedöms varje ärende som en detektion öppnar så fort det öppnas. Reglaget sparar så fort du slår om det. Project Owner och Project Admin kan ändra det.
+Öppna **Produkter → Säkerhetshändelser → AI → Inställningar** och slå på **Bedöm nya ärenden**: då bedöms varje ärende som en detektion öppnar så fort det öppnas. Reglaget sparar så fort du slår om det. Project Owner och Project Admin kan ändra det.
 
 Nya projekt startar med det påslaget; ett projekt som skapades tidigare har det avslaget tills någon slår på det. Ett ärende som har öppnats för hand, och ärendet från testattacken i **Skicka en testattack**, bedöms när någon klickar på **Bedöm med AI**.
 
@@ -119,7 +119,7 @@ När projektet har slut på AI-krediter eller har nått en daglig AI-gräns bed�
 ## Felsökning
 
 :::details Ett nytt ärende bedömdes inte
-Kontrollera att **Aktivera AI** är påslaget, och **Bedöm nya ärenden** under **Produkter → Security Events → AI → Inställningar**. Ett ärende som har öppnats för hand och testattackens ärende bedöms bara när någon ber om det. Öppna ärendet: när något hindrar en AI-bedömning säger kortet vad, och var det kan åtgärdas.
+Kontrollera att **Aktivera AI** är påslaget, och **Bedöm nya ärenden** under **Produkter → Säkerhetshändelser → AI → Inställningar**. Ett ärende som har öppnats för hand och testattackens ärende bedöms bara när någon ber om det. Öppna ärendet: när något hindrar en AI-bedömning säger kortet vad, och var det kan åtgärdas.
 :::
 
 :::details Kortet säger att projektet har slut på AI-krediter, eller har nått sin dagliga AI-gräns
