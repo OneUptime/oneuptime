@@ -221,6 +221,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                       projectId: project.id?.toString() || "",
                       planName: plan.getName(),
                       monthlyAmountInUSD: monthlyAmountInUSD,
+                      isOnFreeTrial: plan.getTrialPeriod() > 0,
                     });
 
                   if (purchase) {
