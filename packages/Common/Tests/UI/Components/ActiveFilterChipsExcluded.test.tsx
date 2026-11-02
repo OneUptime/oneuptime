@@ -3,7 +3,9 @@ import { describe, expect, jest, test } from "@jest/globals";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import React from "react";
 import ActiveFilterChips from "../../../UI/Components/LogsViewer/components/ActiveFilterChips";
-import { EXCLUDED_FILTER_CHIP_TEST_ID } from "../../../UI/Components/TelemetryViewer/components/TelemetryActiveFilterChips";
+import TelemetryActiveFilterChips, {
+  EXCLUDED_FILTER_CHIP_TEST_ID,
+} from "../../../UI/Components/TelemetryViewer/components/TelemetryActiveFilterChips";
 import { ActiveFilter } from "../../../UI/Components/LogsViewer/types";
 import { buildSearchTokenValue } from "../../../Types/Telemetry/TelemetrySearchQuery";
 
@@ -122,4 +124,85 @@ describe("the logs chip row: a value left out", () => {
       screen.getByRole("button", { name: "Remove Severity: Debug" }),
     ).toBeInTheDocument();
   });
+});
+
+/*
+ * A chip's value is a name its telemetry wrote - a service, a host, a span
+ * name - in whatever letters it was written in. Set apart in the direction
+ * those letters read (IsolatedText), it keeps its punctuation where it was
+ * written on a page read the other way: "GET /api/cart" on a Persian page,
+ * a Persian service name on an English one.
+ */
+describe("a chip's value is read the way it is written", () => {
+  const VALUES: Array<[string, string]> = [
+    ["GET /api/cart", "ltr"],
+    ["سرویس پرداخت", "rtl"],
+  ];
+
+  test.each(VALUES)(
+    "the logs chip row sets %s apart, read %s, kept or left out",
+    (value: string, direction: string) => {
+      render(
+        <ActiveFilterChips
+          filters={[
+            chip({ facetKey: "!severityText", value, displayValue: value }),
+            chip({ facetKey: "body", value, displayValue: value }),
+          ]}
+          onRemove={() => {}}
+          onClearAll={() => {}}
+        />,
+      );
+
+      const shown: Array<HTMLElement> = screen.getAllByText(value);
+      expect(shown).toHaveLength(2);
+
+      for (const element of shown) {
+        expect(element.tagName).toBe("BDI");
+        expect(element).toHaveAttribute("dir", direction);
+      }
+
+      expect(
+        within(screen.getByTestId(EXCLUDED_FILTER_CHIP_TEST_ID)).getByText(
+          value,
+        ),
+      ).toBe(shown[0]);
+    },
+  );
+
+  test.each(VALUES)(
+    "the traces, metrics and exceptions chip row sets %s apart, read %s, kept or left out",
+    (value: string, direction: string) => {
+      render(
+        <TelemetryActiveFilterChips
+          filters={[
+            {
+              facetKey: "!name",
+              value,
+              displayKey: "Span Name",
+              displayValue: value,
+            },
+            {
+              facetKey: "name",
+              value: `${value} 2`,
+              displayKey: "Span Name",
+              displayValue: `${value} 2`,
+            },
+          ]}
+          onRemove={() => {}}
+          onClearAll={() => {}}
+        />,
+      );
+
+      const excluded: HTMLElement = screen.getByTestId(
+        EXCLUDED_FILTER_CHIP_TEST_ID,
+      );
+      expect(excluded).toHaveTextContent(`Span Name is not:${value}`);
+
+      for (const text of [value, `${value} 2`]) {
+        const element: HTMLElement = screen.getByText(text);
+        expect(element.tagName).toBe("BDI");
+        expect(element).toHaveAttribute("dir", direction);
+      }
+    },
+  );
 });

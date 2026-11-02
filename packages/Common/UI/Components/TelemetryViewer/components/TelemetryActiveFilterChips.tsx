@@ -8,6 +8,7 @@ import {
 import useTranslator from "../../../Utils/UseTranslator";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
+import IsolatedText from "../../IsolatedText/IsolatedText";
 import IconProp from "../../../../Types/Icon/IconProp";
 import LockedFilterChip from "./LockedFilterChip";
 import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
@@ -126,7 +127,12 @@ const TelemetryActiveFilterChips: FunctionComponent<
             >
               {keyText}:
             </span>
-            <span>{filter.displayValue}</span>
+            {/*
+             * The value as its telemetry wrote it - a service, a span name,
+             * an exception type - read its own way on a page read the other
+             * way.
+             */}
+            <IsolatedText text={filter.displayValue} />
             <button
               type="button"
               className={

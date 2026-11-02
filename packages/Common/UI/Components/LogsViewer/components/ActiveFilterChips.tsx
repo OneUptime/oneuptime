@@ -7,6 +7,7 @@ import {
 import useTranslator from "../../../Utils/UseTranslator";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
+import IsolatedText from "../../IsolatedText/IsolatedText";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
 import { formatDictionaryValueForDisplay } from "../../Dictionary/DictionaryFilterOperator";
@@ -157,7 +158,11 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
             >
               {keyText}:
             </span>
-            <span>{chipText(filter.displayValue)}</span>
+            {/*
+             * The value as its telemetry wrote it - a service, a host, a
+             * message - read its own way on a page read the other way.
+             */}
+            <IsolatedText text={chipText(filter.displayValue)} />
             {renderOpenAffordance(
               filter,
               isExcluded

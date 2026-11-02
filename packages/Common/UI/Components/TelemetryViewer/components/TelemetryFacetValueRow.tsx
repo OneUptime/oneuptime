@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
+import IsolatedText from "../../IsolatedText/IsolatedText";
 import Tooltip from "../../Tooltip/Tooltip";
 import IconProp from "../../../../Types/Icon/IconProp";
 import { FacetValueState } from "../FacetSelection";
@@ -16,6 +17,9 @@ export const FACET_VALUE_ROW_TEST_ID: string = "facet-value-row";
 
 // The count (or the dash of a count that was not taken) at the row's end.
 export const FACET_VALUE_COUNT_TEST_ID: string = "facet-value-count";
+
+// The bar before the count, drawn to the count's share of the facet's largest.
+export const FACET_VALUE_BAR_TEST_ID: string = "facet-value-bar";
 
 /*
  * The count's column: one width for every row, which every shortened count
@@ -89,6 +93,12 @@ export interface TelemetryFacetValueRowProps {
  * The row spends its width on the value's name: the count is shortened
  * (2.4M, its full figure on hover), and the exclude button takes the count's
  * place while the row is hovered rather than keeping a column of its own.
+ * The keyboard finds it too: Tab onto a value and the button stands where
+ * the count was, one more Tab away. A touch screen has no hover to wait
+ * for, so there the button is always shown, in a column after the count -
+ * in place of the bar where the row is as narrow as a tablet's sidebar.
+ * The value's name is read the way it is written (IsolatedText), so on a
+ * Persian page an English service name is cut at its own end.
  *
  * A described value (the Span Type's Root spans: "Where a trace starts.")
  * says what it is beside the row on hover and keyboard focus - a focus a
@@ -108,7 +118,11 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
       ? Math.max(4, Math.round((props.count / props.maxCount) * 100))
       : 0;
 
-  const displayLabel: string = props.displayValue || props.value || "(empty)";
+  const displayLabel: string =
+    props.displayValue ||
+    props.value ||
+    translator.translateText("(empty)") ||
+    "(empty)";
   const state: FacetValueState = props.state || FacetValueState.None;
   const isIncluded: boolean = state === FacetValueState.Included;
   const isExcluded: boolean = state === FacetValueState.Excluded;
@@ -125,16 +139,28 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
 
   /*
    * The exclude button lies over the count rather than beside it, so the
-   * name keeps that width on every row: it shows while the row is hovered,
-   * and for good once pressed - an excluded value counts nothing anyway.
+   * name keeps that width on every row: it shows while the row is hovered
+   * or holds the keyboard's focus, and for good once pressed - an excluded
+   * value's count is not what the reader is after. All of that only where
+   * the pointer can hover (`[@media(hover:hover)]`): a touch screen shows
+   * the button beside the count, and both stay in view.
    */
   const hasExcludeButton: boolean =
     Boolean(props.onExclude) && !isLocked && !isRadio;
   const countVisibility: string = !hasExcludeButton
     ? ""
     : isExcluded
-      ? " invisible"
-      : " group-hover/row:invisible";
+      ? " [@media(hover:hover)]:invisible"
+      : " [@media(hover:hover)]:group-hover/row:invisible [@media(hover:hover)]:group-has-[:focus-visible]/row:invisible";
+  /*
+   * On a touch screen the button's column comes out of the name's width.
+   * In a row as narrow as the sidebar beside the list (a tablet), the bar
+   * gives it its place, so the name keeps at least the width it has under
+   * a mouse; a phone's full-width sidebar has room for both.
+   */
+  const barClassName: string = hasExcludeButton
+    ? "w-10 [@media(hover:none)]:[@container(max-width:18rem)]:hidden"
+    : "w-10";
 
   const title: string = isRadio
     ? isIncluded
@@ -243,7 +269,12 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
       ) : (
         <span className="h-2.5 w-2.5 flex-none rounded-full bg-gray-300" />
       )}
-      <span
+      {/*
+       * A value is a name someone's telemetry wrote (a service, a host, a
+       * span name): read and cut short the way it is written, so a Persian
+       * page shows "payments-wor…", not "…yments-worker".
+       */}
+      <IsolatedText
         className={`min-w-0 truncate text-[12px] ${
           isLocked
             ? "font-medium text-gray-700"
@@ -255,9 +286,8 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
                   ? "text-gray-400"
                   : "text-gray-700"
         }`}
-      >
-        {displayLabel}
-      </span>
+        text={displayLabel}
+      />
       {isExcluded && (
         <span className="sr-only">{translator.translateText("Excluded")}</span>
       )}
@@ -266,7 +296,7 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
 
   return (
     <div
-      className="group/row group relative flex items-center gap-2 py-0.5"
+      className="group/row group relative flex items-center gap-2 py-0.5 [container-type:inline-size]"
       data-testid={FACET_VALUE_ROW_TEST_ID}
       data-value={props.value}
       data-state={state}
@@ -310,7 +340,7 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
         </span>
       ) : (
         <div className="flex flex-none items-center gap-1.5">
-          <div className="w-10">
+          <div className={barClassName} data-testid={FACET_VALUE_BAR_TEST_ID}>
             <div className="h-1.5 w-full rounded-full bg-gray-100">
               <div
                 className={`h-1.5 rounded-full transition-all ${isIncluded ? "opacity-100" : "opacity-70"}`}
@@ -363,14 +393,29 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
       )}
 
       {hasExcludeButton && (
-        <span className="absolute inset-y-0 right-0 flex items-center">
+        /*
+         * Over the count where the pointer can hover; on a touch screen,
+         * which has no hover to show it on, in the row as a column of its
+         * own after the count.
+         */
+        <span className="absolute inset-y-0 right-0 flex items-center [@media(hover:none)]:static">
           <button
             type="button"
             aria-pressed={isExcluded}
+            /*
+             * Not pressed, where the pointer can hover: out of the layout
+             * while nothing in the row is hovered or focused, and see-through
+             * while the row's focus is not the keyboard's - a click leaves
+             * the value it checked focused, and the count stays in view
+             * then. The keyboard's focus shows it over the count, so Tab
+             * from a value reaches it (in the layout already: hiding it
+             * on :focus-visible alone dropped it from the tab order on
+             * the way).
+             */
             className={
               isExcluded
                 ? "flex h-5 w-5 items-center justify-center rounded bg-red-50 text-red-600 ring-1 ring-red-200 transition-colors hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                : "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden"
+                : "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 [@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden [@media(hover:hover)]:group-[:not(:hover):not(:has(:focus-visible))]:opacity-0"
             }
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
