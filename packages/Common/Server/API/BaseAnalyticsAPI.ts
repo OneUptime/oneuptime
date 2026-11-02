@@ -442,8 +442,9 @@ export default class BaseAnalyticsAPI<
    * last few seconds.
    *
    * checkReadPermission runs here on a copy of the query, with the same
-   * select the service passes. It throws for an anonymous caller (401) and
-   * for one without read permission on the model or the queried columns
+   * select the service passes, the columns it groups by among them. It
+   * throws for an anonymous caller (401) and for one without read
+   * permission on the model or the queried, aggregated or grouped columns
    * (422), and it returns the query the live path would send to
    * ClickHouse. That scoped query goes into the key because it carries
    * everything that makes one caller's result differ from another's: the
@@ -490,10 +491,14 @@ export default class BaseAnalyticsAPI<
       await ModelPermission.checkReadPermission(
         this.entityType,
         { ...(aggregateBy.query || {}) } as Query<TAnalyticsDataModel>,
-        {
-          [aggregateColumnName]: true,
-          [timestampColumnName]: true,
-        } as Select<TAnalyticsDataModel>,
+        ModelPermission.getSelectWithGroupBy(
+          this.entityType,
+          {
+            [aggregateColumnName]: true,
+            [timestampColumnName]: true,
+          } as Select<TAnalyticsDataModel>,
+          aggregateBy.groupBy as GroupBy<TAnalyticsDataModel> | undefined,
+        ),
         props,
       );
 

@@ -3,6 +3,7 @@ import {
   getAllEnvVars,
 } from "../../../Server/EnvironmentConfig";
 import DatabaseRequestType from "../BaseDatabase/DatabaseRequestType";
+import GroupBy from "./GroupBy";
 import Query from "./Query";
 import Select from "./Select";
 import QueryHelper from "../Database/QueryHelper";
@@ -574,6 +575,38 @@ export default class ModelPermission {
     }
 
     return { query, select };
+  }
+
+  /*
+   * The select a grouped read is checked with: its own, and the columns it
+   * groups by. A read returns the columns it groups by - a list selects them
+   * in place of its select (AnalyticsDatabaseService.toFindStatement), an
+   * aggregate carries them on every row and a count counts the distinct
+   * values of the first - so each is checked as a column of a select is, and
+   * one the caller may not read is refused with the refusal a select gets. A
+   * key that is not a column is left out: the statement treats it as it
+   * always has (a list's refuses it, MetricService's aggregate skips it).
+   */
+  public static getSelectWithGroupBy<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    select: Select<TBaseModel> | null,
+    groupBy: GroupBy<TBaseModel> | null | undefined,
+  ): Select<TBaseModel> | null {
+    if (!groupBy || Object.keys(groupBy).length === 0) {
+      return select;
+    }
+
+    const model: TBaseModel = new modelType();
+    const selectWithGroupBy: Record<string, unknown> = { ...(select || {}) };
+
+    // Every key, whatever its value: the GROUP BY names them all.
+    for (const key of Object.keys(groupBy)) {
+      if (model.getTableColumn(key)) {
+        selectWithGroupBy[key] = true;
+      }
+    }
+
+    return selectWithGroupBy as Select<TBaseModel>;
   }
 
   private static serializeQuery<TBaseModel extends BaseModel>(
