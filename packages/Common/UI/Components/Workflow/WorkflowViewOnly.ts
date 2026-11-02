@@ -21,6 +21,8 @@ import { translationKey } from "../../Utils/TranslateTemplate";
  *     up, instead of "Click to set up";
  *   - a step still opens, to read its settings, which are shown as they are
  *     and cannot be changed; the dialog has no Save and no Delete;
+ *   - what only reads a setting stays usable: a code box's own Copy, More
+ *     fields and Compare as, to read what they fold away;
  *   - nothing is ever saved.
  *
  * Run Workflow is not part of this: Workflow Members run workflows, and the
@@ -31,11 +33,21 @@ import { translationKey } from "../../Utils/TranslateTemplate";
  * Whether the canvas around a step is a view. The canvas provides it, so a
  * step on it (Component.tsx, drawn by react-flow) knows without carrying it
  * in its data - node data is what the Builder saves. A step's dialog
- * provides it around the settings it shows to be read
- * (ComponentSettingsModal), where a disabled fieldset does not reach the
- * value boxes: they are editable elements, not form controls
- * (ValuePicker/TemplateTextEditor), and the value picker offers nothing to
- * insert (ValuePicker/ValuePickerContext).
+ * provides it around the settings and the identifier it shows to be read
+ * (ComponentSettingsModal), and each setting holds itself still there, one
+ * by one (ArgumentsForm): a field the form draws is locked (a code box is
+ * read only, its Copy working), the rest sit in WorkflowViewOnlyFieldset.
+ *
+ * A disabled fieldset does not reach what is no form control, so that
+ * reads this itself: the value boxes, editable elements
+ * (ValuePicker/TemplateTextEditor), the value picker, which offers nothing
+ * to insert (ValuePicker/ValuePickerContext), and a Switch case's grip
+ * (Switch/SwitchEditor).
+ *
+ * Every Builder control that can change a workflow honours this, and every
+ * value field goes through ValueTextField or the value picker provider:
+ * WorkflowViewOnlyGuard reads them all, and WorkflowViewOnlyEveryStepGuard
+ * draws every step's settings on a view.
  */
 export const WorkflowViewOnlyContext: React.Context<boolean> =
   React.createContext<boolean>(false);

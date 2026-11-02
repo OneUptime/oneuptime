@@ -571,6 +571,16 @@ const FormField: <T extends GenericObject>(
       ? fieldDescriptionId
       : undefined;
 
+    /*
+     * A code box its form locks (field.disabled) shows its code to be read:
+     * nothing in it changes, and it is still selected, scrolled and copied -
+     * its own Copy works. It used to be typed in like any other: the code
+     * editors were the one control here that took no notice of the lock.
+     * A step opened to be read on a workflow's Builder locks every setting
+     * this way (Workflow/ArgumentsForm).
+     */
+    const isCodeReadOnly: boolean = Boolean(props.field.disabled);
+
     return (
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
         {props.field.showHorizontalRuleAbove && <HorizontalRule />}
@@ -988,6 +998,7 @@ const FormField: <T extends GenericObject>(
                  */
                 allowJSON5={props.field.allowJSON5}
                 toolbarActions={codeEditorToolbarActions}
+                readOnly={isCodeReadOnly}
                 tabIndex={0}
                 dataTestId={props.field.dataTestId}
                 onChange={async (value: string) => {
@@ -1018,6 +1029,7 @@ const FormField: <T extends GenericObject>(
               ariaLabelledby={fieldLabelId}
               ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
+              readOnly={isCodeReadOnly}
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
@@ -1180,6 +1192,7 @@ const FormField: <T extends GenericObject>(
                 }}
                 dataTestId={props.field.dataTestId}
                 toolbarActions={codeEditorToolbarActions}
+                readOnly={isCodeReadOnly}
                 type={codeType}
                 initialValue={
                   props.currentValues &&
