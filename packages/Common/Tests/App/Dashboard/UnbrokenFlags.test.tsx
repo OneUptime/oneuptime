@@ -20,6 +20,9 @@ function flagsOf(element: HTMLElement): Array<string> {
   return Array.from(
     element.querySelectorAll(`span.${UNBROKEN_FLAG_CLASS_NAME}`),
   ).map((span: Element): string => {
+    // Set apart left to right: a Persian sentence drew "--help" as "help--".
+    expect(span).toHaveAttribute("dir", "ltr");
+
     return span.textContent || "";
   });
 }
@@ -39,6 +42,20 @@ describe("a sentence that names a flag", () => {
     const text: string =
       "Every command the CLI has for these. Add --help to any of them for its flags.";
     const shown: HTMLElement = sentence(text);
+
+    expect(flagsOf(shown)).toEqual(["--help"]);
+    expect(shown.textContent).toBe(text);
+  });
+
+  test("sets a flag apart left to right in a sentence read right to left", () => {
+    const text: string =
+      "همهٔ دستورهایی که CLI برای این‌ها دارد. برای دیدن پرچم‌های هر دستور، --help را به آن اضافه کنید.";
+    const result: RenderResult = render(
+      <p dir="rtl">{withUnbrokenFlags(text)}</p>,
+    );
+    const shown: HTMLElement = result.container.querySelector(
+      "p",
+    ) as HTMLElement;
 
     expect(flagsOf(shown)).toEqual(["--help"]);
     expect(shown.textContent).toBe(text);

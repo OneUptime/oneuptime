@@ -792,6 +792,7 @@ describe("an incident's CLI page", () => {
       "Common tasks": "Häufige Aufgaben",
       "Use it from an AI agent": "Aus einem KI-Agenten verwenden",
       "Command reference": "Befehlsreferenz",
+      More: "Mehr",
     };
     routeId = INCIDENT_ID;
     getItemMock.mockResolvedValue(incident());
@@ -811,6 +812,10 @@ describe("an incident's CLI page", () => {
     expect(text).toContain("Häufige Aufgaben");
     expect(text).toContain("Aus einem KI-Agenten verwenden");
     expect(text).toContain("Befehlsreferenz");
+    // The card that folds the topics away, on every Developer page.
+    expect(screen.getByTestId("developer-docs-more-toggle")).toHaveTextContent(
+      "Mehr",
+    );
     // The commands stay as the CLI takes them.
     expect(text).toContain(`oneuptime incident get ${INCIDENT_ID}`);
     expect(text).not.toContain("Install the CLI");

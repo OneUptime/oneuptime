@@ -565,7 +565,7 @@ export const DeveloperDocsGuideView: FunctionComponent<GuideViewProps> = (
           {topics.length > 0 && (
             <div className="mt-8">
               <SetupGuideTopics
-                title="More"
+                title={translate("More")}
                 description={topics
                   .map((topic: SetupGuideTopicView): string => {
                     return topic.title;
