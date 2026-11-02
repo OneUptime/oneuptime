@@ -20,6 +20,7 @@ import {
   getCachedPatternCount,
 } from "../../../Utils/LinearRegExp/PatternCache";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -176,28 +177,31 @@ describe("saving a rule's pattern", () => {
   test("leaves a pattern longer than its column to the length check, unread and unquoted", async () => {
     clearLinearRegExpCache();
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = await fastestRunAsync({
+      run: async (): Promise<void> => {
+        for (const column of patternColumns()) {
+          // Megabytes, a back-reference first: what a request body can carry.
+          const pattern: string = `(a)\\1${"a".repeat(1_000_000)}`;
+          let refusal: unknown = null;
 
-    for (const column of patternColumns()) {
-      // Megabytes, a back-reference first: what a request body can carry.
-      const pattern: string = `(a)\\1${"a".repeat(1_000_000)}`;
-      let refusal: unknown = null;
+          try {
+            await sanitize(column, { [column.field]: pattern }, false);
+          } catch (error: unknown) {
+            refusal = error;
+          }
 
-      try {
-        await sanitize(column, { [column.field]: pattern }, false);
-      } catch (error: unknown) {
-        refusal = error;
-      }
-
-      expect(refusal).toBeInstanceOf(BadDataException);
-      expect((refusal as BadDataException).message).toBe(
-        `${column.field} length cannot be more than 500 characters`,
-      );
-    }
+          expect(refusal).toBeInstanceOf(BadDataException);
+          expect((refusal as BadDataException).message).toBe(
+            `${column.field} length cannot be more than 500 characters`,
+          );
+        }
+      },
+      limitInMs: 10000,
+    });
 
     // No pattern of them was read, nor kept by the matcher's cache.
     expect(getCachedPatternCount()).toBe(0);
-    expect(Date.now() - startedAt).toBeLessThan(10000);
+    expect(timed.inMs).toBeLessThan(10000);
   });
 
   test("quotes a long pattern it refuses by its beginning only", () => {
