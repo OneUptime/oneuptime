@@ -38,7 +38,7 @@ O status de cada site vem de todos os dispositivos da subárvore dele, avaliados
 
 ## A hierarquia
 
-Os sites formam uma árvore. Cada site tem um **Site Type** e, opcionalmente, um site pai. Os tipos de site são a lista do próprio projeto, em **Rede → Configurações → Site Types**, e um projeto novo começa com Account Type, Region, Franchisee, Market e Unit, nessa ordem de cima para baixo, mais Data Center e Other. Os tipos formam uma hierarquia própria (**Parent Site Type**), que decide quais sites podem ser pai de um site. Um tipo marcado como **Is Unit Level** é o nível folha do seu parque, a loja ou a filial individual: os sites dele contêm dispositivos, não outros sites.
+Os sites formam uma árvore. Cada site tem um **Site Type** e, opcionalmente, um site pai. Os tipos de site são a lista do próprio projeto, em **Rede → Configurações → Tipos de site**, e um projeto novo começa com Account Type, Region, Franchisee, Market e Unit, nessa ordem de cima para baixo, mais Data Center e Other. Os tipos formam uma hierarquia própria (**Parent Site Type**), que decide quais sites podem ser pai de um site. Um tipo marcado como **Is Unit Level** é o nível folha do seu parque, a loja ou a filial individual: os sites dele contêm dispositivos, não outros sites.
 
 O tipo, o nome, a descrição, o pai e a localização de um site são editados em um só lugar: o cartão **Site Settings** na página **Configurações** do site. A visão geral do site os mostra com um link **Editar nas configurações**, e a lista **Sites** adiciona sites, mas não os edita.
 
@@ -63,7 +63,7 @@ Na etapa **Hierarchy**, escolha o **Parent Site** se o site fica abaixo de outro
 Na etapa **Monitoring Defaults**, escolha a [sonda e o perfil de credenciais padrão](#padrões-de-monitoramento) para os dispositivos adicionados ao site, e clique em **Adicionar: Site**.
 :::
 
-Na página **Child Sites** de um site, **Adicionar: Site filho** pede só o tipo e o nome, em uma única página com a localização recolhida, e coloca o novo site abaixo daquele.
+Na página **Sites filhos** de um site, **Adicionar: Site filho** pede só o tipo e o nome, em uma única página com a localização recolhida, e coloca o novo site abaixo daquele.
 
 ### Importar sites de um arquivo CSV
 

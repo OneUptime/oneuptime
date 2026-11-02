@@ -25,7 +25,7 @@ flowchart TB
     issues --> owners["E-post till ägarna"]
 ```
 
-1. **Discovery** hittar de datalager som OneUptime redan känner till: din molninventering, databaserna som produkten Database övervakar, databaserna som dina tjänster pratar med på tjänstekartan och varje tjänsts telemetri. Du lägger bara till ett datalager för hand när ingen källa listar det.
+1. **Identifiering** hittar de datalager som OneUptime redan känner till: din molninventering, databaserna som produkten Database övervakar, databaserna som dina tjänster pratar med på tjänstekartan och varje tjänsts telemetri. Du lägger bara till ett datalager för hand när ingen källa listar det.
 2. **Konfigurationsläsningen** frågar varje moln hur varje datalager är uppsatt: vem som kan nå det och hur det krypteras, säkerhetskopieras och loggas. Den läser inställningar, aldrig data.
 3. **Innehållsprover** läser lite av vad ett datalager innehåller, där du tillåter det: några objekt av varje sort i en bucket, några rader i varje tabell, de senaste posterna i varje tjänsts telemetri.
 4. **Klassificering** hittar känsliga värden i proverna och sparar antal och maskerade prov, aldrig ett värde.

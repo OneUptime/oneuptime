@@ -591,7 +591,7 @@ Istio의 경우 모든 `istio-proxy` 사이드카의 Envoy 통계(포트 `15090`
 
 ### 비용 옵저버빌리티 활성화
 
-클러스터의 **Costs** 페이지에서 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 확인하세요:
+클러스터의 **비용** 페이지에서 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 확인하세요:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

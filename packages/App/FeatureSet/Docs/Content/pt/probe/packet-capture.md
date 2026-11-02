@@ -130,7 +130,7 @@ Para definir nesta sonda um teto mais baixo do que o que toda sonda respeita, ad
 :::steps
 ### Abra a sonda ou o dispositivo
 
-Abra **Monitores → Configurações → Sondas** e clique na sua sonda: o cartão **Capturas de pacotes** dela lista as capturas. Ou abra um dispositivo de rede e vá até a página **Traffic** dele: ali as capturas rodam na própria sonda do dispositivo e começam filtradas pelo endereço dele.
+Abra **Monitores → Configurações → Sondas** e clique na sua sonda: o cartão **Capturas de pacotes** dela lista as capturas. Ou abra um dispositivo de rede e vá até a página **Tráfego** dele: ali as capturas rodam na própria sonda do dispositivo e começam filtradas pelo endereço dele.
 
 ### Clique em Iniciar captura de pacotes
 

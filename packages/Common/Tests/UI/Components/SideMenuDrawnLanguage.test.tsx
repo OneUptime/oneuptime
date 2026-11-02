@@ -18,8 +18,14 @@ import {
   SIDE_MENU_HYPHENATED_WORD_LENGTH,
   SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME,
   SIDE_MENU_ITEM_TITLE_TEST_ID,
+  SIDE_MENU_LONG_WORD_CLASS_NAME,
+  SIDE_MENU_LONG_WORDS,
   SIDE_MENU_WORDS_CLASS_NAME,
 } from "../../../UI/Components/SideMenu/SideMenuEntryState";
+import {
+  getDrawnWords,
+  WordRun,
+} from "../../../UI/Components/HyphenatedWords/LongWords";
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "../../../UI/Components/SideMenu/SideMenuSection";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -52,7 +58,19 @@ const GERMAN: Record<string, string> = {
   "Incoming Call Policies": "Richtlinien für eingehende Anrufe",
   "Subscriber Settings": "Abonnenten-Einstellungen",
   "Delivery Logs": "Zustellungsprotokolle",
+  "Custom Fields": "Benutzerdefinierte Felder",
 };
+
+// The words of a menu's title that may be hyphenated (each a span of its own).
+function hyphenatedRuns(text: string, lang: string | undefined): Array<string> {
+  return getDrawnWords({ text, lang, rule: SIDE_MENU_LONG_WORDS })
+    .runs.filter((run: WordRun): boolean => {
+      return run.mayHyphenate;
+    })
+    .map((run: WordRun): string => {
+      return run.text;
+    });
+}
 
 jest.mock("react-i18next", () => {
   return {
@@ -95,6 +113,12 @@ function statusPageMenu(): React.ReactElement {
           link={{
             title: "Webhook Subscribers",
             to: new Route("/s/1/webhooks"),
+          }}
+        />
+        <SideMenuItem
+          link={{
+            title: "Custom Fields",
+            to: new Route("/s/1/custom-fields"),
           }}
         />
       </SideMenuSection>
@@ -185,12 +209,34 @@ describe("which words may be hyphenated (getMenuWordsBreakClassName)", () => {
         lang: "de",
       }),
     ).toBe(SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME);
+    expect(hyphenatedRuns("Benachrichtigungsprotokolle", "de")).toEqual([]);
+  });
+
+  /*
+   * Safari reads no hyphenate-limit-chars: a title that carried hyphens:
+   * auto because one word in it was long had every word hyphenated where a
+   * line ended ("Zeit- / achse"). The long word alone carries it now.
+   */
+  test("beside shorter words, the long word alone: the title is never hyphenated", () => {
     expect(
       getMenuWordsBreakClassName({
         text: "Zeitachse der Bereitschaftspläne",
         lang: "de",
       }),
-    ).toBe(SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME);
+    ).toBe(SIDE_MENU_WORDS_CLASS_NAME);
+    expect(hyphenatedRuns("Zeitachse der Bereitschaftspläne", "de")).toEqual([
+      "Bereitschaftspläne",
+    ]);
+    expect(hyphenatedRuns("Benutzerdefinierte Felder", "de")).toEqual([
+      "Benutzerdefinierte",
+    ]);
+    // Two long words, two spans; the words between them stay as they are.
+    expect(
+      hyphenatedRuns(
+        "Benachrichtigungsprotokolle der Bereitschaftspläne",
+        "de",
+      ),
+    ).toEqual(["Benachrichtigungsprotokolle", "Bereitschaftspläne"]);
   });
 
   /*
@@ -263,12 +309,22 @@ describe("which words may be hyphenated (getMenuWordsBreakClassName)", () => {
     ).toBe(SIDE_MENU_WORDS_CLASS_NAME);
   });
 
-  test("hyphenates only inside such words, five letters either side of the hyphen", () => {
-    expect(SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME.split(" ")).toEqual([
-      ...SIDE_MENU_WORDS_CLASS_NAME.split(" "),
+  test("hyphenates only inside such words, five letters either side of the hyphen, in every engine", () => {
+    // Chrome and Firefox read hyphenate-limit-chars; Safari, its own two.
+    expect(SIDE_MENU_LONG_WORD_CLASS_NAME.split(" ")).toEqual([
       "hyphens-auto",
       `[hyphenate-limit-chars:${SIDE_MENU_HYPHENATED_WORD_LENGTH}_5_5]`,
+      "[-webkit-hyphenate-limit-before:5]",
+      "[-webkit-hyphenate-limit-after:5]",
     ]);
+    expect(SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME.split(" ")).toEqual([
+      ...SIDE_MENU_WORDS_CLASS_NAME.split(" "),
+      ...SIDE_MENU_LONG_WORD_CLASS_NAME.split(" "),
+    ]);
+    expect(SIDE_MENU_LONG_WORDS).toEqual({
+      minimumWordLength: SIDE_MENU_HYPHENATED_WORD_LENGTH,
+      longWordClassName: SIDE_MENU_LONG_WORD_CLASS_NAME,
+    });
     expect(SIDE_MENU_WORDS_CLASS_NAME).not.toContain("hyphens");
   });
 });
@@ -316,6 +372,34 @@ describe("a menu drawn in German", () => {
 
     expect(subTitle).toHaveAttribute("lang", "de");
     expect(subTitle).toHaveClass("hyphens-auto", "break-words", "min-w-0");
+  });
+
+  test("a translated title of a long word and a short one: the long word alone may be hyphenated", async () => {
+    goTo("/s/1/custom-fields");
+
+    await act(async () => {
+      render(statusPageMenu());
+    });
+
+    const title: HTMLElement = screen
+      .getByRole("link", { name: "Benutzerdefinierte Felder" })
+      .querySelector(`[data-testid="${SIDE_MENU_ITEM_TITLE_TEST_ID}"]`)!;
+
+    expect(title).toHaveTextContent("Benutzerdefinierte Felder");
+    expect(title).toHaveAttribute("lang", "de");
+    expect(title).toHaveClass("break-words", "min-w-0");
+    expect(title).not.toHaveClass("hyphens-auto");
+
+    const words: Array<Element> = Array.from(title.querySelectorAll("span"));
+
+    expect(
+      words.map((word: Element): string => {
+        return word.textContent || "";
+      }),
+    ).toEqual(["Benutzerdefinierte"]);
+    expect(words[0]).toHaveClass(...SIDE_MENU_LONG_WORD_CLASS_NAME.split(" "));
+    // It takes its language from the title around it.
+    expect(words[0]).not.toHaveAttribute("lang");
   });
 
   test("a title left in English says nothing: it is the page's English", async () => {

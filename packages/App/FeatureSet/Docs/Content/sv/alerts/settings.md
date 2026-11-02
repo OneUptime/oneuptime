@@ -21,7 +21,7 @@ Konfigurationen av larm finns i **Larm**, inte i **Projektinställningar**: regl
 | **Runbook-regler**    | Startar runbooks för matchande larm.                                                           |
 | **Sekretessregler**   | Gör matchande larm och episoder privata.                                                       |
 | **Etikettregler**     | Lägger till etiketter på matchande larm och episoder.                                          |
-| **Reminder Rules**    | Påminner ägare med ett intervall så länge ett larm är öppet.                                   |
+| **Påminnelseregler**    | Påminner ägare med ett intervall så länge ett larm är öppet.                                   |
 
 Avsnittet **Inställningar** innehåller **Larmstatus** och **Larmallvar**, som beskrivs på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder** och **Numrering**, som beskrivs nedan.
 
@@ -54,7 +54,7 @@ flowchart TB
 
 Reglerna skiljer sig åt i hur flera matchningar avgörs:
 
-- **Grupperingsregler** och **Reminder Rules** kontrolleras uppifrån och ned i sin lista, och den första matchningen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
+- **Grupperingsregler** och **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första matchningen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 - **Jourregler**, **Ägarregler**, **Etikettregler**, **Sekretessregler** och **Runbook-regler** verkar alla när de matchar. Jourpolicyer, ägare och etiketter som flera regler lägger till läggs till en gång.
 
 **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Alert Rules**, för larm, och **Episode Rules**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel.
@@ -108,7 +108,7 @@ En regel larmar så snart ett larm matchar den. För att låta den vänta på ar
 
 ## Påminnelseregler
 
-**Larm → Regler → Reminder Rules** påminner ett larms ägare så länge det är öppet. Varje nytt larm får den första regeln som matchar det, uppifrån och ned i listan.
+**Larm → Regler → Påminnelseregler** påminner ett larms ägare så länge det är öppet. Varje nytt larm får den första regeln som matchar det, uppifrån och ned i listan.
 
 :::steps
 ### Välj vilka larm som ska påminnas om

@@ -25,7 +25,7 @@ flowchart TB
     issues --> owners["E-mail aan eigenaren"]
 ```
 
-1. **Discovery** vindt de opslagen die OneUptime al kent: je cloudinventaris, de databases die het product Database bewaakt, de databases waarmee je services praten op de servicekaart, en de telemetrie van elke service. Je voegt een opslag alleen met de hand toe als geen enkele bron hem vermeldt.
+1. **Detectie** vindt de opslagen die OneUptime al kent: je cloudinventaris, de databases die het product Database bewaakt, de databases waarmee je services praten op de servicekaart, en de telemetrie van elke service. Je voegt een opslag alleen met de hand toe als geen enkele bron hem vermeldt.
 2. **Het uitlezen van de configuratie** vraagt elke cloud hoe elke opslag is ingericht: wie erbij kan, en hoe hij is versleuteld, geback-upt en gelogd. Het leest instellingen, nooit gegevens.
 3. **Inhoudsvoorbeelden** lezen een klein deel van wat een opslag bevat, waar je dat toestaat: een paar objecten van elke soort in een bucket, enkele rijen van elke tabel, de nieuwste records van de telemetrie van elke service.
 4. **Classificatie** vindt gevoelige waarden in de voorbeelden, en bewaart tellingen en gemaskeerde voorbeelden, nooit een waarde.

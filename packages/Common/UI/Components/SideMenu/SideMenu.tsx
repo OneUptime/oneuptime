@@ -20,7 +20,9 @@ import {
 import {
   getDrawnLanguage,
   getMenuWordsBreakClassName,
+  SIDE_MENU_LONG_WORDS,
 } from "./SideMenuEntryState";
+import HyphenatedWords from "../HyphenatedWords/HyphenatedWords";
 import useSideMenuHiddenEdges from "./UseSideMenuHiddenEdges";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -32,12 +34,19 @@ import SideMenuSection, {
   ComponentProps as SideMenuSectionElementProps,
 } from "./SideMenuSection";
 import {
+  entriesInMenuChildren,
+  MenuEntryRoutes,
   MenuRoute,
   routesInMenuChildren,
   routesOfMenuEntry,
   sectionsHoldingCurrentPage,
 } from "./SideMenuSectionState";
+import SideMenuRowListContext, {
+  getRowListRoute,
+  isRowListLink,
+} from "./SideMenuRowPage";
 import CountModelSideMenuItem from "./CountModelSideMenuItem";
+import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
 import { BadgeType } from "../Badge/Badge";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -192,6 +201,40 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const mobileMenuId: string = `side-menu-${useId()}`;
   const currentPath: string = Navigation.getCurrentPath().toString();
 
+  /*
+   * The list the page is one row of - a node's page under Nodes - when no
+   * entry of the menu is for the page itself (SideMenuRowPage). Its entry
+   * is lit for the page, and names it on the phone's button.
+   */
+  const menuEntries: Array<MenuEntryRoutes> = [
+    ...(props.sections || []).flatMap(
+      (section: SideMenuSectionProps): Array<SideMenuItemProps> => {
+        return section.items;
+      },
+    ),
+    ...(props.items || []),
+    ...(props.children ? entriesInMenuChildren(props.children) : []),
+  ];
+  const rowList: Route | null = getRowListRoute(menuEntries) || null;
+
+  // Whether an entry is lit: for the page itself, or holding it as a row.
+  const isEntryLit: (entry: {
+    link?: Link | undefined;
+    activeRoute?: Link["to"] | undefined;
+  }) => boolean = (entry: {
+    link?: Link | undefined;
+    activeRoute?: Link["to"] | undefined;
+  }): boolean => {
+    const matchRoute: Link["to"] | undefined =
+      entry.activeRoute || entry.link?.to;
+
+    return Boolean(
+      entry.link &&
+        ((matchRoute && Navigation.isOnThisPage(matchRoute)) ||
+          isRowListLink(entry.link, rowList)),
+    );
+  };
+
   // Use the existing outside click hook for mobile menu
   const {
     ref: mobileMenuRef,
@@ -304,16 +347,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       /*
        * `activeRoute` first, matching the two loops above: an entry whose link
        * carries query state points somewhere the current URL never equals, and
-       * declares the route that decides selection separately.
+       * declares the route that decides selection separately. An entry whose
+       * list holds the page as one of its rows is lit too (isEntryLit).
        */
-      const matchRoute: Link["to"] | undefined =
-        childProps.activeRoute || childProps.link?.to;
-
-      if (
-        childProps.link &&
-        matchRoute &&
-        Navigation.isOnThisPage(matchRoute)
-      ) {
+      if (childProps.link && isEntryLit(childProps)) {
         const result: ActiveMenuItem = { itemTitle: childProps.link.title };
 
         if (sectionTitle) {
@@ -355,7 +392,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     if (props.sections) {
       for (const section of props.sections) {
         for (const item of section.items) {
-          if (Navigation.isOnThisPage(item.activeRoute || item.link.to)) {
+          if (isEntryLit(item)) {
             const result: {
               sectionTitle: string;
               itemTitle: string;
@@ -376,7 +413,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     // Check direct items
     if (props.items) {
       for (const item of props.items) {
-        if (Navigation.isOnThisPage(item.activeRoute || item.link.to)) {
+        if (isEntryLit(item)) {
           const result: {
             itemTitle: string;
             icon?: IconProp;
@@ -748,8 +785,8 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * whole when the two do not fit together - the section and the
              * page each keep together while they fit a line - and a word
              * longer than the line is hyphenated in its language
-             * (getDrawnLanguage, getMenuWordsBreakClassName), or else breaks
-             * at its edge.
+             * (getDrawnLanguage, HyphenatedWords), or else breaks at its
+             * edge.
              */}
             <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
@@ -767,7 +804,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       )}`}
                       lang={summarySectionLanguage}
                     >
-                      {`${summarySection} /`}
+                      <HyphenatedWords
+                        text={`${summarySection} /`}
+                        lang={summarySectionLanguage}
+                        rule={SIDE_MENU_LONG_WORDS}
+                      />
                     </span>{" "}
                     <span
                       className={`inline-block max-w-full ${getMenuWordsBreakClassName(
@@ -778,7 +819,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       )}`}
                       lang={summaryPageLanguage}
                     >
-                      {summaryPage}
+                      <HyphenatedWords
+                        text={summaryPage}
+                        lang={summaryPageLanguage}
+                        rule={SIDE_MENU_LONG_WORDS}
+                      />
                     </span>
                   </>
                 ) : (
@@ -789,7 +834,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     })}
                     lang={summaryPageLanguage}
                   >
-                    {summaryPage}
+                    <HyphenatedWords
+                      text={summaryPage}
+                      lang={summaryPageLanguage}
+                      rule={SIDE_MENU_LONG_WORDS}
+                    />
                   </span>
                 )}
               </h3>
@@ -861,7 +910,9 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 onScroll={mobileList.onScroll}
                 onClick={handleMenuItemClick}
               >
-                <div className="space-y-0.5">{renderMenuContent()}</div>
+                <SideMenuRowListContext.Provider value={rowList}>
+                  <div className="space-y-0.5">{renderMenuContent()}</div>
+                </SideMenuRowListContext.Provider>
               </nav>
 
               {/* Optional Footer */}
@@ -957,7 +1008,9 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             }
             onScroll={desktopList.onScroll}
           >
-            <div className="space-y-1">{renderMenuContent()}</div>
+            <SideMenuRowListContext.Provider value={rowList}>
+              <div className="space-y-1">{renderMenuContent()}</div>
+            </SideMenuRowListContext.Provider>
           </nav>
 
           {/* Optional Footer */}

@@ -93,7 +93,7 @@ Autonome undersøgelser er **slået til som standard for nye projekter**. Det er
 
 :::steps
 1. **Konfigurer en LLM-udbyder.** Selvhostede installationer bruger deres egen nøgle (eller kører helt isoleret med en lokal Ollama): se [LLM-udbydere](/docs/ai/llm-provider). Brugere af OneUptime Cloud kan bruge den forudkonfigurerede globale udbyder, der faktureres som målte AI-tokens, så projektet har brug for AI-kreditter: en projektejer eller en med **Manage Billing** tilføjer dem på **Projektindstillinger → AI → AI-kreditter**, hvor **Automatisk genopfyldning** sørger for, at de ikke slipper op.
-2. **Sørg for, at AI er aktiveret for projektet** (det er det som standard): **Aktivér AI** på **Projektindstillinger → AI → AI Features**.
+2. **Sørg for, at AI er aktiveret for projektet** (det er det som standard): **Aktivér AI** på **Projektindstillinger → AI → AI-funktioner**.
 3. **Vælg for hver signaltype** (begge slået til for nye projekter):
    - Hændelser: **Hændelser → AI → Indstillinger**: slå _Undersøg nye hændelser_ til.
    - Advarsler: **Advarsler → AI → Indstillinger**: slå _Undersøg nye advarsler_ til.
@@ -178,7 +178,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Erstat `{web,api}` med de namespaces, AI må rette. Hvert namespace på listen skal findes i forvejen: chartet opretter én RoleBinding i hvert af dem og opretter aldrig et namespace, så et manglende får hele installationen eller opgraderingen (collectoren inklusive) til at fejle med `namespaces "api" not found`. Opret det først, eller tag det af listen; tag et namespace af listen, før du sletter det. Udelader du flaget ved en opgradering, bevares den liste, der er gemt i releasen, så for at gå tilbage til hele clusteret angiver du `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), som den anden kommando gør, og ikke `={}`, som Helm læser som ét tomt navn, og som chartet afviser. `--set aiAgent.remediation.namespaces=null` nulstiller ikke en gemt liste under `--reuse-values`: Helm beholder den gemte liste. `aiAgent.remediation.nodeOperations=false` holder rettelser væk fra noder; sæt den til `true` for at lade AI afspærre, genåbne, tømme og påsætte taints på noder (et drain, et taint eller et patch af en node venter stadig på et menneske).
 
-Brug `automatic` eller `bypass-approval` i stedet for `ask-for-approval` for mere autonomi, og `--set aiAgent.fixes=off` for at slå rettelser fra igen, hvilket også fjerner skriveadgangen. Rettelser kræver også to projektkontakter. **Ret nye hændelser automatisk** (på **Hændelser → AI → Indstillinger**) og **Ret nye advarsler automatisk** (på **Advarsler → AI → Indstillinger**) starter slået fra: indtil en af dem er slået til, rettes intet nyt af den slags. **Aktivér AI** (**Projektindstillinger → AI → AI Features**) er slået til, medmindre nogen har slået den fra; den slår al AI fra for projektet, uanset hvad en agents konfiguration siger.
+Brug `automatic` eller `bypass-approval` i stedet for `ask-for-approval` for mere autonomi, og `--set aiAgent.fixes=off` for at slå rettelser fra igen, hvilket også fjerner skriveadgangen. Rettelser kræver også to projektkontakter. **Ret nye hændelser automatisk** (på **Hændelser → AI → Indstillinger**) og **Ret nye advarsler automatisk** (på **Advarsler → AI → Indstillinger**) starter slået fra: indtil en af dem er slået til, rettes intet nyt af den slags. **Aktivér AI** (**Projektindstillinger → AI → AI-funktioner**) er slået til, medmindre nogen har slået den fra; den slår al AI fra for projektet, uanset hvad en agents konfiguration siger.
 
 ### Hvilke hændelser et clusters rettelser virker på
 
@@ -398,7 +398,7 @@ En undersøgelse, der mislykkes, udløber eller bliver forældet, frigiver stadi
 
 Mens afhjælpningen venter, siger trinnet **Afhjælpning** det (**Venter**), og viser, hvad der skete, når undersøgelsen er afsluttet.
 
-Automatisk afhjælpning afhænger af to kontakter. **Ret nye hændelser automatisk** (eller advarsler), slået fra, indtil projektet slår den til: når den er slået fra, rettes ingen ny hændelse (eller advarsel). Og **Aktivér AI** (**Projektindstillinger → AI → AI Features**), projektets hovedkontakt for AI: når den er slået fra, kører ingen AI-regel (heller ikke en, der starter en runbook uden AI), og intet cluster eller nogen ressource bliver rettet.
+Automatisk afhjælpning afhænger af to kontakter. **Ret nye hændelser automatisk** (eller advarsler), slået fra, indtil projektet slår den til: når den er slået fra, rettes ingen ny hændelse (eller advarsel). Og **Aktivér AI** (**Projektindstillinger → AI → AI-funktioner**), projektets hovedkontakt for AI: når den er slået fra, kører ingen AI-regel (heller ikke en, der starter en runbook uden AI), og intet cluster eller nogen ressource bliver rettet.
 
 ## Hvad den automatiske afhjælpning gjorde
 
@@ -490,7 +490,7 @@ AI-logs (**Projektindstillinger → AI → AI-logs**) viser hvert kald med de to
 
 ### Projektets egne daglige grænser
 
-Over alle grænserne i tabellen kan et projekt sætte loft over, hvad OneUptime AI bruger på et døgn, uanset hvad den laver: Spørg AI, undersøgelser, udkast til postmortems, pull requests med rettelser, triage af indsigter, workflows, runbooks og spørgsmål i Slack eller Microsoft Teams, alt sammen. Grænserne findes på **Projektindstillinger → AI → AI Features**, foldet sammen under **Yderligere indstillinger**, i afsnittet **Daglige grænser**:
+Over alle grænserne i tabellen kan et projekt sætte loft over, hvad OneUptime AI bruger på et døgn, uanset hvad den laver: Spørg AI, undersøgelser, udkast til postmortems, pull requests med rettelser, triage af indsigter, workflows, runbooks og spørgsmål i Slack eller Microsoft Teams, alt sammen. Grænserne findes på **Projektindstillinger → AI → AI-funktioner**, foldet sammen under **Yderligere indstillinger**, i afsnittet **Daglige grænser**:
 
 - **Daglig AI-tokengrænse**: det højeste antal tokens, projektets AI må bruge hvert døgn, gennem en hvilken som helst LLM-udbyder.
 - **Daglig AI-forbrugsgrænse (USD)**, på OneUptime Cloud: det højeste antal AI-kreditter, i hele amerikanske dollars, som projektets AI må bruge hvert døgn. Kun AI, der faktureres til projektets AI-kreditter, tæller med, så den stopper aldrig AI, der kører på projektets egen LLM-udbyder. Selvhostede installationer fakturerer ikke AI, så de tilbyder den ikke.
@@ -501,7 +501,7 @@ Når en grænse er nået, stopper nyt AI-arbejde indtil midnat UTC. Et kald, der
 
 #### Når en grænse er nået
 
-**Projektets ejere får en e-mail.** Første gang en grænse stopper OneUptime AI i et UTC-døgn, får hver projektejer én e-mail: hvilken grænse, hvor meget projektet har brugt af den i dag, hvornår den nulstilles, og et link til **Projektindstillinger → AI → AI Features**, hvor de kan hæve eller fjerne den. Den kommer én gang om dagen for hver grænse: tokengrænsen og forbrugsgrænsen sender hver deres, og der sendes ikke mere den dag, uanset hvor mange kald der afvises. Det er den samme e-mail, ejerne får om fakturering, og den vises ligesom dem i projektets e-mail-logs.
+**Projektets ejere får en e-mail.** Første gang en grænse stopper OneUptime AI i et UTC-døgn, får hver projektejer én e-mail: hvilken grænse, hvor meget projektet har brugt af den i dag, hvornår den nulstilles, og et link til **Projektindstillinger → AI → AI-funktioner**, hvor de kan hæve eller fjerne den. Den kommer én gang om dagen for hver grænse: tokengrænsen og forbrugsgrænsen sender hver deres, og der sendes ikke mere den dag, uanset hvor mange kald der afvises. Det er den samme e-mail, ejerne får om fakturering, og den vises ligesom dem i projektets e-mail-logs.
 
 **Oversprungne hændelser og advarsler undersøges efter nulstillingen.** En hændelse eller advarsel, der ikke blev undersøgt, fordi en grænse var nået, undersøges, så snart grænsen ikke længere stopper AI: efter midnat UTC, eller så snart en ejer hæver eller fjerner grænsen. Kun så længe den stadig er åben og er under et døgn gammel, og kun én gang. Indstillingerne i øjeblikket gælder, som for en ny hændelse eller advarsel: så længe Aktivér AI eller automatisk undersøgelse er slået fra, der ikke er nogen LLM-udbyder eller AI-kredit, eller den daglige tokengrænse for hændelser eller advarsler er nået, venter den fortsat; alvorlighedsbunden og pausen kan stadig springe den over, og dens kort siger så hvorfor. En post, der blev løst i mellemtiden, eller som nogen i mellemtiden har bedt OneUptime AI om at undersøge, undersøges ikke igen. Nogle få tages op hvert femte minut, de nyeste først, og kun så længe projektets undersøgelseskø ikke har andet, der venter, så nye hændelser og advarsler kommer først; nås grænsen igen, venter resten på den næste nulstilling.
 

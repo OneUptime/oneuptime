@@ -83,7 +83,7 @@ For installasjoner i egen drift erstatter du `oneuptime.com` med OneUptime-verte
 
 ### Kontroller opplastingen
 
-En vellykket opplasting returnerer en JSON-body med de lagrede mappene, så CI kan sjekke den. Mappene står også på tjenestens side **Source Maps** i OneUptime.
+En vellykket opplasting returnerer en JSON-body med de lagrede mappene, så CI kan sjekke den. Mappene står også på tjenestens side **Source maps** i OneUptime.
 :::
 
 Et typisk CI-trinn laster opp hver map bygget har laget:
@@ -127,7 +127,7 @@ Installasjoner i egen drift kan endre disse. Alle fem er vanlige miljøvariabler
 
 Åpne et hvilket som helst unntak under **Unntak** i dashbordet. Rammer som er løst opp via en source map, viser merket **Source mapped** og det opprinnelige funksjonsnavnet og filplasseringen; en utvidet ramme viser det opprinnelige kodeutdraget (når mappen har `sourcesContent`) ved siden av den minifiserte plasseringen.
 
-Opplastede maps for en tjeneste kan gjennomgås og slettes under **Produkter → Tjenester → tjenesten din → Source Maps**, som viser utgivelse, bundle, størrelse og opplastingstidspunkt for hver map.
+Opplastede maps for en tjeneste kan gjennomgås og slettes under **Produkter → Tjenester → tjenesten din → Source maps**, som viser utgivelse, bundle, størrelse og opplastingstidspunkt for hver map.
 
 ## Oppbevaring
 
@@ -142,7 +142,7 @@ Source maps oppbevares i 90 dager etter opplasting og slettes deretter automatis
 ## Feilsøking
 
 :::details Rammene er fortsatt minifiserte
-Unntakets utgivelse har ingen samsvarende maps. Sjekk at `service.version` som appen din sender, er nøyaktig den `serviceVersion` du lastet opp med, at `serviceName` samsvarer med `service.name`, og at det er lastet opp en map for den bundlefilen: tjenestens side **Source Maps** viser utgivelse og bundle for hver map.
+Unntakets utgivelse har ingen samsvarende maps. Sjekk at `service.version` som appen din sender, er nøyaktig den `serviceVersion` du lastet opp med, at `serviceName` samsvarer med `service.name`, og at det er lastet opp en map for den bundlefilen: tjenestens side **Source maps** viser utgivelse og bundle for hver map.
 :::
 
 :::details Opplastingen avvises fordi en map er for stor

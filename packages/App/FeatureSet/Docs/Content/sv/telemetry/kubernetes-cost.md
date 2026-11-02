@@ -1,6 +1,6 @@
 # Kubernetes-kostnadsobserverbarhet
 
-Se vad varje Kubernetes-arbetsbelastning kostar — utgifter per namespace, arbetsbelastning och podd, ledig kapacitet och hur mycket av varje request som används — bredvid de mätvärden, loggar och spår som [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) redan samlar in. Ett enda Helm-värde slår på det, utan molninloggningsuppgifter, och klustrets sida **Costs** visar sedan vilka requests som bör minskas.
+Se vad varje Kubernetes-arbetsbelastning kostar — utgifter per namespace, arbetsbelastning och podd, ledig kapacitet och hur mycket av varje request som används — bredvid de mätvärden, loggar och spår som [Kubernetes-agenten](/docs/telemetry/kubernetes-agent) redan samlar in. Ett enda Helm-värde slår på det, utan molninloggningsuppgifter, och klustrets sida **Kostnader** visar sedan vilka requests som bör minskas.
 
 :::cards
 - [Slå på det](#slå-på-kostnadsobserverbarhet): En enda `helm upgrade`.
@@ -51,8 +51,8 @@ De första kostnaderna visas efter att den första hela timmen har avslutats, oc
 
 ### Öppna Costs-sidorna
 
-- **Produkter → Infrastruktur → Kubernetes → Costs** visar utgifterna för alla kluster i projektet.
-- På ett kluster visar **Costs** dess utgiftstrend, **Spend by Namespace** med fördelningen på CPU, minne och lagring, **Spend by Workload**, utgifter för ledig kapacitet, effektivitet och kortet **Right-Sizing**.
+- **Produkter → Infrastruktur → Kubernetes → Kostnader** visar utgifterna för alla kluster i projektet.
+- På ett kluster visar **Kostnader** dess utgiftstrend, **Spend by Namespace** med fördelningen på CPU, minne och lagring, **Spend by Workload**, utgifter för ledig kapacitet, effektivitet och kortet **Right-Sizing**.
 :::
 
 Kostnadsmätvärdena (`node_total_hourly_cost`, `pv_hourly_cost` och resten) är vanliga mätvärden: de finns i mätvärdesutforskaren, på anpassade instrumentpaneler och i mätvärdesmonitorer. För en färdig instrumentpanel går du till **Produkter → Instrumentpaneler**, väljer **Skapa instrumentpanel** och väljer **Kubernetes Cost Dashboard**: trender för nodernas timkostnad, enhetskostnader för CPU och minne, och utgifter för volymer och lastbalanserare.
@@ -113,7 +113,7 @@ cost:
 
 ## Right-sizing
 
-Kortet **Right-Sizing** på ett klusters sida **Costs** rekommenderar en CPU- och en minnesrequest för varje container som det har tillräcklig historik för, rangordnade efter hur mycket varje ändring sparar per månad.
+Kortet **Right-Sizing** på ett klusters sida **Kostnader** rekommenderar en CPU- och en minnesrequest för varje container som det har tillräcklig historik för, rangordnade efter hur mycket varje ändring sparar per månad.
 
 En rekommendation är den observerade efterfrågan plus 25 % marginal, avrundad till ett värde som du kan klistra in i ett manifest (10m CPU, 16Mi minne):
 

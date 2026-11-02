@@ -130,7 +130,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-Listen **All Items** i dashboardet eksporterer på samme måde, med de kolonner for brugerdefinerede felter, du har slået til. Hver [aktivdetalje](#aktivdetaljer) er også en kolonne dér: **Værtsnavn**, **IP-adresse**, **Serienummer**, **Model** og resten starter skjult, så slå dem til fra kolonnevælgeren, og eksporten indeholder én kolonne pr. oplysning, uanset om en række er en vært eller en netværksenhed.
+Listen **Alle elementer** i dashboardet eksporterer på samme måde, med de kolonner for brugerdefinerede felter, du har slået til. Hver [aktivdetalje](#aktivdetaljer) er også en kolonne dér: **Værtsnavn**, **IP-adresse**, **Serienummer**, **Model** og resten starter skjult, så slå dem til fra kolonnevælgeren, og eksporten indeholder én kolonne pr. oplysning, uanset om en række er en vært eller en netværksenhed.
 
 ## Aktivdetaljer
 

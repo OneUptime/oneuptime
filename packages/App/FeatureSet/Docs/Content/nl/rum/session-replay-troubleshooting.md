@@ -441,7 +441,7 @@ Zie [Omleidingen naar een andere origin](/docs/telemetry/session-replay#omleidin
 
 ## Elke sessie in de lijst zegt Anonymous of Visitor
 
-De recorder weet niet wie je gebruiker is tenzij je pagina het zegt. Roep `OneUptimeReplay.identify(userRef, traits)` aan zodra je het weet, of zet het in de wachtrij `window.OneUptimeReplayQueue` voordat het script laadt — zie [Je gebruikers identificeren](/docs/telemetry/session-replay#je-gebruikers-identificeren). Tot die tijd groepeert de lijst de sessies van een browser onder _Visitor a1b2c3_, de willekeurige [bezoekers-id](/docs/telemetry/session-replay#anonieme-bezoekers) die de recorder voor elke browser aanmaakt, die een browser volgt en nooit een persoon over apparaten heen; de pagina **Replay Users** en het menu met andere sessies van de speler werken ermee, de zoekopdracht `user:` niet.
+De recorder weet niet wie je gebruiker is tenzij je pagina het zegt. Roep `OneUptimeReplay.identify(userRef, traits)` aan zodra je het weet, of zet het in de wachtrij `window.OneUptimeReplayQueue` voordat het script laadt — zie [Je gebruikers identificeren](/docs/telemetry/session-replay#je-gebruikers-identificeren). Tot die tijd groepeert de lijst de sessies van een browser onder _Visitor a1b2c3_, de willekeurige [bezoekers-id](/docs/telemetry/session-replay#anonieme-bezoekers) die de recorder voor elke browser aanmaakt, die een browser volgt en nooit een persoon over apparaten heen; de pagina **Gebruikers in herhalingen** en het menu met andere sessies van de speler werken ermee, de zoekopdracht `user:` niet.
 
 Vijf dingen die de rijen je vertellen:
 

@@ -175,7 +175,7 @@ OneUptime heeft een eigen MQTT-endpoint, dus apparaten die MQTT spreken, publice
 ### Authenticatie
 
 - **Met de ingestiesleutel**: stuur hem als MQTT-wachtwoord. De gebruikersnaam wordt genegeerd; heeft je client alleen een veld voor de gebruikersnaam, zet de sleutel daar dan in. Dit past bij een gateway die voor veel apparaten publiceert.
-- **Met inloggegevens per apparaat**: aanbevolen voor apparaten die rechtstreeks verbinding maken. Open de pagina **Device Registry** van de vloot en registreer het apparaat, met de **Device ID** die het als `device.id` gebruikt. De **MQTT Username** van het apparaat is zijn gebruikersnaam en zijn **MQTT Password (Secret)** zijn wachtwoord.
+- **Met inloggegevens per apparaat**: aanbevolen voor apparaten die rechtstreeks verbinding maken. Open de pagina **Apparaatregister** van de vloot en registreer het apparaat, met de **Device ID** die het als `device.id` gebruikt. De **MQTT Username** van het apparaat is zijn gebruikersnaam en zijn **MQTT Password (Secret)** zijn wachtwoord.
 
 De inloggegevens van een apparaat kunnen alleen publiceren onder de eigen topics `oneuptime/<fleet>/<device>/`. Je kunt één apparaat intrekken zonder de rest van de vloot aan te raken: zet de schakelaar **Ingeschakeld** uit, of verwijder het apparaat, en een verbonden apparaat wordt binnen ongeveer een minuut afgesloten. Een geregistreerd apparaat dat stil valt, blijft als offline in de inventaris staan, en het waarschuwingssjabloon Device Offline gaat ervoor af, ook als het zonder Last Will uitvalt.
 

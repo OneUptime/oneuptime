@@ -26,8 +26,8 @@ Como as notas vêm primeiro e continuam iguais de uma execução para a outra, e
 ## Escrever o contexto de IA
 
 :::steps
-### Abrir AI Features
-Abra **Configurações do projeto → IA → AI Features**. O cartão **Contexto de IA** fica abaixo de **Habilitar IA**.
+### Abrir Recursos de IA
+Abra **Configurações do projeto → IA → Recursos de IA**. O cartão **Contexto de IA** fica abaixo de **Habilitar IA**.
 
 ### Escrever as notas
 Clique em **Adicionar contexto de IA**, ou em **Editar** quando já houver notas. Escreva em Markdown, ou clique em **Começar com uma estrutura** para ter um título para cada tipo de nota.

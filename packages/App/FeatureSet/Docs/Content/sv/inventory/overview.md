@@ -57,8 +57,8 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 | Sida | Vad du hittar där |
 | --- | --- |
 | **Översikt** | Hur många objekt du har, vad de är, hur många som har tystnat och vad som lades till senast. |
-| **All Items** | Alla objekt. Sök på namn, beskrivning eller identitetsnyckel, avgränsa listan efter typ, källa, status eller anpassat fält, och lägg till ett objekt manuellt. |
-| **Topology Map** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
+| **Alla objekt** | Alla objekt. Sök på namn, beskrivning eller identitetsnyckel, avgränsa listan efter typ, källa, status eller anpassat fält, och lägg till ett objekt manuellt. |
+| **Topologikarta** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
 | **Gone Quiet** | De upptäckta objekt som inte har skickat telemetri på mer än ett dygn. |
 | **By Source** | Objekten från en källa: **Discovered**, **Mirrored** eller **Added by You**. |
 | **Inställningar → Anpassade fält** | De fält ditt projekt för på varje objekt. |
@@ -79,7 +79,7 @@ Kortet visar var varje uppgift kom ifrån och när. Den källa som de flesta upp
 
 En nätverksenhets kort har en knapp **Uppdatera** för den som får redigera nätverksenheter. Den läser enheten igen nu: dess sond pollar den inom en minut, och dess Meraki-anslutning läser organisationen igen. Kortet säger när den nya avläsningen har kommit in, eller att sonden inte kunde nå enheten, och objektet kopieras från enheten så snart avläsningen har kommit in.
 
-Samma uppgifter är kolumner i listan **All Items**, dolda tills du slår på dem, och de följer med i dess CSV-export. [Exportera till en CMDB](/docs/inventory/cmdb-sync#tillgångsdetaljer) listar deras nycklar.
+Samma uppgifter är kolumner i listan **Alla objekt**, dolda tills du slår på dem, och de följer med i dess CSV-export. [Exportera till en CMDB](/docs/inventory/cmdb-sync#tillgångsdetaljer) listar deras nycklar.
 
 ### Anslutningar
 
@@ -90,9 +90,9 @@ Ett objekts sida **Anslutningar** listar dess grannar i båda riktningarna, grup
 Lägg till ett objekt för något som OneUptime aldrig kommer att se på egen hand, så att ett beroende slutar någonstans på riktigt och saken kan bära dina anpassade fält.
 
 :::steps
-### Öppna All Items
+### Öppna Alla objekt
 
-Gå till **Produkter → Resurser → Inventarie** och sedan till **All Items**.
+Gå till **Produkter → Resurser → Inventarie** och sedan till **Alla objekt**.
 
 ### Lägg till objektet
 
@@ -106,7 +106,7 @@ Klicka på **Lägg till Item**. Välj dess **Typ**, ge det ett **Namn** och even
 Tre typer kan du lägga till manuellt:
 
 - `external.service` (**Extern tjänst**): ett API från tredje part eller ett beroende av en programvarutjänst.
-- `external.database` (**Extern databas**): en databas som inte är en server OneUptime kan modellera. En databasserver, egendriven eller hanterad, från PostgreSQL till Snowflake, hör i stället hemma under **Databases → Skapa Databas** ([Databaser](/docs/telemetry/databases)): den posten kopplas till de traces, containrar och motormätvärden som nämner samma adress, vilket ett inventarieobjekt aldrig gör, och lägger du till samma server på båda sätten blir det två okopplade poster.
+- `external.database` (**Extern databas**): en databas som inte är en server OneUptime kan modellera. En databasserver, egendriven eller hanterad, från PostgreSQL till Snowflake, hör i stället hemma under **Databaser → Skapa Databas** ([Databaser](/docs/telemetry/databases)): den posten kopplas till de traces, containrar och motormätvärden som nämner samma adress, vilket ett inventarieobjekt aldrig gör, och lägger du till samma server på båda sätten blir det två okopplade poster.
 - `appliance` (**Appliance**): hårdvara eller programvara utan agent.
 
 Begränsningen förhindrar dubbletter. Ett manuellt skapat objekt av en typ som OneUptime kan observera, som en värd, skulle få nyckel efter namnet du skrev, medan det upptäckta objektet för samma maskin får nyckel efter de attribut den rapporterar. De två skulle aldrig gå ihop, så samma värd skulle stå två gånger i din lista för alltid.
@@ -121,14 +121,14 @@ Arkivering tar ett objekt ur listan medan det behåller sin identitet, sin histo
 | **Mirrored** | Förblir arkiverat. | Kommer tillbaka med nästa kopia. Radera den ursprungliga posten i stället. |
 | **Added by you** | Förblir arkiverat. | Borta för gott. |
 
-För att arkivera objekt markerar du dem i **All Items** och arkiverar dem på en gång, eller öppnar ett objekt och använder kortet **Arkivera** på dess sida **Inställningar**. Arkiverade objekt finns under **Inventarie → Avancerad → Arkiverad**, där du kan markera dem och återställa dem.
+För att arkivera objekt markerar du dem i **Alla objekt** och arkiverar dem på en gång, eller öppnar ett objekt och använder kortet **Arkivera** på dess sida **Inställningar**. Arkiverade objekt finns under **Inventarie → Avancerad → Arkiverad**, där du kan markera dem och återställa dem.
 
 > [!NOTE]
 > När en speglad enhet tas bort från sin egen post tar OneUptime också bort dess objekt, såvida objektet inte bär värden i anpassade fält som du har angett. De värdena är den enda kopian och det finns ingen ångra, så objektet arkiveras i stället för att raderas. Du hittar det under **Avancerad → Arkiverad** med allt du skrev kvar.
 
 ## Relationer och topologi
 
-OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topology Map** ritar dem, och ett objekts sida **Anslutningar** listar dess egna. Se [Topologi](/docs/telemetry/topology).
+OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topologikarta** ritar dem, och ett objekts sida **Anslutningar** listar dess egna. Se [Topologi](/docs/telemetry/topology).
 
 | Relation | Till exempel |
 | --- | --- |

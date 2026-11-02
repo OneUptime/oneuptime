@@ -35,7 +35,7 @@ flowchart TB
 
 - **Fai inviare dati ai tuoi dispositivi.** La [guida ai dispositivi IoT](/docs/telemetry/iot-devices) mostra come inviare metriche con un SDK o un Collector OpenTelemetry, oppure tramite MQTT.
 - **Verifica che la flotta sia registrata.** Compare in **Prodotti → Infrastruttura → IoT → All Fleets**, con il nome dello `iot.fleet.name` che inviano i dispositivi.
-- **Registra i dispositivi che ti aspetti**, nel **Device Registry** della flotta, per essere avvisato quando uno smette di trasmettere: vedi [Rilevamento offline](#rilevamento-offline).
+- **Registra i dispositivi che ti aspetti**, nel **Registro dei dispositivi** della flotta, per essere avvisato quando uno smette di trasmettere: vedi [Rilevamento offline](#rilevamento-offline).
 
 ## Creare un monitor di dispositivi IoT
 
@@ -114,7 +114,7 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 | --- | --- |
 | **Il gateway lo segnala** | Il gateway o il collector invia `iot_device_up = 0` per un dispositivo che non riesce più a raggiungere. |
 | **MQTT Last Will** | Un dispositivo collegato all'endpoint MQTT di OneUptime registra un Last Will sul suo topic `status`. Quando il dispositivo si spegne, il broker invia `iot_device_up = 0` per esso nel momento in cui la sessione cade: nessun polling, nessuna attesa di una segnalazione mancata. Vedi [Inviare metriche tramite MQTT](/docs/telemetry/iot-devices#invio-delle-metriche-tramite-mqtt). |
-| **Il dispositivo è registrato** | Un dispositivo nel **Device Registry** della flotta è atteso. Quando non invia nulla per tutta la finestra, il monitor lo tratta come se segnalasse `0`, quindi riceve un proprio incidente, che si risolve da solo quando il dispositivo segnala di nuovo. |
+| **Il dispositivo è registrato** | Un dispositivo nel **Registro dei dispositivi** della flotta è atteso. Quando non invia nulla per tutta la finestra, il monitor lo tratta come se segnalasse `0`, quindi riceve un proprio incidente, che si risolve da solo quando il dispositivo segnala di nuovo. |
 
 Un dispositivo registrato viene anche mantenuto come offline nell'inventario della flotta, mentre uno non registrato viene rimosso dopo 15 minuti di silenzio. Il rilevamento del silenzio richiede la politica per i dati mancanti **Treat As Zero** sul criterio di `iot_device_up`, che hanno i monitor Device Offline creati dal modello. Un monitor Device Offline creato prima che esistesse la registrazione dei dispositivi deve averla impostata a mano, o essere ricreato dal modello.
 
@@ -209,7 +209,7 @@ La query non è raggruppata. I monitor **Custom Metric** valutano la flotta nel 
 :::
 
 :::details Un dispositivo si è spento ma Device Offline non è scattato
-Il dispositivo non ha inviato alcun Last Will e nessun gateway lo ha segnalato, quindi è solo diventato silenzioso. Registralo nel **Device Registry** della flotta, e verifica che **Se nessun dato** del criterio di `iot_device_up` sia su **Treat As Zero**. Vedi [Rilevamento offline](#rilevamento-offline).
+Il dispositivo non ha inviato alcun Last Will e nessun gateway lo ha segnalato, quindi è solo diventato silenzioso. Registralo nel **Registro dei dispositivi** della flotta, e verifica che **Se nessun dato** del criterio di `iot_device_up` sia su **Treat As Zero**. Vedi [Rilevamento offline](#rilevamento-offline).
 :::
 
 :::details Device Offline scatta per dispositivi che funzionano

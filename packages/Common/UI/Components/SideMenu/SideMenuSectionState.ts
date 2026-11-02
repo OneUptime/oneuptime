@@ -145,7 +145,8 @@ interface MenuElementProps extends MenuEntryRoutes {
 }
 
 /*
- * Every route a block of hand-written menu JSX links to.
+ * Every entry a block of hand-written menu JSX draws: its link, the route
+ * that lights it and its sub-item.
  *
  * It reads the shape of the props rather than component identity, the same
  * way SideMenu finds the active entry for its phone summary: an element with
@@ -154,8 +155,10 @@ interface MenuElementProps extends MenuEntryRoutes {
  * them are all found, and a fragment or a wrapper div is simply walked
  * through.
  */
-export function routesInMenuChildren(children: ReactNode): Array<MenuRoute> {
-  const routes: Array<MenuRoute> = [];
+export function entriesInMenuChildren(
+  children: ReactNode,
+): Array<MenuEntryRoutes> {
+  const entries: Array<MenuEntryRoutes> = [];
 
   React.Children.forEach(children, (child: ReactNode) => {
     if (!React.isValidElement(child)) {
@@ -166,15 +169,24 @@ export function routesInMenuChildren(children: ReactNode): Array<MenuRoute> {
       .props as MenuElementProps;
 
     if (childProps.link) {
-      routes.push(...routesOfMenuEntry(childProps));
+      entries.push({
+        link: childProps.link,
+        activeRoute: childProps.activeRoute,
+        subItemLink: childProps.subItemLink,
+      });
     }
 
     if (childProps.children) {
-      routes.push(...routesInMenuChildren(childProps.children));
+      entries.push(...entriesInMenuChildren(childProps.children));
     }
   });
 
-  return routes;
+  return entries;
+}
+
+// Every route a block of hand-written menu JSX links to (see above).
+export function routesInMenuChildren(children: ReactNode): Array<MenuRoute> {
+  return entriesInMenuChildren(children).flatMap(routesOfMenuEntry);
 }
 
 /*

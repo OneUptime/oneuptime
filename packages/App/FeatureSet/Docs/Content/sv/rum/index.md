@@ -42,7 +42,7 @@ En applikations egen sidomeny grupperar dess sidor så här; **Inställningar**,
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Rekommendationer**, **Dokumentation** |
 | **Observerbarhet** | **Mätvärden**, **Loggar**, **Spår**, **Klienter** |
-| **Sessionsuppspelning** | **Sessionsuppspelning**, **User Flows**, **Replay Users**, **Hälsa**, **Replay Policy**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
+| **Sessionsuppspelning** | **Sessionsuppspelning**, **Användarflöden**, **Användare i uppspelningar**, **Hälsa**, **Replay Policy**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
 | **Inställningar** | **Inställningar** |
 | **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
 | **Avancerad** | **Radera applikation** |

@@ -243,7 +243,7 @@ För att få tillbaka dem byter du till `openshift` med `--set preset=openshift`
 **Det här ser du i OneUptime.** Agenten läser också OpenShifts egna objekt, med enbart läsbehörighet, och visar dem på klustrets sidor:
 
 - Klustrets **Översikt** inleds med kortet **OpenShift**: versionen det kör, om en uppdatering pågår eller misslyckas, och hur många av dess klusteroperatorer som är felfria, med vad var och en av de andra rapporterar. En otillgänglig operator gör klustret **Ej felfri**, och en försämrad operator eller en misslyckad uppdatering gör det **Försämrad**.
-- **Routes** och **Tjänster** under **Nätverk**: var varje Route svarar, hur den terminerar TLS, vilka tjänster den skickar trafik till och med vilken andel, och varför en router avvisade den. En Routes TLS-nyckel lämnar aldrig klustret: agenten ersätter den innan den skickar Routen.
+- **Rutter** och **Tjänster** under **Nätverk**: var varje Route svarar, hur den terminerar TLS, vilka tjänster den skickar trafik till och med vilken andel, och varför en router avvisade den. En Routes TLS-nyckel lämnar aldrig klustret: agenten ersätter den innan den skickar Routen.
 - **DeploymentConfigs** under **Arbetsbelastningar** visas som Deployments: deras utrullningar, deras poddars CPU och minne samt händelserna för de ReplicationControllers och poddar de kör.
 
 **Larm om operatorer och uppdateringar.** Sidan **Rekommendationer** för ett OpenShift-kluster erbjuder **Cluster Operator Unavailable**, **Cluster Operator Degraded** och **Cluster Update Failing**. Var och en är en loggmonitor över de ögonblicksbilder som agenten skickar varje `resourceSpecs.interval`. Den larmar när två ögonblicksbilder säger det, så en operator som slår om ett ögonblick under en uppdatering utlöser ingenting, och den löser larmet när en ögonblicksbild säger att problemet är över, aldrig för att agenten slutade skicka.
@@ -591,7 +591,7 @@ Vissa diagram visar mätvärden som agenten inte skrapar: **kube-proxy** på sid
 
 ### Aktivera kostnadsobserverbarhet
 
-Se vad varje namespace, arbetsbelastning och podd kostar, med ledig kapacitet och hur mycket av varje request som används, på klustrets sida **Costs**:
+Se vad varje namespace, arbetsbelastning och podd kostar, med ledig kapacitet och hur mycket av varje request som används, på klustrets sida **Kostnader**:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
