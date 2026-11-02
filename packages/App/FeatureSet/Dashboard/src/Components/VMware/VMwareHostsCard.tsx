@@ -238,8 +238,14 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
                           data-testid={`${testId}-name`}
                           className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
                         >
+                          {/*
+                           * Alone in its box, a name of any length breaks
+                           * after its dots: at 768px beside the side menu
+                           * "esx03.acme.example" broke as "esx03.acme.exa" /
+                           * "mple".
+                           */}
                           <bdi>
-                            <BreakableName text={name} />
+                            <BreakableName text={name} breaksFromLength={0} />
                           </bdi>
                         </span>
                         <span

@@ -359,6 +359,54 @@ function listRow(page: Page, name: string): Locator {
   return page.getByRole("row").filter({ hasText: name });
 }
 
+/*
+ * The character each line but the last of these elements ends with, as the
+ * browser laid them out: "." for "esx02.acme." / "example", "l" for
+ * "esx02.acme.exampl" / "e".
+ */
+async function lineEndsOf(
+  locator: Locator,
+): Promise<Array<{ text: string; ends: Array<string> }>> {
+  return await locator.evaluateAll(
+    (
+      elements: Array<Element>,
+    ): Array<{ text: string; ends: Array<string> }> => {
+      return elements.map((element: Element) => {
+        const ends: Array<string> = [];
+        const walker: TreeWalker = document.createTreeWalker(
+          element,
+          NodeFilter.SHOW_TEXT,
+        );
+        let lineTop: number | null = null;
+        let previous: string = "";
+
+        for (
+          let node: Node | null = walker.nextNode();
+          node;
+          node = walker.nextNode()
+        ) {
+          const value: string = node.textContent || "";
+
+          for (let index: number = 0; index < value.length; index++) {
+            const range: Range = document.createRange();
+            range.setStart(node, index);
+            range.setEnd(node, index + 1);
+            const top: number = range.getBoundingClientRect().top;
+
+            if (lineTop !== null && top > lineTop + 4) {
+              ends.push(previous);
+            }
+            lineTop = top;
+            previous = value.charAt(index);
+          }
+        }
+
+        return { text: element.textContent || "", ends: ends };
+      });
+    },
+  );
+}
+
 test.describe("the vCenter's Overview", () => {
   test("says what needs attention first, the most urgent first, and opens each part's page", async ({
     page,
@@ -1247,11 +1295,77 @@ test.describe("a cluster's page", () => {
 });
 
 test.describe("at a phone's width, in dark mode, in German and in Persian", () => {
-  test("at 390px the Overview, the lists and each part's page fit the screen", async ({
+  test("at 1024px and 768px beside the side menu, and at 390px, the Overview, the lists and each part's page fit the screen", async ({
     page,
   }: {
     page: Page;
   }) => {
+    /*
+     * At 1024px beside the side menu the top consumers sit two to a row: a
+     * host's name breaks after its dots, never at the letter that filled
+     * the line ("esx02.acme.exampl" / "e").
+     */
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await openOverview(page);
+    await expect(page.getByTestId("vmware-top-consumers")).toBeVisible();
+    const wrapped: Array<{ text: string; ends: Array<string> }> = (
+      await lineEndsOf(page.getByTestId("vmware-top-consumer-name"))
+    ).filter((name: { text: string; ends: Array<string> }): boolean => {
+      return name.ends.length > 0;
+    });
+    expect(wrapped.length).toBeGreaterThan(0);
+    expect(
+      wrapped.filter((name: { text: string; ends: Array<string> }): boolean => {
+        return name.ends.some((end: string): boolean => {
+          return end !== "." && end !== "-";
+        });
+      }),
+    ).toEqual([]);
+    await screenshot(page, "tablet-overview");
+
+    // At 768px the ESXi Hosts card's names, the same ("esx03.acme.exa" / "mple").
+    await page.setViewportSize({ width: 768, height: 1024 });
+    const cardNames: Array<{ text: string; ends: Array<string> }> =
+      await lineEndsOf(page.getByTestId("vmware-hosts-card-name"));
+    expect(
+      cardNames.filter(
+        (name: { text: string; ends: Array<string> }): boolean => {
+          return name.ends.length > 0;
+        },
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(
+      cardNames.filter(
+        (name: { text: string; ends: Array<string> }): boolean => {
+          return name.ends.some((end: string): boolean => {
+            return end !== "." && end !== "-";
+          });
+        },
+      ),
+    ).toEqual([]);
+    await page.setViewportSize({ width: 1024, height: 768 });
+
+    /*
+     * The Hosts list beside the side menu: Status keeps its own 7rem floor,
+     * not a column of prose's 10rem (with its padding the 184px that left
+     * a host's name 56px), and a capacity stays with its unit.
+     */
+    await openPage(page, `${VCENTER_PATH}/hosts`);
+    await expect(listRow(page, "esx02.acme.example")).toBeVisible();
+    const statusWidth: number = await page
+      .locator("thead th", { hasText: "Status" })
+      .first()
+      .evaluate((element: Element): number => {
+        return element.getBoundingClientRect().width;
+      });
+    expect(statusWidth).toBeLessThan(184);
+    expect(await listRow(page, "esx02.acme.example").textContent()).toContain(
+      "76.80\u00a0GHz",
+    );
+    await expectTablesFitTheirCards(page);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "tablet-hosts");
+
     await page.setViewportSize({ width: 390, height: 844 });
 
     await openOverview(page);

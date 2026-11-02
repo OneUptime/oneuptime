@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import Link from "Common/UI/Components/Link/Link";
@@ -130,11 +131,21 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          {/*
+                           * A long name breaks after its dots, as the
+                           * vCenter's top consumers do, not at whatever
+                           * letter filled the line (break-all).
+                           */}
                           <Link
                             to={props.getVirtualMachineRoute(vm.externalId)}
-                            className="min-w-0 break-all text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline"
+                            className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere] hover:text-indigo-600 hover:underline"
                           >
-                            {vm.name}
+                            <bdi>
+                              <BreakableName
+                                text={vm.name}
+                                breaksFromLength={0}
+                              />
+                            </bdi>
                           </Link>
                           {getVMwareCpuReadyPercentTone(vm.cpuReadyPercent) ===
                           "warning" ? (

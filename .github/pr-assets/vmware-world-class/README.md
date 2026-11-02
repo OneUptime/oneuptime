@@ -10,6 +10,8 @@ customer's data.
 | --- | --- | --- |
 | top-consumers | vCenter Overview, Top Resource Consumers | 1280 |
 | top-consumers-phone | vCenter Overview, Top Resource Consumers | 390 |
+| top-consumers-1024 | vCenter Overview, Top Resource Consumers beside the side menu | 1024 |
+| hosts-card-768 | vCenter Overview, ESXi Hosts card beside the side menu | 768 |
 | german-tiles | vCenter Overview tiles and charts, German | 1280 |
 | lost-host-tiles | vCenter Overview tiles | 1280 |
 | hero-chips | vCenter Overview hero | 1280 |

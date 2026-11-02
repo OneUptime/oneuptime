@@ -1038,6 +1038,36 @@ describe("the cards", () => {
     expect(attentionRow).toHaveAttribute("data-severity", "warning");
   });
 
+  test("a VM's long name breaks after its dots, never at the letter that filled the line", async () => {
+    mockVirtualMachines = [
+      vm(1, {
+        name: "web-frontend-03.prod.acme.example",
+        isPoweredOn: true,
+        latestCpuPercent: 42,
+      }),
+    ];
+    await renderPage();
+
+    const link: HTMLElement = within(
+      within(screen.getByTestId("vmware-host-busiest-vms")).getByTestId(
+        "vmware-host-busy-vm",
+      ),
+    ).getByRole("link");
+    expect(link.textContent).toBe("web-frontend-03.prod.acme.example");
+    // break-all broke it anywhere: "web-frontend-03.prod.a" / "cme.example".
+    expect(link.className).not.toContain("break-all");
+    expect(link.className).toContain("[overflow-wrap:anywhere]");
+    const parts: Array<string> = [""];
+    for (const node of Array.from(link.querySelector("bdi")!.childNodes)) {
+      if (node.nodeName === "WBR") {
+        parts.push("");
+        continue;
+      }
+      parts[parts.length - 1] += node.textContent || "";
+    }
+    expect(parts).toEqual(["web-frontend-03.", "prod.", "acme.", "example"]);
+  });
+
   test("a host that runs no VM has no busiest list", async () => {
     mockVirtualMachines = [];
     await renderPage();

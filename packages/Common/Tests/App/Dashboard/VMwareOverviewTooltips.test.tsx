@@ -708,7 +708,8 @@ describe("VMware overview: a host vCenter cannot reach is no idle capacity", () 
 });
 
 describe("VMware overview: the top consumers, coloured as their alerts read them", () => {
-  function busyInventory(): Array<unknown> {
+  // Each host's name ends with `domain` ("esx01" + ".acme.example").
+  function busyInventory(domain: string = ""): Array<unknown> {
     const now: Date = new Date();
     const base: Array<unknown> = inventory().filter((row: unknown): boolean => {
       const kind: unknown = (row as { kind?: unknown }).kind;
@@ -724,8 +725,8 @@ describe("VMware overview: the top consumers, coloured as their alerts read them
       return inventoryRow({
         kind: "Host",
         externalId: `host/dc1/${name}`,
-        name: name,
-        hostName: name,
+        name: `${name}${domain}`,
+        hostName: `${name}${domain}`,
         datacenterName: "dc1",
         clusterName: "cl1",
         latestCpuPercent: cpu,
@@ -759,7 +760,7 @@ describe("VMware overview: the top consumers, coloured as their alerts read them
         kind: "VirtualMachine",
         externalId: `vm/${name}`,
         name: name,
-        hostName: "esx01",
+        hostName: `esx01${domain}`,
         datacenterName: "dc1",
         isTemplate: false,
         isPoweredOn: true,
@@ -830,15 +831,68 @@ describe("VMware overview: the top consumers, coloured as their alerts read them
     expect(bar.className).not.toContain("bg-red-500");
   });
 
+  // The text between the <wbr>s of a name drawn in its <bdi>.
+  function partsOf(bdi: HTMLElement): Array<string> {
+    const parts: Array<string> = [""];
+
+    for (const node of Array.from(bdi.childNodes)) {
+      if (node.nodeName === "WBR") {
+        parts.push("");
+        continue;
+      }
+      parts[parts.length - 1] += node.textContent || "";
+    }
+
+    return parts;
+  }
+
   test("a name is never cut short: it breaks after its dots, whole", async () => {
-    mockRows = busyInventory();
+    mockRows = busyInventory(".acme.example");
     await renderLoaded();
 
+    await waitFor(() => {
+      expect(screen.getByTestId("vmware-top-host-cpu")).toBeInTheDocument();
+    });
     const name: HTMLElement = within(
       screen.getByTestId("vmware-top-host-cpu"),
     ).getAllByTestId("vmware-top-consumer-name")[0]!;
     expect(name.className).not.toContain("truncate");
     expect(name.className).toContain("[overflow-wrap:anywhere]");
+    /*
+     * 18 letters, short of the 20 a name in running text breaks from: alone
+     * beside its value it breaks after its dots too - at 1024px beside the
+     * side menu "esx01.acme." / "example", never "esx01.acme.exampl" / "e".
+     */
+    expect(partsOf(name.querySelector("bdi")!)).toEqual([
+      "esx01.",
+      "acme.",
+      "example",
+    ]);
+    expect(name).toHaveTextContent(/^esx01\.acme\.example$/);
+
+    // A VM's host, in its chip, the same.
+    const host: HTMLElement = within(
+      screen.getByTestId("vmware-top-vm-cpu-ready"),
+    ).getAllByText("esx01.acme.example")[0]!;
+    expect(host.tagName).toBe("BDI");
+    expect(partsOf(host)).toEqual(["esx01.", "acme.", "example"]);
+
+    /*
+     * And each host's name in the ESXi Hosts card: at 768px beside the side
+     * menu it broke as "esx03.acme.exa" / "mple".
+     */
+    const cardNames: Array<Array<string>> = within(
+      screen.getByTestId("vmware-hosts-card"),
+    )
+      .getAllByTestId("vmware-hosts-card-name")
+      .map((cardName: HTMLElement): Array<string> => {
+        return partsOf(cardName.querySelector("bdi")!);
+      });
+    expect(cardNames.length).toBe(3);
+    for (const parts of cardNames) {
+      expect(parts).toEqual([parts[0], "acme.", "example"]);
+      expect(parts[0]).toMatch(/^esx0[1-3]\.$/);
+    }
   });
 });
 

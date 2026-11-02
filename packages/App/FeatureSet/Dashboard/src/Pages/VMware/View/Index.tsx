@@ -2062,14 +2062,23 @@ const VMwareVCenterOverview: FunctionComponent<
                         className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
                         data-testid="vmware-top-consumer-name"
                       >
+                        {/*
+                         * Alone on its line beside the value, a name of any
+                         * length breaks after its dots: at 1024px beside the
+                         * side menu "esx02.acme.example" broke as
+                         * "esx02.acme.exampl" / "e".
+                         */}
                         <bdi>
-                          <BreakableName text={row.name} />
+                          <BreakableName text={row.name} breaksFromLength={0} />
                         </bdi>
                       </span>
                       {row.context && (
                         <span className="inline-flex max-w-full rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 [overflow-wrap:anywhere]">
                           <bdi>
-                            <BreakableName text={row.context} />
+                            <BreakableName
+                              text={row.context}
+                              breaksFromLength={0}
+                            />
                           </bdi>
                         </span>
                       )}
