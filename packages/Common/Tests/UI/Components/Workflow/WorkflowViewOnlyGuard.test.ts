@@ -63,7 +63,7 @@ const OUTSIDE_THE_VIEW: Record<string, string> = {
   "ComponentsModal.tsx":
     "The panel steps and triggers are added from. A view never opens it: the add button is locked, the dashed trigger card is not pressed, and Run Workflow offers no Add Trigger (Workflow.tsx).",
   "DocumentationViewer.tsx":
-    "A step's help: its buttons copy an example or move within the help, and change nothing.",
+    "A step's help: its one button shows more of the help, and changes nothing.",
   "HuntressTriggerPanel.tsx":
     "The Huntress trigger's panel: Copy, and a signing secret saved behind the Workflow update permission it asks itself (PermissionGate), view or not.",
   "IncomingEmailTriggerPanel.tsx":
@@ -84,7 +84,7 @@ const OUTSIDE_THE_VIEW: Record<string, string> = {
   "WorkflowStatusBar.tsx":
     "The Builder's status: View only in a view (readOnlyReason), and the run log and checks it opens change nothing.",
   "WorkflowTurnedOffNotice.tsx":
-    "The note a turned-off workflow shows; its Turn on is behind the enable gate (UseWorkflowEnabled).",
+    "The note a turned-off workflow shows; the Builder page offers its Turn on only to who may turn the workflow on.",
 };
 
 /*
